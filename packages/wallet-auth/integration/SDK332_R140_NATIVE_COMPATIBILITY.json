@@ -678,8 +678,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 67672,
-      "sha256": "7f7fc323f5c20d504204c8dabec801700db48a740fc4bb031d9cd61c71f11bdd"
+      "bytes": 70196,
+      "sha256": "21d2bd5fc00202feb645ada21da5fc42a8f5f59d5cb270a443ecc8e0b0321dac"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -1245,6 +1245,16 @@
       "path": "packages/wallet-auth/native/original-pay-cloud-bill-source-contract.d.mts",
       "bytes": 3443,
       "sha256": "458abf3ab495d999ada9c8911213b3dc9ec24b6619199ad888911342400e8473"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-wallet-pay-client-source-contract.mjs",
+      "bytes": 6577,
+      "sha256": "1615b54000d787e22bbec9ed3252cf2e81c07bbb571b5cce4902f0245c65659d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-wallet-pay-client-source-contract.d.mts",
+      "bytes": 2282,
+      "sha256": "456a02d5d14e23906d5f6d75fbfd1233a7f01fd5990c307649161a8ad12a5036"
     }
   ],
   "normalBuildTool": {
@@ -1378,7 +1388,7 @@
   },
   "supplierR159": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r159/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r159/HANDOFF.json",
       "bytes": 7016,
       "sha256": "242e2f9d3b42c78cb6e035e4f46388a75b73ad75615408204633f123c8fcd3ec"
     },
@@ -1405,7 +1415,7 @@
   },
   "supplierR164": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r164/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r164/HANDOFF.json",
       "bytes": 9576,
       "sha256": "476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24"
     },
@@ -1468,12 +1478,12 @@
   },
   "supplierR166": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r166/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r166/HANDOFF.json",
       "bytes": 11222,
       "sha256": "54609d7d3035c8445adf3460c021d121caa6b0be8fd51952c77d80de66974241"
     },
     "parent": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r164/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r164/HANDOFF.json",
       "bytes": 9576,
       "sha256": "476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24"
     },
@@ -1564,13 +1574,13 @@
   },
   "supplierR170": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r170/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r170/HANDOFF.json",
       "bytes": 7871,
       "sha256": "90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616"
     },
     "parents": [
       {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r167/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r167/HANDOFF.json",
         "bytes": 3840,
         "sha256": "b8cce9b811b20e215d8b5a31256676d479c1cd5846461e27820669c42d37e098"
       },
@@ -1616,7 +1626,7 @@
   },
   "supplierR172": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/HANDOFF.json",
       "bytes": 4614,
       "sha256": "e14e57d57093298eb03f22e6db576dac058d1f8f22968707331b3f7ca6bd31c6"
     },
@@ -1636,26 +1646,26 @@
     "originalWorkerCount": 2,
     "originalEvidenceReused": {
       "metadata": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/result.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/result.json",
         "bytes": 124,
         "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
       },
       "stdout": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stdout",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stdout",
         "bytes": 536,
         "sha256": "42db4ac5e28a21d0d8c2cafc133765f8e51dc2e5b6f93da30279257adb46bf0b"
       },
       "stderr": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stderr",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stderr",
         "bytes": 0,
         "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       },
-      "oldAddon": "/Volumes/西部数据/YNX-large-work/auth-owned-r170/evidence/run-5c2bvD/normal.node",
+      "oldAddon": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r170/evidence/run-5c2bvD/normal.node",
       "outerExit": 1,
       "actualTestChildSignal": "SIGSEGV",
       "realWorkers": 2,
       "firstUnclassifiedProbePreserved": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-pTw2nz/result.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/evidence/red-pTw2nz/result.json",
         "bytes": 124,
         "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
       },
@@ -1663,17 +1673,17 @@
     },
     "newNativeEvidenceReused": {
       "result": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/run-JuA72P/result.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/evidence/run-JuA72P/result.json",
         "bytes": 5256,
         "sha256": "f641a9503ad675fa506a7302c73bb81de43987afac6eb0357f16bb5466244fb3"
       },
       "test": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/worker.test.mjs",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/worker.test.mjs",
         "bytes": 1961,
         "sha256": "1ef6186c92c5d68d855a727efe7658b48bfdca9e8135a3493e30a6f07d84edff"
       },
       "runner": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/run.mjs",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/run.mjs",
         "bytes": 3209,
         "sha256": "6e7d5287e17af4f6d2b08fb6c1e7b5fefb35a68b3bbc8616a4930a2e730779f0"
       },
@@ -1699,12 +1709,12 @@
   },
   "supplierR171": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r171/HANDOFF.json",
       "bytes": 10648,
       "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
     },
     "parentSource16": {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
       "bytes": 17026,
       "sha256": "e3ffd5e441e9c19735b8ea3ad16c32293184c1659467a911f6b14400c8696e0c"
     },
@@ -1767,23 +1777,23 @@
   },
   "supplierR174": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r174/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r174/HANDOFF.json",
       "bytes": 7025,
       "sha256": "60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63"
     },
     "parents": {
       "native": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r171/HANDOFF.json",
         "bytes": 10648,
         "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
       },
       "node": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r172/HANDOFF.json",
         "bytes": 4614,
         "sha256": "e14e57d57093298eb03f22e6db576dac058d1f8f22968707331b3f7ca6bd31c6"
       },
       "source16": {
-        "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
         "bytes": 17026,
         "sha256": "e3ffd5e441e9c19735b8ea3ad16c32293184c1659467a911f6b14400c8696e0c"
       }
@@ -1819,23 +1829,23 @@
   },
   "supplierR177": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r177/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r177/HANDOFF.json",
       "bytes": 12287,
       "sha256": "1521af764bc459400ef3f2a2b4e0973b6012739fd43ab36b17b6b7dce6c1110e"
     },
     "parents": {
       "source18": {
-        "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r174-project-reader-source-61786642-20261024/SOURCE_HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-feature-integration-20261018/sdk-r174-project-reader-source-61786642-20261024/SOURCE_HANDOFF.json",
         "bytes": 17643,
         "sha256": "1feb33423bfb4e10229004c57e77693f1d4188fbea0e4ed449eca3d48a947e85"
       },
       "r171": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r171/HANDOFF.json",
         "bytes": 10648,
         "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
       },
       "r174": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r174/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r174/HANDOFF.json",
         "bytes": 7025,
         "sha256": "60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63"
       }
@@ -1889,12 +1899,12 @@
   },
   "supplierR181": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r181/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r181/HANDOFF.json",
       "bytes": 25894,
       "sha256": "79a4ab2d465778a9d92b99b7d3d586977c6a3b01618b8af3182208435bd1ef9f"
     },
     "currentFactoryParent": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r180/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r180/HANDOFF.json",
       "bytes": 9537,
       "sha256": "e93ce172479a792d92d3f95faea77780124f9562f8b0678fbb2a02d471198e4a"
     },
@@ -1956,7 +1966,7 @@
   ],
   "supplierR185": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r185/HANDOFF.json",
       "bytes": 10050,
       "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a"
     },
@@ -2022,12 +2032,12 @@
   },
   "supplierR186": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r186/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r186/HANDOFF.json",
       "bytes": 4132,
       "sha256": "d06dde34e9e0986e626250014677059175696e83a0c97d42638a6b630f44d084"
     },
     "parent": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r185/HANDOFF.json",
       "bytes": 10050,
       "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a",
       "blob": "c50d177de6e074d64d80269c85614670ad0bd226"
@@ -2051,7 +2061,7 @@
   },
   "supplierR193": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r193/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r193/HANDOFF.json",
       "bytes": 8987,
       "sha256": "bbfbb6f1752028b88c743e7805b8d512f005d851a854d8c9ba5885340967e129"
     },
@@ -2069,14 +2079,14 @@
   },
   "supplierR196": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r196/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r196/HANDOFF.json",
       "bytes": 12606,
       "sha256": "2c26d1d99328cf0ea355988d1b81d2e37d4e57995d946e78b7036384c4a8ea95"
     },
     "cumulativeSDKParent": "b743cc20c0320a46c885b76268de93deab4cfb9f",
     "verifierIntermediateParent": {
       "handoff": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r189/HANDOFF.json",
         "bytes": 21720,
         "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
       },
@@ -2155,7 +2165,7 @@
   },
   "supplierR197": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r197/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r197/HANDOFF.json",
       "bytes": 4060,
       "sha256": "3e16ce86fef8bd94142894a3e66e85dea83d20a78644e2ea05c8c8a3bb6ee165"
     },
@@ -2184,7 +2194,7 @@
     ],
     "inheritedPublicationDispatch": {
       "handoff": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r189/HANDOFF.json",
         "bytes": 21720,
         "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
       },
@@ -2231,7 +2241,7 @@
   },
   "supplierR197ClosureCorrection": {
     "formalSourceHandoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r189/HANDOFF.json",
       "bytes": 21720,
       "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
     },
@@ -2254,14 +2264,14 @@
     "Source13": false,
     "production": false,
     "supersededSourceHandoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-auth24-r197-matching-source-498e7919-20261024/SOURCE_HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-feature-integration-20261018/sdk-auth24-r197-matching-source-498e7919-20261024/SOURCE_HANDOFF.json",
       "bytes": 26871,
       "sha256": "630b8ccc6d16150cd5bb08cc7168c8b219b5ca5438e508f2e6dbe8513c133708"
     }
   },
   "supplierR200": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r200/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r200/HANDOFF.json",
       "bytes": 6852,
       "sha256": "f1861a8bf007ad23d30f553fee4f092dbac100a6df590060139cff8ea63e525a"
     },
@@ -2330,7 +2340,7 @@
   },
   "supplierR201": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r201-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r201-supply-20261024-r1/HANDOFF.json",
       "bytes": 15522,
       "sha256": "c5eb84616362303cba09d7b7067280961418d2533482281a492ab3e1dee532b9"
     },
@@ -2424,7 +2434,7 @@
   },
   "supplierR222": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r222-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r222-supply-20261024-r1/HANDOFF.json",
       "bytes": 92809,
       "sha256": "daddd86fdabf3e384473782a76bdc991c461c654747c8b960fa7cbeddf6a0c93"
     },
@@ -2443,7 +2453,7 @@
   },
   "supplierR224": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r224-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r224-supply-20261024-r1/HANDOFF.json",
       "bytes": 13242,
       "sha256": "766ddd999f63ebe3396fe97fdde7a35c22c163365fcd79418e0a36aae2b7d70a"
     },
@@ -2462,7 +2472,7 @@
   },
   "supplierR225": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r225-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r225-supply-20261024-r1/HANDOFF.json",
       "bytes": 7092,
       "sha256": "128770bb8b35281219b979821109665ebcf7dd9b23ba14b8db6a44cd8eec9eca"
     },
@@ -2482,7 +2492,7 @@
   },
   "supplierR226": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r226-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r226-supply-20261024-r1/HANDOFF.json",
       "bytes": 7648,
       "sha256": "dd3b8d2a0522b2ac1f02358f7d68047198938b2f1754bb1a6b5a75b8d41b4570"
     },
@@ -2532,7 +2542,7 @@
   },
   "supplierR237": {
     "handoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r237-supply-20261024-r1/HANDOFF.json",
       "bytes": 15547,
       "sha256": "64e8e90ad47d06eb446e113524557eaa601896f40f8fdc54591318cc39350c80"
     },
@@ -2656,7 +2666,7 @@
   },
   "serviceRegistrationSuccessor": {
     "AuthH": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-ide-service-registration-supply-20261026-r2/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-ide-service-registration-supply-20261026-r2/HANDOFF.json",
       "bytes": 113141,
       "sha256": "d1da3a842b93696b7284653cb883564f3c5d08fd34fd6689652f5816dc58b328"
     },
@@ -2683,7 +2693,7 @@
   },
   "appObserverSuccessor": {
     "AuthHandoff": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-ide-app-observer-supply-20261026-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-ide-app-observer-supply-20261026-r1/HANDOFF.json",
       "bytes": 86873,
       "sha256": "54a10fea7ecf6e0d7cc31cf9b574b35873b68d62df8aadeb6545bdf01321762c"
     },
@@ -2850,12 +2860,12 @@
     ],
     "parents": [
       {
-        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-hash/SDK46_CATALOG_HASH_RUNTIME_HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-hash/SDK46_CATALOG_HASH_RUNTIME_HANDOFF.json",
         "bytes": 13425,
         "sha256": "0e39c997830d8fd6851923c03ec10d52d71507ce766ad23e7a8ebef69010767b"
       },
       {
-        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-normalpeer/SDK46_CATALOG_NORMALPEER_RUNTIME_HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-normalpeer/SDK46_CATALOG_NORMALPEER_RUNTIME_HANDOFF.json",
         "bytes": 14831,
         "sha256": "996fa781c33e185223cd7e2b96b55a9ae7d7c141ef8d30582e376a301b27a760"
       }
@@ -2867,22 +2877,22 @@
     "sourceVariant": "SDK49-PENDING-NATIVE-CLIENT/v1",
     "NativeInputs": 127,
     "Auth19Source": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-pending-native-20261031-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-v4-pending-native-20261031-r1/HANDOFF.json",
       "bytes": 27410,
       "sha256": "d170262b39353a1327b8b14c135291a2515c099150c4a001e66412259d9e589c"
     },
     "rawBodySupplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-pending-raw-sdk-node-20261031-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-v4-pending-raw-sdk-node-20261031-r1/HANDOFF.json",
       "bytes": 9890,
       "sha256": "476322bb442541942ac7d0114c4b9a47dad26d746650aa170962643f75d80f02"
     },
     "rawBody": {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pending-native-20261031/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pending-native-20261031/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
       "bytes": 83521,
       "sha256": "58693eaa300b07dfd261cba29333f7017556aacd4970fa17cd9df53e33950acc"
     },
     "MainBodyAlternative": {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pending-native-20261031/main-body-supplier/original-auth-identity-node.mm",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pending-native-20261031/main-body-supplier/original-auth-identity-node.mm",
       "bytes": 62782,
       "sha256": "0626a1061267eef4ab866cad3134ef70382dc884faa623588b0d9398d5abe84e"
     },
@@ -2906,7 +2916,7 @@
     "SourceAdmission": false,
     "installed": false,
     "normalR2Supplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-pending-normal-linked-20261031-r2/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-v4-pending-normal-linked-20261031-r2/HANDOFF.json",
       "bytes": 25091,
       "sha256": "28d2e616d095847d0cba820f334e676b7308dcf0194d7f7f4968bc1211a6cfee"
     },
@@ -2925,7 +2935,7 @@
     "componentBoundary": "SDK raw83521 arm64 Node26.7 normal component only; Main body and Electron/installation require separate matching selection",
     "combinedGETAndPendingPlan": "SOURCE+HTTP+PENDING same image, 20 translation units plus link; raw SDK profile only, no Main/Electron or Source admission inheritance",
     "normalCombinedSupplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-normal-factory-service-20261031-r1/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-normal-factory-service-20261031-r1/HANDOFF.json",
       "bytes": 30826,
       "sha256": "f8e5ef859ac2ef6f63112de6b35bb99738daf4c14e8cc749f3b1af2a7e978567"
     }
@@ -2933,7 +2943,7 @@
   "deviceProvisioningNativeSuccessor": {
     "sourceVariant": "SDK49-PROVISIONING-SOURCE-R4/v1",
     "supplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/HANDOFF.json",
       "bytes": 132405,
       "sha256": "2542f633e3399bb448e73f641df4d58d4430fb2d4c06495a91088c1ab3ab0ceb"
     },
@@ -2959,7 +2969,7 @@
     "actualRevoke": false,
     "operationCurrentSuccessor": {
       "supplier": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/HANDOFF.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/HANDOFF.json",
         "bytes": 135664,
         "sha256": "c30fff3b8d880c2e0a13bc3703b1e4a7064d39dfc16058901853f0f9acdeb88b"
       },
@@ -2967,13 +2977,13 @@
         {
           "relativePath": "apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
           "old": {
-            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
+            "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
             "bytes": 16288,
             "sha256": "c273b6283588e9b4b3660c771ac8643aa72dc391fdd3947f3e5237cc43b4e5cb",
             "gitBlob": "1c5af65120b92787191e19fad11075b080296063"
           },
           "successor": {
-            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
+            "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
             "bytes": 16539,
             "sha256": "dd4799c09afad0eae810e76ddfcd895503253b027af5f928e3add67647027a1a",
             "gitBlob": "a3cb87bcc805357433a14a4141b4c756788bb9d1"
@@ -2982,13 +2992,13 @@
         {
           "relativePath": "apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
           "old": {
-            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
+            "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
             "bytes": 8915,
             "sha256": "a9acdbee785475a0ba57324b06294cb9a0707fff837ab279c46321f8c7f8de3b",
             "gitBlob": "f829bd4bfb39c55b26b06b6f2fe60fa38e3f363a"
           },
           "successor": {
-            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
+            "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
             "bytes": 9784,
             "sha256": "12994bce29cfba90ce703c7764c71efadc7400fdcdff93b2e863bafdc63837e5",
             "gitBlob": "97d01db87d3a9ac46ad09016a34cd9d3d0ad8177"
@@ -2999,7 +3009,7 @@
       "CoreChanged": false,
       "CLIChanged": false,
       "NativeImage": {
-        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/candidate/original-auth-identity.node",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/candidate/original-auth-identity.node",
         "bytes": 8716744,
         "sha256": "c243257d472f28b69e618f8efc38b0312ada3efe61de63120902e77a6fdac1f9",
         "gitBlob": "d34554f948fca9420d4707146c2393b6a5d17699",
@@ -3011,7 +3021,7 @@
   },
   "deviceOriginalQuerySourceKernel": {
     "supplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-source/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/device-query-source/HANDOFF.json",
       "bytes": 21275,
       "sha256": "d6006b355ed66e1b8bb50690df745a8bef2b12e72aafc49711c82f296876c6fc"
     },
@@ -3032,12 +3042,12 @@
   },
   "deviceOriginalQueryNativeSource": {
     "supplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-native-source/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/device-query-native-source/HANDOFF.json",
       "bytes": 13402,
       "sha256": "66d079c881977dbe9814631480f720e3a7a821d6896f3afea9609567cffef0d8"
     },
     "wrapper": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-sdk-source/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/device-query-sdk-source/HANDOFF.json",
       "bytes": 3806,
       "sha256": "545b75efaa60b812cb50da469cb170fb179656c4cef66e4d4dc0ccb886790a45"
     },
@@ -3061,28 +3071,28 @@
     "actualOutcomeQuery": false
   },
   "ideDeploymentManifestV2Source": {
-    "supplierHandoff": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-deployment-v2-source/HANDOFF.json",
+    "supplierHandoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-deployment-v2-source/HANDOFF.json",
     "CoreTuple": {
       "commit": "928f49a2ad6bc7d087110a550317712ccf7e651d",
       "tree": "3289dc4e59ade770dee52522bdb7511805c10d46",
       "header": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/deployment_manifest_v2.h",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/deployment_manifest_v2.h",
         "bytes": 4243,
         "sha256": "502a86840c3029878cdbfc7531b4dd64a58179e630e861842b9c104433921781"
       },
       "archive": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/libynx_artifact_release.a",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/libynx_artifact_release.a",
         "bytes": 11358000,
         "sha256": "7eafad13541e632f8560dd578cc409bea319c2b312135d497566cca2804057c0"
       },
       "classification": "FORMAL_MACOS_ARM64_NATIVE_COMPONENT",
       "source": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/SOURCE.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/SOURCE.json",
         "bytes": 29632,
         "sha256": "54aba58a5de93d79a7a94207c3068fc9c8bbd30934f38026e4e6f539d4b2fe4c"
       },
       "originalArchiveSource": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/ORIGINAL-ARCHIVE-SOURCE.json",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/ORIGINAL-ARCHIVE-SOURCE.json",
         "bytes": 31516,
         "sha256": "c68c05d110aab6261423926b643d6af74ef39a67d2b9d667c25bea26073f72fe"
       },
@@ -3143,12 +3153,12 @@
       "commit": "928f49a2ad6bc7d087110a550317712ccf7e651d",
       "tree": "3289dc4e59ade770dee52522bdb7511805c10d46",
       "header": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/pq-storage-f8-20261031/cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/pq-storage-f8-20261031/cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
         "bytes": 4243,
         "sha256": "502a86840c3029878cdbfc7531b4dd64a58179e630e861842b9c104433921781"
       },
       "archive": {
-        "path": "/Volumes/西部数据/YNX-large-work/protocol/deployment-manifest-v2-affected-ivmkqrw1/libynx_artifact_release.a",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/deployment-manifest-v2-affected-ivmkqrw1/libynx_artifact_release.a",
         "bytes": 11475768,
         "sha256": "3183c845ad48080f887cc8949520a64c9f797c83af2af7baa6cdaeafb28ba92a"
       },
@@ -3157,9 +3167,9 @@
     "normalNativeComponent": true
   },
   "ideDeploymentV2IssuanceAndCurrentSource": {
-    "supplierHandoff": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/admission-issuance-source/HANDOFF.json",
+    "supplierHandoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/HANDOFF.json",
     "CAS": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/CAS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/CAS.json",
       "bytes": 1683,
       "sha256": "4b85dd2367343f5facae045351c5202e96da58794a87da629412f2b90add1a65"
     },
@@ -3168,13 +3178,13 @@
         "target": "packages/wallet-auth/src/original-auth-source-current-v2.js",
         "beforeSHA256": "df05230d9a9a2c9e2d550b2ebaf5ed7fb6894dd37468d1d776c9ab0506523b27",
         "afterSHA256": "05031800fe66a9385a550239be6713d7c3e469a5fd3c8ca14ef1c1a8a1c35a75",
-        "patch": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-current-v2.js.patch"
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-current-v2.js.patch"
       },
       {
         "target": "packages/wallet-auth/src/original-auth-source-issuance-v2.js",
         "beforeSHA256": "4f4a22840399b27f00fd53572146763fe5d22ed9b3036fec25ddb128357ee277",
         "afterSHA256": "d8e7678aa07fed0505905efa90f892f0f0bd5467cab169f0450c6b7e252b28fb",
-        "patch": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-issuance-v2.js.patch"
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-issuance-v2.js.patch"
       },
       {
         "target": "packages/wallet-auth/src/original-ide-deployment-v2-source.js",
@@ -3185,7 +3195,7 @@
         "target": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
         "beforeSHA256": "c38cb438c9e9e7fffb0d8640e917de6970c5a7a1bbe9e0634fe6b29919c926cb",
         "afterSHA256": "1e38a280a3b335be13b9c30cf044d7f0a089dce0dde83112c58d30b95ac41156",
-        "patch": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-identity-source-v2-verifier.mjs.patch"
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-identity-source-v2-verifier.mjs.patch"
       }
     ],
     "normalSourceSelectors": [
@@ -3199,7 +3209,7 @@
     "installed": false
   },
   "httpProofV5DataMath": {
-    "supplierResult": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-http-proof-v5-codec-20261031/FUNCTION_RESULT.json",
+    "supplierResult": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-http-proof-v5-codec-20261031/FUNCTION_RESULT.json",
     "contract": "http-binary-request-contract-20261031/HTTP_PROOF_V5_CONTRACT_FINAL_PATH.json",
     "wire": "E6 domain/version/network/owner/canonicalUnsigned23/sharedBodyBindE3",
     "wholeBodyMax": 68288512,
@@ -3214,7 +3224,7 @@
     "CASApplied": [
       {
         "path": "packages/wallet-auth/src/original-product-device-v4-registration-client.d.ts",
-        "source": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.d.ts",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.d.ts",
         "beforeBytes": 2974,
         "beforeSHA256": "587c4837d06dda814a76503de4dd7420e6b3b96c5b40b1a15c56fec525221b2f",
         "afterBytes": 5436,
@@ -3222,7 +3232,7 @@
       },
       {
         "path": "packages/wallet-auth/src/original-product-device-v4-registration-client.js",
-        "source": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.js",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.js",
         "beforeBytes": 11769,
         "beforeSHA256": "bfc42fc7f1ec6544fe9b65b4c3759545a4d3c767e0895d967c2ad99d324159e2",
         "afterBytes": 19323,
@@ -3230,7 +3240,7 @@
       },
       {
         "path": "packages/wallet-auth/src/product-session-gateway-client.js",
-        "source": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/product-session-gateway-client.js",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/product-session-gateway-client.js",
         "beforeBytes": 25927,
         "beforeSHA256": "4506590e79720794b1d5e2c194c808ca1be31b38767c5cbc04edcaf8caffb0f7",
         "afterBytes": 26253,
@@ -3308,7 +3318,7 @@
     "NativeInputs": 171,
     "originalSourceSameModuleLeaseCODE": true,
     "supplier": {
-      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-runtime-image-source/native-controls/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-runtime-image-source/native-controls/HANDOFF.json",
       "bytes": 7892,
       "sha256": "a49ddaa730d1bcb797f74aea1c1939283b076e16522512f0cba7512c216dd0cb"
     },
@@ -3321,7 +3331,7 @@
   },
   "preLoadGuard3401SuccessorWIP": {
     "fixedLoader": {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native-preload-social-policy-20261101/source/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native-preload-social-policy-20261101/source/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js",
       "bytes": 3401,
       "sha256": "04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4"
     },
@@ -3411,5 +3421,15 @@
     "messageInitPurpose": 2,
     "messageInitBit": 1,
     "requiresNewMatchingReleaseOptIn": true
+  },
+  "walletPayClientSourceV1DATA": {
+    "purpose": "wallet-native-pay-client-source-v1",
+    "contract": "native/original-wallet-pay-client-source-contract.mjs",
+    "selectionKey": "walletNativePayClientV1",
+    "signedProtectedResourceRef": true,
+    "bootstrapGetter": "Actual RootSource Ref before SourceLease and registration borrow; Auth owns protected resource lookup",
+    "RootAdmission": false,
+    "NativeAdmission": false,
+    "actualRootGetter": "NOT_SUPPLIED"
   }
 }
