@@ -40,20 +40,20 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
-      "bytes": 9756,
-      "sha256": "2c325c0b83fa15a31cfe496e57b5477a4483035c1747c5c5df360ba470de8d8d"
+      "bytes": 9930,
+      "sha256": "3542985f9ea799d4da453412c3275ff86f738daae2fdff4b837f90cf6d5e61b6"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/portable-package-consumer-role.test.mjs",
-      "bytes": 3455,
-      "sha256": "be70fb6925094e8a1f9809cea53996afbef07515ac328acd93939d59b6560085"
+      "bytes": 3459,
+      "sha256": "06e29082118d3cc5488090f5f9a19fcd8e7ff1dbd0c82b78090556c6b419555d"
     }
   ],
   "approvedUI": {
-    "baselineCommit": "a6d5ea507ba472934c0f9d552f170519464b59d3",
-    "sourceCommit": "5db0be09825f03386cdbba222365d7f3c1e5873e",
-    "manifestBytes": 11113,
-    "manifestSHA256": "fa5311105b66d2317761cb2040409688482264c490cdb2a7e47cb36050e7b7ae",
+    "sourceCommit": "ef031455954f81bcea412c444f8b86eed66ade65",
+    "baselineCommit": "84074feaa476b82efa1932064c321cf817eb937e",
+    "manifestBytes": 3901,
+    "manifestSHA256": "d89d3899cde1420765953914401d956a4abb7b64fcfec65d49daa482ed51a0ce",
     "files": [
       {
         "relative": "apps/wallet-desktop/src/approval-review-display.mjs",
@@ -62,8 +62,8 @@
       },
       {
         "relative": "apps/wallet-desktop/src/approved-desktop-ui.mjs",
-        "bytes": 12362,
-        "sha256": "63af2abaca019b09be3aae54e7c2fd831d09d5eed0c76751fe9b7d85d33be7be"
+        "bytes": 12448,
+        "sha256": "748d60463e819cbb1f7522f2f42c8eb3c328e7af3718a2b27258ee521d956adb"
       },
       {
         "relative": "apps/wallet-desktop/src/approved-wallet-tokens.css",
@@ -72,8 +72,13 @@
       },
       {
         "relative": "apps/wallet-desktop/src/desktop-approved-layout.css",
-        "bytes": 13800,
-        "sha256": "ac0c138d5ab1853deb9bd0ed756dd53b454f71062ea2140f00699e04e656eb51"
+        "bytes": 15885,
+        "sha256": "22a997600b7803cb1ef64c96578c2453a50f8e5746bfe649319b786186dad31a"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/desktop-network-display.mjs",
+        "bytes": 632,
+        "sha256": "31a3e8977a9c393a39dff4fce9a9e0b236c817a7b4513b6816bea1b15184e59a"
       },
       {
         "relative": "apps/wallet-desktop/src/desktop-receive-design.css",
@@ -86,14 +91,19 @@
         "sha256": "8f349fa91b8afb02f2fe77aafae96456c95a0250d9214cf39f0089905dec47f0"
       },
       {
+        "relative": "apps/wallet-desktop/src/desktop-transaction-history-ui.mjs",
+        "bytes": 6581,
+        "sha256": "4401d366432f4a63d1dd595cc4c898f9cb3c8dcf5be0f5db64432ccff978a3f1"
+      },
+      {
         "relative": "apps/wallet-desktop/src/index.html",
         "bytes": 53883,
         "sha256": "6a3858ad2366352330b5ec22e8638278feeae31dee59bf784b77cd225a339235"
       },
       {
         "relative": "apps/wallet-desktop/src/main.mjs",
-        "bytes": 123151,
-        "sha256": "5ecb01c29e87f403f4c0bb31062169ec43cd2dd4c38661ed0b2ccafb42c13e57"
+        "bytes": 123473,
+        "sha256": "44037f951512b291f116f0c31668abc5f8e30c91ba76674cefe618956a212e2a"
       },
       {
         "relative": "apps/wallet-desktop/src/pq-backup-ui.mjs",
@@ -127,8 +137,8 @@
       },
       {
         "relative": "apps/wallet-desktop/src/renderer.js",
-        "bytes": 120523,
-        "sha256": "1c11a24e10d0946aceb0e918f8f1a629a16e874bac3f2e0b29c3d9765202e2cf"
+        "bytes": 119206,
+        "sha256": "409e18a78503ba54e5fa5d210cd82b7b88672b8af9998fecb3a43b6e3a061e0d"
       },
       {
         "relative": "apps/wallet-desktop/src/wallet-ai-task-review-queue.mjs",
@@ -174,6 +184,11 @@
         "relative": "apps/wallet-desktop/test/approved-desktop-ui.test.mjs",
         "bytes": 11144,
         "sha256": "16478dde74614c0869f7a753379cd0a30ea47cd4cfea941249af099466eade7c"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/desktop-history-network.test.mjs",
+        "bytes": 8503,
+        "sha256": "d2d76ebcaf9628d704a6edc0f0763c3a73e19af44f778c1a0f80842a7d203de3"
       },
       {
         "relative": "apps/wallet-desktop/test/fixtures/approved-receive/index.html",
