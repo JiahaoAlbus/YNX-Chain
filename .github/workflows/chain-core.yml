@@ -323,6 +323,120 @@ jobs:
           print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0), sort_keys=True))
           PY
 
+  commit-observation:
+    name: Original Commit consumer named cases
+    if: github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1536MiB
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Bind the actual unchanged callee on a workflow-only continuation
+        id: source
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          def git(*args):
+              return subprocess.check_output(['git', *args], text=True).strip()
+          controller = git('rev-parse', 'HEAD')
+          if controller != os.environ['GITHUB_SHA'] or git('status', '--porcelain'):
+              raise RuntimeError('original clean controller required')
+          parent = git('rev-parse', 'HEAD^')
+          changed = git('diff', '--name-only', parent, controller).splitlines()
+          workflow_only = changed == ['.github/workflows/chain-core.yml']
+          callee = parent if workflow_only else controller
+          scopes = ['cmd', 'internal', 'go.mod', 'go.sum', 'third_party/cometbft']
+          if workflow_only and git('diff', '--name-only', parent, controller, '--', *scopes):
+              raise RuntimeError('workflow continuation changed original Go inputs')
+          subprocess.run(['git', 'checkout', '--detach', callee], check=True)
+          if git('rev-parse', 'HEAD') != callee or git('status', '--porcelain'):
+              raise RuntimeError('actual callee must remain the exact clean source')
+          pins = {path: git('rev-parse', callee + ':' + path) for path in scopes}
+          record = dict(version='YNX-COMMIT-CONSUMER-SOURCE/v1', controllerSHA=controller,
+                        actualCalleeSHA=callee, actualCalleeTree=git('rev-parse', callee + '^{tree}'),
+                        unchangedGoInputs=pins, workflowOnlyContinuation=workflow_only,
+                        normalRuntimeBuilt=False, publicActivation=False, authorityGranted=False)
+          with (Path(os.environ['RUNNER_TEMP']) / 'commit-consumer-source.json').open('x') as out:
+              json.dump(record, out, sort_keys=True); out.write('\n')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('sha=' + callee + '\n')
+          print(json.dumps(record, sort_keys=True))
+          PY
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Execute every new Commit case and affected original stop cases
+        run: |
+          set -euo pipefail
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s \
+            -run '^(TestOperatorCommitObservation.*|TestOperatorWireObservation(NormalStopOneOutputAndPublicSchema|FailureAndUnknownPreserveOriginal))$' \
+            ./cmd/ynx-comet > "$RUNNER_TEMP/commit-consumer-tests.jsonl"; then
+            cat "$RUNNER_TEMP/commit-consumer-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          path = root / 'commit-consumer-tests.jsonl'
+          raw = path.read_bytes()
+          rows = [json.loads(line) for line in raw.splitlines()]
+          required = ['TestOperatorCommitObservationSchemaFixture',
+              'TestOperatorCommitObservationDefaultAndClosedFlags',
+              'TestOperatorCommitObservationRejectsPublicMigrationAndNetworkBeforeEnable',
+              'TestOperatorCommitObservationLoggerModuleOwnershipAndUntrustedPayloads',
+              'TestOperatorCommitObservationMissingFailureAndReplayRemainUnknown',
+              'TestOperatorCommitObservationOutputPreservesOriginalAndStopFailure',
+              'TestOperatorCommitObservationBoundedSamplesAndNormalStopGuard',
+              'TestOperatorCommitObservationRealBlockExecutorStateFeesAndJournalEquivalent',
+              'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema',
+              'TestOperatorWireObservationFailureAndUnknownPreserveOriginal']
+          for name in required:
+              terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
+              if terminal != ['pass']:
+                  raise RuntimeError('normal Commit consumer case did not execute and pass: ' + name)
+          if any(r['Action'] in ('skip', 'fail') for r in rows):
+              raise RuntimeError('skipped or failed consumer cases cannot qualify')
+          packages = [r['Action'] for r in rows if not r.get('Test') and r['Action'] in ('pass', 'fail', 'skip')]
+          if packages != ['pass']:
+              raise RuntimeError('original callee package did not pass exactly once')
+          source = json.loads((root / 'commit-consumer-source.json').read_bytes())
+          actual = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if actual != source['actualCalleeSHA'] or subprocess.check_output(['git', 'status', '--porcelain']).strip():
+              raise RuntimeError('consumer tests changed their source inputs')
+          result = dict(source, version='YNX-COMMIT-CONSUMER-NAMED-CASES/v1',
+                        requiredPassed=required, skipped=0, testJSONBytes=len(raw),
+                        testJSONSHA256=hashlib.sha256(raw).hexdigest(),
+                        runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'],
+                        actualFourNodeWindow=False, dualPQ500CrossSourceEquality=False,
+                        measuredPersistenceIsNotABCIWallOrFinality=True)
+          with (root / 'commit-consumer-result.json').open('x') as out:
+              json.dump(result, out, sort_keys=True); out.write('\n')
+          print('YNX_NORMAL_COMMIT_CONSUMER_CASES_EXECUTED ' + json.dumps(result, sort_keys=True))
+          PY
+      - name: Retain actual new consumer cases and original failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-commit-consumer-cases-${{ steps.source.outputs.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/commit-consumer-source.json
+            ${{ runner.temp }}/commit-consumer-tests.jsonl
+            ${{ runner.temp }}/commit-consumer-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
   link-scope:
     name: Select actual LINK changed closure
     runs-on: ubuntu-24.04
