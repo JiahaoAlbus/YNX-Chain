@@ -317,6 +317,31 @@ func TestP08WebDAVNewOperationCannotReplayUnknownDestination(t *testing.T) {
 	}
 }
 
+func TestP08WebDAVDestinationAliasCannotReplayUnknown(t *testing.T) {
+	f := newP08WebDAVRuntime(t)
+	f.dav.lostACK = true
+	alias := f.dav.cfg
+	alias.ProfileID = "PUBLIC-second-label"
+	var err error
+	f.s.webDAV, err = PrepareOriginalTaskWebDAVRuntime(f.source, []TaskWebDAVConfig{f.dav.cfg, alias})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.deliver(); err == nil {
+		t.Fatal("original ACK not lost")
+	}
+	other := f.input
+	other.OperationID = "PUBLIC-alias-operation"
+	other.DestinationID = alias.ProfileID
+	r, err := f.s.executeTaskWebDAV(context.Background(), f.session, f.task.ID, other, "PUBLIC-explicit-egress", false)
+	if !errors.Is(err, ErrTaskWebDAVUnknown) || r.OperationID != f.input.OperationID || f.dav.requests() != "PUT" {
+		t.Fatal("destination label bypassed original unknown object")
+	}
+	if _, err := f.s.executeTaskWebDAV(context.Background(), f.session, f.task.ID, TaskWebDAVInput{OperationID: f.input.OperationID}, "PUBLIC-explicit-egress", true); err != nil || f.dav.requests() != "PUT,GET" {
+		t.Fatal("alias guard changed original recovery")
+	}
+}
+
 func TestP08WebDAVModelAndNormalClientResult(t *testing.T) {
 	f := newP08WebDAVRuntime(t)
 	args, _ := json.Marshal(map[string]string{"resourceId": f.input.ResourceID, "destinationId": f.input.DestinationID})

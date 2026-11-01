@@ -286,11 +286,16 @@ func (s *Server) executeTaskWebDAV(ctx context.Context, session ProductSession, 
 		// A different operation ID is not a way to replay an unresolved write
 		// to this same fixed destination. Recover its original object first.
 		for _, prior := range s.store.state.WebDAVDeliveries {
-			if prior.DestinationBinding == destinationBinding {
-				if err := s.store.verifyWebDAVRecord(prior); err != nil {
-					s.store.mu.Unlock()
-					return receipt, err
-				}
+			if err := s.store.verifyWebDAVRecord(prior); err != nil {
+				s.store.mu.Unlock()
+				return receipt, err
+			}
+			// Profile labels are independent from the actual fixed destination.
+			// Compare the same origin/user/root/object under the original label
+			// so aliases cannot bypass UNKNOWN, without rewriting old records.
+			originalProfile := config
+			originalProfile.ProfileID = prior.Input.DestinationID
+			if prior.DestinationBinding == taskWebDAVDestinationBinding(originalProfile) {
 				if prior.Receipt.State == "CONTENT_PRESENT" {
 					continue
 				}

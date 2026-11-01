@@ -45,7 +45,9 @@ def verify(wheel):
         meta = z.read(next(n for n in z.namelist() if n.endswith('.dist-info/METADATA'))).decode()
         name = next(x[6:] for x in meta.splitlines() if x.startswith('Name: '))
         version = next(x[9:] for x in meta.splitlines() if x.startswith('Version: '))
-        licenses = [n for n in z.namelist() if n.endswith(('LICENSE', 'LICENSE.txt', 'LICENSE.rst', 'COPYING'))]
+        licenses = [n for n in z.namelist() if not n.endswith('/') and Path(n).name.lower().startswith(('license', 'copying'))]
+        license_documents = [{'path': n, 'bytes': len(z.read(n)), 'sha256': hashlib.sha256(z.read(n)).hexdigest()} for n in licenses]
+        license_classifiers = [n[12:] for n in meta.splitlines() if n.startswith('Classifier: License ::')]
     source = 'https://pypi.org/pypi/%s/%s/json' % (name, version)
     dest = metadata / (name + '-' + version + '.json')
     subprocess.run(['curl', '-sSfL', '--max-time', '30', '-o', str(dest), source], check=True)
@@ -53,7 +55,7 @@ def verify(wheel):
     release = next(x for x in data['urls'] if x['filename'] == wheel.name)
     digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
     assert digest == release['digests']['sha256'], wheel.name
-    return {'name': name, 'version': version, 'wheel': wheel.name, 'bytes': wheel.stat().st_size, 'sha256': digest, 'officialPyPIMatch': True, 'source': release['url'], 'metadata': source, 'license': data['info']['license'], 'licenseFiles': licenses, 'requiresDist': data['info']['requires_dist']}
+    return {'name': name, 'version': version, 'wheel': wheel.name, 'bytes': wheel.stat().st_size, 'sha256': digest, 'officialPyPIMatch': True, 'source': release['url'], 'metadata': source, 'license': data['info']['license'], 'licenseClassifiers': license_classifiers, 'licenseDocuments': license_documents, 'licenseFiles': licenses, 'requiresDist': data['info']['requires_dist']}
 
 with ThreadPoolExecutor(max_workers=3) as pool:
     rows = list(pool.map(verify, sorted(wheels.glob('*.whl'))))

@@ -19,14 +19,16 @@ real account or model execution is claimed.
   returned 201, overwriting existing bytes. Do not qualify it as create-only.
   The original failing evidence is retained; no upstream code was patched.
 
-* WsgiDAV 4.3.3 with cheroot 10.0.1, MIT (official package sources):
+* WsgiDAV 4.3.3 (MIT) with cheroot 10.0.1 (BSD; its wheel contains
+  `LICENSE.md`). Dependency licenses are retained individually rather than
+  being described collectively as MIT. Official package sources:
   https://pypi.org/project/WsgiDAV/4.3.3/
   https://github.com/mar10/wsgidav/tree/v4.3.3
   https://raw.githubusercontent.com/mar10/wsgidav/v4.3.3/LICENSE
   Official WsgiDAV wheel SHA256:
   `8d96b0f05ad7f280572e99d1c605962a853d715f8e934298555d0c47ef275e88`.
   Nine fixed wheels total 722849 bytes. All hashes match the corresponding
-  official PyPI release metadata, retained with MIT license/source documents.
+  official PyPI release metadata, retained with the original license/source documents.
   Only the filesystem provider is enabled; no MySQL sample provider.
   Actual sequential probe: 9/9. Recovery/edge checks: 5/5. Two content ambiguity
   checks passed. A separate concurrent same-object observation returned
