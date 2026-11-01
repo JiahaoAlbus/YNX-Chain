@@ -414,6 +414,7 @@
     "./original-ai-task-action-v6-client": {
       "types": "./src/original-ai-task-action-v6-client.d.ts",
       "browser": null,
+      "react-native": "./src/original-ai-task-action-v6-mobile.mjs",
       "node": "./src/original-ai-task-action-v6-client.js",
       "default": null
     },
