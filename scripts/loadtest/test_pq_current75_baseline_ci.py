@@ -10,8 +10,14 @@ class FixedLiveProfileControls(unittest.TestCase):
   return dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',GITHUB_REPOSITORY='JiahaoAlbus/YNX-Chain',GITHUB_EVENT_NAME='push',GITHUB_REF=c.REF,GITHUB_RUN_ATTEMPT='1',PQ_BASELINE_PROFILE=c.PROFILE,GITHUB_WORKFLOW_REF='JiahaoAlbus/YNX-Chain/'+c.WORKFLOW+'@'+c.REF,GITHUB_SHA='a'*40,GITHUB_RUN_ID='123')
  def test_fixed_online_normal_fixture_cannot_select_pressure(self):
   options=c.fixed_options(Path('/source'))
-  self.assertEqual(vars(options),dict(source='/source',commit=c.GO_SOURCE,mode='online',wire_observation=True,live_network_baseline=True,execute=True))
+  self.assertEqual(vars(options),dict(source='/source',commit=c.GO_SOURCE,mode='online',wire_observation=True,live_network_baseline=True,callee_timings=True,execute=True))
   self.assertFalse(hasattr(options,'rate'));self.assertFalse(hasattr(options,'seconds'));self.assertFalse(hasattr(options,'staged_publication'))
+ def test_complete_proofs_and_cleanup_cannot_hide_missing_exit_or_exit1(self):
+  value=dict(firstCause=None,cleanupComplete=True,phaseComplete=True,functionalPhaseComplete=True,qualifiedFinalCount=4,networkBaseline={'status':'OBSERVED'},normalNodeCleanExit=dict(allEightExitZero=True,operationalCleanExit=True))
+  c.validate_runtime_result(value,1)
+  for changed in ({},{'allEightExitZero':False,'operationalCleanExit':False},{'allEightExitZero':True,'operationalCleanExit':False}):
+   with self.assertRaises(RuntimeError):c.validate_runtime_result(dict(value,normalNodeCleanExit=changed),1)
+  with self.assertRaises(RuntimeError):c.validate_runtime_result(dict(value,firstCause='original'),1)
  def test_prepared_data_never_grants_runtime_physical_or_pressure(self):
   value=c.prepared_data();self.assertFalse(value['executed']);self.assertFalse(value['nodeStartAuthorized']);self.assertFalse(value['pressureAuthorized']);self.assertFalse(value['sourceGrant']);self.assertEqual(value['sourceQualification']['scope'],'SOURCE_ONLY_FINITE_BASELINE');self.assertFalse(value['sourceQualification']['pressureAuthorized'])
   self.assertEqual((value['originalOwnerCount'],value['functionalOwners'],value['perOwnerCapacity'],value['batchSize']),(8,4,32,1));self.assertEqual(value['physicalFaultDomains'],1);self.assertFalse(value['physicalBytesMeasured']);self.assertEqual(value['caps']['totalSeconds'],900);self.assertEqual(value['caps']['cleanupSeconds'],15)
