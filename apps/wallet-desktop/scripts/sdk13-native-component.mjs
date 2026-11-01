@@ -39,8 +39,8 @@ export function sdk13HelperBuildCommands(sourceRoot,architectures){
  * registration, service install, user approval or accepted release signature.
  * The builder must separately attest the actual command execution.
  */
-export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource){
- if(isPortableQARecord(record))return verifyPortableQAComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
+export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes,packageConsumerRole},readSource){
+ if(isPortableQARecord(record))return verifyPortableQAComponent({record,inventoryBytes,moduleBytes,helperBytes,packageConsumerRole},readSource);
  if(isCommonQARecord(record))return verifyCommonQAComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
  if(record?.httpV5NormalRole)return verifyHTTPV5NormalComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
  const profile=[...Object.values(WALLET_NATIVE_SOURCE_PROFILES),WALLET_SDK49_PENDING_SOURCE_PROFILE,WALLET_SDK49_PROVISIONING_SOURCE_PROFILE,WALLET_SDK49_QUERY_SOURCE_PROFILE].find(p=>inventoryBytes?.length===p.inventory.bytes&&hash(inventoryBytes)===p.inventory.sha256);if(!profile)fail();
