@@ -36,9 +36,14 @@ MIGRATION_AUTHORIZATION_CORE_TESTS = ('TestCurrentMigrationCABIPUBLICDualAuthori
                                      'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary')
 PENDING_QUERY_HEADER = 'cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h'
 PENDING_QUERY_CORE_TESTS = ('TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary')
+SOURCE_V2_CORE_TESTS = ('TestAuthSourceStatementV2PUBLICOriginalE8', 'TestAuthSourceStatementV2PUBLICCanonicalAndBounds', 'TestAuthSourceStatementV2CABIPUBLICANDAndBinding', 'TestAuthSourceStatementV2CABIPUBLICOriginalBoundsRemain')
+SOURCE_V2_SDK_TEST = 'TestAuthSourceStatementV2SDKSoleGoldenActualCAND'
+SOURCE_V2_SDK_GOLDEN = 'cmd/ynx-artifact-release-cabi/testdata/source_v2_sdk_public_golden.json'
+SOURCE_V2_HEADERS = ('auth_source_statement_v2.h', 'registered_n1_verify.h')
+SOURCE_V2_RECIPE = 'scripts/verify/auth-source-statement-v2-cabi-check.sh'
 SOURCE_SCOPES = ('go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',
                  'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-product-device-keypair-v4', 'scripts/fixtures/verify-pending-original-query-cabi',
-                 'scripts/verify/pending-original-query-cabi-check.sh', RECIPE, CONTROL,
+                 'scripts/verify/pending-original-query-cabi-check.sh', SOURCE_V2_RECIPE, RECIPE, CONTROL,
                  '.github/workflows/resource-market-ci.yml')
 REQUIRED_SOURCES = (HEADER, 'cmd/ynx-artifact-release-cabi/product_device_keypair_v4_core.go',
                     'cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go',
@@ -57,11 +62,13 @@ REQUIRED_SOURCES = (HEADER, 'cmd/ynx-artifact-release-cabi/product_device_keypai
                     'scripts/verify/pending-original-query-cabi-check.sh',
                     'scripts/fixtures/verify-product-device-keypair-v4/main.go',
                     'scripts/fixtures/verify-product-device-keypair-v4/c/driver.c', CHECK, RECIPE, CONTROL)
+REQUIRED_SOURCES += ('cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h', 'cmd/ynx-artifact-release-cabi/registered_n1_verify.h', 'cmd/ynx-artifact-release-cabi/source_statement_v2_core.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_core_test.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go', 'cmd/ynx-artifact-release-cabi/registered_n1_verify_core.go', 'internal/ynxbatch/auth_source_statement_v2.go', 'internal/ynxbatch/auth_source_statement_v2_test.go', 'scripts/verify/auth-source-statement-v2-cabi-check.sh')
+REQUIRED_SOURCES += (SOURCE_V2_SDK_GOLDEN, 'cmd/ynx-artifact-release-cabi/source_statement_v2_sdk_test.go')
 CORE_TESTS = ('TestProductDeviceKeypairV4FreshActualImportAndAND', 'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected',
-              'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown') + MIGRATION_CORE_TESTS + MIGRATION_AUTHORIZATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS
-CORE_TEST_PACKAGES = {name: 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in PENDING_QUERY_CORE_TESTS[:2] else 'cmd/ynx-artifact-release-cabi') for name in CORE_TESTS}
+              'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown') + MIGRATION_CORE_TESTS + MIGRATION_AUTHORIZATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS + SOURCE_V2_CORE_TESTS + (SOURCE_V2_SDK_TEST,)
+CORE_TEST_PACKAGES = {name: 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in PENDING_QUERY_CORE_TESTS[:2] + SOURCE_V2_CORE_TESTS[:2] else 'cmd/ynx-artifact-release-cabi') for name in CORE_TESTS}
 PARENT_NAMES = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h',
-                'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'product_session_http.h',
+                'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'product_session_http.h',
                 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')
@@ -187,7 +194,7 @@ def validate_environment(env, host):
 
 def validate_parent(parent, env, host, tree, archive_pin, original_pins):
     require(type(parent) is dict and parent.get('version') == 'YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', 'original archive SOURCE required')
-    require(type(original_pins) is dict and set(original_pins) == set(PARENT_NAMES), 'complete original19 native catalog required')
+    require(type(original_pins) is dict and set(original_pins) == set(PARENT_NAMES), 'complete original21 native catalog required')
     for key, name in (('commit', 'GITHUB_SHA'), ('runId', 'GITHUB_RUN_ID'), ('runAttempt', 'GITHUB_RUN_ATTEMPT'),
                       ('job', 'GITHUB_JOB'), ('matrixRunner', 'YNX_NATIVE_MATRIX_RUNNER'), ('runnerOS', 'RUNNER_OS')):
         require(parent.get(key) == env[name], 'same-job original archive identity required')
@@ -222,6 +229,16 @@ def validate_parent(parent, env, host, tree, archive_pin, original_pins):
             'complete original current account migration authorization core tests required')
     require(same(parent.get('pendingOriginalQueryCoreTests'), list(PENDING_QUERY_CORE_TESTS)),
             'complete original pending query core tests required')
+    require(same(parent.get('authSourceStatementV2SDKGolden'), {'bytes': 596364, 'sha256': '919afe400d5ac8279ed330d00c9da0d8a5aeca77885008bb799f08b7ee4a8392'}), 'sole SDK original public golden pin required')
+    require(parent.get('authSourceStatementV2SDKGoldenTest') == SOURCE_V2_SDK_TEST, 'sole SDK actual C AND test required')
+    require(same(parent.get('nativePublicCatalog'), list(PARENT_NAMES)), 'exact closed21 native public catalog required')
+    require(same(parent.get('authSourceStatementV2CoreTests'), list(SOURCE_V2_CORE_TESTS)), 'complete fixed Source-v2 core tests required')
+    for field in ('authSourceStatementV2SameRuntimeCHeaderToActualExport', 'authSourceStatementV2DataOnly', 'authSourceStatementV2SDKGoldenVerified'):
+        require(parent.get(field) is True, 'fixed Source-v2 DATA/math execution required')
+    for field in ('authSourceStatementV2ExternalArchiveInterop', 'authSourceStatementV2SourceQualified', 'authSourceStatementV2AccountAuthorized', 'authSourceStatementV2MobileQualified'):
+        require(parent.get(field) is False, 'Source-v2 cannot claim archive interop or authorization')
+    for field, value in (('authSourceStatementV2ABI', 'YNXAuthSourceStatementVerifyV2'), ('authSourceStatementV2ABIVersion', 1), ('authSourceStatementV2ProtocolVersion', 2), ('authSourceStatementV2RequestBytes', 176), ('authSourceStatementV2ResultBytes', 32), ('authSourceStatementV2BodyMaximum', 65536), ('authSourceStatementV2MemberMaximum', 262144), ('authSourceStatementV2Domain', 'YNX/AUTH/SOURCE-ORIGINAL/V2')):
+        require(same(parent.get(field), value), 'fixed Source-v2 ABI differs')
     require(parent.get('suite') == SUITE and type(parent.get('circl')) is dict
             and parent['circl'].get('Path') == 'github.com/cloudflare/circl' and parent['circl'].get('Version') == 'v1.6.5'
             and 'Replace' not in parent['circl'], 'fixed original full AND provider required')
@@ -229,6 +246,8 @@ def validate_parent(parent, env, host, tree, archive_pin, original_pins):
                         ('initialAccountHeader', 'account_initial.h'), ('accountMigrationHeader', 'account_migration.h'),
                         ('accountMigrationAuthorizationHeader', 'account_migration_authorization.h'),
                         ('pendingOriginalQueryHeader', 'product_pair_pending_original_query.h'),
+                        ('authSourceStatementV2Header', 'auth_source_statement_v2.h'),
+                        ('authSourceStatementV2RegisteredN1Header', 'registered_n1_verify.h'),
                         ('deviceHTTPHeader', 'product_session_http.h')):
         require(same(parent.get(field), original_pins[name]), 'original header pin differs')
     for field, prefix in (('publicEvidence', ''), ('transactionPublicEvidence', 'TX-'),
@@ -315,7 +334,7 @@ def validate_source_pins(sources, parent):
     require(set(REQUIRED_SOURCES) <= set(sources), 'complete tracked creator implementation and caller required')
     require(type(parent.get('sources')) is dict, 'original complete archive compile sources required')
     for name, row in sources.items():
-        compiled = name in ('go.mod', 'go.sum', 'scripts/verify/pending-original-query-cabi-check.sh') or name.startswith('scripts/fixtures/verify-pending-original-query-cabi/') or name.startswith(('internal/ynxbatch/', 'internal/ynxauth/', 'internal/accountaddress/', 'cmd/ynx-artifact-release-cabi/'))
+        compiled = name in ('go.mod', 'go.sum', SOURCE_V2_RECIPE, 'scripts/verify/pending-original-query-cabi-check.sh') or name.startswith('scripts/fixtures/verify-pending-original-query-cabi/') or name.startswith(('internal/ynxbatch/', 'internal/ynxauth/', 'internal/accountaddress/', 'cmd/ynx-artifact-release-cabi/'))
         if compiled:
             require(name in parent['sources'] and same(row, parent['sources'][name]), 'original archive complete compile source pin differs')
         elif name in parent['sources']:
@@ -339,7 +358,7 @@ def main():
     commit = command(['git', 'rev-parse', 'HEAD']).decode().strip()
     tree = command(['git', 'rev-parse', 'HEAD^{tree}']).decode().strip()
     require(commit == os.environ['GITHUB_SHA'] and not command(['git', 'status', '--porcelain', '--untracked-files=normal']), 'clean actual selected commit required; no local dirty seal')
-    require({p.name for p in original.iterdir()} == set(PARENT_NAMES), 'complete original19 native catalog required')
+    require({p.name for p in original.iterdir()} == set(PARENT_NAMES), 'complete original21 native catalog required')
     original_pins = {name: pin(original / name, private=True) for name in PARENT_NAMES}
     original_id = directory(original, private=True)
     identities = {name: identity((original / name).lstat()) for name in PARENT_NAMES}

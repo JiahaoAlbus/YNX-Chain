@@ -699,9 +699,13 @@ jobs:
               terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != [(package, 'pass')]:
                   raise RuntimeError('Source-v2 fixed DATA core did not execute and pass in its original package: ' + name)
+          source_v2_sdk = 'TestAuthSourceStatementV2SDKSoleGoldenActualCAND'
+          source_v2_sdk_terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == source_v2_sdk and row['Action'] in ('pass', 'fail', 'skip')]
+          if source_v2_sdk_terminal != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
+              raise RuntimeError('sole SDK Source-v2 public golden did not execute through actual C AND verifier')
           if any(row.get('Action') == 'fail' for row in rows):
               raise RuntimeError('original full Native core suite failed')
-          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=False, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
+          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2 + [source_v2_sdk], suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=True, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
           PY
       - name: Qualify device creator and invoice execution from the original full core suite
         run: |
@@ -858,6 +862,7 @@ jobs:
                   raise RuntimeError('original Main requires actual arm64 native execution')
               targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))
           public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')
+          native_public_catalog = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'product_session_http.h', 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json', 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json', 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')
           public_pins = {name:pin(case / 'output' / name) for name in public_names}
           transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}
           initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}
@@ -873,6 +878,8 @@ jobs:
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration.h', out / 'account_migration.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration_authorization.h', out / 'account_migration_authorization.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h', out / 'product_pair_pending_original_query.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h', out / 'auth_source_statement_v2.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/registered_n1_verify.h', out / 'registered_n1_verify.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
@@ -912,6 +919,19 @@ jobs:
                   accountMigrationAuthorizationCoreTests=['TestCurrentMigrationCABIPUBLICDualAuthorizationAndIndependentPossession', 'TestCurrentMigrationCABIPUBLICPreflightBeforePrivateRead', 'TestCurrentMigrationCABIPUBLICOwnedPlanCleanupAndKeySeparation', 'TestCurrentMigrationCABIPUBLICActualCGOBridge', 'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary'],
                   accountMigrationAuthorizationExportedBridgeGoVerified=True, accountMigrationAuthorizationExternalCInterop=False,
                   accountMigrationAuthorizationAccountAuthorized=False,
+                  authSourceStatementV2ABI='YNXAuthSourceStatementVerifyV2', authSourceStatementV2ABIVersion=1, authSourceStatementV2ProtocolVersion=2,
+                  authSourceStatementV2Header=pin(out / 'auth_source_statement_v2.h'),
+                  authSourceStatementV2RegisteredN1Header=pin(out / 'registered_n1_verify.h'),
+                  authSourceStatementV2CoreTests=['TestAuthSourceStatementV2PUBLICOriginalE8', 'TestAuthSourceStatementV2PUBLICCanonicalAndBounds', 'TestAuthSourceStatementV2CABIPUBLICANDAndBinding', 'TestAuthSourceStatementV2CABIPUBLICOriginalBoundsRemain'],
+                  authSourceStatementV2RequestBytes=176, authSourceStatementV2ResultBytes=32,
+                  authSourceStatementV2BodyMaximum=65536, authSourceStatementV2MemberMaximum=262144,
+                  authSourceStatementV2Domain='YNX/AUTH/SOURCE-ORIGINAL/V2',
+                  authSourceStatementV2SDKGoldenTest='TestAuthSourceStatementV2SDKSoleGoldenActualCAND',
+                  authSourceStatementV2SDKGolden=pin(Path('cmd/ynx-artifact-release-cabi/testdata/source_v2_sdk_public_golden.json')),
+                  authSourceStatementV2SameRuntimeCHeaderToActualExport=True, authSourceStatementV2DataOnly=True,
+                  authSourceStatementV2ExternalArchiveInterop=False, authSourceStatementV2SDKGoldenVerified=True,
+                  authSourceStatementV2SourceQualified=False, authSourceStatementV2AccountAuthorized=False, authSourceStatementV2MobileQualified=False,
+                  nativePublicCatalog=list(native_public_catalog),
                   pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,
                   pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),
                   pendingOriginalQueryCoreTests=['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary'],
@@ -937,6 +957,8 @@ jobs:
                   productInstalled=False, publicDeployment=False, pqActivation=False)
               with (out / 'SOURCE.json').open('x') as sink:
                   sink.write(json.dumps(record, sort_keys=True, separators=(',', ':'))+'\n')
+              if {p.name for p in out.iterdir()} != set(native_public_catalog):
+                  raise RuntimeError('closed21 native public artifact catalog differs')
               print('YNX_ARTIFACT_CABI_CANDIDATE '+json.dumps(dict(target=record['target'],actualCABIExecuted=executed,archive=record['archive'],header=record['header']),sort_keys=True))
           if command('git','status','--porcelain','--untracked-files=normal'):
               raise RuntimeError('Native CI modified source checkout')
@@ -1218,6 +1240,8 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_migration_authorization.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_pair_pending_original_query.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/auth_source_statement_v2.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/registered_n1_verify.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
@@ -1245,8 +1269,12 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_migration_authorization.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_pair_pending_original_query.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/auth_source_statement_v2.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/registered_n1_verify.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/INITIAL-PUBLIC-RECEIPT.json
