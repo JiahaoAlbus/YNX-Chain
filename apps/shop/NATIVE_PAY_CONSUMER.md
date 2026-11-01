@@ -176,6 +176,15 @@ the actual Native Source getter/recognizer, joint Shop order/store/merchant/pric
 Source and protected installed Main bridge. The existing Cloud-only family
 does not supply these Shop inputs.
 
+Service privacy deletion preserves any original Native create record or bound
+Native intent even when the Shop order is cancelled/expired. A completed
+product effect only records receipt of an intent reference; a lookup may still
+retain the original POST's UNKNOWN step. Neither is authoritative financial
+termination. Until the real terminal financial reader is composed, deletion
+fails before changing the original Store, request, reference or recovery
+evidence. This matches the independent clients' existing conservative guard;
+an unattempted cancelled order retains its normal deletion path.
+
 The original Pay Source, actual Main navigation/Native Source composition,
 matching installed images and real approval/funds acceptance remain distinct
 gates. Consumer tests use PUBLIC ports, actual product Store/journal and native

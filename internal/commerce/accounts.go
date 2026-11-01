@@ -212,7 +212,7 @@ func (s *Store) ExportBuyerData(actor string) BuyerDataExport {
 		AIJobs:          jobs,
 		AuditEvents:     audits,
 		BusinessEffects: effects,
-		RetentionNotice: "Profile, saved addresses, cart, AI jobs, completed or cancelled-known external request records, and buyer-scoped request details can be deleted. Unconfirmed external outcomes require recovery before deletion to prevent duplicate dispatch. Minimal one-way digests of retired request keys and external operations, consumed business proofs and account representation decisions, representation flags, and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
+		RetentionNotice: "Profile, saved addresses, cart, AI jobs, completed or cancelled-known external request records, and buyer-scoped request details can be deleted. Unconfirmed external outcomes require recovery before deletion to prevent duplicate dispatch. Original Native invoice requests and references require authoritative financial resolution even after Shop cancellation; completed intent preparation or lookup is not that resolution. Minimal one-way digests of retired request keys and external operations, consumed business proofs and account representation decisions, representation flags, and opaque deletion retry receipts remain to reject old requests and safely recover deletion results without retaining plaintext identities, request keys or request bodies in those records. Finalized orders are pseudonymized, while authoritative public-chain settlement addresses, transaction hashes, refund evidence, dispute state, and integrity records are retained for verification, accounting, fraud prevention, and audit continuity.",
 	}
 }
 
@@ -308,12 +308,25 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 		}
 	}
 	for _, effect := range s.s.BusinessEffects {
+		// Completion here only means that the original intent reference was
+		// received. It is not a terminal Pay/funds observation; a successful
+		// lookup can also retain the original dispatch's UNKNOWN step. Until
+		// the qualified financial terminal reader is composed, preserve that
+		// original bill and recovery journal even after Shop cancellation.
+		if effect.Actor == actor && effect.Kind == "pay.native-create" && (effect.Phase != "abandoned" || len(effect.Steps) != 0) {
+			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: original Native invoice requires authoritative financial resolution before deletion", ErrInvalidState)
+		}
 		if effect.Actor == actor && !readBusinessEffect(effect.Kind) && effect.Phase != "completed" && effect.Phase != "abandoned" {
 			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: external operation outcome requires recovery before deletion", ErrInvalidState)
 		}
 	}
 
 	for _, order := range s.s.Orders {
+		// Also preserve an original Native reference restored without its
+		// local create record. Order terminality does not terminate Pay.
+		if order.Buyer == actor && strings.HasPrefix(order.PayIntentID, "npi_") {
+			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: original Native invoice requires authoritative financial resolution before deletion", ErrInvalidState)
+		}
 		if order.Buyer == actor && !terminalForPrivacyDeletion(order.Status) {
 			return BuyerDataDeletionReceipt{}, fmt.Errorf("%w: order %s is %s and must reach a terminal state before personal data deletion", ErrInvalidState, order.ID, order.Status)
 		}

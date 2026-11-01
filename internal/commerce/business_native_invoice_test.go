@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -183,5 +184,96 @@ func TestNativeInvoiceCreateAndLookupBindOnlyExactOriginalBill(t *testing.T) {
 func TestNativeInvoiceLookupWhitelistCannotBecomePostMutation(t *testing.T) {
 	if !readBusinessEffectStep("pay.native-lookup", "POST", "/v5/pay/invoice-intents/lookup") || readBusinessEffectStep("pay.native-lookup", "POST", "/v5/pay/invoice-intents") || readBusinessEffectStep("pay.native-intent", "POST", "/v5/pay/invoice-intents/lookup") {
 		t.Fatal("read-only effect endpoint whitelist widened")
+	}
+}
+
+func TestNativeInvoicePrivacyDeletionRetainsCancelledOriginalAndUnknown(t *testing.T) {
+	for _, mode := range []string{"prepared", "lost-then-lookup", "restored-reference", "unattempted"} {
+		t.Run(mode, func(t *testing.T) {
+			s, buyer, order := effectOrderFixture(t, filepath.Join(t.TempDir(), "state.json"))
+			calls := 0
+			client := nativeIntentObservationClient(t, func(r *http.Request) (*http.Response, error) {
+				calls++
+				if mode == "lost-then-lookup" && calls == 1 {
+					return nil, errors.New("PUBLIC original response lost")
+				}
+				var request NativeShopInvoiceRequestDATA
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Fatal(err)
+				}
+				return nativeShopPayResponse(200, publicNativeInvoiceResponse(request)), nil
+			})
+			if mode == "restored-reference" {
+				if _, err := s.BindInvoice(buyer, order.ID, PayInvoiceHandoff{InvoiceID: "core_original", IntentID: "npi_" + strings.Repeat("ab", 24), Merchant: publicNativePriceDATA().Merchant, PayoutAddress: publicNativePriceDATA().Recipient}); err != nil {
+					t.Fatal(err)
+				}
+			} else if mode != "unattempted" {
+				cfg := ServerConfig{NativeInvoiceOnly: true, NativePay: client, NativeInvoiceDATA: nativeInvoiceDATAFixture(func(context.Context, ShopNativeInvoiceSelectionDATA) (ShopNativeInvoicePriceDATA, error) {
+					return publicNativePriceDATA(), nil
+				}), businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}}
+				path := "/api/orders/" + order.ID + "/native-pay-intent"
+				body := `{"IdempotencyKey":"privacy-original-native"}`
+				w := businessHTTPRequest(NewServer(s, cfg), "POST", path, strings.Repeat("a", 43), body)
+				if mode == "lost-then-lookup" {
+					if w.Code != 409 {
+						t.Fatal(w.Code, w.Body.String())
+					}
+					w = businessHTTPRequest(NewServer(s, cfg), "POST", path+"-lookup", strings.Repeat("b", 43), body)
+				}
+				if w.Code != 200 {
+					t.Fatal(w.Code, w.Body.String())
+				}
+			}
+			if _, err := s.transition(buyer, "buyer", order.ID, "cancelled", nil, nil, nil, "privacy-native-cancel"); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.ReadFile(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeMemory, err := cloneSnapshot(s.s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = s.DeleteBuyerDataRequest(buyer, "privacy-native-request", nil)
+			if mode == "unattempted" {
+				if err != nil || calls != 0 {
+					t.Fatal("unattempted order cannot delete", err, calls)
+				}
+				return
+			}
+			if !errors.Is(err, ErrInvalidState) {
+				t.Fatal("cancelled Shop order erased a still-live Native intent", err)
+			}
+			if !reflect.DeepEqual(beforeMemory, s.s) {
+				t.Fatal("rejected deletion altered original in-memory state")
+			}
+			after, err := os.ReadFile(s.path)
+			if err != nil || !bytes.Equal(before, after) {
+				t.Fatal("rejected deletion altered original journal", err)
+			}
+			reopened, err := Open(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if mode == "restored-reference" {
+				if reopened.s.Orders[order.ID].PayIntentID != "npi_"+strings.Repeat("ab", 24) || calls != 0 {
+					t.Fatal("restored reference erased or dispatched")
+				}
+			} else if _, err := reopened.ReadOriginalShopNativeInvoiceRequestDATA(buyer, "buyer", order.ID); err != nil {
+				t.Fatal("original is no longer recoverable", err)
+			}
+			if mode == "lost-then-lookup" {
+				found := false
+				for _, effect := range reopened.s.BusinessEffects {
+					if effect.Kind == "pay.native-create" {
+						found = effect.Phase == "completed" && len(effect.Steps) == 1 && effect.Steps[0].Phase == "unknown"
+					}
+				}
+				if !found {
+					t.Fatal("original UNKNOWN first cause missing")
+				}
+			}
+		})
 	}
 }
