@@ -4554,7 +4554,7 @@ jobs:
           node-version: '24'
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.25.13'
+          go-version-file: 'go.mod'
           cache: false
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - run: node --test packages/wallet-auth/test/task-action-v6-selected-pages.test.mjs packages/wallet-auth/test/task-action-v6-selected-pages-go.test.mjs
