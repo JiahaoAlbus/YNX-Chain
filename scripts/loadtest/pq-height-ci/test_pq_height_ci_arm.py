@@ -241,10 +241,10 @@ class ProcessEvidenceIntakeControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);old=root/"old.py";new=root/"new.py";old.write_bytes(raw);new.write_bytes(raw)
             pin=hashlib.sha256(raw).hexdigest()
-            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.dict(h.VENDOR,{"consensus-linux-cohort.py":pin}):
+            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.object(h,"EVIDENCE_SHA",pin):
                 self.assertTrue(h.kernel_equivalence(old,new)["actualKernelASTEqual"])
             changed=raw.replace(b"return 2",b"return 3");new.write_bytes(changed)
-            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.dict(h.VENDOR,{"consensus-linux-cohort.py":hashlib.sha256(changed).hexdigest()}):
+            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.object(h,"EVIDENCE_SHA",hashlib.sha256(changed).hexdigest()):
                 with self.assertRaisesRegex(RuntimeError,"AST or CAPS changed"):h.kernel_equivalence(old,new)
         good=dict(before=h.ARMS["before"][0],after=h.ARMS["after-a"][0],inputSHA256=h.INPUT_SHA,recordsCompared=41,
                   perHeightFunctionalEqual=True,guardOnlyFunctionalCompatibility=True,
@@ -292,6 +292,143 @@ class ProcessEvidenceIntakeControls(unittest.TestCase):
             self.assertIsNone(h.public_after_cleanup(None,work,True))
             # Existing owned DATA is kept without replacing it from a late log.
             self.assertEqual(h.public_after_cleanup(public,work,True),public)
+
+
+class PidfdIntakeControls(unittest.TestCase):
+    """Only the new fixed source/receipt/CLI delta; no Linux execution here."""
+
+    def evidence(self):
+        old = ProcessEvidenceIntakeControls().record()
+        retained = dict(artifact=h.GUARD_ARTIFACT, actualLinux=True, actualKernelControlPassed=True,
+                        fixtureCounts=old["fixtureCounts"], originalReceiptUnchanged=True)
+        equality = dict(originalCommit=h.KERNEL_TOOLS, successorCommit=h.EVIDENCE_TOOLS,
+                        originalSourceSHA256=h.KERNEL_SHA, successorSourceSHA256=h.EVIDENCE_SHA,
+                        actualKernelASTEqual=True, originalCapsEqual=True)
+        record = dict(schema="YNX-PQ-HEIGHT-LINUX-EVIDENCE-CONTROLS/v1",
+                      toolsCommit=h.EVIDENCE_TOOLS, toolsTree=h.EVIDENCE_TREE,
+                      workflowCommit=h.EVIDENCE_ARTIFACT["workflowCommit"],
+                      runId=str(h.EVIDENCE_ARTIFACT["runId"]), caps=h.CAPS,
+                      resourceObserverVersion="same-process-rss-v2", resourceObserverSHA256=h.EVIDENCE_SHA,
+                      firstCause=None, cleanupComplete=True, actualLinux=True,
+                      actualKernelControlPassed=True, inputGenerated=False, publicNetwork=False,
+                      performanceComparisonQualified=False, optimizedPressureAuthorized=False,
+                      retainedLinuxControls=retained, kernelEquivalence=equality,
+                      fixtureCounts={"test_process_evidence.py": dict(passed=6, skipped=0)},
+                      processes=[dict(name=name, pid=i+1, startTicks=100+i, exited=True, rawReturnCode=0)
+                                 for i, name in enumerate(h.EVIDENCE_PROCESSES)])
+        return record, retained
+
+    def test_fixed_pidfd_sources_and_caps_are_original_blobs(self):
+        import hashlib
+        self.assertEqual(h.TOOLS, "4c14a893b1b98a1cf6a6259b243019fbf86400a1")
+        self.assertEqual(h.TOOLS_TREE, "11aae01b4603949e2772f95ee6e3ab286776859c")
+        expected = {
+            "consensus-linux-cohort.py": (39502, "d7c657a1aa9787fa62a580f0f83caf71e17ba261697389322de521fef8902eaf"),
+            "test_linux_thread_group_exit.py": (7820, "3b22ec42f247d76b0b12dc48fcdf28819efd799074d2931bee9d8ca235e84706"),
+            "run-pq-baseline.py": (7991, "48fb354355810ad7b6bb66016536c934bc06f8379e6bd617f375870b1b25681d"),
+            "pq-height-vectors.py": (19831, "88e7085944e7bc76018b59562fceaab0455a3b6a5dafbacf8309a690e925bb29"),
+        }
+        for name, (size, pin) in expected.items():
+            raw = (h.HERE / "vendor" / name).read_bytes()
+            self.assertEqual((len(raw), hashlib.sha256(raw).hexdigest()), (size, pin))
+            self.assertEqual(h.VENDOR[name], pin)
+        _, lab = h.dependencies()
+        self.assertEqual(lab.RSS_OBSERVER_VERSION, "same-process-rss-v3-pidfd")
+        self.assertEqual(lab.CAPS, dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4294967296,
+                                      newBytes=8589934592, initialMemoryBytes=6442450944,
+                                      initialDiskBytes=17179869184, logBytes=4194304, cpus=2))
+        self.assertEqual(h.LINUX_CONTROLS, {"test_linux_thread_group_exit.py": 6})
+        self.assertEqual(h.BEFORE_ARTIFACT["artifactId"], 13050898515)
+        self.assertEqual(h.INPUT_SHA, "c819fb976a422b855d3fc3e6939338995fa380556e642bda2ab59dcc66353401")
+
+    def test_retained_six_cannot_be_relabelled_as_new_pidfd_success(self):
+        record, retained = self.evidence()
+        h.validate_evidence_record(record, retained)
+        self.assertEqual(h.retained_evidence_artifact({})["artifactId"], 13053266101)
+        self.assertEqual(h.EVIDENCE_ARTIFACT["size"], 6986)
+        self.assertEqual(h.EVIDENCE_ARTIFACT["digest"], "64a0448ecabba5bc217c09c74d02c5ba8dafe8c0273e1c860f00a48503c12c2e")
+        with self.assertRaises(RuntimeError):
+            h.retained_evidence_artifact({"HEIGHT_EVIDENCE_ID": "replacement"})
+        for key, value in (("toolsCommit", h.TOOLS), ("toolsTree", h.TOOLS_TREE),
+                           ("resourceObserverVersion", "same-process-rss-v3-pidfd"),
+                           ("cleanupComplete", False), ("actualLinux", False),
+                           ("firstCause", "original refusal"), ("performanceComparisonQualified", True)):
+            bad = json.loads(json.dumps(record)); bad[key] = value
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                h.validate_evidence_record(bad, retained)
+        for key, value in (("passed", 5), ("skipped", 1), ("skipped", False)):
+            bad = json.loads(json.dumps(record)); bad["fixtureCounts"]["test_process_evidence.py"][key] = value
+            with self.assertRaises(RuntimeError): h.validate_evidence_record(bad, retained)
+        for key, value in (("rawReturnCode", 1), ("rawReturnCode", False), ("startTicks", 0)):
+            bad = json.loads(json.dumps(record)); bad["processes"][-1][key] = value
+            with self.assertRaises(RuntimeError): h.validate_evidence_record(bad, retained)
+        bad = json.loads(json.dumps(record)); bad["retainedLinuxControls"]["artifact"]["artifactId"] += 1
+        with self.assertRaises(RuntimeError): h.validate_evidence_record(bad, retained)
+
+    def test_retained_twenty_catalog_keeps_original_closed_zip_parser(self):
+        self.assertEqual(len(h.EVIDENCE_NAMES), 20)
+        intake, _ = h.dependencies(); h.height_catalog(intake)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            valid = root / "valid.zip"; zipped(valid, h.EVIDENCE_NAMES)
+            result = intake.safe_extract(valid, root / "actual", "linux-evidence-original")
+            self.assertEqual({p.name for p in result.iterdir()}, h.EVIDENCE_NAMES)
+            for i, (names, options) in enumerate((
+                (h.EVIDENCE_NAMES - {"test_process_evidence.log"}, {}),
+                (h.EVIDENCE_NAMES | {".private/key.raw"}, {}),
+                (h.EVIDENCE_NAMES, {"symlink": "controller-identity.log"}),
+                (h.EVIDENCE_NAMES, {"duplicate": "controller-identity.log"}),
+            )):
+                bad = root / (str(i) + ".zip"); zipped(bad, names, **options)
+                with self.assertRaises(RuntimeError):
+                    intake.safe_extract(bad, root / ("bad" + str(i)), "linux-evidence-original")
+
+    def test_new_six_require_named_actual_linux_pass_without_skip(self):
+        raw = ("\n".join(name + " (__main__.ThreadGroupExitControls." + name + ") ... ok"
+                         for name in h.PIDFD_TEST_NAMES) + "\nRan 6 tests in 0.123s\n\nOK\n").encode()
+        h.controls_record(raw, 6, h.PIDFD_TEST_NAMES)
+        for bad in (raw.replace(b"Ran 6", b"Ran 0"), raw.replace(b"OK", b"OK (skipped=1)"),
+                    raw.replace(h.PIDFD_TEST_NAMES[0].encode(), b"unrelated_test"), raw + raw,
+                    raw.replace(b" ... ok", b" ... skipped 'Linux required'", 1)):
+            with self.assertRaises(RuntimeError): h.controls_record(bad, 6, h.PIDFD_TEST_NAMES)
+
+    def test_changed_guard_never_claims_v2_equals_v3_or_changes_other_code(self):
+        import hashlib
+        old = b'CAPS = {"cpus":2}\nRSS_OBSERVER_VERSION="same-process-rss-v2"\ndef owned_rss():\n return 1\ndef fallback():\n return 3\n'
+        new = old.replace(b'RSS_OBSERVER_VERSION="same-process-rss-v2"', b'import select\nRSS_OBSERVER_VERSION="same-process-rss-v3-pidfd"').replace(b'return 1', b'return 2') + b'def process_group_exit_probe():\n return 4\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            a, b = Path(temporary) / "original.py", Path(temporary) / "successor.py"
+            a.write_bytes(old); b.write_bytes(new)
+            with mock.patch.object(h, "EVIDENCE_SHA", hashlib.sha256(old).hexdigest()), mock.patch.dict(h.VENDOR, {"consensus-linux-cohort.py": hashlib.sha256(new).hexdigest()}):
+                result = h.guard_only_transition(a, b)
+                self.assertTrue(result["unchangedOtherModuleAST"])
+                self.assertFalse(result["actualKernelASTEqual"] or result["actualNewLinuxControlPassed"])
+                self.assertFalse(result["performanceComparisonQualified"] or result["optimizedPressureAuthorized"])
+                b.write_bytes(new + b"# replacement without independent pin\n")
+                with self.assertRaises(RuntimeError): h.guard_only_transition(a, b)
+            for changed in (new.replace(b'"cpus":2', b'"cpus":1'), new.replace(b'return 3', b'return 0')):
+                b.write_bytes(changed)
+                with mock.patch.object(h, "EVIDENCE_SHA", hashlib.sha256(old).hexdigest()), mock.patch.dict(h.VENDOR, {"consensus-linux-cohort.py": hashlib.sha256(changed).hexdigest()}):
+                    with self.assertRaisesRegex(RuntimeError, "unapproved functional"):
+                        h.guard_only_transition(a, b)
+
+    def test_default_and_workflow_only_execute_new_six_then_missing_a(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            target = Path(temporary) / "absent"
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(h.main(["controls", "--operation", str(target)]), 0)
+            self.assertFalse(json.loads(out.getvalue())["executed"])
+            self.assertFalse(target.exists())
+            for arm in ("before", "after-b"):
+                with self.assertRaisesRegex(RuntimeError, "only the missing"):
+                    h.run(type("Args", (), dict(arm=arm, execute=True))())
+        workflow = (h.HERE.parents[2] / ".github/workflows/pq-height-vectors-ci.yml").read_text()
+        self.assertIn("--arm after-a", workflow)
+        self.assertNotIn("--arm before", workflow); self.assertNotIn("--arm after-b", workflow)
+        self.assertIn("go-version: '1.26.10'", workflow)
+        self.assertIn("cache: false", workflow)
+        self.assertIn("ProcessEvidenceIntakeControls.test_partial_path_printed_only_during_stop", workflow)
+        self.assertIn("PidfdIntakeControls", workflow)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 name: PQ original-input per-height functional comparison
 
 # Original before/B are immutable successful artifacts. This repair runs only
-# only new evidence controls and the missing A arm; no signing or baseline recording.
+# only new pidfd controls and the missing A arm; no signing or baseline recording.
 on:
   push:
     branches: [codex/ynx-pq-height-vectors-20261101]
@@ -39,20 +39,20 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-height-ci/
-      - name: Pure fixed-artifact intake controls; no Linux claim from local preparation
-        run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py ProcessEvidenceIntakeControls -v
-      - name: Reuse original 33 Linux controls and run only six new evidence controls
+      - name: Pure fixed pidfd intake and late-partial controls; no Linux claim from local preparation
+        run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py PidfdIntakeControls ProcessEvidenceIntakeControls.test_partial_path_printed_only_during_stop_is_preserved_after_terminal_cleanup ProcessEvidenceIntakeControls.test_partial_after_cleanup_missing_duplicate_and_nonowned_paths_stay_unpublished -v
+      - name: Reuse original 33 plus six evidence controls; run only six new pidfd controls
         id: controls
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           python3 -B scripts/loadtest/pq-height-ci/pq-height-ci-arm.py controls \
-            --operation "$RUNNER_TEMP/pq-height-evidence-controls" --execute
+            --operation "$RUNNER_TEMP/pq-height-pidfd-controls" --execute
       - name: Preserve original controls first cause and owned process resource evidence
         if: always() && steps.controls.outputs.diagnostics != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-height-linux-evidence-controls-${{ github.run_id }}
+          name: pq-height-linux-pidfd-controls-${{ github.run_id }}
           path: ${{ steps.controls.outputs.diagnostics }}/*
           if-no-files-found: error
           include-hidden-files: false
