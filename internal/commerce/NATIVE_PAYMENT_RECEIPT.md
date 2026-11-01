@@ -67,3 +67,23 @@ preparation before Pay archives terms/payment, then consumes the signed receipt
 endpoint after the actual verifier has stored those originals. Received invoiceIntent
 DATA is never imported as authority. PUBLIC Sources and temporary fixture
 Members do not establish operational Root admission or real funds approval.
+
+### Cumulative original refund joint driver
+
+The existing opt-in `TestP06OriginalPayShopDriver` accepts `MultiRefund:true` in
+its initial PUBLIC `init` message. All original preparation and paid stages are
+unchanged. After Shop emits `refund`, the producer supplies actual original
+archives and sends `refunded` three times. Shop expects cumulative refunded/net
+atoms `30/70`, `50/50`, then `100/0`, emitting `refund-progress` after each partial
+stage and `done` after the final stage. The first two refund receipts must carry
+the actual same-block execution indexes `0` and `1`. Their original refund IDs
+and complete coordinates are returned as observations; no received JSON
+imports receipts or grants proof authority.
+
+Each stage performs the normal signed Shop confirmation and an independent cold
+reopen/duplicate confirmation over the original qualified Pay receipt GET.
+Financial updates must leave the consumed stock and goods-receipt list intact.
+Only after full financial close does the driver execute the separate original
+approved-return goods receipt and explicit restock, then cold-reopen and repeat
+that same restock key to prove no duplicate stock effect. The previous single
+partial refund driver behavior is unchanged when `MultiRefund` is absent.

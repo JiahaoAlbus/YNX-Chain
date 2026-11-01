@@ -497,3 +497,87 @@ func TestNativePaymentReceiptCanonicalColonReferenceActualHTTP(t *testing.T) {
 		}
 	}
 }
+
+// New cumulative refund delta: full financial close never receives/restocks goods.
+func TestNativePaymentReceiptCumulativeRefundColdNoAutomaticRestock(t *testing.T) {
+	s, buyer, o, cfg, r, _ := nativePaymentFixture(t)
+	_, owner := actor(t, 1)
+	if w := readNativeReceipt(t, s, o, cfg, "b"); w.code != 200 {
+		t.Fatal(w.code, w.body)
+	}
+	afterPaid := cloneProduct(s.s.Products[o.Lines[0].ProductID])
+	var err error
+	for _, step := range []struct{ actor, role, status, key string }{
+		{owner, "seller", "shipped", "multi-ship"}, {buyer, "buyer", "delivered", "multi-deliver"}, {buyer, "buyer", "return_requested", "multi-return"}, {owner, "seller", "return_approved", "multi-approve"},
+	} {
+		var shipment *Shipment
+		var resolution *Resolution
+		if step.status == "shipped" {
+			shipment = &Shipment{Carrier: "PUBLIC", TrackingNumber: "MULTI"}
+		}
+		if step.status == "return_requested" || step.status == "return_approved" {
+			resolution = &Resolution{Kind: "return", Reason: "PUBLIC-original"}
+		}
+		o, err = s.transition(step.actor, step.role, o.ID, step.status, shipment, resolution, nil, step.key)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	returnID := o.Timeline[len(o.Timeline)-2].ID
+	for i, stage := range []struct {
+		hash, amount, refunded, net, index string
+		height                             uint64
+	}{
+		{"b", "30", "30", "70", "0", 13}, {"d", "20", "50", "50", "1", 13}, {"e", "50", "100", "0", "0", 14},
+	} {
+		receipt := publicShopReceipt(buyer, *r, "invoice_refund", stage.hash, stage.amount, stage.refunded, stage.net, stage.height)
+		receipt.ExecutionIndex = stage.index
+		r.Receipts = append(r.Receipts, receipt)
+		r.RefundedAtoms = stage.refunded
+		r.NetPaidAtoms = stage.net
+		if w := readNativeReceipt(t, s, o, cfg, string(rune('c'+i*2))); w.code != 200 {
+			t.Fatal(i, w.code, w.body)
+		}
+		got := s.s.Orders[o.ID]
+		if got.NativePayment.RefundedAtoms != stage.refunded || got.NativePayment.NetPaidAtoms != stage.net || len(got.ReturnReceipts) != 0 || !reflect.DeepEqual(afterPaid, s.s.Products[o.Lines[0].ProductID]) {
+			t.Fatal("refund implicitly received/restocked goods", i)
+		}
+		expectedStatus, expectedRefund := "return_approved", "native_partial_refund"
+		if i == 2 {
+			expectedStatus, expectedRefund = "refunded", "native_refunded"
+		}
+		if got.Status != expectedStatus || got.RefundStatus != expectedRefund {
+			t.Fatal("wrong cumulative financial state", i, got.Status)
+		}
+		original := *got.NativePayment
+		s, err = Open(s.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if w := readNativeReceipt(t, s, o, cfg, string(rune('d'+i*2))); w.code != 200 {
+			t.Fatal(i, w.code, w.body)
+		}
+		if !reflect.DeepEqual(original, *s.s.Orders[o.ID].NativePayment) || !reflect.DeepEqual(afterPaid, s.s.Products[o.Lines[0].ProductID]) {
+			t.Fatal("cold duplicate changed original claims/stock", i)
+		}
+	}
+	received, err := s.ReceiveReturn(owner, o.ID, receiveInput(o, returnID, "PUBLIC-multi-goods", "multi-receive", 1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(afterPaid, s.s.Products[o.Lines[0].ProductID]) {
+		t.Fatal("goods receipt implicitly restocked")
+	}
+	restock := RestockReturnInput{ReceiptID: received.ReturnReceipts[0].ID, IdempotencyKey: "multi-restock"}
+	if _, err = s.RestockReturn(owner, o.ID, restock); err != nil {
+		t.Fatal(err)
+	}
+	afterRestock := cloneProduct(s.s.Products[o.Lines[0].ProductID])
+	s, err = Open(s.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.RestockReturn(owner, o.ID, restock); err != nil || !reflect.DeepEqual(afterRestock, s.s.Products[o.Lines[0].ProductID]) {
+		t.Fatal("cold restock duplicated", err)
+	}
+}

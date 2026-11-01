@@ -41,6 +41,7 @@ jobs:
       source-only: ${{ steps.scope.outputs.source-only }}
       native-client-only: ${{ steps.scope.outputs.native-client-only }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
+      receipt-test-delta: ${{ steps.scope.outputs.receipt-test-delta }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -87,7 +88,19 @@ jobs:
               tests.extend(["TestNativeShopPay", "TestBusinessNativeInvoice", "TestNativeInvoice"])
           if source_only and any(map(receipt_path, changed)):
               tests.extend(["TestNativePaymentReceipt", "TestBusinessNativeInvoice", "TestBusinessSettlement", "TestBusinessPayPerDispatch", "TestPaidSettlement", "TestReturnReceipt", "TestOrderTransition", "TestOrderLifecycle", "TestSnapshot", "TestBuyerData", "TestNativeInvoicePrivacy", "TestShopRuntime", "TestShopNativeAPI"])
+          receipt_test_delta = False
+          receipt_test = "internal/commerce/native_payment_receipt_test.go"
+          test_delta_paths = {receipt_test, "internal/commerce/native_payment_joint_driver_test.go", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml"}
+          if source_only and receipt_test in changed and all(p in test_delta_paths for p in changed):
+              old = subprocess.check_output(["git", "show", base + ":" + receipt_test]).decode()
+              current = open(receipt_test).read()
+              if current.startswith(old):
+                  new_tests = re.findall(r"^func (Test[A-Za-z0-9_]+)\(t \*testing\.T\)", current[len(old):], re.M)
+                  if new_tests:
+                      receipt_test_delta = True
+                      tests = new_tests
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("receipt-test-delta=" + str(receipt_test_delta).lower() + "\n")
               output.write("native-client-only=" + str(native_client_only).lower() + "\n")
               output.write("source-only=" + str(source_only).lower() + "\n")
               output.write("read-tests=^(" + "|".join(tests) + ")\n")
@@ -119,7 +132,9 @@ jobs:
           chmod 700 "$RUNNER_TEMP/shop-original-source-read"
           SHOP_SOURCE_READ_SOCKET_ROOT="$RUNNER_TEMP/shop-original-source-read" \
             go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run "$READ_TESTS" -count=1 -v
-          go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
+          if [ "${{ needs.change-scope.outputs.receipt-test-delta }}" != "true" ]; then
+            go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
+          fi
       - uses: actions/setup-java@v4
         if: needs.change-scope.outputs.source-only != 'true'
         with:

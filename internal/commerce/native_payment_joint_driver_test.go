@@ -27,6 +27,7 @@ func TestP06OriginalPayShopDriver(t *testing.T) {
 	}
 	type message struct {
 		Phase, Merchant, Payer, Genesis, NativeChainID, RefundID, Origin string
+		MultiRefund                                                      bool
 		Terms                                                            NativeShopPayTerms
 		Original                                                         NativeShopInvoiceRequestDATA
 	}
@@ -36,6 +37,7 @@ func TestP06OriginalPayShopDriver(t *testing.T) {
 	if err := input.Decode(&m); err != nil || m.Phase != "init" {
 		t.Fatal("original staged init required", err)
 	}
+	multiRefund := m.MultiRefund
 	// Keep PUBLIC original UNKNOWN/first-cause evidence after a failed joint
 	// subprocess; never let t.TempDir cleanup erase the operation under diagnosis.
 	stateDir, err := os.MkdirTemp(filepath.Dir(os.Args[0]), "PUBLIC-pay-shop-original-")
@@ -143,6 +145,80 @@ func TestP06OriginalPayShopDriver(t *testing.T) {
 	}
 	if err = output.Encode(map[string]any{"phase": "refund", "result": map[string]any{"paidAtoms": paid.NativePayment.PaidAtoms, "returnID": returnID, "receiptOrigin": "normal Pay product receipt GET", "SourceAdmission": false}}); err != nil {
 		t.Fatal(err)
+	}
+	if multiRefund {
+		var stages []map[string]any
+		for stage, expected := range []struct{ refunded, net string }{{"30", "70"}, {"50", "50"}, {"100", "0"}} {
+			if err = input.Decode(&m); err != nil || m.Phase != "refunded" {
+				t.Fatal("actual next archived original refund stage required", stage, err)
+			}
+			s, err = Open(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w = businessHTTPRequest(NewServer(s, cfg), "POST", "/api/orders/"+o.ID+"/confirm-payment", fmt.Sprintf("%043d", 3+stage*2), `{}`)
+			if w.Code != 200 {
+				t.Fatal("actual cumulative refund receipt", stage, w.Code, w.Body.String())
+			}
+			o = s.s.Orders[o.ID]
+			if o.NativePayment == nil || o.NativePayment.PaidAtoms != "100" || o.NativePayment.RefundedAtoms != expected.refunded || o.NativePayment.NetPaidAtoms != expected.net || len(o.NativePayment.Receipts) != stage+2 || !reflect.DeepEqual(afterPaid, s.s.Products[product.ID]) || len(o.ReturnReceipts) != 0 {
+				t.Fatal("cumulative refund changed original amount/stock/goods", stage, o.Status)
+			}
+			if (stage < 2 && (o.Status != "return_approved" || o.RefundStatus != "native_partial_refund")) || (stage == 2 && (o.Status != "refunded" || o.RefundStatus != "native_refunded")) {
+				t.Fatal("financial refund state differs", stage, o.Status, o.RefundStatus)
+			}
+			projection := *o.NativePayment
+			s, err = Open(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			w = businessHTTPRequest(NewServer(s, cfg), "POST", "/api/orders/"+o.ID+"/confirm-payment", fmt.Sprintf("%043d", 4+stage*2), `{}`)
+			if w.Code != 200 || !reflect.DeepEqual(projection, *s.s.Orders[o.ID].NativePayment) || !reflect.DeepEqual(afterPaid, s.s.Products[product.ID]) {
+				t.Fatal("cumulative cold duplicate changed original claims or stock", stage, w.Code)
+			}
+			var ids []string
+			var coordinates []map[string]string
+			for _, receipt := range projection.Receipts[1:] {
+				ids = append(ids, receipt.RefundID)
+				coordinates = append(coordinates, map[string]string{"height": receipt.ExecutionHeight, "index": receipt.ExecutionIndex, "member": receipt.ExecutionMember, "event": receipt.ExecutionEvent})
+			}
+			if stage >= 1 {
+				first, second := projection.Receipts[1], projection.Receipts[2]
+				if first.ExecutionHeight != second.ExecutionHeight || first.ExecutionIndex != "0" || second.ExecutionIndex != "1" {
+					t.Fatal("actual same-block original refund index0/1 required")
+				}
+			}
+			facts := map[string]any{"stage": stage + 1, "paidAtoms": projection.PaidAtoms, "refundedAtoms": projection.RefundedAtoms, "netPaidAtoms": projection.NetPaidAtoms, "refundIDs": ids, "coordinates": coordinates, "returnID": returnID, "cold": true, "duplicateSafe": true, "stockUnchanged": true, "goodsReceived": false, "SourceAdmission": false}
+			stages = append(stages, facts)
+			if stage < 2 {
+				if err = output.Encode(map[string]any{"phase": "refund-progress", "result": facts}); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		received, e := s.ReceiveReturn(owner, o.ID, receiveInput(o, returnID, "PUBLIC-multi-goods-original", "PUBLIC-multi-receive", 1))
+		if e != nil {
+			t.Fatal("full refund must retain original approved return", e)
+		}
+		if !reflect.DeepEqual(afterPaid, s.s.Products[product.ID]) {
+			t.Fatal("full refund goods receipt automatically restocked")
+		}
+		restock := RestockReturnInput{ReceiptID: received.ReturnReceipts[0].ID, IdempotencyKey: "PUBLIC-multi-restock"}
+		if _, err = s.RestockReturn(owner, o.ID, restock); err != nil {
+			t.Fatal(err)
+		}
+		afterRestock := cloneProduct(s.s.Products[product.ID])
+		s, err = Open(s.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = s.RestockReturn(owner, o.ID, restock); err != nil || !reflect.DeepEqual(afterRestock, s.s.Products[product.ID]) {
+			t.Fatal("full-refund cold restock duplicated", err)
+		}
+		if err = output.Encode(map[string]any{"phase": "done", "result": map[string]any{"paidAtoms": "100", "refundedAtoms": "100", "netPaidAtoms": "0", "stages": stages, "cold": true, "duplicateSafe": true, "returnReceived": true, "restocked": true, "returnID": returnID, "SourceAdmission": false}}); err != nil {
+			t.Fatal(err)
+		}
+		return
 	}
 	if err = input.Decode(&m); err != nil || m.Phase != "refunded" {
 		t.Fatal("actual archived refund stage required", err)
