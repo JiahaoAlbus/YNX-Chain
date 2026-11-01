@@ -63,13 +63,14 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                      'targetCallerLinked', 'actualTransactionCABIExecuted', 'transactionIndependentGoDualANDVerified', 'actualInitialAccountCABIExecuted',
                      'initialAccountIndependentGoDualANDVerified', 'actualDeviceHTTPCABIExecuted', 'deviceHTTPIndependentGoDualANDVerified',
                      'accountMigrationExportedBridgeGoVerified', 'accountMigrationAuthorizationExportedBridgeGoVerified',
-                     'pendingOriginalQueryExportedBridgeGoVerified'):
+                     'pendingOriginalQueryExportedBridgeGoVerified', 'pendingOriginalQueryExternalCInterop',
+                     'actualPendingOriginalQueryCABIExecuted', 'pendingOriginalQueryIndependentGoANDVerified'):
             parent[name] = True
         for name in ('crossCompiled', 'privateMaterialIncluded', 'publisherAuthorized', 'nativeRootAuthorized', 'mainCustodyVerified',
                      'productInstalled', 'publicDeployment', 'pqActivation', 'transactionAccountAuthorized', 'initialAccountAuthorized',
                      'deviceHTTPSourceQualified', 'deviceHTTPSessionAuthorized', 'accountMigrationExternalCInterop', 'accountMigrationAccountAuthorized',
                      'accountMigrationAuthorizationExternalCInterop', 'accountMigrationAuthorizationAccountAuthorized',
-                     'pendingOriginalQueryExternalCInterop', 'pendingOriginalQueryAccountAuthorized',
+                     'pendingOriginalQueryAccountAuthorized',
                      'pendingOriginalQuerySourceQualified', 'pendingOriginalQuerySessionAuthorized'):
             parent[name] = False
         parent.update(abi='YNXArtifactPublicationSignV1', abiVersion=1, transactionABI='YNXTransactionBatchSignV1', transactionABIVersion=1,
@@ -89,7 +90,8 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                             ('deviceHTTPHeader', 'product_session_http.h')):
             parent[field] = pins[name]
         for field, prefix in (('publicEvidence', ''), ('transactionPublicEvidence', 'TX-'),
-                              ('initialAccountPublicEvidence', 'INITIAL-'), ('deviceHTTPPublicEvidence', 'DEVICE-HTTP-')):
+                              ('initialAccountPublicEvidence', 'INITIAL-'), ('deviceHTTPPublicEvidence', 'DEVICE-HTTP-'),
+                              ('pendingOriginalQueryPublicEvidence', 'PENDING-QUERY-')):
             parent[field] = {prefix + name: pins[prefix + name] for name in ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')}
         return parent, env, host, 'b' * 40, pins['libynx_artifact_release.a'], pins
 
@@ -271,7 +273,9 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                   'pendingOriginalQueryExportedBridgeGoVerified',
                   'pendingOriginalQueryExternalCInterop', 'pendingOriginalQueryAccountAuthorized',
                   'pendingOriginalQuerySourceQualified', 'pendingOriginalQuerySessionAuthorized',
-                  'pendingOriginalQueryPurpose', 'pendingOriginalQueryMethod', 'pendingOriginalQueryPath')
+                  'pendingOriginalQueryPurpose', 'pendingOriginalQueryMethod', 'pendingOriginalQueryPath',
+                  'actualPendingOriginalQueryCABIExecuted', 'pendingOriginalQueryIndependentGoANDVerified',
+                  'pendingOriginalQueryPublicEvidence')
         for field in fields:
             changed = copy.deepcopy(args)
             del changed[0][field]
@@ -286,7 +290,10 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                                                        list(PENDING_QUERY_CORE_TESTS) + [PENDING_QUERY_CORE_TESTS[0]],
                                                        list(DATA['MIGRATION_CORE_TESTS']))),
             ('pendingOriginalQueryExportedBridgeGoVerified', (False, 1, 'true', None)),
-            ('pendingOriginalQueryExternalCInterop', (True, 0, 'false', None)),
+            ('pendingOriginalQueryExternalCInterop', (False, 1, 'true', None)),
+            ('actualPendingOriginalQueryCABIExecuted', (False, 1, 'true', None)),
+            ('pendingOriginalQueryIndependentGoANDVerified', (False, 1, 'true', None)),
+            ('pendingOriginalQueryPublicEvidence', ({}, None, {'PENDING-QUERY-PUBLIC-RECEIPT.json':{}})),
             ('pendingOriginalQueryAccountAuthorized', (True, 0, 'false', None)),
             ('pendingOriginalQuerySourceQualified', (True, 0, 'false', None)),
             ('pendingOriginalQuerySessionAuthorized', (True, 0, 'false', None)),
@@ -466,7 +473,10 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                      'cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h',
                      'cmd/ynx-artifact-release-cabi/pending_query_core.go', 'cmd/ynx-artifact-release-cabi/pending_query_bridge.go',
                      'cmd/ynx-artifact-release-cabi/pending_query_core_test.go',
-                     'internal/ynxbatch/product_pair_pending_original_query.go', 'internal/ynxbatch/product_pair_pending_original_query_test.go')
+                     'internal/ynxbatch/product_pair_pending_original_query.go', 'internal/ynxbatch/product_pair_pending_original_query_test.go',
+                     'scripts/fixtures/verify-pending-original-query-cabi/main.go',
+                     'scripts/fixtures/verify-pending-original-query-cabi/c/driver.c',
+                     'scripts/verify/pending-original-query-cabi-check.sh')
         self.assertTrue(set(migration) <= set(DATA['REQUIRED_SOURCES']))
         for name in ('cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go', 'internal/ynxbatch/key_material.go', 'go.mod') + migration:
             changed = copy.deepcopy(parent)
@@ -497,8 +507,8 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                     'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                     'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                     'DEVICE-HTTP-PUBLIC-INTEROP.json', 'SOURCE.json'}
-        self.assertEqual(len(DATA['PARENT_NAMES']), 17)
-        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h'})
+        self.assertEqual(len(DATA['PARENT_NAMES']), 19)
+        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json'})
         self.assertEqual(len(DATA['MATERIAL_NAMES']), 6)
         self.assertEqual(set(DATA['DELIVERY_NAMES']), {'libynx_artifact_release.a', 'product_device_keypair_v4.h', 'PUBLIC-RESULT.json', 'ORIGINAL-ARCHIVE-SOURCE.json', 'SOURCE.json'})
         for forbidden in ('-buildmode=c-archive', 'shell=True', 'os.environ.update', 'shutil.rmtree', '.unlink('):

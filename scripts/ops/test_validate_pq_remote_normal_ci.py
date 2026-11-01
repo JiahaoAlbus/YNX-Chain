@@ -634,6 +634,8 @@ def assert_native_cabi_workflow_contract(raw):
                  "scripts/verify/publisher-registration-cabi-check.sh",
                  "scripts/fixtures/verify-product-session-http-cabi/**",
                  "scripts/verify/product-session-http-cabi-check.sh",
+                 "scripts/fixtures/verify-pending-original-query-cabi/**",
+                 "scripts/verify/pending-original-query-cabi-check.sh",
                  "scripts/fixtures/verify-registered-n1-cabi/**",
                  "scripts/verify/registered-n1-verify-cabi-check.sh",
                  "scripts/ops/test_registered_n1_verify_cabi_supply.py",
@@ -666,6 +668,7 @@ def assert_native_cabi_workflow_contract(raw):
                        "Seal the same executed archive with dedicated publisher public evidence",
                        "Upload only public publisher archive headers and real native evidence")
     device_http_name = "Execute fixed device HTTP proof ABI from the same native archive"
+    pending_query_name = "Execute pending original query ABI from the same native archive"
     registered_names = ("Verify registered N1 public supply controls",
                         "Execute registered N1 verifier from the same sealed native archive",
                         "Upload only public registered N1 verifier and actual native evidence")
@@ -681,9 +684,9 @@ def assert_native_cabi_workflow_contract(raw):
     v5_names = ("Execute fixed binary HTTP V5 from the same native archive",
                 "Upload only fixed binary HTTP V5 archive and actual public evidence")
     ordered_names = (names[:1] + data_names + names[1:3] + (new_core_name,) + names[3:4] + wallet_names + (invoice_name, invoice_upload) + publisher_names[:1]
-                     + (device_http_name,)
+                     + (device_http_name, pending_query_name)
                      + names[4:9] + registered_names + product_device_names + creator_names + e11_names + v5_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names) == 36)
+    need(len(steps) == len(ordered_names) == 37)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
     v5 = named[v5_names[0]]
@@ -804,6 +807,11 @@ def assert_native_cabi_workflow_contract(raw):
         '          bash scripts/verify/product-session-http-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-product-session-http-cabi"'])
+    need(lines(named[pending_query_name]) == ["      - name: " + pending_query_name,
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/pending-original-query-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-pending-original-query-cabi"'])
     # This DATA-only verifier consumes the already sealed, executed archive.
     # Its original supply controls enforce the closed public delivery catalog;
     # no new archive build, skipped call or unconditional upload can qualify it.
@@ -895,7 +903,8 @@ def assert_native_cabi_workflow_contract(raw):
         '          lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64',
-        '          lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64'])
+        '          lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-pending-original-query-cabi/pending-query-c-driver" -verify_arch arm64'])
     need(lines(steps[5]) == ["      - name: " + names[5], "        if: runner.os == 'macOS'",
         "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
         "          node-version: '24.19.0'", "          cache: npm"])
@@ -925,13 +934,15 @@ def assert_native_cabi_workflow_contract(raw):
         "transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'",
         "initial_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-account-initial-cabi'",
         "device_http_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-product-session-http-cabi'",
+        "pending_query_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-pending-original-query-cabi'",
         "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',",
         "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
         "'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',",
         "'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',",
         "'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',",
         "'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',",
-        "'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',",
+        "'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-pending-original-query-cabi',",
+        "'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',",
         "'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',",
         "'.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
@@ -944,6 +955,7 @@ def assert_native_cabi_workflow_contract(raw):
         "transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}",
         "initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}",
         "device_http_public_pins = {'DEVICE-HTTP-'+name:pin(device_http_case / 'input' / name) for name in public_names}",
+        "pending_query_public_pins = {'PENDING-QUERY-'+name:pin(pending_query_case / 'input' / name) for name in public_names}",
         "for label, archive, target_os, target_arch, executed in targets:",
         "shutil.copyfile(archive, out / 'libynx_artifact_release.a')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')",
@@ -956,6 +968,7 @@ def assert_native_cabi_workflow_contract(raw):
         "shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))",
         "shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))",
         "shutil.copyfile(device_http_case / 'input' / name, out / ('DEVICE-HTTP-'+name))",
+        "shutil.copyfile(pending_query_case / 'input' / name, out / ('PENDING-QUERY-'+name))",
         "sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],",
         "matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], runnerOS=os.environ['RUNNER_OS'],",
         "host=dict(os=native_os, arch=native_arch), target=dict(os=target_os, arch=target_arch),",
@@ -985,7 +998,9 @@ def assert_native_cabi_workflow_contract(raw):
         "pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,",
         "pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),",
         "pendingOriginalQueryCoreTests=['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary'],",
-        'pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=False,',
+        'pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=executed,',
+        "actualPendingOriginalQueryCABIExecuted=executed, pendingOriginalQueryIndependentGoANDVerified=executed,",
+        "pendingOriginalQueryPublicEvidence=pending_query_public_pins,",
         'pendingOriginalQueryAccountAuthorized=False, pendingOriginalQuerySourceQualified=False, pendingOriginalQuerySessionAuthorized=False,',
         "pendingOriginalQueryPurpose='product-device-pending-original-query-v1',",
         "pendingOriginalQueryMethod='POST', pendingOriginalQueryPath='/v4/product-pairs/original-query',",
@@ -1006,9 +1021,9 @@ def assert_native_cabi_workflow_contract(raw):
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
         (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), False),
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), False),
         (steps[10], names[10], "darwin-arm64", "darwin-arm64",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "product_session_http.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), True)):
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "product_session_http.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
             expected.append("        if: runner.os == 'macOS'")
@@ -2661,7 +2676,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(seal, tests_line, "pendingOriginalQueryCoreTests=[],"),
             change(seal, "pendingOriginalQueryExportedBridgeGoVerified=True", "pendingOriginalQueryExportedBridgeGoVerified=False"),
             change(seal, "pendingOriginalQueryExportedBridgeGoVerified=True", "pendingOriginalQueryExportedBridgeGoVerified=1"),
-            change(seal, "pendingOriginalQueryExternalCInterop=False", "pendingOriginalQueryExternalCInterop=True"),
+            change(seal, "pendingOriginalQueryExternalCInterop=executed", "pendingOriginalQueryExternalCInterop=True"),
             change(seal, "pendingOriginalQueryAccountAuthorized=False", "pendingOriginalQueryAccountAuthorized=True"),
             change(seal, "pendingOriginalQuerySourceQualified=False", "pendingOriginalQuerySourceQualified=True"),
             change(seal, "pendingOriginalQuerySessionAuthorized=False", "pendingOriginalQuerySessionAuthorized=True"),
@@ -2671,7 +2686,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         for required in (
             "pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,",
             header_pin, tests_line,
-            "pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=False,",
+            "pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=executed,",
             "pendingOriginalQueryAccountAuthorized=False, pendingOriginalQuerySourceQualified=False, pendingOriginalQuerySessionAuthorized=False,",
             "pendingOriginalQueryPurpose='product-device-pending-original-query-v1',",
             "pendingOriginalQueryMethod='POST', pendingOriginalQueryPath='/v4/product-pairs/original-query',",
@@ -2869,6 +2884,58 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(upload, "/native-host/product_session_http.h", "/native-host/tx_batch.h"),
             change(upload, "/native-host/DEVICE-HTTP-PUBLIC-RECEIPT.json", "/input/SYNTHETIC-ONLY-a.der"),
             change(arm_upload, "/darwin-arm64/DEVICE-HTTP-PUBLIC-INTEROP.json", "/input/SYNTHETIC-ONLY-b.der"),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_pending_query_external_cabi_requires_same_executed_archive_and_public_data_only(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        actual = named("Execute actual C ABI and independently verify both signatures")
+        execute = named("Execute pending original query ABI from the same native archive")
+        arm = named("Verify the executed original Main arm64 target")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        upload = named("Upload only public native host archive header and evidence")
+        arm_upload = named("Upload only public Main arm64 archive header and executed target evidence")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            self.assertEqual(raw.count(step), 1)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        command = "bash scripts/verify/pending-original-query-cabi-check.sh"
+        mutations = [
+            raw.replace(execute, "", 1), raw.replace(execute, execute + execute, 1),
+            change(execute, command, "true # " + command),
+            change(execute, "        run: |\n", "        if: false\n        run: |\n"),
+            change(execute, "        run: |\n", "        continue-on-error: true\n        run: |\n"),
+            change(execute, '"$RUNNER_TEMP/ynx-pending-original-query-cabi"',
+                   '"$RUNNER_TEMP/ynx-pending-original-query-cabi" || true'),
+            change(execute, '"$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+                   '"$RUNNER_TEMP/old/libynx_artifact_release.a"'),
+            raw.replace(execute, "", 1).replace(actual, execute + actual, 1),
+            raw.replace(execute, "", 1).replace(seal, seal + execute, 1),
+            change(arm, '          lipo "$RUNNER_TEMP/ynx-pending-original-query-cabi/pending-query-c-driver" -verify_arch arm64\n', ""),
+            raw.replace("      - 'scripts/fixtures/verify-pending-original-query-cabi/**'\n", "", 1),
+            raw.replace("      - 'scripts/verify/pending-original-query-cabi-check.sh'\n", "", 1),
+            change(seal, "pendingOriginalQueryABIVersion=1", "pendingOriginalQueryABIVersion=2"),
+            change(seal, "actualPendingOriginalQueryCABIExecuted=executed", "actualPendingOriginalQueryCABIExecuted=True"),
+            change(seal, "pendingOriginalQueryIndependentGoANDVerified=executed", "pendingOriginalQueryIndependentGoANDVerified=True"),
+            change(seal, "pendingOriginalQuerySourceQualified=False", "pendingOriginalQuerySourceQualified=True"),
+            change(seal, "pendingOriginalQuerySessionAuthorized=False", "pendingOriginalQuerySessionAuthorized=True"),
+            change(seal, "pending_query_case / 'input' / name", "pending_query_case / 'input' / 'SYNTHETIC-ONLY-a.der'"),
+            change(upload, "/native-host/product_pair_pending_original_query.h", "/native-host/tx_batch.h"),
+            change(upload, "/native-host/PENDING-QUERY-PUBLIC-RECEIPT.json", "/input/SYNTHETIC-ONLY-a.der"),
+            change(arm_upload, "/darwin-arm64/PENDING-QUERY-PUBLIC-INTEROP.json", "/input/SYNTHETIC-ONLY-b.der"),
         ]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)

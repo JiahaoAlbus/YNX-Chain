@@ -129,6 +129,8 @@ on:
       - 'scripts/verify/publisher-registration-cabi-check.sh'
       - 'scripts/fixtures/verify-product-session-http-cabi/**'
       - 'scripts/verify/product-session-http-cabi-check.sh'
+      - 'scripts/fixtures/verify-pending-original-query-cabi/**'
+      - 'scripts/verify/pending-original-query-cabi-check.sh'
       - 'scripts/fixtures/verify-project-control-cabi/**'
       - 'scripts/verify/project-control-cabi-check.sh'
       - 'scripts/verify/seal-project-control-cabi.py'
@@ -745,6 +747,12 @@ jobs:
           bash scripts/verify/product-session-http-cabi-check.sh \
             "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
             "$RUNNER_TEMP/ynx-product-session-http-cabi"
+      - name: Execute pending original query ABI from the same native archive
+        run: |
+          set -euo pipefail
+          bash scripts/verify/pending-original-query-cabi-check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
+            "$RUNNER_TEMP/ynx-pending-original-query-cabi"
       - name: Verify the executed original Main arm64 target
         if: runner.os == 'macOS'
         run: |
@@ -760,6 +768,7 @@ jobs:
           lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64
           lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64
           lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64
+          lipo "$RUNNER_TEMP/ynx-pending-original-query-cabi/pending-query-c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
       - name: Install pinned contract runtime for Darwin migration callers
@@ -801,6 +810,7 @@ jobs:
           transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'
           initial_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-account-initial-cabi'
           device_http_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-product-session-http-cabi'
+          pending_query_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-pending-original-query-cabi'
           delivery = case / 'delivery'
           delivery.mkdir(mode=0o700)
           def command(*args):
@@ -823,7 +833,8 @@ jobs:
               'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',
               'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',
               'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
-              'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
+              'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-pending-original-query-cabi',
+              'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
               'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',
               'scripts/fixtures/verify-deployment-manifest-v2-cabi',
               'scripts/fixtures/verify-product-session-http-v5-cabi',
@@ -840,6 +851,7 @@ jobs:
           transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}
           initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}
           device_http_public_pins = {'DEVICE-HTTP-'+name:pin(device_http_case / 'input' / name) for name in public_names}
+          pending_query_public_pins = {'PENDING-QUERY-'+name:pin(pending_query_case / 'input' / name) for name in public_names}
           for label, archive, target_os, target_arch, executed in targets:
               out = delivery / label
               out.mkdir(mode=0o700)
@@ -856,6 +868,7 @@ jobs:
                   shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))
                   shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))
                   shutil.copyfile(device_http_case / 'input' / name, out / ('DEVICE-HTTP-'+name))
+                  shutil.copyfile(pending_query_case / 'input' / name, out / ('PENDING-QUERY-'+name))
               record = dict(version='YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'],
                   sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],
                   runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
@@ -891,7 +904,9 @@ jobs:
                   pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,
                   pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),
                   pendingOriginalQueryCoreTests=['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary'],
-                  pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=False,
+                  pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=executed,
+                  actualPendingOriginalQueryCABIExecuted=executed, pendingOriginalQueryIndependentGoANDVerified=executed,
+                  pendingOriginalQueryPublicEvidence=pending_query_public_pins,
                   pendingOriginalQueryAccountAuthorized=False, pendingOriginalQuerySourceQualified=False, pendingOriginalQuerySessionAuthorized=False,
                   pendingOriginalQueryPurpose='product-device-pending-original-query-v1',
                   pendingOriginalQueryMethod='POST', pendingOriginalQueryPath='/v4/product-pairs/original-query',
@@ -1202,6 +1217,8 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/INITIAL-PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/DEVICE-HTTP-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/DEVICE-HTTP-PUBLIC-INTEROP.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PENDING-QUERY-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PENDING-QUERY-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public Main arm64 archive header and executed target evidence
@@ -1225,6 +1242,8 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/INITIAL-PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/DEVICE-HTTP-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/DEVICE-HTTP-PUBLIC-INTEROP.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/PENDING-QUERY-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/PENDING-QUERY-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
 
