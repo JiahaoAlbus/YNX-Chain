@@ -6,6 +6,23 @@ Current P01 `a437d525a7d35d31a9ef664629433bcaa1df4901` supplies `requestPQPayBro
 
 `createNativePayMainEntry({getMain,getContext})` is boot-only composition; its Source is never supplied through IPC or environment. Connect only `invoke/status/cancel` to the original safe live-frame IPC. Strict DATA inputs include invoice/intent lookup, terms/payment/refund review, events, original recovery and broadcast-review. The controller reads original retained Members, checks both hashes/account/operation/kind and calls only P01's Pay-specific review. It never falls back to Core's `requestPQBroadcast`. `terms-submit`, `pay-submit` and `refund-submit` compatibility commands also request this review only: the client has no approve/send operation and no `withSubmissionApproval` callback.
 
+After the SAME original Main finishes an approval/rejection and its cleanup,
+call `entry.settleOriginalReview(id, originalMain)` locally. Do not expose this
+completion notification as IPC. It checks the stored Main identity and that the
+request is absent from its actual `pendingRequests()`. `cancel()` also prunes
+normally settled requests before rejecting still-pending ones. Unexpected reject
+or pending-reader failures keep their first cause and bookkeeping debt; they are
+not repeated or silently cleared because an id vanished. A later actual Main
+completion notification can release that local debt. No transaction, original,
+UNKNOWN, approval, payment outcome or Native resource is removed by bookkeeping.
+
+The actual normal ProductSource producer is a separate owning-code dependency:
+`current()`, `readOriginalInvoiceIntent(ref,current)`, `readInvoiceOriginals(ref,current)`
+and the original qualified Pay preparation/review/read client must come from
+the genuine Auth/SDK/product resource owner. Existing adapters are consumers.
+Wallet7a's fixed three Member POST/two GET scope cannot authorize product
+create/lookup/review routes or manufacture historical invoice originals.
+
 The original runtime supplies:
 
 - `pay`: the fixed `createPrivateNativeInvoiceClient({origin,requestPrivate})` consumer over the original qualified Source/LINK transport, with no default fetch, target override, redirect or dispatched-POST retry.

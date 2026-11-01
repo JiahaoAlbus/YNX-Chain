@@ -1180,6 +1180,13 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqBroadcastSource:executeOriginalPQBroadcast,
     pqPayBroadcastSource:originalPQPaySupply?executeOriginalPQBroadcast:null,
     onPQReviewInvalidated:id=>{try{originalPayContextBridge.invalidateReview(id);}catch(cause){preservePayInvalidationFailure(cause);}},
+    onPQReviewSettled:(id,owner)=>{
+      try{
+        if(owner!==walletAuthority||pqTransactionSubmission?.hasUnresolvedCleanup())return false;
+        originalPayContextBridge.assertSafeToClose();
+        nativePayMainEntry?.settleOriginalReview(id,owner);return true;
+      }catch(cause){preservePayInvalidationFailure(cause);return false;}
+    },
     pqSessionSource:acquireOriginalAccountPolicy,
     pqSessionRecognized:isOriginalAccountPolicyResource,
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,

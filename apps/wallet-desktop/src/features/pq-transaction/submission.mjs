@@ -283,6 +283,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
         });
       });
     },
+    hasUnresolvedCleanup(){return active.size>0||resources.size>0;},
     assertSafeToClose() {
       closing = true;
       if (active.size || resources.size) throw failure('PQ_TRANSACTION_CLEANUP_PENDING');

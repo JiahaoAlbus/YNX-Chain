@@ -1,8 +1,30 @@
 # Native Pay dispatch contract for original P01 Wallet Main
 
-Current owner is P01 Wallet Main, not P03 IDE. P01 `a437d525a7d35d31a9ef664629433bcaa1df4901` now supplies the exact Pay review entry and fixed original journal target/UNKNOWN/first-response DATA custody. Its actual protected Native Source remains null, returning `PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED` before custody/queue/journal changes. P06 consumption reaches that real callee with each invoice kind. The prior deae evidence only queued three reviews with zero dispatches; it is not a Pay dispatcher receipt. P03 checked fixed7ff73199 has no Pay invoice/handoff symbols in its owned runtime.
+Current owner is P01 Wallet Main. Its complete SDK7a normal boot baseline is
+`6ef63d5a8ba56fe3df4caacf3e034feba5d43f4d`, followed by the product-entry
+integration in `e6f9c8573afc0d1571a5e7ac4017583714de9889`. Original review,
+once-dispatch, durable UNKNOWN, first-response custody and native retirement
+are implemented; they are not installation or genuine Source admission proof.
+The earlier a437/210 frozen controls remain historical evidence, not matching
+proof for the new Main/SDK/Native whole.
 
-The actual single-dispatch controller/normal boot, Native getter/recognizer and current/order binding still require their original P01/Auth/SDK implementation and executable qualification. Sole SDK5aa now supplies the public Pay response DATA parser; it cannot replace Native Source. Generic Core fallback and withSubmissionApproval/send callbacks have been removed from current Pay client orchestration. Genuine Root/merchant/anchor are separate gates and do not explain away CODE gaps.
+P06's production Native capture/channel/request implementation has passed actual
+Auth SourceLease→Go→private Unix component controls and normal c-archive strong
+linking. Its PUBLIC Root boundary does not qualify the real Main/Root source.
+Normal Root profile creation, same-process registered client startup and the
+same already-booted Main namespace remain original Auth/LINK/SDK dependencies.
+The normal product controller additionally needs a genuine ProductSource, its
+original bill/order and invoice archive getters, and qualified preparation/read
+transport. Wallet7a Member POST/query scope cannot be widened to supply them.
+P06 owns its actual consumer/runtime glue and service-original integration;
+Auth/SDK own genuine native qualification and original product owners supply
+retained source data. Callbacks, a codec, a package or HTTP 200 grant no Source.
+
+The original Main notifies `entry.settleOriginalReview(id, sameMain)` only after
+the real review/cleanup completes. It is Main-local, never renderer/IPC input.
+The controller checks actual `sameMain.pendingRequests()` before retiring local
+bookkeeping; cancellation skips resolved ids and rejects only live ones. Failed
+cleanup keeps its original cause until real Main completion is observed.
 
 The production caller is `NewRegisteredNativeInvoiceIntentSource(parent, actualJointReader)` and `NewPrivateNativePayServer(parent, NativePayConfig{Genesis,NativeChainID,HTTP,Authority,ProofSource}, registeredSource,build,logger)` in `pq_intent.go` / `pq_intent_source.go`. These are existing in-process dependencies. An HTTP JSON body, UI input, SDK codec, signed Member or build manifest cannot construct Source authorization. Missing actual Source closes the relevant action. P01 must extend and preserve its existing `requestPQTypedAction → requestPQBroadcast → executeOriginalPQBroadcast → createPQTransactionSubmission` chain, actual queue/UI/capsule/Auth/current and original journal. This is not a new approval or transaction state machine.
 

@@ -65,12 +65,13 @@ export class DesktopWalletAuthority {
   #pqTxSource; #pqTxRecognized; #pqTxOwners=new Set();
   #pqBroadcastSource;
   #pqPayBroadcastSource;
-  #onPQReviewInvalidated;
+  #onPQReviewInvalidated; #onPQReviewSettled; #pqReviewByOwner=new WeakMap(); #pqReviewNotified=new WeakSet();
   #pqInitialReviews=new WeakMap(); #pqInitialAcquiring=false;
   #pqInitialSource; #pqInitialSourceRecognized; #pqInitialPermission; #pqInitialPermissionRecognized; #pqInitialOwners=new Set();
   #pqInitialBroadcast;
-  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null,pqPayBroadcastSource=null,onPQReviewInvalidated=()=>{},pqAccountInitialSource=null,pqAccountInitialSourceRecognized=null,pqAccountInitialPermissionSource=null,pqAccountInitialPermissionRecognized=null,pqAccountInitialBroadcastSource=null }) {
+  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null,pqPayBroadcastSource=null,onPQReviewInvalidated=()=>{},onPQReviewSettled=()=>{},pqAccountInitialSource=null,pqAccountInitialSourceRecognized=null,pqAccountInitialPermissionSource=null,pqAccountInitialPermissionRecognized=null,pqAccountInitialBroadcastSource=null }) {
     if(typeof onPQReviewInvalidated!=='function')throw Error('Invalid review retirement hook');this.#onPQReviewInvalidated=onPQReviewInvalidated;
+    if(typeof onPQReviewSettled!=='function')throw Error('Invalid review settlement hook');this.#onPQReviewSettled=onPQReviewSettled;
     this.vault = vault;
     this.permissions = permissions;
     this.transactionSender = transactionSender;
@@ -94,9 +95,15 @@ export class DesktopWalletAuthority {
     this.#pqInitialSource=pqAccountInitialSource;this.#pqInitialSourceRecognized=pqAccountInitialSourceRecognized;this.#pqInitialPermission=pqAccountInitialPermissionSource;this.#pqInitialPermissionRecognized=pqAccountInitialPermissionRecognized;
     if(pqAccountInitialBroadcastSource!==null&&typeof pqAccountInitialBroadcastSource!=='function')throw Error('PQ_INITIAL_BROADCAST_SOURCE_INVALID');this.#pqInitialBroadcast=pqAccountInitialBroadcastSource;
   }
+  #setPQReview(pending,review){this.#pqReviews.set(pending,review);if(review.owner)this.#pqReviewByOwner.set(review.owner,pending);}
+  #notifyPQReviewSettled(owner){
+    const pending=this.#pqReviewByOwner.get(owner);if(!pending||this.#pqReviewNotified.has(owner)||this.pending.has(pending.id)||this.#activeReviews.has(pending.id))return;
+    const state=owner.status();if(state.closed!==true||state.cleanupDebt||this.#pqTxOwners.size||this.vault.pqCleanupUnresolved?.()===true)return;
+    if(this.#onPQReviewSettled(pending.id,this)!==false)this.#pqReviewNotified.add(owner);
+  }
   #closePQ(owner,...causes){
     if(causes.length)owner.retire(causes[0]);
-    const pass=owner.close();void pass.then(()=>{if(!owner.status().cleanupDebt)this.#pqOwners.delete(owner);},()=>{});return pass;
+    const pass=owner.close();void pass.then(()=>{if(!owner.status().cleanupDebt)this.#pqOwners.delete(owner);this.#notifyPQReviewSettled(owner);},()=>{}).catch(()=>{});return pass;
   }
 
   #trackPQ(action){
@@ -195,7 +202,7 @@ export class DesktopWalletAuthority {
       const pending=deepFreeze({id,origin:'ynx-wallet:local-pq',method:'ynx_broadcastPQNativeTransfer',params:[],createdAt,review:{title:'Broadcast saved PQ transfer / 提交已保存的 PQ 转账',account:status.account,...plan.transfer,hash,operationId:original.binding.operationId,expiresAt:deadline,warning:'This is a separate one-time broadcast approval. No new signature. UNKNOWN is retained and never resent automatically. 提交许可独立于签名；结果未知时只查询原件。'}});
       let cancelled=false;const revision=this.vault.authorization.status().revision;
       const lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(deadline))throw providerError(4100,'REQUEST_EXPIRED','Review this original broadcast again.');}});
-      lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,broadcast:request});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
+      lease.assert();this.#setPQReview(pending,{snapshot,plan,owner,broadcast:request});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -217,7 +224,7 @@ export class DesktopWalletAuthority {
       this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish current reviews first.');
       const pending=deepFreeze({id,origin:'ynx-wallet:local-pq',method:'ynx_broadcastPQMigration',params:[],createdAt:new Date(at).toISOString(),review:{title:'Broadcast saved account migration / 提交已保存的账户迁移',account:status.account,operationId:id,originalOperationId:saved.operationId,hash:saved.hash,abciTransactionHash:request.abciTransactionHash,migrationIntent:request.migrationIntent,currentAuthorization:request.currentAuthorization,policyRevision:request.policyRevision,reviewExecutionHeight:request.reviewExecutionHeight,executionHeight:request.executionHeight,fee:'1',expiresAt:deadline,warning:'Independent one-time broadcast approval. Keep the existing signed E6 unchanged. UNKNOWN is queried without a replacement signature or resend. 独立提交批准；原件不变，UNKNOWN只查询、不重签或重发。'}});
       let cancelled=false;const revision=this.vault.authorization.status().revision,lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.#pqShuttingDown||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(deadline))throw providerError(4100,'REQUEST_EXPIRED','Review the same original migration broadcast again.');}});
-      lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,broadcast:request,migrationOriginal:original.original});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Migration broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
+      lease.assert();this.#setPQReview(pending,{snapshot,plan,owner,broadcast:request,migrationOriginal:original.original});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Migration broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -237,7 +244,7 @@ export class DesktopWalletAuthority {
       this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish current reviews first.');
       const pending=deepFreeze({id:this.requestId(),origin:connected?.origin??'ynx-wallet:local-pq',method:'ynx_broadcastPQNativeAction',params:[],createdAt:new Date(at).toISOString(),review:{title:payTarget?'Submit retained invoice to Pay / 向 Pay 提交已保存账单':'Broadcast the retained original PQ action / 提交已保存的原 PQ 操作',...(payTarget?{payTarget}:{}),account:status.account,...(connected?{initiatorOrigin:connected.origin}:{}),typedAction:request.typedAction,operationId:request.operationId,hash:request.transportHash,memberHash:request.memberHash,requestDigest:request.requestDigest,pair:request.pair,policyRevision:request.policyRevision,reviewExecutionHeight:request.reviewExecutionHeight,executionHeight:request.executionHeight,expiresAt:deadline,warning:'Separate one-time broadcast approval only. No replacement signature. UNKNOWN is retained and never automatically resent. 独立提交批准；不重新签名、不自动重发。'}});
       let cancelled=false;const revision=this.vault.authorization.status().revision,lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.#pqShuttingDown||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(deadline))throw providerError(4100,'REQUEST_EXPIRED','Review the same original broadcast again.');}});
-      lease.assert();this.#pqReviews.set(pending,{snapshot,owner,broadcast:request,typedOriginal:original,payTarget});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
+      lease.assert();this.#setPQReview(pending,{snapshot,owner,broadcast:request,typedOriginal:original,payTarget});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -280,7 +287,7 @@ export class DesktopWalletAuthority {
       // Bind the persistent review to its security revision instead; approval
       // obtains its own current key guard, as do existing transfer reviews.
       let cancelled=false;const revision=this.vault.authorization.status().revision,lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.#pqShuttingDown||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(pending.review.expiresAt))throw providerError(4100,'REQUEST_EXPIRED','Review this original action again.');}});
-      lease.assert();this.#pqReviews.set(pending,{snapshot,owner,typedReview,archive,reserveBytes});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;cancelPQTypedActionReview(typedReview);void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed action cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
+      lease.assert();this.#setPQReview(pending,{snapshot,owner,typedReview,archive,reserveBytes});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;cancelPQTypedActionReview(typedReview);void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed action cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -323,7 +330,7 @@ export class DesktopWalletAuthority {
     const approvalPermission=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.vault.authorization.status().revision!==securityRevision||this.clock().getTime()-Date.parse(pending.createdAt)>=APPROVAL_TTL_MS)throw providerError(4100,'REQUEST_EXPIRED','Review this transfer again.');}});
     lease.assert();
     const preview=migration||revocation?null:createPQTransferPreview(pending,{account:status.account,networkId:this.#pqNetworkId});
-    this.#pqReviews.set(pending,{snapshot,plan,owner,proposal,preview});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
+    this.#setPQReview(pending,{snapshot,plan,owner,proposal,preview});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
     return Object.freeze({status:'approval-required',request:pending,...(preview?{preview}:{})});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -607,6 +614,7 @@ export class DesktopWalletAuthority {
       const original=this.#pqReviews.get(pending)?.owner;
       if(original)try{await this.#closePQ(original,...(failed?[cause]:[]));}catch(error){if(!failed){failed=true;cause=error;}}
       if(this.#activeReviews.get(id)===pending)this.#activeReviews.delete(id);
+      if(original)this.#notifyPQReviewSettled(original);
     }
     if(failed)throw cause;return result;
   }
