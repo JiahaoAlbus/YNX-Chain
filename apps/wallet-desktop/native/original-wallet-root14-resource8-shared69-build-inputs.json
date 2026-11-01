@@ -29834,8 +29834,9 @@
     "objects": 69,
     "AuthActualReuse": 60,
     "AIStageFlagTUs": 9,
-    "WalletMain": "6356c4c2b83a149910cd0ebe818b0f9a0731d1b7",
+    "WalletMain": "9065f32eb064410c359ddff5d8d74afaee5443a0",
     "actualAgentSigning": false,
-    "actualOS13": false
+    "actualOS13": false,
+    "WalletMainPredecessor": "6356c4c2b83a149910cd0ebe818b0f9a0731d1b7"
   }
 }
