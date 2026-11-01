@@ -49,6 +49,9 @@ func (m *Manager) artifact() ([]byte, os.FileInfo, error) {
 	if m.state.ArtifactIdentity == nil || m.state.ArtifactSHA256 == "" {
 		return nil, nil, ErrReconcile
 	}
+	if _, err := m.installedRuntime(); err != nil {
+		return nil, nil, err
+	}
 	raw, info, err := readOwnedFile(filepath.Join(m.directory, "bin", artifactName), m.uid, int64(m.maxArtifact))
 	if err != nil {
 		return nil, nil, err

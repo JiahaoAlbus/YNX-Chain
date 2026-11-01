@@ -139,14 +139,15 @@ type Receipt struct {
 	VerifiedAt    string `json:"verifiedAt"`
 }
 type Record struct {
-	Work         Work     `json:"work"`
-	Manifest     Binding  `json:"manifest"`
-	ConsentNonce string   `json:"consentNonce"`
-	State        string   `json:"state"`
-	Usage        Usage    `json:"usage"`
-	Result       Result   `json:"result"`
-	Receipt      *Receipt `json:"receipt,omitempty"`
-	Failure      string   `json:"failure,omitempty"`
+	Original     *OriginalRecord `json:"original,omitempty"`
+	Work         Work            `json:"work"`
+	Manifest     Binding         `json:"manifest"`
+	ConsentNonce string          `json:"consentNonce"`
+	State        string          `json:"state"`
+	Usage        Usage           `json:"usage"`
+	Result       Result          `json:"result"`
+	Receipt      *Receipt        `json:"receipt,omitempty"`
+	Failure      string          `json:"failure,omitempty"`
 }
 type journal struct {
 	Version int               `json:"version"`
@@ -169,6 +170,7 @@ type Runner struct {
 	data                    journal
 	persistenceErr          error
 	authorizedJobs          map[string]time.Time
+	original                *originalExecution
 }
 
 // NewDisabled is the production default. It cannot execute any job, regardless
@@ -297,12 +299,20 @@ func (r *Runner) persist() error {
 	if err := r.lock.Check(); err != nil {
 		return err
 	}
+	if raw, err := json.Marshal(r.data); err != nil || len(raw) > 4<<20 {
+		return ErrLimit
+	}
 	return productstore.Save(r.path, r.data)
 }
 
 func validateStoredRecord(id string, rec Record, nonces map[string]string) error {
-	if !boundedMetadata(rec.Work) || !validID(id) || id != rec.Work.Job || !validID(rec.Work.Issuer) || !isFixedKind(rec.Work.Kind) || !validBinding(rec.Work.Input) || rec.Manifest != Bind(ManifestPayload(rec.Work)) || nonces[rec.ConsentNonce] != id {
+	if !boundedMetadata(rec.Work) || !validID(id) || id != rec.Work.Job || !validID(rec.Work.Issuer) || !isFixedKind(rec.Work.Kind) || !validBinding(rec.Work.Input) || rec.Manifest != recordManifest(rec) || nonces[rec.ConsentNonce] != id {
 		return ErrInvalid
+	}
+	if rec.Original != nil {
+		if err := validateOriginalRecord(rec); err != nil {
+			return err
+		}
 	}
 	var key []string
 	if json.Unmarshal([]byte(rec.ConsentNonce), &key) != nil || len(key) != 2 || !validID(key[0]) || !validID(key[1]) || nonceKey(key[0], key[1]) != rec.ConsentNonce {
@@ -329,14 +339,20 @@ func validateStoredRecord(id string, rec Record, nonces map[string]string) error
 	}
 	switch rec.State {
 	case "preparing", "running", "failed", "stopped", "interrupted", "unknown":
-		if rec.Receipt != nil {
+		if rec.Receipt != nil && !(rec.Original != nil && rec.State == "unknown" && rec.Original.FirstCause != "" && validOriginalReceipt(rec)) {
 			return ErrInvalid
 		}
 	case "submitted":
-		if !validResultForWork(rec.Work, rec.Result) || rec.Receipt != nil {
+		if !validRecordResult(rec) || rec.Receipt != nil {
 			return ErrInvalid
 		}
 	case "verified", "historical":
+		if rec.Original != nil {
+			if !validOriginalReceipt(rec) {
+				return ErrInvalid
+			}
+			break
+		}
 		p := rec.Receipt
 		if p == nil || p.ID != "sandbox:"+id || p.Job != id || p.Class != SandboxClass || p.Result != rec.Result || !validResultForWork(rec.Work, rec.Result) || p.VerifiedBytes != n {
 			return ErrInvalid
@@ -416,13 +432,16 @@ func boundedMetadata(w Work) bool {
 }
 
 func checkWork(w Work, c Consent, inputLen int, now time.Time) (bounds, error) {
+	return checkWorkBinding(w, c, inputLen, now, Bind(ManifestPayload(w)))
+}
+func checkWorkBinding(w Work, c Consent, inputLen int, now time.Time, manifest Binding) (bounds, error) {
 	if !isFixedKind(w.Kind) {
 		return bounds{}, ErrUnsupported
 	}
 	if !boundedMetadata(w) || len(c.ExpiresAt) > 64 {
 		return bounds{}, ErrInvalid
 	}
-	if !validID(w.Job) || !validID(w.Issuer) || !validID(c.Principal) || !validID(c.Nonce) || !validBinding(w.Input) || !c.Allow || c.Job != w.Job || c.Manifest != Bind(ManifestPayload(w)) || c.Limits != w.Limits {
+	if !validID(w.Job) || !validID(w.Issuer) || !validID(c.Principal) || !validID(c.Nonce) || !validBinding(w.Input) || !c.Allow || c.Job != w.Job || c.Manifest != manifest || c.Limits != w.Limits {
 		return bounds{}, ErrInvalid
 	}
 	we, e := liveExpiry(w.ExpiresAt, now)
@@ -715,6 +734,7 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 }
 
 func cloneRecord(v Record) Record {
+	v.Original = cloneOriginal(v.Original)
 	v.Usage.Process = cloneProcessUsage(v.Usage.Process)
 	if v.Receipt != nil {
 		copy := *v.Receipt
@@ -751,6 +771,9 @@ func (r *Runner) Wait(ctx context.Context) error {
 // then compares the exact fixed output. No worker usage report can
 // increment the verified counter. A duplicate returns its one existing receipt.
 func (r *Runner) VerifyWorkReceipt(ctx context.Context, job string, candidate Result, input []byte) (Receipt, error) {
+	if r.original != nil {
+		return r.readOriginalVerified(ctx, job, candidate, input)
+	}
 	if !r.sandbox || r.authorizer == nil {
 		return Receipt{}, ErrDenied
 	}
@@ -862,19 +885,29 @@ func (r *Runner) StopContribution(ctx context.Context) error {
 		op.cancel()
 	}
 	r.mu.Unlock()
+	var originalRetireErr error
+	if r.original != nil {
+		originalRetireErr = r.original.source.Retire()
+	}
 	if op != nil {
 		select {
 		case <-op.done:
 		case <-ctx.Done():
-			return ctx.Err()
+			return errors.Join(originalRetireErr, ctx.Err())
+		}
+	}
+	if r.original != nil {
+		if err := r.drainOriginalClaims(ctx); err != nil {
+			return errors.Join(originalRetireErr, err)
 		}
 	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return r.persistenceErr
+	return errors.Join(originalRetireErr, r.persistenceErr)
 }
 
 type Meter struct {
+	OriginalClaimsPending     uint64 `json:"originalClaimsPending,omitempty"`
 	Class                     string `json:"class"`
 	State                     string `json:"state"`
 	ActiveWorkers             uint64 `json:"activeWorkers"`
@@ -906,6 +939,10 @@ func (r *Runner) VerifyResourceMeter() Meter {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	m := Meter{Class: SandboxClass, State: "disabled", Rewards: "NOT_AUTHORIZED", Accounting: "LOCAL_MEASUREMENTS_NOT_CPU_SERVICE", OSAccounting: "LOCAL_WORKER_AND_MONITOR_WAIT4_CPU_SUM_MAX_SINGLE_PID_RSS_INCLUDES_HISTORY_NOT_SERVICE", LinuxGroupAccounting: "INDEPENDENT_CGROUP_TOTALS_NOT_ADDED_TO_WRAPPER_WAIT4_NOT_SERVICE"}
+	if r.original != nil {
+		m.Class = OriginalLocalClass
+		m.OriginalClaimsPending = uint64(len(r.original.claims))
+	}
 	if r.persistenceErr != nil {
 		m.Accounting = "UNKNOWN_LOCAL_PERSISTENCE"
 	}
@@ -965,6 +1002,14 @@ func (r *Runner) Close() error {
 	if r.executor != nil {
 		if err := r.executor.Close(); err != nil {
 			return err
+		}
+	}
+	if r.original != nil {
+		if done, err := r.original.source.Join(context.Background()); !done || err != nil {
+			return errors.Join(ErrStopped, err)
+		}
+		if done, err := r.original.source.Close(context.Background()); !done || err != nil {
+			return errors.Join(ErrStopped, err)
 		}
 	}
 	r.closed = true

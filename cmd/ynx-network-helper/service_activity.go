@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
@@ -20,6 +21,9 @@ func nativeActivity(peer localipc.Peer, service *participation.Service, node *ow
 		} else {
 			// This original manager deliberately has no production release adapter.
 			a.Node = localipc.NodeActivity{Code: "UNSUPPORTED", Stage: state.Stage, Mode: state.Mode, ProcessOwned: state.ProcessOwned, CapacityComplete: state.Capacity.Complete}
+			if raw, err := json.Marshal(state.Diagnostics); err == nil && len(raw) <= 8192 {
+				a.Node.Diagnostics = raw
+			}
 			if state.Capacity.Complete {
 				a.Node.UsedBytes = strconv.FormatUint(state.Capacity.UsedBytes, 10)
 				a.Node.LimitBytes = strconv.FormatUint(state.Capacity.LimitBytes, 10)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -57,6 +58,10 @@ func TestNetworkActualLocalActivityReadonly(t *testing.T) {
 	a := read()
 	if a.Authority || a.ProductionGrant || a.Version != "YNX-NETWORK-LOCAL-ACTIVITY/v1" || a.Node.Code != "UNSUPPORTED" || a.Node.Stage != "not_installed" || a.Node.ProcessOwned || a.Participation.Code != "NOT_SUPPLIED" || a.Participation.Configured || a.Resource.Code != "DISABLED" || a.Resource.ActiveWorkers != "0" || a.Resource.VerifiedJobs != "0" || a.Resource.ProductionEnabled || a.Resource.Rewards != "NOT_AUTHORIZED" {
 		t.Fatalf("misstated actual local activity: %+v", a)
+	}
+	var diagnostic ownednode.Diagnostics
+	if len(a.Node.Diagnostics) == 0 || len(a.Node.Diagnostics) > 8192 || json.Unmarshal(a.Node.Diagnostics, &diagnostic) != nil || diagnostic.Authority || diagnostic.Logs.Code != "NOT_SUPPLIED" || diagnostic.Synchronization.Code != "NOT_SUPPLIED" || diagnostic.Synchronization.LocalHeight != nil || diagnostic.Recovery.AutoRestart || diagnostic.Recovery.StoredPIDIsControlHandle {
+		t.Fatalf("bounded normal activity lost diagnostics: %s", a.Node.Diagnostics)
 	}
 	// A second read starts no worker, publishes nothing, and never creates a node.
 	b := read()

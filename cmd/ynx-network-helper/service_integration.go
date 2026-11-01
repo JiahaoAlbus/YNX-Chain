@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
@@ -172,8 +171,9 @@ func nativeNode(ctx context.Context, node *ownednode.Manager, peer localipc.Peer
 	if prompt == nil {
 		return pack(nil, "CONSENT_UNAVAILABLE")
 	}
-	if err = prompt.Confirm(ctx, intent, status.Mode); err != nil {
-		if errors.Is(err, nativeconsent.ErrCancelled) {
+	approval, err := node.ApproveNative(ctx, peer, intent, prompt)
+	if err != nil {
+		if errors.Is(err, nativeconsent.ErrCancelled) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return pack(nil, "CANCELLED")
 		}
 		if errors.Is(err, nativeconsent.ErrBusy) {
@@ -183,10 +183,6 @@ func nativeNode(ctx context.Context, node *ownednode.Manager, peer localipc.Peer
 	}
 	if ctx.Err() != nil {
 		return pack(nil, "CANCELLED")
-	}
-	approval, err := node.Approve(peer, intent, true, 15*time.Second)
-	if err != nil {
-		return pack(nil, "DENIED")
 	}
 	switch r.Operation {
 	case "node_install":

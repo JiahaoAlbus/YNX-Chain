@@ -44,3 +44,13 @@ test('resource Source readiness renders, localizes and clears without retaining 
  s.window.NetworkI18n.setLocale('ar');assert.match(s.$('resource-source-state').textContent,/^ar:/);source={code:'RETIRED',cleanupPending:true};s.window.NetworkUI.receive('native',{});assert.match(s.$('resource-source-state').textContent,/正在释放/);
  s.window.NetworkOverview.project=()=>({});s.window.NetworkUI.receive('reset');assert.match(s.$('resource-source-state').textContent,/尚未读取/);assert.equal(s.sent.length,0);
 });
+
+test('block detail clears when a new loading, failed or changed report loses its binding',()=>{
+ const s=shell();s.pair();let model={recentBlocks:[{height:'12',hash:'a'.repeat(64),parentHash:'b'.repeat(64),time:'2026-11-01T10:00:00Z',validator:'v',transactionCount:null}]};s.window.NetworkOverview.project=()=>model;s.window.NetworkUI.receive('node',{});
+ s.$('latest-block-rows').children[0].children[5].children[0].handlers.get('click')();assert.equal(s.$('block-detail-panel').open,true);assert.equal(s.$('block-detail-height').textContent,'12');
+ model={};s.window.NetworkUI.receive('node',null);assert.equal(s.$('block-detail-panel').open,false);for(const key of ['height','hash','parent','time','validator','transactions'])assert.equal(s.$('block-detail-'+key).textContent,'—');
+});
+
+test('owned node log UI keeps literal text, unknown sync and clears on reset',()=>{
+ const s=shell();let model={native:{activity:{node:{code:'UNSUPPORTED',diagnostics:{logs:{code:'INCOMPLETE',stdout:{text:'<script>synced=true</script>\n'},stderr:null},recovery:{priorEffectUnknown:true,processOwned:false}}}}}};s.window.NetworkOverview.project=()=>model;s.window.NetworkUI.receive('native',{});assert.equal(s.$('local-node-stdout').textContent,'<script>synced=true</script>\n');assert.equal(s.$('local-node-stderr').textContent,'—');assert.equal(s.$('local-node-sync').textContent,'当前接口未提供');assert.match(s.$('local-node-recovery').textContent,/未确定/);model={};s.window.NetworkUI.receive('reset');assert.equal(s.$('local-node-stdout').textContent,'—');assert.equal(s.$('local-node-sync').textContent,'尚未读取');
+});

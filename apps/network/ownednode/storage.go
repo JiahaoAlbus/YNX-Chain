@@ -20,23 +20,27 @@ const NodeID = "ordinary-node"
 const stateName = "manager.json"
 const lockName = "manager.lock"
 const artifactName = "node"
+const stateRecordLimit = 128 << 10
 
 type persistentState struct {
-	Version          string        `json:"version"`
-	ManagerID        string        `json:"managerId"`
-	Mode             string        `json:"mode"`
-	NodeID           string        `json:"nodeId"`
-	Stage            string        `json:"stage"`
-	Generation       uint64        `json:"generation,string"`
-	ArtifactSHA256   string        `json:"artifactSHA256"`
-	RunID            string        `json:"runId"`
-	LastPID          int           `json:"lastPid"`
-	LastExit         string        `json:"lastExit"`
-	FirstCause       string        `json:"firstCause"`
-	RootIdentity     *FileIdentity `json:"rootIdentity,omitempty"`
-	BinIdentity      *FileIdentity `json:"binIdentity,omitempty"`
-	DataIdentity     *FileIdentity `json:"dataIdentity,omitempty"`
-	ArtifactIdentity *FileIdentity `json:"artifactIdentity,omitempty"`
+	Version          string                `json:"version"`
+	ManagerID        string                `json:"managerId"`
+	Mode             string                `json:"mode"`
+	NodeID           string                `json:"nodeId"`
+	Stage            string                `json:"stage"`
+	Generation       uint64                `json:"generation,string"`
+	ArtifactSHA256   string                `json:"artifactSHA256"`
+	RunID            string                `json:"runId"`
+	LastPID          int                   `json:"lastPid"`
+	LastExit         string                `json:"lastExit"`
+	FirstCause       string                `json:"firstCause"`
+	RootIdentity     *FileIdentity         `json:"rootIdentity,omitempty"`
+	BinIdentity      *FileIdentity         `json:"binIdentity,omitempty"`
+	DataIdentity     *FileIdentity         `json:"dataIdentity,omitempty"`
+	ArtifactIdentity *FileIdentity         `json:"artifactIdentity,omitempty"`
+	LogsIdentity     *FileIdentity         `json:"logsIdentity,omitempty"`
+	Logs             []runLogRecord        `json:"logs,omitempty"`
+	Runtime          *runtimeInstallRecord `json:"runtime,omitempty"`
 }
 
 // FileIdentity is local filesystem provenance, not publisher authentication.
@@ -140,7 +144,7 @@ func (m *Manager) rootUnchanged() error {
 	if err != nil || !os.SameFile(info, m.rootInfo) || m.state.RootIdentity != nil && identity(info) != *m.state.RootIdentity {
 		return ErrUnsafePath
 	}
-	for name, expected := range map[string]*FileIdentity{"bin": m.state.BinIdentity, "data": m.state.DataIdentity} {
+	for name, expected := range map[string]*FileIdentity{"bin": m.state.BinIdentity, "data": m.state.DataIdentity, "logs": m.state.LogsIdentity} {
 		if expected == nil {
 			continue
 		}
@@ -163,7 +167,7 @@ func (m *Manager) save() error {
 	}
 	path := filepath.Join(m.directory, stateName)
 	if m.stateInfo != nil {
-		prior, actual, err := readOwnedFile(path, m.uid, 16<<10)
+		prior, actual, err := readOwnedFile(path, m.uid, stateRecordLimit)
 		if err != nil || !os.SameFile(actual, m.stateInfo) || !bytes.Equal(prior, m.stateRaw) {
 			return ErrUnsafePath
 		}
@@ -173,6 +177,9 @@ func (m *Manager) save() error {
 	raw, err := json.Marshal(m.state)
 	if err != nil {
 		return err
+	}
+	if len(raw) > stateRecordLimit {
+		return ErrCapacity
 	}
 	temp := filepath.Join(m.directory, "state-"+randomID()+".tmp")
 	file, err := os.OpenFile(temp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
@@ -206,7 +213,7 @@ func (m *Manager) save() error {
 		return err
 	}
 	if m.stateInfo != nil {
-		prior, actual, statErr := readOwnedFile(path, m.uid, 16<<10)
+		prior, actual, statErr := readOwnedFile(path, m.uid, stateRecordLimit)
 		if statErr != nil || !os.SameFile(actual, m.stateInfo) || !bytes.Equal(prior, m.stateRaw) {
 			return ErrUnsafePath
 		}

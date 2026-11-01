@@ -129,7 +129,8 @@ test('designed client publishes only accepted readonly projections and clears ex
  assert.equal(Object.hasOwn(confirmed.value,'ticket'),false);assert.equal(Object.hasOwn(confirmed.value,'code'),false);
  const lookup=e.emit('lookup-form','submit');e.take('/api/client-receipt').resolve(record());await lookup;
  assert.equal(e.uiEvents.at(-1).channel,'receipt');assert.equal(e.uiEvents.at(-1).value.record.receiptId,R1);
- e.node('tx-id').value=B;e.emit('tx-id','input');assert.equal(e.uiEvents.at(-1).value,null);
+ e.node('tx-id').value=B;e.emit('tx-id','input');assert.equal(e.uiEvents.filter(event=>event.channel==='receipt').at(-1).value,null);
+ assert.equal(e.uiEvents.at(-1).channel,'notice');assert.match(e.uiEvents.at(-1).value.key,/交易已更改/);
  const bad=e.emit('lookup-form','submit');e.take('/api/client-receipt').resolve(record(A));await bad;
  assert.equal(e.uiEvents.filter(event=>event.channel==='receipt'&&event.value?.record.txId===B).length,0);
 });
@@ -154,4 +155,13 @@ test('manual node refresh controls disable only during the current read',async()
 
 test('native read failure publishes unavailable rather than leaving local module displays unread',async()=>{
  const e=environment();await settle();e.manual('/api/native-status');const job=e.emit('resource-refresh','click');assert.equal(e.node('participation-refresh').disabled,true);e.take('/api/native-status').resolve({error:'NATIVE_UNAVAILABLE'},503);await job;const event=e.uiEvents.filter(event=>event.channel==='native').at(-1);assert.equal(event.value.code,'NATIVE_UNAVAILABLE');assert.equal(event.value.native,null);assert.equal(event.value.browserIdentityVerified,false);assert.equal(e.node('resource-refresh').disabled,false);
+});
+
+test('foreground refresh is bounded, does not overlap and never re-pairs an expired session',async()=>{
+ const e=environment({intervals:true});await settle();await settle();assert.equal(e.intervals.length,1);assert.equal(e.intervals[0].ms,15000);e.manual('/api/node-report');
+ e.tick();assert.equal(e.requests.length,1);e.tick();assert.equal(e.requests.length,1);e.take('/api/node-report').resolve({classification:'RPC_ONLY',reports:{status:{status:'unavailable'},latestBlock:{status:'unavailable'},validators:{status:'unavailable'}}});await settle();
+ e.visibility('hidden');e.tick();assert.equal(e.requests.length,0);e.visibility('visible');assert.equal(e.requests.length,1);e.take('/api/node-report').resolve({error:'SESSION_EXPIRED'},401);await settle();e.tick();assert.equal(e.requests.length,0);assert.equal(e.storage.has('ynxNetworkTicket'),false);assert.equal(e.uiEvents.filter(x=>x.channel==='networkClock').length>0,true);
+});
+test('pair denial is visible to the active shell and retains no session',async()=>{
+ const e=environment({ticket:false});e.node('pair-code').value='bad-code';const job=e.emit('pair-form','submit');e.take('/api/pair/challenge').resolve({challenge:'c'});await settle();e.take('/api/pair').resolve({error:'APPROVAL_DENIED'},403);await job;const notice=e.uiEvents.filter(x=>x.channel==='notice').at(-1);assert.equal(notice.value.error,true);assert.match(notice.value.params.error,/APPROVAL_DENIED/);assert.equal(e.storage.has('ynxNetworkTicket'),false);
 });

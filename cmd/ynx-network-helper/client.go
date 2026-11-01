@@ -16,16 +16,23 @@ import (
 )
 
 type readonlyReport struct {
-	Status string          `json:"status"`
-	Data   json.RawMessage `json:"data,omitempty"`
-	Code   string          `json:"code,omitempty"`
-	Source string          `json:"source"`
+	Status        string          `json:"status"`
+	Data          json.RawMessage `json:"data,omitempty"`
+	Code          string          `json:"code,omitempty"`
+	Source        string          `json:"source"`
+	ObservedAt    string          `json:"observedAt,omitempty"`
+	LatencyMicros string          `json:"latencyMicros,omitempty"`
 }
 
 // Only fixed read-only routes can reach this transport. An upstream response
 // supplies data, never local authority, peer identity, or a checkpoint.
-func (h *helper) readReport(ctx context.Context, path string, limit int64) readonlyReport {
-	r := readonlyReport{Status: "unavailable", Source: h.rpc + path}
+func (h *helper) readReport(ctx context.Context, path string, limit int64) (r readonlyReport) {
+	began := time.Now()
+	defer func() {
+		r.ObservedAt = time.Now().UTC().Format(time.RFC3339Nano)
+		r.LatencyMicros = strconv.FormatInt(time.Since(began).Microseconds(), 10)
+	}()
+	r = readonlyReport{Status: "unavailable", Source: h.rpc + path}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.Source, nil)
 	if err != nil {
 		r.Code = "RPC_UNAVAILABLE"
@@ -61,22 +68,57 @@ func (h *helper) nodeReport(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx, cancel := context.WithTimeout(r.Context(), 18*time.Second)
 	defer cancel()
-	paths := []string{"/status", "/validators"}
-	results := make([]readonlyReport, len(paths))
-	var wg sync.WaitGroup
-	for i, path := range paths {
-		wg.Add(1)
-		go func(i int, path string) { defer wg.Done(); results[i] = h.readReport(ctx, path, 1<<20) }(i, path)
-	}
-	wg.Wait()
+	// A slow validator response must not consume the block read's entire
+	// remaining deadline. Start blocks as soon as status supplies its height.
+	validators := make(chan readonlyReport, 1)
+	go func() { validators <- h.readReport(ctx, "/validators", 1<<20) }()
+	statusReport := h.readReport(ctx, "/status", 1<<20)
 	latest := readonlyReport{Status: "unavailable", Code: "STATUS_HEIGHT_NOT_SUPPLIED", Source: h.rpc}
+	window := readonlyReport{Status: "unavailable", Code: "STATUS_HEIGHT_NOT_SUPPLIED", Source: h.rpc}
 	var status struct {
 		Height uint64 `json:"height"`
 	}
-	if results[0].Status == "reported" && json.Unmarshal(results[0].Data, &status) == nil && status.Height > 0 {
-		latest = h.readReport(ctx, "/blocks/"+strconv.FormatUint(status.Height, 10), 2<<20)
+	if statusReport.Status == "reported" && json.Unmarshal(statusReport.Data, &status) == nil && status.Height > 0 {
+		latest, window = h.readBlockWindow(ctx, status.Height)
 	}
-	h.sendAuthorizedJSON(w, r, map[string]any{"classification": receipt.RPCOnly, "source": h.rpc, "reports": map[string]readonlyReport{"status": results[0], "latestBlock": latest, "validators": results[1]}})
+	validatorReport := <-validators
+	h.sendAuthorizedJSON(w, r, map[string]any{"classification": receipt.RPCOnly, "source": h.rpc, "receivedAt": time.Now().UTC().Format(time.RFC3339Nano), "reports": map[string]readonlyReport{"status": statusReport, "latestBlock": latest, "recentBlocks": window, "validators": validatorReport}})
+}
+
+// A fixed four-block window bounds traffic and memory. This collection is
+// RPC data only; no reported hash or parent link becomes an independent proof.
+func (h *helper) readBlockWindow(ctx context.Context, height uint64) (readonlyReport, readonlyReport) {
+	if height == 0 {
+		r := readonlyReport{Status: "unavailable", Code: "STATUS_HEIGHT_NOT_SUPPLIED", Source: h.rpc}
+		return r, r
+	}
+	count := 4
+	if height < uint64(count) {
+		count = int(height)
+	}
+	blocks := make([]readonlyReport, count)
+	jobs := make(chan int, count)
+	for i := 0; i < count; i++ {
+		jobs <- i
+	}
+	close(jobs)
+	var wg sync.WaitGroup
+	for n := 0; n < 3 && n < count; n++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := range jobs {
+				blocks[i] = h.readReport(ctx, "/blocks/"+strconv.FormatUint(height-uint64(i), 10), 512<<10)
+			}
+		}()
+	}
+	wg.Wait()
+	raw, _ := json.Marshal(struct {
+		Version    string           `json:"version"`
+		HeadHeight string           `json:"headHeight"`
+		Blocks     []readonlyReport `json:"blocks"`
+	}{"YNX-NETWORK-RPC-BLOCK-WINDOW/v1", strconv.FormatUint(height, 10), blocks})
+	return blocks[0], readonlyReport{Status: "reported", Source: h.rpc, ObservedAt: time.Now().UTC().Format(time.RFC3339Nano), Data: raw}
 }
 func (h *helper) clientReceipt(w http.ResponseWriter, r *http.Request) {
 	var in struct {

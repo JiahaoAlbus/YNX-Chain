@@ -52,8 +52,8 @@ test('actual fixed RPC shapes project one status, one block and four reported va
   assert.equal(out.native.resourceContribution, 'disabled'); assert.equal(out.native.participation, null);
   assert.equal(out.native.peer.credentialSource, 'darwin-LOCAL_PEERCRED-Xucred');
   assert.equal(out.native.browserIdentityVerified, false); assert.equal(out.native.authority, false);
-  assert.deepEqual(Object.keys(out), ['classification', 'authority', 'source', 'reports', 'status', 'latestBlock', 'validators', 'native']);
-  assert.equal('sources' in out, false); assert.equal('sourceCount' in out, false); assert.equal('recentBlocks' in out, false);
+  assert.deepEqual(Object.keys(out), ['classification', 'authority', 'source', 'reports', 'status', 'latestBlock', 'recentBlocks', 'metrics', 'recentTransactions', 'transactionListsComplete', 'receivedAt', 'statusLatencyMicros', 'validators', 'native']);
+  assert.equal('sources' in out, false); assert.equal('sourceCount' in out, false); assert.deepEqual(out.recentBlocks, []); assert.equal(out.metrics,null);
   assert.equal('synced' in out.status, false); assert.equal('peers' in out.status, false); assert.equal('nodeIdentity' in out.status, false);
 });
 
@@ -503,4 +503,24 @@ test('Source metadata and OS counters reject authority, contradictions and lossy
     const a=localActivity();a.resource.osUserMicros=value;
     assert.equal(project(null,withActivity(a)).native.activity.resource,null);
   }
+});
+
+function sampledNetwork({nullTransactions=false,brokenParent=false}={}) {
+ const hash=h=>h.toString(16).padStart(64,'0');const value=node({height:10,latestBlockHash:hash(10)});
+ const blocks=[10,9,8,7].map(h=>({status:'reported',data:{height:h,hash:hash(h),parentHash:hash(brokenParent&&h===9?1:h-1),time:`2026-11-01T12:00:${String(h*3).padStart(2,'0')}Z`,validator:'reported-validator',transactions:nullTransactions?null:[{hash:hash(100+h)}]}}));
+ value.reports.latestBlock=blocks[0];value.reports.recentBlocks={status:'reported',data:{version:'YNX-NETWORK-RPC-BLOCK-WINDOW/v1',headHeight:'10',blocks}};value.receivedAt='2026-11-01T12:00:31Z';value.reports.status.latencyMicros='123456';return value;
+}
+test('real adjacent block sample derives interval and scoped TPS from explicit RPC arrays',()=>{
+ const model=project(sampledNetwork());assert.equal(model.latestBlock.height,'10');assert.equal(model.recentBlocks.length,4);assert.equal(model.metrics.averageBlockSeconds,3);assert.equal(model.metrics.intervals,3);assert.equal(model.metrics.rpcSampleTPS,1/3);assert.equal(model.recentTransactions.length,4);assert.equal(model.receivedAt,'2026-11-01T12:00:31Z');assert.equal(model.statusLatencyMicros,'123456');assert.equal(model.authority,false);
+});
+test('null transaction lists and broken parent links never create fake zero TPS or timings',()=>{
+ const missing=project(sampledNetwork({nullTransactions:true}));assert.equal(missing.metrics.averageBlockSeconds,3);assert.equal(missing.metrics.rpcSampleTPS,null);assert.equal(missing.transactionListsComplete,false);assert.deepEqual(missing.recentTransactions,[]);
+ const broken=project(sampledNetwork({brokenParent:true}));assert.equal(broken.metrics.averageBlockSeconds,null);assert.equal(broken.metrics.rpcSampleTPS,null);
+ const changed=sampledNetwork();changed.reports.latestBlock.data.hash='f'.repeat(64);assert.equal(project(changed).latestBlock,null);
+});
+
+function diagnosticsFixture(){return {code:'LOCAL_OBSERVATION_ONLY',authority:false,logs:{code:'INCOMPLETE',runId:'run-1',authority:false,stdout:{text:'<script>synced=true</script>\n',encoding:'utf-8-with-replacement',capturedBytes:'32',observedBytes:null,droppedBytes:null,truncated:null,wireTruncated:false,complete:false},stderr:null},synchronization:{code:'NOT_SUPPLIED',localHeight:null,targetHeight:null,catchingUp:null},recovery:{code:'RECONCILING',autoRestart:false,storedPIDIsControlHandle:false,processOwned:false,priorEffectUnknown:true}};}
+test('owned node diagnostics preserve literal bounded logs and cannot create sync or control authority',()=>{
+ const activity=localActivity();activity.node.diagnostics=diagnosticsFixture();let out=project(null,withActivity(activity)).native.activity.node.diagnostics;assert.equal(out.logs.stdout.text,'<script>synced=true</script>\n');assert.equal(out.logs.stdout.observedBytes,null);assert.equal(out.logs.stdout.truncated,null);assert.equal(out.synchronization.localHeight,null);assert.equal(out.authority,false);assert.equal(out.recovery.storedPIDIsControlHandle,false);
+ for(const change of [d=>d.authority=true,d=>d.recovery.autoRestart=true,d=>d.recovery.storedPIDIsControlHandle=true,d=>d.synchronization.localHeight='99',d=>d.logs.stdout.text='x'.repeat(1537),d=>d.logs.stdout.observedBytes=0,d=>d.logs.permission=true]){const d=diagnosticsFixture();change(d);activity.node.diagnostics=d;assert.equal(project(null,withActivity(activity)).native.activity.node.diagnostics,null);}
 });

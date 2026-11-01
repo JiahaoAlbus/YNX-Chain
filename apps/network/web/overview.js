@@ -52,8 +52,10 @@
     const item = field(reports, name);
     if (field(item, 'status') !== 'reported') return { meta: { status: 'unavailable', code: code(field(item, 'code')) || 'REPORT_NOT_SUPPLIED' }, data: null };
     const data = field(item, 'data');
-    return object(data) ? { meta: { status: 'reported', code: null }, data } :
-      { meta: { status: 'unavailable', code: 'INVALID_REPORT_DATA' }, data: null };
+    const meta = {status:'reported',code:null};
+    if (field(item,'observedAt') !== undefined) meta.observedAt=timestamp(field(item,'observedAt'));
+    if (field(item,'latencyMicros') !== undefined) meta.latencyMicros=typeof field(item,'latencyMicros')==='string'?uint(field(item,'latencyMicros')):null;
+    return object(data) ? {meta,data} : {meta:{status:'unavailable',code:'INVALID_REPORT_DATA'},data:null};
   }
   function statusView(data) {
     if (!data) return null;
@@ -72,6 +74,42 @@
       time: timestamp(field(data, 'time')), validator: token(field(data, 'validator')),
       transactionCount: Array.isArray(transactions) ? String(transactions.length) : null
     };
+  }
+  const sameHash=(a,b)=>!!a&&!!b&&a.toLowerCase().replace(/^0x/,'')===b.toLowerCase().replace(/^0x/,'');
+  function blockWindow(data,statusModel) {
+    if (!data || field(data,'version')!=='YNX-NETWORK-RPC-BLOCK-WINDOW/v1' ||
+        uint(field(data,'headHeight'))!==statusModel?.height || !statusModel?.height || typeof BigInt!=='function') return null;
+    const entries=field(data,'blocks');
+    if (!Array.isArray(entries)||!entries.length||entries.length>4) return null;
+    const head=BigInt(statusModel.height),rows=[],rawRows=[];
+    for(let i=0;i<entries.length;i++) {
+      const item=entries[i];if(field(item,'status')!=='reported')continue;
+      const raw=field(item,'data'),b=blockView(raw);
+      if(!b||b.height!==(head-BigInt(i)).toString()||!b.hash||!b.time)continue;
+      if(i===0&&statusModel.latestBlockHash&&!sameHash(statusModel.latestBlockHash,b.hash))continue;
+      rows.push(b);rawRows.push(raw);
+    }
+    let averageSeconds=null,tps=null,intervals=0;
+    if(rows.length>=2) {
+      let linked=true;
+      for(let i=1;i<rows.length;i++) if(BigInt(rows[i-1].height)!==BigInt(rows[i].height)+BigInt(1)||!sameHash(rows[i-1].parentHash,rows[i].hash)||Date.parse(rows[i-1].time)<=Date.parse(rows[i].time))linked=false;
+      const elapsed=(Date.parse(rows[0].time)-Date.parse(rows.at(-1).time))/1000;
+      if(linked&&elapsed>0) {
+        intervals=rows.length-1;averageSeconds=elapsed/intervals;
+        // Count only explicit arrays in the returned RPC projection and only
+        // the newer blocks in (oldestTime,newestTime]. null is not zero TPS.
+        if(rows.slice(0,-1).every(b=>b.transactionCount!==null))tps=rows.slice(0,-1).reduce((n,b)=>n+Number(b.transactionCount),0)/elapsed;
+      }
+    }
+    const transactions=[];let transactionListsComplete=rawRows.length>0;
+    for(let i=0;i<rawRows.length;i++) {
+      const list=field(rawRows[i],'transactions');if(!Array.isArray(list)){transactionListsComplete=false;continue;}
+      for(const tx of list.slice(-20).reverse()) {
+        const id=hash(typeof tx==='string'?tx:field(tx,'hash'));
+        if(id&&!transactions.some(t=>sameHash(t.hash,id)))transactions.push({hash:id,height:rows[i].height,time:rows[i].time});
+      }
+    }
+    return {rows,averageSeconds,tps,intervals,transactions:transactions.slice(0,20),transactionListsComplete};
   }
   function validatorsView(data) {
     const rows = field(data, 'validators');
@@ -106,8 +144,24 @@
     // safe Number is a different wire shape; an absent count is never zero.
     return typeof value === 'string' ? uint(value) : null;
   }
+  function nodeDiagnostics(value) {
+    if (!allowedFields(value,['code','authority','logs','synchronization','recovery']) || value.authority!==false || !['LOCAL_OBSERVATION_ONLY','UNAVAILABLE'].includes(value.code)) return null;
+    const logs=value.logs, sync=value.synchronization, recovery=value.recovery;
+    if(!allowedFields(logs,['code','runId','authority','stdout','stderr']) || logs.authority!==false || !['NOT_SUPPLIED','UNAVAILABLE','CAPTURING','CAPTURED','INCOMPLETE'].includes(logs.code) || typeof logs.runId!=='string' || logs.runId.length>128) return null;
+    if(!allowedFields(sync,['code','localHeight','targetHeight','catchingUp']) || sync.code!=='NOT_SUPPLIED' || sync.localHeight!==null || sync.targetHeight!==null || sync.catchingUp!==null) return null;
+    if(!allowedFields(recovery,['code','autoRestart','storedPIDIsControlHandle','processOwned','priorEffectUnknown']) || !['IDLE','OWNED_RUNNING','RECONCILING'].includes(recovery.code) || recovery.autoRestart!==false || recovery.storedPIDIsControlHandle!==false || typeof recovery.processOwned!=='boolean' || typeof recovery.priorEffectUnknown!=='boolean') return null;
+    function stream(v){
+      if(v===null)return null;
+      if(!allowedFields(v,['text','encoding','capturedBytes','observedBytes','droppedBytes','truncated','wireTruncated','complete','sha256']) || typeof v.text!=='string' || v.text.length>1536 || v.encoding!=='utf-8-with-replacement' || activityCount(v.capturedBytes)===null || v.observedBytes!==null&&activityCount(v.observedBytes)===null || v.droppedBytes!==null&&activityCount(v.droppedBytes)===null || v.truncated!==null&&typeof v.truncated!=='boolean' || typeof v.wireTruncated!=='boolean' || typeof v.complete!=='boolean' || v.sha256!==undefined&&hash(v.sha256)===null)return undefined;
+      // Child output stays literal text, including markup and newlines. It is
+      // never interpreted as HTML, a sync protocol or an authorization claim.
+      return {text:v.text,encoding:v.encoding,capturedBytes:v.capturedBytes,observedBytes:v.observedBytes,droppedBytes:v.droppedBytes,truncated:v.truncated,wireTruncated:v.wireTruncated,complete:v.complete,sha256:v.sha256||null};
+    }
+    const stdout=stream(logs.stdout),stderr=stream(logs.stderr);if(stdout===undefined||stderr===undefined)return null;
+    return {code:value.code,authority:false,logs:{code:logs.code,runId:token(logs.runId),authority:false,stdout,stderr},synchronization:{code:'NOT_SUPPLIED',localHeight:null,targetHeight:null,catchingUp:null},recovery:{code:recovery.code,autoRestart:false,storedPIDIsControlHandle:false,processOwned:recovery.processOwned,priorEffectUnknown:recovery.priorEffectUnknown}};
+  }
   function activityNode(value) {
-    const keys = ['code', 'stage', 'mode', 'processOwned', 'capacityComplete', 'usedBytes', 'limitBytes', 'freeBytes'];
+    const keys = ['code', 'stage', 'mode', 'processOwned', 'capacityComplete', 'usedBytes', 'limitBytes', 'freeBytes', 'diagnostics'];
     if (!allowedFields(value, keys)) return null;
     const model = {
       code: code(field(value, 'code')), stage: text(field(value, 'stage')), mode: text(field(value, 'mode')),
@@ -117,6 +171,7 @@
     };
     if (!['UNSUPPORTED', 'NOT_SUPPLIED', 'UNAVAILABLE'].includes(model.code) || model.processOwned === null || model.capacityComplete === null) return null;
     if (model.capacityComplete && [model.usedBytes, model.limitBytes, model.freeBytes].includes(null)) model.capacityComplete = null;
+    if (owns(value,'diagnostics')) model.diagnostics=nodeDiagnostics(value.diagnostics);
     return model;
   }
   function activityParticipation(value) {
@@ -208,18 +263,23 @@
   function project(nodeReport, nativeStatus) {
     const accepted = field(nodeReport, 'classification') === 'RPC_ONLY';
     const reports = field(nodeReport, 'reports');
-    const status = report(reports, 'status', accepted), block = report(reports, 'latestBlock', accepted), validators = report(reports, 'validators', accepted);
+    const status = report(reports, 'status', accepted), block = report(reports, 'latestBlock', accepted), validators = report(reports, 'validators', accepted), recent=report(reports,'recentBlocks',accepted);
     const statusModel = statusView(status.data);
     let blockModel = blockView(block.data);
     // A latest-block row belongs to the one reported status height which the
     // helper queried. Inconsistent/unsafe numbers never become a recent series.
-    if (blockModel && (statusModel?.height === null || !statusModel || blockModel.height === null || blockModel.height !== statusModel.height)) {
+    if (blockModel && (statusModel?.height === null || !statusModel || blockModel.height === null || blockModel.height !== statusModel.height || statusModel.latestBlockHash && !sameHash(statusModel.latestBlockHash,blockModel.hash))) {
       blockModel = null; block.meta = { status: 'unavailable', code: 'BLOCK_HEIGHT_NOT_BOUND' };
     }
+    const sample=blockWindow(recent.data,statusModel);
     return {
       classification: 'RPC_ONLY', authority: false, source: accepted ? source(field(nodeReport, 'source')) : null,
       reports: { status: status.meta, latestBlock: block.meta, validators: validators.meta },
-      status: statusModel, latestBlock: blockModel, validators: validatorsView(validators.data), native: nativeView(nativeStatus)
+      status: statusModel, latestBlock: blockModel, recentBlocks:sample?.rows||[], metrics:sample?{averageBlockSeconds:sample.averageSeconds,rpcSampleTPS:sample.tps,intervals:sample.intervals}:null,
+      recentTransactions:sample?.transactions||[],transactionListsComplete:sample?.transactionListsComplete===true,
+      receivedAt:accepted?timestamp(field(nodeReport,'receivedAt')):null,
+      statusLatencyMicros:status.meta.latencyMicros??null,
+      validators: validatorsView(validators.data), native: nativeView(nativeStatus)
     };
   }
   if (typeof window !== 'undefined') window.NetworkOverview = Object.freeze({ project });

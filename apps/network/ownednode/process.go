@@ -6,27 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
 )
-
-type cappedOutput struct {
-	mu        sync.Mutex
-	remaining int
-}
-
-func (w *cappedOutput) Write(raw []byte) (int, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	used := len(raw)
-	if used > w.remaining {
-		used = w.remaining
-	}
-	w.remaining -= used
-	return len(raw), nil
-}
 
 func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, approval *Approval) (string, error) {
 	if ctx == nil {
@@ -63,7 +46,12 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 	if err != nil {
 		return "", err
 	}
-	if _, err = m.capacity(uint64(len(artifact)) + 1024); err != nil {
+	capacity, err := m.capacity(uint64(len(artifact)) + 1024)
+	if err != nil {
+		return "", err
+	}
+	logLimit, err := m.logBudget(uint64(len(artifact)), capacity)
+	if err != nil {
 		return "", err
 	}
 	if err = ctx.Err(); err != nil {
@@ -89,13 +77,28 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 	if err = ctx.Err(); err != nil {
 		return "", m.reconcile(err)
 	}
+	logs, err := m.createRunLogs(runID, logLimit)
+	if err != nil {
+		return "", m.reconcile(err)
+	}
+	adopted := false
+	defer func() {
+		if !adopted {
+			logs.close()
+		}
+	}()
 	command := exec.Command(capture.path) // Fixed captured bytes; no task path, shell, args or PID.
 	command.Dir = filepath.Join(m.directory, "data")
 	command.Env = []string{"LC_ALL=C", "LANG=C", "GOMAXPROCS=1"}
 	command.WaitDelay = 250 * time.Millisecond
-	output := &cappedOutput{remaining: 4096}
-	command.Stdout = output
-	command.Stderr = output
+	command.Stdout = logs.stdout
+	command.Stderr = logs.stderr
+	if err = m.runtimeUnchanged(capture); err == nil {
+		err = m.logFilesUnchanged(logs)
+	}
+	if err != nil {
+		return "", m.reconcile(err)
+	}
 	if err = ctx.Err(); err != nil {
 		return "", m.reconcile(err)
 	}
@@ -114,9 +117,12 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 		} else {
 			m.state.LastExit = "exit 0 after cancelled/invalid start"
 		}
+		if logErr := m.finishRunLogs(logs); logErr != nil {
+			err = errors.Join(err, logErr)
+		}
 		return "", m.reconcile(err)
 	}
-	running := &child{cmd: command, done: make(chan struct{}), runID: runID, capture: capture}
+	running := &child{cmd: command, done: make(chan struct{}), runID: runID, capture: capture, logs: logs}
 	m.process = running
 	m.state.Stage = "running"
 	m.state.Generation++
@@ -126,12 +132,16 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 	if err = m.save(); err != nil {
 		_ = command.Process.Kill()
 		_ = command.Wait()
+		if logErr := m.finishRunLogs(logs); logErr != nil {
+			err = errors.Join(err, logErr)
+		}
 		m.process = nil
 		m.state.Stage = "reconcile_required"
 		m.firstCause(err)
 		_ = m.save()
 		return "", ErrReconcile
 	}
+	adopted = true
 	go m.wait(running)
 	go m.monitorCapacity(running)
 	return running.runID, nil
@@ -143,6 +153,7 @@ func (m *Manager) wait(running *child) {
 	if m.process == running {
 		m.process = nil
 		identityErr := m.runtimeUnchanged(running.capture)
+		identityErr = errors.Join(identityErr, m.finishRunLogs(running.logs))
 		if identityErr == nil {
 			identityErr = m.cleanupRuntime(running.capture)
 		}
@@ -183,6 +194,9 @@ func (m *Manager) monitorCapacity(running *child) {
 			_, err := m.capacity(0)
 			if err == nil {
 				err = m.runtimeUnchanged(running.capture)
+			}
+			if err == nil {
+				err = m.logFilesUnchanged(running.logs)
 			}
 			if err != nil {
 				m.firstCause(err)

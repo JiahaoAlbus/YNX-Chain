@@ -39,6 +39,8 @@ func TestClientNodePartialSourcesNeverBecomeAuthority(t *testing.T) {
 			io.WriteString(w, `{"height":42,"level":"STATE_VERIFIED","nativeGrant":true}`)
 		case "/blocks/42":
 			w.WriteHeader(503)
+		case "/blocks/41", "/blocks/40", "/blocks/39":
+			w.WriteHeader(503)
 		case "/validators":
 			io.WriteString(w, `malformed`)
 		default:

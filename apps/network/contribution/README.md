@@ -98,3 +98,52 @@ Official interfaces: https://docs.kernel.org/admin-guide/cgroup-v2.html,
 https://systemd.io/CGROUP_DELEGATION/,
 https://github.com/containers/bubblewrap/blob/main/bwrap.xml and
 https://docs.kernel.org/userspace-api/seccomp_filter.html.
+
+## Original canonical Source consumer
+
+`NewOriginalSourceRunner(ctx, path, *authresourcesource.Source,
+*PinnedWASMExecutor)` is a separate concrete original-Source constructor. It
+checks genuine Source Current before opening the original Runner journal and
+requires the independently contained Linux executor. Failure leaves both input
+owners with the caller and does not create a journal, lock or nonce. Success
+transfers those owners to the Runner. The normal `NewDisabled` factory and all
+old SANDBOX payload bytes remain unchanged. Darwin hard RSS/share and other
+platform Source producers remain unsupported; code availability enables no
+production route, UI control, Root row or reward.
+
+`StartOriginalContribution(ctx, manifestMember, consentMember)` reads the exact
+canonical Work, Consent and bounded public JSON input from that Source. P09
+strictly decodes DATA but never reconstructs canonical production bytes. The
+original Auth/sole SDK verifies both supplied public member byte strings against
+its protected independent mappings/current. Source0, denied consent and bad
+signatures return before journal or Native once mutation.
+
+Capacity is reserved in memory before Native acquisition. A nonnull Native Claim
+is adopted before interpreting its error. Full Source Current runs outside the
+Go owner lock; `Claim.CurrentNoIO` is synchronously ANDed within the original
+nonce/history transaction before execution and again before committing the
+independently recomputed result/unique local receipt. The same original
+O_EXCL/fsync claim is only an additional physical fence. It never substitutes a
+second authority database or a callback pretending to commit P09's Store.
+
+Record's optional `original` member retains immutable canonical original bytes,
+the documented Native recovery DATA and first failure. Ambiguous claim/write,
+revocation and physical-close outcomes stay UNKNOWN/nonreplayable; an earlier
+receipt is retained as history when later cleanup is uncertain. Cancel/Stop
+seals scheduling, cancels only the owned operation, retires the same Source and
+drains original Claim handles. A canceled close wait keeps its one in-flight
+physical call/channel, rather than invoking a replacement. Native pending count
+is separate from worker/CPU/economic service counters.
+
+Cold reopen validates byte bindings, keeps original nonce tombstones and usage,
+changes old verified receipts to historical, and never runs/claims again or
+restores verified counters. Original receipts are `ORIGINAL_SOURCE_LOCAL_RECHECK_NOT_SERVICE`;
+CPU service and rewards remain unverified/NOT_AUTHORIZED. No actual private keys,
+public task execution, signing, balance change, native vote or funds operation
+is involved in the PUBLIC differential fixtures. Actual concrete Cgo Root0 is
+tested separately and cannot create a Store directory.
+
+The existing helper CI discovers `TestP09OriginalResourceStoreModule`, which
+runs the new original consumer/race cases only. Existing Linux containment and
+old WASM/OS acceptance are reused. Normal helper assembly and Native review/
+protected signer integration remain the parent owner's write set.

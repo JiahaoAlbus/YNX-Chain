@@ -20,7 +20,7 @@ const txKey = value => String(value || '').trim().toLowerCase().replace(/^0x/, '
 function canonicalTx(value) { const hash = txKey(value); if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error('INVALID_TX_ID'); return '0x' + hash; }
 function receiptID(value) { if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) throw new Error('INVALID_RECEIPT_ID'); return value; }
 function text(id, value, params) { paint($(id), value, params); }
-function notice(value, error = false, params) { text('notice', value, params); $('notice').classList.toggle('error', error); }
+function notice(value, error = false, params) { text('notice', value, params); $('notice').classList.toggle('error', error); publish('notice',{key:value,error,params}); }
 function controls() {
   for (const id of ['proof-file']) $(id).disabled = !paired;
   for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['overview-refresh','node'],['native-refresh','native'],['participation-refresh','native'],['resource-refresh','native'],['history-refresh','history']]) $(id).disabled = !paired || pending.has(channel);
@@ -164,7 +164,7 @@ function renderReceipt(record, op, historical) {
 }
 async function nodeReport() {
   if (!paired) return;
-  publish('node',null); const op = begin('node', { requiresPair: true }); text('node-state', '正在查询固定 RPC 源…'); text('node-source', '');
+  publish('node',null);publish('networkState','loading'); const op = begin('node', { requiresPair: true }); text('node-state', '正在查询固定 RPC 源…'); text('node-source', '');
   for (const name of ['status', 'latestBlock', 'validators']) { text('node-' + name + '-state', '正在读取'); text('node-' + name + '-raw', ''); }
   try {
     const value = await api('/api/node-report', {}, op); if (!current(op)) return;
@@ -175,12 +175,12 @@ async function nodeReport() {
       if (!report || (report.status !== 'reported' && report.status !== 'unavailable')) throw new Error('INVALID_NODE_REPORT');
       if (report.status === 'reported') reported++;
     }
-    publish('node',value); text('node-state','仅 RPC 返回 · {count}/3 项来源可读；不构成独立验证',{count:reported}); text('node-source', value.source || '来源未提供');
+    publish('node',value);publish('networkState',reported===3?'ready':'partial'); text('node-state','仅 RPC 返回 · {count}/3 项来源可读；不构成独立验证',{count:reported}); text('node-source', value.source || '来源未提供');
     for (const name of ['status', 'latestBlock', 'validators']) {
       const report = value.reports[name]; text('node-' + name + '-state', collectionLabel('来源', report));
       text('node-' + name + '-raw',report.status==='reported'?'已解析的来源对象（不等同于原始字节）：\n{report}':'本项不可用；不会填入估计数据。',{report:JSON.stringify(report.data,null,2)});
     }
-  } catch (error) { if (current(op)) { text('node-state','节点报告未完成 · {error}',{error:error.message}); for (const name of ['status', 'latestBlock', 'validators']) text('node-' + name + '-state', '未取得本次报告'); } }
+  } catch (error) { if (current(op)) { publish('networkState','failed');text('node-state','节点报告未完成 · {error}',{error:error.message}); for (const name of ['status', 'latestBlock', 'validators']) text('node-' + name + '-state', '未取得本次报告'); } }
   finally { finish(op); controls(); }
 }
 async function nativeStatus() {
@@ -314,4 +314,11 @@ if (typeof window !== 'undefined') window.addEventListener('pageshow', event => 
   if (ticket) status();
 });
 if (ticket) status();
+// Foreground, paired, bounded refresh only. Never overlaps an original read,
+// re-pairs, retries an effect or turns a cached report into fresh data.
+if(typeof window!=='undefined'&&typeof window.setInterval==='function') {
+  const refresh=()=>{publish('networkClock',null);if(paired&&!pending.has('node')&&document.visibilityState!=='hidden')nodeReport();};
+  window.setInterval(refresh,15000);
+  document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='visible')refresh();});
+}
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

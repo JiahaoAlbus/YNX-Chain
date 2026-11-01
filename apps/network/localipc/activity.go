@@ -1,5 +1,7 @@
 package localipc
 
+import "encoding/json"
+
 // Activity is a bounded helper self-observation, not an authorization manifest.
 // Counts are decimal strings so clients never round uint64 measurements.
 type Activity struct {
@@ -11,14 +13,16 @@ type Activity struct {
 	Resource        ResourceActivity      `json:"resource"`
 }
 type NodeActivity struct {
-	Code             string `json:"code"`
-	Stage            string `json:"stage,omitempty"`
-	Mode             string `json:"mode,omitempty"`
-	ProcessOwned     bool   `json:"processOwned"`
-	CapacityComplete bool   `json:"capacityComplete"`
-	UsedBytes        string `json:"usedBytes,omitempty"`
-	LimitBytes       string `json:"limitBytes,omitempty"`
-	FreeBytes        string `json:"freeBytes,omitempty"`
+	// Bounded original manager observation; never parsed as permission.
+	Diagnostics      json.RawMessage `json:"diagnostics,omitempty"`
+	Code             string          `json:"code"`
+	Stage            string          `json:"stage,omitempty"`
+	Mode             string          `json:"mode,omitempty"`
+	ProcessOwned     bool            `json:"processOwned"`
+	CapacityComplete bool            `json:"capacityComplete"`
+	UsedBytes        string          `json:"usedBytes,omitempty"`
+	LimitBytes       string          `json:"limitBytes,omitempty"`
+	FreeBytes        string          `json:"freeBytes,omitempty"`
 }
 type ParticipationActivity struct {
 	Code                      string `json:"code"`

@@ -30,12 +30,14 @@ var ErrReconcile = errors.New("node process result requires original-owner recon
 var ErrClosed = errors.New("node manager closed")
 
 type Config struct {
-	Directory         string
-	IsolatedFixture   bool
-	MaxArtifactBytes  uint64
-	StorageQuotaBytes uint64
-	MinimumFreeBytes  uint64
-	StopGrace         time.Duration
+	Directory              string
+	IsolatedFixture        bool
+	MaxArtifactBytes       uint64
+	StorageQuotaBytes      uint64
+	MinimumFreeBytes       uint64
+	StopGrace              time.Duration
+	RuntimeCandidate       *RuntimeCandidate
+	ExpectedRuntimeNetwork *RuntimeNetwork
 }
 type Capacity struct {
 	Complete    bool   `json:"complete"`
@@ -45,18 +47,20 @@ type Capacity struct {
 	Enforcement string `json:"enforcement"`
 }
 type Status struct {
-	NodeID              string   `json:"nodeId"`
-	Stage               string   `json:"stage"`
-	Mode                string   `json:"mode"`
-	Generation          uint64   `json:"generation,string"`
-	RunID               string   `json:"runId"`
-	ProcessOwned        bool     `json:"processOwned"`
-	LastPID             int      `json:"lastPid"`
-	ArtifactSHA256      string   `json:"artifactSHA256"`
-	FirstCause          string   `json:"firstCause"`
-	LastExit            string   `json:"lastExit"`
-	ProductionSupported bool     `json:"productionSupported"`
-	Capacity            Capacity `json:"capacity"`
+	NodeID              string                `json:"nodeId"`
+	Stage               string                `json:"stage"`
+	Mode                string                `json:"mode"`
+	Generation          uint64                `json:"generation,string"`
+	RunID               string                `json:"runId"`
+	ProcessOwned        bool                  `json:"processOwned"`
+	LastPID             int                   `json:"lastPid"`
+	ArtifactSHA256      string                `json:"artifactSHA256"`
+	FirstCause          string                `json:"firstCause"`
+	LastExit            string                `json:"lastExit"`
+	ProductionSupported bool                  `json:"productionSupported"`
+	Capacity            Capacity              `json:"capacity"`
+	Diagnostics         Diagnostics           `json:"diagnostics"`
+	RuntimeCandidate    *RuntimeCandidateView `json:"runtimeCandidate,omitempty"`
 }
 type Intent struct {
 	ManagerID      string `json:"managerId"`
@@ -75,6 +79,7 @@ func (i Intent) SHA256() string {
 type Approval struct {
 	nonce, peer, digest string
 	expires             time.Time
+	native              bool
 }
 type child struct {
 	cmd           *exec.Cmd
@@ -82,6 +87,7 @@ type child struct {
 	runID         string
 	stopRequested bool
 	capture       *runtimeCapture
+	logs          *runLogs
 }
 type Manager struct {
 	mu                                    sync.Mutex
@@ -97,6 +103,7 @@ type Manager struct {
 	stopGrace                             time.Duration
 	approvals                             map[string]*Approval
 	process                               *child
+	runtime                               *RuntimeCandidate
 	closed, released                      bool
 }
 
@@ -135,7 +142,7 @@ func New(cfg Config) (*Manager, error) {
 	if cfg.IsolatedFixture {
 		mode = "isolated-lifecycle-fixture"
 	}
-	raw, info, err := readOwnedFile(filepath.Join(cfg.Directory, stateName), m.uid, 16<<10)
+	raw, info, err := readOwnedFile(filepath.Join(cfg.Directory, stateName), m.uid, stateRecordLimit)
 	fresh := errors.Is(err, os.ErrNotExist)
 	if fresh {
 		m.state = persistentState{Version: stateVersion, ManagerID: randomID(), Mode: mode, NodeID: NodeID, Stage: "not_installed"}
@@ -240,8 +247,15 @@ func New(cfg Config) (*Manager, error) {
 			return nil, ErrUnsafePath
 		}
 	}
+	logsMigrated, err := m.initializeLogs()
+	if err != nil {
+		return nil, err
+	}
 	if m.state.ArtifactSHA256 != "" && m.state.ArtifactIdentity == nil && m.state.Stage != "installing" && m.state.Stage != "reconcile_required" {
 		return nil, ErrReconcile
+	}
+	if _, err := m.installedRuntime(); err != nil {
+		return nil, err
 	}
 	if !fresh && m.state.Stage == "not_installed" {
 		if err = m.save(); err != nil {
@@ -273,6 +287,19 @@ func New(cfg Config) (*Manager, error) {
 		case "not_installed", "installed", "stopped", "reconcile_required":
 		default:
 			return nil, ErrUnsafePath
+		}
+	}
+	if !fresh && logsMigrated {
+		if err = m.save(); err != nil {
+			return nil, err
+		}
+	}
+	if cfg.RuntimeCandidate != nil || cfg.ExpectedRuntimeNetwork != nil {
+		if cfg.RuntimeCandidate == nil || cfg.ExpectedRuntimeNetwork == nil {
+			return nil, ErrRuntimeManifest
+		}
+		if err := m.bindRuntimeCandidate(cfg.RuntimeCandidate, *cfg.ExpectedRuntimeNetwork); err != nil {
+			return nil, err
 		}
 	}
 	complete = true
@@ -317,21 +344,31 @@ func (m *Manager) intent(peer localipc.Peer, action, artifactSHA256 string) (Int
 		if err != nil || len(raw) != 32 || hex.EncodeToString(raw) != artifactSHA256 {
 			return Intent{}, ErrConsent
 		}
+		if m.runtime != nil && artifactSHA256 != m.runtime.manifest.ArtifactSHA256 {
+			return Intent{}, ErrConsent
+		}
 	}
 	return Intent{ManagerID: m.state.ManagerID, NodeID: NodeID, Action: action, ArtifactSHA256: artifactSHA256, Generation: m.state.Generation}, nil
 }
 
-// Approve is called by the trusted native consent entry after the user confirms
-// the exact prepared intent. It is not exposed by the IPC request-receipt route
-// or by HTTP. A true bool decoded from a remote request is not user consent.
+// Approve retains isolated fixture compatibility only. The normal host calls
+// ApproveNative with its actual pinned producer, never a decoded allow boolean.
 func (m *Manager) Approve(peer localipc.Peer, intent Intent, explicitUserConsent bool, ttl time.Duration) (*Approval, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	// Kept solely for existing isolated lifecycle fixtures. A host boolean is
+	// not the normal production native decision transport.
+	if !m.fixture || !explicitUserConsent {
+		return nil, ErrConsent
+	}
+	return m.approve(peer, intent, ttl, false)
+}
+func (m *Manager) approve(peer localipc.Peer, intent Intent, ttl time.Duration, native bool) (*Approval, error) {
 	current, err := m.intent(peer, intent.Action, intent.ArtifactSHA256)
 	if err != nil {
 		return nil, err
 	}
-	if !explicitUserConsent || ttl <= 0 || ttl > time.Minute || intent != current {
+	if ttl <= 0 || ttl > time.Minute || intent != current {
 		return nil, ErrConsent
 	}
 	for nonce, old := range m.approvals {
@@ -342,12 +379,15 @@ func (m *Manager) Approve(peer localipc.Peer, intent Intent, explicitUserConsent
 	if len(m.approvals) >= 128 {
 		return nil, ErrConsent
 	}
-	approval := &Approval{nonce: randomID(), peer: peerBinding(peer), digest: intent.SHA256(), expires: time.Now().Add(ttl)}
+	approval := &Approval{nonce: randomID(), peer: peerBinding(peer), digest: intent.SHA256(), expires: time.Now().Add(ttl), native: native}
 	m.approvals[approval.nonce] = approval
 	return approval, nil
 }
 func (m *Manager) consume(peer localipc.Peer, intent Intent, approval *Approval) error {
 	if approval == nil {
+		return ErrConsent
+	}
+	if !m.fixture && !approval.native {
 		return ErrConsent
 	}
 	registered := m.approvals[approval.nonce]
@@ -367,6 +407,19 @@ func (m *Manager) Install(ctx context.Context, peer localipc.Peer, intent Intent
 	if err := m.peerAllowed(peer); err != nil {
 		return err
 	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.closed {
+		return ErrClosed
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if m.runtime != nil {
+		if err := m.runtime.unchanged(); err != nil {
+			return err
+		}
+	}
 	return ErrOriginalReleaseMissing
 }
 func (m *Manager) InstallFixture(ctx context.Context, peer localipc.Peer, intent Intent, approval *Approval, artifact []byte) error {
@@ -381,6 +434,13 @@ func (m *Manager) InstallFixture(ctx context.Context, peer localipc.Peer, intent
 	if !m.fixture {
 		return ErrOriginalReleaseMissing
 	}
+	if m.runtime != nil {
+		return ErrConsent
+	}
+	return m.installArtifactLocked(ctx, peer, intent, approval, artifact, nil)
+}
+
+func (m *Manager) installArtifactLocked(ctx context.Context, peer localipc.Peer, intent Intent, approval *Approval, artifact []byte, runtimeRecord *runtimeInstallRecord) error {
 	current, err := m.intent(peer, "install", intent.ArtifactSHA256)
 	if err != nil {
 		return err
@@ -393,7 +453,7 @@ func (m *Manager) InstallFixture(ctx context.Context, peer localipc.Peer, intent
 		return ErrConsent
 	}
 	if m.state.Stage != "not_installed" {
-		return errors.New("fixture artifact already installed or requires reconciliation")
+		return errors.New("node artifact already installed or requires reconciliation")
 	}
 	if _, err = m.capacity(uint64(len(artifact)) + 1024); err != nil {
 		return err
@@ -408,6 +468,7 @@ func (m *Manager) InstallFixture(ctx context.Context, peer localipc.Peer, intent
 	if err = m.consume(peer, intent, approval); err != nil {
 		return err
 	}
+	m.state.Runtime = runtimeRecord
 	return m.publishFixtureArtifact(ctx, intent, artifact)
 }
 
@@ -421,7 +482,14 @@ func (m *Manager) Status(peer localipc.Peer) (Status, error) {
 		return Status{}, ErrClosed
 	}
 	capacity, err := m.capacity(0)
-	out := Status{NodeID: NodeID, Stage: m.state.Stage, Mode: m.state.Mode, Generation: m.state.Generation, RunID: m.state.RunID, ProcessOwned: m.process != nil, LastPID: m.state.LastPID, ArtifactSHA256: m.state.ArtifactSHA256, FirstCause: m.state.FirstCause, LastExit: m.state.LastExit, Capacity: capacity}
+	out := Status{NodeID: NodeID, Stage: m.state.Stage, Mode: m.state.Mode, Generation: m.state.Generation, RunID: m.state.RunID, ProcessOwned: m.process != nil, LastPID: m.state.LastPID, ArtifactSHA256: m.state.ArtifactSHA256, FirstCause: m.state.FirstCause, LastExit: m.state.LastExit, Capacity: capacity, Diagnostics: m.diagnostics()}
+	if m.runtime != nil {
+		view := m.runtime.View()
+		if candidateErr := m.runtime.unchanged(); candidateErr != nil {
+			view.Code = "UNAVAILABLE"
+		}
+		out.RuntimeCandidate = &view
+	}
 	return out, err
 }
 func (m *Manager) firstCause(err error) {
