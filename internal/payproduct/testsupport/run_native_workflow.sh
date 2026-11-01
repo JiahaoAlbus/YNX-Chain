@@ -22,7 +22,7 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = engine-node ]; then
  : "${PAY_ENGINE_SOCKET_ROOT:?owned external short socket root required}"
  cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
  node "$source_dir/testsupport/prepare_engine_node_fixture.mjs" "$composition" "$source_dir/../.." "$PAY_ENGINE_FIXTURE_REPORT"
- go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl pay_engine_host_fixture' ./internal/consensus -run '^TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained$' -count=1 -timeout=2m -v
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl pay_engine_host_fixture' ./internal/consensus ./internal/payproduct/nativehost -run '^TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained$|^TestCoreAttachmentFailedConstructionRetainsCleanupAndCause$' -count=1 -timeout=2m -v
  exit
 fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = engine ]; then
