@@ -9,6 +9,7 @@ on:
     paths:
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
+      - 'internal/ynxresourceconsent/**'
       - 'internal/ynxauth/**'
       - 'internal/ynxconsensusauth/**'
       - 'internal/chain/**'
@@ -141,6 +142,7 @@ on:
       - '.github/workflows/resource-market-ci.yml'
   pull_request:
     paths:
+      - 'internal/ynxresourceconsent/**'
       - 'apps/resource-market/**'
       - 'internal/resourcemarket/**'
       - 'internal/resourceproduct/**'
@@ -827,7 +829,7 @@ jobs:
           module = json.loads(command('go', 'list', '-m', '-json', 'github.com/cloudflare/circl'))
           if module.get('Version') != 'v1.6.5' or module.get('Replace'):
               raise RuntimeError('original fixed provider dependency required')
-          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',
+          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/ynxresourceconsent', 'internal/accountaddress',
               'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',
               'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',
               'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',
@@ -1435,10 +1437,19 @@ jobs:
               if terminal != ['pass']:
                   raise RuntimeError('fixed product device codec did not execute and pass: ' + name)
           print('YNX_PRODUCT_DEVICE_CODEC_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False), sort_keys=True))
+          resource_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch'
+          resource_required = ['TestNetworkResourceConsentSoleSDKOriginalSevenFieldsAndAND', 'TestNetworkResourceConsentClosedOriginalGrammarAndBounds', 'TestNetworkResourceConsentFixedSignAndDestroyedKey', 'TestNetworkResourceConsentGoPublicInteropOriginal']
+          for name in resource_required:
+              terminal = [event['Action'] for event in events if event.get('Package') == resource_package and event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('fixed resource consent codec did not execute and pass: ' + name)
+          if any(event.get('Package') == resource_package and event.get('Test', '').startswith('TestNetworkResourceConsent') and event['Action'] in ('fail', 'skip') for event in events):
+              raise RuntimeError('resource consent codec failure or skip retained')
+          print('YNX_NETWORK_RESOURCE_CONSENT_CODEC_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=resource_required, suitePassed=True, sourceQualified=False, protectedPrincipalConnected=False, resourceExecutionAuthorized=False), sort_keys=True))
           PY
           # Retain the complete original suite, and qualify the new cache cases
           # from this execution instead of rerunning a second focused suite.
-          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored > "$RUNNER_TEMP/ynx-initial-cache-crypto-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored ./internal/ynxresourceconsent > "$RUNNER_TEMP/ynx-initial-cache-crypto-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-crypto-tests.jsonl"
             exit 1
           fi
@@ -1451,6 +1462,39 @@ jobs:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
           print('YNX_INITIAL_CACHE_CRYPTO_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
+          resource_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'
+          resource_required = ['TestNetworkResourceConsentOriginalPolicyIssuedCurrentAndRevocation', 'TestNetworkResourceConsentAttemptCurrentHistoryAndOriginalOwnership', 'TestNetworkResourceConsentPartialOutcomeRetireDrainClose', 'TestNetworkResourceConsentDestroyedBorrowHasNoRetry']
+          for name in resource_required:
+              terminal = [event['Action'] for event in events if event.get('Package') == resource_package and event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('resource consent lifecycle did not execute and pass: ' + name)
+          if any(event.get('Package') == resource_package and event['Action'] in ('fail', 'skip') for event in events):
+              raise RuntimeError('resource consent lifecycle failure or skip retained')
+          print('YNX_NETWORK_RESOURCE_CONSENT_LIFECYCLE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=resource_required, suitePassed=True, sourceQualified=False, protectedPrincipalConnected=False, resourceExecutionAuthorized=False), sort_keys=True))
+          PY
+      - name: Verify fixed resource consent partial-outcome lifecycle under race
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        env:
+          CGO_ENABLED: '1'
+        run: |
+          if ! go test -race -json -p 1 -count=1 -timeout=90s -run '^TestNetworkResourceConsentPartialOutcomeRetireDrainClose$' ./internal/ynxresourceconsent > "$RUNNER_TEMP/ynx-resource-consent-race-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-resource-consent-race-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-resource-consent-race-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'
+          required = ['TestNetworkResourceConsentPartialOutcomeRetireDrainClose']
+          for name in required:
+              terminal = [event['Action'] for event in events if event.get('Package') == package and event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('resource consent lifecycle race did not execute and pass: ' + name)
+          if any(event['Action'] in ('fail', 'skip') for event in events):
+              raise RuntimeError('resource consent lifecycle race failure or skip retained')
+          print('YNX_NETWORK_RESOURCE_CONSENT_RACE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, protectedPrincipalConnected=False, resourceExecutionAuthorized=False), sort_keys=True))
           PY
       - name: Upload only actual Go public artifact-purpose vectors
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}

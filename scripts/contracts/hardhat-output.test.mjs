@@ -69,3 +69,103 @@ test('actual pinned Hardhat cleanup deletes old shared output but preserves all 
  for(const r of result){r.bytecodeSHA256=createHash('sha256').update(r.bytecode).digest('hex');delete r.bytecode;delete r.deployedBytecode;delete r.abi;}
  console.log('YNX_HARDHAT_PRESERVATION_V1 '+JSON.stringify({hardhat:locked,sameCompiledABIAndBytecodes:true,cases:result,scope:'actual compiler cleanup on temporary controlled fixtures, no Finance project execution or historical evidence recreation'}));
 });
+
+function compilerOutput(root,label='current'){
+ prepareHardhatOutput(root);
+ put(root,'artifacts/hardhat/contracts/Probe.sol/Probe.json',JSON.stringify({label,abi:[],bytecode:'0x6000'}));
+ put(root,'artifacts/hardhat/build-info/build.json',JSON.stringify({label,solcVersion:'PUBLIC-FS-FIXTURE'}));
+ fs.mkdirSync(path.join(root,'artifacts/hardhat/contracts/empty'),{recursive:true});
+}
+const outputCLI=fileURLToPath(new URL('./hardhat-output.mjs',import.meta.url));
+const finishCLI=root=>spawnSync(process.execPath,[outputCLI,'finish'],{cwd:root,encoding:'utf8',timeout:10000});
+
+test('publication CLI copies into an absent payload, preserves unknown staging and repeats safely',()=>{
+ const root=fixture();try{
+  compilerOutput(root);const before=snapshot(root);
+  put(root,'artifacts/.contracts-publish-old-UNKNOWN/partial.json','original unresolved PUBLIC bytes');
+  const old=fs.statSync(path.join(root,'artifacts/.contracts-publish-old-UNKNOWN/partial.json'),{bigint:true});
+  const first=finishCLI(root);assert.equal(first.status,0,first.stderr);assert.deepEqual(JSON.parse(first.stdout).compatibilityDirectories,['artifacts/contracts','artifacts/build-info']);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(root,'artifacts/contracts/Probe.sol/Probe.json'))).label,'current');
+  assert.ok(fs.statSync(path.join(root,'artifacts/contracts/empty')).isDirectory());
+  const repeated=finishCLI(root);assert.equal(repeated.status,0,repeated.stderr);assert.deepEqual(JSON.parse(repeated.stdout).retainedPreviousDirectories,[]);
+  assert.deepEqual(snapshot(root),before);assert.equal(fs.readFileSync(path.join(root,'artifacts/.contracts-publish-old-UNKNOWN/partial.json'),'utf8'),'original unresolved PUBLIC bytes');
+  const retained=fs.statSync(path.join(root,'artifacts/.contracts-publish-old-UNKNOWN/partial.json'),{bigint:true});assert.equal(retained.ino,old.ino);assert.equal(retained.mtimeNs,old.mtimeNs);
+  assert.equal(fs.existsSync(path.join(root,'artifacts/.ynx-hardhat-publish.lock')),false);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication keeps the first copy error, partial payload and previous compatibility outputs',()=>{
+ const root=fixture(),copy=fs.cpSync;try{
+  compilerOutput(root);put(root,'artifacts/contracts/previous.json','previous contract');put(root,'artifacts/build-info/previous.json','previous build');const before=snapshot(root);
+  const first=Object.assign(Error('PUBLIC injected copy failure after a real partial write'),{code:'PUBLIC_COPY_FAILURE'});let staging;
+  fs.cpSync=(source,destination,options)=>{
+   assert.equal(options.errorOnExist,true);assert.equal(options.force,false);assert.equal(fs.existsSync(destination),false);
+   fs.mkdirSync(destination);fs.writeFileSync(path.join(destination,'partial.json'),'PUBLIC partial copy');staging=path.dirname(destination);throw first;
+  };
+  assert.throws(()=>finishHardhatOutput(root),error=>error===first&&error.stagingDirectory===staging);
+  assert.equal(fs.readFileSync(path.join(staging,'output/partial.json'),'utf8'),'PUBLIC partial copy');
+  assert.equal(fs.readFileSync(path.join(root,'artifacts/contracts/previous.json'),'utf8'),'previous contract');assert.equal(fs.readFileSync(path.join(root,'artifacts/build-info/previous.json'),'utf8'),'previous build');assert.deepEqual(snapshot(root),before);
+  assert.equal(fs.existsSync(path.join(root,'artifacts/.ynx-hardhat-publish.lock')),false);
+ }finally{fs.cpSync=copy;fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication still refuses EEXIST rather than overwriting an unexpected payload',()=>{
+ const root=fixture(),copy=fs.cpSync;try{
+  compilerOutput(root);put(root,'artifacts/contracts/previous.json','previous contract');let staged;
+  fs.cpSync=(source,destination,options)=>{
+   assert.equal(options.errorOnExist,true);assert.equal(options.force,false);
+   fs.mkdirSync(destination);put(destination,'unexpected.json','PUBLIC unexpected bytes');staged=path.dirname(destination);return copy(source,destination,options);
+  };
+  // Node 24 rejects the existing directory immediately; newer runtimes may
+  // merge directories, but the exact copied-tree check must still reject it.
+  assert.throws(()=>finishHardhatOutput(root),error=>error.stagingDirectory===staged&&(error.code==='ERR_FS_CP_EEXIST'||error.message==='copied artifact output differs'));
+  assert.equal(fs.readFileSync(path.join(staged,'output/unexpected.json'),'utf8'),'PUBLIC unexpected bytes');assert.equal(fs.readFileSync(path.join(root,'artifacts/contracts/previous.json'),'utf8'),'previous contract');
+ }finally{fs.cpSync=copy;fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication restores the prior destination after a rename error and retains staging',()=>{
+ const root=fixture(),rename=fs.renameSync;try{
+  compilerOutput(root);put(root,'artifacts/contracts/previous.json','previous contract');let staged;
+  const first=Object.assign(Error('PUBLIC injected publish rename failure'),{code:'PUBLIC_RENAME_FAILURE'});
+  fs.renameSync=(source,destination)=>{
+   if(path.basename(source)==='output'&&destination===path.join(root,'artifacts/contracts')){staged=path.dirname(source);throw first;}
+   return rename(source,destination);
+  };
+  assert.throws(()=>finishHardhatOutput(root),error=>error===first);
+  assert.equal(fs.readFileSync(path.join(root,'artifacts/contracts/previous.json'),'utf8'),'previous contract');assert.equal(JSON.parse(fs.readFileSync(path.join(staged,'output/Probe.sol/Probe.json'))).label,'current');
+ }finally{fs.renameSync=rename;fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication leaves an unresolved lock untouched and refuses a new CLI writer',()=>{
+ const root=fixture();try{
+  compilerOutput(root);const lock=path.join(root,'artifacts/.ynx-hardhat-publish.lock');fs.mkdirSync(lock);put(lock,'UNKNOWN','PUBLIC unresolved writer');const before=fs.statSync(lock,{bigint:true});
+  const result=finishCLI(root);assert.notEqual(result.status,0);assert.match(result.stderr,/HARDHAT_PUBLISH_IN_PROGRESS/);assert.equal(fs.readFileSync(path.join(lock,'UNKNOWN'),'utf8'),'PUBLIC unresolved writer');assert.equal(fs.statSync(lock,{bigint:true}).ino,before.ino);assert.equal(fs.existsSync(path.join(root,'artifacts/contracts')),false);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication serializes concurrent CLI writers without replacing the active publisher',{timeout:15000},async()=>{
+ const {spawn}=await import('node:child_process');const root=fixture();let child;
+ try{
+  compilerOutput(root);put(root,'artifacts/contracts/previous.json','previous contract');const ready=path.join(root,'publisher-ready'),release=path.join(root,'publisher-release');
+  const program=`import fs from 'node:fs';import {finishHardhatOutput} from ${JSON.stringify(new URL('./hardhat-output.mjs',import.meta.url).href)};const copy=fs.cpSync;let first=true;fs.cpSync=(...args)=>{if(first){first=false;fs.writeFileSync(${JSON.stringify(ready)},'PUBLIC active writer');const deadline=Date.now()+8000;while(!fs.existsSync(${JSON.stringify(release)})){if(Date.now()>deadline)throw Error('PUBLIC release not observed');Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,10);}}return copy(...args)};console.log(JSON.stringify(finishHardhatOutput(${JSON.stringify(root)})));`;
+  child=spawn(process.execPath,['--input-type=module','-e',program],{cwd:root,stdio:['ignore','pipe','pipe']});let stdout='',stderr='';child.stdout.on('data',b=>stdout+=b);child.stderr.on('data',b=>stderr+=b);const closed=new Promise((resolve,reject)=>{child.on('error',reject);child.on('close',code=>resolve(code));});
+  const deadline=Date.now()+5000;while(!fs.existsSync(ready)){assert.ok(Date.now()<deadline,'first actual writer did not reach copy');await new Promise(resolve=>setTimeout(resolve,10));}
+  const second=finishCLI(root);assert.notEqual(second.status,0);assert.match(second.stderr,/HARDHAT_PUBLISH_IN_PROGRESS/);assert.equal(fs.readFileSync(path.join(root,'artifacts/contracts/previous.json'),'utf8'),'previous contract');
+  fs.writeFileSync(release,'PUBLIC release');assert.equal(await closed,0,stderr);assert.equal(JSON.parse(stdout).retainedPreviousDirectories.length,1);assert.equal(JSON.parse(fs.readFileSync(path.join(root,'artifacts/contracts/Probe.sol/Probe.json'))).label,'current');
+  const repeated=finishCLI(root);assert.equal(repeated.status,0,repeated.stderr);assert.deepEqual(JSON.parse(repeated.stdout).retainedPreviousDirectories,[]);assert.equal(fs.existsSync(path.join(root,'artifacts/.ynx-hardhat-publish.lock')),false);
+ }finally{if(child?.exitCode===null){child.kill('SIGKILL');await new Promise(resolve=>child.once('close',resolve));}fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('publication retains both first failure and rollback failure with the original backup',()=>{
+ const root=fixture(),rename=fs.renameSync;try{
+  compilerOutput(root);put(root,'artifacts/contracts/previous.json','previous contract');
+  const first=Object.assign(Error('PUBLIC publication failure'),{code:'PUBLIC_PUBLISH_FAILURE'}),rollback=Object.assign(Error('PUBLIC rollback failure'),{code:'PUBLIC_ROLLBACK_FAILURE'});let saved;
+  fs.renameSync=(source,destination)=>{
+   if(destination===path.join(root,'artifacts/contracts'))throw path.basename(source)==='output'?first:rollback;
+   if(source===path.join(root,'artifacts/contracts'))saved=destination;
+   return rename(source,destination);
+  };
+  assert.throws(()=>finishHardhatOutput(root),error=>error===first&&error.rollbackError===rollback);
+  assert.equal(fs.readFileSync(path.join(saved,'previous.json'),'utf8'),'previous contract');assert.ok(fs.existsSync(path.join(first.stagingDirectory,'output/Probe.sol/Probe.json')));
+ }finally{fs.renameSync=rename;fs.rmSync(root,{recursive:true,force:true});}
+});

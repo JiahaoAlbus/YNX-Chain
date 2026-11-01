@@ -42,6 +42,12 @@ func run(args []string, out io.Writer) error {
 	if len(args) == 0 {
 		return errors.New("choose create, registration, halt, activate, export, sender, presigned or proof-context")
 	}
+	if args[0] == "distributed" {
+		return runPQLabDistributed(args[1:], out)
+	}
+	if args[0] == "distributed-readback" {
+		return runPQLabDistributedReadback(args[1:], out)
+	}
 	if args[0] == "proof-context" {
 		return runPQLabProofContext(args[1:], out)
 	}

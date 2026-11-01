@@ -254,7 +254,7 @@ jobs:
           test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
           test ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"
           test ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"
             exit 1
           fi
@@ -262,7 +262,7 @@ jobs:
             cat "$RUNNER_TEMP/pq-lab-live-tests.jsonl"
             exit 1
           fi
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLabDistributed' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-command-tests.jsonl"
             exit 1
           fi
@@ -385,6 +385,112 @@ jobs:
             ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log
             ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json
             ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  distributed-pq-source:
+    name: Distributed PQ host-local source and PUBLIC readback
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1536MiB
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Execute complete distributed source and readback cases without starting nodes
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          # Same original per-package limits, isolated from the existing lab
+          # and client budgets. No private fixture retention or publication.
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabDistributed' ./internal/consensus > "$RUNNER_TEMP/distributed-pq-core.jsonl" 2> "$RUNNER_TEMP/distributed-pq-core.stderr.log"; then
+            cat "$RUNNER_TEMP/distributed-pq-core.jsonl"
+            cat "$RUNNER_TEMP/distributed-pq-core.stderr.log" >&2
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabDistributed' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/distributed-pq-command.jsonl" 2> "$RUNNER_TEMP/distributed-pq-command.stderr.log"; then
+            cat "$RUNNER_TEMP/distributed-pq-command.jsonl"
+            cat "$RUNNER_TEMP/distributed-pq-command.stderr.log" >&2
+            exit 1
+          fi
+          git diff --exit-code -- go.mod go.sum
+      - name: Require every original distributed named case to execute and pass
+        run: |
+          python3 -B - <<'PYCONTROL'
+          import hashlib, json, os
+          from pathlib import Path
+
+          def qualify(path, package, required):
+              rows = [json.loads(line) for line in path.read_text().splitlines()]
+              if not rows or any(not isinstance(row, dict) or row.get('Package') != package for row in rows):
+                  raise RuntimeError('missing or foreign original Go events: ' + str(path))
+              if any(row.get('Action') in ('fail', 'skip') for row in rows):
+                  raise RuntimeError('original distributed case failed or skipped: ' + str(path))
+              names = {row['Test'] for row in rows if row.get('Test') and '/' not in row['Test']}
+              if names != set(required):
+                  raise RuntimeError('original distributed named case set differs: ' + str(path))
+              terminal = [row['Action'] for row in rows if 'Test' not in row and row.get('Action') in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('original distributed package did not pass: ' + str(path))
+              for name in required:
+                  actions = [row['Action'] for row in rows if row.get('Test') == name and row.get('Action') in ('run', 'pass', 'fail', 'skip')]
+                  if actions != ['run', 'pass']:
+                      raise RuntimeError('original distributed function did not execute once and pass: ' + name)
+              return required
+
+          root = Path(os.environ['RUNNER_TEMP'])
+          groups = [
+              ('distributed-pq-core', 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus', [
+                  'TestPQLabDistributedConfigOriginalTemplateRoundTrip',
+                  'TestPQLabDistributedPublicPlanHostLocalIsolation',
+                  'TestPQLabDistributedIdentityAndSourceRefusalsPreserveOriginals',
+                  'TestPQLabDistributedNormalRegistryCustodyAndColdResume',
+                  'TestPQLabDistributedPartialImportNeverOverwritesUnknown',
+                  'TestPQLabDistributedReadbackQuietRequiresOriginalCoordinates',
+                  'TestPQLabDistributedReadbackBootstrapFullStateColdAndUnknown',
+                  'TestPQLabDistributedReadbackRealPQProofAndPublicTamper']),
+              ('distributed-pq-command', 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab', [
+                  'TestPQLabDistributedCommandPublicExchangeAndLocalUnknown',
+                  'TestPQLabDistributedCommandRefusesUnpinnedAndForeignSource',
+                  'TestPQLabDistributedReadbackCommandSnapshotAndPublicComparison',
+                  'TestPQLabDistributedReadbackCommandClosedFlags'])]
+          passed, files = [], []
+          for stem, package, required in groups:
+              passed += qualify(root / (stem + '.jsonl'), package, required)
+              for suffix in ('.jsonl', '.stderr.log'):
+                  path = root / (stem + suffix)
+                  raw = path.read_bytes()
+                  files.append(dict(name=path.name, bytes=str(len(raw)), sha256=hashlib.sha256(raw).hexdigest()))
+          result = dict(version='YNX-DISTRIBUTED-PQ-SOURCE-CI/v1', commit=os.environ['GITHUB_SHA'],
+              requiredPassed=passed, evidence=files, syntheticOnly=True, nodeProcessesStarted=0,
+              physicalHostsExecuted=False, publicActivation=False, authorityGranted=False)
+          raw = json.dumps(result, sort_keys=True, separators=(',', ':')) + '\n'
+          with (root / 'distributed-pq-source-result.json').open('x') as output:
+              output.write(raw)
+          print('YNX_DISTRIBUTED_PQ_SOURCE_CALLEES_EXECUTED ' + raw.strip())
+          PYCONTROL
+      - name: Preserve only public distributed source test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: distributed-pq-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/distributed-pq-core.jsonl
+            ${{ runner.temp }}/distributed-pq-core.stderr.log
+            ${{ runner.temp }}/distributed-pq-command.jsonl
+            ${{ runner.temp }}/distributed-pq-command.stderr.log
+            ${{ runner.temp }}/distributed-pq-source-result.json
           if-no-files-found: warn
           retention-days: 14
 
