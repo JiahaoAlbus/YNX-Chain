@@ -3,6 +3,7 @@ package commerce
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -32,6 +33,9 @@ func (s *Server) settlementEffect(target string, body []byte, proof businessActi
 		if order.InvoiceID == "" {
 			return nil, ErrInvalidState
 		}
+		if strings.HasPrefix(order.PayIntentID, "npi_") {
+			return nil, ErrInvalidState
+		}
 		return encodeEffect(settlementEffectInput{order, pay.BaseURL})
 	}
 	plan.check = func(tx *Store, actor string, record BusinessEffect) error {
@@ -44,6 +48,9 @@ func (s *Server) settlementEffect(target string, body []byte, proof businessActi
 			return err
 		}
 		old := saved.Order
+		if strings.HasPrefix(current.PayIntentID, "npi_") || strings.HasPrefix(old.PayIntentID, "npi_") {
+			return ErrInvalidState
+		}
 		if saved.BaseURL != pay.BaseURL || current.InvoiceID != old.InvoiceID || current.PayIntentID != old.PayIntentID || current.PayMerchant != old.PayMerchant || current.PayPayoutAddress != old.PayPayoutAddress || current.TotalYNXT != old.TotalYNXT || current.Currency != old.Currency || current.Buyer != old.Buyer || current.StoreID != old.StoreID {
 			return ErrConflict
 		}

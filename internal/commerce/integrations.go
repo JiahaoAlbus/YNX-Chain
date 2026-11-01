@@ -158,6 +158,9 @@ func paySettlementAmount(current, legacy json.RawMessage) (int64, error) {
 }
 
 func (v HTTPPayVerifier) CreateRefund(ctx context.Context, o Order, idempotencyKey string) (RefundEvidence, error) {
+	if strings.HasPrefix(o.PayIntentID, "npi_") {
+		return RefundEvidence{}, ErrInvalidState
+	}
 	if strings.TrimSpace(v.BaseURL) == "" || strings.TrimSpace(v.APIKey) == "" || strings.TrimSpace(v.MerchantID) == "" {
 		return RefundEvidence{}, fmt.Errorf("%w: Pay refund contract is not configured", ErrUnavailable)
 	}

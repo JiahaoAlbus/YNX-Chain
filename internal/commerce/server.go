@@ -585,7 +585,7 @@ func (s *Server) confirmPayment(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	if o.InvoiceID == "" {
+	if o.InvoiceID == "" || strings.HasPrefix(o.PayIntentID, "npi_") {
 		fail(w, 409, ErrInvalidState)
 		return
 	}

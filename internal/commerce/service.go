@@ -605,6 +605,11 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (result 
 }
 
 func settlementMatchesOrder(o Order, e SettlementEvidence) bool {
+	// Native invoice financial projections require their own original authority
+	// and atom terms. A legacy display-unit receipt cannot settle that order.
+	if strings.HasPrefix(o.PayIntentID, "npi_") {
+		return false
+	}
 	if o.Currency != NativeSymbol || o.TotalYNXT <= 0 || !invoiceRecoveryID.MatchString(o.InvoiceID) || !invoiceRecoveryID.MatchString(o.PayIntentID) || o.PayMerchant == "" || o.PayPayoutAddress == "" {
 		return false
 	}
@@ -645,6 +650,9 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (res
 	role, ok := s.sellerRoleLocked(o.StoreID, actor)
 	if !ok || !sellerRoleAllows(role, permissionRefundApprove) {
 		return Order{}, ErrUnauthorized
+	}
+	if strings.HasPrefix(o.PayIntentID, "npi_") {
+		return Order{}, ErrInvalidState
 	}
 	if o.Status == "refunded" && o.Refund != nil && o.Refund.ID == e.ID && o.Refund.TransactionHash == e.TransactionHash {
 		return cloneOrder(o), nil
