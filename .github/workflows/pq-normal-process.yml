@@ -117,8 +117,23 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-current75-baseline-ci.py
             /scripts/loadtest/test_pq_current75_baseline_ci.py
+            /scripts/loadtest/pq-hosted-initialization-space-ci.py
+            /scripts/loadtest/test_pq_hosted_initialization_space_ci.py
       - name: Validate only the new fixed-profile source qualification and invocation controls
         run: python3 -I -B controller/scripts/loadtest/test_pq_current75_baseline_ci.py -v
+      - name: Verify fixed hosted initialization space preparation controls
+        run: |
+          python3 -I -B - <<'PYSPACE'
+          import importlib.util, unittest
+          from pathlib import Path
+          path=Path('controller/scripts/loadtest/test_pq_hosted_initialization_space_ci.py')
+          spec=importlib.util.spec_from_file_location('fixed_hosted_space_controls',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          suite=unittest.defaultTestLoader.loadTestsFromModule(module)
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun!=29 or result.skipped or not result.wasSuccessful():
+              raise SystemExit('all29 hosted space pure controls must execute and pass')
+          PYSPACE
       - name: Receive exact qualified live-fix source graph for full500 initialization
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -141,14 +156,14 @@ jobs:
       - name: Receive exact measured normal initializer and original lifecycle guards
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: dcb44c0e35e958f171e4dd19c95d83ba5114db3c
+          ref: 33c72cce282fd159320c6955fe6eb54984cea316
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Execute all174 pure controls and original Linux RSS lifecycle before initialization
+      - name: Execute all194 pure controls and original Linux RSS lifecycle before initialization
         run: |
           python3 -B tools/scripts/loadtest/pq-staged-harness-controls.py --run
           python3 -B - <<'PYCONTROLS'
@@ -163,6 +178,11 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: false
+      - name: Prepare only explicitly authorized unused Android space on hosted VM
+        env:
+          PQ_BASELINE_PROFILE: current9081-measured-initialize500-only
+          PQ_HOSTED_SPACE_PREPARATION: remove-unused-android-for-current9081-initialization-only-v1
+        run: python3 -I -B controller/scripts/loadtest/pq-hosted-initialization-space-ci.py --execute
       - name: Execute sole normal full500 initialization and cleanup only
         id: initialization
         env:
@@ -178,6 +198,10 @@ jobs:
           path: |
             ${{ runner.temp }}/pq-current9081-source-functional-*.json
             ${{ runner.temp }}/pq-independent-load-*/public/
+            ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/BEFORE.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/INTENT.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/AFTER.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/RESULT.json
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
