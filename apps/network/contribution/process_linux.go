@@ -156,19 +156,19 @@ func newLinuxBackend(pin string) (*linuxBackend, error) {
 	if e != nil || procs != "" {
 		return nil, ErrUnsupported
 	}
-	ctrls, e := linuxRead(d, "cgroup.subtree_control")
+	available, e := linuxRead(d, "cgroup.controllers")
 	if e != nil {
 		return nil, ErrUnsupported
 	}
-	set := map[string]bool{}
-	for _, c := range strings.Fields(ctrls) {
-		set[c] = true
+	have := map[string]bool{}
+	for _, name := range strings.Fields(available) {
+		have[name] = true
 	}
-	if !set["cpu"] || !set["memory"] || !set["pids"] {
-		return nil, fmt.Errorf("%w: existing cpu memory pids delegation required", ErrUnsupported)
+	if !have["cpu"] || !have["memory"] || !have["pids"] {
+		return nil, fmt.Errorf("%w: delegated cpu memory pids unavailable", ErrUnsupported)
 	}
 	// Capture the non-setuid system installation. No install, namespace sysctl,
-	// controller enablement or privileged fallback is attempted by this backend.
+	// external-controller enablement or privileged fallback is attempted by this backend.
 	sandbox, e := captureSystemSandbox(pin)
 	if e != nil {
 		return nil, e
@@ -214,7 +214,62 @@ func (b *linuxBackend) close() error {
 	e := b.sandbox.Close()
 	return errors.Join(e, b.delegate.Close())
 }
+
+func (b *linuxBackend) enableOwnControllers() error {
+	procs, e := linuxRead(b.delegate, "cgroup.procs")
+	if e != nil || procs != "" {
+		return ErrOSLimits
+	}
+	ctrls, e := linuxRead(b.delegate, "cgroup.subtree_control")
+	if e != nil {
+		return ErrUnsupported
+	}
+	set := map[string]bool{}
+	for _, c := range strings.Fields(ctrls) {
+		set[c] = true
+	}
+	if !set["cpu"] || !set["memory"] || !set["pids"] {
+		// Delegate= makes controllers available to the unit's sole writer;
+		// it does not promise subtree_control is already enabled. This is
+		// exactly our own verified, empty dedicated unit root, never a host
+		// slice, user@ service or external ancestor. Do not move any process.
+		available, e := linuxRead(b.delegate, "cgroup.controllers")
+		if e != nil {
+			return ErrUnsupported
+		}
+		have := map[string]bool{}
+		for _, name := range strings.Fields(available) {
+			have[name] = true
+		}
+		if !have["cpu"] || !have["memory"] || !have["pids"] {
+			return fmt.Errorf("%w: delegated cpu memory pids unavailable", ErrUnsupported)
+		}
+		if e = linuxWrite(b.delegate, "cgroup.subtree_control", "+cpu +memory +pids"); e != nil {
+			return fmt.Errorf("%w: own delegated controllers denied: %v", ErrUnsupported, e)
+		}
+		readback, e := linuxRead(b.delegate, "cgroup.subtree_control")
+		if e != nil {
+			return ErrOSLimits
+		}
+		enabled := map[string]bool{}
+		for _, name := range strings.Fields(readback) {
+			enabled[name] = true
+		}
+		if !enabled["cpu"] || !enabled["memory"] || !enabled["pids"] {
+			return ErrOSLimits
+		}
+	}
+	return nil
+}
 func (b *linuxBackend) prepare(limits Limits) (*linuxOperation, error) {
+	ownRaw, readErr := os.ReadFile("/proc/self/cgroup")
+	if readErr != nil {
+		return nil, ErrUnsupported
+	}
+	currentParent, parentErr := linuxUnitParent(string(ownRaw))
+	if parentErr != nil || currentParent != b.path {
+		return nil, ErrOSLimits
+	}
 	l, e := linuxLimits(limits, uint64(os.Getpagesize()))
 	if e != nil {
 		return nil, e
@@ -230,6 +285,9 @@ func (b *linuxBackend) prepare(limits Limits) (*linuxOperation, error) {
 	current.Close()
 	if e != nil || !os.SameFile(info, b.info) {
 		return nil, ErrOSLimits
+	}
+	if e = b.enableOwnControllers(); e != nil {
+		return nil, e
 	}
 	var nonce [16]byte
 	if _, e = rand.Read(nonce[:]); e != nil {

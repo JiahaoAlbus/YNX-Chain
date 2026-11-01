@@ -182,6 +182,9 @@ func TestLinuxContainedRuntime(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if err = os.Chmod(directory, 0700); err != nil {
+			t.Fatal(err)
+		}
 		file := filepath.Join(directory, "packet.json")
 		if err = os.WriteFile(file, raw, 0600); err != nil {
 			t.Fatal(err)

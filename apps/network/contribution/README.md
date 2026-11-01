@@ -49,12 +49,12 @@ Linux containment uses an existing, explicitly delegated cgroup-v2 subtree in
 this process's own `ynx-network-resource-<32 lower hex>.service/supervisor`.
 The normal installer/operator must supply systemd `Delegate=cpu memory pids`
 and `DelegateSubgroup=supervisor` in a separately budgeted unit; the product
-never creates a system service, enables an ancestor controller, changes a user
+never creates a system service, enables an external ancestor controller, changes a user
 namespace sysctl, elevates privileges or installs a sandbox. Only the live
 self-derived delegate is accepted. No job or IPC field can select a unit, PID,
 cgroup, shell command, executable or host path.
 
-The backend creates a fresh owned leaf, sets and reads back `memory.max`,
+After checking an empty, current-user owned dedicated delegate root and all three available controllers, the backend enables/reads back controllers only in that self-derived private unit root. It never modifies an outer slice or user@ service. The backend creates a fresh owned leaf, sets and reads back `memory.max`,
 `memory.swap.max=0`, `memory.oom.group=1`, `cpu.max`, `cpu.max.burst=0` and
 `pids.max=32`, and uses Go's clone3 cgroup FD so the wrapper starts inside the
 limits. Existing root-owned non-setuid `/usr/bin/bwrap` is independently pinned
