@@ -1,8 +1,10 @@
 {
   "owner": "P06 original; P01 immutable consumer projection",
-  "sourceCommit": "df86b045dd9e8bd207af559beb4e765ad35c9a55",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/client-consumer-work/product-source-original-terms-r3/HANDOFF.json",
-  "handoffSha256": "b80392ce863fc687612ed3f2cdb7e0953d13a5b4a713494b15a0ba6068a0fecb",
+  "sourceCommit": "23ae3efc5e9f46dd7bd06f20679e1edd647ac270",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/client-consumer-work/product-source-consumer-whole-r5/HANDOFF.json",
+  "handoffSha256": "fdccbe14a4435750a726a17ba34ae04a5000038f919f2fb65c7084ee2baf9f80",
+  "productionModules": 8,
+  "productionDocuments": 2,
   "files": [
     {
       "path": "cli.mjs",
@@ -11,13 +13,13 @@
     },
     {
       "path": "pay-business-client.mjs",
-      "bytes": 14559,
-      "sha256": "4691dd2c0ab5633d7de436f6ceb295b03844795399736425b88a2727dde47c32"
+      "bytes": 14649,
+      "sha256": "abc693b155f48a309b521f04b856b44fb94e4e9f2b39dde4d2be74d0339bcf6e"
     },
     {
       "path": "merchant-invoice-approval.mjs",
-      "bytes": 21045,
-      "sha256": "1fac0c0fcdf851aedcb4e4a574cf8edfadaaefab7d887b142897050bf4e8b4b2"
+      "bytes": 21251,
+      "sha256": "3ae900e3acd5a1204adb35b5ef28366d712dbfbbe0db5554103f73e8adbffed7"
     },
     {
       "path": "invoice-product-intent.mjs",
@@ -40,14 +42,19 @@
       "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
     },
     {
+      "path": "product-source.mjs",
+      "bytes": 9415,
+      "sha256": "8bc8114d0f2f2dc6328bc8a26378275ebae38725a31a9a3ad0abee5a76e42881"
+    },
+    {
       "path": "README.md",
-      "bytes": 9745,
-      "sha256": "adec994f32671205003bfca35298bd05d4ba8dd463b73bedb501463218bcf085"
+      "bytes": 11366,
+      "sha256": "fbb2fc3cfd0dea0a730e8e6a9d4964e026bdcf24e21ee515a46aedc70d4860d4"
     },
     {
       "path": "MAIN_PAY_CONTRACT.md",
-      "bytes": 12139,
-      "sha256": "ca1fc99d9a9f195e4ecceda8ac8ebc6c4d8cbc4214b28d73bef8ae342bdf51b8"
+      "bytes": 15326,
+      "sha256": "91d6768e26e8525c85d104a227ff66169a9882f11dfee4aeda74e6a62e3e4bbd"
     }
   ],
   "modified": false,

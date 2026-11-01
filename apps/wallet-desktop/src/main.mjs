@@ -58,7 +58,7 @@ import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {acquireOriginalWalletTransactionPolicy,isOriginalWalletTransactionPolicy} from './original-policy-supplier/transaction-resource.mjs';
 import {acquireOriginalAccountPolicy,isOriginalAccountPolicyResource} from './original-policy-supplier/session-resource.mjs';
 import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID} from './original-policy-supplier/operator-query.mjs';
-import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
+import {initializeOriginalAuthIdentityStartup,captureOriginalProductSourceFactories} from './original-auth-identity-startup.mjs';
 import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
 import { DesktopWalletAuthority,isOriginalPQTransactionReviewBorrow } from "./desktop-wallet-authority.mjs";
@@ -96,7 +96,7 @@ import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
 import { createInvoiceReferenceService } from "./wallet-invoice-reference-service.mjs";
 import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
 import {createDesktopPayService,installDesktopPayIPC} from "./wallet-pay-service.mjs";
-import {createNativePayMainEntry} from './native-pay-client/main-entry.mjs';
+import {createWalletNativePayProductStartup} from './wallet-native-pay-product-startup.mjs';
 import {createWalletNativePayProduct,installWalletNativePayProductIPC} from './wallet-native-pay-product.mjs';
 import {initializeOriginalWalletMainNamespaceV1} from '@ynx-chain/wallet-auth/original-wallet-main-namespace-bootstrap';
 import {createWalletMainNamespaceStartup} from './wallet-main-namespace-startup.mjs';
@@ -365,7 +365,7 @@ async function shutdownOriginalPQWallet(){
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
   const registration=await Promise.allSettled([originalDeviceRegistration?.close(),originalDeviceFinalization?.close()]);
-  const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),nativePayMainEntry?.shutdown(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');
   // Child owners must drain before releasing the namespace admission parent.
   if(!failed)try{
@@ -470,7 +470,7 @@ const desktopPayService=createDesktopPayService({
   getRuntime:()=>({vault:walletAuthority.vault,lifecycle:keyAccess,store:walletAuthority.transactionSender.submissions.intentStore,client:new DesktopNativePayChain({fetchImpl:net.fetch.bind(net)})}),
 });
 installDesktopPayIPC({handleWalletIPC,safeIPC,service:desktopPayService});
-nativePayMainEntry=createNativePayMainEntry({getMain:()=>walletAuthority,getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress})});
+nativePayMainEntry=createWalletNativePayProductStartup({captureFactories:captureOriginalProductSourceFactories,getGuard:()=>keyAccess.current(),getMain:()=>walletAuthority,getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress})});
 nativePayProduct=createWalletNativePayProduct({entry:nativePayMainEntry,getMain:()=>walletAuthority,getGuard:()=>keyAccess.current(),publishReview:request=>{
   if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
   mainWindow.webContents.send('wallet:provider-request',request);
@@ -480,12 +480,7 @@ installWalletNativePayProductIPC({handleWalletIPC,safeIPC,sensitiveIPC,service:n
 // policy, quote/current-authority/business and authenticated settlement ports.
 // This function is NOT an IPC, renderer, CLI or environment activation path.
 export function composeProtectedDesktopPay(integration,pqNative=null,nativeProductSource=null){
-  if(nativeProductSource!==null){
-    if(originalPQPayBootEntered)throw Object.assign(Error('Pay product must be composed before Wallet startup.'),{code:'NATIVE_PAY_MAIN_BOOT_COMPOSITION_REQUIRED'});
-    // Separate original P06 ProductSource. The SDK three-POST/two-GET Source
-    // never supplies product intent/current/readers or earns this capability.
-    nativePayMainEntry.compose(nativeProductSource);
-  }
+  if(nativeProductSource!==null)throw Object.assign(Error('ProductSource uses only the fixed normal Native factory.'),{code:'NATIVE_PAY_PRODUCT_FIXED_FACTORY_REQUIRED'});
   if(integration!==null)desktopPayService.compose(integration);
   if(pqNative===null)return;
   // Original issuer boot composition only. This has no IPC/env/CLI setter;
@@ -1121,6 +1116,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     await originalMainNamespaceStartup.settle(attempt);
   }catch{/* exact startup/cleanup causes retained; ordinary Wallet continues */}
   if(originalMainNamespaceStartup.isClosing())return;
+  try{nativePayMainEntry.configure();}catch{/* optional ProductSource absence does not stop Wallet */}
   try{await composeNormalOriginalDesktopPay();}catch{/* retained first Pay-only cause; ordinary Wallet continues */}
   originalPQPayBootEntered=true;
   // A missing Pay-only dependency must not prevent the ordinary Wallet from

@@ -29,7 +29,7 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
  return Object.freeze({
   async requestMerchantTerms(intentId,current){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
-   current();const reviewed=await pay.merchantTermsReview(intentId);current();
+   current();const reviewed=await pay.merchantTermsReview(intentId,current);current();
    const bytes=Buffer.from(reviewed.message,'base64'),view=reviewed.intent;
    if(bytes.toString('base64')!==reviewed.message||digest(bytes)!==view.signingMessageHash)fail('NATIVE_INVOICE_REVIEW_BINDING');
    const {decodePQNativeAction,encodePQNativeAction}=await import('@ynx-chain/wallet-auth/pq-native-action');
@@ -46,7 +46,7 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
   },
   async readOriginalMerchantMember(intentId,originalHash,current){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
-   current();const view=await pay.readInvoiceIntent(intentId);current();
+   current();const view=await pay.readInvoiceIntent(intentId,current);current();
    const {encodePQNativeAction}=await import('@ynx-chain/wallet-auth/pq-native-action');
    const {decodePQActionTransportData}=await import('@ynx-chain/wallet-auth/pq-action-transport');
    const originals=await retained(view,current,encodePQNativeAction),saved=originals.find(row=>row.hash===originalHash);
@@ -119,14 +119,14 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   // late current/parse; these methods cannot create, reconcile or submit.
   readInvoiceIntentPacket:(intentId,current)=>packet('GET',`/v5/pay/invoice-intents/${id(intentId)}`,undefined,current),
   readInvoicePacket:(merchant,invoiceId,current)=>packet('GET',invoicePath(merchant,invoiceId),undefined,current),
-  async merchantTermsReview(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-review`,{});if(value.intent?.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
-  async readInvoiceIntent(intentId){const value=await call('GET',`/v5/pay/invoice-intents/${id(intentId)}`);if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
+  async merchantTermsReview(intentId,current){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-review`,{},current);if(value.intent?.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
+  async readInvoiceIntent(intentId,current){const value=await call('GET',`/v5/pay/invoice-intents/${id(intentId)}`,undefined,current);if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async submitMerchantMember(intentId,member){
    if(!(member instanceof Uint8Array)||!member.length||member.length>98304)fail('NATIVE_INVOICE_MEMBER_BOUNDS');
    const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-member`,{member:Buffer.from(member).toString('base64')});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;
   },
-  async reconcileInvoiceIntent(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
-  async readInvoice(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId));if(value.merchant!==merchant||value.invoiceId!==invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');return value;},
+  async reconcileInvoiceIntent(intentId,current){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{},current);if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
+  async readInvoice(merchant,invoiceId,current){const value=await call('GET',invoicePath(merchant,invoiceId),undefined,current);if(value.merchant!==merchant||value.invoiceId!==invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');return value;},
   async readInvoiceOriginals(reference,current){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
    if(!reference||!['invoice_settle','invoice_refund'].includes(reference.kind))fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
@@ -140,12 +140,12 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
    if(reference.kind==='invoice_refund')fail('NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE');
    return Object.freeze({termsMessage:Uint8Array.from(termsMessage),settlement:null});
   },
-  async readInvoiceEvents(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId)+'/events');if(value.merchant!==merchant||value.invoiceId!==invoiceId||!Array.isArray(value.events))fail('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');return value;},
-  reviewSettlement:(merchant,invoiceId)=>call('POST',invoicePath(merchant,invoiceId)+'/review',{}),
-  reviewRefund:(merchant,invoiceId,refundId,amountAtoms)=>call('POST',invoicePath(merchant,invoiceId)+'/refund-review',{refundId,amountAtoms}),
+  async readInvoiceEvents(merchant,invoiceId,current){const value=await call('GET',invoicePath(merchant,invoiceId)+'/events',undefined,current);if(value.merchant!==merchant||value.invoiceId!==invoiceId||!Array.isArray(value.events))fail('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');return value;},
+  reviewSettlement:(merchant,invoiceId,current)=>call('POST',invoicePath(merchant,invoiceId)+'/review',{},current),
+  reviewRefund:(merchant,invoiceId,refundId,amountAtoms,current)=>call('POST',invoicePath(merchant,invoiceId)+'/refund-review',{refundId,amountAtoms},current),
   submitSettlement:(merchant,invoiceId,member)=>call('POST',invoicePath(merchant,invoiceId)+'/settlements',{member:memberBody(member)}),
   submitRefund:(merchant,invoiceId,member)=>call('POST',invoicePath(merchant,invoiceId)+'/refunds',{member:memberBody(member)}),
-  reconcileOperation:(merchant,invoiceId,nativeHash)=>{if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))fail('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');return call('POST',invoicePath(merchant,invoiceId)+'/operations/'+nativeHash+'/reconcile',{});}
+  reconcileOperation:(merchant,invoiceId,nativeHash,current)=>{if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))fail('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');return call('POST',invoicePath(merchant,invoiceId)+'/operations/'+nativeHash+'/reconcile',{},current);}
 
  });
 }
@@ -178,8 +178,8 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
  }
  async function request(kind,merchant,invoiceId,current,refund){
   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');current();
-  const bill=await pay.readInvoice(merchant,invoiceId);current();
-  const reviewed=kind==='invoice_settle'?await pay.reviewSettlement(merchant,invoiceId):await pay.reviewRefund(merchant,invoiceId,refund.refundId,refund.amountAtoms);current();
+  const bill=await pay.readInvoice(merchant,invoiceId,current);current();
+  const reviewed=kind==='invoice_settle'?await pay.reviewSettlement(merchant,invoiceId,current):await pay.reviewRefund(merchant,invoiceId,refund.refundId,refund.amountAtoms,current);current();
   const bytes=Buffer.from(reviewed.message,'base64'),{decodePQNativeAction,encodePQNativeAction}=await sdk();
   if(bytes.toString('base64')!==reviewed.message)fail('NATIVE_PAY_REVIEW_BINDING');
   const action=decodePQNativeAction(bytes);bind(action,bill,kind,refund);
@@ -197,7 +197,7 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
   requestRefund:(merchant,invoiceId,refundId,amountAtoms,current)=>request('invoice_refund',merchant,invoiceId,current,{refundId,amountAtoms}),
   async readOriginalActionMember({merchant,invoiceId,kind,originalHash},current){
    if(!['invoice_settle','invoice_refund'].includes(kind)||typeof current!=='function')fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
-   current();const bill=await pay.readInvoice(merchant,invoiceId);current();
+   current();const bill=await pay.readInvoice(merchant,invoiceId,current);current();
    const account=await selected(current),rows=await journal.readPQOriginals(account,current);current();
    const saved=rows.find(row=>row.kind==='pq-typed-action'&&row.hash===originalHash&&row.account===account);
    if(!saved)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_REQUIRED');

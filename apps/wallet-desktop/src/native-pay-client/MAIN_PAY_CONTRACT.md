@@ -1,12 +1,15 @@
 # Native Pay dispatch contract for original P01 Wallet Main
 
-Current owner is P01 Wallet Main. Its complete SDK7a normal boot baseline is
+Current owner is P01 Wallet Main. Its historical complete SDK7a normal boot baseline is
 `6ef63d5a8ba56fe3df4caacf3e034feba5d43f4d`, followed by the product-entry
 integration in `e6f9c8573afc0d1571a5e7ac4017583714de9889`. Original review,
 once-dispatch, durable UNKNOWN, first-response custody and native retirement
 are implemented; they are not installation or genuine Source admission proof.
-The earlier a437/210 frozen controls remain historical evidence, not matching
-proof for the new Main/SDK/Native whole.
+The later supplied complete Main is `f68dfda85b987c9a8e42d15a7acc589e80a88c97`
+with SDK8ed, actual namespace six-export adapter and Rootloader pin. Their
+supplied code is not a missing ABI; current original Root/resource admission,
+matched Native whole and installation remain independently unproven. The
+earlier frozen controls remain historical evidence.
 
 P06's production Native capture/channel/request implementation has passed actual
 Auth SourceLease→Go→private Unix component controls and normal c-archive strong
@@ -57,6 +60,49 @@ Terms use GET `/v5/pay/invoice-intents/{intentId}` and POST same path `/reconcil
 Only the original Pay service's independent Core H/H+1 verifier with actual `NativePayProofSource.Trust` and exact invoice effects/history can produce authenticated Pay paid/refund/net projections. Main's submission parser should record Pay handoff/UNKNOWN as observation only, keep `canRetry:false` and `consensusFinality:false`; Pay receipt authority must remain identified separately from any Main independent finality claim.
 
 ## Normal entry and ownership
+
+The production `apps/pay/native/product-source.mjs` consumer is part of the
+complete eight-module P06 projection. Original Main normal startup imports
+`composeNativePayProductSource(entry,factories)`; factory names are
+`acquireOriginalProductSource` and `isOriginalProductSource`, supplied only by
+the admitted original namespace. This is a consumer contract, not a Native
+qualification implementation or an extra approval. Missing actual producer
+blocks ProductSource admission, never unrelated Main boot or source work.
+
+The held original loan supplies synchronous `current`, original `pay` client,
+and `retire/join/close`. The consumer forwards combined original/caller current
+to all preparation/review/read calls; raw signed-Member POST methods are absent
+from its facade. Parent adopts nonnull `error.partial` before the error status,
+retires once, drains active reads before join/close, and preserves failed close
+as UNKNOWN without repeating it. Unrecognized partial methods are not called.
+No external callback, public test recognizer, CodeRoot, locator or status can
+mint ProductSource authority; `SourceAdmission` remains false in its status.
+
+Shop's source-owned `readOriginalShopNativeInvoiceRequestDATA(orderID,current)`
+keeps actor/role internal and reads the retained original eleven-field request.
+Its actual normal Unix export is independently supplied by P07. Cloud's
+source-owned `readOriginalCloudBillLocator(ref,current)` returns its known
+selection/day; the consumer calls the actual original Cloud client's
+`nativeInvoiceIntentOriginal` and retains the complete `{request,original,
+originalSHA256}` envelope only after exact reference/request checks. It never
+encodes a new sourceOrder, scans for a bill or reconstructs a price. Missing
+that getter affects only the corresponding original-product action. Existing
+stored-terms GET supports payment review; refund requires the payer's actual
+retained original settlement archive and otherwise remains unavailable.
+
+The original `run_native_workflow.sh` includes the new consumer controls.
+`product-source` runs the focused normal-entry/lifecycle/refusal delta;
+`product-source-cloud` requires the complete verified original Cloud closure
+and runs actual import plus HTTP/current controls. The prepared external Cloud
+fixture adds only `TestP06ProductSourceActualCloudColdAndRevoke`, using P06's
+actual consumer/client through the real normal Cloud HTTP/Store, cold reopen
+and original Source revoke. `product-source-cloud-service` runs that new Go
+case. `product-source-shop-service` runs only the new P06 consumer through the
+original LINK registered caller, actual Unix getter and cold original Shop
+Store, then original authority revoke. Preparation scripts freeze each whole
+supplier closure externally and add only the declared test fixture. Source,
+price and runtime setup remains explicitly PUBLIC; reads cannot grant Native
+admission or merchant approval.
 
 Pay `apps/pay/native/main-entry.mjs:createNativePayMainEntry({getMain,getContext})` is Main-boot-only composition. It reads the original Source/current and actual Main journal, enters the existing Main signing/broadcast review queue, returns sanitized bill/review references, and exposes no approve/key/sign/submit/Source construction operation over its input. `compose` is not an IPC or environment activation. P01 alone connects its existing safe live-frame IPC/normal UI and dispatcher. P06 now requires the fixed `requestPQPayBroadcast(reference)` review entry, as actually frozen by P01a437; its missing Native Source remains accurately unavailable. It never falls back to Core review or invokes a supplied approval/send callback. The compatibility submit commands also request this review only. Terms merchant/invoice references come from the actual retained terms action, not caller money or a URL. Pay's macOS client extends the existing package builder; missing original bridge/runtime is explicit unavailable, not a synthetic login or demo. Source/SDK/Main and actual same-source installation/admission remain distinct evidence.
 

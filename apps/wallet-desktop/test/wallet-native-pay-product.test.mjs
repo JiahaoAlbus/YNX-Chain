@@ -29,6 +29,6 @@ test('pending original product operation blocks actual close and new work until 
 });
 test('complete P06 immutable consumer is inside existing Mac package selection and uses original close gate',async()=>{
  const fs=await import('node:fs/promises'),{createHash}=await import('node:crypto'),base=new URL('../src/native-pay-client/',import.meta.url),receipt=JSON.parse(await fs.readFile(new URL('SOURCE_RECEIPT.json',base),'utf8'));
- assert.equal(receipt.files.length,9);for(const ref of receipt.files){const b=await fs.readFile(new URL(ref.path,base));assert.equal(b.length,ref.bytes);assert.equal(createHash('sha256').update(b).digest('hex'),ref.sha256);}
- const pkg=JSON.parse(await fs.readFile(new URL('../package.json',import.meta.url),'utf8')),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');assert.ok(pkg.build.files.includes('src/**'));assert.ok(main.includes("from './native-pay-client/main-entry.mjs'"));assert.ok(main.includes('assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();'));
+ assert.equal(receipt.files.length,10);for(const ref of receipt.files){const b=await fs.readFile(new URL(ref.path,base));assert.equal(b.length,ref.bytes);assert.equal(createHash('sha256').update(b).digest('hex'),ref.sha256);}
+ const pkg=JSON.parse(await fs.readFile(new URL('../package.json',import.meta.url),'utf8')),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');assert.ok(pkg.build.files.includes('src/**'));assert.ok(main.includes("from './wallet-native-pay-product-startup.mjs'"));assert.ok(main.includes('assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();'));
 });
