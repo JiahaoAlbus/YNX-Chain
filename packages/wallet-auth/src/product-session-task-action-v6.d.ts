@@ -42,3 +42,16 @@ export function inspectProductSessionTaskResponseHeaderV6Data(header:string,expe
 export function inspectProductSessionTaskOutcomeV6DATA(input:Readonly<{action:ProductSessionTaskActionV6;businessAction:string|null;state:'COMMITTED'|'ACCEPTED'|'OBSERVED'|'DENIED'|'UNKNOWN';completionScope:'PRODUCT_LOCAL_COMMIT_ONLY'|'TASK_APPROVAL_COMMIT_ONLY'|'READ_ONLY_OBSERVATION'|null;businessReceiptOriginal:Uint8Array|null}>):Readonly<{stateDeclaration:'COMMITTED'|'ACCEPTED'|'OBSERVED'|'DENIED'|'UNKNOWN';businessAction:string|null;completionScope:'PRODUCT_LOCAL_COMMIT_ONLY'|'TASK_APPROVAL_COMMIT_ONLY'|'READ_ONLY_OBSERVATION'|null;businessReceiptPresent:boolean;dataOnly:true;receiptProvenanceVerified:false;durabilityVerified:false;operationVerified:false;toolAuthorized:false;modelAuthorized:false;fundsAuthorized:false;replayAuthorized:false}>;
 
 export const PRODUCT_SESSION_TASK_LOCAL_BUSINESS_ACTIONS_V6:Readonly<{'task.create':'create-task';'task.prepare':'prepare-task';'task.propose-tool-step':'propose-tool-step';'task.cancel':'cancel-task';'task.complete':'complete-task'}>;
+
+/** Browser SHA-512 snapshot reference; not a grant, URL or page content. */
+export interface ProductSessionTaskPageReferenceV6 { readonly selectionId:string; readonly version:string; }
+/** Original JSON numeric tokens must be lossless uint64; string types below
+ * describe projection values, not permission to serialize body numbers as strings. */
+export interface ProductSessionTaskSelectedPagesV6DATA {
+ readonly taskId:string; readonly runId:string; readonly taskRevision:string; readonly generation:string; readonly resume:boolean;
+ /** null = legacy seven-key body; [] = explicitly selected no pages. */
+ readonly selectedPages:readonly Readonly<ProductSessionTaskPageReferenceV6>[]|null;
+ readonly bodyDigest:string; readonly bodyBytes:string; readonly dataOnly:true; readonly SourceAdmission:false; readonly NativeAdmission:false;
+ readonly registered:false; readonly current:false; readonly modelAuthorized:false;
+}
+export function inspectProductSessionTaskSelectedPagesV6DATA(actualBytes:Uint8Array,unsigned:ProductSessionTaskActionV6Unsigned):ProductSessionTaskSelectedPagesV6DATA;

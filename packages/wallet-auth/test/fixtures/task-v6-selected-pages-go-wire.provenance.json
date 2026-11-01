@@ -1,0 +1,24 @@
+{
+  "source": [
+    {
+      "commit": "b8311fa175c70e466a66c788b878b63ee9a2ac03",
+      "path": "internal/aiproduct/task_page_inputs.go",
+      "bytes": 9523,
+      "sha256": "686e0316ab03b6a073a610df5715f2ba7c8d86f51dac172bb95bb624c56b0a4a"
+    },
+    {
+      "commit": "b8311fa175c70e466a66c788b878b63ee9a2ac03",
+      "path": "internal/aiproduct/task_model_loop.go",
+      "bytes": 33695,
+      "sha256": "3c8bd8f77fa877ab2cb3bff2a71714bd9ce1f7f3baf8724899b23913566e8a30"
+    }
+  ],
+  "copiedVerbatim": [
+    "TaskPageReference",
+    "taskRunRequest",
+    "validateTaskPageReferences"
+  ],
+  "testOnly": true,
+  "TaskPageSnapshot": "empty test stand-in, used only by unexported preparedPages; never serialized",
+  "errToolInvalid": "local test error only; no production source/authority supplied"
+}

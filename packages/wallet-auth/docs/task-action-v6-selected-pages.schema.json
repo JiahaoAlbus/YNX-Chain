@@ -1,0 +1,80 @@
+{
+  "profile": "TASK_ACTION_V6_SELECTED_PAGES_BODY_MATCHING",
+  "version": "6",
+  "requestUnsignedFields": 35,
+  "responseUnsignedFields": 16,
+  "actions": [
+    "task.run-start",
+    "task.run-resume"
+  ],
+  "existingRunBodyExactKeys": [
+    "runId",
+    "taskRevision",
+    "generation",
+    "prompt",
+    "resume",
+    "authorizationRef",
+    "toolIds"
+  ],
+  "extendedRunBodyExactKeys": [
+    "runId",
+    "taskRevision",
+    "generation",
+    "prompt",
+    "resume",
+    "authorizationRef",
+    "toolIds",
+    "selectedPages"
+  ],
+  "references": {
+    "count": [
+      0,
+      16
+    ],
+    "exactKeys": [
+      "selectionId",
+      "version"
+    ],
+    "selectionId": {
+      "type": "strict UTF8 string",
+      "minimumBytes": 1,
+      "maximumBytes": 128,
+      "normalization": false
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$",
+      "meaning": "original Browser snapshot SHA512"
+    },
+    "uniqueBy": "selectionId",
+    "preserveOrder": true,
+    "nullAllowed": false
+  },
+  "originalBody": "SHA256 exact original captured HTTP bytes; no reencoding",
+  "signedMessage": "E5(existing domain,u32BE6,network32,canonicalOwner,canonicalUnsigned35JSON)",
+  "requestDigest": "SHA256(signed message E5), excludes header/member",
+  "bindings": [
+    "taskId via signed path and unsigned field",
+    "runId",
+    "taskRevision U64",
+    "generation U64",
+    "resume bool maps action",
+    "selectionId",
+    "snapshot version"
+  ],
+  "SourceScopeChanged": false,
+  "AIIdentityChanged": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "current": false,
+  "modelAuthorized": false,
+  "existingSDKBodyCap": 1048576,
+  "actualP08HTTPBodyCap": 32768,
+  "handoff": "UNREGISTERED",
+  "ownerGates": [
+    "actual authenticated task/session/device/current checks",
+    "independently qualified Browser Source and actual native read",
+    "model/egress disclosure admission"
+  ]
+}

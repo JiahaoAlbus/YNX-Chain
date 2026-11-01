@@ -1,0 +1,29 @@
+# Browser selected-pages SourceV2 DATA contract
+
+Node-only public DATA export proposed for parent structural merge: `@ynx-chain/wallet-auth/browser-selected-pages-source-data`.
+
+The sole purpose is `browser-selected-pages-source-v1`, selection key `browserSelectedPagesV1`, source operation `read-selected-pages`. This is a finite selection within the existing generic SourceV2 enrollment/profile/current mathematics. It adds no P08 task action, E5 field, transport frame, signature domain or crypto suite. Existing release-owned enrollment/profile/current frames remain mandatory with no defaults. Old AI mobile, IDE, Wallet and Product purposes cannot authorize this Browser family.
+
+The Browser identity is independently macOS / product `browser` / `com.ynxweb4.browser.macos`. The task session's productClientId/bundleId/deviceId describe the actual consumer and task holder; they are not replaced with Browser identity. A Browser association has the existing exact six fields; its deviceId need not be silently conflated with the consumer holder.
+
+The Source scope is exact:
+
+- `version:1`, signed stable `protectedResourceRef`, and nativeIdentity `{networkId,productId,platform,applicationId}`.
+- `operations:['read-selected-pages']` only.
+- `currentSelector:{sourceId,instanceId,epoch}`. Epoch is a separately captured original Browser parent incarnation/epoch, a positive decimal UInt64 string. It is not task generation, profile generation, a timestamp, floor0 or a fabricated ready flag.
+- `peer:{pid,uid,applicationId,codeDirectoryHash}` names the **remote Browser target**. Auth checks this target's real SecCode/per-message requirement and reply PID/UID. P05 listener separately checks the actual Auth/AI consumer against its independent genuine OriginalCaller. No peer DATA serves both ends.
+- `request:{originalRequestSHA256,preparationID,profileID,runId,session,task,references,queryOriginal,authorizationRef}` plus `untilMs` within the actual signed profile window. All fields are explicit; there are no optional authority defaults.
+
+The request projection session explicitly holds all six values id/account/deviceId/productClientId/bundleId/sessionBinding. The last three may be empty according to the existing P08/P05 parser, but this projection never fills them from a default. Task id/account/holder and positive UInt64 revision/generation bind the actual Core/Grant task. UInt64s in this Source DATA are lossless decimal strings. Original P08 request JSON retains its existing UInt64 number lexemes, field order, optional metadata and exact bytes. The SDK does not parse, normalize, canonicalize or regenerate that wire. The original P08/P05 parsers remain required, including duplicate rejection.
+
+References are ordered1..16, unique canonical uppercase UUID selectionId and lowercase128hex SHA512 version, exactly the actual P05 `BrowserPageSelectionReference`. The scope does not synthesize URL/origin/page contents. Non-query reads require the original authorizationRef; queryOriginal is only the existing restricted original-result query and creates no new effect, exposure, model or tool permission. The actual Auth/Core grant remains an independent AND check.
+
+`originalRequestSHA256` hashes the captured original raw request (1..32768 bytes) without reserialization. The independent qualified giver supplies request bytes and Expected, plus P05 producer preparationID/profileID. Those metadata are not guessed from request JSON. `inspectOriginalBrowserSelectedPagesBorrowV1DATA` compares the held raw bytes, independently provided Expected, Browser target peer and parent selector. Any mismatch refuses. Public calls to these inspectors return `authorized/SourceAdmission/NativeAdmission/registered/approval/signatureVerified:false`; Expected shape or hash equality is not custody or a grant.
+
+The response remains original `YNX_BROWSER_SELECTED_PAGE_READOUT_V1` UTF8 up to256KiB, with the separate pages-JSON256KiB cap and existing SHA512/SHA3-512 checks in P08. This module does not implement a second response parser or recompute/replace the original envelope. Read errors/partial bytes never become output authority.
+
+`protectedResourceRef` is resolved from the genuine RootSource protected resource at bootstrap, before SourceLease/registration borrow. An ordinary runtime getter cannot bootstrap itself. The resource must hold the same Browser incarnation and allowed genuine original consumer; another endpoint with the same code hash is insufficient. Endpoints, pid/uid, a caller setter or environment variable do not create Source. NSXPC is same-host only. Linux remote AI requires the original future LINK bridge; an NSXPC endpoint is never serialized to a remote peer. The transport's existing five-second monotonic bound remains independently enforced; wall-clock untilMs does not replace it.
+
+Original Auth owns the actual Root row, registration, native mathematical constructor, fixed zero-input capture, protected endpoint giver, parent/epoch current, revocation, and retire/join/close debt. A partial child is adopted before interpreting errors; physical completion is independent of first error and pending retains the same owner/parent. Neither SDK DATA nor the transport component supplies these capabilities.
+
+Parent-only patches in this delivery add strict Browser routes to the existing sole SourceV2 verifier, issuance and current CODE. They reuse original N1/signature/registration mathematics, current nonce/sequence/floor/revocation and role separation. No Root/policy/key/resource row is added. Their public export is a structural package delta, not a whole package.json replacement. P05/P08/Auth/C1 source/build/install qualifications are not inherited; real factory/normal startup and end-to-end selected-page acceptance remain NOT_SUPPLIED.

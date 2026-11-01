@@ -1,3 +1,4 @@
+import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'./original-browser-selected-pages-source-contract.mjs';
 import{WALLET_NATIVE_PAY_CLIENT_SOURCE_PURPOSE as WPC_PURPOSE}from'./original-wallet-pay-client-source-contract.mjs';
 import{AI_NATIVE_TASK_ACTION_V6_SOURCE_PURPOSE as AI_PURPOSE}from'./original-ai-task-action-v6-source-contract.mjs';
 import{PAY_NATIVE_CLOUD_BILL_SOURCE_PURPOSE as PAY_PURPOSE}from'./original-pay-cloud-bill-source-contract.mjs';
@@ -52,7 +53,7 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[PAY_PURPOSE,WPC_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
