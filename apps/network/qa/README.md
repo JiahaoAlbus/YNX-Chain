@@ -175,6 +175,13 @@ the actual Cocoa main bundle without creating `NSApplication`. Missing, replaced
 or malformed metadata fails closed. Capture cleanup removes only its known files
 and empty original directories; unknown or replaced contents are preserved.
 
+The helper captures and pins the producer at startup without launching it.
+Each explicit supported node effect first runs the original three-second
+read-only identity check, then its fresh visible review. Identity failures deny
+that request without opening a review or caching success or failure for a later
+request. There is no automatic retry. Overlapping requests return busy, and
+helper shutdown cancels and waits for either phase before capture cleanup.
+
 This corrects an actual c08 GUI intake failure: CUA could not identify the bare
 helper by name or path. Its original expiry response was retained as a process
 result, not a clicked Cancel or observed GUI pass. The successor still requires
