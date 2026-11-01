@@ -290,6 +290,17 @@ def validate_options(args):
     return demand
 
 
+def process_capacity(args):
+    # This is a necessary lower bound, not a guarantee that transient helpers
+    # and proof readers will fit. Keep the original ownership limit unchanged.
+    senders=args.accounts if args.mode=="online" else 0
+    required=1+4+senders  # parent supervisor + four original nodes + per-owner CLI
+    limit=lab.guard.CAPS["ownedProcesses"]
+    return dict(originalOwnedPIDLimit=limit,minimumLongLivedPIDs=required,originalNodeProcesses=4,normalSenderProcesses=senders,
+        accountCount=args.accounts,completeDemand=args.rate*args.seconds,canFitNecessaryLowerBound=required<=limit,
+        interpretation="original one-owner persistent sender process count; transient helpers/proof callees add demand; no multiplex, auto pool reduction or adaptive offered rate")
+
+
 def validate_escalation(args):
     if args.rate==100:return
     lab.require(args.prior_result and args.prior_result_sha256,"higher load requires the actual preceding level's pinned original result")
@@ -320,6 +331,8 @@ def run(args):
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout; explicit process count; initialization has no separate ready acknowledgment and may remain in signing time")
     lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
+        result["processCapacity"]=process_capacity(args)
+        lab.require(result["processCapacity"]["canFitNecessaryLowerBound"],"normal per-owner sender pool cannot fit original owned PID limit; original multiplex callee required or explicit different workload; full configured demand retained, no rate reduction")
         bins=work/".private/bin"
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name]))
         result["binaries"]={n:lab.guard.digest(bins/n) for n in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}

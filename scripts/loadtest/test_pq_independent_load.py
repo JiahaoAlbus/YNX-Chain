@@ -156,6 +156,25 @@ class IndependentLoadControls(unittest.TestCase):
         args.rate=500;args.prior_result=None;args.prior_result_sha256=None
         with self.assertRaisesRegex(RuntimeError,"preceding level"):driver.validate_escalation(args)
 
+    def test_fixed_sixteen_online_accounts_cannot_silently_exceed_original_pid_cap(self):
+        args=SimpleNamespace(mode="online",accounts=16,rate=100,seconds=5)
+        capacity=driver.process_capacity(args)
+        self.assertEqual(capacity["originalOwnedPIDLimit"],16)
+        self.assertEqual(capacity["minimumLongLivedPIDs"],21)
+        self.assertEqual(capacity["completeDemand"],500)
+        self.assertFalse(capacity["canFitNecessaryLowerBound"])
+        self.assertEqual(args.accounts,16);self.assertEqual(args.rate,100)
+        args.accounts=8
+        eight=driver.process_capacity(args)
+        self.assertEqual(eight["minimumLongLivedPIDs"],13)
+        self.assertEqual(eight["completeDemand"],500)
+        self.assertTrue(eight["canFitNecessaryLowerBound"])
+        self.assertEqual(driver.validate_options(SimpleNamespace(mode="online",rate=100,accounts=8,per_account=63,seconds=5,tail_seconds=30,proof_timeout=30)),500)
+        args.mode="pre-signed";capacity=driver.process_capacity(args)
+        self.assertEqual(capacity["minimumLongLivedPIDs"],5)
+        self.assertEqual(capacity["completeDemand"],500)
+        self.assertTrue(capacity["canFitNecessaryLowerBound"])
+
     def test_durable_event_segments_never_overwrite_or_drop_the_full_sequence(self):
         with tempfile.TemporaryDirectory() as temporary,mock.patch.dict(driver.lab.CAPS,logBytes=128):
             path=Path(temporary)/"events.jsonl";journal=driver.Journal(path)

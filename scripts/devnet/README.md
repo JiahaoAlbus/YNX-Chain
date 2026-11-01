@@ -437,3 +437,24 @@ not a live node/window test. Invalid bytes, oversize, read failure, stale clock,
 changed lifetime or generation stay UNKNOWN. Disabled lossless and missing
 proto remain null; the hook never enables either transport or metrics.
 
+The actual current75 online run41264965296 failed before opening its load
+clock: its fixed 16-owner persistent sender pool exceeded the inherited
+`ownedProcesses=16` ownership inventory bound. Original logs show all builds,
+activation and four live-policy setups completed, followed by sender startup;
+this is a feeder process layout boundary, not measured chain saturation.
+The old profile/partial artifacts remain unchanged and its 500 requests remain
+unsubmitted/unqualified. Current75 includes earlier production optimization,
+so it is never the historical fdc before or evidence of an fdc-to75 speedup.
+
+The normal driver now records a necessary process lower bound before builds:
+supervisor + four nodes + one persistent normal sender per online owner.
+16 owners require at least21 PIDs and are refused against the unchanged16
+limit. Root's explicit successor choice is eight independent accounts,
+capacity63 each, with the SAME fixed500 requests / 5s /100 offered target.
+That minimum is13 PIDs; transient helpers are still checked and may fail the
+original dynamic bound. This is not an automatic account/rate reduction or a
+guarantee of achieved throughput. Before/after comparisons must use the same
+explicit account layout and other conditions. Missing/failed/UNKNOWN work stays
+in the full denominator. No zombie exclusion, increased PID/RSS cap, new
+signer implementation, changed crypto or replay of uncertain originals is used.
+
