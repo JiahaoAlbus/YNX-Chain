@@ -693,8 +693,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
-      "bytes": 9077,
-      "sha256": "25ce3312e21e6b6aeee21160b69240d23acd09373659ded8a84732653d2e0065"
+      "bytes": 9217,
+      "sha256": "345ab09d39326f989b8b9b3a879a9b72e364a9a9b9ac0e50ca3f1b640031913f"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-native-data.h",
@@ -3451,5 +3451,6 @@
     "RootAdmission": false,
     "NativeAdmission": false,
     "NativeAdapter": "NOT_SUPPLIED_UNTIL_FORMAL_AUTH_MATCHING"
-  }
+  },
+  "walletPayDispatchPolicyMatched": true
 }
