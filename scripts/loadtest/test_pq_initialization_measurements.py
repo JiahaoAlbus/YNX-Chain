@@ -223,7 +223,7 @@ class OriginalFailedCalleeControls(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         OriginalDriverInitializationControls.setUpClass();cls.driver=OriginalDriverInitializationControls.driver
-        cls.raw=(Path(__file__).with_name('fixtures')/'init500-live-setup0-original-failure.log').read_bytes()
+        cls.raw=(Path(__file__).with_name('fixtures')/'init500-live-setup0-original-failure.txt').read_bytes()
     def test_actual_retained_failed_go_metrics_are_not_successful_reply_or_zero(self):
         r=self.driver.original_failed_callee_timing(self.raw)
         self.assertEqual(r['calleeElapsedNs'],5448072916);self.assertEqual(r['timings']['stages']['live.configLoadTotal']['elapsedNs'],873289);self.assertFalse(r['businessSuccess'] or r['sourceGrant']);self.assertEqual(r['outcome'],'REFUSED_OR_UNKNOWN_NO_RETRY')
