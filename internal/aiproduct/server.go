@@ -41,6 +41,7 @@ type Config struct {
 }
 
 type Server struct {
+	webDAV            *PreparedTaskWebDAVRuntime
 	toolEffects       originalToolEffectSource
 	taskModel         *taskModelService
 	taskModelAdmit    originalTaskModelAdmission
@@ -123,6 +124,9 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 func (s *Server) Handler() http.Handler { return securityHeaders(s.observe(s.mux)) }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("POST /api/tasks/{id}/webdav", s.authed("ai:permissions", s.handleTaskWebDAVDeliver))
+	s.mux.HandleFunc("POST /api/tasks/{id}/webdav/{operationId}/query", s.authed("ai:permissions", s.handleTaskWebDAVQuery))
+	s.mux.HandleFunc("GET /api/tasks/{id}/webdav/{operationId}", s.authed("ai:conversations", s.handleTaskWebDAVResult))
 	s.registerBrowserSSO()
 	s.mux.HandleFunc("POST /api/tasks", s.authed("ai:conversations", s.handleTaskCreate))
 	s.mux.HandleFunc("GET /api/tasks", s.authed("ai:conversations", s.handleTaskList))

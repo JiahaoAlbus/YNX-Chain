@@ -132,7 +132,7 @@ func modelToolOperation(taskID, runID, callID string) string {
 }
 
 func taskModelTools() []aigateway.ToolDefinition {
-	return []aigateway.ToolDefinition{{Name: "ynx_conversation_read_v1", Description: "Read only the explicitly selected task conversation under current approval.", Parameters: json.RawMessage(`{"type":"object","properties":{"conversationId":{"type":"string"}},"required":["conversationId"],"additionalProperties":false}`)}, taskShopOrderModelDefinition()}
+	return []aigateway.ToolDefinition{{Name: "ynx_conversation_read_v1", Description: "Read only the explicitly selected task conversation under current approval.", Parameters: json.RawMessage(`{"type":"object","properties":{"conversationId":{"type":"string"}},"required":["conversationId"],"additionalProperties":false}`)}, taskShopOrderModelDefinition(), taskWebDAVModelDefinition()}
 }
 
 func (s *Store) saveTaskRunLocked(run taskModelRun, event string) error {
@@ -306,6 +306,9 @@ func (e *taskModelExecutor) ExecuteTool(ctx context.Context, call aigateway.Tool
 	}
 	if !selected {
 		return aigateway.ToolExecution{Status: aigateway.ToolStopped}, errToolInvalid
+	}
+	if toolID == taskWebDAVToolID {
+		return e.executeWebDAVTool(ctx, call)
 	}
 	step, _, err := e.s.store.reserveToolStep(e.session, e.run.TaskID, toolStepRequest{OperationID: modelToolOperation(e.run.TaskID, e.run.RunID, call.ID), TaskRevision: e.run.TaskRevision, Generation: e.run.Generation, ToolID: toolID, ToolVersion: "1", Input: json.RawMessage(call.Function.Arguments)})
 	if err != nil {

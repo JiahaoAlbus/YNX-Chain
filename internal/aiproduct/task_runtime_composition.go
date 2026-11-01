@@ -39,6 +39,7 @@ type OriginalTaskRuntimeAuthority interface {
 }
 
 type PreparedOriginalTaskRuntime struct {
+	webDAV       *PreparedTaskWebDAVRuntime
 	model        *aigateway.Service
 	authority    OriginalTaskRuntimeAuthority
 	shop         *PreparedOriginalShopOrderTools
@@ -173,6 +174,7 @@ func (p *PreparedOriginalTaskRuntime) install(s *Server) error {
 		return errors.New("original task runtime cannot use fixture authentication")
 	}
 	s.taskModel = p.model
+	s.webDAV = p.webDAV
 	s.toolEffects = &originalRuntimeToolEffects{runtime: p, store: s.store}
 	s.taskModelAdmit = func(ctx context.Context, session ProductSession, task TaskRecord, url, model string, body []byte) error {
 		if err := p.current(ctx); err != nil {

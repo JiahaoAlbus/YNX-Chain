@@ -35,6 +35,7 @@ type storedAttachment struct {
 }
 
 type persistentState struct {
+	WebDAVDeliveries    map[string]storedTaskWebDAVDelivery            `json:"webdavDeliveries,omitempty"`
 	TaskActionOutcomes  map[string]storedTaskActionOutcome             `json:"taskActionOutcomes,omitempty"`
 	Tasks               map[string]TaskRecord                          `json:"tasks,omitempty"`
 	TaskEvents          map[string][]TaskEvent                         `json:"taskEvents,omitempty"`

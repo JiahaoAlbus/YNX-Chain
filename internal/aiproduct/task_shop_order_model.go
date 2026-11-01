@@ -18,6 +18,8 @@ func taskShopOrderModelDefinition() aigateway.ToolDefinition {
 
 func taskModelToolID(name string) string {
 	switch name {
+	case taskWebDAVModelName:
+		return taskWebDAVToolID
 	case "ynx_conversation_read_v1":
 		return "ai.conversation.read"
 	case shopOrderModelName:
@@ -32,7 +34,7 @@ func taskModelDefinitionsForRun(run taskModelRun) ([]aigateway.ToolDefinition, e
 		ids = []string{"ai.conversation.read"}
 	} // Legacy checkpoints remain pinned.
 	definitions := []aigateway.ToolDefinition{}
-	if len(ids) > 2 {
+	if len(ids) > 3 {
 		return nil, errToolInvalid
 	}
 	seen := map[string]bool{}
@@ -63,7 +65,7 @@ func (s *Store) taskModelSelectedToolsLocked(task TaskRecord, requested []string
 			requested = s.state.AgentConfigurations[task.AgentConfigurationID].ToolIDs
 		}
 	}
-	if len(requested) == 0 || len(requested) > 2 {
+	if len(requested) == 0 || len(requested) > 3 {
 		return nil, errToolInvalid
 	}
 	seen := map[string]bool{}

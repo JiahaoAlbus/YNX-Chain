@@ -86,6 +86,18 @@ func Resolve(r Request) (Route, error) {
 		if task() {
 			return Route{"GET", "/api/tasks/" + r.TaskID + "?afterCursor=" + fmt.Sprint(r.AfterCursor), true}, nil
 		}
+	case "webdav-deliver":
+		if task() {
+			return Route{"POST", "/api/tasks/" + r.TaskID + "/webdav", true}, nil
+		}
+	case "webdav-query":
+		if task() && identifier.MatchString(r.StepID) {
+			return Route{"POST", "/api/tasks/" + r.TaskID + "/webdav/" + r.StepID + "/query", true}, nil
+		}
+	case "webdav-result":
+		if task() && identifier.MatchString(r.StepID) {
+			return Route{"GET", "/api/tasks/" + r.TaskID + "/webdav/" + r.StepID, true}, nil
+		}
 	case "task-prepare", "task-cancel", "task-complete":
 		if task() {
 			suffix := strings.TrimPrefix(r.Action, "task-")

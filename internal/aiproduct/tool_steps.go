@@ -64,6 +64,9 @@ type toolDirectoryEntry struct {
 // This allowlist is service-owned. Caller supplied risk/scope/provider fields
 // are never accepted. Add another service only with its real authority/handler.
 func lookupTool(id string) (toolDirectoryEntry, bool) {
+	if id == taskWebDAVToolID {
+		return toolDirectoryEntry{id: id, version: "1", scope: "ai:permissions", purpose: "deliver an owned attachment to a fixed WebDAV object; content presence is not authorship", risk: "external-write"}, true
+	}
 	if id == shopOrderToolID {
 		return toolDirectoryEntry{id: id, version: "1", scope: "ai:permissions", purpose: "read the exact authorized Shop order projection", risk: "read"}, true
 	}
