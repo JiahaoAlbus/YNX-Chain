@@ -103,5 +103,24 @@ that binding. Current reads original Go TLS/request materials through an
 exclusive SCM_RIGHTS control FD without consuming the incoming body stream.
 Auth still owns its request-candidate decoding, caller qualification and whole
 response proof. See `internal/securelink/PROTECTED_CALLER.md` for the full
-two-direction lifecycle. Run only new inbound functional checks with
+two-direction lifecycle. Run the inbound functional checks with
 `sh cmd/ynx-secure-link-caller/check.sh inbound`.
+
+For a synchronous local transaction fence after fresh capture, retain all three
+original operands and call
+`assertCurrentInboundCaller(req, handle, registeredServer)` from
+`inbound-caller.mjs`. It returns `undefined` or throws, checks only observed local
+custody and unchanged request/header DATA, and performs no OS/control I/O,
+Promise, body copy or supplied getter. It cannot replace fresh asynchronous
+`currentInboundCaller` or the actual Go TaskStore snapshot/receipt Current at its
+CAS. A complete one-shot exchange does not retain a Go resource lease for later
+Node work. The original request must stay alive through that resource's actual
+release or cancellation.
+
+The inbound check entry includes `local-fence.test.mjs`. With the already built
+matching native addon, the new delta alone can be run without repeating the
+older inbound groups:
+
+```sh
+node --test --test-timeout=15000 cmd/ynx-secure-link-caller/local-fence.test.mjs
+```

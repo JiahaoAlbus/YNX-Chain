@@ -17,6 +17,11 @@
 // The original private Auth resolver must additionally pass its closed-over
 // registeredServer to acquire/current. One-argument acquisition is transport
 // evidence only; it does not enroll another public factory as that Source.
+// assertCurrentInboundCaller(req,handle,registeredServer) is a synchronous
+// error-only local lifetime fence AFTER a full async Current capture. It uses
+// private flags and original data descriptors only, without native/FD/OS I/O,
+// supplied getters/callbacks, Promises, or body copies. It cannot discover an
+// unobserved peer/control close or replace Go's Source-current check at CAS.
 //
 // Retire stops accept/new work and closes owned native/Node descriptors. Join
 // waits for accept/current, returned handler promises and actual socket close.
@@ -32,6 +37,7 @@ import {closeSync} from 'node:fs';
 const native=createRequire(import.meta.url)('./build/caller.node');
 const servers=new WeakMap(),requests=new WeakMap(),callers=new WeakMap();
 const headersGetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').get;
+const headersSetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').set;
 const routes=new Set(['/internal/auth/task-grants/effect','/internal/auth/task-grants/effect-query']);
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const byteLength=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),'byteLength').get;
@@ -80,6 +86,55 @@ function assertRequest(record,req){
   const actual=identity(req,record.socket,record.server.profile),original=record.identity;
   if(actual.method!==original.method||actual.url!==original.url||actual.raw!==original.raw||actual.headers!==original.headers||actual.length!==original.length||actual.pairs.length!==original.pairs.length||actual.pairs.some((v,n)=>v!==original.pairs[n]))throw fail('incoming request identity changed');
 }
+function descriptorData(object,key){
+  const d=Object.getOwnPropertyDescriptor(object,key);
+  if(!d||!Object.hasOwn(d,'value'))throw fail('original local data descriptor required');
+  return d;
+}
+function localDataSnapshot(object,array=false){
+  if(!object||typeof object!=='object'||types.isProxy(object)||(array&&!Array.isArray(object)))throw fail('original local header DATA required');
+  const descriptors=Object.getOwnPropertyDescriptors(object),keys=Reflect.ownKeys(descriptors);
+  if(keys.length>257)throw fail('bounded local header descriptors required');
+  const fields=[];
+  for(const key of keys){
+    const d=descriptors[key];
+    if(typeof key!=='string'||!Object.hasOwn(d,'value'))throw fail('local header accessors refused');
+    const child=Array.isArray(d.value)?localDataSnapshot(d.value,true):null;
+    if(!child&&typeof d.value!=='string'&&!(array&&key==='length'&&Number.isSafeInteger(d.value)))throw fail('local header strings required');
+    fields.push({key,descriptor:d,child});
+  }
+  return {object,prototype:Object.getPrototypeOf(object),fields};
+}
+function localDataMatches(snapshot){
+  const object=snapshot.object;
+  if(types.isProxy(object)||Object.getPrototypeOf(object)!==snapshot.prototype)return false;
+  const descriptors=Object.getOwnPropertyDescriptors(object),keys=Reflect.ownKeys(descriptors);
+  if(keys.length!==snapshot.fields.length)return false;
+  for(const field of snapshot.fields){
+    const d=descriptors[field.key],original=field.descriptor;
+    if(!d||!Object.hasOwn(d,'value')||d.value!==original.value||d.enumerable!==original.enumerable||d.configurable!==original.configurable||d.writable!==original.writable||(field.child&&!localDataMatches(field.child)))return false;
+  }
+  return true;
+}
+function localIdentitySnapshot(req,original){
+  const fields=[];
+  for(const key of ['method','url','socket','rawHeaders','httpVersion','httpVersionMajor','httpVersionMinor'])fields.push({key,descriptor:descriptorData(req,key)});
+  const descriptors=Object.getOwnPropertyDescriptors(req);
+  const slots=Reflect.ownKeys(descriptors).filter(key=>typeof key==='symbol'&&Object.hasOwn(descriptors[key],'value')&&descriptors[key].value===original.headers);
+  if(slots.length!==1)throw fail('original parsed-header cache identity required');
+  return {prototype:Object.getPrototypeOf(req),fields,headerSlot:slots[0],headers:localDataSnapshot(original.headers),raw:localDataSnapshot(original.raw,true)};
+}
+function assertLocalIdentity(record,req){
+  const original=record.localIdentity;
+  if(Object.getPrototypeOf(req)!==original.prototype||Object.hasOwn(req,'headers'))throw fail('original local request prototype required');
+  const accessor=Object.getOwnPropertyDescriptor(original.prototype,'headers');
+  if(!accessor||accessor.get!==headersGetter||accessor.set!==headersSetter)throw fail('original local headers accessor required');
+  for(const field of original.fields){
+    const d=descriptorData(req,field.key),expected=field.descriptor;
+    if(d.value!==expected.value||d.enumerable!==expected.enumerable||d.configurable!==expected.configurable||d.writable!==expected.writable)throw fail('original local request identity changed');
+  }
+  if(descriptorData(req,original.headerSlot).value!==record.identity.headers||!localDataMatches(original.headers)||!localDataMatches(original.raw))throw fail('original local request headers changed');
+}
 function peerView(value){
   const p=exact(value,['ServiceID','SubjectAltName','CertDigest','RootDigest','Edge','Epoch','Expires']);
   for(const k of ['ServiceID','SubjectAltName','Edge','Expires'])if(typeof p[k]!=='string'||!p[k]||p[k].length>256||/[\0\r\n]/.test(p[k]))throw fail('bounded original peer fields required');
@@ -118,7 +173,7 @@ function listenRequest(state,req,res){
   let record;
   try{
     const original=identity(req,req.socket,state.profile),handle=Object.freeze(Object.create(null));
-    record={server:state,req,socket:req.socket,native:connection.native,identity:original,route:state.profile.routes.get(original.url),handle,closed:false,holds:0,currentTail:Promise.resolve()};
+    record={server:state,req,socket:req.socket,native:connection.native,identity:original,localIdentity:localIdentitySnapshot(req,original),route:state.profile.routes.get(original.url),handle,closed:false,holds:0,currentTail:Promise.resolve()};
     requests.set(req,record);callers.set(handle,record);connection.record=record;
     res.once('finish',()=>endRecord(record));res.once('close',()=>endRecord(record));req.once('aborted',()=>endRecord(record));
     guardResponse(record,res);
@@ -162,6 +217,11 @@ export function acquireInboundCaller(req,registeredServer){
   assertRequest(record,req);record.holds++;return record.handle;
 }
 export function releaseInboundCaller(handle){const record=handle&&callers.get(handle);if(!record)throw fail('inbound handle required');if(record.holds>0)record.holds--;}
+export function assertCurrentInboundCaller(req,handle,registeredServer){
+  const record=handle&&callers.get(handle),registered=registeredServer&&servers.get(registeredServer);
+  if(arguments.length!==3||!record||!registered||record.server!==registered||record.req!==req||requests.get(req)!==record||record.server.pid!==process.pid||record.holds<1||record.closed||record.server.retired)throw fail('same acquired original caller and registered listener required');
+  assertLocalIdentity(record,req);
+}
 export function currentInboundCaller(req,handle,registeredServer){
   const record=handle&&callers.get(handle);if(!record||requests.get(req)!==record||record.server.pid!==process.pid)return Promise.reject(fail('same original incoming request and handle required'));
   if(arguments.length>=3){try{if(record.server!==serverState(registeredServer))throw fail('original registered listener instance required');}catch(error){return Promise.reject(error);}}

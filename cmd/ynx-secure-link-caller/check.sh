@@ -3,7 +3,7 @@ set -eu
 # Run from the repository root; no package install or dependency download here.
 node cmd/ynx-secure-link-caller/build.mjs
 if [ "${1:-outbound}" = inbound ]; then
-  node --test --test-timeout=15000 cmd/ynx-secure-link-caller/inbound-caller.test.mjs
+  node --test --test-timeout=15000 cmd/ynx-secure-link-caller/inbound-caller.test.mjs cmd/ynx-secure-link-caller/local-fence.test.mjs
   exit 0
 fi
 if [ "${1:-outbound}" != outbound ]; then
