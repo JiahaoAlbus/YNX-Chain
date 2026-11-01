@@ -56,8 +56,8 @@ class CalleeMeasurements:
         if "startupTimings" in reply:callee_snapshot(reply["startupTimings"])
         cache=reply.get("staticCache")
         if cache is not None:
-            lab.require(type(cache) is dict and cache.get("Scope")=="YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1" and type(cache.get("Closed")) is bool,"original static cache scope differs")
-            for field,limit in (("Entries",1),("HeldFiles",16),("OriginalBytes",32<<20),("Hits",(1<<64)-1),("Misses",(1<<64)-1),("Bypasses",(1<<64)-1)):
+            lab.require(type(cache) is dict and cache.get("scope")=="YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1" and type(cache.get("closed")) is bool,"original static cache scope differs")
+            for field,limit in (("entries",1),("heldFiles",16),("originalBytes",32<<20),("hits",(1<<64)-1),("misses",(1<<64)-1),("bypasses",(1<<64)-1)):
                 lab.require(type(cache.get(field)) is int and 0<=cache[field]<=limit,"original static cache bound differs")
         outcome=reply.get("code",reply.get("outcome",reply.get("Outcome",reply.get("status","observed"))));lab.require(type(outcome) is str and len(outcome)<=128,"invalid original callee outcome")
         with self.lock:

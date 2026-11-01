@@ -67,7 +67,7 @@ class ReadyMetricsAdapterControls(unittest.TestCase):
     def test_invalid_timings_or_static_cache_claims_are_refused(self):
         for snapshot in [dict(metrics(),clock='wall_absolute_ns'),dict(metrics(),intervalsOverlap=False),metrics(total=-1)]:
             with self.assertRaises(RuntimeError):d.CalleeMeasurements(1,1).record('sign','x',{'calleeElapsedNs':1,'timings':snapshot})
-        cache={'Scope':'YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1','Entries':1,'HeldFiles':1,'OriginalBytes':(32<<20)+1,'Hits':0,'Misses':1,'Bypasses':0,'Closed':False}
+        cache={'scope':'YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1','entries':1,'heldFiles':1,'originalBytes':(32<<20)+1,'hits':0,'misses':1,'bypasses':0,'closed':False}
         with self.assertRaisesRegex(RuntimeError,'bound'):d.CalleeMeasurements(1,1).record('sign','x',{'calleeElapsedNs':1,'timings':metrics(),'staticCache':cache})
     def test_pool_ready_waits_all_eight_before_arrival_without_signing(self):
         b=object.__new__(d.NormalBackend);b.c=SimpleNamespace(proof_timeout=1);b.stop_event=threading.Event();b.pool_started_ns=time.monotonic_ns();order=[]
@@ -94,5 +94,41 @@ class ReadyMetricsAdapterControls(unittest.TestCase):
         with mock.patch.object(d.lab,'check_source') as checked:
             with self.assertRaisesRegex(RuntimeError,'old75'):d.run(args)
             checked.assert_not_called()
+
+# Exact public metrics from run41279814189 owner4 ORIGINAL_SAVED reply.
+# Log SHA256 fc1a17fae0b677ce71ebeaa553c2a5f2ecb528d52970292d3fef8f252bcf1723
+# The business result is deliberately excluded: this fixture grants no authority.
+CAPTURED_703_METRICS = {'code': 'ORIGINAL_SAVED', 'calleeElapsedNs': 3436229254, 'timings': {'version': 'YNX-PQ-LAB-CALLEE-ELAPSED/v1', 'clock': 'monotonic_elapsed_wall_ns', 'intervalsOverlap': True, 'stages': {'checkpoint.currentFourNodeRead': {'calls': 2, 'elapsedNs': 914452227}, 'checkpoint.initialFourNodeRead': {'calls': 1, 'elapsedNs': 522481166}, 'checkpoint.loadTotal': {'calls': 1, 'elapsedNs': 2143308823}, 'checkpoint.nodeReadAndValidate': {'calls': 12, 'elapsedNs': 1078467430}, 'checkpoint.staticOriginalReadback': {'calls': 6, 'elapsedNs': 358268430}, 'lab.bootstrapFullValidation': {'calls': 1, 'elapsedNs': 987404532}, 'lab.loadStaticTotal': {'calls': 1, 'elapsedNs': 1131330369}, 'lab.validatedMigrationOwnerBuild': {'calls': 1, 'elapsedNs': 397268227}, 'sender.directoryFsync': {'calls': 5, 'elapsedNs': 467510}, 'sender.dualBatchSign': {'calls': 1, 'elapsedNs': 231117610}, 'sender.dualSignEncodeAndSelfVerify': {'calls': 1, 'elapsedNs': 242079445}, 'sender.exclusivePersistenceTotal': {'calls': 5, 'elapsedNs': 134898231}, 'sender.fileFsync': {'calls': 5, 'elapsedNs': 22656891}, 'sender.selfVerifyTrustedPair': {'calls': 1, 'elapsedNs': 5325408}, 'sender.signTotal': {'calls': 1, 'elapsedNs': 1292906702}}}, 'staticCache': {'scope': 'YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1', 'entries': 1, 'heldFiles': 12, 'originalBytes': 10108141, 'hits': 0, 'misses': 1, 'bypasses': 0, 'closed': False}, 'startupElapsedNs': 320244032, 'startupTimings': {'version': 'YNX-PQ-LAB-CALLEE-ELAPSED/v1', 'clock': 'monotonic_elapsed_wall_ns', 'intervalsOverlap': True, 'stages': {'sender.aesGCMOpen': {'calls': 1, 'elapsedNs': 53709}, 'sender.importFullPrivatePublicPair': {'calls': 1, 'elapsedNs': 14407048}, 'sender.openTotal': {'calls': 1, 'elapsedNs': 319421879}, 'sender.pbkdf2_600000': {'calls': 1, 'elapsedNs': 302739863}}}}
+
+class Captured703CacheRegression(unittest.TestCase):
+    def test_actual_lowercase_reply_preserves_original_stages_and_denominator(self):
+        collector=d.CalleeMeasurements(500,8)
+        collector.record('sign','run41279814189-owner4',CAPTURED_703_METRICS,owner=4)
+        report=collector.report();g=report['groups']['sign']
+        self.assertEqual(g['calleeElapsed']['totalNs'],3436229254)
+        self.assertEqual(g['calleeElapsed']['observed'],1)
+        self.assertEqual(g['calleeElapsed']['censoredOrNotReached'],499)
+        self.assertIsNone(g['calleeElapsed']['fullDemandPercentilesMs']['p95'])
+        self.assertEqual(g['stages']['sender.dualBatchSign']['totalNs'],231117610)
+        self.assertEqual(g['lastCumulativeCacheSnapshotByOwner']['4'],CAPTURED_703_METRICS['staticCache'])
+        self.assertEqual(report['groups']['startup']['calleeElapsed']['observed'],0)
+        self.assertTrue(report['cacheSnapshotsCumulativeNeverSummed'])
+    def test_case_scope_and_closed_contract_remain_exact(self):
+        import copy
+        for change in ('uppercase','foreignScope','closedType'):
+            reply=copy.deepcopy(CAPTURED_703_METRICS);cache=reply['staticCache']
+            if change=='uppercase':reply['staticCache']={k[0].upper()+k[1:]:v for k,v in cache.items()}
+            elif change=='foreignScope':cache['scope']='foreign'
+            else:cache['closed']=0
+            with self.subTest(change=change),self.assertRaisesRegex(RuntimeError,'scope'):
+                d.CalleeMeasurements(500,8).record('sign','x',reply,owner=4)
+    def test_every_cache_bound_and_bool_counter_still_refused(self):
+        import copy
+        limits={'entries':1,'heldFiles':16,'originalBytes':32<<20,'hits':(1<<64)-1,'misses':(1<<64)-1,'bypasses':(1<<64)-1}
+        for field,limit in limits.items():
+            for value in (-1,limit+1,True):
+                reply=copy.deepcopy(CAPTURED_703_METRICS);reply['staticCache'][field]=value
+                with self.subTest(field=field,value=value),self.assertRaisesRegex(RuntimeError,'bound'):
+                    d.CalleeMeasurements(500,8).record('sign','x',reply,owner=4)
 
 if __name__=='__main__':unittest.main()
