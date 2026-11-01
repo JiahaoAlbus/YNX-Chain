@@ -23,6 +23,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
+	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 	"golang.org/x/crypto/pbkdf2"
@@ -1019,7 +1020,9 @@ func LoadPQLabSenderCheckpointMeasured(root, planPin, activationPin string, heig
 }
 
 // Cached retains only immutable validated inputs. Every call and both Sign
-// checks still decode/verify all four ACTUAL committed states and exact H/hash.
+// checks still capture all four ACTUAL committed states and exact H/hash.
+// Within this invocation alone, identical complete bytes reuse successful state
+// mathematics; file freshness, source scope, close and expected coordinates stay live.
 func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height int64, appHash string, metrics *PQLabMetrics, cache *PQLabStaticCache) (*PQLabSenderCheckpoint, error) {
 	defer pqLabMeasure(metrics, "checkpoint.loadTotal")()
 	var entry *pqLabStaticEntry
@@ -1060,6 +1063,16 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 			return nil, err
 		}
 	}
+	var witness *validatedMigration
+	if entry != nil {
+		witness = entry.witness
+	} else {
+		witness, err = newValidatedMigration(m, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	reads := &pqLabCheckpointRead{witness: witness, engine: engine, height: height, appHash: appHash, metrics: metrics}
 	read := func() (CommittedState, error) {
 		var first CommittedState
 		if entry != nil {
@@ -1072,22 +1085,13 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 		}
 		for i, n := range p.Nodes {
 			endNode := pqLabMeasure(metrics, "checkpoint.nodeReadAndValidate")
-			var state CommittedState
-			var e error
-			if entry == nil {
-				state, e = readPQEngineCommittedState(n.StatePath, m, b, engine, nil)
-			} else {
-				state, e = readPQEngineCommittedStateOwned(n.StatePath, entry.witness, engine, nil, capturePQEngineState)
-			}
+			state, e := reads.read(i, n.StatePath, capturePQEngineState)
 			endNode()
 			if e != nil {
 				return CommittedState{}, e
 			}
-			if !state.Initialized || state.Height != height || state.AppHash != appHash || state.AccountPolicy == nil {
-				return CommittedState{}, errors.New("actual four-node checkpoint differs from independently supplied H/AppHash")
-			}
-			if i == 0 {
-				first = state
+			if i == 0 && state != nil {
+				first = *state
 			}
 		}
 		if entry != nil {
@@ -1735,19 +1739,21 @@ func WritePQLabProofInputs(directory string, m PQLabProofMaterials, proof PQTran
 	if migration.Network.ChainID != PQLabNativeChainID || migration.Network.IsPublicNet {
 		return empty, errors.New("proof export is restricted to independent synthetic lab identity")
 	}
-	canonical, err := migration.CanonicalJSON()
-	if err != nil || !bytes.Equal(canonical, m.Migration) {
+	comparison := pqLabCanonicalComparison{original: m.Migration}
+	var err error
+	migration, err = migration.WriteDetachedCanonicalJSON(&comparison)
+	if err != nil || comparison.offset != len(m.Migration) {
 		return empty, errors.New("noncanonical original migration")
 	}
 	bootstrap, err := NewConsensusBootstrap(m.Genesis, m.Pins, migration)
 	if err != nil {
 		return empty, err
 	}
-	_, err = NewPQEngineAuthorization(m.Schedule, m.ScheduleHash)
+	authorization, err := NewPQEngineAuthorization(m.Schedule, m.ScheduleHash)
 	if err != nil {
 		return empty, err
 	}
-	_, err = DecodePQTrustedLightBlock(m.TrustedLightBlock)
+	trusted, err := DecodePQTrustedLightBlock(m.TrustedLightBlock)
 	if err != nil {
 		return empty, err
 	}
@@ -1763,7 +1769,7 @@ func WritePQLabProofInputs(directory string, m PQLabProofMaterials, proof PQTran
 			return empty, err
 		}
 	}
-	return finishPQLabProofInputs(directory, m, proof, now)
+	return finishPQLabProofInputsPrepared(directory, m, proof, now, migration, bootstrap, authorization, trusted)
 }
 
 // Exact continuation only: originals written before a crash/invalid proof are
@@ -1786,6 +1792,11 @@ func finishPQLabProofInputs(directory string, m PQLabProofMaterials, proof PQTra
 	if err != nil {
 		return empty, err
 	}
+	return finishPQLabProofInputsPrepared(directory, m, proof, now, migration, bootstrap, authorization, trusted)
+}
+
+func finishPQLabProofInputsPrepared(directory string, m PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, trusted *cmttypes.LightBlock) (PQLabProofExport, error) {
+	var empty PQLabProofExport
 	source, err := NewPQEngineFileSource(migration, filepath.Join(directory, "committed-state.json"), bootstrap, authorization)
 	if err != nil {
 		return empty, err

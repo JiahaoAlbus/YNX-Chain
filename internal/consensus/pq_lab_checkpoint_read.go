@@ -1,0 +1,87 @@
+//go:build unix
+
+package consensus
+
+import (
+	"crypto/sha256"
+	"errors"
+)
+
+// One checkpoint invocation owns four fingerprints, never raw files, decoded
+// histories, a current permission, or a cross-invocation authorization cache.
+// A fingerprint is populated ONLY after the original complete state validator
+// and original source/close checks succeed. Every current check still captures
+// the entire actual file through the unchanged bounded source reader.
+type pqLabCheckpointRead struct {
+	witness *validatedMigration
+	engine  *PQEngineAuthorization
+	height  int64
+	appHash string
+	metrics *PQLabMetrics
+	files   [4]pqLabCheckpointFingerprint
+}
+
+type pqLabCheckpointFingerprint struct {
+	path, layout string
+	bytes        int
+	hash         [sha256.Size]byte
+	validated    bool
+}
+
+func (r *pqLabCheckpointRead) read(index int, path string, capture func(string) (*pqEngineStateRead, error)) (state *CommittedState, result error) {
+	if r == nil || index < 0 || index >= len(r.files) || r.witness.valid() != nil {
+		return state, errors.New("missing invocation-local checkpoint validation scope")
+	}
+	done := pqLabMeasure(r.metrics, "checkpoint.captureCurrentBytes")
+	original, err := capture(path)
+	done()
+	if err != nil {
+		return state, err
+	}
+	// Each captured capability is retired exactly once, including hash hits.
+	// A mixed/late close failure is never converted into a successful reuse.
+	var publish *pqLabCheckpointFingerprint
+	defer func() {
+		if original.closeOriginal != nil {
+			result = errors.Join(result, original.closeOriginal())
+		}
+		if result == nil && publish != nil {
+			r.files[index] = *publish
+		}
+	}()
+	fingerprint := pqLabCheckpointFingerprint{path: path, layout: original.layout, bytes: len(original.data), hash: sha256.Sum256(original.data), validated: true}
+	prior := r.files[index]
+	if prior.validated && prior == fingerprint {
+		done := pqLabMeasure(r.metrics, "checkpoint.exactBytesValidationReuse")
+		err := original.unchanged()
+		done()
+		if err != nil {
+			return state, err
+		}
+		// No synthetic state is returned: this branch only confirms exact
+		// current original bytes. The actual detached initial state remains
+		// in the checkpoint and cannot be reconstructed from this fingerprint.
+		return nil, nil
+	}
+	done = pqLabMeasure(r.metrics, "checkpoint.fullStateValidation")
+	// Keep the original decoder and EVERY history/registry/AND check. Its
+	// capability close is owned by the outer defer so it cannot run twice.
+	copy := *original
+	copy.closeOriginal = nil
+	decoded, err := readPQEngineCommittedStateOwned(path, r.witness, r.engine, nil, func(string) (*pqEngineStateRead, error) { return &copy, nil })
+	done()
+	if err != nil {
+		return nil, err
+	}
+	if !decoded.Initialized || decoded.Height != r.height || decoded.AppHash != r.appHash || decoded.AccountPolicy == nil {
+		return nil, errors.New("actual four-node checkpoint differs from independently supplied H/AppHash")
+	}
+	// Do not retain replacement encodings or extend the scope. An alternate
+	// valid encoding is accepted after normal validation on every such read.
+	if !prior.validated {
+		// Closing a supplied original may fail. Publish the fingerprint only
+		// after that deferred close has reported success.
+		publish = &fingerprint
+	}
+	return &decoded, nil
+}

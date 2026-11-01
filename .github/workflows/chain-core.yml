@@ -281,6 +281,7 @@ jobs:
           required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal', 'TestPQLabLiveMaterialsCommandStrictInputs', 'TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext']
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
+          required += ['TestPQLabCanonicalComparisonExactChunks', 'TestPQLabCheckpointReadCurrentBytesAndCloseGuards', 'TestPQLabCheckpointReadJournalOriginalParity', 'TestPQLabCheckpointReadSameInputSevenHeightParity', 'TestPQLabProofInputsSameOriginalParityAndCost']
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:
