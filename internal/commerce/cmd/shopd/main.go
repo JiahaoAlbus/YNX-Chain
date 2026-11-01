@@ -17,6 +17,7 @@ import (
 func main() {
 	addr := flag.String("http", "127.0.0.1:8095", "HTTP listen address")
 	nativeAPI := flag.Bool("native-api", false, "serve the independent client's fixed shop-api origin without Web assets")
+	notificationFile := flag.String("native-pay-notification-receivers", "", "explicit private original Pay merchant notification credential file; Native API only, no funds authority")
 	state := flag.String("state", "tmp/shop/state.json", "persistent state path")
 	buyer := flag.String("buyer-assets", "apps/shop/dist", "buyer web assets")
 	seller := flag.String("seller-assets", "apps/seller-console/dist", "seller web assets")
@@ -27,6 +28,13 @@ func main() {
 	pruneTransientBefore := flag.String("prune-transient-before", "", "preview or prune terminal AI jobs and rate-limit samples older than this RFC3339 cutoff, then exit")
 	confirmPruneTransient := flag.Bool("confirm-prune-transient", false, "apply the transient retention preview; requires --prune-transient-before and an integrity key")
 	flag.Parse()
+	if *notificationFile != "" && !*nativeAPI {
+		log.Fatal("Native notification receiver requires --native-api")
+	}
+	notificationReceivers, notificationErr := loadOriginalNativePayNotificationReceivers(*notificationFile)
+	if notificationErr != nil {
+		log.Fatal(notificationErr)
+	}
 	runtime, runtimeErr := prepareOriginalShopRuntime(context.Background(), originalShopFiles{os.Getenv("YNX_SHOP_BACKEND_KEY_ID"), os.Getenv("YNX_SHOP_BACKEND_KEY_FILE"), os.Getenv("YNX_SHOP_BROWSER_SEAL_FILE")})
 	if runtimeErr != nil {
 		log.Fatal(runtimeErr)
@@ -103,6 +111,7 @@ func main() {
 	// legacy gateway configuration cannot silently become private authority.
 	// Actual role factories need independent protected profile/actor inputs.
 	cfg.NativeInvoiceOnly = *nativeAPI
+	cfg.NativePayNotificationReceivers = notificationReceivers
 	documents := commerce.NewServer(store, cfg)
 	engine := documents.Handler()
 	buyerPrivate, sellerPrivate, identity, buyerDocuments, sellerDocuments, privateErr := runtime.servers(context.Background(), store, cfg)

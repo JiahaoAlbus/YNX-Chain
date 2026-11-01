@@ -437,6 +437,16 @@ func (s *Store) applyNativePaymentReceipt(actor, target string, p NativeShopPaym
 			return Order{}, ErrConflict
 		}
 		if previous.PaidAtoms == p.PaidAtoms && previous.RefundedAtoms == p.RefundedAtoms && len(previous.Receipts) == len(p.Receipts) && strings.Join(previous.PendingOriginals, "\x00") == strings.Join(p.PendingOriginals, "\x00") && previous.CompleteKnownOriginals == p.CompleteKnownOriginals {
+			before, e := cloneSnapshot(s.s)
+			if e != nil {
+				return Order{}, e
+			}
+			if s.observeNativePayNotificationsLocked(o, p) {
+				if e = s.persistLocked(); e != nil {
+					s.s = before
+					return Order{}, e
+				}
+			}
 			return cloneOrder(o), nil
 		}
 		p.ReconciliationRequired = previous.ReconciliationRequired
@@ -473,6 +483,7 @@ func (s *Store) applyNativePaymentReceipt(actor, target string, p NativeShopPaym
 	o.UpdatedAt = s.now()
 	s.orderEventLocked(&o, "pay-native-original-receipt", "system", "native_payment_receipt", o.Status, p.SettlementNativeHash)
 	s.s.Orders[o.ID] = o
+	s.observeNativePayNotificationsLocked(o, p)
 	s.auditLocked("pay-native-original-receipt", "system", "native_payment_receipt", "order", o.ID, o.Status, p.SettlementNativeHash)
 	if e = s.persistLocked(); e != nil {
 		s.s = before

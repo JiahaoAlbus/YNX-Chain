@@ -257,6 +257,7 @@ type ProviderView struct {
 }
 
 type Snapshot struct {
+	NativePayNotifications  map[string]NativePayNotification
 	Version                 int
 	Stores                  map[string]StoreProfile
 	Products                map[string]Product

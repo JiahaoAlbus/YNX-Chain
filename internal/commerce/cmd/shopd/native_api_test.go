@@ -1,13 +1,56 @@
 package main
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/commerce"
 )
+
+func TestShopNativeAPINotificationOnlyUsesOriginalReceiverWithoutBuyerFallback(t *testing.T) {
+	store, err := commerce.Open("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	secret := []byte(strings.Repeat("PUBLIC-", 8))
+	cfg := commerce.ServerConfig{NativePayNotificationReceivers: []commerce.NativePayNotificationReceiver{{MerchantID: "mer_original", StoreID: "store_original", SecretVersion: 1, Secret: secret}}}
+	buyerCalls := 0
+	buyer := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { buyerCalls++; w.WriteHeader(418) })
+	h := composeOriginalNativeShopAPI(commerce.NewServer(store, cfg).Handler(), buyer, nil)
+	body := `{"event":"native.invoice.invoice_settle","objectId":"0x` + strings.Repeat("a", 64) + `","merchantId":"mer_original","occurredAt":"2026-01-01T00:00:00Z"}`
+	hash := sha256.Sum256([]byte(body))
+	digest := hex.EncodeToString(hash[:])
+	stamp := time.Now().UTC().Format(time.RFC3339Nano)
+	event := "whd_" + strings.Repeat("a", 20)
+	mac := hmac.New(sha256.New, secret)
+	mac.Write([]byte(strings.Join([]string{"YNX_PAY_WEBHOOK_V1", event, stamp, digest}, "\n")))
+	r := httptest.NewRequest("POST", "https://shop-api.ynxweb4.com/api/pay/notifications/native", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("X-YNX-Event-ID", event)
+	r.Header.Set("X-YNX-Delivery-ID", event)
+	r.Header.Set("X-YNX-Timestamp", stamp)
+	r.Header.Set("X-YNX-Payload-SHA256", digest)
+	r.Header.Set("X-YNX-Signature-Version", "1")
+	r.Header.Set("X-YNX-Signature", "v1="+hex.EncodeToString(mac.Sum(nil)))
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 202 || buyerCalls != 0 {
+		t.Fatal(w.Code, w.Body.String(), buyerCalls)
+	}
+	r = httptest.NewRequest("POST", "https://shop-api.ynxweb4.com/api/pay/notifications/native", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	h.ServeHTTP(w, r)
+	if w.Code != 401 || buyerCalls != 0 {
+		t.Fatal("bad MAC fell through to Buyer", w.Code, buyerCalls)
+	}
+}
 
 func TestShopNativeAPIOriginalCatalogWithoutWebOrPrivateAuthority(t *testing.T) {
 	store, err := commerce.Open("")

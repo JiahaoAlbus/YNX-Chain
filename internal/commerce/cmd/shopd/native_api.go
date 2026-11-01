@@ -27,6 +27,12 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 			http.Error(w, "exact private path required", http.StatusBadRequest)
 			return
 		}
+		// Callback admission is an independent Pay HMAC domain. The public
+		// handler refuses503 unless its original merchant receiver is supplied.
+		if r.Method == http.MethodPost && p == "/api/pay/notifications/native" && public != nil {
+			public.ServeHTTP(w, r)
+			return
+		}
 		if publicRead && public != nil {
 			public.ServeHTTP(w, r)
 			return

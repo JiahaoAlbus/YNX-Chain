@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 17
+	CurrentPersistenceSchemaVersion = 18
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -143,7 +143,7 @@ func decodePersisted(data, key []byte, out *Snapshot) error {
 }
 
 func emptySnapshot() Snapshot {
-	return Snapshot{Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, BusinessNonces: map[string]struct{}{}, BusinessBrowserBindings: map[string]string{}, BusinessActorNamespaces: map[string]string{}, BusinessEffects: map[string]BusinessEffect{}, RetiredBusinessEffects: map[string]struct{}{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
+	return Snapshot{NativePayNotifications: map[string]NativePayNotification{}, Version: CurrentPersistenceSchemaVersion, Stores: map[string]StoreProfile{}, Products: map[string]Product{}, Orders: map[string]Order{}, Idempotency: map[string]IdempotencyRecord{}, BusinessNonces: map[string]struct{}{}, BusinessBrowserBindings: map[string]string{}, BusinessActorNamespaces: map[string]string{}, BusinessEffects: map[string]BusinessEffect{}, RetiredBusinessEffects: map[string]struct{}{}, RetiredIdempotency: map[string]struct{}{}, BuyerDeletions: map[string]BuyerDeletionRecord{}, AIJobs: map[string]AIJob{}, BuyerProfiles: map[string]BuyerProfile{}, Carts: map[string]Cart{}, SellerRoles: map[string]map[string]string{}, SellerRevocations: map[string]SellerRoleRevocation{}, SellerInvitations: map[string]SellerInvitation{}, SellerEvents: []SellerIntegrationEvent{}, ProviderConfigs: map[string]ProviderConfig{}, RequestWindow: map[string][]time.Time{}}
 }
 
 func (s *Store) normalize() (bool, error) {
@@ -153,6 +153,9 @@ func (s *Store) normalize() (bool, error) {
 	}
 	if version < PersistenceSchemaVersionV1 || version > CurrentPersistenceSchemaVersion {
 		return false, fmt.Errorf("%w: %d", ErrPersistenceVersion, s.s.Version)
+	}
+	if version < 18 && len(s.s.NativePayNotifications) > 0 {
+		return false, fmt.Errorf("%w: Native notification inbox requires Snapshot v18", ErrPersistenceVersion)
 	}
 	migrated := version != CurrentPersistenceSchemaVersion
 	s.s.Version = CurrentPersistenceSchemaVersion
@@ -259,6 +262,12 @@ func (s *Store) normalize() (bool, error) {
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
 	}
+	if s.s.NativePayNotifications == nil {
+		s.s.NativePayNotifications = map[string]NativePayNotification{}
+	}
+	if err := validateNativePayNotifications(s.s); err != nil {
+		return false, err
+	}
 	if err := validateNativePaymentRecords(s.s); err != nil {
 		return false, err
 	}
@@ -343,6 +352,9 @@ func cloneSnapshot(snapshot Snapshot) (Snapshot, error) {
 func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMessage, error) {
 	if targetVersion < 3 || targetVersion >= CurrentPersistenceSchemaVersion {
 		return nil, fmt.Errorf("%w: rollback target must be Snapshot v3 through v%d", ErrPersistenceVersion, CurrentPersistenceSchemaVersion-1)
+	}
+	if len(s.s.NativePayNotifications) > 0 {
+		return nil, fmt.Errorf("%w: older snapshots cannot preserve original Native notification inbox", ErrConflict)
 	}
 	if hasBusinessProtection(s.s) {
 		return nil, fmt.Errorf("%w: older snapshots cannot enforce consumed business proofs", ErrConflict)
@@ -539,6 +551,12 @@ func containsRetiredIntents(candidate, current Snapshot) bool {
 			if !found {
 				return false
 			}
+		}
+	}
+	for key, record := range current.NativePayNotifications {
+		previous, ok := candidate.NativePayNotifications[key]
+		if !ok || requestHash(previous) != requestHash(record) {
+			return false
 		}
 	}
 	for id, record := range current.BusinessEffects {

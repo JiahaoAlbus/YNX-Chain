@@ -50,6 +50,7 @@ jobs:
       fulfillment-checks: ${{ steps.scope.outputs.fulfillment-checks }}
       return-decision-only: ${{ steps.scope.outputs.return-decision-only }}
       return-decision-checks: ${{ steps.scope.outputs.return-decision-checks }}
+      notification-only: ${{ steps.scope.outputs.notification-only }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -89,12 +90,14 @@ jobs:
               delta = subprocess.check_output(["git", "diff", "--unified=0", base, "HEAD", "--", "go.mod"]).decode()
               lines = [line[1:].strip() for line in delta.splitlines() if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))]
               source_only = all(line in permitted for line in lines)
+          notification_files = {"internal/commerce/native_pay_notification.go", "internal/commerce/native_pay_notification_test.go", "internal/commerce/NATIVE_PAY_NOTIFICATIONS.md", "internal/commerce/native_payment_receipt.go", "internal/commerce/store.go", "internal/commerce/model.go", "internal/commerce/server.go", "internal/commerce/cmd/shopd/native_api.go", "internal/commerce/cmd/shopd/native_api_test.go", "internal/commerce/cmd/shopd/main.go", "internal/commerce/cmd/shopd/native_notification_credentials.go", "internal/commerce/cmd/shopd/native_notification_credentials_test.go"}
+          notification_only = bool(changed) and any(p.startswith("internal/commerce/native_pay_notification") for p in changed) and all(p in notification_files or p == ".github/workflows/shop-native.yml" for p in changed)
           fulfillment_files = {"apps/seller-console/native/fulfillment-cli.mjs", "apps/seller-console/native/check-fulfillment-cli.mjs", "apps/seller-console/native/FULFILLMENT.md", "apps/seller-console/test/fulfillment-cli.test.mjs", "apps/seller-console/test/fulfillment-http.mjs", "internal/commerce/fulfillment_cli_test.go"}
           fulfillment_only = bool(changed) and any(p in fulfillment_files for p in changed) and all(p in fulfillment_files or p == ".github/workflows/shop-native.yml" for p in changed)
-          fulfillment_checks = not native_client_only and (fulfillment_only or not changed or any(p in fulfillment_files or p in {".github/workflows/shop-native.yml", "internal/commerce/service.go", "internal/commerce/model.go", "internal/commerce/native_payment_receipt.go", "internal/commerce/business_order_transition.go"} for p in changed))
+          fulfillment_checks = not native_client_only and not notification_only and (fulfillment_only or not changed or any(p in fulfillment_files or p in {".github/workflows/shop-native.yml", "internal/commerce/service.go", "internal/commerce/model.go", "internal/commerce/native_payment_receipt.go", "internal/commerce/business_order_transition.go"} for p in changed))
           return_files = {"apps/seller-console/native/return-decision-cli.mjs", "apps/seller-console/native/check-return-decision-cli.mjs", "apps/seller-console/native/RETURN_DECISIONS.md", "apps/seller-console/test/return-decision-cli.test.mjs", "apps/seller-console/test/return-decision-http.mjs", "internal/commerce/original_return_decision_test.go", "internal/commerce/business_order_transition.go", "internal/commerce/service.go", "internal/commerce/server.go", "internal/commerce/seller_mutation_lookup.go"}
           return_decision_only = bool(changed) and any(p in return_files for p in changed) and all(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
-          return_decision_checks = not native_client_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
+          return_decision_checks = not native_client_only and not notification_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -114,6 +117,7 @@ jobs:
                       receipt_test_delta = True
                       tests = new_tests
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("notification-only=" + str(notification_only).lower() + "\n")
               output.write("return-decision-only=" + str(return_decision_only).lower() + "\n")
               output.write("return-decision-checks=" + str(return_decision_checks).lower() + "\n")
               output.write("fulfillment-only=" + str(fulfillment_only).lower() + "\n")
@@ -136,12 +140,12 @@ jobs:
       - name: Verify complete original Auth and LINK input packages
         run: python3 internal/commerce/verify_product_source_inputs.py
       - name: Verify original intent recovery and build the normal Shop service
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
-        if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
+        if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
         env:
           READ_TESTS: ${{ needs.change-scope.outputs.read-tests }}
         run: |
@@ -153,13 +157,27 @@ jobs:
           if [ "${{ needs.change-scope.outputs.receipt-test-delta }}" != "true" ]; then
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi
+      - name: Check original Native Pay notification receiver and affected durable receipt state
+        if: needs.change-scope.outputs.notification-only == 'true'
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativePayNotification|TestShopNativeAPI|TestCommercePersistenceSchemaMigrationRollbackAndRecovery|TestSnapshot|TestNativePaymentReceipt(OriginalPartial|LostRead|Cumulative|KeepsPending))' -count=1 -v | tee "$RUNNER_TEMP/shop-native-notification-checks.log"
+          go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd-notifications" ./internal/commerce/cmd/shopd
+      - uses: actions/upload-artifact@v4
+        if: always() && needs.change-scope.outputs.notification-only == 'true'
+        with:
+          name: ynx-shop-native-notification-service
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/shop-native-notification-checks.log
+            ${{ runner.temp }}/ynx-shopd-notifications
       - uses: actions/setup-java@v4
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
         with:
           distribution: temurin
           java-version: "17"
       - name: Check actual Android intent consumer and narrow route policy
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
         run: |
           set -euo pipefail
           DEPS="$RUNNER_TEMP/shop-intent-deps"
@@ -172,7 +190,7 @@ jobs:
             apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/{NativeIntentObservationTest,OriginalOrderLinkTest}.java
           java -cp "$CLASSES:$DEPS/*" org.junit.runner.JUnitCore com.ynxweb4.shop.NativeIntentObservationTest com.ynxweb4.shop.OriginalOrderLinkTest
       - uses: actions/setup-node@v4
-        if: needs.change-scope.outputs.source-only != 'true' || needs.change-scope.outputs.fulfillment-checks == 'true'
+        if: needs.change-scope.outputs.notification-only != 'true' && (needs.change-scope.outputs.source-only != 'true' || needs.change-scope.outputs.fulfillment-checks == 'true')
         with:
           node-version: "22"
       - name: Check original Native Seller fulfillment and cold original recovery only
@@ -209,7 +227,7 @@ jobs:
           name: ynx-shop-fulfillment-original-evidence
           path: ${{ runner.temp }}/shop-fulfillment-evidence
       - name: Check inventory CLI against the original official Native SDK input
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \
@@ -222,7 +240,7 @@ jobs:
 
   android-app-candidate:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
+    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -257,7 +275,7 @@ jobs:
 
   language-regression:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
+    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
     runs-on: macos-15
     timeout-minutes: 5
     steps:

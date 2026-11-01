@@ -33,7 +33,8 @@ type ServerConfig struct {
 	Auth                 AuthGateway
 	Pay                  HTTPPayVerifier
 	// Borrowed original private transport; never selected from request or ENV.
-	NativePay *NativeShopPayClient
+	NativePay                      *NativeShopPayClient
+	NativePayNotificationReceivers []NativePayNotificationReceiver
 	// Independent Native mode may recover historical references, but cannot
 	// fall through to the retired invoice creator while its Native Source is absent.
 	NativeInvoiceOnly bool
@@ -52,12 +53,15 @@ type Server struct {
 }
 
 func NewServer(store *Store, cfg ServerConfig) *Server {
+	cfg.NativePayNotificationReceivers = cloneNativePayReceivers(cfg.NativePayNotificationReceivers)
 	s := &Server{store: store, cfg: cfg, mux: http.NewServeMux(), metrics: newServerMetrics()}
 	s.routes()
 	return s
 }
 func (s *Server) Handler() http.Handler { return s.observe(s.security(s.mux)) }
 func (s *Server) routes() {
+	// This route authenticates only the existing Pay notification MAC, never a Buyer action.
+	s.mux.HandleFunc("POST /api/pay/notifications/native", s.nativePayNotification)
 	if s.cfg.browserSSO != nil {
 		s.mux.HandleFunc("GET /sso/start", s.cfg.browserSSO.Start)
 		s.mux.HandleFunc("GET /sso/callback", s.cfg.browserSSO.Callback)
