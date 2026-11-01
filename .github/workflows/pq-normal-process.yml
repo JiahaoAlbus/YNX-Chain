@@ -141,19 +141,19 @@ jobs:
       - name: Receive exact measured normal initializer and original lifecycle guards
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 7d1e93b90ff386685c050b330cd093957b1ddadf
+          ref: dcb44c0e35e958f171e4dd19c95d83ba5114db3c
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Execute all168 pure controls and original Linux RSS lifecycle before initialization
+      - name: Execute all174 pure controls and original Linux RSS lifecycle before initialization
         run: |
           python3 -B tools/scripts/loadtest/pq-staged-harness-controls.py --run
           python3 -B - <<'PYCONTROLS'
           import unittest
-          for pattern,count in [('test_consensus_linux_cohort.py',8),('test_linux_owned_rss.py',15),('test_window_failure_cleanup.py',3)]:
+          for pattern,count in [('test_consensus_linux_cohort.py',8),('test_linux_owned_rss.py',16),('test_linux_thread_group_exit.py',6),('test_window_failure_cleanup.py',3)]:
               suite=unittest.defaultTestLoader.discover('tools/scripts/loadtest',pattern=pattern)
               result=unittest.TextTestRunner(verbosity=2).run(suite)
               if result.testsRun!=count or result.skipped or not result.wasSuccessful():raise SystemExit('all original actual Linux controls required: '+pattern)
