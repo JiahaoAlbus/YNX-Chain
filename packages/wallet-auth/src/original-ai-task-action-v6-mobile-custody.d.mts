@@ -1,0 +1,4 @@
+export type OriginalAITaskV6MobileCustodyRole='review'|'proof'|'outcome'|'lookup'|'source';
+export interface OriginalAITaskV6MobileCustodyDATA {retainOutcome(role:OriginalAITaskV6MobileCustodyRole,actualNativeCapturedOutcome:unknown):unknown;retainFailure(role:OriginalAITaskV6MobileCustodyRole,originalCause:unknown):unknown;/** Private fixed Native call, not public Source factory injection. Registered before invoking foreign code. */run(role:OriginalAITaskV6MobileCustodyRole,actualFixedNativeCall:()=>unknown):Promise<unknown>;retire():void;join():Promise<void>;close():Promise<void>;read():Readonly<{retired:boolean;closed:boolean;pending:number;retained:number;outstanding:number;firstCausePresent:boolean;firstCause:unknown;dataOnly:true;SourceAdmission:false;NativeAdmission:false}>;}
+/** Resource ownership only; this controller is never a Source/Root/Native brand. */
+export function createOriginalAITaskV6MobileCustodyDATA():OriginalAITaskV6MobileCustodyDATA;
