@@ -131,6 +131,7 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 	clear(credential)
 	cache := consensus.NewPQLabStaticCache()
 	defer cache.Close()
+	checkpoints := pqLabSenderCheckpointLoader{cache: cache}
 	startupElapsedNS := time.Since(startupStarted).Nanoseconds()
 	if *ready {
 		reply := struct {
@@ -184,7 +185,7 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 			if command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
 				return errors.New("sign cannot accept proof-selected authority")
 			}
-			checkpoint, e := consensus.LoadPQLabSenderCheckpointCached(*root, *plan, *activation, command.CheckpointHeight, command.CheckpointAppHash, metrics, cache)
+			checkpoint, e := checkpoints.load(*root, *plan, *activation, command.CheckpointHeight, command.CheckpointAppHash, metrics)
 			err = e
 			if err == nil {
 				result, err = sender.SignMeasured(command.Request, checkpoint, metrics)

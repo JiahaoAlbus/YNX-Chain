@@ -76,7 +76,10 @@ func (r *pqLabStaticReads) read(path string, maximum int64) ([]byte, error) {
 		r.cacheable = false
 		// Never issue a reusable witness after dropping its exact originals.
 		// This is a cache refusal, not a change to the no-cache API limits.
-		return nil, errors.Join(ErrPQLabStaticCacheBound, r.close())
+		if err := r.close(); err != nil {
+			return nil, errors.Join(ErrPQLabStaticCacheBound, err)
+		}
+		return nil, ErrPQLabStaticCacheBound
 	}
 	// The held reader enforces its own captured-file size and LimitReader bound,
 	// including replacement/growth after the preliminary pathname budget stat.
