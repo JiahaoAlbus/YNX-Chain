@@ -1,0 +1,132 @@
+{
+  "schema": "YNX-PRODUCT-DEVICE-CREATE/v1",
+  "purpose": "before-keygen DATA only, not an approval or actual Source",
+  "vectors": [
+    {
+      "name": "original",
+      "input": {
+        "networkId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "canonicalOwner": "0x2222222222222222222222222222222222222222",
+        "account": "ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax",
+        "productId": "ai",
+        "clientId": "ynx-ai-v1",
+        "platform": "macos",
+        "applicationId": "com.ynxweb4.ai",
+        "bundleId": "com.ynxweb4.ai",
+        "packageId": null,
+        "origin": "app://macos/com.ynxweb4.ai",
+        "callback": "ynxai://wallet-auth/callback",
+        "deviceId": "original-device-v1",
+        "generation": "1",
+        "operationId": "original-device-create-1",
+        "nonce": "3333333333333333333333333333333333333333333333333333333333333333",
+        "issuedAt": "2026-10-31T00:00:00.000Z",
+        "expiresAt": "2026-10-31T00:00:30.000Z"
+      },
+      "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"1\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"operationId\":\"original-device-create-1\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "approvedTermsUTF8Hex": "7b226163636f756e74223a22796e78317967337a7967337a7967337a7967337a7967337a7967337a7967337a7967337a347166336178222c226170706c69636174696f6e4964223a22636f6d2e796e78776562342e6169222c2262756e646c654964223a22636f6d2e796e78776562342e6169222c2263616c6c6261636b223a22796e7861693a2f2f77616c6c65742d617574682f63616c6c6261636b222c2263616e6f6e6963616c4f776e6572223a22307832323232323232323232323232323232323232323232323232323232323232323232323232323232222c22636c69656e744964223a22796e782d61692d7631222c226465766963654964223a226f726967696e616c2d6465766963652d7631222c22646f6d61696e223a22594e582d50524f445543542d4445564943452d4352454154452f7631222c22657870697265734174223a22323032362d31302d33315430303a30303a33302e3030305a222c2267656e65726174696f6e223a2231222c226973737565644174223a22323032362d31302d33315430303a30303a30302e3030305a222c226e6574776f726b4964223a2231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131222c226e6f6e6365223a2233333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333222c226f7065726174696f6e4964223a226f726967696e616c2d6465766963652d6372656174652d31222c226f726967696e223a226170703a2f2f6d61636f732f636f6d2e796e78776562342e6169222c227061636b6167654964223a6e756c6c2c22706c6174666f726d223a226d61636f73222c2270726f647563744964223a226169222c2276657273696f6e223a2231227d",
+      "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "binding": {
+        "bytes": "710",
+        "sha3_512": "992ff814232f810b48e5a4e2831abdc1391d19db43f6dbc169ab6846a1feb37d2fdf953f69a3de75d64aad08bf12148999f1482fd1d1e6607690abf9e69c295d",
+        "sha512": "2e6205e54e9c87aa332d6ae36738662d6aa050d717a1978a7b866ee6376a8ef2abb6a3be21c301cf80a03bd98a0bec6aec79cc4701dbb27cb66b284ee15250b8"
+      },
+      "stableIdentityBinding": {
+        "bytes": "325",
+        "sha3_512": "9e29c8a5cb26f3c9d851f6cda482e08d7c714ed6d3185803697a002d0e0498e0ae6b297fb78aeb220109ccc711e1f4f3c2556fb7957ce9073d88fff831518ca6",
+        "sha512": "0b723b014d01c89a4a0d3651f52ae648ddaca3a4afb7e1ca1bbca5dc2acc3c21e95be663f7487d1b842a862e5387c5e91a837b781380ad2e9f3fcba40445573f"
+      },
+      "nativeIntentDATA": {
+        "network": "1111111111111111111111111111111111111111111111111111111111111111",
+        "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"1\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"operationId\":\"original-device-create-1\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "issuedAtMs": "1793404800000",
+        "expiresAtMs": "1793404830000"
+      }
+    },
+    {
+      "name": "same-identity-changed-original-refused",
+      "input": {
+        "networkId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "canonicalOwner": "0x2222222222222222222222222222222222222222",
+        "account": "ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax",
+        "productId": "ai",
+        "clientId": "ynx-ai-v1",
+        "platform": "macos",
+        "applicationId": "com.ynxweb4.ai",
+        "bundleId": "com.ynxweb4.ai",
+        "packageId": null,
+        "origin": "app://macos/com.ynxweb4.ai",
+        "callback": "ynxai://wallet-auth/callback",
+        "deviceId": "original-device-v1",
+        "generation": "2",
+        "operationId": "replacement-original-op",
+        "nonce": "4444444444444444444444444444444444444444444444444444444444444444",
+        "issuedAt": "2026-10-31T00:00:00.000Z",
+        "expiresAt": "2026-10-31T00:00:30.000Z"
+      },
+      "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"2\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"4444444444444444444444444444444444444444444444444444444444444444\",\"operationId\":\"replacement-original-op\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "approvedTermsUTF8Hex": "7b226163636f756e74223a22796e78317967337a7967337a7967337a7967337a7967337a7967337a7967337a7967337a347166336178222c226170706c69636174696f6e4964223a22636f6d2e796e78776562342e6169222c2262756e646c654964223a22636f6d2e796e78776562342e6169222c2263616c6c6261636b223a22796e7861693a2f2f77616c6c65742d617574682f63616c6c6261636b222c2263616e6f6e6963616c4f776e6572223a22307832323232323232323232323232323232323232323232323232323232323232323232323232323232222c22636c69656e744964223a22796e782d61692d7631222c226465766963654964223a226f726967696e616c2d6465766963652d7631222c22646f6d61696e223a22594e582d50524f445543542d4445564943452d4352454154452f7631222c22657870697265734174223a22323032362d31302d33315430303a30303a33302e3030305a222c2267656e65726174696f6e223a2232222c226973737565644174223a22323032362d31302d33315430303a30303a30302e3030305a222c226e6574776f726b4964223a2231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131222c226e6f6e6365223a2234343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434343434222c226f7065726174696f6e4964223a227265706c6163656d656e742d6f726967696e616c2d6f70222c226f726967696e223a226170703a2f2f6d61636f732f636f6d2e796e78776562342e6169222c227061636b6167654964223a6e756c6c2c22706c6174666f726d223a226d61636f73222c2270726f647563744964223a226169222c2276657273696f6e223a2231227d",
+      "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "binding": {
+        "bytes": "709",
+        "sha3_512": "c68bd6601bd9ca47b4a29c0c5860592755d6e7c7e6a64c5d49e4bc22ffbc18034aaf44be810e24c717b298319e67167f17c9fae7892bc92c64831a90904a73b5",
+        "sha512": "b39434b1070fdf68b8218ab8a8c076202fcbaa00045a8af6a0825e33a1c4cec3d1f02097dbc0c323c52a991c69bbfedeaab670f132db6da3c1d1e5ebfa86dc52"
+      },
+      "stableIdentityBinding": {
+        "bytes": "325",
+        "sha3_512": "9e29c8a5cb26f3c9d851f6cda482e08d7c714ed6d3185803697a002d0e0498e0ae6b297fb78aeb220109ccc711e1f4f3c2556fb7957ce9073d88fff831518ca6",
+        "sha512": "0b723b014d01c89a4a0d3651f52ae648ddaca3a4afb7e1ca1bbca5dc2acc3c21e95be663f7487d1b842a862e5387c5e91a837b781380ad2e9f3fcba40445573f"
+      },
+      "nativeIntentDATA": {
+        "network": "1111111111111111111111111111111111111111111111111111111111111111",
+        "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"original-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"2\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"4444444444444444444444444444444444444444444444444444444444444444\",\"operationId\":\"replacement-original-op\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "issuedAtMs": "1793404800000",
+        "expiresAtMs": "1793404830000"
+      }
+    },
+    {
+      "name": "different-device",
+      "input": {
+        "networkId": "1111111111111111111111111111111111111111111111111111111111111111",
+        "canonicalOwner": "0x2222222222222222222222222222222222222222",
+        "account": "ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax",
+        "productId": "ai",
+        "clientId": "ynx-ai-v1",
+        "platform": "macos",
+        "applicationId": "com.ynxweb4.ai",
+        "bundleId": "com.ynxweb4.ai",
+        "packageId": null,
+        "origin": "app://macos/com.ynxweb4.ai",
+        "callback": "ynxai://wallet-auth/callback",
+        "deviceId": "different-device-v1",
+        "generation": "1",
+        "operationId": "original-device-create-1",
+        "nonce": "3333333333333333333333333333333333333333333333333333333333333333",
+        "issuedAt": "2026-10-31T00:00:00.000Z",
+        "expiresAt": "2026-10-31T00:00:30.000Z"
+      },
+      "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"different-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"1\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"operationId\":\"original-device-create-1\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "approvedTermsUTF8Hex": "7b226163636f756e74223a22796e78317967337a7967337a7967337a7967337a7967337a7967337a7967337a7967337a347166336178222c226170706c69636174696f6e4964223a22636f6d2e796e78776562342e6169222c2262756e646c654964223a22636f6d2e796e78776562342e6169222c2263616c6c6261636b223a22796e7861693a2f2f77616c6c65742d617574682f63616c6c6261636b222c2263616e6f6e6963616c4f776e6572223a22307832323232323232323232323232323232323232323232323232323232323232323232323232323232222c22636c69656e744964223a22796e782d61692d7631222c226465766963654964223a22646966666572656e742d6465766963652d7631222c22646f6d61696e223a22594e582d50524f445543542d4445564943452d4352454154452f7631222c22657870697265734174223a22323032362d31302d33315430303a30303a33302e3030305a222c2267656e65726174696f6e223a2231222c226973737565644174223a22323032362d31302d33315430303a30303a30302e3030305a222c226e6574776f726b4964223a2231313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131313131222c226e6f6e6365223a2233333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333222c226f7065726174696f6e4964223a226f726967696e616c2d6465766963652d6372656174652d31222c226f726967696e223a226170703a2f2f6d61636f732f636f6d2e796e78776562342e6169222c227061636b6167654964223a6e756c6c2c22706c6174666f726d223a226d61636f73222c2270726f647563744964223a226169222c2276657273696f6e223a2231227d",
+      "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"different-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+      "binding": {
+        "bytes": "711",
+        "sha3_512": "e15229340a46a30d35fbfe88ae72b8699b90b4a94ad6af8cab97b750a2cca9984bd77e2892bf2354900d3b367a56d128c40de96689dac93ba7d8219782e3482f",
+        "sha512": "1e229858fd522a7c780d5b26e7f2557b487c7649151a9540e2b01913153397ace44ac6be7c11874a482b3db04439864fd1cc8fb69d38d0847c8622927f1d503b"
+      },
+      "stableIdentityBinding": {
+        "bytes": "326",
+        "sha3_512": "d4ca28e5847c8f57fe218542db5a6e8e141d5eac97d086f764d4a0604c780ffb265f8abdf0c9b6d11328ae191a559dd4be8a17e523e21cd3fca8d50ab31f0fa0",
+        "sha512": "e8a83496c45e61c12cc6a383e035f60b476625700d8d01a4320acfab0a8578c728bed05d5e2254e2ccdc286e355b559284879e56212481182b1d0a3fc72703a8"
+      },
+      "nativeIntentDATA": {
+        "network": "1111111111111111111111111111111111111111111111111111111111111111",
+        "stableDeviceIdentity": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"different-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-IDENTITY/v1\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "approvedTerms": "{\"account\":\"ynx1yg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3z4qf3ax\",\"applicationId\":\"com.ynxweb4.ai\",\"bundleId\":\"com.ynxweb4.ai\",\"callback\":\"ynxai://wallet-auth/callback\",\"canonicalOwner\":\"0x2222222222222222222222222222222222222222\",\"clientId\":\"ynx-ai-v1\",\"deviceId\":\"different-device-v1\",\"domain\":\"YNX-PRODUCT-DEVICE-CREATE/v1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"generation\":\"1\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"networkId\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"nonce\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"operationId\":\"original-device-create-1\",\"origin\":\"app://macos/com.ynxweb4.ai\",\"packageId\":null,\"platform\":\"macos\",\"productId\":\"ai\",\"version\":\"1\"}",
+        "issuedAtMs": "1793404800000",
+        "expiresAtMs": "1793404830000"
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "version": "YNX-AUTH-IDE-NATIVE-ABI/v2-draft.2",
+  "state": "FROZEN_INTERFACE_NATIVE_PUBLIC_EXPORTS_NOT_YET_IMPLEMENTED",
+  "supersedes": "R82 provisional requestOriginal-at-construction semantics; callee names and request wire stay unchanged",
+  "module": "existing apps/wallet-desktop/native/original-auth-identity.node, no alternate dynamic module or new service",
+  "exports": [
+    {"name":"receiveOriginalIDEIdentity","arguments":[{"name":"actualEntryURL","type":"string"}],"purpose":"AUTH-IDENTITY-RECEIVE","effect":"after completeProof validates true original permission and same-source current, install exact public originals with the existing R83 receiver; receipt is DATA only"},
+    {"name":"recoverOriginalIDEIdentity","arguments":[{"name":"actualEntryURL","type":"string"}],"purpose":"AUTH-IDENTITY-RECOVER","effect":"after completeProof, actual original encrypted-key restore into protected custody only; current complete registered pair/revision and original principal/ownership must match; never account reconstruction or revocation reset"},
+    {"name":"acquireOriginalIDEProtectedKeyCall","arguments":[{"name":"actualEntryURL","type":"string"},{"name":"invocationOriginal","type":"string","meaning":"bounded canonical original intended call DATA, not a key/path/provider/Root/expected statement; Native must independently bind it to original protected HostState/entered/purpose"}],"purpose":"AUTH-PROTECTED-KEY-CALL","effect":"after completeProof, invoke-only original protected call owner; invoke() uses that SAME captured invocation, actual authenticated reservation/current-key borrow and R49, no caller-provided signer callback or raw key result"}
+  ],
+  "construction": {
+    "expectedByNativeOnly": ["purpose","subject/principal/registered owner","keyVersion","actualH","product/application/device","credentialDigest","requestDigest","requestId","nonce","issuedAtMs","expiresAtMs","expectedRequestOriginal"],
+    "source": "only original independently admitted Native Source and its authenticated current registration/resource owner; never supplied by renderer, parsed snapshot, callback, ENV, TLS or installed receipt alone",
+    "actualEntryURL": "same exact entry-derived original parent/runtime checks as the existing IDE entry, no arbitrary path/endpoint switch",
+    "rendererSuppliedExpectedCurrentClockRootForbidden": true,
+    "partial": "invalid arguments before resource capture may throw without owner; after capture return SAME opaque owning/partial object even when not ready. Constructor does not auto-assertReady, discard partial, silently retry, or return a fabricated successful wrapper. Allocation failure after partial capture remains reachable to normal cleanup.",
+    "nativePrivateIdentityTag": "existing Native hidden owning-instance family, same env/thread and identity; not a serialized id/token installer"
+  },
+  "ownerMethods": {
+    "assertReady()": "undefined only if same actual source/owner qualifies; throws preserved first cause otherwise",
+    "copyRequestOriginal()": "canonical R82 JSON request string derived by Native, DATA only; current before/after. The actual signed Mi is encodeOriginalAuthIdentityRequest(parseOriginalAuthIdentityRequest(raw)) using the R82 independent E domain, NOT UTF8(JSON); N1 certificate purpose equals that Native-held request purpose. Caller cannot substitute expectedRaw/time/owner.",
+    "completeProof(memberWire: Uint8Array)": "undefined after exact N1 proof + independent original purpose/permission/current checks and successful receive/recover effect (or key-call readiness). Ordinary owned bytes only, no SharedArrayBuffer/oversize/mutable retained pointer. Select once before verify/effect; unknown/rejected selection never retries. Uses Native-held expected original, NOT a second expectedRaw from JS.",
+    "current()": "undefined only under original fixed wall/monotonic window + current registry/revocation/keyVersion/purpose/request/owner; does not renew a challenge",
+    "result()": "immutable PUBLIC result/receipt only after genuine completed current; no secret, generic signer, approval flag or DTO capability. Earlier/unknown calls throw original failure.",
+    "invoke()": "protected-key owner only, zero selector/key/path arguments; invokes the SAME captured operation once under the actual reserve/key-borrow owner; returns only that operation's permitted public result, never plaintext private material",
+    "retire()": "undefined on original once-retirement; stops new uses, does not settle unknown business result",
+    "join()": "undefined when actual child work has joined; throws pending without pretending close succeeded or restarting work",
+    "close()": "undefined only on true first successful cleanup; preserves first close failure even if a child disposed with error. Live nonNULL partial is retained, disposed-error is not silently converted to success by later close. No repeated fd close or effect replay.",
+    "status()": "immutable lifecycle DATA {phase,ready,unknown,retired,cleanupComplete,disposed,firstCauseCode}; never raw Source/key/authority"
+  },
+  "statusContract": {"phase":["partial","ready","proof-selected","verified","completed","rejected","unknown","retired","closed","disposed-error"],"firstCauseCode":"string | null; null before any first cause, never undefined/empty string; normalized code only, no secret/credential values", "phaseNotAuthority":true,"unknownSurvivesRetirementAndDisposition":true},
+  "publicResults": {"result":"unknown until the actual operation receipt variants are implemented; no invented success DTO", "invoke":"unknown until the actual original protected operation public result is implemented; never secret/private material", "doNotDeclareFakeRuntimeFunctions":true},
+  "proofAndAuthority": "sole SDK 320/319 Auth request + registered dual math, exact keyVersion=Record.Revision and N1/index0, Native independent current/descriptor/permission before+after. Root/Profile/Current mathematical verification is R84. Neither signatureVerified nor TLS/fd/current GET/SSO grants receive/recover/key-use.",
+  "remainingOwningImplementation": ["actual Native trusted-policy/subject provenance and v2 CLI dispatch","three real NAPI callbacks and same-owner lifecycle hookup","normal protected recovery and original key custody","authenticated reserve/current-key borrow -> R49 dual-PQ producer","real admitted credentials and same-source Native build/runtime tests"],
+  "truth": {"ABIOnly":true,"publicNativeExportsExist":false,"qualifiedReceive":false,"identityRecovered":false,"protectedKeyInvoked":false,"serverTokensPQMigrated":false,"tlsPQMigrated":false}
+}

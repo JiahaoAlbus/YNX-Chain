@@ -1,0 +1,78 @@
+import fs from'node:fs';import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';import{check as checkOriginal}from'./original-auth-common-image-gate.mjs';
+export const go47=Object.freeze([
+  "YNXAccountInitialSignV1",
+  "YNXAccountMigrationAuthorizationSignV1",
+  "YNXAccountMigrationPossessionSignV1",
+  "YNXArtifactPublicationSignV1",
+  "YNXDeploymentManifestSignV2",
+  "YNXProductPairPendingOriginalQuerySignV1",
+  "YNXProductSessionDeviceChallengeSignV4",
+  "YNXProductSessionDeviceKeypairGenerateV4",
+  "YNXProductSessionDeviceRegistrationSignV4",
+  "YNXProductSessionHTTPProofSignV4",
+  "YNXProductSessionHTTPProofSignV5",
+  "YNXProjectControlSignV1",
+  "YNXPublisherCustodianSignV1",
+  "YNXPublisherGenerateV1",
+  "YNXPublisherPoPSignV1",
+  "YNXRegisteredANDMemberVerifyN1V1",
+  "YNXTransactionBatchSignV1",
+  "ynx_link_pay_native_startup_adopt_source_v1",
+  "ynx_link_pay_native_startup_close_v1",
+  "ynx_link_pay_native_startup_closed_v1",
+  "ynx_link_pay_native_startup_error_v1",
+  "ynx_link_pay_native_startup_free_v1",
+  "ynx_link_pay_native_startup_join_v1",
+  "ynx_link_pay_native_startup_open_v1",
+  "ynx_link_pay_native_startup_retire_v1",
+  "ynx_link_private_client_call_v1",
+  "ynx_link_private_client_capture_v1",
+  "ynx_link_private_client_close_v1",
+  "ynx_link_private_client_current_local_v1",
+  "ynx_link_private_client_current_source_v1",
+  "ynx_link_private_client_error_v1",
+  "ynx_link_private_client_free_v1",
+  "ynx_link_private_client_join_v1",
+  "ynx_link_private_client_packet_free_v1",
+  "ynx_link_private_client_recheck_v1",
+  "ynx_link_private_client_registration_borrow_current_v1",
+  "ynx_link_private_client_registration_borrow_release_v1",
+  "ynx_link_private_client_registration_from_borrow_v1",
+  "ynx_link_private_client_retire_v1",
+  "ynx_product_pay_transport_cancel_v1",
+  "ynx_product_pay_transport_close_v1",
+  "ynx_product_pay_transport_join_v1",
+  "ynx_product_pay_transport_open_v1",
+  "ynx_product_pay_transport_release_response_v1",
+  "ynx_product_pay_transport_request_v1",
+  "ynx_product_pay_transport_response_diagnostics_v1",
+  "ynx_product_pay_transport_retire_v1"
+]);
+export const swift11=Object.freeze(["ynx_auth_pq_native_open_v1","ynx_auth_pq_native_current_v1","ynx_auth_pq_native_retire_v1","ynx_auth_pq_native_transaction_once_v1","ynx_auth_pq_native_copy_outcome_v1","ynx_auth_pq_native_close_v1","ynx_auth_pq_native_release_closed_v1","ynx_auth_pq_native_capabilities_v1","ynx_auth_pq_native_open_initial_v1","ynx_auth_pq_native_account_initial_once_v1","ynx_auth_pq_native_assert_binding_v1"]);
+export const auth5=Object.freeze([
+  "ynx_product_pay_source_profile_v1",
+  "ynx_product_pay_source_full_current_v1",
+  "ynx_product_pay_source_current_no_io_v1",
+  "ynx_product_pay_source_retain_v1",
+  "ynx_product_pay_source_release_v1"
+]);
+export function assertRoot14StrongSymbolsDATA(globals,attributes,names,mode='image'){
+ if(typeof globals!=='string'||typeof attributes!=='string'||!Array.isArray(names)||!['image','archive'].includes(mode))throw Error('ROOT14_STRONG_DATA_INVALID');
+ for(const name of names){const token='_'+name,rows=globals.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token),attrs=attributes.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token);const strong=l=>/^[a-f0-9]+\s+[TDSB]\s+_/.test(l.trim());
+  if(mode==='image'){if(rows.length!==1||!strong(rows[0])||attrs.length!==1||/\bweak\b|\bundefined\b/.test(attrs[0]))throw Error('ROOT14_MISSING_WEAK_OR_DUPLICATE:'+name);continue;}
+  // Archive member U rows are references, never definitions. Require exactly
+  // one global strong definition and one matching strong attribute definition.
+  // Reject weak rows, duplicate definitions and any unclassified symbol row.
+  const definitions=rows.filter(strong),references=rows.filter(l=>/^U\s+_/.test(l.trim())),definedAttrs=attrs.filter(l=>/^[a-f0-9]+\s+\([^)]+\)\s+(?:private )?external\s+_/.test(l.trim())&&!/\bundefined\b/.test(l)),referenceAttrs=attrs.filter(l=>/^\(undefined\)\s+(?:private )?external\s+_/.test(l.trim()));
+  if(definitions.length!==1||definedAttrs.length!==1||definitions.length+references.length!==rows.length||definedAttrs.length+referenceAttrs.length!==attrs.length||references.length!==referenceAttrs.length||attrs.some(l=>/\bweak\b/.test(l)))throw Error('ROOT14_MISSING_WEAK_OR_DUPLICATE:'+name);
+ }
+ return {symbols:names.length,mode,RootAdmission:false};
+}
+export function assertSingle47SwiftCABIData(globals,attributes){assertRoot14StrongSymbolsDATA(globals,attributes,swift11);for(const name of swift11){const token='_'+name,rows=globals.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token),attrs=attributes.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token);if(rows.length!==1||!/^[a-f0-9]+\s+T\s+_/.test(rows[0].trim())||attrs.length!==1||!/\(__TEXT,__text\)/.test(attrs[0]))throw Error('SINGLE47_SWIFT_FUNCTION_ABI:'+name);}return{required:11,RootAdmission:false};}
+function nm(p,flags){const r=spawnSync('/usr/bin/nm',[...flags,p],{encoding:'utf8',maxBuffer:64<<20});if(r.status!==0)throw Error('ROOT14_NM_FAILED');return r.stdout;}
+export function check(plan){
+ if(plan.recipeRole!=='YNX_SINGLE47_DEVICE_V4_MANAGEMENT_NORMAL_NATIVE/v1'||plan.goArchives?.length!==1||plan.goArchives[0].sha256!=='f0bb5b7da5c275473bdca47cc035be60dc6b68694322befa6af0c93bae175660')throw Error('ROOT14_EXACT_SINGLE_B5_ARCHIVE_REQUIRED');
+ const original=checkOriginal(plan);assertRoot14StrongSymbolsDATA(nm(plan.goArchives[0].path,['-g']),nm(plan.goArchives[0].path,['-m']),go47,'archive');assertRoot14StrongSymbolsDATA(nm(plan.image.path,['-g']),nm(plan.image.path,['-m']),[...go47,...auth5]);
+ assertSingle47SwiftCABIData(nm(plan.image.path,['-g']),nm(plan.image.path,['-m']));return {kind:'SINGLE47_MANAGEMENT_AND_SWIFT11_STRONG_GATE/v1',passed:true,Core17:17,LINK22:22,Product8:8,GoArchiveStrong:47,AuthNativeStrong:5,SwiftCABIRequired:11,legacyRequired42Preserved:true,ownedUndefined:0,image:plan.image,archive:plan.goArchives[0],original,RootAdmission:false,SourceAdmission:false,normalFactoryComplete:false};
+}
+if(process.argv[1]===fileURLToPath(import.meta.url)){if(process.argv.length!==3)throw Error('ROOT14_GATE_ARGV');console.log(JSON.stringify(check(JSON.parse(fs.readFileSync(process.argv[2]))),null,2));}

@@ -1,0 +1,40 @@
+import test from'node:test';import{createHash}from'node:crypto';import assert from'node:assert/strict';import{readFile}from'node:fs/promises';import{encodeFields,u32,VERSION}from'@ynx/batch-v01-candidate';
+import{encodePQNativeActionPayload,decodePQNativeActionPayload,encodePQNativeAction,decodePQNativeAction,normalizePQNativeAction,PQ_NATIVE_ACTION_DOMAIN}from'../src/pq-native-action.js';
+import{parsePQAccountAuthorization,planPQNativeAction}from'../src/pq-wallet-policy.js';
+import{PQ_POLICY_VERSION}from'../src/pq-wallet-authorization.js';
+const core=JSON.parse(await readFile(new URL('../testdata/invoice-action-core-v1.json',import.meta.url),'utf8'));
+const action=v=>({chainId:core.envelope.networkHex,nativeChainId:core.envelope.nativeChainID,owner:core.envelope.owner,nonce:core.envelope.nonce,fee:core.envelope.fee,kind:v.kind,payload:v.input});
+function frame(bytes){const b=Buffer.from(bytes),out=[];let at=4;for(let i=0,n=b.readUInt32BE(0);i<n;i++){const size=b.readUInt32BE(at);at+=4;out.push(b.subarray(at,at+size));at+=size}assert.equal(at,b.length);return out}
+function snapshot(){const network={chainId:core.envelope.networkHex,nativeChainId:core.envelope.nativeChainID,owner:core.envelope.owner};const data={owner:network.owner,executionHeight:'10',ledgerNonce:(BigInt(core.envelope.nonce)-1n).toString(),algorithmVersion:VERSION,enabled:true,policyVersion:PQ_POLICY_VERSION,networkId:network.chainId,enableAt:'1',activeRevision:'1',records:[{algorithmVersion:VERSION,owner:network.owner,pkA:'00'.repeat(2592),pkB:'00'.repeat(64),revision:'1',registeredAt:'2',activeFrom:'3',ledgerNonce:'1'}]};return parsePQAccountAuthorization(data,network)}
+test('four original Core invoice vectors match payload and complete original E12 signing DATA bytes',()=>{
+ assert.equal(core.algorithmVersion,VERSION);assert.equal(core.purpose,'TX-BATCH');assert.equal(PQ_NATIVE_ACTION_DOMAIN,'YNX-NATIVE-ACTION/v1');
+ for(const v of core.vectors){const payload=encodePQNativeActionPayload(v.kind,v.input),message=encodePQNativeAction(action(v));assert.equal(Buffer.from(payload).toString('hex'),v.payloadHex,v.name);assert.equal(Buffer.from(message).toString('hex'),v.messageHex,v.name);assert.equal(payload.length,v.payloadBytes);assert.equal(message.length,v.messageBytes);assert.equal(frame(payload).length,v.payloadFields);assert.equal(frame(message).length,12);assert.deepEqual(decodePQNativeActionPayload(v.kind,payload),v.input);assert.deepEqual(decodePQNativeAction(message),action(v))}
+});
+test('invoice numbers stay ledger units1, positive MaxInt64, while outer nonce retains MaxUint64',()=>{
+ const terms=core.vectors[0];const small={...terms.input,keyEpoch:1n,revision:1n,amount:1n,maxFee:1n,expiresAt:1n};const f=frame(encodePQNativeActionPayload('invoice_terms',small));assert.equal(f[5].length,42);assert.equal(f[6].toString(),'YNXT');assert.equal(f[7].toString(),'1');for(let i=9;i<19;i+=2){assert.equal(f[i].readUInt32BE(),0);assert.equal(f[i+1].readUInt32BE(),1)}
+ for(const key of ['keyEpoch','revision','amount','maxFee','expiresAt'])for(const bad of ['0','9223372036854775808','01',1,'2026-10-31T00:00:00Z'])assert.throws(()=>encodePQNativeActionPayload('invoice_terms',{...terms.input,[key]:bad}));
+ for(const v of core.vectors)for(const fee of ['0','2','9223372036854775807'])assert.throws(()=>encodePQNativeAction({...action(v),fee}));
+ assert.equal(normalizePQNativeAction(action(terms)).nonce,'18446744073709551615');assert.throws(()=>encodePQNativeAction({...action(terms),nonce:'18446744073709551616'}));
+});
+test('invoice schema follows Core exact IDs/addresses/asset/unit/rule/hash and excludes refund recipient',()=>{
+ const terms=core.vectors[0],settle=core.vectors.find(v=>v.kind==='invoice_settle'),refund=core.vectors.find(v=>v.kind==='invoice_refund');
+ for(const p of [{...terms.input,invoiceID:'UPPER'},{...terms.input,sessionID:'x'.repeat(65)},{...terms.input,invoiceID:'_first'},{...terms.input,recipient:terms.input.recipient.toUpperCase()},{...terms.input,payer:null},{...terms.input,assetID:'ETH'},{...terms.input,unitVersion:'18'},{...terms.input,feeRule:'other/v1'}])assert.throws(()=>encodePQNativeActionPayload('invoice_terms',p));
+ for(const p of [{...settle.input,termsHashHex:'00'.repeat(32)},{...settle.input,termsHashHex:settle.input.termsHashHex.toUpperCase()},{...settle.input,termsHashHex:'ab'.repeat(31)},{...settle.input,termsHashHex:new Uint8Array(32)},{...settle.input,amount:'0'}])assert.throws(()=>encodePQNativeActionPayload('invoice_settle',p));
+ assert.throws(()=>encodePQNativeActionPayload('invoice_refund',{...refund.input,recipient:terms.input.recipient}));assert.throws(()=>encodePQNativeActionPayload('invoice_refund',{...refund.input,settlementHashHex:'00'.repeat(32)}));
+});
+test('strict nested/outer prefixes and bounded canonical decoding reject swaps, trailing, wrong hash width and fields',()=>{
+ for(const v of core.vectors){const wire=Buffer.from(v.payloadHex,'hex'),fields=frame(wire);for(const f of [fields.map((x,i)=>i===0?Buffer.from('WRONG'):x),fields.map((x,i)=>i===1?u32(2):x),fields.slice(1),[...fields,Buffer.from('extra')]])assert.throws(()=>decodePQNativeActionPayload(v.kind,encodeFields(f)));assert.throws(()=>decodePQNativeActionPayload(v.kind,Buffer.concat([wire,Buffer.from([0])])));assert.throws(()=>decodePQNativeAction(Buffer.concat([Buffer.from(v.messageHex,'hex'),Buffer.from([0])])));}
+ const v=core.vectors.find(v=>v.kind==='invoice_settle'),f=frame(Buffer.from(v.payloadHex,'hex'));f[4]=Buffer.from(v.input.termsHashHex);assert.throws(()=>decodePQNativeActionPayload(v.kind,encodeFields(f)));assert.throws(()=>decodePQNativeActionPayload('invoice_refund',Buffer.from(v.payloadHex,'hex')));
+});
+test('normal existing policy plan consumes all three invoice kinds without bypassing Source/policy gate',()=>{
+ const policy=snapshot();for(const v of core.vectors){const planned=planPQNativeAction(policy,action(v));assert.equal(planned.action.kind,v.kind);assert.equal(planned.action.fee,'1');assert.equal(planned.kind,'pq-native-action');assert.throws(()=>planPQNativeAction({},action(v)));assert.throws(()=>planPQNativeAction(policy,{...action(v),owner:'0x'+'0'.repeat(40)}));assert.throws(()=>planPQNativeAction(policy,{...action(v),nonce:'1'}));}
+ const v=core.vectors[0],disabled=parsePQAccountAuthorization({owner:core.envelope.owner,executionHeight:'10',ledgerNonce:'0',algorithmVersion:'legacy',enabled:false,records:[]},{chainId:core.envelope.networkHex,nativeChainId:core.envelope.nativeChainID,owner:core.envelope.owner});assert.throws(()=>planPQNativeAction(disabled,action(v)));
+});
+test('new invoice capture rejects executable/getter/Proxy/SAB/detached inputs without calling hooks',()=>{
+ let calls=0;const terms=core.vectors[0],p={...terms.input};Object.defineProperty(p,'payer',{get(){calls++;throw Error('getter')}});assert.throws(()=>encodePQNativeActionPayload('invoice_terms',p));assert.equal(calls,0);assert.throws(()=>encodePQNativeActionPayload('invoice_terms',new Proxy(terms.input,{getPrototypeOf(){calls++;throw Error('proxy')}})));assert.equal(calls,0);
+ const wire=Buffer.from(terms.payloadHex,'hex');Object.defineProperty(wire,'buffer',{get(){calls++;throw Error('ownbuffer')}});assert.throws(()=>decodePQNativeActionPayload('invoice_terms',wire));assert.equal(calls,0);
+ const shared=new Uint8Array(new SharedArrayBuffer(10));Object.defineProperty(shared,'buffer',{value:new ArrayBuffer(10)});assert.throws(()=>decodePQNativeActionPayload('invoice_terms',shared));const detached=new Uint8Array(10);structuredClone(detached,{transfer:[detached.buffer]});assert.throws(()=>decodePQNativeActionPayload('invoice_terms',detached));
+});
+test('one necessary original legacy prefix smoke remains byte-compatible; old16 group is not rerun',async()=>{
+ const original=JSON.parse(await readFile(new URL('../testdata/pq-native-action-vectors-retained.json',import.meta.url),'utf8')),v=original.vectors.find(v=>v.kind==='stake');const wire=encodePQNativeAction(v.input);assert.equal(wire.length,v.bytes);assert.equal(createHash('sha256').update(wire).digest('hex'),v.sha256);assert.equal(frame(wire).length,12);
+});

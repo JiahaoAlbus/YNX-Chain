@@ -1,0 +1,89 @@
+{
+  "schema": "SOCIAL_ORDINARY_RESOURCE_ENROLLMENT_BODY/v2",
+  "status": "SOLE_SDK_DEFINED_BODY_AND_DATA_BINDING_NOT_ROOT_SIGNED_OR_RESOURCE_ADMITTED",
+  "fields": [
+    "version",
+    "purpose",
+    "environment",
+    "bootstrap",
+    "platformProfile",
+    "credentialDigest",
+    "administrationDomain",
+    "platformIdentityDigest",
+    "protectedServiceBinaryDigest",
+    "protectedServiceEndpoint",
+    "protectedServiceSpkiDigest",
+    "scope",
+    "storageGeneration",
+    "keyEpoch",
+    "registrationRevision",
+    "previousEnrollmentDigest",
+    "enrollmentSequence",
+    "notBeforeMS",
+    "expiresMS"
+  ],
+  "version": 2,
+  "purpose": "SOCIAL_MESSAGE_RESOURCE_ORDINARY_ENROLLMENT_V2",
+  "environment": "testnet-qa",
+  "platformProfile": 1,
+  "scope": [
+    "source",
+    "store",
+    "schema",
+    "inode",
+    "restore",
+    "sourceGeneration",
+    "nativeRestoreIncarnation"
+  ],
+  "decimalStrings": [
+    "storageGeneration",
+    "keyEpoch",
+    "registrationRevision",
+    "enrollmentSequence"
+  ],
+  "scopeU64": "existing lossless positive integer; never derived from another tuple",
+  "window": "original MAXSAFE i64 nonnegative notBeforeMS, expiresMS>notBeforeMS",
+  "rootContainer": {
+    "version": 1,
+    "order": [
+      "version",
+      "role",
+      "body",
+      "signature"
+    ],
+    "signatureOrder": [
+      "classic",
+      "pq"
+    ],
+    "body": "base64url canonical original body bytes, no padding",
+    "signatureLengths": {
+      "classic": 64,
+      "pq": 4627
+    },
+    "parseIsNotSignatureVerification": true
+  },
+  "domain": "YNX/SOCIAL/MESSAGE-ENROLLMENT/V1\u0000",
+  "roles": [
+    "message-enrollment-issuer",
+    "message-enrollment-anchor"
+  ],
+  "history": "seq1 previous all-zero SHA explicitly supplied; continuation SHA of whole previous signed envelope, same admin/platform identity and credential, original chronology; no generated sequence/floor",
+  "checkpoint": {
+    "enrollmentDigest": "SHA256 entire anchor signed resource enrollment envelope",
+    "administrationDomain": "anchor ordinary body administrationDomain"
+  },
+  "terminal": {
+    "issuerEnrollmentDigest": "SHA256 entire issuer signed resource enrollment envelope",
+    "anchorEnrollmentDigest": "same entire anchor envelope SHA as CP2"
+  },
+  "forbidden": [
+    "TPM/NV/PCR/AK/handles/counterFloor",
+    "Source credential or qualification hash as enrollmentDigest",
+    "scope sourceGeneration aliasing storageGeneration/keyEpoch/regRevision",
+    "Root signature or actual platform identity fabricated by SDK"
+  ],
+  "oldStrongV1Untouched": true,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "signatureVerified": false
+}

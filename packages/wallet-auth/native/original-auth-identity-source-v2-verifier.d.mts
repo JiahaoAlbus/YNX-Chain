@@ -1,3 +1,4 @@
+import type{OriginalAITaskActionV6AgentPublic}from'./original-ai-task-action-v6-source-contract.mjs';
 import type {PQAuthorizationSnapshot} from '../src/pq-wallet-policy.js';
 export const AUTH_SOURCE_V2:'YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2:'YNX/AUTH/SOURCE-ORIGINAL/V2';
@@ -44,8 +45,12 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6';
+export type OriginalAuthSourceV2Service='product-device-management-source-v4'|'wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1';
 export type OriginalAuthSourceV2Operations=
+ readonly import('./management-source-contract.mjs').ManagementOperation[]|
+ readonly ['read-selected-pages']|
+ readonly import('./original-wallet-product-source-contract.mjs').WalletProductSourceOperationV1[]|
+ readonly import('./original-wallet-pay-client-source-contract.mjs').WalletPayClientOperationV1[]|
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
  readonly ['CurrentProject','CurrentPublisher','RecheckProject']|
@@ -83,6 +88,7 @@ export interface OriginalAuthSourceV2EnrollmentData {
  readonly executionHeight:string;readonly dataOnly:true;readonly nativeAdmission:false;
 }
 export interface OriginalAuthSourceV2ProfileData {
+ /** Present only on independently bound AI client profiles; no authority. */readonly agentPublic?:OriginalAITaskActionV6AgentPublic;
  readonly root:OriginalAuthSourceV2Root;readonly enrollment:OriginalAuthSourceV2Enrollment;readonly profile:OriginalAuthSourceV2Profile;
  /** Current observed H, distinct from immutable credential signing heights. */
  readonly executionHeight:string;
@@ -96,6 +102,7 @@ export interface OriginalAuthSourceV2Previous {
  readonly executionHeight:string;
 }
 export interface OriginalAuthSourceV2CurrentData extends OriginalAuthSourceV2Previous {
+ /** Present only on independently bound AI client profiles; no authority. */readonly agentPublic?:OriginalAITaskActionV6AgentPublic;
  readonly selection:OriginalAuthSourceV2Selection;readonly principalId:string;readonly subjectOwner:string;readonly subjectKeyVersion:string;
  readonly generation:number;readonly status:'active';readonly expiresAtMs:number;
  readonly profileDigest:string;readonly sourceId:string;readonly instanceId:string;readonly executionHeight:string;
@@ -130,3 +137,9 @@ export function inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(role:'enroll
 
 /** Wallet client pre-key DATA only; native immutable release row and actual approval remain mandatory. */
 export function inspectOriginalWalletPayClientSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+/** Browser uses the same SourceV2 N1/Root signature mathematics; this is DATA only. */
+export function inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+/** Independent Product family; Browser and old family types preserved. */
+export function inspectOriginalWalletProductSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:import('./original-wallet-product-source-contract.mjs').OriginalWalletProductSourceV1Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;

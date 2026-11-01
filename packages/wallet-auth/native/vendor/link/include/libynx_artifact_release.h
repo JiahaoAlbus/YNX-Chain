@@ -57,9 +57,21 @@ extern const char *_GoStringPtr(_GoString_ s);
 
 #line 1 "cgo-generated-wrapper"
 
+#line 3 "migration_authorization_bridge.go"
+
+#include "account_migration_authorization.h"
+
+#line 1 "cgo-generated-wrapper"
+
 #line 3 "migration_bridge.go"
 
 #include "account_migration.h"
+
+#line 1 "cgo-generated-wrapper"
+
+#line 3 "pending_query_bridge.go"
+
+#include "product_pair_pending_original_query.h"
 
 #line 1 "cgo-generated-wrapper"
 
@@ -165,7 +177,9 @@ extern int32_t YNXDeploymentManifestSignV2(YNXDeploymentManifestRequestV2* req, 
 extern int32_t YNXProductSessionHTTPProofSignV4(YNXProductSessionHTTPRequestV4* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 extern int32_t YNXProductSessionHTTPProofSignV5(YNXProductSessionHTTPRequestV5* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 extern int32_t YNXAccountInitialSignV1(YNXAccountInitialRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
+extern int32_t YNXAccountMigrationAuthorizationSignV1(YNXAccountMigrationAuthorizationRequestV1* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXAccountMigrationPossessionSignV1(YNXAccountMigrationRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
+extern int32_t YNXProductPairPendingOriginalQuerySignV1(YNXPendingOriginalQueryRequestV1* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXProductSessionDeviceChallengeSignV4(YNXProductSessionDeviceChallengeRequestV4* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXProductSessionDeviceKeypairGenerateV4(YNXProductSessionDeviceKeypairRequestV4* req, YNXProductSessionDeviceKeypairOutcomeV4* outcome);
 extern int32_t YNXProductSessionDeviceRegistrationSignV4(YNXProductSessionDeviceRegistrationRequestV4* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);

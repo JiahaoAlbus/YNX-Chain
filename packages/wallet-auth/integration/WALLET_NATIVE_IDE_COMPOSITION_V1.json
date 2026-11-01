@@ -1,0 +1,87 @@
+{
+  "schema": "ynx-wallet-native-ide-composed-source/v1",
+  "baselineSource": "475c174755826533a7d54f620183d88c8dc713b0",
+  "orderedSupplierHandoffs": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/wallet-pay-native-root-qualification-successor/final-r1/HANDOFF.json",
+      "bytes": 6357,
+      "sha256": "6bb1eee876fc02f3b99dcf00e20284d77fdc1bf78f874032c4f79cd930ee1ca3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/namespace-final-r1/HANDOFF.json",
+      "bytes": 3239,
+      "sha256": "37009f1113ab49c673aceeac5fbb22cdbc69988c8dfab18e7900474b37122da4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-native-parent-producer-successor/final-r1/HANDOFF.json",
+      "bytes": 3403,
+      "sha256": "acfafbb31e7349768c2bbb40607b16aa1fdcd734a6aab0c56ef10d8b77891b60"
+    }
+  ],
+  "sourceApplyOrder": [
+    "475 -> Wallet Root19ADD+SDK5 exact CAS",
+    "formal namespace4ADD",
+    "Wallet Root AFTER -> IDE2ADD+3SDK exact CAS"
+  ],
+  "nativeInputCount": 202,
+  "normalWalletNamespace": {
+    "registration": "RegisterOriginalWalletMainNamespaceV1(env,exports)",
+    "implementations": [
+      "native/pay_native_namespace_bootstrap.cpp",
+      "native/pay_root_main_code.mm",
+      "native/original-wallet-main-namespace-private.cpp"
+    ],
+    "rootQualification": "independent actual Root/fullclosure/current AND actual own mapped image; empty release rows preserved",
+    "sameImageRequired": true
+  },
+  "normalIDEProducer": {
+    "class": "YNXOriginalIDECocoaParentProducer",
+    "source": "native/original-ide-cocoa-parent-producer.mm",
+    "appBridgeOwner": "P03; app CAS not written by SDK",
+    "sameNormalClosureRequired": [
+      "SourceBinding",
+      "kernel",
+      "Observation",
+      "SourceAuthority",
+      "JointOwner",
+      "original prelude/runtime dependencies"
+    ],
+    "exactLinkCommandSupplied": false
+  },
+  "pendingActualBuildInputs": [
+    {
+      "owner": "original Native worker/Auth",
+      "input": "pay_native_source_lease_private.hpp and full matching original Native worker frozen source/registration/build entry"
+    },
+    {
+      "owner": "LINK",
+      "input": "private_client_v1.h and actual same-image private transport"
+    },
+    {
+      "owner": "original Auth producer/A",
+      "input": "full Cocoa normal App link command and matching closure; not cherry-picked objects"
+    }
+  ],
+  "qualification": {
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeWhole": false,
+    "installed": false,
+    "realLogin": false,
+    "realRestore": false,
+    "realRevoke": false
+  },
+  "preservation": {
+    "accounts": true,
+    "UNKNOWN": true,
+    "commonGitIndex": true,
+    "unrelatedSources": true
+  },
+  "rootLoaderPinSuccessor": {
+    "bytes": 5763,
+    "sha256": "916cd30637dbd25ff79080947c44211348c48b754425b89a9c8811f4e233f0da",
+    "sourceRootCAS": "eb66002e63fd2e86c93f990868a0a5899b8f2cf00c3a9f781b3223c8a88d5b53",
+    "independentPostbuildApprovalRequired": true,
+    "RootAdmission": false
+  }
+}

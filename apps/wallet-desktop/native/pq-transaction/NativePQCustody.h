@@ -18,6 +18,10 @@ extern "C" {
  * the synchronous call. Purpose1 ordinary898; future purpose2 is separate. */
 int32_t ynx_auth_pq_native_open_v1(const uint8_t*,size_t,const uint8_t*,size_t,const uint8_t*,size_t,uint32_t,uint64_t*);
 int32_t ynx_auth_pq_native_current_v1(uint64_t);
+/* Read-only exact public binding/current on SAME ordinary owner. No key open,
+ * restore, registration, Source or approval. Binding must stay live/immutable.
+ * Wrong purpose/closed/thread/first-cause mismatch fails; no private output. */
+int32_t ynx_auth_pq_native_assert_binding_v1(uint64_t,const uint8_t*,size_t);
 int32_t ynx_auth_pq_native_retire_v1(uint64_t);
 int32_t ynx_auth_pq_native_transaction_once_v1(uint64_t,const uint8_t*,size_t,const uint8_t*,size_t,uint64_t,const uint8_t*,size_t,const uint8_t*,size_t);
 /* Copy ONLY retained public outcome after success/error/retirement/close.

@@ -113,3 +113,15 @@ func nativePQAccountInitial(_ id: UInt64) -> Int32 {
     return 7
     #endif
 }
+
+// Read-only same-ordinary-owner public binding fence. No Source or restore grant.
+@_cdecl("ynx_auth_pq_native_assert_binding_v1")
+func nativePQAssertBinding(_ id: UInt64, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int) -> Int32 {
+    do {
+        let owner = try owned(id); try owner.current()
+        guard owner.purpose == .transaction else { return 7 }
+        let expected = try readPublic(binding, bindingCount, 8192)
+        guard owner.binding == expected else { return 4 }
+        try owner.current(); return 0
+    } catch { return failureCode(error) }
+}

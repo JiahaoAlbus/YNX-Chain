@@ -1,0 +1,11 @@
+import type{PQAuthorizationSnapshot}from'./pq-wallet-policy.js';import type{PQActionTransportInput}from'./pq-action-transport.js';
+export const PQ_NATIVE_PAY_RESPONSE_MAX_BYTES:2097152;
+/** Only terms carry Main's original npi_48hex intent ID. Other route fields
+ * derive solely from original signed action; no URL/owner/nonce override. */
+export type PQNativePayObservationTarget=Readonly<{intentId:string}>|Readonly<Record<string,never>>;
+export interface PQNativePayResponsePacket {readonly method:'POST';readonly requestPath:string;readonly status:200|202|400|409|413|415|503;readonly contentType:string;readonly cacheControl:string;readonly body:Uint8Array;}
+export interface PQNativePayResponseObservationDATA {readonly kind:'invoice_terms'|'invoice_settle'|'invoice_refund';readonly merchant:string;readonly invoiceId:string;readonly intentId?:string;readonly memberHash:string;readonly envelopeHash:string;readonly messageHash:string;/** Untrusted service declaration, never Main paid/finality. */readonly serviceStatus:string|null;readonly responseHashBinding:'matches'|'absent'|'error-only';readonly error:Readonly<{code:string;error:string}>|null;readonly requestPath:string;readonly httpStatus:number;readonly contentType:string;readonly cacheControl:string;/** Fresh owned copies, after Main already persisted its original packet. */readonly responseOriginal:Uint8Array;readonly nestedOriginals:Readonly<Partial<Record<'domainData'|'invoice'|'observation'|'effect',Uint8Array>>>;readonly observationOnly:true;readonly outcome:'UNKNOWN';readonly memberSignatureVerified:true;readonly dataOnly:true;readonly paid:false;readonly submitted:false;readonly permission:false;readonly consensusFinality:false;readonly canRetry:false;readonly clearsOriginal:false;readonly SourceAdmission:false;readonly NativeAdmission:false;}
+/** Existing Member/action mathematics only, against the supplied SDK snapshot.
+ * Caller must persist the full actual response first. No IO/current callback,
+ * Source construction, effect receipt, retry or clearing original uncertainty. */
+export function inspectPQNativePayResponseDATA(snapshot:PQAuthorizationSnapshot,input:PQActionTransportInput,target:PQNativePayObservationTarget,response:PQNativePayResponsePacket):PQNativePayResponseObservationDATA;

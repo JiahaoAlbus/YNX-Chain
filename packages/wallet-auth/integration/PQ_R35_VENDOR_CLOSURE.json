@@ -1,0 +1,65 @@
+{
+  "state": "EXACT_R35_VENDOR_CODE_AND_PORTABLE_TESTS_NOT_YET_EXECUTED_ON_THIS_CANDIDATE",
+  "supplier": {
+    "path": "/Users/huangjiahao/ynx-social-qa-authority/policy-revocation-source-r35-20261018/HANDOFF.json",
+    "bytes": 7401,
+    "sha256": "d8288962886d2c9b3b8f63ae6bbaf14cf07b7e71e8bf4e0247dd5f8466fa7840"
+  },
+  "vendor": [
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/account-context-source.mjs",
+      "bytes": 17756,
+      "sha256": "ddc75e0e8f15107f4992d8d7cd0ea939738b700234301404bc22995c8b4f9eb7"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/service-publisher.mjs",
+      "bytes": 3950,
+      "sha256": "14d2ea870d6b5e221b84d572da5d77b6efa202b9a1a5ca0fc6e8220a912b3fbf"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/operator-query.mjs",
+      "bytes": 7592,
+      "sha256": "f39f487e49d6cf51b46dec008384e4a3d4988c7c7b51f92b54f912fd59ea561c"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/session-resource.mjs",
+      "bytes": 989,
+      "sha256": "53a57f0564e4972d897bba89858f7dcf95a0c711557117993665562581b6644b"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/transaction-resource.mjs",
+      "bytes": 6881,
+      "sha256": "ebdd9cec1a148e0f39c39d09a7cad7daa4b8a778fd2c10c3148a4f1fc84a331e"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/session-lifecycle.mjs",
+      "bytes": 9038,
+      "sha256": "91e777149abc41b08f1781e477908c100afa3427cf9cf5a3b891918fdcd7fb93"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/operator-projection.mjs",
+      "bytes": 5472,
+      "sha256": "af063717898f9c3591982c009934f16cb0c555e816b90e9cac8fc940e17b1363"
+    }
+  ],
+  "tests": [
+    {
+      "path": "test/auth-policy-r35-projection.test.mjs",
+      "bytes": 6878,
+      "sha256": "f604cf423d8f533853e0dbba4a2d10c38b6beaf3e0e220e58e7d9bf6ca981301"
+    },
+    {
+      "path": "test/auth-policy-r35-normal-source-transaction.test.mjs",
+      "bytes": 5630,
+      "sha256": "771f87b17e45f3ef8a6d2097e6c1e7f9a67ceaee445aaaa7545a00127ce4b9f7"
+    }
+  ],
+  "changes": [
+    "Preserved inherited six Source leaves; replaced only original operator-query and added original operator-projection",
+    "Changed only current daemon fixed publisher import to new full R35 closure",
+    "Portable test-only SDK self-resolution and vendored Source paths; upstream production files unchanged"
+  ],
+  "priorFrozenUntouched": true,
+  "liveOperatorBindingUnchanged": true,
+  "remoteCIWired": false
+}

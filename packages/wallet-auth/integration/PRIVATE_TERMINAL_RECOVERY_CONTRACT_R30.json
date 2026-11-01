@@ -1,0 +1,76 @@
+{
+  "version": "YNX-PRIVATE-TERMINAL-RECOVERY/v1",
+  "format": "YNX-ORIGINAL-PRIVATE-TERMINAL/v2",
+  "scope": "original v4 handleReturn complete custody only; no Native business operation added",
+  "inputRequired": {
+    "carrierVersion": "YNX-PRODUCT-SESSION-PRIVATE/v4",
+    "operation": "handleReturn",
+    "phase": "effect",
+    "referenceAction": "complete"
+  },
+  "enteredFormat": "existing immutable version1 entered record",
+  "terminalV2Fields": {
+    "v": "literal2",
+    "k": "literal terminal",
+    "e": "sha256 exact enteredRaw",
+    "q": "sha256 exact original inputRaw",
+    "a": "sha256 exact original associationRaw",
+    "o": "original operation",
+    "p": "original phase",
+    "id": "original requestId",
+    "r": "sha256 exact canonical responseRaw",
+    "b": "exact old stateBeforeDigest from entered",
+    "s": "exact post-candidate canonical snapshot SHA256, NOT whole envelope file hash",
+    "x": "exact original canonical responseRaw string"
+  },
+  "limits": {
+    "enteredBytes": 8192,
+    "terminalBytes": 8192,
+    "responseBytes": 65536,
+    "stateBytes": 33554432,
+    "inputBytes": 262144
+  },
+  "producer": "capacity-check whole immutable terminal before any candidate snapshot persistence; overflow refuses without hash-only/truncation fallback; no original terminal overwrite",
+  "reader": {
+    "nativeCallee": "readOriginalNativePrivateServiceTerminalResult",
+    "args": [
+      "originalNativeBorrow",
+      "operation",
+      "phase",
+      "originalRequestId"
+    ],
+    "registrationCheck": "actual authenticated original Source selection privateTerminalRecovery with exact contract digest and original consumer/gateway/registry/current-reference bindings",
+    "lateResponse": "v1 exact retained original Native response plus full original terminal/current checks",
+    "fullyLost": "v2 exact original response from immutable x field plus full checks; v1 digest-only cannot recover missing original response",
+    "mustCheck": [
+      "original input and association custody",
+      "actual entered/terminal file tuple and contents",
+      "enteredDigest/inputDigest/associationDigest/responseDigest",
+      "actual current stateAfterDigest",
+      "exact original requestId/operation/phase",
+      "same current/IDE-adopted Native parent",
+      "no cleanup debt",
+      "full canonical response envelope and exact session membership on successful complete"
+    ],
+    "ack": "read does not acknowledge or clear client UNKNOWN; original assertTerminal/ackonce remains mandatory after receipt"
+  },
+  "selectionFields": [
+    "version",
+    "contractDigest",
+    "recordFormat",
+    "consumerManifestDigest",
+    "gatewayManifestDigest",
+    "registryDigest",
+    "currentReference"
+  ],
+  "signing": "same existing original Source profile frame/Root/issuer; explicit new selection registration; no new signing purpose",
+  "forbidden": [
+    "clear UNKNOWN from completed DTO",
+    "new bridge to escape old debt",
+    "reconstruct responseRaw from a session",
+    "new store/Root/issuer/key",
+    "terminal overwrite",
+    "larger journal budget",
+    "body truncation/hash-only fallback"
+  ]
+}

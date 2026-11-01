@@ -1,0 +1,19 @@
+export const ORIGINAL_WALLET_SERVICE_RUNTIME_PUBLICATION_NAMESPACE:'wallet-product-session-v2-runtime-publication-metadata/v1';
+export const ORIGINAL_WALLET_SERVICE_RUNTIME_PUBLICATION_MAX_BYTES:65536;
+/** Actual independent ROLE/captured runtime instance association supplied by A.
+ * This metadata shape authenticates none of those sources. */
+export interface OriginalWalletServiceRuntimeBinding {keyId:string;roleDigest:string;instanceId:string;currentReference:string;gatewayManifestDigest:string;registryDigest:string}
+export interface OriginalWalletServiceRuntimePublicationInput {binding:OriginalWalletServiceRuntimeBinding;nonce:string;observationRaw:string}
+export interface OriginalWalletServiceRuntimePublicationRecord extends OriginalWalletServiceRuntimePublicationInput {sequence:number;state:'pending'|'UNKNOWN'|'signed';runtimeRaw:string|null}
+export interface OriginalWalletServiceRuntimePublicationState {version:1;purpose:typeof ORIGINAL_WALLET_SERVICE_RUNTIME_PUBLICATION_NAMESPACE;sequenceHighWater:number;records:OriginalWalletServiceRuntimePublicationRecord[]}
+export interface OriginalWalletServiceRuntimePublicationMutation {state:OriginalWalletServiceRuntimePublicationState;record:OriginalWalletServiceRuntimePublicationRecord;readOnly:boolean}
+export function emptyOriginalWalletServiceRuntimePublicationState():OriginalWalletServiceRuntimePublicationState;
+export function parseOriginalWalletServiceRuntimePublicationState(raw:unknown):OriginalWalletServiceRuntimePublicationState;
+/** Structural requested observation for normal explicit review, NOT observer output/current. */
+export function prepareOriginalWalletServiceRuntimePublicationObservation(state:unknown,binding:unknown,observedAtMs:number,expiresAtMs:number):{binding:OriginalWalletServiceRuntimeBinding;sequence:number;observationRaw:string};
+export function reserveOriginalWalletServiceRuntimePublication(state:unknown,input:unknown):OriginalWalletServiceRuntimePublicationMutation;
+export function markOriginalWalletServiceRuntimePublicationUnknown(state:unknown,nonce:string):OriginalWalletServiceRuntimePublicationMutation;
+/** Not signature verification. Only private same-Vault actual publisher may call. */
+export function recordOriginalWalletServiceRuntimePublicationSigned(state:unknown,nonce:string,runtimeRaw:string):OriginalWalletServiceRuntimePublicationMutation;
+export function readOriginalWalletServiceRuntimePublication(state:unknown,nonce:string):{record:OriginalWalletServiceRuntimePublicationRecord;readOnly:true};
+export function assertOriginalWalletServiceRuntimePublicationRetention(previous:unknown,next:unknown):void;

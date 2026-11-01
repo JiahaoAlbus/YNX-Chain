@@ -1,0 +1,84 @@
+{
+  "classification": "PUBLIC_STRUCTURE_ONLY_NO_SIGNATURE_NO_SOURCE_ADMISSION",
+  "canonicalEncoder": {
+    "source": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3c-20261018/source/packages/wallet-auth/src/canonical.js",
+    "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+    "byteEqualFormalFrozenSource": true
+  },
+  "selectionFixture": {
+    "expectedRequest": {
+      "service": "wallet-product-session-v2",
+      "productId": "developer",
+      "platform": "macos",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "gatewayOrigin": "https://wallet-auth.ynxweb4.com",
+      "operations": [
+        "beginYNX",
+        "handleReturn",
+        "restore",
+        "disconnect"
+      ],
+      "consumerManifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "gatewayManifestDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "registryDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "currentReference": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "privateReturnTransport": {
+      "version": "YNX-PRIVATE-RETURNS/v1",
+      "carrierVersion": "YNX-PRODUCT-SESSION-PRIVATE/v4",
+      "contractDigest": "ab90fbcd71e6386e763ee7a3c4abd2eab8806eb06c5418c7cd5a5bb649e83566",
+      "consumerManifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "gatewayManifestDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "registryDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "currentReference": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "actions": [
+        "beginYNX:challenge",
+        "handleReturn:complete",
+        "handleReturn:outcome"
+      ]
+    }
+  },
+  "vectors": [
+    {
+      "name": "structural_challenge",
+      "raw": "{\"body\":\"{\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"beginYNX\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"challenge\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "budget": 65536
+    },
+    {
+      "name": "structural_complete",
+      "raw": "{\"body\":\"{\\\"completion\\\":{\\\"challenge\\\":{},\\\"deviceSignature\\\":\\\"PUBLIC_NOT_A_VALID_SIGNATURE\\\"},\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"handleReturn\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"complete\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "budget": 65536
+    },
+    {
+      "name": "structural_outcome",
+      "raw": "{\"body\":\"{\\\"completion\\\":{\\\"challenge\\\":{},\\\"deviceSignature\\\":\\\"PUBLIC_NOT_A_VALID_SIGNATURE\\\"},\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"handleReturn\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"outcome\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "budget": 65536
+    },
+    {
+      "name": "action_operation_mismatch",
+      "raw": "{\"body\":\"{\\\"completion\\\":{\\\"challenge\\\":{},\\\"deviceSignature\\\":\\\"PUBLIC_NOT_A_VALID_SIGNATURE\\\"},\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"beginYNX\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"complete\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "budget": 0
+    },
+    {
+      "name": "publisher_selector_forbidden",
+      "raw": "{\"body\":\"{\\\"completion\\\":{\\\"challenge\\\":{},\\\"deviceSignature\\\":\\\"PUBLIC_NOT_A_VALID_SIGNATURE\\\"},\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"handleReturn\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"publication\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "budget": 0
+    },
+    {
+      "name": "trailing_newline_id",
+      "raw": "{\"body\":\"{\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"beginYNX\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"challenge\",\"requestId\":\"req_INTEROP_R29A_000001\\n\"}",
+      "budget": 0
+    },
+    {
+      "name": "noncanonical_outer",
+      "raw": "{\"body\":\"{\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"beginYNX\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"challenge\",\"requestId\":\"req_INTEROP_R29A_000001\"} ",
+      "budget": 0
+    },
+    {
+      "name": "no_profile_registration",
+      "raw": "{\"body\":\"{\\\"reference\\\":\\\"ynxpsr1_rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\\\",\\\"request\\\":{\\\"PUBLIC_ONLY\\\":\\\"not a complete request or grant\\\",\\\"version\\\":\\\"2\\\"}}\",\"carrierVersion\":\"YNX-PRODUCT-SESSION-PRIVATE/v4\",\"operation\":\"beginYNX\",\"phase\":\"effect\",\"proofHeader\":null,\"referenceAction\":\"challenge\",\"requestId\":\"req_INTEROP_R29A_000001\"}",
+      "registered": false,
+      "budget": 0
+    }
+  ]
+}

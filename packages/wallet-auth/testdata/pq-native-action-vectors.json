@@ -1,0 +1,373 @@
+{
+  "sourceCommit": "68a78ed74502d3635a02b1776887aeed3244cbec",
+  "truth": "Public frozen Go syntax vectors only; no authority or execution",
+  "vectors": [
+    {
+      "kind": "stake",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "stake",
+        "payload": {
+          "amount": "9007199254740995"
+        }
+      },
+      "bytes": 199,
+      "sha256": "1ebf8a43af751d8a487f0db90887a572bde7a62596a4181ca72d63d147e29d99"
+    },
+    {
+      "kind": "resource_delegation_create",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "resource_delegation_create",
+        "payload": {
+          "provider": "0x1234567890abcdef1234567890abcdef12345678",
+          "beneficiary": "0xabcdef1234567890abcdef1234567890abcdef12",
+          "amountYNXT": "9007199254740995",
+          "policyHash": "abababababababababababababababababababababababababababababababab",
+          "idempotencyKey": "delegate-key",
+          "requestHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+        }
+      },
+      "bytes": 464,
+      "sha256": "c6774dcac539acbc6293b6c0e33c7c3ccc84f7daaf2e2d48132851f62c119c38"
+    },
+    {
+      "kind": "resource_rental_create",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "resource_rental_create",
+        "payload": {
+          "address": "0x1234567890abcdef1234567890abcdef12345678",
+          "provider": "ynx_protocol_resource_pool",
+          "bandwidth": "9007199254740995",
+          "compute": "2",
+          "aiCredits": "3",
+          "trustCredits": "4",
+          "quoteID": "0123456789abcdef01234567",
+          "quoteExpiresAt": "2030-01-02T03:04:05.123456789Z",
+          "policyHash": "abababababababababababababababababababababababababababababababab",
+          "maxPriceYNXT": "9007199254740997",
+          "idempotencyKey": "rental-key",
+          "requestHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+        }
+      },
+      "bytes": 568,
+      "sha256": "98b520353982b5df558f76ac30b2c74b310a07506f3e5348aec57e0e50362b7e"
+    },
+    {
+      "kind": "dex_asset_create",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_asset_create",
+        "payload": {
+          "assetID": "asset-test",
+          "symbol": "TEST",
+          "name": "Test 资产",
+          "decimals": 18,
+          "maxSupply": "9223372036854775807",
+          "initialSupply": "9007199254740995"
+        }
+      },
+      "bytes": 271,
+      "sha256": "48967ee1cd2233fd2d78892f7f47bc7310fc6b57392513a72eb0a8762d5d0e46"
+    },
+    {
+      "kind": "dex_asset_mint",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_asset_mint",
+        "payload": {
+          "assetID": "asset-test",
+          "amount": "9007199254740995"
+        }
+      },
+      "bytes": 222,
+      "sha256": "0492725896cef63f2ebbf3f246b23a922a21029e5c973069f2e91d23ca1202c9"
+    },
+    {
+      "kind": "dex_asset_transfer",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_asset_transfer",
+        "payload": {
+          "assetID": "asset-test",
+          "recipient": "0xabcdef1234567890abcdef1234567890abcdef12",
+          "amount": "9007199254740995"
+        }
+      },
+      "bytes": 272,
+      "sha256": "c13fe6896c6e466e019b271b621ee3126717c9ef1e58c5e6248e3cf2ac5ed58f"
+    },
+    {
+      "kind": "dex_pool_create",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_pool_create",
+        "payload": {
+          "poolID": "dex_test",
+          "asset0": "YNXT",
+          "asset1": "asset-test",
+          "feeBps": 1000
+        }
+      },
+      "bytes": 235,
+      "sha256": "33cc4e44cf28ce118f20f788fae056b7a5c1f3897f1b17bc03ddd8ab7c5020df"
+    },
+    {
+      "kind": "dex_liquidity_add",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_liquidity_add",
+        "payload": {
+          "poolID": "dex_test",
+          "amount0": "9007199254740995",
+          "amount1": "2",
+          "minShares": "3",
+          "deadlineUnix": "1893456000"
+        }
+      },
+      "bytes": 271,
+      "sha256": "fdccb08fd6ea1879136633e96b209206cb6f82dc583dbbfea6e26e443f93201b"
+    },
+    {
+      "kind": "dex_liquidity_remove",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_liquidity_remove",
+        "payload": {
+          "poolID": "dex_test",
+          "shares": "9007199254740995",
+          "minAmount0": "2",
+          "minAmount1": "3",
+          "deadlineUnix": "1893456000"
+        }
+      },
+      "bytes": 274,
+      "sha256": "594a92566ae77230d7fffd747a631c70b37f68e8c2c58f2d468ac572f0926441"
+    },
+    {
+      "kind": "dex_swap_exact_input",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_swap_exact_input",
+        "payload": {
+          "poolID": "dex_test",
+          "assetIn": "YNXT",
+          "amountIn": "9007199254740995",
+          "minAmountOut": "2",
+          "deadlineUnix": "1893456000"
+        }
+      },
+      "bytes": 266,
+      "sha256": "054d53ae2a5e6d6cc5bebeefc0dc559b3d5c6e690b0e7951f97390fee1fa381e"
+    },
+    {
+      "kind": "dex_swap_exact_output",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "7",
+        "kind": "dex_swap_exact_output",
+        "payload": {
+          "poolID": "dex_test",
+          "assetOut": "asset-test",
+          "amountOut": "9007199254740995",
+          "maxAmountIn": "2",
+          "deadlineUnix": "1893456000"
+        }
+      },
+      "bytes": 273,
+      "sha256": "0993d58d7431485b678915a552952ed0a472506af04859d9d123a2277fea037e"
+    },
+    {
+      "kind": "contract_deploy",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "10",
+        "kind": "contract_deploy",
+        "payload": {
+          "name": "SampleEVMWriteCounter",
+          "sourceHash": "abababababababababababababababababababababababababababababababab",
+          "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "constructorArgs": [
+            "18446744073709551615"
+          ],
+          "value": "0"
+        }
+      },
+      "bytes": 462,
+      "sha256": "031252926a6222bbdd371726ec4cf78e93d71f0232dcd376d05156cec70ea634"
+    },
+    {
+      "kind": "contract_execute",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "2",
+        "kind": "contract_execute",
+        "payload": {
+          "name": "SampleEVMWriteCounter",
+          "sourceHash": "abababababababababababababababababababababababababababababababab",
+          "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "target": "0xabcdef1234567890abcdef1234567890abcdef12",
+          "expectedStorageCommitment": "0101010101010101010101010101010101010101010101010101010101010101",
+          "calldata": "0x7cf5dab0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "value": "0"
+        }
+      },
+      "bytes": 631,
+      "sha256": "956422593a04447ea54ea4e4899b067172ad471b50b74c1497066c4a660087e6"
+    },
+    {
+      "kind": "contract_deploy",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "10",
+        "kind": "contract_deploy",
+        "payload": {
+          "name": "SampleYNXTCompatibleERC20",
+          "sourceHash": "abababababababababababababababababababababababababababababababab",
+          "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "constructorArgs": [
+            "18446744073709551615"
+          ],
+          "value": "0"
+        }
+      },
+      "bytes": 466,
+      "sha256": "8c29ba429d2154a3b0460e619b03cd648bfdb2853d926c3f88e8576be4dcb2c2"
+    },
+    {
+      "kind": "contract_execute",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "2",
+        "kind": "contract_execute",
+        "payload": {
+          "name": "SampleYNXTCompatibleERC20",
+          "sourceHash": "abababababababababababababababababababababababababababababababab",
+          "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+          "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+          "target": "0xabcdef1234567890abcdef1234567890abcdef12",
+          "expectedStorageCommitment": "0101010101010101010101010101010101010101010101010101010101010101",
+          "calldata": "0xa9059cbb000000000000000000000000abcdef1234567890abcdef1234567890abcdef12ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "value": "0"
+        }
+      },
+      "bytes": 699,
+      "sha256": "57b5e42970c80acb86b73d54cc3aabbca8b403f56259dbbc5601a34ef8112c9d"
+    },
+    {
+      "kind": "stake_delegate",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "1",
+        "kind": "stake_delegate",
+        "payload": {
+          "validator": "ynx_validator_0",
+          "amountYNXT": "9007199254740995"
+        }
+      },
+      "bytes": 227,
+      "sha256": "84880acbd84f8d98466123f4cfc5750921bf9c2b108000268026952729d8e486",
+      "payloadHex": "000000030000000f796e785f76616c696461746f725f3000000004002000000000000400000003",
+      "wireHex": "0000000c00000014594e582d4e41544956452d414354494f4e2f7631000000040000000100000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000040020000000000004000000010000002a30783132333435363738393061626364656631323334353637383930616263646566313233343536373800000004ffffffff00000004ffffffff000000040000000000000004000000010000000e7374616b655f64656c656761746500000027000000030000000f796e785f76616c696461746f725f3000000004002000000000000400000003"
+    },
+    {
+      "kind": "stake_unbond",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "1",
+        "kind": "stake_unbond",
+        "payload": {
+          "delegationID": "0123456789abcdef01234567",
+          "amountYNXT": "9007199254740995"
+        }
+      },
+      "bytes": 234,
+      "sha256": "4306d6b5c268e2a98cd0c152364be9c65fab29d005e0a4df2c0f76f95d2de57f",
+      "payloadHex": "000000030000001830313233343536373839616263646566303132333435363700000004002000000000000400000003",
+      "wireHex": "0000000c00000014594e582d4e41544956452d414354494f4e2f7631000000040000000100000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000040020000000000004000000010000002a30783132333435363738393061626364656631323334353637383930616263646566313233343536373800000004ffffffff00000004ffffffff000000040000000000000004000000010000000c7374616b655f756e626f6e6400000030000000030000001830313233343536373839616263646566303132333435363700000004002000000000000400000003"
+    },
+    {
+      "kind": "stake_withdraw",
+      "input": {
+        "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+        "nativeChainId": "9007199254740993",
+        "owner": "0x1234567890abcdef1234567890abcdef12345678",
+        "nonce": "18446744073709551615",
+        "fee": "1",
+        "kind": "stake_withdraw",
+        "payload": {
+          "unbondingID": "0123456789abcdef01234567"
+        }
+      },
+      "bytes": 220,
+      "sha256": "f111011fecafdc9074d54ced21d93c8cd8c3ced3a82decf2948fdbc9f6e0670b",
+      "payloadHex": "0000000100000018303132333435363738396162636465663031323334353637",
+      "wireHex": "0000000c00000014594e582d4e41544956452d414354494f4e2f7631000000040000000100000020000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f000000040020000000000004000000010000002a30783132333435363738393061626364656631323334353637383930616263646566313233343536373800000004ffffffff00000004ffffffff000000040000000000000004000000010000000e7374616b655f7769746864726177000000200000000100000018303132333435363738396162636465663031323334353637"
+    }
+  ]
+}

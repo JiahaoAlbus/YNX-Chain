@@ -1,3 +1,6 @@
+import{PRODUCT_DEVICE_MANAGEMENT_V4_SOURCE_PURPOSE as MANAGEMENT_PURPOSE,PRODUCT_DEVICE_MANAGEMENT_V4_SELECTION_KEY as MANAGEMENT_KEY}from'./management-source-contract.mjs';
+import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE}from'./original-wallet-product-source-contract.mjs';
+import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'./original-browser-selected-pages-source-contract.mjs';
 import{WALLET_NATIVE_PAY_CLIENT_SOURCE_PURPOSE as WPC_PURPOSE}from'./original-wallet-pay-client-source-contract.mjs';
 import{AI_NATIVE_TASK_ACTION_V6_SOURCE_PURPOSE as AI_PURPOSE}from'./original-ai-task-action-v6-source-contract.mjs';
 import{PAY_NATIVE_CLOUD_BILL_SOURCE_PURPOSE as PAY_PURPOSE}from'./original-pay-cloud-bill-source-contract.mjs';
@@ -15,7 +18,7 @@ import {PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE} from './original-product-device-
 import {PRODUCT_DEVICE_V4_QUERY_PURPOSE} from './original-product-device-v4-query-source-contract.mjs';
 import {PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE} from './original-product-device-v4-registered-finalization-source-contract.mjs';
 import {PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE} from './original-product-session-http-v5-source-contract.mjs';
-const devicePurposes=Object.freeze([PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE]);
+const devicePurposes=Object.freeze([MANAGEMENT_PURPOSE,PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE]);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{
  if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_SOURCE_V2_DISPATCH_SCHEMA');
@@ -52,7 +55,7 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[PAY_PURPOSE,WPC_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);

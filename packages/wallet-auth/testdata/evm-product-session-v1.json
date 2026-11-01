@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "challenge": {
+    "chainId": 6423,
+    "account": "computed-by-test",
+    "productId": "finance",
+    "origin": "https://finance.ynxweb4.com",
+    "callback": "https://finance.ynxweb4.com/wallet-auth/callback",
+    "scope": "finance.account.read",
+    "deviceId": "browser-device-0123456789",
+    "deviceAlgorithm": "p256-sha256",
+    "deviceKey": "computed-by-test",
+    "nonce": "login_nonce_0123456789abcdefghijkl",
+    "state": "login_state_0123456789abcdefghijkl",
+    "requestId": "finance-evm-session-000001",
+    "providerKind": "metamask",
+    "issuedAt": "2026-09-24T05:59:30.000Z",
+    "expiresAt": "2026-09-24T06:04:30.000Z"
+  },
+  "invalidChallenges": [
+    { "chainId": 1 },
+    { "account": "ynx1notanevmaccount" },
+    { "productId": "shop" },
+    { "origin": "https://other.ynxweb4.com" },
+    { "callback": "https://other.ynxweb4.com/auth/evm/callback" },
+    { "scope": "finance.order.create" },
+    { "providerKind": "unknown" },
+    { "expiresAt": "2026-09-24T06:10:00.000Z" }
+  ]
+}

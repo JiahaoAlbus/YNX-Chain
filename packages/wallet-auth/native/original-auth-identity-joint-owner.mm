@@ -1,3 +1,5 @@
+#include "device_management_v4_release_private.hpp"
+#import "device_management_v4_source_private.h"
 #include "ai_task_client_source_release_private.hpp"
 #import "ai_task_client_source_private.h"
 #include "product_source_release_private.hpp"
@@ -53,6 +55,7 @@ static NSURL *YNXOriginalWalletProductRegistryResources(void){
 }
 #include "browser_page_registry_private.inc.mm"
 #include "ai_task_client_registry_private.inc.mm"
+#include "device_management_v4_registry_private.inc.mm"
 static NSURL *YNXOriginalWalletNativePayRegistryResources(void){
  if(getuid()==0||getuid()!=geteuid()||getgid()!=getegid())return nil;
  const ynx_auth_private::NativeSourceRelease*selected=nullptr;
@@ -132,7 +135,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _aiTaskClient;BOOL _browserPages;BOOL _walletNativeProduct,_walletNativePay,_payHeadSelected,_payProfileSelected,_payRootSelected;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query,_productDeviceV4RegisteredFinalization,_productHTTPV5;
+ NSUInteger _entered;BOOL _deviceManagement;BOOL _aiTaskClient;BOOL _browserPages;BOOL _walletNativeProduct,_walletNativePay,_payHeadSelected,_payProfileSelected,_payRootSelected;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query,_productDeviceV4RegisteredFinalization,_productHTTPV5;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -140,6 +143,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
 - (BOOL)fail:(NSString *)code error:(NSError **)error {if(!_firstCause)_firstCause=YNXAuthError(code);if(error)*error=_firstCause;return NO;}
 #include "browser_page_current_methods.inc.mm"
 #include "ai_task_client_current_methods.inc.mm"
+#include "device_management_v4_current_methods.inc.mm"
 + (instancetype)acquireOriginalWalletProductProfile:(NSError**)error {
  YNXAuthIdentityCurrentOwner*o=[self new];o->_walletNativeProduct=YES;o->_ideRegistry=YES;
  try{@try{[o capture:error];return o;}@catch(NSException*){[o fail:@"PRODUCT_SOURCE_PROFILE_EXCEPTION" error:error];return o;}}catch(...){[o fail:@"PRODUCT_SOURCE_PROFILE_CPP_EXCEPTION" error:error];return o;}
@@ -226,7 +230,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
   if(_ideProjectObserver){_actualIDEResources=YNXActualIDEObserverResources().path;if(!_actualIDEResources)return [self fail:@"IDE_OBSERVER_ACTUAL_APP_UNAVAILABLE" error:error];}
-  NSURL *resources=_aiTaskClient?YNXOriginalAITaskClientRegistryResources():_browserPages?YNXOriginalBrowserPageRegistryResources():_walletNativeProduct?YNXOriginalWalletProductRegistryResources():_walletNativePay?YNXOriginalWalletNativePayRegistryResources():_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
+  NSURL *resources=_deviceManagement?YNXOriginalDeviceV4ManagementRegistryResources():_aiTaskClient?YNXOriginalAITaskClientRegistryResources():_browserPages?YNXOriginalBrowserPageRegistryResources():_walletNativeProduct?YNXOriginalWalletProductRegistryResources():_walletNativePay?YNXOriginalWalletNativePayRegistryResources():_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)resources=[resources URLByAppendingPathComponent:@"project-control" isDirectory:YES];
@@ -250,7 +254,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
   if(_ideProjectObserver&&![YNXActualIDEObserverResources().path isEqual:_actualIDEResources])return [self fail:@"IDE_OBSERVER_ACTUAL_APP_CHANGED" error:error];
-  NSURL *expectedRegistry=_aiTaskClient?YNXOriginalAITaskClientRegistryResources():_browserPages?YNXOriginalBrowserPageRegistryResources():_walletNativeProduct?YNXOriginalWalletProductRegistryResources():_walletNativePay?YNXOriginalWalletNativePayRegistryResources():_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
+  NSURL *expectedRegistry=_deviceManagement?YNXOriginalDeviceV4ManagementRegistryResources():_aiTaskClient?YNXOriginalAITaskClientRegistryResources():_browserPages?YNXOriginalBrowserPageRegistryResources():_walletNativeProduct?YNXOriginalWalletProductRegistryResources():_walletNativePay?YNXOriginalWalletNativePayRegistryResources():_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-control" isDirectory:YES];

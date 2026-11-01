@@ -1,0 +1,4 @@
+// Only this management family delta; never Native or old Source suites.
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+const cwd=fileURLToPath(new URL('../../',import.meta.url));
+for(const[step,args]of[['management-source-v2',['--test','test/device-management-source-v2.test.mjs']],['management-source-v2-types',[fileURLToPath(import.meta.resolve('typescript/bin/tsc')),'--noEmit','--strict','--skipLibCheck','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext','test/device-management-source-v2.types.mts']]]){const r=spawnSync(process.execPath,args,{cwd,encoding:'utf8',timeout:120000,maxBuffer:2<<20});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');console.log(JSON.stringify({step,status:r.status,signal:r.signal,error:r.error?.code??null}));if(r.status!==0)process.exit(r.status??1)}

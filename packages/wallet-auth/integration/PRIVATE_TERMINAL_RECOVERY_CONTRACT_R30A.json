@@ -1,0 +1,25 @@
+{
+  "version": "YNX-PRIVATE-TERMINAL-RECOVERY/v1",
+  "recordFormat": "YNX-ORIGINAL-PRIVATE-TERMINAL/v3",
+  "limitBytes": 8192,
+  "fields": {
+    "v": 3,
+    "k": "terminal",
+    "e": "SHA256(exact canonical enteredRaw)",
+    "s": "verified envelope.snapshotDigest",
+    "x": "exact canonical full original responseRaw, not reconstructed"
+  },
+  "binding": "e transitively binds the exact retained entered record; before any derivation, Native independently verifies its requestDigest=inputRaw SHA, associationDigest=associationRaw SHA, operation, phase, requestId and stateBeforeDigest. Exact response requestId/headers/session association and stored state session membership remain mandatory.",
+  "derived": {
+    "q": "entered.requestDigest",
+    "a": "entered.associationDigest",
+    "o": "entered.operation",
+    "p": "entered.phase",
+    "id": "entered.requestId",
+    "b": "entered.stateBeforeDigest",
+    "r": "SHA256(exact x UTF8)"
+  },
+  "compatibility": "Existing v1 late-response and v2 reader retained; v1 missing raw still refuses. New writes v3 only with explicit exact new registration digest/format. No journal overwrite/migration.",
+  "authority": "Existing Source frame/Root/issuer only; codec is not admission or grant.",
+  "purpose": "Original terminal custody DATA; no retries, UNKNOWN clearing, Host adoption or signature operation"
+}

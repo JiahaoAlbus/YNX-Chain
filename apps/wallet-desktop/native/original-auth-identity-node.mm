@@ -1,3 +1,6 @@
+#ifdef YNX_ORIGINAL_DEVICE_V4_MANAGEMENT_STAGE
+#include "device_management_v4_napi_private.hpp"
+#endif
 #ifdef YNX_ORIGINAL_AI_TASK_CLIENT_V6_STAGE
 #include "task_action_client_v6_napi_private.hpp"
 #endif
@@ -679,6 +682,9 @@ static napi_value Register(napi_env env,napi_value exports){
  if(!RegisterOriginalWalletMainNamespaceV1(env,exports)||!RegisterOriginalWalletPaySource(env,exports)||!RegisterOriginalProductSource(env,exports))return nullptr;
 #ifdef YNX_ORIGINAL_AI_TASK_CLIENT_V6_STAGE
  if(!RegisterOriginalAITaskActionClientV6(env,exports))return nullptr;
+#endif
+#ifdef YNX_ORIGINAL_DEVICE_V4_MANAGEMENT_STAGE
+ if(!RegisterOriginalDeviceV4ManagementSource(env,exports))return nullptr;
 #endif
 #ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
  if(!RegisterOriginalPQTransaction(env,exports))return nullptr;

@@ -1,0 +1,98 @@
+{
+  "version": "YNX-PRIVATE-RETURNS/v1",
+  "carrierVersion": "YNX-PRODUCT-SESSION-PRIVATE/v4",
+  "outerFields": [
+    "requestId",
+    "operation",
+    "phase",
+    "body",
+    "proofHeader",
+    "carrierVersion",
+    "referenceAction"
+  ],
+  "actions": [
+    {
+      "operation": "beginYNX",
+      "referenceAction": "challenge",
+      "phase": "effect",
+      "method": "POST",
+      "path": "/v2/product-sessions/returns/challenge",
+      "bodyFields": [
+        "reference",
+        "request"
+      ],
+      "proofHeader": null,
+      "mutatesAuthority": false
+    },
+    {
+      "operation": "handleReturn",
+      "referenceAction": "complete",
+      "phase": "effect",
+      "method": "POST",
+      "path": "/v2/product-sessions/returns/complete",
+      "bodyFields": [
+        "reference",
+        "request",
+        "completion"
+      ],
+      "proofHeader": null,
+      "mutatesAuthority": true
+    },
+    {
+      "operation": "handleReturn",
+      "referenceAction": "outcome",
+      "phase": "effect",
+      "method": "POST",
+      "path": "/v2/product-sessions/returns/outcome",
+      "bodyFields": [
+        "reference",
+        "request",
+        "completion"
+      ],
+      "proofHeader": null,
+      "mutatesAuthority": false
+    }
+  ],
+  "budgets": {
+    "bodyBytes": 49152,
+    "envelopeBytes": 65536,
+    "responseBytes": 65536
+  },
+  "selectionField": "privateReturnTransport",
+  "registrationFields": [
+    "version",
+    "carrierVersion",
+    "contractDigest",
+    "consumerManifestDigest",
+    "gatewayManifestDigest",
+    "registryDigest",
+    "currentReference",
+    "actions"
+  ],
+  "registrationActions": [
+    "beginYNX:challenge",
+    "handleReturn:complete",
+    "handleReturn:outcome"
+  ],
+  "profileSignature": "existing original Source profile signatureContract.profileFrame; no new Root, issuer or signing domain",
+  "legacyInheritance": false,
+  "association": "original Native account/clientId/productId/platform/applicationId/deviceId, same existing Host/snapshot/authority/terminal journal; completed/original approval association selected by Host record, not caller account",
+  "unknownPolicy": "only exact original complete proof-bearing readonly outcome may be attempted as a distinct lookup; retain old UNKNOWN and original write identity/result, never reissue/reconsume/replay; no other effect unblocked",
+  "oldOperationsUnchanged": [
+    "restore",
+    "disconnect",
+    "time",
+    "unmarked legacy v2",
+    "private v3 full approval"
+  ],
+  "forbidden": [
+    "publication/publisher selector in Native DApp",
+    "automatic HTTP fallback",
+    "new operation name",
+    "second Host/state/listener",
+    "caller-selected origin/path/provider",
+    "old profile implicit capability",
+    "new issuer/Root/key",
+    "grant from parser"
+  ]
+}
