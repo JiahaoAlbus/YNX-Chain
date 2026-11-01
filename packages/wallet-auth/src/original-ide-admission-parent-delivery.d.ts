@@ -121,3 +121,24 @@ export declare function readOriginalIDEWorkspaceProjectSelection(originalSelecti
 /** Actual original independent cleanup returns undefined. First failures and
  * UNKNOWN propagate unchanged; no automatic retry or replacement selector. */
 export declare function closeOriginalIDEWorkspaceProjectSelection(originalSelection:OriginalIDEWorkspaceProjectSelectionRef):undefined;
+
+/** PRIVATE backend module declarations only. No new package.json export or
+ * admission. Native must authenticate the actual parent + opaque selector. */
+export interface OriginalIDECloudLookupOwner {
+ assertCurrent():undefined;readOriginalMappingDATA():unknown;
+ retire():undefined;join():undefined;close():undefined;statusDATA():Readonly<{RootAdmission:false;CloudGETAuthority:false;E11Authority:false;closed:boolean;firstCausePresent:boolean;firstCause:unknown}>;
+}
+export interface OriginalIDECloudRetainedGETOwner {
+ assertCurrent():undefined;readOriginalMappingDATA():unknown;
+ prepareOriginalGETRequest(request:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestDATA,context:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETAbortContext):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket;
+ readOriginalRequestDATA(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA;
+ recheckOriginalGETRequest(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):Promise<import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA>;
+ getDeploymentRequestHeaders():never;retire():undefined;join():Promise<void>;close():Promise<void>;statusDATA():Readonly<{retired:boolean;closed:boolean;firstCausePresent:boolean;firstCause:unknown;CloudGETProof:false;RootAdmission:false;SourceAdmission:false;NativeAdmission:false}>;
+}
+export interface OriginalIDERetainedWorkspaceForCloud<T> {
+ /** Existing P03 backend only; same opaque Native selector, no RPC callback. */
+ retainOriginalChild(acquire:(actualSelector:OriginalIDEWorkspaceProjectSelectionRef)=>T,options?:{signal?:AbortSignal}):Promise<T>;
+}
+export declare function acquireOriginalIDECloudProjectLookupForCurrentParent(originalWorkspaceSelection:OriginalIDEWorkspaceProjectSelectionRef):Readonly<{owner:OriginalIDECloudLookupOwner|null;failed:boolean;error:unknown}>;
+export declare function retainOriginalIDECloudProjectLookupForCurrentParent(workspace:OriginalIDERetainedWorkspaceForCloud<OriginalIDECloudLookupOwner>,options?:{signal?:AbortSignal}):Promise<OriginalIDECloudLookupOwner>;
+export declare function retainOriginalIDECloudGETForCurrentParent(workspace:OriginalIDERetainedWorkspaceForCloud<OriginalIDECloudRetainedGETOwner>,options?:{signal?:AbortSignal}):Promise<OriginalIDECloudRetainedGETOwner>;

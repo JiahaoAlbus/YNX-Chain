@@ -1,3 +1,4 @@
+import {captureOriginalIDECloudProjectLookupPrivate} from './original-ide-cloud-project-lookup-private.js';
 import {originalIDEServiceAdmissionStartupSelection} from '../scripts/original-ide-service-admission-native-selection.mjs';
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname,join} from 'node:path';
@@ -389,3 +390,29 @@ export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){
 }
 /** Cleanup-only lookup also remains available after falsy partial failures. */
 export function getOriginalIDEColdTerminalCustodyCleanup(actualEntryURL){return selectedColdCustody?.entry===actualEntryURL?selectedColdCustody.cleanup:null;}
+
+// Append only inside original-ide-admission-parent-delivery.js, where the
+// existing selectedParent is private and Native acquisition was selected once.
+// SDK sole installer adds the import, never a product-owned global parent map.
+export function acquireOriginalIDECloudProjectLookupForCurrentParent(originalWorkspaceSelection){
+ if(arguments.length!==1||!selectedParent?.binding||!selectedParent?.native)throw clientError('IDE_CLOUD_SAME_ADMITTED_PARENT_REQUIRED');
+ return captureOriginalIDECloudProjectLookupPrivate(selectedParent.native,selectedParent.binding,originalWorkspaceSelection);
+}
+// PRIVATE backend composition only. The consumer calls this once for its
+// already retained original workspace; no RPC receives a selector or callback.
+// The final GET controller will own this lookup child, not replace it with DATA.
+export function retainOriginalIDECloudProjectLookupForCurrentParent(retainedWorkspace,{signal}={}){
+ return retainedWorkspace.retainOriginalChild(originalSelector=>{
+  const result=acquireOriginalIDECloudProjectLookupForCurrentParent(originalSelector);
+  if(result.failed){const error=new Error('Original protected Cloud lookup acquisition failed',{cause:result.error});error.code='IDE_CLOUD_PROJECT_LOOKUP_ACQUISITION_FAILED';error.partial=result.owner;error.originalFailurePresent=true;throw error;}
+  return result.owner;
+ },{signal});
+}
+
+// PRIVATE one-child composition: same admitted parent + same retained opaque
+// selector. No public Source/Cloud factory, caller provider or proof fallback.
+export async function retainOriginalIDECloudGETForCurrentParent(retainedWorkspace,{signal}={}){
+ if(!selectedParent?.binding||!selectedParent?.native)throw clientError('IDE_CLOUD_SAME_ADMITTED_PARENT_REQUIRED');
+ const {captureOriginalIDECloudRetainedGETPrivate}=await import('./original-ide-cloud-retained-get-private.js');
+ return retainedWorkspace.retainOriginalChild(originalSelector=>captureOriginalIDECloudRetainedGETPrivate(acquireOriginalIDECloudProjectLookupForCurrentParent(originalSelector),originalSelector),{signal});
+}
