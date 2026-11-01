@@ -37,6 +37,7 @@ type bftEndpoint struct {
 	done            chan struct{}
 	serveErr, first error
 	started         bool
+	closed          bool
 }
 
 // BindBFT builds the actual normal RPC handler from the supplied original Node,
@@ -139,6 +140,9 @@ func (b *EngineBinding) ShutdownEndpoint(ctx context.Context) error {
 	e := b.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.closed {
+		return e.first
+	}
 	remember := func(err error) {
 		if e.first == nil && err != nil {
 			e.first = err
@@ -172,8 +176,21 @@ func (b *EngineBinding) ShutdownEndpoint(ctx context.Context) error {
 	}
 	if e.client != nil {
 		if c, ok := e.client.Transport.(*securelink.Transport); ok {
-			remember(c.Close())
+			if err := c.Close(); err != nil {
+				remember(err)
+				return e.first
+			}
 		}
 	}
+	e.closed = true
 	return e.first
+}
+
+func (b *EngineBinding) endpointClosed() bool {
+	if b == nil || b.endpoint == nil {
+		return true
+	}
+	b.endpoint.mu.Lock()
+	defer b.endpoint.mu.Unlock()
+	return b.endpoint.closed
 }

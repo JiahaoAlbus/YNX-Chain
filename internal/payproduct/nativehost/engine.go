@@ -46,7 +46,11 @@ func (b *EngineBinding) original() (Resources, *payproduct.NativePayHTTP, error)
 	if b.endpoint != nil {
 		b.endpoint.mu.Lock()
 		first := b.endpoint.first
+		closed := b.endpoint.closed
 		b.endpoint.mu.Unlock()
+		if closed {
+			return Resources{}, nil, ErrProductsRetired
+		}
 		if first != nil {
 			return Resources{}, nil, first
 		}

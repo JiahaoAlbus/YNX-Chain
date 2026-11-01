@@ -30,8 +30,10 @@ type Private struct {
 	server   *securelink.LocalCallerServer
 	done     chan struct{}
 	mu       sync.Mutex
+	closeMu  sync.Mutex
 	first    error
 	serveErr error
+	closed   bool
 }
 
 // OpenPrivate uses only the actual product handlers and existing private LINK
@@ -78,6 +80,40 @@ func OpenPrivate(products *Products, cfg PrivateConfig) (*Private, error) {
 
 func (p *Private) Done() <-chan struct{} { return p.done }
 
+func (p *Private) remember(err error) {
+	if err == nil {
+		return
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.first == nil {
+		p.first = err
+	}
+}
+
+// Retire stops original admission and workers without claiming their drain.
+func (p *Private) Retire() error {
+	if p == nil {
+		return nil
+	}
+	if p.server != nil {
+		p.remember(p.server.Retire())
+	}
+	if p.products != nil {
+		p.products.Retire()
+	}
+	return p.Err()
+}
+
+func (p *Private) Closed() bool {
+	if p == nil {
+		return true
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.closed
+}
+
 // Shutdown retains the listener even before Serve transfers ownership. It
 // closes that exact listener explicitly, drains the actual registered handlers
 // and Serve goroutine, then drains/closes product children/parents. Failure at
@@ -86,22 +122,17 @@ func (p *Private) Shutdown(ctx context.Context) error {
 	if p == nil || ctx == nil {
 		return ErrProductsRetired
 	}
-	remember := func(err error) {
-		if err == nil {
-			return
-		}
-		p.mu.Lock()
-		if p.first == nil {
-			p.first = err
-		}
-		p.mu.Unlock()
+	p.closeMu.Lock()
+	defer p.closeMu.Unlock()
+	if p.Closed() {
+		return p.Err()
 	}
-	if p.server != nil {
-		remember(p.server.Retire())
-	}
+	remember := p.remember
+	p.Retire()
 	if p.listener != nil {
-		if err := p.listener.Close(); !errors.Is(err, net.ErrClosed) {
+		if err := p.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			remember(err)
+			return p.Err()
 		}
 	}
 	if p.products != nil {
@@ -137,7 +168,13 @@ func (p *Private) Shutdown(ctx context.Context) error {
 			return p.Err()
 		}
 		remember(p.products.Close())
+		if !p.products.Closed() {
+			return p.Err()
+		}
 	}
+	p.mu.Lock()
+	p.closed = true
+	p.mu.Unlock()
 	return p.Err()
 }
 

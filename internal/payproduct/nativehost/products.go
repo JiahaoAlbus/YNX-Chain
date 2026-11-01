@@ -273,3 +273,14 @@ func (h *Products) Close() error {
 	h.closed = true
 	return h.closeErr
 }
+
+// Closed reports completed owned cleanup, separately from a retained first
+// error. A previous failed drain can remain an error after later cleanup.
+func (h *Products) Closed() bool {
+	if h == nil {
+		return true
+	}
+	h.closeMu.Lock()
+	defer h.closeMu.Unlock()
+	return h.closed
+}
