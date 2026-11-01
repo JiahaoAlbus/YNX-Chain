@@ -482,6 +482,12 @@
       "browser": null,
       "node": "./src/product-session-management-v4.js",
       "default": null
+    },
+    "./original-ide-held-session-read": {
+      "types": "./src/ide-held-session-root.d.ts",
+      "browser": null,
+      "node": "./src/ide-held-session-root.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -748,7 +754,8 @@
     "docs/ai-task-v6-node-esm-bootstrap.md",
     "docs/wallet-ide-v4-connection.md",
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.md",
-    "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json"
+    "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json",
+    "docs/PRODUCTION_RUNTIME_PACKAGE.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -832,13 +839,13 @@
     "@noble/hashes": "2.2.0",
     "@walletconnect/sign-client": "2.23.10",
     "qrcode": "1.5.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
+    "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
-    "@types/node": "24.13.3",
-    "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"
+    "@types/node": "24.13.3"
   },
   "engines": {
     "node": ">=22"
@@ -856,5 +863,9 @@
     "@types/node": {
       "optional": true
     }
-  }
+  },
+  "bundledDependencies": [
+    "@ynx/batch-v01-candidate",
+    "@ynx-chain/open-protocol"
+  ]
 }

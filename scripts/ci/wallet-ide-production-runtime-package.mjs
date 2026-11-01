@@ -1,0 +1,20 @@
+// Fresh normal omit-dev installation of the actual source tgz. No borrowed
+// source/dev node_modules, provider, Source grant, Native build or signing.
+import {createHash} from 'node:crypto';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
+const root=path.resolve(import.meta.dirname,'../..'),pkg=path.join(root,'packages/wallet-auth');
+const temp=fs.mkdtempSync(path.join(process.env.RUNNER_TEMP??process.env.TMPDIR??os.tmpdir(),'wallet-production-install-'));
+const env={...process.env,NPM_CONFIG_CACHE:process.env.NPM_CONFIG_CACHE??path.join(temp,'cache'),NPM_CONFIG_USERCONFIG:path.join(temp,'npmrc'),NPM_CONFIG_GLOBALCONFIG:path.join(temp,'global-npmrc')};delete env.NODE_OPTIONS;delete env.NODE_PATH;
+fs.writeFileSync(env.NPM_CONFIG_USERCONFIG,'registry=https://registry.npmjs.org\n');fs.writeFileSync(env.NPM_CONFIG_GLOBALCONFIG,'');
+function run(command,args,cwd){const r=spawnSync(command,args,{cwd,env,encoding:'utf8',timeout:600000,maxBuffer:10485760});if(r.error)throw r.error;if(r.status!==0)throw Error(JSON.stringify({command,args,status:r.status,signal:r.signal,stderr:r.stderr,stdout:r.stdout}));return r.stdout;}
+try{
+ // Existing source npm ci must have physically installed production bundle.
+ const dest=path.join(temp,'pack');fs.mkdirSync(dest);
+ const pack=JSON.parse(run('npm',['pack','--workspaces=false','--ignore-scripts','--json','--pack-destination',dest],pkg))[0];
+ const consumer=path.join(temp,'consumer');fs.mkdirSync(consumer);fs.writeFileSync(path.join(consumer,'package.json'),'{"name":"actual-sdk-production-consumer","private":true,"type":"module"}\n');
+ const archive=path.join(dest,pack.filename);
+ const install=run('npm',['install','--workspaces=false','--omit=dev','--ignore-scripts','--audit=false','--fund=false',archive],consumer);
+ const code=`import{realpathSync}from'node:fs';import{pathToFileURL}from'node:url';const prefix=pathToFileURL(realpathSync('node_modules/@ynx-chain/wallet-auth')+'/').href;const entries=['original-wallet-ide-v4-connection','product-session-management-v4','original-ide-held-session-read'];for(const e of entries){if(!import.meta.resolve('@ynx-chain/wallet-auth/'+e).startsWith(prefix))throw Error('not installed package');}const m=await import('@ynx-chain/wallet-auth/original-wallet-ide-v4-connection'),owner=m.openOriginalWalletIDEV4Connection();if(owner.statusDATA().connected!==false)throw Error('false grant');await owner.close();const data=await import('@ynx-chain/wallet-auth/product-session-management-v4');if(typeof data.encodeProductSessionManagementV4RequestDATA!=='function')throw Error('missing management');const ide=await import('@ynx-chain/wallet-auth/original-ide-held-session-read');const result=await ide.acquireOriginalIDEHeldSessionRead();if(result.owner)await result.owner.close();if(result.failed!==true||result.errorPresent!==true||result.cleanupOnly!==true)throw Error('Root0 not refused');console.log(JSON.stringify({node:process.version,normalInstalledImports:3,emptyOwnerClosed:true,IDEFactoryRoot0Refusal:true,originalIDEErrorCode:result.error?.code,NativeAcquired:false,RootAdmission:false,realLoginRestoreRevoke:false}));`;
+ const normal=run(process.execPath,['--input-type=module','-e',code],consumer);
+ const browser=run(process.execPath,['--conditions=browser','--input-type=module','-e',`for(const e of ['original-wallet-ide-v4-connection','product-session-management-v4','original-ide-held-session-read']){try{await import('@ynx-chain/wallet-auth/'+e);throw Error('browser exposed')}catch(error){if(error.code!=='ERR_PACKAGE_PATH_NOT_EXPORTED')throw error;}}console.log('THREE_BROWSER_EXPORTS_REFUSED')`],consumer);
+ console.log(JSON.stringify({archive:{file:pack.filename,bytes:fs.statSync(archive).size,sha256:createHash('sha256').update(fs.readFileSync(archive)).digest('hex')},productionOnlyInstall:true,ignoreScripts:true,borrowedDevNodeModules:false,normal:normal.trim(),browser:browser.trim(),install:install.trim(),RootAdmission:false,NativeAdmission:false,realLoginRestoreRevoke:false}));
+}finally{fs.rmSync(temp,{recursive:true,force:true});}

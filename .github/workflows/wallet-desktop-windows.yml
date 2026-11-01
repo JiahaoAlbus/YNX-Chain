@@ -4695,10 +4695,10 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
-      - run: node scripts/ci/wallet-ide-normal-consumer.mjs
+      - run: node scripts/ci/wallet-ide-production-runtime-package.mjs
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: wallet-auth49-wallet-ide-normal-v4-source
           if-no-files-found: error
-          path: canonical-common-source-package/*
+          path: canonical-common-source-package
