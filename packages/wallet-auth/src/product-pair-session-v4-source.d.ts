@@ -13,3 +13,15 @@ export function assertOriginalProductSessionDeviceV4ServerCurrentResult(outcome:
 /** Existing original issuer callee retained unchanged; no caller configuration. */
 export function acquireOriginalProductPairSessionV4Issuer():Promise<Readonly<{owner:OriginalProductPairSessionV4IssuerOwner|OriginalProductPairSessionV4PartialOwner;error:unknown}>>;
 export function assertOriginalProductPairIssuerOwnerV4(owner:unknown):OriginalProductPairSessionV4IssuerOwner;
+declare const pendingQuerySourceOwner:unique symbol;
+/** Private zero-input Source selection, never issuer/GET or a public provider. */
+export interface OriginalPendingPairQuerySourceOwnerV1 extends OriginalProductPairSessionV4PartialOwner {readonly[pendingQuerySourceOwner]:never;readonly serviceOrigin:string}
+/** Adopt owner before error; only own error:null is success. */
+export function acquireOriginalPendingPairQuerySourceV1():Promise<Readonly<{owner:OriginalPendingPairQuerySourceOwnerV1|OriginalProductPairSessionV4PartialOwner|null;error:unknown}>>;
+export function assertOriginalPendingPairQuerySourceOwnerV1(owner:unknown):OriginalPendingPairQuerySourceOwnerV1;
+declare const managementSourceOwner:unique symbol;
+export type OriginalManagementSourcePurposeV4='product-session-registered-management-service-v4'|'product-session-completion-query-service-v4';
+export interface OriginalManagementSourceOwnerV4 extends OriginalProductPairSessionV4PartialOwner {readonly[managementSourceOwner]:never;readonly purpose:OriginalManagementSourcePurposeV4;readonly operations:readonly string[]}
+export function acquireOriginalRegisteredManagementSourceV4():Promise<Readonly<{owner:OriginalManagementSourceOwnerV4|OriginalProductPairSessionV4PartialOwner|null;error:unknown}>>;
+export function acquireOriginalCompletionQuerySourceV4():Promise<Readonly<{owner:OriginalManagementSourceOwnerV4|OriginalProductPairSessionV4PartialOwner|null;error:unknown}>>;
+export function assertOriginalProductSessionManagementSourceV4(owner:unknown,purpose:OriginalManagementSourcePurposeV4):OriginalManagementSourceOwnerV4;
