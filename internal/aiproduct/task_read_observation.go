@@ -6,11 +6,34 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync/atomic"
 )
+
+// Consumer bound from sole SDK 97e8f2e0 PRODUCT_SESSION_TASK_V6_LIMITS.body.
+// Private transport may carry more bytes; that does not widen signed V6 bodies.
+const maxTaskV6ObservationBodyBytes = 1048576
+
+var ErrTaskV6ObservationBodyLimit = errors.New("AI_TASK_V6_OBSERVATION_BODY_LIMIT")
+
+type taskObservationBodyWriter struct {
+	taskActionBodyWriter
+	err error
+}
+
+func (w *taskObservationBodyWriter) Write(body []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+	if len(body) > maxTaskV6ObservationBodyBytes-w.body.Len() {
+		w.err = ErrTaskV6ObservationBodyLimit
+		return 0, w.err
+	}
+	return w.taskActionBodyWriter.Write(body)
+}
 
 type TaskStoreObservationView struct {
 	Decision, Scope, Kind       string
@@ -109,7 +132,7 @@ func (source *TaskStoreSource) ObserveOriginalTaskRead(ctx context.Context, serv
 	if err != nil {
 		return nil, err
 	}
-	writer := &taskActionBodyWriter{header: http.Header{}}
+	writer := &taskObservationBodyWriter{taskActionBodyWriter: taskActionBodyWriter{header: http.Header{}}}
 	before := source.store.authorityEpoch.Load()
 	kind := ""
 	switch {
@@ -152,6 +175,9 @@ func (source *TaskStoreSource) ObserveOriginalTaskRead(ctx context.Context, serv
 	default:
 		return nil, errToolInvalid
 	}
+	if writer.err != nil {
+		return nil, writer.err
+	}
 	if before == nil || source.store.authorityEpoch.Load() != before {
 		return nil, ErrTaskStoreSnapshotStale
 	}
@@ -193,6 +219,10 @@ func (source *TaskStoreSource) ObserveOriginalTaskOutcome(ctx context.Context, s
 		original.Close()
 		return nil, err
 	}
+	if len(body) > maxTaskV6ObservationBodyBytes {
+		original.Close()
+		return nil, ErrTaskV6ObservationBodyLimit
+	}
 	observation := &TaskStoreObservation{source: source, ctx: ctx, original: original, body: body, view: observationView(p, call, "original-outcome-query", http.StatusOK, body)}
 	if err := observation.Current(); err != nil {
 		return observation, err
@@ -228,8 +258,11 @@ func (source *TaskStoreSource) ObserveOriginalTaskQuery(ctx context.Context, ser
 	}
 	request.SetPathValue("id", segments[2])
 	request.SetPathValue("stepId", segments[4])
-	writer := &taskActionBodyWriter{header: http.Header{}}
+	writer := &taskObservationBodyWriter{taskActionBodyWriter: taskActionBodyWriter{header: http.Header{}}}
 	server.handleTaskToolReconcile(writer, request, session)
+	if writer.err != nil {
+		return nil, writer.err
+	}
 	if writer.status == http.StatusServiceUnavailable {
 		return nil, errTaskEffectSourceUnavailable
 	}
@@ -254,6 +287,9 @@ func (source *TaskStoreSource) ObserveOriginalTaskQuery(ctx context.Context, ser
 	body, err := taskActionResponse(http.StatusOK, response)
 	if err != nil {
 		return nil, err
+	}
+	if len(body) > maxTaskV6ObservationBodyBytes {
+		return nil, ErrTaskV6ObservationBodyLimit
 	}
 	if !bytes.Equal(body, writer.body.Bytes()) {
 		return nil, ErrTaskStoreSnapshotStale

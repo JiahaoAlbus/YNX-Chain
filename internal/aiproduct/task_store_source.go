@@ -50,6 +50,17 @@ func NewTaskStoreSource(store *Store) (*TaskStoreSource, error) {
 	}
 	return &TaskStoreSource{store: store}, nil
 }
+
+// OpenTaskStoreSource binds normal Auth/LINK composition to this running
+// server's actual Store. The returned owner must be retired/closed by that
+// composition; it cannot replace the Store or install authority from request
+// data. Opening a source does not register a native action or start a listener.
+func (s *Server) OpenTaskStoreSource() (*TaskStoreSource, error) {
+	if s == nil || s.store == nil {
+		return nil, ErrTaskStoreSnapshotStale
+	}
+	return NewTaskStoreSource(s.store)
+}
 func (s *TaskStoreSource) Retire() {
 	if s != nil {
 		s.retired.Store(true)

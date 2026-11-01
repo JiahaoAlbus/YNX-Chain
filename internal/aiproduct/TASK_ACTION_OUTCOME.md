@@ -105,3 +105,25 @@ No public V6 approval COMMITTED receipt is inferred from a stored approved flag
 or ordinary current callback. The actual Auth-owned SameHeldReview/activation
 callee must be supplied and consumed before that producer is activated. Read
 observation of an old approval flag does not grant a new approval or effect.
+
+## Normal private runtime adapter hooks
+
+`Server.OpenTaskStoreSource()` is the sole no-argument source getter for the
+running Server's real Store. It refuses nil/uninitialized servers, accepts no
+external Store/path and neither registers authority nor starts a listener. Its
+returned source owner belongs to the original Auth/LINK composition and must
+be retired/closed there. No synonymous getter is introduced.
+
+The private runtime follows the original Go HTTP handler's still-live request
+and context into Node Auth. Finite typed business callbacks use that same
+HTTP/SCM lifetime; an intermediate capture response must not prematurely retire
+the held product objects. A detached context, a JSON lease selector or a Node
+boolean cannot extend the lifetime or replace Go at-CAS Current. Original LINK
+owns transport custody/current; Auth owns the Node kernel/issuer and Go endpoint.
+P08 owns only its actual Server/Store producer and necessary normal hooks.
+
+The sole SDK 97e8f2e0 V6 body bound is 1,048,576 bytes. Observation production
+uses that signed-body bound even though private transport can carry 32 MiB.
+An oversized actual normal writer body returns
+`AI_TASK_V6_OBSERVATION_BODY_LIMIT`, produces no OBSERVED object and leaves the
+original stored result intact. Bytes and digest are never truncated/reused.
