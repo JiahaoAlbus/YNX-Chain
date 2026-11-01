@@ -1,0 +1,2 @@
+// Only the new canonical original-byte regression; no old crypto/Native suites.
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const r=spawnSync(process.execPath,['--test','test/source-v2-body-original.test.mjs'],{cwd:fileURLToPath(new URL('../../',import.meta.url)),encoding:'utf8',timeout:60000,maxBuffer:2<<20});process.stdout.write(r.stdout??'');process.stderr.write(r.stderr??'');console.log(JSON.stringify({step:'source-v2-body-original',status:r.status,signal:r.signal,error:r.error?.code??null}));if(r.status!==0)process.exit(r.status??1);
