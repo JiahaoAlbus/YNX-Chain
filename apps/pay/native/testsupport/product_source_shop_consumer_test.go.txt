@@ -1,0 +1,49 @@
+package commerce
+
+// Overlay-only P06 delta: actual consumer -> original LINK registered caller
+// -> original Shop Unix getter -> actual cold original Store. Public authority
+// fixture functions come from the complete original P07 source, never normal H.
+import (
+ "bufio"
+ "bytes"
+ "encoding/base64"
+ "encoding/json"
+ "os"
+ "os/exec"
+ "path/filepath"
+ "testing"
+)
+
+func TestP06ProductSourceActualShopUnixColdAndRevoke(t *testing.T) {
+ store,buyer,order,request:=publicSourceInvoiceRecord(t)
+ cold,err:=Open(store.path);if err!=nil {t.Fatal(err)}
+ _,authority,client:=publicInvoiceReadService(t,cold,buyer,order,"")
+ before,err:=os.ReadFile(store.path);if err!=nil {t.Fatal(err)}
+ stateBefore,_:=json.Marshal(cold.s)
+ driver:=os.Getenv("PAY_PRODUCT_SOURCE_SHOP_DRIVER");if !filepath.IsAbs(driver) {t.Fatal("explicit P06 consumer driver required")}
+ node:=os.Getenv("PAY_NODE_BINARY");if !filepath.IsAbs(node) {t.Fatal("exact original Node required")}
+ cmd:=exec.CommandContext(t.Context(),node,driver)
+ input,err:=cmd.StdinPipe();if err!=nil {t.Fatal(err)}
+ output,err:=cmd.StdoutPipe();if err!=nil {t.Fatal(err)}
+ var stderr bytes.Buffer;cmd.Stderr=&stderr
+ if err=cmd.Start();err!=nil {t.Fatal(err)}
+ t.Cleanup(func(){_ = input.Close();if cmd.ProcessState==nil {_ = cmd.Process.Kill()}})
+ encoder:=json.NewEncoder(input)
+ if err=encoder.Encode(map[string]any{"ref":map[string]string{"productId":"shop.order","sourceOrder":order.ID},"expected":request});err!=nil {t.Fatal(err)}
+ count:=0;done:=false;scanner:=bufio.NewScanner(output);scanner.Buffer(make([]byte,4096),2<<20)
+ for scanner.Scan() {
+  var message struct {Type string `json:"type"`;ProductID string `json:"productId"`;SourceOrder string `json:"sourceOrder"`;OriginalReads int `json:"originalReads"`;RevokedDenied bool `json:"revokedDenied"`}
+  if err=json.Unmarshal(scanner.Bytes(),&message);err!=nil {t.Fatal(err)}
+  if message.Type=="done" {done=message.OriginalReads==2&&message.RevokedDenied;break}
+  if message.Type!="read"||message.ProductID!="shop.order"||message.SourceOrder!=order.ID {t.Fatal("fixture selector changed")}
+  count++;if count==3 {authority.retired.Store(true)};if count>3 {t.Fatal("unexpected read/retry")}
+  path,pathErr:=OriginalShopInvoiceReadPathFor(message.ProductID,message.SourceOrder);if pathErr!=nil {t.Fatal(pathErr)}
+  response,callErr:=client.Call(t.Context(),"GET",path,"",nil);if callErr!=nil {t.Fatal(callErr)}
+  if err=encoder.Encode(map[string]any{"status":response.StatusCode,"body":base64.StdEncoding.EncodeToString(response.Body)});err!=nil {t.Fatal(err)}
+ }
+ if err=scanner.Err();err!=nil {t.Fatal(err)}
+ _ = input.Close();if err=cmd.Wait();err!=nil {t.Fatalf("actual P06 consumer %v: %s",err,stderr.String())}
+ after,_:=os.ReadFile(store.path);stateAfter,_:=json.Marshal(cold.s)
+ if !done||count!=3||!bytes.Equal(before,after)||!bytes.Equal(stateBefore,stateAfter) {t.Fatal("missing delta read or mutated original order/bill/effect/journal")}
+ t.Log("P06_PRODUCT_SOURCE_ACTUAL_SHOP_UNIX reads=2 revoke403=true originalDiskAndStoreUnchanged=true POST=0 qualifiedSource=false")
+}

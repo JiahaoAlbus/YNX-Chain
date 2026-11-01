@@ -96,8 +96,13 @@ The original `run_native_workflow.sh` includes the new consumer controls.
 and runs actual import plus HTTP/current controls. The prepared external Cloud
 fixture adds only `TestP06ProductSourceActualCloudColdAndRevoke`, using P06's
 actual consumer/client through the real normal Cloud HTTP/Store, cold reopen
-and original Source revoke. Source/price/runtime setup remains explicitly
-PUBLIC; no invoice creation, Pay lookup, execution or POST is caused by reads.
+and original Source revoke. `product-source-cloud-service` runs that new Go
+case. `product-source-shop-service` runs only the new P06 consumer through the
+original LINK registered caller, actual Unix getter and cold original Shop
+Store, then original authority revoke. Preparation scripts freeze each whole
+supplier closure externally and add only the declared test fixture. Source,
+price and runtime setup remains explicitly PUBLIC; reads cannot grant Native
+admission or merchant approval.
 
 Pay `apps/pay/native/main-entry.mjs:createNativePayMainEntry({getMain,getContext})` is Main-boot-only composition. It reads the original Source/current and actual Main journal, enters the existing Main signing/broadcast review queue, returns sanitized bill/review references, and exposes no approve/key/sign/submit/Source construction operation over its input. `compose` is not an IPC or environment activation. P01 alone connects its existing safe live-frame IPC/normal UI and dispatcher. P06 now requires the fixed `requestPQPayBroadcast(reference)` review entry, as actually frozen by P01a437; its missing Native Source remains accurately unavailable. It never falls back to Core review or invokes a supplied approval/send callback. The compatibility submit commands also request this review only. Terms merchant/invoice references come from the actual retained terms action, not caller money or a URL. Pay's macOS client extends the existing package builder; missing original bridge/runtime is explicit unavailable, not a synthetic login or demo. Source/SDK/Main and actual same-source installation/admission remain distinct evidence.
 

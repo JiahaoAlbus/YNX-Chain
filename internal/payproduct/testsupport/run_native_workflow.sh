@@ -24,6 +24,16 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source-cloud-service ]; then
  "$PAY_GO_BINARY" test -mod=readonly -race -p 1 ./internal/cloud -run '^TestP06ProductSourceActualCloudColdAndRevoke$' -count=1 -timeout=60s -v
  exit
 fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source-shop-service ]; then
+ : "${PAY_GO_BINARY:?exact original Go executable required}"
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_SHOP_SOURCE_ROOT:?prepared complete verified original Shop closure required}"
+ : "${SHOP_SOURCE_READ_SOCKET_ROOT:?short owned original Unix socket fixture root required}"
+ export PAY_PRODUCT_SOURCE_SHOP_DRIVER="$source_dir/../../apps/pay/native/testsupport/product-source-shop-service.mjs"
+ cd "$PAY_SHOP_SOURCE_ROOT"
+ "$PAY_GO_BINARY" test -mod=readonly -race -p 1 -tags commerce_v2 ./internal/commerce -run '^TestP06ProductSourceActualShopUnixColdAndRevoke$' -count=1 -timeout=60s -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-producer-link ]; then
  : "${PAY_NATIVE_AUTH_BOUNDARY:?frozen original Auth Native boundary required}"
  : "${PAY_NATIVE_LINK_BOUNDARY:?frozen original LINK component required}"
