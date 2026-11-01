@@ -17,5 +17,5 @@ try{
  writeFileSync(join(temp,'package.json'),' {"type":"module"}\n');
  const tsc=join(base,'node_modules/typescript/bin/tsc');if(!existsSync(tsc))throw Error('NORMAL_TYPESCRIPT_NOT_SUPPLIED');
  child([tsc,'--strict','--noEmit','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022','--typeRoots',join(base,'node_modules/@types'),join(temp,'test/original-wallet-ide-v4-connection.types.mts')]);
- console.log('NEW_V4_NORMAL_TYPES_PASS six refusals');
+ console.log('NEW_V4_NORMAL_TYPES_PASS eight refusals');
 }finally{rmSync(temp,{recursive:true,force:true});}

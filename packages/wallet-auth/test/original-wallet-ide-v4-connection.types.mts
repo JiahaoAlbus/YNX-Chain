@@ -15,3 +15,8 @@ owner.statusDATA().connected=true;
 // @ts-expect-error finalization also requires same original context
 owner.finalizeOriginalAssociation({});
 void c;void n;
+
+// @ts-expect-error review retains SAME original context, never an omitted/default context
+owner.reviewPair({});
+// @ts-expect-error finalization review is zero caller identity/provider input beyond original context
+owner.reviewFinalization({provider:()=>({})});
