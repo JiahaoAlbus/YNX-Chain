@@ -10,6 +10,7 @@ on:
       - "apps/seller-console/test/inventory-batch-cli.test.mjs"
       - "apps/seller-console/test/inventory-batch-http.mjs"
       - "apps/seller-console/test/mutation-intents.test.mjs"
+      - "apps/seller-console/test/warehouse-*.mjs"
       - "apps/seller-console/scripts/current-wallet-sdk.mjs"
       - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
@@ -23,6 +24,7 @@ on:
       - "apps/seller-console/test/inventory-batch-cli.test.mjs"
       - "apps/seller-console/test/inventory-batch-http.mjs"
       - "apps/seller-console/test/mutation-intents.test.mjs"
+      - "apps/seller-console/test/warehouse-*.mjs"
       - "apps/seller-console/scripts/current-wallet-sdk.mjs"
       - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
@@ -40,7 +42,7 @@ jobs:
       - name: Verify original intent recovery and build the normal Shop service
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
           go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - uses: actions/setup-java@v4
         with:
@@ -66,9 +68,11 @@ jobs:
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \
             esbuild@0.25.9 @noble/curves@2.2.0 @noble/hashes@2.2.0
-          node apps/seller-console/native/check-inventory-cli.mjs "$RUNNER_TEMP/ynx-shop-inventory-tools/node_modules" "$RUNNER_TEMP/inventory-http-fixture.mjs"
+          node apps/seller-console/native/check-inventory-cli.mjs "$RUNNER_TEMP/ynx-shop-inventory-tools/node_modules" "$RUNNER_TEMP/inventory-http-fixture.mjs" "$RUNNER_TEMP/warehouse-http-fixture.mjs"
           YNX_SHOP_INVENTORY_CLI_FIXTURE="$RUNNER_TEMP/inventory-http-fixture.mjs" \
             go test -mod=readonly -race -tags commerce_v2 ./internal/commerce -run '^TestInventoryBatchCLIActualHTTP' -count=1 -v
+          YNX_SHOP_WAREHOUSE_CLI_FIXTURE="$RUNNER_TEMP/warehouse-http-fixture.mjs" \
+            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce -run '^TestWarehouseCLIActualHTTP' -count=1 -v
 
   android-app-candidate:
     runs-on: ubuntu-latest

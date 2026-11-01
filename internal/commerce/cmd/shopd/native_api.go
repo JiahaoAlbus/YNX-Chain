@@ -19,6 +19,9 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 			return
 		}
 		p := r.URL.Path
+		parts := strings.Split(p, "/")
+		warehouseMutation := len(parts) == 5 && parts[1] == "api" && parts[2] == "orders" && parts[3] != "" && (parts[4] == "return-receipts" || parts[4] == "return-restock")
+		warehouseRead := len(parts) == 6 && parts[1] == "api" && parts[2] == "seller" && parts[3] == "orders" && parts[4] != "" && parts[5] == "warehouse"
 		publicRead := r.Method == http.MethodGet && (p == "/health" || p == "/version" || p == "/api/capabilities" || p == "/api/products" || strings.HasPrefix(p, "/api/products/") || strings.HasPrefix(p, "/api/stores/") || p == "/api/catalog/search")
 		if !publicRead && (r.URL.RawQuery != "" || r.URL.ForceQuery) {
 			http.Error(w, "exact private path required", http.StatusBadRequest)
@@ -31,7 +34,7 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 		// Fixed inventory/warehouse CLI surface borrows the original complete
 		// Seller handler. Its own protected identity/current/action verification
 		// remains mandatory. Never retry a denial through Buyer or legacy auth.
-		sellerInventory := r.Method == http.MethodPost && (p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup")
+		sellerInventory := r.Method == http.MethodPost && (p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup" || warehouseMutation || warehouseRead)
 		if sellerInventory {
 			if seller != nil {
 				seller.ServeHTTP(w, r)

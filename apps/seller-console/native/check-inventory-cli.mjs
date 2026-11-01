@@ -12,10 +12,12 @@ const esbuild=require('esbuild');
 if(esbuild.version!=='0.25.9')throw Error('Original Native compiler mismatch');
 const supplier=await prepareCurrentWalletSDK({dependencies}),root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const output=await mkdtemp(join(tmpdir(),'ynx-shop-inventory-cli-'));
-const tests=['inventory-batch-cli','mutation-intents'].map(name=>join(output,name+'.mjs'));
-for(const [index,name] of ['inventory-batch-cli','mutation-intents'].entries()){
+const names=['inventory-batch-cli','mutation-intents','warehouse-cli'];
+const tests=names.map(name=>join(output,name+'.mjs'));
+for(const [index,name] of names.entries()){
  await esbuild.build({entryPoints:[join(root,'test',name+'.test.mjs')],outfile:tests[index],bundle:true,format:'esm',platform:'node',target:'node22',...supplier.buildOptions});
 }
 console.log('Inventory CLI official SDK pin',supplier.provenance.sha256);
 execFileSync(process.execPath,['--test',...tests],{stdio:'inherit'});
 if(process.argv[3])await esbuild.build({entryPoints:[join(root,'test','inventory-batch-http.mjs')],outfile:resolve(process.argv[3]),bundle:true,format:'esm',platform:'node',target:'node22',...supplier.buildOptions});
+if(process.argv[4])await esbuild.build({entryPoints:[join(root,'test','warehouse-http.mjs')],outfile:resolve(process.argv[4]),bundle:true,format:'esm',platform:'node',target:'node22',...supplier.buildOptions});

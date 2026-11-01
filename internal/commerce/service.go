@@ -804,7 +804,7 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	case "cancelled":
 		allowed = buyer && o.Status == "payment_pending"
 	case "shipped":
-		allowed = canFulfill && o.Status == "paid" && shipment != nil && shipment.Carrier != "" && shipment.TrackingNumber != ""
+		allowed = canFulfill && o.Status == "paid" && o.Settlement != nil && settlementMatchesOrder(o, *o.Settlement) && shipment != nil && shipment.Carrier != "" && shipment.TrackingNumber != ""
 	case "delivered":
 		allowed = (buyer || canFulfill) && o.Status == "shipped"
 	case "return_requested":

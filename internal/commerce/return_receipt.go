@@ -187,6 +187,12 @@ func (s *Store) RestockReturn(actor, id string, in RestockReturnInput) (Order, e
 		}
 		return cloneOrder(o), nil
 	}
+	// A retained goods receipt does not replace the original fulfilled sale.
+	// Missing/mismatched original settlement blocks a NEW stock effect only;
+	// exact existing operation readback above remains available without replay.
+	if o.Shipment == nil || o.Settlement == nil || !settlementMatchesOrder(o, *o.Settlement) {
+		return Order{}, fmt.Errorf("%w: original fulfilled settlement required before restock", ErrInvalidState)
+	}
 	if _, err := returnRemaining(o); err != nil {
 		return Order{}, err
 	}
