@@ -11,7 +11,7 @@ reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
 class SourceDataControls(unittest.TestCase):
  def test_original_zip_crc_pins_named_cases_and_scope(self):
   q=data.qualification()
-  self.assertEqual(q['commit'],'d9038b9292f9c28d38decb9717282e50febffdb1')
+  self.assertEqual(q['commit'],'9081f14654a48f4fe14e57696ec33527869da353')
   self.assertEqual((len(data.EXPECTED['normalProducer']),len(data.EXPECTED['originalSupplierBudget'])),(7,22))
   self.assertFalse(q['pressureAuthorized']);self.assertIn('finite',q['scope'])
  def test_truncated_changed_or_missing_original_evidence_cannot_qualify(self):
@@ -28,6 +28,11 @@ class SourceDataControls(unittest.TestCase):
   wrong=dict(q,optionalForkTree='0'*40)
   with mock.patch.object(reader,'NORMAL_LIVE_SOURCE_QUALIFICATION',wrong):
    with self.assertRaisesRegex(RuntimeError,'source-CI qualification differs'):reader.qualify({k:q[k] for k in ('commit','tree','forkTree')})
+ def test_previous_d903_source_archive_and_identity_cannot_migrate(self):
+  old=data.FIXTURE.with_name('d903-normal-live-source-original.zip').read_bytes()
+  with self.assertRaisesRegex(RuntimeError,'archive pin'):data.qualification(old)
+  q=data.qualification();identity={k:q[k] for k in ('commit','tree','forkTree')};identity['commit']='d9038b9292f9c28d38decb9717282e50febffdb1'
+  with self.assertRaisesRegex(RuntimeError,'exact normal live source'):reader.qualify(identity)
  def test_exact_source_qualification_never_grants_pressure(self):
   q=data.qualification();actual=reader.qualify({k:q[k] for k in ('commit','tree','forkTree')})
   self.assertEqual(actual,q);self.assertFalse(actual['pressureAuthorized'])

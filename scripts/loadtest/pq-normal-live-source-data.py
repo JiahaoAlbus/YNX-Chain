@@ -2,10 +2,10 @@
 import hashlib,io,json,stat,zipfile
 from pathlib import Path,PurePosixPath
 
-QUALIFICATION = {'commit': 'd9038b9292f9c28d38decb9717282e50febffdb1', 'tree': '66d6f8f2ddce1a08202d5b32e0e216debfabbdeb', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '3feeb37aa87da683ec30d80f14a6239a9721e346bc0c42bbfdfc89e8a7119dc4', 'sourceCI': {'run': 41317363794, 'job': 124880188598, 'artifact': 13088047288}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
+QUALIFICATION = {'commit': '9081f14654a48f4fe14e57696ec33527869da353', 'tree': '8c12ec07479bf6664cf279adb6395c704ead33e1', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '86e7ad98116af984eeb145c3bcf7b48d7a96da8ad897b3603cdd984527bf7f17', 'sourceCI': {'run': 41323073659, 'job': 124897263752, 'artifact': 13089839088}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
 EXPECTED = {'normalProducer': ('TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay', 'TestOperatorWireLiveUnknownPreservesOriginalAndRetires', 'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit', 'TestOperatorWireLivePermissionsIdentityAndResiduals', 'TestOperatorWireLiveRequesterUnknownAndProducerIdentity', 'TestOperatorWireLiveSelfProcParsingAndDefaultOff', 'TestOperatorWireLiveTypedNormalNodeBeforeStartIsUnknown'), 'originalSupplierBudget': ('TestLosslessHexBudgetFullQueueElapsedDeadline', 'TestLosslessHexBudgetFullQueueStopsWithoutRawReplay', 'TestLosslessHexBudgetInvalidEnableStaysDefaultOff', 'TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial', 'TestLosslessHexBudgetNormalize', 'TestLosslessHexBudgetPackFailureNeverFallsBack', 'TestLosslessHexBudgetPackReservesBeforeFrameAllocation', 'TestLosslessHexBudgetParallelAttemptsAndClose', 'TestLosslessHexBudgetParallelReservations', 'TestLosslessHexBudgetPeerBytes', 'TestLosslessHexBudgetPeerClock', 'TestLosslessHexBudgetPeerIdentityAndLifetime', 'TestLosslessHexBudgetReceiveBeforeOriginalCheckTx', 'TestLosslessHexBudgetSendAttemptsAndAtomicCharge', 'TestLosslessHexBudgetSendClockRollback', 'TestLosslessHexBudgetSendIdentityAndClock', 'TestLosslessHexBudgetTypedNilPeerCannotClaimCapability', 'TestLosslessHexTransportDefaultOffAndSingleCarrier', 'TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry', 'TestLosslessHexTransportQueuedRetryKeepsSelectedFormat', 'TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback', 'TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey')}
-ARCHIVE_SHA256 = 'e0a2d27680b55968675d735b5fb1a02ca3b3bc6bd1e2d8c711e897ebcc52ddef'
-FIXTURE = Path(__file__).with_name('fixtures')/'d903-normal-live-source-original.zip'
+ARCHIVE_SHA256 = '5c3db014446402ced74177c7965ec1554fa6aa609b2cca0000fe2667bc2fef08'
+FIXTURE = Path(__file__).with_name('fixtures')/'9081-normal-live-source-original.zip'
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)
@@ -20,7 +20,7 @@ def strict(raw):
 
 def qualification(raw=None):
     raw=FIXTURE.read_bytes() if raw is None else raw
-    require(type(raw) is bytes and len(raw)==11081 and hashlib.sha256(raw).hexdigest()==ARCHIVE_SHA256,'original source-CI archive pin differs')
+    require(type(raw) is bytes and len(raw)==11092 and hashlib.sha256(raw).hexdigest()==ARCHIVE_SHA256,'original source-CI archive pin differs')
     files={}
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         require(len(archive.infolist())==8,'exact original public source files required')

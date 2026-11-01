@@ -170,6 +170,29 @@ def observe_parent_sampling(window):
     return report
 
 
+def normal_node_clean_exit(processes):
+    """Eight original node exits, independent of cleanup and proof success."""
+    expected=[phase+"-node-"+str(i) for phase in ("bootstrap","pq") for i in range(4)]
+    records=[];errors=[]
+    for name in expected:
+        matches=[row for row in processes if row.get("name")==name]
+        if len(matches)!=1:
+            errors.append(dict(name=name,reason="missing or duplicate original node receipt"));continue
+        row=matches[0]
+        records.append({key:row.get(key) for key in ("name","pid","startTicks","rawReturnCode","exitCode","signal","exited")})
+        if not (row.get("exited") is True and type(row.get("rawReturnCode")) is int and row["rawReturnCode"]==0 and type(row.get("exitCode")) is int and row["exitCode"]==0 and row.get("signal") is None):
+            errors.append(dict(name=name,reason="original normal node exit0 not observed; retain original return/signal and log"))
+    return dict(schema="YNX-PERF-EIGHT-NORMAL-NODE-CLEAN-EXIT/v1",expectedNodes=8,observedNodes=len(records),
+        allEightExitZero=len(records)==8 and not errors,operationalCleanExit=len(records)==8 and not errors,
+        records=records,errors=errors,meaning="Original bootstrap4 and PQ4 process exits only; cleanup reaping, network observation and business verification remain separate; no forced-kill or exit1 success")
+
+
+def apply_normal_clean_exit(result):
+    result["normalNodeCleanExit"]=normal_node_clean_exit(result["processes"])
+    if not result["normalNodeCleanExit"]["operationalCleanExit"]:
+        result["firstCause"]=result.get("firstCause") or "original eight normal nodes did not all exit0; preserve raw logs and cleanup result"
+
+
 def original_plan(created,root):
     p=created["plan"]
     lab.require(p["version"]=="YNX-PQ-LOOPBACK-NETWORK/v1" and p["syntheticOnly"] is True and p["publicNetwork"] is False,"original synthetic-only plan required")
@@ -684,6 +707,7 @@ def run(args):
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
                       processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
+        if live_requested:apply_normal_clean_exit(result)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],phaseComplete=result["phaseComplete"])))
     lab.require(result["firstCause"] is None and result["cleanupComplete"],"normal ceremony failed; original intent/state/UNKNOWN retained")
     return result

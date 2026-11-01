@@ -16,7 +16,7 @@ import time
 
 VERSION = 'YNX-OPERATOR-LIVE-WIRE/v1'
 BUILD_TAG = 'ynx_live_wire_observation'
-NORMAL_LIVE_SOURCE_QUALIFICATION = {'commit': 'd9038b9292f9c28d38decb9717282e50febffdb1', 'tree': '66d6f8f2ddce1a08202d5b32e0e216debfabbdeb', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '3feeb37aa87da683ec30d80f14a6239a9721e346bc0c42bbfdfc89e8a7119dc4', 'sourceCI': {'run': 41317363794, 'job': 124880188598, 'artifact': 13088047288}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
+NORMAL_LIVE_SOURCE_QUALIFICATION = {'commit': '9081f14654a48f4fe14e57696ec33527869da353', 'tree': '8c12ec07479bf6664cf279adb6395c704ead33e1', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '86e7ad98116af984eeb145c3bcf7b48d7a96da8ad897b3603cdd984527bf7f17', 'sourceCI': {'run': 41323073659, 'job': 124897263752, 'artifact': 13089839088}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
 LIMIT = 128 << 10
 
 
