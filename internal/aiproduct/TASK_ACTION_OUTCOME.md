@@ -72,3 +72,36 @@ external dispatch/model and handoff operations. It cannot create an ACCEPTED
 receipt from transport status. Handoff stays UNREGISTERED pending original
 inactive Grant, actual CAS receipt, activation and old-holder revocation; a
 metadata CAS alone cannot prove the complete handoff.
+
+## Read observations and approval boundary
+
+Root's final closed decisions are COMMITTED, ACCEPTED, OBSERVED, DENIED and
+UNKNOWN. Actual read/list/result/query/run-read is OBSERVED with scope
+READ_ONLY_OBSERVATION. `TaskStoreSource.ObserveOriginalTaskRead` calls only the
+fixed existing GET handlers with the real verified actor. Its opaque
+`TaskStoreObservation` provides Current/View/Body/Release/Close. Exact body
+SHA256/length come from that production writer; any concurrent Store change
+across a snapshot read refuses its observation. Old-holder history is limited
+to original records; task discovery filters before pagination and cannot reveal
+unrelated new-holder tasks through an account-wide list.
+
+`ObserveOriginalTaskOutcome` reads only the original opaque business result:
+its payload can show the original action's COMMITTED/UNKNOWN evidence, while
+this read remains OBSERVED and performs no new CAS, nonce or approval.
+`ObserveOriginalTaskQuery` calls the existing original-effect reconciliation
+path, never dispatch. When reconciliation actually recovers/persists an original
+result it verifies exact writer bytes against a new locked readback, so the
+old pre-recovery epoch does not permanently reject successful observation.
+Current holders may read their permitted result; old holders get only original
+minimal recovery metadata. Missing original history for an uncertain operation
+cannot produce OBSERVED. An already verified stored result can be read without
+reactivating the original effect producer. Auth still independently checks
+identity, Root, current policy/revocation and the decoded action/route schema.
+
+Task approval has a different scope, TASK_APPROVAL_COMMIT_ONLY. The existing
+`commitTaskApprovalAtFence` remains behind the original protected verifier.
+The old generic grant/current interface is not a new SameHeldReview UI proof.
+No public V6 approval COMMITTED receipt is inferred from a stored approved flag
+or ordinary current callback. The actual Auth-owned SameHeldReview/activation
+callee must be supplied and consumed before that producer is activated. Read
+observation of an old approval flag does not grant a new approval or effect.

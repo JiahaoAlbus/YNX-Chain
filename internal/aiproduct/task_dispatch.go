@@ -175,7 +175,7 @@ func (s *Server) reconcileStep(ctx context.Context, session ProductSession, task
 	if err != nil {
 		return taskReadReceipt{}, err
 	}
-	if call.OriginalStep.Status != "UNKNOWN" && call.OriginalStep.Status != "DISPATCHING" && call.OriginalStep.Status != "RECONCILING" {
+	if call.OriginalStep.Status != "PENDING" && call.OriginalStep.Status != "SENT" && call.OriginalStep.Status != "UNKNOWN" && call.OriginalStep.Status != "DISPATCHING" && call.OriginalStep.Status != "RECONCILING" {
 		return taskReadReceipt{}, errToolConflict
 	}
 	if call.OriginalStep.ToolStep.RemoteOperationID == "" || call.OriginalStep.ToolStep.RemoteOperationID != call.OriginalOperationID {

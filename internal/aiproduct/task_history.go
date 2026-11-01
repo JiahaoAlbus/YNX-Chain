@@ -28,7 +28,7 @@ func (s *Store) readTaskProjectionForSession(session ProductSession, id string, 
 			visible[id] = true
 		}
 	}
-	if len(visible) == 0 {
+	if len(visible) == 0 && !s.taskSessionHasHistoryLocked(session.Account, session.DeviceID, task.ID) {
 		return TaskProjection{}, os.ErrNotExist
 	}
 	projection, err := s.taskEventProjectionLocked(task, after)
