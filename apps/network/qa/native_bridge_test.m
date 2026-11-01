@@ -53,6 +53,19 @@ static NSDictionary *invoke(NSString *helper,NSString *data,NSDictionary *build,
 @implementation NativeDeferredTest
 -(NSApplicationTerminateReply)finishTermination{self.finishes++;return NSTerminateLater;}
 @end
+static int booleanDelta(void){
+ NativeTestTask *task=[NativeTestTask new];task.running=YES;NativeTestWeb *web=[NativeTestWeb new];web.URL=[NSURL URLWithString:@"http://127.0.0.1:15432/#node"];QAApp *app=[QAApp new];app.task=(NSTask*)task;app.web=(WKWebView*)web;app.origin=@"http://127.0.0.1:15432";app.generation=7;app.documentGeneration=3;app.documentReady=YES;app.nativeSession=@"controlled-session";
+ [app nativeResult:response(@"n_controlled",@"node_status") code:nil outcome:nil identifier:@"n_controlled" session:@"controlled-session" helper:7 document:3 origin:app.origin];
+ NSDictionary *value=web.calls.lastObject[@"arguments"][@"value"];
+ check(CFGetTypeID((__bridge CFTypeRef)value[@"ok"])==CFBooleanGetTypeID()&&[value[@"ok"]isEqual:@YES],@"actual success native-result ok is CFBoolean before WebKit arguments");
+ NSString *json=[[NSString alloc]initWithData:[NSJSONSerialization dataWithJSONObject:value options:NSJSONWritingSortedKeys error:nil]encoding:NSUTF8StringEncoding];check([json containsString:@"\"ok\":true"]&&! [json containsString:@"\"ok\":1"],@"success wire value remains JSON true not number1");
+ [app nativeResult:nil code:@"NATIVE_BUSY" outcome:@"NOT_SENT" identifier:@"n_controlled" session:@"controlled-session" helper:7 document:3 origin:app.origin];value=web.calls.lastObject[@"arguments"][@"value"];
+ check(CFGetTypeID((__bridge CFTypeRef)value[@"ok"])==CFBooleanGetTypeID()&&[value[@"ok"]isEqual:@NO],@"actual failed native-result ok is CFBoolean");
+ json=[[NSString alloc]initWithData:[NSJSONSerialization dataWithJSONObject:value options:NSJSONWritingSortedKeys error:nil]encoding:NSUTF8StringEncoding];check([json containsString:@"\"ok\":false"]&&[value[@"code"]isEqual:@"NATIVE_BUSY"]&&[value[@"outcome"]isEqual:@"NOT_SENT"],@"failure wire false preserves original outcome without approval");
+ NSUInteger before=web.calls.count;app.documentGeneration++;
+ [app nativeResult:response(@"n_controlled",@"node_status") code:nil outcome:nil identifier:@"n_controlled" session:@"controlled-session" helper:7 document:3 origin:app.origin];check(web.calls.count==before,@"actual stale document result still suppressed");
+ printf("SUMMARY BOOLEAN %lu passed; actual original host nativeResult boundary; no GUI or task\n",(unsigned long)checks);return 0;
+}
 static int resolveDelta(void){
   check(QANativeOperations().count==22&&[QANativeOperations()containsObject:@"participation_resolve"],@"resolve is exact22nd original operation");
   NSString *alias=[@"p09.alias:"stringByPaddingToLength:128 withString:@"A" startingAtIndex:0];
@@ -73,6 +86,7 @@ static int resolveDelta(void){
   printf("SUMMARY RESOLVE %lu passed; PUBLIC_CONTROLLED protocol only; zero task launch reader Wallet prepare sign submit or GUI\n",(unsigned long)checks);return 0;
 }
 int main(int argc,const char **argv){@autoreleasepool{
+  if(argc==3&&strcmp(argv[2],"--boolean-delta")==0)return booleanDelta();
   if(argc==3&&strcmp(argv[2],"--resolve-delta")==0)return resolveDelta();
   if(argc==4&&strcmp(argv[1],"--native-call")==0){
     if(strcmp(argv[2],"--data-dir")||getenv("HOME")||getenv("PATH")||strcmp(getenv("LANG")?:"","C"))return 3;

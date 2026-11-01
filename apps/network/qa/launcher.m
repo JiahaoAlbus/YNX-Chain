@@ -306,7 +306,7 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
 }
 -(void)nativeResult:(NSDictionary*)response code:(NSString*)code outcome:(NSString*)outcome identifier:(NSString*)identifier session:(NSString*)session helper:(NSUInteger)helper document:(NSUInteger)document origin:(NSString*)origin {
   if(![self nativeCurrent:session helper:helper document:document origin:origin])return;
-  NSMutableDictionary *value=[@{@"version":QANativeVersion,@"id":identifier,@"session":session,@"helperGeneration":[NSString stringWithFormat:@"%lu",(unsigned long)helper],@"documentGeneration":[NSString stringWithFormat:@"%lu",(unsigned long)document],@"ok":@(response!=nil)}mutableCopy];
+  NSMutableDictionary *value=[@{@"version":QANativeVersion,@"id":identifier,@"session":session,@"helperGeneration":[NSString stringWithFormat:@"%lu",(unsigned long)helper],@"documentGeneration":[NSString stringWithFormat:@"%lu",(unsigned long)document],@"ok":response?@YES:@NO}mutableCopy];
   if(response)value[@"response"]=response;else {value[@"code"]=code?:@"NATIVE_RESPONSE_INVALID";value[@"outcome"]=outcome?:@"UNKNOWN";}
   [self.web callAsyncJavaScript:@"if(window.location.origin===expectedOrigin)window.dispatchEvent(new CustomEvent('network:native-result',{detail:value}));" arguments:@{@"expectedOrigin":origin,@"value":value} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:nil];
 }

@@ -138,3 +138,44 @@ test('native business UI surfaces actual unavailable service at the form instead
 test('native business UI fixture mode cannot open install start or restart as production support',async()=>{
  const s=setup(op=>op==='node_status'?response({code:'OK',node:{...node(),mode:'isolated-lifecycle-fixture',productionSupported:false},productionGrant:false,capabilities:{...nodeCaps,install:true,start:true,restart:true}}):undefined);await s.load();assert.equal(s.node('native-node-install').disabled,true);assert.equal(s.node('native-node-start').disabled,true);assert.equal(s.node('native-node-restart').disabled,true);s.emit('native-node-start','click');await settle();assert.equal(s.calls.some(c=>c.operation==='node_prepare'),false);
 });
+
+// Exact read-only response captured from the original bfa GUI service by its
+// normal NativeCLI. SHA256 a3d9d9f6046be3399d511278080a1f4befea96fb32e882f6acec58910e66f26b.
+// Replaying this DTO only tests the controller contract; it establishes no
+// runtime peer identity, WebKit bridge acceptance or visible-human approval.
+const actualBfaGUINodeResponse=()=>JSON.parse("{\"version\":\"YNX-NETWORK-LOCAL-IPC/v1\",\"id\":\"native_bfa_gui_status\",\"code\":\"OK\",\"peer\":{\"uid\":501,\"gid\":20,\"pid\":17476,\"credentialSource\":\"darwin-LOCAL_PEERCRED-Xucred\",\"nativeIPCVerified\":true,\"browserIdentityVerified\":false},\"result\":{\"payload\":{\"capabilities\":{\"install\":false,\"start\":false,\"stop\":false,\"restart\":false,\"visibleConsent\":true,\"read\":true,\"logs\":false},\"code\":\"OK\",\"node\":{\"nodeId\":\"ordinary-node\",\"stage\":\"not_installed\",\"mode\":\"production\",\"generation\":\"0\",\"runId\":\"\",\"processOwned\":false,\"lastPid\":0,\"artifactSHA256\":\"\",\"firstCause\":\"\",\"lastExit\":\"\",\"productionSupported\":false,\"capacity\":{\"complete\":true,\"usedBytes\":\"738\",\"limitBytes\":\"67108864\",\"freeBytes\":\"3361509376\",\"enforcement\":\"preflight-and-isolated-fixture-monitor\"},\"diagnostics\":{\"code\":\"LOCAL_OBSERVATION_ONLY\",\"authority\":false,\"logs\":{\"code\":\"NOT_SUPPLIED\",\"runId\":\"\",\"authority\":false,\"stdout\":null,\"stderr\":null},\"synchronization\":{\"code\":\"NOT_SUPPLIED\",\"localHeight\":null,\"targetHeight\":null,\"catchingUp\":null},\"recovery\":{\"code\":\"IDLE\",\"autoRestart\":false,\"storedPIDIsControlHandle\":false,\"processOwned\":false,\"priorEffectUnknown\":false}}},\"productionGrant\":false}}}\n");
+
+test('native business UI accepts the actual bfa GUI-service node response without a production grant',async()=>{
+ const actual=actualBfaGUINodeResponse(),s=setup(op=>op==='node_status'?actual:undefined);
+ await settle();await s.load();
+ assert.equal(s.node('native-node-stage').textContent,'not_installed');
+ assert.equal(s.node('native-node-mode').textContent,'production');
+ assert.match(s.node('native-node-operation').textContent,/OK/);
+ assert.doesNotMatch(s.node('native-node-operation').textContent,/NATIVE_RESPONSE_INVALID/);
+ assert.match(s.node('native-node-notice').textContent,/原发布方工件/);
+ for(const action of ['install','start','stop','restart','confirm'])assert.equal(s.node('native-node-'+action).disabled,true,action);
+ assert.equal(actual.result.payload.node.generation,'0');
+ assert.equal(actual.result.payload.node.artifactSHA256,'');
+ assert.deepEqual(actual.result.payload.capabilities,{install:false,start:false,stop:false,restart:false,visibleConsent:true,read:true,logs:false});
+ assert.deepEqual(s.calls.map(call=>call.operation),['node_status','resource_status','participation_list']);
+ assert.equal(s.calls.some(call=>/^node_(prepare|install|start|stop|restart)$/.test(call.operation)),false);
+});
+
+test('native business UI keeps strict node parsing around the actual bfa GUI-service response',async()=>{
+ for(const change of [
+  value=>{value.result.payload.productionGrant=true;},
+  value=>{value.result.payload.node.generation=0;},
+  value=>{value.result.payload.node.generation='00';},
+  value=>{value.result.payload.node.generation='18446744073709551616';},
+  value=>{value.result.payload.node.productionSupported=1;},
+  value=>{value.result.payload.node.nodeId='validator';}
+ ]){
+  const actual=actualBfaGUINodeResponse();change(actual);const s=setup(op=>op==='node_status'?actual:undefined);await settle();await s.load();
+  assert.match(s.node('native-node-operation').textContent,/NATIVE_RESPONSE_INVALID/);
+  assert.equal(s.node('native-node-stage').textContent,'—');
+  for(const action of ['install','start','stop','restart','confirm'])assert.equal(s.node('native-node-'+action).disabled,true,action);
+  assert.equal(s.calls.some(call=>/^node_(prepare|install|start|stop|restart)$/.test(call.operation)),false);
+ }
+ const incomplete=actualBfaGUINodeResponse();delete incomplete.result.payload.capabilities.logs;const s=setup(op=>op==='node_status'?incomplete:undefined);await settle();await s.load();
+ for(const action of ['install','start','stop','restart','confirm'])assert.equal(s.node('native-node-'+action).disabled,true,action);
+});
