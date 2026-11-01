@@ -409,3 +409,12 @@ worker, followed by actual whole-group exit). No old source benchmark,
 signature generation, before/B replay or large artifact download is required.
 The new actual Linux counterexample remains NOT_RUN until CORE executes it.
 
+The normal independent-load report also emits per-stage full-demand P50/P95/P99
+from actual parent monotonic intervals. These stage percentiles remain null
+unless ALL configured requests completed that stage interval; missing or
+unreached work never becomes zero or disappears into a survivor-only P95.
+Completed interval counts/totals/max and raw per-row timestamps remain available
+when a percentile is unknown. Completing an early stage does not qualify a
+failed transaction or supply a final-confirmation latency. This reporting-only
+change does not alter the 4c14 guard or its pending Linux/height qualification.
+

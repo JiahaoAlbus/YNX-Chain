@@ -167,7 +167,14 @@ class Ledger:
                     duration=end-at;completed.append(dict(stage=name,durationNs=duration))
                     stages[name].append(duration)
             row["completedStageDurations"]=completed
-        stage_summary={name:dict(denominator=n,completed=len(values),censoredOrNotReached=n-len(values),totalNs=sum(values),maxNs=max(values),interpretation="parent-observed normal callee interval, including its IO and scheduling; unresolved last interval excluded") for name,values in stages.items()}
+        stage_summary={}
+        for name,values in stages.items():
+            ordered=sorted(values)
+            # A missing/unreached interval can lie anywhere, unlike a completed
+            # value. Do not turn its absence into zero or survivor-only P95.
+            stage_summary[name]=dict(denominator=n,completed=len(values),censoredOrNotReached=n-len(values),totalNs=sum(values),maxNs=max(values),
+                fullDemandPercentilesMs={"p%d"%p:ordered[(n*p+99)//100-1]/1e6 if len(values)==n else None for p in (50,95,99)},
+                interpretation="parent-observed normal callee interval, including IO/scheduling; full-demand percentiles require every interval, unresolved last interval excluded")
         return dict(schema="YNX-PQ-INDEPENDENT-LOAD-RESULT/v1",mode=self.plan["mode"],requestedOfferedTPS=self.plan["requestedOfferedTPS"],configuredDemand=n,windowNs=window,observationCutoffNs=cutoff,windowCompleted=cutoff>=window,
             logicalReleased=self.next_release,releasedWithinWindow=releases_inside,notReleased=n-self.next_release,submitted=len(submitted),submittedWithinWindow=submissions_inside,lateSubmitted=len(submitted)-submissions_inside,notSubmitted=n-len(submitted),
             qualified=len(final),qualifiedWithinWindow=len(inside),qualifiedInTail=len(final)-len(inside),notQualified=n-len(final),terminalCounts=dict(counts),actualSubmissionAttemptTPS=submissions_inside*1e9/window,sourceAcceptanceOrInclusionWithinWindow=evidenced_inside,actualSourceEvidencedTPS=evidenced_inside*1e9/window,actualQualifiedWindowTPS=len(inside)*1e9/window,

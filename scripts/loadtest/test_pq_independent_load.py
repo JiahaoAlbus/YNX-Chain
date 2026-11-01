@@ -123,8 +123,22 @@ class IndependentLoadControls(unittest.TestCase):
         report=ledger.report(200_000_000)
         self.assertEqual(report["completedStageIntervals"]["checkpoint"]["totalNs"],20_000_000)
         self.assertNotIn("signer",report["completedStageIntervals"])
+        self.assertEqual(report["completedStageIntervals"]["checkpoint"]["fullDemandPercentilesMs"],dict(p50=None,p95=None,p99=None))
         self.assertEqual(report["releaseToAccountClaim"]["observed"],1)
         self.assertIsNone(report["releaseToAccountClaim"]["p95Ms"])
+
+    def test_stage_percentiles_require_complete_demand_and_keep_real_intervals(self):
+        ledger=s.Ledger(plan(accounts=10),lambda e:None);ledger.release(100_000_000)
+        for i in range(10):
+            row,_=ledger.reserve(110_000_000)
+            event(ledger,row,"normal_stage",120_000_000,stage="checkpoint")
+            event(ledger,row,"normal_stage",120_000_000+(i+1)*1_000_000,stage="signer")
+            event(ledger,row,"unknown",140_000_000,error="control-only unfinished signer")
+        report=ledger.report(150_000_000);stage=report["completedStageIntervals"]["checkpoint"]
+        self.assertEqual(stage["completed"],10);self.assertEqual(stage["totalNs"],55_000_000)
+        self.assertEqual(stage["fullDemandPercentilesMs"],dict(p50=5,p95=10,p99=10))
+        self.assertNotIn("signer",report["completedStageIntervals"])
+        self.assertEqual(report["notQualified"],10)
 
     def test_duplicate_original_never_reaches_http_or_second_intent(self):
         backend=object.__new__(driver.NormalBackend);backend.submit_lock=threading.Lock();backend.attempted={"a"*64}
