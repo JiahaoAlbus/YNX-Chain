@@ -84,6 +84,31 @@ def commit_original_copies(files,prefix,receipt):
         independentSourceOrGenesisValidation=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,
         meaning='Whole archive and original receipt bind these stopped producer copies. Producer usability/coverage and stage summaries are preserved, not independently upgraded to source, all-Commit or finality qualification.')
 
+def unfinished_originals(files,manifest,pin,controller,source,source_tree,tools):
+    """Read interrupted original journal bytes without constructing a receipt."""
+    candidates=[name.removesuffix('CURRENT703-BASELINE-CI.json') for name in files if name.endswith('CURRENT703-BASELINE-CI.json')]
+    require(len(candidates)==1,'interrupted archive requires one original controller binding')
+    prefix=candidates[0];adapter=strict(files[prefix+'CURRENT703-BASELINE-CI.json'])
+    require(adapter.get('controllerCommit')==controller and adapter.get('goSource')==source and adapter.get('goTree')==source_tree and adapter.get('tools')==tools and adapter.get('measurementScope')=='normal-initialization-only','interrupted original controller/source/tools binding differs')
+    segments=[];returned=[]
+    for name,raw in sorted(files.items()):
+        local=name.removeprefix(prefix)
+        if not name.startswith(prefix) or not re.fullmatch(r'initialization-events-\d{5}\.jsonl',local):continue
+        segments.append(dict(path=local,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+        for line in raw.splitlines():
+            try:event=strict(line)
+            except (RuntimeError,ValueError):break
+            if event.get('kind')=='initialization_stage_returned':returned.append({k:v for k,v in event.items() if k not in ('kind','completed')})
+    # Reuse boundary validation while explicitly distinguishing the absence of
+    # an original receipt. Reconstructed rows are never called receipt DATA.
+    journal=journals(files,prefix,dict(initializationJournalSegments=segments,initializationStages=dict(records=returned)))
+    fresh=files.get(prefix+'fresh-resource-admission.json')
+    return dict(schema='YNX-PERF-INTERRUPTED-INITIALIZATION-READBACK/v1',archiveSHA256=pin,files=manifest,controller=controller,source=source,sourceTree=source_tree,tools=tools,
+        originalReceiptPresent=False,completeInitializationDataObserved=False,originalFirstCause=None,firstCauseStatus='NOT_SUPPLIED_WITHOUT_ORIGINAL_RECEIPT',
+        journals=journal,originalReturnEventsOnly=returned,freshResourceAdmission=strict(fresh) if fresh is not None else None,
+        cleanupComplete=None,normalNodeCleanExit=None,businessLoadExecuted=None,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,
+        pressureAuthorized=False,sourceGrant=False,originalsModified=False,meaning='Interrupted original journal boundaries only. No receipt or clean-exit outcome is fabricated; a matched return event does not establish initialization/business success.')
+
 def inspect(raw,pin,controller,source,source_tree,tools):
     require(type(raw) is bytes and 0<len(raw)<=128<<20 and re.fullmatch('[0-9a-f]{64}',pin) and hashlib.sha256(raw).hexdigest()==pin,'whole original ZIP digest or bound differs')
     files={};manifest={};seen=set();total=0
@@ -96,7 +121,8 @@ def inspect(raw,pin,controller,source,source_tree,tools):
             total+=entry.file_size;require(entry.file_size<=8<<20 and total<=256<<20,'bounded original public ZIP files required')
             body=archive.read(entry);require(len(body)==entry.file_size,'original ZIP entry length differs')
             files[entry.filename]=body;manifest[entry.filename]=dict(bytes=len(body),crc32=entry.CRC,sha256=hashlib.sha256(body).hexdigest())
-    matches=[name for name in files if name=='receipt.json' or name=='public/receipt.json' or name.endswith('/public/receipt.json')];require(len(matches)==1,'one original initialization receipt required')
+    matches=[name for name in files if name=='receipt.json' or name=='public/receipt.json' or name.endswith('/public/receipt.json')];require(len(matches)<=1,'one original initialization receipt required')
+    if not matches:return unfinished_originals(files,manifest,pin,controller,source,source_tree,tools)
     name=matches[0];prefix=name.removesuffix('receipt.json');receipt=strict(files[name]);adapter=strict(files[prefix+'CURRENT703-BASELINE-CI.json']);request=strict(files[prefix+'requested-load.json'])
     require(adapter.get('controllerCommit')==controller and adapter.get('goSource')==source and adapter.get('tools')==tools and adapter.get('measurementScope')=='normal-initialization-only','original controller/source/tools binding differs')
     require(receipt.get('source',{}).get('commit')==source and receipt['source'].get('tree')==source_tree and request.get('source')==receipt['source'] and request.get('accounts')==500 and request.get('perAccountCapacity')==1 and request.get('configuredDemand')==500,'exact original source and full500 demand required')
@@ -118,6 +144,6 @@ def main(argv=None):
     require(all(getattr(args,k) for k in ('archive','sha256','controller','source','source_tree','tools','output')),'explicit original archive and identities required')
     result=inspect(Path(args.archive).read_bytes(),args.sha256,args.controller,args.source,args.source_tree,args.tools)
     with Path(args.output).open('x') as out:json.dump(result,out,indent=2);out.write('\n')
-    print(json.dumps(dict(verifiedFiles=result['verifiedFiles'],originalFirstCause=result['originalFirstCause'],completeInitializationDataObserved=result['completeInitializationDataObserved'],pressureAuthorized=False)));return 0
+    print(json.dumps(dict(verifiedFiles=result.get('verifiedFiles',len(result['files'])),originalFirstCause=result['originalFirstCause'],completeInitializationDataObserved=result['completeInitializationDataObserved'],pressureAuthorized=False)));return 0
 
 if __name__=='__main__':raise SystemExit(main())

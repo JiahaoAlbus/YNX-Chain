@@ -78,4 +78,14 @@ class CommitOriginalCopyControls(unittest.TestCase):
     def test_absent_commit_or_guard_observation_unknown(self):
         v=read(artifact());self.assertEqual(v['originalCommitCopies']['status'],'NOT_SUPPLIED');self.assertIsNone(v['resourceGuardStageElapsed']);self.assertIsNone(v['normalCalleeMeasurements'])
 
+class InterruptedJournalControls(unittest.TestCase):
+    def test_no_receipt_keeps_real_boundaries_but_unknown_exit_and_first_cause(self):
+        f=artifact();del f['public/receipt.json'];a=json.loads(f['public/CURRENT703-BASELINE-CI.json']);a['goTree']=T;f['public/CURRENT703-BASELINE-CI.json']=json.dumps(a).encode();r=read(f)
+        self.assertFalse(r['originalReceiptPresent'] or r['completeInitializationDataObserved']);self.assertEqual(r['originalReturnEventsOnly'][0]['elapsedNs'],10);self.assertIsNone(r['cleanupComplete']);self.assertIsNone(r['originalFirstCause']);self.assertIsNone(r['businessLoadExecuted'])
+    def test_unfinished_stage_never_filled_and_binding_required(self):
+        f=artifact('unfinished');del f['public/receipt.json'];a=json.loads(f['public/CURRENT703-BASELINE-CI.json']);a['goTree']=T;f['public/CURRENT703-BASELINE-CI.json']=json.dumps(a).encode();r=read(f)
+        self.assertIsNone(r['journals']['unfinished'][0]['elapsedNs']);self.assertEqual(r['journals']['returned'],0)
+        del f['public/CURRENT703-BASELINE-CI.json']
+        with self.assertRaises(RuntimeError):read(f)
+
 if __name__=='__main__':unittest.main()
