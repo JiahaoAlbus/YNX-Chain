@@ -31,7 +31,43 @@ on:
   workflow_dispatch:
 
 jobs:
+  change-scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      source-only: ${{ steps.scope.outputs.source-only }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: scope
+        name: Select affected checks from actual source paths
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          base = os.environ.get("BASE_SHA", "")
+          changed = []
+          if os.environ["EVENT_NAME"] != "workflow_dispatch" and re.fullmatch(r"[0-9a-f]{40}", base) and base != "0" * 40:
+              try:
+                  if subprocess.run(["git", "cat-file", "-e", base + "^{commit}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+                      subprocess.run(["git", "fetch", "--no-tags", "--depth=1", "origin", base], check=True)
+                  raw = subprocess.check_output(["git", "diff", "--name-only", "-z", base, "HEAD"])
+                  changed = raw.decode().rstrip("\0").split("\0") if raw else []
+              except (subprocess.SubprocessError, UnicodeError):
+                  changed = []  # uncertain comparison keeps the full checks
+          def source_path(path):
+              return path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")
+          allowed = lambda p: source_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml"}
+          source_only = bool(changed) and any(map(source_path, changed)) and all(map(allowed, changed))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("source-only=" + str(source_only).lower() + "\n")
+          print("Source-only checks:", source_only, "actual changed files:", len(changed))
+          PY
   order-recovery:
+    needs: change-scope
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -40,10 +76,10 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Verify original intent recovery and build the normal Shop service
+        if: needs.change-scope.outputs.source-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
-          go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - name: Verify original Source read on real private Unix transport
         run: |
           set -euo pipefail
@@ -51,11 +87,14 @@ jobs:
           chmod 700 "$RUNNER_TEMP/shop-original-source-read"
           SHOP_SOURCE_READ_SOCKET_ROOT="$RUNNER_TEMP/shop-original-source-read" \
             go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestShopInvoiceSource|TestShopRuntime|TestShopNativeAPI)' -count=1 -v
+          go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - uses: actions/setup-java@v4
+        if: needs.change-scope.outputs.source-only != 'true'
         with:
           distribution: temurin
           java-version: "17"
       - name: Check actual Android intent consumer and narrow route policy
+        if: needs.change-scope.outputs.source-only != 'true'
         run: |
           set -euo pipefail
           DEPS="$RUNNER_TEMP/shop-intent-deps"
@@ -68,9 +107,11 @@ jobs:
             apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeIntentObservationTest.java
           java -cp "$CLASSES:$DEPS/*" org.junit.runner.JUnitCore com.ynxweb4.shop.NativeIntentObservationTest
       - uses: actions/setup-node@v4
+        if: needs.change-scope.outputs.source-only != 'true'
         with:
           node-version: "22"
       - name: Check inventory CLI against the original official Native SDK input
+        if: needs.change-scope.outputs.source-only != 'true'
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \
@@ -82,6 +123,8 @@ jobs:
             go test -mod=readonly -race -tags commerce_v2 ./internal/commerce -run '^TestWarehouseCLIActualHTTP' -count=1 -v
 
   android-app-candidate:
+    needs: change-scope
+    if: needs.change-scope.outputs.source-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -115,6 +158,8 @@ jobs:
             apps/shop/native/android/app/build/generated/commerce-native-r9/assets/native-session/sdk-manifest.json
 
   language-regression:
+    needs: change-scope
+    if: needs.change-scope.outputs.source-only != 'true'
     runs-on: macos-15
     timeout-minutes: 5
     steps:

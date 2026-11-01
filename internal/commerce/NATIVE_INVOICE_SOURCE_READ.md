@@ -60,3 +60,31 @@ scope controls. They cover exact11 fields/no mutation, source absence, purpose,
 epoch, tenant/Store/actor mismatch, late current, ordinary HTTP/clone rejection,
 body/query/path refusal, original404/409, close debt and actual handler drain.
 They do not prove real Auth/SDK Native Source qualification or installation.
+
+## Existing ProductSource qualification and normal product adapter
+
+The normal factory now adopts the Auth source partial, then enters the private
+`originalShopProductReadAuthority` consumer. It uses Auth's already accepted
+`wallet-native-product-source-v1` / `walletNativeProductV1` contract and its
+existing six-field ProductScopeDATA projection. It adds no signed schema,
+Root row, signature domain or JSON decoder. Root network/account/resource-ref,
+Source epoch and the protected service resource registration must match.
+Only Root-selected Shop order references become exact Unix routes. The actual
+registered realm/tenant/actor representation/role/Store/order map remains an
+independent AND; a public Wallet account does not select a role or namespace.
+
+The adapter borrows only from the same original LINK request, adopts a returned
+partial permission before interpreting errors, and preserves native cleanup
+debt in the existing service ledger. Full Source refresh stays outside Store;
+the held Native observed epoch/deadline check is local under the original lock.
+It does not open an actor namespace, reconstruct a bill or widen Wallet scope.
+
+Auth has actual C++ `acquire_original_product_root`,
+`read_original_product_scope` and `borrow_original_product_read_permission`.
+Its accepted component does not yet expose the matching Go/owned-C service
+bridge plus Root-selected Shop resource registration. The one remaining shared
+supplier boundary is `acquireOriginalShopProductReadSource`; normal startup
+reports `SHOP_NATIVE_PRODUCT_AUTH_GO_CALLEE_NOT_LINKED` joined with the existing
+Source-not-supplied error. This is an owning callee/registration CODE gap, not a
+claim that only a Root permission or signature is missing. Native/Main's Node
+image and detached scope DATA cannot substitute for that service bridge.
