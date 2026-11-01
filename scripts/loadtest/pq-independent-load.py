@@ -31,6 +31,7 @@ def module(name,file):
 normal=module("normal_pq_load","pq-normal-process-lab.py")
 scheduler=module("independent_pq_load","pq-independent-scheduler.py")
 lab=normal.lab
+proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 
 
 CALLEE_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
@@ -404,10 +405,12 @@ class NormalBackend:
             context=result["verified"];directory=output/"verifier"
             request=normal.public_file(directory,context["request"]);trust=normal.public_file(directory,context["context"])
             lab.require(context["verifierArguments"]==["--trust-context",str(trust),"--trust-context-sha256",context["context"]["sha256"]],"normal original independent verifier invocation differs")
+            notify(dict(kind="normal_stage",stage="proof_public_export"))
+            public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],CALLEE_SOURCE,lab.guard.digest(self.c.bins/"ynx-consensus-proof-verify"))
             notify(dict(kind="normal_stage",stage="verifier"))
             verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request)
             normal.require_verified(verified,tx)
-            return result,verified
+            return result,verified,public_closure
         except BaseException:
             lane["retired"]=True;raise
         finally:
@@ -423,7 +426,7 @@ class NormalBackend:
         height=self.broadcast_and_include(row,tx,raw,case,notify,stop)
         notify(dict(kind="normal_stage",stage="successor_availability"))
         self.wait_successor(height,case,stop)
-        proof,verified=self.live_proof(row,tx,path,case,notify,stop)
+        proof,verified,public_closure=self.live_proof(row,tx,path,case,notify,stop)
         confirmed=None
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="confirm"))
@@ -431,7 +434,7 @@ class NormalBackend:
             lab.require(confirmed["code"]=="PROOF_CONFIRMED_DATA","normal original pending operation not confirmed")
             normal.require_verified(dict(code="VERIFIED_TRANSACTION_DATA",result=confirmed["result"]["result"]),tx)
         notify(dict(kind="normal_stage",stage="receipt"))
-        final=dict(id=row["id"],operationId=row["operationId"],mode=self.c.mode,transaction=tx,normalLiveResult=proof,normalVerifier=verified,normalConfirm=confirmed,parentPipelineNs=time.monotonic_ns()-started,physicalCommitMeasured=False,sourceGrant=False)
+        final=dict(id=row["id"],operationId=row["operationId"],mode=self.c.mode,transaction=tx,normalLiveResult=proof,normalVerifier=verified,normalConfirm=confirmed,originalPublicProofClosure=public_closure,parentPipelineNs=time.monotonic_ns()-started,physicalCommitMeasured=False,sourceGrant=False)
         lab.write_new(case/"qualified-receipt.json",final)
         notify(dict(kind="qualified",hash=normal.comet_hash(tx["abciHash"]),nativeHash=normal.comet_hash(tx["nativeHash"]),normalVerifierCode=verified["code"],executionSuccessful=verified["result"]["executionSuccessful"],executionCode=verified["result"]["executionCode"],transactionType=verified["result"]["transactionType"],members=int(tx["members"]),nativeGrant=verified["result"]["nativeGrant"],normalConfirmCode=None if confirmed is None else confirmed["code"],proofReference=str((case/"qualified-receipt.json").relative_to(self.w.work/"public"))))
     def stop(self):
