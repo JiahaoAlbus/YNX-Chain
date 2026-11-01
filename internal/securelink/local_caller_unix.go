@@ -75,7 +75,7 @@ func localRoutes(routes []LocalCallerRoute) (map[string]LocalCallerRoute, error)
 		if r.Method == "" || len(r.Method) > 32 || strings.Trim(r.Method, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != "" || r.Method == http.MethodConnect || err != nil || u == nil || u.Path == "" || u.Path != r.Path || u.EscapedPath() != r.Path || u.String() != r.Path || u.IsAbs() || u.Host != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(r.Path, "//") || strings.Contains(r.Path, "/../") || strings.Contains(r.Path, "/./") || strings.HasSuffix(r.Path, "/..") || strings.HasSuffix(r.Path, "/.") {
 			return nil, ErrDenied
 		}
-		if r.MaxBodyBytes < 1 || r.MaxBodyBytes > 16<<20 || r.Timeout <= 0 || r.Timeout > time.Minute {
+		if r.MaxBodyBytes < 0 || (r.MaxBodyBytes == 0 && r.Method != http.MethodGet) || r.MaxBodyBytes > 16<<20 || r.Timeout <= 0 || r.Timeout > time.Minute {
 			return nil, ErrBounds
 		}
 		key := r.Method + " " + r.Path

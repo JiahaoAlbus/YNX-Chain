@@ -1,6 +1,10 @@
 #!/bin/sh
 set -eu
 # Run from the repository root; no package install or dependency download here.
+if [ "${1:-outbound}" = private-client-startup ]; then
+  node --test --test-concurrency=1 --test-timeout=30000 cmd/ynx-secure-link-caller/private-client-startup.test.mjs
+  exit 0
+fi
 if [ "${1:-outbound}" = private-client ]; then
   node --test --test-concurrency=1 --test-timeout=90000 cmd/ynx-secure-link-caller/private-client.test.mjs
   exit 0
@@ -15,7 +19,7 @@ if [ "${1:-outbound}" = runtime ]; then
   exit 0
 fi
 if [ "${1:-outbound}" != outbound ]; then
-  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|private-client]' >&2
+  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|private-client|private-client-startup]' >&2
   exit 2
 fi
 node cmd/ynx-secure-link-caller/build.mjs --fork-test

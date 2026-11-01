@@ -92,10 +92,76 @@ Concurrent joins share one context-bounded registration wait and wake every
 waiting caller after actual drain. If that wait is cancelled, another live
 caller can continue draining without extending the cancelled caller's context.
 
-This Go startup owner does not define or implement Auth's pre-Source resource
-getter or a Native entry accepting configuration. The actual Root-owned getter
-and normal Native call into the startup owner must still be supplied and
-verified as one composition before normal startup is complete.
+This Go startup owner does not define a Native entry accepting configuration.
+Auth supplies the genuine pre-Source resource getter and actual-context
+constructor; the strong private startup entry below consumes those originals.
+The actual normal Native capture and matching complete image remain separate
+integration requirements before normal startup is complete.
+
+## Strong Native startup entry
+
+`private_client_startup_v1.h` declares eight private entries. They are compiled
+only with `securelink_pay_native_startup` and CGO on a supported Unix platform.
+Ordinary Go builds do not acquire unresolved Auth dependencies. The normal
+archive uses strong Auth symbols and has no weak provider or fixture installer.
+
+`ynx_link_pay_native_startup_open_v1` accepts only an actual
+`ynx_wallet_pay_actual_context_v1*`, minted by Auth's native owner. That context
+already fixes the genuine operational Root, same Main epoch, binding, query
+mode, and internally captured original transport loan. LINK obtains that exact
+loan and native fences through Auth's strong getters. No second loan, config,
+binding, Main pointer, callback, or replacement resource can be supplied.
+
+The bounded copied profile preserves Auth's version, struct size, original
+UID/PID, explicit time and response limits, and five fixed slots. Disabled raw
+slots may still contain their registered strings; their Go bindings remain
+entirely zero. An enabled GET has its exact zero-byte request budget. The
+general private client/server route validator therefore permits zero only for
+GET; POST still requires a positive budget. Limits are not increased to fit a
+consumer's larger receive bound.
+
+After actual NewClient/Register/Borrow, `adopt_source_v1` calls only Auth's
+strong `ynx_wallet_pay_source_adopt_registration_v1` with the context retained
+by open. It executes the existing one-shot Go transfer and preserves a nonnull
+Source partial before the native status. The Source's original native fence
+still runs independently at the actual request write.
+
+The Native owner first retires its actual context and children, then drains
+and closes the channel and drops the original SourceLease. The startup's Join
+cannot complete until that Source has returned the registration borrow.
+Startup Close closes its own Go parent and releases its retained Root/context
+fence borrows; only then does closed report physical completion. Concurrent
+close attempts cannot report completion while the releases are in progress.
+The original Native owner closes the actual context and its Root loan after
+that drain. LINK never closes or retires those borrowed parents.
+
+## Building and checking the normal archive
+
+`cmd/ynx-secure-link-private-client/build-startup.mjs` accepts a SHA256-pinned
+build-only header manifest and a new output directory outside the source tree.
+The manifest is `{version:1,headers:[{name,path,bytes,sha256},...]}` and contains
+Auth's original transport header, actual-context header and SourceLease C
+header. The builder copies verified headers, builds the same-runtime archive,
+checks its eight startup definitions and strong Root dependencies, and records
+source fingerprints, exact commands, symbols and artifact hash. It preserves
+failed outputs and refuses to replace a prior directory. This manifest cannot
+register a runtime Root or endpoint.
+
+The new archive already contains the original fourteen private-client exports.
+Use it in place of the older archive; do not link two archives containing Go
+runtimes into the normal image. Auth/SDK's normal image must resolve the strong
+Root/context/Source constructor symbols using its matching original objects.
+An archive with unresolved Auth dependencies is a component, not that complete
+image or Root admission.
+
+The original caller runner's `private-client-startup` selector runs the new
+startup-specific Node/C++ control. It requires
+`YNX_LINK_PAY_STARTUP_BUILD_RECEIPT` and its `_SHA256` value. The control verifies
+the normal archive and formal Auth source pins, then links the actual context,
+Root loan, SourceLease and Go code to a real owned Unix endpoint. Its explicit
+PUBLIC Root/profile boundary does not establish crypto, Root, Main approval,
+installation or deployment. Existing transport and packet controls remain
+separate evidence.
 
 ## Actual Native Source fence
 
