@@ -1,3 +1,4 @@
+import {createPortablePackageConsumerRole} from './portable-package-consumer-role.mjs';
 import {COMMON_QA_INPUT_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {PORTABLE_QA_INPUT_NAMES,isPortableQARecord,isPortableQASourceAsset} from './canonical-native-portable-qa-profile.mjs';
 import {createPortablePackageAssetReader,beginNativeRuntimeRelocation,verifyPortableRuntimeFiles,recoverFailedNativePackage} from './portable-runtime-pack.mjs';
@@ -501,7 +502,8 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const helperBytes=asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),localHelper=path.join(root,SDK13_HELPER_ASSET);
     if(!lstatSync(localHelper).isFile()||lstatSync(localHelper).isSymbolicLink()||!helperBytes.equals(readFileSync(localHelper)))throw Error('SDK13 packaged helper differs from matching build');
     const componentReadSource=createPortablePackageAssetReader(nativeReceipt,sourceBytes,path.join(resources,physical?'app.code':'app.asar.unpacked'));
-    originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},componentReadSource);
+    const packageConsumerRole=isPortableQARecord(nativeReceipt)?createPortablePackageConsumerRole({root,packageCommit:expected.sourceCommit,recordBytes:nativeReceiptBytes}):undefined;
+    originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes,packageConsumerRole},componentReadSource);
     if(originalSDK13.portableRuntime===true)originalSDK13.portablePackagedBytes=verifyPortableRuntimeFiles(nativeReceipt,path.join(resources,physical?'app.code':'app.asar.unpacked'),{canonical:true});
     if(!macAsarIntegrityVerified)throw Error('SDK13 paired component requires matching Mac bundle');
     originalSDK13.helperBundle=verifySDK13HelperBundle(path.dirname(resources),helperBytes,sourceBytes(SDK13_HELPER_PLIST));
