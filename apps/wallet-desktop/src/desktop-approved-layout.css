@@ -142,3 +142,10 @@ body[data-wallet-stage='workspace'] #desktop-welcome { display:none; }
 .desktop-history-actions { display:flex; gap:12px; flex-wrap:wrap; }
 .desktop-history-notice,.desktop-history-copy-status { font-size:.75rem!important; color:var(--ynx-text-secondary); }
 #desktop-network-chip[data-network-state='available']::before { content:''; width:7px; height:7px; border-radius:50%; margin-right:8px; background:var(--ynx-success,#19945b); }
+.desktop-approved #native-pay-product-sheet { width:min(680px,calc(100vw - 48px)); }
+#native-pay-product-sheet>p { line-height:1.6; font-size:.8125rem; }
+#native-pay-product-sheet form { display:grid; gap:12px; }
+#native-pay-product-sheet form>div { display:grid; gap:8px; }
+#native-pay-product-sheet dl { max-height:240px; overflow:auto; padding:16px 0; }
+#native-pay-product-sheet dd { margin:0; overflow-wrap:anywhere; font-family:var(--ynx-font-mono); }
+#native-pay-product-sheet>button { margin:12px 12px 0 0; }

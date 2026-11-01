@@ -35,7 +35,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
  byId('desktop-open-crosschain').disabled=!api.crossChain;byId('desktop-open-crosschain').addEventListener('click',()=>openCrossChain?.());
  for(const button of doc.querySelectorAll('[data-desktop-action]'))button.addEventListener('click',()=>{
   const action=button.dataset.desktopAction;
-  if(action==='pq-backup')openPQ('pq-independent-backup');else if(action==='pq-restore')openPQ('pq-registered-restore');else if(action==='appearance')byId('open-appearance').click();else if(action==='networks')openNetworks?.();else if(action==='family')byId('open-family')?.click();else if(action==='pay')byId('open-invoice')?.click();else if(action==='lock')byId('lock-wallet').click();
+  if(action==='pq-backup')openPQ('pq-independent-backup');else if(action==='pq-restore')openPQ('pq-registered-restore');else if(action==='appearance')byId('open-appearance').click();else if(action==='networks')openNetworks?.();else if(action==='family')byId('open-family')?.click();else if(action==='pay')byId('open-native-pay')?.click();else if(action==='lock')byId('lock-wallet').click();
  });
  byId('desktop-agent-review').addEventListener('click',()=>{if(pending.count>0&&!scope?.locked)reviewPending();});
  byId('desktop-read-pq-policy').addEventListener('click',async()=>{

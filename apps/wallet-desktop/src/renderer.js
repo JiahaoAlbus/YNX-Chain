@@ -1,7 +1,9 @@
+import {mountNativePayProductUI} from './native-pay-product-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
 import {createDesktopTransactionHistoryUI} from './desktop-transaction-history-ui.mjs';
 import {createApprovedDesktopUI} from './approved-desktop-ui.mjs';
 let desktopUI=null;
+let nativePayProductUI=null;
 let desktopHistoryUI=null;
 let accountStatusObserved=false;
 import {bindDeviceFinalizationUI} from './wallet-device-finalization-ui.mjs';
@@ -1284,7 +1286,7 @@ function renderKeyState(state) {
   const previousKeyState=keyState;
   keyState = state;
   if(accountStatusObserved)desktopUI?.render(accountState,keyState);
-  if(securityChanged){desktopHistoryUI?.invalidate();if(activeAccount)void transactionHistoryUI.refresh();}
+  if(securityChanged){void nativePayProductUI?.invalidate();desktopHistoryUI?.invalidate();if(activeAccount)void transactionHistoryUI.refresh();}
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqTypedActionReviewUI!=='undefined'){if(securityChanged)pqTypedActionReviewUI.invalidate();else pqTypedActionReviewUI.render();}
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
@@ -1337,6 +1339,8 @@ if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(stat
 });
 else renderKeyState(keyState);
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
+nativePayProductUI=mountNativePayProductUI({document,window,api:window.ynxWallet,getContext:()=>({account:keyState.account,keyRevision:keyState.revision,locked:keyState.locked||keyState.authenticating,focused:document.hasFocus()}),reviewPending:presentApproval});
+document.getElementById('open-native-pay').addEventListener('click',()=>void nativePayProductUI.open());
 mountDesktopPayUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.ynxAccount??null,keyRevision:keyState.revision,locked:keyState.locked})});
 multichainUI=createMultichainUI({document,api:window.ynxWallet,writeClipboard:writeReceivingClipboard,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
 familyUI=createFamilyUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
