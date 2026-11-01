@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -53,6 +54,38 @@ func localTestRoute() LocalCallerRoute {
 	return LocalCallerRoute{Method: http.MethodPost, Path: "/authority/prepare", MaxBodyBytes: 1024, Timeout: 2 * time.Second}
 }
 
+// Observe the original http.Server entering Serve without dialing, dispatching
+// a fixture request, or changing its original BaseContext result. A connected
+// pre-write rejection can otherwise finish before the Serve goroutine starts.
+func localTestServeReady(s *LocalCallerServer) <-chan struct{} {
+	ready := make(chan struct{})
+	original := s.http.BaseContext
+	s.http.BaseContext = func(l net.Listener) context.Context {
+		ctx := context.Background()
+		if original != nil {
+			ctx = original(l)
+		}
+		close(ready)
+		return ctx
+	}
+	return ready
+}
+
+func localTestAwaitServe(t *testing.T, ready <-chan struct{}, done chan error) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	select {
+	case <-ready:
+	case err := <-done:
+		// Preserve the actual Serve result for the original cleanup assertion.
+		done <- err
+		t.Fatalf("Serve returned before entering its original HTTP server: %v", err)
+	case <-ctx.Done():
+		t.Fatal("original HTTP server did not enter Serve")
+	}
+}
+
 func localTestServe(t *testing.T, handler http.Handler, route LocalCallerRoute) (*LocalCallerServer, *LocalCallerClient, string) {
 	t.Helper()
 	path, l := localTestSocket(t)
@@ -60,6 +93,7 @@ func localTestServe(t *testing.T, handler http.Handler, route LocalCallerRoute) 
 	if err != nil {
 		t.Fatal(err)
 	}
+	ready := localTestServeReady(s)
 	done := make(chan error, 1)
 	go func() { done <- s.Serve(l) }()
 	t.Cleanup(func() {
@@ -78,11 +112,82 @@ func localTestServe(t *testing.T, handler http.Handler, route LocalCallerRoute) 
 			t.Error("Serve did not stop")
 		}
 	})
+	localTestAwaitServe(t, ready, done)
 	c, err := NewLocalCallerClient(LocalCallerClientConfig{Service: "auth-native", SocketPath: path, PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: []LocalCallerRoute{route}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s, c, path
+}
+
+func TestLocalCallerServeReadyPreservesOriginalBaseContext(t *testing.T) {
+	path, listener := localTestSocket(t)
+	type contextKey struct{}
+	original := context.WithValue(context.Background(), contextKey{}, "PUBLIC original base context")
+	var baseCalls, handlers atomic.Int32
+	route := localTestRoute()
+	s, err := NewLocalCallerServer(LocalCallerServerConfig{Service: "auth-native", PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: []LocalCallerRoute{route}, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlers.Add(1)
+		if r.Context().Value(contextKey{}) != original.Value(contextKey{}) {
+			t.Error("Serve readiness replaced the original BaseContext")
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseEntered, releaseBase := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	s.http.BaseContext = func(net.Listener) context.Context {
+		baseCalls.Add(1)
+		close(baseEntered)
+		<-releaseBase
+		return original
+	}
+	ready := localTestServeReady(s)
+	done := make(chan error, 1)
+	go func() { done <- s.Serve(listener) }()
+	t.Cleanup(func() {
+		releaseOnce.Do(func() { close(releaseBase) })
+		_ = s.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		if err := s.Join(ctx); err != nil {
+			t.Error("real handlers did not drain", err)
+		}
+		select {
+		case err := <-done:
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				t.Error("Serve", err)
+			}
+		case <-ctx.Done():
+			t.Error("Serve did not stop")
+		}
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	select {
+	case <-baseEntered:
+	case <-ctx.Done():
+		t.Fatal("original BaseContext was not called")
+	}
+	select {
+	case <-ready:
+		t.Fatal("Serve readiness preceded the original BaseContext result")
+	default:
+	}
+	releaseOnce.Do(func() { close(releaseBase) })
+	localTestAwaitServe(t, ready, done)
+	client, err := NewLocalCallerClient(LocalCallerClientConfig{Service: "auth-native", SocketPath: path, PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: []LocalCallerRoute{route}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := client.Call(ctx, route.Method, route.Path, "application/json", []byte("{}")); err != nil || out.StatusCode != http.StatusNoContent {
+		t.Fatal("original HTTP handler", out, err)
+	}
+	if baseCalls.Load() != 1 || handlers.Load() != 1 {
+		t.Fatal("readiness callback or original request was replayed", baseCalls.Load(), handlers.Load())
+	}
 }
 
 type localCaptured struct {
