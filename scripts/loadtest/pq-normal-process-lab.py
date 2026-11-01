@@ -157,6 +157,8 @@ class Ceremony:
         self.w.stopping=False
         for n in self.plan["nodes"]:
             observed=self.wire_arguments("bootstrap" if activation is None else "pq",n["index"])
+            if getattr(self,"live_reader",None) is not None:
+                observed+=self.live_reader.startup_arguments("bootstrap" if activation is None else "pq",n["index"])
             if activation is None:
                 proc=self.w.launch("bootstrap-node-%d"%n["index"],[str(self.bins/"ynx-comet"),*n["bootstrapArgs"],*observed],True)
             else:
@@ -365,13 +367,26 @@ class Ceremony:
             self.traffic("activation-traffic-%d"%self.next_workload,self.next_workload);checkpoint=self.quiet()
         return activation
 
+    def begin_network_baseline(self):
+        profile=getattr(self,"network_profile",None)
+        if profile is None:return None
+        spec=importlib.util.spec_from_file_location("normal_functional_network",Path(__file__).with_name("pq-network-window.py"))
+        hook=importlib.util.module_from_spec(spec);spec.loader.exec_module(hook)
+        network=hook.NetworkWindow(self,lab,profile["source"],profile["tools"],self.workload_pin,4,live_reader=self.live_reader)
+        network.capture("start")
+        return network
+
     def execute(self):
         activation=self.prepare_network()
+        network=self.begin_network_baseline()
         planned=[dict(id=digest((self.pin+":functional:"+str(i)).encode()),owner=i,status="not-submitted") for i in range(4,8)]
         lab.write_new(self.w.work/"public/functional-cohort-plan.json",dict(schema="YNX-PQ-FOUR-PROCESS-FUNCTIONAL-PLAN/v1",planSHA256=self.pin,mode=self.mode,requests=planned,fixedWindowConfigured=False))
         functional=[]
         for request in planned:
             functional.append(self.traffic("functional-owner-%d"%request["owner"],request["owner"]))
+        if network is not None:
+            # Actual hot functional traffic plus drain only; never cold-first-packet.
+            network.finish(None)
         node_pids=[p.pid for p in self.nodes]
         self.w.stopping=True
         for proc in self.nodes:proc.send_signal(signal.SIGTERM)
@@ -463,7 +478,14 @@ class Ceremony:
 def run(args):
     source=Path(args.source);identity=lab.check_source(source,args.commit)
     lab.git(source,"merge-base","--is-ancestor",HELPER_COMMIT,args.commit)
-    observe_wire=getattr(args,"wire_observation",False)
+    live_requested=getattr(args,"live_network_baseline",False)
+    live_module=None
+    if live_requested:
+        spec=importlib.util.spec_from_file_location("normal_private_live_reader",Path(__file__).with_name("pq-normal-live-reader.py"))
+        live_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(live_module)
+        live_module.qualify(identity)  # Before any build, key creation or node startup.
+        lab.require(args.mode=="online","normal live baseline requires original online finite functional fixture")
+    observe_wire=getattr(args,"wire_observation",False) or live_requested
     if observe_wire:lab.git(source,"merge-base","--is-ancestor",WIRE_OBSERVER_COMMIT,args.commit)
     if not args.execute:return dict(status="prepared-only",source=identity,helper=HELPER_COMMIT,mode=args.mode,scope="four normal process functional cohort and original stopped proof; sustained window withheld")
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","dedicated hosted Linux job required")
@@ -477,21 +499,29 @@ def run(args):
     try:
         bins=work/".private/bin"
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
-            w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name]))
+            w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-tags",live_module.BUILD_TAG] if live_requested and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name]))
         result["binaries"]={name:lab.guard.digest(bins/name) for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
         root=work/".private/network"
         proc=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions","32","--batch-size","1","--owners","8",*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]);w.wait(proc)
         created=json.loads((work/"public/create-original.log").read_bytes())
         result["originalPlanSHA256"]=created["planSHA256"]
         ceremony=Ceremony(w,root,created,bins,observe_wire)
+        if live_requested:
+            ceremony.live_reader=live_module.NormalLiveReader(ceremony,lab)
+            ceremony.network_profile=dict(source=args.commit,tools=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"))
+            result["networkBaselineScope"]="hot functional four-owner traffic plus drain; cold/legacy/failure and physical bytes unmeasured"
         result.update(ceremony.execute())
         lab.check_source(source,args.commit)
     except BaseException as error:result["firstCause"]=str(error)
     finally:
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        result["liveNetworkBaselineRequested"]=live_requested
         result["wireObservationRequested"]=observe_wire
-        if ceremony is not None:result["wireObservation"]=ceremony.wire_readback()
+        if ceremony is not None:
+            result["wireObservation"]=ceremony.wire_readback()
+            if getattr(ceremony,"live_reader",None) is not None:
+                result["liveNetworkReads"]=ceremony.live_reader.evidence
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
                       processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
@@ -501,7 +531,7 @@ def run(args):
 
 
 if __name__=="__main__":
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--live-network-baseline",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
     def interrupted(signum,frame):raise RuntimeError("normal PQ lab received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     print(json.dumps(run(args)))
