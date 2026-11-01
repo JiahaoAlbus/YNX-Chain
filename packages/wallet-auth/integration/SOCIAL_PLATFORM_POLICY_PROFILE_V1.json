@@ -28,5 +28,10 @@
   "RootAdmission": false,
   "SourceAdmission": false,
   "normalGettersProvidedBy": "Main original authenticated Core loans; not SDK C type constructors",
-  "signedOriginalsProducedBy": "Original Main/Auth commissioning after original QA/Root approval; this profile does not sign"
+  "signedOriginalsProducedBy": "Original Main/Auth commissioning after original QA/Root approval; this profile does not sign",
+  "matchingRevision": "SDK-SOCIAL-ORDINARY-PURPOSE2-INIT-R2-20261101",
+  "messageOperationsAllowedMask": 63,
+  "messageInitializeStorageBit": 1,
+  "messageInitPurpose": 2,
+  "reuseOldReleaseOptIn": false
 }

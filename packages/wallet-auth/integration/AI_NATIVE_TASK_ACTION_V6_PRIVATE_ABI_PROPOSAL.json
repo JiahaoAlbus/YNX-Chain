@@ -1,0 +1,136 @@
+{
+  "version": 6,
+  "status": "PROPOSED_REVIEW_SUCCESSOR_PENDING_AUTH_FORMAL_H",
+  "fixedFactory": "acquireOriginalAITaskActionClientV6Source",
+  "nativeModulePath": null,
+  "sourceMethods": [
+    "readOriginalScopeDATA",
+    "assertCurrent",
+    "prepareOriginalAITaskActionV6Review",
+    "produceOriginalAITaskActionV6",
+    "readOriginalServerCurrentDATA",
+    "lookupOriginalAITaskActionV6",
+    "retire",
+    "join",
+    "close",
+    "assertOriginalAITaskActionV6Response"
+  ],
+  "scopeFields": [
+    "version",
+    "originURL",
+    "networkId",
+    "pkA",
+    "pkB",
+    "identity",
+    "expiresAtMs"
+  ],
+  "identityFields": [
+    "sessionBinding",
+    "productId",
+    "clientId",
+    "applicationId",
+    "platform",
+    "bundleId",
+    "packageId",
+    "origin",
+    "callback",
+    "account",
+    "canonicalOwner",
+    "deviceId",
+    "deviceRegistrationId",
+    "deviceRegistrationRevision",
+    "deviceRegistrationDigest",
+    "audience",
+    "holder",
+    "policyRevision"
+  ],
+  "serverCurrentFields": [
+    "networkId",
+    "responseIssuer",
+    "pkA",
+    "pkB",
+    "expiresAtMs"
+  ],
+  "producerArguments": [
+    "recognizedSDKWeakMapPeer",
+    "sameOriginalFrozenAbortContext",
+    "SAMEheldReview"
+  ],
+  "producerMethods": [
+    "readOriginalUnsigned",
+    "readOriginalMember",
+    "assertCurrent",
+    "retire",
+    "join",
+    "close"
+  ],
+  "lookupArguments": [
+    "originalOperationId",
+    "sameOriginalFrozenAbortContext"
+  ],
+  "lookupChildMethods": [
+    "readOriginalOperationId",
+    "readOriginalEvidence",
+    "retire",
+    "join",
+    "close"
+  ],
+  "requestDigest": "SHA256(original E5 signed-message bytes), NOT member/header",
+  "serverCurrent": "Independent registered Auth server issuer+pair/current; peroperation once requestRef confirmation remains separate proposed callee",
+  "drain": "retained late acquisition/production flights; proof child then held review then Source; pendingjoin stops parents; false/null/undefined sticky cause; no replay",
+  "mobile": {
+    "runtime": "Expo57/RN0.86/Hermes",
+    "nodeCodecDirectImport": false,
+    "registeredBridgeModule": null,
+    "registeredGetter": null,
+    "normalBindings": "SDK typed packet/client/Native peer contract only; actual platform bridge pending Main/Auth",
+    "actualAndroidIOSIntegrationVerified": false
+  },
+  "flags": {
+    "SourceAdmission": false,
+    "RootAdmission": false,
+    "NativeAdmission": false,
+    "operationVerified": false,
+    "restartRecoveryVerified": false,
+    "actualApproval": false
+  },
+  "fixedOutcome": {
+    "factory": "{owner:retainedSource|null,errorPresent:boolean,error?:unknown}",
+    "producer": "{owner:retainedChild|null,errorPresent:boolean,error?:unknown}",
+    "semantics": "adopt owner before errorPresent, explicit true includes false/null/undefined cause"
+  },
+  "responseOnceConfirmation": {
+    "method": "assertOriginalAITaskActionV6Response(peer,SAMEctx,originalResponseDATA)",
+    "status": "PROPOSED_PENDING_AUTH_CONFIRMATION",
+    "requires": "actual original sameSQLite once row/ref, independent of global issuer-current"
+  },
+  "reviewArguments": [
+    "recognizedSDKWeakMapPeer",
+    "sameOriginalFrozenAbortContext"
+  ],
+  "reviewOutcome": {
+    "owner": "heldReview|null",
+    "errorPresent": "boolean",
+    "error": "unknown, explicit true includes false/null/undefined"
+  },
+  "reviewMethods": [
+    "readOriginalUnsigned",
+    "readOriginalSourceCurrentOriginals",
+    "assertCurrent",
+    "retire",
+    "join",
+    "close"
+  ],
+  "unsignedReturnType": "canonical UTF8 string, not Record/DTO",
+  "currentOriginalsReturn": {
+    "rootOriginal": "Uint8Array original bytes",
+    "enrollmentOriginal": "Uint8Array original bytes",
+    "profileOriginal": "Uint8Array original bytes",
+    "currentOriginal": "Uint8Array original bytes"
+  },
+  "currentOriginalsSemantics": "Pure DATA readback from SAME qualified Source; Source independently verifies originals. SDK compares held bytes only to detect drift, never hashes/booleans as qualification.",
+  "approval": "Source independently captures/verifies actual Main Wallet protected confirmation-domain approval of SAME held review; no caller approval argument, new nonce, Root domain or public protocol",
+  "matching": "pending canonical unsigned UTF8 string == proof original string byte-for-byte, including same original nonce/body/domain/platform/op",
+  "privatePortTypes": "source/packages/wallet-auth/src/original-ai-task-action-v6-client-private.d.ts",
+  "methodDescriptors": "own data function properties; no getters/proxy/prototype-method fallback"
+}

@@ -1,0 +1,2 @@
+// Single matching-source composition/package job. Reuses prior module regressions.
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const cwd=fileURLToPath(new URL('../..',import.meta.url));for(const script of['scripts/ci/ai-native-v6-composition.mjs','scripts/ci/ai-task-v6-outcome-semantics.mjs','scripts/ci/ai-task-v6-go-data-bridge.mjs','scripts/ci/ai-native-v6-package.mjs']){const r=spawnSync(process.execPath,[script],{cwd,stdio:'inherit',env:process.env,timeout:180000});if(r.error)throw r.error;if(r.status!==0)process.exit(r.status??1);}
