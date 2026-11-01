@@ -53,15 +53,22 @@ export const auth5=Object.freeze([
   "ynx_product_pay_source_retain_v1",
   "ynx_product_pay_source_release_v1"
 ]);
-export function assertRoot14StrongSymbolsDATA(globals,attributes,names){
- if(typeof globals!=='string'||typeof attributes!=='string'||!Array.isArray(names))throw Error('ROOT14_STRONG_DATA_INVALID');
- for(const name of names){const token='_'+name,rows=globals.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token),attrs=attributes.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token);if(rows.length!==1||!/^[a-f0-9]+\s+[TDSB]\s+_/.test(rows[0].trim())||attrs.length!==1||/\bweak\b|\bundefined\b/.test(attrs[0]))throw Error('ROOT14_MISSING_WEAK_OR_DUPLICATE:'+name);}
- return {symbols:names.length,RootAdmission:false};
+export function assertRoot14StrongSymbolsDATA(globals,attributes,names,mode='image'){
+ if(typeof globals!=='string'||typeof attributes!=='string'||!Array.isArray(names)||!['image','archive'].includes(mode))throw Error('ROOT14_STRONG_DATA_INVALID');
+ for(const name of names){const token='_'+name,rows=globals.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token),attrs=attributes.split('\n').filter(l=>l.trim().split(/\s+/).at(-1)===token);const strong=l=>/^[a-f0-9]+\s+[TDSB]\s+_/.test(l.trim());
+  if(mode==='image'){if(rows.length!==1||!strong(rows[0])||attrs.length!==1||/\bweak\b|\bundefined\b/.test(attrs[0]))throw Error('ROOT14_MISSING_WEAK_OR_DUPLICATE:'+name);continue;}
+  // Archive member U rows are references, never definitions. Require exactly
+  // one global strong definition and one matching strong attribute definition.
+  // Reject weak rows, duplicate definitions and any unclassified symbol row.
+  const definitions=rows.filter(strong),references=rows.filter(l=>/^U\s+_/.test(l.trim())),definedAttrs=attrs.filter(l=>/^[a-f0-9]+\s+\([^)]+\)\s+(?:private )?external\s+_/.test(l.trim())&&!/\bundefined\b/.test(l)),referenceAttrs=attrs.filter(l=>/^\(undefined\)\s+(?:private )?external\s+_/.test(l.trim()));
+  if(definitions.length!==1||definedAttrs.length!==1||definitions.length+references.length!==rows.length||definedAttrs.length+referenceAttrs.length!==attrs.length||references.length!==referenceAttrs.length||attrs.some(l=>/\bweak\b/.test(l)))throw Error('ROOT14_MISSING_WEAK_OR_DUPLICATE:'+name);
+ }
+ return {symbols:names.length,mode,RootAdmission:false};
 }
 function nm(p,flags){const r=spawnSync('/usr/bin/nm',[...flags,p],{encoding:'utf8',maxBuffer:64<<20});if(r.status!==0)throw Error('ROOT14_NM_FAILED');return r.stdout;}
 export function check(plan){
  if(plan.recipeRole!=='YNX_ROOT14_PRODUCT45_RESOURCE8_SHARED69_NORMAL_NATIVE/v1'||plan.goArchives?.length!==1||plan.goArchives[0].sha256!=='b5e020d2d7f7e5fc501320be2da85e9b76a2e54433fdd70814447dbc06e180ed')throw Error('ROOT14_EXACT_SINGLE_B5_ARCHIVE_REQUIRED');
- const original=checkOriginal(plan);assertRoot14StrongSymbolsDATA(nm(plan.goArchives[0].path,['-g']),nm(plan.goArchives[0].path,['-m']),go45);assertRoot14StrongSymbolsDATA(nm(plan.image.path,['-g']),nm(plan.image.path,['-m']),[...go45,...auth5]);
+ const original=checkOriginal(plan);assertRoot14StrongSymbolsDATA(nm(plan.goArchives[0].path,['-g']),nm(plan.goArchives[0].path,['-m']),go45,'archive');assertRoot14StrongSymbolsDATA(nm(plan.image.path,['-g']),nm(plan.image.path,['-m']),[...go45,...auth5]);
  return {kind:'ROOT14_PRODUCT45_STRONG_GATE/v1',passed:true,Core15:15,LINK22:22,Product8:8,GoArchiveStrong:45,AuthNativeStrong:5,legacyRequired42Preserved:true,ownedUndefined:0,image:plan.image,archive:plan.goArchives[0],original,RootAdmission:false,SourceAdmission:false,normalFactoryComplete:false};
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){if(process.argv.length!==3)throw Error('ROOT14_GATE_ARGV');console.log(JSON.stringify(check(JSON.parse(fs.readFileSync(process.argv[2]))),null,2));}

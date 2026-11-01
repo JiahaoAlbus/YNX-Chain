@@ -395,8 +395,8 @@
     },
     {
       "path": "apps/wallet-desktop/scripts/original-auth-root14-shared69-gate.mjs",
-      "bytes": 4148,
-      "sha256": "31d6ed21fdacd812cef2eebc8cccba122b4fa01282ae383cfc7a529c0d0abdbd"
+      "bytes": 5113,
+      "sha256": "84f059d30f01886c984b94f6da84972776e29cd14c966e74c2a9da29e46ec39b"
     },
     {
       "path": "apps/wallet-desktop/scripts/original-auth-root14-shared69-portable-stage.mjs",
