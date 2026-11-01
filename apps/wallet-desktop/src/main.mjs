@@ -75,6 +75,7 @@ import {acquireOriginalWalletAccountInitialSource,isOriginalWalletAccountInitial
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
 import {readPQSubmissionOriginal} from './features/pq-transaction/typed-action-submission-binding.mjs';
 import {createOriginalWalletPayContextBridge} from './original-policy-supplier/pay-native-context.mjs';
+import {createOriginalWalletProductContextBridge} from './original-policy-supplier/product-native-context.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQTypedActionFinalityNodeReader} from './features/pq-transaction/typed-action-finality-node.mjs';
@@ -167,6 +168,42 @@ let originalPQHostCatalogReceiver;
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 const pqPayNativeContext=new AsyncLocalStorage();
 const originalPayContextBridge=createOriginalWalletPayContextBridge(()=>pqPayNativeContext.getStore(),{isOriginalNativeOwner:owner=>originalPQPaySupply?.isOriginalPaySource(owner)===true});
+const productNativeContext=new AsyncLocalStorage();
+let originalProductFactories=null;
+const originalProductContextBridge=createOriginalWalletProductContextBridge(()=>productNativeContext.getStore(),{isOriginalNativeOwner:owner=>originalProductFactories?.isOriginalProductSource(owner)===true});
+// These fixed Main namespace getters expose only the SAME current request's
+// context custody. Root/resource qualification stays in the original Native.
+export function captureOriginalWalletProductContextForNative(...args){return originalProductContextBridge.capture(...args);}
+export function isOriginalWalletProductContextForNative(peer){return originalProductContextBridge.isPeer(peer);}
+export function associateOriginalWalletProductNativeRetirement(peer,owner){return originalProductContextBridge.associate(peer,owner);}
+function captureOriginalMainProductFactories(){
+ const factories=captureOriginalProductSourceFactories();
+ if(originalProductFactories&&originalProductFactories!==factories)throw Error('PRODUCT_MAIN_FACTORY_CHANGED');
+ originalProductFactories=factories;
+ return Object.freeze({
+  isOriginalProductSource:factories.isOriginalProductSource,
+  async acquireOriginalProductSource(...args){
+   if(args.length)throw Error('PRODUCT_MAIN_CAPTURE_ARGUMENTS_FORBIDDEN');
+   const guard=keyAccess.current(),selected=keyAccess.status();guard.assert();
+   const readCurrentState=()=>({...keyAccess.status(),networkId:PQ_CANONICAL_NETWORK_ID,focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress});
+   const assertCurrent=()=>{
+    guard.assert();const now=readCurrentState();
+    if(now.account!==guard.account||now.revision!==selected.revision||now.networkId!==PQ_CANONICAL_NETWORK_ID||now.locked||now.authenticating||now.changing||!now.focused||Date.now()>=guard.expiresAtMs)throw Error('PRODUCT_MAIN_CONTEXT_CHANGED');
+   };
+   const ctx={captureOpen:true,captureSelected:false,account:guard.account,networkId:PQ_CANONICAL_NETWORK_ID,revision:selected.revision,expiresAtMs:guard.expiresAtMs,assertCurrent,readCurrentState,
+    async recheck(){assertCurrent();const status=await walletAuthority.vault.status();assertCurrent();if(!status.initialized||status.account!==guard.account)throw Error('PRODUCT_MAIN_SELECTED_ACCOUNT_CHANGED');}
+   };
+   assertCurrent();
+   try{return await productNativeContext.run(ctx,()=>factories.acquireOriginalProductSource());}
+   finally{ctx.captureOpen=false;}
+  }
+ });
+}
+function invalidateOriginalMainContexts(){
+ let failed=false,cause;
+ for(const bridge of [originalPayContextBridge,originalProductContextBridge])try{bridge.invalidateAll();}catch(error){if(!failed){failed=true;cause=error;}}
+ if(failed)throw cause;
+}
 // Fixed Main exports for the original SDK/Native getter. No caller-provided
 // approval, context, member, target, guard, secret or module path is accepted.
 export function captureOriginalWalletPayContextForNative(...args){return originalPayContextBridge.capture(...args);}
@@ -226,7 +263,7 @@ let walletConnect;
 let pqKeyPreparation;
 let pqBackupActions;
 let pqRegisteredRestore;
-const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true,beforeInvalidate:()=>originalPayContextBridge.invalidateAll() });
+const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true,beforeInvalidate:invalidateOriginalMainContexts });
 const originalProjectControl=createOriginalWalletProjectControl();
 keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();if(status.locked)originalIDEIdentityPeer?.retire();if(status.locked)originalProjectControl.retire();});
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
@@ -360,6 +397,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 async function shutdownOriginalPQWallet(){
   let retireFailed=false,retireCause;try{originalMainNamespaceStartup.retire();}catch(cause){retireFailed=true;retireCause=cause;}
   try{originalPayContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  try{originalProductContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   try{nativePayMainEntry?.cancel();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   pqFinalityCollection?.retire();
   // The registration client must settle its child/callback custody before the
@@ -370,6 +408,7 @@ async function shutdownOriginalPQWallet(){
   // Child owners must drain before releasing the namespace admission parent.
   if(!failed)try{
     nativePayProduct?.assertSafeToClose();
+    originalProductContextBridge.assertSafeToClose();
     if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');
     originalPayContextBridge.assertSafeToClose();
     await originalMainNamespaceStartup.shutdown();
@@ -470,7 +509,7 @@ const desktopPayService=createDesktopPayService({
   getRuntime:()=>({vault:walletAuthority.vault,lifecycle:keyAccess,store:walletAuthority.transactionSender.submissions.intentStore,client:new DesktopNativePayChain({fetchImpl:net.fetch.bind(net)})}),
 });
 installDesktopPayIPC({handleWalletIPC,safeIPC,service:desktopPayService});
-nativePayMainEntry=createWalletNativePayProductStartup({captureFactories:captureOriginalProductSourceFactories,getGuard:()=>keyAccess.current(),getMain:()=>walletAuthority,getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress})});
+nativePayMainEntry=createWalletNativePayProductStartup({captureFactories:captureOriginalMainProductFactories,getGuard:()=>keyAccess.current(),getMain:()=>walletAuthority,getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress})});
 nativePayProduct=createWalletNativePayProduct({entry:nativePayMainEntry,getMain:()=>walletAuthority,getGuard:()=>keyAccess.current(),publishReview:request=>{
   if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
   mainWindow.webContents.send('wallet:provider-request',request);
