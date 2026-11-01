@@ -1,26 +1,179 @@
 {
+  "schema": "YNX-NETWORK-AUTH-SOURCE-STATIC-CLOSURE/v2",
   "handoff": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/HANDOFF.json",
-    "bytes": 7048,
-    "sha256": "e78f7e43eb4bc271e759a09a36eef808f8f1c73e10136c22314b74083469a36d"
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P09/artifacts/auth-review25-20261101/closure-HMUYiC/HANDOFF.json",
+    "bytes": 10194,
+    "sha256": "7c39503900984f201798ea566397e2fb51cb2bd9e219af96e7da927b3ce4763c"
   },
   "sourceManifest": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/SOURCEFILES.json",
-    "bytes": 10032,
-    "sha256": "fa55c760cc2fab75e3de18b0dfd50c9524e269b6dbae837eea3f3132e333dd83",
-    "gitBlob": "960eb013fa8f34d8492fbcd71bff96d526f993d4"
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P09/artifacts/auth-review25-20261101/closure-HMUYiC/SOURCEFILES.json",
+    "bytes": 30864,
+    "sha256": "5b0d662fe28e9c4c79bc1cf1bebe43c1e24214f9c8747bf8692bf00d1fd14c56"
   },
   "archive": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/go-native-link-KJHPp6/go/native/libynx_network_resource_source.a",
-    "bytes": 2742248,
-    "sha256": "704424095ca8477ed941c0e255653bdc1e115494694ebf0eab99ac7a4447cf9f",
-    "gitBlob": "65f2f0d945e5ef2ced927444014da2b57962c260"
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P09/artifacts/auth-review25-20261101/closure-HMUYiC/native/libynx_network_resource_source.a",
+    "bytes": 2827056,
+    "sha256": "8e9804c1bf52b722d14be6889f34c04d4d850a431f2593667e14c7c2164037a3"
+  },
+  "cryptoArchive": {
+    "path": "/opt/homebrew/Cellar/openssl@3/3.6.4/lib/libcrypto.a",
+    "bytes": 8581312,
+    "sha256": "7227c17bdf67b0370b01f4f7e57dd81d7cfd7de2ddb741859c51425a3db34287"
   },
   "integration": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/INTEGRATION.md",
-    "bytes": 5557,
-    "sha256": "7c861baea0ada97bff32e49322b7239a5c90f8ed3d007f89d34ef7eab1942755",
-    "gitBlob": "c668c4e3dc4b52584719c42e721e6c77230e440c"
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/INTEGRATION.md",
+    "bytes": 4069,
+    "sha256": "d55776ee5c21c0a987e55f2d0106fc4e8846eb2f9878af54ee5b41f25eb60d90",
+    "gitBlob": "26b3a7f72055b9f6d85df50a82dded7acae69035"
+  },
+  "inherited19": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/HANDOFF.json",
+      "bytes": 7048,
+      "sha256": "e78f7e43eb4bc271e759a09a36eef808f8f1c73e10136c22314b74083469a36d"
+    },
+    "sourceManifest": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/SOURCEFILES.json",
+      "bytes": 10032,
+      "sha256": "fa55c760cc2fab75e3de18b0dfd50c9524e269b6dbae837eea3f3132e333dd83",
+      "gitBlob": "960eb013fa8f34d8492fbcd71bff96d526f993d4"
+    },
+    "archive": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/go-native-link-KJHPp6/go/native/libynx_network_resource_source.a",
+      "bytes": 2742248,
+      "sha256": "704424095ca8477ed941c0e255653bdc1e115494694ebf0eab99ac7a4447cf9f",
+      "gitBlob": "65f2f0d945e5ef2ced927444014da2b57962c260"
+    },
+    "integration": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/INTEGRATION.md",
+      "bytes": 5557,
+      "sha256": "7c861baea0ada97bff32e49322b7239a5c90f8ed3d007f89d34ef7eab1942755",
+      "gitBlob": "c668c4e3dc4b52584719c42e721e6c77230e440c"
+    },
+    "vendored": [
+      {
+        "path": "apps/network/internal/authresourcesource/claim.go",
+        "supplierSHA256": "de6d44e3baf7747d81bb02b180f0865087db5f66bdfd32c64945fff765c4decf",
+        "sha256": "de6d44e3baf7747d81bb02b180f0865087db5f66bdfd32c64945fff765c4decf"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/claim_test.go",
+        "supplierSHA256": "bfe8f9cda7c957c3d191bb1323fc157650a90dae016fe41de701dcd3136f9888",
+        "sha256": "bfe8f9cda7c957c3d191bb1323fc157650a90dae016fe41de701dcd3136f9888"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/metadata.go",
+        "supplierSHA256": "39e7739fd1143705cab99b8f33bbcee6f785c17b92af5561973726cf6c896913",
+        "sha256": "39e7739fd1143705cab99b8f33bbcee6f785c17b92af5561973726cf6c896913"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/metadata_test.go",
+        "supplierSHA256": "6c0fa3c2f84f59aaa36e690c5d54982184fdefdcd49859aee354abf4164b8da2",
+        "sha256": "6c0fa3c2f84f59aaa36e690c5d54982184fdefdcd49859aee354abf4164b8da2"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/native_darwin.go",
+        "supplierSHA256": "8a692b43bc42158ec894d5bd4e60657a8a565563fa2a7f4e3faddcfa56c6d2ca",
+        "sha256": "549c2ac5c1191cc26c9f018579bc0ce7f97addac8b8c21326b56e898bc7c6afe"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/native_link_test.go",
+        "supplierSHA256": "a4b35f63351e7820efb5620bbb76f58250bf2c736ee32c3667a1dedda3387228",
+        "sha256": "a4b35f63351e7820efb5620bbb76f58250bf2c736ee32c3667a1dedda3387228"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/native_unavailable.go",
+        "supplierSHA256": "b2460059763bd480ffa88215f958fdd1ae43cbc46dd57c5ed32c0bf4b99b7b80",
+        "sha256": "b2460059763bd480ffa88215f958fdd1ae43cbc46dd57c5ed32c0bf4b99b7b80"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/source.go",
+        "supplierSHA256": "df2a3cd5387631713017c10fd40e7ea9fec82db3b7bfb9f05f344758a3c594a0",
+        "sha256": "df2a3cd5387631713017c10fd40e7ea9fec82db3b7bfb9f05f344758a3c594a0"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/source_test.go",
+        "supplierSHA256": "e3773828432694c090188704ed488f3e6329d2029ef194126e5d7d6e22d4f38e",
+        "sha256": "dbc754c036b5aadad6f71c95e759e9d5b4c3090f5cd28bb6e11e0d8c644e4d69"
+      },
+      {
+        "path": "apps/network/internal/authresourcesource/source/network_resource_native.h",
+        "supplierSHA256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da",
+        "sha256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da"
+      }
+    ],
+    "localChanges": [
+      "Cgo include relative to vendored package",
+      "static C-only archive resolved through build-time -L capture and -l, never runtime paths",
+      "Original no-archive fixture skips only when actual linked Root0 test applies",
+      "gofmt original Go source",
+      "Static libcrypto closure linked in the same helper"
+    ],
+    "secondGoRuntime": false,
+    "productionEnabled": false
+  },
+  "reviewDelta": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/HANDOFF.json",
+      "bytes": 4231,
+      "sha256": "2ba174cceb105d5f0eb4e499542f7fb6902fe042e1feb58ed3ae65e7fb81b1cd"
+    },
+    "sourceManifest": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/SOURCEFILES.json",
+      "bytes": 14124,
+      "sha256": "e946ffcdb78365df407a5421d74876f13e12522fa4e5f2fcc81986bfa8ed8e13",
+      "gitBlob": "170b27aac0e1a8dbc9c94a057a13496fc298fb7e"
+    },
+    "mother": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/MOTHER.json",
+      "bytes": 267,
+      "sha256": "1bf99003ab3e78154892075be5f31ab2417f8ff27a2794287fd6adcbef6442e3",
+      "gitBlob": "23c22fb69e6f4633174bae11a0d6ad62a31ce73b"
+    },
+    "CAS": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/INTAKE_CAS.json",
+      "bytes": 944,
+      "sha256": "042fdb37d1c0a5c51e44870fcb7317c0c16c12929cf14a6f6c903ba2f86dd523",
+      "gitBlob": "84c402b9c5bb649f535f26c8e01c1595e17bf66a"
+    },
+    "typedSignerRequirements": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/frozen-review-r1-mOPmFn/TYPED_CORE_REQUIREMENTS.json",
+      "bytes": 4197,
+      "sha256": "5978567da81df3495f7bb8f972c74aed3a74cf7801085736c22ae6c88e3dcec0",
+      "gitBlob": "ff9d3670db89aa0e97c4b0958af4877d812453b1"
+    }
+  },
+  "ABI": {
+    "wrapperCount": 25,
+    "inheritedWrapperCount": 19,
+    "privateReviewAdded": 6,
+    "symbols": [
+      "_ynx_network_claim_close_v1",
+      "_ynx_network_claim_current_no_io_v1",
+      "_ynx_network_claim_read_original_v1",
+      "_ynx_network_consent_produce_v1",
+      "_ynx_network_permission_close_v1",
+      "_ynx_network_permission_current_no_io_v1",
+      "_ynx_network_review_close_v1",
+      "_ynx_network_review_current_v1",
+      "_ynx_network_review_join_v1",
+      "_ynx_network_review_observe_phase_v1",
+      "_ynx_network_review_prepare_v1",
+      "_ynx_network_review_read_original_v1",
+      "_ynx_network_review_retire_v1",
+      "_ynx_network_source_acquire_v1",
+      "_ynx_network_source_borrow_permission_v1",
+      "_ynx_network_source_claim_once_v1",
+      "_ynx_network_source_close_v1",
+      "_ynx_network_source_consumer_identity_v1",
+      "_ynx_network_source_current_ref_v1",
+      "_ynx_network_source_current_v1",
+      "_ynx_network_source_input_ref_v1",
+      "_ynx_network_source_join_v1",
+      "_ynx_network_source_read_v1",
+      "_ynx_network_source_retire_v1",
+      "_ynx_network_source_verify_v1"
+    ]
   },
   "vendored": [
     {
@@ -72,6 +225,31 @@
       "path": "apps/network/internal/authresourcesource/source/network_resource_native.h",
       "supplierSHA256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da",
       "sha256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/review.go",
+      "supplierSHA256": "da6ba8462b86ca54545cda73aa41f15747d834e7c804834d97e07c0a1a4c7180",
+      "sha256": "da6ba8462b86ca54545cda73aa41f15747d834e7c804834d97e07c0a1a4c7180"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/review_test.go",
+      "supplierSHA256": "040db39edd6bcb26df8a78b5dd801e9da245fe0e3495a1840dd9f757527631d8",
+      "sha256": "040db39edd6bcb26df8a78b5dd801e9da245fe0e3495a1840dd9f757527631d8"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/review_link_test.go",
+      "supplierSHA256": "d9551d5d841dd33379cf6ab991a1e21b66eae522f854d0562c9cd4935b2c9d81",
+      "sha256": "d9551d5d841dd33379cf6ab991a1e21b66eae522f854d0562c9cd4935b2c9d81"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/review_native_darwin.go",
+      "supplierSHA256": "cf5aba7f59af9774bf095dbd3e695737d4eb72b4364ea0bdbe03c690451dc6f0",
+      "sha256": "c63cfde0309212c9789f8add062780d54317ee48cb74f3e38ce9edb2955ab868"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/source/network_review_private.h",
+      "supplierSHA256": "ed8cf11948154a68b0148b18aac1ef6419753cef919bf330d467eebb372fda9b",
+      "sha256": "ed8cf11948154a68b0148b18aac1ef6419753cef919bf330d467eebb372fda9b"
     }
   ],
   "localChanges": [
@@ -79,8 +257,14 @@
     "static C-only archive resolved through build-time -L capture and -l, never runtime paths",
     "Original no-archive fixture skips only when actual linked Root0 test applies",
     "gofmt original Go source",
-    "Static libcrypto closure linked in the same helper"
+    "Static libcrypto closure linked in the same helper",
+    "Review original source/test adoption with only package-local cgo include adaptation",
+    "One new Network Native object from frozen review delta replaces the mother Network object; all eight other original C-only objects retain independent mother pins",
+    "Build intaker admits only this independently pinned 25-wrapper static closure; no 19 fallback or dynamic loader",
+    "Opaque Review uintptr values are converted only inside package-local inline C shims, preserving actual original Native foreign-handle registry rejection under race/checkptr; no extra public ABI or provider"
   ],
   "secondGoRuntime": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
   "productionEnabled": false
 }

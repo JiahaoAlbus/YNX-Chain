@@ -165,3 +165,6 @@ test('foreground refresh is bounded, does not overlap and never re-pairs an expi
 test('pair denial is visible to the active shell and retains no session',async()=>{
  const e=environment({ticket:false});e.node('pair-code').value='bad-code';const job=e.emit('pair-form','submit');e.take('/api/pair/challenge').resolve({challenge:'c'});await settle();e.take('/api/pair').resolve({error:'APPROVAL_DENIED'},403);await job;const notice=e.uiEvents.filter(x=>x.channel==='notice').at(-1);assert.equal(notice.value.error,true);assert.match(notice.value.params.error,/APPROVAL_DENIED/);assert.equal(e.storage.has('ynxNetworkTicket'),false);
 });
+
+// Native operation controller fixtures are included by the existing CI entry.
+import "./native-ui.test.mjs";

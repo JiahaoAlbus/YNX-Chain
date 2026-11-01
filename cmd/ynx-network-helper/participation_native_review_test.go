@@ -26,6 +26,14 @@ import (
 // Real helper process + kernel IPC + original codec/HTTP fixtures. No Wallet
 // approval, actual Main publisher, public business, funds or UI is exercised.
 func TestP0906ParticipationNormalReviewCancelColdRestart(t *testing.T) {
+	testParticipationNativeReviewCancel(t, participation.Delegate)
+}
+
+func TestP0906ParticipationWithdrawNormalReviewCancelColdRestart(t *testing.T) {
+	testParticipationNativeReviewCancel(t, participation.Withdraw)
+}
+
+func testParticipationNativeReviewCancel(t *testing.T, action string) {
 	if runtime.GOOS != "darwin" && runtime.GOOS != "linux" {
 		t.Skip("Unix kernel peer required")
 	}
@@ -39,6 +47,13 @@ func TestP0906ParticipationNormalReviewCancelColdRestart(t *testing.T) {
 	}
 	defer os.RemoveAll(dir)
 	f := newParticipationFixture(t, false)
+	request := f.request
+	wantKind := "stake_delegate"
+	if action == participation.Withdraw {
+		matureWithdrawal(f)
+		request = func(id string) participation.Request { return withdrawalRequest(f, id) }
+		wantKind = "stake_withdraw"
+	}
 	binary := filepath.Join(dir, "ynx-network-helper")
 	// Reuse the actual current test toolchain without selecting/downloading one.
 	compile := exec.Command(filepath.Join(runtime.GOROOT(), "bin/go"), "build", "-mod=readonly", "-p", "1", "-o", binary, "./cmd/ynx-network-helper")
@@ -130,7 +145,7 @@ func TestP0906ParticipationNormalReviewCancelColdRestart(t *testing.T) {
 		return value
 	}
 	origin, code, stop := start()
-	prepared := call("participation_prepare", f.request("normal-review"))
+	prepared := call("participation_prepare", request("normal-review"))
 	if prepared["code"] != "UNSUPPORTED" {
 		t.Fatalf("publisher absence: %v", prepared)
 	}
@@ -141,8 +156,16 @@ func TestP0906ParticipationNormalReviewCancelColdRestart(t *testing.T) {
 		t.Fatalf("normal data-only review: %v", view)
 	}
 	input := review["walletInput"].(map[string]any)
-	if len(input) != 3 || input["kind"] != "stake_delegate" || input["fee"] != "1" || input["payload"].(map[string]any)["amountYNXT"] != "10" {
+	if len(input) != 3 || input["kind"] != wantKind || input["fee"] != "1" {
 		t.Fatalf("Main DATA keys: %v", input)
+	}
+	payload := input["payload"].(map[string]any)
+	if action == participation.Withdraw {
+		if len(payload) != 1 || payload["unbondingID"] != strings.Repeat("3", 24) {
+			t.Fatalf("normal withdraw supplied caller amount/authority: %v", input)
+		}
+	} else if len(payload) != 2 || payload["amountYNXT"] != "10" {
+		t.Fatalf("normal delegation DATA changed: %v", input)
 	}
 	post := func(endpoint, ticket string, body any) map[string]any {
 		encoded, _ := json.Marshal(body)
@@ -197,10 +220,11 @@ func TestP0906ParticipationNormalReviewCancelColdRestart(t *testing.T) {
 	if restored["localDispatchCancelled"] != true || restored["originalEffectMayExist"] != false || restored["entry"].(map[string]any)["state"] != participation.Cancelled {
 		t.Fatalf("cold original lost: %v", restored)
 	}
-	fresh := call("participation_prepare", f.request("explicit-normal-reopen"))
+	fresh := call("participation_prepare", request("explicit-normal-reopen"))
 	if fresh["code"] != "UNSUPPORTED" || fresh["entry"].(map[string]any)["id"] == id {
 		t.Fatalf("fresh metadata session: %v", fresh)
 	}
 	stop2()
 	participationStatusNoEffects(t, f)
+	t.Logf("PUBLIC_CONTROLLED_NATIVE_%s actual helper + kernel peer; Wallet NOT_SUPPLIED; review exact DATA; HTTP ticket refused; cancel+reopen retained; normal exits0; zero sign/publish/lookup", action)
 }

@@ -66,6 +66,8 @@ type participationFixture struct {
 	chainTime                                                                                        time.Time
 	summaryBlock                                                                                     chan struct{}
 	summaryReached                                                                                   chan struct{}
+	unbondingEdit                                                                                    func(*consensus.BFTUnbondingEntry)
+	delegationEdit                                                                                   func(*consensus.BFTStakeDelegation)
 }
 
 func newParticipationFixture(t *testing.T, withWallet bool) *participationFixture {
@@ -152,9 +154,17 @@ func (f *participationFixture) handler(w http.ResponseWriter, r *http.Request) {
 		if f.opaque {
 			history = ""
 		}
-		pJSON(w, map[string]any{"source": "ynx-consensus-abci", "failure": false, "version": 1, "delegation": consensus.BFTStakeDelegation{ID: strings.Repeat("1", 24), Delegator: f.owner, Validator: "fixture-validator-A", AmountYNXT: 20, Status: "active", TxHash: "0x" + strings.Repeat("2", 64), AuthorizationHistory: history}})
+		entry := consensus.BFTStakeDelegation{ID: strings.Repeat("1", 24), Delegator: f.owner, Validator: "fixture-validator-A", AmountYNXT: 20, Status: "active", TxHash: "0x" + strings.Repeat("2", 64), AuthorizationHistory: history}
+		if f.delegationEdit != nil {
+			f.delegationEdit(&entry)
+		}
+		pJSON(w, map[string]any{"source": "ynx-consensus-abci", "failure": false, "version": 1, "delegation": entry})
 	case strings.HasPrefix(r.URL.Path, "/staking/unbondings/"):
-		pJSON(w, map[string]any{"source": "ynx-consensus-abci", "failure": false, "version": 1, "unbonding": consensus.BFTUnbondingEntry{ID: strings.Repeat("3", 24), Delegator: f.owner, Validator: "fixture-validator-A", AmountYNXT: 7, Status: "queued", AvailableAt: time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC)}})
+		entry := consensus.BFTUnbondingEntry{ID: strings.Repeat("3", 24), DelegationID: strings.Repeat("1", 24), Delegator: f.owner, Validator: "fixture-validator-A", AmountYNXT: 7, Status: "queued", RequestedAt: time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC), AvailableAt: time.Date(2030, 1, 8, 0, 0, 0, 0, time.UTC), BlockHeight: 20, TxHash: "0x" + strings.Repeat("2", 64)}
+		if f.unbondingEdit != nil {
+			f.unbondingEdit(&entry)
+		}
+		pJSON(w, map[string]any{"source": "ynx-consensus-abci", "failure": false, "version": 1, "unbonding": entry})
 	case r.URL.Path == "/status":
 		pJSON(w, map[string]any{"latestBlockTime": f.chainTime})
 	case strings.HasPrefix(r.URL.Path, "/governance/proposals/"):
@@ -162,7 +172,7 @@ func (f *participationFixture) handler(w http.ResponseWriter, r *http.Request) {
 	case r.URL.Path == "/governance/parameters":
 		pJSON(w, map[string]any{"source": "ynx-governance-authoritative-state", "version": "ynx-governance-api/v1", "asOf": time.Now().UTC().Format(time.RFC3339Nano), "data": map[string]any{"parameters": []any{}}})
 	case r.URL.Path == "/fixture-wallet/capabilities":
-		pJSON(w, participation.WalletCapabilities{Publisher: "isolated-fixture-wallet", Network: f.network, Suite: ynxbatch.Version, Actions: []string{ynxauth.ActionStakeDelegate, ynxauth.ActionStakeUnbond}, PublishOriginalNativeAction: true, LookupOriginalOperation: true})
+		pJSON(w, participation.WalletCapabilities{Publisher: "isolated-fixture-wallet", Network: f.network, Suite: ynxbatch.Version, Actions: []string{ynxauth.ActionStakeDelegate, ynxauth.ActionStakeUnbond, ynxauth.ActionStakeWithdraw}, PublishOriginalNativeAction: true, LookupOriginalOperation: true})
 	case r.URL.Path == "/fixture-wallet/publish" && r.Method == http.MethodPost:
 		f.publishes++
 		var in struct {

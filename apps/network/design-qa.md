@@ -2,6 +2,149 @@
 
 Scope: the user's supplied desktop/mobile light and dark designs implemented in the existing independent Network client. This is a client visual and interaction gate, separate from native App installation, publisher signing, public deployment, real-phone acceptance and chain finality.
 
+## Native business client module (2026-11-02)
+
+The existing independent client now binds its visible node, participation and
+resource forms to `window.NetworkNative.request(operation, payload)`. It consumes
+the original complete localipc Response and typed payload, verifies the native
+transport observation without claiming browser OS identity, and uses explicit
+server capability booleans as permission to attempt only. Missing/malformed caps
+keep controls disabled. Native readiness starts only node_status, resource_status
+and participation_list observations; it never starts an effect or retries one.
+An ordinary browser shows NATIVE_REQUIRED regardless of HTTP pairing/self-status.
+
+Node installation/start/restart require production mode, true ProductionSupported,
+exact stage/ownership and the corresponding capability plus visible-consent
+availability. Stop is limited to an owned running handle. Prepare returns the
+original five-field Intent, which is displayed and passed unchanged to the fixed
+node effect operation once. The webpage cannot approve it. Restart sends only
+`{}` to the real backend's two-decision RestartNative. Fixture mode does not open
+production controls. Native status/logs are displayed as local observations; logs
+do not supply synchronization or finality.
+
+Delegate, unbond, withdraw and vote use the actual Request fields, integer YNXT
+limits, original target IDs and bounded UTC expiry. A local draft correlation is
+not a Main/Wallet review UUID. No vote codec or canonical action is constructed
+in the browser. Original Entry IDs, Request fields, review materials and
+displayOriginalMembers are presented as literal text. Submit requires the same
+original intent/ID, PREPARED, a current original Review, explicit Wallet adapter
+and capability gates, no prior publish attempt, and no unresolved preparation.
+It still delegates actual approval/publishing to the original Wallet. A posted
+UNKNOWN submit is not retried; get/reconcile preserve its original ID.
+
+Durable history comes only from the real journal list (six original fields,
+opaque cursor and actual nextCursor). A list refresh invalidates any prior
+per-entry review. For a prepare acknowledgment loss, the exact original Request
+and requestId remain in memory, and new preparation/draft IDs are blocked. The
+read-only participation_resolve uses that original correlation, including legal
+aliases. It must echo the exact queried ID; NOT_FOUND and mismatches remain
+UNKNOWN, without a new Prepare or an action-based guess. A returned first Intent
+is never rewritten to match a newer draft, and differences are made visible.
+Resolve itself cannot arm submit; the original CurrentReview/Wallet gate remains.
+
+Resources expose only status/meter/stop and unsigned review/cancel. Preview size
+and fingerprint are not consent, signing, execution or rewards. Authority,
+productionEnabled and consentProduced must remain false; productionDispatch true
+is rejected. No protected resource_current/private 9DATA/initializer is exposed.
+Read failures affect the corresponding module; they do not disable an independent
+owned-node stop capability. Session changes suppress old completions.
+
+Twenty-two new controller protocol-fixture groups pass through the original
+app.test.mjs CI entry. Fixtures are not human consent, kernel credentials, Wallet
+signatures, node execution or money. The affected reset/revoke/locale selection passed 20 targets: 17 existing
+cases and three matching new Native cases. Fifty-seven new visible keys have all twelve real
+translations; current coverage, literal interpolation and receipt rerender targets
+pass, with the localization engine unchanged. Native bridge/Go/overview/launcher
+source ownership remains with the original peer/parent owners.
+
+Layout evidence is in `ui-visible-20261101/native-operation-layout/`: the initial
+36 new-form states/108 PNGs, the resolution-form 20 states/60 PNGs in `final/`,
+and the final twelve participation variants/36 PNGs in `participation-final/`.
+These use the fixed installed df3b helper with isolated normal startup/pairing and
+actual public RPC/self-status; **six exact frontend assets are overlaid**, with no
+business model or native-response injection. The ordinary browser's real bridge
+reports available:false/ready:false and every native effect remains disabled.
+No response from that old helper is claimed as a new native capability response.
+All runs have zero width/label/theme/control failures and no page/console error.
+The primary Chinese four variants and mobile German/Arabic forms were visually
+reviewed. The history navigation buttons were given their own intrinsic width;
+all missing balances/proofs stay unavailable. Original screenshots/first causes
+are retained; later controller-only boundary tightening is covered by the fixture
+targets and is not a successor package claim.
+
+Every original browser closed; every original helper received SIGTERM and its
+Wait returned exit 0 with empty stderr. Code/source tests and scoped browser
+layout are verified. The parent must build/install the matching Auth25/22-op
+bridge candidate for real native client/callee integration and GUI acceptance.
+No GUI, production publisher authorization, Wallet approval, stake/vote, node
+start or resource production dispatch was performed by this presentation pass.
+
+## df3b all-page acceptance and mobile history repair (2026-11-02)
+
+The fixed installed QA helper from source
+`df3b6c9b7da43218dfdf8b47050ada5f6a28a666`, SHA256
+`940d9730e1a0d23f6aefe5db62b235709da741199e703f0c346160797ea51847`,
+was exercised using its normal CLI, an isolated private product directory and
+normal browser pairing. No running App, existing data or native GUI was touched.
+The prior matching-package overview/node record and this remaining-page record
+cover all seven desktop pages, all five mobile roots and the mobile history,
+participation and settings subpages in light and dark. This current-package
+evidence is separate from the earlier 7ba stylesheet overlay.
+
+`ui-visible-20261101/packaged-df3b/remaining-pages/REMAINING_PAGES_RESULT.json`
+contains 26 states and 72 original screenshots: verify, history, participation,
+contribution and settings in all four variants; mobile account in both themes;
+and actual original-receipt readback in all four variants. Every full-page view
+and the critical mobile footer captures were visually inspected. Real visible
+navigation controls were used, including mobile account routes. Thirty-two
+actually loaded UI assets matched the df3b package manifest; no current-worktree
+asset was the baseline. There were no horizontal overflows, tested label clips,
+body/theme mismatches, page errors or console errors. Recorded bounds for 182
+controls support an unobscured scroll position; the geometry record explicitly
+corrects a capture-harness serialization omission rather than relying on its
+unsaved last-control summary.
+
+The public historical test transaction returned RPC_ONLY with a real saved
+receipt. Its original receipt was read back through history; historical text and
+all four un-reverified levels remained neutral. Bare RPC reporting and missing
+proof collection were shown separately. No balance, proof success or finality
+was invented. Participation remained NOT_SUPPLIED with Wallet disconnected and
+no provided balance or proposal. Contribution remained DISABLED, zero actual
+local counters, no production grant and no running worker; its disabled action
+controls were not counted as available business operations. Settings showed the
+fixed Testnet source, missing independent trust, current pairing scope and the
+reachable revoke control. No export, staking, vote or production effect was
+triggered.
+
+A real mobile history defect was retained in the original package screenshots:
+responsive CSS hid the recorded level and stop reason, leaving only time/hash.
+The parent assigned the repair back to this presentation owner. The new CSS is
+limited to `#receipt-list .history-row` below 901 pixels: time/hash span the row,
+original level and reason remain visible in neutral text, and the existing
+readback action occupies its own line. No controller, data, label, grant or
+translation-engine change was made.
+
+The targeted repair evidence is
+`remaining-pages/mobile-history-fix/HISTORY_FIX_RESULT.json`: the exact same
+installed df3b helper was normally restarted against only this run's own closed
+private data directory; its original receipt persisted and a fresh pairing was
+required. Only the stylesheet response was overlaid with the recorded source
+CSS. Six mobile history states (Chinese/German/Arabic, light/dark) show the actual
+RPC_ONLY and NOT_SUPPLIED metadata with zero hidden fields, clips or overflow.
+Four more screenshots show actual live and historical transaction-page middle
+scroll positions, including the fields covered by the fixed navigation bar in a
+full-page screenshot. Actual export/raw-report controls were scrolled into an
+unobscured viewport without activating them. The existing footer images cover
+the remaining long pages. All ten target images were visually inspected.
+
+Both original browsers closed; both original helper handles received SIGTERM
+and completed Wait/exit 0 with empty stderr. Original package/failure images
+remain unchanged. This is a verified source-CSS repair, **not** a corrected df3b
+package: the matching successor asset/package acceptance remains with parent.
+Normal native App GUI, real phones, publisher signing, production authority and
+independent proof/finality remain separate gates. No old language matrix,
+cryptographic or WASM suite was rerun.
+
 ## Actual sampled-homepage helper acceptance (2026-11-01)
 
 The new compiled development helper, SHA256

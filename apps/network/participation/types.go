@@ -30,6 +30,7 @@ const (
 	Vote              = "vote"
 	Delegate          = "delegate"
 	Unbond            = "unbond"
+	Withdraw          = "withdraw"
 	Prepared          = "PREPARED"
 	Unsupported       = "UNSUPPORTED"
 	Unknown           = "UNKNOWN"
@@ -67,6 +68,7 @@ type Request struct {
 	Choice       string `json:"choice,omitempty"`
 	Validator    string `json:"validator,omitempty"`
 	DelegationID string `json:"delegationId,omitempty"`
+	UnbondingID  string `json:"unbondingId,omitempty"`
 	AmountYNXT   string `json:"amountYnxt,omitempty"`
 	FeeCapYNXT   string `json:"feeCapYnxt"`
 	ExpiresAt    string `json:"expiresAt"`
@@ -97,6 +99,7 @@ type Conditions struct {
 	SnapshotHeight      string  `json:"snapshotHeight,omitempty"`
 	VotingEndsAt        string  `json:"votingEndsAt,omitempty"`
 	ObservedAt          string  `json:"observedAt"`
+	WithdrawAvailableAt string  `json:"withdrawAvailableAt,omitempty"`
 }
 
 // Intent is an internal product handoff, NOT a new SDK or signed wire schema.

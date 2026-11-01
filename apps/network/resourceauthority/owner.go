@@ -30,13 +30,17 @@ type Status struct {
 }
 
 type Owner struct {
-	mu      sync.Mutex
-	drain   chan struct{}
-	source  source
-	status  Status
-	first   error
-	retired bool
-	closed  bool
+	review          *Review
+	reviewPreparing bool
+	reviewSelected  bool
+	reviewCanceled  bool
+	mu              sync.Mutex
+	drain           chan struct{}
+	source          source
+	status          Status
+	first           error
+	retired         bool
+	closed          bool
 }
 
 var nativeCode = regexp.MustCompile(`^NETWORK_RESOURCE_NATIVE(_CLAIM)?_[0-9]{1,10}$`)
@@ -157,10 +161,24 @@ func (o *Owner) Close(ctx context.Context) (bool, error) {
 		o.firstError(ctx.Err())
 		return false, errors.Join(retireErr, ctx.Err())
 	}
+	o.mu.Lock()
+	review, preparing := o.review, o.reviewPreparing
+	o.mu.Unlock()
+	if preparing {
+		return false, errors.Join(retireErr, ErrReviewPending)
+	}
+	var reviewErr error
+	if review != nil {
+		complete, err := review.Close(ctx)
+		reviewErr = err
+		if !complete {
+			return false, errors.Join(retireErr, err)
+		}
+	}
 	complete, joinErr := s.Join(ctx)
 	o.firstError(joinErr)
 	if !complete {
-		return false, errors.Join(retireErr, joinErr)
+		return false, errors.Join(retireErr, reviewErr, joinErr)
 	}
 	complete, closeErr := s.Close(ctx)
 	o.firstError(closeErr)
@@ -169,5 +187,5 @@ func (o *Owner) Close(ctx context.Context) (bool, error) {
 	o.status.PhysicalComplete = complete
 	o.status.CleanupPending = !complete
 	o.mu.Unlock()
-	return complete, errors.Join(retireErr, joinErr, closeErr)
+	return complete, errors.Join(retireErr, reviewErr, joinErr, closeErr)
 }

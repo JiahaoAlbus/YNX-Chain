@@ -197,6 +197,9 @@ func (r *HTTPReader) Current(ctx context.Context, req Request) (Conditions, erro
 		c.NativeAvailable = true
 		return c, nil
 	}
+	if req.Action == Withdraw {
+		return r.withdrawalCurrent(ctx, req, c, auth.CommittedHeight)
+	}
 	var envelope struct {
 		Source     string                       `json:"source"`
 		Failure    bool                         `json:"failure"`

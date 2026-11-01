@@ -43,7 +43,8 @@ type WalletPreparationInput struct {
 type WalletPreparationPayload struct {
 	Validator    string `json:"validator,omitempty"`
 	DelegationID string `json:"delegationID,omitempty"`
-	AmountYNXT   string `json:"amountYNXT"`
+	UnbondingID  string `json:"unbondingID,omitempty"`
+	AmountYNXT   string `json:"amountYNXT,omitempty"`
 }
 
 // Review reads the retained exact intent even when Wallet is absent. For a
@@ -78,7 +79,7 @@ func (s *Service) Review(ctx context.Context, id string) (Review, error) {
 		digest := sha256.Sum256(message)
 		result.CanonicalActionSHA256 = hex.EncodeToString(digest[:])
 		result.WalletInput = &WalletPreparationInput{Kind: entry.Intent.ActionKind, Fee: entry.Intent.Conditions.FeeYNXT,
-			Payload: WalletPreparationPayload{Validator: entry.Intent.Request.Validator, DelegationID: entry.Intent.Request.DelegationID, AmountYNXT: entry.Intent.Request.AmountYNXT}}
+			Payload: WalletPreparationPayload{Validator: entry.Intent.Request.Validator, DelegationID: entry.Intent.Request.DelegationID, UnbondingID: entry.Intent.Request.UnbondingID, AmountYNXT: entry.Intent.Request.AmountYNXT}}
 	}
 	if s.closed || s.persistErr != nil || s.lock.Check() != nil {
 		s.mu.Unlock()

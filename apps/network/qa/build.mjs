@@ -40,7 +40,7 @@ function snapshot(){
   const originalVerifier=originalVerifierInput();
   const originalAuthSource=authSourceInput(root,option('--auth-source-handoff'),option('--auth-source-handoff-sha256'));
   const packages=jsonStream(run('go',['list','-mod=readonly',...(originalAuthSource?['-tags','ynx_network_source_native']:[]),'-deps','-json','./cmd/ynx-network-helper',...(originalVerifier?[]:['./cmd/ynx-consensus-proof-verify'])],originalAuthSource?{env:{...process.env,CGO_ENABLED:'1',GOOS:'darwin',GOARCH:'arm64',GOMAXPROCS:'2',GOWORK:'off'}}:{}));
-  for(const name of ['SUPPLIER.json','source/network_resource_native.h'])files.add('apps/network/internal/authresourcesource/'+name);
+  for(const name of ['SUPPLIER.json','source/network_resource_native.h','source/network_review_private.h'])files.add('apps/network/internal/authresourcesource/'+name);
   for(const p of packages){if(!p.Dir||!(p.Dir===root||p.Dir.startsWith(root+path.sep)))continue;for(const field of ['GoFiles','CgoFiles','CFiles','CXXFiles','MFiles','HFiles','SFiles','SysoFiles','EmbedFiles'])for(const name of p[field]??[]){const relative=path.relative(root,path.join(p.Dir,name));if(!relative.startsWith('..'))files.add(relative);}if(p.Module?.GoMod&&p.Module.GoMod.startsWith(root+path.sep))files.add(path.relative(root,p.Module.GoMod));}
   const inputs=[...files].sort().map(name=>({path:name,bytes:fs.statSync(path.join(root,name)).size,sha256:sha(fs.readFileSync(path.join(root,name)))}));
   const identity={head,inputs,originalVerifier,originalAuthSource};return {head,branch:run('git',['branch','--show-current']),dirty:status!=='',dirtyPaths:status.split('\n').filter(Boolean),inputs,originalVerifier,originalAuthSource,inputSHA256:sha(JSON.stringify(identity)),goVersion:run('go',['version'])};

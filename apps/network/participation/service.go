@@ -223,15 +223,19 @@ func validateRequest(r Request) error {
 	}
 	switch r.Action {
 	case Vote:
-		if !reference(r.Proposal) || (r.Choice != "yes" && r.Choice != "no" && r.Choice != "abstain") || r.AmountYNXT != "" || r.Validator != "" || r.DelegationID != "" {
+		if !reference(r.Proposal) || (r.Choice != "yes" && r.Choice != "no" && r.Choice != "abstain") || r.AmountYNXT != "" || r.Validator != "" || r.DelegationID != "" || r.UnbondingID != "" {
 			return ErrInvalid
 		}
 	case Delegate, Unbond:
 		n, e := integer(r.AmountYNXT)
-		if e != nil || n == 0 || n > math.MaxInt64 || r.Proposal != "" || r.Choice != "" {
+		if e != nil || n == 0 || n > math.MaxInt64 || r.Proposal != "" || r.Choice != "" || r.UnbondingID != "" {
 			return ErrInvalid
 		}
 		if r.Action == Delegate && (!reference(r.Validator) || r.DelegationID != "") || r.Action == Unbond && (!recordID(r.DelegationID) || r.Validator != "") {
+			return ErrInvalid
+		}
+	case Withdraw:
+		if !recordID(r.UnbondingID) || r.DelegationID != "" || r.Validator != "" || r.AmountYNXT != "" || r.Proposal != "" || r.Choice != "" {
 			return ErrInvalid
 		}
 	default:
@@ -255,21 +259,35 @@ func payload(r Request) (string, []byte, error) {
 	case Unbond:
 		b, e := ynxauth.EncodeActionPayload(ynxauth.ActionStakeUnbond, ynxauth.StakeUnbondPayload{DelegationID: r.DelegationID, AmountYNXT: amount})
 		return ynxauth.ActionStakeUnbond, b, e
+	case Withdraw:
+		b, e := ynxauth.EncodeActionPayload(ynxauth.ActionStakeWithdraw, ynxauth.StakeWithdrawPayload{UnbondingID: r.UnbondingID})
+		return ynxauth.ActionStakeWithdraw, b, e
 	default:
 		return "", nil, ErrUnsupported
 	}
 }
 func critical(c Conditions) any {
-	return struct {
+	base := struct {
 		Network                                                                                               Network
 		Owner, Action, Policy, Nonce, Fee, Validator, Object, Available, Wait, Commission, Proposal, Snapshot string
 		ProposalBinding                                                                                       Binding
 	}{c.Network, c.Owner, c.Action, c.PolicyRevision, c.NextNonce, c.FeeYNXT, c.Validator, c.ObjectVersion, c.AvailableYNXT, c.UnbondingSeconds, c.CommissionBPS, c.Proposal, c.SnapshotHeight, c.ProposalBinding}
+	if c.Action == Withdraw {
+		return struct {
+			Original    any
+			AvailableAt string
+			Ready       bool
+		}{base, c.WithdrawAvailableAt, c.NativeAvailable}
+	}
+	return base
 }
 func guard(i Intent) string {
 	target := i.Request.Validator
 	if i.Request.Action == Unbond {
 		target = i.Request.DelegationID
+	}
+	if i.Request.Action == Withdraw {
+		target = i.Request.UnbondingID
 	}
 	if i.Request.Action == Vote {
 		target = i.Request.Proposal

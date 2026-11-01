@@ -53,9 +53,11 @@ func startNativeServiceWithSource(ctx context.Context, directory string, service
 			return localipc.Result{Status: &localipc.Status{Service: "YNX Network", NodeControl: "unavailable", ResourceContribution: state, Activity: activity}}, nil
 		case "request_permission":
 			return localipc.Result{Permission: &localipc.PermissionResult{State: "unsupported"}}, nil
+		case "resource_review", "resource_review_cancel":
+			return nativeResourceReview(ctx, source, r, resource)
 		default:
 			if len(r.Operation) >= 9 && r.Operation[:9] == "resource_" {
-				return nativeResource(ctx, resource, r)
+				return nativeResource(ctx, resource, r, source)
 			}
 			if len(r.Operation) >= 5 && r.Operation[:5] == "node_" {
 				return nativeNode(ctx, node, peer, r, prompt)
@@ -65,7 +67,17 @@ func startNativeServiceWithSource(ctx context.Context, directory string, service
 	}})
 }
 
-func nativeResource(ctx context.Context, runner *contribution.Runner, r localipc.Request) (localipc.Result, error) {
+func nativeResource(ctx context.Context, runner *contribution.Runner, r localipc.Request, sources ...*resourceauthority.Owner) (localipc.Result, error) {
+	var source *resourceauthority.Owner
+	if len(sources) > 1 {
+		return localipc.Result{}, errors.New("one original resource owner required")
+	}
+	if len(sources) == 1 {
+		source = sources[0]
+	}
+	if r.Operation == "resource_current" {
+		return nativeResourceCurrent(ctx, runner, r)
+	}
 	var empty struct{}
 	if err := nativeDecode(r.Payload, &empty); err != nil {
 		return localipc.Result{}, err
@@ -83,17 +95,53 @@ func nativeResource(ctx context.Context, runner *contribution.Runner, r localipc
 	default:
 		return localipc.Result{}, errors.New("unsupported resource operation")
 	}
-	raw, err := json.Marshal(map[string]any{"code": code, "productionEnabled": false, "containment": contribution.ProcessContainmentSupport(), "meter": runner.VerifyResourceMeter()})
+	raw, err := json.Marshal(map[string]any{"code": code, "productionEnabled": false, "containment": contribution.ProcessContainmentSupport(), "meter": runner.VerifyResourceMeter(), "capabilities": resourceCapabilities(runner, source)})
 	return localipc.Result{Payload: raw}, err
 }
 
 func nativeNode(ctx context.Context, node *ownednode.Manager, peer localipc.Peer, r localipc.Request, prompt nodeConsent) (localipc.Result, error) {
 	pack := func(value any, code string) (localipc.Result, error) {
-		raw, err := json.Marshal(map[string]any{"code": code, "node": value, "productionGrant": false})
+		raw, err := json.Marshal(map[string]any{"code": code, "node": value, "productionGrant": false, "capabilities": nodeCapabilities(node, peer, prompt)})
 		return localipc.Result{Payload: raw}, err
 	}
 	if node == nil {
 		return pack(nil, "NOT_SUPPLIED")
+	}
+	if r.Operation == "node_restart" {
+		var empty struct{}
+		if err := nativeDecode(r.Payload, &empty); err != nil {
+			return localipc.Result{}, err
+		}
+		status, err := node.Status(peer)
+		if err != nil {
+			return pack(nil, "UNAVAILABLE")
+		}
+		if !status.ProcessOwned || status.Stage != "running" {
+			return pack(nil, "NOT_RUNNING")
+		}
+		if !status.ProductionSupported && status.Mode == "production" {
+			return pack(nil, "UNSUPPORTED")
+		}
+		if prompt == nil {
+			return pack(nil, "CONSENT_UNAVAILABLE")
+		}
+		_, err = node.RestartNative(ctx, peer, prompt)
+		if errors.Is(err, nativeconsent.ErrCancelled) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return pack(nil, "CANCELLED")
+		}
+		if errors.Is(err, nativeconsent.ErrBusy) {
+			return pack(nil, "BUSY")
+		}
+		if errors.Is(err, ownednode.ErrOriginalReleaseMissing) {
+			return pack(nil, "UNSUPPORTED")
+		}
+		if errors.Is(err, ownednode.ErrReconcile) {
+			return pack(nil, "RECONCILING")
+		}
+		if err != nil {
+			return pack(nil, "DENIED")
+		}
+		return pack(nil, "OK")
 	}
 	if r.Operation == "node_status" {
 		var empty struct{}
@@ -219,7 +267,58 @@ func nativeDecode(raw []byte, out any) error {
 }
 func nativeParticipation(ctx context.Context, service *participation.Service, r localipc.Request) (localipc.Result, error) {
 	pack := func(entry any, code string) (localipc.Result, error) {
-		raw, err := json.Marshal(map[string]any{"code": code, "entry": entry, "walletApproval": false})
+		caps := participationCapabilities(service)
+		if original, ok := entry.(participation.Entry); ok {
+			caps = participationEntryCapabilities(caps, original, code)
+		} else {
+			caps.Submit = false
+		}
+		raw, err := json.Marshal(map[string]any{"code": code, "entry": entry, "walletApproval": false, "authority": false, "capabilities": caps})
+		return localipc.Result{Payload: raw}, err
+	}
+	if r.Operation == "participation_list" {
+		cursor, limit, err := decodeParticipationHistory(r.Payload)
+		if err != nil {
+			return localipc.Result{}, err
+		}
+		page, code := participation.HistoryPage{Entries: []participation.HistoryEntry{}}, "NOT_SUPPLIED"
+		if service != nil {
+			page, err = service.ListHistory(cursor, limit)
+			code = historyCode(err)
+		}
+		caps := participationCapabilities(service)
+		if code != "OK" {
+			caps.Submit = false
+		}
+		raw, err := json.Marshal(struct {
+			Code string `json:"code"`
+			participation.HistoryPage
+			WalletApproval bool                       `json:"walletApproval"`
+			Authority      bool                       `json:"authority"`
+			Capabilities   participationCapabilitySet `json:"capabilities"`
+		}{Code: code, HistoryPage: page, Capabilities: caps})
+		return localipc.Result{Payload: raw}, err
+	}
+	if r.Operation == "participation_resolve" {
+		requestID, err := decodeParticipationResolve(r.Payload)
+		if err != nil {
+			return localipc.Result{}, err
+		}
+		code := "NOT_SUPPLIED"
+		var value any
+		caps := participationCapabilities(service)
+		caps.Submit = false
+		if service != nil {
+			entry, found, err := service.ResolveRequest(requestID)
+			code = historyCode(err)
+			if err == nil && !found {
+				code = "NOT_FOUND"
+			} else if err == nil {
+				value = entry
+				caps = participationEntryCapabilities(caps, entry, code)
+			}
+		}
+		raw, err := json.Marshal(map[string]any{"code": code, "entry": value, "resolvedRequestId": requestID, "authority": false, "walletApproval": false, "capabilities": caps})
 		return localipc.Result{Payload: raw}, err
 	}
 	if service == nil {
@@ -274,7 +373,9 @@ func nativeParticipation(ctx context.Context, service *participation.Service, r 
 	switch r.Operation {
 	case "participation_review":
 		review, err := service.Review(ctx, req.ID)
-		raw, encodeErr := json.Marshal(map[string]any{"code": codeFor(err), "review": review, "walletApproval": false})
+		caps := participationEntryCapabilities(participationCapabilities(service), review.Entry, codeFor(err))
+		caps.Submit = caps.Submit && review.ConditionStatus == "CURRENT_RPC_REPORTED" && review.Current != nil && review.WalletAdapterConfigured && !review.OriginalEffectMayExist && !review.LocalDispatchCancelled
+		raw, encodeErr := json.Marshal(map[string]any{"code": codeFor(err), "review": review, "walletApproval": false, "authority": false, "capabilities": caps})
 		return localipc.Result{Payload: raw}, encodeErr
 	case "participation_cancel":
 		entry, err := service.Cancel(req.ID)

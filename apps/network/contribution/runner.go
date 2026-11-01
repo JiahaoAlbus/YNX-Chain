@@ -150,9 +150,10 @@ type Record struct {
 	Failure      string          `json:"failure,omitempty"`
 }
 type journal struct {
-	Version int               `json:"version"`
-	Jobs    map[string]Record `json:"jobs"`
-	Nonces  map[string]string `json:"nonces"`
+	ResourceCurrent *resourceCurrentState `json:"resourceCurrent,omitempty"`
+	Version         int                   `json:"version"`
+	Jobs            map[string]Record     `json:"jobs"`
+	Nonces          map[string]string     `json:"nonces"`
 }
 type operation struct {
 	cancel   context.CancelFunc
@@ -249,6 +250,9 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 	if legacy || r.data.Version != 1 || r.data.Jobs == nil || r.data.Nonces == nil || len(r.data.Jobs) > maxRecords || len(r.data.Nonces) > maxRecords {
 		return nil, ErrInvalid
 	}
+	if err := validateResourceCurrent(r.data); err != nil {
+		return nil, err
+	}
 	var measuredBytes, measuredMicros uint64
 	var measuredUser, measuredSystem uint64
 	for id, rec := range r.data.Jobs {
@@ -297,12 +301,26 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 
 func (r *Runner) persist() error {
 	if err := r.lock.Check(); err != nil {
+		if r.data.ResourceCurrent != nil {
+			r.persistenceErr = err
+		}
+		return err
+	}
+	if err := r.advanceResourceCurrent(); err != nil {
+		r.persistenceErr = err
 		return err
 	}
 	if raw, err := json.Marshal(r.data); err != nil || len(raw) > 4<<20 {
+		if r.data.ResourceCurrent != nil {
+			r.persistenceErr = ErrLimit
+		}
 		return ErrLimit
 	}
-	return productstore.Save(r.path, r.data)
+	err := productstore.Save(r.path, r.data)
+	if err != nil && r.data.ResourceCurrent != nil {
+		r.persistenceErr = err
+	}
+	return err
 }
 
 func validateStoredRecord(id string, rec Record, nonces map[string]string) error {

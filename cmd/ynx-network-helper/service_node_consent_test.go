@@ -69,9 +69,17 @@ func TestP09NativeNodeVisibleDecisionGates(t *testing.T) {
 	calls := 0
 	prompt := testNodeDecision(func(context.Context, ownednode.Intent, string) error { calls++; return nil })
 	result, err := nativeNode(context.Background(), production, peer, localipc.Request{Operation: "node_start", Payload: wire}, prompt)
-	if err != nil || calls != 0 || string(result.Payload) != "{\"code\":\"UNSUPPORTED\",\"node\":null,\"productionGrant\":false}" {
+
+	var refused struct {
+		Code            string
+		Node            any
+		ProductionGrant bool
+		Capabilities    nodeCapabilitySet
+	}
+	if err != nil || json.Unmarshal(result.Payload, &refused) != nil || calls != 0 || refused.Code != "UNSUPPORTED" || refused.Node != nil || refused.ProductionGrant || !refused.Capabilities.Read || !refused.Capabilities.VisibleConsent || refused.Capabilities.Install || refused.Capabilities.Start || refused.Capabilities.Stop || refused.Capabilities.Restart {
 		t.Fatalf("missing release asked approval or ran: %s %v calls%d", result.Payload, err, calls)
 	}
+
 	fixture, err := ownednode.New(ownednode.Config{Directory: private("fixture"), IsolatedFixture: true})
 	if err != nil {
 		t.Fatal(err)

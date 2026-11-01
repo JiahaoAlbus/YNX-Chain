@@ -22,6 +22,8 @@ const Version = "YNX-NETWORK-LOCAL-IPC/v1"
 // operations retain the short original transport budget; this adds no scope.
 func OperationTimeout(operation string) time.Duration {
 	switch operation {
+	case "node_restart":
+		return 130 * time.Second
 	case "node_install", "node_start", "node_stop":
 		return 65 * time.Second
 	default:
@@ -129,7 +131,7 @@ func validateRequest(r Request) error {
 		if err != nil || len(digest) != 32 || hex.EncodeToString(digest) != p.IntentSHA256 {
 			return errors.New("permission intent requires canonical SHA256")
 		}
-	case "participation_prepare", "participation_review", "participation_cancel", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "resource_status", "resource_meter", "resource_stop":
+	case "participation_prepare", "participation_review", "participation_cancel", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "participation_list", "participation_resolve", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "node_restart", "resource_status", "resource_meter", "resource_stop", "resource_review", "resource_review_cancel", "resource_current":
 		if r.Permission != nil || len(r.Payload) == 0 || len(r.Payload) > 12<<10 || !json.Valid(r.Payload) || len(bytes.TrimSpace(r.Payload)) == 0 || bytes.TrimSpace(r.Payload)[0] != '{' {
 			return errors.New("bounded typed native payload required")
 		}
@@ -263,7 +265,7 @@ func responseError(code string) error { return fmt.Errorf("native IPC request re
 
 func payloadOperation(operation string) bool {
 	switch operation {
-	case "participation_prepare", "participation_review", "participation_cancel", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "resource_status", "resource_meter", "resource_stop":
+	case "participation_prepare", "participation_review", "participation_cancel", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "participation_list", "participation_resolve", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "node_restart", "resource_status", "resource_meter", "resource_stop", "resource_review", "resource_review_cancel", "resource_current":
 		return true
 	}
 	return false

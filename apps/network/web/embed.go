@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//go:embed index.html app.js style.css manifest.webmanifest sw.js icon.svg i18n.js overview.js shell.js brand.png app-icon.png icons/*.svg icons/LICENSE.txt icons/SOURCE.json
+//go:embed index.html app.js style.css manifest.webmanifest sw.js icon.svg i18n.js overview.js shell.js native-bridge.js brand.png app-icon.png icons/*.svg icons/LICENSE.txt icons/SOURCE.json
 var assets embed.FS
 var handler = http.FileServer(http.FS(assets))
 

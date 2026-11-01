@@ -8,7 +8,7 @@ export function environment(options={}){
  const nodes=new Map(),handlers=new Map(),requests=[],timers=new Map(),manualRoutes=new Set(),windowHandlers=new Map();let timerID=0;
  const ids=options.html?new Set([...options.html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1])):htmlIDs;
  class Element{
-  constructor(tag,id=''){this.tagName=tag;this.id=id;this.value='';this.hidden=false;this.disabled=false;this.className='';this.files=[];this.children=[];this.listeners=new Map();this.ownText='';const classes=new Set();this.classList={toggle:(c,on)=>{if(on)classes.add(c);else classes.delete(c);},remove:(...cs)=>cs.forEach(c=>classes.delete(c)),contains:c=>classes.has(c)};}
+  constructor(tag,id=''){this.tagName=tag;this.id=id;this.dataset={};this.value='';this.hidden=false;this.disabled=false;this.className='';this.files=[];this.children=[];this.listeners=new Map();this.ownText='';const classes=new Set();this.classList={toggle:(c,on)=>{if(on)classes.add(c);else classes.delete(c);},remove:(...cs)=>cs.forEach(c=>classes.delete(c)),contains:c=>classes.has(c)};}
   set textContent(value){this.ownText=String(value);this.children=[];}
   get textContent(){return this.ownText+this.children.map(child=>child.textContent).join('');}
   append(...children){this.children.push(...children);}
@@ -34,8 +34,8 @@ export function environment(options={}){
   if(options.autoConnected!==false&&!manualRoutes.has(path)&&Object.hasOwn(defaults,path))return Promise.resolve(response(defaults[path]));
   return new Promise(resolve=>requests.push({path,options:request,resolve:(body,status=200)=>resolve(response(body,status))}));
  });
- const documentHandlers=new Map(), intervals=[];const documentObject={visibilityState:"visible",addEventListener:(type,fn)=>documentHandlers.set(type,fn),getElementById:id=>nodes.get(id)||null,querySelectorAll:selector=>selector==='.levels li'?rows:[],createElement:tag=>new Element(tag)};
- const uiEvents=[], windowObject={addEventListener:(type,fn)=>windowHandlers.set(type,fn),NetworkUI:{receive:(channel,value)=>uiEvents.push({channel,value})}};
+ const documentHandlers=new Map(), intervals=[];const documentObject={visibilityState:"visible",addEventListener:(type,fn)=>documentHandlers.set(type,fn),getElementById:id=>nodes.get(id)||null,querySelectorAll:selector=>selector==='.levels li'?rows:selector==='[data-participation-action]'?(options.actionButtons||[]):[],createElement:tag=>new Element(tag)};
+ const uiEvents=[], windowObject={NetworkNative:options.native,crypto:options.crypto,addEventListener:(type,fn)=>windowHandlers.set(type,fn),NetworkUI:{receive:(channel,value)=>uiEvents.push({channel,value})}};
  if(options.intervals)windowObject.setInterval=(fn,ms)=>{intervals.push({fn,ms});return intervals.length;};
  const timerSet=(fn,ms)=>{const id=++timerID;timers.set(id,{fn,ms});return id;};
  runInNewContext(options.source||appSource,{
@@ -43,7 +43,7 @@ export function environment(options={}){
   sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)},
   navigator:{},window:windowObject,fetch,console,AbortController,setTimeout:timerSet,clearTimeout:id=>timers.delete(id)
  });
- return {intervals,tick:()=>intervals.forEach(timer=>timer.fn()),visibility:value=>{documentObject.visibilityState=value;documentHandlers.get("visibilitychange")?.();},uiEvents,client:windowObject.NetworkClient,node:id=>{const n=nodes.get(id);if(!n)throw Error('Missing actual HTML id '+id);return n;},rows,storage,requests,pending:requests,timers,
+ return {window:windowObject,nativeState:()=>windowHandlers.get('network:native-state')?.({detail:{authority:false}}),intervals,tick:()=>intervals.forEach(timer=>timer.fn()),visibility:value=>{documentObject.visibilityState=value;documentHandlers.get("visibilitychange")?.();},uiEvents,client:windowObject.NetworkClient,node:id=>{const n=nodes.get(id);if(!n)throw Error('Missing actual HTML id '+id);return n;},rows,storage,requests,pending:requests,timers,
   emit:(id,type)=>nodes.get(id).emit(type),
   take:path=>{const index=requests.findIndex(r=>r.path===path);if(index<0)throw Error('No pending request '+path+'; got '+requests.map(r=>r.path));return requests.splice(index,1)[0];},
   manual:path=>manualRoutes.add(path),

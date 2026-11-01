@@ -2,9 +2,32 @@
 
 This package supplies real bounded GET adapters and a private durable Wallet handoff/outbox. It contains no chain signer, broadcaster, guessed Wallet HTTP method or production publisher. `New(..., wallet=nil)` can read and retain exact blocked intents; publication remains `UNSUPPORTED` until the original Wallet owner supplies its actual publisher and lookup adapter. Local IPC identity can authorize preparation of metadata; it does not grant asset or vote authority.
 
-The current source binds `/node/pq-identity`, `/accounts/{owner}/authorization`, `/staking/summary`, `/staking/delegations/{id}`, `/staking/unbondings/{id}`, `/status`, `/governance/proposals/{id}`, `/governance/parameters` and `/transactions/pq/actions/originals/{hash}`. It reuses `consensus.ValidatePQWalletAccountView`, `consensus.ValidatePQWalletIdentityView` and the original `ynxauth.EncodeActionPayload` stake delegate/unbond codecs. Native genesis, PQ networkId32, numeric native chain ID and Comet chain ID are independent configured fields. The current CORE assigns its PQ networkId32 from the original native genesis; the consumer does not derive one configured trust field from another. RPC observations never establish those trusted inputs.
+The current source binds `/node/pq-identity`, `/accounts/{owner}/authorization`, `/staking/summary`, `/staking/delegations/{id}`, `/staking/unbondings/{id}`, `/status`, `/governance/proposals/{id}`, `/governance/parameters` and `/transactions/pq/actions/originals/{hash}`. It reuses `consensus.ValidatePQWalletAccountView`, `consensus.ValidatePQWalletIdentityView` and the original `ynxauth.EncodeActionPayload` stake delegate/unbond/withdraw codecs. Native genesis, PQ networkId32, numeric native chain ID and Comet chain ID are independent configured fields. The current CORE assigns its PQ networkId32 from the original native genesis; the consumer does not derive one configured trust field from another. RPC observations never establish those trusted inputs.
 
 The successor CORE has actual native PQ staking lifecycle support, including its original fee, migration validator set, authorization history and seven-day unbonding. This supersedes old read-only binding notes that those APIs were absent. Resource-quota delegation and unsigned legacy `/staking/stake` are never used. Governance registry proposal/weight reports remain available, but lack a native PQ vote codec/executor, genesis-bound snapshot height and fee contract; they remain `UNSUPPORTED` for submission. No Ed25519 registry vote is issued.
+
+The `withdraw` request accepts only the original `unbondingId`, owner, fee cap,
+expiry and local request ID. The caller supplies no withdrawal amount, validator
+or parent delegation. Preparation checks the signer-owned original unbonding,
+its matching parent delegation and nonopaque authorization lineage, committed
+record height and original seven-day duration. Reported `/status` block time,
+never the local wall clock, determines readiness. Already withdrawn records stay
+historical. Both complete original records are bound into the review conditions;
+same-hash amount or parent-lineage drift invalidates preflight. A locked record
+can become fresh metadata at maturity without modifying its old durable intent.
+Only this new action extends its critical-condition shape, preserving existing
+delegate/unbond/vote journal bindings and migration bytes.
+
+Ready withdrawal uses exactly `ynxauth.ActionStakeWithdraw` and the original
+one-ID canonical payload. The read-only Main DATA projection is
+`{kind:"stake_withdraw",fee:"1",payload:{unbondingID:"..."}}`, with no caller
+amount, nonce or approval. A reported amount is metadata from the original
+unbonding; actual execution determines it from that record. Withdrawal uses the
+same durable UNKNOWN, immutable operation ID, cancellation, revocation and cold
+lookup path as other typed actions. Tests exercise real temporary canonical PQ
+Members and the actual helper/kernel IPC path against explicitly controlled HTTP
+fixtures, including missing Wallet refusal and independent-finality false. They
+do not supply protected Wallet originals or demonstrate a real funds transfer.
 
 `Prepare` derives the semantic slot from the current authoritative conditions and immutable business target. Two request IDs cannot create another amount/approval in that slot. UNKNOWN operations also fence later nonce projections for the same target. Exact original typed payload, network, owner policy revision, nonce, amount, validator/record, fee cap, expiry and local generation are bound into the internal intent. `Submit` persists UNKNOWN before calling the genuine Wallet publisher once. Every retry or restart uses only lookup/reconciliation of that original operation. Missing, malformed and lost responses preserve UNKNOWN, original IDs and first cause. There is no automatic replacement signature or new nonce.
 
