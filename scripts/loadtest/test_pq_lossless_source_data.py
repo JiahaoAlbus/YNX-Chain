@@ -15,5 +15,12 @@ class SourceOnlyControls(unittest.TestCase):
             with self.subTest(events=events),self.assertRaises(RuntimeError):m.require_named_run_pass(('\n'.join(json.dumps(v) for v in events)).encode(),['required'])
     def test_source_only_candidate_still_requires_actual_on_and_trace(self):
         sp=importlib.util.spec_from_file_location('source_pair_controls',Path(__file__).with_name('pq-normal-live-reader.py'));r=importlib.util.module_from_spec(sp);sp.loader.exec_module(r)
-        q=r.prepare_paired_candidate(source_only_ci=True);self.assertEqual(q['originalSourceOnlyCI']['source'],m.SOURCE);self.assertFalse(q['ready'] or q['normalONSourceQualified'] or q['runtimeAuthorized']);self.assertTrue(any('running window' in v for v in q['missing']))
+        q=r.prepare_paired_candidate(source_only_ci=True);self.assertEqual(q['originalSourceOnlyCI']['source'],m.COMPONENT_SOURCE);self.assertFalse(q['ready'] or q['normalONSourceQualified'] or q['runtimeAuthorized']);self.assertTrue(any('running window' in v for v in q['missing']))
+    def test_new6cc_consumes_own44_named_originals_without_old_grant(self):
+        q=m.component_qualification();self.assertEqual(q['actualNamedCases'],44);self.assertEqual(q['originalFilesVerified'],13);self.assertEqual(q['source'],m.COMPONENT_SOURCE);self.assertFalse(q['prior1aGrantTransferred'] or q['normalONRuntimeQualified'] or q['wholeResourceCIQualified'])
+    def test_new6cc_originals_corruption_does_not_fall_back_to1a(self):
+        from unittest import mock
+        read=Path.read_bytes
+        def corrupt(path):return read(path)+b' ' if path.name=='6cc-lossless-source-original.zip' else read(path)
+        with mock.patch.object(Path,'read_bytes',corrupt),self.assertRaisesRegex(RuntimeError,'new6cc original artifact pin'):m.component_qualification()
 if __name__=='__main__':unittest.main()

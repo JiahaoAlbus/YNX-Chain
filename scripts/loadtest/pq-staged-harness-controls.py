@@ -8,7 +8,7 @@ import unittest
 
 GROUPS=[
  ('test_pq_finalize_trace_readback.py',None,6),
- ('test_pq_lossless_source_data.py',None,4),
+ ('test_pq_lossless_source_data.py',None,6),
  ('test_pq_commit_observation.py',None,12),
  ('test_pq_normal_pair_gates.py',None,12),
  ('test_pq_height_vectors.py',['HeightVectorControls.test_committed_time_and_complete_history_cannot_hide_behind_equal_balances'],1),

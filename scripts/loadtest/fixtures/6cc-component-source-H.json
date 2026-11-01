@@ -1,0 +1,160 @@
+{
+  "schema": "YNX-CORE-6CC-NORMAL-SOURCE-COMPONENT-QUALIFICATION/v1",
+  "sourceCommit": "6cc85996524896c68aa9877b209c777fbcc25ae0",
+  "sourceTree": "78a9795da7c709abb023d4e26ff3637771cd52a2",
+  "run": 41337784596,
+  "losslessJob": 124941232693,
+  "traceJob": 124941232665,
+  "artifacts": [
+    {
+      "artifact": 13095244933,
+      "bytes": 11214,
+      "sha256": "6f1ad2c3ec3de639d7ef78f04e182a7804703ff6c5011dc1fdd8f418420eaedf",
+      "fileCount": 8
+    },
+    {
+      "artifact": 13095898273,
+      "bytes": 6363,
+      "sha256": "3145708e392121ac43bad0c287079598e7930b01750eb8be6f4a6de8ee677475",
+      "fileCount": 5
+    }
+  ],
+  "files": [
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/SOURCE.json",
+      "bytes": 7215,
+      "sha256": "ce303f5d8eff3f58ecee05e04c269207acf09556b033920888e5f3ea6f82178e"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/composition/SOURCE-SELECTION.json",
+      "bytes": 1742,
+      "sha256": "c9777a914752f06f95f1e4013c1a1c446523c9c3d99d478eaeed6da7bfeac0da"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/corrected-peer-budget.jsonl",
+      "bytes": 47923,
+      "sha256": "071709332b38df48f7271a35cf34b82657d9cca0f21e9ded6733fe37d6f76d34"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/corrected-peer-budget.result.json",
+      "bytes": 1954,
+      "sha256": "a9b4ee0a9ea8a913cc159d0f4c9fa7f09a98ded9034006e5bb2f4fb66ee538d6"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/corrected-peer-budget.stderr.log",
+      "bytes": 100,
+      "sha256": "02ce98d1f1a1e3bedc9302990e18c904aa507f46d1a06583e45dfeaaefea8597"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/normal-lossless-caller.jsonl",
+      "bytes": 11736,
+      "sha256": "418168ef07d1087f3a49a13fd53bb2f705a84362033262664e8f5b36ae5d8ebc"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/normal-lossless-caller.result.json",
+      "bytes": 843,
+      "sha256": "b8e27efac6ee16c9b89d9f03c8d1d61ff0092bbf8dce0fdd6220cbd7c7a9d486"
+    },
+    {
+      "role": "lossless",
+      "name": "wire-lossless-source-mw0_scrq/normal-lossless-caller.stderr.log",
+      "bytes": 1806,
+      "sha256": "f0d4e2f0715ef1fb66c45ad9cec227c65d17f2a360a668af65774d40b16c9c4b"
+    },
+    {
+      "role": "trace",
+      "name": "distributed-pq-core.jsonl",
+      "bytes": 46782,
+      "sha256": "7ddfc84de59a89ef7af26544fc80c9b50a381c64273fce24cc8a15faaf2b5b57"
+    },
+    {
+      "role": "trace",
+      "name": "distributed-pq-command.jsonl",
+      "bytes": 6331,
+      "sha256": "53b37982d0a6fad2b58c647ab7dd6133ce4366c5292b0ad3e472de7479e226a3"
+    },
+    {
+      "role": "trace",
+      "name": "distributed-pq-core.stderr.log",
+      "bytes": 1760,
+      "sha256": "1645819d1d46d1f58fe6ba083fff61ad5b10fd324f1c8085c16405ba48f3c57c"
+    },
+    {
+      "role": "trace",
+      "name": "distributed-pq-command.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "role": "trace",
+      "name": "distributed-pq-source-result.json",
+      "bytes": 1715,
+      "sha256": "ca68ad802fb08611525d2310558c3cf2bf7f2d2414cb16e182b09950f94f1d8a"
+    }
+  ],
+  "actualLossless28": [
+    "TestOperatorLosslessHexDefaultOffAndClosedFlags",
+    "TestOperatorLosslessPairOriginalPQTimeIsConsensusState",
+    "TestOperatorLosslessHexTypedNormalConstructorBeforeStart",
+    "TestOperatorLosslessHexTypedScopeAndSourceRefusals",
+    "TestLosslessHexBudgetNormalize",
+    "TestLosslessHexBudgetPeerIdentityAndLifetime",
+    "TestLosslessHexBudgetPeerBytes",
+    "TestLosslessHexBudgetPeerClock",
+    "TestLosslessHexBudgetSendAttemptsAndAtomicCharge",
+    "TestLosslessHexBudgetSendIdentityAndClock",
+    "TestLosslessHexBudgetSendClockRollback",
+    "TestLosslessHexBudgetParallelReservations",
+    "TestLosslessHexBudgetParallelAttemptsAndClose",
+    "TestLosslessHexBudgetInitialPeerReadinessDeadline",
+    "TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier",
+    "TestLosslessHexBudgetFullQueueStopsWithoutRawReplay",
+    "TestLosslessHexBudgetReceiveBeforeOriginalCheckTx",
+    "TestLosslessHexBudgetFullQueueElapsedDeadline",
+    "TestLosslessHexBudgetInvalidEnableStaysDefaultOff",
+    "TestLosslessHexBudgetPackReservesBeforeFrameAllocation",
+    "TestLosslessHexBudgetPackFailureNeverFallsBack",
+    "TestLosslessHexBudgetTypedNilPeerCannotClaimCapability",
+    "TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial",
+    "TestLosslessHexTransportDefaultOffAndSingleCarrier",
+    "TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry",
+    "TestLosslessHexTransportQueuedRetryKeepsSelectedFormat",
+    "TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback",
+    "TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey"
+  ],
+  "actualDistributedAndTrace16": [
+    "TestPQLabDistributedConfigOriginalTemplateRoundTrip",
+    "TestPQLabDistributedIdentityAndSourceRefusalsPreserveOriginals",
+    "TestPQLabDistributedNormalRegistryCustodyAndColdResume",
+    "TestPQLabDistributedPartialImportNeverOverwritesUnknown",
+    "TestPQLabDistributedPublicPlanHostLocalIsolation",
+    "TestPQLabDistributedReadbackBootstrapFullStateColdAndUnknown",
+    "TestPQLabDistributedReadbackQuietRequiresOriginalCoordinates",
+    "TestPQLabDistributedReadbackRealPQProofAndPublicTamper",
+    "TestPQLabFinalizeTraceHeldStreamAndBoundedPartial",
+    "TestPQLabFinalizeTraceOriginalCompleteRequestsColdReplayAndRefusals",
+    "TestPQLabDistributedCommandPublicExchangeAndLocalUnknown",
+    "TestPQLabDistributedCommandRefusesUnpinnedAndForeignSource",
+    "TestPQLabDistributedReadbackCommandClosedFlags",
+    "TestPQLabDistributedReadbackCommandSnapshotAndPublicComparison",
+    "TestPQLabFinalizeTraceCommandClosedInputs",
+    "TestPQLabFinalizeTraceCommandOriginalPublicReplayAndLostOutput"
+  ],
+  "allRequiredUniqueRunPass": true,
+  "skipped": 0,
+  "sourceOnly": true,
+  "nodeProcessesStarted": 0,
+  "actualNetworkON": false,
+  "actualPublicActivation": false,
+  "ordinaryWalletRealSigning": false,
+  "productionForkTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7",
+  "optionalForkCommit": "ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d",
+  "optionalForkTree": "f1a8837079178469bc57ede955c55973f8b7d8ba"
+}

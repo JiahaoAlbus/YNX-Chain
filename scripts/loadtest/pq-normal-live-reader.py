@@ -375,9 +375,9 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
     if source_only_ci:
         spec=importlib.util.spec_from_file_location('pair_original_lossless_source_data',Path(__file__).with_name('pq-lossless-source-data.py'))
         source_data=importlib.util.module_from_spec(spec);spec.loader.exec_module(source_data)
-        result['originalSourceOnlyCI']=source_data.qualification()
+        result['originalSourceOnlyCI']=source_data.component_qualification()
         require(result['originalSourceOnlyCI']['supplierCommit']==PAIR_SUPPLIER['commit'] and result['originalSourceOnlyCI']['supplierTree']==PAIR_SUPPLIER['tree'],'original paired supplier source DATA differs')
-        result['missing'].append('actual normal ON running window and kernel/private-control evidence remain required; original28 source tests start no nodes')
+        result['missing'].append('actual normal ON running window and kernel/private-control evidence remain required; original source-only constructor/budget/trace tests start no nodes')
     if complete_trace_data is not None:
         require(complete_trace_data.get('schema')=='YNX-PERF-COMPLETE-FINALIZE-TRACE-READBACK/v1' and complete_trace_data.get('qualified') is False,'original complete trace readback DATA scope required')
         result['replayGate']=complete_trace_data
