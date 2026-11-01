@@ -1,3 +1,4 @@
+import {planCanonicalPortableQAComponentDATA,buildCanonicalPortableQAComponent} from './canonical-native-portable-qa-profile.mjs';
 import {canonicalCommonQAProfile,buildCanonicalCommonQAComponent} from './canonical-native-qa-profile.mjs';
 import {execFileSync} from 'node:child_process';
 import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
@@ -107,7 +108,8 @@ export function buildWalletNativeComponent(arch,headers,artifactRelease=false,pr
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
  if(process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
- if(process.argv[2]==='component-canonical-common-image'){if(process.argv.length!==5)throw Error('COMMON_QA_ARGUMENTS');const result=buildCanonicalCommonQAComponent({root:repo,arch:process.argv[3],headers:process.argv[4]});process.stdout.write(JSON.stringify(result)+'\n');}
+ if(process.argv[2]==='component-canonical-portable-image'||process.argv[2]==='plan-canonical-portable-image'){if(process.argv.length!==5)throw Error('PORTABLE_QA_ARGUMENTS');const result=(process.argv[2].startsWith('plan-')?planCanonicalPortableQAComponentDATA:buildCanonicalPortableQAComponent)({root:repo,arch:process.argv[3],headers:process.argv[4]});process.stdout.write(JSON.stringify(result)+'\n');}
+ else if(process.argv[2]==='component-canonical-common-image'){if(process.argv.length!==5)throw Error('COMMON_QA_ARGUMENTS');const result=buildCanonicalCommonQAComponent({root:repo,arch:process.argv[3],headers:process.argv[4]});process.stdout.write(JSON.stringify(result)+'\n');}
  else {
  assertMatchedOriginalBuild();
  if(process.argv[2]==='component-device-v4-query-pq-native-project-control-cabi-artifact-release'){if(process.argv.length!==5)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');process.stdout.write(JSON.stringify(buildWalletNativeComponent(process.argv[3],process.argv[4],true,true,true,true,null,null,false,true,true,true))+'\n');}

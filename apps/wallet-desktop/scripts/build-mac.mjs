@@ -8,6 +8,7 @@ import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs'
 import {assertSelectedProofVerifierForSDK} from './proof-verifier-source-policy.mjs';
 import {verifySDK13HelperBundle,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST} from './sdk13-native-component.mjs';
 import {assertNativeComponentGitSourceClosure} from './native-component-source-closure.mjs';
+import {verifyPortableRuntimePackage} from './portable-runtime-pack.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
 const arch = process.argv[2] || "universal";
@@ -59,6 +60,9 @@ const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modul
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 const appDir = path.join(qaOutput??path.join(root,'dist'), arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
+// Outer signing is complete. Never regenerate the Native record here to hide
+// changed nested bytes; a mismatch is a failed package, including physical QA.
+verifyPortableRuntimePackage(path.join(appDir,'Contents','Resources'),root);
 // Fail before DMG production if outer packaging/signing omitted, moved or
 // rewrote either member of the frozen SDK46 original helper pair.
 if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version))verifySDK13HelperBundle(

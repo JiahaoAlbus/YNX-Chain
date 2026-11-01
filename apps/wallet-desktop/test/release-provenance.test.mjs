@@ -14,6 +14,7 @@ import {verifySDK13NativeComponent} from '../scripts/sdk13-native-component.mjs'
 import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES,relocateDesktopPackage,verifyDesktopPackage,desktopReleaseIdentity,PACKAGED_RELOCATION_RECEIPT,desktopAsarHeaderIntegrity,declaredSDKRuntimeSources} from '../scripts/release-provenance.mjs';
 import {canonicalArchivePlan,CANONICAL_MAIN,NATIVE_CANONICAL,SDK_ALIAS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 import {walletAuthDependencyPlan} from '../scripts/wallet-auth-dependencies.mjs';
+import {preservePortableNestedSignatures} from '../scripts/portable-runtime-pack.mjs';
 test('normal builder metadata selects canonical entry before its post-afterPack sanity check',()=>{
  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));assert.equal(pkg.main,'src/main.mjs');assert.equal(pkg.build.extraMetadata.main,CANONICAL_MAIN);
 });
@@ -216,7 +217,7 @@ test('changed build identity and omitted source runtime field cannot pass',t=>{
 });
 function afterPackAPI(){
  const source=readFileSync(new URL('../scripts/after-pack.mjs',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replace('export default async function afterPack','async function afterPack').replace(/^export /mg,'');
- const context={execFileSync,path,writeFile:async(...args)=>writeFileSync(...args),readFile:async(...args)=>readFileSync(...args),desktopReleaseIdentity,assembleCanonicalDesktopPackage:relocateDesktopPackage,desktopAsarHeaderIntegrity,buildPublicWalletConnectConfig:()=>({PUBLIC_ONLY:true}),WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC-walletconnect.json'};
+ const context={execFileSync,path,preservePortableNestedSignatures,writeFile:async(...args)=>writeFileSync(...args),readFile:async(...args)=>readFileSync(...args),desktopReleaseIdentity,assembleCanonicalDesktopPackage:relocateDesktopPackage,desktopAsarHeaderIntegrity,buildPublicWalletConnectConfig:()=>({PUBLIC_ONLY:true}),WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC-walletconnect.json'};
  runInNewContext(source+'\nthis.api={afterPack,updatedMacAsarIntegrity};',context);return context.api;
 }
 test('actual normal afterPack refreshes only its Mac ASAR integrity before any signing',{skip:process.platform!=='darwin'},async t=>{

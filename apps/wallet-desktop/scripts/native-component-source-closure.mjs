@@ -1,3 +1,4 @@
+import {isPortableQARecord,PORTABLE_QA_PROVENANCE_NAMES} from './canonical-native-portable-qa-profile.mjs';
 import {COMMON_QA_PROVENANCE_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -16,8 +17,8 @@ export function inspectNativeComponentGitSourceClosure(root,commit,recordBytes){
  if(!bound.equals(recordBytes))fail('NATIVE_COMPONENT_GIT_RECORD_DIFFERS');
  let record;try{record=JSON.parse(recordBytes);}catch{fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');}
  const rows=new Map(),counts={};
- if(isCommonQARecord(record)){if(JSON.stringify(record.sourceProvenanceFiles?.map(x=>x.relative))!==JSON.stringify(COMMON_QA_PROVENANCE_NAMES))fail('COMMON_QA_GIT_PROVENANCE_ROWS_REQUIRED');}
- const roles=[['node',record.inputFiles],['helper',record.helperBuild?.inputFiles],...(isCommonQARecord(record)?[['provenance',record.sourceProvenanceFiles],['inventory',[record.sourceInventory]]]:[])];
+ if(isCommonQARecord(record)||isPortableQARecord(record)){if(JSON.stringify(record.sourceProvenanceFiles?.map(x=>x.relative))!==JSON.stringify(isPortableQARecord(record)?PORTABLE_QA_PROVENANCE_NAMES:COMMON_QA_PROVENANCE_NAMES))fail('COMMON_QA_GIT_PROVENANCE_ROWS_REQUIRED');}
+ const roles=[['node',record.inputFiles],['helper',record.helperBuild?.inputFiles],...((isCommonQARecord(record)||isPortableQARecord(record))?[['provenance',record.sourceProvenanceFiles],['inventory',[record.sourceInventory]]]:[])];
  for(const [role,input]of roles){
   if(!Array.isArray(input)||input.length===0)fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');const seen=new Set();counts[role]=input.length;
   for(const row of input){

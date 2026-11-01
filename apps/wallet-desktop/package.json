@@ -64,13 +64,15 @@
     ],
     "asar": true,
     "asarUnpack": [
-      "native/original-auth-identity.node"
+      "native/original-auth-identity.node",
+      "native/original-auth-runtime-libs/{libssl.3.dylib,libcrypto.3.dylib,libuv.1.dylib,OPENSSL-LICENSE.txt,OPENSSL-AUTHORS.md,LIBUV-LICENSE.txt,LIBUV-LICENSE-extra.txt,LIBUV-LICENSE-docs.txt}"
     ],
     "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
       "!src/original-policy-supplier/operator-pq-identity.mjs",
       "native/original-auth-identity.node",
+      "native/original-auth-runtime-libs/{libssl.3.dylib,libcrypto.3.dylib,libuv.1.dylib,OPENSSL-LICENSE.txt,OPENSSL-AUTHORS.md,LIBUV-LICENSE.txt,LIBUV-LICENSE-extra.txt,LIBUV-LICENSE-docs.txt}",
       "native/original-auth-identity-build.json",
       "native/original-auth-identity-r155-source-intake.json",
       "native/YNXIdentityReceiver",

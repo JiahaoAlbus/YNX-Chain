@@ -1,4 +1,6 @@
 import {COMMON_QA_INPUT_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
+import {PORTABLE_QA_INPUT_NAMES,isPortableQARecord,isPortableQASourceAsset} from './canonical-native-portable-qa-profile.mjs';
+import {beginNativeRuntimeRelocation,verifyPortableRuntimeFiles,recoverFailedNativePackage} from './portable-runtime-pack.mjs';
 import { execFileSync } from "node:child_process";
 import {HTTP_V5_NORMAL_INPUT_NAMES} from './wallet-http-v5-native-component.mjs';
 import {openPhysicalCodeView} from './physical-code-layout.mjs';
@@ -199,6 +201,7 @@ export function auth26PackagedNativeSources(inventoryBytes,component,availableNa
  return matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames);
 }
 export function matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames){
+ if(component?.portableRuntime===true){if(component.sourceBytesVerified!==true||PORTABLE_QA_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('PORTABLE_QA_GIT_SOURCE_MISSING');return [...PORTABLE_QA_INPUT_NAMES];}
  if(component?.normalCommonImage){if(component.sourceBytesVerified!==true||COMMON_QA_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('COMMON_QA_GIT_SOURCE_MISSING');return [...COMMON_QA_INPUT_NAMES];}
  if(component?.httpV5NormalRole){if(component.sourceBytesVerified!==true||HTTP_V5_NORMAL_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('V5 normal Native source is missing from frozen Git');return [...HTTP_V5_NORMAL_INPUT_NAMES];}
  if(component?.sourceBytesVerified!==true||!Array.isArray(component.walletInputs)||!Array.isArray(availableNames))throw Error('Auth26 matched component must precede source selection');
@@ -230,7 +233,7 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
   // Existing package documentation is not JavaScript. Still require its
   // declaration to exist in the immutable selected commit above; this never
   // makes a missing JS file, unknown asset or arbitrary scope acceptable.
-  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m|md)$/.test(name)||sdk.version===SDK49_VERSION&&COMMON_QA_INPUT_NAMES.includes(name);
+  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m|md)$/.test(name)||sdk.version===SDK49_VERSION&&(COMMON_QA_INPUT_NAMES.includes(name)||isPortableQASourceAsset(name));
   if(!found.length&&!declared.every(nonRuntime))throw Error(`SDK declared runtime source is missing: ${scope}`);
   for(const name of found)names.add(name);
  }
@@ -396,9 +399,13 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
   const evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
   const product=readSDKProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
+  // Historical archive-assembly fixtures do not carry a build receipt. Final
+  // product verification still requires one; only a declared portable receipt
+  // can select the additional fixed runtime files during offline relocation.
+  const nativeRecord=before.some(row=>row.path==='native/original-auth-identity-build.json')?JSON.parse(asar.extractFile(archive,'native/original-auth-identity-build.json').toString('utf8')):null;
   const temporary=mkdtempSync(path.join(resources,".ynx-relocation-")),output=path.join(temporary,"app.asar");
-  const nativeBefore=path.join(archive+'.unpacked','native/original-auth-identity.node'),nativeAfter=path.join(archive+'.unpacked',NATIVE_CANONICAL),backup=path.join(temporary,'original.asar');
-  let nativeMoved=false,archiveMoved=false,replacement=false;
+  const unpacked=archive+'.unpacked',backup=path.join(temporary,'original.asar');
+  let nativeRelocation=null,archiveMoved=false,replacement=false,retainTemporary=false;
   try{
     execFileSync(process.execPath,[fileURLToPath(import.meta.url),"--relocate-data-child",resources,cwd,output],{maxBuffer:16*1024*1024,stdio:"pipe"});
     const after=archiveInventory(asar,output);
@@ -406,19 +413,19 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
     assertSDKProductArchive(product,after);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
-    mkdirSync(path.dirname(nativeAfter),{recursive:true});renameSync(nativeBefore,nativeAfter);nativeMoved=true;
+    nativeRelocation=beginNativeRuntimeRelocation(nativeRecord,unpacked);
     renameSync(archive,backup);archiveMoved=true;renameSync(output,archive);replacement=true;asar.uncache(archive);
     if(!isDeepStrictEqual(archiveInventory(asar,archive),after)) throw new Error("Retained unpacked tree differs");
     const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,nativeBuildEvidence:evidence.public,sdkProductRuntime:product?.public??null,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
     writeFileSync(path.join(resources,PACKAGED_RELOCATION_RECEIPT),JSON.stringify(receipt,null,2)+"\n");
     return receipt;
   }catch(cause){
-    // Packaging is offline. A failed transaction restores its original archive
-    // and sole unpacked native file; no half-canonical package is accepted.
-    if(archiveMoved){if(replacement)renameSync(archive,output);renameSync(backup,archive);asar.uncache(archive);}
-    if(nativeMoved)renameSync(nativeAfter,nativeBefore);
-    throw cause;
-  }finally{rmSync(temporary,{recursive:true,force:true});}
+    const recovery=recoverFailedNativePackage(cause,temporary,()=>{
+      if(archiveMoved){if(replacement)renameSync(archive,output);renameSync(backup,archive);asar.uncache(archive);}
+    },()=>nativeRelocation?.rollback());
+    retainTemporary=recovery.retainTemporary;
+    throw recovery.error;
+  }finally{if(!retainTemporary)rmSync(temporary,{recursive:true,force:true});}
 }
 
 export function desktopReleaseIdentity(cwd = projectDir, version) {
@@ -478,7 +485,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const sdkMetadata=JSON.parse(execFileSync('git',['show',`${expected.sourceCommit}:packages/wallet-auth/package.json`],{cwd:root,maxBuffer:16*1024*1024}));
   const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
-  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(isCommonQARecord(nativeReceipt)?['apps/developer/helper','apps/pay/native/producer','apps/wallet-desktop/scripts']:nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
+  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(isCommonQARecord(nativeReceipt)||isPortableQARecord(nativeReceipt)?['apps/developer/helper','apps/pay/native/producer','apps/wallet-desktop/scripts']:nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
   const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
@@ -494,6 +501,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const helperBytes=asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),localHelper=path.join(root,SDK13_HELPER_ASSET);
     if(!lstatSync(localHelper).isFile()||lstatSync(localHelper).isSymbolicLink()||!helperBytes.equals(readFileSync(localHelper)))throw Error('SDK13 packaged helper differs from matching build');
     originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},sourceBytes);
+    if(originalSDK13.portableRuntime===true)originalSDK13.portablePackagedBytes=verifyPortableRuntimeFiles(nativeReceipt,path.join(resources,physical?'app.code':'app.asar.unpacked'),{canonical:true});
     if(!macAsarIntegrityVerified)throw Error('SDK13 paired component requires matching Mac bundle');
     originalSDK13.helperBundle=verifySDK13HelperBundle(path.dirname(resources),helperBytes,sourceBytes(SDK13_HELPER_PLIST));
   }

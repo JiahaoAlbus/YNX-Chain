@@ -7,6 +7,7 @@ import {installPackagedPQVerifierAssets} from './packaged-proof-verifier.mjs';
 import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
 import {stageOriginalR155HelperBundle} from './r155-native-component.mjs';
 import {stageSDK13HelperBundle} from './sdk13-native-component.mjs';
+import {preservePortableNestedSignatures} from './portable-runtime-pack.mjs';
 
 export function updatedMacAsarIntegrity(existing, relocated) {
   if(!existing||typeof existing!=="object"||Array.isArray(existing)||existing["Resources/app.asar"]?.algorithm!=="SHA256"||relocated?.algorithm!=="SHA256"||!/^[a-f0-9]{64}$/.test(relocated.hash)) throw new Error("Expected normal Mac ASAR integrity metadata");
@@ -40,6 +41,7 @@ export function hardenMacInfoPlist(appOutDir, productFilename, version) {
 
 export default async function afterPack(context) {
   const identity = desktopReleaseIdentity(context.packager.projectDir, context.packager.appInfo.version);
+  if(context.electronPlatformName==='darwin')preservePortableNestedSignatures(JSON.parse(await readFile(path.join(context.packager.projectDir,'native/original-auth-identity-build.json'),'utf8')),context.packager.platformSpecificBuildOptions);
   const resources = context.electronPlatformName === "darwin"
     ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, "Contents", "Resources")
     : path.join(context.appOutDir, "resources");
