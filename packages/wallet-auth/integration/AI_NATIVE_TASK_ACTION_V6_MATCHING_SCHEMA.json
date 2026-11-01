@@ -1,0 +1,68 @@
+{
+  "version": "6",
+  "revision": "matching-unpublished-two-actions",
+  "baseline": {
+    "bytes": 4729,
+    "sha256": "9109d8260853827e793ab6cc820702a16b9b825f941dc4a7bf91a803741e7baf"
+  },
+  "requestUnsignedCount": 35,
+  "responseUnsignedCount": 16,
+  "unchanged": [
+    "request/response domains and N1 purposes",
+    "E5 frame/identity/time/caps",
+    "V4/V5 bytes",
+    "holder original string",
+    "run explicit resume/toolIds array"
+  ],
+  "responseHeader": {
+    "constant": "PRODUCT_SESSION_TASK_RESPONSE_HEADER_V6",
+    "value": "x-ynx-product-session-response-proof-v6"
+  },
+  "actions": [
+    {
+      "action": "task.propose-tool-step",
+      "method": "POST",
+      "path": "/api/tasks/{id}/tool-steps",
+      "bodyKeys": [
+        "operationId",
+        "taskRevision",
+        "generation",
+        "toolId",
+        "toolVersion",
+        "input"
+      ],
+      "topLevel": {
+        "stepId": null,
+        "runId": null
+      },
+      "childOperationId": "proposal business reference; never substituted for HTTP operationId/nonce",
+      "qualification": "NEEDS_APPROVAL proposal only; no execution/disclosure/payment"
+    },
+    {
+      "action": "task.complete",
+      "method": "POST",
+      "path": "/api/tasks/{id}/complete",
+      "bodyKeys": [
+        "revision",
+        "generation",
+        "runId"
+      ],
+      "topLevel": {
+        "stepId": null,
+        "runId": "same actual body runId"
+      },
+      "qualification": "DATA only; original same-SQLite authority rejects unresolved external steps"
+    }
+  ],
+  "handoff": {
+    "method": "POST",
+    "path": "/open/v1/tasks/{id}/handoffs",
+    "status": "UNREGISTERED",
+    "body": "NOT_SUPPLIED"
+  },
+  "requestDigest": "SHA256(encodeProductSessionTaskActionV6Message unsigned/network => signed-message E5 bytes); excludes member and header",
+  "reconcile": "current query E5; old effect association only through actual original Source",
+  "dataOnly": true,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

@@ -50,3 +50,10 @@ export declare function encodeSocialPlatformRuntimeApprovalV4DATA(input:SocialPl
 export declare function decodeSocialPlatformRuntimeApprovalV4DATA(original:Uint8Array):SocialPlatformRuntimeApprovalV4DATA;
 export declare function encodeSocialSourceEnvelopeV1DATA(input:SocialSourceEnvelopeV1DATA):Uint8Array;
 export declare function decodeSocialSourceEnvelopeV1DATA(original:Uint8Array):SocialSourceEnvelopeV1DATA;
+
+/** Zero group means no rights; both zero is invalid. Bits are actual Main request operands. */
+export const SOCIAL_CORE_OPERATION_MASKS:Readonly<{initialize:1;seal:2;read:4;write:8;nonce:16;CAS:32}>;
+export function assertSocialPlatformRequiredOperationsV3DATA(policy:SocialPlatformPolicyOriginalV3DATA,purpose:1|2,requiredOperations:number):Readonly<SocialDataOnly&{purpose:1|2;requiredOperations:number;availableOperations:number}>;
+
+/** Unpublished ordinary revision only. DATA bits do not grant an operation. */
+export declare const SOCIAL_ORDINARY_MESSAGE_OPERATIONS_R2_DATA:Readonly<{contractRevision:'SDK-SOCIAL-ORDINARY-PURPOSE2-INIT-R2-20261101';initializeStorage:1;seal:2;read:4;write:8;queueNonce:16;compareAndSwap:32;allowedMask:63}>;

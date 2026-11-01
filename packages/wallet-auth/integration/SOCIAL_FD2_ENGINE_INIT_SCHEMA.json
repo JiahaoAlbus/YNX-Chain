@@ -1,0 +1,58 @@
+{
+  "schema": "SOCIAL_FD2_ENGINE_INITIALIZATION_DATA/v2",
+  "status": "SOLE_SDK_DEFINED_NEW_MATCHING_INPUT_NOT_ADMITTED",
+  "inner": {
+    "version": 2,
+    "kind": "firstDeviceInitializationSet",
+    "fieldOrder": [
+      "version",
+      "kind",
+      "storageGeneration",
+      "policyGeneration",
+      "requestDigest",
+      "storeReference",
+      "policyHead",
+      "aads",
+      "journalDigest",
+      "ciphertextSetDigest"
+    ],
+    "aads": {
+      "count": 5,
+      "decodedBytesEach": 640,
+      "encoding": "canonical base64url no padding"
+    },
+    "u64": "positive decimal strings, storageGeneration bounded to actual nonce u32; policyGeneration full u64"
+  },
+  "context": {
+    "bytes": 3392,
+    "version": 2,
+    "purpose": 1,
+    "kind": 2,
+    "generation": 16,
+    "policyGeneration": 24,
+    "intent": 32,
+    "storeReference": 64,
+    "sourceHead": 96,
+    "aadSet": 128,
+    "journalSHA": 3328,
+    "ciphertextSetSHA": 3360
+  },
+  "outer": {
+    "version": 1,
+    "purpose": "SOCIAL_FIRST_DEVICE_ENGINE_COMMIT_V1",
+    "frame": "YNX/SOCIAL/FIRST-DEVICE-ENGINE-COMMIT/V1\u0000",
+    "absent": [
+      "sourceAbi",
+      "coordinates",
+      "sourceSequence"
+    ],
+    "cipherHash": "actual sealed-set SHA",
+    "operation": "fd2- + original ids32 base64url; SHA matches source_operation_digest",
+    "nonce": "actual source_nonce bytes, not account_nonce",
+    "oldFD1": "unchanged; never mapped"
+  },
+  "roleAndCryptoChange": false,
+  "RootOrTPMFloorManufactured": false,
+  "ActualSource": false,
+  "MACVerified": false
+}

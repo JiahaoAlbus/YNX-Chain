@@ -368,6 +368,66 @@
       "types": "./src/original-auth-runtime-image-source-v1.d.ts",
       "browser": null,
       "node": "./src/original-auth-runtime-image-source-v1.js"
+    },
+    "./pay-native-cloud-bill-source-data": {
+      "types": "./native/original-pay-cloud-bill-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-pay-cloud-bill-source-contract.mjs",
+      "default": null
+    },
+    "./social-local-signed-data": {
+      "types": "./src/social-local-signed-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-local-signed-v2.js",
+      "default": null
+    },
+    "./pair-service-commissioning": {
+      "types": "./scripts/pair-service-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-service-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./runtime-image-commissioning": {
+      "types": "./scripts/runtime-image-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/runtime-image-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./pair-current-commissioning": {
+      "types": "./scripts/pair-current-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-current-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./product-session-task-action-v6": {
+      "types": "./src/product-session-task-action-v6.d.ts",
+      "browser": null,
+      "node": "./src/product-session-task-action-v6.js",
+      "default": null
+    },
+    "./ai-native-task-action-v6-source-data": {
+      "types": "./native/original-ai-task-action-v6-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-ai-task-action-v6-source-contract.mjs",
+      "default": null
+    },
+    "./original-ai-task-action-v6-client": {
+      "types": "./src/original-ai-task-action-v6-client.d.ts",
+      "browser": null,
+      "node": "./src/original-ai-task-action-v6-client.js",
+      "default": null
+    },
+    "./social-fd2-engine-init-data": {
+      "types": "./src/social-fd2-engine-init.d.ts",
+      "browser": null,
+      "node": "./src/social-fd2-engine-init.js",
+      "default": null
+    },
+    "./pq-native-pay-observation": {
+      "types": "./src/pq-native-pay-observation.d.ts",
+      "browser": null,
+      "node": "./src/pq-native-pay-observation.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -489,7 +549,20 @@
     "native/original-auth-runtime-image-source-internal.h",
     "native/original-auth-runtime-image-private.mm",
     "native/original-auth-runtime-image-private.h",
-    "native/ynx_sdk_social_platform_policy_v1.h"
+    "native/ynx_sdk_social_platform_policy_v1.h",
+    "native/original-pay-cloud-bill-source-contract.mjs",
+    "native/original-pay-cloud-bill-source-contract.d.mts",
+    "ROOT_PAIR_CURRENT_NORMAL.md",
+    "native/original-ai-task-action-v6-source-contract.mjs",
+    "native/original-ai-task-action-v6-source-contract.d.mts",
+    "docs/task-action-v6.md",
+    "docs/ai-task-source-v6.md",
+    "docs/AI_TASK_V6_NATIVE_CLIENT.md",
+    "go/taskactionv6/go.mod",
+    "go/taskactionv6/bridge.go",
+    "go/taskactionv6/open_posix.go",
+    "go/taskactionv6/open_other.go",
+    "go/taskactionv6/README.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -558,17 +631,25 @@
     "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
     "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
     "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
-    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json"
+    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json",
+    "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts",
+    "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts",
+    "commission:pair-service-sdk": "node scripts/commission-pair-service-sdk.mjs",
+    "test:pair-service-commissioning": "node --test test/pair-service-commissioning.test.mjs test/pair-postprocess-read.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pair-service-commissioning.types.mts",
+    "commission:runtime-image": "node scripts/commission-runtime-image-sdk.mjs",
+    "test:runtime-image-commissioning": "node --test test/runtime-image-commissioning-install.test.mjs test/runtime-image-commissioning-postprocess.test.mjs",
+    "commission:pair-current-sdk": "node ./scripts/commission-pair-current-sdk.mjs",
+    "test:ai-native-v6-composition": "node --test test/ai-native-v6-composition.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/ai-native-v6-composition.types.mts"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
     "@walletconnect/sign-client": "2.23.10",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "typescript": "^5.9.3",
     "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
     "@types/node": "24.13.3",
     "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"

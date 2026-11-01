@@ -1,14 +1,17 @@
 {
   "kind": "YNX_WALLET_SDK49_SUCCESSOR_SOURCE_ASSEMBLY/v1",
-  "root": "/Volumes/西部数据/YNX-large-work/wallet-sdk49-product-successor-20261026",
-  "parent": "8d232f59c0e95f62bd91330dd2fbd872b02b6000",
-  "SDKCommit": "afa53c4dddba6bb9e06b6619dea45af189978fb6",
-  "normalPrefixFiles": 9606,
+  "root": "/Volumes/西部数据/YNX-large-work/wallet-main-pay-once-dispatch-20261101",
+  "parent": "a437d525a7d35d31a9ef664629433bcaa1df4901",
+  "SDKCommit": "5aa1a6596885c31138e7825c111b6ce1c81ed8ef",
+  "SDKTree": "7decbe4e11e5ffdb171378e5aa8bf84d8fcd9626",
+  "normalPrefixFiles": 9966,
+  "normalPrefixWithFullSlots": 9968,
   "normalPrefixVerifiedBeforeAndAfter": true,
-  "originalSDKPreserved": "/Volumes/西部数据/YNX-large-work/wallet-sdk49-product-successor-20261026-sdk46-pristine-preserved",
-  "formalRoleRows": 10,
+  "NativeInputs": 173,
+  "NativeSourceNotMatching": [],
   "NativeBuilt": false,
   "AppBuilt": false,
   "installed": false,
-  "keysOrAccountsTouched": false
+  "keysOrAccountsTouched": false,
+  "NativeInputsVerified": 173
 }
