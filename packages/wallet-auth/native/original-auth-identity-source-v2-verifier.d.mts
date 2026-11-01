@@ -1,3 +1,4 @@
+import type{OriginalAITaskActionV6AgentPublic}from'./original-ai-task-action-v6-source-contract.mjs';
 import type {PQAuthorizationSnapshot} from '../src/pq-wallet-policy.js';
 export const AUTH_SOURCE_V2:'YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2:'YNX/AUTH/SOURCE-ORIGINAL/V2';
@@ -86,6 +87,7 @@ export interface OriginalAuthSourceV2EnrollmentData {
  readonly executionHeight:string;readonly dataOnly:true;readonly nativeAdmission:false;
 }
 export interface OriginalAuthSourceV2ProfileData {
+ /** Present only on independently bound AI client profiles; no authority. */readonly agentPublic?:OriginalAITaskActionV6AgentPublic;
  readonly root:OriginalAuthSourceV2Root;readonly enrollment:OriginalAuthSourceV2Enrollment;readonly profile:OriginalAuthSourceV2Profile;
  /** Current observed H, distinct from immutable credential signing heights. */
  readonly executionHeight:string;
@@ -99,6 +101,7 @@ export interface OriginalAuthSourceV2Previous {
  readonly executionHeight:string;
 }
 export interface OriginalAuthSourceV2CurrentData extends OriginalAuthSourceV2Previous {
+ /** Present only on independently bound AI client profiles; no authority. */readonly agentPublic?:OriginalAITaskActionV6AgentPublic;
  readonly selection:OriginalAuthSourceV2Selection;readonly principalId:string;readonly subjectOwner:string;readonly subjectKeyVersion:string;
  readonly generation:number;readonly status:'active';readonly expiresAtMs:number;
  readonly profileDigest:string;readonly sourceId:string;readonly instanceId:string;readonly executionHeight:string;
