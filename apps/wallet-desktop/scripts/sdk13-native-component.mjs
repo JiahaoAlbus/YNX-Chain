@@ -1,3 +1,5 @@
+import {createPortablePackageConsumerRole} from './portable-package-consumer-role.mjs';
+import {execFileSync} from 'node:child_process';
 import {isPortableQARecord,verifyPortableQAComponent} from './canonical-native-portable-qa-profile.mjs';
 import {isCommonQARecord,verifyCommonQAComponent} from './canonical-native-qa-profile.mjs';
 import {createHash} from 'node:crypto';
@@ -90,8 +92,9 @@ function regular(file){const stat=lstatSync(file);if(!stat.isFile()||stat.isSymb
 function bundleRows(helperBytes,plistBytes){return [[SDK13_BUNDLE_HELPER,helperBytes,0o755],[SDK13_BUNDLE_PLIST,plistBytes,0o644]];}
 export function stageSDK13HelperBundle({contents,projectDir}){
  absolute(contents);absolute(projectDir);const repo=path.resolve(projectDir,'../..');
- const record=JSON.parse(regular(path.join(projectDir,'native/original-auth-identity-build.json'))),helper=regular(path.join(repo,SDK13_HELPER_ASSET)),plist=regular(path.join(repo,SDK13_HELPER_PLIST));
- verifySDK13NativeComponent({record,inventoryBytes:regular(path.join(repo,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),moduleBytes:regular(path.join(projectDir,'native/original-auth-identity.node')),helperBytes:helper},name=>regular(path.join(repo,name)));
+ const recordBytes=regular(path.join(projectDir,'native/original-auth-identity-build.json')),record=JSON.parse(recordBytes),helper=regular(path.join(repo,SDK13_HELPER_ASSET)),plist=regular(path.join(repo,SDK13_HELPER_PLIST));
+ const packageConsumerRole=isPortableQARecord(record)&&record.normalPortableImageRole?.postBuildContinuation?createPortablePackageConsumerRole({root:repo,packageCommit:execFileSync('/usr/bin/git',['-C',repo,'rev-parse','HEAD'],{encoding:'utf8'}).trim(),recordBytes}):undefined;
+ verifySDK13NativeComponent({record,inventoryBytes:regular(path.join(repo,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),moduleBytes:regular(path.join(projectDir,'native/original-auth-identity.node')),helperBytes:helper,packageConsumerRole},name=>regular(path.join(repo,name)));
  if(record.runtimeUnion){const profile=Object.values(WALLET_NATIVE_SOURCE_PROFILES).find(p=>p.inventory.sha256===record.sourceInventory.sha256&&p.inventory.bytes===record.sourceInventory.bytes);verifySDKRuntimeUnion(profile.version,path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE)));}
  const root=lstatSync(contents);if(!root.isDirectory()||root.isSymbolicLink())fail();
  for(const [relative,body,mode]of bundleRows(helper,plist)){
