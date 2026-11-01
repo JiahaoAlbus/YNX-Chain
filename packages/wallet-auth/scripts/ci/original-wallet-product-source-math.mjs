@@ -1,0 +1,2 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url));for(const args of [['--test','test/original-wallet-product-source-math.test.mjs'],['node_modules/typescript/bin/tsc','--noEmit','--strict','--target','es2022','--module','nodenext','--moduleResolution','nodenext','test/original-wallet-product-source-math.types.mts']]){const r=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0){process.exitCode=r.status??1;break;}}
