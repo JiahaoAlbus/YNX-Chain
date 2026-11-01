@@ -122,7 +122,12 @@ import SwiftUI
         }catch{failure(error)}
     }
     func resumeNativeInvoiceReferences()async {
-        guard signedIn else{return}
+        // Foreground/identity recovery must not race the original dispatch.
+        // Its durable UNKNOWN record belongs to the active mutation until that
+        // request completes; a later resume may query that same original key.
+        guard signedIn,!mutationBusy else{return}
+        mutationBusy=true;let revision=operationRevision
+        defer{if revision==operationRevision{mutationBusy=false}}
         do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
             for original in try nativeInvoices.records(account).values where original.phase != "prepared" {
                 let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(original.lookupByKey ? "-lookup":""),method:original.lookupByKey ? "POST":"GET",json:original.lookupByKey ? ["IdempotencyKey":original.key]:[:]);try check()
