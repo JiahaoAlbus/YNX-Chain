@@ -497,22 +497,28 @@ class Window:
             # this fallback never claims the whole subtree is reconciled.
             self.stopping=True
             self.direct_cleanup_after_failure=[]
+            errors={}
             for child in self.children:
                 proc=child["process"]
                 if proc.poll() is None:
                     try:os.killpg(proc.pid,signal.SIGTERM)
                     except ProcessLookupError:pass
+                    except OSError as error:errors.setdefault(proc.pid,[]).append(dict(operation="signal",errorType=type(error).__name__,errno=error.errno))
             for child in self.children:
                 proc=child["process"]
                 try:
-                    proc.wait(timeout=1)
-                except subprocess.TimeoutExpired:
-                    # Still the original unreaped direct child, not a numeric
-                    # /proc candidate. No unknown/foreign PID is selected.
-                    proc.kill();proc.wait(timeout=1)
-                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None))
+                    try:proc.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        # Still the original unreaped direct child, not a
+                        # numeric /proc candidate. No foreign PID is selected.
+                        proc.kill();proc.wait(timeout=1)
+                except Exception as error:
+                    errors.setdefault(proc.pid,[]).append(dict(operation="wait",errorType=type(error).__name__))
+                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None,**(dict(errors=errors[proc.pid]) if proc.pid in errors else {})))
             for _,log in self.logs:
-                if not log.closed:log.close()
+                if not log.closed:
+                    try:log.close()
+                    except OSError:pass  # Original cleanup failure is retained.
             raise
 
     def _stop(self):

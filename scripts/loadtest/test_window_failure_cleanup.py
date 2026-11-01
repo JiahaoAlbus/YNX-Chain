@@ -12,6 +12,16 @@ lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 
 
 class FailedInventoryCleanupControls(unittest.TestCase):
+    def test_one_unresolved_wait_does_not_skip_later_owned_handles_or_replace_firstcause(self):
+        w=object.__new__(lab.Window);first=mock.Mock(pid=123,returncode=None);second=mock.Mock(pid=124,returncode=-signal.SIGTERM)
+        first.poll.return_value=None;first.wait.side_effect=RuntimeError('specific wait unavailable');second.poll.return_value=None
+        w.children=[dict(name='first',process=first,startTicks=42),dict(name='second',process=second,startTicks=43)];w.logs=[]
+        with mock.patch.object(w,'_stop',side_effect=RuntimeError('original inventory firstcause')),mock.patch.object(lab.os,'killpg') as signals:
+            with self.assertRaisesRegex(RuntimeError,'original inventory firstcause'):w.stop()
+        self.assertEqual(signals.call_count,2);second.wait.assert_called_once_with(timeout=1)
+        self.assertFalse(w.direct_cleanup_after_failure[0]['exited']);self.assertTrue(w.direct_cleanup_after_failure[1]['exited'])
+        self.assertEqual(w.direct_cleanup_after_failure[0]['errors'][0]['operation'],'wait')
+
     def test_inventory_failure_still_stops_exact_direct_children_and_is_not_success(self):
         w=object.__new__(lab.Window);process=mock.Mock(pid=123,returncode=None)
         process.poll.return_value=None
