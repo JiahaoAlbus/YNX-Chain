@@ -125,6 +125,7 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.observe(s.mux
 func (s *Server) routes() {
 	s.registerBrowserSSO()
 	s.mux.HandleFunc("POST /api/tasks", s.authed("ai:conversations", s.handleTaskCreate))
+	s.mux.HandleFunc("GET /api/tasks", s.authed("ai:conversations", s.handleTaskList))
 	s.mux.HandleFunc("POST /api/tasks/{id}/prepare", s.authed("ai:permissions", s.handleTaskPrepare))
 	s.mux.HandleFunc("GET /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationList))
 	s.mux.HandleFunc("POST /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationWrite))

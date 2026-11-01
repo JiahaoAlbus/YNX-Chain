@@ -7,6 +7,8 @@ on:
     paths: &runtime-paths
       - "internal/aiproduct/**"
       - "internal/aigateway/**"
+      - "internal/aitaskclient/**"
+      - "cmd/ynx-ai-task/**"
       - "apps/ai/main.go"
       - "packages/auth-grant-policy/go/**"
       - "packages/auth-grant-runtime/go/**"
@@ -40,4 +42,4 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Verify normal task, model and startup packages
-        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./apps/ai
+        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./cmd/ynx-ai-task ./apps/ai
