@@ -38,7 +38,9 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/loadtest/pq-height-ci/
+          sparse-checkout: |
+            /scripts/loadtest/pq-height-ci/
+            /.github/workflows/pq-height-vectors-ci.yml
       - name: Pure fixed pidfd intake and late-partial controls; no Linux claim from local preparation
         run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py PidfdIntakeControls ProcessEvidenceIntakeControls.test_partial_path_printed_only_during_stop_is_preserved_after_terminal_cleanup ProcessEvidenceIntakeControls.test_partial_after_cleanup_missing_duplicate_and_nonowned_paths_stay_unpublished -v
       - name: Reuse original 33 plus six evidence controls; run only six new pidfd controls
