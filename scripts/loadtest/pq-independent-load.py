@@ -212,19 +212,40 @@ class NormalBackend:
         lab.require(slots>0,"no original process capacity for normal helpers")
         self.helper_slots=threading.BoundedSemaphore(slots)
         self.helper_limit=slots;self.helper_cleanup_debt=[]
+        self.helper_timing_lock=threading.Lock();self.helper_timing_attempts=0;self.helper_timing_completed=0;self.helper_timings=[]
     def prepare(self,check):
         deadline=time.monotonic()+self.c.proof_timeout
         ready=[session.wait_ready(self.stop_event,deadline,check) for session in self.sessions.values()]
         check();self.pool_ready=dict(startedMonotonicNs=str(self.pool_started_ns),readyObservedMonotonicNs=str(time.monotonic_ns()),parentPoolPreparationNs=time.monotonic_ns()-self.pool_started_ns,readyCount=len(ready),senders=ready,sourceGrant=False,signed=False,nonceReserved=False,loadClockStarted=False)
         return self.pool_ready
+    def helper_timing_report(self):
+        with self.helper_timing_lock:
+            return dict(schema="YNX-PERF-PARENT-HELPER-BOUNDARIES/v1",clock="parent_monotonic_ns",attempted=self.helper_timing_attempts,completed=self.helper_timing_completed,inFlight=self.helper_timing_attempts-self.helper_timing_completed,retained=len(self.helper_timings),omittedCompleted=self.helper_timing_completed-len(self.helper_timings),recordLimit=2048,records=[dict(row) for row in self.helper_timings],meaning="observed parent boundaries only; launch includes Window lock and resource guard; wait includes resource guard and exit observation, not exact child exit; source callee timing is separate; missing boundaries are not zero or qualification")
     def helper(self,name,command,stdin=None):
+        trace=dict(name=name,requestedMonotonicNs=time.monotonic_ns())
+        with self.helper_timing_lock:self.helper_timing_attempts+=1
+        try:
+            return self._helper(name,command,stdin,trace)
+        except BaseException as error:
+            trace["errorType"]=type(error).__name__
+            raise
+        finally:
+            trace["returnedMonotonicNs"]=time.monotonic_ns()
+            with self.helper_timing_lock:
+                self.helper_timing_completed+=1
+                if len(self.helper_timings)<2048:self.helper_timings.append(trace)
+    def _helper(self,name,command,stdin,trace):
         acquired=False;proc=None;released=False
         while not self.stop_event.is_set():
             if self.helper_slots.acquire(timeout=.02):acquired=True;break
+        if acquired:trace["slotAcquiredMonotonicNs"]=time.monotonic_ns()
         lab.require(acquired,"normal helper interrupted before launch; preserve UNKNOWN")
         try:
             lab.require(not self.stop_event.is_set(),"normal helper cancelled before launch; preserve UNKNOWN")
-            try:proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True)
+            trace["launchRequestedMonotonicNs"]=time.monotonic_ns()
+            try:
+                proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True)
+                trace["launchReturnedMonotonicNs"]=time.monotonic_ns()
             except BaseException:
                 # Window may have registered the exact child before a later
                 # start-identity read failed; retain that original handle.
@@ -232,6 +253,7 @@ class NormalBackend:
                     proc=next((c["process"] for c in self.w.children if c["name"]==name),None)
                 raise
             self.w.wait(proc)
+            trace["waitReturnedMonotonicNs"]=time.monotonic_ns()
         finally:
             # A failed resource sample/wait can leave the original process alive.
             # Never release its slot until that exact Popen has exited/reaped.
@@ -252,6 +274,7 @@ class NormalBackend:
             finally:
                 if released:self.helper_slots.release()
                 else:self.stop_event.set()
+                trace["cleanupFinishedMonotonicNs"]=time.monotonic_ns()
         lab.require(released and not any(d["name"]==name for d in self.helper_cleanup_debt),"normal helper cleanup unresolved; preserve UNKNOWN")
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
     def call(self,name,args,stdin=None):
@@ -507,7 +530,7 @@ def run(args):
         stop.set()
         if backend is not None:
             backend.stop()
-            result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt)
+            result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
             try:
