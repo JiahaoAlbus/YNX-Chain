@@ -227,7 +227,7 @@ def run(args):
             try:monitor.check()
             except BaseException as error:result["firstCause"]=result["firstCause"] or str(error);result["perHeightComplete"]=False
         try:result["cleanupComplete"]=w.stop()
-        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error)
+        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,processes=w.process_receipt(),resourceSamples=w.samples,retiredSamplingEvidence=w.retired_samples,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         lab.write_new(work/"public/receipt.json",result)
         print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],perHeightComplete=result["perHeightComplete"])))

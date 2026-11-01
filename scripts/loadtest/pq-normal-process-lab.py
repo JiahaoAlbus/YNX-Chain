@@ -438,7 +438,7 @@ def run(args):
     except BaseException as error:result["firstCause"]=str(error)
     finally:
         try:result["cleanupComplete"]=w.stop()
-        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error)
+        except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
         result["wireObservationRequested"]=observe_wire
         if ceremony is not None:result["wireObservation"]=ceremony.wire_readback()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,

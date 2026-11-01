@@ -458,3 +458,14 @@ explicit account layout and other conditions. Missing/failed/UNKNOWN work stays
 in the full denominator. No zombie exclusion, increased PID/RSS cap, new
 signer implementation, changed crypto or replay of uncertain originals is used.
 
+The same original failure exposed a cleanup defect: `Window.stop` hit the
+ownership limit before signalling any original direct child. Its successor
+retains the inventory error but always terminates/waits its own still-live
+direct Popen children on that error path, closes its own logs, then rethrows
+the failure. It does not select unknown descendants or claim complete cleanup
+without the original inventory proof. Receipts retain
+`directOwnedCleanupAfterFailure` alongside `cleanupComplete=false` and the
+original cleanup error. The added `test_window_failure_cleanup.py` checks this
+error path only; the real Linux group check is distinct from successful load
+qualification. No original PID/RSS/CPU/storage cap or completed data is changed.
+

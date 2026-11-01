@@ -92,7 +92,7 @@ def run(args):
         result["firstCause"]=str(error)
     finally:
         try: result["cleanupComplete"]=window.stop()
-        except BaseException as error: result["cleanupComplete"]=False;result["cleanupError"]=str(error)
+        except BaseException as error: result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(window,"direct_cleanup_after_failure",[])
         result.update(elapsedSeconds=time.monotonic()-window.started,peakRSSBytes=window.peak_rss,peakNewBytes=window.peak_bytes,resourceSamples=window.samples,
                       processes=window.process_receipt(),retiredSamplingEvidence=window.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples)
         lab.write_new(work/"public/receipt.json",result)

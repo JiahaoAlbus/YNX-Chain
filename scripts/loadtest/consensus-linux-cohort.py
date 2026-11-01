@@ -488,6 +488,34 @@ class Window:
         return len(rows)
 
     def stop(self):
+        try:
+            return self._stop()
+        except BaseException:
+            # An inventory/cap failure does not revoke ownership of our LIVE
+            # direct Popen children. Do not leave them running merely because
+            # complete descendant accounting failed. Preserve that failure;
+            # this fallback never claims the whole subtree is reconciled.
+            self.stopping=True
+            self.direct_cleanup_after_failure=[]
+            for child in self.children:
+                proc=child["process"]
+                if proc.poll() is None:
+                    try:os.killpg(proc.pid,signal.SIGTERM)
+                    except ProcessLookupError:pass
+            for child in self.children:
+                proc=child["process"]
+                try:
+                    proc.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    # Still the original unreaped direct child, not a numeric
+                    # /proc candidate. No unknown/foreign PID is selected.
+                    proc.kill();proc.wait(timeout=1)
+                self.direct_cleanup_after_failure.append(dict(name=child["name"],pid=proc.pid,startTicks=child.get("startTicks"),rawReturnCode=proc.returncode,exited=proc.returncode is not None))
+            for _,log in self.logs:
+                if not log.closed:log.close()
+            raise
+
+    def _stop(self):
         self.stopping = True
         started = time.monotonic()
         rows, _ = guard.proc_inventory()
