@@ -131,8 +131,8 @@ jobs:
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           suite=unittest.defaultTestLoader.loadTestsFromModule(module)
           result=unittest.TextTestRunner(verbosity=2).run(suite)
-          if result.testsRun!=29 or result.skipped or not result.wasSuccessful():
-              raise SystemExit('all29 hosted space pure controls must execute and pass')
+          if result.testsRun!=30 or result.skipped or not result.wasSuccessful():
+              raise SystemExit('all30 hosted space pure controls must execute and pass')
           PYSPACE
       - name: Receive exact qualified live-fix source graph for full500 initialization
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -156,14 +156,14 @@ jobs:
       - name: Receive exact measured normal initializer and original lifecycle guards
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 33c72cce282fd159320c6955fe6eb54984cea316
+          ref: ccdfb88d816ed9204cc4a7098ca617469ddd4e5e
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Execute all194 pure controls and original Linux RSS lifecycle before initialization
+      - name: Execute all206 pure controls and original Linux RSS lifecycle before initialization
         run: |
           python3 -B tools/scripts/loadtest/pq-staged-harness-controls.py --run
           python3 -B - <<'PYCONTROLS'

@@ -1,10 +1,12 @@
 """Pure controller/tiny path controls. Never execute sudo/rm/Go/Node/workloads."""
+import ast
 import contextlib
 import importlib.util
 import io
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -356,6 +358,65 @@ class HostedSpaceFlowControls(unittest.TestCase):
 
 
 class HostedSpacePrimitiveControls(unittest.TestCase):
+    def test_workflow_controller_and_helper_pins_use_same_actual_checkout(self):
+        # Read the actual controller's checked-in sources, not constants copied
+        # from this helper. A successor tools checkout must pass the real layout
+        # guard; changing only the workflow/controller used to fail before admit.
+        source_root = Path(__file__).resolve().parents[2]
+        workflow = (source_root / entry.WORKFLOW).read_text()
+        job = workflow.split("\n  " + entry.PROFILE + ":\n", 1)[1]
+        job = re.split(r"\n  [A-Za-z0-9_-]+:\n", job, maxsplit=1)[0]
+        refs = dict((name, ref) for ref, name in re.findall(
+            r"(?m)^          ref: ([^\n]+)\n          path: (controller|source|tools)$", job))
+        self.assertEqual(set(refs), {"controller", "source", "tools"})
+        self.assertEqual(refs["controller"], "${{ github.sha }}")
+        tree = ast.parse((source_root / "scripts/loadtest/pq-current75-baseline-ci.py").read_text())
+        constants = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                name = node.targets[0].id
+                if name in ("GO_SOURCE", "TOOLS"):
+                    constants[name] = ast.literal_eval(node.value)
+        self.assertEqual((refs["source"], refs["tools"]), (constants["GO_SOURCE"], constants["TOOLS"]))
+        self.assertRegex(refs["tools"], r"^[0-9a-f]{40}$")
+        original_bytes = Path(entry.__file__).read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            workspace = root / "work"
+            for name in refs:
+                (workspace / name).mkdir(parents=True)
+            helper = workspace / "controller" / entry.SCRIPT
+            helper.parent.mkdir(parents=True)
+            helper.write_bytes(original_bytes)
+            for name in ("temp", "home", "toolcache"):
+                (root / name).mkdir()
+            env = dict(environment(), GITHUB_WORKSPACE=str(workspace), RUNNER_TEMP=str(root / "temp"),
+                       HOME=str(root / "home"), RUNNER_TOOL_CACHE=str(root / "toolcache"))
+            actual = dict(refs, controller=env["GITHUB_SHA"])
+            def command(argv, **kwargs):
+                checkout = Path(argv[argv.index("-C") + 1]).name
+                return "" if "status" in argv else actual[checkout]
+            original_read, original_exists = Path.read_text, Path.exists
+            def read(path, *args, **kwargs):
+                return 'ID=ubuntu\nVERSION_ID="24.04"\n' if str(path) == "/etc/os-release" else original_read(path, *args, **kwargs)
+            with mock.patch.object(entry, "__file__", str(helper)), \
+                 mock.patch.object(entry, "command", side_effect=command), \
+                 mock.patch.object(entry.subprocess, "check_output", return_value=original_bytes) as git_blob, \
+                 mock.patch.object(entry.subprocess, "Popen", side_effect=AssertionError("no deletion or workload")), \
+                 mock.patch.object(Path, "read_text", read), \
+                 mock.patch.object(Path, "exists", lambda p: False if str(p) == "/.dockerenv" else original_exists(p)):
+                context = entry.checked_layout(env)
+                git_blob.assert_called_once()
+                self.assertFalse(context.output.exists())
+                self.assertEqual((entry.GO_SOURCE, entry.TOOLS_SOURCE), (refs["source"], refs["tools"]))
+                for wrong in ("33c72cce282fd159320c6955fe6eb54984cea316", "b" * 40):
+                    if wrong == refs["tools"]:
+                        continue
+                    actual["tools"] = wrong
+                    with self.subTest(tools=wrong), self.assertRaisesRegex(RuntimeError, "exact clean original checkouts"):
+                        entry.checked_layout(env)
+                self.assertFalse(context.output.exists())
+
     def test_controller_and_source_tools_exact_clean_identity_before_mutation(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp).resolve()
