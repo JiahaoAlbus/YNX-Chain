@@ -61,7 +61,7 @@ func infoIdentifier(raw []byte) (string, error) {
 			return "", ErrInvalid
 		}
 		boolean := key.Text == "NSHighResolutionCapable" || key.Text == "LSUIElement"
-		if boolean && value.XMLName.Local != "true" || !boolean && value.XMLName.Local != "string" {
+		if boolean && value.XMLName.Local != "true" && value.XMLName.Local != "false" || !boolean && value.XMLName.Local != "string" {
 			return "", ErrInvalid
 		}
 		switch value.XMLName.Local {
@@ -72,11 +72,16 @@ func infoIdentifier(raw []byte) (string, error) {
 				return "", ErrInvalid
 			}
 			values[key.Text] = "true"
+		case "false":
+			if value.Text != "" {
+				return "", ErrInvalid
+			}
+			values[key.Text] = "false"
 		default:
 			return "", ErrInvalid
 		}
 	}
-	required := map[string]string{"CFBundleExecutable": executableName, "CFBundlePackageType": "APPL", "CFBundleName": "YNX Network Consent", "CFBundleDisplayName": "YNX Network Consent", "CFBundleVersion": "0.3", "CFBundleShortVersionString": "0.3", "LSMinimumSystemVersion": "12.0", "NSHighResolutionCapable": "true", "NSPrincipalClass": "NSApplication", "LSUIElement": "true"}
+	required := map[string]string{"CFBundleExecutable": executableName, "CFBundlePackageType": "APPL", "CFBundleName": "YNX Network Consent", "CFBundleDisplayName": "YNX Network Consent", "CFBundleVersion": "0.3", "CFBundleShortVersionString": "0.3", "LSMinimumSystemVersion": "12.0", "NSHighResolutionCapable": "true", "NSPrincipalClass": "NSApplication", "LSUIElement": "false"}
 	if len(values) != len(required)+1 || !bundleIdentifier.MatchString(values["CFBundleIdentifier"]) {
 		return "", ErrInvalid
 	}

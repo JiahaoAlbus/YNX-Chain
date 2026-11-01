@@ -239,7 +239,10 @@ static NSString *QAPresentConsent(QANativeConsentPacket *packet, NSDictionary<NS
     double began=QAMonotonic();
     if(!isfinite(remaining)||remaining<=0||remaining>60||!isfinite(began))return @"cancelled";
     [NSApplication sharedApplication];
-    [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    // This helper enters runModal directly rather than NSApplication.run.
+    // Complete the ordinary launch lifecycle before presenting its window.
+    [NSApp finishLaunching];
     NSApp.appearance=[theme isEqualToString:@"system"]?nil:[NSAppearance appearanceNamed:[theme isEqualToString:@"dark"]?NSAppearanceNameDarkAqua:NSAppearanceNameAqua];
     NSAlert *alert=[NSAlert new];
     alert.alertStyle=NSAlertStyleWarning;

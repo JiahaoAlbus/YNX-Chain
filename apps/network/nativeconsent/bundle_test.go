@@ -116,7 +116,7 @@ func TestBundledNativeIdentityAndPreservation(t *testing.T) {
 	for _, test := range []struct {
 		name     string
 		metadata []byte
-	}{{"wrong-executable", []byte(strings.Replace(string(metadata), executableName, "other-program", 1))}, {"wrong-identifier", []byte(strings.Replace(string(metadata), "dev.ynx.network.consent.qa.h0123456789abcdef", "other.identity", 1))}, {"coerced-bool", []byte(strings.Replace(string(metadata), "<key>LSUIElement</key><true/>", "<key>LSUIElement</key><string>true</string>", 1))}, {"extra-metadata", []byte(strings.Replace(string(metadata), "</dict>", "<key>NSMainNibFile</key><string>never-allowed</string></dict>", 1))}} {
+	}{{"wrong-executable", []byte(strings.Replace(string(metadata), executableName, "other-program", 1))}, {"wrong-identifier", []byte(strings.Replace(string(metadata), "dev.ynx.network.consent.qa.h0123456789abcdef", "other.identity", 1))}, {"coerced-bool", []byte(strings.Replace(string(metadata), "<key>LSUIElement</key><false/>", "<key>LSUIElement</key><string>false</string>", 1))}, {"extra-metadata", []byte(strings.Replace(string(metadata), "</dict>", "<key>NSMainNibFile</key><string>never-allowed</string></dict>", 1))}} {
 		t.Run(test.name, func(t *testing.T) {
 			source, _ := fixture(t, test.metadata)
 			if p, err := NewBundled(source, pin(code), pin(test.metadata), "en", "light"); err == nil {

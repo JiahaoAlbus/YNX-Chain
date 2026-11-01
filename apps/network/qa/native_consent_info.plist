@@ -11,5 +11,5 @@
 <key>LSMinimumSystemVersion</key><string>12.0</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
-<key>LSUIElement</key><true/>
+<key>LSUIElement</key><false/>
 </dict></plist>
