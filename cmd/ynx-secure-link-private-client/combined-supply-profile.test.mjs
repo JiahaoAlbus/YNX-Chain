@@ -15,7 +15,7 @@ function fixture(id = 'core17/47') {
   const selected = CORE_SUPPLY_PROFILES.find(row => row.id === id);
   const sourceBytes = new Map(selected.sourcePaths.map(name => {
     let text = name.endsWith('.go') ? 'package ' + (name.startsWith(command + '/') ? 'main' : name.split('/').at(-2)) + '\n' : 'PUBLIC original bytes\n';
-    if (selected.id === 'core18/48' && selected.cgoTranslationUnits.includes(name)) text += '/* static int public_control(void) { return 0; } */\nimport "C"\n';
+    if (['core18/48', 'core19/49'].includes(selected.id) && selected.cgoTranslationUnits.includes(name)) text += '/* static int public_control(void) { return 0; } */\nimport "C"\n';
     if (name === command + '/core.go') text += 'func main() {}\n';
     if (name.endsWith('.go')) for (const binding of selected.bindings.filter(row => row.bridge === name)) text += '//export ' + binding.symbol + '\nfunc ' + binding.symbol + '() {}\n';
     if (name.endsWith('.h')) text = selected.bindings.filter(row => row.header === name).map(row => 'int32_t ' + row.symbol + '(void);').join('\n') + '\n';
@@ -131,6 +131,27 @@ function core18Fixture() {
   return {...f, core: raw};
 }
 
+function core19Fixture() {
+  const f = fixture('core19/49'), selected = f.selected;
+  const raw = {schema: 'YNX-CORE19-EXACT-GIT-SOURCE/v1', commit: selected.commit, tree: selected.tree,
+    sourceReadMethod: 'PUBLIC in-memory pins, not real Git supply', productionLeafCount: 88,
+    originalCometForkTree: '54e88e6aba735eaceeb2d00bb40731248c673bd7', moduleContextIsDescriptorOnly: true,
+    normalOriginalModuleAndForkRequired: true, goModReplaceNotRemovedOrStubbed: true, archiveIncluded: false, freshCIQualified: false,
+    authority: {Root: false, Source: false},
+    sources: f.core.sources.map(row => ({...row, repositoryPath: row.path, path: '/PUBLIC/core19/src/' + row.path, gitMode: '100644'})),
+    moduleContext: f.core.moduleContext.descriptors.map(row => ({...row, path: '/PUBLIC/core19/module-context/' + row.repositoryPath, gitMode: '100644'})),
+    productionClosure: {rootPackage: command, singleExplicitRoot: true, resourceConsentActuallyImported: true, blankImport: false,
+      packageCount: 5, goFileCount: 69, headerCount: 17, productionLeafCount: 88, cgoTranslationUnitCount: 19, exportCount: 19, guardCount: 17,
+      currentExactGitImportsIndependentlyRewalked: true, allPackageProductionFilesCheckedAgainstExactTree: true,
+      freshGoListRun: false, freshGoTestRun: false, cgoTranslationUnits: [...selected.cgoTranslationUnits],
+      exports: selected.bindings.map(row => ({symbol: row.symbol, source: row.bridge})),
+      packages: Object.fromEntries(selected.packagePaths.map(name => [name, {importPath: 'github.com/JiahaoAlbus/YNX-Chain/' + name,
+        productionGoFiles: selected.sourcePaths.filter(p => p.startsWith(name + '/') && p.endsWith('.go')),
+        imports: name === command ? ['github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'] : [],
+        actualPriorGoListSelectionUnchanged: true, exactGitTreeAllProductionGoFilesMatch: true}]))}};
+  return {...f, core: raw};
+}
+
 function replaceRaw(f, name, text) {
   const bytes = Buffer.from(text), replacement = pin(name, bytes);
   f.sourceBytes.set(name, bytes);
@@ -147,7 +168,8 @@ const modulePath = 'github.com/JiahaoAlbus/YNX-Chain/';
 function dependencyRecords(selected) {
   return [...selected.normalPackagePaths.map(name => {
     const sources = selected.sourcePaths.filter(path => path.startsWith(name + '/') && path.endsWith('.go'));
-    const imported = name === command ? ['internal/ynxauth', 'internal/ynxbatch', 'internal/accountaddress'] :
+    const imported = name === command ? ['internal/ynxauth', 'internal/ynxbatch', 'internal/accountaddress',
+      ...(selected.resourceBackendImported ? ['internal/ynxresourceconsent'] : [])] :
       name === 'internal/ynxauth' || name === 'internal/ynxresourceconsent' ? ['internal/ynxbatch', 'internal/accountaddress'] : [];
     return {ImportPath: modulePath + name, Name: name === command ? 'main' : name.split('/').at(-1), DepOnly: name !== command,
       GoFiles: [...sources.filter(path => !selected.cgoTranslationUnits.includes(path)).map(path => path.split('/').at(-1)),
@@ -460,6 +482,49 @@ test('Core18 verifies the candidate Git blob bytes rather than trusting an updat
   const row = f.core.sources.find(row => row.path === name), replacement = pin(name, f.sourceBytes.get(name));
   row.bytes = replacement.bytes; row.sha256 = replacement.sha256;
   assert.throws(() => verify(f), /original bytes\/hash\/Git mismatch/);
+});
+
+test('Core19 exact committed source normalizes all88 leaves while retaining source-only provenance', () => {
+  const f = core19Fixture(), before = structuredClone(f.core), n = normalizeCoreSupply(f.core);
+  assert.deepEqual(f.core, before);
+  assert.equal(selectCoreSupplyProfile(f.core), f.selected);
+  assert.deepEqual(verify(f), {profile: 'core19/49', coreExports: 19, totalExports: 49, sourceLeaves: 88, handHeaders: 17, descriptors: 4});
+  assert.equal(n.provenance.rawSchema, 'YNX-CORE19-EXACT-GIT-SOURCE/v1');
+  assert.equal(n.provenance.freshCommandClosureClaimedBySupplier, false);
+  assert.equal(n.provenance.protectedAuthNativeFactoryQualified, false);
+  assert.equal(n.supply.delivery.sourceDirectory, '/PUBLIC/core19/src');
+  assert.equal(f.selected.bridges.length, 17); assert.equal(f.selected.nonExportCgoTranslationUnits.length, 2);
+  assert.equal(f.selected.cgoTranslationUnits.length, 19);
+  assert.throws(() => selectCoreSupplyProfile(n.supply));
+});
+
+test('Core19 rejects unknown identity, incomplete source or a relabelled supplier qualification', () => {
+  for (const mutate of [
+    r => {r.commit = 'f'.repeat(40);}, r => {r.tree = 'f'.repeat(40);}, r => {r.archiveIncluded = true;},
+    r => {r.freshCIQualified = true;}, r => {r.moduleContextIsDescriptorOnly = false;}, r => {r.originalCometForkTree = 'f'.repeat(40);},
+    r => r.sources.pop(), r => {r.sources[0].gitMode = '120000';}, r => {r.sources[0].path = '/OTHER/' + r.sources[0].repositoryPath;},
+    r => {r.sources[0].gitBlob = 'bad';}, r => {r.productionClosure.freshGoListRun = true;},
+    r => {r.productionClosure.blankImport = true;}, r => {r.productionClosure.resourceConsentActuallyImported = false;},
+    r => {r.productionClosure.packageCount = 4;}, r => {r.productionClosure.cgoTranslationUnits.pop();},
+    r => {r.productionClosure.exports[0].source = command + '/unlisted.go';}, r => r.moduleContext.pop(),
+    r => {r.productionClosure.packages[command].imports = [];},
+  ]) {const f = core19Fixture(); mutate(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));}
+});
+
+test('Core19 actual byte gate counts both static controls and rejects changed original bridge bytes', () => {
+  const f = core19Fixture(), name = command + '/network_resource_consent_foreign_controls.go';
+  f.sourceBytes.set(name, Buffer.from('package main\n')); assert.throws(() => verify(f), /original bytes\/hash\/Git mismatch/);
+});
+
+test('Core19 requires real resource backend reachability without qualifying protected Native authority', () => {
+  const f = core19Fixture(), rows = dependencyRecords(f.selected);
+  const result = verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows));
+  assert.equal(result.resourceConsentAlreadyImportedByCoreCommand, true);
+  assert.equal(result.resourceConsentPackageSuppliedSeparately, false);
+  assert.equal(result.coreCommandReachablePackages.length, 5);
+  assert.equal(result.normalResourceBinder, 'FIXED_CORE_CABI_REACHABLE_PROTECTED_AUTH_NATIVE_FACTORY_NOT_QUALIFIED');
+  rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(p => !p.endsWith('/ynxresourceconsent'));
+  assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows)));
 });
 
 test('go-list single command traverses its real LINK edge and leaves the separate resource binder absent', () => {

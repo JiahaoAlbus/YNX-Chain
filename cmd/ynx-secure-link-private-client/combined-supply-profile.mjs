@@ -38,7 +38,8 @@ function profile(id, commit, tree, additionalBindings = [], additionalSources = 
     headers: Object.freeze([...new Set(bindings.map(row => row.header))].sort()),
     bridges: Object.freeze(bridges), nonExportCgoTranslationUnits: Object.freeze(nonExportCgoTranslationUnits),
     cgoTranslationUnits: Object.freeze([...bridges, ...nonExportCgoTranslationUnits].sort()),
-    normalPackagePaths: Object.freeze(packagePaths.filter(name => name !== 'internal/ynxresourceconsent')),
+    resourceBackendImported: settings.resourceBackendImported === true,
+    normalPackagePaths: Object.freeze(packagePaths.filter(name => settings.resourceBackendImported || name !== 'internal/ynxresourceconsent')),
     coreExports: bindings.length, totalExports: bindings.length + 22 + 8});
 }
 
@@ -58,6 +59,16 @@ export const CORE_SUPPLY_PROFILES = Object.freeze([
     command + '/source_statement_v2_foreign_controls.go', 'internal/ynxbatch/auth_source_statement_v2.go',
     'internal/ynxbatch/resource_consent.go', 'internal/ynxresourceconsent/consent.go'],
   {nonExportCgoTranslationUnits: [command + '/source_statement_v2_foreign_controls.go']}),
+  profile('core19/49', 'e12036079d28adef2559733739a4743e258ba4e5', 'caf9cbfd3e8c1aef203797f67dbd012568b05a3c', [
+    ['YNXAccountMigrationAuthorizationSignV1', 'migration_authorization_bridge.go', 'account_migration_authorization.h', 'migration_authorization_core.go'],
+    ['YNXProductPairPendingOriginalQuerySignV1', 'pending_query_bridge.go', 'product_pair_pending_original_query.h', 'pending_query_core.go'],
+    ['YNXAuthSourceStatementVerifyV2', 'source_statement_v2_bridge.go', 'auth_source_statement_v2.h', 'source_statement_v2_core.go'],
+    ['YNXNetworkResourceConsentAttemptV1', 'network_resource_consent_bridge.go', 'network_resource_consent.h', 'network_resource_consent_core.go'],
+  ], ['internal/ynxauth/migration_signing.go', 'internal/ynxbatch/product_pair_pending_original_query.go',
+    command + '/source_statement_v2_foreign_controls.go', 'internal/ynxbatch/auth_source_statement_v2.go',
+    'internal/ynxbatch/resource_consent.go', 'internal/ynxresourceconsent/consent.go',
+    command + '/network_resource_consent_foreign_controls.go', 'internal/ynxresourceconsent/material_attempt.go'],
+  {nonExportCgoTranslationUnits: [command + '/source_statement_v2_foreign_controls.go', command + '/network_resource_consent_foreign_controls.go'], resourceBackendImported: true}),
 ]);
 
 const requireValue = (value, message) => {if (!value) throw Error('Core supply profile: ' + message);};
@@ -70,6 +81,7 @@ const samePin = (a, b) => a.bytes === b.bytes && a.sha256 === b.sha256 && a.gitB
 function approved(selected) {requireValue(CORE_SUPPLY_PROFILES.includes(selected), 'approved named profile required');}
 
 const core18 = CORE_SUPPLY_PROFILES.find(row => row.id === 'core18/48');
+const core19 = CORE_SUPPLY_PROFILES.find(row => row.id === 'core19/49');
 const sourceV2Fields = Object.freeze(['domain UTF8', 'role UTF8', 'independently expected frame UTF8', 'network lowercase hex64 TEXT',
   'owner lowercase0x42 TEXT', 'keyVersion u64 decimal TEXT', 'issuedHeight u64 decimal TEXT', 'canonical bodyOriginal UTF8']);
 export const CORE18_SOURCE_V2_LIMITS = Object.freeze({bodyMaximum: 65536, memberMaximum: 262144, messageMaximum: 66267,
@@ -88,6 +100,7 @@ const clone = value => structuredClone(value);
 // This is an explicit derived view, not a change to what the frozen supplier H
 // claimed. The builder still verifies every byte against the approved f27 tree.
 export function normalizeCoreSupply(raw) {
+  if (raw?.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1') return normalizeCore19Supply(raw);
   if (raw?.version !== 1) return {supply: raw, provenance: {derivedViewOnly: false, rawSchemaVersion: raw?.version}};
   requireValue(raw.state === 'CORE18_PUBLIC_SOURCE_CARRIER_BASE_PLUS_FROZEN_DELTA_NO_ARCHIVE' &&
     raw.source === undefined && raw.actualCounts === undefined && raw.productionPackageClosure === undefined &&
@@ -165,6 +178,57 @@ export function normalizeCoreSupply(raw) {
       ({path, sourceOrigin, candidateGitBlob, candidateCommitClaimed, baseGit: clone(baseGit)}))}};
 }
 
+function normalizeCore19Supply(raw) {
+  requireValue(raw.commit === core19.commit && raw.tree === core19.tree && raw.productionLeafCount === 88 &&
+    raw.originalCometForkTree === '54e88e6aba735eaceeb2d00bb40731248c673bd7' && raw.moduleContextIsDescriptorOnly === true &&
+    raw.normalOriginalModuleAndForkRequired === true && raw.goModReplaceNotRemovedOrStubbed === true &&
+    raw.archiveIncluded === false && raw.freshCIQualified === false, 'exact committed Core19 source-only original required');
+  requireValue(Array.isArray(raw.sources), 'complete Core19 source rows required');
+  exact(raw.sources.map(row => row?.repositoryPath), core19.sourcePaths, 'Core19 source paths');
+  const roots = new Set();
+  const sources = raw.sources.map(row => {
+    requireValue(validPin(row) && row.gitMode === '100644' && typeof row.path === 'string' &&
+      row.path.endsWith('/' + row.repositoryPath) && row.path.startsWith('/'), 'Core19 actual Git source pin required');
+    roots.add(row.path.slice(0, -row.repositoryPath.length));
+    return {...clone(row), originalCarrierPath: row.path, path: row.repositoryPath};
+  });
+  requireValue(roots.size === 1, 'one original Core19 source carrier required');
+  const sourceDirectory = [...roots][0].slice(0, -1), byPath = new Map(sources.map(row => [row.path, row]));
+  const closure = raw.productionClosure;
+  requireValue(closure?.rootPackage === command && closure.singleExplicitRoot === true && closure.resourceConsentActuallyImported === true &&
+    closure.blankImport === false && closure.packageCount === 5 && closure.goFileCount === 69 && closure.headerCount === 17 &&
+    closure.productionLeafCount === 88 && closure.cgoTranslationUnitCount === 19 && closure.exportCount === 19 && closure.guardCount === 17 &&
+    closure.currentExactGitImportsIndependentlyRewalked === true && closure.allPackageProductionFilesCheckedAgainstExactTree === true &&
+    closure.freshGoListRun === false && closure.freshGoTestRun === false, 'Core19 original static closure is not fresh command execution');
+  exact(Object.keys(closure.packages ?? {}), core19.packagePaths, 'Core19 exact package paths');
+  exact(closure.cgoTranslationUnits, core19.cgoTranslationUnits, 'Core19 export and static cgo units');
+  exact(closure.exports?.map(row => row?.symbol), core19.symbols, 'Core19 export names');
+  const exports = core19.bindings.map(binding => {
+    requireValue(closure.exports.find(row => row.symbol === binding.symbol)?.source === binding.bridge, 'Core19 export bridge required');
+    return {symbol: binding.symbol, ...Object.fromEntries(['bridge', 'header', 'implementation'].map(key => [key, clone(byPath.get(binding[key]))]))};
+  });
+  const productionPackageClosure = Object.fromEntries(Object.entries(closure.packages).map(([name, row]) => {
+    requireValue(row.importPath === 'github.com/JiahaoAlbus/YNX-Chain/' + name && Array.isArray(row.productionGoFiles) &&
+      Array.isArray(row.imports) && row.actualPriorGoListSelectionUnchanged === true && row.exactGitTreeAllProductionGoFilesMatch === true,
+    'Core19 exact package inventory required');
+    return [name, {paths: clone(row.productionGoFiles), goFiles: row.productionGoFiles.length}];
+  }));
+  const imports = closure.packages[command].imports;
+  requireValue(imports.includes('github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'), 'Core19 direct resource backend import required');
+  exact(raw.moduleContext?.map(row => row?.repositoryPath), modulePaths, 'Core19 descriptor paths');
+  for (const row of raw.moduleContext) requireValue(validPin(row) && row.gitMode === '100644' && typeof row.path === 'string' && row.path.startsWith('/'), 'Core19 descriptor Git pin required');
+  return {supply: {version, source: {commit: core19.commit, tree: core19.tree, module: 'github.com/JiahaoAlbus/YNX-Chain', go: '1.26.10'},
+    LINKReadOnlyComposition: {sourceCommit: baseLINKCommit}, sources, exports, delivery: {sourceDirectory},
+    moduleContext: {sourceCommit: core19.commit, sourceTree: core19.tree, originalReplace: 'github.com/cometbft/cometbft => ./third_party/cometbft',
+      stubModule: false, descriptors: clone(raw.moduleContext)}, productionPackageClosure,
+    actualCounts: {sourceLeaves: 88, productionGo: 69, handHeaders: 17, exportedSymbols: 19, cgoTranslationUnits: 19,
+      cgoTranslationUnitPaths: clone(closure.cgoTranslationUnits)}},
+  provenance: {derivedViewOnly: true, rawSchema: raw.schema, actualCommit: raw.commit, actualTree: raw.tree,
+    sourceReadMethod: raw.sourceReadMethod, rawDependencyClosure: clone(closure), rawAuthority: clone(raw.authority),
+    sourceRowProvenance: clone(raw.sources), rawModuleContext: clone(raw.moduleContext), freshCommandClosureClaimedBySupplier: false,
+    fixedResourceCABIBackendSupplied: true, protectedAuthNativeFactoryQualified: false}};
+}
+
 /** Pure metadata gate, called before creating any build output. */
 export function selectCoreSupplyProfile(raw) {
   const {supply: core} = normalizeCoreSupply(raw);
@@ -172,7 +236,8 @@ export function selectCoreSupplyProfile(raw) {
     core.LINKReadOnlyComposition?.sourceCommit === baseLINKCommit, 'original module/toolchain/LINK contract required');
   requireValue(Array.isArray(core.exports), 'declared exports required');
   const selected = CORE_SUPPLY_PROFILES.find(row => row.commit === core.source.commit && row.tree === core.source.tree);
-  requireValue(selected && (selected !== core18 || raw.version === 1), 'approved Core15, Core17 or raw Core18 commit/tree identity required');
+  requireValue(selected && (selected !== core18 || raw.version === 1) &&
+    (selected !== core19 || raw.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1'), 'approved Core15, Core17, raw Core18 or exact Core19 commit/tree identity required');
   exact(core.exports.map(row => row?.symbol), selected.symbols, 'Core export identities');
   requireValue(Array.isArray(core.sources), 'complete source pins required');
   exact(core.sources.map(row => row?.path), selected.sourcePaths, 'Core source paths');
@@ -248,7 +313,7 @@ export function verifyCoreSupplyBytes(raw, selected, sourceBytes, descriptorByte
     requireValue(headers.find(row => row.symbol === binding.symbol).path === binding.header, 'actual declaration in wrong header: ' + binding.symbol);
   }
   exact(mains, [command + '/core.go'], 'sole original Core main');
-  if (selected === core18) {
+  if (selected === core18 || selected === core19) {
     exact(cgo, selected.cgoTranslationUnits, 'actual Core18 cgo translation units including static control');
     for (const name of selected.nonExportCgoTranslationUnits) requireValue(!actual.some(row => row.path === name), 'static cgo control may not add an export');
     const header = sourceBytes.get(command + '/auth_source_statement_v2.h').toString('utf8');
@@ -336,13 +401,14 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
     exact([...(row.GoFiles ?? []), ...(row.CgoFiles ?? [])], expected, 'actual ' + name + ' Go/cgo files');
   }
   const resource = prefix + 'internal/ynxresourceconsent';
-  requireValue(!reached.has(resource), 'normal resource binder is NOT_SUPPLIED in this fixed profile');
+  requireValue(reached.has(resource) === selected.resourceBackendImported, 'actual fixed resource backend reachability differs from named profile');
   return {profile: selected.id, actualCommandRoot: main.ImportPath, totalPackages: rows.length,
     commandRoots, LINKTransportDirectImport: true, LINKTransportReachable: true,
     coreCommandReachablePackages: corePackages, reachableLocalPackages: [...reached].filter(name => name.startsWith(prefix)).sort(),
-    resourceConsentPackageSuppliedSeparately: selected === core18, resourceConsentAlreadyImportedByCoreCommand: false,
+    resourceConsentPackageSuppliedSeparately: selected === core18, resourceConsentAlreadyImportedByCoreCommand: reached.has(resource),
     separateResourceRootInOutput: byPath.has(resource) && byPath.get(resource).DepOnly !== true,
-    normalResourceBinder: 'NOT_SUPPLIED', meaning: 'Actual import traversal only; package/file presence is not a backend callpoint or Source authority.'};
+    normalResourceBinder: reached.has(resource) ? 'FIXED_CORE_CABI_REACHABLE_PROTECTED_AUTH_NATIVE_FACTORY_NOT_QUALIFIED' : 'NOT_SUPPLIED',
+    meaning: 'Actual import traversal only; protected Native keeper, policy, decision, durable once and Source authority remain independently qualified.'};
 }
 
 /** Public golden byte/capacity diagnostic, never a signature or Source verifier. */
