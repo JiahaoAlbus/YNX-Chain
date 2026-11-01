@@ -1,5 +1,17 @@
 # YNX 执行规范
 
+<!-- V5_HUMAN_SCOPE_CONFIRMATION_20261101 -->
+## 当前范围：本人 2026-11-01 在唯一总控聊天的明确答复
+
+用户在唯一总控聊天 `01a19136-8605-7773-9d79-99c6f91c3a36` 对范围问题 `call_a0d12a485254472aa443269552281f11` 明确答复：**“以本轮 V5 为准，九产品及必要共享依赖全部继续”**。
+
+这是新的真人范围授权，优先于下方原样保留的 2026-10-18 四线范围历史。继续 Wallet、Social、IDE、Cloud、Browser（含 Search）、Pay、Shop、AI、YNX Network，以及实际必要的 Chain/Protocol、Perf、Auth、SDK、LINK 和原 A 构建发行职责。源码、正常 QA 与必要联调在既有具体目标和写集内自动接续。
+
+本工作目录保持原 LINK 安全传输、单 Go runtime 归并及必要共享契约职责；保留原 owner、工作树、写集、dirty、账户、UNKNOWN、原模型/no-fast。已完成原子代理保留完成状态，真实新增差量由原执行者在必要写集接续。冻结源码、产物和 provenance 继续引用原提交及哈希。
+
+Finance/Card、Media、Docs、Mail、Calendar、旧总控及旧自动化继续保全暂停。真实资金、生产密钥、不可逆操作和公网激活保持原有具体授权门禁；不自造 Root、不降授权、不重放 UNKNOWN。
+<!-- /V5_HUMAN_SCOPE_CONFIRMATION_20261101 -->
+
 <!-- SCOPE_CORRECTION_20261018 -->
 本人最新范围纠正优先于以下旧的广泛恢复措辞：政策是执行方式，不是恢复全部产品的授权。当前仅 Social、IDE、Wallet、Chain 吞吐与新协议继续，以及它们实际必要的原 SDK/Auth/构建发布/官网交付依赖。本工作目录只执行 Chain 新协议、吞吐及其必要集成。Media、Mail、Commerce、Finance/Card、AI、Cloud、Docs 等维持暂停；只正常收尾确实在途动作，保存源码、dirty、产物、证据和服务，不启动其新开发、测试、构建、GUI、发布或例行盘点。后续新建或恢复任务须有具体目标和范围授权；暂停待办恢复仅限当前已安排范围。
 <!-- /SCOPE_CORRECTION_20261018 -->
