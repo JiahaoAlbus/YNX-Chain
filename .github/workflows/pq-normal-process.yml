@@ -11,7 +11,7 @@ on:
         description: Exact qualified live-fix full500 normal initialization only; no business pressure
         type: choice
         default: functional
-        options: [functional, current896-initialize500-only]
+        options: [functional, current896-coldready-initialize500-only]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   functional:
-    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'current896-initialize500-only')
+    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'current896-coldready-initialize500-only')
     name: Normal original PQ processes (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -93,9 +93,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  current896-initialize500-only:
-    name: Live-fix full500 initialization only - no business pressure
-    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'current896-initialize500-only'))
+  current896-coldready-initialize500-only:
+    name: Cold-ready full500 initialization only - no business pressure
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'current896-coldready-initialize500-only'))
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:
@@ -141,7 +141,7 @@ jobs:
       - name: Receive exact measured normal initializer and original lifecycle guards
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 59c24d46a969a09d6f1122954d98f3dc69c89525
+          ref: 326e3053a29a609005078af60678755a871e974d
           path: tools
           fetch-depth: 1
           filter: blob:none
@@ -151,7 +151,9 @@ jobs:
       - name: Verify only the new initialization functional controls
         run: |
           set -euo pipefail
-          test "$(git -C tools rev-parse HEAD)" = "59c24d46a969a09d6f1122954d98f3dc69c89525"
+          test "$(git -C tools rev-parse HEAD)" = "326e3053a29a609005078af60678755a871e974d"
+          python3 -I -B tools/scripts/loadtest/test_pq_cold_readiness.py -v
+          python3 -I -B tools/scripts/loadtest/test_pq_initialization_readback.py -v
           python3 -I -B tools/scripts/loadtest/test_pq_live_source_qualification.py -v
           python3 -I -B tools/scripts/loadtest/test_pq_initialization_measurements.py -v
           python3 -I -B tools/scripts/loadtest/test_pq_bounded_sender_backend.py BoundedSenderBackendControls.test_execute_flag_fails_before_source_check_or_node_when_qualification_absent -v
@@ -164,7 +166,7 @@ jobs:
       - name: Execute sole normal full500 initialization and cleanup only
         id: initialization
         env:
-          PQ_BASELINE_PROFILE: current896-initialize500-only
+          PQ_BASELINE_PROFILE: current896-coldready-initialize500-only
         run: |
           python3 -I -B controller/scripts/loadtest/pq-current75-baseline-ci.py \
             --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
@@ -172,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-current896-initialize500-only-${{ github.run_id }}-${{ github.run_attempt }}
+          name: pq-current896-coldready-initialize500-only-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/pq-current896-source-functional-*.json
             ${{ runner.temp }}/pq-independent-load-*/public/
