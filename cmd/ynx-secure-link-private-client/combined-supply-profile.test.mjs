@@ -145,16 +145,16 @@ function replaceRaw(f, name, text) {
 
 const modulePath = 'github.com/JiahaoAlbus/YNX-Chain/';
 function dependencyRecords(selected) {
-  return selected.packagePaths.map(name => {
+  return [...selected.normalPackagePaths.map(name => {
     const sources = selected.sourcePaths.filter(path => path.startsWith(name + '/') && path.endsWith('.go'));
     const imported = name === command ? ['internal/ynxauth', 'internal/ynxbatch', 'internal/accountaddress'] :
       name === 'internal/ynxauth' || name === 'internal/ynxresourceconsent' ? ['internal/ynxbatch', 'internal/accountaddress'] : [];
-    return {ImportPath: modulePath + name, Name: name === command ? 'main' : name.split('/').at(-1),
+    return {ImportPath: modulePath + name, Name: name === command ? 'main' : name.split('/').at(-1), DepOnly: name !== command,
       GoFiles: [...sources.filter(path => !selected.cgoTranslationUnits.includes(path)).map(path => path.split('/').at(-1)),
         ...(name === command ? ['link_transport_import.go'] : [])],
       CgoFiles: sources.filter(path => selected.cgoTranslationUnits.includes(path)).map(path => path.split('/').at(-1)),
-      Imports: [...(name === command ? ['C'] : []), ...imported.map(path => modulePath + path)]};
-  });
+      Imports: [...(name === command ? ['C', modulePath + 'internal/securelink'] : []), ...imported.map(path => modulePath + path)]};
+  }), {ImportPath: modulePath + 'internal/securelink', Name: 'securelink', DepOnly: true, Imports: ['C']}];
 }
 const jsonSequence = records => records.map(row => JSON.stringify(row, null, 2)).join('\n\n');
 
@@ -462,16 +462,38 @@ test('Core18 verifies the candidate Git blob bytes rather than trusting an updat
   assert.throws(() => verify(f), /original bytes\/hash\/Git mismatch/);
 });
 
-test('go-list traversal distinguishes four main-command packages from the separate resource root', () => {
+test('go-list single command traverses its real LINK edge and leaves the separate resource binder absent', () => {
   const f = core18Fixture(), records = dependencyRecords(f.selected);
-  // Even a misleading union/Deps claim is not an Imports edge from main.
-  records.find(row => row.Name === 'main').Deps = records.filter(row => row.Name !== 'main').map(row => row.ImportPath);
+  // A misleading union/Deps claim is not an Imports edge from main.
+  records.find(row => row.Name === 'main').Deps = [...records.filter(row => row.Name !== 'main').map(row => row.ImportPath), modulePath + 'internal/ynxresourceconsent'];
   const result = verifyCoreCommandDependencyClosure(f.selected, jsonSequence(records));
   assert.equal(result.resourceConsentAlreadyImportedByCoreCommand, false);
   assert.equal(result.resourceConsentPackageSuppliedSeparately, true);
+  assert.equal(result.separateResourceRootInOutput, false);
+  assert.ok(result.reachableLocalPackages.includes(modulePath + 'internal/securelink'));
   assert.equal(result.normalResourceBinder, 'NOT_SUPPLIED');
   assert.deepEqual([...result.coreCommandReachablePackages].sort(),
     [command, 'internal/accountaddress', 'internal/ynxauth', 'internal/ynxbatch'].sort());
+});
+
+test('go-list requires the original direct LINK edge and its traversable package', () => {
+  for (const selected of CORE_SUPPLY_PROFILES) for (const mutate of [
+    rows => {rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(name => name !== modulePath + 'internal/securelink');},
+    rows => rows.splice(rows.findIndex(row => row.ImportPath === modulePath + 'internal/securelink'), 1),
+    rows => {
+      rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(name => name !== modulePath + 'internal/securelink');
+      rows.find(row => row.ImportPath === modulePath + 'internal/ynxauth').Imports.push(modulePath + 'internal/securelink');
+    },
+  ]) {const records = dependencyRecords(selected); mutate(records); assert.throws(() => verifyCoreCommandDependencyClosure(selected, jsonSequence(records)));}
+});
+
+test('go-list rejects multiple roots and dependency rows without true DepOnly', () => {
+  for (const selected of CORE_SUPPLY_PROFILES) for (const mutate of [
+    rows => {rows.find(row => row.ImportPath === modulePath + 'internal/ynxauth').DepOnly = false;},
+    rows => {delete rows.find(row => row.ImportPath === modulePath + 'internal/securelink').DepOnly;},
+    rows => rows.push({ImportPath: modulePath + 'internal/ynxresourceconsent', Name: 'ynxresourceconsent', DepOnly: false, Imports: []}),
+    rows => rows.push({ImportPath: 'PUBLIC/unrelated-command', Name: 'main', DepOnly: false, Imports: []}),
+  ]) {const records = dependencyRecords(selected); mutate(records); assert.throws(() => verifyCoreCommandDependencyClosure(selected, jsonSequence(records)));}
 });
 
 test('go-list union roots cannot manufacture a normal resource binder or omit a real main dependency', () => {

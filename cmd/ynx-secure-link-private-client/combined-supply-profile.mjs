@@ -308,11 +308,16 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
   for (const row of rows) {
     requireValue(row && typeof row.ImportPath === 'string' && !byPath.has(row.ImportPath) && !row.Error && !row.Incomplete &&
       (!row.DepsErrors || row.DepsErrors.length === 0), 'unique successful actual go-list package required');
+    requireValue(row.DepOnly === undefined || typeof row.DepOnly === 'boolean', 'actual go-list DepOnly boolean required');
     requireValue(Array.isArray(row.Imports ?? []) && (row.Imports ?? []).every(name => typeof name === 'string'), 'actual go-list imports required');
     byPath.set(row.ImportPath, row);
   }
   const main = byPath.get(prefix + command);
   requireValue(main?.Name === 'main' && main.DepOnly !== true, 'actual original main package root required');
+  const commandRoots = rows.filter(row => row.DepOnly !== true).map(row => row.ImportPath);
+  exact(commandRoots, [main.ImportPath], 'single original command root');
+  const link = prefix + 'internal/securelink';
+  requireValue((main.Imports ?? []).includes(link), 'original main must directly import its LINK transport package');
   const reached = new Set(), pending = [main.ImportPath];
   while (pending.length) {
     const name = pending.pop();
@@ -321,6 +326,7 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
     requireValue(row, 'actual imported package missing from go-list output: ' + name);
     reached.add(name); pending.push(...(row.Imports ?? []));
   }
+  requireValue(reached.has(link), 'actual LINK transport package must be reachable from original main');
   const corePackages = [...reached].filter(name => name.startsWith(prefix) && selected.packagePaths.includes(name.slice(prefix.length))).map(name => name.slice(prefix.length)).sort();
   exact(corePackages, selected.normalPackagePaths, 'actual command Core dependency closure');
   for (const name of selected.normalPackagePaths) {
@@ -332,6 +338,7 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
   const resource = prefix + 'internal/ynxresourceconsent';
   requireValue(!reached.has(resource), 'normal resource binder is NOT_SUPPLIED in this fixed profile');
   return {profile: selected.id, actualCommandRoot: main.ImportPath, totalPackages: rows.length,
+    commandRoots, LINKTransportDirectImport: true, LINKTransportReachable: true,
     coreCommandReachablePackages: corePackages, reachableLocalPackages: [...reached].filter(name => name.startsWith(prefix)).sort(),
     resourceConsentPackageSuppliedSeparately: selected === core18, resourceConsentAlreadyImportedByCoreCommand: false,
     separateResourceRootInOutput: byPath.has(resource) && byPath.get(resource).DepOnly !== true,
