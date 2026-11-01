@@ -9,7 +9,7 @@ import stat
 VERSION='YNX-COMET-COMMIT-OBSERVATION/v1'
 SCOPE='synthetic-loopback-lab/v1'
 MAX_SAMPLES=128
-MAX_BYTES=4<<20
+MAX_BYTES=512<<10 # Exact c06 producer output ceiling; not the generic log cap.
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)

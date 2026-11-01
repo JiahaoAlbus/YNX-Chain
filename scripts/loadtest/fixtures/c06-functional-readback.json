@@ -1,0 +1,79 @@
+{
+  "actualFourNodeWindow": false,
+  "after": "c06b4607247a1fdf7e485337ab03206984baa71c",
+  "authorityGranted": false,
+  "before": "01a2fcb6c727f8842327f2f4883d17fdbfaf0b3b",
+  "comparisonSHA256": "b477f038f6ea2f09db66ca18e2417ff3cbefb3a7230c740c942254b7332533f5",
+  "freezeSHA256": "6329ead63e498324d0ba25021c7fd7c616f84f2717c3273a6f3b5c30ea51dd8f",
+  "inputSHA256": "3e395f7b39ac07abb117e6373f800cc6b256c32154e2dc44786bde40f7b5fcd4",
+  "layouts": [
+    {
+      "actualLocalPersistenceElapsedNs": 47601386670,
+      "actualLocalStageTotalsNs": {
+        "close_file": 1271040,
+        "delta_encode": 21351418,
+        "file_sync": 7798422662,
+        "journal_maintenance": 21898067586,
+        "prepare_file": 899163914,
+        "validate": 16944712540,
+        "write": 37073590
+      },
+      "coldStateSHA256": "f1f3d9a77eb6f8ce16c9f461f5a19f58e8006ce8e0e82f0508705f2f5104bbb2",
+      "complete500": true,
+      "durableHeights": 63,
+      "durableMembers": 500,
+      "failedBoundaryAttempts": 0,
+      "lastDurableHeight": 66,
+      "layout": "block-journal",
+      "snapshotCeilingBytes": 33554432
+    },
+    {
+      "actualLocalPersistenceElapsedNs": 79037934621,
+      "actualLocalStageTotalsNs": {
+        "close_file": 1780290,
+        "directory_sync": 1201927672,
+        "file_sync": 19541257128,
+        "json_encode": 6385276835,
+        "prepare_file": 9075334,
+        "rename": 55643541,
+        "validate": 16572848874,
+        "write": 35268096622
+      },
+      "coldStateSHA256": "f1f3d9a77eb6f8ce16c9f461f5a19f58e8006ce8e0e82f0508705f2f5104bbb2",
+      "complete500": true,
+      "durableHeights": 63,
+      "durableMembers": 500,
+      "failedBoundaryAttempts": 0,
+      "lastDurableHeight": 66,
+      "layout": "atomic-json",
+      "snapshotCeilingBytes": 33554432
+    },
+    {
+      "actualLocalPersistenceElapsedNs": 44581987166,
+      "actualLocalStageTotalsNs": {
+        "close_file": 894999,
+        "file_sync": 9576608375,
+        "journal_maintenance": 19457062373,
+        "json_encode": 2047367670,
+        "prepare_file": 5750166,
+        "validate": 5386811079,
+        "write": 8106436625
+      },
+      "coldStateSHA256": "d9ed9661494ea718678599f65f6024bc72c9b2fde5a41df002e3ce8b3e39dcde",
+      "complete500": false,
+      "durableHeights": 35,
+      "durableMembers": 280,
+      "failedBoundaryAttempts": 1,
+      "lastDurableHeight": 38,
+      "layout": "snapshot-journal",
+      "snapshotCeilingBytes": 33554432
+    }
+  ],
+  "metadataBytesRead": 444289421,
+  "metadataFilesRead": 347,
+  "onlinePerformanceClaim": false,
+  "originalCASPayloadsRehashedByCORE": 161,
+  "originalCASPayloadsRehashedByPERF": false,
+  "performanceBeforeAfterSourcePairQualified": false,
+  "version": "YNX-PERF-C06-DIAGNOSTIC-FUNCTIONAL-READBACK/v1"
+}

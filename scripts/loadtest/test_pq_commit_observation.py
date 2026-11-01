@@ -27,6 +27,14 @@ def declared(pid,height=19):
     return value
 
 class CommitObservationDeclaredControls(unittest.TestCase):
+    def test_c06_original_output_ceiling_rejects_oversize_before_parse_or_copy(self):
+        self.assertEqual(m.MAX_BYTES,524288)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir();p=root/'oversize.json';p.write_bytes(b'x'*(m.MAX_BYTES+1));p.chmod(0o600)
+            descriptors=[dict(node=i,path=str(p),processName='pq-node-%d'%i) for i in range(4)]
+            children=[dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=123,poll=lambda:0)) for i in range(4)]
+            with mock.patch.object(m,'strict',side_effect=AssertionError('oversize never parsed')):report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'chain','b'*64)
+            self.assertEqual(report['validOriginalNodes'],0);self.assertEqual(len(report['errors']),4);self.assertEqual(list((root/'public').iterdir()),[])
     def test_actual_go_marshal_schema_cases_are_not_runtime_evidence(self):
         original=json.loads(FIXTURE.read_bytes());self.assertEqual(original['classification'],'PUBLIC_TEST_FIXTURE');self.assertTrue(original['notRuntimeEvidence'])
         for name,value in original['cases'].items():
@@ -37,10 +45,10 @@ class CommitObservationDeclaredControls(unittest.TestCase):
         overflow=original['cases']['gap-and-overflow'];self.assertEqual(overflow['samples'][0]['persistence']['stagesNs']['json_encode'],20);self.assertEqual(overflow['droppedSuccessSamples'],2)
 
     def test_old703_and_unqualified_source_refused_before_source_check_or_start(self):
-        args=SimpleNamespace(mode='online',rate=100,accounts=8,per_account=63,seconds=5,tail_seconds=30,proof_timeout=30,source='/NOT-READ',commit=driver.CALLEE_SOURCE,commit_observation=True)
-        self.assertIsNone(driver.COMMIT_OBSERVATION_SOURCE)
+        args=SimpleNamespace(mode='online',rate=100,accounts=8,per_account=63,seconds=5,tail_seconds=30,proof_timeout=30,source='/NOT-READ',commit='7037966eb2ce7a7167f02a09ee1f3bc0eebd1026',commit_observation=True)
+        self.assertEqual(driver.COMMIT_OBSERVATION_SOURCE,'c06b4607247a1fdf7e485337ab03206984baa71c')
         with mock.patch.object(driver.lab,'check_source') as checked:
-            with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):driver.run(args)
+            with self.assertRaisesRegex(RuntimeError,'exact c06'):driver.run(args)
             checked.assert_not_called()
     def test_fresh_private_args_only_no_node_or_listener(self):
         with tempfile.TemporaryDirectory() as temp:

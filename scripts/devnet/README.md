@@ -644,3 +644,41 @@ Only this new feature's isolated offline/filter/permission controls are needed:
 ```sh
 python3 -I -B scripts/loadtest/test_pq_owned_header_capture.py -v
 ```
+
+The explicitly pinned c06 diagnostic baseline consumes
+`pq-c06-source-qualification.py`: the two original whole CI runs plus the
+original 10 top-level / 47 including subcase named-test supplement. The latter
+job succeeded within an independently failed whole workflow; that failure is
+preserved. The finite receiver checks the exact source/controller graph, closed
+original ZIP, actual JSONL run/pass events and original CI identities again.
+Its default import does no network, build, signing or load.
+
+`fixtures/c06-functional-readback.json` records the original fresh 01a→c06 N=1
+functional differential. PERF read 347 metadata/height originals (444289421
+bytes), including both complete cold footers and identical per-height results.
+It did not rehash CORE's 161 persistence CAS payload objects (about 4.97 GB).
+Block-journal and atomic-json each completed 500 members over H4–66. Snapshot
+completed 280 over H4–38, then both versions refused H39 at the original 32 MiB
+ceiling. This diagnostic pair does not qualify any performance improvement pair;
+`require_performance_pair` keeps that separate gate closed.
+
+The retained consumer timings are actual *local functional* persistence spans,
+not a four-process pressure measurement. Across 63 successful commits:
+block-journal total 47.601 s (delta encoding 0.021 s, file sync 7.798 s,
+journal maintenance 21.898 s, validation 16.945 s); atomic-json total 79.038 s
+(JSON encoding 6.385 s, write 35.268 s, file sync 19.541 s, validation 16.573 s).
+They suggest which spans to inspect next; no cross-layout speedup, business TPS
+or finality claim follows from these sequential runs on a local external disk.
+
+Optional `--owned-storage-accounting` uses the original supervisor only. It
+stats the original plan's `home/data/blockstore.db`, `home/data/state.db` and
+application state path before load and after original cleanup. It does not open
+payloads or scan keys, HRS, config or consensus WAL. Each checkpoint has a shared
+one-second sampling budget and bounded directory entries. Logical and allocated
+filesystem-byte deltas can shrink during compaction and are not physical writes,
+all storage growth or per-transaction bytes. Missing paths/unsupported allocation
+remain UNKNOWN. Actual observer lifetime successes and retained durable sample
+counts stay separate from the exact load-window Commit count, which remains
+UNKNOWN without a matching before notification checkpoint. This adds no PID,
+thread, namespace, privilege or separate window; all output remains inside the
+original 8 GiB budget.

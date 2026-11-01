@@ -35,9 +35,11 @@ proof_readback=module("original_public_proof_readback","pq-public-proof-readback
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 
 
-CALLEE_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
-# Final CORE consumer graph + normal CI + same-input per-height equivalence NOT_SUPPLIED.
-COMMIT_OBSERVATION_SOURCE = None
+CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
+# Exact c06 normal CI + named-case supplement + 01a/c06 diagnostic N1
+# functional DATA are consumed separately by the normal controller. They do
+# not qualify an unrelated before/after performance source pair or a load run.
+COMMIT_OBSERVATION_SOURCE = CALLEE_SOURCE
 
 
 def callee_snapshot(value):
@@ -503,7 +505,7 @@ def validate_escalation(args):
 def run(args):
     demand=validate_options(args)
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
-    lab.require(args.commit==CALLEE_SOURCE,"exact new703 ready/timings source qualification required; old75 qualification cannot be reused")
+    lab.require(args.commit==CALLEE_SOURCE,"exact c06 Commit consumer source required; old703 qualification cannot be reused")
     if getattr(args,"commit_observation",False):
         lab.require(COMMIT_OBSERVATION_SOURCE is not None and args.commit==COMMIT_OBSERVATION_SOURCE,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
     source=Path(args.source);identity=lab.check_source(source,args.commit)
@@ -520,7 +522,7 @@ def run(args):
     for root in (source,Path(__file__).resolve().parents[2]):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
-    w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=None
+    w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=storage=None
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
@@ -541,6 +543,10 @@ def run(args):
         backend=NormalBackend(ceremony,owners,stop);journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
         result["senderPoolPreparation"]=backend.prepare(monitor.check)
+        if getattr(args,"owned_storage_accounting",False):
+            store_module=module("original_pq_store_window","pq-owned-storage-window.py")
+            storage=store_module.OwnedStorageWindow(ceremony)
+            lab.write_new(work/"public/owned-storage-before.json",storage.capture("before"));monitor.check()
         if args.network_accounting:
             hook=module("original_pq_network_window","pq-network-window.py")
             network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand,header_capture=getattr(args,"header_hop_capture",False),header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
@@ -583,6 +589,15 @@ def run(args):
             except BaseException as error:
                 result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
                 result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
+        if storage is not None:
+            try:
+                observed=storage.finish(result.get("normalCommitObservation"))
+                lab.write_new(work/"public/owned-storage-accounting.json",observed);result["ownedStorageAccounting"]=observed
+                measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)
+                lab.require(measured<=lab.CAPS["newBytes"],"original store metadata exceeded unchanged8GiB storage cap")
+            except Exception as error:
+                result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=str(error),actualLoadWindowCommitCount=None)
+                result["firstCause"]=result["firstCause"] or "original store accounting failed"
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
@@ -599,6 +614,7 @@ if __name__=="__main__":
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
+    p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))
