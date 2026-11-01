@@ -137,6 +137,10 @@ that drain. LINK never closes or retires those borrowed parents.
 
 ## Building and checking the normal archive
 
+For the complete Wallet common image, use the combined builder described below.
+`build-startup.mjs` builds the transport-only component; it does not contain
+Core's transaction, account, artifact or product exports.
+
 `cmd/ynx-secure-link-private-client/build-startup.mjs` accepts a SHA256-pinned
 build-only header manifest and a new output directory outside the source tree.
 The manifest is `{version:1,headers:[{name,path,bytes,sha256},...]}` and contains
@@ -162,6 +166,46 @@ Root loan, SourceLease and Go code to a real owned Unix endpoint. Its explicit
 PUBLIC Root/profile boundary does not establish crypto, Root, Main approval,
 installation or deployment. Existing transport and packet controls remain
 separate evidence.
+
+## Single Core and LINK runtime
+
+`cmd/ynx-secure-link-private-client/build-combined.mjs` materializes a new source
+tree from the pinned original Core supply and LINK commit. Core's four package
+closures, twelve handwritten headers, root module/sum and original sole
+`core.go` main are copied unchanged. Replacement-module metadata is copied from
+the same Core Git commit. The builder neither removes the original replacement
+or tool directive nor invents a substitute module. Only the selected C ABI and
+LINK dependency graph is built; this is not a build of the complete Chain tool.
+
+One additional `link_transport_import.go` imports the fixed securelink package.
+The old LINK carrier's main function is not copied, and Go files or C preambles
+are not concatenated. One CGO-enabled `go build -buildmode=c-archive` therefore
+produces one runtime containing all fourteen original Core ABI exports and
+twenty-two LINK exports. Signing algorithms and original Root/caller authority
+checks remain owned by their existing implementations.
+
+The output keeps the normal `libynx_artifact_release.a` filename and supplies
+the complete Core/LINK/Auth headers plus Go's generated main export header.
+It replaces both former standalone archives. Do not combine the old libraries
+with `ar`/`libtool`, link a second Go archive, or allow owned weak/unresolved
+symbols in the final Native image.
+
+The builder records exact source origins and fingerprints, one build command,
+toolchain, external cache location, archive hash and symbol result. The symbol
+checker derives Core declarations from their original Go `//export` leaves and
+C headers, requires the full LINK ABI, maps the actual Native undefined-symbol
+evidence, and checks a single Go object/runtime entry. An undefined reference
+inside an archive member may resolve to another member's strong definition;
+the final normal image must resolve all owned symbols with its actual Native
+objects. Neither symbol check establishes Root admission.
+
+The original caller runner's `combined-archive` selector takes pinned functional
+inputs through `YNX_COMBINED_FUNCTIONAL_INPUTS`, its `_SHA256`, and a new external
+`YNX_COMBINED_FUNCTIONAL_OUTPUT` directory. The narrow probe uses existing public
+N=1 valid/corrupt inputs and LINK refusal/drain in the same combined runtime.
+Actual empty-Root refusal is reported only when the genuine Native Root module
+is linked and executed; a null transport context is not a substitute. No key
+generation, signing, account enrollment or deployment is implied.
 
 ## Actual Native Source fence
 

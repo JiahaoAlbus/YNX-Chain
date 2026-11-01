@@ -1,6 +1,16 @@
 #!/bin/sh
 set -eu
 # Run from the repository root; no package install or dependency download here.
+if [ "${1:-outbound}" = combined-archive ]; then
+  : "${YNX_COMBINED_FUNCTIONAL_INPUTS:?pinned combined functional inputs required}"
+  : "${YNX_COMBINED_FUNCTIONAL_INPUTS_SHA256:?combined input SHA256 required}"
+  : "${YNX_COMBINED_FUNCTIONAL_OUTPUT:?new external output directory required}"
+  node cmd/ynx-secure-link-caller/combined-archive-functional.mjs \
+    --inputs "$YNX_COMBINED_FUNCTIONAL_INPUTS" \
+    --inputs-sha256 "$YNX_COMBINED_FUNCTIONAL_INPUTS_SHA256" \
+    --out "$YNX_COMBINED_FUNCTIONAL_OUTPUT"
+  exit 0
+fi
 if [ "${1:-outbound}" = private-client-startup ]; then
   node --test --test-concurrency=1 --test-timeout=30000 cmd/ynx-secure-link-caller/private-client-startup.test.mjs
   exit 0
@@ -19,7 +29,7 @@ if [ "${1:-outbound}" = runtime ]; then
   exit 0
 fi
 if [ "${1:-outbound}" != outbound ]; then
-  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|private-client|private-client-startup]' >&2
+  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|private-client|private-client-startup|combined-archive]' >&2
   exit 2
 fi
 node cmd/ynx-secure-link-caller/build.mjs --fork-test
