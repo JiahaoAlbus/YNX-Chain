@@ -56,6 +56,7 @@ type recoveryCredentialIO struct {
 	target, hostKey, machineID, boundary string
 	owner                                uint32
 	linux                                bool
+	requiredParentMode                   os.FileMode
 	tools                                []string
 	generate                             func() ([]byte, error)
 	process                              func(context.Context, string, []byte, int) ([]byte, error)
@@ -146,6 +147,23 @@ func recoveryCredentialOriginal(path string, owner uint32, mode os.FileMode, max
 	return identity, nil
 }
 
+// The original local target retains its existing protected-parent policy. The
+// finite off-host role targets additionally require a pre-existing 0700 parent;
+// no command may create it or relax this policy through options/environment.
+func recoveryCredentialRequiredParent(info os.FileInfo, disk recoveryCredentialIO) error {
+	if disk.requiredParentMode == 0 {
+		return nil
+	}
+	if disk.requiredParentMode != 0700 || info == nil || info.Mode() != os.ModeDir|0700 {
+		return errors.New("off-host credential parent must already be private 0700")
+	}
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || st.Uid != disk.owner {
+		return errors.New("off-host credential parent must remain operator-owned")
+	}
+	return recoveryCredentialDirectory(filepath.Dir(disk.target), disk.boundary, disk.owner)
+}
+
 func provisionRecoveryCredential(args []string, output io.Writer, disk recoveryCredentialIO) error {
 	if len(args) != 0 {
 		return errors.New("provision-recovery-credential accepts no options or positional input")
@@ -169,6 +187,9 @@ func provisionRecoveryCredential(args []string, output io.Writer, disk recoveryC
 	parentInfo, err := directory.Stat()
 	if err != nil {
 		return errors.New("credential parent identity unavailable")
+	}
+	if err := recoveryCredentialRequiredParent(parentInfo, disk); err != nil {
+		return err
 	}
 	absent := func(name string) error {
 		var st unix.Stat_t
@@ -215,6 +236,9 @@ func provisionRecoveryCredential(args []string, output io.Writer, disk recoveryC
 		info, err := os.Lstat(parent)
 		if err != nil || !os.SameFile(parentInfo, info) || info.Mode() != parentInfo.Mode() {
 			return errors.New("credential parent changed")
+		}
+		if err := recoveryCredentialRequiredParent(info, disk); err != nil {
+			return err
 		}
 		if got, err := recoveryCredentialOriginal(disk.hostKey, disk.owner, 0400, 16<<20); err != nil || got != host {
 			return errors.New("original OS credential key changed")

@@ -58,6 +58,10 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 			return runPrepareEpochRequest(args[1:], output, diagnostics)
 		case "provision-recovery-credential":
 			return runProvisionRecoveryCredential(args[1:], output, diagnostics)
+		case "provision-offhost-recovery-credential":
+			return runProvisionOffhostRecoveryCredential(args[1:], output, diagnostics)
+		case "inspect-offhost-recovery-credential":
+			return runInspectOffhostRecoveryCredential(args[1:], output, diagnostics)
 		case "install-recovery-credential":
 			return runInstallRecoveryCredential(args[1:], output, diagnostics)
 		case "inspect-recovery-credential":
