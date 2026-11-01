@@ -97,6 +97,15 @@ static NSString *QAExportFinish(NSModalResponse response,NSData *data,NSURL *url
   BOOL scoped=[url startAccessingSecurityScopedResource];NSString *code=QAExportWrite(data,url);if(scoped)[url stopAccessingSecurityScopedResource];return code;
 }
 
+// Filesystem providers and access arbitration may block even after panel approval.
+// Keep that work off AppKit's main thread; completion always returns to it.
+static void QAExportAsync(NSModalResponse response,NSData *data,NSURL *url,void (^completion)(NSString*)) {
+  dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{
+    NSString *code=QAExportFinish(response,data,url);
+    dispatch_async(dispatch_get_main_queue(),^{completion(code);});
+  });
+}
+
 static NSString *digest(NSString *file) {
   NSFileHandle *handle=[NSFileHandle fileHandleForReadingAtPath:file];if(!handle)return nil;
   CC_SHA256_CTX ctx;CC_SHA256_Init(&ctx);for(;;){NSData *part=[handle readDataOfLength:65536];if(!part.length)break;CC_SHA256_Update(&ctx,part.bytes,(CC_LONG)part.length);}[handle closeFile];unsigned char result[CC_SHA256_DIGEST_LENGTH];CC_SHA256_Final(result,&ctx);NSMutableString *text=[NSMutableString string];for(unsigned i=0;i<sizeof(result);i++)[text appendFormat:@"%02x",result[i]];return text;
@@ -126,7 +135,7 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
 @interface QAApp:NSObject<NSApplicationDelegate,WKNavigationDelegate,WKScriptMessageHandler,NSOpenSavePanelDelegate>
 @property NSTask *task;@property NSWindow *window;@property WKWebView *web;@property NSTextField *label;@property NSTextField *proofLabel;@property NSButton *configureButton;@property NSString *origin;@property NSString *code;@property NSMutableString *pending;
 @property NSString *helper;@property NSString *proof;@property NSString *data;@property NSString *rpc;@property NSDictionary *build;@property QAProofProfile *profiles;@property NSUInteger generation;@property BOOL changing;@property BOOL quitting;
-@property NSSavePanel *exportPanel;@property NSString *exportToken;@property NSUInteger documentGeneration;@property BOOL documentReady;
+@property BOOL exportWriting;@property NSSavePanel *exportPanel;@property NSString *exportToken;@property NSUInteger documentGeneration;@property BOOL documentReady;
 @property NSUserDefaults *preferences;@property NSString *preferenceDomain;@property WKUserScript *preferenceScript;
 @end
 @implementation QAApp
@@ -165,16 +174,23 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
   if(![@[@"networkExport",@"networkPreferences"]containsObject:message.name]||message.webView!=self.web||!message.frameInfo.isMainFrame||!self.documentReady||self.changing||self.quitting||!self.task.running||!QAExportOrigin(self.origin,sender.protocol,sender.host,sender.port,self.web.URL))return;
   if([message.name isEqual:@"networkPreferences"]){if(QAPreferenceStore(self.preferences,self.preferenceDomain,message.body)){[self refreshPreferenceScript];[self applyPreferenceAppearance:message.body[@"theme"]];}return;}
   NSUInteger helper=self.generation,document=self.documentGeneration;NSString *origin=self.origin;
-  if(self.exportPanel){[self exportResult:@"failed" code:@"EXPORT_BUSY" helper:helper document:document origin:origin];return;}
+  if(self.exportPanel||self.exportWriting){[self exportResult:@"failed" code:@"EXPORT_BUSY" helper:helper document:document origin:origin];return;}
   NSData *data=QAExportData(message.body);if(!data){[self exportResult:@"failed" code:@"EXPORT_INVALID_RECEIPT" helper:helper document:document origin:origin];return;}
   NSSavePanel *panel=[NSSavePanel savePanel];panel.title=@"Export public receipt JSON";panel.message=@"Choose a new .json file. Export preserves a local historical record; it does not verify proof, grant Wallet approval or establish funds. Existing files are never replaced.";panel.allowedFileTypes=@[@"json"];panel.allowsOtherFileTypes=NO;panel.canSelectHiddenExtension=NO;panel.extensionHidden=NO;panel.nameFieldStringValue=[NSString stringWithFormat:@"ynx-receipt-%@.json",message.body[@"record"][@"receiptId"]];panel.delegate=self;
   self.exportPanel=panel;NSString *token=NSUUID.UUID.UUIDString;self.exportToken=token;__weak QAApp *weak=self;
   [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response){
-    QAApp *app=weak;if(!app)return;BOOL current=[app exportCurrent:token helper:helper document:document origin:origin];if(app.exportPanel==panel)app.exportPanel=nil;if([app.exportToken isEqual:token])app.exportToken=nil;
+    QAApp *app=weak;if(!app)return;BOOL current=[app exportCurrent:token helper:helper document:document origin:origin];if(app.exportPanel==panel)app.exportPanel=nil;
     if(!current)return;
-    // The only destination comes from this user-approved system panel.
-    NSString *code=QAExportFinish(response,data,panel.URL);NSString *status=[code isEqual:@"EXPORT_CANCELLED"]?@"cancelled":[code isEqual:@"EXPORT_SAVED"]?@"saved":@"failed";
-    [app exportResult:status code:code helper:helper document:document origin:origin];
+    // One explicit panel approval starts one write, never an automatic retry.
+    app.exportWriting=YES;
+    QAExportAsync(response,data,panel.URL,^(NSString *code){
+      QAApp *owner=weak;if(!owner)return;owner.exportWriting=NO;
+      BOOL stillCurrent=[owner exportCurrent:token helper:helper document:document origin:origin];
+      if([owner.exportToken isEqual:token])owner.exportToken=nil;
+      if(!stillCurrent)return;
+      NSString *status=[code isEqual:@"EXPORT_CANCELLED"]?@"cancelled":[code isEqual:@"EXPORT_SAVED"]?@"saved":@"failed";
+      [owner exportResult:status code:code helper:helper document:document origin:origin];
+    });
   }];
 }
 -(void)applicationDidFinishLaunching:(NSNotification*)notification{

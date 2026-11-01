@@ -70,3 +70,15 @@ No remaining actionable P0/P1/P2 visual or client-interaction differences within
 - [ ] Separate exact-candidate native Save panel, App restart and installation/release gates; do not infer these from browser or contract evidence.
 
 final result: passed
+
+Native follow-up (2026-11-01, exact 01426 candidate): actual CUA App pairing,
+public Testnet RPC_ONLY query, SavePanel Cancel, eventual actual JSON save,
+and dark/Arabic RTL restoration after normal Quit/relaunch passed. Fresh
+helper port and unpaired state were observed. Saved envelope is historical,
+non-authoritative, mode0600. Save exposed a real main-thread filesystem stall
+(sample at QAExportWrite/open); three CUA observations timed out before the
+original operation completed without retry. File I/O now runs on a background queue with one-write fencing; the affected
+native contract passed69 assertions and6 bootstrap contexts, including real
+asynchronous file bytes, main-thread completion and overlap rejection. These GUI results apply to01426; the successor's GUI
+delta must be recorded separately. Evidence: owners/P09/artifacts/design-20261101/
+native-01426-acceptance.json and native-save-timeout-sample.txt.
