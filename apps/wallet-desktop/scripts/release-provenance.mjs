@@ -184,6 +184,7 @@ function selectedRelocationRules(sdkVersion,sourceVariant){
     {sourcePath:'apps/wallet-desktop/src/original-runtime-image-preload.mjs',packedPath:'code/apps/wallet-desktop/src/original-runtime-image-preload.mjs',operands:[{kind:'import',from:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',to:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',count:1}]},
     {sourcePath:'apps/wallet-desktop/src/wallet-pq-original-source.mjs',packedPath:'code/apps/wallet-desktop/src/wallet-pq-original-source.mjs',operands:[{kind:'import',from:'../../../packages/wallet-auth/src/original-pq-host-catalog-source.js',to:'../../../packages/wallet-auth/src/original-pq-host-catalog-source.js',count:1}]}
     ,{sourcePath:'packages/wallet-auth/src/original-cloud-deployment-execute-approval-v2-issuer.js',packedPath:'code/packages/wallet-auth/src/original-cloud-deployment-execute-approval-v2-issuer.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-current-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1}]}
+    ,{sourcePath:'packages/wallet-auth/native/original-ide-deployment-v2.mjs',packedPath:'code/packages/wallet-auth/native/original-ide-deployment-v2.mjs',unavailableNativeAssets:['code/apps/wallet-desktop/native/original-source-current-dirfd.node','code/apps/wallet-desktop/native/original-ide-deployment-v2.node'],operands:['original-source-current-dirfd.node','original-ide-deployment-v2.node'].map(file=>({kind:'url',from:'../../../apps/wallet-desktop/native/'+file,to:'../../../apps/wallet-desktop/native/'+file,count:1}))}
   ];
   return [SDK49_DAEMON_VARIANT,SDK49_NORMAL_VARIANT].includes(sourceVariant)?[...sdk49,...mainDevice,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
 }
@@ -430,10 +431,10 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence,productRuntime);
   assertSDKProductArchive(product,receipt.after);
   if(!isDeepStrictEqual(physical?.sourceInventory??archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
-  const unavailableOptionalRuntimeAssets=plan.filter(row=>row.unavailableNativeAsset).map(row=>{
-    if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
-    return {declaredBy:row.sourcePath,path:row.unavailableNativeAsset,packaged:false,capability:'NOT_SUPPLIED'};
-  });
+  const unavailableOptionalRuntimeAssets=plan.flatMap(row=>(row.unavailableNativeAssets??(row.unavailableNativeAsset?[row.unavailableNativeAsset]:[])).map(asset=>{
+    if(receipt.after.some(member=>member.path===asset))throw Error('Unreviewed optional source-current Native module');
+    return {declaredBy:row.sourcePath,path:asset,packaged:false,capability:'NOT_SUPPLIED'};
+  }));
   if(!isDeepStrictEqual(desktopAsarHeaderIntegrity(resources,cwd),receipt.asarHeaderIntegrity)) throw new Error("Relocated ASAR header integrity differs");
   let macAsarIntegrityVerified=false;
   if(path.basename(resources)==="Resources"&&path.basename(path.dirname(resources))==="Contents"){

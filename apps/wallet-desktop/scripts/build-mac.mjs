@@ -15,7 +15,7 @@ if (!["arm64", "x64", "universal"].includes(arch)) throw new Error("Choose arm64
 const root = fileURLToPath(new URL("..", import.meta.url));
 // Narrow normal-entry overrides for an already pinned local distribution.
 // Never silently drop flags or pass arbitrary builder configuration through.
-const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false;
+const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false,qaOutput=null;
 for(const option of extra){
   if(option.startsWith('--config.electronDist=')&&electronDist===null){
     electronDist=option.slice('--config.electronDist='.length);
@@ -25,9 +25,11 @@ for(const option of extra){
     if(arch!=='arm64'||!path.isAbsolute(proofVerifierStage)||path.normalize(proofVerifierStage)!==proofVerifierStage||proofVerifierStage.includes('\0'))throw Error('PQ_VERIFIER_BUILD_STAGE_INVALID');
   }else if(option==='--config.npmRebuild=false'&&!noRebuild)noRebuild=true;
   else if(option==='--qa-physical-layout'&&!physicalQA)physicalQA=true;
+  else if(option.startsWith('--qa-output=')&&qaOutput===null){qaOutput=option.slice('--qa-output='.length);if(!path.isAbsolute(qaOutput)||path.normalize(qaOutput)!==qaOutput||qaOutput.includes('\0'))throw Error('LOCAL_QA_OUTPUT_ABSOLUTE_REQUIRED');builderOptions.push('--config.directories.output='+qaOutput);}
   else throw Error('UNSUPPORTED_MAC_BUILD_OPTION');
 }
 if((electronDist!==null)!==noRebuild)throw Error('LOCAL_ELECTRON_DIST_AND_NO_REBUILD_REQUIRED');
+if(qaOutput!==null&&!physicalQA)throw Error('LOCAL_QA_OUTPUT_REQUIRES_PHYSICAL_QA');
 if(physicalQA){if(arch!=='arm64'||!path.isAbsolute(process.env.YNX_WALLET_QA_PROFILE_PATH??''))throw Error('LOCAL_PHYSICAL_QA_PROFILE_REQUIRED');builderOptions.push('--config.afterPack=scripts/qa-physical-after-pack.mjs');}
 if(arch==='arm64'&&proofVerifierStage===null)throw Error('PQ_VERIFIER_BUILD_STAGE_REQUIRED');
 const matchedSDK=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/package.json',import.meta.url),'utf8'));
@@ -56,7 +58,7 @@ const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modul
 });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
-const appDir = path.join(root, "dist", arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
+const appDir = path.join(qaOutput??path.join(root,'dist'), arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
 // Fail before DMG production if outer packaging/signing omitted, moved or
 // rewrote either member of the frozen SDK46 original helper pair.
 if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version))verifySDK13HelperBundle(

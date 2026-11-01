@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
-import {relocateDesktopRuntimeSource} from '../scripts/release-provenance.mjs';
+import {relocateDesktopRuntimeSource,declaredSDKRuntimeSources} from '../scripts/release-provenance.mjs';
 import {SDK49_NORMAL_VARIANT} from '../scripts/sdk49-normal-profile.mjs';
 const root=fileURLToPath(new URL('../../..',import.meta.url)),version='1.3.0-pq.3.32-auth.49';
 const own=['original-device-create-controller.mjs','original-device-query-controller.mjs','original-device-finalization-controller.mjs','original-runtime-image-preload.mjs'].map(f=>'apps/wallet-desktop/src/'+f);
@@ -19,7 +19,8 @@ test('unknown repository paths, duplicated edges and altered fixed imports still
  assert.throws(()=>relocateDesktopRuntimeSource('apps/wallet-desktop/src/foreign.mjs',Buffer.from(raw),version,SDK49_NORMAL_VARIANT),/Unlisted repository operand/);
 });
 test('all current tracked Main and SDK src operands pass the closed source rules without source rewriting',()=>{
- const names=execFileSync('git',['ls-tree','-r','--name-only','HEAD','apps/wallet-desktop/src','packages/wallet-auth/src'],{cwd:root,encoding:'utf8'}).trim().split('\n').filter(n=>/\.(mjs|js)$/.test(n)&&!n.endsWith('/operator-pq-identity.mjs'));
+ const src=execFileSync('git',['ls-tree','-r','--name-only','HEAD','apps/wallet-desktop/src','packages/wallet-auth/src'],{cwd:root,encoding:'utf8'}).trim().split('\n');
+ const names=[...new Set([...src,...declaredSDKRuntimeSources(root,'HEAD')])].filter(n=>/\.(mjs|js|cjs)$/.test(n)&&!n.endsWith('/operator-pq-identity.mjs'));
  for(const name of names){const raw=fs.readFileSync(path.join(root,name));assert(relocateDesktopRuntimeSource(name,raw,version,SDK49_NORMAL_VARIANT).bytes.equals(raw),name);}
- assert(names.length>500);
+ assert(names.length>590);
 });
