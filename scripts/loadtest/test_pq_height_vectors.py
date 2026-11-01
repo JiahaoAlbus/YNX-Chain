@@ -107,7 +107,7 @@ class HeightVectorControls(unittest.TestCase):
             a,b=Path(directory).resolve()/"a",Path(directory).resolve()/"b";fixture(a);fixture(b)
             result=h.compare(a,b)
             self.assertEqual(result["recordsCompared"],41);self.assertTrue(result["perHeightFunctionalEqual"])
-            self.assertFalse(result["optimizedPressureAuthorized"]);self.assertFalse(result["proofMathReverifiedHere"])
+            self.assertFalse(result["optimizedPressureAuthorized"]);self.assertFalse(result["proofMathReverifiedHere"]);self.assertFalse(result["normalNetworkTransportPairQualified"]);self.assertTrue(result["completeResultsAndStateBytesEqual"])
 
     def test_missing_intermediate_height_is_not_hidden_by_equal_last_state(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -136,6 +136,22 @@ class HeightVectorControls(unittest.TestCase):
                 if child["parent"]==identity:rewrite(b,i,lambda r:r.update(parentCanonicalStateSHA256=pin["sha256"]))
             self.assertEqual((a/"040-state.json").read_bytes(),(b/"040-state.json").read_bytes())
             with self.assertRaisesRegex(RuntimeError,"full per-height committed state|static pre-state"):h.compare(a,b)
+
+    def test_committed_time_and_complete_history_cannot_hide_behind_equal_balances(self):
+        # Contract-only fixture: a timestamp/history delta is rejected even
+        # when advertised balances, nonces and AppHash remain the same.
+        # A real Core producer must supply valid hashes/consensus inputs;
+        # these fabricated fixture bytes never prove normal network parity.
+        with tempfile.TemporaryDirectory() as directory:
+            a,b=Path(directory).resolve()/"a",Path(directory).resolve()/"b";fixture(a);fixture(b)
+            manifest=json.loads((b/"height-manifest.json").read_bytes());index=2
+            row=json.loads((b/manifest["records"][index]["path"]).read_bytes())
+            state=json.loads((b/row["state"]["path"]).read_bytes())
+            state.update(nativeTransfers=[dict(committedAt="2026-11-02T00:00:01Z")],feeEvents=[dict(height=row["height"],amount=1)],pqHistory={"original-proof-history":dict(headerTime="2026-11-02T00:00:01Z")})
+            pin=save(b,row["state"]["path"],state)
+            rewrite(b,index,lambda r:r.update(state=pin,coldCanonicalStateSHA256=pin["sha256"]))
+            self.assertEqual((a/"040-state.json").read_bytes(),(b/"040-state.json").read_bytes())
+            with self.assertRaisesRegex(RuntimeError,"full per-height committed state bytes differ"):h.compare(a,b)
 
     def test_extra_overlay_is_separate_and_source_or_leaf_change_refused(self):
         with tempfile.TemporaryDirectory() as directory:
