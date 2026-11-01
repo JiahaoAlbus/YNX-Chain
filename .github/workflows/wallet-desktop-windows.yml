@@ -4438,5 +4438,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: wallet-auth49-wallet-source-getter-normal-package
+          include-hidden-files: true
           if-no-files-found: error
           path: .wallet-source-package/*
