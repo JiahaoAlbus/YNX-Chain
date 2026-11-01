@@ -1,5 +1,8 @@
+import {desktopNetworkDisplay} from './desktop-network-display.mjs';
+import {createDesktopTransactionHistoryUI} from './desktop-transaction-history-ui.mjs';
 import {createApprovedDesktopUI} from './approved-desktop-ui.mjs';
 let desktopUI=null;
+let desktopHistoryUI=null;
 let accountStatusObserved=false;
 import {bindDeviceFinalizationUI} from './wallet-device-finalization-ui.mjs';
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
@@ -271,12 +274,13 @@ const indicator = document.querySelector("#indicator");
 
 function render(status) {
   desktopUI?.updateNetwork(status);
-  indicator.className = `indicator ${status.available ? "ok" : "failed"}`;
-  network.textContent = status.available ? "Connected to YNX Testnet" : "YNX Testnet unavailable";
-  chain.textContent = status.available ? status.chainId : "Unavailable";
-  detail.textContent = status.available
+  const view=desktopNetworkDisplay(status,document.documentElement.lang.startsWith('zh'));
+  indicator.className = 'indicator '+(view.known?'ok':'failed');
+  network.textContent=view.label;
+  chain.textContent=view.id??'—';
+  detail.textContent = view.known
     ? "Your wallet is connected. You review every app connection and transaction."
-    : "The network is unavailable. Your accounts and backups remain accessible. Try again to refresh balances or send.";
+    : "The network is unavailable or unrecognized. Your accounts and backups remain accessible. Try again to refresh balances or send.";
 }
 
 document.querySelector("#retry").addEventListener("click", async () => render(await window.ynxWallet.status()));
@@ -895,27 +899,11 @@ let balanceRevision = 0;
 const errorText = result => result?.error?.outcomeUnknown ? `${result.error.message}${result.error.transactionHash ? ` Transaction hash: ${result.error.transactionHash}.` : ""}` : result?.error?.message ?? "The wallet is unavailable. Try again shortly.";
 let transactionRevision = 0;
 let transactionActionRevision = 0;
+desktopHistoryUI=createDesktopTransactionHistoryUI({document,getContext:()=>({account:activeAccount===keyState.account?activeAccount:null,revision:keyState.revision}),nativeAccountLabel,writeClipboard:writeReceivingClipboard});
 const transactionHistoryUI = createTransactionHistoryUI({
   getAccount: () => activeAccount,
   request: cursor => window.ynxWallet.transactionHistory(cursor),
-  render: view => {
-    const list = document.querySelector("#transaction-history-list"); list.replaceChildren();
-    const historyStatus=document.querySelector("#transaction-history-status");
-    if(view.error && view.error!=="Saved transaction history could not be verified. Original records remain on this device.") historyStatus.textContent=view.error;
-    else copyUI(historyStatus,view.error ?? (view.busy ? "Reading saved transactions…" : view.loaded && view.records.length === 0 ? "No verified completed transfers for this account on this device." : ""));
-    document.querySelector("#refresh-transaction-history").disabled = view.busy || !activeAccount;
-    document.querySelector("#older-transaction-history").hidden = view.nextCursor === null;
-    document.querySelector("#older-transaction-history").disabled = view.busy;
-    for (const record of view.records) {
-      const row = document.createElement("article"), title = document.createElement("h3"), facts = document.createElement("dl"); row.className = "transaction-history-row";
-      copyUI(title,record.successful ? "{amount} YNXT · Mined locally" : "{amount} YNXT · Failed",{amount:record.amount});
-      for (const [label, value] of [["Recipient", nativeAccountLabel(record.to)], ["Transaction", record.hash], ["Actual fee", `${record.actualFee} YNXT`], ["Block", record.blockNumber]]) {
-        const term = document.createElement("dt"), detail = document.createElement("dd"); copyUI(term,label); detail.textContent = value; detail.dir="ltr"; facts.append(term, detail);
-      }
-      const open=document.createElement('button');open.type='button';open.textContent=document.documentElement.lang.startsWith('zh')?'查看原交易详情':'View original transfer';open.addEventListener('click',()=>desktopUI?.showHistoryRecord(record));
-      row.append(title,facts,open);list.append(row);
-    }
-  },
+  render: view => desktopHistoryUI.render(view),
 });
 document.querySelector("#refresh-transaction-history").addEventListener("click", () => void transactionHistoryUI.refresh());
 document.querySelector("#older-transaction-history").addEventListener("click", () => void transactionHistoryUI.older());
@@ -1296,6 +1284,7 @@ function renderKeyState(state) {
   const previousKeyState=keyState;
   keyState = state;
   if(accountStatusObserved)desktopUI?.render(accountState,keyState);
+  if(securityChanged){desktopHistoryUI?.invalidate();if(activeAccount)void transactionHistoryUI.refresh();}
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqTypedActionReviewUI!=='undefined'){if(securityChanged)pqTypedActionReviewUI.invalidate();else pqTypedActionReviewUI.render();}
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();

@@ -32,7 +32,7 @@ import {FamilyTronTransfer} from './multichain-family-tron-transfer.mjs';
 import {FamilyTronSubmission} from './multichain-family-tron-submit.mjs';
 import {FamilyOperationGate} from './multichain-family-operation-gate.mjs';
 import {FamilyBitcoinSubmission} from './multichain-family-bitcoin-submit.mjs';
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, screen, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import {AsyncLocalStorage} from 'node:async_hooks';
@@ -1233,11 +1233,14 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   });
   const branding=configureWalletRuntimeBranding({app,Menu,nativeImage,directory});
   walletWindowTitle=branding.title;
+  // Approved desktop design targets 1440 × 900. Keep the initial window
+  // inside the real display work area, including smaller laptop screens.
+  const workArea = screen.getPrimaryDisplay().workAreaSize;
   const window = new BrowserWindow({
-    width: 1080,
-    height: 780,
-    minWidth: 760,
-    minHeight: 560,
+    width: Math.min(1440, workArea.width),
+    height: Math.min(900, workArea.height),
+    minWidth: Math.min(760, workArea.width),
+    minHeight: Math.min(560, workArea.height),
     title: branding.title,
     icon: branding.icon,
     backgroundColor: "#ffffff",

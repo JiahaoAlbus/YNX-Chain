@@ -125,3 +125,20 @@ body[data-wallet-stage='workspace'] #desktop-welcome { display:none; }
 .desktop-assets-sidebar .desktop-panel { margin-top:16px; }
 @media(max-width:1100px){.desktop-assets-layout{grid-template-columns:1fr}.desktop-assets-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:16px}.desktop-assets-sidebar .desktop-panel{margin-top:0}}
 @media(max-width:760px){.desktop-assets-sidebar{display:block}}
+/* Approved desktop transaction list/details (pages 8 and 24). Only actual
+   producer records are rendered; pending/recovery stays in its original UI. */
+.desktop-approved #transaction-history { padding:16px 0; overflow:hidden; }
+.desktop-approved #transaction-history>.balance-heading,.desktop-approved #transaction-history>p,.desktop-approved #older-transaction-history { margin-left:20px; margin-right:20px; }
+.desktop-approved .desktop-history-item { width:100%; margin:0; padding:20px; border:0; border-bottom:1px solid var(--ynx-border); border-radius:0; display:flex; align-items:center; gap:16px; text-align:left; background:var(--ynx-surface); }
+.desktop-approved .desktop-history-item[aria-pressed='true'] { background:color-mix(in srgb,var(--ynx-brand) 8%,var(--ynx-surface)); box-shadow:inset 3px 0 var(--ynx-brand); }
+.desktop-history-item>strong { font:500 .75rem/20px var(--ynx-font-mono); margin-left:auto; overflow-wrap:anywhere; max-width:40%; text-align:right; }
+.desktop-history-item-body { display:grid; gap:4px; min-width:0; }
+.desktop-history-item-body strong { font-size:.8125rem; font-weight:500; }
+.desktop-history-item-body>span { font-size:.6875rem; color:var(--ynx-text-secondary); }
+.desktop-history-icon { width:32px; height:32px; flex:0 0 32px; border-radius:50%; display:grid; place-items:center; color:var(--ynx-text); background:var(--ynx-surface-secondary); font-size:1.25rem; }
+.desktop-history-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.desktop-history-heading h2 { margin:0; }
+.desktop-history-state { padding:5px 12px; border-radius:20px; color:var(--ynx-text-secondary); background:var(--ynx-surface-secondary); font-size:.6875rem; }
+.desktop-history-actions { display:flex; gap:12px; flex-wrap:wrap; }
+.desktop-history-notice,.desktop-history-copy-status { font-size:.75rem!important; color:var(--ynx-text-secondary); }
+#desktop-network-chip[data-network-state='available']::before { content:''; width:7px; height:7px; border-radius:50%; margin-right:8px; background:var(--ynx-success,#19945b); }

@@ -1,0 +1,42 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
+import {desktopNetworkDisplay} from '../src/desktop-network-display.mjs';
+import {createDesktopTransactionHistoryUI} from '../src/desktop-transaction-history-ui.mjs';
+import {createTransactionHistoryUI} from '../src/transaction-history-ui.mjs';
+class Node{constructor(tag){this.tagName=tag;this.children=[];this.attrs={};this.events={};this.disabled=false;this.textContent='';}append(...n){this.children.push(...n);}replaceChildren(...n){this.children=n;}setAttribute(k,v){this.attrs[k]=v;}addEventListener(k,f){this.events[k]=f;}async click(){if(!this.disabled)return this.events.click?.();}}
+const account='0x'+'1'.repeat(40),to='0x'+'2'.repeat(40),hash='0x'+'3'.repeat(64);
+const record=(suffix='3',successful=true)=>Object.freeze({account,to,hash:'0x'+suffix.repeat(64),amount:'2.0',actualFee:'0.1',blockNumber:'0x2',origin:'https://rpc-testnet.ynxweb4.com',successful,confirmed:true,confirmationScope:'local-snapshot',consensusFinality:false});
+const text=n=>n.textContent+' '+n.children.map(text).join(' '),find=(n,p)=>[...(p(n)?[n]:[]),...n.children.flatMap(c=>find(c,p))];
+function fixture(writeClipboard){let context={account,revision:1};const nodes=new Map(),doc={documentElement:{lang:'en'},getElementById(id){if(!nodes.has(id))nodes.set(id,new Node('div'));return nodes.get(id);},createElement:tag=>new Node(tag)};const ui=createDesktopTransactionHistoryUI({document:doc,getContext:()=>context,writeClipboard});return {ui,doc,id:doc.getElementById.bind(doc),setContext:c=>context=c};}
+const view=(records,extra={})=>({records,nextCursor:null,busy:false,loaded:true,error:null,...extra});
+test('network display names only the successfully probed configured YNX test chain, never another chain or hash',()=>{
+ assert.deepEqual(desktopNetworkDisplay({available:true,chainId:'0x1917'}),{known:true,label:'YNX Testnet',id:'0x1917',detail:'YNX Testnet · 0x1917'});
+ assert.equal(desktopNetworkDisplay({available:true,chainId:'0x1917'},true).label,'YNX 测试网');
+ for(const status of [null,{available:false,chainId:'0x1917'},{available:true,chainId:'0x1'},{available:true,chainId:'1'.repeat(64)}]){const v=desktopNetworkDisplay(status);assert.equal(v.known,false);assert.equal(v.id,null);assert(!/Mainnet|verified/.test(v.label));}
+});
+test('production network chip and detailed network facts consume the same pure projection without changing RPC',()=>{
+ const shell=fs.readFileSync(new URL('../src/approved-desktop-ui.mjs',import.meta.url),'utf8'),renderer=fs.readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8');assert(shell.includes('desktopNetworkDisplay(value,zh())'));assert(renderer.includes('desktopNetworkDisplay(status,document.documentElement.lang'));assert(renderer.includes('render: view => desktopHistoryUI.render(view)'));assert(renderer.includes('writeClipboard:writeReceivingClipboard'));
+});
+test('real verified producer record becomes compact selected item and complete original detail with honest finality',async()=>{
+ const copied=[],f=fixture(async(v,current)=>{assert(current());copied.push(v);return true;});f.ui.render(view([record()]));const row=f.id('transaction-history-list').children[0];assert.equal(row.attrs['aria-pressed'],'true');assert.equal(find(row,n=>n.tagName==='dl').length,0);const detail=f.id('desktop-history-detail');assert.match(text(detail),/2.0 YNXT/);assert.match(text(detail),/0.1 YNXT/);assert.match(text(detail),/Independent consensus finality and signature verification are not supplied/);assert(!text(detail).includes('USDC'));await find(detail,n=>n.tagName==='button')[0].click();assert.deepEqual(copied,[hash]);assert.match(text(detail),/Copied/);
+});
+test('selection changes to actual failed record; refresh preserves same hash but never invents success',async()=>{
+ const f=fixture();f.ui.render(view([record(),record('4',false)]));await f.id('transaction-history-list').children[1].click();assert.match(text(f.id('desktop-history-detail')),/Execution failed/);assert.equal(f.id('transaction-history-list').children[1].attrs['aria-pressed'],'true');f.ui.render(view([record(),record('4',false)]));assert.equal(f.id('transaction-history-list').children[1].attrs['aria-pressed'],'true');assert(!text(f.id('desktop-history-detail')).includes('Copy unavailable'));
+});
+test('loading, empty and failed refresh preserve exactly actual retained records and disclose stale snapshot',()=>{
+ const f=fixture();f.ui.render(view([],{busy:true,loaded:false}));assert.match(f.id('transaction-history-status').textContent,/Reading/);assert.equal(f.id('refresh-transaction-history').disabled,true);assert.equal(f.id('transaction-history-list').attrs['aria-busy'],'true');f.ui.render(view([]));assert.match(f.id('transaction-history-status').textContent,/No verified/);f.ui.render(view([record()],{error:'read failed',loaded:false,nextCursor:hash}));assert.equal(f.id('transaction-history-list').children.length,1);assert.match(text(f.id('desktop-history-detail')),/previously verified/);assert.equal(f.id('older-transaction-history').hidden,false);
+});
+test('account switch and explicit lifecycle invalidation remove stale selection and retire late clipboard acknowledgement',async()=>{
+ let finish,current;const f=fixture((v,check)=>{current=check;return new Promise(r=>finish=r);});f.ui.render(view([record()]));const detail=f.id('desktop-history-detail'),pending=find(detail,n=>n.tagName==='button')[0].click();f.setContext({account:to,revision:2});assert.equal(current(),false);f.ui.invalidate();finish(true);await pending;assert(!text(f.id('desktop-history-detail')).includes('Copied'));f.ui.render(view([record()]));assert.equal(f.id('transaction-history-list').children.length,0);assert(!text(f.id('desktop-history-detail')).includes(hash));
+});
+test('previously detached list button cannot select a record after current account changes',async()=>{
+ const f=fixture();f.ui.render(view([record(),record('4')]));const old=f.id('transaction-history-list').children[1];f.setContext({account:to,revision:2});f.ui.invalidate();await old.click();assert(!text(f.id('desktop-history-detail')).includes('2.0 YNXT'));
+});
+test('normal history controller feeds the new actual renderer and retains original snapshot after malformed refresh',async()=>{
+ const f=fixture();let fail=false;const core=createTransactionHistoryUI({getAccount:()=>account,request:async()=>({ok:true,value:{records:[fail?{...record(),credential:'must not render'}:record()],nextCursor:null}}),render:f.ui.render});await core.refresh();assert.equal(f.id('transaction-history-list').children.length,1);fail=true;await core.refresh();assert.equal(f.id('transaction-history-list').children.length,1);assert.match(text(f.id('desktop-history-detail')),/previously verified/);assert(!text(f.id('desktop-history-detail')).includes('credential'));
+});
+test('Chinese state copy and unavailable clipboard never claim an action completed',()=>{
+ const f=fixture();f.doc.documentElement.lang='zh-CN';f.ui.render(view([record('4',false)]));assert.match(text(f.id('desktop-history-detail')),/执行失败/);assert(find(f.id('desktop-history-detail'),n=>n.tagName==='button').every(b=>b.disabled));assert(!text(f.id('desktop-history-detail')).includes('已复制'));
+});
+test('a failed local execution never displays its requested value as an outgoing payment',()=>{const f=fixture();f.ui.render(view([record('4',false)]));assert.match(text(f.id('desktop-history-detail')),/Requested amount/);assert(!text(f.id('desktop-history-detail')).includes('−2.0'));assert(!text(f.id('transaction-history-list')).includes('−2.0'));});
+test('Main current account transition cannot retain old rows before the public account refresh arrives',()=>{const f=fixture();f.ui.render(view([record()]));f.setContext({account:null,revision:2});f.ui.render(view([record()]));assert.equal(f.id('transaction-history-list').children.length,0);assert.equal(f.id('refresh-transaction-history').disabled,true);assert(!text(f.id('desktop-history-detail')).includes(hash));});
+test('a stale detail click before repaint cannot copy an old account record or cross a revision',async()=>{const copied=[],f=fixture(async(v)=>copied.push(v));f.ui.render(view([record()]));const button=find(f.id('desktop-history-detail'),n=>n.tagName==='button')[0];f.setContext({account:to,revision:2});await button.click();assert.deepEqual(copied,[]);f.setContext({account,revision:2});await button.click();assert.deepEqual(copied,[]);});

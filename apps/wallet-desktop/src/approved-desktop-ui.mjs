@@ -1,3 +1,4 @@
+import {desktopNetworkDisplay} from './desktop-network-display.mjs';
 import {createAddressResolverUI} from './receive-address-resolver-ui.mjs';
 const address=value=>typeof value==='string'&&/^ynx1[a-z0-9]{38}$/.test(value)?value:null;
 /** Public display projection only. Never examines inputs, backups or keys. */
@@ -68,5 +69,5 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   h.textContent=record.successful?t('Transfer observed locally','本地快照已观察到交易'):t('Execution failed','执行失败');amount.className='desktop-history-amount';amount.textContent=record.amount+' YNXT';
   for(const [en,cn,value]of [['Canonical recipient ID','接收方规范 ID',record.to],['Transaction hash','交易哈希',record.hash],['Actual fee','实际手续费',record.actualFee+' YNXT'],['Observed block','观察区块',record.blockNumber]]){const term=doc.createElement('dt'),valueNode=doc.createElement('dd');term.textContent=t(en,cn);valueNode.textContent=String(value);valueNode.dir='ltr';facts.append(term,valueNode);}
   notice.textContent=t('This is the retained verified local snapshot. Independent consensus finality is not supplied. An UNKNOWN operation must never be replayed.','这是已保留且经核对的本地快照；尚未供给独立共识最终性。结果未知的原操作不得重发。');parent.append(h,amount,facts,notice);
- },updateNetwork(value){byId('desktop-network-chip').textContent=value?.available===true&&typeof value.chainId==='string'?value.chainId:t('YNX Testnet · unavailable','YNX 测试网 · 暂不可用');},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;policyEpoch++;resolver.destroy();observer?.disconnect();}});
+ },updateNetwork(value){const view=desktopNetworkDisplay(value,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;policyEpoch++;resolver.destroy();observer?.disconnect();}});
 }
