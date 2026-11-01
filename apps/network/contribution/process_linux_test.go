@@ -111,6 +111,15 @@ func TestLinuxContainedRuntime(t *testing.T) {
 		if err != nil {
 			t.Fatalf("UNSUPPORTED or failed actual host controls (no fallback): %v", err)
 		}
+		e.diagnostic = func(d processDiagnostic) {
+			t.Logf("owned setup diagnostic: stderr=%q controls=%+v runErr=%v limitErr=%v groupErr=%v inputReleased=%d", d.Stderr, d.Controls, d.RunError, d.LimitError, d.GroupError, d.Usage.BytesRead)
+			if d.Usage.Process != nil {
+				if d.Controls != nil && d.Controls.Linux != nil {
+					t.Logf("actual Linux controls=%+v", *d.Controls.Linux)
+				}
+				t.Logf("actual wrapper wait4=%+v group=%+v", *d.Usage.Process, d.Usage.Process.Group)
+			}
+		}
 		return e
 	}
 	t.Run("fixed-worker-meter-cold", func(t *testing.T) {

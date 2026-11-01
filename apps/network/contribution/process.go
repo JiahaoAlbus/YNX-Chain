@@ -53,8 +53,20 @@ type PinnedWASMExecutor struct {
 	linux        *linuxBackend
 	linuxPending *linuxOperation
 	lifecycleErr error
+	diagnostic   func(processDiagnostic)
 }
 
+// Internal observer for the explicitly controlled QA harness. It receives no
+// authority, cannot select code or influence admission, and has no public API,
+// environment toggle or job field. Normal product executors leave it nil.
+type processDiagnostic struct {
+	Stderr     []byte
+	Controls   *OSControls
+	Usage      Usage
+	RunError   error
+	LimitError error
+	GroupError error
+}
 type processOperation struct {
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -456,6 +468,7 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 			limitErr = ErrOSLimits
 		}
 	}
+	var groupFinishErr error
 	if linuxOp != nil {
 		group, gerr := linuxOp.finish()
 		if usage.Process != nil {
@@ -475,10 +488,18 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 			e.linuxPending = linuxOp
 			e.mu.Unlock()
 		}
+		groupFinishErr = gerr
 		linuxOp = nil
 	}
 	usage.BytesRead = stdin.read
 	usage.WallMicros = uint64(time.Since(started).Microseconds())
+	if e.diagnostic != nil {
+		snapshot := usage
+		snapshot.Process = cloneProcessUsage(usage.Process)
+		report := cloneProcessUsage(&ProcessUsage{Controls: controls})
+		e.diagnostic(processDiagnostic{Stderr: append([]byte(nil), stderr.data...), Controls: report.Controls, Usage: snapshot, RunError: runErr, LimitError: limitErr, GroupError: groupFinishErr})
+	}
+
 	if e.linux != nil {
 		if err := e.linux.checkPins(); err != nil {
 			return nil, usage, err
