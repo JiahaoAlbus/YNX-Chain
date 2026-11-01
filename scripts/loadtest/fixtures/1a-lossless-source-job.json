@@ -1,0 +1,158 @@
+{
+  "schema": "YNX-PERF-ORIGINAL-LOSSLESS-SOURCE-JOB/v1",
+  "job": {
+    "id": 124936327016,
+    "run_id": 41336145123,
+    "workflow_name": "chain-core",
+    "head_branch": "codex/ynx-pq-perf-integration",
+    "run_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/runs/41336145123",
+    "run_attempt": 1,
+    "node_id": "CR_kwDOTJguhM8AAAAdFskPaA",
+    "head_sha": "1a643b744c568a9063617a7f0cc173e1ac149a42",
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/jobs/124936327016",
+    "html_url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41336145123/job/124936327016",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-11-01T18:21:01Z",
+    "started_at": "2026-11-01T18:21:04Z",
+    "completed_at": "2026-11-01T18:24:02Z",
+    "name": "Fixed successor normal lossless constructor and readiness budget",
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1,
+        "started_at": "2026-11-01T18:21:04Z",
+        "completed_at": "2026-11-01T18:21:06Z"
+      },
+      {
+        "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2,
+        "started_at": "2026-11-01T18:21:06Z",
+        "completed_at": "2026-11-01T18:21:14Z"
+      },
+      {
+        "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3,
+        "started_at": "2026-11-01T18:21:14Z",
+        "completed_at": "2026-11-01T18:21:18Z"
+      },
+      {
+        "name": "Acquire only the fixed corrected lossless supplier",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4,
+        "started_at": "2026-11-01T18:21:18Z",
+        "completed_at": "2026-11-01T18:21:25Z"
+      },
+      {
+        "name": "Verify the normal constructor and all 24 fixed readiness budget cases without Node.Start",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5,
+        "started_at": "2026-11-01T18:21:25Z",
+        "completed_at": "2026-11-01T18:23:59Z"
+      },
+      {
+        "name": "Preserve only public corrected lossless source evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6,
+        "started_at": "2026-11-01T18:23:59Z",
+        "completed_at": "2026-11-01T18:24:00Z"
+      },
+      {
+        "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 11,
+        "started_at": "2026-11-01T18:24:00Z",
+        "completed_at": "2026-11-01T18:24:00Z"
+      },
+      {
+        "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 12,
+        "started_at": "2026-11-01T18:24:00Z",
+        "completed_at": "2026-11-01T18:24:00Z"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 13,
+        "started_at": "2026-11-01T18:24:00Z",
+        "completed_at": "2026-11-01T18:24:00Z"
+      }
+    ],
+    "check_run_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/check-runs/124936327016",
+    "labels": [
+      "ubuntu-24.04"
+    ],
+    "runner_id": 1000018694,
+    "runner_name": "GitHub Actions 1000018694",
+    "runner_group_id": 0,
+    "runner_group_name": "GitHub Actions"
+  },
+  "artifact": {
+    "id": 13095262629,
+    "run": 41336145123,
+    "job": 124936327016,
+    "commit": "1a643b744c568a9063617a7f0cc173e1ac149a42",
+    "artifactBytes": 11169,
+    "artifactSHA256": "4139c50b32dc9929522da0ba61b18df271e9cee2a7d7ef7760f5860832ea7e81",
+    "files": [
+      {
+        "name": "wire-lossless-source-9lonvyo1/SOURCE.json",
+        "bytes": 7215,
+        "sha256": "5c63f85296656e62e39f9a7d972756f5b963ff5c5b9192bbb86cdfe62c2964f2"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/corrected-peer-budget.jsonl",
+        "bytes": 47938,
+        "sha256": "9d2aac8ca4d52408fb063cfb50fb984f9e1a7804dc24ca9b76a7979102ee3c7f"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/composition/SOURCE-SELECTION.json",
+        "bytes": 1742,
+        "sha256": "e4751d578aa36c3815e57e87f525474404b387ad5599ad9af55a865ac6d2190b"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/corrected-peer-budget.result.json",
+        "bytes": 1954,
+        "sha256": "852dfa6d8224687f80f1995548a5339b32d86ced6912d463e5e33747fc1317c0"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/corrected-peer-budget.stderr.log",
+        "bytes": 100,
+        "sha256": "02ce98d1f1a1e3bedc9302990e18c904aa507f46d1a06583e45dfeaaefea8597"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/normal-lossless-caller.jsonl",
+        "bytes": 11756,
+        "sha256": "e77445b45d9d662ac09e946e6f64a7fa06ac32d5fc90650ab97be39369a25515"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/normal-lossless-caller.result.json",
+        "bytes": 843,
+        "sha256": "394d516ece5ce9597bab6d64218f0be60d0a30ab68ab8644f72c5e9f7f7daa40"
+      },
+      {
+        "name": "wire-lossless-source-9lonvyo1/normal-lossless-caller.stderr.log",
+        "bytes": 1806,
+        "sha256": "f0d4e2f0715ef1fb66c45ad9cec227c65d17f2a360a668af65774d40b16c9c4b"
+      }
+    ],
+    "singleZipRead": true,
+    "allCRCRead": true,
+    "actualNodeStarted": false
+  },
+  "sourceOnly": true,
+  "runtimeAuthorized": false
+}

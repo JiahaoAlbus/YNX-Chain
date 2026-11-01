@@ -366,18 +366,26 @@ def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
     return bundle
 
 
-def prepare_paired_candidate(off=None,on=None,replay_data=None):
+def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=False):
     """Inert paired candidate DATA. No ON/trace qualification is guessed."""
     result=dict(schema='YNX-PERF-NORMAL-PAIRED-CANDIDATE/v1',status='NOT_READY',ready=False,
         requiredSupplier=dict(PAIR_SUPPLIER),runtimeAuthorized=False,pressureAuthorized=False,
         normalWirePairQualified=False,normalONSourceQualified=False,physicalBytesMeasured=False,perTxPhysicalBytes=None,
         replayGate=dict(status='NOT_SUPPLIED',qualified=False),normalBusinessGate=dict(status='NOT_SUPPLIED'),missing=[])
+    if source_only_ci:
+        spec=importlib.util.spec_from_file_location('pair_original_lossless_source_data',Path(__file__).with_name('pq-lossless-source-data.py'))
+        source_data=importlib.util.module_from_spec(spec);spec.loader.exec_module(source_data)
+        result['originalSourceOnlyCI']=source_data.qualification()
+        require(result['originalSourceOnlyCI']['supplierCommit']==PAIR_SUPPLIER['commit'] and result['originalSourceOnlyCI']['supplierTree']==PAIR_SUPPLIER['tree'],'original paired supplier source DATA differs')
+        result['missing'].append('actual normal ON running window and kernel/private-control evidence remain required; original28 source tests start no nodes')
     if replay_data is not None:
         # Legacy height-derived source fixtures cannot satisfy the actual
         # complete original Finalize request gate, even if every state matches.
         result['replayGate']=dict(status='ORIGINAL_COMPLETE_TRACE_READER_NOT_SUPPLIED',qualified=False,
             suppliedData=replay_data,legacySourceFixture=replay_data.get('commonOriginalFinalizeTrajectoryQualified') is not True)
-    if PAIR_SOURCE_QUALIFICATION is None:
+    if source_only_ci:
+        pass # Exact original source-only DATA above is never a runtime grant.
+    elif PAIR_SOURCE_QUALIFICATION is None:
         result['missing'].append('Core exact new normal guarded ON source CI qualification for ed628/f1a; old9081/b1e OFF qualification is not transferable')
     else:
         result['missing'].append('new ON qualification parser must consume actual matching CI originals before this report can qualify any source')
