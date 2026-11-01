@@ -25,8 +25,8 @@ GO_SOURCE = "7593d691bafa6e7e5bb40511464aed27a41b416d"
 GO_TREE = "eb3eda31c0b59cb14d6db62f0deaa4940c3d41c6"
 FORK_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 NORMAL_RUN = "41228262522"
-TOOLS = "fb994160c121a0e83c91e91f1318fa2a7b5adcca"
-TOOLS_TREE = "5ad544c2b0bf5bc889bd3baeb233b6c98872c5e3"
+TOOLS = "b2e324848a8cb4b18c3552989441406c5d87889d"
+TOOLS_TREE = "e26d1889babc20f6535feadf66bb6bc95dc1275f"
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
@@ -37,10 +37,10 @@ SOURCE_PINS = {
     "scripts/loadtest/pq-source-artifact-intake.py": "ab75f9748a05523f5719ee42a8a99b576d3444a30481b0e07253956e3e5943ef",
 }
 TOOL_PINS = {
-    "pq-independent-load.py": "a8dccfec40bcb9b7d50a40490712a395e099ab6c98b7a556254bb46a646fc83f",
+    "pq-independent-load.py": "e5377710db23d681fe4a94c51086af0f81d269775aa27742548a14c26cc0ccb1",
     "pq-independent-scheduler.py": "8f4bdd7ad66e75a02c0e4f54b96b18862e87939957090ef82de3888a0dd1d234",
-    "pq-normal-process-lab.py": "1de70d0e970090c2b6c9cd600f6cbdde565a12b8ddbcccb8325791b12e94078f",
-    "consensus-linux-cohort.py": "d7c657a1aa9787fa62a580f0f83caf71e17ba261697389322de521fef8902eaf",
+    "pq-normal-process-lab.py": "6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195",
+    "consensus-linux-cohort.py": "9b033a251833e046ea50e795f56fce5b52013693df9f0ee432aa6190063f5b42",
     "pq-paired-linux-window.py": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
 }
 
@@ -52,9 +52,9 @@ def require(ok, message):
 
 def fixed_options(source):
     # 500 is the complete demand. Four additional preparation accounts are
-    # never recycled into these 16 independently leased signing accounts.
+    # never recycled into these 8 independently leased signing accounts.
     return argparse.Namespace(source=str(source), commit=GO_SOURCE, mode="online",
-                              rate=100, seconds=5, accounts=16, per_account=32,
+                              rate=100, seconds=5, accounts=8, per_account=63,
                               tail_seconds=30, proof_timeout=30,
                               wire_observation=False, network_accounting=False,
                               prior_result=None, prior_result_sha256=None, execute=True)
@@ -63,10 +63,13 @@ def fixed_options(source):
 def prepared_data():
     return dict(profile=PROFILE, controllerRef=REF, goSource=GO_SOURCE, goTree=GO_TREE, tools=TOOLS,
                 sourceQualificationRun=NORMAL_RUN, configuredDemand=500,
-                offeredTPS=100, seconds=5, measuredAccounts=16, capacityPerAccount=32,
+                offeredTPS=100, seconds=5, measuredAccounts=8, capacityPerAccount=63,
                 preparationAccounts=4, sameSourceBinaryCount=3, caps=CAPS,
                 label="current75 nonexperimental baseline; contains previous production improvements",
                 untouchedFdcBefore=False, combinedABBaseline=False, executed=False,
+                previous16SenderRun="41264965296", previous16SenderLoadExecuted=False,
+                accountSelection="Root fixed eight independent accounts, each at most one pending; all500 demand retained",
+                helperMaximumLive=3, originalOwnedPIDLimit=16,
                 nodeStartAuthorized=False, publicNetwork=False, authorityGranted=False)
 
 

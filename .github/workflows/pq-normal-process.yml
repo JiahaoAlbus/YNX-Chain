@@ -140,13 +140,18 @@ jobs:
       - name: Receive the exact existing independent-load driver without modifying its methods
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: fb994160c121a0e83c91e91f1318fa2a7b5adcca
+          ref: b2e324848a8cb4b18c3552989441406c5d87889d
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
+      - name: Execute only the six new real helper and failure-cleanup regressions
+        run: |
+          set -euo pipefail
+          python3 -I -B tools/scripts/loadtest/test_pq_helper_lifecycle.py -v
+          python3 -I -B tools/scripts/loadtest/test_window_failure_cleanup.py -v
       - name: Install the original pinned normal toolchain without shared build caches
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:

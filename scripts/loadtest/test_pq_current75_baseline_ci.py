@@ -54,10 +54,10 @@ class FixedCurrent75Controls(unittest.TestCase):
         options = entry.fixed_options(Path("/owned/source"))
         self.assertEqual((options.commit, options.mode, options.rate, options.seconds),
                          ("7593d691bafa6e7e5bb40511464aed27a41b416d", "online", 100, 5))
-        self.assertEqual((options.accounts, options.per_account, options.tail_seconds, options.proof_timeout), (16, 32, 30, 30))
+        self.assertEqual((options.accounts, options.per_account, options.tail_seconds, options.proof_timeout), (8, 63, 30, 30))
         self.assertEqual(options.rate * options.seconds, 500)
         self.assertGreaterEqual(options.accounts * options.per_account, 500)
-        self.assertEqual((options.accounts + 4) * options.per_account, 640)
+        self.assertEqual((options.accounts + 4) * options.per_account, 756)
         self.assertFalse(options.wire_observation or options.network_accounting)
         self.assertEqual(entry.CAPS, dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4294967296,
                                         newBytes=8589934592, initialMemoryBytes=6442450944,
