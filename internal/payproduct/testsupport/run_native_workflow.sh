@@ -85,6 +85,14 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = webhook-shop-original ]; then
+ : "${PAY_SHOP_NOTIFICATION_DRIVER_BINARY:?frozen original Shop driver required}"
+ : "${PAY_SHOP_NOTIFICATION_DRIVER_SHA256:?exact driver SHA256 required}"
+ : "${PAY_SHOP_NOTIFICATION_INPUT:?exact retained original Shop input required}"
+ : "${PAY_SHOP_NOTIFICATION_RESULT_DIR:?owned PUBLIC evidence directory required}"
+ go test -p 1 -tags 'pay_pq pay_webhook_shop_joint pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeWebhookActualShopTLSColdInboxRefusesReplacementArchive$' -count=1 -timeout=3m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = webhook-attempts ]; then
  export PAY_MULTI_REFUND_WORKFLOW_DIR="$fixture_dir"
  go test -race -p 1 -tags 'pay_pq pay_webhook_original pay_securelink securelink_openssl' ./internal/payproduct -run '^TestWebhook(DelayedRetryFreshSignatureSameOriginalAfterCold|AttemptProofRotationAndLostAckRemainOriginal|SigningRotationBeforeReservationSendsNothing|NativeReferenceDeadLetterReplayKeepsOriginal|ReplayCannotSpliceNativeReference|DeadLetterAndAuditedManualReplay|RetryBudgetSurvivesColdStoreAndDirectCalls|PersistsAttemptBeforeSending|ManualReplayKeepsOriginalSignedEvent|OutboxAtomicAndRotationRetainsEvent)$|^TestNativeWebhookReferenceUsesRetainedCoreOriginalsOnly$' -count=1 -timeout=2m -v
