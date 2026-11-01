@@ -64,3 +64,37 @@ key-version mismatch, tampered headers/body, native reference rebinding, disk
 failure and older backup refusal. They do not establish configured production
 merchant credentials, actual protected Source admission, installed business flow,
 formal publisher installation, public deployment or real funds.
+
+## Explicit cross-owner PUBLIC TLS driver
+
+`TestNativePayNotificationOriginalReadDriver` is disabled unless
+`P07_PUBLIC_PAY_NOTIFICATION_DRIVER=1`. Build with the original
+`go test -c -mod=readonly -race -tags commerce_v2 ./internal/commerce`; invoke the
+result with `-test.run=^TestNativePayNotificationOriginalReadDriver$ -test.v`.
+It accepts bounded JSON lines on stdin, emits `P07_NOTIFICATION_JSON ` plus one
+JSON result line, and never executes the prior Core/sign/Member/funds workflows.
+
+`init` requires `sourcePath`, `sourceSHA256`, `orderId`, actual Pay `origin` and
+`caPEM`, actual PUBLIC callback `merchantId`, `secretHex`, positive `secretVersion`.
+It verifies and copies the frozen original Store, opens only the copy, retains
+unknown/history, binds the existing original order, configures the original
+receiver and returns an actual TLS1.3 `endpoint`, `caPEM`, copied `statePath` and
+public original IDs. No original source file is modified. The caller must trust
+this exact temporary CA; verification or TLS versions must not be relaxed.
+
+`inspect` reports original inbox references/observed IDs and existing exact atom
+summary only. `cold` reopens the same copied Store under the same listener/CA,
+without changing the root event, original request or target. `read` invokes the
+existing protected original receipt action against the exact selected order;
+its Pay transport permits only actual original GETs at the supplied fixed HTTPS
+origin and retains a GET-path trace. It cannot prepare, sign, reconcile, submit
+or resend a Pay operation. `stop` closes the temporary listener and leaves the
+copied evidence intact. Do not repeat a failed unknown funds operation to set up
+a driver case; select the retained original, matching Pay state instead.
+
+The driver uses explicit PUBLIC Buyer/Source test controls. Its TLS/cold/inbox
+bootstrap does not establish true Root/Source admission or a new money proof.
+A successful caller-to-actual-Pay original GET composition must be recorded
+separately; compile-only CI is not that composition. Original normal production
+receiver/source commit and additional test-driver source/binary pins remain
+separate. No standalone production server exposes these control commands.

@@ -51,6 +51,7 @@ jobs:
       return-decision-only: ${{ steps.scope.outputs.return-decision-only }}
       return-decision-checks: ${{ steps.scope.outputs.return-decision-checks }}
       notification-only: ${{ steps.scope.outputs.notification-only }}
+      notification-driver-only: ${{ steps.scope.outputs.notification-driver-only }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,7 +91,9 @@ jobs:
               delta = subprocess.check_output(["git", "diff", "--unified=0", base, "HEAD", "--", "go.mod"]).decode()
               lines = [line[1:].strip() for line in delta.splitlines() if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))]
               source_only = all(line in permitted for line in lines)
-          notification_files = {"internal/commerce/native_pay_notification.go", "internal/commerce/native_pay_notification_test.go", "internal/commerce/NATIVE_PAY_NOTIFICATIONS.md", "internal/commerce/native_payment_receipt.go", "internal/commerce/store.go", "internal/commerce/model.go", "internal/commerce/server.go", "internal/commerce/cmd/shopd/native_api.go", "internal/commerce/cmd/shopd/native_api_test.go", "internal/commerce/cmd/shopd/main.go", "internal/commerce/cmd/shopd/native_notification_credentials.go", "internal/commerce/cmd/shopd/native_notification_credentials_test.go"}
+          notification_files = {"internal/commerce/native_pay_notification.go", "internal/commerce/native_pay_notification_test.go", "internal/commerce/native_pay_notification_joint_driver_test.go", "internal/commerce/NATIVE_PAY_NOTIFICATIONS.md", "internal/commerce/native_payment_receipt.go", "internal/commerce/store.go", "internal/commerce/model.go", "internal/commerce/server.go", "internal/commerce/cmd/shopd/native_api.go", "internal/commerce/cmd/shopd/native_api_test.go", "internal/commerce/cmd/shopd/main.go", "internal/commerce/cmd/shopd/native_notification_credentials.go", "internal/commerce/cmd/shopd/native_notification_credentials_test.go"}
+          notification_driver_files = {"internal/commerce/native_pay_notification_joint_driver_test.go", "internal/commerce/NATIVE_PAY_NOTIFICATIONS.md", ".github/workflows/shop-native.yml"}
+          notification_driver_only = bool(changed) and "internal/commerce/native_pay_notification_joint_driver_test.go" in changed and all(p in notification_driver_files for p in changed)
           notification_only = bool(changed) and any(p.startswith("internal/commerce/native_pay_notification") for p in changed) and all(p in notification_files or p == ".github/workflows/shop-native.yml" for p in changed)
           fulfillment_files = {"apps/seller-console/native/fulfillment-cli.mjs", "apps/seller-console/native/check-fulfillment-cli.mjs", "apps/seller-console/native/FULFILLMENT.md", "apps/seller-console/test/fulfillment-cli.test.mjs", "apps/seller-console/test/fulfillment-http.mjs", "internal/commerce/fulfillment_cli_test.go"}
           fulfillment_only = bool(changed) and any(p in fulfillment_files for p in changed) and all(p in fulfillment_files or p == ".github/workflows/shop-native.yml" for p in changed)
@@ -117,6 +120,7 @@ jobs:
                       receipt_test_delta = True
                       tests = new_tests
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("notification-driver-only=" + str(notification_driver_only).lower() + "\n")
               output.write("notification-only=" + str(notification_only).lower() + "\n")
               output.write("return-decision-only=" + str(return_decision_only).lower() + "\n")
               output.write("return-decision-checks=" + str(return_decision_checks).lower() + "\n")
@@ -158,19 +162,30 @@ jobs:
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi
       - name: Check original Native Pay notification receiver and affected durable receipt state
-        if: needs.change-scope.outputs.notification-only == 'true'
+        if: needs.change-scope.outputs.notification-only == 'true' && needs.change-scope.outputs.notification-driver-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativePayNotification|TestShopNativeAPI|TestCommercePersistenceSchemaMigrationRollbackAndRecovery|TestSnapshot|TestNativePaymentReceipt(OriginalPartial|LostRead|Cumulative|KeepsPending))' -count=1 -v | tee "$RUNNER_TEMP/shop-native-notification-checks.log"
           go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd-notifications" ./internal/commerce/cmd/shopd
       - uses: actions/upload-artifact@v4
-        if: always() && needs.change-scope.outputs.notification-only == 'true'
+        if: always() && needs.change-scope.outputs.notification-only == 'true' && needs.change-scope.outputs.notification-driver-only != 'true'
         with:
           name: ynx-shop-native-notification-service
           if-no-files-found: error
           path: |
             ${{ runner.temp }}/shop-native-notification-checks.log
             ${{ runner.temp }}/ynx-shopd-notifications
+      - name: Compile explicit original notification TLS read driver without rerunning funds workflows
+        if: needs.change-scope.outputs.notification-driver-only == 'true'
+        run: |
+          set -euo pipefail
+          go test -c -mod=readonly -race -tags commerce_v2 ./internal/commerce -o "$RUNNER_TEMP/shop-notification-original-read-driver"
+      - uses: actions/upload-artifact@v4
+        if: needs.change-scope.outputs.notification-driver-only == 'true'
+        with:
+          name: ynx-shop-native-notification-read-driver
+          path: ${{ runner.temp }}/shop-notification-original-read-driver
+          if-no-files-found: error
       - uses: actions/setup-java@v4
         if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true'
         with:
