@@ -127,6 +127,8 @@ on:
       - 'scripts/fixtures/verify-project-control-cabi/**'
       - 'scripts/verify/project-control-cabi-check.sh'
       - 'scripts/verify/seal-project-control-cabi.py'
+      - 'scripts/validate/secret-scan.sh'
+      - 'scripts/validate/secret-scan-check.sh'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/resource-market-ci.yml'
@@ -1222,7 +1224,9 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Verify exact public TLS fixture and fail-closed secret scanning
-        run: bash scripts/validate/secret-scan-check.sh
+        run: |
+          bash scripts/validate/secret-scan-check.sh
+          bash scripts/validate/secret-scan.sh
       - name: Record exact candidate identity
         id: identity
         env:
