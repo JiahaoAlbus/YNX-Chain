@@ -552,8 +552,8 @@ export class ProductSessionGatewayNodeHost {
       response.once('finish',ticket.release);response.once('close',ticket.release);
       Promise.resolve(dispatch(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({error:{code:'INTERNAL_ERROR',message:'Wallet Gateway request failed'},ok:false}));}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:'unknown',event:'handler_error',level:'error',service:'ynx-wallet-gatewayd'});});
     });
-    const server=createServer({maxHeaderSize:147456},listener);
-    server.maxHeadersCount=36864; // Preserve all raw headers inside the finite parser byte budget.
+    const server=createServer({maxHeaderSize:262144},listener);
+    server.maxHeadersCount=65536; // Preserve all raw headers inside the finite parser byte budget.
     this.#originalRuntimeListener=listener;this.#originalRuntimeServer=server;
     return server;
   }
