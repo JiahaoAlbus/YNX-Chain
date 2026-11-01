@@ -250,6 +250,10 @@ static NSString *QAPresentConsent(QANativeConsentPacket *packet, NSDictionary<NS
     alert.informativeText=[NSString stringWithFormat:@"%@\n\n%@",display[@"warning"],display[@"explanation"]];
     NSButton *cancel=[alert addButtonWithTitle:display[@"cancel"]];
     NSButton *approve=[alert addButtonWithTitle:display[@"approve"]];
+    // NSAlert's default window has no reachable close control. Expose the
+    // ordinary window close button so the fail-closed delegate can run.
+    alert.window.styleMask|=NSWindowStyleMaskTitled|NSWindowStyleMaskClosable;
+    alert.window.title=display[@"title"];
     cancel.keyEquivalent=@"\e"; approve.keyEquivalent=@"";
     alert.window.defaultButtonCell=cancel.cell; // Return never defaults to Approve.
     alert.window.contentView.userInterfaceLayoutDirection=[display[@"direction"]isEqualToString:@"rtl"]?NSUserInterfaceLayoutDirectionRightToLeft:NSUserInterfaceLayoutDirectionLeftToRight;
