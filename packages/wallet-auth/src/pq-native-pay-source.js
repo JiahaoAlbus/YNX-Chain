@@ -23,3 +23,33 @@ export function acquireOriginalPaySource(...args){if(args.length!==1)fail('PAY_N
  * partial after current admission is lost, solely to drain that SAME owner.
  * This does not assert currentness/permission and cannot admit a DTO. */
 export function isOriginalPaySource(...args){if(args.length!==1)fail('PAY_NATIVE_RECOGNIZER_ARGUMENTS');return selected?recognized(selected,args[0]):false;}
+
+// Separate ProductSource custody lane. Never aliases Wallet's Member channel.
+let selectedProduct=null;
+function fixedProduct(){
+ const image=loadOriginalAuthIdentityNativeImage();
+ if(!image||types.isProxy(image))fail('PRODUCT_NATIVE_FIXED_IMAGE_EXPORTS_NOT_SUPPLIED');
+ if(selectedProduct&&selectedProduct.image!==image)fail('PRODUCT_NATIVE_FIXED_IMAGE_CHANGED');
+ const a=Object.getOwnPropertyDescriptor(image,'acquireOriginalProductSource'),r=Object.getOwnPropertyDescriptor(image,'isOriginalProductSource');
+ if(!a||!r||!Object.hasOwn(a,'value')||!Object.hasOwn(r,'value')||typeof a.value!=='function'||typeof r.value!=='function'||types.isProxy(a.value)||types.isProxy(r.value))fail('PRODUCT_NATIVE_FIXED_IMAGE_EXPORTS_NOT_SUPPLIED');
+ if(selectedProduct&&(selectedProduct.acquire!==a.value||selectedProduct.recognize!==r.value))fail('PRODUCT_NATIVE_FIXED_IMAGE_CHANGED');
+ if(!selectedProduct)selectedProduct=Object.freeze({image,acquire:a.value,recognize:r.value});
+ return selectedProduct;
+}
+export function acquireOriginalProductSource(...args){
+ if(args.length!==0)fail('PRODUCT_NATIVE_SOURCE_ARGUMENTS');
+ const native=fixedProduct();
+ // Return the SAME out and SAME original error/own partial/falsy. Caller must
+ // adopt before identity checks; this function never invokes the recognizer.
+ return Reflect.apply(native.acquire,native.image,[]);
+}
+export function isOriginalProductSource(...args){
+ if(args.length!==1)fail('PRODUCT_NATIVE_RECOGNIZER_ARGUMENTS');
+ const value=args[0];
+ if(!selectedProduct||value===null||typeof value!=='object'||types.isProxy(value))return false;
+ // Custody identity only, also after Root/current is lost for SAME cleanup.
+ // No gate/image reload, WPC recognizer, JS brand or currentness inference.
+ const result=Reflect.apply(selectedProduct.recognize,selectedProduct.image,[value]);
+ if(typeof result!=='boolean')fail('PRODUCT_NATIVE_RECOGNIZER_RESULT_INVALID');
+ return result;
+}

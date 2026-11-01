@@ -44,8 +44,11 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1';
 export type OriginalAuthSourceV2Operations=
+ readonly ['read-selected-pages']|
+ readonly import('./original-wallet-product-source-contract.mjs').WalletProductSourceOperationV1[]|
+ readonly import('./original-wallet-pay-client-source-contract.mjs').WalletPayClientOperationV1[]|
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
  readonly ['CurrentProject','CurrentPublisher','RecheckProject']|
@@ -133,3 +136,6 @@ export function inspectOriginalWalletPayClientSourceIssuanceBodyDATA(role:'enrol
 
 /** Browser uses the same SourceV2 N1/Root signature mathematics; this is DATA only. */
 export function inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+/** Independent Product family; Browser and old family types preserved. */
+export function inspectOriginalWalletProductSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:import('./original-wallet-product-source-contract.mjs').OriginalWalletProductSourceV1Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;

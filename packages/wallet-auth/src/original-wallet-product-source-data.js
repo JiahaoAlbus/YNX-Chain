@@ -1,0 +1,2 @@
+// Node-only pure DATA projection; never an authority or Native factory.
+export {WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE,WALLET_NATIVE_PRODUCT_SELECTION_KEY,WALLET_NATIVE_PRODUCT_OPERATIONS,WALLET_NATIVE_PRODUCT_LEGACY_OPERATIONS,WALLET_NATIVE_PRODUCT_ARCHIVE_READ_OPERATIONS,inspectOriginalWalletProductScopeV1DATA,inspectOriginalWalletProductArchiveReadV1DATA} from '../native/original-wallet-product-source-contract.mjs';

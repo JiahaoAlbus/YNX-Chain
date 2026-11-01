@@ -1,3 +1,5 @@
+import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE}from'../native/original-wallet-product-source-contract.mjs';
+import{inspectOriginalWalletProductSourceIssuanceBodyDATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
 import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'../native/original-browser-selected-pages-source-contract.mjs';
 import{inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
 import{WALLET_NATIVE_PAY_CLIENT_SOURCE_PURPOSE as WPC_PURPOSE,WALLET_NATIVE_PAY_CLIENT_SELECTION_KEY as WPC_KEY}from'../native/original-wallet-pay-client-source-contract.mjs';
@@ -36,7 +38,7 @@ const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOU
 // Existing separately admitted families plus the dedicated device-v4 CODE
 // contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze([BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
+const PURPOSES=Object.freeze([WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -60,6 +62,7 @@ export class OriginalSourceIssuanceV2Kernel {
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;let effectExpiresAtMs=body.expiresAtMs;
   if(p.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===WPR_PURPOSE)effectExpiresAtMs=inspectOriginalWalletProductSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===BROWSER_PURPOSE)effectExpiresAtMs=inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===WPC_PURPOSE)effectExpiresAtMs=inspectOriginalWalletPayClientSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===PAY_PURPOSE)effectExpiresAtMs=inspectOriginalPayCloudBillSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
@@ -146,6 +149,7 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   if(entry.plan.binding.owner!==selected.owner||entry.plan.binding.networkId!==selected.networkId||entry.plan.binding.keyVersion!==record.revision||entry.plan.binding.executionHeight!==selected.executionHeight)fail('AUTH_ISSUANCE_ROLE_BINDING');
   let effectExpiresAtMs=Infinity;
   if(entry.plan.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
+  else if(entry.plan.policy.signatureContract.purpose===WPR_PURPOSE)effectExpiresAtMs=inspectOriginalWalletProductSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===BROWSER_PURPOSE)effectExpiresAtMs=inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===WPC_PURPOSE)effectExpiresAtMs=inspectOriginalWalletPayClientSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===PAY_PURPOSE)effectExpiresAtMs=inspectOriginalPayCloudBillSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
