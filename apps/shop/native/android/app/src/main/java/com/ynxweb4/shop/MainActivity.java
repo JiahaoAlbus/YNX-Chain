@@ -42,13 +42,16 @@ public final class MainActivity extends Activity {
             runOnUiThread(()->{if(cartWork!=work)return;cartWork=null;if(!isCurrent(expected,generation))return;restoreCart();if(error instanceof NativeCart.Conflict){NativeCart.Conflict conflict=(NativeCart.Conflict)error;showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.cart_sync_conflict)).setMessage(getString(R.string.cart_sync_review)).setNegativeButton(getString(R.string.cancel),null).setNeutralButton(getString(R.string.cart_use_remote),(d,w)->runCartTask((sender,session,epoch)->NativeCart.resolve(secure,sender,session,epoch,conflict,true),this::showCart)).setPositiveButton(getString(R.string.cart_use_local),(d,w)->runCartTask((sender,session,epoch)->NativeCart.resolve(secure,sender,session,epoch,conflict,false),this::showCart)).create());return;}if(error!=null){status.setText(getString(R.string.cart_sync_unconfirmed)+" "+cartError(error));return;}success.run();});
         },"shop-cart-sync").start();
     }
+    private OriginalOrderLink pendingOriginalOrderLink;private long pendingOriginalOrderView;
+    private OriginalOrderLink.Read originalOrderRead;
+    private void retireOriginalOrderRead(){if(originalOrderRead!=null)originalOrderRead.retire();originalOrderRead=null;}
     private ProductSession presentationSession;
     private long presentationPrivacyGeneration=-1;
     private String presentationPrivacyPhase="";
     private void showDialog(AlertDialog dialog){showDialog(dialog,()->{});}
     private void showDialog(AlertDialog dialog,Runnable dismissed){privateDialogs.add(dialog);dialog.setOnDismissListener(d->{privateDialogs.remove(dialog);dismissed.run();});dialog.show();}
     private void cancelPayPresentation(){payPresentationRevision++;payHandoffWork=null;if(invoiceDialog!=null){invoiceDialog.dismiss();invoiceDialog=null;}}
-    private void clearPrivatePresentation(){cartWork=null;cancelPayPresentation();paymentReadbackWork=null;viewRevision++;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void clearPrivatePresentation(){retireOriginalOrderRead();cartWork=null;cancelPayPresentation();paymentReadbackWork=null;viewRevision++;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -58,15 +61,15 @@ public final class MainActivity extends Activity {
         boolean privacyChanged=current!=null&&(generation!=presentationPrivacyGeneration||!phase.equals(presentationPrivacyPhase));
         presentationSession=current;
         presentationPrivacyGeneration=generation;presentationPrivacyPhase=phase;
-        if(changed){clearPrivatePresentation();showCatalog();if(current!=null)resumePaymentReadback();}
+        if(changed){boolean restoreLink=wallet.restoring()&&pendingOriginalOrderLink!=null&&pendingOriginalOrderView==viewRevision;clearPrivatePresentation();showCatalog();if(restoreLink)pendingOriginalOrderView=viewRevision;if(current!=null)resumePaymentReadback();}
         else if(privacyChanged){clearPrivatePresentation();showAccount();}
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
     @Override protected void onResume(){super.onResume();if(api!=null){reconcileSession();resumePaymentReadback();resumeNativeInvoiceReferences();}}
-    @Override protected void onPause(){cancelOrderAction();cancelPayPresentation();paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
+    @Override protected void onPause(){pendingOriginalOrderLink=null;retireOriginalOrderRead();cancelOrderAction();cancelPayPresentation();paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
-    @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
+    @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}showCatalog();wallet.onRestored(()->{OriginalOrderLink pending=pendingOriginalOrderLink;pendingOriginalOrderLink=null;if(pending!=null&&pendingOriginalOrderView==viewRevision)openOriginalOrderLink(pending);});handleIntent(getIntent());}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);handleIntent(intent);}
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);if(!privacyExport.matches(requestCode))return;
@@ -448,7 +451,20 @@ public final class MainActivity extends Activity {
     }
 
     private void signIn(){wallet.start((account,error)->runOnUiThread(()->status.setText(error==null?getString(R.string.loading):message(error))));}
-    private void handleIntent(Intent intent){Uri data=intent==null?null:intent.getData();if(data==null)return;try{if(BuyerPaymentReview.callbackHint(data.toString())){resumePaymentReadback();return;}}catch(Exception ignored){return;}if("ynxshop".equals(data.getScheme())&&"wallet-auth".equals(data.getHost())&&"/callback".equals(data.getPath()))wallet.complete(data,(account,error)->runOnUiThread(()->{status.setText(error==null?getString(R.string.wallet_active):getString(R.string.security_error)+" "+message(error));if(error==null){reconcileSession();try{if(BuyerPaymentReview.restore(secure,api.session())==null)showAccount();else resumePaymentReadback();}catch(Exception invalid){status.setText(getString(R.string.security_error));}}}));}
+    private void openOriginalOrderLink(OriginalOrderLink link){
+        try{
+            ProductSession expected=api.session();if(expected==null){showAccount();status.setText(R.string.wallet_sign_in);return;}
+            OriginalOrderLink.Read read=link.begin(expected);retireOriginalOrderRead();cancelOrderAction();cancelPayPresentation();clearAI();viewRevision++;final long view=viewRevision;originalOrderRead=read;
+            content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));content.addView(text(link.orderID,14,true));content.addView(text(OriginalOrderLink.CHAIN,12,false));
+            LinearLayout result=column();content.addView(result);content.addView(action(getString(R.string.retry),()->openOriginalOrderLink(link)));status.setText(R.string.loading);
+            api.request("GET",read.path(),null,()->originalOrderRead==read&&view==viewRevision&&read.current(api.session()),(order,error)->{
+                if(originalOrderRead!=read||view!=viewRevision)return;
+                if(error!=null){status.setText(message(error));return;}
+                try{read.validate(order,api.session());result.removeAllViews();result.addView(orderCard(order));status.setText("");}catch(Exception failure){status.setText(R.string.security_error);}
+            });
+        }catch(Exception error){status.setText(R.string.security_error);}
+    }
+    private void handleIntent(Intent intent){Uri data=intent==null?null:intent.getData();if(data==null)return;try{if(BuyerPaymentReview.callbackHint(data.toString())){resumePaymentReadback();return;}}catch(Exception ignored){return;}if("ynxshop".equals(data.getScheme())&&"orders".equals(data.getHost())){try{OriginalOrderLink link=OriginalOrderLink.parse(data.toString());if(wallet.restoring()){pendingOriginalOrderLink=link;pendingOriginalOrderView=viewRevision;status.setText(R.string.loading);}else openOriginalOrderLink(link);}catch(Exception error){status.setText(R.string.security_error);}return;}if("ynxshop".equals(data.getScheme())&&"wallet-auth".equals(data.getHost())&&"/callback".equals(data.getPath()))wallet.complete(data,(account,error)->runOnUiThread(()->{status.setText(error==null?getString(R.string.wallet_active):getString(R.string.security_error)+" "+message(error));if(error==null){reconcileSession();try{if(BuyerPaymentReview.restore(secure,api.session())==null)showAccount();else resumePaymentReadback();}catch(Exception invalid){status.setText(getString(R.string.security_error));}}}));}
     private boolean hasSession(){try{return api.session()!=null;}catch(Exception e){return false;}}
     private boolean isOnline(){ConnectivityManager manager=(ConnectivityManager)getSystemService(CONNECTIVITY_SERVICE);Network network=manager.getActiveNetwork();NetworkCapabilities caps=network==null?null:manager.getNetworkCapabilities(network);return caps!=null&&caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);}
 

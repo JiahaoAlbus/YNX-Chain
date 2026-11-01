@@ -150,9 +150,9 @@ jobs:
           mvn -q dependency:copy -Dartifact=junit:junit:4.13.2 -DoutputDirectory="$DEPS"
           mvn -q dependency:copy -Dartifact=org.hamcrest:hamcrest-core:1.3 -DoutputDirectory="$DEPS"
           javac -cp "$DEPS/*" -d "$CLASSES" \
-            apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/{NativeProductState,NativeBusinessPolicy,BuyerReceipt,NativeIntentObservation}.java \
-            apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeIntentObservationTest.java
-          java -cp "$CLASSES:$DEPS/*" org.junit.runner.JUnitCore com.ynxweb4.shop.NativeIntentObservationTest
+            apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/{NativeProductState,NativeBusinessPolicy,BuyerReceipt,NativeIntentObservation,ProductSession,BuyerOrderReadback,OriginalOrderLink}.java \
+            apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/{NativeIntentObservationTest,OriginalOrderLinkTest}.java
+          java -cp "$CLASSES:$DEPS/*" org.junit.runner.JUnitCore com.ynxweb4.shop.NativeIntentObservationTest com.ynxweb4.shop.OriginalOrderLinkTest
       - uses: actions/setup-node@v4
         if: needs.change-scope.outputs.source-only != 'true'
         with:
@@ -195,7 +195,7 @@ jobs:
         run: |
           set -euo pipefail
           bash apps/shop/native/android/gradlew -p apps/shop/native/android --no-daemon \
-            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest
+            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest --tests com.ynxweb4.shop.OriginalOrderLinkTest
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-shop-android-debug
@@ -271,6 +271,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/NativeAPIChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-native-api-checks"
           "$RUNNER_TEMP/ynx-shop-native-api-checks"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/OriginalOrderLinkChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
+          "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/BuyerJourneyChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
           "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
