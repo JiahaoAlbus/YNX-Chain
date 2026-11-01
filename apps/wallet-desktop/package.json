@@ -62,7 +62,9 @@
         ]
       }
     ],
-    "asar": true,
+    "asar": {
+      "smartUnpack": false
+    },
     "asarUnpack": [
       "native/original-auth-identity.node",
       "native/original-auth-runtime-libs/{libssl.3.dylib,libcrypto.3.dylib,libuv.1.dylib,OPENSSL-LICENSE.txt,OPENSSL-AUTHORS.md,LIBUV-LICENSE.txt,LIBUV-LICENSE-extra.txt,LIBUV-LICENSE-docs.txt}"

@@ -87,6 +87,15 @@ test('normal pack filters include and unpack the exact nine assets, excluding fo
  for(const row of portableRuntimeAssets(f.record)){const name='/PUBLIC/project/'+row.unpackedRelative;assert.equal(selected(name,{isDirectory:()=>false}),true,name);assert.equal(unpacked(name,{isDirectory:()=>false}),true,name);}
  const foreign='/PUBLIC/project/native/original-auth-runtime-libs/foreign.dylib';assert.equal(selected(foreign,{isDirectory:()=>false}),false);assert.equal(unpacked(foreign,{isDirectory:()=>false}),false);
 });
+test('actual builder keeps SDK dependencies packed when SDK source DATA contains vendor dylibs',async t=>{
+ const f=fixture(t),require=createRequire(new URL('../package.json',import.meta.url)),{AsarPackager}=require('app-builder-lib/out/asar/asarUtil'),{FileMatcher}=require('app-builder-lib/out/fileMatcher'),metadata=JSON.parse(fs.readFileSync(new URL('../package.json',import.meta.url))),input=path.join(f.dir,'input'),destination=path.join(f.dir,'stage'),moduleRoot='node_modules/@ynx-chain/wallet-auth';
+ const names=[moduleRoot+'/native/vendor/runtime-inputs/libssl.3.dylib',moduleRoot+'/node_modules/@noble/curves/LICENSE','native/original-auth-identity.node','native/original-auth-runtime-libs/libssl.3.dylib'];
+ const files=[],stats=new Map();for(const name of names){const file=path.join(input,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,'PUBLIC DATA NEVER LOADED');const stat=fs.statSync(file);if(name.startsWith(moduleRoot+'/'))Object.assign(stat,{moduleRootPath:moduleRoot,moduleName:'@ynx-chain/wallet-auth',moduleFullFilePath:name});files.push(file);stats.set(file,stat);}
+ const fileSet={src:input,destination,files,metadata:stats},packager={info:{getWorkspaceRoot:async()=>f.dir}},unpackPattern=new FileMatcher(input,destination,x=>x,metadata.build.asarUnpack).createFilter();
+ const process=options=>new AsarPackager(packager,{resourcePath:f.dir,defaultDestination:destination,options,unpackPattern}).processFileSets([fileSet]);
+ const automatic=await process({smartUnpack:true});assert.equal(automatic.find(x=>x.path===names[1]).unpacked,true,'real default builder reproduces the SDK dependency conflict');
+ const actual=await process(metadata.build.asar);assert.equal(actual.find(x=>x.path===names[0]).unpacked,false);assert.equal(actual.find(x=>x.path===names[1]).unpacked,false);assert.equal(actual.find(x=>x.path===names[2]).unpacked,true);assert.equal(actual.find(x=>x.path===names[3]).unpacked,true);
+});
 test('actual Electron builder preserves exactly four nested signatures for only the portable role',async t=>{
  const f=fixture(t),options={signIgnore:['EXISTING']};preservePortableNestedSignatures({},options);assert.deepEqual(options.signIgnore,['EXISTING']);preservePortableNestedSignatures(f.record,options);preservePortableNestedSignatures(f.record,options);assert.deepEqual(options.signIgnore,['EXISTING',PORTABLE_NESTED_SIGN_IGNORE]);
  const require=createRequire(new URL('../package.json',import.meta.url)),{MacTargetHelper}=require('app-builder-lib/out/mac/MacTargetHelper');
