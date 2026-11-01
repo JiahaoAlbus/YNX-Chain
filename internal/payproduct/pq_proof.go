@@ -17,7 +17,7 @@ import (
 // Reconcile queries only the retained original native identity. The collector,
 // including its HTTP200/committed flag, never supplies this method's trust.
 func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHash string) (NativePayOperation, error) {
-	state, err := n.Read(ctx, merchant, id)
+	state, grant, err := n.readInvoiceWithGrant(ctx, merchant, id)
 	if err != nil {
 		return NativePayOperation{}, err
 	}
@@ -27,6 +27,9 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 	}
 	if op.Status == "confirmed" || op.Status == "confirmed_failed" {
 		return op, nil
+	}
+	if err = n.cfg.HTTP.registerOriginalReadRoutes(ctx, grant, op); err != nil {
+		return op, err
 	}
 	observation, err := n.cfg.HTTP.Original(ctx, nativeHash)
 	if err != nil {

@@ -69,7 +69,7 @@ func TestProductsRealParentsWithoutEngineKeepIndependentCloud(t *testing.T) {
 		t.Fatal("normal product constructors or precise missing-engine cause lost", err)
 	}
 	handler, err := h.Handler()
-	if handler == nil || err != nil || h.NativeSourceStatus() != ErrOriginalEngineContractNotLinked {
+	if handler == nil || err != nil || h.NativeSourceStatus() != ErrOriginalEngineResourcesNotSupplied {
 		t.Fatal("normal missing-engine CODE status lost", err)
 	}
 	denied := httptest.NewRecorder()

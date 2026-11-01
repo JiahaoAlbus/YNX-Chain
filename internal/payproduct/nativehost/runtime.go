@@ -18,6 +18,11 @@ import (
 )
 
 type Resources = paynativesource.OriginalNativePayResources
+type Engine = paynativesource.OriginalPayEngine
+
+const NativeEngine = paynativesource.OriginalPayNativeEngine
+const BFTEngine = paynativesource.OriginalPayBFTEngine
+
 type Runtime struct {
 	composition *paynativesource.OriginalPrivateNativePayComposition
 	mu          sync.Mutex
@@ -25,9 +30,10 @@ type Runtime struct {
 	first       error
 }
 
-// New borrows the five actual original resources. The service's own Store is
+// New borrows mutually exclusive native or BFT original resources. The service's own Store is
 // always used; another Store cannot be substituted even when its DATA matches.
-// The other parents must come from the original hosting process, never a
+// Native uses the actual Devnet; BFT uses the actual App+Node, never an input
+// BlockStore. Other parents must come from the original hosting process, never a
 // second ledger/Cloud server, a locator or a reconstructed RPC projection.
 // Every nonnull Auth partial is retained before inspecting its error.
 func New(parent *payproduct.Service, resources Resources, coreHTTP *payproduct.NativePayHTTP, build buildinfo.Info, logger *slog.Logger) (*Runtime, error) {
@@ -76,6 +82,7 @@ func (r *Runtime) Err() error {
 func (r *Runtime) PartialRetained() bool {
 	return r != nil && r.composition != nil && r.composition.Source != nil
 }
+func (r *Runtime) CompositionRetained() bool { return r != nil && r.composition != nil }
 func (r *Runtime) Retire() {
 	if r != nil {
 		r.retired.Store(true)

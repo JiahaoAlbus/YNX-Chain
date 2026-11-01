@@ -91,7 +91,7 @@ func TestPrivateNormalProcessColdRecoveryAndSIGTERM(t *testing.T) {
 		_ = command.Process.Signal(syscall.SIGTERM)
 		err = command.Wait()
 		cancel()
-		if err != nil || !strings.Contains(output.String(), "private_products_stopped") || !strings.Contains(output.String(), "PAY_HOST_ORIGINAL_ENGINE_SOURCE_CONTRACT_NOT_LINKED") {
+		if err != nil || !strings.Contains(output.String(), "private_products_stopped") || !strings.Contains(output.String(), "PAY_HOST_ORIGINAL_ENGINE_RESOURCES_NOT_SUPPLIED") {
 			t.Fatalf("normal private drain/close failed: %v %s", err, output.String())
 		}
 		if _, err = os.Lstat(socket); err != nil {

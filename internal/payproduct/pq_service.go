@@ -197,9 +197,13 @@ func (n *NativePayService) member(ctx context.Context, access NativePayAccess, w
 	return action, payload, grant, envelope, err
 }
 func (n *NativePayService) Read(ctx context.Context, merchant, id string) (NativePayInvoice, error) {
+	state, _, err := n.readInvoiceWithGrant(ctx, merchant, id)
+	return state, err
+}
+func (n *NativePayService) readInvoiceWithGrant(ctx context.Context, merchant, id string) (NativePayInvoice, NativePayAuthorization, error) {
 	grant, err := n.grant(ctx, NativePayAccess{Operation: "read", Merchant: merchant, InvoiceID: id})
 	if err != nil {
-		return NativePayInvoice{}, err
+		return NativePayInvoice{}, grant, err
 	}
 	var state NativePayInvoice
 	err = n.parent.store.View(func(data Snapshot) error {
@@ -224,7 +228,7 @@ func (n *NativePayService) Read(ctx context.Context, merchant, id string) (Nativ
 		}
 		return nil
 	})
-	return state, err
+	return state, grant, err
 }
 func (n *NativePayService) RegisterTerms(ctx context.Context, sourceOrder string, wire []byte) (NativePayOperation, error) {
 	if !identifierRE.MatchString(sourceOrder) {
@@ -329,6 +333,9 @@ func nativeOperation(merchant, id string, action ynxauth.Action, wire, envelope 
 }
 func (n *NativePayService) dispatch(ctx context.Context, g NativePayAuthorization, op NativePayOperation) (NativePayOperation, error) {
 	if err := n.fence(ctx, g); err != nil {
+		return op, err
+	}
+	if err := n.cfg.HTTP.registerOriginalReadRoutes(ctx, g, op); err != nil {
 		return op, err
 	}
 	observation, err := n.cfg.HTTP.Submit(ctx, op.Member)

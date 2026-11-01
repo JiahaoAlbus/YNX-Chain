@@ -12,9 +12,9 @@ import (
 
 func normalNativePayHandler(parent *payproduct.Service, build buildinfo.Info, logger *slog.Logger) (http.Handler, func(), func() error) {
 	// This standalone daemon has no original in-process Core/Cloud parents.
-	// Consume the real factory, retain its Source partial, and keep existing
-	// closed routes while commissioning/materials are missing. The same host
-	// package accepts the original five handles from their owning process.
+	// Consume the real factory, retain its composition partial, and keep the
+	// closed routes without original engine resources. The owning process uses
+	// the same host's mutually exclusive Native or BFT boot composition.
 	runtime, err := nativehost.New(parent, nativehost.Resources{}, nil, build, logger)
 	if err != nil {
 		logger.Info("native_source_unavailable", "source_linked", true, "source_ready", false)

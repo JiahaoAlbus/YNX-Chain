@@ -10,16 +10,18 @@ import (
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
 )
 
-// Actual frozen normal Auth factory, no PUBLIC assembly seam or fake handler.
-func TestNormalOriginalAuthFactoryRetainsPartialAndRefusesEmptyRoot(t *testing.T) {
-	r, err := New(nil, Resources{}, nil, buildinfo.Info{}, nil)
-	if err == nil || !strings.Contains(err.Error(), "PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED") {
-		t.Fatal("missing actual commissioning was not refused", err)
+// Actual committed-port invoice factory explicitly rejects native capability;
+// its account Source's Root0 path is a distinct direct original factory test.
+func TestNormalNativeInvoiceFactoryRetainsCompositionAndRefusesCapability(t *testing.T) {
+	r, err := New(nil, Resources{Engine: NativeEngine, Native: chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))}, nil, buildinfo.Info{}, nil)
+	if err == nil || !strings.Contains(err.Error(), "PAY_NATIVE_ENGINE_INVOICE_TRANSPORT_NOT_SUPPORTED") {
+		t.Fatal("native invoice capability was not refused", err)
 	}
-	if r == nil || !r.PartialRetained() || r.Ready() || r.Handler() != nil || r.Err() != err {
+	if r == nil || !r.CompositionRetained() || r.PartialRetained() || r.Ready() || r.Handler() != nil || r.Err() != err {
 		t.Fatal("actual Source partial or first cause was lost")
 	}
 	r.Retire()
@@ -55,13 +57,14 @@ func TestNormalHostUsesSameOriginalStoreAndRejectsLookalike(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r, err := New(parent, Resources{PayStore: other}, nil, buildinfo.Info{}, nil)
+	original := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	r, err := New(parent, Resources{Engine: NativeEngine, Native: original, PayStore: other}, nil, buildinfo.Info{}, nil)
 	if err == nil || err.Error() != "PAY_ORIGINAL_STORE_IDENTITY_MISMATCH" || r.Ready() {
 		t.Fatal("another Store substituted for original", err)
 	}
-	r, err = New(parent, Resources{PayStore: store}, nil, buildinfo.Info{}, nil)
-	if err == nil || !strings.Contains(err.Error(), "PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED") || !r.PartialRetained() || r.Ready() {
-		t.Fatal("normal same-Store factory lost real missing-Root refusal", err)
+	r, err = New(parent, Resources{Engine: NativeEngine, Native: original, PayStore: store}, nil, buildinfo.Info{}, nil)
+	if err == nil || !strings.Contains(err.Error(), "PAY_NATIVE_ENGINE_INVOICE_TRANSPORT_NOT_SUPPORTED") || !r.CompositionRetained() || r.Ready() {
+		t.Fatal("normal same-Store factory lost real capability refusal", err)
 	}
 	if err = r.Close(); err != nil {
 		t.Fatal(err)

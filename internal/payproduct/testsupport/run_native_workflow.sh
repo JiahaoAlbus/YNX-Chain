@@ -17,6 +17,20 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = engine-node ]; then
+ : "${PAY_ENGINE_FIXTURE_REPORT:?new external fixture report path required}"
+ : "${PAY_ENGINE_SOCKET_ROOT:?owned external short socket root required}"
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ node "$source_dir/testsupport/prepare_engine_node_fixture.mjs" "$composition" "$source_dir/../.." "$PAY_ENGINE_FIXTURE_REPORT"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl pay_engine_host_fixture' ./internal/consensus -run '^TestPaySameEngineOriginalNodeBoundary$' -count=1 -timeout=2m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = engine ]; then
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/nativehost -run '^TestEngine|^TestNormalNativeInvoice|^TestNormalHostUsesSameOriginalStore|^TestOriginalInvoiceRPC|^TestBFTRPC' -count=1 -timeout=2m -v
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct -run '^TestPrivateCoreRoutes' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = private-process ]; then
  : "${PAY_PRIVATE_HOST_BINARY:?exact already compiled private host required}"
  : "${PAY_PRIVATE_HOST_SHA256:?exact private host hash required}"

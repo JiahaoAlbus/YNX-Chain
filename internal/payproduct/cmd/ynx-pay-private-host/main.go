@@ -77,7 +77,11 @@ func run() int {
 	if err != nil {
 		logger.Error("private_listener_unavailable")
 	} else {
-		logger.Info("private_products_started", "nativeSourceReady", false, "sourceCode", products.NativeSourceStatus().Error())
+		sourceCode := ""
+		if sourceErr := products.NativeSourceStatus(); sourceErr != nil {
+			sourceCode = sourceErr.Error()
+		}
+		logger.Info("private_products_started", "nativeSourceReady", products.NativeSourceStatus() == nil, "sourceCode", sourceCode)
 		select {
 		case <-ctx.Done():
 		case <-private.Done():

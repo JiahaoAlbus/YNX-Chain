@@ -15,7 +15,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
 )
 
-var ErrOriginalEngineContractNotLinked = errors.New("PAY_HOST_ORIGINAL_ENGINE_SOURCE_CONTRACT_NOT_LINKED")
+var ErrOriginalEngineResourcesNotSupplied = errors.New("PAY_HOST_ORIGINAL_ENGINE_RESOURCES_NOT_SUPPLIED")
 var ErrProductsRetired = errors.New("PAY_HOST_RETIRED")
 var ErrProductsDraining = errors.New("PAY_HOST_CHILDREN_STILL_DRAINING")
 
@@ -33,6 +33,8 @@ type Products struct {
 	pay         *payproduct.NormalProduct
 	cloud       *cloud.OriginalPrivateHost
 	native      *Runtime
+	engine      *EngineBinding
+	sourceErr   error
 	first       error
 	retired     bool
 	active      int
@@ -50,12 +52,25 @@ type Products struct {
 
 // OpenProducts makes the unique original Pay Store and Cloud Server/Reader in
 // this process. It never starts a public listener or creates Core objects.
-// Auth's engine-specific normal Source contract must be linked separately;
-// the withdrawn universal Devnet/Application/BlockStore tuple is not accepted.
-// Until then the actual original closed Pay server refuses protected routes,
+// Without an original engine binding the closed Pay server refuses protected
+// routes; the withdrawn universal Devnet/Application/BlockStore tuple is not
+// accepted. The same engine may be supplied with OpenProductsWithEngine,
 // while independent genuine Cloud parent routes remain usable.
 func OpenProducts(ctx context.Context, cfg ProductsConfig, build buildinfo.Info, logger *slog.Logger) (*Products, error) {
-	h := &Products{drained: make(chan struct{})}
+	return openProducts(ctx, cfg, nil, build, logger)
+}
+
+// OpenProductsWithEngine is normal boot-only binding of the same original
+// native or BFT resources/actual HTTP boundary. It creates no engine and cannot
+// select resources or grants through an incoming request/JSON setting.
+func OpenProductsWithEngine(ctx context.Context, cfg ProductsConfig, engine *EngineBinding, build buildinfo.Info, logger *slog.Logger) (*Products, error) {
+	if engine == nil {
+		return &Products{drained: make(chan struct{}), first: ErrEngineEndpointNotSupplied}, ErrEngineEndpointNotSupplied
+	}
+	return openProducts(ctx, cfg, engine, build, logger)
+}
+func openProducts(ctx context.Context, cfg ProductsConfig, engine *EngineBinding, build buildinfo.Info, logger *slog.Logger) (*Products, error) {
+	h := &Products{drained: make(chan struct{}), engine: engine, sourceErr: ErrOriginalEngineResourcesNotSupplied}
 	fail := func(err error) (*Products, error) { h.first = err; return h, err }
 	if ctx == nil {
 		return fail(ErrProductsRetired)
@@ -82,6 +97,25 @@ func OpenProducts(ctx context.Context, cfg ProductsConfig, build buildinfo.Info,
 	}
 	parent := h.pay.Service()
 	h.closedPay = payproduct.NewClosedProductionServerWithLogger(parent, build, logger).Handler()
+	originalHandler := h.closedPay
+	if engine != nil {
+		resources, coreHTTP, bindErr := engine.original()
+		if bindErr != nil {
+			return fail(bindErr)
+		}
+		resources.CloudBills, err = h.cloud.BillReader()
+		if err != nil {
+			return fail(err)
+		}
+		h.native, h.sourceErr = New(parent, resources, coreHTTP, build, logger)
+		if h.sourceErr == nil && engine.invoiceErr != nil {
+			h.sourceErr = engine.invoiceErr
+			h.native.Retire()
+		}
+		if h.sourceErr == nil {
+			originalHandler = h.native.Handler()
+		}
+	}
 	h.work.Add(1)
 	go func() {
 		defer h.work.Done()
@@ -108,7 +142,7 @@ func OpenProducts(ctx context.Context, cfg ProductsConfig, build buildinfo.Info,
 		h.mu.Unlock()
 		defer func() { h.mu.Lock(); h.active--; h.mu.Unlock(); h.work.Done() }()
 		// Same *http.Request: do not clone away LINK's original caller binding.
-		h.closedPay.ServeHTTP(w, r)
+		originalHandler.ServeHTTP(w, r)
 	})
 	h.stopParent = context.AfterFunc(ctx, h.Retire)
 	if err = ctx.Err(); err != nil {
@@ -133,9 +167,14 @@ func (h *Products) Handler() (http.Handler, error) {
 	return h.handler, nil
 }
 
-// This exact error distinguishes the known missing normal engine CODE from a
-// request for users to supply objects or from genuine Root commissioning.
-func (h *Products) NativeSourceStatus() error { return ErrOriginalEngineContractNotLinked }
+// Preserve the actual capability, original-resource or Root commissioning
+// cause. Construction alone cannot supply business authority.
+func (h *Products) NativeSourceStatus() error {
+	if h == nil {
+		return ErrProductsRetired
+	}
+	return h.sourceErr
+}
 
 // This is the genuine Cloud handler, independently closed by its own host.
 // A missing Pay/Core Source cannot replace it or disable unrelated reads.

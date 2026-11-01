@@ -50,8 +50,9 @@ func (e *NativePayHTTPError) Unwrap() error { return e.Err }
 // Response URLs never select a request destination. Every call uses the sole
 // constructor-pinned origin and the explicitly supplied transport.
 type NativePayHTTP struct {
-	origin string
-	client *http.Client
+	origin      string
+	client      *http.Client
+	routePolicy *nativePayRoutePolicy
 }
 
 // NewNativePayHTTP requires an explicit transport, for example the LINK-owned
