@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -113,6 +114,21 @@ func TestP04ActualOCIIsolatedLifecycle(t *testing.T) {
 		}
 		usage, err := e.ObserveUsage(ctx, op)
 		if err != nil || usage.InstanceID != op.DeploymentID || usage.StoredBytes == "0" {
+			transport := &http.Transport{DialContext: func(c context.Context, _, _ string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(c, "unix", socket)
+			}}
+			client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
+			for _, prefix := range []string{"", "/v1.41"} {
+				r, diagnosticErr := client.Get("http://docker" + prefix + "/containers/" + op.DeploymentID + "/stats?stream=false&one-shot=true")
+				if diagnosticErr != nil {
+					t.Log("ACTUAL_STATS_DIAGNOSTIC", prefix, diagnosticErr)
+					continue
+				}
+				b, _ := io.ReadAll(io.LimitReader(r.Body, 16384))
+				r.Body.Close()
+				t.Logf("ACTUAL_STATS_DIAGNOSTIC prefix=%s status=%d body=%s", prefix, r.StatusCode, b)
+			}
+			transport.CloseIdleConnections()
 			t.Fatal("actual engine usage", usage, err)
 		}
 		cold, err := NewOCIIDEDeploymentExecutor(e.cfg)

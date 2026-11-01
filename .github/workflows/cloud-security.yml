@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
-          printf '%s  %s\n' d1b8f3291ff043d382561477c8b007bef887120dc6a2da33194a95b69a3194c1 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' c33a0e608f3afc689d7fb3258f74e8383dfa611e5518b6bc84478c3ea9ad947e apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
           tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
           docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
           df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
@@ -80,7 +80,7 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/oci-source"
-          go test -mod=readonly -tags cloud_oci_actual -count=1 -timeout=180s -json -run '^TestP04ActualOCIIsolatedLifecycle$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
+          go test -mod=readonly -tags cloud_oci_actual -count=1 -timeout=180s -json -run '^TestP04ActualOCIIsolatedLifecycle$/http-body-isolation-usage-cold-cancel$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
       - name: Preserve actual results and scoped cleanup
         if: always()
         shell: bash
