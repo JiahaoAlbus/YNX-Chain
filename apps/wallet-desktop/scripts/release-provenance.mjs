@@ -68,7 +68,7 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
     {kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1}]}
 ].map(rule=>Object.freeze({...rule,operands:Object.freeze(rule.operands.map(Object.freeze))})));
 const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
+const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*|import\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
 const SDK330_VERSION='1.3.0-pq.3.30-auth.1';
 const SDK332_VERSION='1.3.0-pq.3.32-auth.1';
