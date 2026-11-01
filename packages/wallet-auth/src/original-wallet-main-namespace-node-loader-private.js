@@ -4,7 +4,7 @@ import {types} from 'node:util';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {loadOriginalAuthIdentityNativeImage} from './original-auth-identity-fixed-native-image.js';
 const fail=code=>{throw Object.assign(Error(code),{code});};
-let selected;
+let selected,loaderBinding;
 // Import provenance only. Root/Source admission remains in the fixed Native
 // owner. These captured intrinsics neither inspect a caller object nor brand it.
 const importInventory=new WeakMap(),weakGet=WeakMap.prototype.get,weakSet=WeakMap.prototype.set,apply=Reflect.apply;
@@ -28,14 +28,19 @@ function fields(value,keys){
  if(own.length!==keys.length||own.some(k=>typeof k!=='string'||!keys.includes(k)||!Object.hasOwn(descriptors[k],'value')||!descriptors[k].enumerable))fail('WALLET_MAIN_LOADER_PORT_INVALID');
  return Object.fromEntries(keys.map(k=>[k,descriptors[k].value]));
 }
-function fixedPort(owner){
+// Same-package fixed snapshot, captured before initialization. Not a setter.
+export function captureOriginalWalletMainNamespaceLoaderBindingV1(...args){
+ if(args.length)fail('WALLET_MAIN_LOADER_ZERO_INPUT');
+ if(loaderBinding)return loaderBinding;
  const image=loadOriginalAuthIdentityNativeImage();
  if(!image||types.isProxy(image))fail('WALLET_MAIN_LOADER_NOT_SUPPLIED');
  const d=Object.getOwnPropertyDescriptor(image,'openOriginalWalletMainNamespaceLoaderV1');
  if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function'||types.isProxy(d.value))fail('WALLET_MAIN_LOADER_NOT_SUPPLIED');
- // Native MUST validate SAME Root-owned tagged startup owner and producer,
- // independently qualified completed Main release, closure/image/current.
- return Reflect.apply(d.value,image,[owner]);
+ loaderBinding=Object.freeze({image,open:d.value});return loaderBinding;
+}
+function fixedPort(owner){
+ const native=captureOriginalWalletMainNamespaceLoaderBindingV1();
+ return Reflect.apply(native.open,native.image,[owner]);
 }
 export function startOriginalWalletMainNamespaceNodeLoadV1(...args){
  if(args.length!==1)fail('WALLET_MAIN_LOADER_ARGUMENTS');

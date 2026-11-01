@@ -38,6 +38,9 @@ struct NativeSourceRelease {
  // Provisioning only: independently frozen original Main private approval
  // module. Never a path/function supplied by peer, renderer or HTTP DATA.
  std::string productDeviceV4ApprovalModulePath,productDeviceV4ApprovalModuleDigest;
+ // Dedicated Pay client release qualification. Never DeviceV4/catalog aliases.
+ std::string walletNativePayApplicationId,walletNativePayProductId,walletNativePayPlatform,walletNativePayResourceDirectory;
+ uint64_t walletNativePayUID=0;
  uint64_t productDeviceV4ApprovalModuleBytes=0;
  // Independent read-only query Main module. Never a creation approval alias.
  std::string productDeviceV4QueryModulePath,productDeviceV4QueryModuleDigest;

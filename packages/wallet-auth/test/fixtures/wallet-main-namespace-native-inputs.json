@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "qualification": false,
+  "files": [
+    {
+      "path": "native/pay_native_namespace_bootstrap.cpp",
+      "bytes": 16818,
+      "sha256": "a0b6372f88e3bf969a567ed139619658e835d3d2dc0b8773798a8245caafacd4"
+    },
+    {
+      "path": "native/pay_native_namespace_bootstrap_private.hpp",
+      "bytes": 644,
+      "sha256": "742429a8b1c4c6a125ea76733ff7cfba99c9d294d5ac51d901ca6f3aed9ecf65"
+    },
+    {
+      "path": "native/pay_native_startup_epoch_private.hpp",
+      "bytes": 536,
+      "sha256": "2a845a4a89168fb80d2f19839fcd719975dafbb129205b24177cfb44beae6182"
+    },
+    {
+      "path": "native/pay_native_kernel.hpp",
+      "bytes": 3584,
+      "sha256": "ea2c02747ccc9da4d48594015b1bd0ad92dcc8d20cbb1a8b36ffcf769bad5a95"
+    },
+    {
+      "path": "native/pay_root_main_code_private.hpp",
+      "bytes": 1152,
+      "sha256": "090fde337bf7db6ec0be52055a4b84cde841373ae4ec051e38dcf86926fb644f"
+    },
+    {
+      "path": "native/original-wallet-main-namespace-private.h",
+      "bytes": 2695,
+      "sha256": "e840f75050617569cd5744eaee748762daa109f72986febbdbacfd8b9fa897a2"
+    },
+    {
+      "path": "native/original-wallet-main-namespace-private.cpp",
+      "bytes": 5248,
+      "sha256": "b9e75e4f5d3968abdd5c72477f715351eccd97443f99ec873c892cf68b9feee3"
+    },
+    {
+      "path": "native/pay_root_postbuild_private.hpp",
+      "bytes": 1797,
+      "sha256": "5e85b5b47fb1fa9d1e65736b9e6313635c72a0507e82d0c3b5abda5699b59a80"
+    },
+    {
+      "path": "native/pay_root_public_hold_private.hpp",
+      "bytes": 2859,
+      "sha256": "3007d8c13939da4c82f352266a315e67d397cc36b9e9fbf8d5dc87c45fb03ba6"
+    },
+    {
+      "path": "native/pay_root_transport_release_private.hpp",
+      "bytes": 1443,
+      "sha256": "b51c1644c8bbe5b8d941b4d6ed7e6c1e8e499fa9b2ed06d6e8495228952fd3ef"
+    },
+    {
+      "path": "native/pay_root_transport_private.hpp",
+      "bytes": 996,
+      "sha256": "36fcda5fb3ef406c972c75e5b99d0292864079e3e217a6623a1fd1bbfc5dffaa"
+    }
+  ]
+}
