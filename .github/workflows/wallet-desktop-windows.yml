@@ -4553,6 +4553,7 @@ jobs:
         with:
           node-version: '26'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node --test apps/wallet-desktop/scripts/test/canonical-native-portable-qa-record-shape.test.mjs
       - run: node --test apps/wallet-desktop/scripts/test/portable-040d-normal-projection.test.mjs
       - run: node apps/wallet-desktop/scripts/run-canonical-native-portable-qa-controls.mjs
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
