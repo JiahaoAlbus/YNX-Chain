@@ -25,6 +25,8 @@ on:
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
+      - "scripts/verify/wire-live-matching-source-ci.py"
+      - "scripts/verify/test_wire_live_matching_source_ci.py"
   pull_request:
     branches:
       - main
@@ -48,6 +50,8 @@ on:
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
+      - "scripts/verify/wire-live-matching-source-ci.py"
+      - "scripts/verify/test_wire_live_matching_source_ci.py"
   workflow_dispatch:
 
 permissions:
@@ -100,6 +104,7 @@ jobs:
             internal/consensus internal/chain internal/ynxbatch internal/ynxauth \
             internal/ynxconsensusauth internal/accountaddress internal/bftgateway \
             scripts/loadtest/same-control-readback.mjs scripts/loadtest/same-control-readback.test.mjs \
+            scripts/verify/wire-live-matching-source-ci.py scripts/verify/test_wire_live_matching_source_ci.py \
             .github/workflows/chain-core.yml > "$RUNNER_TEMP/client-observation-changes.txt"
           if [[ -s "$RUNNER_TEMP/client-observation-changes.txt" ]]; then
             printf 'client_changed=true\n' >> "$GITHUB_OUTPUT"
@@ -206,6 +211,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 1
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
@@ -269,6 +275,7 @@ jobs:
           required = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs']
           required += ['TestPQLabExportOriginalFourStoresNormalProofAndRefusals', 'TestPQLabMultiOwnerOriginalExecutionAndBounds', 'TestPQLabOnlineSenderRevocationAndPartialIntentPreserved', 'TestPQLabOnlineSenderOriginalRecoveryAndFullProof', 'TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown', 'TestPQLabPreSignedCommandCurrentCheckpoint', 'TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs', 'TestPQLabNormalCommandOnlineIndependentOwnerFlags', 'TestPQLabExportCommandOriginalStoppedStoreFixture']
           required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal', 'TestPQLabLiveMaterialsCommandStrictInputs', 'TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext']
+          required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:
@@ -324,6 +331,38 @@ jobs:
           print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0), sort_keys=True))
           PY
 
+      - name: Verify strict source availability and separated Go stream controls
+        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py
+      - name: Acquire only the immutable optional supplier object
+        env:
+          WIRE_SUPPLIER_READ_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import base64, os, subprocess
+          commit = '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076'
+          tree = 'b1e9a83ab11ed141fda90bc47521faa412176caa'
+          # contents:read only; never write credentials to config, argv, disk
+          # or logs. This one explicit fetch is outside the offline helper.
+          environment = os.environ.copy()
+          token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
+          if not token:
+              raise RuntimeError('read-only supplier acquisition credential missing')
+          environment.update(GIT_CONFIG_COUNT='1',
+              GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',
+              GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + token).encode()).decode(),
+              GIT_TERMINAL_PROMPT='0', GIT_TRACE='0', GIT_TRACE_CURL='0', GIT_CURL_VERBOSE='0')
+          subprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules',
+              '--depth=1', '--no-write-fetch-head', 'origin', commit], env=environment, check=True, timeout=60)
+          actual_commit = subprocess.check_output(['git', 'rev-parse', '--verify', commit + '^{commit}'], text=True).strip()
+          actual_tree = subprocess.check_output(['git', 'rev-parse', '--verify', commit + ':third_party/cometbft'], text=True).strip()
+          if actual_commit != commit or actual_tree != tree:
+              raise RuntimeError('received immutable supplier identity differs')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != os.environ['GITHUB_SHA']:
+              raise RuntimeError('supplier acquisition changed original HEAD')
+          if subprocess.check_output(['git', 'status', '--porcelain']).strip():
+              raise RuntimeError('supplier acquisition changed original checkout')
+          print('YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)
+          PY
       - name: Verify exact optional live getter composition without enabling a carrier
         run: python3 -B scripts/verify/wire-live-matching-source-ci.py
       - name: Preserve only public optional live source evidence
@@ -334,7 +373,12 @@ jobs:
           path: |
             ${{ runner.temp }}/wire-live-source-*/SOURCE.json
             ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.result.json
             ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json
+            ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
           if-no-files-found: warn
           retention-days: 14
 

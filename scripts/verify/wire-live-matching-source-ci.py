@@ -41,6 +41,18 @@ def require(ok, reason):
 def git(root, *args):
     return subprocess.check_output(["git", "-C", str(root), *args])
 
+def require_supplier_source(root):
+    # Source preparation is offline. Only the workflow may explicitly acquire
+    # this independently fixed commit; a local common-dir object is not proof
+    # that an Actions shallow checkout received it.
+    try:
+        commit = git(root, "rev-parse", "--verify", FORK_COMMIT + "^{commit}").decode().strip()
+        tree = git(root, "rev-parse", "--verify", FORK_COMMIT + ":third_party/cometbft").decode().strip()
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError("fixed supplier source unavailable locally: " + FORK_COMMIT +
+                           "; caller must explicitly acquire that immutable object before offline preparation") from error
+    require(commit == FORK_COMMIT and tree == FORK_TREE, "fixed supplier commit/fork tree changed")
+
 def extract(root, revision, destination, paths=()):
     process = subprocess.Popen(["git", "-C", str(root), "archive", "--format=tar", revision, *paths], stdout=subprocess.PIPE)
     try:
@@ -55,18 +67,58 @@ def extract(root, revision, destination, paths=()):
         process.stdout.close()
     require(process.wait() == 0, "fixed source git archive failed")
 
-def run_go(source, output, name, arguments, expected, env):
-    path = output / (name + ".jsonl")
-    with path.open("xb") as log:
-        result = subprocess.run(["go", "test", *arguments], cwd=source, env=env,
-                                stdout=log, stderr=subprocess.STDOUT, timeout=240)
-    require(result.returncode == 0, "original " + name + " failed; retain " + str(path))
-    rows = [json.loads(line) for line in path.read_text().splitlines()]
+def original_log_pin(path):
+    raw = path.read_bytes()
+    return dict(path=str(path), bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+
+def validate_go_jsonl(path, expected):
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            require(key not in result, "duplicate field in original Go stdout JSONL: " + key)
+            result[key] = value
+        return result
+    # Do not filter non-JSON stdout, even if it resembles a download diagnostic.
+    # Original Go diagnostics belong to the separately retained stderr file.
+    rows = [json.loads(line, object_pairs_hook=unique_object)
+            for line in path.read_bytes().decode("utf-8").splitlines()]
+    require(rows and all(isinstance(row, dict) and isinstance(row.get("Action"), str) for row in rows),
+            "original Go stdout must contain JSON event objects")
+    require(not any(row["Action"] == "fail" for row in rows), "original Go stdout contains a failed event")
     for test in expected:
         terminal = [r["Action"] for r in rows if r.get("Test") == test and r["Action"] in ("pass", "fail", "skip")]
         require(terminal == ["pass"], "original named test missing/skipped/failed: " + test)
-    return {"path": str(path), "bytes": path.stat().st_size,
-            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "requiredPassed": expected}
+
+def run_go(source, output, name, arguments, expected, env):
+    path = output / (name + ".jsonl")
+    stderr_path = output / (name + ".stderr.log")
+    record_path = output / (name + ".result.json")
+    record = dict(version="YNX-WIRE-LIVE-GO-RESULT/v1", returnCode=None, timedOut=False,
+                  validationPassed=False, requiredPassed=[], firstFailure=None)
+    # All three outputs are exclusive. Failed, timed-out and malformed runs
+    # keep both original streams and their hashes, without inventing a PASS.
+    with record_path.open("x") as receipt:
+        try:
+            with path.open("xb") as log, stderr_path.open("xb") as diagnostics:
+                try:
+                    result = subprocess.run(["go", "test", *arguments], cwd=source, env=env,
+                                            stdout=log, stderr=diagnostics, timeout=240)
+                except subprocess.TimeoutExpired:
+                    record["timedOut"] = True
+                    raise
+            record["returnCode"] = result.returncode
+            require(result.returncode == 0, "original " + name + " failed; retain original stdout and stderr")
+            validate_go_jsonl(path, expected)
+            record.update(validationPassed=True, requiredPassed=expected)
+        except Exception as error:
+            record["firstFailure"] = str(error)
+            raise
+        finally:
+            record["stdout"] = original_log_pin(path) if path.is_file() else None
+            record["stderr"] = original_log_pin(stderr_path) if stderr_path.is_file() else None
+            receipt.write(json.dumps(record, sort_keys=True, indent=2) + "\n")
+    return dict(**record["stdout"], requiredPassed=expected, stderr=record["stderr"],
+                result=original_log_pin(record_path))
 
 def prepare_wire_live_source(root, fresh_output, expected_commit, expected_tree):
     """Shared normal-runner/CI source builder; no build, node, reset or grant.
@@ -87,8 +139,7 @@ def prepare_wire_live_source(root, fresh_output, expected_commit, expected_tree)
     require(not git(root, "status", "--porcelain", "--untracked-files=normal").strip(), "original source must stay clean")
     require(git(root, "rev-parse", "HEAD:third_party/cometbft").decode().strip() == PRODUCTION_TREE,
             "production fork changed; refresh explicit source composition")
-    require(git(root, "rev-parse", FORK_COMMIT + ":third_party/cometbft").decode().strip() == FORK_TREE,
-            "fixed supplier fork unavailable or changed")
+    require_supplier_source(root)
     changes = set(git(root, "diff", "--name-only", PRODUCTION_TREE, FORK_TREE).decode().splitlines())
     require(changes == DIFF, "unapproved delta outside exact optional observer/transport module")
     require(not git(root, "diff", "--diff-filter=D", "--name-only", PRODUCTION_TREE, FORK_TREE).strip(),

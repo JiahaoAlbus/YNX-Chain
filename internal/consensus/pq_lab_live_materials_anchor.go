@@ -5,8 +5,8 @@ package consensus
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	cmtjson "github.com/cometbft/cometbft/libs/json"
@@ -35,12 +35,12 @@ func (in *pqLabLiveMaterialsInputs) validateAnchor() error {
 	if a.Version != "YNX-PQ-LAB-ORIGINAL-R-ANCHOR/v1" || a.PlanSHA256 != in.policy.PlanSHA256 || a.ActivationSHA256 != in.policy.ActivationSHA256 || a.Height != in.activation.RegistryHeight || a.AppHash != in.activation.AppHash || a.RegistryRoot != in.activation.RegistryRoot {
 		return errors.New("independent original R anchor differs from activation")
 	}
-	if len(a.CommittedState) == 0 || len(a.CommittedState) > 96<<20 {
+	if len(a.CommittedState) == 0 || len(a.CommittedState) > pqLabAnchorStateMaxBytes {
 		return errors.New("bounded complete original R state required")
 	}
-	var state CommittedState
-	if pqLightUniqueJSON(a.CommittedState) != nil || json.Unmarshal(a.CommittedState, &state) != nil {
-		return errors.New("invalid original R state")
+	state, err := decodePQLabAnchorCommittedState(a.CommittedState)
+	if err != nil {
+		return fmt.Errorf("invalid original R state: %w", err)
 	}
 	entry, err := in.loadStatic()
 	if err != nil {

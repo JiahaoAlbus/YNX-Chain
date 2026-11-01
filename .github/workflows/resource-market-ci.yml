@@ -1831,6 +1831,7 @@ jobs:
           required += ['TestPQLabStaticOwnerPUBLICExactInputsBoundedAndClosed', 'TestPQLabStaticOwnerPUBLICReplacedSourceAndForeignScopeRefused', 'TestPQLabStaticOwnerPUBLICFileBoundFallsBackWithoutRetention', 'TestPQLabStaticOwnerPUBLICLivePublishMeasuresAndRetainsOriginalState', 'TestPQLabStaticOwnerPUBLICPrivateReadContract', 'TestPQLabStaticOwnerPUBLICOverByteBoundNeverIssuesUnheldOwner']
           required += ['TestPQLabStaticCacheBoundCleanRefusalIsExact', 'TestPQLabStaticCacheBoundCleanupFailureIsNotOnlyBound']
           required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']
+          required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
