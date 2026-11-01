@@ -516,6 +516,12 @@
       "browser": null,
       "node": "./native/original-network-resource-source-v2-contract.mjs",
       "default": null
+    },
+    "./network-resource-pending-consent-data": {
+      "types": "./native/original-network-resource-pending-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-network-resource-pending-source-contract.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -786,7 +792,13 @@
     "docs/PRODUCTION_RUNTIME_PACKAGE.md",
     "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md",
     "native/original-network-resource-source-v2-contract.mjs",
-    "native/original-network-resource-source-v2-contract.d.mts"
+    "native/original-network-resource-source-v2-contract.d.mts",
+    "native/original-network-resource-pending-consent-v1.mjs",
+    "native/original-network-resource-pending-consent-v1.d.mts",
+    "native/original-network-resource-pending-source-contract.mjs",
+    "native/original-network-resource-pending-source-contract.d.mts",
+    "native/original-network-resource-pending-source-factory.mjs",
+    "native/original-network-resource-pending-source-factory.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
