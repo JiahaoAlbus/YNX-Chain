@@ -1,4 +1,5 @@
 import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,rejectNativePayPending} from './merchant-invoice-approval.mjs';
+import {nativeInvoiceProductIntentData} from './invoice-product-intent.mjs';
 const failure=code=>Object.assign(Error(code),{code});
 const clone=value=>structuredClone(value);
 
@@ -19,8 +20,28 @@ export class NativePayBusinessClient {
   const revision=++this.#revision,current=()=>this.#fence(revision);
   this.#state={phase,reason:null,reference:clone(reference),bill:null};
   try{current();const result=await work(current);current();this.#state={phase:'ready',reason:null,reference:clone(reference),...result};return this.snapshot();}
-  catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:error.code??'NATIVE_PAY_OPERATION_UNAVAILABLE',reference:clone(reference),bill:null,recoveryOnly:phase==='submitting',...(recovery?{recovery}: {})};}throw error;}
+  catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:error.code??'NATIVE_PAY_OPERATION_UNAVAILABLE',reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
  }
+ async #originalProductIntent(productId,sourceOrder,current){
+  if(typeof productId!=='string'||typeof sourceOrder!=='string'||![productId,sourceOrder].every(v=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v)))throw failure('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
+  if(typeof this.#runtime.readOriginalInvoiceIntent!=='function')throw failure('NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE');
+  current();const original=await this.#runtime.readOriginalInvoiceIntent(Object.freeze({productId,sourceOrder}),current);current();
+  const request=nativeInvoiceProductIntentData(original);
+  if(request.productId!==productId||request.sourceOrder!==sourceOrder)throw failure('NATIVE_PAY_PRODUCT_REFERENCE_CHANGED');
+  return request;
+ }
+ async createInvoiceIntent(productId,sourceOrder){return this.#run({productId,sourceOrder},'creating-intent',async current=>{
+  if(typeof this.#pay.createInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_PRODUCER_UNAVAILABLE');
+  const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
+  const intent=await this.#pay.createInvoiceIntent(original,current);current();
+  return {intent,bill:intent.invoice??null,clientIndependentFinality:false};
+ });}
+ async lookupOriginalInvoiceIntent(productId,sourceOrder){return this.#run({productId,sourceOrder},'recovering',async current=>{
+  if(typeof this.#pay.lookupInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
+  const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
+  const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
+  return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};
+ });}
  async openInvoice(merchant,invoiceId){return this.#run({merchant,invoiceId},'reading',async current=>{const bill=await this.#pay.readInvoice(merchant,invoiceId);current();return {bill,clientIndependentFinality:false};});}
  async openIntent(intentId){return this.#run({intentId},'reading',async current=>{const intent=await this.#pay.readInvoiceIntent(intentId);current();return {intent,bill:intent.invoice??null,clientIndependentFinality:false};});}
  async reviewMerchantTerms(intentId){return this.#run({intentId},'reviewing',async current=>{if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#merchant.requestMerchantTerms(intentId,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
@@ -31,7 +52,9 @@ export class NativePayBusinessClient {
  // This method never invokes approve(), a supplied send callback, or Core.
  async reviewOriginalBroadcast(reference){return this.#run(reference,'reviewing',async current=>{
   const {kind,merchant,invoiceId,intentId,originalHash}=reference;
-  if(typeof this.#runtime.main?.requestPQBroadcast!=='function')throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_UNAVAILABLE');
+  // Core's existing requestPQBroadcast(hash) has no Pay target association.
+  // Only the fixed original P01 Pay review entry may select that target.
+  if(typeof this.#runtime.main?.requestPQPayBroadcast!=='function')throw failure('NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE');
   let original;
   if(kind==='invoice_terms'){
    if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
@@ -40,29 +63,19 @@ export class NativePayBusinessClient {
    if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
    original=await this.#actions.readOriginalActionMember({merchant,invoiceId,kind,originalHash},current);
   }else throw failure('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
-  current();const pending=await this.#runtime.main.requestPQBroadcast(original.abciHash);
+  const payReference=kind==='invoice_terms'?{hash:original.abciHash,kind,intentId}:{hash:original.abciHash,kind,merchant:original.merchant??merchant,invoiceId:original.invoiceId??invoiceId};
+  current();const pending=await this.#runtime.main.requestPQPayBroadcast(Object.freeze(payReference));
   try{current();const review=pending?.request?.review;
    if(pending?.status!=='approval-required'||pending.request.method!=='ynx_broadcastPQNativeAction'||review.hash!==original.abciHash||review.memberHash!==original.nativeHash||review.account!==original.owner||review.operationId!==original.operationId||review.typedAction?.kind!==kind)throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_CHANGED');
   }catch(error){if(pending?.request?.id)try{rejectNativePayPending(this.#runtime.main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
   return {walletRequest:pending.request,approvalRequired:true,bill:null,recovery:{...reference,nativeHash:original.nativeHash,abciHash:original.abciHash},clientIndependentFinality:false};
  });}
- // The original Main/Auth callee owns the actual protected approval and its
- // durable submission reservation. It must call send from that same context.
- // A boolean, callback response, pasted Member or CLI flag grants nothing.
- async #submit(reference,read,send){return this.#run(reference,'submitting',async current=>{
-  if(typeof this.#runtime.withSubmissionApproval!=='function')throw failure('NATIVE_PAY_BROADCAST_APPROVAL_UNAVAILABLE');
-  const original=await read(current);current();this.#state.recovery={...reference,nativeHash:original.nativeHash,abciHash:original.abciHash};let entered=false;
-  const result=await this.#runtime.withSubmissionApproval(Object.freeze({...reference,nativeHash:original.nativeHash,abciHash:original.abciHash,mainOperationId:original.operationId}),async()=>{
-   current();if(entered)throw failure('NATIVE_PAY_ORIGINAL_SEND_ALREADY_ENTERED');entered=true;
-   // No retry/catch-and-send path. Original Main and Pay archival survive all
-   // late focus/logout/network failures before any UI result is published.
-   return send(original,current);
-  });current();if(!entered)throw failure('NATIVE_PAY_BROADCAST_APPROVAL_UNAVAILABLE');
-  return {result,bill:null,recovery:{...reference,nativeHash:original.nativeHash,abciHash:original.abciHash},clientIndependentFinality:false};
- });}
- async submitMerchantTerms(intentId,originalHash){return this.#submit({intentId,kind:'invoice_terms',originalHash},current=>{if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');return this.#merchant.readOriginalMerchantMember(intentId,originalHash,current);},(original,current)=>{current();return this.#pay.submitMerchantMember(intentId,Buffer.from(original.member,'base64'));});}
- async submitPayment(merchant,invoiceId,originalHash){return this.#submit({merchant,invoiceId,kind:'invoice_settle',originalHash},current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');return this.#actions.readOriginalActionMember({merchant,invoiceId,kind:'invoice_settle',originalHash},current);},(original,current)=>{current();return this.#pay.submitSettlement(merchant,invoiceId,Buffer.from(original.member,'base64'));});}
- async submitRefund(merchant,invoiceId,originalHash){return this.#submit({merchant,invoiceId,kind:'invoice_refund',originalHash},current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');return this.#actions.readOriginalActionMember({merchant,invoiceId,kind:'invoice_refund',originalHash},current);},(original,current)=>{current();return this.#pay.submitRefund(merchant,invoiceId,Buffer.from(original.member,'base64'));});}
+ // Compatibility command names now request the original Wallet's separate
+ // Pay broadcast review only. Production never accepts a send/approval
+ // callback here; the same original Main UI/Native pipeline owns execution.
+ async submitMerchantTerms(intentId,originalHash){return this.reviewOriginalBroadcast({kind:'invoice_terms',merchant:'',invoiceId:'',intentId,originalHash});}
+ async submitPayment(merchant,invoiceId,originalHash){return this.reviewOriginalBroadcast({kind:'invoice_settle',merchant,invoiceId,intentId:'',originalHash});}
+ async submitRefund(merchant,invoiceId,originalHash){return this.reviewOriginalBroadcast({kind:'invoice_refund',merchant,invoiceId,intentId:'',originalHash});}
  async recoverInvoice(merchant,invoiceId,nativeHash){return this.#run({merchant,invoiceId,nativeHash},'recovering',async current=>{
   const before=await this.#pay.readInvoice(merchant,invoiceId);current();
   if(nativeHash){if(!before.operations?.[nativeHash])throw failure('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');await this.#pay.reconcileOperation(merchant,invoiceId,nativeHash);current();}

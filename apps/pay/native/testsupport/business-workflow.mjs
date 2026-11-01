@@ -47,7 +47,7 @@ const main={vault:{async status(){return {initialized:true,account:actor}}},reje
 const runtime={pay,main,current,async readInvoiceOriginals({kind},fence){fence();let settlement=null;
  if(kind==='invoice_refund'){const saved=records.find(r=>r.typed.review.action.kind==='invoice_settle');assert.ok(saved);settlement={review:saved.typed.review,member:Buffer.from(fixture.Rows[1].Wire,'base64'),original:{reviewSnapshot:snapshots[1],signingSnapshot:snapshots[1],selectedBinding:{account:saved.account,networkId:saved.typed.networkId}}};}
  return {termsMessage:Buffer.from(fixture.Rows[0].Message,'base64'),settlement};
-},async withSubmissionApproval(reference,send){current();sendCount++;return send();}};
+}};
 function fixtureReturnMember(request){
  // This deliberately models ONLY a public Member return. It never calls Main
  // approve, a signer or a Native borrow. Actual Core AND signatures are reused.
@@ -59,12 +59,14 @@ const intentId=process.env.PAY_CLIENT_QA_INTENT,merchant=fixture.Merchant,id=fix
 let client=new NativePayBusinessClient(runtime);
 assert.equal((await client.openIntent(intentId)).intent.state,'PREPARED');
 let review=await client.reviewMerchantTerms(intentId);assert.equal(review.approvalRequired,true);
-let original=fixtureReturnMember(review.walletRequest);await client.submitMerchantTerms(intentId,original.hash);
+let original=fixtureReturnMember(review.walletRequest);
+// PUBLIC backend fixture only: production client cannot dispatch via callback.
+await assert.rejects(client.submitMerchantTerms(intentId,original.hash),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});current();sendCount++;await pay.submitMerchantMember(intentId,Buffer.from(fixture.Rows[stage].Wire,'base64'));
 assert.equal((await client.recoverIntent(intentId)).intent.state,'ISSUED');
 stage=1;actor=fixture.Terms.Payer;
 review=await client.reviewPayment(merchant,id);assert.equal(review.walletRequest.review.invoice.amount.atoms,'100');
 original=fixtureReturnMember(review.walletRequest);
-await assert.rejects(client.submitPayment(merchant,id,original.hash));assert.equal(client.snapshot().recoveryOnly,true);
+await assert.rejects(client.submitPayment(merchant,id,original.hash),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});current();sendCount++;await assert.rejects(pay.submitSettlement(merchant,id,Buffer.from(fixture.Rows[stage].Wire,'base64')));
 // Actual original Pay Store is cold-opened, then a new client has no local
 // transaction state to replay. Recover only the original Native hash.
 await requestPrivate({origin:process.env.PAY_CLIENT_QA_ORIGIN,method:'POST',path:'/PUBLIC-QA-ONLY/cold'});
@@ -72,9 +74,9 @@ client=new NativePayBusinessClient(runtime);
 let result=await client.recoverInvoice(merchant,id,original.typed.memberHash);assert.equal(result.bill.paidAtoms,'100');assert.equal(sendCount,2);
 stage=2;actor=merchant;
 review=await client.reviewRefund(merchant,id,'refund-30','30');assert.equal(review.walletRequest.review.invoice.recipient,fixture.Terms.Payer);
-original=fixtureReturnMember(review.walletRequest);await client.submitRefund(merchant,id,original.hash);
+original=fixtureReturnMember(review.walletRequest);await assert.rejects(client.submitRefund(merchant,id,original.hash),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});current();sendCount++;await pay.submitRefund(merchant,id,Buffer.from(fixture.Rows[stage].Wire,'base64'));
 result=await client.recoverInvoice(merchant,id,original.typed.memberHash);
 assert.equal(result.bill.refundedAtoms,'30');assert.equal(result.bill.netPaidAtoms,'70');assert.equal(reviewCount,3);assert.equal(sendCount,3);
 assert.equal(result.bill.termsFeeAtoms,'1');assert.equal(result.bill.paymentFeeAtoms,'1');assert.equal(result.bill.refundFeeAtoms,'1');
 live=false;await assert.rejects(client.openInvoice(merchant,id));assert.equal(client.snapshot().bill,null);
-console.log(JSON.stringify({result:'PASS',normalClient:true,actualPrivateHTTPAndColdStore:true,actualMainReviewCaller:true,soleSDKAndMemberMath:true,termsPaymentRefundReviews:3,originalSubmissions:3,paid:'100',refunded:'30',netPaid:'70',feeEach:'1',unknownColdNoResend:true,realMainApproval:false,realSource:false,productionFunds:false,receipt:nativePaySummary(result)}));
+console.log(JSON.stringify({result:'PASS',normalClient:true,actualPrivateHTTPAndColdStore:true,actualMainReviewCaller:true,soleSDKAndMemberMath:true,termsPaymentRefundReviews:3,controlledPublicServiceDispatches:3,productionPayDispatcher:false,paid:'100',refunded:'30',netPaid:'70',feeEach:'1',unknownColdNoResend:true,realMainApproval:false,realSource:false,productionFunds:false,receipt:nativePaySummary(result)}));

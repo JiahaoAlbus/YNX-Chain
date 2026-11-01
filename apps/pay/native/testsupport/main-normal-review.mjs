@@ -51,12 +51,12 @@ for(const [i,record] of records.entries()){
   const bill={merchant,invoiceId:terms.InvoiceID,sessionId:terms.SessionID,genesis:record.typed.networkId,nativeChainId:'6423',principalAtoms:'100',termsHash,settlementNativeHash:records[1].typed.memberHash,operations:{[records[1].typed.memberHash]:{member:fixture.Rows[1].Wire}}};
   const entry=createNativePayMainEntry({getMain:()=>main,getContext:()=>({account:record.account,revision:lifecycle.status().revision,focused:true,locked:false,changing:false})});
   entry.compose({current(){},pay:{async readInvoice(){return bill},async readInvoiceIntent(){return {merchant,intentId,signingMessageHash:termsHash,request:{sourceOrder:'order-100'}}},async merchantTermsReview(){throw Error('not needed')}}});
-  const result=await lifecycle.run(()=>entry.invoke({action:'broadcast-review',kind:record.typed.review.action.kind,merchant,invoiceId:terms.InvoiceID,intentId,originalHash:record.hash}));
-  assert.equal(result.approvalRequired,true);assert.equal(main.pending.get(result.walletRequest.id)?.method,'ynx_broadcastPQNativeAction');
+  await assert.rejects(lifecycle.run(()=>entry.invoke({action:'broadcast-review',kind:record.typed.review.action.kind,merchant,invoiceId:terms.InvoiceID,intentId,originalHash:record.hash})),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});
+  assert.equal(main.pending.size,0); // generic Core review is not a Pay target
   assert.equal((await store.readPQProgress(record.account,record.hash,()=>{})).status,'signed-unsubmitted');assert.equal(dispatched,0);
-  entry.cancel();assert.equal(main.pending.has(result.walletRequest.id),false);await main.shutdownPQReviews();
+  entry.cancel();assert.equal(main.pending.size,0);await main.shutdownPQReviews();
   const cold=new FileTransactionIntentStore({filePath:path.join(directory,'original-main-journal.json')});assert.equal((await cold.readPQOriginals(record.account,()=>{}))[0].hash,record.hash);
-  results.push({kind:record.typed.review.action.kind,actualMainQueue:true,originalJournal:true,originalStatus:'signed-unsubmitted',dispatches:dispatched});
+  results.push({kind:record.typed.review.action.kind,actualCoreMainPayRefusal:true,originalJournal:true,originalStatus:'signed-unsubmitted',dispatches:dispatched});
  }finally{lifecycle.lock();fs.rmSync(directory,{recursive:true,force:true});}
 }
 for(const [file,hash] of sourceFiles)assert.equal(hashSource(file),hash,'Actual Main source changed during validation: '+file);

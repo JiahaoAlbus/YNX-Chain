@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {nativeInvoiceProductIntentData,assertNativeInvoiceIntentView} from './invoice-product-intent.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -54,7 +55,7 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
    if(envelope.toString('base64url')!==saved.wire||'0x'+digest(envelope)!==saved.hash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
    const decoded=decodePQActionTransportData(envelope),member=Buffer.from(decoded.member);
    if(decoded.originals.length||'0x'+digest(member)!==saved.typed.memberHash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
-   current();return Object.freeze({intentId,sourceOrder:view.request.sourceOrder,owner:view.merchant,operationId:saved.operationId,member:member.toString('base64'),nativeHash:saved.typed.memberHash,abciHash:saved.hash,signingMessageHash:view.signingMessageHash,signingOnly:true,broadcastApprovalRequired:true,consensusFinality:false});
+   current();return Object.freeze({intentId,merchant:view.merchant,invoiceId:saved.typed.review.action.payload.invoiceID,sourceOrder:view.request.sourceOrder,owner:view.merchant,operationId:saved.operationId,member:member.toString('base64'),nativeHash:saved.typed.memberHash,abciHash:saved.hash,signingMessageHash:view.signingMessageHash,signingOnly:true,broadcastApprovalRequired:true,consensusFinality:false});
   }
  });
 }
@@ -81,17 +82,33 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   if(!(result?.body instanceof Uint8Array)||result.body.length>2*1024*1024)fail('NATIVE_INVOICE_RESPONSE_BOUNDS');
   return {method:result.method,requestPath:result.requestPath,status:result.status,contentType:result.contentType,cacheControl:result.cacheControl??'',body:Uint8Array.from(result.body)};
  }
- async function call(method,path,input){
+ async function call(method,path,input,current){
+  if(current!==undefined&&typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
   const body=input===undefined?undefined:Buffer.from(JSON.stringify(input));
   if(body&&body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
-  const result=await requestPrivate(Object.freeze({origin,method,path,body,contentType:input===undefined?undefined:'application/json'}));
-  if(result?.method!==method||result?.requestPath!==path||!Number.isInteger(result?.status)||result.status<200||result.status>=300||!/^application\/json(?:;|$)/i.test(result?.contentType??''))fail('NATIVE_INVOICE_PRIVATE_RESPONSE_UNAVAILABLE');
+  current?.();
+  const result=await requestPrivate(Object.freeze({origin,method,path,body,contentType:input===undefined?undefined:'application/json',...(current?{assertCurrent:current}:{})}));
+  if(result?.method!==method||result?.requestPath!==path||!Number.isInteger(result?.status)||!/^application\/json(?:;|$)/i.test(result?.contentType??''))fail('NATIVE_INVOICE_PRIVATE_RESPONSE_UNAVAILABLE');
   if(!(result.body instanceof Uint8Array)||result.body.length>2*1024*1024)fail('NATIVE_INVOICE_RESPONSE_BOUNDS');
   const text=new TextDecoder('utf-8',{fatal:true}).decode(result.body),value=JSON.parse(text);
   if(!value||typeof value!=='object'||Array.isArray(value))fail('NATIVE_INVOICE_PRIVATE_RESPONSE_INVALID');
+  if(result.status<200||result.status>=300){
+   const code=[400,409,413,415,503].includes(result.status)&&typeof value.code==='string'&&/^NATIVE_[A-Z0-9_]{1,100}$/.test(value.code)?value.code:'NATIVE_INVOICE_PRIVATE_RESPONSE_UNAVAILABLE';
+   throw Object.assign(Error(code),{code,status:result.status,method,requestPath:path});
+  }
   return value;
  }
  return Object.freeze({
+  async createInvoiceIntent(original,current){
+   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
+   const request=nativeInvoiceProductIntentData(original);
+   return assertNativeInvoiceIntentView(await call('POST','/v5/pay/invoice-intents',request,current),request);
+  },
+  async lookupInvoiceIntent(original,current){
+   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
+   const request=nativeInvoiceProductIntentData(original);
+   return assertNativeInvoiceIntentView(await call('POST','/v5/pay/invoice-intents/lookup',request,current),request);
+  },
   // Normal Main dispatcher only, after its genuine separate approval and
   // same-journal durable UNKNOWN. Preserve actual /v5/... HTTP metadata;
   // never relabel this packet as a Core broadcast/finality response.

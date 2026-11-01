@@ -20,7 +20,14 @@ test('read remains usable with unavailable Main, while approval effects stay exp
  const client=new NativePayBusinessClient({pay:{async readInvoice(){return {paidAtoms:'0'}}},current(){}});
  assert.equal((await client.openInvoice('merchant','invoice')).phase,'ready');
  await assert.rejects(client.reviewPayment('merchant','invoice'),{code:'NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE'});
- await assert.rejects(client.submitPayment('merchant','invoice','original'),{code:'NATIVE_PAY_BROADCAST_APPROVAL_UNAVAILABLE'});
+ await assert.rejects(client.submitPayment('merchant','invoice','original'),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});
+});
+test('generic Core review and a QA approval callback cannot dispatch Pay funds',async()=>{
+ let calls=0;
+ const main={requestPQTypedAction(){calls++;},requestPQBroadcast(){calls++;},reject(){},transactionSender:{submissions:{intentStore:{async readPQOriginals(){return [];},async unresolvedPreparation(){return false;}}}}};
+ const client=new NativePayBusinessClient({main,pay:{merchantTermsReview(){calls++;},readInvoiceIntent(){calls++;},submitSettlement(){calls++;}},current(){},withSubmissionApproval(_ref,send){calls++;return send();}});
+ for(const work of [()=>client.submitMerchantTerms('intent','hash'),()=>client.submitPayment('merchant','invoice','hash'),()=>client.submitRefund('merchant','invoice','hash')])await assert.rejects(work(),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});
+ assert.equal(calls,0);
 });
 test('normal CLI has no approve/keys/default authority and diagnostics perform no runtime import',async()=>{
  const output=[];assert.equal(await runNativePayCLI(['--diagnose'],{write:s=>output.push(JSON.parse(s))}),0);assert.equal(output[0].submission,false);

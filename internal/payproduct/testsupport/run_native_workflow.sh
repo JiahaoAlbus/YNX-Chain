@@ -17,6 +17,18 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-pay-refusal ]; then
+ : "${PAY_CLIENT_MAIN_SOURCE:?fixed original Core-only P01 Main source required}"
+ node "$client_root/testsupport/main-pay-missing-entry.mjs"
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = intent-client ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ export PAY_PRODUCT_INTENT_CLIENT_DRIVER="$client_root/testsupport/product-intent-consumer.mjs"
+ "$PAY_NODE_BINARY" --test "$client_root/invoice-product-intent.test.mjs" "$client_root/main-entry.test.mjs" "$client_root/pay-business-client.test.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_product_intent_client' ./internal/payproduct -run '^TestNativeIntentClientLostCreateColdOriginalLookupAndRefusal$' -count=1 -timeout=1m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = engine-node ]; then
  : "${PAY_ENGINE_FIXTURE_REPORT:?new external fixture report path required}"
  : "${PAY_ENGINE_SOCKET_ROOT:?owned external short socket root required}"

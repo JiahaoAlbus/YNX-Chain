@@ -2,7 +2,7 @@ import {types} from 'node:util';
 import {NativePayBusinessClient,nativePaySummary} from './pay-business-client.mjs';
 import {rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
-const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
+const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
 function input(value){
  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail('NATIVE_PAY_MAIN_INPUT_INVALID');
  const d=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(d);
@@ -42,6 +42,7 @@ export function createNativePayMainEntry({getMain,getContext}){
    current();active=true;
    try{
     const runtime={main,pay:originalSource.pay,current,
+     ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
      ...(originalSource.notificationInbox?{notificationInbox:originalSource.notificationInbox}:{}),
      ...(typeof originalSource.readNotificationScope==='function'?{readNotificationScope:()=>originalSource.readNotificationScope()}:{}),
@@ -50,6 +51,8 @@ export function createNativePayMainEntry({getMain,getContext}){
     const {action,merchant,invoiceId,intentId}=request;
     if(action==='invoice')state=await client.openInvoice(merchant,invoiceId);
     else if(action==='intent')state=await client.openIntent(intentId);
+    else if(action==='create-intent')state=await client.createInvoiceIntent(request.productId,request.sourceOrder);
+    else if(action==='lookup-intent')state=await client.lookupOriginalInvoiceIntent(request.productId,request.sourceOrder);
     else if(action==='terms-review')state=await client.reviewMerchantTerms(intentId);
     else if(action==='pay-review')state=await client.reviewPayment(merchant,invoiceId);
     else if(action==='refund-review')state=await client.reviewRefund(merchant,invoiceId,request.refundId,request.amountAtoms);
