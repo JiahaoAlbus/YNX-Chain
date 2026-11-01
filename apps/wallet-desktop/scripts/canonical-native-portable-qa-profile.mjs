@@ -1,9 +1,11 @@
 // Closed QA source/build receipt profile. Never Root, Native admission or A.
-import {readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,closeSync,constants,fstatSync,readSync} from 'node:fs';
+import {readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,closeSync,constants,fstatSync,readSync,realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {isDeepStrictEqual,types} from 'node:util';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import continuationData from './canonical-native-portable-qa-continuation-data.json' with {type:'json'};
 import data from './canonical-native-portable-qa-profile-data.json' with {type:'json'};
 import * as originalBuild from './build-original-auth-identity-native.mjs';
 export const PORTABLE_QA_ROLE='YNX_WALLET_CANONICAL_PORTABLE_QA/v1';
@@ -71,7 +73,7 @@ export function verifyPortableQAComponent({record,inventoryBytes,moduleBytes,hel
  record=captureRecordDATA(record);
  if(!isPortableQARecord(record)||!inventorySelected(data.version,inventoryBytes))fail('PORTABLE_QA_PROFILE_NOT_SELECTED');
  abs(record.sourceRoot);abs(record.headerRoot);const root=record.sourceRoot,r=record.normalPortableImageRole;
- exact(record,['schemaVersion','kind','napiVersion','headerVersion','minimumSystemVersion','readbackOnly','commandsKind','appSigned','nativeQualified','registrationAccepted','relativeBases','sourceRoot','headerRoot','sourceInventory','inputFiles','headers','architectures','commands','exitCodes','ownedUndefinedScan','output','sourceProvenanceFiles','normalPortableImageRole','portableRuntime','helperBuild']);exact(r,['kind','profileId','manifest','runtime','systemInputs','nodeExecutable','postCommands','postExitCodes']);same(r.kind,PORTABLE_QA_ROLE);same(r.profileId,data.id);same(r.manifest,data.manifestPin);same(r.runtime,data.manifest.node);same(r.systemInputs,data.manifest.systemInputs);
+ exact(record,['schemaVersion','kind','napiVersion','headerVersion','minimumSystemVersion','readbackOnly','commandsKind','appSigned','nativeQualified','registrationAccepted','relativeBases','sourceRoot','headerRoot','sourceInventory','inputFiles','headers','architectures','commands','exitCodes','ownedUndefinedScan','output','sourceProvenanceFiles','normalPortableImageRole','portableRuntime','helperBuild']);exact(r,['kind','profileId','manifest','runtime','systemInputs','nodeExecutable','postCommands','postExitCodes',...(Object.hasOwn(r,'postBuildContinuation')?['postBuildContinuation']:[])]);same(r.kind,PORTABLE_QA_ROLE);same(r.profileId,data.id);same(r.manifest,data.manifestPin);same(r.runtime,data.manifest.node);same(r.systemInputs,data.manifest.systemInputs);
  same(record.schemaVersion,1);same(record.kind,'YNX_WALLET_ORIGINAL_NATIVE_BUILD');same(record.napiVersion,8);same(record.headerVersion,data.headerVersion);same(record.minimumSystemVersion,'13.0');same(record.architectures,['arm64']);
  for(const k of ['readbackOnly','appSigned','nativeQualified','registrationAccepted'])same(record[k],false);
  same(record.commandsKind,'executed-normal-build');same(record.sourceInventory,{relative:data.inventory.path,bytes:data.inventory.bytes,sha256:data.inventory.sha256});same(record.inputFiles,rows(data.nodeInputs));same(record.commands,nodeCommands(root,record.headerRoot,r.nodeExecutable));same(record.exitCodes,record.commands.map(()=>0));
@@ -86,7 +88,16 @@ export function verifyPortableQAComponent({record,inventoryBytes,moduleBytes,hel
  for(const k of ['readbackOnly','serviceRegistered','installed','nativeQualified','appSigned'])same(helper[k],false);
  same(record.output.relative,'apps/wallet-desktop/native/original-auth-identity.node');check(moduleBytes,record.output);same(helper.output.relative,'apps/developer/helper/YNXIdentityReceiver');check(helperBytes,helper.output);same(helper.packagedOutput,'apps/wallet-desktop/native/YNXIdentityReceiver');same(helper.plist,{relative:data.helperPlist.path,bytes:data.helperPlist.bytes,sha256:data.helperPlist.sha256});
  for(const [owner,output]of [[record,record.output.relative],[helper,helper.output.relative]]){const s=owner.ownedUndefinedScan;exact(s,['tool','argv','exit','stdoutSHA256','ownedUndefined']);same(s?.tool,'/usr/bin/nm');same(s.argv,['-u',path.join(root,output)]);same(s.exit,0);same(s.ownedUndefined,[]);if(!/^[a-f0-9]{64}$/.test(s.stdoutSHA256))fail('PORTABLE_QA_SCAN_MISSING');}
+ if(Object.hasOwn(r,'postBuildContinuation')){const role=verifyPortableQAContinuationRoleDATA(record);for(const x of role.producerFiles)check(readSource(x.relative),x);}
  return {normalCommonImage:true,normalPortableImageRole:r,sourceBytesVerified:true,artifactBytesVerified:true,walletInputs:[],selectedNativeInputs:data.nodeInputs,supplierNodeInputCount:262,portableRuntime:true,runtimeLibraryOutputs:record.portableRuntime.libraryOutputs,licenseOutputs:record.portableRuntime.licenseOutputs,helper:{output:helper.output,packagedOutput:helper.packagedOutput,translationUnits:data.helperTranslationUnits.length,sourceInputs:data.helperInputs.length},installed:false,serviceRegistered:false,nativeQualified:false,SourceAdmission:false};
+}
+/** Project the original fixed nm scan plan into the closed five-field receipt.
+ * DATA only: preserves the actual owned-symbol check; never runs a process. */
+export function canonicalPortableQAOwnedScanRecordDATA(scan,raw){
+ scan=captureRecordDATA(scan);exact(scan,['tool','argv','rejectPattern']);same(scan.tool,'/usr/bin/nm');same(scan.rejectPattern,'YNX|ynx');
+ if(!Array.isArray(scan.argv)||scan.argv.length!==2||scan.argv[0]!=='-u')fail('PORTABLE_QA_SCAN_MISSING');abs(scan.argv[1]);
+ if(!Buffer.isBuffer(raw)||raw.length>(16<<20))fail('PORTABLE_QA_SCAN_MISSING');originalBuild.assertOriginalAuthOwnedSymbols(raw.toString());
+ return {tool:scan.tool,argv:scan.argv,exit:0,stdoutSHA256:sha(raw),ownedUndefined:[]};
 }
 export function canonicalPortableQAGatePayloadDATA(plan,imageBytes){
  if(!Buffer.isBuffer(imageBytes)||!Array.isArray(plan.goArchives)||plan.goArchives.length!==1)fail('PORTABLE_QA_GATE_INPUT_INVALID');
@@ -164,12 +175,12 @@ export function buildCanonicalPortableQAComponent({root,arch,headers}){
   const licenseOutputs=licenseInputs.map(([name,x])=>{const b=read(libraryRelative+name);check(b,x);return{relative:libraryRelative+name,...pin(b)};});
   const codeSignVerifications=[...libraryOutputs,output].map(x=>run({tool:'/usr/bin/codesign',argv:['--verify','--strict',path.join(root,x.relative)]}).row);
   const readback=[output,...libraryOutputs].map(x=>inspectPortableMachOQAData(read(x.relative),x.relative));
-  const scan=p=>{const {raw,row}=run(p.ownedUndefinedScan);originalBuild.assertOriginalAuthOwnedSymbols(raw.toString());return{...p.ownedUndefinedScan,exit:0,stdoutSHA256:row.stdoutSHA256,ownedUndefined:[]};};
+  const scan=p=>{const {raw}=run(p.ownedUndefinedScan);return canonicalPortableQAOwnedScanRecordDATA(p.ownedUndefinedScan,raw);};
   const nodeScan=scan(plan);exclusive(plan.gatePlanFile,Buffer.from(JSON.stringify(canonicalPortableQAGatePayloadDATA(plan,moduleBytes))+'\n'));
   for(const c of plan.postCommands)run(c);
   for(const row of[...plan.matchingInputs,...plan.systemInputs])check(regular(row.path),row);
   for(const c of helper.commands)run(c);const helperScan=scan(helper),helperBytes=regular(helper.output);
-  record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:data.headerVersion,minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot:root,headerRoot:headers,sourceInventory:{relative:data.inventory.path,bytes:data.inventory.bytes,sha256:data.inventory.sha256},inputFiles:rows(data.nodeInputs),headers:hp,architectures:['arm64'],commands:plan.commands,exitCodes:plan.commands.map(()=>0),ownedUndefinedScan:nodeScan,output,sourceProvenanceFiles:provenanceBefore,normalPortableImageRole:{kind:PORTABLE_QA_ROLE,profileId:data.id,manifest:data.manifestPin,runtime:data.manifest.node,systemInputs:data.manifest.systemInputs,nodeExecutable:process.execPath,postCommands:plan.postCommands,postExitCodes:plan.postCommands.map(()=>0)},portableRuntime:{version:1,manifest:data.runtimeManifestPin,sourceBuildReceipt:data.sourceBuildReceipt,sourceBuildRecipe:data.sourceBuildRecipe,sourceMappings:data.runtimeManifest.libraries,libraryOutputs,licenseOutputs,readback,codeSignVerifications,recordOrdering:'compile53-with-nested-QA-sign -> post-sign-readback -> strong42-root0 -> helper13 -> final-hashes-record -> asar -> outer-App-sign',adhocQAOnly:true,productionCodeSigned:false,actualOS13Runtime:false,ElectronLoad:false,RootAdmission:false,SourceAdmission:false},helperBuild:{kind:'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1',sourceRoot:root,architectures:['arm64'],readbackOnly:false,commandsKind:'executed-normal-build',executed:true,serviceRegistered:false,installed:false,nativeQualified:false,appSigned:false,inputFiles:rows(data.helperInputs),commands:helper.commands,exitCodes:helper.commands.map(()=>0),ownedUndefinedScan:helperScan,output:{relative:'apps/developer/helper/YNXIdentityReceiver',...pin(helperBytes)},packagedOutput:'apps/wallet-desktop/native/YNXIdentityReceiver',plist:{relative:data.helperPlist.path,bytes:data.helperPlist.bytes,sha256:data.helperPlist.sha256}}};
+  record=portableQARecordDATA({root,headers,plan,helper,hp,provenanceBefore,moduleBytes,output,libraryOutputs,licenseOutputs,codeSignVerifications,readback,nodeScan,helperScan,helperBytes});
   // Re-read all sources and final nested bytes after gates/helper. Any later
   // nested resign/replace is a failure; no expected pin is silently refreshed.
   verifyPortableQAComponent({record,inventoryBytes,moduleBytes:regular(plan.output),helperBytes},read);
@@ -188,4 +199,89 @@ export function portableRuntimePackAssetsDATA(record){
 export function assertPortableRuntimePackagedBytesDATA(record,readPackaged){
  const assets=portableRuntimePackAssetsDATA(record);for(const x of assets)check(readPackaged(x.unpackedRelative),x);
  return {assetsVerified:assets.length,nodeSame:true,librariesSame:3,licensesSame:5,outerSignatureVerified:false,ElectronLoad:false,actualOS13Runtime:false,RootAdmission:false,SourceAdmission:false,dataOnly:true};
+}
+
+function portableQARecordDATA({root,headers,plan,helper,hp,provenanceBefore,moduleBytes,output,libraryOutputs,licenseOutputs,codeSignVerifications,readback,nodeScan,helperScan,helperBytes}){return {schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:data.headerVersion,minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot:root,headerRoot:headers,sourceInventory:{relative:data.inventory.path,bytes:data.inventory.bytes,sha256:data.inventory.sha256},inputFiles:rows(data.nodeInputs),headers:hp,architectures:['arm64'],commands:plan.commands,exitCodes:plan.commands.map(()=>0),ownedUndefinedScan:nodeScan,output,sourceProvenanceFiles:provenanceBefore,normalPortableImageRole:{kind:PORTABLE_QA_ROLE,profileId:data.id,manifest:data.manifestPin,runtime:data.manifest.node,systemInputs:data.manifest.systemInputs,nodeExecutable:process.execPath,postCommands:plan.postCommands,postExitCodes:plan.postCommands.map(()=>0)},portableRuntime:{version:1,manifest:data.runtimeManifestPin,sourceBuildReceipt:data.sourceBuildReceipt,sourceBuildRecipe:data.sourceBuildRecipe,sourceMappings:data.runtimeManifest.libraries,libraryOutputs,licenseOutputs,readback,codeSignVerifications,recordOrdering:'compile53-with-nested-QA-sign -> post-sign-readback -> strong42-root0 -> helper13 -> final-hashes-record -> asar -> outer-App-sign',adhocQAOnly:true,productionCodeSigned:false,actualOS13Runtime:false,ElectronLoad:false,RootAdmission:false,SourceAdmission:false},helperBuild:{kind:'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1',sourceRoot:root,architectures:['arm64'],readbackOnly:false,commandsKind:'executed-normal-build',executed:true,serviceRegistered:false,installed:false,nativeQualified:false,appSigned:false,inputFiles:rows(data.helperInputs),commands:helper.commands,exitCodes:helper.commands.map(()=>0),ownedUndefinedScan:helperScan,output:{relative:'apps/developer/helper/YNXIdentityReceiver',...pin(helperBytes)},packagedOutput:'apps/wallet-desktop/native/YNXIdentityReceiver',plist:{relative:data.helperPlist.path,bytes:data.helperPlist.bytes,sha256:data.helperPlist.sha256}}};}
+
+// Immutable module-owned contract; exported DATA views cannot alter expectations.
+(function freeze(v){if(v&&typeof v==='object'){for(const x of Object.values(v))freeze(x);Object.freeze(v);}})(continuationData);
+const continuationRelative='apps/wallet-desktop/scripts/canonical-native-portable-qa-continuation-data.json';
+const producerRelative='apps/wallet-desktop/scripts/canonical-native-portable-qa-profile.mjs';
+export const PORTABLE_QA_CONTINUATION_PRODUCER_NAMES=Object.freeze([...PORTABLE_QA_PROVENANCE_NAMES,continuationRelative]);
+const continuationKind='YNX_WALLET_PORTABLE_ACTUAL62_POST_BUILD_CONTINUATION/v1';
+function continuationCommands(){const c=continuationData;return [c.NodeScan,c.helperScan,...[...c.originalOutputs.filter(x=>x.relative.endsWith('.dylib')||x.relative.endsWith('.node')),c.originalOutputs.find(x=>x.relative==='apps/developer/helper/YNXIdentityReceiver')].map(x=>({tool:'/usr/bin/codesign',argv:['--verify','--strict',x.path]})),...c.plan.postCommands].map(({tool,argv})=>({tool,argv}));}
+export function inspectPortableQAOriginalAttemptDATA(attempt){
+ attempt=captureRecordDATA(attempt);exact(attempt,['kind','ledger','failed','failureCode','recordWritten','RootAdmission','NativeAdmission']);same(attempt.kind,'PORTABLE_QA_ACTUAL_EXECUTION_ATTEMPT/v1');
+ same(attempt.failed,true);same(attempt.recordWritten,false);same(attempt.failureCode,'PORTABLE_QA_CLOSED_RECORD');same(attempt.RootAdmission,false);same(attempt.NativeAdmission,false);same(attempt.ledger.length,62);
+ for(const [i,r]of attempt.ledger.entries()){exact(r,['tool','argv','exit','stdoutSHA256']);same(r.tool,continuationData.originalCommands[i].tool);same(r.argv,continuationData.originalCommands[i].argv);same(r.exit,0);same(r.stdoutSHA256,continuationData.originalLedgerStdoutSHA256[i]);}
+ return {commands:62,allExit0:true,recordWritten:false,failed:true,compilerExecuted:false};
+}
+/** Closed dual-role metadata. This never upgrades the original failed attempt
+ * to success or assigns the record producer's Git identity to the old compile. */
+export function verifyPortableQAContinuationRoleDATA(record){
+ record=captureRecordDATA(record);const c=continuationData,r=record.normalPortableImageRole?.postBuildContinuation;
+ exact(r,['kind','compileSource','originalAttempt','originalFailure','originalOutputs','recordProducer','freshCommands','freshResults','compilerReexecuted','helperReexecuted','RootAdmission','SourceAdmission']);same(r.kind,continuationKind);
+ same(r.compileSource,{commit:c.compileSourceCommit,tree:c.compileSourceTree,root:c.compileSourceRoot});same(r.originalAttempt,c.originalAttempt);same(r.originalFailure,c.originalFailure);same(r.originalOutputs,c.originalOutputs);
+ for(const k of['compilerReexecuted','helperReexecuted','RootAdmission','SourceAdmission'])same(r[k],false);
+ const p=r.recordProducer;exact(p,['commit','root','entry','argv','sourceFiles']);if(!/^[a-f0-9]{40}$/.test(p.commit)||p.commit===c.compileSourceCommit)fail('PORTABLE_QA_CONTINUATION_PRODUCER_GIT');same(p.root,record.sourceRoot);same(record.sourceRoot,c.compileSourceRoot);same(p.entry,producerRelative);
+ same(p.argv,[record.normalPortableImageRole.nodeExecutable,path.join(p.root,producerRelative),'--continue-post-build',c.compileSourceRoot,c.headerRoot,p.commit]);same(p.sourceFiles.map(x=>x.relative),PORTABLE_QA_CONTINUATION_PRODUCER_NAMES);
+ for(const x of p.sourceFiles){exact(x,['relative','bytes','sha256']);if(!Number.isSafeInteger(x.bytes)||x.bytes<1||x.bytes>(16<<20)||!hexd(x.sha256))fail('PORTABLE_QA_CONTINUATION_PRODUCER_PIN');}
+ same(record.headerRoot,c.headerRoot);same(record.inputFiles,rows(data.nodeInputs));same(record.helperBuild.inputFiles,rows(data.helperInputs));same(record.commands,c.plan.commands);same(record.exitCodes,c.plan.commands.map(()=>0));same(record.helperBuild.commands,c.helper.commands);same(record.helperBuild.exitCodes,c.helper.commands.map(()=>0));
+ same(record.sourceProvenanceFiles,p.sourceFiles.slice(0,-1));same(r.freshCommands,continuationCommands());same(r.freshResults.map(x=>({tool:x.tool,argv:x.argv,exit:x.exit})),r.freshCommands.map(x=>({...x,exit:0})));
+ for(const x of r.freshResults){exact(x,['tool','argv','exit','stdoutSHA256']);if(!hexd(x.stdoutSHA256))fail('PORTABLE_QA_CONTINUATION_RESULT');}
+ const outputs=[record.output,...record.portableRuntime.libraryOutputs,...record.portableRuntime.licenseOutputs,record.helperBuild.output];same(outputs,c.originalOutputs.map(({relative,bytes,sha256})=>({relative,bytes,sha256})));
+ return {compileSourceCommit:c.compileSourceCommit,recordProducerCommit:p.commit,producerFiles:p.sourceFiles,compileInputs:c.sourceInputs,compileProvenance:c.compileProvenance.map(({relative,bytes,sha256})=>({relative,bytes,sha256})),originalAttempt:c.originalAttempt,compilerReexecuted:false,helperReexecuted:false,RootAdmission:false,SourceAdmission:false};
+}
+function continuationPin(file,row){check(regular(file),row);}
+function continuationGit(root,commit,relative,row){const b=execFileSync('/usr/bin/git',['-C',root,'show',commit+':'+relative],{maxBuffer:16<<20});check(b,row);const entry=execFileSync('/usr/bin/git',['-C',root,'ls-tree',commit,'--',relative],{encoding:'utf8'});if(!/^(100644|100755) blob [a-f0-9]{40}\t/.test(entry))fail('PORTABLE_QA_CONTINUATION_SOURCE_NOT_BLOB');}
+function preparePortableQAContinuation({root,headers,producerCommit}){
+ abs(root);abs(headers);const c=continuationData;same(root,c.compileSourceRoot);same(headers,c.headerRoot);
+ if(typeof producerCommit!=='string'||!/^[a-f0-9]{40}$/.test(producerCommit)||producerCommit===c.compileSourceCommit)fail('PORTABLE_QA_CONTINUATION_PRODUCER_GIT');
+ const producerRoot=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');same(producerRoot,root);same(execFileSync('/usr/bin/git',['-C',root,'rev-parse','HEAD'],{encoding:'utf8'}).trim(),producerCommit);
+ if(execFileSync('/usr/bin/git',['-C',root,'status','--porcelain','--untracked-files=no'],{encoding:'utf8'}).trim())fail('PORTABLE_QA_CONTINUATION_TRACKED_DIRTY');
+ inspectCanonicalPortableQAExecutionRuntimeDATA(process.version,process.versions.uv,regular(process.execPath));
+ continuationPin(c.originalAttempt.path,c.originalAttempt);inspectPortableQAOriginalAttemptDATA(JSON.parse(regular(c.originalAttempt.path)));continuationPin(c.originalWrapperResult.path,c.originalWrapperResult);
+ for(const x of c.sourceInputs){continuationPin(path.join(root,x.path),x);continuationGit(root,c.compileSourceCommit,x.path,x);continuationGit(root,producerCommit,x.path,x);}
+ for(const x of c.compileProvenance)continuationGit(root,c.compileSourceCommit,x.relative,x);
+ const producerFiles=PORTABLE_QA_CONTINUATION_PRODUCER_NAMES.map(relative=>({relative,...pin(regular(path.join(root,relative)))}));for(const x of producerFiles)continuationGit(root,producerCommit,x.relative,x);
+ for(const x of c.headerPins)continuationPin(x.path,x);for(const x of c.tools){same(fsRealpath(x.requested),x.resolved);continuationPin(x.resolved,x);}for(const x of [...c.originalOutputs,...c.originalObjects,...c.originalGeneratedRecords])continuationPin(x.path,x);
+ const {plan,helper}=planCanonicalPortableQAComponentDATA({root,arch:'arm64',headers});same(plan,c.plan);same(helper,c.helper);
+ const recordPath=path.join(root,'apps/wallet-desktop/native/original-auth-identity-build.json'),alias=path.join(root,'apps/wallet-desktop/native/YNXIdentityReceiver'),journal=recordPath+'.portable-post-build-continuation.json';for(const f of[recordPath,alias,journal]){try{lstatSync(f);fail('PORTABLE_QA_OUTPUT_EXISTS');}catch(e){if(e.code!=='ENOENT')throw e;}}
+ return {plan,helper,producerFiles,recordPath,alias,journal};
+}
+// The filesystem identity check deliberately has no caller-supplied resolver.
+function fsRealpath(file){return realpathSync(file);}
+export function planCanonicalPortableQAPostBuildContinuation(options){const p=preparePortableQAContinuation(options);return {kind:continuationKind,compileSourceCommit:continuationData.compileSourceCommit,recordProducerCommit:options.producerCommit,originalCommands:62,newCompilerCommands:0,newHelperCommands:0,freshVerificationCommands:continuationCommands(),recordPath:p.recordPath,journal:p.journal,recordWritten:false,RootAdmission:false,SourceAdmission:false};}
+export function continueCanonicalPortableQAPostBuild(options){
+ if(process.platform!=='darwin')fail('PORTABLE_QA_DARWIN_ARM64_ONLY');const {root,headers,producerCommit}=options,c=continuationData,prepared=preparePortableQAContinuation(options),{plan,helper,producerFiles,recordPath,alias,journal}=prepared;
+ same(process.argv,[process.execPath,path.join(root,producerRelative),'--continue-post-build',root,headers,producerCommit]);
+ const read=relative=>regular(path.join(root,relative)),ledger=[];let failed=true,cause,record;
+ try{
+  for(const cmd of continuationCommands()){let raw;try{raw=execFileSync(cmd.tool,cmd.argv,{encoding:'buffer',maxBuffer:16<<20});}catch(e){ledger.push({...cmd,exit:e.status??null,signal:e.signal??null,stdoutSHA256:sha(e.stdout??Buffer.alloc(0)),stderrSHA256:sha(e.stderr??Buffer.alloc(0))});throw e;}ledger.push({...cmd,exit:0,stdoutSHA256:sha(raw)});if(cmd.tool==='/usr/bin/nm')originalBuild.assertOriginalAuthOwnedSymbols(raw.toString());}
+  // Gates are checks, never an excuse to refresh a changed expected output.
+  preparePortableQAContinuation(options);
+  const moduleBytes=read(moduleRelative),helperBytes=regular(helper.output),output={relative:moduleRelative,...pin(moduleBytes)},libraryOutputs=runtimeNames.map(n=>({relative:libraryRelative+n,...pin(read(libraryRelative+n))})),licenseOutputs=licenseInputs.map(([name,x])=>({relative:libraryRelative+name,bytes:x.bytes,sha256:x.sha256}));
+  const nodeScan={...ledger[0],ownedUndefined:[]},helperScan={...ledger[1],ownedUndefined:[]};
+  const codeSignVerifications=libraryOutputs.concat(output).map(x=>ledger.find(y=>y.tool==='/usr/bin/codesign'&&y.argv[2]===path.join(root,x.relative)));if(codeSignVerifications.some(x=>!x))fail('PORTABLE_QA_CONTINUATION_SIGNATURE_MISSING');
+  const readback=[output,...libraryOutputs].map(x=>inspectPortableMachOQAData(read(x.relative),x.relative));
+  const hp=c.headerPins.map(({relative,bytes,sha256})=>({relative,bytes,sha256}));
+  record=portableQARecordDATA({root,headers,plan,helper,hp,provenanceBefore:producerFiles.slice(0,-1),moduleBytes,output,libraryOutputs,licenseOutputs,codeSignVerifications,readback,nodeScan,helperScan,helperBytes});
+  record.normalPortableImageRole.postBuildContinuation={kind:continuationKind,compileSource:{commit:c.compileSourceCommit,tree:c.compileSourceTree,root:c.compileSourceRoot},originalAttempt:c.originalAttempt,originalFailure:c.originalFailure,originalOutputs:c.originalOutputs,recordProducer:{commit:producerCommit,root,entry:producerRelative,argv:process.argv,sourceFiles:producerFiles},freshCommands:continuationCommands(),freshResults:ledger,compilerReexecuted:false,helperReexecuted:false,RootAdmission:false,SourceAdmission:false};
+  verifyPortableQAComponent({record,inventoryBytes:read(data.inventory.path),moduleBytes,helperBytes},read);for(const x of producerFiles)continuationPin(path.join(root,x.relative),x);for(const x of c.originalOutputs)continuationPin(x.path,x);
+  exclusive(alias,helperBytes,0o755);exclusive(recordPath,Buffer.from(JSON.stringify(record,null,2)+'\n'));failed=false;
+ }catch(e){cause=e;}finally{exclusive(journal,Buffer.from(JSON.stringify({kind:'PORTABLE_QA_ACTUAL_POST_BUILD_CONTINUATION_ATTEMPT/v1',originalAttempt:c.originalAttempt,compileSourceCommit:c.compileSourceCommit,recordProducerCommit:producerCommit,ledger,failed,recordWritten:!failed,failureCode:cause?.code??null,RootAdmission:false,NativeAdmission:false},null,2)+'\n'));}
+ if(failed)throw cause;return {recordPath,journal,recordWritten:true,compileSourceCommit:c.compileSourceCommit,recordProducerCommit:producerCommit,compilerReexecuted:false,helperReexecuted:false,RootAdmission:false,SourceAdmission:false};
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+ const [mode,root,headers,producerCommit]=process.argv.slice(2);if(process.argv.length!==6||!['--continue-post-build-plan','--continue-post-build'].includes(mode))fail('PORTABLE_QA_CONTINUATION_ARGV_INVALID');
+ console.log(JSON.stringify(mode==='--continue-post-build-plan'?planCanonicalPortableQAPostBuildContinuation({root,headers,producerCommit}):continueCanonicalPortableQAPostBuild({root,headers,producerCommit}),null,2));
+}
+
+/** Read-only prepublication plan: verifies the immutable original failed
+ * attempt's input/output/tool baseline; does not invent a future producer Git. */
+export function inspectCanonicalPortableQAPostBuildBaseline(){
+ const c=continuationData;continuationPin(c.originalAttempt.path,c.originalAttempt);inspectPortableQAOriginalAttemptDATA(JSON.parse(regular(c.originalAttempt.path)));continuationPin(c.originalWrapperResult.path,c.originalWrapperResult);
+ for(const x of c.sourceInputs){continuationPin(path.join(c.compileSourceRoot,x.path),x);continuationGit(c.compileSourceRoot,c.compileSourceCommit,x.path,x);}for(const x of c.compileProvenance)continuationGit(c.compileSourceRoot,c.compileSourceCommit,x.relative,x);
+ for(const x of c.headerPins)continuationPin(x.path,x);for(const x of c.tools){same(fsRealpath(x.requested),x.resolved);continuationPin(x.resolved,x);}for(const x of [...c.originalOutputs,...c.originalObjects,...c.originalGeneratedRecords])continuationPin(x.path,x);
+ return {status:'ORIGINAL62_BASELINE_PIN_PLAN_PASS_NEW_PRODUCER_GIT_NOT_BOUND',compileSourceCommit:c.compileSourceCommit,originalCommands:62,originalObjects:51,sourceInputs:c.sourceInputs.length,compileProvenance:c.compileProvenance.length,originalOutputs:c.originalOutputs.length,tools:c.tools.length,freshCommands:continuationCommands(),originalFailedAttemptRetained:true,newCompilerCommands:0,newHelperCommands:0,newProducerCommit:'NOT_SUPPLIED_BEFORE_PARENT_PUBLICATION',recordWritten:false,compilerExecuted:false,helperExecuted:false,signatureVerifiedHere:false,RootAdmission:false,SourceAdmission:false};
 }
