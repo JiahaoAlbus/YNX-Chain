@@ -1,0 +1,103 @@
+{
+  "sourceSDKGit": "59cbebd94d9046302cc9bf3d09ae7e17264be84d",
+  "vectors": [
+    {
+      "name": "published-request-create",
+      "prefix": "00",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "published-response",
+      "prefix": "01",
+      "response": true,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.prepare",
+      "prefix": "02",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.propose-tool-step",
+      "prefix": "03",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.complete",
+      "prefix": "04",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.run-start",
+      "prefix": "05",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.run-resume",
+      "prefix": "06",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.reconcile",
+      "prefix": "07",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.list",
+      "prefix": "08",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.read",
+      "prefix": "09",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.step-result",
+      "prefix": "10",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "task.run-read",
+      "prefix": "11",
+      "response": false,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "response-ACCEPTED",
+      "prefix": "12",
+      "response": true,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "response-OBSERVED",
+      "prefix": "13",
+      "response": true,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "response-DENIED",
+      "prefix": "14",
+      "response": true,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "name": "response-UNKNOWN",
+      "prefix": "15",
+      "response": true,
+      "networkId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false
+}

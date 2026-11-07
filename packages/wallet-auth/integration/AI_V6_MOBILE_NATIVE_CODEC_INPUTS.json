@@ -1,0 +1,133 @@
+{
+  "schema": "YNX_AI_V6_MOBILE_CODEC_BUILD_INPUTS/v1",
+  "sourceSDKGit": "59cbebd94d9046302cc9bf3d09ae7e17264be84d",
+  "bodyR1H": {
+    "bytes": 6692,
+    "sha256": "e1a460b60e7911252c9730bbee9c11c6bfc96af39348fd23ab0ca2b19b6fb4f1"
+  },
+  "headerR2H": {
+    "bytes": 4061,
+    "sha256": "32ffedbc67a6e095f5bbd5380a3f5529f72de7b70637346f9332ba1e4e389d76"
+  },
+  "productionFiles": [
+    {
+      "path": "native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp",
+      "bytes": 19014,
+      "sha256": "1d4753257fc9116831cd3e700e67aeaf34e3086750b960a00c3ca2075dc912a8"
+    },
+    {
+      "path": "native/ai-v6-codec/MobileAITaskV6CodecDATA.hpp",
+      "bytes": 1828,
+      "sha256": "235447334ecf2e31669c8d2be5f24f82e89ed790f3e5850ee0fae4a350d76fe3"
+    },
+    {
+      "path": "native/ai-v6-codec/MobileAITaskV6HeaderDATA.cpp",
+      "bytes": 2076,
+      "sha256": "8a0cc6998260c738c5c792e45d6997a8aed61c043c4542c8dd7f2e3909fc3e34"
+    },
+    {
+      "path": "native/ai-v6-codec/MobileAITaskV6HeaderDATA.hpp",
+      "bytes": 952,
+      "sha256": "072dad86558c822307589e2a349035d8ff525130de70b3b919e55d9060b087c7"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/MobileAITaskPlatformPrivate.h",
+      "bytes": 1646,
+      "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/MobileAITaskRuntimePrivate.h",
+      "bytes": 6202,
+      "sha256": "99c76dad4fd1de1cc8acf941a07b84558c79044448192c3f6dd05971ec4d7107"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/MobileCanonicalDATA.cpp",
+      "bytes": 5235,
+      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/MobileSecure43.h",
+      "bytes": 3478,
+      "sha256": "1a0dd79588a473f6cbed9beaad76afa24a7a0f29ab6c3bc4ea82357b4ad9ecd2"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/OS43Private.h",
+      "bytes": 1364,
+      "sha256": "562cc4dcc7d0eca3b1f9d1d699bc2b99d106b87fe7d345567f237ae8c2a1f775"
+    },
+    {
+      "path": "native/ai-v6-codec/inherited/ProtectedMobilePQ.h",
+      "bytes": 6675,
+      "sha256": "9ca9b18e2069b17bdd984ea0ba2ae7d62dedf22b9cd1e55b66cc3cee5db6c1f6"
+    }
+  ],
+  "originalInheritedPins": {
+    "files": [
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/final-r1/source/MobileAITaskRuntimePrivate.h",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/MobileAITaskRuntimePrivate.h",
+        "bytes": 6202,
+        "sha256": "99c76dad4fd1de1cc8acf941a07b84558c79044448192c3f6dd05971ec4d7107"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/final-r1/source/MobileAITaskPlatformPrivate.h",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/MobileAITaskPlatformPrivate.h",
+        "bytes": 1646,
+        "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/final-r1/source/MobileCanonicalDATA.hpp",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/MobileCanonicalDATA.hpp",
+        "bytes": 1495,
+        "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/final-r1/source/MobileCanonicalDATA.cpp",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/MobileCanonicalDATA.cpp",
+        "bytes": 5235,
+        "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/OS43Private.h",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/OS43Private.h",
+        "bytes": 1364,
+        "sha256": "562cc4dcc7d0eca3b1f9d1d699bc2b99d106b87fe7d345567f237ae8c2a1f775"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/MobileSecure43.h",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/MobileSecure43.h",
+        "bytes": 3478,
+        "sha256": "1a0dd79588a473f6cbed9beaad76afa24a7a0f29ab6c3bc4ea82357b4ad9ecd2"
+      },
+      {
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/ProtectedMobilePQ.h",
+        "fixture": "packages/wallet-auth/test/fixtures/mobile-ai-v6-codec/inherited/ProtectedMobilePQ.h",
+        "bytes": 6675,
+        "sha256": "9ca9b18e2069b17bdd984ea0ba2ae7d62dedf22b9cd1e55b66cc3cee5db6c1f6"
+      }
+    ],
+    "fixturesOnly": true,
+    "productionDependencies": "Use actual Auth shared CanonicalDATA + OS43Private platform implementation; these fixture copies are never Native qualifiers"
+  },
+  "compileCodec": [
+    "native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp",
+    "native/ai-v6-codec/MobileAITaskV6HeaderDATA.cpp"
+  ],
+  "sharedCanonicalParser": "native/ai-v6-codec/inherited/MobileCanonicalDATA.cpp",
+  "includeDirectories": [
+    "native/ai-v6-codec",
+    "native/ai-v6-codec/inherited"
+  ],
+  "sharedParserCompileExactlyOnce": true,
+  "sharedHeadersSinglePhysicalIdentity": true,
+  "primitive": "ynx::mobilepq::os43::platformSHA256 strong dependency; no production implementation supplied here",
+  "PUBLICAdapterProduction": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}
