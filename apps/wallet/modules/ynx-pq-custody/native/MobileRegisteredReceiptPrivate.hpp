@@ -21,6 +21,9 @@ ReceiptAcquisition acquireOriginalRegisteredAccountReceipt()noexcept;
 ynx::core::mobile::registered::ReadResult readOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&,ReceiptDATA&)noexcept;
 ynx::core::mobile::registered::ReadResult originalReceiptCurrent(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 void retireOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
+// Actor-only retire; a foreign-thread call is refused without Root/Core work.
+// Only this separate any-thread operation touches the OWN atomic revoke bit.
+void requestRevokeOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 ynx::core::mobile::registered::Failure joinOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 ynx::core::mobile::registered::Failure closeOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 bool originalReceiptClosed(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;

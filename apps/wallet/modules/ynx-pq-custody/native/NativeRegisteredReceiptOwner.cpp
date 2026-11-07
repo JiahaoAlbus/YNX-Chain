@@ -113,11 +113,12 @@ auth::DirectoryAcquisition NativeRegisteredReceiptOwner::borrowOriginalDirectory
 }
 void NativeRegisteredReceiptOwner::requestRetire()noexcept{
  retired_.store(true);const auto ticket=ticket_.load();if(ticket)picker::requestCancel(ticket);
- // Auth/Core close/retire actor APIs are never called from a foreign thread.
- // Local revocation and picker wake are immediate; the actor propagates the
- // revoke after its pending read/selection returns and during explicit close.
- if(actor_!=std::this_thread::get_id())return;
- try{auto receipt=child();if(receipt)auth::retireOriginalReceipt(receipt);}catch(...){/* original inventory keeps the child */}
+ // The supplier's separate any-thread entry touches only this child's own
+ // atomic bit. Revoke it now, including while its actor is awaiting UI/proof.
+ // Root/Core retirement and physical cleanup still stay on the actor.
+ try{auto receipt=child();if(!receipt)return;auth::requestRevokeOriginalReceipt(receipt);
+  if(actor_==std::this_thread::get_id())auth::retireOriginalReceipt(receipt);
+ }catch(...){/* original inventory keeps the child */}
 }
 Failure NativeRegisteredReceiptOwner::close()noexcept{
  if(actor_!=std::this_thread::get_id())return {true,wrongThread};if(closed_)return cleanup_;

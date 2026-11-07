@@ -381,3 +381,12 @@ JSI/JNI syntax checks must use actual matching RN/fbjni headers, not fake header
 Platform archive linking, Android/iOS App launch, OS secure store, real Auth
 approval, registered restore, signing, dispatch and chain finality are separate
 acceptance gates and are not established by host controls or declarations.
+
+Native receipt retirement now uses the matching immutable Auth directory-r2
+header and its separate `requestRevokeOriginalReceipt` call. A foreign thread
+revokes only the held receipt atomic bit immediately, alongside the same picker
+wake. Actor-only Root/Core retire, join and physical close remain on the
+original actor; a callee that returns after retirement is adopted then revoked.
+A sibling receipt remains live. This does not create a Source or a closed
+witness. The 32 receipt controls use PUBLIC Auth/UI seams, not a genuine ledger
+seal or installed mobile lifecycle.
