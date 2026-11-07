@@ -1,0 +1,32 @@
+{
+  "supplierHandoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/HANDOFF.json",
+  "supplierHandoffSHA256": "03330550ed80065e4b9dd2b0e396f276f4caa9953cfabf1466ac31603e056693",
+  "consumption": "byte-exact supplier production leaf, app-confined candidate intake; no SDK/common edits or app-made Source",
+  "files": [
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile.mjs",
+      "bytes": 7925,
+      "sha256": "21337d76aa80111c3c5b3c40571d5d4c1387b2b2a3697c3da4cc17a0b861567d",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile.mjs"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile.d.mts",
+      "bytes": 514,
+      "sha256": "ed6ab833d92e5c91b1e14599a21a0895ef7b62c51dcbca4b83e773a8c6730eb1",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile.d.mts"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-client.d.ts",
+      "bytes": 2851,
+      "sha256": "d3cccbe1f1cd5ad64662f3c711ec516eff4dc16cda3a7fdc814a4d1bde6b53af",
+      "source": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/apps/ai/mobile/contracts/sdk047/original-ai-task-action-v6-client.d.ts"
+    },
+    {
+      "file": "../sdk047/product-session-task-action-v6.d.ts",
+      "bytes": 9401,
+      "sha256": "55d31ddc4ed0e27a3474f7909e690f8212c16321a3306fe60a5cb50389b7084d",
+      "source": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/apps/ai/mobile/contracts/sdk047/product-session-task-action-v6.d.ts"
+    }
+  ],
+  "NativeInstalled": false
+}

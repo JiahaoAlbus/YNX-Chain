@@ -1,5 +1,5 @@
 export const API_BASE=(process.env.EXPO_PUBLIC_YNX_AI_URL||"http://10.0.2.2:8096").replace(/\/$/,"");
-export type Session={token:string;deviceId:string;taskCredentials?:import("./tasks").TaskCredentials};
+export type Session={token:string;deviceId:string;taskCredentials?:import("./tasks").TaskCredentials;taskRuntime?:import("./taskSession").TaskSessionRuntime};
 export type Conversation={id:string;title:string;archived:boolean;updatedAt:string;messageCount:number};
 export type Message={id:string;role:"user"|"assistant";content:string;status:string;provider?:string;model?:string;cost?:{inputTokensEstimate:number;outputTokensEstimate:number;moneyUsdEstimate:number;moneyKnown:boolean}};
 export type Attachment={id:string;name:string;mimeType:string;size:number;sha256:string};

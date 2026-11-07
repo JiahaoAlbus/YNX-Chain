@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from "react";
+import React,{useEffect,useState} from "react";
 import {ActivityIndicator,Alert,Pressable,ScrollView,StyleSheet,Text,TextInput,View} from "react-native";
 import * as Crypto from "expo-crypto";
 import {API_BASE,type Session} from "./api";
@@ -9,10 +9,20 @@ type Props={session:Session|null;conversationId?:string;locale:string;onBack:()=
 function Action({label,disabled,onPress,danger=false}:{label:string;disabled?:boolean;onPress:()=>void;danger?:boolean}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled:!!disabled}} disabled={disabled} onPress={onPress} style={[s.button,danger&&s.danger,disabled&&s.disabled]}><Text style={s.buttonText}>{label}</Text></Pressable>}
 export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const zh=locale.startsWith("zh");const label=(a:string,b:string)=>zh?a:b;
- const credentials=session?.taskCredentials;
- const controller=useMemo(()=>credentials?new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,state=>setState(state),nativeRunCursorPersistence):null,[credentials]);
+ const [controller,setController]=useState<TaskWorkspaceController|null>(null);
  const [state,setState]=useState<WorkspaceState|null>(null),[grantRef,setGrantRef]=useState(""),[prompt,setPrompt]=useState(""),[runId,setRunId]=useState(""),[localError,setLocalError]=useState(""),[shopTools,setShopTools]=useState(false),[newHolder,setNewHolder]=useState("");
- useEffect(()=>{setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");if(controller){void controller.restoreOriginalTask()}return()=>controller?.dispose()},[controller]);
+ useEffect(()=>{
+  const abort=new AbortController();let closed=false;let owned:TaskWorkspaceController|null=null;let borrowed:import("./tasks").TaskCredentials|undefined;
+  setController(null);setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");setLocalError("");
+  void (async()=>{try{
+   const credentials=session?.taskCredentials??await session?.taskRuntime?.open(abort.signal);
+   if(!credentials)return;borrowed=credentials;
+   if(closed){await credentials.v6?.client.close();return}
+   owned=new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,next=>setState(next),nativeRunCursorPersistence);
+   setController(owned);await owned.restoreOriginalTask();
+  }catch(error){if(!owned&&borrowed?.v6)try{await borrowed.v6.client.close()}catch{}if(!closed)setLocalError(error instanceof Error?error.message:String(error))}})();
+  return()=>{closed=true;abort.abort();owned?.dispose()};
+ },[session?.taskRuntime,session?.taskCredentials]);
  const task=state?.projection,busy=state?.busy||false;
  const perform=(work:()=>Promise<unknown>)=>{setLocalError("");void work().catch(error=>setLocalError(error instanceof Error?error.message:"TASK_REQUEST_FAILED"))};
  const refresh=()=>{if(controller&&task)perform(()=>controller.select(task.id));else if(controller)perform(()=>controller.discover())};
@@ -25,7 +35,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const dispatch=(step:TaskStep)=>{if(!controller||!task)return;const original={...step,toolStep:{...step.toolStep}};const ref=grantRef.trim();confirm(label("执行已批准的原步骤","Execute approved original step"),task,expected=>controller.dispatch(expected,original,ref),`${original.toolStep.toolId} v${original.toolStep.toolVersion}\n${original.id}\nInput SHA-512: ${original.toolStep.inputDigest||"unavailable"}\n${(original.toolStep.approvedFields||[]).join(", ")}\n${label("服务仍将核验原 Grant 和资源权限。","The service will verify the original Grant and resource permissions.")}`)};
  const reconcile=(step:TaskStep)=>{if(controller&&task)perform(()=>controller.reconcile({...task},step,grantRef.trim()))};
  const start=(resume:boolean)=>{if(!controller||!task)return;const originalRun=resume?(state?.run?.runId||state?.record.runId||runId.trim()):(runId.trim()||`taskrun_${Crypto.randomUUID().replace(/-/g,"")}`);setRunId(originalRun);confirm(resume?label("继续原运行","Resume original run"):label("请求模型运行","Request model run"),task,expected=>controller.model(expected,originalRun,prompt,grantRef.trim(),resume?[]:(shopTools?["ai.conversation.read","shop.order.read"]:["ai.conversation.read"]),resume),`${originalRun}\n${label("模型披露和工具执行分别检查原权限。","Model disclosure and tool effects require their own original permissions.")}`)};
- const unavailable=!credentials;
+ const unavailable=!controller;
  const error=localError||state?.error||"";
  return <ScrollView style={s.screen} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
   <View style={s.top}><Text accessibilityRole="header" style={s.title}>{label("任务","Tasks")}</Text><Action label={label("返回对话","Back to chat")} onPress={onBack}/></View>
