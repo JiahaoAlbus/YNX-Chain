@@ -21,7 +21,9 @@ export function desktopNative49C6BuilderConfiguration(metadata){
   const old=metadata.build.files;
   const excluded=new Set(['native/original-auth-identity.node','native/original-auth-runtime-libs/{libssl.3.dylib,libcrypto.3.dylib,libuv.1.dylib,OPENSSL-LICENSE.txt,OPENSSL-AUTHORS.md,LIBUV-LICENSE.txt,LIBUV-LICENSE-extra.txt,LIBUV-LICENSE-docs.txt}']);
   if(!Array.isArray(old)||[...excluded].some(p=>!old.includes(p)))throw Error('C6_NORMAL_FILE_CONFIGURATION_CHANGED');
-  return {...metadata.build,extraMetadata:{...metadata.build.extraMetadata,ynxNativeComponent:DESKTOP_C6_METADATA_ROLE},files:[...old.filter(p=>!excluded.has(p)),desktopNative49C6FileSet(),{from:"../developer/helper",to:"native/helper-data",filter:[path.posix.basename(selected.helperPlist.source)]}]};
+  // Builder tests asarUnpack against absolute SOURCE paths before FileSet.to mapping.
+  // Keep the exact nine staged paths closed; the new record remains packed DATA.
+  return {...metadata.build,asarUnpack:[...metadata.build.asarUnpack,...selected.assets.filter(row=>!row.path.endsWith('/NATIVE49_C6_NORMAL_RECORD.json')).map(row=>stageRelative+'/'+row.path)],extraMetadata:{...metadata.build.extraMetadata,ynxNativeComponent:DESKTOP_C6_METADATA_ROLE},files:[...old.filter(p=>!excluded.has(p)),desktopNative49C6FileSet(),{from:"../developer/helper",to:"native/helper-data",filter:[path.posix.basename(selected.helperPlist.source)]}]};
 }
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');

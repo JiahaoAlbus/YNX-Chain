@@ -54,3 +54,12 @@ test('actual helper-only original-source reader stages and verifies one bundle w
  assert.equal(stageDesktopC6ApprovedHelper({contents:dir,projectDir}).bundle.bytesVerified,true);
  const leaf=path.join(dir,'Library/HelperTools/YNXIdentityReceiver');fs.appendFileSync(leaf,'MUTATED');assert.throws(()=>stageDesktopC6ApprovedHelper({contents:dir,projectDir}),/C6_HELPER_BUNDLE_CONFLICT/);assert.equal(fs.readFileSync(leaf).subarray(-7).toString(),'MUTATED');
 });
+test('actual builder FileSet mapping applies unpack patterns to staged source paths and retains the JSON sidecar packed',async t=>{
+ const {dir,project}=fixture(t);stageDesktopNative49C6Input(project,input);
+ const src=path.join(desktopNative49C6StageRoot(project),'apps/wallet-desktop'),destination=path.join(dir,'destination'),files=selected.assets.map(row=>path.join(desktopNative49C6StageRoot(project),row.path)),stats=new Map(files.map(file=>[file,fs.statSync(file)]));
+ const require=createRequire(new URL('../../package.json',import.meta.url)),{AsarPackager}=require('app-builder-lib/out/asar/asarUtil'),{FileMatcher}=require('app-builder-lib/out/fileMatcher'),{desktopNative49C6BuilderConfiguration}=await import('../desktop-native49-c6-pack.mjs'),metadata=JSON.parse(fs.readFileSync(new URL('../../package.json',import.meta.url)));
+ const run=patterns=>new AsarPackager({info:{getWorkspaceRoot:async()=>project}},{resourcePath:dir,defaultDestination:destination,options:{smartUnpack:false},unpackPattern:new FileMatcher(project,destination,x=>x,patterns).createFilter()}).processFileSets([{src,destination,files,metadata:stats}]);
+ const broken=await run(metadata.build.asarUnpack);assert.equal(broken.filter(row=>row.type==='file'&&row.unpacked).length,0,'legacy patterns reproduce all nine staged binaries/licenses incorrectly packed');
+ const actual=await run(desktopNative49C6BuilderConfiguration(metadata).asarUnpack);
+ for(const row of selected.assets){const relative=row.path.slice('apps/wallet-desktop/'.length),packed=actual.find(x=>x.path===relative);assert.ok(packed,relative);assert.equal(packed.unpacked,!relative.endsWith('.json'),relative);}
+});
