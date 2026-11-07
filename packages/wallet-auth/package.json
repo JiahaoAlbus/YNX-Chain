@@ -836,7 +836,12 @@
     "native/original-wallet-product-registration-capture-runner.mjs",
     "docs/wpr-fixed-registration-capture-runner.md",
     "scripts/ynx-wallet-product-public-materialize.mjs",
-    "WPR_PUBLIC_MATERIALIZER.md"
+    "WPR_PUBLIC_MATERIALIZER.md",
+    "native/original-wpr-materialization-host-data-private.mjs",
+    "native/original-wpr-materialization-native-entry.mjs",
+    "native/original-wallet-product-required-loan.mjs",
+    "native/original-wallet-product-required-loan.d.mts",
+    "docs/wpr-required-native-loan-facade.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
