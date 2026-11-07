@@ -23,7 +23,6 @@ jobs:
     timeout-minutes: 5
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      REISSUE_TEST_TMP: ${{ runner.temp }}
     steps:
       - name: Receive exact public carrier and verifier only
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -37,6 +36,8 @@ jobs:
             /.github/workflows/pq-client-retained-reissue.yml
             /scripts/retained-client-reissue/
       - name: Exercise all16 original-byte archive controls without executing client
+        env:
+          REISSUE_TEST_TMP: ${{ runner.temp }}
         run: python3 -I -B scripts/retained-client-reissue/test_reissue.py
       - name: Read back the exact retained carrier identity
         run: python3 -I -B scripts/retained-client-reissue/reissue.py verify --archive scripts/retained-client-reissue/carrier/client.zip
