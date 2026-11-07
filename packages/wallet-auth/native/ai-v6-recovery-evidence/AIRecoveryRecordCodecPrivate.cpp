@@ -32,7 +32,10 @@ Bytes build(const std::string&op,const std::string&nonce,uint32_t phase,const Pa
  if(phase==3)need(!p.present[2]&&!p.present[3]);
  if(phase==4||phase==5)need(p.present[1]&&!p.member.empty());
  if(phase==4)need(!p.present[2]&&!p.present[3]);
- if(phase==5)need(p.present[2]&&p.present[3]&&!p.response.empty());
+ // Storage phase5 retains a response, not a semantic COMMITTED claim.
+ // A matched authenticated DENIED/UNKNOWN outcome may have no receipt.
+ // Presence comes from the original immutable marker/file inventory, never bytes.empty().
+ if(phase==5)need(p.present[2]&&!p.response.empty());
  V v;v.type=V::object;v.o["version"]=text("YNX-AI-TASK-V6-RECOVERY-EVIDENCE/v1");v.o["operationId"]=text(op);
  v.o["nonce"]=phase==1?V{}:text(nonce);v.o["storagePhase"].type=V::integer;v.o["storagePhase"].n=phase;
  const char*names[]={"prepared","member","signedResponse","businessReceipt"};
