@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_normal_leg_trace.py',None,6),
  ('test_pq_normal_paired_runtime.py',None,7),
  ('test_pq_finalize_trace_readback.py',None,9),
  ('test_pq_lossless_source_data.py',None,8),

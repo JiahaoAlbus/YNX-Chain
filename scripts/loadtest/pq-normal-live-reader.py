@@ -106,7 +106,7 @@ def prepare_lossless_matching_source(source,destination):
     require(selection['originalSourceCommit']==identity['commit'] and selection['originalSourceTree']==identity['tree'] and selection['originalProductionForkTree']==identity['forkTree'] and selection['selectedOptionalForkCommit']==q['supplierCommit'] and selection['selectedOptionalForkTree']==q['supplierTree'] and selection['buildTags']==[BUILD_TAG,'ynx_lossless_hex'] and selection['losslessOptInSupported'] is True and selection['sourceOnly'] is True and all(selection[k] is False for k in ('fakeVCSIdentity','originalCheckoutWritten','originalModuleDescriptorsChanged','nodeStarted','carrierEnabled','publicActivation','actualOnExecution')),'actual paired source composition scope/identity differs')
     for name in ('go.mod','go.sum'):require((build_source/name).read_bytes()==(source/name).read_bytes(),'original paired module descriptors changed')
     require(not (build_source/'.git').exists() and not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],'original paired source changed or fake VCS created')
-    return dict(schema='YNX-PERF-PAIRED-MATCHING-BUILD-SOURCE/v1',source=identity,originalSourceOnlyCI=q,originalCoreSelection=prepared,buildSource=str(build_source),originalSourceUnchanged=True,binaryBuilt=False,nodeStarted=False,carrierEnabled=False,runtimeAuthorized=False,pressureAuthorized=False)
+    return dict(schema='YNX-PERF-PAIRED-MATCHING-BUILD-SOURCE/v1',source=identity,originalSourceOnlyCI=q,originalCoreSelection=prepared,buildSource=str(build_source),optionalForkCommit=q['supplierCommit'],optionalForkTree=q['supplierTree'],originalSourceUnchanged=True,binaryBuilt=False,nodeStarted=False,carrierEnabled=False,runtimeAuthorized=False,pressureAuthorized=False)
 
 def fingerprint(info):
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
@@ -384,6 +384,9 @@ def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
     own=compare_normal_business_data(bundle,bundle)
     require(own['status']=='MATCHED_BUSINESS_DATA_ONLY','original independent leg verifier/Confirm/ledger DATA failed: '+str(own.get('firstCause')))
     bundle['provenance'].update(originalVerifierAndConfirm4DataMatched=True,ownLedgerFullStatePinned=True,independentCryptoReverified=False,selfCheckDoesNotRepresentTwoRuns=True)
+    spec=importlib.util.spec_from_file_location('pair_original_leg_trace',Path(__file__).with_name('pq-normal-leg-trace.py'))
+    trace_reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(trace_reader)
+    bundle['completeTraceData']=trace_reader.read(public,receipt,bundle['stoppedStateBytes'],original)
     return bundle
 
 
@@ -415,12 +418,14 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
     else:
         result['missing'].append('new ON qualification parser must consume actual matching CI originals before this report can qualify any source')
     if complete_trace_data is None:result['missing'].append('Original complete immutable Finalize trajectory and deterministic before/after normal replay DATA not supplied; Core stopped-store ABI now has a dedicated original reader')
-    result['missing'].append('Core original independently verified per-leg full-height normal trace; this data report is not chain/ON qualification')
+    trace_status={label:(bundle or {}).get('completeTraceData',{}).get('status','NOT_SUPPLIED') for label,bundle in [('OFF',off),('ON',on)]}
+    result['normalLegTraceDataGate']=dict(statuses=trace_status,dataComplete=all((bundle or {}).get('completeTraceData',{}).get('completePerLegTraceDataVerified') is True for bundle in (off,on)),normalLiveChainCoverageQualified=False)
+    result['missing'].append('Independently qualified each-leg full AppHash/normal-source coverage is still required; stopped trace DATA and the last successor marker remain explicit')
     for label,bundle in [('OFF',off),('ON',on)]:
         if bundle is None:
             result['missing'].append(label+' original normal PUBLIC leg with exact receipt/tool pins and common canonical signed user fixture not supplied')
             continue
-        evidence=bundle.get('provenance',{});result[label]=dict(originals=evidence,network=bundle.get('networkData'))
+        evidence=bundle.get('provenance',{});result[label]=dict(originals=evidence,network=bundle.get('networkData'),completeTraceData=bundle.get('completeTraceData'))
         if (evidence.get('selectedSupplierCommit'),evidence.get('selectedSupplierTree'))!=(PAIR_SUPPLIER['commit'],PAIR_SUPPLIER['tree']):result['missing'].append(label+' actual selected supplier differs from ed628/f1a')
         statuses=[phase['status'] for row in bundle.get('networkData',{}).get('losslessStatuses',[]) for phase in row.values()]
         expected='DISABLED' if label=='OFF' else 'OBSERVED'
