@@ -479,8 +479,7 @@ function renderAccount(payload) {
   void refreshTransactions();
   document.querySelector("#assets").hidden = !status?.initialized;
   document.querySelector("#backup-section").hidden = !status?.initialized;
-  if (!status?.initialized) setView("accounts");
-  else if (!previousAccount) setView("overview");
+  reconcileAccountView(status,previousAccount);
   if(activeAccount)document.querySelector("#toolbar-account").textContent = `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}`;
   else copyUI(document.querySelector("#toolbar-account"),"My accounts");
   document.querySelector("#receive-address").value = status?.ynxAccount ?? "";
@@ -1204,6 +1203,10 @@ async function actOnTransfer(action) {
 document.querySelector("#cancel-transfer").addEventListener("click", () => actOnTransfer("reject"));
 document.querySelector("#confirm-transfer").addEventListener("click", () => actOnTransfer("approve"));
 
+function reconcileAccountView(status,previousAccount){
+  if(!status?.initialized){if(document.querySelector('[data-panel="overview"]')?.hidden===false)setView('accounts');}
+  else if(!previousAccount&&document.querySelector('[data-panel="accounts"]')?.hidden===false)setView('overview');
+}
 function setView(name) {
   if (!["overview","connections","accounts","history","security","agents","permissions","resolver","settings"].includes(name)) return;
   if (name === "overview" && !activeAccount) name = "accounts";

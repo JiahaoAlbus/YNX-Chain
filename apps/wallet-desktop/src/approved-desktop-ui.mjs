@@ -9,7 +9,7 @@ export function projectDesktopPublicState(account,key){
 }
 export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openImport,openCrossChain,openNetworks,reviewPending,writeClipboard}){
  const byId=id=>doc.getElementById(id),zh=()=>doc.documentElement.lang.startsWith('zh'),t=(en,cn)=>zh()?cn:en;
- let scope=null,entered=false,disposed=false,policyEpoch=0,policyBusy=false,pending={count:0,ai:false};
+ let scope=null,entered=false,disposed=false,policyEpoch=0,policyBusy=false,pending={count:0,ai:false},networkState=null;
  const resolver=createAddressResolverUI({root:byId('desktop-resolver-root'),api,getContext:()=>({open:doc.querySelector('[data-panel="resolver"]')?.hidden===false,account:scope?.canonical??null,keyRevision:scope?.revision,networkId:'ynx_6423-1'}),writeClipboard});
  const move=(id,target)=>{const n=byId(id),parent=byId(target);if(n&&parent)parent.append(n);};
  move('transaction-history','desktop-history-slot');move('walletconnect-sessions','desktop-permission-slot');
@@ -62,12 +62,13 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   byId('desktop-read-pq-policy').disabled=policyBusy||next.locked||!next.canonical||typeof api.pqAccountAuthorization!=='function';
   updatePending(pending);
  }
- const observer=typeof MutationObserver==='function'?new MutationObserver(()=>translate()):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
+ function renderNetwork(){if(!networkState)return;const view=desktopNetworkDisplay(networkState,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';}
+ const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
  return Object.freeze({render,viewChanged,enterWorkspace,updatePending,showHistoryRecord(record){
   const parent=byId('desktop-history-detail');if(!parent||record?.account!==scope?.canonical)return;parent.replaceChildren();
   const h=doc.createElement('h2'),amount=doc.createElement('p'),facts=doc.createElement('dl'),notice=doc.createElement('p');
   h.textContent=record.successful?t('Transfer observed locally','本地快照已观察到交易'):t('Execution failed','执行失败');amount.className='desktop-history-amount';amount.textContent=record.amount+' YNXT';
   for(const [en,cn,value]of [['Canonical recipient ID','接收方规范 ID',record.to],['Transaction hash','交易哈希',record.hash],['Actual fee','实际手续费',record.actualFee+' YNXT'],['Observed block','观察区块',record.blockNumber]]){const term=doc.createElement('dt'),valueNode=doc.createElement('dd');term.textContent=t(en,cn);valueNode.textContent=String(value);valueNode.dir='ltr';facts.append(term,valueNode);}
   notice.textContent=t('This is the retained verified local snapshot. Independent consensus finality is not supplied. An UNKNOWN operation must never be replayed.','这是已保留且经核对的本地快照；尚未供给独立共识最终性。结果未知的原操作不得重发。');parent.append(h,amount,facts,notice);
- },updateNetwork(value){const view=desktopNetworkDisplay(value,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;policyEpoch++;resolver.destroy();observer?.disconnect();}});
+ },updateNetwork(value){networkState={available:value?.available===true,chainId:value?.chainId};renderNetwork();},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;policyEpoch++;resolver.destroy();observer?.disconnect();}});
 }

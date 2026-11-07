@@ -63,3 +63,19 @@ test('actual PQ backup, registered restore and key-preparation UI mount safely w
  const document=mounted();for(const factory of [createPQBackupUI,createRegisteredPQRestoreUI,createPQKeyPreparationUI]){const control=factory({document,api:{},getKeyState:()=>key});assert.doesNotThrow(()=>control.render());}
  for(const id of ['pq-independent-backup','pq-registered-restore','pq-key-preparation']){const panel=document.getElementById(id);assert(panel);const buttons=panel.children.filter(n=>n.tagName==='BUTTON');assert(buttons.length>=2);assert.equal(buttons[0].disabled,true);assert.equal(buttons[1].disabled,true);}
 });
+
+test('language change relabels the same observed network without another probe or new authority',t=>{
+ const prior=globalThis.MutationObserver;let changed;
+ globalThis.MutationObserver=class{constructor(callback){changed=callback;}observe(){}disconnect(){}};
+ t.after(()=>{if(prior===undefined)delete globalThis.MutationObserver;else globalThis.MutationObserver=prior;});
+ const f=fixture();f.ui.updateNetwork({available:true,chainId:'0x1917'});assert.equal(f.id('desktop-network-chip').textContent,'YNX Testnet');
+ f.document.documentElement.lang='zh-CN';changed();assert.equal(f.id('desktop-network-chip').textContent,'YNX 测试网');assert.equal(f.id('desktop-network-chip').dataset.networkState,'available');
+ f.ui.updateNetwork({available:false,chainId:'0x1917'});f.document.documentElement.lang='en';changed();assert.equal(f.id('desktop-network-chip').dataset.networkState,'unavailable');assert.equal(f.calls.length,0);
+});
+test('late account refresh preserves a selected history/settings page but redirects unavailable assets',()=>{
+ const source=fs.readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8'),from=source.indexOf('function reconcileAccountView('),to=source.indexOf('\nfunction setView(',from);assert(from>=0&&to>from);
+ for(const [selected,initialized,previous,expected]of [['history',false,null,[]],['settings',false,null,[]],['history',true,null,[]],['overview',false,canonical,['accounts']],['accounts',true,null,['overview']]]){
+  const calls=[],document={querySelector:selector=>({hidden:!selector.includes('"'+selected+'"')})};
+  const run=Function('document','setView',source.slice(from,to)+';return reconcileAccountView;')(document,name=>calls.push(name));run({initialized},previous);assert.deepEqual(calls,expected,selected);
+ }
+});
