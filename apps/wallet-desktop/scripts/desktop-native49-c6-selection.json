@@ -97,5 +97,6 @@
     "packedSource": "apps/wallet-desktop/native/helper-data/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
     "bytes": 473,
     "sha256": "08c5483639227287de41e081c61e3d2e5238db72122d08f5f397d8f4e78af69b"
-  }
+  },
+  "minimumMacOS": "13.5"
 }
