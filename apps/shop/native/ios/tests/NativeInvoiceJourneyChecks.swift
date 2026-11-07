@@ -7,7 +7,8 @@ import Foundation
 }
 @MainActor final class NativeCreationNavigation:AppleOriginalNativePayNavigation {
  var references:[String]=[]
- func openOriginalIntent(_ operation:String,expected:ShopSession)async throws{references.append(operation);throw ShopError.unavailable}
+ func openOriginalIntent(_ operation:String,expected:ShopSession)async throws{throw ShopError.security}
+ func openOriginalOrder(_ orderID:String,originalOperation:String,expected:ShopSession)async throws{guard orderID=="ord_native" else{throw ShopError.security};references.append(originalOperation);throw ShopError.unavailable}
 }
 final class NativeCreationHTTP:URLProtocol,@unchecked Sendable {
  @MainActor static var handle:((NativeCreationHTTP)->Void)?

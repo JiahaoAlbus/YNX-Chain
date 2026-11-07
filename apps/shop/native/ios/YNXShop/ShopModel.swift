@@ -239,7 +239,7 @@ import SwiftUI
                 guard let operation=retained.originalOperation,presentation==handoffPresentationRevision else{throw ShopError.contextChanged}
                 // The reference is durable before crossing into original Main.
                 // Missing Main navigation preserves it for explicit later use.
-                try await api.openOriginalNativePay(operation);try check()
+                try await api.openOriginalNativePay(operation,orderID:original.orderID);try check()
                 await resumeNativeInvoiceReferences();try check();await loadOrders()
             }catch{do{try check()}catch{return};failure(error)}}
         }catch{failure(error)}
