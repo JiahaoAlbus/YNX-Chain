@@ -1,0 +1,114 @@
+name: Retained original PQ client reissue
+
+on:
+  push:
+    branches: [codex/pq-client-retained-reissue-20261107]
+    tags: [ynx-pq-client-retained-reissue-20261107]
+    paths:
+      - .github/workflows/pq-client-retained-reissue.yml
+      - scripts/retained-client-reissue/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retained-pq-client-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  pure-controls:
+    name: Retained client closed-three pure controls
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/pq-client-retained-reissue-20261107'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      REISSUE_TEST_TMP: ${{ runner.temp }}
+    steps:
+      - name: Receive exact public carrier and verifier only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-client-retained-reissue.yml
+            /scripts/retained-client-reissue/
+      - name: Exercise all16 original-byte archive controls without executing client
+        run: python3 -I -B scripts/retained-client-reissue/test_reissue.py
+      - name: Read back the exact retained carrier identity
+        run: python3 -I -B scripts/retained-client-reissue/reissue.py verify --archive scripts/retained-client-reissue/carrier/client.zip
+
+  publish-original-client:
+    name: Original A tagged retained-byte artifact publication
+    if: github.event_name == 'push' && github.ref == 'refs/tags/ynx-pq-client-retained-reissue-20261107'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Receive the exact original-A selected immutable source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-client-retained-reissue.yml
+            /scripts/retained-client-reissue/
+      - name: Verify old ZIP and extract exactly the original three public bytes
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir "$RUNNER_TEMP/retained-client-evidence"
+          python3 -I -B scripts/retained-client-reissue/reissue.py extract \
+            --archive scripts/retained-client-reissue/carrier/client.zip \
+            --output "$RUNNER_TEMP/retained-client-three" \
+            --receipt "$RUNNER_TEMP/retained-client-evidence/VERIFICATION.json"
+      - name: Upload only the three original public members
+        id: original-client
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-client-retained-reissue-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/retained-client-three/SOURCE.json
+            ${{ runner.temp }}/retained-client-three/go-build-info.txt
+            ${{ runner.temp }}/retained-client-three/ynx-consensus-perf-client
+          if-no-files-found: error
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
+          retention-days: 14
+      - name: Record separate new publisher provenance without rewriting SOURCE
+        env:
+          NEW_ARTIFACT_ID: ${{ steps.original-client.outputs.artifact-id }}
+          NEW_ARTIFACT_DIGEST: ${{ steps.original-client.outputs.artifact-digest }}
+          NEW_ARTIFACT_URL: ${{ steps.original-client.outputs.artifact-url }}
+        run: |
+          python3 -I -B - <<'PYPROVENANCE'
+          import json, os
+          from pathlib import Path
+          fields = ['GITHUB_REPOSITORY','GITHUB_SHA','GITHUB_REF','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','GITHUB_WORKFLOW_REF','GITHUB_JOB']
+          record = {'schema':'YNX_RETAINED_CLIENT_NEW_PUBLISHER_V1',
+                    'publisher':{key:os.environ[key] for key in fields},
+                    'newArtifact':{'id':os.environ['NEW_ARTIFACT_ID'],'digest':os.environ['NEW_ARTIFACT_DIGEST'],'url':os.environ['NEW_ARTIFACT_URL']},
+                    'originalProducerCommit':'da3060e150e2bd0f5695d67a76f3b30fafd1c696',
+                    'originalSourceCommit':'70e7e450997a0ae77dbad5a8be3682f482c6ddd8',
+                    'originalRun':40220335526,'originalArtifact':12609705118,
+                    'newBuild':False,'binaryExecuted':False,'originalSOURCEModified':False}
+          path = Path(os.environ['RUNNER_TEMP'])/'retained-client-evidence/PUBLISHER.json'
+          with path.open('x') as stream: json.dump(record,stream,sort_keys=True,indent=2);stream.write('\n')
+          PYPROVENANCE
+      - name: Preserve separate verification and publisher evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-client-retained-reissue-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/retained-client-evidence/*.json
+          if-no-files-found: warn
+          overwrite: false
+          retention-days: 14

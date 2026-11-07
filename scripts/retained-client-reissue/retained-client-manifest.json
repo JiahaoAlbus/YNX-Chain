@@ -1,0 +1,53 @@
+{
+  "binaryExecutionAuthorized": false,
+  "members": [
+    {
+      "bytes": 5526,
+      "crc32": 3972549167,
+      "name": "go-build-info.txt",
+      "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+    },
+    {
+      "bytes": 708,
+      "crc32": 550842401,
+      "name": "SOURCE.json",
+      "sha256": "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9"
+    },
+    {
+      "bytes": 38595797,
+      "crc32": 2274285709,
+      "name": "ynx-consensus-perf-client",
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+    }
+  ],
+  "newBuild": false,
+  "originalArchive": {
+    "bytes": 19074595,
+    "sha256": "9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf"
+  },
+  "originalArtifact": 12609705118,
+  "originalRun": 40220335526,
+  "schema": "YNX_RETAINED_CLIENT_CLOSED_THREE_V1",
+  "source": {
+    "clientCodeTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "executionAuthorized": false,
+    "files": {
+      "go-build-info.txt": {
+        "bytes": 5526,
+        "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+      },
+      "ynx-consensus-perf-client": {
+        "bytes": 38595797,
+        "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+      }
+    },
+    "goVersion": "go version go1.26.10 linux/amd64",
+    "kind": "ynx-pq-performance-client-build",
+    "normalSourceTestsToolchain": "original chain-core Go 1.25 source job",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+    "publicDeployment": false,
+    "sourceTree": "4866cc3924c060eb6a29939915d39b1c5c625607",
+    "target": "linux-amd64"
+  }
+}
