@@ -52,7 +52,6 @@
   "normalOneGoRequired": true,
   "productionFrameFixtureArchiveAllowed": false,
   "requiredNormalFactories": [
-    "acquireCommittedSocialPair",
     "acquireRegisteredDeviceSession"
   ],
   "normalFactoriesActuallySupplied": false,
@@ -69,8 +68,10 @@
   },
   "actualR5FrozenRefsVerified": 8,
   "remainingActualCode": [
-    "P02 genuine committedSocialPair and registeredDEVICE/session holder adapters",
+    "P01/P02 independent registeredDEVICE/session actual owner getter and Native adapter",
     "Auth dedicated finite custodian actual normal service and qualification body",
+    "Role-process admitted original directory or legally held original-owner channel",
+    "Independent account-owned original history/query recovery after signing Source expiry",
     "Same kernel normal ONEGo final link"
   ],
   "predecessorR5IssuerABI": {
@@ -127,5 +128,100 @@
     "requiredBy": "Auth finite custodian normal envelope assembly; Native adapter passes retained bytes only",
     "normalOneGoRequired": true,
     "fixtureArchiveProductionAllowed": false
-  }
+  },
+  "committedSocialPairFactoryActuallyImplemented": true,
+  "mainCommittedSocialPair": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/HANDOFF.json",
+      "bytes": 4830,
+      "sha256": "62c2713735b5e9d971ae289c515503ac3c0b512f1a65249ae294edca1c0927e9"
+    },
+    "frozenSource": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/main_committed_social_pair.go",
+        "bytes": 12475,
+        "sha256": "01ba3657538f375bbe4cd74b7f181fa77802c545330b8b342be8a59fc990ed6b"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/main_committed_social_pair_ffi.go",
+        "bytes": 4482,
+        "sha256": "c4df2d2c8004c8756847125fca116b1b10dd06ab32f8566ce3ba03f0df1e2f74"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/social_main_committed_pair_private.h",
+        "bytes": 2153,
+        "sha256": "85088b5923f0d6c6df5ed98a3fe5ef3ed4f21f9a8c6fbc85b0c2524612bc3aa7"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/main_committed_social_pair_test.go",
+        "bytes": 4144,
+        "sha256": "9baed5d35bf7ebdf8f2846eda8c66256d8f1b92aef6d7c115482531cc95de7e3"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/first_device_directory_operations.go",
+        "bytes": 9024,
+        "sha256": "63c18b1e74b82ba0ec7bf74379d446372735ca9253d3f03c292d804fe70b1800"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/source-r11/main-original-pair-owner-r1-20261108/source/first_device_directory_posix.go",
+        "bytes": 19646,
+        "sha256": "4a7dac5e4e3214373d40adc766a3dea0dda235ccad043c7f0f1bf20578fdec2e"
+      }
+    ],
+    "actualNormalSupplierCompileOnly": true,
+    "parentFrozenRefsVerified": 6,
+    "normalWholeLink": false
+  },
+  "finiteRoleIndependentSourceSupplier": {
+    "components": [
+      {
+        "handoff": {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/provider-source-r1-CiAJZU/HANDOFF.json",
+          "bytes": 6192,
+          "sha256": "53dcac025b235aed5381291ab2e9ed0d23022c10a4c3209044e01098d52d6d4f"
+        },
+        "refsVerified": 13,
+        "changed": [],
+        "keys": [
+          "schema",
+          "state",
+          "production",
+          "dependency",
+          "exports",
+          "evidence",
+          "raw",
+          "controls",
+          "contract",
+          "limitations",
+          "normalIntake"
+        ]
+      },
+      {
+        "handoff": {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/provider-original-r1-iGo9vc/HANDOFF.json",
+          "bytes": 2135,
+          "sha256": "415f4ff2b518c2332e8bf279d03cfb73b9e599e0aa94d7a80ac43f2d7cf9d3ff"
+        },
+        "refsVerified": 2,
+        "changed": [],
+        "keys": [
+          "schema",
+          "state",
+          "production",
+          "mother",
+          "dependencies",
+          "normalCall",
+          "rootEmpty",
+          "sameOriginal",
+          "validation",
+          "remaining"
+        ]
+      }
+    ],
+    "consumedBy": "Auth original finite service, not Native client factory or a new archive",
+    "normalOneGoRequired": true,
+    "standaloneRegisteredDirectoryOrHeldOwnerChannelStillRequired": true,
+    "wholeNormalLink": false
+  },
+  "coldQueryCoverage": "Same current Source with genuine partial Role; not independent recovery after signing Source/window expiry"
 }
