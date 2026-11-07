@@ -169,7 +169,7 @@ def qualification(directory=None):
     report['startup']=startup_collectors((directory/'CLIENT128365907200.log').read_bytes())
     metadata=[strict((directory/name).read_bytes()) for name in ('CHAIN-RUN.json','RESOURCE-RUN.json','CHAIN-JOBS.json','RESOURCE-JOBS.json')]
     report['normalCI']=ci_jobs(*metadata)
-    report.update(sourceOnlyQualified=True,startupOriginalCollectorRead=True,eightRuntimeGovulncheckConsumed=True)
+    report.update(sourceOnlyQualified=True,sourceTree=TREE,startupOriginalCollectorRead=True,eightRuntimeGovulncheckConsumed=True,actual500InitializedOwnersQualified=False,pressureAuthorized=False)
     return report
 
 
