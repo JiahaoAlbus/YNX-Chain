@@ -23,7 +23,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { constants as bufferConstants } from 'node:buffer';
 import { spawnSync } from 'node:child_process';
-const root = process.cwd(), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ynx-operator-caller-'));
+const root = process.cwd(), tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'ynx-operator-caller-')));
 const digest = b => crypto.createHash('sha256').update(b).digest('hex');
 const bindingSource=fs.readFileSync('scripts/verify/public-bft-candidate-binding.mjs','utf8');
 const driver = fs.readFileSync('scripts/ops/public-bft-production-driver.sh', 'utf8');
@@ -135,7 +135,7 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
 }
 const harness=path.join(tmp,'caller.sh');
 write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
-  ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_ingress_result','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
+  ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','quiet_bootstrap_mode','quiet_forward_gate','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_ingress_result','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
 PRIMARY_NODE_USER=u
 PRIMARY_NODE_HOST=host
 PRIMARY_NODE_SSH_KEY=key

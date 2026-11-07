@@ -11,6 +11,8 @@ trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
 mkdir -p "$repo/scripts/ops" "$repo/scripts/verify/lib"
 cp scripts/ops/public-bft-cutover-transaction.sh "$repo/scripts/ops/"
+cp scripts/ops/public-bft-quiet-continuation.py "$repo/scripts/ops/"
+cp scripts/ops/test_public_bft_quiet_continuation.py "$repo/scripts/ops/"
 cp scripts/verify/validate-public-bft-cutover-approval.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$repo/scripts/verify/"
 cp scripts/verify/public-bft-candidate-binding.mjs "$repo/scripts/verify/"
@@ -311,7 +313,14 @@ case "$phase" in
     set_value candidate running
     printf '{"started":true,"dryRun":false,"syntheticOnly":true}\n' >"$attempt/result.json"
     ;;
-  verify_candidate) grep -Fxq 'candidate=running' "$state" ;;
+  verify_candidate)
+    grep -Fxq 'candidate=running' "$state"
+    if [[ "${CUTOVER_TEST_QUIET:-}" == yes ]]; then
+      python3 -B scripts/ops/test_public_bft_quiet_continuation.py --fixture ready "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN"
+    fi ;;
+  verify_pq_continuation)
+    [[ "${CUTOVER_TEST_QUIET:-}" == yes ]]
+    python3 -B scripts/ops/test_public_bft_quiet_continuation.py --fixture verify "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN" ;;
   start_dependencies) set_value dependencies bft ;;
   verify_continuity) grep -Fxq 'dependencies=bft' "$state" ;;
   switch_ingress) set_value ingress bft ;;
@@ -665,6 +674,46 @@ for(const name of ['prepare-failure','continue-failure']){
 for(const [name,value,mode]of [['prepare-with-future-pin',{...prep,snapshotSourceSha256:final.snapshotSourceSha256},'prepare-native'],['prepare-with-future-operator',{...prep,operatorPlanSha256:final.operatorPlanSha256},'prepare-native'],['prepare-with-future-genesis-time',{...prep,candidateGenesisTime:final.candidateGenesisTime},'prepare-native'],['prepare-without-only',final,'prepare-native'],['prepare-missing-plan-pin',Object.fromEntries(Object.entries(prep).filter(([k])=>k!=='operatorPreparationPlanSha256')),'prepare-native'],['direct-independent-execute',final,'execute']]){
   fs.copyFileSync(baseline,state);const file=path.join(tmp,name+'.json');write(file,value);const p=call('native-'+name,mode,file);assert.notEqual(p.status,0);assert.equal(fs.existsSync(path.join(tx('native-'+name),'driver-calls.txt')),false);assert.deepEqual(fs.readFileSync(state),fs.readFileSync(baseline));
 }
+// The same original caller now has an explicit durable quiet cut and a
+// guarded tail-only continuation. These are synthetic remote-driver DATA
+// observations, not cryptographic verification or deployed consensus.
+const qdir=path.join(tmp,'quiet-reviewed-custody');fs.mkdirSync(qdir,{mode:0o700});
+const qp={...preparationPlan,bootstrapRegistrationMode:'quiet-first-registration-v1'},qpp=path.join(tmp,'quiet-preparation-plan.json');write(qpp,qp);const qppin=sha256(fs.readFileSync(qpp));
+const qi=structuredClone(inventory);qi.sources.operatorPlanSha256=qppin;qi.inventoryDigest='sha256:'+sha256(JSON.stringify(inventoryCore(qi))+'\n');validateInventory(qi,raw.commit);
+const qip=path.join(qdir,'owner-handover-inventory.json');write(qip,qi);
+const qr={...receipt,inventoryDigest:qi.inventoryDigest,inventoryFileSha256:sha256(fs.readFileSync(qip))};const qrp=path.join(qdir,'owner-handover-receipt.json');write(qrp,qr);
+const qreview={...review,operatorPlanSha256:qppin,ownerHandoverInventoryDigest:qi.inventoryDigest,ownerHandoverInventoryEvidence:'sha256:'+sha256(fs.readFileSync(qip)),ownerHandoverReceiptEvidence:'sha256:'+sha256(fs.readFileSync(qrp))};const qc=path.join(qdir,'review.json');write(qc,qreview);
+const qprep={...prep,operatorPreparationPlanSha256:qppin,custodyEvidence:'sha256:'+sha256(fs.readFileSync(qc))};const qpa=path.join(tmp,'quiet-preparation-approval.json');write(qpa,qprep);
+const qg=Buffer.from(JSON.stringify({chain_id:'ynx_6423-1',initial_height:'100',syntheticOnly:true})+'\n');
+const qfinal={...finalPlan,bootstrapRegistrationMode:qp.bootstrapRegistrationMode,consensusGenesis:qg.toString('base64'),consensusGenesisSHA256:sha256(qg)};const qfp=path.join(tmp,'quiet-final-plan.json');write(qfp,qfinal);const qfpin=sha256(fs.readFileSync(qfp));
+const qapproval={...final,custodyEvidence:qprep.custodyEvidence,operatorPreparationPlanSha256:qppin,operatorPlanSha256:qfpin};const qfa=path.join(tmp,'quiet-final-approval.json');write(qfa,qapproval);
+function qcall(id,mode,extra={}){return call(id,mode,mode==='prepare-native'?qpa:qfa,{PUBLIC_BFT_CUSTODY_REVIEW_FILE:qc,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:mode==='prepare-native'?qpp:qfp,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:mode==='prepare-native'?qppin:qfpin,CUTOVER_TEST_QUIET:'yes',...extra})}
+function quietPause(id){
+  fs.copyFileSync(baseline,state);let p=qcall(id,'prepare-native');assert.equal(p.status,0,p.stderr);
+  p=qcall(id,'continue-native');assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/awaiting_pq_activation/);
+  const dir=tx(id),calls=fs.readFileSync(path.join(dir,'driver-calls.txt'),'utf8').trim().split('\n');
+  assert.deepEqual(calls,[...phases,'export_final_snapshot','initialize_candidate','deploy_candidate','start_candidate','verify_candidate']);
+  const current=fs.readFileSync(state,'utf8');for(const value of ['ingress=authoritative','authoritative=paused','frozen=true','candidate=running','dependencies=authoritative'])assert.ok(current.includes(value+'\n'));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir,'quiet-bootstrap-attempt/result.json'))).pqActivationVerified,false);
+  const build=spawnSync('python3',['-B','scripts/ops/test_public_bft_quiet_continuation.py','--fixture','transition',dir,qfp],{cwd:repo,encoding:'utf8'});assert.equal(build.status,0,build.stderr);
+  const [input,pin]=build.stdout.trim().split('\n');return {dir,input,pin,env:{PUBLIC_BFT_PQ_CONTINUATION_INPUT:input,PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256:pin}};
+}
+const quiet=quietPause('native-quiet-resume-positive'),quietJournal=fs.readFileSync(path.join(quiet.dir,'journal.jsonl'));
+let qpResult=qcall(path.basename(quiet.dir),'continue-pq-native',quiet.env);assert.equal(qpResult.status,0,qpResult.stderr);
+assert.deepEqual(fs.readFileSync(path.join(quiet.dir,'journal.jsonl')).subarray(0,quietJournal.length),quietJournal);
+const qcalls=fs.readFileSync(path.join(quiet.dir,'driver-calls.txt'),'utf8').trim().split('\n');assert.deepEqual(qcalls.slice(9),['verify_pq_continuation','start_dependencies','verify_continuity','switch_ingress','verify_public','unfreeze_mutations']);
+assert.ok(fs.readFileSync(state,'utf8').includes('frozen=false\n'));const qdone=snapshot(quiet.dir),qstate=fs.readFileSync(state);
+// Lost stdout after the durable terminal record is reconciled, not rejected
+// as a new request and never sent to the original driver twice.
+qpResult=qcall(path.basename(quiet.dir),'continue-pq-native',quiet.env);assert.equal(qpResult.status,0,qpResult.stderr);assert.equal(JSON.parse(qpResult.stdout).redispatched,false);unchanged(qdone);assert.deepEqual(fs.readFileSync(state),qstate);
+for(const fail of ['verify_pq_continuation','switch_ingress:after']){
+  const f=quietPause('native-quiet-unknown-'+fail.replace(':','-')),id=path.basename(f.dir);
+  const p=qcall(id,'continue-pq-native',{...f.env,CUTOVER_TEST_FAIL_PHASE:fail});assert.equal(p.status,fail==='verify_pq_continuation'?72:73,p.stderr);
+  assert.ok(fs.readFileSync(state,'utf8').includes('frozen=true\n'));assert.ok(fs.readFileSync(state,'utf8').includes('authoritative=paused\n'));
+  const saved=snapshot(f.dir),savedState=fs.readFileSync(state);
+  assert.notEqual(qcall(id,'continue-pq-native',f.env).status,0);unchanged(saved);assert.deepEqual(fs.readFileSync(state),savedState);
+}
+console.log('PUBLIC_BFT_QUIET_CONTINUATION_DATA_ONLY: original prepare/pause/resume caller; durable pause preserves native freeze and ingress; completed lost stdout reads original result; UNKNOWN retains original; no exporter/import/start replay; synthetic driver only');
 fs.copyFileSync(baseline,state);
 console.log('PUBLIC_BFT_NATIVE_TWO_PHASE_DATA_ONLY: real transaction caller, final plan/genesis absent before pause, reviewed stable custody/layout retained and compared, independent final pins, exact original authorization/expiry, no re-freeze/retry/UNKNOWN cleanup; synthetic driver only');
 NODE
@@ -711,5 +760,7 @@ if (cd "$repo" && node scripts/verify/validate-public-bft-cutover-approval.mjs "
   echo "owner acting as transaction approver unexpectedly passed validation" >&2
   exit 1
 fi
+
+python3 -B scripts/ops/test_public_bft_quiet_continuation.py -v
 
 echo "public-bft-cutover-transaction-check passed: source-only stub, no service or transport; approval/custody remain commit-bound; fresh import precedes install and one explicit start; three pre-initialization failures restore baseline; six initialization/install failures, ten start-or-later failures and six retained attempts preserve original status/state/HRS without rollback or retry"

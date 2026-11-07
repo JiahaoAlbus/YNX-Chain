@@ -5,8 +5,8 @@ cd "$(dirname "$0")/../.."
 
 mode="${PUBLIC_BFT_CUTOVER_MODE:-plan}"
 case "$mode" in
-  plan|execute|prepare-native|continue-native) ;;
-  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native or continue-native" >&2; exit 1 ;;
+  plan|execute|prepare-native|continue-native|continue-pq-native) ;;
+  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native, continue-native or continue-pq-native" >&2; exit 1 ;;
 esac
 
 commit="$(git rev-parse --short=12 HEAD)"
@@ -42,6 +42,7 @@ if [[ "$mode" == "plan" ]]; then
   printf '%s\n' 'after any candidate initialization attempt: preserve staging/partial/UNKNOWN; reconcile original writer/freeze/pause/backup evidence before any old-chain resume; no automatic cleanup or retry'
   printf '%s\n' 'after any candidate start attempt: preserve UNKNOWN and original evidence/state/HRS; no automatic rollback, resume, unfreeze, or retry'
   printf '%s\n' 'fresh native import only: existing application state must use its normal operator resume/upgrade path, never this initialization transaction'
+  printf '%s\n' 'explicit quiet bootstrap pauses after its normal ready observation; continue-pq-native verifies the original independently approved PQ transition before only the remaining dependency/ingress phases'
   printf '%s\n' 'plan only: no service, state, mutation route, or public ingress was changed'
   exit 0
 fi
@@ -55,7 +56,39 @@ fi
 [[ -z "$(git status --short)" ]] || { echo "public BFT cutover requires a clean worktree" >&2; exit 1; }
 
 umask 077
-if [[ "$mode" == continue-native ]]; then
+if [[ "$mode" == prepare-native || "$mode" == continue-native ]]; then
+  selected_bootstrap_mode="$(python3 -B scripts/ops/public-bft-quiet-continuation.py mode --plan "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:-}" --plan-sha256 "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:-}")"
+  if [[ "$selected_bootstrap_mode" == quiet-first-registration-v1 ]]; then
+    # Reject a late canonical-path failure before any native freeze/start.
+    python3 -B - "$evidence_root" <<'PYROOT'
+import pathlib,sys
+p=pathlib.Path(sys.argv[1]);assert p.is_absolute() and str(p)==str(p.resolve(strict=False)), 'quiet evidence parent must use its canonical absolute spelling'
+PYROOT
+  fi
+fi
+if [[ "$mode" == continue-pq-native ]]; then
+  # Resume the retained SAME transaction; never export/import/deploy/start
+  # again. Original approval/expiry and the independent transition inputs are
+  # revalidated before reserving the exclusive continuation attempt.
+  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
+  printf '%s\n' "$approval_evidence" | cmp - "$transaction_dir/approval.json" >/dev/null || { echo "PQ continuation changed original full authorization or expiry" >&2; exit 1; }
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/approval.json" "$commit" "$release" >/dev/null
+  [[ "${PUBLIC_BFT_PQ_CONTINUATION_INPUT:-}" == /* && "${PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] || { echo "independent exact PQ continuation public inputs are required" >&2; exit 1; }
+  resume_state="$(python3 -B scripts/ops/public-bft-quiet-continuation.py resume-check --transaction "$transaction_dir" --plan "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:-}" --plan-sha256 "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:-}" --input "$PUBLIC_BFT_PQ_CONTINUATION_INPUT" --input-sha256 "$PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256" )"
+  if [[ "$(printf '%s' "$resume_state" | python3 -B -c 'import json,sys;print(json.load(sys.stdin)["status"])')" == passed ]]; then
+    printf '%s\n' "$resume_state"
+    exit 0
+  fi
+  mkdir -m 0700 "$transaction_dir/pq-continuation-attempt"
+  (set -C; printf '{"status":"unknown","automaticRetry":false,"inputSHA256":"%s"}\n' "$PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256" >"$transaction_dir/pq-continuation-attempt/intent.json")
+  (set -C; cat -- "$PUBLIC_BFT_PQ_CONTINUATION_INPUT" >"$transaction_dir/pq-continuation-attempt/input.json")
+  cmp -- "$PUBLIC_BFT_PQ_CONTINUATION_INPUT" "$transaction_dir/pq-continuation-attempt/input.json" >/dev/null
+  python3 -B - "$transaction_dir/pq-continuation-attempt/input.json" "$PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256" <<'PY'
+import hashlib,pathlib,sys
+assert hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest()==sys.argv[2]
+PY
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/pq-continuation-attempt/intent.json" "$transaction_dir/pq-continuation-attempt/input.json" "$transaction_dir/pq-continuation-attempt" "$transaction_dir"
+elif [[ "$mode" == continue-native ]]; then
   # No preflight/backup/freeze/pause is replayed. The exact completed original
   # preparation, not a newly constructed checkpoint or successful exit alone,
   # selects this one continuation. Any uncertain attempt remains exclusive.
@@ -162,7 +195,7 @@ rollback_transaction() {
   if [[ "$transaction_complete" == "1" || "$mutation_started" != "1" ]]; then
     exit "$original_status"
   fi
-  if [[ "$mode" == prepare-native || "$mode" == continue-native ]]; then
+  if [[ "$mode" == prepare-native || "$mode" == continue-native || "$mode" == continue-pq-native ]]; then
     journal_event transaction unknown
     echo "PUBLIC_BFT_NATIVE_OUTCOME_UNKNOWN: preserve original journal/markers/DB/attempt; no automatic resume, unfreeze, cleanup or retry" >&2
     [[ "$original_status" != 0 ]] || original_status=1
@@ -208,7 +241,7 @@ trap rollback_transaction EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if [[ "$mode" != continue-native ]]; then
+if [[ "$mode" != continue-native && "$mode" != continue-pq-native ]]; then
   run_phase preflight
   run_phase backup
   mutation_started=1
@@ -224,11 +257,25 @@ if [[ "$mode" == prepare-native ]]; then
   exit 0
 fi
 mutation_started=1
-run_phase export_final_snapshot
-run_phase initialize_candidate
-run_phase deploy_candidate
-run_phase start_candidate
-run_phase verify_candidate
+if [[ "$mode" == continue-pq-native ]]; then
+  run_phase verify_pq_continuation
+else
+  run_phase export_final_snapshot
+  run_phase initialize_candidate
+  run_phase deploy_candidate
+  run_phase start_candidate
+  run_phase verify_candidate
+  if [[ "$mode" == continue-native ]]; then
+    quiet_mode="$(python3 -B scripts/ops/public-bft-quiet-continuation.py mode --plan "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN" --plan-sha256 "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256")"
+    if [[ "$quiet_mode" == quiet-first-registration-v1 ]]; then
+      python3 -B scripts/ops/public-bft-quiet-continuation.py pause --transaction "$transaction_dir" --plan "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN" --plan-sha256 "$PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256"
+      transaction_complete=1
+      trap - EXIT INT TERM
+      printf 'public BFT bootstrap awaiting_pq_activation: id=%s evidence=%s; native remains frozen/paused; no dependencies, public ingress or unfreeze\n' "$transaction_id" "$transaction_dir"
+      exit 0
+    fi
+  fi
+fi
 run_phase start_dependencies
 run_phase verify_continuity
 run_phase switch_ingress
@@ -238,6 +285,10 @@ journal_event transaction passed
 if [[ "$mode" == continue-native ]]; then
   (set -C; printf '{"status":"passed","automaticRetry":false}\n' >"$transaction_dir/continuation-attempt/result.json")
   node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/continuation-attempt/result.json" "$transaction_dir/journal.jsonl" "$transaction_dir/continuation-attempt" "$transaction_dir"
+fi
+if [[ "$mode" == continue-pq-native ]]; then
+  (set -C; printf '{"status":"passed","automaticRetry":false,"inputSHA256":"%s"}\n' "$PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256" >"$transaction_dir/pq-continuation-attempt/result.json")
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/pq-continuation-attempt/result.json" "$transaction_dir/journal.jsonl" "$transaction_dir/pq-continuation-attempt" "$transaction_dir"
 fi
 transaction_complete=1
 trap - EXIT INT TERM

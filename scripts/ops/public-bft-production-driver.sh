@@ -17,7 +17,7 @@ if [[ "$action" == prepare_testnet_assets ]]; then
 else
   testnet_assets_action=false
 fi
-[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
+[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -723,6 +723,83 @@ systemctl is-active --quiet ynx-consensus-operator-candidate.service"
   echo "operator start phase completed; independent consensus verification remains required: $start_dir"
 }
 
+quiet_bootstrap_mode() {
+  python3 -B scripts/ops/public-bft-quiet-continuation.py mode --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin"
+}
+
+quiet_forward_gate() {
+  local bootstrap_mode
+  bootstrap_mode="$(quiet_bootstrap_mode)" || return $?
+  [[ "$bootstrap_mode" == quiet-first-registration-v1 ]] || return 0
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == continue-pq-native ]] || { echo "quiet gateway tail requires original transaction continuation" >&2; return 1; }
+  # The original gateway package/SOURCE stays the gateway identity. A later
+  # operator profile has its own independent plan, installed source and proof.
+  python3 -B scripts/ops/public-bft-quiet-continuation.py forward-gate --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" --phase "$action"
+}
+
+collect_quiet_role_observation() {
+  local role="$1" user="$2" host="$3" key="$4" _kind="$5" command
+  command="$(python3 -B scripts/ops/public-bft-quiet-continuation.py observe-command --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" --package "$quiet_observation_package" --runtime "$(dirname "$public_package_verifier")" --role "$role" ${quiet_observation_inputs[@]+"${quiet_observation_inputs[@]}"})" || return $?
+  (set -C; printf '%s\n' "$command" >"$quiet_observation_evidence/$role.command.sh")
+  # Read-only fixed callee; failed/partial observations remain in this exclusive
+  # attempt. No retry, new transaction, signing or service transition follows.
+  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "$command" >"$quiet_observation_evidence/$role.json" 2>"$quiet_observation_evidence/$role.error.txt")
+}
+
+verify_quiet_bootstrap() {
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == continue-native && "${DEPLOY_DRY_RUN:-0}" == 0 ]] || { echo "quiet bootstrap requires the original real native continuation" >&2; return 1; }
+  local quiet_observation_evidence="$candidate_root/quiet-ready-attempt" quiet_observation_package="$candidate_package"
+  local -a quiet_observation_inputs=()
+  (umask 077; mkdir -m 0700 "$quiet_observation_evidence") || { echo "quiet ready observation exists/UNKNOWN; retain original" >&2; return 1; }
+  ynx_ops_each_node collect_quiet_role_observation
+  python3 -B scripts/ops/public-bft-quiet-continuation.py ready --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" --package "$candidate_package" --evidence "$quiet_observation_evidence"
+}
+
+verify_pq_continuation_phase() {
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == continue-pq-native && "${DEPLOY_DRY_RUN:-0}" == 0 ]] || { echo "PQ continuation is only an original native transaction phase" >&2; return 1; }
+  prepare_candidate_package
+  local attempt="$candidate_transaction_dir/pq-continuation-attempt" packet="$candidate_transaction_dir/pq-continuation-attempt/input.json" packet_pin
+  packet_pin="$(python3 -B - "$attempt/intent.json" <<'PY'
+import json,sys
+print(json.load(open(sys.argv[1]))['inputSHA256'])
+PY
+)"
+  local -a quiet_observation_inputs=(--input "$packet" --input-sha256 "$packet_pin")
+  local targets current_package current_pin current_commit current_source
+  targets="$(python3 -B scripts/ops/public-bft-quiet-continuation.py target-package --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}")" || return $?
+  { IFS= read -r current_package; IFS= read -r current_pin; IFS= read -r current_commit; IFS= read -r current_source; } <<<"$targets"
+  # The first implementation resumes within the same source-qualified cutover
+  # runtime. A different build needs a separately approved cutover source; no
+  # SOURCE rewrite or environment-selected binary substitutes for these pins.
+  [[ "$current_commit" == "$CONSENSUS_CANDIDATE_RUNTIME_COMMIT" && "$current_source" == "$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256" ]] || { echo "current PQ runtime differs from original cutover source" >&2; return 1; }
+  (set -C; "$public_package_verifier" -verify-package "$current_package" -operator-plan-hash "$current_pin" >"$attempt/current-package-verification.txt")
+  local quiet_observation_evidence="$attempt/evidence" quiet_observation_package="$current_package"
+  (umask 077; mkdir -m 0700 "$quiet_observation_evidence") || { echo "original PQ qualification exists/UNKNOWN; do not repeat" >&2; return 1; }
+  local role values context context_pin request request_pin proof_verifier="$(dirname "$public_package_verifier")/ynx-consensus-proof-verify"
+  local transition_root transition_approval transition_approval_pin
+  { IFS= read -r transition_root; IFS= read -r transition_approval; IFS= read -r transition_approval_pin; } < <(python3 -B - "$packet" <<'PYDATA'
+import json,sys
+v=json.load(open(sys.argv[1]))
+for k in ('transitionRoot','transitionApproval','transitionApprovalSHA256'): print(v[k])
+PYDATA
+)
+  # Reuse the original normal transition binding validator, with the actual
+  # independently approved source/plan bytes; no reader-generated approval.
+  source scripts/ops/remote/public-bft-operator-transition.sh
+  for role in primary singapore silicon-valley seoul; do
+    (set -C; operator_transition_binding start "$candidate_transaction_id" "$role" "$transition_approval" "$transition_approval_pin" "$candidate_package" "$candidate_operator_pin" "$(dirname "$public_package_verifier")/SOURCE.json" "$current_commit" "$current_source" "$current_package" "$current_pin" "$(dirname "$public_package_verifier")/SOURCE.json" "$current_commit" "$current_source" >"$quiet_observation_evidence/$role.binding.json")
+    cmp "$quiet_observation_evidence/$role.binding.json" "$transition_root/start-attempt/$role.binding.json" >/dev/null || { echo "original transition binding changed" >&2; return 1; }
+  done
+  values="$(python3 -B scripts/ops/public-bft-quiet-continuation.py proof-args --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence")" || return $?
+  { IFS= read -r context; IFS= read -r context_pin; IFS= read -r request; IFS= read -r request_pin; } <<<"$values"
+  # The one independently pinned canonical light proof verifies every present
+  # signature. Four role readiness observations do not require four math runs.
+  # Exit zero alone is insufficient: verify-results checks the full result.
+  (set -C; /usr/bin/timeout --signal=TERM --kill-after=5 60 "$proof_verifier" --trust-context "$context" --trust-context-sha256 "$context_pin" <"$request" >"$quiet_observation_evidence/light.proof-result.json" 2>"$quiet_observation_evidence/light.proof-error.txt")
+  ynx_ops_each_node collect_quiet_role_observation
+  python3 -B scripts/ops/public-bft-quiet-continuation.py verify-results --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence"
+}
+
 verify_candidate_phase() {
   prepare_candidate_package
   local deploy_result="$candidate_root/deploy-result.json" binding_sha
@@ -730,6 +807,12 @@ verify_candidate_phase() {
   binding_sha="$(shasum -a 256 "$candidate_binding" | awk '{print $1}')"
   node -e 'const fs=require("fs"),[p,tx,c,r,s]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p)); if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==s||v.deployed!==true) process.exit(1)' "$deploy_result" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" || { echo "candidate deploy result is not transaction-bound" >&2; exit 1; }
   node -e 'const fs=require("fs"),[p,t,c,r,h,d]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p));if(v.version!==1||v.transactionId!==t||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==h||v.dryRun!==(d==="1")||v.started!==(d!=="1"))process.exit(1)' "$candidate_root/start-attempt/result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" "${DEPLOY_DRY_RUN:-0}" || { echo "explicit original operator start result is required; dry-run cannot authorize real verification" >&2; exit 1; }
+  local bootstrap_mode
+  bootstrap_mode="$(quiet_bootstrap_mode)" || return $?
+  if [[ "$bootstrap_mode" == quiet-first-registration-v1 ]]; then
+    verify_quiet_bootstrap
+    return
+  fi
   local evidence="$candidate_root/remote-evidence"
   CONSENSUS_CANDIDATE_PACKAGE="$candidate_package" CONSENSUS_CANDIDATE_EVIDENCE_DIR="$evidence" bash scripts/verify/verify-consensus-candidate.sh >"$candidate_root/verify.txt"
   if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
@@ -773,6 +856,12 @@ dependency_context() {
 }
 
 validated_candidate_result() {
+  local bootstrap_mode
+  bootstrap_mode="$(quiet_bootstrap_mode)" || return $?
+  if [[ "$bootstrap_mode" == quiet-first-registration-v1 ]]; then
+    quiet_forward_gate
+    return
+  fi
   local binding_sha
   binding_sha="$(shasum -a 256 "$candidate_binding" | awk '{print $1}')"
   node -e 'const fs=require("fs"),[p,tx,c,r,s,d]=process.argv.slice(1),v=JSON.parse(fs.readFileSync(p));if(v.transactionId!==tx||v.commit!==c||v.bftRelease!==r||v.bindingSha256!==s||v.dryRun!==(d==="1")||v.verified!==(d!=="1"))process.exit(1)' "$candidate_root/verify-result.json" "$candidate_transaction_id" "$commit" "$candidate_bft_release" "$binding_sha" "${DEPLOY_DRY_RUN:-0}" || { echo "actual original operator verification is required; dry-run cannot authorize activation" >&2; exit 1; }
@@ -920,7 +1009,7 @@ validated_ingress_result() {
   local operation="$1" result="$2"
   local -a source_args=()
   if [[ "$ingress_mode" == single-app-gateway-json ]]; then source_args+=("$ingress_root/$operation-attempt/caddy-source-manifest.json"); fi
-  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$result" "$operation" "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha" "${source_args[@]}"
+  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$result" "$operation" "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha" ${source_args[@]+"${source_args[@]}"}
 }
 
 validated_continuity_result() {
@@ -1084,6 +1173,7 @@ mutation_freeze_phase() {
   local operation="$1"
   if [[ "$operation" == unfreeze && ( -e "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}/candidate/initialize-attempt" || -L "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}/candidate/initialize-attempt" ) ]]; then
     prepare_candidate_package
+    quiet_forward_gate
     ingress_context
     node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$ingress_root/public-result.json" "${DEPLOY_DRY_RUN:-0}"
     # Removing the shared mutation marker never removes the independent native
@@ -1253,7 +1343,7 @@ recovery_phase() {
   echo "production BFT recovery verification passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
-if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]]; then
+if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]]; then
   [[ -z "$(git status --short)" ]] || { echo "production mutation phase requires a clean worktree" >&2; exit 1; }
   case "$action" in
     backup) backup_phase ;;
@@ -1266,6 +1356,7 @@ if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "
     deploy_candidate) deploy_candidate_phase ;;
     start_candidate) start_candidate_phase ;;
     verify_candidate) verify_candidate_phase ;;
+    verify_pq_continuation) verify_pq_continuation_phase ;;
     rollback_candidate) rollback_candidate_phase ;;
     start_dependencies) start_dependencies_phase ;;
     verify_continuity) verify_continuity_phase ;;

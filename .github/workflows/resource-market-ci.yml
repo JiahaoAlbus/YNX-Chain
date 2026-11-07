@@ -109,6 +109,8 @@ on:
       - 'scripts/ops/write-owner-handover-packet.mjs'
       - 'scripts/ops/write-production-custody-review-packet.mjs'
       - 'scripts/ops/public-bft-cutover-transaction.sh'
+      - 'scripts/ops/public-bft-quiet-continuation.py'
+      - 'scripts/ops/test_public_bft_quiet_continuation.py'
       - 'scripts/ops/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-final-snapshot.sh'
