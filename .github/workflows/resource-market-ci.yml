@@ -71,6 +71,11 @@ on:
       - 'scripts/ops/collect_pq_committed_account_handler_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_handler_tests.py'
       - 'scripts/ops/test_validate_pq_committed_account_handler_ci.py'
+      - 'scripts/verify/committed-account-wire-check.sh'
+      - 'scripts/ops/collect_pq_committed_account_wire_tests.py'
+      - 'scripts/ops/test_collect_pq_committed_account_wire_tests.py'
+      - 'scripts/ops/test_validate_pq_committed_account_wire_ci.py'
+      - 'internal/consensus/testdata/account_proof_wire_sdk/**'
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
@@ -170,6 +175,11 @@ on:
       - 'scripts/ops/collect_pq_committed_account_handler_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_handler_tests.py'
       - 'scripts/ops/test_validate_pq_committed_account_handler_ci.py'
+      - 'scripts/verify/committed-account-wire-check.sh'
+      - 'scripts/ops/collect_pq_committed_account_wire_tests.py'
+      - 'scripts/ops/test_collect_pq_committed_account_wire_tests.py'
+      - 'scripts/ops/test_validate_pq_committed_account_wire_ci.py'
+      - 'internal/consensus/testdata/account_proof_wire_sdk/**'
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'internal/consensus/pq_current4_*.go'
@@ -1523,6 +1533,8 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_handler_tests.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_handler_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_wire_tests.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_wire_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
@@ -2199,7 +2211,7 @@ jobs:
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
           sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
-          required += sender_checkpoint_required
+          required += ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           sender_checkpoint_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           for name in sender_checkpoint_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
@@ -2332,6 +2344,24 @@ jobs:
             ${{ runner.temp }}/ynx-committed-account-handler/RESULT.json
             ${{ runner.temp }}/ynx-committed-account-handler/GO.jsonl
             ${{ runner.temp }}/ynx-committed-account-handler/STDERR
+          if-no-files-found: error
+          retention-days: 7
+      - name: Verify committed account wire PUBLIC DATA and close debt
+        id: committedaccountwire
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=5s 205s bash scripts/verify/committed-account-wire-check.sh "$RUNNER_TEMP/ynx-committed-account-wire"
+      - name: Retain only public committed account wire evidence
+        if: ${{ !cancelled() && (steps.committedaccountwire.outcome == 'success' || steps.committedaccountwire.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-committed-account-wire-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-committed-account-wire/RESULT.json
+            ${{ runner.temp }}/ynx-committed-account-wire/GO.jsonl
+            ${{ runner.temp }}/ynx-committed-account-wire/STDERR
           if-no-files-found: error
           retention-days: 7
       - name: Reproduce signed-history overwrite and unsafe rollback callers
