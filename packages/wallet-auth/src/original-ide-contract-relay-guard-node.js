@@ -1,3 +1,4 @@
+import {markOriginalIDEContractRelayDiagnostic as diagnostic} from './original-ide-contract-relay-diagnostics.js';
 import {createRequire} from 'node:module';
 import {posix as posixPath} from 'node:path';
 import {Buffer} from 'node:buffer';
@@ -40,12 +41,12 @@ export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,loca
   // No local defaults: the Native successor supplies its independent signed
   // project scope. Optional expected fields only constrain that actual scope.
   const expected=expectedScope===undefined?undefined:captureContractRelayExpectedScope(expectedScope,true);
-  let native;try{native=require('../../../apps/wallet-desktop/native/original-auth-identity.node');}catch(cause){throw Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause});}
-  if(names.some(n=>typeof native[nativeNames[n]]!=='function'))fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
+  let native;try{native=require('../../../apps/wallet-desktop/native/original-auth-identity.node');}catch(cause){throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause}),'NATIVE_LOAD',cause);}
+  if(names.some(n=>typeof native[nativeNames[n]]!=='function'))throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'}),'NATIVE_EXPORTS');
   // Adopt immediately before any scope/current read: failed initialization still
   // leaves a caller-owned cleanup reference, never an invisible acquired owner.
-  const ref=await native[nativeNames.acquire]({serverModuleURL,localContext:local,...(expected===undefined?{}:{expectedScope:expected})});
-  if(!ref)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
+  let ref;try{ref=await native[nativeNames.acquire]({serverModuleURL,localContext:local,...(expected===undefined?{}:{expectedScope:expected})});}catch(cause){throw diagnostic(cause,'NATIVE_ACQUIRE');}
+  if(!ref)throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'}),'NATIVE_ACQUIRE_EMPTY');
   let closed=false,terminal=false,unknown=false,cleanupFlight,firstCause=null,capturedScope=null,nativeCurrentEntered=false,publicCurrentEntered=false;
   const actions=new Map();
   const remember=error=>{unknown=true;if(firstCause===null){const code=error&&Object.getOwnPropertyDescriptor(error,'code')?.value;firstCause=typeof code==='string'&&/^YNX_CONTRACT_RELAY_(?:CANCEL|REVOKE|CLEANUP)_UNKNOWN$/.test(code)?code:'UNCLASSIFIED';}return error;};
@@ -75,12 +76,14 @@ export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,loca
     close:cleanup,
   });
   registerOriginalContractRelayGuard(owner,{scope,current,cancel:owner.cancel,runtimeCheck:async()=>{const {verifyContractInitiatorRuntime}=await import('./walletconnect-contract-initiator-boundary-node.js');return verifyContractInitiatorRuntime();},observe:listener=>native[nativeNames.observeRevocation](ref,()=>{terminal=true;listener();})});
-  try{scope();if(current()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');scope();}catch(cause){throw Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause,cleanupOwner:owner});}
+  let initialStage='SCOPE_INITIAL';
+  try{scope();initialStage='CURRENT_INITIAL';if(current()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');initialStage='SCOPE_RECHECK';scope();}catch(cause){throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause,cleanupOwner:owner}),initialStage,cause);}
   // A partial cleanupOwner is deliberately absent from this ready registry.
   readyOwners.set(owner,()=>{
     if(closed||terminal||publicCurrentEntered)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
     publicCurrentEntered=true;
     try{const verified=assertOriginalContractRelayGuard(owner,expected);if(closed||terminal)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');return scopeData(verified);}
+    catch(cause){throw diagnostic(cause,'CURRENT_LIVE');}
     finally{publicCurrentEntered=false;}
   });
   return owner;
