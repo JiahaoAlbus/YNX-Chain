@@ -30,3 +30,24 @@ test('actual issued request cancellation is single-flight and a native cancellat
 test('outer IPC errors expose only a bounded original code, never cause or untrusted error message',async()=>{const f=fixture({nativePayInvoke:async()=>({ok:false,error:{code:'NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE',message:'SECRET',cause:{privateKey:'SECRET'}}})});await f.ui.open();await send(f);assert.match(text(f.ui.element),/NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE/);assert(!text(f.ui.element).includes('SECRET'));});
 test('an unavailable old preload can close an untouched sheet without inventing cleanup or trapping the user',async()=>{const f=fixture({nativePayCancel:undefined,nativePayInvoke:undefined});await f.ui.open();assert.equal(f.ui.element.open,true);await f.ui.close();assert.equal(f.ui.element.open,false);assert.equal(f.calls.length,0);});
 test('outer failure after an earlier query cannot borrow stale reference or recovery buttons',async()=>{let i=0;const f=fixture({nativePayInvoke:async()=>++i===1?result({reference:{merchant:account,invoiceId:'OLD'},recoveryActions:[{action:'invoice',merchant:account,invoiceId:'OLD'}]}):({ok:false})});await f.ui.open();await send(f);assert(text(f.ui.element).includes('OLD'));await send(f);assert(!text(f.ui.element).includes('OLD'));assert.equal(all(f.ui.element,n=>n.tagName==='button'&&n.type==='button'&&n.textContent==='Read invoice / 读取账单').length,0);});
+test('initial empty or locked Pay sheet explains refusal without granting invocation',async()=>{
+ for(const ctx of [{account:null,locked:true},{locked:true},{focused:false}]){
+  const f=fixture();f.set(ctx);await f.ui.open();
+  assert.match(text(f.ui.element),ctx.account===null?/Create or import an account/:/Unlock and focus Wallet/);
+  assert.equal(all(f.ui.element,n=>n.tagName==='button'&&n.type==='submit')[0].disabled,true);
+  await send(f);assert.equal(f.calls.length,0);
+ }
+});
+test('readiness failure is visible in an initially locked sheet and cannot borrow earlier closing text',async()=>{
+ const f=fixture({nativePayStatus:async()=>{throw Error('PRIVATE_FAILURE');}});f.set({locked:true});
+ await f.ui.open();assert.match(text(f.ui.element),/Pay readiness unconfirmed/);assert(!text(f.ui.element).includes('PRIVATE_FAILURE'));
+ await f.ui.close();await f.ui.open();assert.match(text(f.ui.element),/Pay readiness unconfirmed/);assert(!text(f.ui.element).includes('Closing original'));
+});
+test('late readonly readiness cannot enable a changed account, revision, lock or focus',async()=>{
+ for(const change of [{account:'0x'+'2'.repeat(40)},{keyRevision:2},{locked:false},{focused:false}]){
+  let finish;const f=fixture({nativePayStatus:()=>new Promise(r=>finish=r)});f.set({locked:true});const opening=f.ui.open();
+  f.set(change);finish(ok({normalMainEntry:true,canRequest:true,paymentAuthorized:false}));await opening;
+  assert.equal(all(f.ui.element,n=>n.tagName==='button'&&n.type==='submit')[0].disabled,true);
+  assert(!text(f.ui.element).includes('Enter the original identifiers'));await send(f);assert.equal(f.calls.length,0);
+ }
+});
