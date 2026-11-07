@@ -2451,11 +2451,19 @@ jobs:
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           # Normal PQ lab producers and continuous capture run together in
           # their own bounded process. The original complete union is retained.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          # The original Linux lab process completed 58 cases in 179.130s.
+          # Keep caller/workload tests in one disjoint 180s process; retain
+          # all original cases, failure receipts and complete union checks.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           # Preserve the full union while this large original-source case
           # receives its own unchanged 180-second process budget.
           if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl"; then
@@ -2467,7 +2475,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
           state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
           def qualify_state_partitions(events):
               # These are independent executions of one source/package, not partial
@@ -2529,7 +2537,7 @@ jobs:
                           optInSkipped=sorted(skipped), suitePassed=True)
           live_cold_owner_required = ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           def qualify_live_cold_owner(events):
-              # Reuse the original complete five-package stream guard: no detached PASS,
+              # Reuse the complete original partition stream guard: no detached PASS,
               # missing package, wrong group or failed/skipped child can qualify an owner.
               qualify_state_partitions(events)
               package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
