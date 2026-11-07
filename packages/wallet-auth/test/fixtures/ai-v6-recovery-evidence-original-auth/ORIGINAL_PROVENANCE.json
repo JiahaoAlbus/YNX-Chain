@@ -1,0 +1,24 @@
+{
+  "role": "EXACT PUBLIC TEST-ONLY ORIGINAL AUTH DATA DEPENDENCY; not second production Auth implementation",
+  "originalAuthH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/final-r1/HANDOFF.json",
+    "bytes": 11583,
+    "sha256": "685e51db868f9a925a2da651768e796ddb91a8f48dfcc243977021b3e7828422"
+  },
+  "sourcePins": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/final-r1/source/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/final-r1/source/MobileCanonicalDATA.cpp",
+      "bytes": 5235,
+      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+    }
+  ],
+  "production": "only original actual Auth dependency and originalSHA256->OS43; not these test adapters",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}
