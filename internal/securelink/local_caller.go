@@ -49,6 +49,24 @@ func (c *LocalCaller) Current(ctx context.Context) (LocalCallerMaterial, error) 
 	return c.state.current(ctx)
 }
 
+// CurrentOriginalCaller checks only this handle's observed local lifetime and
+// exact originally bound request/route. It performs no OS/socket/control I/O,
+// body copy, callback or server/Store lock acquisition, so a private Auth source
+// may use it while holding its own request lease lock AFTER a full Current
+// capture. Value copies of LocalCaller share that same original lifetime.
+//
+// Success is not fresh OS peer evidence, TLS/Gate evidence, a business Source or
+// approval. Full Current remains required wherever current OS evidence is
+// needed. A remote close is known here only once the local connection/lifecycle
+// or original request cancellation has observed it; this cannot discover an
+// unobserved remote close without I/O. It never authenticates another request.
+func (c *LocalCaller) CurrentOriginalCaller(r *http.Request) error {
+	if c == nil || c.state == nil {
+		return ErrDenied
+	}
+	return c.state.currentOriginalCaller(r)
+}
+
 // LocalCallerFromRequest accepts only the exact request minted by the private
 // listener boundary. Copying its context into a new request is insufficient.
 func LocalCallerFromRequest(r *http.Request) (*LocalCaller, error) {
@@ -102,7 +120,15 @@ type LocalCallerClientConfig struct {
 // LocalCallerResponse carries opaque original bytes. No response body is
 // interpreted as authorization, a receipt or an authenticated LocalCaller.
 type LocalCallerResponse struct {
-	StatusCode int
-	Header     http.Header
-	Body       []byte
+	// These are read from the actual emitted request, only once a response
+	// header has been received. They are transport DATA, not a receipt.
+	PacketPresent       bool
+	Method, RequestPath string
+	StatusCode          int
+	Header              http.Header
+	Body                []byte
+	// BodyComplete records a bounded response body that finished reading. A
+	// later cancellation or Source failure still denies use of that DATA; this
+	// flag is neither operation success nor authorization.
+	BodyComplete bool
 }

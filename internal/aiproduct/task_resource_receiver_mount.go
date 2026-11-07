@@ -100,7 +100,7 @@ func openOriginalTaskReadReceiver(ctx context.Context, o *OriginalTaskReadReceiv
 		}
 		handler.ServeHTTP(w, r) // genuine original request; never clone/rewrite it
 	})
-	o.server, err = link.NewLocalCallerServer(cfg)
+	o.server, err = link.NewOriginalTaskReadContinuationServer(cfg)
 	if err != nil {
 		return o, err
 	}

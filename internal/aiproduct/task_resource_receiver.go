@@ -12,6 +12,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	tasklocal "github.com/JiahaoAlbus/YNX-Chain/internal/authtasklocal"
 	link "github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
 
 	authgrant "ynx.local/authgrantpolicy"
@@ -195,6 +196,14 @@ func (o *OriginalTaskReadResource) begin(ctx context.Context, r OriginalTaskReso
 	}
 	callCtx := c.context
 	if execution {
+		if _, originalNative := o.verifier.(*tasklocal.Owner); originalNative {
+			// Exact original LocalCaller inventory only; DATA/header/provider
+			// cannot mint it. Auth still verifies and owns the original child.
+			if _, err = link.OriginalTaskReadContinuationFromContext(callCtx); err != nil {
+				c.first = err
+				return c, err
+			}
+		}
 		// Only the originally installed protected local owner can implement this
 		// sibling. Ordinary grant verification/op DATA cannot substitute for it.
 		verifier, ok := o.verifier.(authgrant.OriginalTaskReservationVerifier)

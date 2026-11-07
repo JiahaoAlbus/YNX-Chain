@@ -48,3 +48,29 @@ normal Native capability, real account/approval or complete Auth SQL settlement.
 The real original registration producer and reservation getter remain Auth-owned
 CODE. Exact Auth/LINK calling gaps are in P08's matching coordination function
 cards; existing transport CI is not a replacement for those bodies.
+
+## Matching Go continuation constructor
+
+The normal mount now uses sole LINK
+`NewOriginalTaskReadContinuationServer`, byte-exact from commit
+`eb311202d8d0227a2a968b19d8fd751f58eade25`, including its same-commit
+LocalCallerResponse DATA prerequisite. Input/query retain plain P; execute
+requires R plus exactly one SCM_RIGHTS descriptor. A native local verifier's
+execution also requires `OriginalTaskReadContinuationFromContext` from the
+original LocalCaller private inventory. A JSON operation/binding/proof or copied
+context cannot construct that transport object. The object is transport-only;
+Auth must still verify its detached D against the entire signed binding and
+same Source/private reservation. P08 does not parse a second Auth DATA schema.
+The original Auth final claim selects synchronous bounded F under Store.mu;
+there is no P08 direct F bypass or pre-dispatch claim.
+
+Go-only intake is pinned in `ORIGINAL_TASK_CONTINUATION_INTAKE.json`. No old R2
+physical/flat6 Node/NAPI image is loaded or patched by this intake. SDK consumes
+the new continuation Native getter/module code closure as one matching cohort.
+A missing original registration or Auth strong callee stays unavailable.
+
+Mounted controls include real SCM_RIGHTS, the real LocalCaller inventory and
+C/F control roundtrips at the actual resource mutex, plus plain-execute refusal
+and active-claim drain. Their control peer and Auth proof/reservation decisions
+are explicitly PUBLIC fixtures: not a Node WeakMap ticket, genuine Source,
+strict Auth D decoder, real user permission or complete business admission.

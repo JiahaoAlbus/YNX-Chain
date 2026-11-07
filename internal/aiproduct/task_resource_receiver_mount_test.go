@@ -62,6 +62,14 @@ func p08CloseReadReceiver(t *testing.T, o *OriginalTaskReadReceiver) {
 
 func TestP08TaskReadReceiverMountedFiniteThree(t *testing.T) {
 	resource, r, source := p08ReadReceiverFixture(t)
+	resource.verifier.(*p08ResourceReservationFixture).claimOverLink = true
+	var effectsUnavailable atomic.Bool
+	resource.current = func(ctx context.Context) error {
+		if effectsUnavailable.Load() {
+			return errTaskEffectSourceUnavailable
+		}
+		return ctx.Err()
+	}
 	owner, err := openOriginalTaskReadReceiver(context.Background(), &OriginalTaskReadReceiver{resource: resource, done: make(chan struct{})}, source)
 	if err != nil {
 		p08CloseReadReceiver(t, owner)
@@ -81,9 +89,14 @@ func TestP08TaskReadReceiverMountedFiniteThree(t *testing.T) {
 		t.Fatalf("mounted input: %d %v", response.StatusCode, err)
 	}
 	raw, _ = json.Marshal(r)
+	// Plain execute must not acquire a continuation from JSON/profile alone.
 	response, err = client.Call(context.Background(), "POST", OriginalTaskReadExecutePath, "application/json", raw)
+	if err == nil && response.StatusCode < 400 {
+		t.Fatal("plain execute admitted without SCM continuation")
+	}
+	response, err = p08MountedContinuationExchange(source.path, raw)
 	if err != nil || response.StatusCode != 200 {
-		t.Fatalf("mounted execute: %d %v", response.StatusCode, err)
+		t.Fatalf("mounted SCM execute: %d %v", response.StatusCode, err)
 	}
 	var receipt OriginalTaskResourceReadResult
 	if json.Unmarshal(response.Body, &receipt) != nil || receipt.OperationID != r.AuthorityOperationID || receipt.State != "COMMITTED" {
@@ -96,7 +109,7 @@ func TestP08TaskReadReceiverMountedFiniteThree(t *testing.T) {
 	}
 	// An unavailable NEW-effect source must not erase independently authorized
 	// original history on this already mounted registration.
-	resource.current = func(context.Context) error { return errTaskEffectSourceUnavailable }
+	effectsUnavailable.Store(true)
 	response, err = client.Call(context.Background(), "POST", OriginalTaskReadQueryPath, "application/json", raw)
 	if err != nil || response.StatusCode != 200 {
 		t.Fatalf("new-effect loss erased original query: %d %v", response.StatusCode, err)
@@ -171,17 +184,21 @@ func TestP08TaskReadReceiverDrainRetainsActiveClaim(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { p08CloseReadReceiver(t, owner) })
-	client, err := link.NewLocalCallerClient(link.LocalCallerClientConfig{SocketPath: source.path, Service: OriginalTaskReadResourceService, PeerUID: uint32(os.Geteuid()), PeerPID: os.Getpid(), Routes: source.config.Routes, Timeout: 3 * time.Second, MaxResponseBytes: OriginalTaskReadMaxResponseBytes})
-	if err != nil {
-		t.Fatal(err)
-	}
 	raw, _ := json.Marshal(r)
 	result := make(chan error, 1)
 	go func() {
-		_, err := client.Call(context.Background(), "POST", OriginalTaskReadExecutePath, "application/json", raw)
+		_, err := p08MountedContinuationExchange(source.path, raw)
 		result <- err
 	}()
-	<-entered
+	select {
+	case <-entered:
+	case err := <-result:
+		close(release)
+		t.Fatalf("original request refused before claim: %v", err)
+	case <-time.After(4 * time.Second):
+		close(release)
+		t.Fatal("original claim did not enter")
+	}
 	if err = owner.Retire(); err != nil {
 		close(release)
 		t.Fatal(err)

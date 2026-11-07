@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "kind": "Exact original LINK Go-only continuation intake; no Node/NAPI or Source admission",
+  "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "handoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-continuation-next/GO-CODE-HANDOFF-R1.json",
+    "bytes": 7000,
+    "sha256": "d57c2812d086c72b71915c01e92b5f1a9529cfea81895281a99b82a53bfdf8f7"
+  },
+  "imports": [
+    {
+      "sourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "source": {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/internal/securelink/task_read_continuation.go",
+        "bytes": 3327,
+        "sha256": "5870073d9d2817cd9393fcce26ec565c48167fc54519472c7340708b51f49ef7"
+      },
+      "target": "internal/securelink/task_read_continuation.go"
+    },
+    {
+      "sourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "source": {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/internal/securelink/task_read_continuation_unix.go",
+        "bytes": 15188,
+        "sha256": "3bd0abf1660bdcecbc2fcc34ee2bc27a00d52be8257946c124866f5f7c24e0b8"
+      },
+      "target": "internal/securelink/task_read_continuation_unix.go"
+    },
+    {
+      "sourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "source": {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/internal/securelink/task_read_continuation_unsupported.go",
+        "bytes": 915,
+        "sha256": "7d2d846f8b557b329eadb877696da0cd57c26763b165742ebdcf1f85e8bd2839"
+      },
+      "target": "internal/securelink/task_read_continuation_unsupported.go"
+    },
+    {
+      "sourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "source": {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/internal/securelink/local_caller_unix.go",
+        "bytes": 19014,
+        "sha256": "5e02ac3fa94ad5ce9d8fa75548fc45841319e30ff7cdff93f2f54a0e15300ad9"
+      },
+      "target": "internal/securelink/local_caller_unix.go"
+    }
+  ],
+  "NodeOrNAPIHotSwap": false,
+  "RootOrSourceCapabilityMinted": false,
+  "sourceProof": "Only transport inventory. Original Auth owns full signed binding/strict DATA and same Nativecap verification.",
+  "sameCommitPrerequisites": [
+    {
+      "path": "internal/securelink/local_caller.go",
+      "sourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "bytes": 5090,
+      "sha256": "d3b68807a8c8cf17be64737c60cb273c11ef9d6dd734f78c6bc2178bb37b4d46",
+      "reason": "Exact same-commit LocalCallerResponse DATA shape required by imported local_caller_unix.go; first missing-field compile retained."
+    }
+  ]
+}

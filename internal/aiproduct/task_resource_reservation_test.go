@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	link "github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
 	authgrant "ynx.local/authgrantpolicy"
 )
 
@@ -14,6 +15,7 @@ import (
 // ReadInput gets NEW/no-op; execution gets the query-UNKNOWN projection plus a
 // separate original-capability stand-in. No production factory installs this.
 type p08ResourceReservationFixture struct {
+	claimOverLink                  bool
 	mu                             sync.Mutex
 	held                           *p08OriginalHeldFixture
 	operation                      string
@@ -58,6 +60,13 @@ func (f *p08ResourceReservationFixture) AssertOriginalReservation(ctx context.Co
 	if op != f.operation || s != f.held.snapshot.Grant.Binding.Slot() || v != f.held.snapshot.Version {
 		return errToolConflict
 	}
+	if f.claimOverLink {
+		cap, err := link.OriginalTaskReadContinuationFromContext(ctx)
+		if err != nil {
+			return err
+		}
+		return cap.Current(ctx)
+	}
 	return ctx.Err()
 }
 func (f *p08ResourceReservationFixture) ClaimOriginalReservation(ctx context.Context, v authgrant.SourceVersion, s authgrant.SemanticSlot, op string) error {
@@ -75,6 +84,13 @@ func (f *p08ResourceReservationFixture) ClaimOriginalReservation(ctx context.Con
 	}
 	if f.claimError != nil {
 		return f.claimError
+	}
+	if f.claimOverLink {
+		cap, err := link.OriginalTaskReadContinuationFromContext(ctx)
+		if err != nil {
+			return err
+		}
+		return cap.ClaimAtOriginalResourceFence(ctx)
 	}
 	return ctx.Err()
 }
