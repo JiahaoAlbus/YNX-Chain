@@ -109,14 +109,18 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-price-joint ]; then
  go test -race -p 1 -tags 'pay_pq pay_native_price_joint pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePriceOriginalSellerHTTPSFirstInvoiceAndInstalledMain$' -count=1 -timeout=2m -v
  exit
 fi
-if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-review ]; then
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-review ] || [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-refund-request-review ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
  : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
  : "${PAY_CLIENT_MAIN_SOURCE:?exact original Main and SDK source required}"
  : "${PAY_ORDER_REVIEW_FIXTURE:?original public typed review fixture required}"
  export PAY_ORDER_REVIEW_DRIVER="$client_root/testsupport/original-order-review.mjs"
- go test -race -p 1 -tags 'pay_pq pay_order_consumer pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeOriginalOrderNormalTermsPayerRefundReview$' -count=1 -timeout=3m -v
+ review_test='^TestNativeOriginalOrderNormalTermsPayerRefundReview$'
+ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-refund-request-review ]; then
+  review_test='^TestNativeOriginalOrderRefundRequestEventAndExplicitAmountReview$'
+ fi
+ go test -race -p 1 -tags 'pay_pq pay_order_consumer pay_securelink securelink_openssl' ./internal/payproduct -run "$review_test" -count=1 -timeout=3m -v
  exit
 fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order ]; then

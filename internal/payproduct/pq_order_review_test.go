@@ -30,6 +30,17 @@ import (
 // signed PUBLIC historical Members and their independent proofs. No new key,
 // signature, consensus execution, webhook or live funds are involved.
 func TestNativeOriginalOrderNormalTermsPayerRefundReview(t *testing.T) {
+	runNativeOriginalOrderReview(t, nil)
+}
+
+// Shop's original request-event spelling is reused, never a new Pay UUID.
+// These are PUBLIC DATA controls, not a claim of a genuine Shop request grant.
+func TestNativeOriginalOrderRefundRequestEventAndExplicitAmountReview(t *testing.T) {
+	runNativeOriginalOrderReview(t, map[string]string{"refundId": "event_0123456789abcdef01234567", "amountAtoms": "37"})
+}
+
+func runNativeOriginalOrderReview(t *testing.T, refundRequest map[string]string) {
+	t.Helper()
 	fixture, node, driver := os.Getenv("PAY_ORDER_REVIEW_FIXTURE"), os.Getenv("PAY_NODE_BINARY"), os.Getenv("PAY_ORDER_REVIEW_DRIVER")
 	for _, p := range []string{fixture, node, driver} {
 		if !filepath.IsAbs(p) {
@@ -153,24 +164,27 @@ func TestNativeOriginalOrderNormalTermsPayerRefundReview(t *testing.T) {
 		t.Fatal(err)
 	}
 	for stage := 0; stage < 3; stage++ {
-		before, e := os.ReadFile(parent.store.path)
-		if e != nil {
-			t.Fatal(e)
-		}
-		input, _ := json.Marshal(map[string]any{"original": source.intent, "origin": product.URL, "stage": stage, "intentId": intent.IntentID, "invoiceId": f.Terms.InvoiceID})
-		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-		cmd := exec.CommandContext(ctx, node, driver)
-		cmd.Stdin = bytes.NewReader(input)
-		cmd.Env = append(os.Environ(), "PAY_CLIENT_QA_MANIFEST="+filepath.Join(fixture, "manifest.json"))
-		out, e := cmd.CombinedOutput()
-		cancel()
-		if e != nil {
-			t.Fatalf("order review stage %d: %v %s", stage, e, out)
-		}
-		t.Logf("ACTUAL_ORIGINAL_ORDER_REVIEW %s", bytes.TrimSpace(out))
-		after, e := os.ReadFile(parent.store.path)
-		if e != nil || !bytes.Equal(before, after) {
-			t.Fatal("review/cancel changed original Pay Store", stage, e)
+		var e error
+		if refundRequest == nil || stage == 2 {
+			before, e := os.ReadFile(parent.store.path)
+			if e != nil {
+				t.Fatal(e)
+			}
+			input, _ := json.Marshal(map[string]any{"original": source.intent, "origin": product.URL, "stage": stage, "intentId": intent.IntentID, "invoiceId": f.Terms.InvoiceID, "refundRequest": refundRequest})
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			cmd := exec.CommandContext(ctx, node, driver)
+			cmd.Stdin = bytes.NewReader(input)
+			cmd.Env = append(os.Environ(), "PAY_CLIENT_QA_MANIFEST="+filepath.Join(fixture, "manifest.json"))
+			out, e := cmd.CombinedOutput()
+			cancel()
+			if e != nil {
+				t.Fatalf("order review stage %d: %v %s", stage, e, out)
+			}
+			t.Logf("ACTUAL_ORIGINAL_ORDER_REVIEW %s", bytes.TrimSpace(out))
+			after, e := os.ReadFile(parent.store.path)
+			if e != nil || !bytes.Equal(before, after) {
+				t.Fatal("review/cancel changed original Pay Store", stage, e)
+			}
 		}
 		if stage == 0 {
 			if _, e = intents.SubmitMerchantTerms(merchantCtx, intent.IntentID, f.Rows[0].Wire); e != nil {
@@ -193,5 +207,9 @@ func TestNativeOriginalOrderNormalTermsPayerRefundReview(t *testing.T) {
 	if effectPOST != 0 || source.posts != 2 {
 		t.Fatal("review journey sent a Member", effectPOST, source.posts)
 	}
-	t.Log("ACTUAL_ORIGINAL_ORDER_REVIEW_COMPLETE merchantTerms=1 payer=1 refund=1 sameOriginalMainPublish=3 cancelOnce=3 signing=0 effectPOST=0 historicalPUBLICSetupMembers=2 consensusExecution=0 genuineSource=false")
+	if refundRequest != nil {
+		t.Logf("ACTUAL_ORIGINAL_REFUND_REQUEST_REVIEW refundId=%s amountAtoms=%s sameOriginalMainPublish=1 cancelOnce=1 signing=0 effectPOST=0 historicalPUBLICSetupMembers=2 consensusExecution=0 genuineSource=false", refundRequest["refundId"], refundRequest["amountAtoms"])
+	} else {
+		t.Log("ACTUAL_ORIGINAL_ORDER_REVIEW_COMPLETE merchantTerms=1 payer=1 refund=1 sameOriginalMainPublish=3 cancelOnce=3 signing=0 effectPOST=0 historicalPUBLICSetupMembers=2 consensusExecution=0 genuineSource=false")
+	}
 }
