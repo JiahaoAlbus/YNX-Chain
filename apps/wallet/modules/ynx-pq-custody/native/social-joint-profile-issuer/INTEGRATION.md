@@ -41,6 +41,13 @@ Private account namespace spans remain outside `SocialData`. Real children are
 adopted before late failures and block holder close until physical release.
 Malformed empty outputs do not become a physical release receipt.
 
+`copyOriginalCommittedPairAccountNamespace` copies private issuer/subject facts
+only from a recognized concrete holder's actual child view. It checks current,
+copies before late errors, releases the view and retains uncertain children in
+the holder. Its result never means physical holder close or DEVICE admission.
+The account facts stay outside `SocialData`. Registered remote holders need
+their own concrete implementation of the same private matching port.
+
 Each role captures one role locator, the binding locator, body and original
 SOURCE-PROOF frame. `enterOriginalOnce` must durably select the original intent
 before `signOnceOriginalSourceProof` can enter a key. No new input is accepted
@@ -113,6 +120,11 @@ no tests provision them.
 Main's directory getter also needs its actual normal admitted directory in
 each selected process. The standalone role process does not acquire that
 authority merely by linking the five exports or receiving public pair bytes.
+The selected remote route uses Auth's distinct registered original-owner read
+purpose and retained channel. Its adapter must select that route from actual
+source-owned composition before acquisition; failed local lookup never selects
+a remote fallback. The matching read header is a contract until its actual
+client/route-selector bodies and normal integration are supplied.
 
 ## Verification boundaries
 
@@ -122,3 +134,7 @@ adoption, view debt, reentrant/foreign-actor rejection and lookup/close races do
 not establish Root, real key entry, real signing, installation or finality.
 The old R4/104 controls are retained as predecessor evidence; newer ABI/body
 changes need their own narrowly affected controls and exact source snapshot.
+The two existing parameterized test runners target macOS CI. Their disk gate
+uses the runtime home directory, preserving the original 512MiB threshold.
+Neither those macOS checks nor a Linux-oriented source contract qualifies a
+Linux product or normal Linux service.

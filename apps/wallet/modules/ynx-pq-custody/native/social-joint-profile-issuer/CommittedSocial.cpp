@@ -6,7 +6,7 @@
 
 namespace ynx::social::joint::original {
 namespace {
-constexpr std::int32_t Malformed=-41302,Pending=-41303,
+constexpr std::int32_t Invalid=-41301,Malformed=-41302,Pending=-41303,
  Actor=-41304,Missing=-41305,Internal=-41306;
 Result failure(std::int32_t code,bool unknown=false)noexcept{return {true,code,unknown,false};}
 bool valid(const ynx_social_joint_status_v1&s,bool closing=false)noexcept {
@@ -52,6 +52,19 @@ class PairView final:public SocialView {
 public:
  explicit PairView(std::shared_ptr<CommittedSocial>p):parent_(std::move(p)){}
  void open(Result&)noexcept;
+ void copyAccount(AccountNamespace&out,Result&r)noexcept {
+  if(!actor_.same()){if(r.ok())r=failure(Actor);return;}
+  if(released_||release_selected_){if(r.ok())r=failure(Pending,true);return;}
+  if(!dataValid()||!raw_.account_issuer.size||!raw_.account_subject.size){
+   if(r.ok())r=failure(Malformed,true);return;
+  }
+  try {
+   AccountNamespace copy;
+   copy.issuer.assign(reinterpret_cast<const char*>(raw_.account_issuer.data),raw_.account_issuer.size);
+   copy.subject.assign(reinterpret_cast<const char*>(raw_.account_subject.data),raw_.account_subject.size);
+   out=std::move(copy);
+  }catch(...){if(r.ok())r=failure(Internal,true);}
+ }
  const SocialData&data()const noexcept override{return data_;}
  Result release()noexcept override;
 };
@@ -60,6 +73,7 @@ class CommittedSocial final:public SocialHolder,public std::enable_shared_from_t
  ActorOwner actor_;
  std::uint64_t owner_=0;
  std::size_t children_=0;
+ std::vector<std::shared_ptr<SocialView>> pending_;
  Result first_;
  bool busy_=false,close_selected_=false,closed_=false,absence_known_=true;
  void remember(Result r)noexcept{r.physical_done=false;if(!r.ok()&&first_.ok())first_=r;}
@@ -71,6 +85,7 @@ class CommittedSocial final:public SocialHolder,public std::enable_shared_from_t
   return {};
  }
 public:
+ CommittedSocial(){pending_.reserve(64);}
  void open(std::uint64_t loan,const Resource&resource,Result&r)noexcept {
   Use use(busy_);ynx_social_joint_status_v1 status{};
   // The C ABI accepts a mutable buffer; provide an exact private clone.
@@ -81,6 +96,20 @@ public:
   r=read(status);if(r.ok()&&!owner_)r=failure(Missing,true);remember(r);
  }
  void observe(Result r)noexcept{remember(r);}
+ void copyAccount(AccountNamespace&out,Result&r)noexcept {
+  std::shared_ptr<SocialView> child;view(child,r);
+  if(!child)return;
+  auto*actual=dynamic_cast<PairView*>(child.get());
+  if(actual)actual->copyAccount(out,r);else if(r.ok())r=failure(Malformed,true);
+  if(r.ok())r=current();
+  auto released=child->release();
+  // A temporary namespace read must not drop an uncertain physical child.
+  // Capacity was reserved before any acquisition; at most64 children exist.
+  if(!released.physical_done)pending_.push_back(std::move(child));
+  if(r.ok())r=released;
+  if(!released.physical_done)r.unknown=true;
+  r.physical_done=false;remember(r);
+ }
  Result current()noexcept override {
   auto r=ready();if(!r.ok())return r;
   Use use(busy_);ynx_social_joint_status_v1 status{};
@@ -161,5 +190,12 @@ void acquireCommittedSocialPair(Source&source,const Resource&resource,
   auto held=std::make_shared<CommittedSocial>();out=held;held->open(loan,resource,r);
   if(r.ok())r=source.current();held->observe(r);
  }catch(...){r=failure(Internal,true);}
+}
+void copyOriginalCommittedPairAccountNamespace(SocialHolder&holder,
+ AccountNamespace&out,Result&r)noexcept {
+ out.issuer.clear();out.subject.clear();
+ auto*actual=dynamic_cast<CommittedSocial*>(&holder);
+ if(!actual){r=failure(Invalid);return;}
+ actual->copyAccount(out,r);
 }
 } // namespace ynx::social::joint::original

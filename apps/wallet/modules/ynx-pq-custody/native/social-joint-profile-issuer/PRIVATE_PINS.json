@@ -68,11 +68,10 @@
   },
   "actualR5FrozenRefsVerified": 8,
   "remainingActualCode": [
-    "P01/P02 independent registeredDEVICE/session actual owner getter and Native adapter",
-    "Auth dedicated finite custodian actual normal service and qualification body",
-    "Role-process admitted original directory or legally held original-owner channel",
-    "Independent account-owned original history/query recovery after signing Source expiry",
-    "Same kernel normal ONEGo final link"
+    "Auth registered Main read client plus source-owned explicit route selector and Native typed remote adapter",
+    "Auth independent Linux DEVICE/session producer and Native adapter",
+    "Original history/query authority for expired signing Source",
+    "Auth finite service actual composition, registered placements and SAME ONEGo final link"
   ],
   "predecessorR5IssuerABI": {
     "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-inventory-r5-rRCVeB/source/internal/social/kernel/social_joint_profile_issuer_private.h",
@@ -223,5 +222,24 @@
     "standaloneRegisteredDirectoryOrHeldOwnerChannelStillRequired": true,
     "wholeNormalLink": false
   },
-  "coldQueryCoverage": "Same current Source with genuine partial Role; not independent recovery after signing Source/window expiry"
+  "coldQueryCoverage": "Same current Source with genuine partial Role; not independent recovery after signing Source/window expiry",
+  "privateAccountNamespacePort": {
+    "implemented": true,
+    "localConcreteOnly": true,
+    "actualNamespaceControls": 12,
+    "publicSocialDataField": false,
+    "DeviceGrant": false
+  },
+  "registeredMainReadMatching": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/include/ynx_auth_registered_main_pair_read_private_v1.h",
+    "bytes": 4147,
+    "sha256": "0bd3a4610c19cd4eec41ed42d8efbdb8816630cf0d3bc297bd0c16af954e5e0e",
+    "status": "Matching contract only; actual client/route selector not yet supplied"
+  },
+  "macOSBoundaryCIHomeGate": {
+    "usesRuntimeHome": true,
+    "homeFloorBytes": 536870912,
+    "onlyMacOSQualified": true,
+    "LinuxQualified": false
+  }
 }

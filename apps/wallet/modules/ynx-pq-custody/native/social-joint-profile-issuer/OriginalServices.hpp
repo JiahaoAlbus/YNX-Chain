@@ -35,6 +35,10 @@ struct DeviceData {
  std::uint32_t null_mask=0;
  Window window;
 };
+// Private matching DATA from a recognized held Main pair. These facts are not
+// a Device grant or a public SocialData field; the Device source independently
+// checks its own original registration/session and current authority.
+struct AccountNamespace {std::string issuer,subject;};
 struct SocialView {
  virtual const SocialData& data() const noexcept=0;
  virtual Result release() noexcept=0;
@@ -100,6 +104,7 @@ void acquireRegisteredSource(const SourceInput&,std::shared_ptr<Source>&,Result&
 // Native binding, never returned as an expected17/public-DTO authority token.
 void acquireCommittedSocialPair(Source&,const Resource&,std::shared_ptr<SocialHolder>&,Result&) noexcept;
 void acquireRegisteredDeviceSession(Source&,SocialHolder&,const Resource&,std::shared_ptr<DeviceHolder>&,Result&) noexcept;
+void copyOriginalCommittedPairAccountNamespace(SocialHolder&,AccountNamespace&,Result&) noexcept;
 // Finite registered custodian operation. Must select the SAME role resource,
 // independently check policy10 and hold original own-UID sealed custody. The
 // body/frame are constraints, never a generic signing capability.
