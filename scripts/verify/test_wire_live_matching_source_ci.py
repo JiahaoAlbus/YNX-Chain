@@ -77,14 +77,17 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertFalse(destination.exists())
 
     def test_exact_off_and_successor_compositions_keep_original_sources_and_false_run_claims(self):
-        for lossless in (False, True):
-            with self.subTest(lossless=lossless), tempfile.TemporaryDirectory() as directory:
+        for current, lossless in ((False, False), (False, True), (True, False), (True, True)):
+            with self.subTest(current=current, lossless=lossless), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory).resolve()
                 original = root / "original-source"
                 original.write_bytes(b"original source and UNKNOWN are retained")
                 commit, tree = "c" * 40, "d" * 40
-                supplier = "a" * 40 if lossless else ci.FORK_COMMIT
-                supplier_tree = "b" * 40 if lossless else ci.FORK_TREE
+                production = ci.CURRENT_PRODUCTION_TREE if current else ci.PRODUCTION_TREE
+                supplier = ci.CURRENT_FORK_COMMIT if current else ("a" * 40 if lossless else ci.FORK_COMMIT)
+                supplier_tree = ci.CURRENT_FORK_TREE if current else ("b" * 40 if lossless else ci.FORK_TREE)
+                descriptors = {name: ("original " + name).encode() for name in ci.DESCRIPTORS}
+                retained = {name: ("original " + name).encode() for name in ci.CURRENT_RETAINED} if current else {}
                 destination = root / "composition"
                 calls = []
                 def original_git(_, *args):
@@ -92,20 +95,28 @@ class WireLiveSourceControls(unittest.TestCase):
                     if args == ("rev-parse", "HEAD"): return commit.encode()
                     if args == ("rev-parse", "HEAD^{tree}"): return tree.encode()
                     if args[0] == "status": return b""
-                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return ci.PRODUCTION_TREE.encode()
+                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return production.encode()
                     if args == ("rev-parse", "--verify", supplier + "^{commit}"): return supplier.encode()
                     if args == ("rev-parse", "--verify", supplier + ":third_party/cometbft"): return supplier_tree.encode()
-                    if args == ("diff", "--name-only", ci.PRODUCTION_TREE, supplier_tree): return "\n".join(sorted(ci.DIFF)).encode()
-                    if args == ("diff", "--diff-filter=D", "--name-only", ci.PRODUCTION_TREE, supplier_tree): return b""
-                    if args == ("show", commit + ":go.mod"): return b"original go.mod"
-                    if args == ("show", commit + ":go.sum"): return b"original go.sum"
+                    if args == ("diff", "--name-only", production, supplier_tree): return "\n".join(sorted(ci.DIFF)).encode()
+                    if args == ("diff", "--diff-filter=D", "--name-only", production, supplier_tree): return b""
+                    for name, raw in descriptors.items():
+                        if args == ("show", commit + ":" + name): return raw
+                        if name.startswith("third_party/") and args == ("show", supplier + ":" + name): return raw
+                    for name, raw in retained.items():
+                        if args in (("show", production + ":" + name), ("show", supplier_tree + ":" + name)): return raw
                     self.fail("unexpected git operation: " + str(args))
                 def original_extract(_, revision, target, paths=()):
                     if revision == commit:
                         self.assertEqual(paths, ("go.mod", "go.sum", "cmd", "internal", "contracts", "third_party"))
-                        (target / "go.mod").write_bytes(b"original go.mod")
-                        (target / "go.sum").write_bytes(b"original go.sum")
-                        (target / "third_party/cometbft").mkdir(parents=True)
+                        for name, raw in descriptors.items():
+                            path = target / name
+                            path.parent.mkdir(parents=True, exist_ok=True)
+                            path.write_bytes(raw)
+                        for name, raw in retained.items():
+                            path = target / "third_party/cometbft" / name
+                            path.parent.mkdir(parents=True, exist_ok=True)
+                            path.write_bytes(raw)
                     else:
                         self.assertEqual(revision, supplier + ":third_party/cometbft")
                         self.assertEqual(paths, ())
@@ -117,6 +128,12 @@ class WireLiveSourceControls(unittest.TestCase):
                     else:
                         result = ci.prepare_wire_live_source(root, destination, commit, tree)
                 selection = result["sourceSelection"]
+                self.assertEqual(selection["originalProductionForkTree"], production)
+                if current:
+                    self.assertEqual(selection["moduleDescriptorSHA256"], {name: hashlib.sha256(raw).hexdigest() for name, raw in descriptors.items()})
+                    self.assertEqual(selection["retainedProductionSHA256"], {name: hashlib.sha256(raw).hexdigest() for name, raw in retained.items()})
+                else:
+                    self.assertNotIn("retainedProductionSHA256", selection)
                 self.assertEqual(selection["selectedOptionalForkCommit"], supplier)
                 self.assertEqual(selection["selectedOptionalForkTree"], supplier_tree)
                 self.assertEqual(selection["exactOptionalDifference"], sorted(ci.DIFF))
@@ -158,6 +175,85 @@ class WireLiveSourceControls(unittest.TestCase):
                         ci.prepare_wire_lossless_source(root, destination, "source", "tree", supplier_commit="a" * 40, supplier_tree="b" * 40)
                     extract.assert_not_called()
                 self.assertFalse(destination.exists())
+
+    def test_current_requires_exact_observer_and_committed_view_source_tuple(self):
+        for production, supplier, tree, message in (
+                ("01a03403ecbb5d17983cbe964dbbb73fcddf8a13", ci.CURRENT_FORK_COMMIT, ci.CURRENT_FORK_TREE, "production fork changed"),
+                (ci.CURRENT_PRODUCTION_TREE, "ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d", "f1a8837079178469bc57ede955c55973f8b7d8ba", "exact matching supplier"),
+                (ci.CURRENT_PRODUCTION_TREE, "a" * 40, ci.CURRENT_FORK_TREE, "exact matching supplier"),
+                (ci.CURRENT_PRODUCTION_TREE, ci.CURRENT_FORK_COMMIT, "b" * 40, "exact matching supplier")):
+            with self.subTest(production=production, supplier=supplier), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                destination = root / "fresh"
+                def original_git(_, *args):
+                    if args == ("rev-parse", "HEAD"): return b"source"
+                    if args == ("rev-parse", "HEAD^{tree}"): return b"tree"
+                    if args[0] == "status": return b""
+                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return production.encode()
+                    self.fail("no supplier acquisition/archive after mismatched production tuple: " + str(args))
+                with patch.object(ci, "git", side_effect=original_git), patch.object(ci, "extract") as extract:
+                    with self.assertRaisesRegex(RuntimeError, message):
+                        ci.prepare_wire_lossless_source(root, destination, "source", "tree", supplier_commit=supplier, supplier_tree=tree)
+                    extract.assert_not_called()
+                self.assertFalse(destination.exists())
+
+    def current_source_control(self, root, *, supplier_drift=None, extracted_drift=None):
+        descriptors = {name: ("original descriptor " + name).encode() for name in ci.DESCRIPTORS}
+        retained = {name: ("original production " + name).encode() for name in ci.CURRENT_RETAINED}
+        def original_git(_, *args):
+            if args == ("rev-parse", "HEAD"): return b"source"
+            if args == ("rev-parse", "HEAD^{tree}"): return b"tree"
+            if args[0] == "status": return b""
+            if args == ("rev-parse", "HEAD:third_party/cometbft"): return ci.CURRENT_PRODUCTION_TREE.encode()
+            if args == ("rev-parse", "--verify", ci.CURRENT_FORK_COMMIT + "^{commit}"): return ci.CURRENT_FORK_COMMIT.encode()
+            if args == ("rev-parse", "--verify", ci.CURRENT_FORK_COMMIT + ":third_party/cometbft"): return ci.CURRENT_FORK_TREE.encode()
+            if args == ("diff", "--name-only", ci.CURRENT_PRODUCTION_TREE, ci.CURRENT_FORK_TREE): return "\n".join(sorted(ci.DIFF)).encode()
+            if args == ("diff", "--diff-filter=D", "--name-only", ci.CURRENT_PRODUCTION_TREE, ci.CURRENT_FORK_TREE): return b""
+            for name, raw in descriptors.items():
+                if args == ("show", "source:" + name): return raw
+                if name.startswith("third_party/") and args == ("show", ci.CURRENT_FORK_COMMIT + ":" + name):
+                    return raw + b"changed" if supplier_drift == name else raw
+            for name, raw in retained.items():
+                if args == ("show", ci.CURRENT_PRODUCTION_TREE + ":" + name): return raw
+                if args == ("show", ci.CURRENT_FORK_TREE + ":" + name):
+                    return raw + b"changed" if supplier_drift == name else raw
+            self.fail(str(args))
+        def original_extract(_, revision, target, paths=()):
+            if revision == "source":
+                for name, raw in {**descriptors, **{"third_party/cometbft/" + n: b for n, b in retained.items()}}.items():
+                    path = target / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(raw)
+            else:
+                self.assertEqual(revision, ci.CURRENT_FORK_COMMIT + ":third_party/cometbft")
+                if extracted_drift:
+                    (root / "fresh/source" / extracted_drift).write_bytes(b"changed during source extraction")
+        return original_git, original_extract
+
+    def test_current_supplier_cannot_change_any_descriptor_or_retained_production_leaf(self):
+        for name in (*ci.DESCRIPTORS[2:], *ci.CURRENT_RETAINED):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                git, _ = self.current_source_control(root, supplier_drift=name)
+                with patch.object(ci, "git", side_effect=git), patch.object(ci, "extract") as extract:
+                    with self.assertRaisesRegex(RuntimeError, "module descriptors differ|changed an original observer/committed-view"):
+                        ci.prepare_wire_live_source(root, root / "fresh", "source", "tree")
+                    extract.assert_not_called()
+                self.assertFalse((root / "fresh").exists())
+
+    def test_extraction_drift_retains_partial_and_cannot_issue_source_receipt(self):
+        for name in (*ci.DESCRIPTORS, *("third_party/cometbft/" + n for n in ci.CURRENT_RETAINED)):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                git, extract = self.current_source_control(root, extracted_drift=name)
+                with patch.object(ci, "git", side_effect=git), patch.object(ci, "extract", side_effect=extract):
+                    with self.assertRaisesRegex(RuntimeError, "descriptors changed|bytes changed during extraction"):
+                        ci.prepare_wire_live_source(root, root / "fresh", "source", "tree")
+                self.assertTrue((root / "fresh/source").is_dir())
+                self.assertEqual((root / "fresh/source" / name).read_bytes(), b"changed during source extraction")
+                self.assertFalse((root / "fresh/SOURCE-SELECTION.json").exists())
+                with self.assertRaisesRegex(RuntimeError, "no retry overwrite"):
+                    ci.prepare_wire_live_source(root, root / "fresh", "source", "tree")
 
     def test_fullheight_equality_keeps_every_byte_and_never_claims_execution(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -370,7 +466,7 @@ class WireLiveSourceControls(unittest.TestCase):
         secret = "synthetic-read-only-test-credential"
         header = base64.b64encode(("x-access-token:" + secret).encode()).decode()
         def simulated_fetch(argv, **kwargs):
-            self.assertEqual(argv, ["git", "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--no-write-fetch-head", "origin", ci.FORK_COMMIT])
+            self.assertEqual(argv, ["git", "fetch", "--quiet", "--no-tags", "--no-recurse-submodules", "--depth=1", "--no-write-fetch-head", "origin", ci.CURRENT_FORK_COMMIT])
             self.assertNotIn(secret, " ".join(argv))
             self.assertNotIn("WIRE_SUPPLIER_READ_TOKEN", kwargs["env"])
             self.assertEqual(kwargs["env"]["GIT_CONFIG_VALUE_0"], "AUTHORIZATION: basic " + header)
@@ -379,8 +475,8 @@ class WireLiveSourceControls(unittest.TestCase):
             self.assertEqual(kwargs["timeout"], 60)
             return subprocess.CompletedProcess(argv, 0)
         def read_original(argv, **kwargs):
-            if argv[-1] == ci.FORK_COMMIT + "^{commit}": return ci.FORK_COMMIT + "\n"
-            if argv[-1] == ci.FORK_COMMIT + ":third_party/cometbft": return ci.FORK_TREE + "\n"
+            if argv[-1] == ci.CURRENT_FORK_COMMIT + "^{commit}": return ci.CURRENT_FORK_COMMIT + "\n"
+            if argv[-1] == ci.CURRENT_FORK_COMMIT + ":third_party/cometbft": return ci.CURRENT_FORK_TREE + "\n"
             if argv == ["git", "rev-parse", "HEAD"]: return "original\n"
             self.assertEqual(argv, ["git", "status", "--porcelain"])
             return b""
@@ -392,7 +488,16 @@ class WireLiveSourceControls(unittest.TestCase):
         self.assertEqual(fetch.call_count, 1)
         self.assertNotIn(secret, output.getvalue())
         self.assertNotIn(header, output.getvalue())
-        self.assertIn(ci.FORK_COMMIT, output.getvalue())
+        self.assertIn(ci.CURRENT_FORK_COMMIT, output.getvalue())
+        on_step = workflow.split("      - name: Acquire only the fixed corrected lossless supplier\n", 1)[1].split("      - name: Preserve only public corrected lossless source evidence", 1)[0]
+        self.assertIn("commit = '" + ci.CURRENT_FORK_COMMIT + "'", on_step)
+        self.assertIn("tree = '" + ci.CURRENT_FORK_TREE + "'", on_step)
+        self.assertIn("--lossless-supplier-commit " + ci.CURRENT_FORK_COMMIT, on_step)
+        self.assertIn("--lossless-supplier-tree " + ci.CURRENT_FORK_TREE, on_step)
+        self.assertNotIn("ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d", on_step)
+        on_job = workflow.split("  lossless-matching-source:\n", 1)[1].split("  commit-observation:\n", 1)[0]
+        for suffix in (".jsonl", ".stderr.log", ".result.json"):
+            self.assertIn("retained-observer" + suffix, on_job)
         client_job = workflow.split("  client-observations:\n", 1)[1].split("  commit-observation:\n", 1)[0]
         self.assertIn("persist-credentials: false", client_job)
         self.assertIn("fetch-depth: 1", client_job)

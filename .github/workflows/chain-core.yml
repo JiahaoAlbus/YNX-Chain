@@ -380,8 +380,8 @@ jobs:
         run: |
           python3 -B - <<'PY'
           import base64, os, subprocess
-          commit = '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076'
-          tree = 'b1e9a83ab11ed141fda90bc47521faa412176caa'
+          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
+          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
           # contents:read only; never write credentials to config, argv, disk
           # or logs. This one explicit fetch is outside the offline helper.
           environment = os.environ.copy()
@@ -612,8 +612,8 @@ jobs:
         run: |
           python3 -B - <<'PYTHON'
           import base64, os, subprocess
-          commit = 'ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d'
-          tree = 'f1a8837079178469bc57ede955c55973f8b7d8ba'
+          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
+          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
           environment = os.environ.copy()
           token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
           if not token:
@@ -637,8 +637,8 @@ jobs:
       - name: Verify the normal constructor and all 24 fixed readiness budget cases without Node.Start
         run: >-
           python3 -B scripts/verify/wire-live-matching-source-ci.py
-          --lossless-supplier-commit ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d
-          --lossless-supplier-tree f1a8837079178469bc57ede955c55973f8b7d8ba
+          --lossless-supplier-commit 5a49f5c91452604dffb910df736702b3b9df2562
+          --lossless-supplier-tree 08747364c24c065bf2b13527c210625d7ec95fba
       - name: Preserve only public corrected lossless source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -652,6 +652,9 @@ jobs:
             ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.jsonl
             ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.stderr.log
             ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.result.json
+            ${{ runner.temp }}/wire-lossless-source-*/retained-observer.jsonl
+            ${{ runner.temp }}/wire-lossless-source-*/retained-observer.stderr.log
+            ${{ runner.temp }}/wire-lossless-source-*/retained-observer.result.json
             ${{ runner.temp }}/wire-lossless-source-*/composition/SOURCE-SELECTION.json
           if-no-files-found: warn
           retention-days: 14
