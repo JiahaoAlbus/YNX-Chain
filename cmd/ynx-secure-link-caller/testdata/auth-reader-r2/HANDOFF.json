@@ -1,0 +1,215 @@
+{
+  "kind": "AUTH_READER_R2_KNOWN_DRAINING_PROGRESS_SUCCESSOR",
+  "state": "ACTUAL17_PUBLIC_BOUNDARY_CONTROLS_AND_NATIVE_OBJECTS_PASS_REAL_LINK_CHECK_PENDING",
+  "files": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/NetworkPublisherReaderV2.hpp",
+      "bytes": 9006,
+      "sha256": "4942bb509fa12bb147496ae230616aeae56f7d23678e8bb5da694b717b027fac"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/network_publisher_capture.mm",
+      "bytes": 31089,
+      "sha256": "78d6a4d1fa3d3165badd131e272b4a72794e8ec318d1b3eedb3d54b424cf0e38"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/controls.cpp",
+      "bytes": 8825,
+      "sha256": "6d046495bc564c08480d5b910ae9297394e3446915cd607923ebf9a852097a55"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/FIRST_RED.json",
+      "bytes": 337,
+      "sha256": "a83696ddceba98e8fbc8a192701dafa092e967d1f250ca8e82e97ed979892115"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/prepare.mjs",
+      "bytes": 5637,
+      "sha256": "1b5523d2b1670f915856e5a0a8188497e2ff17f94eb2729613c0940f09ca015a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/run.mjs",
+      "bytes": 4347,
+      "sha256": "72db757a8131181029514c7d1c54cfabed44ff118788228b384fd7f7cfb540ba"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/freeze.mjs",
+      "bytes": 2475,
+      "sha256": "1d741ddc9cbee18d0cda94e676167eaeba0b4f43e07d6e2101a068f53cc8e1f5"
+    }
+  ],
+  "cas": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/CAS.json",
+    "bytes": 1366,
+    "sha256": "691ec48a1b6b4e5b00200b09a12eee12bf676eaf23ed2b8977a22a1a10ff61db"
+  },
+  "evidence": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/HANDOFF.json",
+    "bytes": 11132,
+    "sha256": "5d52b902cb892fbd7a54373f3884c2e7602d9da4853debdbe9aefe69b05a49cc"
+  },
+  "runs": [
+    {
+      "name": "compile",
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-fsanitize=address,undefined",
+        "-pthread",
+        "-DYNX_AUTH_READER_PUBLIC_CONTROLS",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "controls.cpp",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/controls"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/compile.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/compile.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-control",
+      "argv": [
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/controls"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/actual-control.stdout",
+        "bytes": 86,
+        "sha256": "1a96baf559d292852c33bd649c7bed355bd819f848860e6d728320612ed814aa"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/actual-control.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-native-r2-object",
+      "argv": [
+        "/usr/bin/xcrun",
+        "clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-mmacosx-version-min=13.0",
+        "-fobjc-arc",
+        "-DYNX_NETWORK_PUBLISHER_LINK_RESOURCE_CURRENT_V2",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/../checkpoint-final-r1/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store/evidence-82oI8V/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/source/packages/wallet-auth/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-client-v6-successor/final-r1/source/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/source/apps/wallet-desktop/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-node24-strong-addon-successor-r1/final/source/toolchain/node24-target-headers",
+        "-c",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/network_publisher_capture.mm",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/network_publisher_capture.o"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/native-object.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/native-object.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-strong-auth-adapter-object",
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-mmacosx-version-min=13.0",
+        "-DYNX_LINK_RESOURCE_CURRENT_AUTH_ADAPTER",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/../checkpoint-final-r1/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store/evidence-82oI8V/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/source/packages/wallet-auth/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-client-v6-successor/final-r1/source/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/source/apps/wallet-desktop/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-node24-strong-addon-successor-r1/final/source/toolchain/node24-target-headers",
+        "-c",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource-current-held-auth.cpp",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/original-auth-adapter.o"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/actual-auth-adapter.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/evidence-irfWow/actual-auth-adapter.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "groups": 17,
+  "firstCause": "Join/Close owned ACK DRAINING5 incorrectly sticky; never-acquired partial unnecessarily demanded remote Close ACK",
+  "fix": "Only lifecycle classifier treats same-client first_error=0/known lifetime and validated owned ACK as progress; release packet before cached probe; actual first5/UNKNOWN retained. Remote Close ACK required only if actual remote acquisition possible; never-acquired local close/free still preserves original refusal.",
+  "oldFrozen": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/../link-r2-successor/frozen-r2-yW5sJr/HANDOFF.json",
+    "bytes": 14969,
+    "sha256": "41b3200f60ca90a7a17489544f4737185815aaa43234882421c17d0e51c26959"
+  },
+  "supersedes": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-y56UVv/HANDOFF.json",
+    "bytes": 12049,
+    "sha256": "0c4e35522cd966d5fd3b5fb5dcfea2aa3eb0d74653ece617ff2d73d4c64313b5"
+  },
+  "RootAdmission": false,
+  "realLINKBody": false,
+  "actualGo": false,
+  "wholeImage": false,
+  "installed": false
+}

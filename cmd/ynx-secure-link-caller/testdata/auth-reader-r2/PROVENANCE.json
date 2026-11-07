@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "scope": "Exact unchanged original Auth production header supplied only as a PUBLIC integration test dependency; never production Root or a replacement Reader implementation.",
+  "originalAuthH": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/HANDOFF.json",
+  "authH": {
+    "bytes": 12548,
+    "sha256": "ae9d26f1f04932bb6b2b2e7052a2ca63c6079595fdb12d665bc735027409601d"
+  },
+  "authHeader": {
+    "bytes": 9006,
+    "sha256": "4942bb509fa12bb147496ae230616aeae56f7d23678e8bb5da694b717b027fac"
+  },
+  "cas": {
+    "bytes": 1366,
+    "sha256": "691ec48a1b6b4e5b00200b09a12eee12bf676eaf23ed2b8977a22a1a10ff61db"
+  },
+  "actualNativeRoot": false,
+  "authBaseH": {
+    "bytes": 14969,
+    "sha256": "41b3200f60ca90a7a17489544f4737185815aaa43234882421c17d0e51c26959"
+  }
+}

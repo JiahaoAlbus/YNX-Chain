@@ -1,0 +1,27 @@
+{
+  "kind": "AUTH_READER_R2_PROGRESS_EXACT_SUCCESSOR",
+  "entries": [
+    {
+      "target": "native/NetworkPublisherReaderV2.hpp",
+      "operation": "REPLACE_IF_EXACT",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/../link-r2-successor/frozen-r2-yW5sJr/NetworkPublisherReaderV2.hpp",
+        "bytes": 7618,
+        "sha256": "a5e43ab18ab529493e1f1c0e3d11d14e509f7ccdf42b1fa74a27a4886904e9fa"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/NetworkPublisherReaderV2.hpp",
+        "bytes": 9006,
+        "sha256": "4942bb509fa12bb147496ae230616aeae56f7d23678e8bb5da694b717b027fac"
+      }
+    }
+  ],
+  "captureUnchanged": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-progress-successor/frozen-progress-ydp5vi/network_publisher_capture.mm",
+    "bytes": 31089,
+    "sha256": "78d6a4d1fa3d3165badd131e272b4a72794e8ec318d1b3eedb3d54b424cf0e38"
+  },
+  "oldFrozenUnchanged": true,
+  "normalImage": "apps/wallet-desktop/native/original-auth-identity.node",
+  "commonOrRegistrarChanged": false
+}

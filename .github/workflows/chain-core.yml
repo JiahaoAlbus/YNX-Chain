@@ -118,6 +118,38 @@ jobs:
           path: ${{ runner.temp }}/resource-current-native-evidence
           if-no-files-found: error
 
+  resource-current-auth-reader-go:
+    name: LINK actual Auth Reader and original P09 Go lifecycle
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: a2c482534959cc3a63733835d86464853376ea2f
+          path: original-p09-source
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
+        with:
+          go-version: "1.26.10"
+          cache: false
+      - name: Build fixed original fixture and exercise real Reader ACK and prewrite custody
+        env:
+          YNX_LINK_P09_FIXTURE_SOURCE: ${{ github.workspace }}/original-p09-source
+          YNX_LINK_AUTH_READER_TEST_ARTIFACTS: ${{ runner.temp }}/ar
+          YNX_LINK_AUTH_READER_BUILD_SCRATCH: ${{ runner.temp }}/ab
+        run: node cmd/ynx-secure-link-caller/resource-current-auth-reader-ci.mjs
+      - name: Preserve original source, compiler, process, body and first-cause evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: resource-current-auth-reader-go-${{ github.sha }}
+          path: ${{ runner.temp }}/ar
+          if-no-files-found: error
+
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04

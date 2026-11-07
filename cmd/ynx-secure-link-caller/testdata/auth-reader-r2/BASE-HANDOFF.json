@@ -1,0 +1,266 @@
+{
+  "state": "NATIVE_R2_CAPTURE_SOURCE_AND_PUBLIC_CUSTODY_VERIFIED_REAL_LINK_MATCHING_PENDING",
+  "sources": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/NetworkPublisherReaderV2.hpp",
+      "bytes": 7618,
+      "sha256": "a5e43ab18ab529493e1f1c0e3d11d14e509f7ccdf42b1fa74a27a4886904e9fa"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/network_publisher_capture.mm",
+      "bytes": 31089,
+      "sha256": "78d6a4d1fa3d3165badd131e272b4a72794e8ec318d1b3eedb3d54b424cf0e38"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/controls.cpp",
+      "bytes": 7496,
+      "sha256": "9cf189d8c3504e4978e0506c568405d86c2aa8fbeab786f7c0209bc87a6c334b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/FIRST_RED.json",
+      "bytes": 488,
+      "sha256": "31a572b881ecfd3a1d80491db9a0a67e00114892761d2f217c663770966bf4a0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/run.mjs",
+      "bytes": 4347,
+      "sha256": "65f375543a3811dfa390bea3c5eb4783fac95a3d4cb35fe57b24ac474949f82b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/INTEGRATION.md",
+      "bytes": 2811,
+      "sha256": "e323be89546806c5e19ad8a73522ad46fe1f0f4dd842e691d74d786242b5dac4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/freeze.mjs",
+      "bytes": 3749,
+      "sha256": "f1e9c668593e95026c3a76850a4f75d06bb01a5b75b7b85425b302d8a5ae003f"
+    }
+  ],
+  "cas": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/frozen-r2-yW5sJr/CAS.json",
+    "bytes": 1659,
+    "sha256": "bfe752f58959e1da8d0f73caf530c37f1ed5ac3a90ca89820c20f2de4ef9285b"
+  },
+  "priorEvidence": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/HANDOFF.json",
+    "bytes": 10934,
+    "sha256": "f44c3d3746130a146bdfe6322f176becb815d78eb127848659293db8c8b62557"
+  },
+  "actualNativeObject": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/network_publisher_capture.o",
+    "bytes": 379664,
+    "sha256": "a0ebe82feb094bcb6bdb2e356cc9c10ff39ea4698c73d45d1a64f5520c9e07b5"
+  },
+  "actualStrongAdapterObject": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/original-auth-adapter.o",
+    "bytes": 25352,
+    "sha256": "3ec1c0ab0fd2970e4dfcf204233cd573c228bb95941e6282f51f598b55620a6d"
+  },
+  "normalStrongOriginalRefEntry": true,
+  "runs": [
+    {
+      "name": "compile",
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-fsanitize=address,undefined",
+        "-pthread",
+        "-DYNX_AUTH_READER_PUBLIC_CONTROLS",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "controls.cpp",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/controls"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/compile.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/compile.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-control",
+      "argv": [
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/controls"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/actual-control.stdout",
+        "bytes": 86,
+        "sha256": "a72a7dd237f6cd4ee936f1af2d18914a10d121c0f7906c642b22eb294b5e01a1"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/actual-control.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-native-r2-object",
+      "argv": [
+        "/usr/bin/xcrun",
+        "clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-mmacosx-version-min=13.0",
+        "-fobjc-arc",
+        "-DYNX_NETWORK_PUBLISHER_LINK_RESOURCE_CURRENT_V2",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/../checkpoint-final-r1/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store/evidence-82oI8V/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/source/packages/wallet-auth/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-client-v6-successor/final-r1/source/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/source/apps/wallet-desktop/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-node24-strong-addon-successor-r1/final/source/toolchain/node24-target-headers",
+        "-c",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/network_publisher_capture.mm",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/network_publisher_capture.o"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/native-object.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/native-object.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "actual-strong-auth-adapter-object",
+      "argv": [
+        "/usr/bin/clang++",
+        "-std=c++17",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-mmacosx-version-min=13.0",
+        "-DYNX_LINK_RESOURCE_CURRENT_AUTH_ADAPTER",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/../checkpoint-final-r1/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/store/evidence-82oI8V/source",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/source/packages/wallet-auth/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-client-v6-successor/final-r1/source/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/source/apps/wallet-desktop/native",
+        "-I",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-node24-strong-addon-successor-r1/final/source/toolchain/node24-target-headers",
+        "-c",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource-current-held-auth.cpp",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/original-auth-adapter.o"
+      ],
+      "rc": 0,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/actual-auth-adapter.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-VHa2SV/actual-auth-adapter.stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    }
+  ],
+  "headers": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource_current_client_v2.h",
+      "bytes": 5571,
+      "sha256": "891203d1420f719dd619ac1c20d8e8845c9b7ced3bf3e5cef3de3e40a35e2235"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1/resource_current_client_v1.h",
+      "bytes": 5145,
+      "sha256": "8ef6873ca75e1cdda2d03548f14b59e4458c570380d05930d2030aa3cc11ec3f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r1/header-r1/private_client_v1.h",
+      "bytes": 8638,
+      "sha256": "d70692f4db740886104696fa54af7f3e49b96fe798bb8feed0bd30582d998216"
+    }
+  ],
+  "groups": 13,
+  "firstFailurePreserved": [
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/FIRST_RED.json",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/link-r2-successor/evidence-tSQFAE/RESULT.json"
+  ],
+  "nonGit": true,
+  "rootAdmission": false,
+  "actualGoPeer": false,
+  "actualR2TransportLinked": false,
+  "wholeNative": false,
+  "realSigning": false,
+  "remaining": "Sole normal builder guarded same-main registrar + SDK d8d4 + actual r2 extra TUs + single49; whole-image/Root/device/runtime remain separate. No old47/48/Native77 hot-mix.",
+  "strongBridgeDependencies": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource_current_auth_v2.h",
+      "bytes": 1398,
+      "sha256": "f0bcb926bddbcb2c1d3e26d1c48dfd211013b789f6bca7d278c976051b03756f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource-current-held-auth.cpp",
+      "bytes": 4350,
+      "sha256": "4b5e8814029072bed7506b2387ddfed25e7540391088e10381843613fd0d02dd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/source-frozen/cmd/ynx-secure-link-caller/resource-current-held-bound.hpp",
+      "bytes": 985,
+      "sha256": "d3d9bb787175e4687deb34256defabbfb60cb36db8641012623a5853e13f8531"
+    }
+  ],
+  "originalOpaqueRefHeader": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-current-publisher-successor/native-capture/checkpoint-final-r1/source/network_publisher_resource_ref_private.h",
+    "bytes": 1998,
+    "sha256": "1b2a403c3eb8fc65961ddf5d1d1cc52ccf1613b1259ba617810d68ea85d1c0de"
+  },
+  "normalImage": "apps/wallet-desktop/native/original-auth-identity.node",
+  "sameCaptureKeepsOriginalStrongRefFive": true,
+  "catalogNapiModuleRequired": false,
+  "reusedLINKGoEvidence": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-resource-current-r2/ACTUAL-GO-INDEPENDENT-READBACK.json",
+    "bytes": 2198,
+    "sha256": "023935754f1150793e078237e843acbd88669281f83742cfb26132d2835baa29"
+  }
+}
