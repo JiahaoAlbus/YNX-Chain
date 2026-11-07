@@ -2,6 +2,19 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 
 export const validatorRoles = Object.freeze(["primary", "singapore", "silicon-valley", "seoul"]);
+// Manifest order is not authority: Go hashes the public manifest in sorted-role
+// order, while owner inventories and receipts retain validatorRoles order.
+// Require the complete bijection before either writer projects any identity.
+export function validatorManifestRecordsByRole(records) {
+  if (!Array.isArray(records) || records.length !== validatorRoles.length) throw new Error("four unique supported validator roles required");
+  const byRole = new Map();
+  for (const record of records) {
+    if (!record || typeof record !== "object" || Array.isArray(record) || !validatorRoles.includes(record.role) || byRole.has(record.role)) throw new Error("four unique supported validator roles required");
+    byRole.set(record.role, record);
+  }
+  return byRole;
+}
+
 export const serviceRoles = Object.freeze(["faucet", "ai", "pay", "trust", "resource"]);
 export const singleAppCustodyProfile = "single-app-gateway/v1";
 export function isSingleAppCustody(value) {

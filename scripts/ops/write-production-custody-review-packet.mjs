@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { readRestricted as readOwnerRestricted, validateInventory, isSingleAppCustody, singleAppCustodyProfile, validatorRoles, assertNoSecretFields } from "../verify/lib/owner-handover.mjs";
+import { readRestricted as readOwnerRestricted, validateInventory, isSingleAppCustody, singleAppCustodyProfile, validatorRoles, validatorManifestRecordsByRole, assertNoSecretFields } from "../verify/lib/owner-handover.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ownerInventoryPath = path.resolve(process.env.YNX_OWNER_HANDOVER_INVENTORY || "");
@@ -37,8 +37,9 @@ if (singleApp) {
   const manifest = source.value;
   assertNoSecretFields(manifest, "original validator public manifest");
   if (sha256(source.raw) !== ownerInventory.sources.validatorManifestSha256 || manifest.version !== 1 || manifest.purpose !== "ynx-production-bft-candidate-public-keys-only" || manifest.chainId !== "ynx_6423-1" || !Array.isArray(manifest.validators) || manifest.validators.length !== 4) throw new Error("original validator manifest differs from the validated owner inventory");
+  const validatorByRole = validatorManifestRecordsByRole(manifest.validators);
   records = validatorRoles.map((role, index) => {
-    const record = manifest.validators[index], original = ownerInventory.records[index];
+    const record = validatorByRole.get(role), original = ownerInventory.records[index];
     if (record?.role !== role || record.validatorAddress !== original.publicAlias || record.consensusAddress !== original.publicIdentity || record.nodeId !== original.secondaryPublicIdentity || record.consensusKeyType !== "tendermint/PubKeyEd25519" || !/^[A-Za-z0-9+/]{43}=$/.test(record.consensusPubKey || "")) throw new Error(`original validator ${role} identity differs from owner evidence`);
     return { role, consensusAddress: record.consensusAddress, nodeId: record.nodeId };
   });

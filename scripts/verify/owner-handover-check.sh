@@ -159,4 +159,82 @@ assert.deepEqual(fs.readFileSync(validator),original);
 console.log('SINGLE_APP_OWNER_DRAFT_FALSE: exact four identities/pins, no service inputs, no authorization, exclusive originals preserved');
 NODE
 
+phase=validator_manifest_role_order_controls
+node --input-type=module - "$tmp" "$commit" <<'NODE'
+import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {inventoryCore, sha256, validateInventory, validatorRoles} from './scripts/verify/lib/owner-handover.mjs';
+const [tmp,commit]=process.argv.slice(2),profile='single-app-gateway/v1';
+const root=path.join(tmp,'manifest-order-only-public-fixtures');fs.mkdirSync(root,{mode:0o700});
+// Fixed PUBLIC bytes only: no private keys, new key generation, or real custody assertion.
+const original={version:1,purpose:'ynx-production-bft-candidate-public-keys-only',chainId:'ynx_6423-1',validators:validatorRoles.map((role,i)=>{
+  const publicBytes=Buffer.alloc(32,i+1);
+  return {validatorAddress:`ynx_validator_${role.replaceAll('-','_')}`,role,privateP2PHost:`10.77.42.${i+1}`,p2pPort:27656,nodeId:String(i+1).repeat(40),consensusKeyType:'tendermint/PubKeyEd25519',consensusPubKey:publicBytes.toString('base64'),consensusAddress:crypto.createHash('sha256').update(publicBytes).digest('hex').slice(0,40).toUpperCase()};
+})};
+const put=(file,value)=>{fs.writeFileSync(file,JSON.stringify(value),{flag:'wx',mode:0o600});return file;};
+const run=(file,args,env,ok=true,reason)=>{const p=spawnSync(process.execPath,[file,...args],{env:{...process.env,...env},encoding:'utf8'});assert.equal(p.status===0,ok,p.stderr);if(reason)assert.match(p.stderr,reason);return p;};
+const ownerEnv={YNX_OWNER_HANDOVER_CUSTODY_PROFILE:profile,YNX_OWNER_HANDOVER_OPERATOR_PLAN_SHA256:'1'.repeat(64),YNX_OWNER_HANDOVER_RUNTIME_MANIFEST_SHA256:'2'.repeat(64),YNX_OWNER_HANDOVER_OUTPUT_DIR:path.join(root,'owners'),YNX_OWNER_HANDOVER_SERVICE_SIGNER_MANIFEST:path.join(root,'absent-service'),YNX_OWNER_HANDOVER_SERVICE_SIGNER_STATUS:path.join(root,'absent-status'),YNX_OWNER_HANDOVER_OPERATIONAL_CATALOG:path.join(root,'absent-catalog')};
+const owner=(id,manifest,ok=true,reason)=>run('scripts/ops/write-owner-handover-packet.mjs',[],{...ownerEnv,YNX_OWNER_HANDOVER_PACKET_ID:id,YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST:manifest},ok,reason);
+let originalRecords;
+for(const [name,rows] of [['original-order',original.validators],['go-role-sorted',[...original.validators].sort((a,b)=>a.role.localeCompare(b.role))],['reverse-order',[...original.validators].reverse()]]){
+  const manifest=put(path.join(root,`${name}.json`),{...original,validators:rows}),bytes=fs.readFileSync(manifest);
+  owner(name,manifest);
+  const directory=path.join(ownerEnv.YNX_OWNER_HANDOVER_OUTPUT_DIR,name),inventoryFile=path.join(directory,'inventory.json'),draftFile=path.join(directory,'receipt.template.json');
+  const inventory=validateInventory(JSON.parse(fs.readFileSync(inventoryFile)),commit),draft=JSON.parse(fs.readFileSync(draftFile));
+  assert.deepEqual(inventory.records.map(r=>r.role),validatorRoles);assert.equal(inventory.sources.validatorManifestSha256,sha256(bytes));
+  if(originalRecords)assert.deepEqual(inventory.records,originalRecords);else originalRecords=inventory.records;
+  assert.equal(draft.acknowledged,false);assert.equal(draft.owner,'');assert.equal(draft.independentReviewer,'');assert.equal(inventory.readiness.publicBFTReady,false);
+  run('scripts/verify/validate-owner-handover-receipt.mjs',[draftFile,inventoryFile,commit],{},false);
+  // A completed synthetic owner fixture is needed to reach the original review
+  // producer. It is local test DATA, never a production receipt or reviewer.
+  const now=new Date(),receipt={...draft,receiptId:`manifest-order-${name}`,owner:'manifest order owner fixture',independentReviewer:'manifest order handover fixture',acknowledged:true,validatorRecoveryVerified:true,ownerHandoverVerified:true,rotationProcedureVerified:true,validatorRecoveryEvidence:'fixture:manifest-order-recovery',ownerHandoverEvidence:'fixture:manifest-order-handover',rotationProcedureEvidence:'fixture:manifest-order-rotation',acknowledgedAt:now.toISOString(),expiresAt:new Date(now.getTime()+3600000).toISOString()};
+  const receiptFile=put(path.join(directory,'completed-owner-fixture.json'),receipt);
+  const reviewRoot=path.join(root,'reviews'),reviewEnv={YNX_OWNER_HANDOVER_INVENTORY:inventoryFile,YNX_OWNER_HANDOVER_RECEIPT:receiptFile,YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST:manifest,YNX_PRODUCTION_CUSTODY_REVIEW_DIR:reviewRoot,YNX_PRODUCTION_CUSTODY_REVIEW_ID:name};
+  const review=(id,changes={},ok=true,reason)=>run('scripts/ops/write-production-custody-review-packet.mjs',[],{...reviewEnv,...changes,YNX_PRODUCTION_CUSTODY_REVIEW_ID:id},ok,reason);
+  review(name);
+  const reviewDir=path.join(reviewRoot,name),reviewFile=path.join(reviewDir,'review.template.json'),result=JSON.parse(fs.readFileSync(reviewFile));
+  assert.deepEqual(result.records,originalRecords.map(r=>({role:r.role,consensusAddress:r.publicIdentity,nodeId:r.secondaryPublicIdentity})));
+  assert.equal(result.validatorManifestSha256,sha256(bytes));assert.equal(result.reviewed,false);assert.equal(result.reviewer,'');
+  for(const flag of ['validatorKeyRecoveryVerified','ownerHandoverVerified','rotationProcedureVerified'])assert.equal(result[flag],false);
+  run('scripts/verify/validate-production-custody-review.mjs',[reviewFile,commit,sha256(bytes)],{},false);
+  assert.deepEqual(fs.readFileSync(path.join(reviewDir,'owner-handover-inventory.json')),fs.readFileSync(inventoryFile));
+  assert.deepEqual(fs.readFileSync(path.join(reviewDir,'owner-handover-receipt.json')),fs.readFileSync(receiptFile));
+  if(name==='go-role-sorted'){
+    // Every original field is protected by the whole raw-manifest pin; even
+    // changes outside the receipt's identity projection cannot pass by role.
+    const changes={validatorAddress:'ynx_validator_other',role:'foreign',privateP2PHost:'10.77.43.1',p2pPort:27657,nodeId:'f'.repeat(40),consensusKeyType:'other',consensusPubKey:Buffer.alloc(32,9).toString('base64'),consensusAddress:'F'.repeat(40)};
+    for(const [field,value]of Object.entries(changes)){
+      const altered=structuredClone({...original,validators:rows});altered.validators[0][field]=value;const file=put(path.join(root,`changed-${field}.json`),altered),id=`changed-${field}`;
+      review(id,{YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST:file},false,/original validator manifest differs from the validated owner inventory/);assert.equal(fs.existsSync(path.join(reviewRoot,id)),false);
+    }
+    const rejectRebound=(id,alter,reason)=>{
+      const altered=structuredClone({...original,validators:rows});alter(altered.validators);
+      const file=put(path.join(root,`${id}.json`),altered),changed=structuredClone(inventory);
+      changed.sources.validatorManifestSha256=sha256(fs.readFileSync(file));changed.inventoryDigest=`sha256:${sha256(JSON.stringify(inventoryCore(changed))+'\n')}`;
+      const inv=put(path.join(root,`${id}-inventory.json`),changed),rc=put(path.join(root,`${id}-receipt.json`),{...receipt,inventoryDigest:changed.inventoryDigest,inventoryFileSha256:sha256(fs.readFileSync(inv))});
+      review(id,{YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST:file,YNX_OWNER_HANDOVER_INVENTORY:inv,YNX_OWNER_HANDOVER_RECEIPT:rc},false,reason);assert.equal(fs.existsSync(path.join(reviewRoot,id)),false);
+    };
+    rejectRebound('duplicate-role',r=>{r[1].role=r[0].role;},/four unique supported validator roles required/);
+    rejectRebound('foreign-role',r=>{r[1].role='foreign';},/four unique supported validator roles required/);
+    rejectRebound('changed-node',r=>{r[1].nodeId='f'.repeat(40);},/identity differs from owner evidence/);
+    rejectRebound('changed-address',r=>{r[1].consensusAddress='F'.repeat(40);},/identity differs from owner evidence/);
+    rejectRebound('invalid-ed-key',r=>{r[1].consensusPubKey='not-canonical-ed';},/identity differs from owner evidence/);
+    const swapped=structuredClone(inventory);[swapped.records[1],swapped.records[3]]=[swapped.records[3],swapped.records[1]];
+    swapped.inventoryDigest=`sha256:${sha256(JSON.stringify(inventoryCore(swapped))+'\n')}`;
+    assert.throws(()=>validateInventory(swapped,commit),/single-App custody requires every original validator role exactly once/);
+    const before=fs.readFileSync(reviewFile);review(name,{},false,/already exists/);assert.deepEqual(fs.readFileSync(reviewFile),before);
+  }
+  assert.deepEqual(fs.readFileSync(manifest),bytes);
+}
+for(const [name,change]of [['duplicate',r=>{r[1].role=r[0].role;}],['foreign',r=>{r[1].role='foreign';}],['missing',r=>r.pop()]]){
+  const bad=structuredClone(original);change(bad.validators);const file=put(path.join(root,`owner-${name}.json`),bad);
+  owner(`owner-${name}`,file,false,name==='missing'?/validator public manifest identity is invalid/:/four unique supported validator roles required/);
+  assert.equal(fs.existsSync(path.join(ownerEnv.YNX_OWNER_HANDOVER_OUTPUT_DIR,`owner-${name}`)),false);
+}
+console.log('VALIDATOR_MANIFEST_ROLE_ORDER_PASS: original/Go-sorted/reverse public bytes accepted by both normal writers; fixed owner/review order, full raw pin, duplicate/foreign/identity/false/UNKNOWN refusals preserved; no authority');
+NODE
+
 echo "owner-handover-check passed: four validators, five service signers, runtime/test identity boundaries, inventory digest, mode-0600 receipt, non-overwrite, tamper/stale/self-review/duplicate/unknown rejection, and publicBFTReady=false"

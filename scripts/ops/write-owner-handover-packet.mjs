@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { toYNXAddress } from "../../sdk/js/index.js";
-import { assertNoSecretFields, inventoryCore, normalizeRecord, readRestricted, serviceRoles, sha256, validateInventory, validatorRoles, isSingleAppCustody, singleAppCustodyProfile } from "../verify/lib/owner-handover.mjs";
+import { assertNoSecretFields, inventoryCore, normalizeRecord, readRestricted, serviceRoles, sha256, validateInventory, validatorRoles, validatorManifestRecordsByRole, isSingleAppCustody, singleAppCustodyProfile } from "../verify/lib/owner-handover.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 // This selects a public, default-false draft only. The normal cutover still
@@ -20,8 +20,9 @@ assertNoSecretFields(validatorSource.value, "validator public manifest");
 
 const validators = validatorSource.value;
 if (validators.version !== 1 || validators.purpose !== "ynx-production-bft-candidate-public-keys-only" || validators.chainId !== "ynx_6423-1" || !Array.isArray(validators.validators) || validators.validators.length !== 4) throw new Error("validator public manifest identity is invalid");
-const validatorRecords = validatorRoles.map((role, index) => {
-  const record = validators.validators[index];
+const validatorByRole = validatorManifestRecordsByRole(validators.validators);
+const validatorRecords = validatorRoles.map((role) => {
+  const record = validatorByRole.get(role);
   if (record?.role !== role || record.validatorAddress !== `ynx_validator_${role.replaceAll("-", "_")}` || record.consensusKeyType !== "tendermint/PubKeyEd25519" || !/^[A-Za-z0-9+/]{43}=$/.test(record.consensusPubKey || "") || !/^[0-9A-F]{40}$/.test(record.consensusAddress || "") || !/^[0-9a-f]{40}$/.test(record.nodeId || "")) throw new Error(`validator ${role} public identity is invalid`);
   return normalizeRecord({
     id: `validator-${role}`,
