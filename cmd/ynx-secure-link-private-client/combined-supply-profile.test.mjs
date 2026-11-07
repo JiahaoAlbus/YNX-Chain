@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {CORE_SUPPLY_PROFILES, normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes,
-  verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden} from './combined-supply-profile.mjs';
+  verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden,
+  CORE19_C2_BINDING, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
 
 const command = 'cmd/ynx-artifact-release-cabi';
 const pin = (name, bytes) => ({path: name, bytes: bytes.length,
@@ -15,7 +16,7 @@ function fixture(id = 'core17/47') {
   const selected = CORE_SUPPLY_PROFILES.find(row => row.id === id);
   const sourceBytes = new Map(selected.sourcePaths.map(name => {
     let text = name.endsWith('.go') ? 'package ' + (name.startsWith(command + '/') ? 'main' : name.split('/').at(-2)) + '\n' : 'PUBLIC original bytes\n';
-    if (['core18/48', 'core19/49'].includes(selected.id) && selected.cgoTranslationUnits.includes(name)) text += '/* static int public_control(void) { return 0; } */\nimport "C"\n';
+    if (selected.coreExports >= 18 && selected.cgoTranslationUnits.includes(name)) text += '/* static int public_control(void) { return 0; } */\nimport "C"\n';
     if (name === command + '/core.go') text += 'func main() {}\n';
     if (name.endsWith('.go')) for (const binding of selected.bindings.filter(row => row.bridge === name)) text += '//export ' + binding.symbol + '\nfunc ' + binding.symbol + '() {}\n';
     if (name.endsWith('.h')) text = selected.bindings.filter(row => row.header === name).map(row => 'int32_t ' + row.symbol + '(void);').join('\n') + '\n';
@@ -131,11 +132,11 @@ function core18Fixture() {
   return {...f, core: raw};
 }
 
-function core19Fixture() {
-  const f = fixture('core19/49'), selected = f.selected;
+function core19Fixture(id = 'core19/49') {
+  const f = fixture(id), selected = f.selected;
   const raw = {schema: 'YNX-CORE19-EXACT-GIT-SOURCE/v1', commit: selected.commit, tree: selected.tree,
     sourceReadMethod: 'PUBLIC in-memory pins, not real Git supply', productionLeafCount: 88,
-    originalCometForkTree: '54e88e6aba735eaceeb2d00bb40731248c673bd7', moduleContextIsDescriptorOnly: true,
+    originalCometForkTree: selected.preparedComposition?.forkTree ?? '54e88e6aba735eaceeb2d00bb40731248c673bd7', moduleContextIsDescriptorOnly: true,
     normalOriginalModuleAndForkRequired: true, goModReplaceNotRemovedOrStubbed: true, archiveIncluded: false, freshCIQualified: false,
     authority: {Root: false, Source: false},
     sources: f.core.sources.map(row => ({...row, repositoryPath: row.path, path: '/PUBLIC/core19/src/' + row.path, gitMode: '100644'})),
@@ -149,6 +150,11 @@ function core19Fixture() {
         productionGoFiles: selected.sourcePaths.filter(p => p.startsWith(name + '/') && p.endsWith('.go')),
         imports: name === command ? ['github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'] : [],
         actualPriorGoListSelectionUnchanged: true, exactGitTreeAllProductionGoFilesMatch: true}]))}};
+  if (selected.preparedComposition) for (const expected of selected.preparedComposition.modules) {
+    Object.assign(raw.moduleContext.find(row => row.repositoryPath === expected.repositoryPath), expected);
+    const source = raw.sources.find(row => row.repositoryPath === expected.repositoryPath);
+    if (source) Object.assign(source, {bytes: expected.bytes, sha256: expected.sha256, gitBlob: expected.gitBlob});
+  }
   return {...f, core: raw};
 }
 
@@ -655,4 +661,144 @@ test('Source-v2 accepts the exact public byte capacities and rejects their first
     v => {const bytes = Buffer.alloc(262145, 0x50); Object.assign(v,
       {memberBase64url: bytes.toString('base64url'), memberBytes: bytes.length, memberSHA256: digest(bytes)});},
   ]) {const overflowing = structuredClone(golden); mutate(overflowing.vectors[0]); assert.throws(() => diagnoseSourceV2Golden(overflowing));}
+});
+
+
+// New controls are entirely self-contained metadata. Invented public content
+// pins below exercise structure; actual supplier SHA/Git bytes are a separate
+// one-time intake and are never claimed by these in-memory fixtures.
+function core19C2Fixture() {
+  const f = core19Fixture(CORE19_C2_BINDING.id), b = CORE19_C2_BINDING;
+  const samplePin = {bytes: 1, sha256: '1'.repeat(64), gitBlob: '2'.repeat(40)};
+  const linkPaths = [...Array.from({length: 76}, (_, i) => 'internal/securelink/public-fixture-' + i + '.go'),
+    'cmd/ynx-secure-link-caller/private_client_v1.h', 'cmd/ynx-secure-link-caller/private_client_startup_v1.h'];
+  const normalized = normalizeCoreSupply(f.core).supply;
+  const rows = new Map([...normalized.sources.map(row => [row.path, row]),
+    ...normalized.moduleContext.descriptors.map(row => [row.repositoryPath, row])]);
+  const composition = {schema: 'YNX-SINGLE49-FINITE7-SOURCE-COMPOSITION/v1', sourceOnly: true,
+    coreCommit: b.commit, coreTree: b.tree, linkCommit: b.linkCommit, linkTree: b.linkTree,
+    coreSource: {...b.inputs.source}, fullOriginalFork: {...b.inputs.fork}, normalProducerSourceCount: 169,
+    normalProducerSources: [...[...rows].map(([repositoryPath, row]) => ({...row, repositoryPath, owner: 'Core', commit: b.commit})),
+      ...linkPaths.map(repositoryPath => ({...samplePin, repositoryPath, owner: 'LINK', commit: b.linkCommit})),
+      {...b.template, owner: 'LINK original composition template', commit: b.linkCommit}],
+    generatedImportIsOriginalTemplate: true, GoExportsIdenticalToOld49Source: true, newArchiveBuilt: false,
+    neutralCSymbolsAreNotNewGoExports: true, expectedGoABI: {Core: 19, LINK: 22, Product: 8, total: 49, runtime: 1},
+    neutralCOldDeclarations: Object.fromEntries(b.neutralCSymbols.slice(0, 8).map(name => [name, 'PUBLIC declaration'])),
+    neutralCNewDeclarations: Object.fromEntries(b.neutralCSymbols.slice(8).map(name => [name, 'PUBLIC declaration']))};
+  const originalBuildInputPins = {AuthBuildHeaderInputs: {...b.inputs.authHeaders}, NativeOriginalUndefined: {...b.inputs.nativeUndefined}};
+  composition.originalBuildInputs = structuredClone(originalBuildInputPins);
+  const supplier = {schema: 'YNX-SINGLE49-FINITE7-NORMAL-PRODUCER-INPUTS/v1', sourceReady: true,
+    archiveReady: false, requestedSuccessorCount: 1, oldArchivesAndImagesImmutable: true, originalBuildInputPins,
+    normalArchiveProducer: {currentlyRequiredOwnerCODE: {requiredCoreCommit: b.commit, requiredCoreTree: b.tree,
+      requiredForkTree: b.forkTree, requiredLINKCommit: b.linkCommit, requiredLINKTree: b.linkTree, requiredRawSource: {...b.inputs.source}}}};
+  const files = [...b.modules.filter(row => row.repositoryPath.startsWith('third_party/')).map(row => ({...row, gitMode: '100644'})),
+    ...Array.from({length: 1454}, (_, i) => ({...samplePin, repositoryPath: 'third_party/cometbft/public-fixture-' + i, gitMode: '100644'}))];
+  files.at(-1).bytes = 0;
+  files[2].bytes += b.forkBytes - files.reduce((sum, row) => sum + row.bytes, 0);
+  const fork = {commit: b.commit, tree: b.forkTree, files, filesAreOriginalCommittedPublicSource: true,
+    notAdditionalArchiveRoot: true, noFakeGitOrStub: true};
+  const values = {source: f.core, composition, fork, supplier, handoff: {}, authHeaders: {}, nativeUndefined: {}};
+  return {...f, inputs: Object.fromEntries(Object.entries(b.inputs).map(([key, descriptor]) => [key, {descriptor: {...descriptor}, value: values[key]}])),
+    options: {linkCommit: b.linkCommit, linkTree: b.linkTree, linkPaths}};
+}
+const verifyC2 = f => verifyCore19C2Recipe(f.selected, f.inputs, f.options);
+
+test('Core19 C2 selects a distinct immutable aa60/42031 successor and retains e120/49', () => {
+  const f = core19C2Fixture(), before = structuredClone(f.core), n = normalizeCoreSupply(f.core);
+  assert.equal(selectCoreSupplyProfile(f.core), f.selected);
+  assert.deepEqual(f.core, before);
+  assert.equal(n.supply.LINKReadOnlyComposition.sourceCommit, CORE19_C2_BINDING.linkCommit);
+  assert.equal(n.provenance.actualCommit, CORE19_C2_BINDING.commit);
+  assert.equal(n.provenance.protectedAuthNativeFactoryQualified, false);
+  assert.equal(f.selected.totalExports, 49); assert.equal(f.selected.coreExports, 19);
+  assert.deepEqual(f.selected.symbols, core19Fixture().selected.symbols);
+  assert.equal(selectCoreSupplyProfile(core19Fixture().core).id, 'core19/49');
+  assert.deepEqual(verifyC2(f), {profile: CORE19_C2_BINDING.id, normalSourceInputs: 169, linkSourceInputs: 78,
+    forkFiles: 1456, forkBytes: 60470640, materializedSourceLeaves: 1623, sourceOnly: true,
+    normalNativeImageVerified: false, RootAdmission: false, SourceAdmission: false});
+  assert.equal(Object.isFrozen(CORE19_C2_BINDING.modules[0]), true);
+});
+
+test('Core19 C2 refuses missing extra duplicate renamed exports and any mixed Core/fork identity', () => {
+  for (const mutate of [
+    f => f.core.productionClosure.exports.pop(), f => f.core.productionClosure.exports.push({...f.core.productionClosure.exports[0], symbol: 'YNXUnlistedV1'}),
+    f => {f.core.productionClosure.exports[1] = {...f.core.productionClosure.exports[0]};},
+    f => {f.core.productionClosure.exports[0].symbol += 'Alias';},
+    f => {f.core.commit = 'a'.repeat(40);}, f => {f.core.tree = 'b'.repeat(40);},
+    f => {f.core.originalCometForkTree = '54e88e6aba735eaceeb2d00bb40731248c673bd7';},
+    f => {f.core.tree = core19Fixture().selected.tree;},
+  ]) {const f = core19C2Fixture(); mutate(f); assert.throws(() => selectCoreSupplyProfile(f.core));}
+});
+
+test('Core19 C2 refuses old or changed module descriptors despite matching count and rest of source', () => {
+  for (const expected of CORE19_C2_BINDING.modules) {
+    const f = core19C2Fixture(), descriptor = f.core.moduleContext.find(row => row.repositoryPath === expected.repositoryPath);
+    descriptor.sha256 = 'f'.repeat(64);
+    const source = f.core.sources.find(row => row.repositoryPath === expected.repositoryPath);
+    if (source) source.sha256 = descriptor.sha256;
+    assert.throws(() => selectCoreSupplyProfile(f.core), /fixed successor module descriptor/);
+  }
+});
+
+test('Core19 C2 binds each exact SOURCE manifest contract handoff Auth and Native input pin', () => {
+  for (const key of Object.keys(CORE19_C2_BINDING.inputs)) for (const field of ['bytes', 'sha256']) {
+    const f = core19C2Fixture(); f.inputs[key].descriptor[field] = field === 'bytes' ? f.inputs[key].descriptor.bytes + 1 : 'f'.repeat(64);
+    assert.throws(() => verifyC2(f), /fixed C2 .* input pin/);
+  }
+  for (const key of ['linkCommit', 'linkTree']) {const f = core19C2Fixture(); f.options[key] = 'f'.repeat(40); assert.throws(() => verifyC2(f), /C2 identity/);}
+});
+
+test('Core19 C2 requires all169 original normal inputs without four-leaf transplant or relabel', () => {
+  for (const mutate of [
+    f => f.inputs.composition.value.normalProducerSources.pop(),
+    f => f.inputs.composition.value.normalProducerSources.push({...f.inputs.composition.value.normalProducerSources[0], repositoryPath: 'internal/securelink/unlisted.go'}),
+    f => {const rows = f.inputs.composition.value.normalProducerSources; rows[1] = {...rows[0]};},
+    f => {f.inputs.composition.value.normalProducerSources.find(row => row.owner === 'LINK').commit = '8df4139adb14c68d93e0a55a56851399d46059ac';},
+    f => {f.inputs.composition.value.normalProducerSources.find(row => row.owner === 'Core').sha256 = 'f'.repeat(64);},
+    f => {f.inputs.composition.value.normalProducerSources.at(-1).generatedFrom = 'caller-template.go';},
+    f => {f.options.linkPaths = f.options.linkPaths.slice(0, 4);},
+    f => {f.inputs.composition.value.expectedGoABI.total = 51;},
+  ]) {const f = core19C2Fixture(); mutate(f); assert.throws(() => verifyC2(f));}
+});
+
+test('Core19 C2 requires all1456 regular fork files and matching descriptors including a zero-byte file', () => {
+  assert.equal(verifyC2(core19C2Fixture()).forkFiles, 1456);
+  for (const mutate of [
+    rows => rows.pop(), rows => rows.push({...rows[0], repositoryPath: 'third_party/cometbft/unlisted'}),
+    rows => {rows[3] = {...rows[2]};}, rows => {rows[2].repositoryPath = 'third_party/cometbft/../outside';},
+    rows => {rows[2].gitMode = '120000';}, rows => {rows[2].bytes = -1;}, rows => {rows[2].bytes++;},
+    rows => {rows[0].gitBlob = 'f'.repeat(40);},
+  ]) {const f = core19C2Fixture(); mutate(f.inputs.fork.value.files); assert.throws(() => verifyC2(f));}
+});
+
+test('Core19 C2 refuses supplier tuple mismatch or substituted original Auth/Native build inputs', () => {
+  for (const mutate of [
+    f => {f.inputs.supplier.value.normalArchiveProducer.currentlyRequiredOwnerCODE.requiredLINKCommit = 'f'.repeat(40);},
+    f => {f.inputs.supplier.value.normalArchiveProducer.currentlyRequiredOwnerCODE.requiredRawSource.sha256 = 'f'.repeat(64);},
+    f => {f.inputs.supplier.value.archiveReady = true;},
+    f => {f.inputs.composition.value.originalBuildInputs.AuthBuildHeaderInputs.sha256 = 'f'.repeat(64);},
+    f => {f.inputs.supplier.value.originalBuildInputPins.NativeOriginalUndefined.bytes++;},
+  ]) {const f = core19C2Fixture(); mutate(f); assert.throws(() => verifyC2(f));}
+});
+
+test('Core19 C2 keeps real LINK and resource backend edges in the sole original command closure', () => {
+  const f = core19C2Fixture(), rows = dependencyRecords(f.selected);
+  const result = verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows));
+  assert.equal(result.resourceConsentAlreadyImportedByCoreCommand, true);
+  assert.equal(result.normalResourceBinder, 'FIXED_CORE_CABI_REACHABLE_PROTECTED_AUTH_NATIVE_FACTORY_NOT_QUALIFIED');
+  rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(name => !name.endsWith('/securelink'));
+  assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows)));
+});
+
+test('Core19 C2 neutral C old8 plus2 require unique strong text and never increase Go49 count', () => {
+  const f = core19C2Fixture(), names = CORE19_C2_BINDING.neutralCSymbols;
+  const plain = names.map(name => '0000000000000000 T _' + name).join('\n');
+  const macho = names.map(name => '0000000000000000 (__TEXT,__text) external _' + name).join('\n');
+  assert.equal(verifyCore19C2NeutralSymbols(f.selected, plain, macho).length, 10);
+  for (const name of [names[0], names[8], names[9]]) {
+    assert.throws(() => verifyCore19C2NeutralSymbols(f.selected, plain.replace('T _' + name, 'U _' + name), macho));
+    assert.throws(() => verifyCore19C2NeutralSymbols(f.selected, plain, macho.replace('external _' + name, 'weak external _' + name)));
+    assert.throws(() => verifyCore19C2NeutralSymbols(f.selected, plain + '\n0 T _' + name, macho + '\n0 (__TEXT,__text) external _' + name));
+  }
+  assert.equal(f.selected.totalExports, 49);
 });

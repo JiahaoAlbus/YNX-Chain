@@ -3,7 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure} from './combined-supply-profile.mjs';
+import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
@@ -34,6 +34,16 @@ const undefinedInput = pinned(options.get('--native-undefined'), options.get('--
 const supplyProfile = selectCoreSupplyProfile(core.value);
 const coreNormalization = normalizeCoreSupply(core.value);
 const coreSupply = coreNormalization.supply;
+const preparedBinding = supplyProfile.preparedComposition;
+const preparedInputs = preparedBinding ? {source: core, authHeaders: auth, nativeUndefined: undefinedInput,
+  ...Object.fromEntries([['composition', 'COMPOSITION.json'], ['fork', 'FORK-CONTEXT.json'],
+    ['supplier', 'SUPPLIER-CONTRACT.json'], ['handoff', 'HANDOFF.json']].map(([key, name]) =>
+      [key, pinned(path.join(path.dirname(core.descriptor.path), name), preparedBinding.inputs[key].sha256)]))} : null;
+if (preparedBinding) for (const [key, expected] of Object.entries(preparedBinding.inputs)) {
+  const descriptor = preparedInputs[key].descriptor;
+  if (descriptor.bytes !== expected.bytes || descriptor.sha256 !== expected.sha256) throw Error('fixed successor input required: ' + key);
+}
+
 const profileVerifier = describe(path.join(directory, 'combined-supply-profile.mjs'));
 if (auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
@@ -79,9 +89,20 @@ function goQuote(argument) {
   if (!argument.includes("'")) return "'" + argument + "'";
   throw Error('Go build argument contains both quote characters');
 }
-let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure;
+let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure, preparedCompositionVerification, neutralCReadback;
 try {
   run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
+  let preparedLinkPaths;
+  if (preparedBinding) {
+    const linkTree = run('git', ['rev-parse', linkCommit + '^{tree}'], 'link-exact-tree.log', repository).trim();
+    preparedLinkPaths = [...run('git', ['ls-tree', '-r', '--name-only', linkCommit, '--', 'internal/securelink'],
+      'prepared-link-paths.log', repository).trim().split('\n').filter(Boolean),
+      'cmd/ynx-secure-link-caller/private_client_v1.h', 'cmd/ynx-secure-link-caller/private_client_startup_v1.h'];
+    preparedCompositionVerification = verifyCore19C2Recipe(supplyProfile, preparedInputs, {linkCommit, linkTree, linkPaths: preparedLinkPaths});
+    if (run('git', ['rev-parse', supplyProfile.commit + ':third_party/cometbft'], 'fork-exact-tree.log', repository).trim() !== preparedBinding.forkTree)
+      throw Error('original exact replacement fork tree required');
+  }
+
   const sourceBytes = new Map(), descriptorBytes = new Map();
   const corePaths = [...new Set([...coreSupply.sources.map(row => row.path), ...supplyProfile.modulePaths])];
   const expectedTree = run('git', ['ls-tree', '-r', supplyProfile.commit, '--', ...corePaths], 'core-git-tree.log', repository);
@@ -117,7 +138,35 @@ try {
     copyHeader(name, bytes, 'link', original);
   }
   const template = path.join(directory, 'combined-entry.go.in');
-  const importLeaf = materialize(packagePath + '/link_transport_import.go', fs.readFileSync(template), {owner: 'link-composition', template: describe(template)});
+  const templateBytes = preparedBinding ? gitObject(linkCommit, preparedBinding.template.generatedFrom) : fs.readFileSync(template);
+  const importLeaf = materialize(packagePath + '/link_transport_import.go', templateBytes,
+    preparedBinding ? {owner: 'link-composition', commit: linkCommit, gitBlob: preparedBinding.template.gitBlob,
+      template: preparedBinding.template.generatedFrom} : {owner: 'link-composition', template: describe(template)});
+  if (preparedBinding) {
+    // Copy the complete committed fork, not just replacement descriptors or a
+    // patch transplanted into an older module. No additional Go root is built.
+    const treeText = run('git', ['ls-tree', '-r', supplyProfile.commit, '--', 'third_party/cometbft'], 'full-fork-git-tree.log', repository);
+    const entries = new Map(treeText.trim().split('\n').map(line => {const [meta, name] = line.split('\t');
+      const [mode, kind, blob] = meta.split(' '); return [name, {mode, kind, blob}];}));
+    const files = preparedInputs.fork.value.files;
+    if (entries.size !== files.length || files.some(row => !entries.has(row.repositoryPath))) throw Error('complete original fork path closure required');
+    for (const row of files) {
+      const actual = entries.get(row.repositoryPath), bytes = gitObject(supplyProfile.commit, row.repositoryPath);
+      if (actual.mode !== row.gitMode || actual.kind !== 'blob' || actual.blob !== row.gitBlob || bytes.length !== row.bytes || hash(bytes) !== row.sha256)
+        throw Error('original fork bytes/mode/Git pin mismatch: ' + row.repositoryPath);
+      if (!sources.some(sourceRow => sourceRow.repositoryPath === row.repositoryPath)) materialize(row.repositoryPath, bytes,
+        {owner: 'core-original-complete-fork', commit: supplyProfile.commit, gitBlob: row.gitBlob});
+    }
+    const expected = new Map([...preparedInputs.composition.value.normalProducerSources, ...files].map(row => [row.repositoryPath, row]));
+    if (sources.length !== expected.size) throw Error('complete 169-input plus full-fork materialization required');
+    for (const row of sources) {
+      const wanted = expected.get(row.repositoryPath), bytes = fs.readFileSync(row.path);
+      const blob = createHash('sha1').update(Buffer.from('blob ' + bytes.length + '\0')).update(bytes).digest('hex');
+      if (!wanted || bytes.length !== wanted.bytes || hash(bytes) !== wanted.sha256 || blob !== wanted.gitBlob)
+        throw Error('complete fixed successor source composition mismatch: ' + row.repositoryPath);
+    }
+    preparedCompositionVerification = {...preparedCompositionVerification, actualMaterializedGitBytesVerified: sources.length};
+  }
   const authNames = new Set();
   for (const row of auth.value.headers) {
     if (authNames.has(row.name) || !path.isAbsolute(row.path ?? '')) throw Error('unique pinned Auth headers required');
@@ -166,6 +215,8 @@ try {
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
   verifyCombinedSupplyResult(supplyProfile, checkResult);
+  if (preparedBinding) neutralCReadback = verifyCore19C2NeutralSymbols(supplyProfile,
+    run('/usr/bin/nm', ['-g', archive], 'neutral-c-symbols-global.log'), run('/usr/bin/nm', ['-m', archive], 'neutral-c-symbols-macho.log'));
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
   const deploymentChecker = await import('./combined-archive-deployment.mjs');
   try { deploymentResult = deploymentChecker.checkArchiveDeployment(describe(archive), {target: deploymentTarget, architecture: process.arch === 'x64' ? 'x86_64' : process.arch}); }
@@ -173,13 +224,15 @@ try {
   for (const row of [...sources, ...headerRows]) {
     if (describe(row.path).sha256 !== row.sha256) throw Error('materialized source/header changed during build');
   }
-  for (const dependency of [core, auth, undefinedInput]) if (describe(dependency.descriptor.path).sha256 !== dependency.descriptor.sha256) throw Error('handoff changed during build');
+  for (const dependency of [core, auth, undefinedInput, ...(preparedInputs ? Object.values(preparedInputs) : [])]) if (describe(dependency.descriptor.path).sha256 !== dependency.descriptor.sha256) throw Error('handoff changed during build');
   if (describe(profileVerifier.path).sha256 !== profileVerifier.sha256) throw Error('supply profile verifier changed during build');
 } catch (error) { failure = error; }
 const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBINED_CORE_LINK_ARCHIVE_VERIFIED_NOT_DEPLOYED',
   coreHandoff: core.descriptor, authHeaders: auth.descriptor, nativeUndefined: undefinedInput.descriptor,
   coreSupplyProfile: {id: supplyProfile.id, commit: supplyProfile.commit, tree: supplyProfile.tree, coreExports: supplyProfile.coreExports, totalExports: supplyProfile.totalExports},
   coreSourceVerification: coreSourceVerification ?? null, profileVerifier,
+  preparedSourceInputs: preparedInputs ? Object.fromEntries(Object.entries(preparedInputs).map(([key, input]) => [key, input.descriptor])) : null,
+  preparedCompositionVerification: preparedCompositionVerification ?? null, neutralCReadback: neutralCReadback ?? null,
   coreSupplyNormalization: coreNormalization.provenance,
   coreCommandDependencyClosure: coreCommandDependencyClosure ?? null,
   normalResourceBinder: coreCommandDependencyClosure?.normalResourceBinder ?? 'NOT_VERIFIED',
@@ -189,7 +242,9 @@ const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBIN
   source: sources, headers: headerRows, commands,
   archive: archive && fs.existsSync(archive) ? describe(archive) : null,
   symbols: checkResult ?? null, deployment: deploymentResult ?? null, deploymentTarget, buildEnvironment: buildEnvironment ?? null, toolchain: toolchain ?? null, failure: failure?.message ?? null,
-  builder: describe(fileURLToPath(import.meta.url)), template: describe(path.join(directory, 'combined-entry.go.in')),
+  builder: describe(fileURLToPath(import.meta.url)), template: preparedBinding
+    ? {...preparedBinding.template, commit: linkCommit, sourceReadMethod: 'ACTUAL_FIXED_GIT_BYTES'}
+    : describe(path.join(directory, 'combined-entry.go.in')),
   goBuildInvocations: commands.filter(row => row.command === 'go' && row.args[0] === 'build').length,
   sameNormalNativeImageLinked: false, actualMacOS13RuntimeTested: false, RootAdmission: false, SourceAdmission: false, installed: false, deployed: false};
 if (deploymentResult) fs.writeFileSync(path.join(output, 'DEPLOYMENT-RESULT.json'), JSON.stringify(deploymentResult, null, 2) + '\n', {flag: 'wx'});

@@ -45,7 +45,7 @@ function profile(id, commit, tree, additionalBindings = [], additionalSources = 
 
 // Updating a supplier source identity requires an explicit owner-reviewed profile.
 // Counts alone, a new caller-chosen commit, or arbitrary paths never select one.
-export const CORE_SUPPLY_PROFILES = Object.freeze([
+const originalProfiles = Object.freeze([
   profile('core15/45', '84a57203f2ea10dfa51c9c4cef817ea3cc411b9c', '13e9cba4d9650bf71fcbf8080286d648a1b45fbf'),
   profile('core17/47', 'ebd19f47559d5e97082e5c61fff106fb4aee6f7f', 'bdafb9c790b825eb277be358535b51983912beed', [
     ['YNXAccountMigrationAuthorizationSignV1', 'migration_authorization_bridge.go', 'account_migration_authorization.h', 'migration_authorization_core.go'],
@@ -71,6 +71,42 @@ export const CORE_SUPPLY_PROFILES = Object.freeze([
   {nonExportCgoTranslationUnits: [command + '/source_statement_v2_foreign_controls.go', command + '/network_resource_consent_foreign_controls.go'], resourceBackendImported: true}),
 ]);
 
+// One separately named successor; the frozen e120 source/profile remains selectable.
+const originalCore19 = originalProfiles.find(row => row.id === 'core19/49');
+function deepFreeze(value) {
+  if (value && typeof value === 'object') {for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value);}
+  return value;
+}
+export const CORE19_C2_BINDING = deepFreeze({
+  id: 'core19-aa60-link42031/49',
+  commit: 'aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf', tree: 'ab99445e46339d2376ec1c0b2aae2674b60c1c7f',
+  forkTree: '5a128880d14bfc73de4334cba23218859ad3473c',
+  linkCommit: '42031b7d6a915b357f81e8faded3434d4c053b1f', linkTree: '2ed56d8c98590900d977a7ff2dba09c70fc2366a',
+  inputs: {
+    source: {bytes: 61763, sha256: 'dbbab75b29a040f287d9df045595b5726dda378a1578ec9bd2a66a0309ebf53e'},
+    composition: {bytes: 66603, sha256: '876101b4f27eaab98ef1bb89e19ed0e3253ddef5b87a9aa2896df311d7017219'},
+    fork: {bytes: 420133, sha256: 'b1f474d69f7c8984f5b4c1be5b7723bc1e740a6ff879092d45ff9f314faf94f6'},
+    supplier: {bytes: 6307, sha256: 'dc5131cb4ec648359dc93028382b90f16cd3980bcf77fa761d780a4f69f8944d'},
+    handoff: {bytes: 11531, sha256: '646fe76bfda29bd1510934eede8b0ac7e0df5d5d7bcc6fc919a3a0cb21af8bf4'},
+    authHeaders: {bytes: 1821, sha256: '23ef1ded16ea80dab04f33e3e9d8b0fa6a487364a7d405b2a21f50e38b8ed42d'},
+    nativeUndefined: {bytes: 10487, sha256: 'f364837c7f0593ca09a760e97b433c11993d1d976a1eb48256a5abd2cbaea6ba'},
+  },
+  modules: [
+    {repositoryPath: 'go.mod', bytes: 4913, sha256: '07b303f8099eebb861f8ce1671089939e45069efbb1f71884b892548af47f803', gitBlob: '711fee87261c833a6e4cae5c9706d9fd32e9aed4'},
+    {repositoryPath: 'go.sum', bytes: 39759, sha256: '87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c', gitBlob: '940892c107fd2facdd222a07d11f227bb0963473'},
+    {repositoryPath: 'third_party/cometbft/go.mod', bytes: 6552, sha256: '265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59', gitBlob: '9cd25a5e363527c015c81bb5a5b07f64cad25c39'},
+    {repositoryPath: 'third_party/cometbft/go.sum', bytes: 51533, sha256: 'daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd', gitBlob: '920f8c3e63d286c702c4a38bbadfcc446466017b'},
+  ],
+  template: {repositoryPath: command + '/link_transport_import.go', generatedFrom: 'cmd/ynx-secure-link-private-client/combined-entry.go.in',
+    bytes: 236, sha256: '4642a221df78dd7ae8f8ff3fc9bd70a6a9c569ec4b823b2ef607505627e7fafe', gitBlob: 'e8af5e76a5c79791755c8de1b188318eedf75173'},
+  normalSourceCount: 169, linkSourceCount: 78, forkFileCount: 1456, forkBytes: 60470640,
+  neutralCSymbols: ['ynx_ctx_new', 'ynx_ssl_new', 'ynx_handshake', 'ynx_read', 'ynx_write', 'ynx_snapshot', 'ynx_export',
+    'ynx_runtime_version', 'ynx_ctx_new_fds', 'ynx_peer_spki_der'],
+});
+export const CORE_SUPPLY_PROFILES = Object.freeze([...originalProfiles, Object.freeze({...originalCore19,
+  id: CORE19_C2_BINDING.id, commit: CORE19_C2_BINDING.commit, tree: CORE19_C2_BINDING.tree,
+  preparedComposition: CORE19_C2_BINDING})]);
+
 const requireValue = (value, message) => {if (!value) throw Error('Core supply profile: ' + message);};
 const exact = (actual, expected, label) => {
   requireValue(Array.isArray(actual) && actual.every(value => typeof value === 'string') && new Set(actual).size === actual.length &&
@@ -81,7 +117,6 @@ const samePin = (a, b) => a.bytes === b.bytes && a.sha256 === b.sha256 && a.gitB
 function approved(selected) {requireValue(CORE_SUPPLY_PROFILES.includes(selected), 'approved named profile required');}
 
 const core18 = CORE_SUPPLY_PROFILES.find(row => row.id === 'core18/48');
-const core19 = CORE_SUPPLY_PROFILES.find(row => row.id === 'core19/49');
 const sourceV2Fields = Object.freeze(['domain UTF8', 'role UTF8', 'independently expected frame UTF8', 'network lowercase hex64 TEXT',
   'owner lowercase0x42 TEXT', 'keyVersion u64 decimal TEXT', 'issuedHeight u64 decimal TEXT', 'canonical bodyOriginal UTF8']);
 export const CORE18_SOURCE_V2_LIMITS = Object.freeze({bodyMaximum: 65536, memberMaximum: 262144, messageMaximum: 66267,
@@ -179,12 +214,15 @@ export function normalizeCoreSupply(raw) {
 }
 
 function normalizeCore19Supply(raw) {
-  requireValue(raw.commit === core19.commit && raw.tree === core19.tree && raw.productionLeafCount === 88 &&
-    raw.originalCometForkTree === '54e88e6aba735eaceeb2d00bb40731248c673bd7' && raw.moduleContextIsDescriptorOnly === true &&
+  const selected = CORE_SUPPLY_PROFILES.find(row => row.coreExports === 19 && row.commit === raw.commit && row.tree === raw.tree);
+  requireValue(selected, 'approved exact Core19 commit/tree identity required');
+  const originalFork = selected.preparedComposition?.forkTree ?? '54e88e6aba735eaceeb2d00bb40731248c673bd7';
+  requireValue(raw.productionLeafCount === 88 &&
+    raw.originalCometForkTree === originalFork && raw.moduleContextIsDescriptorOnly === true &&
     raw.normalOriginalModuleAndForkRequired === true && raw.goModReplaceNotRemovedOrStubbed === true &&
     raw.archiveIncluded === false && raw.freshCIQualified === false, 'exact committed Core19 source-only original required');
   requireValue(Array.isArray(raw.sources), 'complete Core19 source rows required');
-  exact(raw.sources.map(row => row?.repositoryPath), core19.sourcePaths, 'Core19 source paths');
+  exact(raw.sources.map(row => row?.repositoryPath), selected.sourcePaths, 'Core19 source paths');
   const roots = new Set();
   const sources = raw.sources.map(row => {
     requireValue(validPin(row) && row.gitMode === '100644' && typeof row.path === 'string' &&
@@ -200,10 +238,10 @@ function normalizeCore19Supply(raw) {
     closure.productionLeafCount === 88 && closure.cgoTranslationUnitCount === 19 && closure.exportCount === 19 && closure.guardCount === 17 &&
     closure.currentExactGitImportsIndependentlyRewalked === true && closure.allPackageProductionFilesCheckedAgainstExactTree === true &&
     closure.freshGoListRun === false && closure.freshGoTestRun === false, 'Core19 original static closure is not fresh command execution');
-  exact(Object.keys(closure.packages ?? {}), core19.packagePaths, 'Core19 exact package paths');
-  exact(closure.cgoTranslationUnits, core19.cgoTranslationUnits, 'Core19 export and static cgo units');
-  exact(closure.exports?.map(row => row?.symbol), core19.symbols, 'Core19 export names');
-  const exports = core19.bindings.map(binding => {
+  exact(Object.keys(closure.packages ?? {}), selected.packagePaths, 'Core19 exact package paths');
+  exact(closure.cgoTranslationUnits, selected.cgoTranslationUnits, 'Core19 export and static cgo units');
+  exact(closure.exports?.map(row => row?.symbol), selected.symbols, 'Core19 export names');
+  const exports = selected.bindings.map(binding => {
     requireValue(closure.exports.find(row => row.symbol === binding.symbol)?.source === binding.bridge, 'Core19 export bridge required');
     return {symbol: binding.symbol, ...Object.fromEntries(['bridge', 'header', 'implementation'].map(key => [key, clone(byPath.get(binding[key]))]))};
   });
@@ -217,9 +255,9 @@ function normalizeCore19Supply(raw) {
   requireValue(imports.includes('github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent'), 'Core19 direct resource backend import required');
   exact(raw.moduleContext?.map(row => row?.repositoryPath), modulePaths, 'Core19 descriptor paths');
   for (const row of raw.moduleContext) requireValue(validPin(row) && row.gitMode === '100644' && typeof row.path === 'string' && row.path.startsWith('/'), 'Core19 descriptor Git pin required');
-  return {supply: {version, source: {commit: core19.commit, tree: core19.tree, module: 'github.com/JiahaoAlbus/YNX-Chain', go: '1.26.10'},
-    LINKReadOnlyComposition: {sourceCommit: baseLINKCommit}, sources, exports, delivery: {sourceDirectory},
-    moduleContext: {sourceCommit: core19.commit, sourceTree: core19.tree, originalReplace: 'github.com/cometbft/cometbft => ./third_party/cometbft',
+  return {supply: {version, source: {commit: selected.commit, tree: selected.tree, module: 'github.com/JiahaoAlbus/YNX-Chain', go: '1.26.10'},
+    LINKReadOnlyComposition: {sourceCommit: selected.preparedComposition?.linkCommit ?? baseLINKCommit}, sources, exports, delivery: {sourceDirectory},
+    moduleContext: {sourceCommit: selected.commit, sourceTree: selected.tree, originalReplace: 'github.com/cometbft/cometbft => ./third_party/cometbft',
       stubModule: false, descriptors: clone(raw.moduleContext)}, productionPackageClosure,
     actualCounts: {sourceLeaves: 88, productionGo: 69, handHeaders: 17, exportedSymbols: 19, cgoTranslationUnits: 19,
       cgoTranslationUnitPaths: clone(closure.cgoTranslationUnits)}},
@@ -232,12 +270,12 @@ function normalizeCore19Supply(raw) {
 /** Pure metadata gate, called before creating any build output. */
 export function selectCoreSupplyProfile(raw) {
   const {supply: core} = normalizeCoreSupply(raw);
-  requireValue(core?.version === version && core.source?.module === 'github.com/JiahaoAlbus/YNX-Chain' && core.source?.go === '1.26.10' &&
-    core.LINKReadOnlyComposition?.sourceCommit === baseLINKCommit, 'original module/toolchain/LINK contract required');
+  requireValue(core?.version === version && core.source?.module === 'github.com/JiahaoAlbus/YNX-Chain' && core.source?.go === '1.26.10', 'original module/toolchain/LINK contract required');
   requireValue(Array.isArray(core.exports), 'declared exports required');
   const selected = CORE_SUPPLY_PROFILES.find(row => row.commit === core.source.commit && row.tree === core.source.tree);
   requireValue(selected && (selected !== core18 || raw.version === 1) &&
-    (selected !== core19 || raw.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1'), 'approved Core15, Core17, raw Core18 or exact Core19 commit/tree identity required');
+    (selected.coreExports !== 19 || raw.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1'), 'approved Core15, Core17, raw Core18 or exact Core19 commit/tree identity required');
+  requireValue(core.LINKReadOnlyComposition?.sourceCommit === (selected.preparedComposition?.linkCommit ?? baseLINKCommit), 'profile-specific original LINK contract required');
   exact(core.exports.map(row => row?.symbol), selected.symbols, 'Core export identities');
   requireValue(Array.isArray(core.sources), 'complete source pins required');
   exact(core.sources.map(row => row?.path), selected.sourcePaths, 'Core source paths');
@@ -256,6 +294,9 @@ export function selectCoreSupplyProfile(raw) {
   requireValue(core.moduleContext.sourceCommit === selected.commit && core.moduleContext.sourceTree === selected.tree &&
     core.moduleContext.originalReplace === 'github.com/cometbft/cometbft => ./third_party/cometbft' && core.moduleContext.stubModule === false,
   'same original module/replacement context required');
+  if (selected.preparedComposition) for (const expected of selected.preparedComposition.modules) {
+    requireValue(samePin(descriptors.find(row => row.repositoryPath === expected.repositoryPath), expected), 'fixed successor module descriptor required: ' + expected.repositoryPath);
+  }
   exact(Object.keys(core.productionPackageClosure ?? {}), selected.packagePaths, 'production package paths');
   for (const name of selected.packagePaths) {
     const paths = selected.sourcePaths.filter(row => row.startsWith(name + '/') && row.endsWith('.go'));
@@ -273,6 +314,92 @@ export function selectCoreSupplyProfile(raw) {
     exact(counts.cgoTranslationUnitPaths, selected.cgoTranslationUnits, 'cgo translation units');
   }
   return selected;
+}
+
+/** Fixed metadata only. The recipe pins every JSON byte before passing values,
+ * then independently verifies/materializes the full Git inventories below. */
+export function verifyCore19C2Recipe(selected, inputs, {linkCommit, linkTree, linkPaths}) {
+  approved(selected);
+  const binding = selected.preparedComposition;
+  requireValue(binding === CORE19_C2_BINDING, 'prepared exact C2 profile required');
+  for (const [key, expected] of Object.entries(binding.inputs)) {
+    const actual = inputs[key]?.descriptor;
+    requireValue(actual?.bytes === expected.bytes && actual.sha256 === expected.sha256, 'fixed C2 ' + key + ' input pin required');
+  }
+  requireValue(selectCoreSupplyProfile(inputs.source.value) === selected && linkCommit === binding.linkCommit && linkTree === binding.linkTree,
+    'fixed Core/LINK C2 identity required');
+  const c = inputs.composition.value, fork = inputs.fork.value, supplier = inputs.supplier.value;
+  requireValue(c.schema === 'YNX-SINGLE49-FINITE7-SOURCE-COMPOSITION/v1' && c.sourceOnly === true &&
+    c.coreCommit === selected.commit && c.coreTree === selected.tree && c.linkCommit === linkCommit && c.linkTree === linkTree &&
+    c.normalProducerSourceCount === binding.normalSourceCount && c.generatedImportIsOriginalTemplate === true &&
+    c.GoExportsIdenticalToOld49Source === true && c.newArchiveBuilt === false && c.neutralCSymbolsAreNotNewGoExports === true,
+    'complete source-only C2 composition required');
+  for (const [row, expected] of [[c.coreSource, binding.inputs.source], [c.fullOriginalFork, binding.inputs.fork]])
+    requireValue(row?.bytes === expected.bytes && row.sha256 === expected.sha256, 'composition dependency pin mismatch');
+  requireValue(supplier.schema === 'YNX-SINGLE49-FINITE7-NORMAL-PRODUCER-INPUTS/v1' && supplier.sourceReady === true &&
+    supplier.archiveReady === false && supplier.requestedSuccessorCount === 1 && supplier.oldArchivesAndImagesImmutable === true,
+    'single source-only supplier contract required');
+  const required = supplier.normalArchiveProducer?.currentlyRequiredOwnerCODE;
+  requireValue(required?.requiredCoreCommit === selected.commit && required.requiredCoreTree === selected.tree &&
+    required.requiredForkTree === binding.forkTree && required.requiredLINKCommit === linkCommit && required.requiredLINKTree === linkTree &&
+    required.requiredRawSource?.sha256 === binding.inputs.source.sha256 && required.requiredRawSource.bytes === binding.inputs.source.bytes,
+    'supplier exact successor tuple required');
+  for (const [key, label] of [['authHeaders', 'AuthBuildHeaderInputs'], ['nativeUndefined', 'NativeOriginalUndefined']]) {
+    const expected = binding.inputs[key];
+    for (const owner of [c.originalBuildInputs, supplier.originalBuildInputPins]) requireValue(owner?.[label]?.bytes === expected.bytes &&
+      owner[label].sha256 === expected.sha256, 'original C2 build input mismatch: ' + label);
+  }
+  requireValue(c.expectedGoABI?.Core === 19 && c.expectedGoABI.LINK === 22 && c.expectedGoABI.Product === 8 &&
+    c.expectedGoABI.total === 49 && c.expectedGoABI.runtime === 1, 'unchanged C2 single-Go49 ABI required');
+  exact([...Object.keys(c.neutralCOldDeclarations ?? {}), ...Object.keys(c.neutralCNewDeclarations ?? {})], binding.neutralCSymbols, 'neutral C declarations');
+  requireValue(Array.isArray(linkPaths) && linkPaths.length === binding.linkSourceCount && linkPaths.every(name =>
+    typeof name === 'string' && (name.startsWith('internal/securelink/') || ['cmd/ynx-secure-link-caller/private_client_v1.h',
+      'cmd/ynx-secure-link-caller/private_client_startup_v1.h'].includes(name))), 'full original LINK C2 tree required');
+  const normalized = normalizeCoreSupply(inputs.source.value).supply;
+  const coreRows = new Map([...normalized.sources.map(row => [row.path, row]),
+    ...normalized.moduleContext.descriptors.map(row => [row.repositoryPath, row])]);
+  const expectedPaths = [...coreRows.keys(), ...linkPaths, binding.template.repositoryPath];
+  exact(c.normalProducerSources?.map(row => row?.repositoryPath), expectedPaths, '169 normal producer inputs');
+  requireValue(expectedPaths.length === binding.normalSourceCount, 'normal source inventory count required');
+  for (const row of c.normalProducerSources) {
+    requireValue(validPin(row), 'original normal source byte/hash/Git pin required');
+    const original = coreRows.get(row.repositoryPath);
+    if (original) requireValue(row.owner === 'Core' && row.commit === selected.commit && samePin(row, original), 'same original Core composition row required');
+    else if (row.repositoryPath === binding.template.repositoryPath) requireValue(row.owner === 'LINK original composition template' &&
+      row.commit === linkCommit && row.generatedFrom === binding.template.generatedFrom && samePin(row, binding.template), 'fixed original blank-import template required');
+    else requireValue(row.owner === 'LINK' && row.commit === linkCommit, 'complete same-commit LINK C2 composition required');
+  }
+  requireValue(fork.commit === selected.commit && fork.tree === binding.forkTree && fork.filesAreOriginalCommittedPublicSource === true &&
+    fork.notAdditionalArchiveRoot === true && fork.noFakeGitOrStub === true && Array.isArray(fork.files) &&
+    fork.files.length === binding.forkFileCount, 'complete original replacement fork required');
+  const forkPaths = fork.files.map(row => row?.repositoryPath);
+  requireValue(new Set(forkPaths).size === forkPaths.length && fork.files.every(row => typeof row.repositoryPath === 'string' &&
+    /^third_party\/cometbft\/[A-Za-z0-9_./@+-]+$/.test(row.repositoryPath) &&
+    row.repositoryPath.split('/').every(part => part !== '' && part !== '.' && part !== '..') &&
+    row.gitMode === '100644' && Number.isSafeInteger(row.bytes) && row.bytes >= 0 && /^[a-f0-9]{64}$/.test(row.sha256 ?? '') &&
+    /^[a-f0-9]{40}$/.test(row.gitBlob ?? '')), 'unique regular original fork pins required');
+  requireValue(fork.files.reduce((sum, row) => sum + row.bytes, 0) === binding.forkBytes, 'complete fork byte total required');
+  for (const expected of binding.modules.filter(row => row.repositoryPath.startsWith('third_party/')))
+    requireValue(samePin(fork.files.find(row => row.repositoryPath === expected.repositoryPath) ?? {}, expected), 'fork descriptor/composition mismatch');
+  return {profile: selected.id, normalSourceInputs: expectedPaths.length, linkSourceInputs: linkPaths.length,
+    forkFiles: fork.files.length, forkBytes: binding.forkBytes, materializedSourceLeaves: expectedPaths.length + fork.files.length - 2,
+    sourceOnly: true, normalNativeImageVerified: false, RootAdmission: false, SourceAdmission: false};
+}
+
+// The original 49-symbol/single-runtime gate remains separate. This narrow
+// supplement follows that gate's nm -g plus mandatory nm -m strong-function rule.
+export function verifyCore19C2NeutralSymbols(selected, plain, macho) {
+  approved(selected);
+  requireValue(selected.preparedComposition === CORE19_C2_BINDING && typeof plain === 'string' && typeof macho === 'string', 'C2 nm readback required');
+  return CORE19_C2_BINDING.neutralCSymbols.map(symbol => {
+    const key = '_' + symbol;
+    const rows = plain.split('\n').map(line => line.trim().split(/\s+/)).filter(parts => parts.at(-1) === key && parts.at(-2) !== 'U');
+    const attrs = macho.split('\n').filter(line => line.trim().split(/\s+/).at(-1) === key);
+    const definitions = attrs.filter(line => !/\bundefined\b/.test(line));
+    requireValue(rows.length === 1 && rows[0].at(-2) === 'T' && definitions.length === 1 &&
+      !attrs.some(line => /\bweak\b/.test(line)), 'missing/weak/undefined/duplicate neutral C strong callee: ' + symbol);
+    return {symbol, type: 'T', definition: definitions[0].trim(), undefinedReferences: attrs.length - definitions.length};
+  });
 }
 
 function verifiedBytes(row, bytes, label) {
@@ -313,7 +440,7 @@ export function verifyCoreSupplyBytes(raw, selected, sourceBytes, descriptorByte
     requireValue(headers.find(row => row.symbol === binding.symbol).path === binding.header, 'actual declaration in wrong header: ' + binding.symbol);
   }
   exact(mains, [command + '/core.go'], 'sole original Core main');
-  if (selected === core18 || selected === core19) {
+  if (selected === core18 || selected.coreExports === 19) {
     exact(cgo, selected.cgoTranslationUnits, 'actual Core18 cgo translation units including static control');
     for (const name of selected.nonExportCgoTranslationUnits) requireValue(!actual.some(row => row.path === name), 'static cgo control may not add an export');
     const header = sourceBytes.get(command + '/auth_source_statement_v2.h').toString('utf8');
