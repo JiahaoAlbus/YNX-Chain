@@ -37,10 +37,15 @@ class PreloadControls(unittest.TestCase):
    args=self.inputs();args[index]=value
    with self.assertRaises(RuntimeError):m.validate(*args)
  def test_pending_preparation_or_early_business_commands_cannot_release(self):
-  args=self.inputs();args[2]=[4]
-  with self.assertRaises(RuntimeError):m.validate(*args)
+  for pending in ([4],[-1],[True],[0,0],[0,1,2,3,4]):
+   args=self.inputs();args[2]=pending
+   with self.subTest(pending=pending),self.assertRaises(RuntimeError):m.validate(*args)
   for key in ('signCommandsIssued','businessPOSTsIssued'):
    args=self.inputs();args[0][key]=1
    with self.assertRaises(RuntimeError):m.validate(*args)
+ def test_reserved_preparation_pending_is_preserved_not_replayed_or_counted(self):
+  args=self.inputs();args[2]=[0,1];saved=copy.deepcopy(args);r=m.validate(*args)
+  self.assertEqual(args,saved);self.assertEqual(r['unconfirmedReservedPreparationOwners'],[0,1]);self.assertFalse(r['preparationFinalityQualified'] or r['loadReleased']);self.assertEqual(r['configuredDemand'],500)
+  r['unconfirmedReservedPreparationOwners'].clear();self.assertEqual(args[2],[0,1])
 
 if __name__=='__main__':unittest.main()
