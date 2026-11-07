@@ -1,0 +1,23 @@
+{
+  "path": "apps/developer/desktop/identity-sdk-loader.mjs",
+  "sourceBase": "ee4626fc4dccfd932232634653d9a4560d71b5b1",
+  "before": {
+    "bytes": 10363,
+    "sha256": "467d4ec8034689b4853cd25803ff3c2ca9386cca2991f3c9bb46a5611bd4007e"
+  },
+  "after": {
+    "bytes": 10757,
+    "sha256": "789fedf46c9d1bc4d92bc1e1a18222cdbccde425e3f71247d968fd79c247c45a"
+  },
+  "variant": "SDK49-IDE-CONTROL-MATCHED-WHOLE-SOURCE-ARCHIVE-RUNTIME/v1",
+  "binding": {
+    "bytes": 439,
+    "sha256": "dea8d8db168caec08d5120b3ecaef01d17d2d6b3c2ad648e882902d1d62b9cf1"
+  },
+  "codepins": {
+    "bytes": 664251,
+    "sha256": "8c9a427b7fbfd879e2b96cb2b81e0b52cbb1313ec95d7a7e01e2001f230ce52e"
+  },
+  "actualP03ApplicationChanged": false,
+  "approvalOrSourceGranted": false
+}

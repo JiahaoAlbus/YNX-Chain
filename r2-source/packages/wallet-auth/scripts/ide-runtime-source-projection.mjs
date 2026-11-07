@@ -2,7 +2,7 @@
 // No import/require/dlopen/execute/extract of archived entries is provided.
 import fs from'node:fs';import path from'node:path';import{createHash}from'node:crypto';import{gzipSync,gunzipSync}from'node:zlib';import{types}from'node:util';
 import{canonical}from'../native/original-auth-identity-source-verifier.mjs';
-export const IDE_RUNTIME_SOURCE_VARIANT='SDK49-IDE-C6-SCOPE-PHASE-SOURCE-ARCHIVE-RUNTIME/v1';
+export const IDE_RUNTIME_SOURCE_VARIANT='SDK49-IDE-CONTROL-MATCHED-WHOLE-SOURCE-ARCHIVE-RUNTIME/v1';
 export const IDE_SOURCE_ARCHIVE_PATH='native/source-only-custody/ide-build-inputs-v1.json.gz';
 const ARCHIVE_CAP=16777216,DECODE_CAP=67108864;
 export const IDE_BUILD_ONLY_SOURCE_PATHS=Object.freeze(['native/vendor/link/libynx_artifact_release.a','native/vendor/runtime-inputs/libcrypto.3.dylib','native/vendor/runtime-inputs/libssl.3.dylib','native/vendor/runtime-inputs/libuv.1.dylib']);

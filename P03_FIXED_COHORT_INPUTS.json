@@ -1,0 +1,73 @@
+{
+  "schema": "YNX_IDE_CONTROL_MATCHED_WHOLE_FIXED_INPUTS/v1",
+  "contract": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/NORMAL_PRODUCT_CONTRACT.json",
+    "bytes": 770481,
+    "sha256": "b45f1f4e8c7f817d5781893f048757109a46366b19966daf0682a52c71729a98"
+  },
+  "module": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/normal-product.mjs",
+    "bytes": 13247,
+    "sha256": "5cc9d98893176dd7b1204387ddcb7d3ef78d9b56ce4b28d230b7e813092d6e56"
+  },
+  "originalContract": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
+    "bytes": 758103,
+    "sha256": "baa2147c6119e6b48f8a851a3ec5198802ed835d10700b20739d1b0a2565346c"
+  },
+  "originalModule": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
+    "bytes": 10447,
+    "sha256": "01296ae4ce913c1344ff0c6803f0a99f25345b8a3662cd6ecb2583e01a0d40d5"
+  },
+  "originalCocoaReceipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r11/native-build/cocoa-execution.json",
+    "bytes": 8579,
+    "sha256": "e044b239b54da8a131f0333354bdbd21bad7a87ef4defe5355291ba660a1571a"
+  },
+  "binding": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-projection-binding.json",
+    "bytes": 439,
+    "sha256": "dea8d8db168caec08d5120b3ecaef01d17d2d6b3c2ad648e882902d1d62b9cf1",
+    "name": "identity-sdk-projection-binding.json",
+    "mode": 420
+  },
+  "codepins": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-pins.json",
+    "bytes": 664251,
+    "sha256": "8c9a427b7fbfd879e2b96cb2b81e0b52cbb1313ec95d7a7e01e2001f230ce52e",
+    "name": "identity-sdk-pins.json",
+    "mode": 420
+  },
+  "closure": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/original-auth-single49-napi-import-policy.mjs",
+      "bytes": 5143,
+      "sha256": "de217b18036f766eb8abf528147e610aeb3a326efd102693bdffe69224627efb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.data.json",
+      "bytes": 6137,
+      "sha256": "750a14ac626cbf355b4b4fb19d4171799941d676054946a49d5ac16de8973871"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.mjs",
+      "bytes": 8829,
+      "sha256": "c8c2a10a322413c09073b845fd2724c92461f51f2d6fa5f8733ff5f6271a2d12"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-plan.json",
+      "bytes": 179908,
+      "sha256": "319773ce927a066fde8989ff3575216dfa21977634ee57dbb746d0f8616f7cf7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/r2-source/packages/wallet-auth/scripts/ide-runtime-source-projection.mjs",
+      "bytes": 15019,
+      "sha256": "e1f8a13aa7819544f819849d55966586cb63d88993df365dcd8b65fb84bc3b23"
+    }
+  ],
+  "sourceVariant": "SDK49-IDE-CONTROL-MATCHED-WHOLE-SOURCE-ARCHIVE-RUNTIME/v1",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "finite7": false
+}

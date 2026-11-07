@@ -1,5 +1,5 @@
 {
-  "schema": "YNX_IDE_C6_DIAGNOSTIC_NORMAL_PRODUCT/v1",
+  "schema": "YNX_IDE_CONTROL_MATCHED_WHOLE_NORMAL_PRODUCT/v1",
   "roles": {
     "SDKPublic": "4a807cdc6e09c25467f06cc912a655a294ccc975",
     "NativeCPP": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
@@ -7,21 +7,33 @@
     "helperCompile": "2602137a3f0382acb52c7d82ac51383153bd9f44",
     "helperRecordProducer": "9bf0726f96e66a4947a4a8d823b77b89bcc46ff9",
     "P03Consumer": "8849fc39efb6898fa9621a4f86bd3607cbb4a805",
-    "P03DiagnosticConsumer": "8cc0ce4e6805940f29367506763ea855df51a62b"
+    "P03DiagnosticConsumer": "8cc0ce4e6805940f29367506763ea855df51a62b",
+    "CocoaCPPBase": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+    "CocoaCompiledSDK": "98956ed2bbac8bb5c86de83c4f1df24314e19bf0",
+    "NodeComposite": {
+      "CPPBase": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+      "SwiftBase": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+      "originalFiniteNAPIProducer": "86d0d24c052843516c6cf79e2fe2ee859d43358a",
+      "projectControlSource": "4a807cdc6e09c25467f06cc912a655a294ccc975",
+      "NodeOriginalSourceUnchanged": true,
+      "NodeCompileClosureChanged": true
+    },
+    "P03AssemblyBaseline": "ee4626fc4dccfd932232634653d9a4560d71b5b1",
+    "P03CoreFrontend": "556e12d15a00bd8cf4ecb8b6ed5aa06864d9cb53"
   },
   "finite7": false,
   "RootAdmission": false,
   "SourceAdmission": false,
-  "prefix": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projected-prefix-r2",
+  "prefix": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projected-prefix-r2",
   "projection": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-source-projection.json",
-    "bytes": 5710,
-    "sha256": "51d832922d7056a61d69887896fd24d2b03fbd16b0bee9438f2bd78e83e53cc5"
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-source-projection.json",
+    "bytes": 7109,
+    "sha256": "9ace3fdd57ed0871cd058d825a54ad68ea9829e0a2c0ca04d8a1006ae41e6c74"
   },
   "runtimeInventory": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-projected-runtime-inventory.json",
-    "bytes": 1699521,
-    "sha256": "592cca398a127fd3a0ef63e15774b74ca16fb52cc90a16e10521703a0738798e"
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-projected-runtime-inventory.json",
+    "bytes": 1700917,
+    "sha256": "260b045c609b0b3a27b907e98ef1c7052f68961d3f8d33b6c264208bda643971"
   },
   "runtimeModes": {
     "AGENTS.md": 420,
@@ -11022,155 +11034,168 @@
   },
   "metadata": [
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-pins.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-pins.json",
       "bytes": 664251,
-      "sha256": "33fc0a2f165165480d5603bcd33f1b0f97f7d9ecc70a017b9166e54fa13eef31",
+      "sha256": "8c9a427b7fbfd879e2b96cb2b81e0b52cbb1313ec95d7a7e01e2001f230ce52e",
       "name": "identity-sdk-pins.json",
       "mode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-source-projection.json",
-      "bytes": 5710,
-      "sha256": "51d832922d7056a61d69887896fd24d2b03fbd16b0bee9438f2bd78e83e53cc5",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-source-projection.json",
+      "bytes": 7109,
+      "sha256": "9ace3fdd57ed0871cd058d825a54ad68ea9829e0a2c0ca04d8a1006ae41e6c74",
       "name": "identity-sdk-source-projection.json",
       "mode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-projected-runtime-inventory.json",
-      "bytes": 1699521,
-      "sha256": "592cca398a127fd3a0ef63e15774b74ca16fb52cc90a16e10521703a0738798e",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-projected-runtime-inventory.json",
+      "bytes": 1700917,
+      "sha256": "260b045c609b0b3a27b907e98ef1c7052f68961d3f8d33b6c264208bda643971",
       "name": "identity-sdk-projected-runtime-inventory.json",
       "mode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/projection-scope-phase-r2/identity-sdk-projection-binding.json",
-      "bytes": 432,
-      "sha256": "db5b6b1427fcdc9b2205b55fc0ab32670f2be91fd13c4ede4c9e8c8f8ae3c6ed",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/projection-scope-phase-r2/identity-sdk-projection-binding.json",
+      "bytes": 439,
+      "sha256": "dea8d8db168caec08d5120b3ecaef01d17d2d6b3c2ad648e882902d1d62b9cf1",
       "name": "identity-sdk-projection-binding.json",
       "mode": 420
     }
   ],
   "assets": [
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-identity.node",
-      "bytes": 15749408,
-      "sha256": "4207948f71120f2cc57d862b97da505e4f9c790bc8f98233f92487032bea7ce6",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-identity.node",
+      "bytes": 15917120,
+      "sha256": "6e180505fe4c7c646bfa427162e607a10385ca8865d3f8b7e37f5ccc0aa2771d",
       "relative": "apps/wallet-desktop/native/original-auth-identity.node",
       "mode": 493,
-      "role": "C6_NODE9",
-      "machO": true
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": true,
+      "sourceMode": 493
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
       "bytes": 18652,
       "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
       "mode": 420,
-      "role": "C6_NODE9",
-      "machO": false
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
       "bytes": 1603,
       "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
       "mode": 420,
-      "role": "C6_NODE9",
-      "machO": false
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE.txt",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/LIBUV-LICENSE.txt",
       "bytes": 1079,
       "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE.txt",
       "mode": 420,
-      "role": "C6_NODE9",
-      "machO": false
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
       "bytes": 1022,
       "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
       "mode": 420,
-      "role": "C6_NODE9",
-      "machO": false
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
       "bytes": 10175,
       "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
       "mode": 420,
-      "role": "C6_NODE9",
-      "machO": false
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libcrypto.3.dylib",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/libcrypto.3.dylib",
       "bytes": 5107648,
       "sha256": "7ee2d33dd3f002e8bcc76d5bc1083333d10ea7064539cc630c4b28ae5a83bfd8",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/libcrypto.3.dylib",
       "mode": 493,
-      "role": "C6_NODE9",
-      "machO": true
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": true,
+      "sourceMode": 493
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libssl.3.dylib",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/libssl.3.dylib",
       "bytes": 979328,
       "sha256": "8d24bffd50d0a961d283ab711b8176525a643a2679c6b852cb582251c516fe48",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/libssl.3.dylib",
       "mode": 493,
-      "role": "C6_NODE9",
-      "machO": true
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": true,
+      "sourceMode": 493
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libuv.1.dylib",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-runtime-libs/libuv.1.dylib",
       "bytes": 201824,
       "sha256": "9e19a85d194e4da4f09939f0d051c6790a7f45b46da3827b85e8919c5de77e4e",
       "relative": "apps/wallet-desktop/native/original-auth-runtime-libs/libuv.1.dylib",
       "mode": 493,
-      "role": "C6_NODE9",
-      "machO": true
+      "role": "MATCHED_CONTROL_NODE9",
+      "machO": true,
+      "sourceMode": 493
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/NORMAL_SWIFT_REPAIR_RECORD.json",
-      "bytes": 332515,
-      "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52",
-      "relative": "apps/wallet-desktop/native/NATIVE49_C6_NORMAL_RECORD.json",
-      "mode": 384,
-      "role": "C6_ORIGINAL_RECORD",
-      "machO": false
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json",
+      "bytes": 46291,
+      "sha256": "cb77be5f4f015a722254f5e9869a35e985fe0e8c238e0ca1efed906e7ff48c32",
+      "relative": "apps/wallet-desktop/native/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json",
+      "mode": 420,
+      "role": "MATCHED_CONTROL_RECORD",
+      "machO": false,
+      "sourceMode": 384
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/developer/helper/YNXIdentityReceiver",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/developer/helper/YNXIdentityReceiver",
       "bytes": 1181456,
       "sha256": "2958be1d233e083535fb186085eafa79accf3ef942d6c00133f74e6a35fb8f15",
       "relative": "helper/YNXIdentityReceiver",
       "mode": 493,
       "role": "APPROVED125A_HELPER13",
-      "machO": true
+      "machO": true,
+      "sourceMode": 493
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
       "bytes": 473,
       "sha256": "08c5483639227287de41e081c61e3d2e5238db72122d08f5f397d8f4e78af69b",
       "relative": "helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
       "mode": 420,
       "role": "APPROVED125A_PLIST",
-      "machO": false
+      "machO": false,
+      "sourceMode": 420
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json",
       "bytes": 255009,
       "sha256": "125a0fd40168ca7a9842644bb24e70c669bf4596d9eb36e8c4f1daa62dc43485",
       "relative": "native-link/helper125a-original-record.json",
       "mode": 384,
       "role": "APPROVED125A_ORIGINAL_RECORD",
-      "machO": false
+      "machO": false,
+      "sourceMode": 384
     }
   ],
   "targetNode": {
-    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/source/apps/developer/.ynx-developer-candidates/portable-node24-original-input/node",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/source/apps/developer/.ynx-developer-candidates/portable-node24-original-input/node",
     "bytes": 120582384,
     "sha256": "0f12fe7fbbaf1731081371967148b3de6e4bc585cabe23489599045e56954aea"
   },
@@ -11187,232 +11212,233 @@
     "ynx_auth_pq_native_account_initial_once_v1",
     "ynx_auth_pq_native_assert_binding_v1"
   ],
-  "c6Reader": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-normal-component.mjs",
-    "bytes": 7459,
-    "sha256": "cf988e401217f627b3dc77adac9d08923570556e8a13a0aa891da4536e69260c"
-  },
   "helperSourceTuple": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/APPROVED_HELPER_SOURCE_TUPLE.json",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/APPROVED_HELPER_SOURCE_TUPLE.json",
     "bytes": 882,
     "sha256": "d78a0333d612b4f2b62dbc80ec02f7f09222dffa0e6e2829f17ef8cce68b7f60"
   },
   "projectionModule": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/r2-source/packages/wallet-auth/scripts/ide-runtime-source-projection.mjs",
-    "bytes": 15012,
-    "sha256": "f38eabd0a4ac9f9a5e1c393f70580ab69443dd778585ea0e35e27431ef940adf"
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/r2-source/packages/wallet-auth/scripts/ide-runtime-source-projection.mjs",
+    "bytes": 15019,
+    "sha256": "e1f8a13aa7819544f819849d55966586cb63d88993df365dcd8b65fb84bc3b23"
   },
   "evidence": [
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/HANDOFF.json",
-      "bytes": 8204,
-      "sha256": "716b513bf9826d255162d0199b5f0b7421fbc688e99433b475dc162368fb2324"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/HANDOFF.json",
       "bytes": 4531,
       "sha256": "4a5a01a090d50c4d1b47030e02a4f273aed2dc908153bd58e31cd054f36deb47"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NATIVE49_SWIFT11_MINIMAL_REPAIR_QUALIFIED_HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NATIVE49_SWIFT11_MINIMAL_REPAIR_QUALIFIED_HANDOFF.json",
       "bytes": 60666,
       "sha256": "adbc846e9293a11f862c2ce7efa2755369d47c28352c6e9fe8a374881e8971c4"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_PUBLIC_READBACK.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_PUBLIC_READBACK.json",
       "bytes": 3436,
       "sha256": "c7c3c4e75aa4682eab4113bdf32b322af715e3e89bc9c316aeffdc7942f450a8"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/P03_NATIVE9.json",
-      "bytes": 3301,
-      "sha256": "e9f680cda832a47e8886b63b3fca4ad0d01abf60edb5f7c3f054323e3e4c1e4d"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/MATERIALS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/MATERIALS.json",
       "bytes": 3170,
       "sha256": "9e96b5e58a01d189c22eba77ae81b675fe510a2fe14d61ae987dbb082045d540"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-normal-component.mjs",
-      "bytes": 7459,
-      "sha256": "cf988e401217f627b3dc77adac9d08923570556e8a13a0aa891da4536e69260c"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-normal-component.data.json",
-      "bytes": 1129813,
-      "sha256": "d7b58737c31bb4493b7534040d754ea1919990ac9a9283e459be4b3395a526d3"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-plan.json",
-      "bytes": 238520,
-      "sha256": "22064fcedaeb26e8a4a3247b72293381cee619044a6c29324eb31b368a81a719"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-record.json",
-      "bytes": 332515,
-      "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native49-c6-normal-consumer-successor-20261107/source/apps/wallet-desktop/scripts/native49-c6-handoff.json",
-      "bytes": 60666,
-      "sha256": "adbc846e9293a11f862c2ce7efa2755369d47c28352c6e9fe8a374881e8971c4"
-    },
-    {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component.mjs",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component.mjs",
       "bytes": 6295,
       "sha256": "f3618b99dc1502462fa7f37eaa85a4f8ac598a0e7ad7a62817ad18b3dad9fe8e"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component-data.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component-data.json",
       "bytes": 86425,
       "sha256": "727745885d9e61e4f05405ec6e2bb8730750bec4a3b155cf287e33f8e0cbeac2"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json.portable-qa-attempt.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json.portable-qa-attempt.json",
       "bytes": 84593,
       "sha256": "771f843c1fd68c0a9278c6a74592f53dfe41a19ced4768756f3e78e8bc390bb1"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/COCOA_REPAIR_INPUTS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/COCOA_REPAIR_INPUTS.json",
       "bytes": 286524,
       "sha256": "3370e74489ffc58bdcd42386edda87693d3226eefa835b2b24330cef77b52fc7"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/OBJECT_SYMBOL_ROSTER_WITH_OBJC.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/OBJECT_SYMBOL_ROSTER_WITH_OBJC.json",
       "bytes": 3657671,
       "sha256": "0d311697871d7f7f1ae4d19698f7bf1804d0596ee1c5f50406cc15ecc25d42c4"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/ARCHIVE_MEMBERS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/ARCHIVE_MEMBERS.json",
       "bytes": 25561,
       "sha256": "3e119a3713c79bd247794a1cfc83db4999b9f81937409f4b1d57e53e31610191"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa-execution.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa-execution.json",
       "bytes": 24391,
       "sha256": "623a51c4306161e8d3fac8e57f742bb6740c14923c2f02c938255b4ebb2e5a95"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_R8_FIRSTCAUSE_RECONCILIATION_20261107.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_R8_FIRSTCAUSE_RECONCILIATION_20261107.json",
       "bytes": 4842,
       "sha256": "6bb0745fd765aaf5923713808294ff67c86c26cd113d58333636307e44e1f98e"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_COCOA_OBJECT_NAPI_DATA_20261107.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_COCOA_OBJECT_NAPI_DATA_20261107.json",
       "bytes": 21009,
       "sha256": "daf0441bdfda243b45d9d2ff91ed866d074aad244451ba33d43673beee0116a7"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/HANDOFF.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/HANDOFF.json",
       "bytes": 7894,
       "sha256": "685e5b1ea694e3b6c63eeddcb37ab1991ba765b09a31cdda60a18c334c0df3b9"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/PUBLIC_SOURCE_CAS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/PUBLIC_SOURCE_CAS.json",
       "bytes": 4244,
       "sha256": "2c08d05af2d93b2e1381600a7d9699eea4db15e1d43ddb2976c654899c1d396a"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/SOURCE_MATERIALIZATION_R2_RESULT.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/SOURCE_MATERIALIZATION_R2_RESULT.json",
       "bytes": 2009,
       "sha256": "88451c34b9afd887577c3bdbb10a790134f8ee8a73196d5415e67549769d2be8"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-source-r2/SOURCE_COMPOSITION.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-source-r2/SOURCE_COMPOSITION.json",
       "bytes": 2021769,
       "sha256": "af22aa0ddbfd8117a9f6f0f281c4b5fd2486520727632203a04c4ff32761a0c5"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-source-r2/COMPLETE_PREFIX.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-source-r2/COMPLETE_PREFIX.json",
       "bytes": 1699316,
       "sha256": "b4f6bf76d0127cef85d388113c430e97a3dc83536e2a566b63771bdc52f0a081"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
       "bytes": 10447,
       "sha256": "01296ae4ce913c1344ff0c6803f0a99f25345b8a3662cd6ecb2583e01a0d40d5"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/PUBLIC_SOURCE_CAS.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/PUBLIC_SOURCE_CAS.json",
       "bytes": 4244,
       "sha256": "2c08d05af2d93b2e1381600a7d9699eea4db15e1d43ddb2976c654899c1d396a"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/NATIVE_CUSTODY_CAUSE_SOURCE.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/NATIVE_CUSTODY_CAUSE_SOURCE.json",
       "bytes": 1891,
       "sha256": "a35a52f8d1584a9e2f7f96c59b6d017af6183a13e4f48b58b5ce0a6b0ecb7f23"
     },
     {
-      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
       "bytes": 758103,
       "sha256": "baa2147c6119e6b48f8a851a3ec5198802ed835d10700b20739d1b0a2565346c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01-controller/WALLET_PROJECT_CONTROL_MATCHING_3TU_QUALIFIED_HANDOFF.json",
+      "bytes": 103404,
+      "sha256": "41b4e4ee14fa0b2572c1a90c48283d5554b38025ce2699245124f00b5618200a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-control-matched-image-normal-consumer-20261108/publication/HANDOFF.json",
+      "bytes": 6665,
+      "sha256": "5e5704fd8cc7ee0b3fca3491f11964e740ba81760d66b51f8f202f731acee530"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/HANDOFF.json",
+      "bytes": 10471,
+      "sha256": "79e685a40e8bda60f6c69a3c38a77a0a8c10c9be783ae0854b80029536619ccf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r11/native-build/cocoa-execution.json",
+      "bytes": 8579,
+      "sha256": "e044b239b54da8a131f0333354bdbd21bad7a87ef4defe5355291ba660a1571a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/original-auth-single49-napi-import-policy.mjs",
+      "bytes": 5143,
+      "sha256": "de217b18036f766eb8abf528147e610aeb3a326efd102693bdffe69224627efb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.data.json",
+      "bytes": 6137,
+      "sha256": "750a14ac626cbf355b4b4fb19d4171799941d676054946a49d5ac16de8973871"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.mjs",
+      "bytes": 8829,
+      "sha256": "c8c2a10a322413c09073b845fd2724c92461f51f2d6fa5f8733ff5f6271a2d12"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-plan.json",
+      "bytes": 179908,
+      "sha256": "319773ce927a066fde8989ff3575216dfa21977634ee57dbb746d0f8616f7cf7"
     }
   ],
   "productAdapter": {
-    "newVariant": "C6_DIAGNOSTIC_NORMAL_PRODUCT",
+    "newVariant": "CONTROL_MATCHED_WHOLE_NORMAL_PRODUCT",
     "CocoaOutput": "EXISTING_P03_ORIGINAL_QUALIFIED_RECEIPT_REQUIRED_NO_REBUILD",
     "wholeProductReady": false,
     "normalEntry": "scripts/package-local-macos.sh",
     "changes": [
-      "sole SDKPublic daa package cohort copied from new strictly sealed runtime inventory",
-      "Native CPP3c9 / Swiftc6 / Node9 / helper125a remain independent unchanged roles",
-      "same normal producer copyDiagnosticSDK/stageDiagnosticAssets/verifyDiagnosticAssets/postNestedDiagnostic exports",
-      "existing original Cocoa receipt is verified by original immutable adopter; separate SDK resource source role never recasts old compilation",
-      "nested sign -> new metadata/projection verification and postNestedDiagnostic -> P03 capture -> outer-only sign -> own verify -> deep strict"
+      "preserve seven normal producer APIs; select exact matching record cb77 + image6e18, 87object composite role",
+      "resourceSDK4a807 distinct from compiledCocoaSDK98956; exact e044 old Cocoa adoption only",
+      "new whole projection/full2/root6/source archive/codepins/binding, no old seal swap",
+      "nested sign -> matching Node record/bytes + helper125a + sourceprojection/Swift11 gate -> own capture -> outer-only sign -> ownverify/deepstrict"
     ],
     "nativeElectronLoadVerified": false,
-    "resourceSuccessor": "FINAL_SCOPE_PHASE_AND_NATIVE_CUSTODY_CAUSE"
+    "resourceSuccessor": "MATCHED_CONTROL_NODE_PLUS_UNCHANGED_RESOURCE4A",
+    "nativeElectronLoadVerifiedByOriginalA": true,
+    "nativeElectronLoadedBySupplier": false
   },
   "commands": {
     "plan": [
       "node",
-      "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "--plan"
     ],
     "copySDK": [
       "node",
-      "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "--copy-sdk",
       "APP/Contents/Resources/code/apps/developer/vendor/identity-admission"
     ],
     "stageAssets": [
       "node",
-      "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "--stage-native",
       "APP/Contents/Resources/code/apps/developer"
     ],
     "postNested": [
       "node",
-      "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "--post-nested",
       "CANONICAL_NEW_APP"
     ],
     "verifyAssets": [
       "node",
-      "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "--verify-assets",
       "APP/Contents/Resources/code/apps/developer"
     ],
     "CocoaReuse": {
-      "module": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
+      "module": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/normal-producer-successor/final-custody-cohort-successor/normal-product.mjs",
       "export": "adoptDiagnosticCocoa",
       "arguments": "{receipt: existing exact P03 original Cocoa completion receipt, binary: fresh App/Contents/MacOS/YNXDeveloper}",
       "newNativeCompileRequired": false
     }
   },
   "helperReader": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component.mjs",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component.mjs",
     "bytes": 6295,
     "sha256": "f3618b99dc1502462fa7f37eaa85a4f8ac598a0e7ad7a62817ad18b3dad9fe8e"
   },
   "helperProfile": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component-data.json",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-approved125a-helper-component-successor-20261107/source/apps/wallet-desktop/scripts/approved125a-helper-component-data.json",
     "bytes": 86425,
     "sha256": "727745885d9e61e4f05405ec6e2bb8730750bec4a3b155cf287e33f8e0cbeac2"
   },
   "originalHelperAttempt": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json.portable-qa-attempt.json",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json.portable-qa-attempt.json",
     "bytes": 84593,
     "sha256": "771f843c1fd68c0a9278c6a74592f53dfe41a19ced4768756f3e78e8bc390bb1"
   },
@@ -11437,8 +11463,8 @@
     "apps/wallet-desktop/native/YNXIdentityReceiver": "helper/YNXIdentityReceiver",
     "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist": "helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist"
   },
-  "CocoaRepairOnly": true,
-  "NativeNodeRoleChanged": false,
+  "CocoaRepairOnly": false,
+  "NativeNodeRoleChanged": true,
   "CocoaRepairStage": "only original r8 successful main+parent reuse, 11 qualified NAPI-free CPP incl actual SourceRuntime ObjC category; strict relink3commands; old Node13assets untouched",
   "SDKScopePhase": {
     "purpose": "bounded diagnostic phase DATA only",
@@ -11470,7 +11496,7 @@
     ]
   },
   "originalCocoaAdopter": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
     "bytes": 10447,
     "sha256": "01296ae4ce913c1344ff0c6803f0a99f25345b8a3662cd6ecb2583e01a0d40d5"
   },
@@ -11526,12 +11552,12 @@
     }
   ],
   "nativeCustodyCauseEvidence": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/NATIVE_CUSTODY_CAUSE_SOURCE.json",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-relay-scope-phase-successor-20261107/NATIVE_CUSTODY_CAUSE_SOURCE.json",
     "bytes": 1891,
     "sha256": "a35a52f8d1584a9e2f7f96c59b6d017af6183a13e4f48b58b5ce0a6b0ecb7f23"
   },
   "originalCocoaInputContract": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
     "bytes": 758103,
     "sha256": "baa2147c6119e6b48f8a851a3ec5198802ed835d10700b20739d1b0a2565346c"
   },
@@ -11540,6 +11566,91 @@
   "P03ConsumerRoleMeanings": {
     "P03Consumer": "original inherited Native consumer ABI; original Cocoa compile receipt remains unchanged",
     "P03DiagnosticConsumer": "new actual JS-only phase and exact11 cause consumer; no claim to recompile Native",
-    "assemblySource": "P03 own fresh package Source role supplied by original owner"
+    "assemblySource": "P03 own fresh package Source role supplied by original owner",
+    "NodeComposite": "actual A3 new +84 retained; separate from Cocoa3c9 source and Main approval",
+    "P03AssemblyBaseline": "own P03 assembly commit; does not recast old e044 compilation"
+  },
+  "matchedNode": {
+    "family": "YNX_WALLET_CONTROL_MATCHED_NORMAL_NODE_COMPONENT/v1",
+    "record": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json",
+      "bytes": 46291,
+      "sha256": "cb77be5f4f015a722254f5e9869a35e985fe0e8c238e0ca1efed906e7ff48c32",
+      "relative": "apps/wallet-desktop/native/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json"
+    },
+    "image": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01/original-auth-identity.node",
+      "bytes": 15917120,
+      "sha256": "6e180505fe4c7c646bfa427162e607a10385ca8865d3f8b7e37f5ccc0aa2771d"
+    },
+    "sourceRoles": {
+      "CPPBase": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+      "SwiftBase": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+      "originalFiniteNAPIProducer": "86d0d24c052843516c6cf79e2fe2ee859d43358a",
+      "projectControlSource": "4a807cdc6e09c25467f06cc912a655a294ccc975",
+      "NodeOriginalSourceUnchanged": true,
+      "NodeCompileClosureChanged": true
+    },
+    "qualification": {
+      "totalObjects": 87,
+      "newCPP": 3,
+      "retainedObjects": 84,
+      "newSwift": 0,
+      "GoBuild": false,
+      "RootAdmission": false,
+      "SourceAdmission": false
+    }
+  },
+  "matchedNodeReader": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.mjs",
+    "bytes": 8829,
+    "sha256": "c8c2a10a322413c09073b845fd2724c92461f51f2d6fa5f8733ff5f6271a2d12"
+  },
+  "matchedNodeReaderClosure": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/original-auth-single49-napi-import-policy.mjs",
+      "bytes": 5143,
+      "sha256": "de217b18036f766eb8abf528147e610aeb3a326efd102693bdffe69224627efb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.data.json",
+      "bytes": 6137,
+      "sha256": "750a14ac626cbf355b4b4fb19d4171799941d676054946a49d5ac16de8973871"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-component.mjs",
+      "bytes": 8829,
+      "sha256": "c8c2a10a322413c09073b845fd2724c92461f51f2d6fa5f8733ff5f6271a2d12"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/native-component-reader/wallet-control-matched-normal-plan.json",
+      "bytes": 179908,
+      "sha256": "319773ce927a066fde8989ff3575216dfa21977634ee57dbb746d0f8616f7cf7"
+    }
+  ],
+  "originalCocoaReceipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r11/native-build/cocoa-execution.json",
+    "bytes": 8579,
+    "sha256": "e044b239b54da8a131f0333354bdbd21bad7a87ef4defe5355291ba660a1571a"
+  },
+  "externalAdministration": {
+    "source": "eff2f18e4e820935b3a4a8e5f0754691a43f4e06",
+    "role": "PRIVATE_ZERO_ARG_IDE_RELAY_ISSUANCE_PRODUCER_EXTERNAL_ONLY",
+    "AppIncluded": false,
+    "RootAdmission": false,
+    "actualRegistrationSupplied": false,
+    "notConsumerRuntime": "not P03 rawNode24.19 consumer; no issuer/key/placement packaged"
+  },
+  "P03CorePackage": {
+    "status": "PENDING_CORE18_ORIGINAL_OWNER_EXACT_H",
+    "frontendSource": "556e12d15a00bd8cf4ecb8b6ed5aa06864d9cb53",
+    "previousH": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_CORE17_NORMAL_COMPLETE_HANDOFF_20261108.json",
+      "bytes": 5794,
+      "sha256": "42053c5b4a17d930382abc3a5986852c67695dae17f681f5ab884c7890bb2028"
+    },
+    "newPluginOnlyNormalPackage": true,
+    "SDKStageBlocked": false,
+    "wholeProductReady": false
   }
 }
