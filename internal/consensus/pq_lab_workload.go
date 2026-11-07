@@ -1041,9 +1041,27 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 	if err != nil {
 		return nil, err
 	}
+	var witness *validatedMigration
+	if entry != nil {
+		witness = entry.witness
+	} else {
+		witness, err = newValidatedMigration(m, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var current func() error
+	if entry != nil {
+		current = entry.current
+	}
+	return loadPQLabSenderCheckpointOwned(p, witness, activationPin, height, appHash, metrics, current, pqLabRead)
+}
+
+func loadPQLabSenderCheckpointOwned(p PQLabNetworkPlan, witness *validatedMigration, activationPin string, height int64, appHash string, metrics *PQLabMetrics, current func() error, readStatic func(string, int64) ([]byte, error)) (*PQLabSenderCheckpoint, error) {
+	root := p.RootDir
 	var engine *PQEngineAuthorization
 	if activationPin != "" {
-		raw, err := pqLabRead(filepath.Join(root, "activation", "activation.json"), 1<<20)
+		raw, err := readStatic(filepath.Join(root, "activation", "activation.json"), 1<<20)
 		if err != nil || pqLabFile("", raw).SHA256 != activationPin {
 			return nil, errors.New("independent activation pin required")
 		}
@@ -1054,7 +1072,7 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 		if activation.ScheduleFile != filepath.Join(root, "activation", "schedule.json") {
 			return nil, errors.New("schedule escaped original lab")
 		}
-		schedule, err := pqLabRead(activation.ScheduleFile, 32<<10)
+		schedule, err := readStatic(activation.ScheduleFile, 32<<10)
 		if err != nil {
 			return nil, err
 		}
@@ -1063,21 +1081,12 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 			return nil, err
 		}
 	}
-	var witness *validatedMigration
-	if entry != nil {
-		witness = entry.witness
-	} else {
-		witness, err = newValidatedMigration(m, b)
-		if err != nil {
-			return nil, err
-		}
-	}
 	reads := &pqLabCheckpointRead{witness: witness, engine: engine, height: height, appHash: appHash, metrics: metrics}
 	read := func() (CommittedState, error) {
 		var first CommittedState
-		if entry != nil {
+		if current != nil {
 			done := pqLabMeasure(metrics, "checkpoint.staticOriginalReadback")
-			e := entry.current()
+			e := current()
 			done()
 			if e != nil {
 				return first, e
@@ -1094,9 +1103,9 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 				first = *state
 			}
 		}
-		if entry != nil {
+		if current != nil {
 			done := pqLabMeasure(metrics, "checkpoint.staticOriginalReadback")
-			e := entry.current()
+			e := current()
 			done()
 			if e != nil {
 				return CommittedState{}, e
@@ -1110,11 +1119,11 @@ func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height
 	if err != nil {
 		return nil, err
 	}
-	network, err := hex.DecodeString(m.OriginalGenesisHash)
+	network, err := hex.DecodeString(witness.migration.OriginalGenesisHash)
 	if err != nil {
 		return nil, err
 	}
-	return &PQLabSenderCheckpoint{state: state, network: network, migrationHash: m.StateHash, current: func() error {
+	return &PQLabSenderCheckpoint{state: state, network: network, migrationHash: witness.migration.StateHash, current: func() error {
 		defer pqLabMeasure(metrics, "checkpoint.currentFourNodeRead")()
 		_, err := read()
 		return err

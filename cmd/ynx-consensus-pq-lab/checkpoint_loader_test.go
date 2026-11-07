@@ -110,9 +110,8 @@ func TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent(t *testing.T) {
 	if err = os.WriteFile(path, padded, 0600); err != nil {
 		t.Fatal(err)
 	}
-	cache := consensus.NewPQLabStaticCache()
-	defer cache.Close()
-	loader := pqLabSenderCheckpointLoader{cache: cache}
+	loader := pqLabSenderCheckpointLoader{}
+	defer loader.close()
 	first, second := &consensus.PQLabMetrics{}, &consensus.PQLabMetrics{}
 	if _, err = loader.load(created.Plan.RootDir, created.PlanSHA256, "", height, appHash, first); err != nil {
 		t.Fatal(err)
@@ -120,12 +119,12 @@ func TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent(t *testing.T) {
 	if _, err = loader.load(created.Plan.RootDir, created.PlanSHA256, "", height, appHash, second); err != nil {
 		t.Fatal(err)
 	}
-	stats := cache.Stats()
-	if !loader.uncached || stats.Misses != 1 || stats.Bypasses != 1 || stats.Entries != 0 || stats.HeldFiles != 0 || stats.OriginalBytes != 0 {
+	stats := loader.stats()
+	if stats.Misses != 1 || stats.Bypasses != 1 || stats.Entries != 0 || stats.HeldFiles != 0 || stats.OriginalBytes != 0 {
 		t.Fatal("optional cache was enlarged or retried instead of full validation", stats)
 	}
-	if first.Snapshot().Stages["checkpoint.loadTotal"].Calls != 2 || second.Snapshot().Stages["checkpoint.loadTotal"].Calls != 1 || second.Snapshot().Stages["lab.bootstrapFullValidation"].Calls != 1 || second.Snapshot().Stages["checkpoint.nodeReadAndValidate"].Calls != 4 {
-		t.Fatal("later command reused validation/current state instead of original uncached loader")
+	if first.Snapshot().Stages["checkpoint.loadTotal"].Calls != 1 || second.Snapshot().Stages["checkpoint.loadTotal"].Calls != 1 || second.Snapshot().Stages["lab.bootstrapFullValidation"].Calls != 0 || second.Snapshot().Stages["checkpoint.nodeReadAndValidate"].Calls != 4 {
+		t.Fatal("held source rebuilt immutable validation or omitted actual current state")
 	}
 	for _, test := range []struct {
 		name, plan, hash string

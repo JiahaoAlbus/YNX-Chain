@@ -27,14 +27,17 @@ const initialRegistrationCertificateScope = "YNX-INITIAL-REGISTRATION-CERTIFICAT
 // cached. The disposable initial-certificate cache below remembers only exact
 // successful dual-signature mathematics, with all live history checks retained.
 type validatedMigration struct {
-	migration           chain.ConsensusMigrationState
-	bootstrap           *ConsensusBootstrap
-	canonicalHash       [32]byte
-	canonicalBytes      int
-	initialCertificates *ynxbatch.CertificateCache
-	initialScope        []byte
-	historyCertificates *chain.PQCertificateCache
-	registryMath        *ynxconsensusauth.RegistrationMathCache
+	// Private constructor identity: never serialized or recoverable from hashes.
+	validatedSelf          *validatedMigration
+	bootstrapKeysValidated *validatedMigration
+	migration              chain.ConsensusMigrationState
+	bootstrap              *ConsensusBootstrap
+	canonicalHash          [32]byte
+	canonicalBytes         int
+	initialCertificates    *ynxbatch.CertificateCache
+	initialScope           []byte
+	historyCertificates    *chain.PQCertificateCache
+	registryMath           *ynxconsensusauth.RegistrationMathCache
 }
 
 // Counts actual complete validations at this ownership boundary, not dynamic
@@ -59,26 +62,34 @@ func newValidatedMigration(migration chain.ConsensusMigrationState, bootstrap *C
 		return nil, err
 	}
 	witness := &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: canonicalHash, canonicalBytes: stream.count}
-	witness.historyCertificates = chain.NewPQHistoryCertificateCache()
-	if witness.bootstrap != nil {
-		cache, err := ynxconsensusauth.NewRegistrationMathCache(witness.bootstrap.genesisID)
-		if err != nil {
-			return nil, err
-		}
-		witness.registryMath = cache
+	if err := witness.initializeMath(); err != nil {
+		return nil, err
 	}
-	if witness.bootstrap != nil && witness.bootstrap.record.PQInitialAccounts != nil {
+	witness.validatedSelf = witness
+	return witness, nil
+}
+
+func (m *validatedMigration) initializeMath() error {
+	m.historyCertificates = chain.NewPQHistoryCertificateCache()
+	if m.bootstrap != nil {
+		cache, err := ynxconsensusauth.NewRegistrationMathCache(m.bootstrap.genesisID)
+		if err != nil {
+			return err
+		}
+		m.registryMath = cache
+	}
+	if m.bootstrap != nil && m.bootstrap.record.PQInitialAccounts != nil {
 		cache, err := ynxbatch.NewCertificateCache(initialRegistrationCertificateEntries)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		// This is a private mathematical cache namespace, not new authority or
 		// a protocol/hash input. The normal constructor has already bound the
 		// complete original Genesis and migration before creating this witness.
-		scope := sha256.Sum256([]byte(initialRegistrationCertificateScope + "\x00" + witness.bootstrap.record.CometGenesisSHA256))
-		witness.initialCertificates, witness.initialScope = cache, append([]byte(nil), scope[:]...)
+		scope := sha256.Sum256([]byte(initialRegistrationCertificateScope + "\x00" + m.bootstrap.record.CometGenesisSHA256))
+		m.initialCertificates, m.initialScope = cache, append([]byte(nil), scope[:]...)
 	}
-	return witness, nil
+	return nil
 }
 
 // Only the normal complete validation/detachment above can create a witness.

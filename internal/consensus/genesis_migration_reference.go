@@ -89,6 +89,59 @@ func validateBootstrapMigrationAppState(raw []byte, migration chain.ConsensusMig
 	return appState, nil, err
 }
 
+// This private path is reachable only with the original constructor-owned
+// migration and its FULL validated canonical stream. The normal public path
+// above is unchanged. It removes repeated mathematical validation, never the
+// complete canonical comparison or independent Genesis/reference binding.
+func validateBootstrapMigrationAppStateOwned(raw []byte, owner *validatedMigration) ([]byte, *cometMigrationReference, error) {
+	if owner == nil || owner.valid() != nil || owner.validatedSelf != owner || owner.bootstrapKeysValidated != owner || owner.bootstrap != nil {
+		return nil, nil, errors.New("missing original validated bootstrap migration owner")
+	}
+	var discriminator struct {
+		Version json.RawMessage `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &discriminator); err != nil {
+		return nil, nil, err
+	}
+	var version string
+	if json.Unmarshal(discriminator.Version, &version) == nil {
+		// Keep the original streaming full validator for large reference input;
+		// never allocate a history-sized canonical slice here. This conservative
+		// path keeps its extra mathematical pass until a separate bounded normal
+		// encoder port exists. Its result must also match this exact owner.
+		normalized, ref, err := validateBootstrapMigrationAppState(raw, owner.migration)
+		if err != nil {
+			return nil, nil, err
+		}
+		if ref == nil || *ref != newCometMigrationReferenceDigest(owner.migration, owner.canonicalHash, owner.canonicalBytes) {
+			return nil, nil, errors.New("original validated canonical migration changed")
+		}
+		return normalized, ref, nil
+	}
+	// Use precisely the original CanonicalJSON encoder. Its complete validation
+	// has already run inside WriteDetachedCanonicalJSON. A changed owner or any
+	// normalization difference cannot be supplied by a caller digest or flag.
+	canonical, err := json.MarshalIndent(owner.migration, "", "  ")
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(canonical) != owner.canonicalBytes || sha256.Sum256(canonical) != owner.canonicalHash || len(canonical) == 0 || len(canonical) > maxCometMigrationBytes {
+		return nil, nil, errors.New("original validated canonical migration changed")
+	}
+	// Same original typed decoder and canonical encoding as the inline path.
+	// Every resulting byte must equal the FULL previously validated original;
+	// an unvalidated/different embedded state never reaches mathematical reuse.
+	var embedded chain.ConsensusMigrationState
+	if err = json.Unmarshal(raw, &embedded); err != nil {
+		return nil, nil, err
+	}
+	encoded, err := json.MarshalIndent(embedded, "", "  ")
+	if err != nil || !bytes.Equal(encoded, canonical) {
+		return nil, nil, errors.New("genesis AppState is not the complete bound migration")
+	}
+	return canonical, nil, nil
+}
+
 func decodeCometMigrationReference(raw []byte) (cometMigrationReference, error) {
 	var ref cometMigrationReference
 	if len(raw) == 0 || len(raw) > 4096 || json.Unmarshal(raw, &ref) != nil {

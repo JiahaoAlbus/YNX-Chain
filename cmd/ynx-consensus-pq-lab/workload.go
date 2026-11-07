@@ -67,7 +67,7 @@ func runPQLabPreSigned(args []string, out io.Writer) error {
 
 // One owner, one inherited credential FD, and a bounded synchronous JSONL
 // command stream. There is no background queue, batching timer or network.
-func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
+func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) (resultErr error) {
 	startupStarted := time.Now()
 	f := flag.NewFlagSet("ynx-consensus-pq-lab sender", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
@@ -127,11 +127,10 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer sender.Close()
+	defer func() { resultErr = errors.Join(resultErr, sender.Close()) }()
 	clear(credential)
-	cache := consensus.NewPQLabStaticCache()
-	defer cache.Close()
-	checkpoints := pqLabSenderCheckpointLoader{cache: cache}
+	checkpoints := pqLabSenderCheckpointLoader{}
+	defer func() { resultErr = errors.Join(resultErr, checkpoints.close()) }()
 	startupElapsedNS := time.Since(startupStarted).Nanoseconds()
 	if *ready {
 		reply := struct {
@@ -255,7 +254,7 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 				response.StartupTimings = &startup
 			}
 			response.CalleeElapsedNS = time.Since(commandStarted).Nanoseconds()
-			stats := cache.Stats()
+			stats := checkpoints.stats()
 			response.StaticCache = &stats
 		}
 		if err = json.NewEncoder(out).Encode(response); err != nil {

@@ -4,13 +4,24 @@ package main
 
 import "github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 
-// This is only eligibility for the optional immutable-source cache, never an
-// authorization/current-state result. The existing synchronous sender uses one
-// fixed original root/plan. After a clean cache-budget refusal it performs the
-// original complete uncached validation on EVERY subsequent sign command.
+// One synchronous sender owns one held original input scope. Every sign still
+// captures the four current checkpoints; immutable mathematics is reusable only
+// while all original descriptors remain current, until this stream closes.
 type pqLabSenderCheckpointLoader struct {
-	cache    *consensus.PQLabStaticCache
-	uncached bool
+	source *consensus.PQLabSenderCheckpointSource
+}
+
+func (l *pqLabSenderCheckpointLoader) close() error {
+	if l == nil || l.source == nil {
+		return nil
+	}
+	return l.source.Close()
+}
+func (l *pqLabSenderCheckpointLoader) stats() consensus.PQLabStaticCacheStats {
+	if l == nil || l.source == nil {
+		return (*consensus.PQLabStaticCache)(nil).Stats()
+	}
+	return l.source.CacheStats()
 }
 
 func pqLabCheckpointCacheBoundOnly(err error) bool {
@@ -20,13 +31,8 @@ func pqLabCheckpointCacheBoundOnly(err error) bool {
 }
 
 func (l *pqLabSenderCheckpointLoader) load(root, plan, activation string, height int64, appHash string, metrics *consensus.PQLabMetrics) (*consensus.PQLabSenderCheckpoint, error) {
-	if l.uncached || l.cache == nil {
-		return consensus.LoadPQLabSenderCheckpointMeasured(root, plan, activation, height, appHash, metrics)
+	if l.source == nil {
+		l.source = consensus.NewPQLabSenderCheckpointSource()
 	}
-	checkpoint, err := consensus.LoadPQLabSenderCheckpointCached(root, plan, activation, height, appHash, metrics, l.cache)
-	if !pqLabCheckpointCacheBoundOnly(err) {
-		return checkpoint, err
-	}
-	l.uncached = true
-	return consensus.LoadPQLabSenderCheckpointMeasured(root, plan, activation, height, appHash, metrics)
+	return l.source.Load(root, plan, activation, height, appHash, metrics)
 }

@@ -675,6 +675,13 @@ func loadPQLabObserved(root, pin string, metrics *PQLabMetrics, originals *pqLab
 // Keep the original typed-nil entry point and the complete validation body.
 // A caller-owned held reader changes only file lifetime, never validation.
 func loadPQLabObservedWithRead(root, pin string, metrics *PQLabMetrics, read func(string, int64) ([]byte, error)) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
+	return loadPQLabObservedWithBootstrap(root, pin, metrics, read, NewConsensusBootstrap)
+}
+
+// The same normal loader body owns all original paths and source validation.
+// Only the sender private owner supplies its already-completely-validated
+// migration constructor; old/public loaders retain the original constructor.
+func loadPQLabObservedWithBootstrap(root, pin string, metrics *PQLabMetrics, read func(string, int64) ([]byte, error), build func([]byte, ConsensusBootstrapPins, chain.ConsensusMigrationState) (*ConsensusBootstrap, error)) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
 	defer pqLabMeasure(metrics, "lab.loadStaticTotal")()
 	if read == nil {
 		read = pqLabRead
@@ -750,7 +757,7 @@ func loadPQLabObservedWithRead(root, pin string, metrics *PQLabMetrics, read fun
 		return p, m, nil, err
 	}
 	endBootstrap := pqLabMeasure(metrics, "lab.bootstrapFullValidation")
-	b, err = NewConsensusBootstrap(genesis, p.pins(), m)
+	b, err = build(genesis, p.pins(), m)
 	endBootstrap()
 	if err != nil {
 		return

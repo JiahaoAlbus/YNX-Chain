@@ -51,12 +51,28 @@ func (r *pqLabCheckpointRead) read(index int, path string, capture func(string) 
 	}()
 	fingerprint := pqLabCheckpointFingerprint{path: path, layout: original.layout, bytes: len(original.data), hash: sha256.Sum256(original.data), validated: true}
 	prior := r.files[index]
-	if prior.validated && prior == fingerprint {
+	matched := prior.validated && prior == fingerprint
+	// Every node still supplies a separately captured and closed original.
+	// Within this one fixed witness/H/hash invocation, identical COMPLETE bytes
+	// have identical history/registry mathematics. Reuse only a fingerprint
+	// published after the original full validator AND its Close succeeded.
+	if !matched {
+		for _, other := range r.files {
+			if other.validated && other.layout == fingerprint.layout && other.bytes == fingerprint.bytes && other.hash == fingerprint.hash {
+				matched = true
+				break
+			}
+		}
+	}
+	if matched {
 		done := pqLabMeasure(r.metrics, "checkpoint.exactBytesValidationReuse")
 		err := original.unchanged()
 		done()
 		if err != nil {
 			return state, err
+		}
+		if !prior.validated {
+			publish = &fingerprint
 		}
 		// No synthetic state is returned: this branch only confirms exact
 		// current original bytes. The actual detached initial state remains

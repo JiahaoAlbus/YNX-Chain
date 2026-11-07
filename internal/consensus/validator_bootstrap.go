@@ -78,6 +78,12 @@ func canonicalBootstrapHash(value string) ([]byte, error) {
 }
 
 func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migration chain.ConsensusMigrationState) (*ConsensusBootstrap, error) {
+	return newConsensusBootstrap(rawGenesis, pins, migration, nil)
+}
+
+// A nonnil witness is private, constructor-sealed and consumes the complete
+// original migration; there is no public skip-validation option.
+func newConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migration chain.ConsensusMigrationState, witness *validatedMigration) (*ConsensusBootstrap, error) {
 	genesisID, err := canonicalBootstrapHash(pins.CometGenesisSHA256)
 	if err != nil {
 		return nil, err
@@ -97,8 +103,16 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if !bytes.Equal(sum[:], genesisID) {
 		return nil, errors.New("raw Comet genesis differs from independent operator pin")
 	}
-	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
-		return nil, fmt.Errorf("bootstrap bound migration: %w", err)
+	if witness == nil {
+		if err := migration.ValidateConsensusValidatorKeys(); err != nil {
+			return nil, fmt.Errorf("bootstrap bound migration: %w", err)
+		}
+	} else if witness.validatedSelf != witness || witness.bootstrapKeysValidated != witness || witness.bootstrap != nil {
+		return nil, errors.New("missing original validated bootstrap migration owner")
+	} else {
+		// The private owner supplies the migration itself, never a parallel
+		// caller-selected object paired with a reusable validation flag.
+		migration = witness.migration
 	}
 	if migration.OriginalGenesisHash != pins.OriginalGenesisHash || migration.StateHash != pins.MigrationStateHash || migration.Height >= math.MaxInt64 {
 		return nil, errors.New("bootstrap native genesis or bound migration pin mismatch")
@@ -122,7 +136,13 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if !bytes.Equal(doc.AppHash, appHash) {
 		return nil, errors.New("pinned genesis AppHash differs from bound migration")
 	}
-	appState, migrationReference, err := validateBootstrapMigrationAppState(doc.AppState, migration)
+	var appState []byte
+	var migrationReference *cometMigrationReference
+	if witness == nil {
+		appState, migrationReference, err = validateBootstrapMigrationAppState(doc.AppState, migration)
+	} else {
+		appState, migrationReference, err = validateBootstrapMigrationAppStateOwned(doc.AppState, witness)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("pinned genesis AppState: %w", err)
 	}

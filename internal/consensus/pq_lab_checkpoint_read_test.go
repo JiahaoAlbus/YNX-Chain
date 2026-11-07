@@ -260,12 +260,12 @@ func TestPQLabCheckpointReadSameInputSevenHeightParity(t *testing.T) {
 			}
 		}
 		a, b := beforeMetrics.Snapshot().Stages, afterMetrics.Snapshot().Stages
-		if a["checkpoint.nodeReadAndValidate"].Calls != 12 || b["checkpoint.nodeReadAndValidate"].Calls != 12 || b["checkpoint.captureCurrentBytes"].Calls != 12 || b["checkpoint.fullStateValidation"].Calls != 4 || b["checkpoint.exactBytesValidationReuse"].Calls != 8 {
+		if a["checkpoint.nodeReadAndValidate"].Calls != 12 || b["checkpoint.nodeReadAndValidate"].Calls != 12 || b["checkpoint.captureCurrentBytes"].Calls != 12 || b["checkpoint.fullStateValidation"].Calls != 1 || b["checkpoint.exactBytesValidationReuse"].Calls != 11 {
 			t.Fatal("fresh-source or full-validation/reuse denominators differ", a, b)
 		}
 		beforeNS += a["checkpoint.nodeReadAndValidate"].ElapsedNS
 		afterNS += b["checkpoint.nodeReadAndValidate"].ElapsedNS
-		t.Logf("CHECKPOINT_PARITY height=%d stateBytes=%d rawSHA=%s appHash=%s freshCaptures=12 fullValidationBefore=12 fullValidationAfter=4 exactReuse=8 beforeNodeNS=%d afterNodeNS=%d", actual.Height, len(raw), pqLabSHA(raw), actual.AppHash, a["checkpoint.nodeReadAndValidate"].ElapsedNS, b["checkpoint.nodeReadAndValidate"].ElapsedNS)
+		t.Logf("CHECKPOINT_PARITY height=%d stateBytes=%d rawSHA=%s appHash=%s freshCaptures=12 fullValidationBefore=12 fullValidationAfter=1 exactReuse=11 beforeNodeNS=%d afterNodeNS=%d", actual.Height, len(raw), pqLabSHA(raw), actual.AppHash, a["checkpoint.nodeReadAndValidate"].ElapsedNS, b["checkpoint.nodeReadAndValidate"].ElapsedNS)
 		if at < len(corpus.Transactions) {
 			// An independently selected wrong checkpoint is never rescued by a
 			// previous invocation's validated bytes or an immutable static owner.
@@ -274,7 +274,7 @@ func TestPQLabCheckpointReadSameInputSevenHeightParity(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("CHECKPOINT_COST heights=7 freshCaptures=84 beforeFullValidations=84 afterFullValidations=28 beforeNodeNS=%d afterNodeNS=%d noNetworkOrTPS=true", beforeNS, afterNS)
+	t.Logf("CHECKPOINT_COST heights=7 freshCaptures=84 beforeFullValidations=84 afterFullValidations=7 beforeNodeNS=%d afterNodeNS=%d noNetworkOrTPS=true", beforeNS, afterNS)
 }
 
 func TestPQLabCheckpointReadCurrentBytesAndCloseGuards(t *testing.T) {

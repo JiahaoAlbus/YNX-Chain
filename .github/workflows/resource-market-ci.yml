@@ -2198,6 +2198,16 @@ jobs:
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
+          sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
+          required += sender_checkpoint_required
+          sender_checkpoint_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+          for name in sender_checkpoint_required:
+              runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+              outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != sender_checkpoint_package or outcomes != [(sender_checkpoint_package, 'pass')]:
+                  raise RuntimeError('sender original-source case did not execute uniquely: ' + name)
+              if any(e.get('Action') in ('fail', 'skip') and e.get('Test', '').startswith(name + '/') for e in events):
+                  raise RuntimeError('sender original-source child failure or skip: ' + name)
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
