@@ -2,6 +2,7 @@ import {parsePQAccountAuthorization,assertPQAuthorizationCurrent} from '@ynx-cha
 import {CANONICAL_NETWORK_ID,openNormalOperatorSource} from './operator-query.mjs';
 import {captureCometPolicyObservation} from './comet-projection.mjs';
 import {decodeObservedPolicyOriginal} from './operator-policy-original.mjs';
+import {describeWalletTransactionPolicyRefusal} from './transaction-diagnostic.mjs';
 const MAX_PACKET=24*1024*1024;
 const supplied=new WeakSet(),fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).some(k=>typeof k!=='string'||!Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')||!Object.getOwnPropertyDescriptor(v,k).enumerable)||Reflect.ownKeys(v).sort().join('|')!==[...keys].sort().join('|'))fail('AUTH_TX_POLICY_SCHEMA');};
@@ -63,5 +64,5 @@ export function isOriginalWalletTransactionPolicy(value){return supplied.has(val
 export async function acquireOriginalWalletTransactionPolicy(request){
  const selected=req(request),resource=new TransactionPolicyResourceKernel(selected,openNormalOperatorSource('transaction'));
  try{await resource.initialize();resource.assertCurrent();supplied.add(resource);return resource;}
- catch(cause){const error=Object.assign(new Error('AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED',{cause}),{code:'AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED'});Object.defineProperty(error,'partial',{value:resource});throw error;}
+ catch(cause){const error=Object.assign(new Error('AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED',{cause}),{code:'AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED'});Object.defineProperty(error,'partial',{value:resource});Object.defineProperty(error,'policySourceObservation',{value:describeWalletTransactionPolicyRefusal(cause)});throw error;}
 }

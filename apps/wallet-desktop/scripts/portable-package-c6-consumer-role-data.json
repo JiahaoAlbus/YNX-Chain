@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "5831b2afb141cc1216c92167ad62475e1f4d5dab",
-  "sourceTree": "1854a6eb08dc377c1cebc76826141d0b60d0934f",
+  "sourceCommit": "07a30e52390ecc3813d4350d4fb0dbcaa6c3292d",
+  "sourceTree": "37cab05fca0d5f4e2aaa945ae9c49bb23fa13a79",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -356,8 +356,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/main.mjs",
-      "bytes": 129991,
-      "sha256": "d48e99ed808044a1f019250dae82c531e86a43093a1e76194c46038636dfe177"
+      "bytes": 130234,
+      "sha256": "e9c993204d4c664b2d0474c8c46b4967f6cb466c2c143eedf3bea79c7330dabd"
     },
     {
       "relative": "apps/wallet-desktop/src/native-pay-client/SOURCE_RECEIPT.json",
@@ -415,6 +415,16 @@
       "sha256": "b505c379c8ab2d0ad258abe1436e1f184f2d987fa8d751d23ce71aeaa97e58c9"
     },
     {
+      "relative": "apps/wallet-desktop/src/original-policy-supplier/transaction-diagnostic.mjs",
+      "bytes": 3222,
+      "sha256": "a059ce95cb37b17f086290bb4205e2cadd8081324feed4ef33b34bdd06d6e424"
+    },
+    {
+      "relative": "apps/wallet-desktop/src/original-policy-supplier/transaction-resource.mjs",
+      "bytes": 9113,
+      "sha256": "6bce423e1378d8ccca5d73651f83f039bfe25aa9b720660c4b17426a3f28af0e"
+    },
+    {
       "relative": "apps/wallet-desktop/src/pq-backup-ui.mjs",
       "bytes": 5893,
       "sha256": "d554c7d0240a06ef3e7751887dd1cd03aecb0bc7b56450b6389e23c0719daf0b"
@@ -453,6 +463,11 @@
       "relative": "apps/wallet-desktop/src/transaction-intent-store.mjs",
       "bytes": 130076,
       "sha256": "a7c491230cb6463f3b471fb1896457686569c8e5983e20392e719d95034dd666"
+    },
+    {
+      "relative": "apps/wallet-desktop/src/transaction-policy-failure-record.mjs",
+      "bytes": 1508,
+      "sha256": "e81f833634c918ac394c57eed91374445e7e63420aa996f5dbc823f318234fdf"
     },
     {
       "relative": "apps/wallet-desktop/src/wallet-ai-task-review-queue.mjs",
@@ -658,6 +673,16 @@
       "relative": "apps/wallet-desktop/test/session-reentry-mounted.test.mjs",
       "bytes": 10857,
       "sha256": "366c9b87c4b076019fcd730597cf89265502c73d4a2e2320536c9c2e534fc97e"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/transaction-policy-diagnostic.test.mjs",
+      "bytes": 2283,
+      "sha256": "d25a0c962a1533019f20427fcbb73276405e7cc304e3ac455cc6296796583683"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/transaction-policy-failure-record.test.mjs",
+      "bytes": 4119,
+      "sha256": "06f4d598af6199382df1628216128be73859a68bb621a42ceea8de0395ce8fba"
     },
     {
       "relative": "apps/wallet-desktop/test/wallet-cleanup-diagnostics.test.mjs",

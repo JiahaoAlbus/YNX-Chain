@@ -1,3 +1,4 @@
+import {recordWalletTransactionPolicyFailure} from './transaction-policy-failure-record.mjs';
 import {createWalletCleanupDiagnostics} from './wallet-cleanup-diagnostics.mjs';
 import {createWalletIDEIdentityPeerOwner} from './wallet-ide-identity-peer-owner.mjs';
 import {createDesktopAgentDelegationController} from './desktop-agent-delegation-controller.mjs';
@@ -1454,6 +1455,7 @@ async function safeIPC(action, displayOptions) {
     // Observe only private metadata failure DATA, before normal IPC projection.
     // Never change the original error/outcome if diagnostics are unavailable.
     try { recordRPCMetadataFailure(error, path.join(app.getPath('userData'), 'wallet-rpc-metadata-failures-v1.jsonl')); } catch {}
+    try { recordWalletTransactionPolicyFailure(error, path.join(app.getPath('userData'), 'wallet-transaction-policy-failures-v1.jsonl')); } catch {}
     const storageStage = error?.data?.storageStage;
     // Only the existing preparation route opts in. Require the exact native
     // refusal shape, not merely matching display text or a projected code.
