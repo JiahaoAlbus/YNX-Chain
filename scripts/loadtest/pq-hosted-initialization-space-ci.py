@@ -19,13 +19,13 @@ import sys
 import time
 from types import SimpleNamespace
 
-PROFILE = "current9081-measured-initialize500-only"
+PROFILE = "first100-own1b-initialize-before-load"
 REF = "refs/heads/codex/ynx-pq-current75-baseline-20261101"
 WORKFLOW = ".github/workflows/pq-normal-process.yml"
 REPOSITORY = "JiahaoAlbus/YNX-Chain"
-AUTHORIZATION = "remove-unused-android-for-current9081-initialization-only-v1"
-GO_SOURCE = "9081f14654a48f4fe14e57696ec33527869da353"
-TOOLS_SOURCE = "ccdfb88d816ed9204cc4a7098ca617469ddd4e5e"
+AUTHORIZATION = "remove-unused-android-for-first100-own1b-v1"
+GO_SOURCE = "1b0ea548aca6b5260a9824d0edd3012d52e53521"
+TOOLS_SOURCE = "67870e2be35295fb903e4d6f1723092e2facef7f"
 TARGET = Path("/usr/local/lib/android")
 SECURE_ANCESTOR = Path("/usr")
 PATH_OWNER_UID = 0
@@ -64,7 +64,7 @@ def validate_host(environment):
              "GITHUB_WORKFLOW_REF": REPOSITORY + "/" + WORKFLOW + "@" + REF}
     require(sys.platform == "linux" and platform.machine() == "x86_64" and
             all(environment.get(k) == v for k, v in fixed.items()) and
-            environment.get("GITHUB_EVENT_NAME") in ("push", "workflow_dispatch"),
+            environment.get("GITHUB_EVENT_NAME") == "workflow_dispatch",
             "only explicitly authorized first-attempt fixed hosted Ubuntu24 profile")
     commit = environment.get("GITHUB_SHA", "")
     require(re.fullmatch("[0-9a-f]{40}", commit) is not None and commit != "0" * 40 and

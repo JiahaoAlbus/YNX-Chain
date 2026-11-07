@@ -26,7 +26,7 @@ def environment():
                 PQ_BASELINE_PROFILE=entry.PROFILE,
                 PQ_HOSTED_SPACE_PREPARATION=entry.AUTHORIZATION,
                 GITHUB_WORKFLOW_REF=entry.REPOSITORY + "/" + entry.WORKFLOW + "@" + entry.REF,
-                GITHUB_EVENT_NAME="push", GITHUB_SHA="a" * 40,
+                GITHUB_EVENT_NAME="workflow_dispatch", GITHUB_SHA="a" * 40,
                 GITHUB_WORKFLOW_SHA="a" * 40, GITHUB_RUN_ID="123")
 
 
@@ -46,7 +46,12 @@ class HostedSpaceIdentityControls(unittest.TestCase):
              mock.patch.object(entry.platform, "machine", return_value="x86_64"), \
              mock.patch.object(entry.os, "geteuid", return_value=1001):
             entry.validate_host(environment())
-            entry.validate_host(dict(environment(), GITHUB_EVENT_NAME="workflow_dispatch"))
+            for event in ("push", "pull_request"):
+                with self.subTest(event=event), self.assertRaises(RuntimeError):
+                    entry.validate_host(dict(environment(), GITHUB_EVENT_NAME=event))
+            for key,value in (("PQ_BASELINE_PROFILE","current9081-measured-initialize500-only"),("PQ_HOSTED_SPACE_PREPARATION","remove-unused-android-for-current9081-initialization-only-v1")):
+                with self.subTest(key=key), self.assertRaises(RuntimeError):
+                    entry.validate_host(dict(environment(), **{key:value}))
             mutations = {"RUNNER_ENVIRONMENT": "self-hosted", "RUNNER_OS": "macOS", "RUNNER_ARCH": "ARM64",
                          "ImageOS": "ubuntu22", "GITHUB_ACTIONS": "false", "GITHUB_REPOSITORY": "attacker/YNX-Chain",
                          "GITHUB_REF": "refs/heads/main", "GITHUB_RUN_ATTEMPT": "2", "GITHUB_JOB": "functional",
