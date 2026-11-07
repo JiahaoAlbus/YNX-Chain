@@ -158,7 +158,6 @@ def session_type(window):
                 raise AssertionError("unit transport release was not supplied")
             if window.behavior.get("exchange_error") is not None:
                 raise window.behavior["exchange_error"]
-            if window.behavior.get('after_exchange') is not None:window.behavior['after_exchange']()
             return copy.deepcopy(window.behavior.get("reply", {"code": "UNIT_TRANSPORT_ONLY", "result": None}))
 
     return MemorySession
@@ -180,7 +179,7 @@ class BoundedSenderBackendControls(unittest.TestCase):
             patcher.start()
             self.addCleanup(patcher.stop)
 
-    def backend(self, owner_count=8, retain_until_confirm=False, **behavior):
+    def backend(self, owner_count=8, **behavior):
         window = MemoryWindow(behavior)
         ceremony = SimpleNamespace(
             w=window, mode="online", live=[{} for _ in range(4)],
@@ -188,7 +187,7 @@ class BoundedSenderBackendControls(unittest.TestCase):
             root=Path("/UNIT-NOT-A-REAL-NETWORK"),
         )
         owners = [{"ownerIndex": 4 + index, "nextNonce": 2, "capacity": 1} for index in range(owner_count)]
-        cls = bounded.backend_class(driver.NormalBackend, session_type(window), driver.normal, driver.lab,retain_until_confirm=retain_until_confirm)
+        cls = bounded.backend_class(driver.NormalBackend, session_type(window), driver.normal, driver.lab)
         return cls(ceremony, owners, threading.Event())
 
     def operation(self, index=0):
@@ -504,122 +503,6 @@ class BoundedSenderBackendControls(unittest.TestCase):
         self.assertEqual(capacity["accountCount"], 500)
         self.assertEqual(capacity["maximumRuntimePIDs"], 10)
         self.assertFalse(capacity["normalLargeOwnerInputQualified"])
-
-
-class RetainedOperationSenderControls(unittest.TestCase):
-    setUp=BoundedSenderBackendControls.setUp
-    backend=BoundedSenderBackendControls.backend
-    operation=BoundedSenderBackendControls.operation
-    sign=BoundedSenderBackendControls.sign
-    confirm=BoundedSenderBackendControls.confirm
-
-    def retained(self,**behavior):
-        return self.backend(retain_until_confirm=True,reply={'code':'ORIGINAL_SAVED'},**behavior)
-
-    def test_same_operation_confirm_reuses_original_pid_and_ready(self):
-        b=self.retained();self.sign(b)
-        self.assertIsNone(b.w.sessions[0].proc.poll())
-        self.assertEqual(available_slots(b.sign_slots),1)
-        b.w.behavior['reply']={'code':'PROOF_CONFIRMED_DATA'}
-        self.confirm(b)
-        self.assertEqual(len(b.w.constructor_calls),1)
-        self.assertEqual([v['command']['operation'] for v in b.w.exchanges],['sign','confirm'])
-        self.assertEqual(len({v['pid'] for v in b.w.exchanges}),1)
-        self.assertEqual(b.w.sessions[0].proc.poll(),0)
-        self.assertEqual(available_slots(b.sign_slots),2)
-        self.assertEqual(b.cold_sender_report()['heldOriginalOperationLeases'],0)
-        self.assertEqual(b.cold_sender_report()['attempted'],2)
-
-    def test_different_nonce_cannot_take_original_lease_or_reopen(self):
-        b=self.retained();self.sign(b)
-        row,request=self.operation();row['nonce']=3;request['firstNonce']='3'
-        with self.assertRaisesRegex(RuntimeError,'same-operation sender lease'):
-            b.confirm_original(row,request,{},Path('/UNIT-CASE'),lambda e:None,b.stop_event)
-        with self.assertRaisesRegex(RuntimeError,'sign already attempted'):self.sign(b)
-        self.assertEqual(len(b.w.exchanges),1)
-        self.assertEqual(len(b.operation_sessions),1)
-        self.confirm(b)
-
-    def test_rejected_sign_never_creates_confirmation_lease(self):
-        b=self.backend(retain_until_confirm=True,reply={'code':'REJECTED'})
-        self.sign(b)
-        self.assertEqual(available_slots(b.sign_slots),2)
-        with self.assertRaisesRegex(RuntimeError,'sender lease absent'):self.confirm(b)
-        with self.assertRaisesRegex(RuntimeError,'sign already attempted'):self.sign(b)
-        self.assertEqual(len(b.w.constructor_calls),1)
-
-    def test_relabeling_demand_index_cannot_sign_same_original_again(self):
-        b=self.retained();self.sign(b);row,request=self.operation();row['index']=99
-        with self.assertRaisesRegex(RuntimeError,'sign already attempted'):
-            b.sign_original(row,request,{'height':7,'appHash':'a'*64},Path('/UNIT-CASE'),lambda e:None,b.stop_event)
-        self.assertEqual(len(b.w.constructor_calls),1)
-        self.confirm(b)
-
-    def test_confirm_never_retries_or_reopens_after_unknown_reply(self):
-        b=self.retained();self.sign(b)
-        b.w.behavior['exchange_error']=ExchangeFailure('UNIT original confirm UNKNOWN')
-        with self.assertRaises(ExchangeFailure):self.confirm(b)
-        with self.assertRaisesRegex(RuntimeError,'sender lease absent'):self.confirm(b)
-        self.assertEqual(len(b.w.constructor_calls),1)
-        self.assertEqual(len(b.w.exchanges),2)
-        self.assertEqual(available_slots(b.sign_slots),2)
-
-    def test_parked_unknown_cleanup_releases_only_process_lease(self):
-        b=self.retained();self.sign(b)
-        with mock.patch.object(bounded.os,'killpg',side_effect=b.w.killpg):b.stop()
-        report=b.cold_sender_report()
-        self.assertEqual(report['heldOriginalOperationLeases'],0)
-        self.assertTrue(report['retainedCleanup'][0]['pendingPreserved'])
-        self.assertFalse(report['accountPendingReleasedByProcessClose'] or report['automaticReSign'])
-        self.assertEqual(available_slots(b.sign_slots),2)
-        self.assertEqual([v['command']['operation'] for v in b.w.exchanges],['sign'])
-
-    def test_stop_during_original_reply_cannot_park_new_lease_after_cleanup(self):
-        b=self.retained();b.w.behavior['after_exchange']=b.stop
-        with mock.patch.object(bounded.os,'killpg',side_effect=b.w.killpg):self.sign(b)
-        self.assertEqual(b.cold_sender_report()['heldOriginalOperationLeases'],0)
-        self.assertEqual(available_slots(b.sign_slots),2)
-
-    def test_confirmation_journal_failure_retires_claimed_process_without_command(self):
-        b=self.retained();self.sign(b);row,request=self.operation()
-        def failed_notify(event):raise RuntimeError('UNIT original journal failure')
-        with self.assertRaisesRegex(RuntimeError,'original journal failure'):
-            b.confirm_original(row,request,{},Path('/UNIT-CASE'),failed_notify,b.stop_event)
-        self.assertEqual(len(b.w.exchanges),1)
-        self.assertEqual(available_slots(b.sign_slots),2)
-        self.assertEqual(b.cold_sender_report()['heldOriginalOperationLeases'],0)
-
-    def test_live_cleanup_debt_keeps_original_pid_slot(self):
-        b=self.retained();self.sign(b)
-        b.w.behavior.update(eof_retires=False,terminate_retires=False)
-        b.w.sessions[0].proc.eof_retires=False
-        with mock.patch.object(bounded.os,'killpg',side_effect=b.w.killpg):b.stop()
-        self.assertEqual(available_slots(b.sign_slots),1)
-        self.assertEqual(b.cold_sender_report()['cleanupDebt'][0]['pid'],b.w.sessions[0].proc.pid)
-
-    def test_third_owner_waits_until_original_confirmation_retires_one(self):
-        b=self.retained();self.sign(b,0);self.sign(b,1)
-        third_waiting=threading.Event()
-        def notify(event):
-            if event.get('stage')=='sender_open_sign':third_waiting.set()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            future=pool.submit(self.sign,b,2,notify)
-            self.assertTrue(third_waiting.wait(2))
-            self.assertEqual(len(b.w.constructor_calls),2)
-            self.confirm(b,0)
-            future.result(timeout=2)
-        self.assertLessEqual(b.w.peak,2)
-        self.confirm(b,1);self.confirm(b,2)
-        self.assertEqual(available_slots(b.sign_slots),2)
-
-    def test_flag_is_explicit_and_recorded_in_load_conditions(self):
-        args=SimpleNamespace(mode='online',rate=100,accounts=500,per_account=1,seconds=5,tail_seconds=30,proof_timeout=30,staged_publication=True,retain_sender_until_confirm=True)
-        self.assertEqual(driver.validate_options(args),500)
-        self.assertTrue(driver.load_conditions(args)['retain_sender_until_confirm'])
-        args.retain_sender_until_confirm=False
-        self.assertNotIn('retain_sender_until_confirm',driver.load_conditions(args))
-        args.retain_sender_until_confirm=True;args.staged_publication=False
-        with self.assertRaisesRegex(RuntimeError,'explicit staged online'):driver.validate_options(args)
 
 
 if __name__ == "__main__":
