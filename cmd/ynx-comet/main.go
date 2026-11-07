@@ -29,6 +29,8 @@ import (
 )
 
 type pqOptions struct {
+	startupTimings                                                    bool
+	startupTiming                                                     *operatorStartupTimings
 	mempoolLosslessHex                                                string
 	migration, state, genesisHash, originalGenesisHash, migrationHash string
 	schedule, scheduleHash, binding, vault                            string
@@ -50,7 +52,7 @@ type pqOptions struct {
 }
 
 func (p pqOptions) enabled() bool {
-	return p.losslessConfigured() || p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
+	return p.startupTimings || p.losslessConfigured() || p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -68,6 +70,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateStartupTimings(); err != nil {
+		return err
+	}
 	if err := p.validateLosslessHex(); err != nil {
 		return err
 	}
@@ -210,7 +215,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 		return nil, nil, errors.New("cannot load original P2P node identity")
 	}
 	var migration chain.ConsensusMigrationState
+	finishmigrationReadAndValidate := options.startupTiming.begin("local.migrationReadAndValidate")
 	migration, err = readInitializationMigration(options.migration, 1<<30, nil)
+	finishmigrationReadAndValidate(err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -218,7 +225,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err != nil {
 		return nil, nil, err
 	}
+	finishbootstrapFullValidation := options.startupTiming.begin("local.bootstrapFullValidation")
 	bootstrap, err := consensus.NewConsensusBootstrap(rawGenesis, consensus.ConsensusBootstrapPins{CometGenesisSHA256: options.genesisHash, OriginalGenesisHash: options.originalGenesisHash, MigrationStateHash: options.migrationHash}, migration)
+	finishbootstrapFullValidation(err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -248,7 +257,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err := existingPrivateFile(binding.SignerStatePath); err != nil {
 		return nil, nil, err
 	}
+	finishapplicationColdConstructor := options.startupTiming.begin("local.applicationColdConstructor")
 	app, err := newOperatorApplication(migration, options.state, bootstrap, authorization, options)
+	finishapplicationColdConstructor(err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,7 +268,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 			return nil, nil, err
 		}
 	}
+	finishsignerRegistry := options.startupTiming.begin("local.signerRegistry")
 	registry, err := consensus.NewPQCommittedSignerRegistry(app, bootstrap)
+	finishsignerRegistry(err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -266,7 +279,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 		return nil, nil, err
 	}
 	defer clear(credential)
+	finishoriginalCustodyResume := options.startupTiming.begin("local.originalCustodyResume")
 	host, err := ynxconsensusauth.ResumeHostSigner(options.vault, credential, binding, registry)
+	finishoriginalCustodyResume(err)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -274,7 +289,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err != nil {
 		return nil, nil, errors.Join(err, host.Close())
 	}
+	finishnormalPQNodeConstructor := options.startupTiming.begin("local.normalPQNodeConstructor")
 	node, err := consensus.NewPQConsensusNode(config, app, legacy, signer, nodeKey, logger, losslessOptions...)
+	finishnormalPQNodeConstructor(err)
 	if err != nil {
 		return nil, nil, errors.Join(err, host.Close())
 	}
@@ -343,6 +360,7 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err := options.validate(); err != nil {
 		return err
 	}
+	options.startupTiming = newOperatorStartupTimings(options.startupTimings, command.ErrOrStderr())
 	lease, err := consensus.AcquireApplicationStateWriterLease(options.state)
 	if err != nil {
 		return err
@@ -352,12 +370,16 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err != nil {
 		return err
 	}
+	finishprepareWireObservation := options.startupTiming.begin("startup.prepareWireObservation")
 	observation, err := prepareOperatorWireObservation(config, options)
+	finishprepareWireObservation(err)
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, observation.close()) }()
+	finishprepareCommitObservation := options.startupTiming.begin("startup.prepareCommitObservation")
 	commitObservation, err := prepareOperatorCommitObservation(config, options)
+	finishprepareCommitObservation(err)
 	if err != nil {
 		return err
 	}
@@ -388,11 +410,13 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 			return nil
 		}
 	}
+	finishConstruct := options.startupTiming.begin("startup.normalNodeConstructor")
 	if options.remote() {
 		node, custody, err = constructRemotePQNode(ctx, config, logger, options)
 	} else {
 		legacyLease, e := consensus.AcquireApplicationStateWriterLease(config.PrivValidatorStateFile())
 		if e != nil {
+			finishConstruct(e)
 			return e
 		}
 		defer func() { result = errors.Join(result, legacyLease.Close()) }()
@@ -404,11 +428,14 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 			node, custody, err = constructPQNode(config, logger, options)
 		}
 	}
+	finishConstruct(err)
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, closePQCustody(custody)) }()
+	finishprepareOperatorProofHostLive := options.startupTiming.begin("startup.prepareOperatorProofHostLive")
 	live, err := prepareOperatorProofHostLive(node, liveApp, options)
+	finishprepareOperatorProofHostLive(err)
 	if err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
@@ -418,19 +445,19 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if live != nil {
 		defer func() { _ = live.Close() }()
 	}
-	if err := configureOperatorHeightHalt(node, options); err != nil {
+	if err := timedOperatorStartupCall(options.startupTiming, "startup.configureHeightHalt", func() error { return configureOperatorHeightHalt(node, options) }); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()
 		return err
 	}
-	if err := observation.install(node); err != nil {
+	if err := timedOperatorStartupCall(options.startupTiming, "startup.installWireObservation", func() error { return observation.install(node) }); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()
 		return err
 	}
-	if err := node.Start(); err != nil {
+	if err := timedOperatorStartupCall(options.startupTiming, "startup.nodeStart", node.Start); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()
@@ -447,7 +474,7 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	// Pre-Start failure paths above still release their constructed resources.
 	var liveDone <-chan struct{}
 	if live != nil {
-		if err = live.Start(ctx); err != nil {
+		if err = timedOperatorStartupCall(options.startupTiming, "startup.startProofHostLive", func() error { return live.Start(ctx) }); err != nil {
 			_ = live.Close()
 			return errors.Join(err, stopPQNodeWithObservations(node, observation, commitObservation))
 		}
@@ -514,6 +541,7 @@ func main() {
 	root := commands.RootCmd
 	root.AddCommand(newInitializeApplicationCommand(), newInspectFreshApplicationCommand())
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
+	root.AddCommand(newInspectWalletPolicyCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())
 	root.AddCommand(newInspectProofHostTargetCommand())
@@ -527,6 +555,7 @@ func main() {
 	legacyRun := start.RunE
 	options := pqOptions{recoveryFD: -1}
 	f := start.Flags()
+	registerStartupTimingFlags(f, &options)
 	registerHeightHaltFlags(f, &options)
 	registerProofHostLiveFlags(f, &options)
 	registerCheckpointAccessFlags(f, &options)

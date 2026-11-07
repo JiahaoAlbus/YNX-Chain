@@ -295,10 +295,17 @@ type PQLabValidatorRegistration struct {
 // next height, posts exactly these bytes once, and reconciles by the same hash.
 // A missed height or unknown response cannot re-enter this signing ceremony.
 func PreparePQLabValidatorRegistration(root, planSHA string, index int, approvedAt int64) (PQLabValidatorRegistration, error) {
-	p, m, b, err := loadPQLab(root, planSHA)
+	return PreparePQLabValidatorRegistrationMeasured(root, planSHA, index, approvedAt, nil)
+}
+
+func PreparePQLabValidatorRegistrationMeasured(root, planSHA string, index int, approvedAt int64, metrics *PQLabMetrics) (result PQLabValidatorRegistration, err error) {
+	defer pqLabMeasure(metrics, "registration.total")()
+	in, entry, err := loadPQLabStartupInputs(root, planSHA, metrics)
 	if err != nil {
-		return PQLabValidatorRegistration{}, err
+		return result, err
 	}
+	defer func() { err = errors.Join(err, in.close()) }()
+	p, b := entry.plan, entry.witness.bootstrap
 	if index < 0 || index >= 4 || approvedAt < p.InitialHeight || approvedAt > math.MaxInt64-2 {
 		return PQLabValidatorRegistration{}, errors.New("invalid lab registration node or height")
 	}
@@ -307,9 +314,12 @@ func PreparePQLabValidatorRegistration(root, planSHA string, index int, approved
 	// This observation supplies no consensus authority; the original executor
 	// still requires exact ApprovedAt. The runner must wait for quiet RPCs and
 	// the preceding transaction's proof successor before invoking this stage.
-	checkpoint, err := pqLabRegistrationCheckpoint(p, m, b, approvedAt)
+	checkpoint, err := pqLabRegistrationCheckpointOwned(p, entry.witness, approvedAt, metrics)
 	if err != nil {
 		return PQLabValidatorRegistration{}, err
+	}
+	if err = in.current(); err != nil {
+		return result, err
 	}
 	n := p.Nodes[index]
 	stage := filepath.Join(n.Home, "registration")
@@ -342,7 +352,9 @@ func PreparePQLabValidatorRegistration(root, planSHA string, index int, approved
 	if err != nil {
 		return PQLabValidatorRegistration{}, err
 	}
+	finishPossession := pqLabMeasure(metrics, "registration.dualPossessionSigning")
 	a, bsig, err := key.RegistrationPossession(intent)
+	finishPossession()
 	if err != nil {
 		return PQLabValidatorRegistration{}, err
 	}
@@ -354,11 +366,14 @@ func PreparePQLabValidatorRegistration(root, planSHA string, index int, approved
 	if err != nil {
 		return PQLabValidatorRegistration{}, err
 	}
-	after, err := pqLabRegistrationCheckpoint(p, m, b, approvedAt)
+	after, err := pqLabRegistrationCheckpointOwned(p, entry.witness, approvedAt, metrics)
 	if err != nil || after != checkpoint {
 		return PQLabValidatorRegistration{}, errors.New("lab checkpoint advanced during one-shot registration; preserve intent and do not re-sign")
 	}
-	result := PQLabValidatorRegistration{Version: "YNX-PQ-LAB-REGISTRATION/v1", SyntheticOnly: true, NodeIndex: index, ApprovedAt: approvedAt, Transaction: tx, TransactionHash: pqLabSHA(tx)}
+	if err = in.current(); err != nil {
+		return result, err
+	}
+	result = PQLabValidatorRegistration{Version: "YNX-PQ-LAB-REGISTRATION/v1", SyntheticOnly: true, NodeIndex: index, ApprovedAt: approvedAt, Transaction: tx, TransactionHash: pqLabSHA(tx)}
 	if err = pqLabWriteJSON(filepath.Join(stage, "registration.json"), result); err != nil {
 		return PQLabValidatorRegistration{}, err
 	}
@@ -366,9 +381,18 @@ func PreparePQLabValidatorRegistration(root, planSHA string, index int, approved
 }
 
 func pqLabRegistrationCheckpoint(p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, next int64) (string, error) {
+	witness, err := newValidatedMigration(m, b)
+	if err != nil {
+		return "", err
+	}
+	return pqLabRegistrationCheckpointOwned(p, witness, next, nil)
+}
+func pqLabRegistrationCheckpointOwned(p PQLabNetworkPlan, witness *validatedMigration, next int64, metrics *PQLabMetrics) (string, error) {
 	var hash string
 	for _, n := range p.Nodes {
-		state, err := readPQEngineCommittedState(n.StatePath, m, b, nil, nil)
+		finish := pqLabMeasure(metrics, "registration.freshCheckpointFullValidation")
+		state, err := readPQEngineCommittedStateOwned(n.StatePath, witness, nil, nil, capturePQEngineState)
+		finish()
 		if err != nil {
 			return "", err
 		}
@@ -381,6 +405,19 @@ func pqLabRegistrationCheckpoint(p PQLabNetworkPlan, m chain.ConsensusMigrationS
 		hash = state.AppHash
 	}
 	return hash, nil
+}
+
+// The invocation owns these original public file descriptors until success or
+// error. Only immutable migration mathematics is reused. Each checkpoint call
+// still reads and validates the complete current state and registry; closing or
+// any original-file change invalidates this owner. No witness is serialized.
+func loadPQLabStartupInputs(root, pin string, metrics *PQLabMetrics) (*pqLabLiveMaterialsInputs, *pqLabLiveStaticSnapshot, error) {
+	in := &pqLabLiveMaterialsInputs{policy: PQLabLiveMaterialsPolicy{RootDir: root, PlanSHA256: pin}, directory: root, metrics: metrics, cache: NewPQLabStaticCache()}
+	entry, err := in.loadStatic()
+	if err != nil {
+		return nil, nil, errors.Join(err, in.close())
+	}
+	return in, entry, nil
 }
 
 // PublishPQLabHeightHalt uses the normal single-use publisher. It does not infer
@@ -442,10 +479,16 @@ type PQLabActivationNode struct {
 // real stopped DB + App + original signing leases. A second exact observation
 // and the normal startup R admission fence reject concurrent advancement.
 func ActivatePQLabNetwork(root, planSHA string) (PQLabActivation, error) {
-	p, m, b, err := loadPQLab(root, planSHA)
+	return ActivatePQLabNetworkMeasured(root, planSHA, nil)
+}
+func ActivatePQLabNetworkMeasured(root, planSHA string, metrics *PQLabMetrics) (result PQLabActivation, err error) {
+	defer pqLabMeasure(metrics, "activation.total")()
+	in, entry, err := loadPQLabStartupInputs(root, planSHA, metrics)
 	if err != nil {
-		return PQLabActivation{}, err
+		return result, err
 	}
+	defer func() { err = errors.Join(err, in.close()) }()
+	p := entry.plan
 	stage := filepath.Join(root, "activation")
 	if err = pqLabNetworkFreshDirectory(stage); err != nil {
 		return PQLabActivation{}, err
@@ -453,12 +496,12 @@ func ActivatePQLabNetwork(root, planSHA string) (PQLabActivation, error) {
 	if err = pqLabWriteJSON(filepath.Join(stage, "intent.json"), struct{ PlanSHA string }{planSHA}); err != nil {
 		return PQLabActivation{}, err
 	}
-	genesis, err := pqLabRead(p.GenesisFile, 64<<20)
-	if err != nil {
-		return PQLabActivation{}, err
-	}
 	inspect := func(n PQLabNetworkNode, activation int64) (OperatorCheckpointResult, error) {
-		return InspectOperatorCheckpoint(m, genesis, p.pins(), OperatorCheckpointOptions{StatePath: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.LegacyStateFile, ProposePQActivationHeight: activation})
+		defer pqLabMeasure(metrics, "activation.stoppedCheckpointFullInspection")()
+		if err := in.current(); err != nil {
+			return OperatorCheckpointResult{}, err
+		}
+		return inspectOperatorCheckpointOwned(entry.witness, OperatorCheckpointOptions{StatePath: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.LegacyStateFile, ProposePQActivationHeight: activation})
 	}
 	checkpoints := make([]OperatorCheckpointResult, 4)
 	var schedule *PQEngineSchedule
@@ -505,12 +548,18 @@ func ActivatePQLabNetwork(root, planSHA string) (PQLabActivation, error) {
 	if err != nil {
 		return PQLabActivation{}, err
 	}
-	result := PQLabActivation{Version: "YNX-PQ-LAB-ACTIVATION/v1", SyntheticOnly: true, NetworkPlanSHA256: planSHA, RegistryHeight: schedule.RegistryHeight, AppHash: checkpoints[0].AppHash, RegistryRoot: schedule.RegistryRoot, ScheduleFile: filepath.Join(stage, "schedule.json"), ScheduleHash: pin, ParamsHeight: schedule.ParamsUpdateHeight, ValidatorHeight: schedule.ValidatorUpdateHeight, ActivationHeight: schedule.ActivationHeight}
+	result = PQLabActivation{Version: "YNX-PQ-LAB-ACTIVATION/v1", SyntheticOnly: true, NetworkPlanSHA256: planSHA, RegistryHeight: schedule.RegistryHeight, AppHash: checkpoints[0].AppHash, RegistryRoot: schedule.RegistryRoot, ScheduleFile: filepath.Join(stage, "schedule.json"), ScheduleHash: pin, ParamsHeight: schedule.ParamsUpdateHeight, ValidatorHeight: schedule.ValidatorUpdateHeight, ActivationHeight: schedule.ActivationHeight}
 	if err = pqLabWrite(result.ScheduleFile, scheduleRaw); err != nil {
 		return PQLabActivation{}, err
 	}
 	for _, n := range p.Nodes {
-		if err = preparePQLabCustody(p, n, m, b, auth, checkpoints[n.Index]); err != nil {
+		if err = in.current(); err != nil {
+			return PQLabActivation{}, err
+		}
+		finish := pqLabMeasure(metrics, "activation.originalCustodyPreparation")
+		err = preparePQLabCustodyOwned(p, n, entry.witness, auth, checkpoints[n.Index])
+		finish()
+		if err != nil {
 			return PQLabActivation{}, err
 		}
 		args := append(p.normalArgs(n), "--pq-engine-schedule", result.ScheduleFile, "--pq-engine-schedule-hash", pin, "--pq-host-key-binding", n.HostBindingFile, "--pq-host-key-vault", n.VaultFile, "--pq-recovery-fd", "3")
@@ -522,6 +571,9 @@ func ActivatePQLabNetwork(root, planSHA string) (PQLabActivation, error) {
 			return PQLabActivation{}, fmt.Errorf("original lab checkpoint changed before activation metadata: %w", e)
 		}
 	}
+	if err = in.current(); err != nil {
+		return PQLabActivation{}, err
+	}
 	if err = pqLabWriteJSON(filepath.Join(stage, "activation.json"), result); err != nil {
 		return PQLabActivation{}, err
 	}
@@ -529,10 +581,24 @@ func ActivatePQLabNetwork(root, planSHA string) (PQLabActivation, error) {
 }
 
 func preparePQLabCustody(p PQLabNetworkPlan, n PQLabNetworkNode, m chain.ConsensusMigrationState, b *ConsensusBootstrap, a *PQEngineAuthorization, cp OperatorCheckpointResult) error {
-	source, err := NewPQEngineFileSource(m, n.StatePath, b, a)
+	witness, err := newValidatedMigration(m, b)
 	if err != nil {
 		return err
 	}
+	return preparePQLabCustodyOwned(p, n, witness, a, cp)
+}
+func preparePQLabCustodyOwned(p PQLabNetworkPlan, n PQLabNetworkNode, witness *validatedMigration, a *PQEngineAuthorization, cp OperatorCheckpointResult) error {
+	if err := witness.valid(); err != nil {
+		return err
+	}
+	if witness.bootstrap == nil || a == nil {
+		return errors.New("original pinned custody inputs required")
+	}
+	b := witness.bootstrap
+	// The identical normal FileSource uses this invocation's privately detached
+	// owner. It has no primed checkpoint; the first actual H/AppHash read below
+	// remains mandatory, as do all subsequent signer/current registry checks.
+	source := &PQEngineFileSource{migration: witness.migration, validatedMigration: witness, path: n.StatePath, bootstrap: b, authorization: a}
 	hash, err := hex.DecodeString(cp.AppHash)
 	if err != nil {
 		return err
@@ -664,11 +730,16 @@ func loadPQLabObservedWithRead(root, pin string, metrics *PQLabMetrics, read fun
 	if pqLabSHA(identity) != p.IdentitySHA256 {
 		return p, m, nil, errors.New("lab independent identity bytes changed")
 	}
+	finishMigrationRead := pqLabMeasure(metrics, "lab.migrationFullRead")
 	migrationRaw, err := read(p.MigrationFile, 1<<30)
+	finishMigrationRead()
 	if err != nil {
 		return p, m, nil, err
 	}
-	if err = json.Unmarshal(migrationRaw, &m); err != nil {
+	finishDecode := pqLabMeasure(metrics, "lab.migrationFullDecode")
+	err = json.Unmarshal(migrationRaw, &m)
+	finishDecode()
+	if err != nil {
 		return
 	}
 	if m.Network.ChainID != PQLabNativeChainID || m.Network.IsPublicNet {

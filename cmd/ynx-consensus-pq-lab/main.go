@@ -77,6 +77,10 @@ func run(args []string, out io.Writer) error {
 	var index *int
 	var height *int64
 	var count, batch, owners, p2p, rpc *int
+	var timings *bool
+	if args[0] == "registration" || args[0] == "activate" {
+		timings = fs.Bool("timings", false, "actual nested normal callee elapsed stages; no readiness or authority claim")
+	}
 	var online *bool
 	if args[0] == "create" {
 		count = fs.Int("transactions", 32, "bounded original AND transfer corpus (1..1024)")
@@ -100,6 +104,11 @@ func run(args []string, out io.Writer) error {
 	}
 	if !*synthetic || *root == "" {
 		return errors.New("require --synthetic and exact --root; public identities and existing data cannot be substituted")
+	}
+	started := time.Now()
+	var metrics *consensus.PQLabMetrics
+	if timings != nil && *timings {
+		metrics = &consensus.PQLabMetrics{}
 	}
 	var result any
 	var err error
@@ -140,18 +149,15 @@ func run(args []string, out io.Writer) error {
 		digest := sha256.Sum256(planBytes)
 		result = createResult{Version: "YNX-PQ-LAB-CREATED/v1", PlanFile: planFile, PlanSHA256: hex.EncodeToString(digest[:]), Plan: plan, Workload: workload}
 	case "registration":
-		result, err = consensus.PreparePQLabValidatorRegistration(*root, *pin, *index, *height)
+		result, err = consensus.PreparePQLabValidatorRegistrationMeasured(*root, *pin, *index, *height, metrics)
 	case "halt":
 		result, err = consensus.PublishPQLabHeightHalt(*root, *pin, *height)
 	case "activate":
-		result, err = consensus.ActivatePQLabNetwork(*root, *pin)
-	}
-	if err != nil {
-		return err
+		result, err = consensus.ActivatePQLabNetworkMeasured(*root, *pin, metrics)
 	}
 	// On a broken stdout the original result/keys remain on disk. No cleanup or
 	// automatic replay is performed; the runner reconciles the original files.
-	return json.NewEncoder(out).Encode(result)
+	return writePQLabStartupResult(out, result, err, started, metrics)
 }
 
 // This dispatch reads only the original stopped stores and PUBLIC originals.

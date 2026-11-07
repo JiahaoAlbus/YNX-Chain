@@ -150,9 +150,9 @@ func TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope(t *testing.T
 	snapshot := metrics.Snapshot()
 	rawMetrics, _ := json.Marshal(snapshot)
 	t.Logf("normal complete setup measured cost: %s", rawMetrics)
-	// The original separate pre-mutation preflight still validates once. The
-	// held owner validates once more, then only rechecks its exact originals.
-	if snapshot.Stages["lab.bootstrapFullValidation"].Calls != 2 || snapshot.Stages["lab.validatedMigrationOwnerBuild"].Calls != 1 || snapshot.Stages["live.heldStaticWitnessCurrent"].Calls < 4 {
+	// Pre-mutation preflight fully validates once and retains its original
+	// owner for this invocation; every later use rechecks the held files.
+	if snapshot.Stages["lab.bootstrapFullValidation"].Calls != 1 || snapshot.Stages["lab.validatedMigrationOwnerBuild"].Calls != 1 || snapshot.Stages["live.heldStaticWitnessCurrent"].Calls < 4 {
 		t.Fatal("normal setup rebuilt held static mathematics or omitted full preflight", snapshot)
 	}
 	for _, stage := range []string{"live.anchorStateFullValidation", "live.anchorRegistryFullReplay", "live.anchorCommitFullVerification"} {

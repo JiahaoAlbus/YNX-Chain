@@ -2095,6 +2095,34 @@ def assert_legacy_snapshot_stream_contract(raw):
     found = [name + x.split("      - name:", 1)[0] for x in raw.split(name)[1:]]
     need(len(found) == 1)
     expected = name + "        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}\n" + '        run: |\n          set -euo pipefail\n          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api > "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl" 2> "$RUNNER_TEMP/ynx-legacy-native-integration.stderr"; then\n            cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"\n            cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n            exit 1\n          fi\n          cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"\n          cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n          python3 -B - <<\'PY\'\n          import json, os\n          from pathlib import Path\n          rows = [json.loads(line) for line in (Path(os.environ[\'RUNNER_TEMP\']) / \'ynx-legacy-native-integration.jsonl\').read_text().splitlines()]\n          legacy_snapshot = [\'TestLegacySnapshotMemoryCanonicalBatchAndBlock\', \'TestLegacySnapshotMemoryDenseBlockBoundedWrites\', \'TestLegacySnapshotMemoryFullHistoryColdAndReplication\', \'TestLegacySnapshotMemoryLateFailureAndUnknown\', \'TestLegacySnapshotMemorySameInputAllocation\', \'TestLegacySnapshotMemoryValidHistoryAllocation\']\n          for name in legacy_snapshot:\n              terminal = [(row.get(\'Package\'), row[\'Action\']) for row in rows if row.get(\'Test\') == name and row[\'Action\'] in (\'pass\', \'fail\', \'skip\')]\n              if terminal != [(\'github.com/JiahaoAlbus/YNX-Chain/internal/chain\', \'pass\')]:\n                  raise RuntimeError(\'legacy snapshot memory did not execute uniquely in original package: \' + name)\n          for package in (\'github.com/JiahaoAlbus/YNX-Chain/internal/chain\', \'github.com/JiahaoAlbus/YNX-Chain/internal/api\'):\n              terminal = [row[\'Action\'] for row in rows if row.get(\'Package\') == package and \'Test\' not in row and row[\'Action\'] in (\'pass\', \'fail\', \'skip\')]\n              if terminal != [\'pass\']:\n                  raise RuntimeError(\'complete original ledger/API package did not pass: \' + package)\n          if any(row.get(\'Action\') in (\'fail\', \'skip\', \'build-fail\') for row in rows):\n              raise RuntimeError(\'original ledger/API stream failed or skipped\')\n          print(\'YNX_LEGACY_SNAPSHOT_MEMORY_CORE_TESTS \' + json.dumps(dict(sourceCommit=os.environ[\'GITHUB_SHA\'], requiredPassed=legacy_snapshot, suitePassed=True, productionOOMResolved=False, rootAuthorized=False), sort_keys=True))\n          PY\n'
+    # The existing locked Ethers client must execute within the same full
+    # stream. Keep this independent exact source contract in step with its
+    # newly required environment, version gate and uniquely qualified result.
+    ethers_prelude = """        env:
+          YNX_ETHERS_MODULE: ${{ github.workspace }}/node_modules/ethers
+        run: |
+          set -euo pipefail
+          # Reuse the lockfile-installed dependency from the earlier contract
+          # fixture step; a missing client must fail here, never become a skip.
+          node <<'JS'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const modulePath = path.join(process.cwd(), 'node_modules', 'ethers');
+          const locked = JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages['node_modules/ethers'];
+          assert.equal(process.env.YNX_ETHERS_MODULE, modulePath);
+          assert.match(locked.version, /^6\\./);
+          assert.equal(JSON.parse(fs.readFileSync(path.join(modulePath, 'package.json'), 'utf8')).version, locked.version);
+          assert.equal(require(modulePath).version, locked.version);
+          console.log('YNX_ETHERS_LOCKED_CLIENT ' + locked.version);
+          JS
+"""
+    expected = expected.replace('        run: |\n          set -euo pipefail\n', ethers_prelude, 1)
+    ethers_result = """          ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == 'TestEthereumIndependentEthersLifecycle' and row['Action'] in ('pass', 'fail', 'skip')]
+          if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
+              raise RuntimeError('independent ethers lifecycle did not execute uniquely in original API package')
+"""
+    expected = expected.replace("          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", ethers_result + "          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", 1)
     need(found[0] == expected)
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
@@ -2827,6 +2855,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                     rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
             if 'legacy_snapshot' not in lists:
                 rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi',Test='TestAuthSourceStatementV2SDKSoleGoldenActualCAND',Action='pass'))
+            else:
+                rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/internal/api',Test='TestEthereumIndependentEthersLifecycle',Action='pass'))
             packages={'github.com/JiahaoAlbus/YNX-Chain/'+x for x in (('internal/chain','internal/api') if 'legacy_snapshot' in lists else ('internal/ynxbatch','internal/ynxresourceconsent','cmd/ynx-artifact-release-cabi'))}
             rows += [dict(Package=p,Action='pass') for p in sorted(packages)]
             def run(data):
@@ -2842,6 +2872,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                     exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
             run(rows)
             selected=set(lists.get('resource_consent',[])+lists.get('source_v2_capacity',[])+lists.get('legacy_snapshot',[]))
+            if 'legacy_snapshot' in lists:selected.add('TestEthereumIndependentEthersLifecycle')
             for index,row in enumerate(rows):
                 if row.get('Test') not in selected and 'Test' in row:continue
                 for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):
@@ -2866,6 +2897,16 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         for before,after in [('go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api','go test -run Snapshot ./internal/chain'),('timeout=180s','timeout=360s'),("terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]",'False'),("('fail', 'skip', 'build-fail')","('fail',)"),('rootAuthorized=False','rootAuthorized=True')]:
             self.assertIn(before,step)
             with self.subTest(before=before),self.assertRaises(AssertionError):assert_legacy_snapshot_stream_contract(raw.replace(step,step.replace(before,after,1),1))
+        for before, after in (
+            ('          YNX_ETHERS_MODULE: ${{ github.workspace }}/node_modules/ethers\n', ''),
+            ('${{ github.workspace }}/node_modules/ethers', '${{ github.workspace }}/node_modules/unqualified-client'),
+            ('assert.equal(require(modulePath).version, locked.version);', 'void 0;'),
+            ("if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:", 'if False:'),
+            ('TestEthereumIndependentEthersLifecycle', 'WrongEthersCase'),
+        ):
+            self.assertIn(before, step)
+            with self.subTest(ethersContract=before), self.assertRaises(AssertionError):
+                assert_legacy_snapshot_stream_contract(raw.replace(step, step.replace(before, after, 1), 1))
         for test in ['TestLegacySnapshotMemoryCanonicalBatchAndBlock', 'TestLegacySnapshotMemoryDenseBlockBoundedWrites', 'TestLegacySnapshotMemoryFullHistoryColdAndReplication', 'TestLegacySnapshotMemoryLateFailureAndUnknown', 'TestLegacySnapshotMemorySameInputAllocation', 'TestLegacySnapshotMemoryValidHistoryAllocation']:
             with self.subTest(name=test),self.assertRaises(AssertionError):assert_legacy_snapshot_stream_contract(raw.replace(step,step.replace(test,'WrongTest',1),1))
 

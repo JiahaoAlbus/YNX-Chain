@@ -338,11 +338,25 @@ func loadPQLabLiveMaterialsConfig(p PQLabLiveMaterialsPolicy) (in *pqLabLiveMate
 	return loadPQLabLiveMaterialsConfigMeasured(p, nil)
 }
 func loadPQLabLiveMaterialsConfigMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLabMetrics) (in *pqLabLiveMaterialsInputs, err error) {
+	return loadPQLabLiveMaterialsConfigFromInputs(p, metrics, nil)
+}
+func loadPQLabLiveMaterialsConfigFromInputs(p PQLabLiveMaterialsPolicy, metrics *PQLabMetrics, held *pqLabLiveMaterialsInputs) (in *pqLabLiveMaterialsInputs, err error) {
 	defer pqLabMeasure(metrics, "live.configLoadTotal")()
 	if err = validatePQLabLivePolicy(p); err != nil {
 		return nil, err
 	}
-	in = &pqLabLiveMaterialsInputs{policy: p, directory: pqLabLiveMaterialsDirectory(p), metrics: metrics, cache: NewPQLabStaticCache()}
+	in = held
+	if in == nil {
+		in = &pqLabLiveMaterialsInputs{policy: p, directory: pqLabLiveMaterialsDirectory(p), metrics: metrics, cache: NewPQLabStaticCache()}
+	} else {
+		if in.closed || in.policy.RootDir != p.RootDir || in.policy.PlanSHA256 != p.PlanSHA256 || in.directory != p.RootDir || in.metrics != metrics {
+			return nil, errors.New("startup witness cannot be rebound to a different source or invocation")
+		}
+		if err = in.current(); err != nil {
+			return nil, err
+		}
+		in.policy, in.directory = p, pqLabLiveMaterialsDirectory(p)
+	}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, in.close())
@@ -448,9 +462,14 @@ func PreparePQLabLiveMaterialsMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLa
 	if err = validatePQLabLivePolicy(p); err != nil {
 		return out, err
 	}
-	if _, _, _, err = loadPQLabMeasured(p.RootDir, p.PlanSHA256, metrics); err != nil {
+	// Complete pre-mutation validation holds the exact originals. Reuse only
+	// this invocation owner after creating the exclusive destination; never
+	// reopen the same static inputs as fresh self-certified authority.
+	held, _, err := loadPQLabStartupInputs(p.RootDir, p.PlanSHA256, metrics)
+	if err != nil {
 		return out, err
 	}
+	defer func() { err = errors.Join(err, held.close()) }()
 	parent := filepath.Join(p.RootDir, "live-materials")
 	if err = os.Mkdir(parent, 0700); err != nil && !os.IsExist(err) {
 		return out, err
@@ -462,7 +481,7 @@ func PreparePQLabLiveMaterialsMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLa
 	if err = pqLabNetworkFreshDirectory(dir); err != nil {
 		return out, err
 	}
-	in, err := loadPQLabLiveMaterialsConfigMeasured(p, metrics)
+	in, err := loadPQLabLiveMaterialsConfigFromInputs(p, metrics, held)
 	if err != nil {
 		return out, err
 	}

@@ -82,6 +82,25 @@ func InspectOperatorCheckpoint(migration chain.ConsensusMigrationState, rawGenes
 	if err != nil {
 		return result, err
 	}
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return result, err
+	}
+	return inspectOperatorCheckpointOwned(witness, options)
+}
+
+// Only an invocation that already fully validated and privately detached the
+// complete pinned migration/bootstrap can enter here. This skips no mutable
+// checkpoint, signing lease, DB binding, registry or final-source check.
+func inspectOperatorCheckpointOwned(witness *validatedMigration, options OperatorCheckpointOptions) (result OperatorCheckpointResult, err error) {
+	if err = witness.valid(); err != nil {
+		return result, err
+	}
+	bootstrap, migration := witness.bootstrap, witness.migration
+	if bootstrap == nil {
+		return result, errors.New("checkpoint inspection requires its original pinned bootstrap")
+	}
+	pins := ConsensusBootstrapPins{CometGenesisSHA256: bootstrap.record.CometGenesisSHA256, OriginalGenesisHash: bootstrap.record.OriginalGenesisHash, MigrationStateHash: bootstrap.record.MigrationStateHash}
 	if options.ProposePQActivationHeight < 0 || options.ProposePQActivationHeight != 0 && options.NextAuthorization != nil {
 		return result, errors.New("schedule proposal requires a positive activation height and cannot consume next authorization")
 	}
@@ -173,11 +192,11 @@ func InspectOperatorCheckpoint(migration chain.ConsensusMigrationState, rawGenes
 	if actual.IsEmpty() || actual.ChainID != bootstrap.record.ChainID || actual.InitialHeight != bootstrap.record.InitialHeight || actual.LastBlockHeight < actual.InitialHeight || actual.LastBlockHeight <= 0 || len(actual.AppHash) != 32 || actual.LastBlockTime.IsZero() {
 		return result, errors.New("original Comet state is missing, uncommitted or differs from pinned genesis identity")
 	}
-	snapshot, err := loadPQEngineSnapshotWithRuntime(migration, options.StatePath, bootstrap, options.Authorization, options.RuntimeUpgrade, actual.LastBlockHeight, actual.AppHash)
+	snapshot, err := loadPQEngineSnapshotOwned(witness, options.StatePath, options.Authorization, options.RuntimeUpgrade, actual.LastBlockHeight, actual.AppHash, capturePQEngineState)
 	if err != nil {
 		return result, err
 	}
-	state, err := readPQEngineCommittedState(options.StatePath, migration, bootstrap, options.Authorization, options.RuntimeUpgrade)
+	state, err := readPQEngineCommittedStateOwned(options.StatePath, witness, options.Authorization, options.RuntimeUpgrade, capturePQEngineState)
 	if err != nil {
 		return result, err
 	}

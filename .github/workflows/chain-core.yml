@@ -282,6 +282,7 @@ jobs:
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestPQLabCanonicalComparisonExactChunks', 'TestPQLabCheckpointReadCurrentBytesAndCloseGuards', 'TestPQLabCheckpointReadJournalOriginalParity', 'TestPQLabCheckpointReadSameInputSevenHeightParity', 'TestPQLabProofInputsSameOriginalParityAndCost']
+          required += ['TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState', 'TestPQLabStartupHeldInputsRejectReplacementAndWrongPin', 'TestPQLabStartupTimingNormalRegistrationAndUnknown', 'TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed']
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:
@@ -318,7 +319,7 @@ jobs:
             exit 1
           fi
           git diff --exit-code -- go.mod go.sum
-          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation|TestOperatorStartupTiming)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
             cat "$RUNNER_TEMP/wire-caller-tests.jsonl"
             exit 1
           fi
@@ -331,6 +332,7 @@ jobs:
           required = ['TestMempoolWireObserverOriginalReceiveAndCheckTx', 'TestMempoolWireObserverOriginalSendRetryAndBytes', 'TestMempoolWireObserverLifecycleAndConcurrentSnapshot', 'TestMempoolWireObserverOverflowIsExplicit', 'TestOperatorWireObservationFlagsDefaultAndFailClosed', 'TestOperatorWireObservationActualPinnedConstructorAndReactor', 'TestOperatorWireObservationActualScopeAndLoopbackRefusals', 'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema', 'TestOperatorWireObservationFailureAndUnknownPreserveOriginal', 'TestOperatorWireObservationPathAndEndpointBoundaries', 'TestOperatorWireObservationExactOutputReadback']
           required += ['TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay', 'TestOperatorWireLiveUnknownPreservesOriginalAndRetires', 'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit', 'TestOperatorWireLivePermissionsIdentityAndResiduals', 'TestOperatorWireLiveRequesterUnknownAndProducerIdentity', 'TestOperatorWireLiveSelfProcParsingAndDefaultOff']
           required += ['TestPQNodeNormalCancellationReturnsAfterOwnedStop']
+          required += ['TestOperatorStartupTimingDefaultAndOriginalError', 'TestOperatorStartupTimingActualColdConstructorWithoutStart']
           for name in required:
               terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
               if terminal != ['pass']:

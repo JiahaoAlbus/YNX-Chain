@@ -10,6 +10,7 @@ on:
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
       - 'internal/ynxresourceconsent/**'
+      - 'internal/ynxresourcepolicy/**'
       - 'internal/ynxauth/**'
       - 'internal/ynxconsensusauth/**'
       - 'internal/chain/**'
@@ -59,6 +60,7 @@ on:
       - 'scripts/ops/pq-ci-stage-inputs.py'
       - 'scripts/ops/test_pq_ci_stage_inputs.py'
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
+      - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/deploy-consensus-overlay.sh'
@@ -143,6 +145,8 @@ on:
   pull_request:
     paths:
       - 'internal/ynxresourceconsent/**'
+      - 'internal/ynxresourcepolicy/**'
+      - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'apps/resource-market/**'
       - 'internal/resourcemarket/**'
       - 'internal/resourceproduct/**'
@@ -1484,6 +1488,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_install_pq_remote_signer.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
       - name: Verify pure dual-PQ protocol and account authorization
@@ -1541,6 +1546,32 @@ jobs:
           if any(event.get('Package') == resource_package and event['Action'] in ('fail', 'skip') for event in events):
               raise RuntimeError('resource consent lifecycle failure or skip retained')
           print('YNX_NETWORK_RESOURCE_CONSENT_LIFECYCLE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=resource_required, suitePassed=True, sourceQualified=False, protectedPrincipalConnected=False, resourceExecutionAuthorized=False), sort_keys=True))
+          PY
+      - name: Verify wallet policy checkpoint consumer without granting authority
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: |
+          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-wallet-policy-consumer-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourcepolicy'
+          required = ['TestResourcePolicyPUBLICOriginalLedgerConsumer', 'TestResourcePolicyPUBLICReaderRejectionAndNoAuthority']
+          for name in required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('wallet policy consumer did not execute uniquely in its original package: ' + name)
+          outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+          if outcomes != ['pass']:
+              raise RuntimeError('complete wallet policy consumer package did not pass once')
+          if any(event.get('Package') != package or event.get('Action') in ('fail', 'skip', 'build-fail') for event in events):
+              raise RuntimeError('wallet policy consumer stream failed, skipped or used another package')
+          print('YNX_WALLET_POLICY_CONSUMER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
       - name: Verify fixed resource consent partial-outcome lifecycle under race
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -1849,7 +1880,29 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^TestCommittedPQSource' ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
+          if ! go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+          required = ['TestInspectWalletPolicyNormalOriginalCheckpointAndRefusals', 'TestInspectWalletPolicyNoRegistrationAndArgumentsFailClosed']
+          for name in required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('wallet policy CLI did not execute uniquely in its original package: ' + name)
+          outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+          if outcomes != ['pass']:
+              raise RuntimeError('complete original Comet command package did not pass once')
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith('TestInspectWalletPolicy')) for event in events):
+              raise RuntimeError('original command stream failed or wallet policy CLI skipped')
+          print('YNX_WALLET_POLICY_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
           go vet ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
@@ -2048,6 +2101,21 @@ jobs:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
           print('YNX_INITIAL_CACHE_STATE_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
+          # Qualify the reader from this original complete execution. Existing
+          # opt-in network skips are not proof that a reader case executed.
+          wallet_policy_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+          wallet_policy_required = ['TestPQWalletPolicyCheckpointRegisteredHistoryAcrossLayouts', 'TestPQWalletPolicyCheckpointRefusesWrongAnchorAndAuthority', 'TestPQWalletPolicyCheckpointHeldSourceChangeAndClose', 'TestPQWalletPolicyCheckpointRuntimeAndSchedulePins']
+          for name in wallet_policy_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != wallet_policy_package or outcomes != [(wallet_policy_package, 'pass')]:
+                  raise RuntimeError('wallet policy reader did not execute uniquely in its original package: ' + name)
+          package_outcomes = [event['Action'] for event in events if event.get('Package') == wallet_policy_package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+          if not package_outcomes or any(outcome != 'pass' for outcome in package_outcomes):
+              raise RuntimeError('original state package execution did not pass')
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith('TestPQWalletPolicyCheckpoint')) for event in events):
+              raise RuntimeError('original state stream failed or wallet policy reader skipped')
+          print('YNX_WALLET_POLICY_READER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=wallet_policy_required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
