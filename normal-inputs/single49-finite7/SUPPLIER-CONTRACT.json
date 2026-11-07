@@ -1,0 +1,126 @@
+{
+  "schema": "YNX-SINGLE49-FINITE7-NORMAL-PRODUCER-INPUTS/v1",
+  "sourceReady": true,
+  "archiveReady": false,
+  "profileAdmitted": false,
+  "requestedSuccessorCount": 1,
+  "oldArchivesAndImagesImmutable": true,
+  "normalArchiveProducer": {
+    "owner": "Original LINK/SDK single-Go archive supplier; sole original A normal build",
+    "pathInOriginalLINKCheckout": "cmd/ynx-secure-link-private-client/build-combined.mjs",
+    "originalRecipeCopy": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/original-producer/cmd/ynx-secure-link-private-client/build-combined.mjs",
+    "currentlyRequiredOwnerCODE": {
+      "file": "cmd/ynx-secure-link-private-client/combined-supply-profile.mjs",
+      "functions": [
+        "CORE_SUPPLY_PROFILES",
+        "normalizeCoreSupply/normalizeCore19Supply",
+        "selectCoreSupplyProfile"
+      ],
+      "preciseGate": "Original core19/49 only allows e120/caf9 and fork54e88. Add ONE separately named exact successor bound to aa60/ab994/fork5a128 plus this raw SOURCE SHA; retain original profile and all exact byte/closure/ABI checks.",
+      "noArbitraryCommitPathOrCountOnlyApproval": true,
+      "requiredCoreCommit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+      "requiredCoreTree": "ab99445e46339d2376ec1c0b2aae2674b60c1c7f",
+      "requiredForkTree": "5a128880d14bfc73de4334cba23218859ad3473c",
+      "requiredRawSource": {
+        "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SOURCE.json",
+        "bytes": 61763,
+        "sha256": "dbbab75b29a040f287d9df045595b5726dda378a1578ec9bd2a66a0309ebf53e"
+      },
+      "requiredLINKCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "requiredLINKTree": "2ed56d8c98590900d977a7ff2dba09c70fc2366a",
+      "closure": {
+        "productionLeaves": 88,
+        "GoFiles": 69,
+        "headers": 17,
+        "packages": 5,
+        "cgoTranslationUnits": 19,
+        "CoreExports": 19,
+        "LINKExports": 22,
+        "ProductExports": 8
+      }
+    },
+    "argvAfterOriginalOwnerAddsNamedProfile": [
+      "node",
+      "cmd/ynx-secure-link-private-client/build-combined.mjs",
+      "--core-handoff",
+      "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SOURCE.json",
+      "--core-sha256",
+      "dbbab75b29a040f287d9df045595b5726dda378a1578ec9bd2a66a0309ebf53e",
+      "--auth-headers",
+      "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/combined-min13-next/AUTH-PRODUCT-BUILD-HEADERS.json",
+      "--auth-headers-sha256",
+      "23ef1ded16ea80dab04f33e3e9d8b0fa6a487364a7d405b2a21f50e38b8ed42d",
+      "--native-undefined",
+      "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/CORE_UNDEFINED.json",
+      "--native-undefined-sha256",
+      "f364837c7f0593ca09a760e97b433c11993d1d976a1eb48256a5abd2cbaea6ba",
+      "--link-commit",
+      "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "--macos-deployment-target",
+      "13.0",
+      "--out",
+      "<one-new-exclusive-external-output>"
+    ],
+    "originalBuildTags": [
+      "securelink_openssl",
+      "securelink_pay_native_startup",
+      "securelink_product_pay_transport"
+    ],
+    "requiredToolchain": {
+      "Go": "1.26.10",
+      "OpenSSL": "3.6.4",
+      "singleArchive": true,
+      "singleGoRuntime": true,
+      "p": 1,
+      "GOMAXPROCS": 2,
+      "GOMEMLIMIT": "1536MiB",
+      "nativeDarwinTarget": "13.0"
+    },
+    "mustPerformActualPostbuildReadback": [
+      "original49 strong ABI each once",
+      "one Go runtime/object",
+      "neutral C old8 plus ynx_peer_spki_der and ynx_ctx_new_fds strong each once",
+      "actual deployment target and dependency closure",
+      "all materialized source bytes still original"
+    ],
+    "GoNativeExportABIChange": false
+  },
+  "normalNativeImageConsumer": {
+    "owner": "Original SDK/Native/A, not this Core source-preparation task",
+    "manifest": {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/original-wallet-single49-network-build-inputs.json",
+      "bytes": 1184620,
+      "sha256": "9e772e7970cde967e3585bcab47a108de13f9779bc0f775f090e7fd2add6e7a4",
+      "gitBlob": "4eed66b70b6d836c61ea8c9518a9e24ff0b6bc83"
+    },
+    "profile": {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/scripts/original-auth-single49-network-profile.mjs",
+      "bytes": 37029,
+      "sha256": "7b6fc57be548bce2af15b7ecadafdf0cee666380df618df25c6e6ad87ea92108",
+      "gitBlob": "8d54f003089fb9c73077ad50c754f539692b149f"
+    },
+    "functions": [
+      "inspectRoot14ManifestDATA",
+      "originalAuthRoot14Product45BuildPlan",
+      "inspectRoot14PlanDATA"
+    ],
+    "currentContract": "single49NetworkSourceContract pins old e120/f4/815e and archive exact bytes/SHA. It intentionally cannot accept a substituted new archive.",
+    "requiredSuccessor": "Original owner must create one immutable matching manifest/profile using the real NEW supplier H/archive pin and actual finite7 Native/Auth source/headers. Preserve old815e/C6; no hot mixing. Do not reuse old85object/87command or whole-image qualification for a new image.",
+    "finiteNativeCPP11": "Original LINK42031 code/H, separate Native compilation. Not inserted into the Go49 source command or claimed as new Go exports.",
+    "AuthSourceOriginOrCurrent": "Original protected Auth sealed methods remain required; public source or SPKI DATA does not grant Root/Source/DEVICE permission."
+  },
+  "originalBuildInputPins": {
+    "AuthBuildHeaderInputs": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/combined-min13-next/AUTH-PRODUCT-BUILD-HEADERS.json",
+      "bytes": 1821,
+      "sha256": "23ef1ded16ea80dab04f33e3e9d8b0fa6a487364a7d405b2a21f50e38b8ed42d"
+    },
+    "NativeOriginalUndefined": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/normal-union-r1/CORE_UNDEFINED.json",
+      "bytes": 10487,
+      "sha256": "f364837c7f0593ca09a760e97b433c11993d1d976a1eb48256a5abd2cbaea6ba"
+    }
+  },
+  "newPrivateKeyOrRealKeyRead": false,
+  "newABIOrProvider": false
+}

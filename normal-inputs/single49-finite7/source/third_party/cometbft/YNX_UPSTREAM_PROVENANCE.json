@@ -1,0 +1,12 @@
+{
+  "module": "github.com/cometbft/cometbft",
+  "version": "v0.38.23",
+  "upstreamCommit": "feb2aea4dc271d612129afc958cb844713ec792b",
+  "upstreamRef": "refs/tags/v0.38.23",
+  "moduleGoSum": "h1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=",
+  "goModGoSum": "h1:jtH//cs5e2U5dNiaYIPMBwWXZsedXJfIie77gVhuRaA=",
+  "source": "local module cache; no upstream fetch",
+  "upstreamFiles": 1399,
+  "license": "LICENSE",
+  "scope": "repository-owned source fork; no engine activation implied"
+}

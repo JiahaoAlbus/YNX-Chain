@@ -1,0 +1,273 @@
+{
+  "schema": "YNX-SINGLE49-FINITE7-PREPARED-SOURCE-HANDOFF/v1",
+  "state": "SOURCE_CLOSURE_VERIFIED_ORIGINAL_SUPPLIER_NAMED_PROFILE_UPDATE_REQUIRED_NO_BUILD",
+  "owner": "/root/crypto_go, original Core Go source owner",
+  "case": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy",
+  "baseCore": {
+    "commit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+    "tree": "ab99445e46339d2376ec1c0b2aae2674b60c1c7f",
+    "originalForkTree": "5a128880d14bfc73de4334cba23218859ad3473c"
+  },
+  "LINK": {
+    "commit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+    "tree": "2ed56d8c98590900d977a7ff2dba09c70fc2366a"
+  },
+  "SOURCE": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SOURCE.json",
+    "bytes": 61763,
+    "sha256": "dbbab75b29a040f287d9df045595b5726dda378a1578ec9bd2a66a0309ebf53e"
+  },
+  "composition": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/COMPOSITION.json",
+    "bytes": 66603,
+    "sha256": "876101b4f27eaab98ef1bb89e19ed0e3253ddef5b87a9aa2896df311d7017219"
+  },
+  "fullFork": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/FORK-CONTEXT.json",
+    "bytes": 420133,
+    "sha256": "b1f474d69f7c8984f5b4c1be5b7723bc1e740a6ff879092d45ff9f314faf94f6"
+  },
+  "comparison": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SOURCE-COMPARISON.json",
+    "bytes": 88073,
+    "sha256": "f7c256c8a900f0e4b9e78294ebd6bf9b928979e8e77aed33bf8987ce679a73b4"
+  },
+  "CAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/CAS.json",
+    "bytes": 6078,
+    "sha256": "d4b6cd68b42a15c1ffddf645238cf85c029fe8bd6884681b6775047e7417b870"
+  },
+  "normalProducerContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SUPPLIER-CONTRACT.json",
+    "bytes": 6307,
+    "sha256": "dc5131cb4ec648359dc93028382b90f16cd3980bcf77fa761d780a4f69f8944d"
+  },
+  "originalInputs": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/ORIGINAL-INPUTS.json",
+    "bytes": 7505,
+    "sha256": "8290910e486419c6abd1f9b7b860fa7dfcb2afc533795ce721c0673992ba7b54"
+  },
+  "compileSourceRoot": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/source",
+  "coreCarrier": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src",
+  "moduleContext": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/module-context",
+  "originalProducer": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/original-producer",
+  "sourceCounts": {
+    "CoreProduction": 88,
+    "CoreGo": 69,
+    "CoreHandHeaders": 17,
+    "CorePackages": 5,
+    "normalCombinedInputsIncludingRetainedOriginalTests": 169,
+    "completeTreeWithFullOriginalFork": 1623,
+    "fullForkOriginalFiles": 1456,
+    "fullForkOriginalBytes": 60470640
+  },
+  "minimalDelta": {
+    "CoreVsE120": [
+      "go.mod",
+      "go.sum"
+    ],
+    "Core86NonModuleBytesIdentical": true,
+    "compress": "1.20.2",
+    "LINKProductionVsF4": [
+      "internal/securelink/native/bridge.c",
+      "internal/securelink/native/bridge.h",
+      "internal/securelink/native/peer_spki_openssl.go",
+      "internal/securelink/native/peer_spki_unavailable.go"
+    ],
+    "LINKTestsVsF4": [
+      "internal/securelink/authority_ingress_openssl_test.go",
+      "internal/securelink/native/peer_spki_openssl_test.go",
+      "internal/securelink/native/peer_spki_unavailable_test.go"
+    ],
+    "unsupportedNoCGOFallbackIncluded": true
+  },
+  "ABI": {
+    "Core": 19,
+    "LINK": 22,
+    "Product": 8,
+    "totalUnchanged": 49,
+    "newNeutralCStrongHelpers": [
+      "ynx_peer_spki_der",
+      "ynx_ctx_new_fds"
+    ],
+    "neutralOld8DeclarationsPreserved": true,
+    "tlsStateDeclarationBytesPreserved": true,
+    "newNeutralHelpersNotGoExports50Or51": true,
+    "actualNewBinarySymbolsNotYetMeasured": true
+  },
+  "actualSourceVerification": {
+    "preparationExit": 0,
+    "staticControlsExit": 0,
+    "staticControls": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/source-controls.json",
+      "bytes": 1177,
+      "sha256": "cad0b8cb4576c24179bea938f04f31c6ccc0229eec0f454e07788296691b5960"
+    },
+    "controlsPassed": 14,
+    "controlsFailed": 0,
+    "actualOriginalSupplierProfileGateExit": 0,
+    "originalSupplierProfileResult": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/original-profile-gate.json",
+      "bytes": 649,
+      "sha256": "39bc9b431a51323d5db92f6067ea6881d1b0c823311401e098b17ac317bb4e7f"
+    },
+    "oldCoreProfilePositiveAndNewCoreRejectBothObserved": true,
+    "zeroGoListBuildTestArchiveOrCryptoRuns": true
+  },
+  "reusedEvidenceOnly": {
+    "finite7QualifiedH": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/CI-QUALIFIED-HANDOFF.json",
+      "bytes": 4737,
+      "sha256": "c898cc06a955d0b226d17cf65e989bdd89410f5559f93f3eaca0b9b1a410b146",
+      "gitBlob": "a86bb0fff4e884d4e1ef184648e7ab8d50974538"
+    },
+    "originalLINKCI": {
+      "run": 42357730004,
+      "job": 128359501380,
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/42357730004/job/128359501380",
+      "api": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/ci-42357730004/JOB-API.json",
+        "bytes": 2878,
+        "sha256": "45f654196c3aa15412cee84851cb1407b60bb9a6b15db416a64a2278068befc7"
+      },
+      "decodedOriginalLog": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/ci-42357730004/JOB-128359501380-original.log",
+        "bytes": 139397,
+        "sha256": "5dff30f059b4d0698f2976cee85067c1addb7cb2079515b4a43da27f5f86f43b"
+      },
+      "artifactAPI": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/ci-42357730004/ARTIFACT-API.json",
+        "bytes": 783,
+        "sha256": "8a06144c52aac8cea6a52eed69c0ee3a373ad497ea8028905d5f728cc0c9ac71"
+      },
+      "zip": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/ci-42357730004/ORIGINAL.zip",
+        "bytes": 6023630,
+        "sha256": "6945834f30d3eba7f2de4db37c378f09f03558bfe352e66503c652d919f176e6"
+      },
+      "independentReadback": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/finite7-native-get-20261107/ci-42357730004/INDEPENDENT-READBACK.json",
+        "bytes": 38420,
+        "sha256": "e628bdc4fa2e78fbdf7aa9f7424897fdce1c19d5353a892f24d7210eff7b7de2"
+      }
+    },
+    "originalLINKVerification": {
+      "zipCRC": true,
+      "artifactLeaves": 163,
+      "combinedPublicManifestFiles": 146,
+      "allPublicManifestBytesAndSHAExact": true,
+      "sourceChecksAgainstFixedGit": 23,
+      "ABIInputManifestBound": true,
+      "privateKeyOrCertificateFiles": 0,
+      "pureWire": 188,
+      "realFDAndPQGroups": 6,
+      "actualAuthMotherBodyAndCABI": 4,
+      "staleClientCycles": 256,
+      "stalePacketToFreshResponseRefused": true,
+      "originalFDOffsetsAndOwnershipPreserved": true,
+      "normalCLIPrivateIPCActualPQBackendIPC": {
+        "class": "isolated",
+        "normalEntry": "ynx-secure-link -config",
+        "hops": [
+          "OS-authenticated private IPC",
+          "actual native PQ mutual TLS",
+          "OS-authenticated private backend IPC"
+        ],
+        "business": "fixture only; no funds or product deployment",
+        "outcomes": [
+          {
+            "method": "GET",
+            "path": "/settlement",
+            "injectedIdentity": false,
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/settle",
+            "injectedIdentity": false,
+            "status": 200
+          },
+          {
+            "method": "DELETE",
+            "path": "/settlement",
+            "injectedIdentity": false,
+            "status": 502
+          },
+          {
+            "method": "GET",
+            "path": "/settlement",
+            "injectedIdentity": true,
+            "status": 502
+          }
+        ],
+        "backendCalls": {
+          "reads": 1,
+          "writes": 1
+        },
+        "binarySHA256": "521c8236d1c533b3a44687915fa903223fafc3efad5a649de0e68a55ccc43646"
+      },
+      "SPKINativeAndUnavailableIndividualNamesLogged": true
+    },
+    "qualificationDoesNotTransferToNewArchiveOrImage": true
+  },
+  "licenses": {
+    "rootNotice": {
+      "commit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/legal-context/THIRD_PARTY_NOTICES.md",
+      "bytes": 1529,
+      "sha256": "afe8cd5d0705a93e15d9ca792e4b3227f92940be9d3a2e6531f47223568ee7a0"
+    },
+    "CometLicense": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/source/third_party/cometbft/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "CometNotice": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/source/third_party/cometbft/NOTICE",
+      "bytes": 1445,
+      "sha256": "be0d7b38da6d67b23020a1427c6fd46694c3d72e1006e75b1480d3ae6431bc5c"
+    },
+    "thirdPartyBinaryLibrariesNotCopiedOrBuilt": true
+  },
+  "scripts": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/prepare_source.py",
+      "bytes": 16373,
+      "sha256": "6165750ce909fc286e9fb6b546654cb65edf3396d74a51bdd082747df73109e9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/verify_prepared.py",
+      "bytes": 3817,
+      "sha256": "57e74fc887bb875b1aced88fc68c8e481cfa20382dd0f7912bc646c96deb1907"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/check_supplier_profile.mjs",
+      "bytes": 2003,
+      "sha256": "a1e04797e1ddb39fe32f15e08d39d79be1f3f8186eafd6011ede38eaa95b1856"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/evidence/finalize_handoff.py",
+      "bytes": 12501,
+      "sha256": "63b61eef9ab93bedf5351ee15b7ef66a722ffd68365339808ec80ac14de3ed57"
+    }
+  ],
+  "effects": {
+    "primaryWrites": 0,
+    "GitIndexRefWrites": 0,
+    "network": false,
+    "SSH": false,
+    "archiveBuilds": 0,
+    "keysReadOrGenerated": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "DEVICEApproval": false,
+    "installed": false,
+    "deployed": false,
+    "oldArchiveCopiedOrModified": false,
+    "publicNetworkActivation": false,
+    "newNativeFactoryQualified": false
+  },
+  "scope": "Only existing Wallet/IDE/Chain necessary SDK single-runtime source supply. Historical mixed-product symbol names are retained unchanged; no suspended product execution or new development.",
+  "freeze": "External source files only. No fake .git, no arbitrary approved ref, no supplier gate bypass; new archive and normal SDK image remain their original owners."
+}
