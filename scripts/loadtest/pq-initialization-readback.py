@@ -6,6 +6,7 @@ or an observed original initialization receipt never grants pressure permission.
 import argparse
 import hashlib
 import io
+import importlib.util
 import json
 from pathlib import Path,PurePosixPath
 import re
@@ -105,9 +106,14 @@ def unfinished_originals(files,manifest,pin,controller,source,source_tree,tools)
     fresh=files.get(prefix+'fresh-resource-admission.json')
     return dict(schema='YNX-PERF-INTERRUPTED-INITIALIZATION-READBACK/v1',archiveSHA256=pin,files=manifest,controller=controller,source=source,sourceTree=source_tree,tools=tools,
         originalReceiptPresent=False,completeInitializationDataObserved=False,originalFirstCause=None,firstCauseStatus='NOT_SUPPLIED_WITHOUT_ORIGINAL_RECEIPT',
-        journals=journal,originalReturnEventsOnly=returned,freshResourceAdmission=strict(fresh) if fresh is not None else None,
+        journals=journal,originalNodeStartup=original_node_startup(files,prefix,{}),originalReturnEventsOnly=returned,freshResourceAdmission=strict(fresh) if fresh is not None else None,
         cleanupComplete=None,normalNodeCleanExit=None,businessLoadExecuted=None,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,
         pressureAuthorized=False,sourceGrant=False,originalsModified=False,meaning='Interrupted original journal boundaries only. No receipt or clean-exit outcome is fabricated; a matched return event does not establish initialization/business success.')
+
+def original_node_startup(files,prefix,receipt):
+    spec=importlib.util.spec_from_file_location('initialization_original_node_startup',Path(__file__).with_name('pq-node-startup-measurements.py'))
+    reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
+    return reader.original_nodes(files,prefix,receipt.get('processes',[]))
 
 def inspect(raw,pin,controller,source,source_tree,tools):
     require(type(raw) is bytes and 0<len(raw)<=128<<20 and re.fullmatch('[0-9a-f]{64}',pin) and hashlib.sha256(raw).hexdigest()==pin,'whole original ZIP digest or bound differs')
@@ -134,7 +140,7 @@ def inspect(raw,pin,controller,source,source_tree,tools):
     commits=commit_original_copies(files,prefix,receipt)
     original_ok=receipt.get('initializationDataValidation',{}).get('completeNormalInitializationObserved') is True
     full=bool(original_ok and receipt.get('firstCause') is None and receipt.get('cleanupComplete') is True and census and census.get('configuredLoadAccounts')==500 and census.get('completeFourNodeAccountReadback') is True and len(census.get('nodes',[]))==4 and [n.get('node') for n in census['nodes']]==list(range(4)) and len({(n.get('height'),n.get('appHash')) for n in census['nodes']})==1 and all(n.get('matchingOriginalLoadAccounts')==500 for n in census['nodes']) and journal['status']=='COMPLETE_OBSERVED_BOUNDARIES')
-    return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-READBACK/v1',archiveSHA256=pin,verifiedFiles=len(manifest),verifiedUncompressedBytes=total,receiptSHA256=manifest[name]['sha256'],controller=controller,source=source,sourceTree=source_tree,tools=tools,originalFirstCause=receipt.get('firstCause'),cleanupComplete=receipt.get('cleanupComplete'),originalInitializationValidation=receipt.get('initializationDataValidation'),completeInitializationDataObserved=full,originalCensus=census,originalStages=receipt.get('initializationStages'),originalCommitCopies=commits,resourceGuardStageElapsed=receipt.get('resourceGuardStageElapsed'),normalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),normalNodeCleanExit=receipt.get('normalNodeCleanExit'),originalReadinessObservations=receipt.get('originalReadinessObservations'),coldReadinessBudget=receipt.get('coldBootstrapReadinessBudget'),originalFailedCalleeMeasurements=receipt.get('failedCalleeMeasurements'),originalPreparationSenderMeasurements=receipt.get('preparationSenderMeasurements'),freshResourceAdmission=fresh,elapsedSeconds=receipt.get('elapsedSeconds'),peakObservedRSSBytes=receipt.get('peakRSSBytes'),peakNewBytes=receipt.get('peakNewBytes'),allBusinessDemand=receipt.get('preparationOnlyDemandAccounting'),journals=journal,files=manifest,businessLoadExecuted=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,pressureAuthorized=False,sourceGrant=False,originalsModified=False,scope='Original artifact/readback DATA only; source normal initialization and normal verifier retain authority. No omitted/unfinished interval is filled or replayed.')
+    return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-READBACK/v1',archiveSHA256=pin,verifiedFiles=len(manifest),verifiedUncompressedBytes=total,receiptSHA256=manifest[name]['sha256'],controller=controller,source=source,sourceTree=source_tree,tools=tools,originalFirstCause=receipt.get('firstCause'),cleanupComplete=receipt.get('cleanupComplete'),originalInitializationValidation=receipt.get('initializationDataValidation'),completeInitializationDataObserved=full,originalCensus=census,originalStages=receipt.get('initializationStages'),originalCommitCopies=commits,originalNodeStartup=original_node_startup(files,prefix,receipt),resourceGuardStageElapsed=receipt.get('resourceGuardStageElapsed'),normalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),normalNodeCleanExit=receipt.get('normalNodeCleanExit'),originalReadinessObservations=receipt.get('originalReadinessObservations'),coldReadinessBudget=receipt.get('coldBootstrapReadinessBudget'),originalFailedCalleeMeasurements=receipt.get('failedCalleeMeasurements'),originalPreparationSenderMeasurements=receipt.get('preparationSenderMeasurements'),freshResourceAdmission=fresh,elapsedSeconds=receipt.get('elapsedSeconds'),peakObservedRSSBytes=receipt.get('peakRSSBytes'),peakNewBytes=receipt.get('peakNewBytes'),allBusinessDemand=receipt.get('preparationOnlyDemandAccounting'),journals=journal,files=manifest,businessLoadExecuted=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,pressureAuthorized=False,sourceGrant=False,originalsModified=False,scope='Original artifact/readback DATA only; source normal initialization and normal verifier retain authority. No omitted/unfinished interval is filled or replayed.')
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__,allow_abbrev=False);p.add_argument('--read',action='store_true')

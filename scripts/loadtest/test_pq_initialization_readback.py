@@ -88,4 +88,13 @@ class InterruptedJournalControls(unittest.TestCase):
         del f['public/CURRENT703-BASELINE-CI.json']
         with self.assertRaises(RuntimeError):read(f)
 
+class StartupDiagnosticFirstCauseControls(unittest.TestCase):
+    def test_corrupt_diagnostic_does_not_mask_original_initialization_first_cause(self):
+        f=artifact('unfinished');r=json.loads(f['public/receipt.json']);r['processes']=[dict(name='pq-node-0',pid=3,startTicks=7,rawReturnCode=-9,command=['ynx-comet','start','--startup-timings'])];f['public/receipt.json']=json.dumps(r).encode();f['public/pq-node-0.log']=b'x'*((4<<20)+1);v=read(f)
+        self.assertEqual(v['originalFirstCause'],'original source first cause');node=next(n for n in v['originalNodeStartup']['nodes'] if n['name']=='pq-node-0');self.assertEqual(node['originalStages']['status'],'INVALID_OR_UNKNOWN_DIAGNOSTIC');self.assertFalse(v['completeInitializationDataObserved'])
+
+class InterruptedStartupDiagnosticControls(unittest.TestCase):
+    def test_missing_receipt_retains_unbound_original_startup_begin(self):
+        f=artifact('unfinished');del f['public/receipt.json'];a=json.loads(f['public/CURRENT703-BASELINE-CI.json']);a['goTree']=T;f['public/CURRENT703-BASELINE-CI.json']=json.dumps(a).encode();f['public/pq-node-0.log']=json.dumps(dict(version='YNX-COMET-STARTUP-TIMING/v1',clock='monotonic_elapsed_wall_ns',stage='startup.nodeStart',event='begin',outcome='RUNNING',elapsedNs=0,startupElapsedNs=7)).encode()+b'\n';r=read(f);node=next(n for n in r['originalNodeStartup']['nodes'] if n['name']=='pq-node-0');self.assertFalse(node['processIdentityBound']);self.assertIsNone(node['originalStages']['records'][0]['elapsedNs']);self.assertIsNone(r['originalFirstCause']);self.assertFalse(r['completeInitializationDataObserved'])
+
 if __name__=='__main__':unittest.main()
