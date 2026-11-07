@@ -250,6 +250,12 @@ def capture(context, into):
     into["targetExists"] = identity is not None
     if identity is None:
         into["targetAllocatedBytes"] = 0
+    elif into["diskAvailableBytes"] >= DISK_FLOOR:
+        # No deletion is eligible when admission disk is already sufficient.
+        # Keep all path/tool/identity checks above, without an unrelated tree
+        # traversal becoming a prerequisite to the original fresh admission.
+        into["targetAllocatedBytes"] = None
+        into["targetSizeStatus"] = "NOT_MEASURED_DISK_FLOOR_ALREADY_AVAILABLE"
     else:
         measured = command(["/usr/bin/du", "-s", "-x", "-B1", "--", str(TARGET)], timeout=60)
         match = re.fullmatch(r"([0-9]+)\s+" + re.escape(str(TARGET)), measured)

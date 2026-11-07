@@ -84,4 +84,64 @@ class Fixed1695(unittest.TestCase):
     def test_unapproved_space_host_fails_before_layout_or_deletion(self):
         with mock.patch.object(space,'checked_layout') as layout,mock.patch.object(space.subprocess,'run') as run,self.assertRaises(RuntimeError):space.validate_host(env(entry.PROFILE))
         layout.assert_not_called();run.assert_not_called()
+
+class AdequateDiskCaptureControls(unittest.TestCase):
+    def capture(self, disk, memory_kib, guard_error=None, du_timeout=False):
+        import subprocess
+        context=types.SimpleNamespace(parent=Path('/temp'),workspace=Path('/workspace'),protected=[])
+        identity=dict(device=1,inode=2,ctimeNS=3,mode=493,uid=0)
+        def command(argv, **kwargs):
+            if argv[0]=='/usr/bin/df':return 'actual-df-fixture'
+            self.assertEqual(argv,['/usr/bin/du','-s','-x','-B1','--','/usr/local/lib/android'])
+            self.assertEqual(kwargs.get('timeout'),60)
+            if du_timeout:raise subprocess.TimeoutExpired(argv,60)
+            return '1048576 /usr/local/lib/android'
+        def text(path,*args,**kwargs):
+            if str(path)=='/proc/meminfo':return 'MemAvailable: '+str(memory_kib)+' kB\n'
+            self.assertEqual(str(path),'/proc/self/mountinfo')
+            return '1 0 8:1 / / rw,relatime - ext4 /dev/root rw\n'
+        target=mock.Mock(return_value=identity,side_effect=guard_error)
+        into={}
+        with mock.patch.object(space,'command',side_effect=command) as commands, \
+             mock.patch.object(space.Path,'read_text',text), \
+             mock.patch.object(space.os,'statvfs',return_value=types.SimpleNamespace(f_bavail=disk,f_frsize=1)), \
+             mock.patch.object(space,'tools_snapshot',return_value=({'go':{'version':'pinned'}},{'GOROOT':'/go'},[])), \
+             mock.patch.object(space,'target_guard',target), \
+             mock.patch.object(space,'remove_fixed_target',side_effect=AssertionError('capture must not delete')):
+            space.capture(context,into)
+        target.assert_called_once()
+        return into,commands.call_args_list
+
+    def test_actual_public_capacity_does_not_need_android_du(self):
+        # Actual refused run42395339962: disk91.94GB/RAM15.74GB, optional du60s.
+        into,calls=self.capture(91940134912,15375824,du_timeout=True)
+        self.assertTrue(into['complete'])
+        self.assertIsNone(into['targetAllocatedBytes'])
+        self.assertEqual(into['targetSizeStatus'],'NOT_MEASURED_DISK_FLOOR_ALREADY_AVAILABLE')
+        self.assertEqual(into['diskAvailableBytes'],91940134912)
+        self.assertEqual(into['memoryAvailableBytes'],15744843776)
+        self.assertEqual([c.args[0][0] for c in calls],['/usr/bin/df'])
+
+    def test_exact_disk_floor_also_needs_no_directory_scan(self):
+        into,calls=self.capture(space.DISK_FLOOR,8<<20,du_timeout=True)
+        self.assertTrue(into['complete']);self.assertIsNone(into['targetAllocatedBytes'])
+        self.assertEqual(len(calls),1)
+
+    def test_disk_shortage_keeps_original_bounded_du_and_measured_size(self):
+        into,calls=self.capture(space.DISK_FLOOR-1,8<<20)
+        self.assertEqual(into['targetAllocatedBytes'],1048576)
+        self.assertEqual(len(calls),2);self.assertIn('du',into)
+
+    def test_needed_du_timeout_still_fails_closed(self):
+        import subprocess
+        with self.assertRaises(subprocess.TimeoutExpired):self.capture(space.DISK_FLOOR-1,8<<20,du_timeout=True)
+
+    def test_adequate_disk_does_not_skip_protected_target_or_memory_observation(self):
+        with self.assertRaisesRegex(RuntimeError,'protected target'):
+            self.capture(91940134912,15375824,guard_error=RuntimeError('protected target'))
+        into,calls=self.capture(91940134912,1024,du_timeout=True)
+        self.assertLess(into['memoryAvailableBytes'],space.MEMORY_FLOOR)
+        self.assertFalse(space.prepared()['admissionGranted'])
+        self.assertEqual(len(calls),1)
+
 if __name__=='__main__':unittest.main(verbosity=2)
