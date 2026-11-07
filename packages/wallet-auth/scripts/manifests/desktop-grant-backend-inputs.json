@@ -386,8 +386,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-original-orchestration.mjs",
-      "bytes": 7179,
-      "sha256": "378c40b0d1d7dfc1e587d6e77197d5d55eeff27e1749c09a1bbae7c8f5fb36a8"
+      "bytes": 8056,
+      "sha256": "aedc8b3162ea0743250ca00b65992aacd6575553c01a9ad76f2476d5d16b6430"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-protected-originals.mjs",
@@ -536,8 +536,8 @@
     },
     {
       "path": "packages/wallet-auth/src/original-task-grant-ledger.js",
-      "bytes": 20294,
-      "sha256": "b4bc234dee3d2449ef63729d91aa1569fc34da336abab4fc13941cc570dd1c46"
+      "bytes": 24783,
+      "sha256": "aaab63dad30229ce603a1a96a61db1d5159316485cd53b1f303c0b5a8eb66069"
     },
     {
       "path": "packages/wallet-auth/src/original-task-grant-service.js",

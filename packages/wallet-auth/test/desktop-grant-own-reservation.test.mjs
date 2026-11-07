@@ -1,0 +1,50 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import{DatabaseSync}from'node:sqlite';
+import{createOriginalTaskGrantLedger}from'../src/original-task-grant-ledger.js';
+import{bindGrantBytesDATA}from'../src/original-bound-grant-policy.js';
+import{canonicalJSON}from'../src/canonical.js';
+import{createOriginalTaskEffectOrchestrator}from'../src/desktop-grant-original-orchestration.mjs';
+// Actual original SQL/ticket APIs. All Source/proof/receipt observations here
+// are PUBLIC seams; these tests do not qualify Native Source or real approval.
+function fixture(file){
+ const db=new DatabaseSync(file??':memory:');const transaction=(at,fn)=>{db.exec('BEGIN IMMEDIATE');try{const out=fn(at);db.exec('COMMIT');return out;}catch(e){db.exec('ROLLBACK');throw e;}};
+ const ledger=createOriginalTaskGrantLedger({db,namespace:'PUBLIC-reservation',transaction});
+ const ref=(kind,id)=>({realm:'PUBLIC-realm',tenant:'PUBLIC-tenant',kind,id,rev:'1'}),bound=bindGrantBytesDATA(Buffer.from('foo')),issuer=ref('human','owner'),holder=ref('agent','holder'),resource=ref('resource','resource'),task=ref('task','task');
+ const g={version:'AUTH-BOUND-GRANT-PRIVATE/v1',id:'1'.repeat(32),realm:issuer.realm,tenant:issuer.tenant,issuer,issuerEpoch:'1',holder,holderEpoch:'1',audience:'PUBLIC-read',operation:'PUBLIC.read',resources:[resource],cap:'10',singleMax:'2',validFrom:'1',expires:'10000',nonce:'2'.repeat(32),rev:'1',nonDelegable:true,approvalId:'approval-public',binding:{task,generation:'1',stepId:'step-public',input:bound,tool:{id:'PUBLIC-tool',version:'1',schema:bound},target:{service:'PUBLIC-read',tenant:issuer.tenant,origin:'https://public.invalid',path:'/read',region:'qa',operation:'PUBLIC.read'},purpose:'PUBLIC-read',risk:'read',holderSession:{id:'PUBLIC-session',epoch:'1',channel:'PUBLIC-channel'},sources:[{ref:resource,fields:['total'],label:'TENANT',binding:bound}]}};
+ if(!file||db.prepare('SELECT count(*) AS n FROM issuer_task_grants').get().n===0){const terms=bindGrantBytesDATA(Buffer.from(canonicalJSON(g))),r=ledger.reserveGrantIssuanceOnce({grant:g,approvalNonce:'PUBLIC-approval',binding:terms,at:100});ledger.captureSignedGrantOriginal(r.ticket,'PUBLIC-original-not-signed',100);ledger.commitGrantIssuance(r.ticket,{grant:g,original:'PUBLIC-original-not-signed',binding:terms,expectedAuthority:{}},{at:100,assertCurrent(){}});}
+ const f={db,ledger,g,live:true};f.reserve=()=>ledger.reserveTaskEffect({grant:g,step:g.binding,amount:'2',inputBinding:bound,at:100,assertCurrent(){if(!f.live)throw Error('PUBLIC-revoked');}});
+ f.open=r=>ledger.openOriginalTaskEffectContinuation(r.ticket,{grant:g,step:g.binding,operationId:r.operationId,amount:'2',inputBinding:bound,at:100,assertCurrent(){if(!f.live)throw Error('PUBLIC-revoked');}});
+ f.args=r=>({grant:g,operationId:r.operationId,at:100});f.query=r=>ledger.readTaskEffect({...g,operationId:r.operationId,at:100});return f;
+}
+test('actual SQL fresh ticket: query UNKNOWN never authorizes, repeated Current leaves one final claim and settlement usable',()=>{
+ const f=fixture(),r=f.reserve();try{assert.equal(f.query(r).state,'UNKNOWN');const c=f.open(r);assert.deepEqual(Object.keys(c),[]);for(let i=0;i<4;i++)f.ledger.currentOriginalTaskEffectContinuation(c,f.args(r));
+ f.ledger.claimOriginalTaskEffectContinuation(c,f.args(r));assert.throws(()=>f.ledger.claimOriginalTaskEffectContinuation(c,f.args(r)),/ALREADY_CLAIMED/);f.ledger.currentOriginalTaskEffectContinuation(c,f.args(r));
+ const b=f.ledger.budgetForTaskEffect({grant:f.g,step:f.g.binding,amount:'2',at:100});assert.equal(b.reserved,'0');assert.equal(b.requested,'2');
+ assert.equal(f.ledger.settleTaskEffect(r.ticket,{state:'COMMITTED',original:'PUBLIC-resource-receipt',at:100,assertOriginalReceipt(){f.ledger.currentOriginalTaskEffectContinuation(c,f.args(r));}}).state,'COMMITTED');assert.equal(f.ledger.readGrant({...f.g,at:100}).spent,'2');assert.throws(()=>f.ledger.currentOriginalTaskEffectContinuation(c,f.args(r)));f.ledger.closeOriginalTaskEffectContinuation(c);
+ }finally{f.db.close();}
+});
+test('forged/foreign ticket, foreign cap, changed op/binding and second acquisition refuse',()=>{
+ const f=fixture(),other=fixture(),r=f.reserve(),foreign=other.reserve();try{assert.throws(()=>f.open({...r,ticket:{}}));assert.throws(()=>f.open({...r,ticket:foreign.ticket}));const c=f.open(r);assert.throws(()=>f.open(r));assert.throws(()=>other.ledger.currentOriginalTaskEffectContinuation(c,f.args(r)));assert.throws(()=>f.ledger.currentOriginalTaskEffectContinuation({},f.args(r)));assert.throws(()=>f.ledger.currentOriginalTaskEffectContinuation(c,{...f.args(r),operationId:'foreign'}));assert.throws(()=>f.ledger.currentOriginalTaskEffectContinuation(c,{...f.args(r),grant:{...f.g,rev:'2'}}));f.ledger.closeOriginalTaskEffectContinuation(c);}finally{f.db.close();other.db.close();}
+});
+test('UNKNOWN, expiry, revoked Source and retired owner cannot claim or renew; reserved budget retained',()=>{
+ for(const mode of ['unknown','expired','source','retired']){const f=fixture(),r=f.reserve(),c=f.open(r);try{let a=f.args(r);if(mode==='unknown')f.ledger.markEffectUnknown(r.ticket,100);if(mode==='expired')a={...a,at:10000};if(mode==='source')f.live=false;if(mode==='retired')f.ledger.retireOriginalTaskEffectContinuation(c);assert.throws(()=>f.ledger.claimOriginalTaskEffectContinuation(c,a));f.live=true;assert.throws(()=>f.ledger.claimOriginalTaskEffectContinuation(c,f.args(r)));assert.equal(f.ledger.readGrant({...f.g,at:100}).reserved,'2');assert.equal(f.query(r).state,'UNKNOWN');f.ledger.closeOriginalTaskEffectContinuation(c);}finally{f.db.close();}}
+});
+test('cold reopen retains original query but cannot recreate transient capability from recovery result',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'PUBLIC-own-reservation-')),file=path.join(dir,'original.sqlite');let f=fixture(file),r=f.reserve();f.open(r);f.db.close();f=fixture(file);try{const recovery=f.reserve();assert.equal(recovery.recoveryOnly,true);assert.equal(recovery.operationId,r.operationId);assert.equal(recovery.state,'UNKNOWN');assert.throws(()=>f.open(recovery));assert.equal(f.query(r).state,'UNKNOWN');}finally{f.db.close();}
+});
+test('failed final receipt fence rolls back SQL without burning settlement ticket; UNKNOWN still cannot dispatch',()=>{
+ const f=fixture(),r=f.reserve(),c=f.open(r);try{f.ledger.claimOriginalTaskEffectContinuation(c,f.args(r));assert.throws(()=>f.ledger.settleTaskEffect(r.ticket,{state:'COMMITTED',original:'PUBLIC-receipt',at:100,assertOriginalReceipt(){f.ledger.currentOriginalTaskEffectContinuation(c,f.args(r));throw Error('PUBLIC-receipt-failed');}}),/receipt-failed/);assert.equal(f.ledger.readGrant({...f.g,at:100}).reserved,'2');f.ledger.markEffectUnknown(r.ticket,100);assert.equal(f.query(r).state,'UNKNOWN');assert.throws(()=>f.ledger.claimOriginalTaskEffectContinuation(c,f.args(r)));}finally{f.db.close();}
+});
+test('actual original orchestrator passes SAME third opaque operand through SQL reserve, one claim, receipt settlement; lost ACK keeps UNKNOWN',async()=>{
+ for(const lostACK of [false,true]){
+  const f=fixture(),g=f.g;let inputReads=0,effects=0,baseClosed=0,cap,op;
+  const lifetime={assertCurrent(){},retire(){},join(){},close(){}};
+  const c={observedAt:'1',expires:'9999',issuer:{ref:g.issuer,kind:'human',epoch:g.issuerEpoch,status:'active',registered:true},holder:{ref:g.holder,epoch:g.holderEpoch,status:'active'},task:{ref:g.binding.task,generation:g.binding.generation,holder:g.holder,holderEpoch:g.holderEpoch,status:'WORKING'},session:{binding:g.binding.holderSession,holder:g.holder,holderEpoch:g.holderEpoch,status:'active'},catalog:{status:'active',egress:false,id:g.binding.tool.id,version:g.binding.tool.version,schema:g.binding.tool.schema,audience:g.audience,operation:g.operation,purpose:g.binding.purpose,risk:'read'},policyRevision:'1',authorizedResources:g.resources,sources:g.binding.sources,grant:{status:'active',rev:g.rev,value:g},budget:{status:'ready',cap:g.cap,spent:'0',reserved:'0',requested:'2'}};
+  const base={...lifetime,readCurrent(){return structuredClone(c);},verifyGrantProof(){},verifyHolderProof(){},assertGrantAuthorityAtCommit(){},close(){baseClosed++;}};
+  const source={assertTaskCaller(){},acquireGrantEffect(){return base;},readOriginalTaskEffectInput(){inputReads++;return{owner:lifetime,errorPresent:false,bytes:Buffer.from('foo')};},assertOriginalTaskEffectReceiptAtCommit(){}};
+  const executor={target:g.binding.target,async executeOriginalTaskEffect(_ctx,request,originalCap){cap=originalCap;op=request.operationId;assert.equal(f.query({operationId:op}).state,'UNKNOWN');for(let i=0;i<3;i++)f.ledger.currentOriginalTaskEffectContinuation(cap,{grant:g,operationId:op,at:100});
+   // PUBLIC final resource Source seam; actual P08 Store.mu is NOT exercised.
+   f.ledger.claimOriginalTaskEffectContinuation(cap,{grant:g,operationId:op,at:100});effects++;if(lostACK)throw Object.assign(Error('PUBLIC-lost-ACK'),{code:'PUBLIC_ACK_UNKNOWN'});return{owner:lifetime,errorPresent:false,result:{operationId:op,state:'COMMITTED',original:'PUBLIC-resource-original'}};}};
+  const service=createOriginalTaskEffectOrchestrator({store:{taskGrants:f.ledger,taskGrantClockContract:'ORIGINAL_SOURCE_LOCKED_CLOCK_V1'},source,registeredTaskExecutors:[executor]},async()=>{},()=>100);
+  try{const out=await service.authorizeAtEffect({realm:g.realm,tenant:g.tenant,requestId:'PUBLIC-request'},{grant:g,step:g.binding,holderProof:'PUBLIC-proof',expectedGrantRevision:g.rev});assert.equal(inputReads,1);assert.equal(effects,1);assert.equal(baseClosed,1);assert(cap);assert.throws(()=>f.ledger.currentOriginalTaskEffectContinuation(cap,{grant:g,operationId:op,at:100}));assert.equal(f.query({operationId:op}).state,lostACK?'UNKNOWN':'COMMITTED');assert.equal(out.ok,!lostACK);if(lostACK){assert.equal(out.originalOp,op);assert.equal(f.ledger.readGrant({...g,at:100}).reserved,'2');}else assert.equal(f.ledger.readGrant({...g,at:100}).spent,'2');}finally{service.retire();f.db.close();}
+ }
+});

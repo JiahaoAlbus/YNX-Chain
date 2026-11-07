@@ -1,0 +1,32 @@
+{
+  "schema": "SDK-OWN-RESERVATION-PRIVATE-INTAKE/v1",
+  "actualJSCarrier": "registeredExecutor.executeOriginalTaskEffect(SAMEctx,originalRequestDATA,SAMEopaqueContinuation)",
+  "requestDATAUnchanged": [
+    "grant",
+    "step",
+    "operationId",
+    "rawInput",
+    "holderProof",
+    "expectedGrantRevision"
+  ],
+  "notWire": "third operand is empty frozen object recognized only by original ledger lexical WeakMap; JSON {} or query snapshot is not a capability",
+  "actualLifecycle": {
+    "open": "same fresh reserve ticket and exact full binding; second open rejected",
+    "current": "repeatable nonconsuming original PENDING row/current Source fence, not query UNKNOWN",
+    "claim": "once final resource Store.mu only; independent of settlement ticket.used",
+    "settle": "same original reserve ticket once; claim does not burn settlement",
+    "retireClose": "same opaque owner cleanup; no budget release, Source renewal or parent close"
+  },
+  "normalCarrierAlreadyPreserves": "normalinputs freezes original executor array shallowly, controller does not rewrite executors, backend.readOriginalRegisteredTaskExecutors directly delegates NativeRoot; no wrapper or IPC serializer in this path",
+  "GoPolicyFormal": "OpenOriginalReservedTaskRead / HeldOriginalTaskReservationSource / Current / ClaimAtEffect / Retire / Close from Auth frozen-policy-r1; no Go sources copied or controls rerun",
+  "realStrongBoundary": "actual Native/LINK/runtime/local opaque continuation getter and resource bridge pairing SAME ledger Source/caller with genuine Go held child still belongs Auth; P08 Store.mu consumption not exercised by PUBLIC fixture",
+  "sourceReady": true,
+  "NativeContinuationSupplied": false,
+  "registeredPrivateCarrierSupplied": false,
+  "P08StoreMuVerified": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "newPublicOwnReservedState": false,
+  "OPENE21E3GrammarChanged": false
+}
