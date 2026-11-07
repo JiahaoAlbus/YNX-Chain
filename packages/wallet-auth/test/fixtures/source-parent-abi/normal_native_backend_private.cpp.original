@@ -1,0 +1,222 @@
+#include "normal_native_backend_private.hpp"
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+#ifndef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+#error "Fresh broker requires the original qualified Native profile"
+#endif
+#include "fresh_scope_broker_private.hpp"
+#endif
+#include <mutex>
+#include <thread>
+namespace ynx::network::normalnative {
+namespace {
+struct State{
+ std::mutex mutex;bool entered=false,retired=false,closed=false;
+ std::thread::id actor;std::unique_ptr<current4launch::OriginalLaunch>holder;
+ Outcome first;size_t loans=0,activeCalls=0,sourceAcquired=0,sourceSettled=0;
+ accountproof::AuthFailure originalSourceCause;
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+ std::unique_ptr<freshscope::FreshScopeBroker>fresh;
+ std::unique_ptr<freshscope::OriginalFreshStopControl>stop;
+ bool freshInitializing=false;
+#endif
+};
+// Process lifetime custody is intentional: partial/UNKNOWN debt cannot be
+// discarded by static destruction or a later failed startup attempt.
+State&state(){static State*value=new State;return*value;}
+Outcome fail(Failure f){Outcome out;out.failure=f;return out;}
+}
+struct OriginalBackendLoan::Impl{
+ bool released=false;accountproof::SourceBoundAccountAcquisition*account=nullptr;uint64_t scope=0;
+};
+OriginalBackendLoan::OriginalBackendLoan(std::unique_ptr<Impl>i):impl_(std::move(i)){}
+OriginalBackendLoan::~OriginalBackendLoan(){(void)close();}
+Outcome OriginalBackendLoan::current()noexcept{
+ auto&s=state();current4launch::OriginalLaunch*holder;
+ {std::lock_guard<std::mutex>l(s.mutex);
+  if(impl_->released||s.retired||s.closed||!s.holder)return fail(Failure::Retired);
+  if(s.actor!=std::this_thread::get_id())return fail(Failure::WrongActor);
+  holder=s.holder.get();++s.activeCalls;}
+ Outcome out;
+ try{
+#ifdef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+  out=qualified::assertOriginalNormalHostProfileCurrent();
+#endif
+  if(!out.failed()&&!holder->current()){out=fail(Failure::StartupFailed);out.launchFailure=holder->firstFailure();}
+#ifdef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+  if(!out.failed())out=qualified::assertOriginalNormalHostProfileCurrent();
+#endif
+ }
+ catch(...){out=fail(Failure::StartupFailed);}
+ {std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;if(s.retired&&!out.failed())out=fail(Failure::Retired);}
+ return out;
+}
+Outcome OriginalBackendLoan::close()noexcept{
+ auto&s=state();std::lock_guard<std::mutex>l(s.mutex);
+ if(impl_->released)return{};
+ if(s.actor!=std::this_thread::get_id())return fail(Failure::WrongActor);
+ // The original Native child must explicitly settle/detach its Source owner
+ // before returning this loan. A pending owner intentionally retains the count.
+ if(impl_->account)return fail(Failure::Pending);
+ impl_->released=true;if(s.loans)--s.loans;return{};
+}
+accountproof::SourceOutcome OriginalBackendLoan::releaseClosedOriginalAccount(accountproof::SourceBoundAccountAcquisition*account)noexcept{
+#ifndef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+ (void)account;accountproof::SourceOutcome out;out.local=accountproof::SourceLocalFailure::InvalidChild;return out;
+#else
+ auto&s=state();accountproof::SourceOutcome out;
+ {std::lock_guard<std::mutex>l(s.mutex);
+  if(s.actor!=std::this_thread::get_id()||!account||impl_->account!=account||impl_->released){out.local=accountproof::SourceLocalFailure::InvalidChild;return out;}
+  ++s.activeCalls;}
+ accountproof::AuthFailure cause;
+ if(!account->isClosed())out.local=accountproof::SourceLocalFailure::NotClosed;
+ else{cause=account->firstFailure().sourceFailure;out=account->releaseClosed();}
+ {std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;if(!out.failed()){impl_->account=nullptr;++s.sourceSettled;if(!s.originalSourceCause.present&&cause.present)s.originalSourceCause=cause;}}
+ return out;
+#endif
+}
+Outcome startupOriginalNormalNativeBackend()noexcept{
+ auto&s=state();
+ {std::lock_guard<std::mutex>l(s.mutex);
+  if(s.entered)return fail(Failure::AlreadyStarted);
+  s.entered=true;s.actor=std::this_thread::get_id();++s.activeCalls;}
+#ifndef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+ {std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;s.first=fail(Failure::NotSupplied);return s.first;}
+#else
+ qualified::Profile profile;auto f=qualified::readOriginalNormalHostProfile(profile);
+ if(f.failed()){std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;s.first=f;return f;}
+ {std::lock_guard<std::mutex>l(s.mutex);if(s.retired||s.closed){--s.activeCalls;s.first=fail(Failure::Retired);return s.first;}}
+ try{
+  // This bounds launch metadata I/O only, never a Source authorization window.
+  auto result=current4launch::captureOriginalLaunch(current4launch::Role::NativeClient,
+   profile.independentlyExpectedImages,std::chrono::steady_clock::now()+std::chrono::seconds(10));
+  auto profileCurrent=qualified::assertOriginalNormalHostProfileCurrent();
+  std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;
+  s.holder=std::move(result.owner); // partial is adopted before paired failure
+  if(profileCurrent.failed()){s.first=profileCurrent;return s.first;}
+  if(result.failure!=current4launch::Failure::None||!s.holder){s.first=fail(Failure::StartupFailed);s.first.launchFailure=result.failure;return s.first;}
+  if(s.retired||s.closed||s.actor!=std::this_thread::get_id()){s.first=fail(Failure::Retired);return s.first;}
+  return{};
+ }catch(...){std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;s.first=fail(Failure::StartupFailed);return s.first;}
+#endif
+}
+BackendBorrow borrowOriginalNormalNativeBackend()noexcept{
+ auto&s=state();std::lock_guard<std::mutex>l(s.mutex);
+ if(!s.entered||!s.holder||s.first.failed())return{nullptr,s.first.failed()?s.first:fail(Failure::NotSupplied)};
+ if(s.actor!=std::this_thread::get_id())return{nullptr,fail(Failure::WrongActor)};
+ if(s.retired||s.closed)return{nullptr,fail(Failure::Retired)};
+ try{auto p=std::unique_ptr<OriginalBackendLoan>(new OriginalBackendLoan(std::make_unique<OriginalBackendLoan::Impl>()));++s.loans;return{std::move(p),{}};}
+ catch(...){return{nullptr,fail(Failure::StartupFailed)};}
+}
+AccountAcquisition acquireOriginalNormalSourceAccount(accountproof::OriginalEngineSource*source)noexcept{
+#ifndef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+ (void)source;AccountAcquisition out;out.failure=fail(Failure::NotSupplied);return out;
+#else
+ auto borrowed=borrowOriginalNormalNativeBackend();AccountAcquisition out;
+ out.backend=std::move(borrowed.owner);out.failure=borrowed.failure;if(!out.backend)return out;
+ auto&s=state();current4launch::OriginalLaunch*holder;
+ {std::lock_guard<std::mutex>l(s.mutex);holder=s.holder.get();++s.activeCalls;}
+ try{
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+  // Same process-held launch; the fresh broker and STOP sidecar are private
+  // one-use captures. No caller supplies their FD, image, Source tuple or App.
+  bool initialized;{std::lock_guard<std::mutex>l(s.mutex);initialized=bool(s.fresh)&&bool(s.stop);}
+  if(!initialized){
+   auto fresh=holder->takeFreshScopeBrokerOnce();auto stop=holder->takeFreshStopControlOnce();
+   std::lock_guard<std::mutex>l(s.mutex);s.fresh=std::move(fresh);s.stop=std::move(stop);
+  }
+  if(s.fresh&&s.stop){auto acquired=s.fresh->acquire(source);out.account=acquired.account;out.failure.freshFailure=acquired.failure;out.backend->impl_->scope=acquired.scope;
+   out.freshScope=acquired.scope;out.freshLocalStatus=acquired.status;out.freshReason=acquired.reason;out.freshReceiverFailure=acquired.receiverFailure;out.freshUnknown=acquired.unknown;}
+  else out.failure=fail(Failure::NotSupplied);
+#else
+  out.account=holder->acquireSourceBoundAccount(source);
+#endif
+ }
+ catch(...){out.failure=fail(Failure::StartupFailed);}
+ {std::lock_guard<std::mutex>l(s.mutex);out.backend->impl_->account=out.account.owner;if(out.account.owner)++s.sourceAcquired;--s.activeCalls;
+  if(s.retired||s.closed||s.actor!=std::this_thread::get_id())out.failure.failure=Failure::Retired;}
+ if(out.failure.failure==Failure::Retired&&out.account.owner)out.account.owner->retire();
+ return out;
+#endif
+}
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+freshscope::QueryResult OriginalBackendLoan::freshScopeStatus()noexcept{
+ auto&s=state();freshscope::FreshScopeBroker*broker;uint64_t scope;
+ {std::lock_guard<std::mutex>l(s.mutex);
+  if(s.actor!=std::this_thread::get_id())return{0,0,0,{},freshscope::Failure::WrongActor};
+  if(impl_->released||!impl_->scope||!s.fresh)return{0,0,0,{},freshscope::Failure::Retired};
+  broker=s.fresh.get();scope=impl_->scope;++s.activeCalls;}
+ auto out=broker->query(scope);{std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;}return out;
+}
+#endif
+Outcome retireOriginalNormalNativeBackend()noexcept{
+ auto&s=state();{std::lock_guard<std::mutex>l(s.mutex);s.retired=true;}
+#ifdef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+ return qualified::retireOriginalNormalHostProfile();
+#else
+ return{};
+#endif
+}
+Outcome closeOriginalNormalNativeBackend()noexcept{
+ auto&s=state();std::lock_guard<std::mutex>l(s.mutex);
+ if(s.actor!=std::this_thread::get_id())return fail(Failure::WrongActor);
+ s.retired=true;if(s.loans||s.activeCalls)return fail(Failure::Pending);
+ bool freshSettled=false;
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+ if(s.fresh){auto d=s.fresh->close();if(!d.localComplete)return fail(Failure::Pending);freshSettled=true;}
+ if(s.stop){auto d=s.stop->close();if(!d.localComplete)return fail(Failure::Pending);}
+#endif
+ if(s.holder){auto d=s.holder->closeLocal();
+  // This backend never exposes/takes Current4. Only its Source acquisition
+  // transferred account/control custody. Its exact typed release above has
+  // proved both physical endpoint copies closed before settling that debt.
+  if(!d.physicalComplete&&!((s.sourceSettled||freshSettled)&&s.sourceAcquired==s.sourceSettled&&d.endpointTransferred&&d.first==current4launch::Failure::None))return fail(Failure::Pending);
+  s.holder.reset();}
+#ifdef YNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST
+ auto profileClosed=qualified::closeOriginalNormalHostProfile();
+ if(profileClosed.failure==Failure::Pending)return profileClosed;
+ s.closed=true;return profileClosed;
+#else
+ s.closed=true;return{};
+#endif
+}
+#ifdef YNX_NETWORK_FRESH_SCOPE_BROKER
+struct OriginalBackendStopAccess{
+ static freshscope::Failure ack(freshscope::OriginalFreshStopControl&control,const freshscope::FreshScopeBroker&broker,accountproof::AuthFailure cause){return control.acknowledge(broker,cause);}
+};
+#endif
+FreshStopObservation pollOriginalFreshStop(current4launch::Deadline until)noexcept{
+#ifndef YNX_NETWORK_FRESH_SCOPE_BROKER
+ (void)until;return{false,fail(Failure::NotSupplied)};
+#else
+ auto&s=state();freshscope::FreshScopeBroker*broker;freshscope::OriginalFreshStopControl*stop;
+ {
+  std::lock_guard<std::mutex>l(s.mutex);if(s.actor!=std::this_thread::get_id())return{false,fail(Failure::WrongActor)};
+  if(!s.holder||s.closed||s.freshInitializing)return{false,fail(Failure::Pending)};
+  ++s.activeCalls;s.freshInitializing=true;
+ }
+ try{
+  if(!s.fresh)s.fresh=s.holder->takeFreshScopeBrokerOnce();
+  if(!s.stop)s.stop=s.holder->takeFreshStopControlOnce();
+ }catch(...){std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;s.freshInitializing=false;return{false,fail(Failure::StartupFailed)};}
+ {std::lock_guard<std::mutex>l(s.mutex);broker=s.fresh.get();stop=s.stop.get();s.freshInitializing=false;}
+ FreshStopObservation out;
+ if(!broker||!stop)out.failure=fail(Failure::NotSupplied);
+ else{auto observation=stop->poll(until);out.requested=observation.requested;out.failure.freshFailure=observation.failure;
+  if(out.requested||out.failure.failed()){{std::lock_guard<std::mutex>l(s.mutex);s.retired=true;}broker->retire();}}
+ {std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;}return out;
+#endif
+}
+Outcome acknowledgeOriginalFreshStop()noexcept{
+#ifndef YNX_NETWORK_FRESH_SCOPE_BROKER
+ return fail(Failure::NotSupplied);
+#else
+ auto&s=state();freshscope::FreshScopeBroker*broker;freshscope::OriginalFreshStopControl*stop;accountproof::AuthFailure cause;
+ {std::lock_guard<std::mutex>l(s.mutex);
+  if(s.actor!=std::this_thread::get_id())return fail(Failure::WrongActor);
+  if(!s.retired||s.loans||s.activeCalls||s.sourceAcquired!=s.sourceSettled||!s.fresh||!s.stop)return fail(Failure::Pending);
+  broker=s.fresh.get();stop=s.stop.get();cause=s.originalSourceCause;++s.activeCalls;}
+ Outcome out;out.freshFailure=OriginalBackendStopAccess::ack(*stop,*broker,cause);
+ {std::lock_guard<std::mutex>l(s.mutex);--s.activeCalls;}return out;
+#endif
+}
+}

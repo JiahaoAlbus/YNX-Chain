@@ -894,7 +894,11 @@
     "native/original-server-tls-source-contract.mjs",
     "native/original-server-tls-source-contract.d.mts",
     "native/original-server-tls-source-qualification-runner.mjs",
-    "docs/server-tls-sdk-intake.md"
+    "docs/server-tls-sdk-intake.md",
+    "native/SourceParentManagerProfileDATA.h",
+    "native/source-parent/",
+    "go/sourceparentprofile/",
+    "docs/sourceparent-formal-normal-integration.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
