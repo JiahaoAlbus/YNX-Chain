@@ -1,0 +1,32 @@
+name: Wallet WPR public materializer DATA
+on:
+  push:
+    branches: [codex/wallet-auth49-wpr-materializer-20261107]
+    paths:
+      - packages/wallet-auth/src/original-wallet-product-materializer-data.js
+      - packages/wallet-auth/src/original-wallet-product-materializer-data.d.ts
+      - packages/wallet-auth/src/original-auth-source-issuance-approval-data.js
+      - packages/wallet-auth/src/original-auth-source-issuance-v2.js
+      - packages/wallet-auth/scripts/ynx-wallet-product-public-materialize.mjs
+      - packages/wallet-auth/test/wpr-materializer*
+      - packages/wallet-auth/scripts/ci/wpr-public-materializer.mjs
+      - .github/workflows/wallet-wpr-public-materializer.yml
+permissions:
+  contents: read
+jobs:
+  public-data:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node packages/wallet-auth/scripts/ci/wpr-public-materializer.mjs
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wallet-auth49-wpr-public-materializer-source
+          path: canonical-common-source-package
+          if-no-files-found: error
