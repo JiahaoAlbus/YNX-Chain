@@ -114,6 +114,20 @@ func run() (runErr error) {
 	if err != nil {
 		return err
 	}
+	shutdownTimeout := envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second)
+	if !fixtureAuth {
+		// Private finite3 receiver is independent of public/V6 routing. Adopt
+		// even an unavailable partial and drain it before borrowed task Sources.
+		resource, resourceErr := aiproduct.OpenOriginalTaskReadReceiver(context.Background(), server)
+		if resource != nil {
+			defer func() { runErr = errors.Join(runErr, closeOriginalTaskReadReceiver(resource, shutdownTimeout)) }()
+		}
+		if resourceErr != nil {
+			log.Printf("YNX AI original task read receiver unavailable: %v", resourceErr)
+		} else if resource != nil && resource.NewEffectsUnavailable() != nil {
+			log.Printf("YNX AI original task read receiver holds original query only: %v", resource.NewEffectsUnavailable())
+		}
+	}
 	// Retain even a partial original owner: unavailable registration must fail
 	// V6 requests closed while the existing service remains accessible.
 	v6, v6Err := taskv6.OpenOriginalAITaskActionServerV6(server)
@@ -123,11 +137,22 @@ func run() (runErr error) {
 	if v6Err != nil {
 		log.Printf("YNX AI V6 runtime unavailable: %v", v6Err)
 	}
-	shutdownTimeout := envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second)
 	defer func() { runErr = errors.Join(runErr, closeOriginalTaskV6(v6, shutdownTimeout)) }()
 	srv := &http.Server{Addr: *httpAddr, Handler: v6.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX AI client listening on http://%s; provider responses remain Gateway-backed only", *httpAddr)
 	return httpdrain.ListenAndServe(srv, shutdownTimeout)
+}
+
+func closeOriginalTaskReadReceiver(owner *aiproduct.OriginalTaskReadReceiver, timeout time.Duration) error {
+	if owner == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	retireErr := owner.Retire()
+	joinErr := owner.Join(ctx)
+	closeErr := owner.Close()
+	return errors.Join(retireErr, joinErr, closeErr)
 }
 
 // HTTP draining returns before the original same-request sources are retired.

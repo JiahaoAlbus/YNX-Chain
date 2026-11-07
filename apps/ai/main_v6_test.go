@@ -110,3 +110,36 @@ func TestNormalV6FailedAcquisitionPartialCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestNormalReadReceiverMissingRegistrationLifecycle(t *testing.T) {
+	state := filepath.Join(t.TempDir(), "PUBLIC-read-receiver.json")
+	store, err := aiproduct.NewStore(state, bytes.Repeat([]byte{0x19}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	web, err := fs.Sub(assets, "web")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := aiproduct.NewServer(aiproduct.Config{GatewayURL: "http://127.0.0.1:1", GatewayKey: "PUBLIC-no-provider-key", ExactWalletCallback: "ynxai://wallet-auth/callback"}, store, web)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner, openErr := aiproduct.OpenOriginalTaskReadReceiver(context.Background(), server)
+	if owner == nil || openErr == nil {
+		t.Fatal("missing original Source created a receiver")
+	}
+	for round := 0; round < 2; round++ {
+		if err := closeOriginalTaskReadReceiver(owner, time.Second); err != nil {
+			t.Fatal(err)
+		}
+	}
+	after, err := os.ReadFile(state)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("unavailable mount altered original Store")
+	}
+}
