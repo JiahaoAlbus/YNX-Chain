@@ -2,6 +2,7 @@
 #import <Foundation/Foundation.h>
 #include "original-private-terminal-recovery.h"
 #include <node_api.h>
+#include "desktop-grant-native-private.h"
 #import "original-private-service-channel.h"
 #include "original-private-service-channel.mm"
 #include <unordered_set>
@@ -672,6 +673,7 @@ static napi_value Register(napi_env env,napi_value exports){
  if(!RegisterOriginalPQTransaction(env,exports))return nullptr;
 #endif
  if(YNXInstallWPRMaterializationLoanV1(env,exports)!=napi_ok)return nullptr;
+ RegisterOriginalTaskGrantAuthorityBackendV1(env,exports);
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }
 NAPI_MODULE(NODE_GYP_MODULE_NAME,Register)

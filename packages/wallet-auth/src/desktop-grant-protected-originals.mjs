@@ -1,0 +1,20 @@
+// Mechanical public-original FD custody, not Root/proof/permission by itself.
+import fs from'node:fs';import path from'node:path';import{createHash}from'node:crypto';
+const F=fs.constants,sha=b=>createHash('sha256').update(b).digest('hex'),fail=c=>{throw Object.assign(Error(c),{code:c})};
+const same=(a,b)=>['dev','ino','uid','gid','mode',...(a.isDirectory()?[]:['nlink','size','mtimeMs','ctimeMs'])].every(k=>a[k]===b[k]);
+export class OriginalProtectedSourceFiles{
+ #files=[];#retired=false;#closed=false;#first;#closeFirst;#originalReadMode=false;
+ holdOriginal(ref,cap){if(Object.keys(ref??{}).sort().join('|')!=='path')return this.hold(ref,cap);const stat=fs.lstatSync(ref.path);if(!stat.isFile()||stat.isSymbolicLink()||stat.uid!==0||stat.nlink!==1||(stat.mode&0o022)||stat.size<1||stat.size>cap)fail('DESKTOP_SOURCE_DYNAMIC_ORIGINAL');this.#originalReadMode=true;try{return this.hold({path:ref.path,bytes:stat.size,sha256:null},cap)}finally{this.#originalReadMode=false}}
+ hold(ref,cap){if(this.#retired)fail('DESKTOP_SOURCE_FILES_RETIRED');if(!ref||Object.keys(ref).sort().join('|')!=='bytes|path|sha256'||!path.isAbsolute(ref.path)||path.resolve(ref.path)!==ref.path||!(this.#originalReadMode&&ref.sha256===null)&&!/^[a-f0-9]{64}$/.test(ref.sha256)||!Number.isSafeInteger(ref.bytes)||ref.bytes<1||ref.bytes>cap)fail('DESKTOP_SOURCE_FILE_REF');
+  const h={ref:{...ref},file:null,parents:[],selected:false,ambiguous:false,stat:null};this.#files.push(h);
+  for(let p=path.dirname(ref.path);;p=path.dirname(p)){const stat=fs.lstatSync(p);if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==0||(stat.mode&0o022))fail('DESKTOP_SOURCE_PARENT');const fd=fs.openSync(p,(process.platform==='linux'?0x200000:F.O_RDONLY)|F.O_DIRECTORY|F.O_NOFOLLOW|F.O_CLOEXEC);h.parents.push({path:p,stat,fd,selected:false});if(!same(stat,fs.fstatSync(fd)))fail('DESKTOP_SOURCE_PARENT_CHANGED');if(p==='/')break}
+  const before=fs.lstatSync(ref.path);if(!before.isFile()||before.isSymbolicLink()||before.uid!==0||(before.mode&0o022)||before.nlink!==1||before.size!==ref.bytes||fs.realpathSync(ref.path)!==ref.path)fail('DESKTOP_SOURCE_FILE');h.file=fs.openSync(ref.path,F.O_RDONLY|F.O_NOFOLLOW|F.O_NONBLOCK|F.O_CLOEXEC);h.stat=before;const raw=this.#read(h);this.current();return raw;
+ }
+ #read(h){if(h.file===null||h.selected||h.ambiguous)fail('DESKTOP_SOURCE_FILE_CLOSED');const raw=Buffer.alloc(h.ref.bytes+1);let count=0;while(count<raw.length){const n=fs.readSync(h.file,raw,count,raw.length-count,count);if(!n)break;count+=n}if(h.ref.sha256===null)h.ref.sha256=sha(raw.subarray(0,count));if(count!==h.ref.bytes||sha(raw.subarray(0,count))!==h.ref.sha256)fail('DESKTOP_SOURCE_HASH');return raw.subarray(0,count)}
+ current(){if(this.#retired||this.#closed)fail('DESKTOP_SOURCE_FILES_RETIRED');for(const h of this.#files){if(!h.stat||h.file===null||!same(h.stat,fs.fstatSync(h.file))||!same(h.stat,fs.lstatSync(h.ref.path))||fs.realpathSync(h.ref.path)!==h.ref.path)fail('DESKTOP_SOURCE_CHANGED');for(const p of h.parents)if(p.selected||!same(p.stat,fs.fstatSync(p.fd))||!same(p.stat,fs.lstatSync(p.path)))fail('DESKTOP_SOURCE_PARENT_CHANGED');if(!same(h.stat,fs.fstatSync(h.file))||!same(h.stat,fs.lstatSync(h.ref.path)))fail('DESKTOP_SOURCE_POST_CHANGED')}}
+ verifyOriginalBytes(){this.current();for(const h of this.#files)this.#read(h);this.current()}
+ retire(){this.#retired=true}
+ close(){this.#retired=true;if(this.#closeFirst)throw this.#closeFirst.cause;if(this.#closed)return;try{for(const h of this.#files.slice().reverse()){if(h.ambiguous)fail('DESKTOP_SOURCE_CLOSE_UNKNOWN');if(h.file!==null){if(h.selected)fail('DESKTOP_SOURCE_CLOSE_UNKNOWN');h.selected=true;try{fs.closeSync(h.file);h.file=null}catch(e){h.ambiguous=true;throw e}}for(const p of h.parents){if(p.selected)continue;p.selected=true;fs.closeSync(p.fd)}}this.#closed=true}catch(cause){this.#closeFirst={cause};throw cause}}
+ isClosed(){return this.#closed}
+}
+Object.freeze(OriginalProtectedSourceFiles.prototype);Object.freeze(OriginalProtectedSourceFiles);
