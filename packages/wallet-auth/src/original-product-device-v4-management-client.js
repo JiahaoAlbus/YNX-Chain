@@ -88,7 +88,7 @@ export function openOriginalProductSessionDeviceV4ManagementClient(...args){
    if(arguments.length!==2)fail('DEVICE_MANAGEMENT_RESPONSE_ARGUMENTS');
    if(proofHandles.get(handle)!==identity)fail('DEVICE_MANAGEMENT_PROOF_HANDLE_REQUIRED');
    alive();if(!responseSelection||proofData?.signatureMathVerified!==true||proofData?.independentRegisteredOriginalsMatched!==true)fail('DEVICE_MANAGEMENT_VERIFIED_PROOF_REQUIRED');
-   try{const raw=bytes(actualResponseOriginal);if(responseOriginal&&!sameBytes(raw,responseOriginal))fail('DEVICE_MANAGEMENT_RESPONSE_ORIGINAL_CHANGED');if(!responseOriginal)responseOriginal=raw;assertSync();assertOriginalsUnchanged();const result=decodeProductSessionManagementV4ResponseDATA(responseOriginal,responseSelection);assertSync();assertOriginalsUnchanged();responseData=result;return result;}catch(cause){latch(cause);throw cause;}
+   try{const raw=bytes(actualResponseOriginal);if(responseOriginal&&!sameBytes(raw,responseOriginal))fail('DEVICE_MANAGEMENT_RESPONSE_ORIGINAL_CHANGED');if(!responseOriginal)responseOriginal=raw;assertSync();alive();context(ctx);assertOriginalsUnchanged();alive();context(ctx);const result=decodeProductSessionManagementV4ResponseDATA(responseOriginal,responseSelection);assertSync();alive();context(ctx);assertOriginalsUnchanged();alive();context(ctx);responseData=result;return result;}catch(cause){latch(cause);throw cause;}
   },
   readRetainedResponseOriginalDATA(handle){if(arguments.length!==1)fail('DEVICE_MANAGEMENT_RESPONSE_ARGUMENTS');if(proofHandles.get(handle)!==identity)fail('DEVICE_MANAGEMENT_PROOF_HANDLE_REQUIRED');return responseOriginal?bytes(responseOriginal):null;},
   retire(){retired=true;},
