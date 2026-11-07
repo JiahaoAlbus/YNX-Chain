@@ -4,9 +4,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {CORE19_C2_BINDING} from './combined-supply-profile.mjs';
+import {CORE19_C2_BINDING, CORE_SUPPLY_PROFILES} from './combined-supply-profile.mjs';
 import {validateObserverHandoff, parseOriginalProducerArgs, verifyFileInventory, verifyGeneratedCoreHeader,
-  makeIncrementalGoPlan, extractOriginalSDK, validateContinuationMode, continuationReceiptState, createOwnedSuffixOutput, verifyNewGoEnvironment} from './retained-suffix.mjs';
+  makeIncrementalGoPlan, extractOriginalSDK, validateContinuationMode, continuationReceiptState, createOwnedSuffixOutput, verifyNewGoEnvironment, selectOriginalGoToolchain, qualifyOriginalGoToolchain,
+  ORIGINAL_GO_TOOLCHAIN_PINS, PRIOR_SUFFIX_PIN, RETAINED_OBSERVER_PIN, verifyPriorStaticReadback} from './retained-suffix.mjs';
 
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const blob = bytes => createHash('sha1').update(Buffer.from('blob ' + bytes.length + '\0')).update(bytes).digest('hex');
@@ -115,7 +116,7 @@ test('retained suffix generated header requires all original Core declarations o
 test('retained suffix incremental plan is one nonexecuted same-source same-cache command with real x/work logs', () => {
   const input = incremental(), before = structuredClone(input), plan = makeIncrementalGoPlan(input);
   assert.deepEqual(input, before);
-  assert.equal(plan.command, 'go'); assert.equal(plan.cwd, '/PUBLIC/original/source'); assert.equal(plan.env.GOCACHE, '/PUBLIC/original/go-cache');
+  assert.equal(plan.command, '/PUBLIC/modcache/golang.org/toolchain@v0.0.1-go1.26.10.darwin-arm64/bin/go'); assert.equal(plan.cwd, '/PUBLIC/original/source'); assert.equal(plan.env.GOCACHE, '/PUBLIC/original/go-cache');
   assert.equal(plan.args.filter(word => word === 'build').length, 1);
   for (const word of ['-x', '-work', '-mod=readonly', '-trimpath', '-buildmode=c-archive']) assert.ok(plan.args.includes(word));
   for (const word of ['-a', 'clean', '-test', '-race']) assert.equal(plan.args.includes(word), false);
@@ -175,12 +176,91 @@ test('retained suffix refuses symlink output parent before any old-root mutation
 test('retained suffix checks new actual Go environment and prevents automatic toolchain succession', () => {
   const input = incremental(), plan = makeIncrementalGoPlan(input);
   assert.equal(plan.env.GOTOOLCHAIN, 'local');
-  const probe = {...input.originalEnv, GOTOOLCHAIN: 'local'};
+  const probe = {...input.originalEnv, GOTOOLCHAIN: 'local', GOROOT: plan.env.GOROOT};
   assert.equal(verifyNewGoEnvironment(probe, input.originalEnv, plan).actualGoProbeMatchedOriginal, true);
   for (const key of ['GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE',
-    'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOTOOLCHAIN']) {
+    'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOTOOLCHAIN', 'GOROOT']) {
     assert.throws(() => verifyNewGoEnvironment({...probe, [key]: 'PUBLIC altered'}, input.originalEnv, plan));
   }
   const parsed = {...probe, ...Object.fromEntries(['CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, plan.env[key]]))};
   assert.equal(verifyNewGoEnvironment(parsed, input.originalEnv, plan).originalGOTOOLCHAINClaimed, false);
+});
+
+
+test('r2 original toolchain selection pins cached absolute1.26.10 and ignores PATH', () => {
+  const env = originalEnvironment(), selection = selectOriginalGoToolchain(env);
+  assert.equal(selection.root, '/PUBLIC/modcache/golang.org/toolchain@v0.0.1-go1.26.10.darwin-arm64');
+  assert.equal(selection.command, selection.root + '/bin/go');
+  assert.equal(selection.versionFile, selection.root + '/VERSION');
+  const input = incremental(); input.preEnv.PATH = '/PUBLIC/old-go1.25/bin:/usr/bin';
+  const plan = makeIncrementalGoPlan(input);
+  assert.equal(plan.command, selection.command); assert.equal(plan.env.GOROOT, selection.root); assert.equal(plan.env.GOTOOLCHAIN, 'local');
+  assert.equal(plan.env.PATH, input.preEnv.PATH); // This no longer chooses the executable.
+  for (const change of [{GOVERSION: 'go1.25.7'}, {GOVERSION: 'go1.26.11'}, {GOOS: 'linux'}, {GOARCH: 'amd64'},
+    {GOMODCACHE: 'relative'}, {GOMODCACHE: '/PUBLIC/elsewhere/../modcache'}]) assert.throws(() => selectOriginalGoToolchain({...env, ...change}));
+});
+
+test('r2 actual toolchain qualification refuses substituted executable VERSION owner mode or root', () => {
+  const selection = selectOriginalGoToolchain(originalEnvironment());
+  const observed = () => ({rootRealPath: selection.root, executable: {path: selection.command, ...ORIGINAL_GO_TOOLCHAIN_PINS.executable},
+    version: {path: selection.versionFile, ...ORIGINAL_GO_TOOLCHAIN_PINS.version}, uid: process.getuid(), versionUID: process.getuid(),
+    mode: 0o555, regular: true, versionRegular: true, versionText: 'go1.26.10\ntime 2026-10-19T22:20:36Z\n'});
+  assert.equal(qualifyOriginalGoToolchain(selection, observed()).versionFirstLine, 'go1.26.10');
+  for (const change of [
+    x => {x.executable.sha256 = 'f'.repeat(64);}, x => {x.executable.bytes++;}, x => {x.version.sha256 = 'f'.repeat(64);},
+    x => {x.versionText = 'go1.25.7\n';}, x => {x.mode = 0o444;}, x => {x.uid++;}, x => {x.versionUID++;},
+    x => {x.regular = false;}, x => {x.versionRegular = false;}, x => {x.rootRealPath = '/PUBLIC/symlink-target';},
+    x => {x.executable.path = '/PUBLIC/PATH/go';}, x => {x.version.path = '/PUBLIC/VERSION';},
+  ]) {const bad = observed(); change(bad); assert.throws(() => qualifyOriginalGoToolchain(selection, bad));}
+});
+
+// Synthetic metadata only. Runtime accepts these subjects only after validating
+// the actual fixed prior H SHA, its exact report pins and fresh current bytes.
+function priorReadbackFixture() {
+  const selected = CORE_SUPPLY_PROFILES.find(row => row.id === CORE19_C2_BINDING.id);
+  const archive = observer().partialArchive, generatedHeader = observer().partialHeader;
+  const sourceRows = Array.from({length: 1623}, (_, i) => ({repositoryPath: 'PUBLIC/' + i, path: '/PUBLIC/original/source/' + i, bytes: 1, sha256: 'a'.repeat(64)}));
+  const headers = Array.from({length: 23}, (_, i) => ({repositoryPath: i + '.h', path: '/PUBLIC/original/include/' + i + '.h', bytes: 1, sha256: 'b'.repeat(64)}));
+  const inputs = Object.fromEntries(Object.entries(CORE19_C2_BINDING.inputs).map(([key, pin]) => [key, {descriptor: {...pin, path: '/PUBLIC/inputs/' + key}}]));
+  const symbols = {version: 1, status: 'COMBINED_GO_ARCHIVE_STRONG_SYMBOLS_VERIFIED', goArchives: [archive], coreExports: selected.symbols,
+    linkExports: Array.from({length: 22}, (_, i) => 'PUBLIC_LINK_' + i), productExports: Array.from({length: 8}, (_, i) => 'PUBLIC_PRODUCT_' + i), symbols: Array(49)};
+  const neutralC = CORE19_C2_BINDING.neutralCSymbols.map(symbol => ({symbol, type: 'T'}));
+  const deployment = {status: 'ARCHIVE_DEPLOYMENT_TARGET_VERIFIED', archive, target: '13.0', architecture: 'arm64', objectCount: 42,
+    verifiedObjects: 42, rejectedObjects: 0, unverifiableObjects: 0};
+  const retained = {descriptor: {path: '/PUBLIC/RETAINED.json'}, value: {schema: 'YNX-RETAINED-COMBINED49-SUFFIX-READBACK/v1',
+    originalGoExit: 'UNKNOWN', goBuildInvocations: 0, incrementalGoExecuted: false, archive, generatedHeader,
+    originalObserver: {...RETAINED_OBSERVER_PIN}, intake: {profile: selected.id, originalPinnedInputs: Object.fromEntries(Object.entries(inputs).map(([key, input]) => [key, input.descriptor]))},
+    source: sourceRows, headers, symbols, neutralC, deployment, sourcePostVerified: false}};
+  const handoff = {descriptor: {...PRIOR_SUFFIX_PIN, path: '/PUBLIC/PRIOR-H.json'}, value: {schema: 'YNX-ORIGINAL-A-RETAINED49-LOCAL-GO-PROBE-FIRSTCAUSE/v1',
+    state: 'FAILED_BEFORE_NEW_GO_BUILD_PROBE_GOVERSION_MISMATCH', actualGoBuildInvocations: 0, originalGoExit: 'UNKNOWN', normalReaderExit: 1,
+    originalArchive: archive, originalHeader: generatedHeader, observedStaticReadbackOnly: {symbols, neutralC, deployment}}};
+  const reports = Object.fromEntries(Object.entries({symbols, neutralC, deployment}).map(([key, value]) => [key, {descriptor: {path: '/PUBLIC/' + key + '.json'}, value}]));
+  return {prior: structuredClone({handoff, retained, reports}), current: structuredClone({archive, generatedHeader, selected, inputs, sourceRows, headers})};
+}
+function verifyPriorFixture(f) {
+  f.current.selected = CORE_SUPPLY_PROFILES.find(row => row.id === CORE19_C2_BINDING.id); // Restore approved immutable object identity.
+  return verifyPriorStaticReadback(f.prior, f.current);
+}
+
+test('r2 fixed prior readback reuse keeps failed Go UNKNOWN and binds source headers all7inputs', () => {
+  const f = priorReadbackFixture(), result = verifyPriorFixture(f);
+  assert.equal(result.provenance.newNmOrDeploymentRun, false); assert.equal(result.provenance.priorGoExit, 'UNKNOWN');
+  assert.equal(result.provenance.priorSourcePostVerified, false); assert.equal(result.provenance.currentSourceHeadersAndInputsVerifiedBeforeReuse, true);
+  assert.equal(result.neutralC.length, 10); assert.equal(result.deployment.verifiedObjects, 42); assert.equal(result.symbols.symbols.length, 49);
+});
+
+test('r2 fixed prior readback refuses wrong H artifact profile report source header or input bindings', () => {
+  for (const change of [
+    f => {f.prior.handoff.descriptor.sha256 = 'f'.repeat(64);},
+    f => {f.prior.handoff.value.actualGoBuildInvocations = 1;}, f => {f.prior.handoff.value.originalGoExit = '0';},
+    f => {f.current.archive = {...f.current.archive, sha256: 'f'.repeat(64)};},
+    f => {f.current.generatedHeader = {...f.current.generatedHeader, sha256: 'f'.repeat(64)};},
+    f => {f.prior.retained.value.intake.profile = 'core19/49';},
+    f => {f.current.inputs.source.descriptor = {...f.current.inputs.source.descriptor, sha256: 'f'.repeat(64)};},
+    f => {f.current.sourceRows = [...f.current.sourceRows.slice(1)];},
+    f => {f.current.sourceRows[0] = {...f.current.sourceRows[0], sha256: 'f'.repeat(64)};},
+    f => {f.current.headers[0] = {...f.current.headers[0], sha256: 'f'.repeat(64)};},
+    f => {f.prior.reports.neutralC.value = f.prior.reports.neutralC.value.slice(1);},
+    f => {f.prior.reports.deployment.value = {...f.prior.reports.deployment.value, target: '27.2'};},
+  ]) {const f = priorReadbackFixture(); change(f); assert.throws(() => verifyPriorFixture(f));}
 });
