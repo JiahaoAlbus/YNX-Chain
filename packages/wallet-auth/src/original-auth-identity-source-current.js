@@ -182,3 +182,21 @@ export async function loadOriginalPublicationApprovalIssuer(){
  // approved namespace is missing. A separate protected capture owns writes.
  const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216),true),service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
 }
+
+// Separate Social V4 family. Do not borrow the developer purpose/project profile
+// or reconstruct a Host credential from a response DTO. Only the existing
+// release-selected service inventory may dispatch to its owned protected body.
+export function assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service){
+ if(!services.has(service)||typeof service.assertSocialDeviceDirectoryPrincipalPurposeV4!=='function'||typeof service.existingSocialDeviceDirectoryPrincipalV4!=='function'||typeof service.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4!=='function')fail('SOCIAL_DIRECTORY_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ service.assertSocialDeviceDirectoryPrincipalPurposeV4();
+}
+export async function handleOriginalSocialDeviceDirectoryPrincipalCurrentV4(service,credential){
+ assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service);
+ // Host adopts the raw original result before its synchronous delivery fence.
+ // The body retains its own partial as usual if it throws before returning.
+ return await service.existingSocialDeviceDirectoryPrincipalV4(credential);
+}
+
+// Private response hold stays inside the same release-selected service inventory.
+export function assertOriginalSocialDirectoryResponseLoanSourceV4(service){assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service);if(typeof service.retainOriginalSocialDeviceDirectoryPrincipalResponseV4!=='function')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_SOURCE_NOT_SUPPLIED');}
+export async function retainOriginalSocialDirectoryResponseLoanV4(service,credential,sameResult){assertOriginalSocialDirectoryResponseLoanSourceV4(service);return await service.retainOriginalSocialDeviceDirectoryPrincipalResponseV4(credential,sameResult);}

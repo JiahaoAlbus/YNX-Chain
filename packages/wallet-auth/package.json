@@ -834,7 +834,13 @@
     "native/social-principal-stdio-v1/codec.d.mts",
     "native/social-principal-stdio-v1/codec.go",
     "native/social-principal-stdio-v1/go.mod",
-    "native/social-principal-stdio-v1/IDL.json"
+    "native/social-principal-stdio-v1/IDL.json",
+    "native/social-directory-lc-v1/codec.mjs",
+    "native/social-directory-lc-v1/codec.d.mts",
+    "native/social-directory-lc-v1/codec.go",
+    "native/social-directory-lc-v1/go.mod",
+    "native/social-directory-lc-v1/IDL.json",
+    "native/social-directory-lc-v1/testdata/vectors.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
