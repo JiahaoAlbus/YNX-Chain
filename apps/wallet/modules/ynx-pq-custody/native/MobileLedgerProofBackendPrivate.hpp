@@ -2,46 +2,58 @@
 #include <cstdint>
 #include <string>
 #include <vector>
-/* PRIVATE same-image C++ contract proposal for the original Core and sole SDK
- * owners. No new C20 export/algorithm/archive/JS API. DATA structs below are
- * not constructible authority. Only recognized opaque native owners qualify.
- * Version/field spellings to be frozen by sole SDK with Core implementation. */
+#include <optional>
+// PRIVATE same-image binding of Core f77a original Go sealed reader. This is
+// NOT C20/new crypto/a public provider, or a constructor from detached DATA.
 namespace ynx::auth::mobile::receipt {struct OriginalEngineSource;}
 namespace ynx::core::mobile::registered {
-struct CommittedAccountProof; // Core inventory ONLY; never subclass/new/JSON.
+struct CommittedAccountProof; // private inventory: actual owning host reader
 struct Failure {bool present=false;int32_t code=0;};
+struct ReadResult {bool ready=false;Failure failure;bool notReady=false;Failure pendingCause{};};
 using Bytes=std::vector<uint8_t>;
+struct Checkpoint {std::string chainId;uint64_t height=0;Bytes fullAppHash;};
+struct Registration {
+ std::string algorithmVersion,owner;Bytes pkA,pkB;
+ uint64_t revision=0,registeredAt=0,activeFrom=0,ledgerNonce=0;
+};
+struct AccountView {
+ std::string owner;Bytes networkId;int64_t nativeChainID=0;
+ uint64_t committedHeight=0,executionHeight=0,ledgerNonce=0;
+ Bytes policyOriginal; // EXACT Core json.Marshal bytes, NEVER reordered/parsed as Source canonical
+ std::string committedAuthorizationStatus,authorizationStatus;
+ bool committedPQSigningEnabled=false,pqSigningEnabled=false;
+ std::optional<Registration>committedRegistration,executionRegistration;
+};
 struct CapturedPolicy {
- uint32_t version=1;
- std::string platform,engineReference,chainId,canonicalOwner;
- uint64_t height=0,originHeight=0,activeRevision=0,ledgerNonce=0;
- Bytes fullAppHash,policyOriginal,ledgerSealOriginal,pkA,pkB;
+ uint32_t version=2;std::string platform,engineReference;
+ Checkpoint proof;AccountView historicalAccount;
+ Bytes blockOriginal,successorOriginal; // existing Comet JSON LightBlocks, two originals
 };
 struct Continuation {
- uint32_t version=1;
- uint64_t capturedHeight=0,originHeight=0,currentEngineHeight=0;
- Bytes capturedAppHash,currentEngineAppHash,currentPolicyOriginal;
+ uint32_t version=2;Checkpoint captured,currentCheckpoint;AccountView currentAccount;
 };
 struct Acquisition {CommittedAccountProof*owner=nullptr;Failure failure;};
-/* Auth supplies ONLY a genuine recognized Root/Source-selected strong ctx.
- * Core queries Auth selection/current getters below, then its ORIGINAL native
- * engine. Never accept a caller checkpoint/path/JSON/current boolean. Capture
- * owns immutable H/policy/checkpoint and independently authenticates ledger
- * seal + actual H+1->H fullAppHash via existing Core proof/light machinery.
- * Source18/N1 mathematical validity alone is NOT a ledger seal. NotReady when
- * actual H has no H+1; do not select older/other checkpoint or retry/rebind. */
+// Root-selected OriginalEngineSource -> protected original host port -> SAME
+// actual *consensus.Application -> OpenPQCommittedAccountReader. No string
+// global App lookup, mathematical49 App fiction, Current4 socket, or CLI JSON.
+// The host must Origin().OwnedBy(actualApp), preserving original Source begin/wg.
 Acquisition acquireCommittedAccountProof(ynx::auth::mobile::receipt::OriginalEngineSource*)noexcept;
-Failure readCaptured(CommittedAccountProof*,CapturedPolicy&ownedPublicCopy)noexcept;
-/* Original handle keeps capture H fixed. Core continuation independently
- * re-observes actual engine/current policy and proves same capture seal. It
- * must not silently rebase H, renew Source window, or return an unsealed latest
- * DATA snapshot as current. No Store locks may be held across this operation. */
-Failure current(CommittedAccountProof*,Continuation&ownedPublicCopy)noexcept;
+// ready=false/failure.absent is ONLY Core ErrPQCommittedAccountNotReady.
+// SAME captured H/owner/deadline remains held; explicit later same-owner Read
+// is allowed. Do not recapture older H, renew, automatically retry or invent an
+// error number. Any other error keeps original failure presence/code.
+ReadResult readCaptured(CommittedAccountProof*,CapturedPolicy&ownedPublicCopy)noexcept;
+ReadResult current(CommittedAccountProof*,Continuation&ownedPublicCopy)noexcept;
+// The adapter obtains actual PQCommittedAccountProof.View/Origin, not a caller
+// View. Core verifies original H/H+1 dual AND and engine/App before/after fences.
+// Both AccountView records are original Core typed facts from its existing
+// policy decoder/TrustedRegistration. No invented top-level policy fields.
+// PolicyOriginal and Block/SuccessorOriginal remain exact byte originals.
 void retire(CommittedAccountProof*)noexcept;
 Failure join(CommittedAccountProof*)noexcept;
-Failure close(CommittedAccountProof*)noexcept; // selected once, sticky cause
-bool isClosed(CommittedAccountProof*)noexcept; // actual wg/child/physical drain
-Failure releaseClosed(CommittedAccountProof*)noexcept; // tombstone/no ABA
+Failure close(CommittedAccountProof*)noexcept;
+bool isClosed(CommittedAccountProof*)noexcept; // actual Close AND drained wg
+Failure releaseClosed(CommittedAccountProof*)noexcept;
 }
 namespace ynx::auth::mobile::receipt {
 struct EngineSelection {
@@ -49,10 +61,7 @@ struct EngineSelection {
  std::string platform,engineReference,chainId,canonicalOwner,sourceId,instanceId;
  uint64_t minimumHeight=0,deadlineMs=0;
 };
-/* ACTUAL Auth implementations use native inventory and separately reviewed
- * compiled Root row. Selection is DATA for Core's own engine lookup only;
- * these functions cannot create a Root ctx from a tuple, JS ref, or Native
- * account selector. Source Current may perform physical/public proof I/O. */
+// ACTUAL Auth implementations: genuine opaque Root/Source inventory only.
 ynx::core::mobile::registered::Failure readOriginalEngineSelection(OriginalEngineSource*,EngineSelection&)noexcept;
 ynx::core::mobile::registered::Failure originalEngineSourceCurrent(OriginalEngineSource*)noexcept;
 ynx::core::mobile::registered::Failure retainOriginalEngineSource(OriginalEngineSource*)noexcept;

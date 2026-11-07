@@ -5,7 +5,8 @@ namespace ynx::auth::mobile::receipt {
 class RegisteredAccountReceipt; // final owning Auth implementation, no public ctor
 struct ReceiptAcquisition {
  std::shared_ptr<RegisteredAccountReceipt>owner;
- ynx::core::mobile::registered::Failure failure;
+ ynx::core::mobile::registered::Failure failure;bool ready=false;
+ ynx::core::mobile::registered::Failure pendingCause{};
 };
 struct ReceiptDATA {
  uint32_t version=1;
@@ -17,8 +18,8 @@ struct ReceiptDATA {
 // ZERO-input pre-capture producer. It cannot call Native registered_account
 // acquire (that consumer will call this producer). No journal/slot/UI claim.
 ReceiptAcquisition acquireOriginalRegisteredAccountReceipt()noexcept;
-ynx::core::mobile::registered::Failure readOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&,ReceiptDATA&)noexcept;
-ynx::core::mobile::registered::Failure originalReceiptCurrent(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
+ynx::core::mobile::registered::ReadResult readOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&,ReceiptDATA&)noexcept;
+ynx::core::mobile::registered::ReadResult originalReceiptCurrent(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 void retireOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 ynx::core::mobile::registered::Failure joinOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 ynx::core::mobile::registered::Failure closeOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;

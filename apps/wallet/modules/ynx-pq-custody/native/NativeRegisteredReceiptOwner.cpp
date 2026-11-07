@@ -14,55 +14,83 @@ bool same(const ReceiptDATA&a,const ReceiptDATA&b){return a.version==b.version&&
 auto NativeRegisteredReceiptOwner::child()->std::shared_ptr<auth::RegisteredAccountReceipt>{std::lock_guard<std::mutex>lock(childMutex_);return receipt_;}
 Failure NativeRegisteredReceiptOwner::fail(Failure f)noexcept{if(f.present&&!first_.present)first_=f;requestRetire();return f;}
 void NativeRegisteredReceiptOwner::keepCleanup(Failure f)noexcept{if(f.present&&!cleanup_.present)cleanup_=f;}
-Failure NativeRegisteredReceiptOwner::acquire(std::shared_ptr<NativeRegisteredReceiptOwner>&out)noexcept{
- if(out)return {true,invalid};
+ReadResult NativeRegisteredReceiptOwner::acquire(std::shared_ptr<NativeRegisteredReceiptOwner>&out)noexcept{
+ if(out)return {false,{true,invalid}};
  try{
   auto owner=std::shared_ptr<NativeRegisteredReceiptOwner>(new NativeRegisteredReceiptOwner);
-  {std::lock_guard<std::mutex>lock(inventoryMutex);if(inventory.size()>=64)return {true,capacity};inventory.emplace(owner.get(),owner);out=owner;}
+  {std::lock_guard<std::mutex>lock(inventoryMutex);if(inventory.size()>=64)return {false,{true,capacity}};inventory.emplace(owner.get(),owner);out=owner;}
   auto acquired=auth::acquireOriginalRegisteredAccountReceipt();
   {std::lock_guard<std::mutex>lock(owner->childMutex_);owner->receipt_=std::move(acquired.owner);} // adopt BEFORE presence/code
-  if(acquired.failure.present)return owner->fail(acquired.failure);
-  auto receipt=owner->child();if(!receipt)return owner->fail({true,notSupplied});
-  if(owner->retired_.load())return owner->fail({true,retired});
-  auto failure=auth::originalReceiptCurrent(receipt);if(failure.present)return owner->fail(failure);
-  ReceiptDATA data;failure=auth::readOriginalReceipt(receipt,data);if(failure.present)return owner->fail(failure);
-  if(!shape(data))return owner->fail({true,invalid});
-  failure=auth::originalReceiptCurrent(receipt);if(failure.present)return owner->fail(failure);
-  if(owner->retired_.load())return owner->fail({true,retired});
-  owner->original_=std::move(data);owner->ready_=true;return {};
- }catch(...){return out?out->fail({true,notSupplied}):Failure{true,notSupplied};}
+  if(owner->retired_.load())owner->requestRetire();
+  if(acquired.failure.present)return {false,owner->fail(acquired.failure)};
+  auto receipt=owner->child();if(!receipt)return {false,owner->fail({true,notSupplied})};
+  if(owner->retired_.load())return {false,owner->fail({true,retired})};
+  if(!acquired.ready){owner->pendingCause_=acquired.pendingCause;return {false,{},true,acquired.pendingCause};}
+  auto state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,owner->fail(state.failure)};if(state.ready&&state.notReady)return {false,owner->fail({true,invalid})};
+  if(!state.ready){if(!state.notReady)return {false,owner->fail({true,invalid})};owner->pendingCause_=state.pendingCause;return state;}
+  ReceiptDATA data;state=auth::readOriginalReceipt(receipt,data);if(state.failure.present)return {false,owner->fail(state.failure)};
+  if(!state.ready){if(!state.notReady)return {false,owner->fail({true,invalid})};owner->pendingCause_=state.pendingCause;return state;}
+  if(state.notReady||!shape(data))return {false,owner->fail({true,invalid})};
+  state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,owner->fail(state.failure)};if(state.ready&&state.notReady)return {false,owner->fail({true,invalid})};
+  if(!state.ready){if(!state.notReady)return {false,owner->fail({true,invalid})};owner->pendingCause_=state.pendingCause;return state;}
+  if(owner->retired_.load())return {false,owner->fail({true,retired})};
+  owner->original_=std::move(data);owner->ready_=true;return {true,{}};
+ }catch(...){return {false,out?out->fail({true,notSupplied}):Failure{true,notSupplied}};}
 }
-Failure NativeRegisteredReceiptOwner::current()noexcept{
- if(actor_!=std::this_thread::get_id())return {true,wrongThread};
- if(!ready_||retired_.load()||closed_||released_)return {true,retired};
- try{auto receipt=child();if(!receipt)return fail({true,notSupplied});
-  auto failure=auth::originalReceiptCurrent(receipt);if(failure.present)return fail(failure);
-  ReceiptDATA now;failure=auth::readOriginalReceipt(receipt,now);if(failure.present)return fail(failure);
-  if(!shape(now)||!same(original_,now)||now.currentEngineHeight<original_.currentEngineHeight)return fail({true,changed});
-  failure=auth::originalReceiptCurrent(receipt);if(failure.present)return fail(failure);
-  if(retired_.load())return fail({true,retired});
-  original_.currentEngineHeight=now.currentEngineHeight;return {};
- }catch(...){return fail({true,notSupplied});}
+ReadResult NativeRegisteredReceiptOwner::resumeOriginalReceipt()noexcept{
+ if(actor_!=std::this_thread::get_id())return {false,{true,wrongThread}};
+ if(retired_.load()||closed_||released_)return {false,{true,retired}};
+ try{auto receipt=child();if(!receipt)return {false,fail({true,notSupplied})};
+  ReceiptDATA now;auto state=auth::readOriginalReceipt(receipt,now);if(state.failure.present)return {false,fail(state.failure)};
+  if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
+  if(state.notReady||!shape(now)||(ready_&&(!same(original_,now)||now.currentEngineHeight<original_.currentEngineHeight)))return {false,fail({true,changed})};
+  state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,fail(state.failure)};if(state.ready&&state.notReady)return {false,fail({true,invalid})};
+  if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
+  if(retired_.load())return {false,fail({true,retired})};
+  if(choiceObserved_){uint32_t row=1;auto rc=picker::wait(ticket_.load(),&row);if(rc||row!=0)return {false,fail({true,rc?rc:invalid})};selected_=true;}
+  original_=std::move(now);ready_=true;return {true,{}};
+ }catch(...){return {false,fail({true,notSupplied})};}
 }
-Failure NativeRegisteredReceiptOwner::selectOriginalAccount(uint32_t timeout)noexcept{
- auto status=current();if(status.present)return status;if(selected_||ticket_.load())return {true,invalid};
+ReadResult NativeRegisteredReceiptOwner::current()noexcept{
+ if(actor_!=std::this_thread::get_id())return {false,{true,wrongThread}};
+ if(retired_.load()||closed_||released_)return {false,{true,retired}};
+ if(!ready_)return {false,{},true,pendingCause_};
+ try{auto receipt=child();if(!receipt)return {false,fail({true,notSupplied})};
+  auto state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,fail(state.failure)};if(state.ready&&state.notReady)return {false,fail({true,invalid})};
+  if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
+  ReceiptDATA now;state=auth::readOriginalReceipt(receipt,now);if(state.failure.present)return {false,fail(state.failure)};
+  if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
+  if(state.notReady||!shape(now)||!same(original_,now)||now.currentEngineHeight<original_.currentEngineHeight)return {false,fail({true,changed})};
+  state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,fail(state.failure)};if(state.ready&&state.notReady)return {false,fail({true,invalid})};
+  if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
+  if(retired_.load())return {false,fail({true,retired})};
+  original_.currentEngineHeight=now.currentEngineHeight;return {true,{}};
+ }catch(...){return {false,fail({true,notSupplied})};}
+}
+ReadResult NativeRegisteredReceiptOwner::selectOriginalAccount(uint32_t timeout)noexcept{
+ auto status=current();if(!status.ready||status.failure.present)return status;if(selected_||ticket_.load())return {false,{true,invalid}};
  try{uint64_t selectedTicket=0;auto rc=picker::openRegisteredAccountForCurrentRuntime({{original_.account,original_.networkId}},timeout,&selectedTicket);
   ticket_.store(selectedTicket); // adopt any partial BEFORE rc or cancellation
   if(retired_.load()&&selectedTicket)picker::requestCancel(selectedTicket);
-  if(rc)return fail({true,rc});
-  uint32_t row=std::numeric_limits<uint32_t>::max();rc=picker::wait(selectedTicket,&row);if(rc)return fail({true,rc});
-  if(row!=0)return fail({true,invalid});status=current();if(status.present)return status;
-  selected_=true;return {};
- }catch(...){return fail({true,notSupplied});}
+  if(rc)return {false,fail({true,rc})};
+  uint32_t row=std::numeric_limits<uint32_t>::max();rc=picker::wait(selectedTicket,&row);if(rc)return {false,fail({true,rc})};
+  if(row!=0)return {false,fail({true,invalid})};choiceObserved_=true;status=current();if(!status.ready||status.failure.present)return status;
+  selected_=true;return {true,{}};
+ }catch(...){return {false,fail({true,notSupplied})};}
 }
-Failure NativeRegisteredReceiptOwner::readForNativeInventory(ReceiptDATA&out)noexcept{
- if(actor_!=std::this_thread::get_id())return {true,wrongThread};
- if(!selected_)return {true,notSupplied};
- auto status=current();if(status.present)return status;
- try{auto copy=original_;status=current();if(status.present)return status;out=std::move(copy);return {};}catch(...){return fail({true,notSupplied});}
+ReadResult NativeRegisteredReceiptOwner::readForNativeInventory(ReceiptDATA&out)noexcept{
+ if(actor_!=std::this_thread::get_id())return {false,{true,wrongThread}};
+ if(retired_.load()||closed_||released_)return {false,{true,retired}};
+ if(!selected_)return choiceObserved_||!ready_?ReadResult{false,{},true,pendingCause_}:ReadResult{false,{true,notSupplied}};
+ auto status=current();if(!status.ready||status.failure.present)return status;
+ try{auto copy=original_;status=current();if(!status.ready||status.failure.present)return status;out=std::move(copy);return {true,{}};}catch(...){return {false,fail({true,notSupplied})};}
 }
 void NativeRegisteredReceiptOwner::requestRetire()noexcept{
  retired_.store(true);const auto ticket=ticket_.load();if(ticket)picker::requestCancel(ticket);
+ // Auth/Core close/retire actor APIs are never called from a foreign thread.
+ // Local revocation and picker wake are immediate; the actor propagates the
+ // revoke after its pending read/selection returns and during explicit close.
+ if(actor_!=std::this_thread::get_id())return;
  try{auto receipt=child();if(receipt)auth::retireOriginalReceipt(receipt);}catch(...){/* original inventory keeps the child */}
 }
 Failure NativeRegisteredReceiptOwner::close()noexcept{

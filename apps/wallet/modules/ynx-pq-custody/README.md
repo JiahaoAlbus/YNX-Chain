@@ -148,9 +148,10 @@ producer. The strong production factories remain required, not stubbed.
 
 The new Native-only `NativeRegisteredReceiptOwner` consumes the NEW Auth
 `acquireOriginalRegisteredAccountReceipt()` zero-input producer. It does not
-call the old Source-qualified `acquire_registered_original` loan. Auth's exact
-immutable header-r1 Backend3533/Receipt1538 paired-failure headers are retained
-unchanged in `native/`; all error-bearing calls inspect `Failure.present`, so
+call the old Source-qualified `acquire_registered_original` loan. This successor
+uses Auth's matching typed `ReadResult` header snapshot in `native/`, with
+separate `ready`, `notReady`, fatal `failure` and `pendingCause`. All
+error-bearing calls inspect `Failure.present`, so
 an original error with code0 cannot become success. A retained Native resource
 inventory adopts the caller partial and Auth shared owner before result checks.
 It has no account discovery, receipt setter, engine tuple/FD constructor or JS
@@ -171,6 +172,20 @@ release removes only a truly closed resource; there is no GC cleanup success.
 The future selected-account mother must own this child on its actual Native
 actor, retire it on account/App invalidation, and drain it before mother release.
 This helper is not separately exported to App/JS as a source or capability.
+
+NotReady is a nonterminal typed state, not a success inferred from an absent
+failure or from code0. It keeps the SAME opaque receipt, captured H and fixed
+Source window; no UI or inventory copy is enabled. Only an explicit
+`resumeOriginalReceipt()` performs one later read on that same child, without
+calling acquisition again, recapturing an older H, looping, or renewing a
+deadline. A previously observed account choice may complete after that read
+only while its SAME picker/runtime/deadline remains live and the full captured
+binding matches. Fatal/revoked/rebound owners never become NotReady or revive.
+Foreign-thread retire immediately revokes the local owner and wakes its picker;
+Auth/Core actor-bound retire is propagated on the original actor after its read
+returns or during close. No actor-bound Root/Core callee is invoked off-thread.
+Header snapshots and all producer bodies must be composed in one fresh matching
+image: changing C++ return types alone is not detectable by symbol-name checks.
 
 This is real consumer/lifetime CODE, not a supplied genuine backend or complete
 selected7 implementation. Original Core/Auth must supply the strong producer,
