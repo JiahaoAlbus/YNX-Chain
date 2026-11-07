@@ -1,8 +1,10 @@
 """Original-row reduction controls; fixture events supply no chain authority."""
 import copy
 import importlib.util
+import json
 from pathlib import Path
 import unittest
+from unittest import mock
 
 def module(name, filename):
     spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(filename))
@@ -43,5 +45,21 @@ class First100ReadbackControls(unittest.TestCase):
     def test_confirmation_before_inclusion_is_not_valid_latency(self):
         report=self.original_rows();report['rows'][0]['finalNs']=report['rows'][0]['submittedNs']
         with self.assertRaisesRegex(RuntimeError,'same original inclusion'):m.cohort(report)
+
+    def test_missing_post_release_result_preserves_unknown_and_first_cause(self):
+        source=dict(commit=m.SOURCE,tree=m.TREE)
+        receipt=dict(source=source,toolIdentity=dict(commit=m.TOOLS),freshResourceAdmission={},
+                     loadExecuted=True,firstCause='EOF after original POST; do not resend')
+        values={'receipt.json':receipt,'CURRENT703-BASELINE-CI.json':dict(controllerCommit=m.CONTROLLER,
+                goSource=m.SOURCE,tools=m.TOOLS,measurementScope='same-window-normal504-initialization-then-first100x5'),
+                'requested-load.json':dict(source=source,rate=100,seconds=5,accounts=500,perAccountCapacity=1,configuredDemand=500),
+                'fresh-resource-admission.json':{}}
+        files={k:json.dumps(v).encode() for k,v in values.items()}
+        with mock.patch.object(m.original,'journals',return_value={}),mock.patch.object(m.original,'commit_original_copies',return_value={}),mock.patch.object(m.original,'original_node_startup',return_value={}):
+            result=m.inspect(files)
+        self.assertIsNone(result['observedBusiness'])
+        self.assertEqual(result['businessObservationStatus'],'RELEASE_OBSERVED_RESULT_NOT_SUPPLIED')
+        self.assertEqual(result['originalFirstCause'],receipt['firstCause'])
+        self.assertFalse(result['stable1000TPSQualified'])
 
 if __name__=='__main__':unittest.main()
