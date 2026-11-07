@@ -1,0 +1,329 @@
+{
+  "AuthFinalH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/HANDOFF.json",
+    "bytes": 4814,
+    "sha256": "ff6bf6bc34fc0e82665ab7399da900dea816a680a6c30f4b1f48a2e3e949b987"
+  },
+  "all68SourcePinsVerified": true,
+  "sourcePinsSHA256": "4891849062ad3f0086c3e71a11f8b8859dce6abbca8cdf654d5b9b07f104d1f1",
+  "copied": [
+    {
+      "path": "auth-final-r1/source/MobileAccountProofClient.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileAccountProofClient.cpp",
+      "bytes": 8193,
+      "sha256": "8799a6fb18db26ad3729223b9193eb40a390993c32fb92159126a8487ec89481",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileAccountProofHostBindingPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileAccountProofHostBindingPrivate.hpp",
+      "bytes": 1511,
+      "sha256": "4ad7133d092779a8de735a1e97afa48910513a6d1f114ca2f5e79c0a853bc083",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileLedgerProofBackendPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileLedgerProofBackendPrivate.hpp",
+      "bytes": 3942,
+      "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileReceiptNativeSelectionPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileReceiptNativeSelectionPrivate.hpp",
+      "bytes": 2015,
+      "sha256": "5975d3b0957a88b56265bda7b50463181f138588e46b58b619f0749ac0e2322e",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileRegisteredReceipt.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileRegisteredReceipt.cpp",
+      "bytes": 24369,
+      "sha256": "8015b8bac2f12981fb643ad94e8587a66443377056a4aa9c3b4b91a11c23b3d6",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileRegisteredReceiptPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileRegisteredReceiptPrivate.hpp",
+      "bytes": 1617,
+      "sha256": "1aba47aa9f8d4715546ccb9e1c2b69dc51bd24af47539e13731e25c322125bf3",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/source/MobileRegisteredReceiptReleasePrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/source/MobileRegisteredReceiptReleasePrivate.hpp",
+      "bytes": 803,
+      "sha256": "39e16836eb63a11c2a8007b9a1a9d9e92952dcf7dc2a035c40019f7cf88baec1",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileSourceMath.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileSourceMath.hpp",
+      "bytes": 1396,
+      "sha256": "8a671c7e8485d541391e3d102bb5e7d0705fc7e81877aa6618c1344a24c97af9",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileSourceMath.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileSourceMath.cpp",
+      "bytes": 14609,
+      "sha256": "7de0136a914d44628f00fa6acfd21dd435300629a64d0514410a20c89537ebef",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileHeldOriginals.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileHeldOriginals.hpp",
+      "bytes": 2335,
+      "sha256": "eb71fc40e3088a2317ef6e18307123bc1e7d21101e09e8e0cc5efba67454a964",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileHeldOriginals.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileHeldOriginals.cpp",
+      "bytes": 7086,
+      "sha256": "6525f5dd18af7d87d539ad43536f473c059595193931d3c21ee61d4fda265d1c",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileCanonicalDATA.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/inherited/MobileCanonicalDATA.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/inherited/MobileCanonicalDATA.cpp",
+      "bytes": 5235,
+      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/SelectedAppDirectoryPrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/SelectedAppDirectoryPrivate.h",
+      "bytes": 1955,
+      "sha256": "30950d341e2145dc549c7e844be526d1f892ae625f6252b4e29e7a849adad73b",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/SelectedAppDirectory.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/SelectedAppDirectory.cpp",
+      "bytes": 3169,
+      "sha256": "f8d4f8bcdfe6c1c5b9dff0229a98119ebc24f7ce7928900285ab09b3baafd660",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/SelectedDirectoryInventory.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/SelectedDirectoryInventory.h",
+      "bytes": 3212,
+      "sha256": "3b41cd0c70cadf3c620010071705794feae7ff7d40977c116a778ec119b90d69",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/MobileSelectedOriginalPrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/MobileSelectedOriginalPrivate.h",
+      "bytes": 4116,
+      "sha256": "f3066002598f5f2ace4f32677fde07bff6aded1cabdf1800e506785e36ab3327",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/MobileSecure43.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/MobileSecure43.h",
+      "bytes": 3478,
+      "sha256": "1a0dd79588a473f6cbed9beaad76afa24a7a0f29ab6c3bc4ea82357b4ad9ecd2",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/ProtectedMobilePQ.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/ProtectedMobilePQ.h",
+      "bytes": 6675,
+      "sha256": "9ca9b18e2069b17bdd984ea0ba2ae7d62dedf22b9cd1e55b66cc3cee5db6c1f6",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/native-input/OS43Private.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/native-input/OS43Private.h",
+      "bytes": 1364,
+      "sha256": "562cc4dcc7d0eca3b1f9d1d699bc2b99d106b87fe7d345567f237ae8c2a1f775",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/sole-input/MobileAccountProofHostPortPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/sole-input/MobileAccountProofHostPortPrivate.hpp",
+      "bytes": 3096,
+      "sha256": "8aa0a0bf28ecfc139fc6a6c637abe4e6e38730cc97c1a9f1dfc70cc2ca9823a4",
+      "owner": "sole SDK",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/sole-input/MobileAccountProofWireDATA.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/sole-input/MobileAccountProofWireDATA.hpp",
+      "bytes": 9856,
+      "sha256": "786c9b56aa445e82d0ffbc64e949272cb99692a674341e036199bccbe2b564fe",
+      "owner": "sole SDK",
+      "verbatim": true
+    },
+    {
+      "path": "auth-final-r1/test/receipt.PUBLIC.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/registered-receipt-successor/final-r1/test/receipt.PUBLIC.cpp",
+      "bytes": 10516,
+      "sha256": "ee1ba638b4bbae3a526c09c85af969bb7cb0aaf90eef4c8c035b6613e1665ad8",
+      "owner": "Auth final-r1",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/config.json",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/config.json",
+      "bytes": 5536,
+      "sha256": "ffd854a78a96b93096d7771fa0673320c162dc6e1df86f3eae2efecb09b5e600",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/CorePolicyOriginal.PUBLIC",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/CorePolicyOriginal.PUBLIC",
+      "bytes": 5631,
+      "sha256": "1286822feca5d293124330f383008036ef2b8347297655024d5d1a855dca2d15",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/root.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/root.original",
+      "bytes": 258,
+      "sha256": "7a47f88e806d93080fec126e695a7a04c2ea6ba48c6c34aebca47222abb4e31f",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/enrollment.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/enrollment.original",
+      "bytes": 79742,
+      "sha256": "bf78094f6838d4f691bdab3fdbffdd6f131d0a8180b70e69461a93ec4a45e580",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/profile.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/profile.original",
+      "bytes": 82443,
+      "sha256": "b6c2d77bae377f22f1d6dd17cc3e958bdce52e297d81e7ca4b8abc7e756098f4",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/current.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/current.original",
+      "bytes": 79013,
+      "sha256": "4262e0e7f8d0d9751b73d8a28565dd7ef2bd3e344e94d557ad82b5597970d867",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/registered-root.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/registered-root.original",
+      "bytes": 5802,
+      "sha256": "6120f836d19cde7829c8e07d49fbf10bec4cc0e153455280defd55b940259350",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/registered-profile.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/registered-profile.original",
+      "bytes": 5802,
+      "sha256": "2f49a0b2ebdd58e26dcc48b3a3618e437d0d8a82baa9242e25e987d177b9e8a5",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/registered-current.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/registered-current.original",
+      "bytes": 5802,
+      "sha256": "b77b70ed8e4d574dd2699b14aaada38ee4cedcf02324995e7fe4dcde39a6bec3",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    },
+    {
+      "path": "auth-public-fixture/public/registered-subject.original",
+      "source": "/Users/huangjiahao/.codex/PUBLIC-mobile-qualified-tu1GVl/public/registered-subject.original",
+      "bytes": 5802,
+      "sha256": "e528eae321000afed9d1c8c137d4de5bc63c50aa2ace681780a8dfad0a290d48",
+      "owner": "Auth existing PUBLIC fixture; no re-sign",
+      "verbatim": true
+    }
+  ],
+  "PUBLICBoundaryOnly": true,
+  "normalProtectedHostSupplied": false,
+  "RootAdmission": false,
+  "sourceMismatchMustRejectReceipt": true,
+  "originalLinkDependencies": [
+    {
+      "path": "auth-original-test-link/unrelated-pay-abort.PUBLIC.cpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/qualified-original-successor/test/unrelated-pay-abort.PUBLIC.cpp",
+      "bytes": 652,
+      "sha256": "0af4fcbf0312c81c8b440ac220d2f05491ebc6dbe2418f27f1c102780b519d69",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    },
+    {
+      "path": "auth-original-test-link/pay_native_actual_context_private.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core18-producer-r1/build-r1/include/pay_native_actual_context_private.h",
+      "bytes": 1306,
+      "sha256": "075f5d736ec6ba9d9aca19756249f66f9ad7b91863f3456befc3d37141d6045a",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    },
+    {
+      "path": "auth-original-test-link/pay_root_transport_loan_private.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core18-producer-r1/build-r1/include/pay_root_transport_loan_private.h",
+      "bytes": 1441,
+      "sha256": "df01e639f2909d5ad370db6eac9b6f2bca17a801a85805d0b38ef171bd030e47",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    },
+    {
+      "path": "auth-original-test-link/private_client_v1.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core18-producer-r1/build-r1/include/private_client_v1.h",
+      "bytes": 8638,
+      "sha256": "d70692f4db740886104696fa54af7f3e49b96fe798bb8feed0bd30582d998216",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    },
+    {
+      "path": "auth-original-test-link/pay_native_source_lease_private.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core18-producer-r1/build-r1/include/pay_native_source_lease_private.h",
+      "bytes": 2252,
+      "sha256": "ef2e3eb8aba2610fb8315945a9124300040b7fab7c07855529dbabe800e14157",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    },
+    {
+      "path": "auth-original-test-link/product_pay_transport_private.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core18-producer-r1/build-r1/include/product_pay_transport_private.h",
+      "bytes": 5717,
+      "sha256": "eb76abb33deb029cb2506dc2e0863deb6560479bac88eefb25526caa4927e612",
+      "verbatim": true,
+      "classification": "existing Auth test-only abort-if-unrelated-Pay-reached; never production"
+    }
+  ]
+}
