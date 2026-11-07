@@ -35,5 +35,19 @@ class OriginalSourceControls(unittest.TestCase):
             path=root/'HANDOFF.json';path.unlink();path.symlink_to(FIXTURE.resolve()/'HANDOFF.json')
             with self.assertRaises(RuntimeError):m.qualification(root)
 
+    def test_trial_consumes_actual_semantic_original_without_granting_pressure(self):
+        r=m.trial_qualification()
+        self.assertTrue(r['semanticPairConsumed']);self.assertEqual(r['semanticOriginalReadback']['heights'],9)
+        self.assertFalse(r['pressureAuthorized']);self.assertFalse(r['actual500InitializedOwnersQualified'])
+        self.assertFalse(r['semanticOriginalReadback']['liveNetworkPairQualified'])
+
+    def test_missing_or_changed_semantic_original_cannot_open_trial(self):
+        for missing in (True,False):
+            with self.subTest(missing=missing),tempfile.TemporaryDirectory() as tmp:
+                root=Path(tmp)/'original';shutil.copytree(FIXTURE,root);path=root/'SEMANTIC-READBACK.json'
+                if missing:path.unlink()
+                else:path.write_bytes(path.read_bytes()[:-1])
+                with self.assertRaises((RuntimeError,FileNotFoundError)):m.trial_qualification(root)
+
 
 if __name__=='__main__':unittest.main()

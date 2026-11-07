@@ -1,0 +1,52 @@
+{
+  "afterCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+  "afterForkTree": "5a128880d14bfc73de4334cba23218859ad3473c",
+  "artifactID": 13579202583,
+  "artifactSHA256": "b1ad0707350769fbbc598ac39a62b3f1893d0f2f21772f3ed10ad9f4568839e8",
+  "beforeForkTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7",
+  "binaryBytesIndependentlyRehashed": false,
+  "binaryHashesProducerReported": {
+    "after": {
+      "bytes": 40551149,
+      "sha256": "4af6e1fa5ee734905a8e3e902021d7e89057d31ee4dd31eea818966cf4302933"
+    },
+    "before": {
+      "bytes": 40235021,
+      "sha256": "961a2263a6f6848c3b204a9b17ed98612a7b549e1d86031449a9ff73b22b1147"
+    }
+  },
+  "cleanupComplete": true,
+  "controllerCommit": "50dc582be22986adf6935401599e0934d9e329a3",
+  "effectiveBusinessTPS": null,
+  "finalConfirmationLatency": null,
+  "heights": 9,
+  "inclusionLatency": null,
+  "intermediateFullStateBytesIndependentlyReconstructed": false,
+  "jobID": 128441900709,
+  "limitedOriginalTrajectoryQualified": true,
+  "liveNetworkPairQualified": false,
+  "originalElapsedSeconds": 98.345031536,
+  "peakNewBytes": 1973968896,
+  "peakRSSBytes": 635179008,
+  "runID": 42385500887,
+  "runtimePressureAuthorized": false,
+  "schema": "YNX-PERF-1695-LINUX-SEMANTIC-ORIGINAL-READBACK/v1",
+  "sourceInventoryFiles": {
+    "after": 3245,
+    "before": 3077
+  },
+  "stageParentWallSeconds": {
+    "after-build": 12.0669592,
+    "after-buildinfo": 0.214430024,
+    "after-replay": 0.428824945,
+    "before-build": 71.392251446,
+    "before-buildinfo": 0.214134823,
+    "before-replay": 0.650139407,
+    "fetch-original-source-objects": 0.42370561,
+    "go-version": 0.215934304,
+    "prepare-fixed-two-source-trees": 8.995039693
+  },
+  "timingMeaning": "Parent observed launch-to-exit wall time; sequential builds share cache. Not paired performance improvement or business latency.",
+  "toolsCommit": "d0e0889afb7f171ce568c07ea0d6a7e9206083f2",
+  "toolsTree": "64bee8a254880c700d23a1b1158367053d61fa4a"
+}

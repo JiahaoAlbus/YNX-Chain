@@ -64,5 +64,17 @@ class BackendSelection(unittest.TestCase):
         a=args(sender_backend='bounded-cold');b=args()
         self.assertNotEqual(d.load_conditions(a)['senderBackend'],d.load_conditions(b)['senderBackend'])
 
+    def test_1695_prepare_consumes_own_ci_and_semantic_without_creating_window(self):
+        a=args(execute=False,first_trial_profile='1695',initialize_before_load=True,
+               startup_timings=True,wire_observation=True,network_accounting=True,
+               commit_observation=True,owned_storage_accounting=True,header_hop_capture=False)
+        identity=dict(commit=d.first_trial_1695_source.SOURCE,tree=d.first_trial_1695_source.TREE)
+        with mock.patch.object(d.lab,'check_source',return_value=identity),mock.patch.object(d.lab,'git'),\
+             mock.patch.object(d.subprocess,'check_output',return_value=b'live-materials'),mock.patch.object(d.lab,'Window') as window:
+            result=d.run(a)
+        window.assert_not_called();self.assertFalse(result['actualLoadExecuted'])
+        self.assertTrue(result['sourceFunctionalData']['semanticPairConsumed'])
+        self.assertEqual(result['sourceFunctionalData']['source'],d.PUBLIC_OWNER_ABI_SOURCE)
+
 
 if __name__=='__main__':unittest.main()

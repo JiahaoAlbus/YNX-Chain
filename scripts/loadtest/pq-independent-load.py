@@ -39,6 +39,7 @@ rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.
 preload_initialization=module('original_preload_initialization','pq-preload-initialization.py')
 first_trial_source=module('original_first_trial_source','pq-first-trial-source.py')
 first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-readback.py')
+first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-source-qualification.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 
 
@@ -53,7 +54,7 @@ STAGED_CALLEE_TREE = initialization.LIVE_TREE
 STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-owner input still required.
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 # ABI support only. This is neither source qualification nor window permission.
-STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE})
+STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
 
 
@@ -619,7 +620,7 @@ class NormalBackend:
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
-    lab.require(profile in ('own1b','d24') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'d24 requires explicit same-window first100 profile')
+    lab.require(profile in ('own1b','d24','1695') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'d24/1695 requires explicit same-window first100 profile')
     lab.require(args.mode in ("online","pre-signed") and args.rate in (100,500,1000) and 1<=args.accounts<=996 and 1<=args.per_account<=1024 and 1<=args.seconds<=60 and 1<=args.tail_seconds<=120 and 1<=args.proof_timeout<=120,"bounded explicit original load configuration required")
     if getattr(args,'initialization_only',False):
         lab.require(getattr(args,'staged_publication',False) and (args.mode,args.rate,args.seconds,args.accounts,args.per_account)==('online',100,5,500,1),'initialization-only requires exact original staged online500 plus4 reserved owners; no reduced-account qualification')
@@ -708,10 +709,11 @@ def run(args):
     lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     first_trial=getattr(args,'initialize_before_load',False)
-    trial_source=first_trial_d24_source if getattr(args,'first_trial_profile','own1b')=='d24' else first_trial_source
+    profile=getattr(args,'first_trial_profile','own1b')
+    trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
-    trial_qualification=trial_source.qualification() if first_trial else None
+    trial_qualification=(trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None
     if getattr(args,'staged_publication',False) and args.execute and not first_trial:
         if getattr(args,'initialization_only',False):initialization.source_functional_data()
         else:lab.require(STAGED_SOURCE_QUALIFICATION is not None and args.commit==STAGED_CALLEE_SOURCE,'normal staged large-owner callee/source/new normal CI/actual500 initialized-owner qualification NOT_SUPPLIED; no Python fallback or source monkeypatch')
@@ -906,7 +908,7 @@ if __name__=="__main__":
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
-    p.add_argument('--first-trial-profile',choices=('own1b','d24'),default='own1b',help='explicit fixed source selection for same-window first100 only; each source consumes its own pinned CI originals; no pressure grant')
+    p.add_argument('--first-trial-profile',choices=('own1b','d24','1695'),default='own1b',help='explicit fixed source selection for same-window first100 only; 1695 additionally consumes its actual independent nine-height semantic original; no pressure grant')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))

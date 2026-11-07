@@ -122,3 +122,23 @@ def qualification(directory=None):
                 runtimeOrExporterBytesIntaken=False,actual500InitializedOwnersQualified=False,semanticPairConsumed=False,
                 runtimePermissionGranted=False,pressureAuthorized=False,sourceParentAuthorityGranted=False,
                 businessTPS=None,finalityLatency=None)
+
+
+def trial_qualification(directory=None):
+    result=qualification(directory)
+    directory=Path(directory) if directory is not None else Path(__file__).with_name('fixtures')/'1695-source'
+    path=directory/'SEMANTIC-READBACK.json'
+    require(not path.is_symlink(),'original semantic readback may not redirect')
+    with path.open('rb') as source:raw=source.read(1973)
+    require(len(raw)==1972 and sha(raw)=='1c1b52cef5ae2ea7a7b71b0670d35c5bdae7cc0a909ee2ab14028511f1aeffb3',
+            'actual1695 independent semantic readback missing or changed')
+    semantic=strict(raw)
+    require(semantic['afterCommit']==SOURCE and semantic['controllerCommit']=='50dc582be22986adf6935401599e0934d9e329a3'
+            and semantic['runID']==42385500887 and semantic['jobID']==128441900709
+            and semantic['artifactID']==13579202583 and semantic['artifactSHA256']=='b1ad0707350769fbbc598ac39a62b3f1893d0f2f21772f3ed10ad9f4568839e8'
+            and semantic['limitedOriginalTrajectoryQualified'] is True and semantic['heights']==9
+            and semantic['cleanupComplete'] is True and semantic['runtimePressureAuthorized'] is False
+            and semantic['liveNetworkPairQualified'] is False,'actual1695 limited semantic scope differs')
+    result.update(semanticPairConsumed=True,semanticOriginalReadback=semantic,
+                  semanticReadbackSHA256=sha(raw),semanticQualifiedTrajectoryOnly=True)
+    return result
