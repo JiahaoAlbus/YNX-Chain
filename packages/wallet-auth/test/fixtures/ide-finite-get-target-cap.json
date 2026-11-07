@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "parentSourceId": "PUBLIC-parent",
+  "projectSourceId": "PUBLIC-project",
+  "deviceSourceId": "PUBLIC-device",
+  "account": "PUBLIC-account",
+  "deviceId": "PUBLIC-device-id",
+  "sessionBinding": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "registrationDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "catalogProjectId": "PUBLIC-catalog",
+  "registeredCloudFullRef": {
+    "realm": "PUBLIC",
+    "tenant": "PUBLIC",
+    "kind": "deployment",
+    "id": "PUBLIC-id",
+    "rev": "0"
+  },
+  "resourceApprovalRef": "PUBLIC-approval",
+  "targetOrigin": "https://target.example",
+  "serverName": "target.example",
+  "port": 443,
+  "spkiSHA256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "productOrigin": "https://developer.example",
+  "requiredScopes": [
+    "PUBLIC-root-row-scope"
+  ],
+  "permittedSelectors": [
+    "logs",
+    "usage.records"
+  ],
+  "publicCredentialRef": "PUBLIC-credential",
+  "localSAN": "PUBLIC-local",
+  "peerSAN": "PUBLIC-peer",
+  "rootCertificateSHA256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "clientCertificateSHA256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "notBeforeMs": 90000,
+  "expiresMs": 110000,
+  "rootEpoch": "1",
+  "rootUntilMs": 120000,
+  "credentialEpoch": "1",
+  "credentialUntilMs": 120000
+}

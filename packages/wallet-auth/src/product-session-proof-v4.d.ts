@@ -26,3 +26,6 @@ export function inspectProductSessionHTTPProofV4Data(memberOriginal:Uint8Array,e
 export function encodeProductSessionProofHeaderV4(unsigned:ProductSessionHTTPProofV4Unsigned,memberOriginal:Uint8Array):string;
 export function decodeProductSessionProofHeaderV4(header:string):Readonly<ProductSessionHTTPProofV4Unsigned & {readonly member:string}>;
 export function inspectProductSessionHTTPProofHeaderV4Data(header:string,expected:ProductSessionHTTPProofV4Expected):Readonly<ProductSessionHTTPProofV4Data>;
+
+/** Pure existing V4 product/client origin grammar, no target authority. */
+export function inspectProductSessionHTTPProofV4OriginDATA(value:unknown):string;

@@ -1,0 +1,48 @@
+name: Wallet Auth finite IDE Target cap and original Go V4 DATA
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-auth49-ide-finite-get-target-go-v4-20261107]
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/original-ide-finite-get-target-v1*
+      - packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs
+      - packages/wallet-auth/src/product-session-proof-v4.js
+      - packages/wallet-auth/src/product-session-proof-v4.d.ts
+      - packages/wallet-auth/package.json
+      - packages/wallet-auth/native/ide-finite-get-v4-data/**
+      - packages/wallet-auth/test/ide-finite-get-target-*
+      - packages/wallet-auth/test/generate-ide-v4-header-data-vector.mjs
+      - packages/wallet-auth/scripts/ci/ide-target-cap-and-go-v4.mjs
+      - .github/workflows/wallet-auth-ide-target-cap-go-v4.yml
+permissions:
+  contents: read
+jobs:
+  target-cap-original-go-v4-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: e12036079d28adef2559733739a4743e258ba4e5
+          path: core19-reference
+          persist-credentials: false
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node packages/wallet-auth/scripts/ci/ide-target-cap-and-go-v4.mjs --core-root core19-reference
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ide-target-cap-go-v4-source-data
+          if-no-files-found: error
+          path: |
+            IDE_TARGET_CAP_GO_V4_DATA
+            canonical-common-source-package
