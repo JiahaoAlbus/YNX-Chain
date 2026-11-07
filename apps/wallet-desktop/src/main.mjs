@@ -373,6 +373,7 @@ handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC((
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
 function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=async()=>{},assertCloseSafe=async()=>{}}){
   let pass=null,cleanup=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
+  const settle=operation=>{try{return Promise.resolve(operation());}catch(cause){return Promise.reject(cause);}};
   const quitOnce=()=>{if(!quitEntered){quitEntered=true;setImmediate(quit);}};
   function request(){
     if(pass)return pass;
@@ -381,7 +382,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
     // Lock/cancel synchronously in the original close event, after reserving.
     try{
       lock();
-      if(!cleanup)cleanup=Promise.all([entry.shutdown(),shutdownWallet()]);
+      if(!cleanup)cleanup=Promise.allSettled([settle(()=>entry.shutdown()),settle(shutdownWallet)]).then(results=>{const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;});
       void cleanup.then(()=>Promise.resolve().then(assertCloseSafe).then(()=>{allowed=true;resolve();},()=>{
         // Only this read-only storage check can run again after an explicit
         // local save. Original cleanup failures remain sticky and unreplayed.
@@ -395,18 +396,19 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
 async function shutdownOriginalPQWallet(){
+  const settle=operation=>{try{return Promise.resolve(operation());}catch(cause){return Promise.reject(cause);}};
   let retireFailed=false,retireCause;try{originalMainNamespaceStartup.retire();}catch(cause){retireFailed=true;retireCause=cause;}
   try{originalPayContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   try{originalProductContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   try{nativePayMainEntry?.cancel();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
-  pqFinalityCollection?.retire();
+  try{pqFinalityCollection?.retire();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
-  const registration=await Promise.allSettled([originalDeviceRegistration?.close(),originalDeviceFinalization?.close()]);
-  const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),nativePayMainEntry?.shutdown(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  const registration=await Promise.allSettled([settle(()=>originalDeviceRegistration?.close()),settle(()=>originalDeviceFinalization?.close())]);
+  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeer?.shutdown()),settle(()=>originalProjectControl.shutdown())]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');
   // Child owners must drain before releasing the namespace admission parent.
-  if(!failed)try{
+  if(!failed&&!retireFailed)try{
     nativePayProduct?.assertSafeToClose();
     originalProductContextBridge.assertSafeToClose();
     if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');
@@ -415,7 +417,7 @@ async function shutdownOriginalPQWallet(){
   }catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
