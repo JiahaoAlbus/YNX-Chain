@@ -16,7 +16,7 @@ function signatureView(o){
  * clock and protected evidence. No fixture instance is a Native admission.
  */
 export class WalletIDEIdentityPeerKernel {
- #deps;#own=null;#busy=false;#work=null;#activeGuard=null;
+ #deps;#own=null;#busy=false;#work=null;#activeGuard=null;#queries=new Set();#queryEpoch=0;#shutdownSelected=false;#shutdownReading=false;
  constructor(deps){this.#deps=deps;for(const k of ['acquireSource','isSource','inspect','createReview','acquirePolicy','isPolicy','isPolicyCleanupOwner'])if(typeof deps[k]!=='function')fail('AUTH_IDENTITY_PEER_DEPENDENCY_REQUIRED');}
  #remember(cause,kind='first'){const o=this.#own;if(!o[kind+'Present']){o[kind+'Present']=true;o[kind]=cause;}}
  #guard(guard,effect=false){if(!guard)fail('AUTH_IDENTITY_PEER_LEASE_REQUIRED');if(effect)guard.assertEffectCurrent();else guard.assert();if(!this.#own||guard.account!==this.#own.account)fail('AUTH_IDENTITY_PEER_ACCOUNT_CHANGED');}
@@ -33,7 +33,8 @@ export class WalletIDEIdentityPeerKernel {
  #publicationReady(){const o=this.#own;return o?.purpose==='AUTH-PROTECTED-KEY-CALL'&&!!o.review?.describe().publication&&typeof o.review.publicationReady==='function'&&typeof o.review.sendOriginalPublicationResult==='function'&&o.review.publicationReady()===true;}
  review(){const o=this.#own;if(!o?.review)return null;const detail=o.review.describe(),available=o.purpose!=='AUTH-PROTECTED-KEY-CALL'||this.#publicationReady();return Object.freeze({...detail,approvalAvailable:available,approvalUnavailableCode:!available?(detail.publication?'AUTH_IDENTITY_PUBLICATION_APPROVAL_NOT_SUPPLIED':'AUTH_IDENTITY_KEY_CALL_REVIEW_NOT_SUPPLIED'):null});}
  start(guard){
-  if(this.#busy||this.#own&&!this.#own.closed)fail('AUTH_IDENTITY_PEER_PENDING');this.assertSafeToClose();guard.assert();
+  if(this.#shutdownSelected)fail('AUTH_IDENTITY_PEER_CLOSING');
+  if(this.#busy||this.#queries.size||this.#own&&!this.#own.closed)fail('AUTH_IDENTITY_PEER_PENDING');this.assertSafeToClose();guard.assert();
   this.#own={id:randomUUID(),sequence:0,account:guard.account,source:null,sourceKnown:false,policy:null,policyKnown:false,review:null,raw:null,invocation:null,purpose:null,decision:null,wire:null,phase:'launch-selected',sendSelected:false,sendStarted:false,sendReturned:false,retired:false,closed:false,needsSave:false,firstPresent:false,storagePresent:false,cleanupPresent:false,cleanupDebt:false,nativeRetired:false,policyRetired:false,nativeCloseSelected:false,policyCloseSelected:false,nativeClosed:false,policyClosed:false};
   return this.#run(async()=>{
    await this.#store();this.#guard(guard);const o=this.#own;
@@ -71,7 +72,7 @@ export class WalletIDEIdentityPeerKernel {
    return Object.freeze({...selected,sendReturned:true,effectAcknowledged:false,handoffAuthorized:false});
   },guard);
  }
- retire(){const o=this.#own;if(!o)return;o.retired=true;o.review?.retire();for(const [name,known,selected]of [['source','sourceKnown','nativeRetired'],['policy','policyKnown','policyRetired']])if(o[name]&&o[known]&&!o[selected]){o[selected]=true;try{sync(o[name],'retire');}catch(e){this.#remember(e,'cleanup');o.cleanupDebt=true;}}}
+ retire(){this.#queryEpoch++;const o=this.#own;if(!o)return;o.retired=true;o.review?.retire();for(const [name,known,selected]of [['source','sourceKnown','nativeRetired'],['policy','policyKnown','policyRetired']])if(o[name]&&o[known]&&!o[selected]){o[selected]=true;try{sync(o[name],'retire');}catch(e){this.#remember(e,'cleanup');o.cleanupDebt=true;}}}
  async #cleanup(){
   const o=this.#own;this.retire();if(typeof o.review?.close==='function'&&await o.review.close()!==undefined)fail('AUTH_IDENTITY_PEER_CLOSE_UNKNOWN');for(const [name,known,selected,closed]of [['source','sourceKnown','nativeCloseSelected','nativeClosed'],['policy','policyKnown','policyCloseSelected','policyClosed']]){
    if(!o[name]){o[closed]=true;continue;}if(o[closed])continue;if(!o[known]||o[selected])fail('AUTH_IDENTITY_PEER_CLEANUP_UNKNOWN');
@@ -85,12 +86,17 @@ export class WalletIDEIdentityPeerKernel {
   if(r&&pending?.reviewId===r.describe().reviewId&&r.status().decision&&!r.status().recorded){await r.save(guard);this.#capture();}
   await this.#store();if(r&&r.status().decision&&!r.status().recorded){await r.save(guard);this.#capture();await this.#store();}await this.#cleanup();return Object.freeze({operationId:o.id,saved:true,closed:o.closed,handoffAuthorized:false,retryAuthorized:false});
  },guard);}
- async shutdown(){if(!this.#own)return;this.retire();await this.#work?.catch(()=>{});if(this.#busy)fail('AUTH_IDENTITY_PEER_BUSY');if(this.#own.needsSave||this.#deps.evidence.pending())fail('AUTH_IDENTITY_PEER_LOCAL_SAVE_REQUIRED');return this.#run(()=>this.#cleanup());}
- async history(guard){
-  guard.assert();const found=await this.#deps.evidence.candidates(),operations=new Map(),latest=new Map();
+ async shutdown(){this.#shutdownSelected=true;this.#shutdownReading=true;this.retire();try{while(this.#queries.size)await Promise.allSettled([...this.#queries]);if(!this.#own)return;await this.#work?.catch(()=>{});if(this.#busy)fail('AUTH_IDENTITY_PEER_BUSY');if(this.#own.needsSave||this.#deps.evidence.pending())fail('AUTH_IDENTITY_PEER_LOCAL_SAVE_REQUIRED');return await this.#run(()=>this.#cleanup());}finally{this.#shutdownReading=false;}}
+ history(guard){
+  if(this.#shutdownReading)fail('AUTH_IDENTITY_PEER_CLOSING');if(this.#busy)fail('AUTH_IDENTITY_PEER_BUSY');const epoch=this.#queryEpoch;
+  const current=()=>{guard.assert();if(epoch!==this.#queryEpoch)fail('AUTH_IDENTITY_PEER_RETIRED');};
+  const work=Promise.resolve().then(()=>this.#history(guard,current));this.#queries.add(work);void work.then(()=>this.#queries.delete(work),()=>this.#queries.delete(work));return work;
+ }
+ async #history(guard,checkLive){
+  checkLive();const found=await this.#deps.evidence.candidates();checkLive();const operations=new Map(),latest=new Map();
   // Retain only fixed-size progress/digests for older generations, not every
   // large public member/request. Digests here compare DATA, never confer trust.
-  for(const ref of found.candidates){const body=await this.#deps.evidence.read(ref);guard.assert();if(!['YNX-WALLET-IDE-PEER-EVIDENCE/v1','YNX-WALLET-IDE-PEER-EVIDENCE/v2'].includes(body.version)||body.account!==guard.account)continue;const rows=operations.get(body.operationId)??new Map(),summary=historySummary(body),prior=rows.get(body.sequence);if(prior&&prior.bodyDigest!==summary.bodyDigest)fail('AUTH_IDENTITY_PEER_HISTORY_CONFLICT');rows.set(body.sequence,summary);operations.set(body.operationId,rows);const current=latest.get(body.operationId);if(!current||BigInt(body.sequence)>BigInt(current.sequence))latest.set(body.operationId,body);}
+  for(const ref of found.candidates){checkLive();const body=await this.#deps.evidence.read(ref);checkLive();if(!['YNX-WALLET-IDE-PEER-EVIDENCE/v1','YNX-WALLET-IDE-PEER-EVIDENCE/v2'].includes(body.version)||body.account!==guard.account)continue;const rows=operations.get(body.operationId)??new Map(),summary=historySummary(body),prior=rows.get(body.sequence);if(prior&&prior.bodyDigest!==summary.bodyDigest)fail('AUTH_IDENTITY_PEER_HISTORY_CONFLICT');rows.set(body.sequence,summary);operations.set(body.operationId,rows);const current=latest.get(body.operationId);if(!current||BigInt(body.sequence)>BigInt(current.sequence))latest.set(body.operationId,body);}
   for(const rows of operations.values()){
    let signed=false,wire=null,selected=false,stored=false,sendSelected=false,sendStarted=false,sendReturned=false,decision=null,request=null,invocation=null,review=null,closed=false;
    for(const body of [...rows.values()].sort((a,b)=>BigInt(a.sequence)<BigInt(b.sequence)?-1:1)){
@@ -99,7 +105,7 @@ export class WalletIDEIdentityPeerKernel {
     signed=current.hasSignedResult;wire=body.wire;selected=body.signingSelected===true;stored=body.nativeResultStored===true;sendSelected=body.sendSelected;sendStarted=body.sendStarted;sendReturned=body.sendReturned;decision=body.decision;request=body.requestOriginal;invocation=body.invocationOriginal;review=body.reviewId;closed=body.closed;
    }
   }
-  guard.assert();return Object.freeze({records:Object.freeze([...latest.values()].map(o=>Object.freeze({operationId:o.operationId,sequence:o.sequence,reviewId:o.reviewId,phase:o.phase,decision:o.decision,...signatureView(o),sendSelected:o.sendSelected,sendStarted:o.sendStarted,sendReturned:o.sendReturned,closed:o.closed,firstCausePresent:o.firstCause.present===true,storageCausePresent:o.storageCause.present===true,cleanupCausePresent:o.cleanupCause.present===true,dataOnly:true,effectAcknowledged:false,handoffAuthorized:false,retryAuthorized:false}))),unreadable:found.unreadable});
+  checkLive();return Object.freeze({records:Object.freeze([...latest.values()].map(o=>Object.freeze({operationId:o.operationId,sequence:o.sequence,reviewId:o.reviewId,phase:o.phase,decision:o.decision,...signatureView(o),sendSelected:o.sendSelected,sendStarted:o.sendStarted,sendReturned:o.sendReturned,closed:o.closed,firstCausePresent:o.firstCause.present===true,storageCausePresent:o.storageCause.present===true,cleanupCausePresent:o.cleanupCause.present===true,dataOnly:true,effectAcknowledged:false,handoffAuthorized:false,retryAuthorized:false}))),unreadable:found.unreadable});
  }
- assertSafeToClose(){this.#deps.evidence.assertSafeToClose();const o=this.#own;if(this.#busy||o&&(!o.closed||o.needsSave||o.cleanupDebt))fail('AUTH_IDENTITY_PEER_CLOSE_UNCONFIRMED');o?.review?.assertSafeToClose();}
+ assertSafeToClose(){this.#deps.evidence.assertSafeToClose();const o=this.#own;if(this.#busy||this.#queries.size||this.#shutdownReading||o&&(!o.closed||o.needsSave||o.cleanupDebt))fail('AUTH_IDENTITY_PEER_CLOSE_UNCONFIRMED');o?.review?.assertSafeToClose();}
 }
