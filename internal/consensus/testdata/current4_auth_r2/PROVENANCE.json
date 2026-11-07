@@ -1,23 +1,23 @@
 {
   "version": 1,
   "testOnly": true,
-  "authH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/HANDOFF.json",
-  "authHSHA256": "abc03a4814732290286fe93f5c2c90a26a9b84e7bde3c580e40b8ed3ab34b22a",
+  "authH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r3/HANDOFF.json",
+  "authHSHA256": "52488824f04819023067605d87b1ed20c8a1182c6567cdb76ad1a13372f2918c",
   "foreignSources": [
     {
       "file": "Current4WireClient.hpp",
-      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/source/Current4WireClient.hpp",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r3/source/Current4WireClient.hpp",
       "owner": "original Auth",
-      "bytes": 1655,
-      "sha256": "f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424",
+      "bytes": 1678,
+      "sha256": "4dcf71a0e059c0bfcf7393ce38104144f7fd1cd694bf917212774d1bbc28ffaf",
       "verbatim": true
     },
     {
       "file": "Current4WireClient.cpp",
-      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/source/Current4WireClient.cpp",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r3/source/Current4WireClient.cpp",
       "owner": "original Auth",
-      "bytes": 6923,
-      "sha256": "039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107",
+      "bytes": 7229,
+      "sha256": "be8b52c00654f325f116d6113158ea4df2ec88c6e65e085337270a669acf6dec",
       "verbatim": true
     },
     {
@@ -64,5 +64,10 @@
   "productionAuthModified": false,
   "SDKWireSchemaChanged": false,
   "installed": false,
-  "RootGrant": false
+  "RootGrant": false,
+  "previousAuthH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/HANDOFF.json",
+  "previousAuthHSHA256": "abc03a4814732290286fe93f5c2c90a26a9b84e7bde3c580e40b8ed3ab34b22a",
+  "activeAuthRevision": "r3",
+  "legacyHarnessPath": "current4_auth_r2 is a compatibility test path/name only; actual active BODY/header are original Auth r3",
+  "cleanupFenceJointAdded": true
 }

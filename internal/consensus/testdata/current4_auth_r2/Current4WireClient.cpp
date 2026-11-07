@@ -49,6 +49,11 @@ bool WireClient::io(bool writing,uint8_t*p,size_t count){
 bool WireClient::exchange(uint8_t op,const std::vector<uint8_t>&body,Reply&out){
  if(unknown_||fd_<0||closed_||next_==0||next_==std::numeric_limits<uint64_t>::max())return false;
  const bool cleanup=op>=YNX_C4_RETIRE;
+ // Seal producing requests BEFORE cleanup I/O. Incomplete physical drain or
+ // a known cleanup error never resurrects this original captured permission.
+ // Keep the same owner/debt and sequence for remaining cleanup operations.
+ if(cleanup)cleanup_started_=true;
+ else if(cleanup_started_)return false;
  if(cleanup){
   // Physical cleanup is allowed after permission expiry. This single fixed
   // cleanup budget can never authorize a read/current or renew that window.

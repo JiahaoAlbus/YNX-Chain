@@ -1,4 +1,4 @@
-// Test-only PUBLIC cross-process caller of original Auth r2 BODY. FD3/4 are
+// Test-only PUBLIC cross-process caller of original Auth r3 BODY (legacy r2 harness path). FD3/4 are
 // this harness's constants, NOT a P09 slot or a Root-qualified launcher ABI.
 #include "Current4WireClient.hpp"
 #include <algorithm>
@@ -24,12 +24,31 @@ static Bytes original(const std::string&dir,const char*name,size_t limit,size_t 
 static void common(const Reply&r,bool denied){require(r.code==0&&r.error_present==denied,"code0 independent denial bit differs");}
 int main(int argc,char**argv){
  try{
-  require(argc==2,"only one PUBLIC expected-directory test argument permitted");
+  require(argc==2||(argc==3&&std::string(argv[2])=="cleanup-fence"),"closed PUBLIC interop mode required");
   const std::string dir=argv[1];
   auto net=original(dir,"network.bin",32,32),own=original(dir,"owner.bin",42,42),h=original(dir,"height.bin",8,8),policy=original(dir,"policy.bin",YNX_CURRENT4_PRIVATE_POLICY_MAX);
   std::array<uint8_t,32>network{};std::copy(net.begin(),net.end(),network.begin());
   std::array<uint8_t,42>owner{};std::copy(own.begin(),own.end(),owner.begin());
   uint64_t height=0;for(auto byte:h)height=(height<<8)|byte;require(height>0,"PUBLIC expected height absent");
+  if(argc==3){
+   WireClient client(3,std::chrono::steady_clock::now()+std::chrono::seconds(10));Reply r;
+   require(client.capture(network,owner,r),"cleanup Core CAPTURE transport failed");common(r,false);
+   require(r.owner_present&&client.remoteOwnerDebt(),"cleanup original owner absent");
+   require(client.retire(r),"cleanup original RETIRE failed");common(r,false);
+   r.code=123;r.policy={0x5a};
+   require(!client.read(policy.size(),r)&&r.code==123&&r.policy==Bytes{0x5a},"RETIRE allowed producing READ or mutated output");
+   require(!client.current(r)&&r.code==123&&r.policy==Bytes{0x5a},"RETIRE allowed producing CURRENT or mutated output");
+   require(!client.unknown()&&client.remoteOwnerDebt(),"RETIRE lost known original debt");
+   require(client.join(r),"cleanup original JOIN failed");common(r,false);require(r.physical_complete,"JOIN did not drain original producer");
+   r.code=456;r.policy={0x6b};
+   require(!client.read(policy.size(),r)&&r.code==456&&r.policy==Bytes{0x6b},"JOIN allowed producing READ or mutated output");
+   require(!client.current(r)&&r.code==456&&r.policy==Bytes{0x6b},"JOIN allowed producing CURRENT or mutated output");
+   require(!client.unknown()&&client.remoteOwnerDebt(),"JOIN lost owner before CLOSE");
+   require(client.close(r),"cleanup original CLOSE failed");common(r,false);
+   require(r.physical_complete&&!client.remoteOwnerDebt()&&!client.unknown(),"cleanup original acknowledgement differs");
+   std::cout<<"PASS original-auth-r3-retire-join-seal-productions-four-ops\n";
+   return 0;
+  }
   // No fake peer, read provider or source object: both inherited endpoints go
   // directly to separate original Go Node/Application-paired DATA children.
   {
@@ -44,12 +63,12 @@ int main(int argc,char**argv){
    require(client.close(r),"original Core CLOSE transport failed");common(r,false);
    require(r.physical_complete&&!client.remoteOwnerDebt()&&!client.unknown(),"original close acknowledgement/debt differs");
   }
-  std::cout<<"PASS original-auth-r2-to-real-core-policy-and-cleanup\n";
+  std::cout<<"PASS original-auth-r3-to-real-core-policy-and-cleanup\n";
   {
    WireClient client(4,std::chrono::steady_clock::now()+std::chrono::seconds(10));Reply r;network[0]^=1;
    require(client.capture(network,owner,r),"denied Core CAPTURE transport failed");common(r,true);
    require(r.owner_present&&client.remoteOwnerDebt(),"failed CAPTURE partial was not adopted");
-   // Production Auth r2 must latch present=true even with numerical code zero.
+   // Production Auth r3 must latch present=true even with numerical code zero.
    // These refused calls produce no second READ/CURRENT frame on this channel.
    r.code=123;r.policy={0x5a};
    require(!client.read(policy.size(),r)&&r.code==123&&r.policy==Bytes{0x5a},"denied capture permitted read/output mutation");
@@ -59,7 +78,7 @@ int main(int argc,char**argv){
    require(client.close(r),"partial CLOSE transport failed");common(r,true);
    require(r.physical_complete&&!client.remoteOwnerDebt()&&!client.unknown(),"partial original physical cleanup/first cause differs");
   }
-  std::cout<<"PASS original-auth-r2-code0-partial-denial-and-cleanup\n";
+  std::cout<<"PASS original-auth-r3-code0-partial-denial-and-cleanup\n";
   return 0;
  }catch(const std::exception&e){std::cerr<<"Current4 PUBLIC interop failure: "<<e.what()<<"\n";return 1;}
 }

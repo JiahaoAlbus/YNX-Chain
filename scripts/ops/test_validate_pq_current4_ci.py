@@ -4,6 +4,7 @@ Synthetic Go event rows exercise the real workflow Python. They are not Go,
 Node.Start, signed trace generation, Current4 execution or Source qualification.
 """
 import ast
+import copy
 import contextlib
 import io
 import json
@@ -224,11 +225,13 @@ class Current4CIControls(unittest.TestCase):
 JOINT_STEP = "Verify original Auth r2 cross-process Current4 DATA interoperability"
 JOINT_RECIPE = "scripts/verify/current4-auth-r2-interop-check.sh"
 JOINT_NAME = "TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop"
+CLEANUP_NAME = "TestPQCurrent4WirePUBLICAuthR3CleanupFence"
+JOINT_SELECTOR = "^(" + JOINT_NAME + "|" + CLEANUP_NAME + ")$"
 JOINT_INPUT = "internal/consensus/testdata/current4_auth_r2"
 JOINT_COMMAND = '        run: bash ' + JOINT_RECIPE + ' "$RUNNER_TEMP/ynx-current4-auth-r2-interop"\n'
 JOINT_PINS = {
- "Current4WireClient.cpp":"039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107",
- "Current4WireClient.hpp":"f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424",
+ "Current4WireClient.cpp":"be8b52c00654f325f116d6113158ea4df2ec88c6e65e085337270a669acf6dec",
+ "Current4WireClient.hpp":"4dcf71a0e059c0bfcf7393ce38104144f7fd1cd694bf917212774d1bbc28ffaf",
  "network-consent-policy-current-wire-v1.h":"1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487",
  "network-consent-policy-current-next-private.h":"a4d3f115858235ac8bd7261bb7ac73539a048de2e18278de930542350bd97e70",
  "network_pending_principal_private.h":"f49a03d73ab2947e3962fb2cd6055490cfdd323d1a4ff5da6187309259da69ba",
@@ -239,8 +242,8 @@ JOINT_PINS = {
 def joint_qualifier(recipe=None):
     recipe = recipe if recipe is not None else (ROOT / JOINT_RECIPE).read_text()
     program = recipe.split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
-    functions = [node for node in ast.parse(program).body if isinstance(node, ast.FunctionDef) and node.name == "qualify_joint"]
-    if len(functions) != 1:
+    functions = [node for node in ast.parse(program).body if isinstance(node, ast.FunctionDef) and node.name in ("qualify_joint", "qualify_cleanup")]
+    if len(functions) != 2:
         raise AssertionError("one actual recipe collector required")
     scope = {"json": json}
     exec(compile(ast.Module(body=functions, type_ignores=[]), "actual-joint-recipe-collector", "exec"), scope)
@@ -267,7 +270,7 @@ def assert_joint_contract(raw, recipe):
         raise AssertionError("only exact public joint evidence may upload")
     if "steps.current4authinterop.outcome == 'failure'" not in upload or "if-no-files-found: error" not in upload:
         raise AssertionError("first failure evidence must survive")
-    required = ["'-fsanitize=address,undefined'", "'-std=c++17'", "str(inputs/'Current4WireClient.cpp')", "str(inputs/'interop.cpp')", "],60)", "],210)", "'-p','1'", "'-timeout=120s'", "'-tags=ynx_public_trace_testsupport,ynx_current4_auth_interop'", "'^" + JOINT_NAME + "$'", "GOMEMLIMIT='1536MiB'", "GOMAXPROCS='2'", "GOPROXY='off'", "fixture=repo/'" + TRACE + "'", "receipt=qualify_joint(rows,pin(out/'auth-r2-interop')['sha256'])"]
+    required = ["'-fsanitize=address,undefined'", "'-std=c++17'", "str(inputs/'Current4WireClient.cpp')", "str(inputs/'interop.cpp')", "],60)", "],210)", "'-p','1'", "'-timeout=120s'", "'-tags=ynx_public_trace_testsupport,ynx_current4_auth_interop'", "'" + JOINT_SELECTOR + "'", "GOMEMLIMIT='1536MiB'", "GOMAXPROCS='2'", "GOPROXY='off'", "fixture=repo/'" + TRACE + "'", "receipt=qualify_joint(rows,pin(out/'auth-r2-interop')['sha256'])"]
     if any(value not in recipe for value in required) or recipe.count("run('GO',") != 1 or recipe.count("run('COMPILE',") != 1:
         raise AssertionError("one bounded original Auth compile and actual fourth Go test required")
     joint_qualifier(recipe)
@@ -277,6 +280,8 @@ def assert_joint_originals(directory):
     import hashlib
     manifest = json.loads((directory / "PROVENANCE.json").read_text())
     entries = manifest["foreignSources"]
+    if manifest.get("activeAuthRevision") != "r3" or manifest.get("authHSHA256") != "52488824f04819023067605d87b1ed20c8a1182c6567cdb76ad1a13372f2918c":
+        raise AssertionError("active Auth r3 source handoff required")
     if len(entries) != 7 or {e["file"] for e in entries} != set(JOINT_PINS):
         raise AssertionError("closed seven original Auth/SDK files required")
     if {p.name for p in directory.iterdir()} != set(JOINT_PINS) | {"PROVENANCE.json", "interop.cpp"}:
@@ -289,10 +294,17 @@ def assert_joint_originals(directory):
 
 def joint_rows(receipt=None):
     if receipt is None:
-        receipt = dict(PUBLIC=True, distinctProcesses=True, RootQualifiedPeer=False, NativeCurrent=False, formalP09Slot=False, positiveAndPartialCleanupAcknowledged=True, parentPID=12, cppPID=13, positiveOps=6, deniedOps=4, sourceNodesStarted=0, policyBytes=5631, policySHA256="b" * 64, executionHeight="13", cppSHA256="a" * 64)
+        receipt = dict(activeAuthRevision="r3", PUBLIC=True, distinctProcesses=True, RootQualifiedPeer=False, NativeCurrent=False, formalP09Slot=False, positiveAndPartialCleanupAcknowledged=True, parentPID=12, cppPID=13, positiveOps=6, deniedOps=4, sourceNodesStarted=0, policyBytes=5631, policySHA256="b" * 64, executionHeight="13", cppSHA256="a" * 64)
     return [dict(Action="run", Package=PACKAGE, Test=JOINT_NAME),
             dict(Action="output", Package=PACKAGE, Test=JOINT_NAME, Output="YNX_CURRENT4_AUTH_R2_PUBLIC_INTEROP " + json.dumps(receipt) + "\n"),
-            dict(Action="pass", Package=PACKAGE, Test=JOINT_NAME), dict(Action="pass", Package=PACKAGE)]
+            dict(Action="pass", Package=PACKAGE, Test=JOINT_NAME),
+            *cleanup_rows()[:-1], dict(Action="pass", Package=PACKAGE)]
+
+
+def cleanup_rows(receipt=None):
+    if receipt is None:
+        receipt=dict(activeAuthRevision="r3",PUBLIC=True,distinctProcesses=True,cleanupAcknowledged=True,sameParentAfterCleanup=True,RootQualifiedPeer=False,NativeCurrent=False,formalP09Slot=False,parentPID=12,cppPID=13,cppSHA256="a"*64,coreOps=4,clientProducingCallsDenied=4,sourceNodesStarted=0)
+    return [dict(Action="run",Package=PACKAGE,Test=CLEANUP_NAME),dict(Action="output",Package=PACKAGE,Test=CLEANUP_NAME,Output="YNX_CURRENT4_AUTH_R3_CLEANUP_INTEROP "+json.dumps(receipt)+"\n"),dict(Action="pass",Package=PACKAGE,Test=CLEANUP_NAME),dict(Action="pass",Package=PACKAGE)]
 
 
 class Current4AuthR2JointCIControls(unittest.TestCase):
@@ -355,11 +367,24 @@ class Current4AuthR2JointCIControls(unittest.TestCase):
             with self.assertRaises(AssertionError):
                 assert_joint_contract(changed, recipe)
         for old, new in [("-timeout=120s", "-timeout=180s"), ("-fsanitize=address,undefined", "-O0"),
-                         ("^" + JOINT_NAME + "$", "^TestPQCurrent4"), ("],210)", "],300)"),
+                         (JOINT_SELECTOR, "^TestPQCurrent4"), ("],210)", "],300)"),
                          ("str(inputs/'Current4WireClient.cpp')", "'fake-client.cpp'"),
                          ("GOMEMLIMIT='1536MiB'", "GOMEMLIMIT='4096MiB'")]:
             with self.assertRaises(AssertionError):
                 assert_joint_contract(raw, recipe.replace(old, new, 1))
+
+    def test_active_r3_cleanup_receipt_cannot_be_omitted_or_claim_extra_producing_ops(self):
+        good=joint_rows()
+        without=[e for e in good if e.get("Test")!=CLEANUP_NAME]
+        with self.assertRaises(RuntimeError):joint_qualifier()(without,"a"*64)
+        for field,value in {"activeAuthRevision":"r2","coreOps":5,"clientProducingCallsDenied":3,"cleanupAcknowledged":False,"sameParentAfterCleanup":False,"RootQualifiedPeer":True,"cppPID":12,"cppSHA256":"c"*64,"sourceNodesStarted":False}.items():
+            with self.subTest(field=field):
+                changed=copy.deepcopy(good)
+                for event in changed:
+                    if event.get("Test")==CLEANUP_NAME and event["Action"]=="output":
+                        marker="YNX_CURRENT4_AUTH_R3_CLEANUP_INTEROP "
+                        receipt=json.loads(event["Output"].split(marker,1)[1]);receipt[field]=value;event["Output"]=marker+json.dumps(receipt)
+                with self.assertRaises(RuntimeError):joint_qualifier()(changed,"a"*64)
 
 
 if __name__ == "__main__":

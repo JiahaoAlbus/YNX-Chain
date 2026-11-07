@@ -10,7 +10,8 @@ if not out.is_absolute() or out.exists():raise SystemExit('fresh absolute eviden
 out.mkdir(mode=0o700);(out/'tmp').mkdir(mode=0o700)
 inputs=repo/'internal/consensus/testdata/current4_auth_r2'
 manifest=json.loads((inputs/'PROVENANCE.json').read_text())
-fixed={'Current4WireClient.cpp':'039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107','Current4WireClient.hpp':'f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424','network-consent-policy-current-wire-v1.h':'1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487'}
+if manifest.get('activeAuthRevision')!='r3' or manifest.get('authHSHA256')!='52488824f04819023067605d87b1ed20c8a1182c6567cdb76ad1a13372f2918c':raise SystemExit('active Auth r3 provenance required; r2 path is legacy only')
+fixed={'Current4WireClient.cpp':'be8b52c00654f325f116d6113158ea4df2ec88c6e65e085337270a669acf6dec','Current4WireClient.hpp':'4dcf71a0e059c0bfcf7393ce38104144f7fd1cd694bf917212774d1bbc28ffaf','network-consent-policy-current-wire-v1.h':'1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487'}
 def pin(p):
  b=p.read_bytes();return {'path':str(p),'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
 seen=set()
@@ -41,7 +42,29 @@ def run(name,args,timeout):
   print((out/(name+'.stderr')).read_text()[-4000:],file=sys.stderr)
   raise RuntimeError(name+' failed; original evidence retained')
  return r
+def qualify_cleanup(rows,binary_sha):
+ pkg='github.com/JiahaoAlbus/YNX-Chain/internal/consensus';name='TestPQCurrent4WirePUBLICAuthR3CleanupFence'
+ if not rows or any(not isinstance(e,dict) or e.get('Package')!=pkg or e.get('Action') not in ('start','run','pause','cont','output','pass') for e in rows):raise RuntimeError('cleanup stream failed/skipped/foreign/malformed')
+ if any('Test' in e and (not isinstance(e['Test'],str) or e['Test'].split('/')[0]!=name) for e in rows):raise RuntimeError('different test in cleanup stream')
+ if [e['Action'] for e in rows if e.get('Test')==name and e['Action']=='run']!=['run'] or [e['Action'] for e in rows if e.get('Test')==name and e['Action'] in ('pass','fail','skip')]!=['pass']:raise RuntimeError('cleanup test did not run/pass uniquely')
+ if [e['Action'] for e in rows if 'Test' not in e and e['Action'] in ('pass','fail','skip')]!=['pass']:raise RuntimeError('cleanup package did not pass once')
+ marker='YNX_CURRENT4_AUTH_R3_CLEANUP_INTEROP '
+ receipts=[json.loads(e['Output'].split(marker,1)[1]) for e in rows if e.get('Action')=='output' and e.get('Test')==name and marker in e.get('Output','')]
+ if len(receipts)!=1:raise RuntimeError('actual cleanup receipt absent/duplicate')
+ r=receipts[0];flags={'PUBLIC':True,'distinctProcesses':True,'cleanupAcknowledged':True,'sameParentAfterCleanup':True,'RootQualifiedPeer':False,'NativeCurrent':False,'formalP09Slot':False}
+ if not isinstance(r,dict) or set(r)!=set(flags)|{'activeAuthRevision','parentPID','cppPID','cppSHA256','coreOps','clientProducingCallsDenied','sourceNodesStarted'}:raise RuntimeError('cleanup receipt fields differ')
+ if r['activeAuthRevision']!='r3' or any(r[k] is not v for k,v in flags.items()):raise RuntimeError('cleanup active BODY/scope differs')
+ if any(type(r[k]) is not int or r[k]!=v for k,v in {'coreOps':4,'clientProducingCallsDenied':4,'sourceNodesStarted':0}.items()):raise RuntimeError('producing operation escaped cleanup fence')
+ if any(type(r[k]) is not int or r[k]<=0 for k in ('parentPID','cppPID')) or r['parentPID']==r['cppPID']:raise RuntimeError('cleanup processes differ')
+ if not isinstance(r['cppSHA256'],str) or r['cppSHA256']!=binary_sha:raise RuntimeError('actual cleanup binary differs')
+ return r
+
 def qualify_joint(rows,binary_sha):
+ allowed={'TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop','TestPQCurrent4WirePUBLICAuthR3CleanupFence'}
+ if any(not isinstance(e,dict) or ('Test' in e and (not isinstance(e['Test'],str) or e['Test'].split('/')[0] not in allowed)) for e in rows):raise RuntimeError('normal matching stream has foreign test')
+ cleanup_rows=[e for e in rows if 'Test' not in e or e['Test'].split('/')[0]=='TestPQCurrent4WirePUBLICAuthR3CleanupFence']
+ qualify_cleanup(cleanup_rows,binary_sha)
+ rows=[e for e in rows if 'Test' not in e or e['Test'].split('/')[0]=='TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop']
  pkg='github.com/JiahaoAlbus/YNX-Chain/internal/consensus';name='TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop'
  if not rows or any(not isinstance(e,dict) or e.get('Package')!=pkg or e.get('Action') not in ('start','run','pause','cont','output','pass') for e in rows):raise RuntimeError('joint stream failed/skipped/foreign/malformed')
  if any('Test' in e and (not isinstance(e['Test'],str) or e['Test'].split('/')[0]!=name) for e in rows):raise RuntimeError('different test in joint stream')
@@ -52,8 +75,8 @@ def qualify_joint(rows,binary_sha):
  if len(receipts)!=1:raise RuntimeError('actual cross-process receipt absent/duplicate')
  r=receipts[0]
  flags={'PUBLIC':True,'distinctProcesses':True,'RootQualifiedPeer':False,'NativeCurrent':False,'formalP09Slot':False,'positiveAndPartialCleanupAcknowledged':True}
- if not isinstance(r,dict) or set(r)!=set(flags)|{'parentPID','cppPID','positiveOps','deniedOps','sourceNodesStarted','policyBytes','policySHA256','executionHeight','cppSHA256'}:raise RuntimeError('joint receipt fields differ')
- if any(r[k] is not v for k,v in flags.items()):raise RuntimeError('joint DATA/no-grant scope differs')
+ if not isinstance(r,dict) or set(r)!=set(flags)|{'activeAuthRevision','parentPID','cppPID','positiveOps','deniedOps','sourceNodesStarted','policyBytes','policySHA256','executionHeight','cppSHA256'}:raise RuntimeError('joint receipt fields differ')
+ if r['activeAuthRevision']!='r3' or any(r[k] is not v for k,v in flags.items()):raise RuntimeError('joint DATA/no-grant scope differs')
  if any(type(r[k]) is not int or r[k]!=v for k,v in {'positiveOps':6,'deniedOps':4,'sourceNodesStarted':0}.items()):raise RuntimeError('actual operation/Node lifecycle count differs')
  if any(type(r[k]) is not int or r[k]<=0 for k in ('parentPID','cppPID')) or r['parentPID']==r['cppPID']:raise RuntimeError('not two actual process identities')
  if type(r['policyBytes']) is not int or not 0<r['policyBytes']<=8388608:raise RuntimeError('complete PUBLIC policy bound differs')
@@ -67,10 +90,10 @@ try:
  compiler=os.environ.get('CXX','clang++')
  run('COMPILE',[compiler,'-std=c++17','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-g0','-O1','-pthread','-I',str(inputs),str(inputs/'Current4WireClient.cpp'),str(inputs/'interop.cpp'),'-o',str(out/'auth-r2-interop')],60)
  go=os.environ.get('GO','go')
- run('GO',[go,'test','-json','-p','1','-count=1','-timeout=120s','-tags=ynx_public_trace_testsupport,ynx_current4_auth_interop','-run','^TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop$','./internal/consensus'],210)
+ run('GO',[go,'test','-json','-p','1','-count=1','-timeout=120s','-tags=ynx_public_trace_testsupport,ynx_current4_auth_interop','-run','^(TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop|TestPQCurrent4WirePUBLICAuthR3CleanupFence)$','./internal/consensus'],210)
  rows=[json.loads(line) for line in (out/'GO.stdout').read_text().splitlines()]
  receipt=qualify_joint(rows,pin(out/'auth-r2-interop')['sha256'])
- result={'status':'PASS','sourcePins':[pin(inputs/p) for p in sorted(seen|{'PROVENANCE.json','interop.cpp'})],'producerSourcePins':[pin(repo/'internal/consensus'/p) for p in ['pq_current4_wire.go','pq_current4_peer_darwin.go','pq_current4_peer_linux.go','pq_wallet_policy_live.go']],'binary':pin(out/'auth-r2-interop'),'steps':records,'publicInteropReceipt':receipt,'maximumChildRSSBytes':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'productionLauncherQualified':False,'oldMatrixRerun':False,'newPQKeysOrSignatures':0,'archiveBuilds':0}
+ result={'activeAuthRevision':'r3','normalMatchingCleanupFenceVerified':True,'status':'PASS','sourcePins':[pin(inputs/p) for p in sorted(seen|{'PROVENANCE.json','interop.cpp'})],'producerSourcePins':[pin(repo/'internal/consensus'/p) for p in ['pq_current4_wire.go','pq_current4_peer_darwin.go','pq_current4_peer_linux.go','pq_wallet_policy_live.go']],'binary':pin(out/'auth-r2-interop'),'steps':records,'publicInteropReceipt':receipt,'maximumChildRSSBytes':resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss,'productionLauncherQualified':False,'oldMatrixRerun':False,'newPQKeysOrSignatures':0,'archiveBuilds':0}
  (out/'RESULT.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
 except Exception as e:
  (out/'FAILURE.json').write_text(json.dumps({'status':'FAIL','firstCause':str(e),'steps':records},indent=2)+'\n');raise

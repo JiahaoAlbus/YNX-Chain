@@ -30,7 +30,7 @@ private:
  bool io(bool writing,uint8_t*data,size_t count);
  bool fail();
  int fd_=-1; Deadline deadline_,io_deadline_,cleanup_deadline_{}; mutable std::mutex mu_;
- uint64_t next_=1; bool capture_entered_=false,captured_=false,unknown_=false,owner_=false,closed_=false,acquisition_possible_=false,denied_=false;
+ uint64_t next_=1; bool capture_entered_=false,captured_=false,unknown_=false,owner_=false,closed_=false,acquisition_possible_=false,denied_=false,cleanup_started_=false;
  std::array<uint8_t,42> selected_owner_{};
 };
 }

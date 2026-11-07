@@ -39,19 +39,21 @@ func current4InteropOriginals(t *testing.T) {
 		t.Fatal(err)
 	}
 	var manifest struct {
-		ForeignSources []struct {
+		AuthHSHA256        string
+		ActiveAuthRevision string
+		ForeignSources     []struct {
 			File     string
 			Bytes    int
 			SHA256   string
 			Verbatim bool
 		}
 	}
-	if json.Unmarshal(raw, &manifest) != nil || len(manifest.ForeignSources) != 7 {
+	if json.Unmarshal(raw, &manifest) != nil || len(manifest.ForeignSources) != 7 || manifest.ActiveAuthRevision != "r3" || manifest.AuthHSHA256 != "52488824f04819023067605d87b1ed20c8a1182c6567cdb76ad1a13372f2918c" {
 		t.Fatal("original Auth/SDK closed source provenance missing")
 	}
 	required := map[string]string{
-		"Current4WireClient.cpp":                   "039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107",
-		"Current4WireClient.hpp":                   "f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424",
+		"Current4WireClient.cpp":                   "be8b52c00654f325f116d6113158ea4df2ec88c6e65e085337270a669acf6dec",
+		"Current4WireClient.hpp":                   "4dcf71a0e059c0bfcf7393ce38104144f7fd1cd694bf917212774d1bbc28ffaf",
 		"network-consent-policy-current-wire-v1.h": "1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487",
 	}
 	seen := map[string]bool{}
@@ -108,11 +110,11 @@ func TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop(t *testing.T) {
 	current4InteropOriginals(t)
 	binaryPath := os.Getenv("YNX_CURRENT4_AUTH_R2_INTEROP_BINARY")
 	if !filepath.IsAbs(binaryPath) {
-		t.Fatal("explicit test-only compiled original Auth r2 binary required")
+		t.Fatal("explicit test-only compiled original Auth r3 (legacy r2 harness name) binary required")
 	}
 	st, err := os.Lstat(binaryPath)
 	if err != nil || !st.Mode().IsRegular() || st.Mode().Perm()&0111 == 0 {
-		t.Fatal("original Auth r2 executable is not a regular test artifact")
+		t.Fatal("original Auth r3 (legacy r2 harness name) executable is not a regular test artifact")
 	}
 	trace := os.Getenv("YNX_PUBLIC_REGISTERED_OBSERVER_TRACE")
 	// Two independent original PUBLIC homes are constructed BEFORE any joint
@@ -164,7 +166,7 @@ func TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop(t *testing.T) {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err = cmd.Start(); err != nil {
-		t.Fatal("original Auth r2 exec", err)
+		t.Fatal("original Auth r3 (legacy r2 harness name) exec", err)
 	}
 	childPID := cmd.Process.Pid
 	if childPID == os.Getpid() {
@@ -173,11 +175,11 @@ func TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop(t *testing.T) {
 	_ = fd1.Close()
 	_ = fd2.Close() // parent cannot retain the client's transport debt
 	if err = cmd.Wait(); err != nil {
-		t.Fatalf("actual Auth r2 process failed: %v; bounded diagnostics: %s", err, stderr.data)
+		t.Fatalf("actual Auth r3 process failed: %v; bounded diagnostics: %s", err, stderr.data)
 	}
 	current4Wait(t, w1)
 	current4Wait(t, w2)
-	const want = "PASS original-auth-r2-to-real-core-policy-and-cleanup\nPASS original-auth-r2-code0-partial-denial-and-cleanup\n"
+	const want = "PASS original-auth-r3-to-real-core-policy-and-cleanup\nPASS original-auth-r3-code0-partial-denial-and-cleanup\n"
 	if string(stdout.data) != want || len(stderr.data) != 0 {
 		t.Fatal("actual original Auth joint outcomes differ")
 	}
@@ -202,10 +204,97 @@ func TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop(t *testing.T) {
 		t.Fatal(err)
 	}
 	artifactSum, policySum := sha256.Sum256(artifact), sha256.Sum256(v.PolicyOriginal)
-	receipt := map[string]any{"PUBLIC": true, "parentPID": os.Getpid(), "cppPID": childPID, "distinctProcesses": true, "policyBytes": len(v.PolicyOriginal), "policySHA256": hex.EncodeToString(policySum[:]), "executionHeight": fmt.Sprint(v.ExecutionHeight), "cppSHA256": hex.EncodeToString(artifactSum[:]), "positiveOps": w1.sequence, "deniedOps": w2.sequence, "sourceNodesStarted": 0, "RootQualifiedPeer": false, "NativeCurrent": false, "formalP09Slot": false, "positiveAndPartialCleanupAcknowledged": true}
+	receipt := map[string]any{"activeAuthRevision": "r3", "PUBLIC": true, "parentPID": os.Getpid(), "cppPID": childPID, "distinctProcesses": true, "policyBytes": len(v.PolicyOriginal), "policySHA256": hex.EncodeToString(policySum[:]), "executionHeight": fmt.Sprint(v.ExecutionHeight), "cppSHA256": hex.EncodeToString(artifactSum[:]), "positiveOps": w1.sequence, "deniedOps": w2.sequence, "sourceNodesStarted": 0, "RootQualifiedPeer": false, "NativeCurrent": false, "formalP09Slot": false, "positiveAndPartialCleanupAcknowledged": true}
 	raw, err := json.Marshal(receipt)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Log("YNX_CURRENT4_AUTH_R2_PUBLIC_INTEROP " + strings.TrimSpace(string(raw)))
+}
+
+// r2 in the original file/path/top name is historical compatibility only.
+// This new delta runs the exact active r3 BODY against the actual Go producer.
+// It never repeats the baseline positive-six / denied-four case sequences.
+func TestPQCurrent4WirePUBLICAuthR3CleanupFence(t *testing.T) {
+	current4InteropOriginals(t)
+	binaryPath := os.Getenv("YNX_CURRENT4_AUTH_R2_INTEROP_BINARY")
+	if !filepath.IsAbs(binaryPath) {
+		t.Fatal("explicit original active-r3 binary required")
+	}
+	st, err := os.Lstat(binaryPath)
+	if err != nil || !st.Mode().IsRegular() || st.Mode().Perm()&0111 == 0 {
+		t.Fatal("regular active-r3 test executable required")
+	}
+	f := openPublicTraceObserver(t, os.Getenv("YNX_PUBLIC_REGISTERED_OBSERVER_TRACE"))
+	originalNode := f.node
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+	source, err := f.app.WalletPolicyLiveSource()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := source.Read(ctx, f.expected.Owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := sealed.OwnerPolicy()
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := t.TempDir()
+	height := make([]byte, 8)
+	binary.BigEndian.PutUint64(height, v.ExecutionHeight)
+	for name, data := range map[string][]byte{"network.bin": v.NetworkID[:], "owner.bin": []byte(v.Owner), "height.bin": height, "policy.bin": v.PolicyOriginal} {
+		if err = os.WriteFile(filepath.Join(expected, name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	w, fd := current4InteropEndpoint(t, f, ctx)
+	cmd := exec.CommandContext(ctx, binaryPath, expected, "cleanup-fence")
+	cmd.Env = []string{"PATH=/usr/bin:/bin", "LC_ALL=C"}
+	cmd.ExtraFiles = []*os.File{fd}
+	stdout, stderr := &current4InteropOutput{}, &current4InteropOutput{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err = cmd.Start(); err != nil {
+		t.Fatal("actual active-r3 child exec", err)
+	}
+	childPID := cmd.Process.Pid
+	_ = fd.Close()
+	if childPID == os.Getpid() {
+		t.Fatal("not a distinct actual process")
+	}
+	if err = cmd.Wait(); err != nil {
+		t.Fatalf("actual active-r3 cleanup child: %v; bounded diagnostics: %s", err, stderr.data)
+	}
+	current4Wait(t, w)
+	if string(stdout.data) != "PASS original-auth-r3-retire-join-seal-productions-four-ops\n" || len(stderr.data) != 0 {
+		t.Fatal("r3 cleanup client assertions missing")
+	}
+	if w.sequence != 4 || w.cause() != nil {
+		t.Fatal("cleanup READ/CURRENT escaped client fence or producer failure changed")
+	}
+	if f.node != originalNode || f.node.IsRunning() {
+		t.Fatal("cleanup replaced/started original parent")
+	}
+	// Same shared parent survives child cleanup; no second channel/re-CAPTURE.
+	again, err := source.Read(ctx, v.Owner)
+	if err != nil {
+		t.Fatal("cleanup closed shared parent", err)
+	}
+	av, err := again.OwnerPolicy()
+	if err != nil || !bytes.Equal(av.PolicyOriginal, v.PolicyOriginal) {
+		t.Fatal("original parent policy changed", err)
+	}
+	artifact, err := os.ReadFile(binaryPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifactSHA := sha256.Sum256(artifact)
+	receipt := map[string]any{"activeAuthRevision": "r3", "PUBLIC": true, "parentPID": os.Getpid(), "cppPID": childPID, "distinctProcesses": true, "cppSHA256": hex.EncodeToString(artifactSHA[:]), "coreOps": w.sequence, "clientProducingCallsDenied": 4, "sourceNodesStarted": 0, "cleanupAcknowledged": true, "sameParentAfterCleanup": true, "RootQualifiedPeer": false, "NativeCurrent": false, "formalP09Slot": false}
+	raw, err := json.Marshal(receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("YNX_CURRENT4_AUTH_R3_CLEANUP_INTEROP " + string(raw))
 }
