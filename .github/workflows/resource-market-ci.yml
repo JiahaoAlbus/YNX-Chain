@@ -17,6 +17,7 @@ on:
       - 'internal/chain/**'
       - 'internal/consensus/**'
       - 'internal/api/**'
+      - 'testdata/ethereum-native/**'
       - 'internal/bftgateway/**'
       - 'internal/faucet/**'
       - 'cmd/**'
@@ -75,6 +76,12 @@ on:
       - 'scripts/ops/collect_pq_committed_account_wire_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_wire_tests.py'
       - 'scripts/ops/test_validate_pq_committed_account_wire_ci.py'
+      - 'scripts/verify/account-auth-interop-check.sh'
+      - 'scripts/verify/build-account-auth-interop.py'
+      - 'scripts/ops/collect_pq_account_auth_interop_tests.py'
+      - 'scripts/ops/test_collect_pq_account_auth_interop_tests.py'
+      - 'scripts/ops/test_validate_pq_account_auth_interop_ci.py'
+      - 'internal/consensus/testdata/account_auth_interop/**'
       - 'internal/consensus/testdata/account_proof_wire_sdk/**'
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
@@ -162,6 +169,8 @@ on:
       - '.github/workflows/resource-market-ci.yml'
   pull_request:
     paths:
+      - 'testdata/ethereum-native/**'
+      - 'internal/api/ethereum_ethers_test.go'
       - 'internal/ynxresourceconsent/**'
       - 'internal/ynxresourcepolicy/**'
       - 'scripts/loadtest/fixtures/finalize-1b-public/**'
@@ -179,6 +188,12 @@ on:
       - 'scripts/ops/collect_pq_committed_account_wire_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_wire_tests.py'
       - 'scripts/ops/test_validate_pq_committed_account_wire_ci.py'
+      - 'scripts/verify/account-auth-interop-check.sh'
+      - 'scripts/verify/build-account-auth-interop.py'
+      - 'scripts/ops/collect_pq_account_auth_interop_tests.py'
+      - 'scripts/ops/test_collect_pq_account_auth_interop_tests.py'
+      - 'scripts/ops/test_validate_pq_account_auth_interop_ci.py'
+      - 'internal/consensus/testdata/account_auth_interop/**'
       - 'internal/consensus/testdata/account_proof_wire_sdk/**'
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
@@ -845,6 +860,106 @@ jobs:
           lipo "$RUNNER_TEMP/ynx-pending-original-query-cabi/pending-query-c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
+      - name: Execute original Auth account client against the Go producer on Mac
+        id: accountauthinterop
+        if: matrix.runner == 'macos-15'
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY_ACCOUNT_AUTH'
+          import hashlib, json, os, signal, subprocess, sys, time
+          from pathlib import Path
+          started = time.monotonic()
+          deadline = started + 205
+          root = Path(os.environ['RUNNER_TEMP'])
+          case = root / 'ynx-account-auth-interop'
+          case.mkdir(mode=0o700)
+          archive = root / 'ynx-artifact-release-cabi/libynx_artifact_release.a'
+          record = {'archiveBuilt': False, 'normalProtectedHost': False, 'RootAdmission': False,
+                    'SourceAdmission': False, 'NativeReceipt': False, 'linuxQualified': False,
+                    'jointQualification': 'see original strict RESULT.json only',
+                    'sourceCommit': os.environ['GITHUB_SHA'], 'timedOut': False}
+          process = None
+          code = 1
+          try:
+              if sys.platform != 'darwin':
+                  raise RuntimeError('original Auth PUBLIC platform body requires Darwin')
+              if not archive.is_file() or not 0 < archive.stat().st_size <= 134217728:
+                  raise RuntimeError('same-job existing Source18 archive missing or outside bound')
+              digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+              record['archive'] = {'path': str(archive), 'bytes': archive.stat().st_size, 'sha256': digest}
+              record['headers'] = {}
+              for name in ('auth_source_statement_v2.h', 'registered_n1_verify.h'):
+                  header = Path('cmd/ynx-artifact-release-cabi') / name
+                  data = header.read_bytes()
+                  record['headers'][str(header)] = {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+              trace = Path('scripts/loadtest/fixtures/finalize-1b-public')
+              for name in ('result.json', 'migration.json', 'genesis.json', 'schedule.json', 'init-chain.pb',
+                           'initial-state.json', 'final-state.json', 'records.jsonl', 'intent.json'):
+                  if not (trace / name).is_file() or (trace / name).stat().st_size == 0:
+                      raise RuntimeError('mandatory original PUBLIC trace missing: ' + name)
+              symbols = subprocess.check_output(['nm', '-gU', str(archive)], text=True,
+                                                timeout=min(15, max(0.001, deadline - time.monotonic())))
+              count = sum(bool(line.split()) and line.split()[-1] == '_YNXAuthSourceStatementVerifyV2'
+                          for line in symbols.splitlines())
+              if count != 1:
+                  raise RuntimeError('same archive must define exactly one original Source18 math callee')
+              record['source18DefinedSymbols'] = count
+              env = dict(os.environ, GOMAXPROCS='2', GOMEMLIMIT='1536MiB')
+              with (case / 'WRAPPER.stdout').open('xb') as stdout, (case / 'WRAPPER.stderr').open('xb') as stderr:
+                  process = subprocess.Popen(['bash', 'scripts/verify/account-auth-interop-check.sh',
+                                              str(case / 'joint'), str(archive), digest],
+                                             stdout=stdout, stderr=stderr, env=env, start_new_session=True)
+                  try:
+                      code = process.wait(timeout=max(0.001, deadline - time.monotonic()))
+                  except subprocess.TimeoutExpired:
+                      record['timedOut'] = True
+                      os.killpg(process.pid, signal.SIGTERM)
+                      try:
+                          process.wait(timeout=max(0.001, deadline + 5 - time.monotonic()))
+                      except subprocess.TimeoutExpired:
+                          os.killpg(process.pid, signal.SIGKILL)
+                          process.wait()
+                      code = 124
+              record['recipeExitCode'] = code
+              if code:
+                  record['firstCause'] = ('joint outer deadline exceeded' if record['timedOut']
+                                          else 'original joint recipe failed; see WRAPPER logs')
+              record['archiveUnchanged'] = hashlib.sha256(archive.read_bytes()).hexdigest() == digest
+              if not record['archiveUnchanged']:
+                  raise RuntimeError('same-job archive changed during joint invocation')
+          except Exception as error:
+              record.setdefault('firstCause', str(error))
+              record['supervisorError'] = str(error)
+              code = 1
+          finally:
+              if process is not None and process.poll() is None:
+                  os.killpg(process.pid, signal.SIGKILL)
+                  process.wait()
+              record['exitCode'] = code
+              record['elapsedSeconds'] = time.monotonic() - started
+              with (case / 'RUN.json').open('x') as output:
+                  json.dump(record, output, indent=2)
+                  output.write('\n')
+              print(json.dumps(record, sort_keys=True))
+          raise SystemExit(code)
+          PY_ACCOUNT_AUTH
+      - name: Retain only public original Auth account joint evidence
+        if: ${{ !cancelled() && matrix.runner == 'macos-15' && (steps.accountauthinterop.outcome == 'success' || steps.accountauthinterop.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-account-auth-joint-public-${{ matrix.runner }}-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/ynx-account-auth-interop/RUN.json
+            ${{ runner.temp }}/ynx-account-auth-interop/WRAPPER.stdout
+            ${{ runner.temp }}/ynx-account-auth-interop/WRAPPER.stderr
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/GO.jsonl
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/STDERR
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/RESULT.json
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/cpp/BUILD.json
       - name: Install pinned contract runtime for Darwin migration callers
         if: runner.os == 'macOS'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -1535,6 +1650,8 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_handler_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_wire_tests.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_wire_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_account_auth_interop_tests.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_account_auth_interop_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
@@ -1956,9 +2073,12 @@ jobs:
               terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
                   raise RuntimeError('legacy snapshot memory did not execute uniquely in original package: ' + name)
-          ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == 'TestEthereumIndependentEthersLifecycle' and row['Action'] in ('pass', 'fail', 'skip')]
-          if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
-              raise RuntimeError('independent ethers lifecycle did not execute uniquely in original API package')
+          ethers_required = ['TestEthereumIndependentEthersLifecycle', 'TestEthereumIndependentEthersDurabilityWait', 'TestEthereumIndependentEthersDurabilityRefusals']
+          for name in ethers_required:
+              runs = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] == 'run']
+              ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if runs != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'run')] or ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
+                  raise RuntimeError('independent ethers lifecycle/durability did not execute uniquely in original API package: ' + name)
           for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):
               terminal = [row['Action'] for row in rows if row.get('Package') == package and 'Test' not in row and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:

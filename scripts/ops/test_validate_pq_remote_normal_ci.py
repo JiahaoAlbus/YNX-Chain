@@ -683,12 +683,118 @@ def assert_native_cabi_workflow_contract(raw):
                  "Upload only fixed E11 V2 archive headers and actual public evidence")
     v5_names = ("Execute fixed binary HTTP V5 from the same native archive",
                 "Upload only fixed binary HTTP V5 archive and actual public evidence")
+    account_auth_names = ('Execute original Auth account client against the Go producer on Mac', 'Retain only public original Auth account joint evidence')
     ordered_names = (names[:1] + data_names + names[1:3] + (new_core_name,) + names[3:4] + wallet_names + (invoice_name, invoice_upload) + publisher_names[:1]
                      + (device_http_name, pending_query_name)
-                     + names[4:9] + registered_names + product_device_names + creator_names + e11_names + v5_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names) == 37)
+                     + names[4:5] + account_auth_names + names[5:9] + registered_names + product_device_names + creator_names + e11_names + v5_names + publisher_names[1:] + names[9:])
+    need(len(steps) == len(ordered_names) == 39)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
+    # The original Auth client consumes the already executed Source18 archive.
+    # Keep both Darwin-only steps closed: no extra build, skipped call, changed
+    # deadline, substituted archive or expanded PUBLIC output can qualify them.
+    need(lines(named[account_auth_names[0]]) == lines(r"""      - name: Execute original Auth account client against the Go producer on Mac
+        id: accountauthinterop
+        if: matrix.runner == 'macos-15'
+        timeout-minutes: 4
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY_ACCOUNT_AUTH'
+          import hashlib, json, os, signal, subprocess, sys, time
+          from pathlib import Path
+          started = time.monotonic()
+          deadline = started + 205
+          root = Path(os.environ['RUNNER_TEMP'])
+          case = root / 'ynx-account-auth-interop'
+          case.mkdir(mode=0o700)
+          archive = root / 'ynx-artifact-release-cabi/libynx_artifact_release.a'
+          record = {'archiveBuilt': False, 'normalProtectedHost': False, 'RootAdmission': False,
+                    'SourceAdmission': False, 'NativeReceipt': False, 'linuxQualified': False,
+                    'jointQualification': 'see original strict RESULT.json only',
+                    'sourceCommit': os.environ['GITHUB_SHA'], 'timedOut': False}
+          process = None
+          code = 1
+          try:
+              if sys.platform != 'darwin':
+                  raise RuntimeError('original Auth PUBLIC platform body requires Darwin')
+              if not archive.is_file() or not 0 < archive.stat().st_size <= 134217728:
+                  raise RuntimeError('same-job existing Source18 archive missing or outside bound')
+              digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+              record['archive'] = {'path': str(archive), 'bytes': archive.stat().st_size, 'sha256': digest}
+              record['headers'] = {}
+              for name in ('auth_source_statement_v2.h', 'registered_n1_verify.h'):
+                  header = Path('cmd/ynx-artifact-release-cabi') / name
+                  data = header.read_bytes()
+                  record['headers'][str(header)] = {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+              trace = Path('scripts/loadtest/fixtures/finalize-1b-public')
+              for name in ('result.json', 'migration.json', 'genesis.json', 'schedule.json', 'init-chain.pb',
+                           'initial-state.json', 'final-state.json', 'records.jsonl', 'intent.json'):
+                  if not (trace / name).is_file() or (trace / name).stat().st_size == 0:
+                      raise RuntimeError('mandatory original PUBLIC trace missing: ' + name)
+              symbols = subprocess.check_output(['nm', '-gU', str(archive)], text=True,
+                                                timeout=min(15, max(0.001, deadline - time.monotonic())))
+              count = sum(bool(line.split()) and line.split()[-1] == '_YNXAuthSourceStatementVerifyV2'
+                          for line in symbols.splitlines())
+              if count != 1:
+                  raise RuntimeError('same archive must define exactly one original Source18 math callee')
+              record['source18DefinedSymbols'] = count
+              env = dict(os.environ, GOMAXPROCS='2', GOMEMLIMIT='1536MiB')
+              with (case / 'WRAPPER.stdout').open('xb') as stdout, (case / 'WRAPPER.stderr').open('xb') as stderr:
+                  process = subprocess.Popen(['bash', 'scripts/verify/account-auth-interop-check.sh',
+                                              str(case / 'joint'), str(archive), digest],
+                                             stdout=stdout, stderr=stderr, env=env, start_new_session=True)
+                  try:
+                      code = process.wait(timeout=max(0.001, deadline - time.monotonic()))
+                  except subprocess.TimeoutExpired:
+                      record['timedOut'] = True
+                      os.killpg(process.pid, signal.SIGTERM)
+                      try:
+                          process.wait(timeout=max(0.001, deadline + 5 - time.monotonic()))
+                      except subprocess.TimeoutExpired:
+                          os.killpg(process.pid, signal.SIGKILL)
+                          process.wait()
+                      code = 124
+              record['recipeExitCode'] = code
+              if code:
+                  record['firstCause'] = ('joint outer deadline exceeded' if record['timedOut']
+                                          else 'original joint recipe failed; see WRAPPER logs')
+              record['archiveUnchanged'] = hashlib.sha256(archive.read_bytes()).hexdigest() == digest
+              if not record['archiveUnchanged']:
+                  raise RuntimeError('same-job archive changed during joint invocation')
+          except Exception as error:
+              record.setdefault('firstCause', str(error))
+              record['supervisorError'] = str(error)
+              code = 1
+          finally:
+              if process is not None and process.poll() is None:
+                  os.killpg(process.pid, signal.SIGKILL)
+                  process.wait()
+              record['exitCode'] = code
+              record['elapsedSeconds'] = time.monotonic() - started
+              with (case / 'RUN.json').open('x') as output:
+                  json.dump(record, output, indent=2)
+                  output.write('\n')
+              print(json.dumps(record, sort_keys=True))
+          raise SystemExit(code)
+          PY_ACCOUNT_AUTH
+"""))
+    need(lines(named[account_auth_names[1]]) == lines(r"""      - name: Retain only public original Auth account joint evidence
+        if: ${{ !cancelled() && matrix.runner == 'macos-15' && (steps.accountauthinterop.outcome == 'success' || steps.accountauthinterop.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-account-auth-joint-public-${{ matrix.runner }}-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/ynx-account-auth-interop/RUN.json
+            ${{ runner.temp }}/ynx-account-auth-interop/WRAPPER.stdout
+            ${{ runner.temp }}/ynx-account-auth-interop/WRAPPER.stderr
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/GO.jsonl
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/STDERR
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/RESULT.json
+            ${{ runner.temp }}/ynx-account-auth-interop/joint/cpp/BUILD.json
+"""))
     v5 = named[v5_names[0]]
     for token in ("-run '^TestProductSessionHTTPV5' ./internal/ynxbatch",
         'bash scripts/fixtures/verify-product-session-http-v5-cabi/check.sh \\',
@@ -2142,12 +2248,21 @@ def assert_legacy_snapshot_stream_contract(raw):
           JS
 """
     expected = expected.replace('        run: |\n          set -euo pipefail\n', ethers_prelude, 1)
-    ethers_result = """          ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == 'TestEthereumIndependentEthersLifecycle' and row['Action'] in ('pass', 'fail', 'skip')]
-          if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
-              raise RuntimeError('independent ethers lifecycle did not execute uniquely in original API package')
+    ethers_result = """          ethers_required = ['TestEthereumIndependentEthersLifecycle', 'TestEthereumIndependentEthersDurabilityWait', 'TestEthereumIndependentEthersDurabilityRefusals']
+          for name in ethers_required:
+              runs = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] == 'run']
+              ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if runs != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'run')] or ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
+                  raise RuntimeError('independent ethers lifecycle/durability did not execute uniquely in original API package: ' + name)
 """
     expected = expected.replace("          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", ethers_result + "          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):\n", 1)
     need(found[0] == expected)
+    push = raw.split("  push:\n", 1)[1].split("  pull_request:\n", 1)[0]
+    pull_request = raw.split("  pull_request:\n", 1)[1].split("  workflow_dispatch:\n", 1)[0]
+    for event in (push, pull_request):
+        need(event.count("      - 'testdata/ethereum-native/**'\n") == 1)
+    need("      - 'internal/api/**'\n" in push)
+    need(pull_request.count("      - 'internal/api/ethereum_ethers_test.go'\n") == 1)
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_native_codec_and_bridge_events_keep_original_file_and_package(self):
@@ -2191,6 +2306,59 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                 if case == "failed-event": data["ynx-native-cabi-core-tests.jsonl"][0]["Action"] = "fail"
                 with self.subTest(domain=codec, case=case), self.assertRaises(RuntimeError):
                     exercise(data)
+
+    def test_original_auth_account_joint_keeps_closed_mac_call_and_public_evidence(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+        names = ("Execute original Auth account client against the Go producer on Mac",
+                 "Retain only public original Auth account joint evidence")
+        selected = []
+        for name in names:
+            matches = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(matches), 1)
+            selected.append(matches[0])
+        run, upload = selected
+        changes = [
+            ("missing-call", raw.replace(run, "", 1)),
+            ("missing-evidence", raw.replace(upload, "", 1)),
+            ("duplicate-call", raw.replace(run, run + run, 1)),
+            ("duplicate-evidence", raw.replace(upload, upload + upload, 1)),
+            ("reordered", raw.replace(run, "__AUTH_CALL__", 1).replace(upload, run, 1).replace("__AUTH_CALL__", upload, 1)),
+        ]
+        for label, before, after in (
+            ("platform", "matrix.runner == 'macos-15'", "matrix.runner == 'ubuntu-24.04'"),
+            ("skip", "matrix.runner == 'macos-15'", "false"),
+            ("step-budget", "timeout-minutes: 4", "timeout-minutes: 5"),
+            ("deadline", "deadline = started + 205", "deadline = started + 240"),
+            ("kill-grace", "deadline + 5 - time.monotonic()", "deadline + 30 - time.monotonic()"),
+            ("wrong-platform-body", "if sys.platform != 'darwin':", "if False:"),
+            ("substitute-archive", "root / 'ynx-artifact-release-cabi/libynx_artifact_release.a'", "root / 'other/libynx_artifact_release.a'"),
+            ("duplicate-archive-build", "          umask 077\n", "          umask 077\n          go build -buildmode=c-archive -o replacement.a ./cmd/ynx-artifact-release-cabi\n"),
+            ("wrong-symbol", "'_YNXAuthSourceStatementVerifyV2'", "'_OtherSourceSymbol'"),
+            ("duplicate-symbol", "if count != 1:", "if count < 1:"),
+            ("lost-archive-readback", "if not record['archiveUnchanged']:", "if False:"),
+            ("skipped-client", "process = subprocess.Popen(['bash', 'scripts/verify/account-auth-interop-check.sh',", "process = subprocess.Popen(['true', 'scripts/verify/account-auth-interop-check.sh',"),
+            ("fake-success", "raise SystemExit(code)", "raise SystemExit(0)"),
+            ("fake-root", "'RootAdmission': False", "'RootAdmission': True"),
+            ("missing-trace", "'initial-state.json', 'final-state.json', 'records.jsonl', 'intent.json'", "'initial-state.json', 'final-state.json', 'records.jsonl'"),
+        ):
+            self.assertIn(before, run)
+            changes.append((label, raw.replace(run, run.replace(before, after, 1), 1)))
+        for label, before, after in (
+            ("upload-platform", "matrix.runner == 'macos-15'", "matrix.runner == 'ubuntu-24.04'"),
+            ("hide-failure-evidence", " || steps.accountauthinterop.outcome == 'failure'", ""),
+            ("unconditional-upload", "!cancelled() && matrix.runner == 'macos-15' && (steps.accountauthinterop.outcome == 'success' || steps.accountauthinterop.outcome == 'failure')", "always()"),
+            ("expanded-artifacts", "${{ runner.temp }}/ynx-account-auth-interop/RUN.json", "${{ runner.temp }}/ynx-account-auth-interop/**"),
+            ("missing-files-ignored", "if-no-files-found: error", "if-no-files-found: ignore"),
+            ("mutable-upload-action", "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "actions/upload-artifact@v4"),
+        ):
+            self.assertIn(before, upload)
+            changes.append((label, raw.replace(upload, upload.replace(before, after, 1), 1)))
+        for label, changed in changes:
+            self.assertNotEqual(changed, raw, label)
+            with self.subTest(change=label), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
 
     def test_e11_v2_native_supply_keeps_actual_typed_calls_and_no_authority(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
@@ -2878,11 +3046,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                     if label in ('pending_query','source_v2') and index<2: pkg='internal/ynxbatch'
                     if label=='resource_consent' and index==0: pkg='internal/ynxresourceconsent'
                     if label=='legacy_snapshot':pkg='internal/chain'
+                    if label=='ethers_required':
+                        pkg='internal/api'
+                        rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='run'))
                     rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
             if 'legacy_snapshot' not in lists:
                 rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi',Test='TestAuthSourceStatementV2SDKSoleGoldenActualCAND',Action='pass'))
-            else:
-                rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/internal/api',Test='TestEthereumIndependentEthersLifecycle',Action='pass'))
             packages={'github.com/JiahaoAlbus/YNX-Chain/'+x for x in (('internal/chain','internal/api') if 'legacy_snapshot' in lists else ('internal/ynxbatch','internal/ynxresourceconsent','cmd/ynx-artifact-release-cabi'))}
             rows += [dict(Package=p,Action='pass') for p in sorted(packages)]
             def run(data):
@@ -2897,8 +3066,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
             run(rows)
-            selected=set(lists.get('resource_consent',[])+lists.get('source_v2_capacity',[])+lists.get('legacy_snapshot',[]))
-            if 'legacy_snapshot' in lists:selected.add('TestEthereumIndependentEthersLifecycle')
+            selected=set(lists.get('resource_consent',[])+lists.get('source_v2_capacity',[])+lists.get('legacy_snapshot',[])+lists.get('ethers_required',[]))
             for index,row in enumerate(rows):
                 if row.get('Test') not in selected and 'Test' in row:continue
                 for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):
@@ -2927,14 +3095,32 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ('          YNX_ETHERS_MODULE: ${{ github.workspace }}/node_modules/ethers\n', ''),
             ('${{ github.workspace }}/node_modules/ethers', '${{ github.workspace }}/node_modules/unqualified-client'),
             ('assert.equal(require(modulePath).version, locked.version);', 'void 0;'),
-            ("if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:", 'if False:'),
+            ("if runs != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'run')] or ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:", 'if False:'),
             ('TestEthereumIndependentEthersLifecycle', 'WrongEthersCase'),
+            ('TestEthereumIndependentEthersDurabilityWait', 'WrongWaitCase'),
+            ('TestEthereumIndependentEthersDurabilityRefusals', 'WrongRefusalCase'),
+            ("row['Action'] == 'run'", "row['Action'] == 'output'"),
         ):
             self.assertIn(before, step)
             with self.subTest(ethersContract=before), self.assertRaises(AssertionError):
                 assert_legacy_snapshot_stream_contract(raw.replace(step, step.replace(before, after, 1), 1))
         for test in ['TestLegacySnapshotMemoryCanonicalBatchAndBlock', 'TestLegacySnapshotMemoryDenseBlockBoundedWrites', 'TestLegacySnapshotMemoryFullHistoryColdAndReplication', 'TestLegacySnapshotMemoryLateFailureAndUnknown', 'TestLegacySnapshotMemorySameInputAllocation', 'TestLegacySnapshotMemoryValidHistoryAllocation']:
             with self.subTest(name=test),self.assertRaises(AssertionError):assert_legacy_snapshot_stream_contract(raw.replace(step,step.replace(test,'WrongTest',1),1))
+
+    def test_ethers_lifecycle_and_durability_inputs_trigger_original_full_stream(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_legacy_snapshot_stream_contract(raw)
+        for label, prefix, suffix, target in (
+            ('push-fixture', '  push:\n', '  pull_request:\n', "      - 'testdata/ethereum-native/**'\n"),
+            ('pull-request-fixture', '  pull_request:\n', '  workflow_dispatch:\n', "      - 'testdata/ethereum-native/**'\n"),
+            ('pull-request-test', '  pull_request:\n', '  workflow_dispatch:\n', "      - 'internal/api/ethereum_ethers_test.go'\n"),
+        ):
+            head, rest = raw.split(prefix, 1)
+            event, tail = rest.split(suffix, 1)
+            self.assertEqual(event.count(target), 1)
+            for replacement in ('', target + target, target.replace('ethereum', 'unqualified')):
+                with self.subTest(trigger=label, replacement=replacement), self.assertRaises(AssertionError):
+                    assert_legacy_snapshot_stream_contract(head + prefix + event.replace(target, replacement, 1) + suffix + tail)
 
     def test_source_v2_native_supply_closed_headers_metadata_and_uploads(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
