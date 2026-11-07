@@ -16,11 +16,13 @@ permissions:
   contents: read
 jobs:
   finite-link-controls:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.19.0'
+      - name: Verify standard Darwin arm64 runner
+        run: node --input-type=module -e 'import assert from "node:assert/strict"; assert.equal(process.platform,"darwin"); assert.equal(process.arch,"arm64");'
       - run: node scripts/ci/single49-napi-import.mjs
