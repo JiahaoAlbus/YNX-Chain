@@ -44,7 +44,7 @@ async function run(label, command, args, cwd, timeout = 20000, env = process.env
     error: result.error ? {code: result.error.code, message: result.error.message} : null};
   await put(prefix + '.json', observation);
   assert.equal(result.error, undefined, `${label} process failure; original evidence ${prefix}`);
-  assert.equal(result.status, 0, `${label} failed; original evidence ${prefix}\n${result.stderr}`);
+  assert.equal(result.status, 0, `${label} failed; original evidence ${prefix}\n${result.stderr}\n${result.stdout?.slice(-16000)}`);
   return {...observation, stdout: result.stdout};
 }
 
@@ -69,7 +69,13 @@ assert.deepEqual({bytes: authHeader.bytes, sha256: authHeader.sha256}, supply.au
 assert.deepEqual({bytes: authBaseH.bytes, sha256: authBaseH.sha256}, supply.authBaseH);
 assert.deepEqual({bytes: authCAS.bytes, sha256: authCAS.sha256}, supply.cas);
 
-const go = path.join(owned, 'original-go-resource-server');
+// Actual executable paths are part of the original process observation. Keep
+// the source-qualified image directory separate from the short socket root so
+// the legitimate maximum-identity response also crosses Go's chunking boundary
+// on a hosted runner. No response fields or serialization are changed.
+const images = path.join(owned, 'source-images', 'p09', sourceCommit);
+await mkdir(images, {recursive: true, mode: 0o700});
+const go = path.join(images, 'original-go-resource-server');
 const scratchParent = absolute('YNX_LINK_AUTH_READER_BUILD_SCRATCH');
 await mkdir(scratchParent, {recursive: true, mode: 0o700});
 const scratch = await mkdtemp(path.join(await realpath(scratchParent), 'g-'));
