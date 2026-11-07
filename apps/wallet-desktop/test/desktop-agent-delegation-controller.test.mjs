@@ -72,3 +72,11 @@ test('same-context concurrent reads cannot start a second original request',asyn
  const first=api.readProjection();await assert.rejects(api.readProjection(),code('AGENT_OPERATION_IN_PROGRESS'));
  d.resolve({account:'PUBLIC-A',delegations:[],operations:[]});await first;assert.equal(reads,1);
 });
+test('relock and unlock keep account-bound UNKNOWN recoverable, with reused IDs isolated by account',async()=>{
+ let c=active(),mutations=0;const queried=[];
+ const api=create({getContext:()=>c,management:{reviewDraft:async()=>{mutations++;return{state:'unknown',operationId:'PUBLIC-same-id'}},cancelView:async()=>true,recoverOperation:async id=>{queried.push(c.account);return{state:'unknown',operationId:id}}}});
+ await api.reviewDraft({});await api.cancelView();c={...c,account:'PUBLIC-B',revision:2};await api.reviewDraft({});await api.cancelView();
+ c={...c,account:'PUBLIC-A',revision:3};await assert.rejects(api.reviewDraft({}),code('AGENT_ORIGINAL_RECOVERY_REQUIRED'));await api.recoverOperation('PUBLIC-same-id');
+ c={...c,account:'PUBLIC-B',revision:4};await api.cancelView();await api.recoverOperation('PUBLIC-same-id');
+ assert.deepEqual(queried,['PUBLIC-A','PUBLIC-B']);assert.equal(mutations,2);
+});

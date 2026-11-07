@@ -13,6 +13,8 @@ export function createDesktopAgentDelegationController({getContext,management=nu
     return {account:c.account,revision:c.revision};
   };
   const same=(a,b)=>a&&b&&a.account===b.account&&a.revision===b.revision;
+  const sameOwner=(a,b)=>a&&b&&a.account===b.account;
+  const originalKey=(owner,id)=>JSON.stringify([owner.account,id]);
   function invalidate(){debt=debt||busy||heldReview!==null;epoch++;busy=false;heldReview=null;scope=null;}
   function check(){
     const next=context();
@@ -27,7 +29,7 @@ export function createDesktopAgentDelegationController({getContext,management=nu
     if(debt)throw fault('AGENT_CLEANUP_REQUIRED');
     if(busy)throw fault('AGENT_OPERATION_IN_PROGRESS');
     if(mutation&&heldReview)throw fault('AGENT_REVIEW_IN_PROGRESS');
-    if(mutation&&[...originals.values()].some(v=>same(v.scope,before)))throw fault('AGENT_ORIGINAL_RECOVERY_REQUIRED');
+    if(mutation&&[...originals.values()].some(v=>sameOwner(v.scope,before)))throw fault('AGENT_ORIGINAL_RECOVERY_REQUIRED');
     const token=epoch;busy=true;
     try{
       const value=await management[name](...args);
@@ -35,18 +37,18 @@ export function createDesktopAgentDelegationController({getContext,management=nu
       // it does not execute, authorize, resend or re-sign that operation.
       if(mutation&&value?.state==='unknown'){
         if(typeof value.operationId!=='string'||!value.operationId)throw fault('AGENT_UNKNOWN_ORIGINAL_REQUIRED');
-        originals.set(value.operationId,{scope:before,value});
+        originals.set(originalKey(before,value.operationId),{scope:before,value});
       }
       if(closed||token!==epoch||!same(before,context())){debt=true;throw fault('AGENT_CONTEXT_CHANGED');}
       if(name==='readProjection'&&!['unavailable','locked'].includes(value?.state)){
         if(value?.account!==before.account||!Array.isArray(value.delegations)||!Array.isArray(value.operations))throw fault('AGENT_PROJECTION_ACCOUNT_MISMATCH');
-        for(const operation of value.operations)if(operation?.state==='unknown'&&operation.recoverable===true&&typeof operation.id==='string'&&operation.id)originals.set(operation.id,{scope:before,value:operation});
+        for(const operation of value.operations)if(operation?.state==='unknown'&&operation.recoverable===true&&typeof operation.id==='string'&&operation.id)originals.set(originalKey(before,operation.id),{scope:before,value:operation});
       }
       if(mutation&&value?.state==='review'){
         if(typeof value.operationId!=='string'||!value.operationId)throw fault('AGENT_ORIGINAL_REVIEW_REQUIRED');
         heldReview={scope:before,id:value.operationId};
       }
-      if(recovery&&value?.state==='resolved'&&value.operationId===args[0])originals.delete(args[0]);
+      if(recovery&&value?.state==='resolved'&&value.operationId===args[0])originals.delete(originalKey(before,args[0]));
       return value;
     }catch(error){
       if(error?.code==='AGENT_CONTEXT_CHANGED'||closed||token!==epoch||!same(before,context())){debt=true;throw fault('AGENT_CONTEXT_CHANGED');}
@@ -64,8 +66,8 @@ export function createDesktopAgentDelegationController({getContext,management=nu
       return call('reviewAction',[selection],{mutation:true});
     },
     recoverOperation:operationId=>{
-      const current=check(),original=originals.get(operationId);
-      if(!original||!same(current,original.scope))throw fault('AGENT_ORIGINAL_OPERATION_REQUIRED');
+      const current=check(),original=current&&originals.get(originalKey(current,operationId));
+      if(!original||!sameOwner(current,original.scope))throw fault('AGENT_ORIGINAL_OPERATION_REQUIRED');
       return call('recoverOperation',[operationId],{recovery:true});
     },
     async cancelView(){
