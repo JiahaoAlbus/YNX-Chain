@@ -50,7 +50,7 @@ class First100ReadbackControls(unittest.TestCase):
         source=dict(commit=m.SOURCE,tree=m.TREE)
         receipt=dict(source=source,toolIdentity=dict(commit=m.TOOLS),freshResourceAdmission={},
                      loadExecuted=True,firstCause='EOF after original POST; do not resend')
-        values={'receipt.json':receipt,'CURRENT703-BASELINE-CI.json':dict(controllerCommit=m.CONTROLLER,
+        values={'receipt.json':receipt,'FIRST100-OWN1B-CI.json':dict(controllerCommit=m.CONTROLLER,
                 goSource=m.SOURCE,tools=m.TOOLS,measurementScope='same-window-normal504-initialization-then-first100x5'),
                 'requested-load.json':dict(source=source,rate=100,seconds=5,accounts=500,perAccountCapacity=1,configuredDemand=500),
                 'fresh-resource-admission.json':{}}

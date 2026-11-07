@@ -65,7 +65,7 @@ def cohort(load):
 def inspect(files, prefix=''):
     def data(name): return strict(files[prefix+name])
     receipt = data('receipt.json')
-    adapter = data('CURRENT703-BASELINE-CI.json')
+    adapter = data('FIRST100-OWN1B-CI.json')
     require(adapter['controllerCommit'] == CONTROLLER and adapter['goSource'] == SOURCE
             and adapter['tools'] == TOOLS and adapter['measurementScope'] == 'same-window-normal504-initialization-then-first100x5', 'original fixed controller/source/tools scope differs')
     require(receipt['source']['commit'] == SOURCE and receipt['source']['tree'] == TREE
