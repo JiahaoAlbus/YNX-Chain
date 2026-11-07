@@ -1,0 +1,1270 @@
+{
+  "schema": "YNX_NATIVE_AI_AGENT7_EVIDENCE/v1",
+  "status": "NATIVE_AGENT7_RESOURCE_AND_MATCHED_NORMAL_SOURCE_VERIFIED_ACTUAL_ONE_ARCHIVE_AND_ACTIVATION_SEPARATE",
+  "groups": [
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK",
+      "qualification": "preserved first run: physical resource refusals/wipe succeeded before fixture success failed; overall RED, not a whole pass"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw",
+      "qualification": "six affected PUBLIC Native resource/Agent operation groups after canonical-owner fixture repair"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA",
+      "qualification": "blocked cross-thread atomic cancel during fixed math; partial cleanup3 retains resource/parent debt"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc",
+      "qualification": "ASAN/UBSAN foreign-thread shared lookup vs actor close/release; immutable actor inspected only after shared lookup"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw",
+      "qualification": "ambiguous first FD close wipes both held private buffers, keeps actual remaining debt, no FD retry"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd",
+      "qualification": "paired original failure presence/code0 before private reads, after A read and after math; partial Member retained"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE",
+      "qualification": "TSAN expected RED counterfactual evidence copy only: released atomic reverted to former raw bool, actual Native inventory race"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r",
+      "qualification": "TSAN corrected released atomic: two actors concurrently acquire/close/release; capacity traversal shares atomic release witness"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb",
+      "qualification": "same partial Native owner: original failure0 remains while cleanup1 changes to2 only after actual resource close; identifies Auth caller skipped-read coupling"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D",
+      "qualification": "actual sole unsigned35/E5 checker and fixed C++ adapter with actual Native Agent/resource; PUBLIC C ABI backend only, not Go cryptographic qualification"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu",
+      "qualification": "historical actual no-PUBLIC27 source TUs, matched Auth tVNdsr; Native2 since changed, reuse only unchanged pinned objects in next affected combination"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7",
+      "qualification": "historical6 Android/iOS target objects; first five retained and Android runner source argument repaired; current Native2 delta requires latest object evidence"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG",
+      "qualification": "latest exact Native2 and actual sole fixed C++:6 Android/iOS normal target objects, Native header layout static assertions and strong Agent7; no final image/archive"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9",
+      "qualification": "preserved exact validation-cause RED: Code enum bypassed catch(int32_t) and became UNKNOWN; fixed in Native internal constants without changing numeric ABI"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs",
+      "qualification": "new exact validation-cause check: real Native same-owner invalid11101 retained, no App/private/math call, actual close changes cleanup1->2, same capture cannot reacquire"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI",
+      "qualification": "latest affected Native2 on Android/iOS:4 no-PUBLIC target objects; combine with unchanged sole CPP2 target objects from G6ngJG, no summed runtime claim"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1",
+      "qualification": "latest matching whole AuthFDAKuh+Native+solemath+LINK:27 no-PUBLIC TUs,4 affected compiles and23 verified source/flags/Auth-header-identical reused objects; actual relocatable0, new one-archive C ABI remains strong unresolved"
+    },
+    {
+      "directory": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-auth-cleanup-intake-20261107-m6OBVo",
+      "qualification": "whole AuthFDAKuh 66 artifact readback0drift, actual supplier Source18/Client/once PUBLIC boundary8cases reused, physical cleanup1->2 caller firstRED preserved; not a new supplier test run"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/RESULT.json",
+      "bytes": 50,
+      "sha256": "f0396dcae9dfe14cca6805745ff0197073953cd29f460df7b52563c1ed30fd96"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/RUNS.json",
+      "bytes": 7334,
+      "sha256": "dd02eb117e5a2f61708adb255e3d1dea54674fb55e1d55fe47befcd6874fd66c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/controls",
+      "bytes": 1623800,
+      "sha256": "d2ae70daab54de23fe4550248a6fff536721fe7b83d368afaf478fca10053ec7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/expired.log",
+      "bytes": 108,
+      "sha256": "64b96487ce84fead4c0e715592b5f19c71369b0388e22ad31d2556b0b0373cdf"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/hardlink.log",
+      "bytes": 109,
+      "sha256": "8587f3c641d4a652fb6da7663ea08f8f74159c457d8e6f7f5dbe2547af75325f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/mode.log",
+      "bytes": 105,
+      "sha256": "472f9d3fd8edc62a74272a0bd0a2da436a5e0e93b8e734a6b6f4a240323baf18"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/resource-close-unknown.log",
+      "bytes": 123,
+      "sha256": "6f0cebf7d77da01043a09f6999bf19b56d93734f58bbffd5171d1523d339f6a5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/resource-current-swap.log",
+      "bytes": 122,
+      "sha256": "943ed0a1cecc45dba755d5b50eda40f81d4dadee0c3fb79d436ec6f874c8999c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/root0.log",
+      "bytes": 106,
+      "sha256": "33c0ee89b8f43b531340288d5004d2b81b8322f48fdcba7618706e92cfb63c24"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/success.log",
+      "bytes": 131,
+      "sha256": "5cc6ad7aabb1b79f79b04d76c9720e4200375c265f087905a61c0ee5249a2185"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/symlink.log",
+      "bytes": 108,
+      "sha256": "445e6fd15d0a8ab769fb1275f0188863d1fcf6426ed5a00feffc73721605b456"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/wipe.log",
+      "bytes": 105,
+      "sha256": "09b25e2b4653778246be8aaa348db8f229d83bcc5b4cc2998753823b91ed69d9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-AZCKvK/wrong-root.log",
+      "bytes": 111,
+      "sha256": "635c6a1592a6a9892f105c77cbb6ec8afe197f5f25333e1c7a3757015e269137"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/RESULT.json",
+      "bytes": 346,
+      "sha256": "7da967afa9e76b89dab634341cff5f1cd208a4d264278a2a8f54aa49d726d5da"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/RUNS.json",
+      "bytes": 5436,
+      "sha256": "28c0066928abe76c4f094ce87cb3674028ad10fb3d60ed5a604b2d27f8f9e86b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/cancel.log",
+      "bytes": 107,
+      "sha256": "647519307c3572d6729715d5f37b98305a6fe2140ff8d8dab24679a2267f5965"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/controls",
+      "bytes": 1708744,
+      "sha256": "e75a2e335d41209d1d2d49a74bc21c5699940b658f5370421c1880b972b437f6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/math-cleanup-failed.log",
+      "bytes": 120,
+      "sha256": "c4dc065f6dc9e931c69637222be2b0066d91b9de673970d9a73b725e8218159d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/math-failed.log",
+      "bytes": 112,
+      "sha256": "d1148587663231e735e7759c6ebb665c7b8d8bc4f131eacb080c9dd7d4f15b63"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/post-sign-cancel.log",
+      "bytes": 117,
+      "sha256": "6fb211e15f06c799d245b1bc4d8801a0857c4e994f5b9bf0bb0919c388f2966f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/success.log",
+      "bytes": 108,
+      "sha256": "62ff2e38e36220cf301d2fb72d6b5bbced0887afe78f8311c969c4ccea04fc4f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-EFMdaw/thread.log",
+      "bytes": 107,
+      "sha256": "2fb496340ddb29a5552aa270992814d6b9d42d434a64c2868ad9cd3c9910d630"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/RESULT.json",
+      "bytes": 346,
+      "sha256": "d8920c8e36c97a78a8dc8716aded1bbfa58a1338498acdeeba1406052fafbd6a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/RUNS.json",
+      "bytes": 3540,
+      "sha256": "5d65897d35b2d3fb8132a6ed6f932536f22ed15ef571c1bb88f8889ca8e8c16f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/blocked-cancel.log",
+      "bytes": 115,
+      "sha256": "8b45d73156fb5ad4ba7e2b5eeb6502db24ea995d3d1d99a137a04bfa274ea92c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/controls",
+      "bytes": 1730120,
+      "sha256": "148fcecce5dc8facbf7c6f16433ce1415365f712d70afce3b0b82982c4314bf5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-XxhLNA/math-cleanup-failed.log",
+      "bytes": 120,
+      "sha256": "c4dc065f6dc9e931c69637222be2b0066d91b9de673970d9a73b725e8218159d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc/RESULT.json",
+      "bytes": 346,
+      "sha256": "a735c637e9a4cf18776415f4e496c44575d0c71a81a8bd525e25972b1b00dd5d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc/RUNS.json",
+      "bytes": 3051,
+      "sha256": "21fe37c70b23eac29646a07b15f18a95964c950ab6b089cb2008bdc0257c0eb4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc/controls",
+      "bytes": 1772296,
+      "sha256": "d93d96e380867112471cad08b3967ddd44d7d0f7142a892605473899264451ba"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-R08sAc/foreign-release-race.log",
+      "bytes": 121,
+      "sha256": "16dc1f5f194153effe3cee46087b9e7360665c53e56dcc181ca6c8b9eea46102"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw/RESULT.json",
+      "bytes": 346,
+      "sha256": "a735c637e9a4cf18776415f4e496c44575d0c71a81a8bd525e25972b1b00dd5d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw/RUNS.json",
+      "bytes": 3057,
+      "sha256": "7fef34af40c72493e8786e3e829459ca35a52ad48a11158dfa1c82e7943536e1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw/controls",
+      "bytes": 1772616,
+      "sha256": "c00b6a436e0b094c415188619f9bee4b13c869106967d65a1f981bfc2d3c4089"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-p1LzXw/resource-close-unknown.log",
+      "bytes": 123,
+      "sha256": "6f0cebf7d77da01043a09f6999bf19b56d93734f58bbffd5171d1523d339f6a5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/RESULT.json",
+      "bytes": 346,
+      "sha256": "6115d8c3cd9133c16fb3df0a76d30842f3791b49ad63a44014168f5ad924c01f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/RUNS.json",
+      "bytes": 4138,
+      "sha256": "0dcafc3db066830268da40b969f8386a24aae96ce0d627df2b18d72ac9c3cd51"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/controls",
+      "bytes": 1791272,
+      "sha256": "591cd5cf0a2359320caf625dd77980eeb5a34ba305ed94119638aa5463df18d5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/raw0-partial-resource.log",
+      "bytes": 122,
+      "sha256": "9ffeb122d3cb9b7805ae78db6a9629e1f92bd3079fec633dfd1bde3e125557b3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/raw0-post.log",
+      "bytes": 110,
+      "sha256": "fc5b399fbf527681e0cb4318be2541970fc26ab602c2419bcf693a653f82aed3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-JnbaHd/raw0-pre.log",
+      "bytes": 109,
+      "sha256": "5707a9ac09fca4bc6ce10047e8a7514afa684ea5370b30a05b29a00003b546b9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE/AgentOperation.before-released-atomic.cpp",
+      "bytes": 10419,
+      "sha256": "5aa74a9d6d50b17cd0f3026e4df132cc5b3421bf38b65e9747bc44b86ecd3282"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE/RED.json",
+      "bytes": 8816,
+      "sha256": "8bea063b1145185712093c58e273ecbd110c81567bd980c634296cfe9d4d2381"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE/RESULT.json",
+      "bytes": 335,
+      "sha256": "889806664ba11cbb688105b302dcd69765f2cb8ca3931170731bb0c1de0bfcdd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE/compile.json",
+      "bytes": 2676,
+      "sha256": "9e4bd7ba1812e9eb575ab49f39c57ba6d25e955a592d3bcb2eea041dda2859a6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-capacity-before-red-20261107-v9uMKE/controls",
+      "bytes": 840936,
+      "sha256": "b91fcb2cc17650c144f71955f2bfaf8a692f7d3e8842897d9b1f74b5edeff244"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r/RESULT.json",
+      "bytes": 346,
+      "sha256": "a735c637e9a4cf18776415f4e496c44575d0c71a81a8bd525e25972b1b00dd5d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r/RUNS.json",
+      "bytes": 3185,
+      "sha256": "ba929706a07f2f5734c8157cacc2d5439062658810f77d3bce65ef1f48069a02"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r/controls",
+      "bytes": 840920,
+      "sha256": "bb232763c6cf72bf651a9098d514cb51f5aba22f3e789b6a38eed2ee40739c05"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-Qjrt0r/dual-actor-capacity-race.log",
+      "bytes": 125,
+      "sha256": "b0cfeca2f569f5b3f440afe30d28c7463f71cacf380a462751579e7246f2ab4a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb/RESULT.json",
+      "bytes": 346,
+      "sha256": "a735c637e9a4cf18776415f4e496c44575d0c71a81a8bd525e25972b1b00dd5d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb/RUNS.json",
+      "bytes": 3089,
+      "sha256": "4bd368226046f5c259ee17d9ebac8081dedf740a841d9c7384639c522fc1ea05"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb/acquire-partial-cleanup-witness.log",
+      "bytes": 132,
+      "sha256": "75f88edffd435bf92bf75c5327674d4ac4256b9de688860cdedf08075f79d766"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-nJKvvb/controls",
+      "bytes": 1877304,
+      "sha256": "525e0a6a0f29f0ff483c00fb7d166ca4d548b8a9eb4465dda603bb853a865aa9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D/RESULT.json",
+      "bytes": 302,
+      "sha256": "459500fa916e339faf98cf8113eed4179916299020a59e0751011e5197a1db2d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D/RUNS.json",
+      "bytes": 3836,
+      "sha256": "2b5ba29bc65c5d0c0d3d3f178eb424ca5e1a44718b6c7e978e0022524b218310"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D/actual-CXX-math-boundary.log",
+      "bytes": 108,
+      "sha256": "62ff2e38e36220cf301d2fb72d6b5bbced0887afe78f8311c969c4ccea04fc4f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-fixed-math-boundary-20261107-NC2s7D/controls",
+      "bytes": 2748328,
+      "sha256": "285b16dfe2c0e37af211a7276f61e532629ee0c620f4cb14f71d68b0513d8b3b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/0.o",
+      "bytes": 1110224,
+      "sha256": "d495c1b5e0125b69b899e977230737a0532677698d2ee3e8a005e9b130a9276a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/1.o",
+      "bytes": 90392,
+      "sha256": "48e809ee4480044b756220235bcae5ae8e6828f382d86a6ad116dfe658464756"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/10.o",
+      "bytes": 90944,
+      "sha256": "311c4f4337e466da518186e9505379df47c08fe8b10a261aec14bb781a5fd21b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/11.o",
+      "bytes": 238672,
+      "sha256": "399f8f02ae8fe586e66af83a27700428b90fa3fa5a7c3e0070353d67a10d4c5f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/12.o",
+      "bytes": 263272,
+      "sha256": "1e0e61a6437406bba389f9f4b35c72778aab3e1e01804395c5b7aa2a8703de4d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/13.o",
+      "bytes": 234368,
+      "sha256": "f38966cb60ea33d244c763099945e050533af190c2097097287e493f0ba6fdfc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/14.o",
+      "bytes": 605760,
+      "sha256": "be72ebfd857f8cc4212ebd97690d1a84add723b52717da6d010888f16fd2aab9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/15.o",
+      "bytes": 139040,
+      "sha256": "a11b1db9a4bd6c27eaf114425f07ee9141e4cd6f6cea5ded0cbcf1712d56eba9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/16.o",
+      "bytes": 291408,
+      "sha256": "8786613d707aae257b5cdf1eb1e6f1abe7d92ecd100eed9a450c301d56ece803"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/17.o",
+      "bytes": 208224,
+      "sha256": "16529ecd543f16d7aa67a44fb4954a71ee57ef8e0933974b2f86f62b3541effd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/18.o",
+      "bytes": 293928,
+      "sha256": "c7b243565dab03811d0c0036a851efc46cd57b63ee90f5bf9df430b2b370c291"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/19.o",
+      "bytes": 146496,
+      "sha256": "523a357bfc33e884bd1a2875c1d6e5ac91109ad6aa7c60193893e32a7f7a2d09"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/2.o",
+      "bytes": 317016,
+      "sha256": "e224101126fdfdf1c0fb77ecaa2f6215bd5134380445cce92bcd7b4f44b0e3a8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/20.o",
+      "bytes": 114344,
+      "sha256": "ed7d433f7475a13fa59ebff1539f0d61b27042d36c3466a512794a85d495e1a4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/21.o",
+      "bytes": 421032,
+      "sha256": "8a6544fe53b543d9e52552f2d0d32df0e61345be45dddc28aa97137fcf4f9d77"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/22.o",
+      "bytes": 148024,
+      "sha256": "dc7753d914f8f391cc7023dfbb057b54515f12efdb64d2ea1eb80a9919691d30"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/23.o",
+      "bytes": 27176,
+      "sha256": "eeda19435d85897cca245dc49887b126f79fc619f300c67e39fc93cfd0bbaced"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/24.o",
+      "bytes": 186480,
+      "sha256": "a519320e52a4aad7e8dba3dbb3ce90f85e6b7e16e3e129f1ad5ec57f984c1dc8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/25.o",
+      "bytes": 39728,
+      "sha256": "f53ec594b6d9bfa2c9ce0fed0452a2b06e12e55044c0f16f0724853503be1cd3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/26.o",
+      "bytes": 129360,
+      "sha256": "84934d24ba9c0098fe7a84331a2ecefb37cdd8dc679fa7c99be9cfabe49c1161"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/3.o",
+      "bytes": 349824,
+      "sha256": "da3c59043b9ec7bc1f816f7b0d11307450f1b967f8eeea56a994857277a0a023"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/4.o",
+      "bytes": 132208,
+      "sha256": "e8543389a755cb0ecd52110fb62d18df69eac56ea90fde15c438b19a36572312"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/5.o",
+      "bytes": 256576,
+      "sha256": "ed250527383458f0fa04db1798a7eded81ecf84b060f744b2c7884aa385d5c23"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/6.o",
+      "bytes": 196368,
+      "sha256": "0f83684d95d8f33c8e13fa1ad4842ed1ab8d700153ce77c4fafe0e115d184888"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/7.o",
+      "bytes": 232032,
+      "sha256": "b4d27c6c0d96ab9c53eab6471448f3dfa43b00b04d040b1cdca0aacfe4d0acbe"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/8.o",
+      "bytes": 99400,
+      "sha256": "b80ef0311475c29bbac1d6453b101fdddaad505cc0c1c1c969d074a0e435e417"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/9.o",
+      "bytes": 63776,
+      "sha256": "16045b97c62f8d99e178655cc29929ed80a6a80a3964e6ecda82f7b3d9c3ebf0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/INPUTS.json",
+      "bytes": 8001,
+      "sha256": "91c65ed1ae43d6fc5a37f9641a80e7bfd396e718cbc63e5acb59f29ed0726b98"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/RESULT.json",
+      "bytes": 406,
+      "sha256": "cbb1d31f70d81e049e92b80aef45fb449c9ff880876948983928221d428b8d19"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/RUNS.json",
+      "bytes": 79963,
+      "sha256": "38162011a7fc197ee813c00aa93f2b056ef95c6f2ca51f6295cb7e6c0f794553"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/STRONG_UNRESOLVED.txt",
+      "bytes": 7619,
+      "sha256": "ff7a116978e41add2214f2491331b573b9108bf32d77c05d5676014ffda14460"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-0.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-10.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-11.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-12.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-13.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-14.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-15.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-16.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-17.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-18.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-19.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-20.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-21.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-22.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-23.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-24.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-25.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-26.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-3.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-4.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-5.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-6.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-7.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-8.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/compile-9.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/defined.log",
+      "bytes": 316122,
+      "sha256": "1d78572079d0473c05a722d9ca71984065c18ba3ce13362bf8ea99278085e6f7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/normal-agent-composition.o",
+      "bytes": 3836088,
+      "sha256": "93e074f8a961288cfbd68ebf420da5826cdd40117e9e500f12df3c9759a55fda"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/relocatable-normal.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-vpzQYu/unresolved.log",
+      "bytes": 7619,
+      "sha256": "ff7a116978e41add2214f2491331b573b9108bf32d77c05d5676014ffda14460"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/Agent7-strong.txt",
+      "bytes": 60826,
+      "sha256": "f3f7ac05fae6a8ebdc812c1a8662453fe4a93637bacdd2e41ab52f194f53027a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/AgentOperation.cpp.android.o",
+      "bytes": 365064,
+      "sha256": "95957f3b8f27979e3eafa86e683c194955a9cbd58cfbe0f2544fa55df078dc79"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/AgentOperation.cpp.ios.o",
+      "bytes": 196368,
+      "sha256": "e4b17b41da8f9c24c7837f2fb229bbe8d330df3945d5cbd6edd775c0af41b7c8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/FixedOriginalAITaskActionV6Sign.cpp.android.o",
+      "bytes": 62696,
+      "sha256": "346cfa734fe64c8f71219524d6db91817ada38f8a002c099e079619a5b12ef44"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/FixedOriginalAITaskActionV6Sign.cpp.ios.o",
+      "bytes": 27176,
+      "sha256": "c5543799a7f2c9425be02136ed32fe990088de1cb028085638547e67dfe6ea50"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/RESULT.json",
+      "bytes": 1109,
+      "sha256": "f5fdf576c3f0c452c464523d7d252c3d54df34ce5efc818b5123a3541a33ebe9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/RUNS.json",
+      "bytes": 15802,
+      "sha256": "ecc7fdf3809dc97017bfb578dd62629a07b1b8cffadcc0ef2be99f8ed851a20a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/RegisteredAgentResource.cpp.android.o",
+      "bytes": 500456,
+      "sha256": "14fd0dc2d3677ffb5950683a094ca2042e41bca81dabcc0f947e7c59ad6e339f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/RegisteredAgentResource.cpp.ios.o",
+      "bytes": 232032,
+      "sha256": "c5c9a7ee5ef70f360f7b65913152429ef9743aa9ca2ad11aa266bc920997a2ba"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/android-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/android-FixedOriginalAITaskActionV6Sign.cpp-r2.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/android-FixedOriginalAITaskActionV6Sign.cpp.log",
+      "bytes": 238,
+      "sha256": "21e7fe4df6a5156ac40d1898b4a18c4e0d8e28066198b8e4202f531b3f72e9ac"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/android-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/ios-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/ios-FixedOriginalAITaskActionV6Sign.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-z56mD7/ios-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/AgentOperation.cpp.android.o",
+      "bytes": 365328,
+      "sha256": "c0608902b025541ae24ab50fed784edbecc4ba34b76aa608ad265ef8f5cfa253"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/AgentOperation.cpp.ios.o",
+      "bytes": 196600,
+      "sha256": "f646599e04af419dfe71a67cba72e8b1fd19e5787d5949a423d22871cca57a32"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/FixedOriginalAITaskActionV6Sign.cpp.android.o",
+      "bytes": 62696,
+      "sha256": "346cfa734fe64c8f71219524d6db91817ada38f8a002c099e079619a5b12ef44"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/FixedOriginalAITaskActionV6Sign.cpp.ios.o",
+      "bytes": 27176,
+      "sha256": "c5543799a7f2c9425be02136ed32fe990088de1cb028085638547e67dfe6ea50"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/INPUTS.json",
+      "bytes": 2630,
+      "sha256": "694dd2cfeaac52b0d79738ae29285cc27a044ce1f54e1660a7a3a133dfc90eee"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/RESULT.json",
+      "bytes": 6496,
+      "sha256": "82602ab7f89897dbfbea14b29c2c998e57e3dd82eb82f8f842c9d5fd473ed924"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/RUNS.json",
+      "bytes": 13332,
+      "sha256": "080cbb24457aa76340cd0a307624c64bd1c2a2a9edceaca17b9f624e5ef3b2b0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/RegisteredAgentResource.cpp.android.o",
+      "bytes": 501144,
+      "sha256": "0f477b9ecb44056774657332399d7c28ae3d3b88402d19cde14ded6d72af697e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/RegisteredAgentResource.cpp.ios.o",
+      "bytes": 232264,
+      "sha256": "21912e3f622fa1c30653b814bc7c00483105bcc7b7dcd162151a844411417d53"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/android-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/android-FixedOriginalAITaskActionV6Sign.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/android-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/ios-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/ios-FixedOriginalAITaskActionV6Sign.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/ios-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/normal-unresolved.log",
+      "bytes": 5869,
+      "sha256": "cb7b988ff14ac93015953d63470076ff43e469167a6d43a4f105933d7989f1b3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/strong7.log",
+      "bytes": 60826,
+      "sha256": "1f5d527c78dd7e8105e2b9564f86039031ae0079207fec3fcc3cd10106b27d24"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9/RESULT.json",
+      "bytes": 70,
+      "sha256": "b1659c1b90ee6acee54a28bc6291f98b6dbba8fe5affb8ceb6d4ce6212683b26"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9/RUNS.json",
+      "bytes": 3085,
+      "sha256": "a3fc1129e168255930886e2f39053bd5b383343eee924afdb2a1ee703bb280a0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9/controls",
+      "bytes": 1894344,
+      "sha256": "14af9870106aaf3185631fa69da409e5b0dccaaa62f7e6fde6a400281a01f31e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-IJiqC9/original-validation-failure.log",
+      "bytes": 142,
+      "sha256": "730661878a6fb53f2ea77011d8ad7501b8fb7f2d3a079584691d297ddae1096c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs/RESULT.json",
+      "bytes": 346,
+      "sha256": "a735c637e9a4cf18776415f4e496c44575d0c71a81a8bd525e25972b1b00dd5d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs/RUNS.json",
+      "bytes": 3077,
+      "sha256": "8d79bfde990e48e04632387e3e628fd6563075b6d05578116d130fc26c9b4a2c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs/controls",
+      "bytes": 1894152,
+      "sha256": "212618ce0ae981c950a9f27483f7e74854dba763678b87934075acef8f6cbb26"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-controls-20261107-KvAvvs/original-validation-failure.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/AgentOperation.cpp.android.o",
+      "bytes": 364632,
+      "sha256": "9fb74ff31fae57d5ccd634c99fb32c50ebc7d2da3f5f6146955378f1eb08fed1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/AgentOperation.cpp.ios.o",
+      "bytes": 196376,
+      "sha256": "e7c6cf17a2f000d7deee89d6bd2e4a5382e9aa4979441c124880d5ed7a44a5a8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/INPUTS.json",
+      "bytes": 2304,
+      "sha256": "065bba7775d0e60ea232958a296b13b628f2179d901e87d16ca9adf38150a5c2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/RESULT.json",
+      "bytes": 6418,
+      "sha256": "744fd3b0b50201febc69f66951a5140be1c3556a6193786ca5a885b0e3074327"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/RUNS.json",
+      "bytes": 9073,
+      "sha256": "ada3e1b66580e9412b77990b54c3cf1f789bbda20d814cec0218ab17bd8a65b5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/RegisteredAgentResource.cpp.android.o",
+      "bytes": 500440,
+      "sha256": "fd8237039cb55be453c7b329bbf81c03ff7d23ba571f518ee3db9a9f046cdbe5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/RegisteredAgentResource.cpp.ios.o",
+      "bytes": 232048,
+      "sha256": "db22eea8b528085f41fbb6df8d85f17a1f31ac5bd100ab752a940c81ee0e4c12"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/android-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/android-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/ios-AgentOperation.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/ios-RegisteredAgentResource.cpp.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/normal-unresolved.log",
+      "bytes": 5793,
+      "sha256": "c0e51873cb94d437263b8bb2ba38216c0ce68006748f9db27b3a219a87ee8677"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/strong7.log",
+      "bytes": 60720,
+      "sha256": "3fb0772f67111ce512c83d70ba7af00a6de7413f2731cb2dc36a7183bed08b1e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/0.o",
+      "bytes": 1110224,
+      "sha256": "d495c1b5e0125b69b899e977230737a0532677698d2ee3e8a005e9b130a9276a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/1.o",
+      "bytes": 90392,
+      "sha256": "48e809ee4480044b756220235bcae5ae8e6828f382d86a6ad116dfe658464756"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/10.o",
+      "bytes": 90944,
+      "sha256": "311c4f4337e466da518186e9505379df47c08fe8b10a261aec14bb781a5fd21b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/11.o",
+      "bytes": 238672,
+      "sha256": "399f8f02ae8fe586e66af83a27700428b90fa3fa5a7c3e0070353d67a10d4c5f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/12.o",
+      "bytes": 263272,
+      "sha256": "1e0e61a6437406bba389f9f4b35c72778aab3e1e01804395c5b7aa2a8703de4d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/13.o",
+      "bytes": 234368,
+      "sha256": "f38966cb60ea33d244c763099945e050533af190c2097097287e493f0ba6fdfc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/14.o",
+      "bytes": 606248,
+      "sha256": "a08e80a9f1f913028be03ff6d6578fcfe289790472ff0299a312a6aeff689267"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/15.o",
+      "bytes": 139040,
+      "sha256": "a11b1db9a4bd6c27eaf114425f07ee9141e4cd6f6cea5ded0cbcf1712d56eba9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/16.o",
+      "bytes": 291408,
+      "sha256": "8786613d707aae257b5cdf1eb1e6f1abe7d92ecd100eed9a450c301d56ece803"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/17.o",
+      "bytes": 208224,
+      "sha256": "16529ecd543f16d7aa67a44fb4954a71ee57ef8e0933974b2f86f62b3541effd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/18.o",
+      "bytes": 293928,
+      "sha256": "c7b243565dab03811d0c0036a851efc46cd57b63ee90f5bf9df430b2b370c291"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/19.o",
+      "bytes": 146496,
+      "sha256": "523a357bfc33e884bd1a2875c1d6e5ac91109ad6aa7c60193893e32a7f7a2d09"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/2.o",
+      "bytes": 317016,
+      "sha256": "e224101126fdfdf1c0fb77ecaa2f6215bd5134380445cce92bcd7b4f44b0e3a8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/20.o",
+      "bytes": 114344,
+      "sha256": "ed7d433f7475a13fa59ebff1539f0d61b27042d36c3466a512794a85d495e1a4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/21.o",
+      "bytes": 421032,
+      "sha256": "8a6544fe53b543d9e52552f2d0d32df0e61345be45dddc28aa97137fcf4f9d77"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/22.o",
+      "bytes": 148024,
+      "sha256": "dc7753d914f8f391cc7023dfbb057b54515f12efdb64d2ea1eb80a9919691d30"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/23.o",
+      "bytes": 27176,
+      "sha256": "eeda19435d85897cca245dc49887b126f79fc619f300c67e39fc93cfd0bbaced"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/24.o",
+      "bytes": 186480,
+      "sha256": "a519320e52a4aad7e8dba3dbb3ce90f85e6b7e16e3e129f1ad5ec57f984c1dc8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/25.o",
+      "bytes": 39728,
+      "sha256": "f53ec594b6d9bfa2c9ce0fed0452a2b06e12e55044c0f16f0724853503be1cd3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/26.o",
+      "bytes": 129360,
+      "sha256": "84934d24ba9c0098fe7a84331a2ecefb37cdd8dc679fa7c99be9cfabe49c1161"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/3.o",
+      "bytes": 349824,
+      "sha256": "da3c59043b9ec7bc1f816f7b0d11307450f1b967f8eeea56a994857277a0a023"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/4.o",
+      "bytes": 132208,
+      "sha256": "e8543389a755cb0ecd52110fb62d18df69eac56ea90fde15c438b19a36572312"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/5.o",
+      "bytes": 256576,
+      "sha256": "ed250527383458f0fa04db1798a7eded81ecf84b060f744b2c7884aa385d5c23"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/6.o",
+      "bytes": 196376,
+      "sha256": "e7c68939d10849414b36a665ec37445bccb1e00c4e21e9a6b16a84549ab36cb7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/7.o",
+      "bytes": 232048,
+      "sha256": "58d2103fbb5564538c3a77b1d5973ad9b35ec1f63fe51b5c6dfab5944115acb1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/8.o",
+      "bytes": 99400,
+      "sha256": "b80ef0311475c29bbac1d6453b101fdddaad505cc0c1c1c969d074a0e435e417"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/9.o",
+      "bytes": 63776,
+      "sha256": "16045b97c62f8d99e178655cc29929ed80a6a80a3964e6ecda82f7b3d9c3ebf0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/HEADERS.json",
+      "bytes": 5300,
+      "sha256": "305634669909bfe5254420362e15109be0fad12281a8ddfdb7026586d27586c3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/HEADER_COMPARISON.json",
+      "bytes": 4153,
+      "sha256": "4fc82b49cc8189720f23daf36c3086821408375dd5d274654c17e7552fa6708e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/INPUTS.json",
+      "bytes": 8001,
+      "sha256": "b510fe0a637cbc5afd50525606d21cc10b55bd302d4d8a165b18e5f301cbe585"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/RESULT.json",
+      "bytes": 449,
+      "sha256": "fbbbc8f6cff396c0ff25704ef0864601e37066aabb7ffede230957b126e1187d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/REUSED.json",
+      "bytes": 96826,
+      "sha256": "d20ed8c384b7cff3a8dbbb70ccebc58e4601be1176b3e4a548bef516045a2fa0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/RUNS.json",
+      "bytes": 16050,
+      "sha256": "1d1aa85a581fd3ed6a2422779f7f97199a28e0d0de37efa5c69143f9b220e4f8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/STRONG_UNRESOLVED.txt",
+      "bytes": 7619,
+      "sha256": "ff7a116978e41add2214f2491331b573b9108bf32d77c05d5676014ffda14460"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/compile-14.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/compile-23.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/compile-6.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/compile-7.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/defined.log",
+      "bytes": 316122,
+      "sha256": "29065f5240945918d72ba5e51ff77358f7f882f3a14b84dcc07087a17a01399c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/normal-agent-composition.o",
+      "bytes": 3836856,
+      "sha256": "32e467738c3a5382a9e84e16b4fea4c13406a8f7c832539b04c87d993809f8cd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/relocatable-normal.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/unresolved.log",
+      "bytes": 7619,
+      "sha256": "ff7a116978e41add2214f2491331b573b9108bf32d77c05d5676014ffda14460"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-auth-cleanup-intake-20261107-m6OBVo/READBACK.json",
+      "bytes": 20075,
+      "sha256": "73e6acdbbd2045b270b388a08e733bf6be5e20ed7a15e511e8c20a7c8bb49e1a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-A5HnzA/RESULT.json",
+      "bytes": 1446,
+      "sha256": "c2a331e188b8e1dedb7c8aa2252292510cb2b3819b0a2ea262a1acdd47dc3ec2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-KJilJc/RESULT.json",
+      "bytes": 1041,
+      "sha256": "8a2f2cfc6ec8af57862dc1a3b6b20f65d0de6286a44bc9f517e04ddf9ed82c18"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-bNO2Ka/RESULT.json",
+      "bytes": 1039,
+      "sha256": "cf1241d8635e20791fb41162302350c804b1084f45efd778350fba1b17d8fba0"
+    }
+  ],
+  "claims": {
+    "actualNativeAgent7": true,
+    "actualProtectedResourcePhysicalBody": true,
+    "currentNormalTargetObjects": 6,
+    "actualSoleFixedCppAndDataChecker": true,
+    "actualNewOneGoArchive": false,
+    "realRegisteredAgent": false,
+    "realKeyUsed": false,
+    "realCryptographicSign": false,
+    "RootAdmission": false,
+    "actualTLS": false,
+    "wholeMobileImage": false,
+    "installed": false,
+    "deployed": false,
+    "business": false
+  },
+  "interpretation": [
+    "Groups overlap; no summed business/E2E score.",
+    "PUBLIC captures/rows/math C ABI are isolated fixed NOT_SECRET test seams; not production grants.",
+    "Normal reviewed Native resource rows are0; registration/provisioning require independently authorized originals.",
+    "Original A must append supplied Go C ABI leaves to its one existing matching runtime/archive; no second Go runtime built.",
+    "No signing/send/UNKNOWN replay/production DB writes or actual key generation/import performed.",
+    "AuthFDAKuh now reads actual same-owner cleanup witness even with no primitive; real close/join plus actual cleanup2 permits release. Auth supplier eight affected controls are reused, not rerun.",
+    "Normal relocatable combination runs no product business flow. Native PUBLIC execution and supplier Source18/Client PUBLIC execution have different seams; neither supplies real protected UI/Root/archive/crypto admission."
+  ],
+  "currentComposition": {
+    "normal": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-normal-composition-20261107-tvZ4b1/RESULT.json",
+    "platformNative4": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-MfiKgI/RESULT.json",
+    "unchangedPlatformSole2": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-platform-20261107-G6ngJG/RESULT.json",
+    "AuthWhole": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/HANDOFF.json",
+      "bytes": 27460,
+      "sha256": "7051e0af3c729b38ee4e88b65a65f78a0ca2367b29072d79c8e0093ffd7d8136"
+    }
+  }
+}

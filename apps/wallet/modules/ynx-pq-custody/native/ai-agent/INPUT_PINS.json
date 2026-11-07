@@ -1,0 +1,133 @@
+{
+  "policy": {
+    "path": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+    "bytes": 8349,
+    "sha256": "52ca27f5908ee6acd843f3ee175f1a5ff82dea2c205a1729d2c0e5830565a9df"
+  },
+  "AuthWhole": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/HANDOFF.json",
+    "bytes": 27460,
+    "sha256": "7051e0af3c729b38ee4e88b65a65f78a0ca2367b29072d79c8e0093ffd7d8136"
+  },
+  "AuthRuntime": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/source/MobileAITaskRuntimePrivate.h",
+    "bytes": 6437,
+    "sha256": "aedd77226172124609e29dc1641df10fd8abef0cc4eff569bd3e512c6b953998"
+  },
+  "AuthCaptureBody": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/source/MobileAITaskClient.cpp",
+    "bytes": 36268,
+    "sha256": "d543afeada8a10bb180a39fedba60a9411bd074a7d9049a4dfbf5cb74b629062"
+  },
+  "AuthAgentRegistration": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/source/MobileAITaskAgentOriginal.cpp",
+    "bytes": 6767,
+    "sha256": "da6a793f7cf60fdac7b5ad04072b9b7cdd58062f1f0458b92ac0e6c91f235207"
+  },
+  "SDKExact15": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-task-v6-independent-agent-registration-20261101/source/packages/wallet-auth/native/original-ai-task-action-v6-source-contract.mjs",
+    "bytes": 8634,
+    "sha256": "d02a68c0c9dd60325ec7d3fdb4ec0eae4d4793a2159102776243f18f6ca4a957"
+  },
+  "strictFormatReferenceOnly": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-task-v6-independent-agent-registration-20261101/source/packages/wallet-auth/native/original-ide-deployment-v2-key-loan.cpp",
+    "bytes": 10185,
+    "sha256": "c9d2d1bca785364fa96b56340ba5a596582f2945086a8a82cef8c1e7477a5425"
+  },
+  "independentNativeResource": true,
+  "noIDEAuthorityReuse": true,
+  "pairedCaptureGetter": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/source/MobileAISigningCapturePairedPrivate.hpp",
+    "bytes": 1679,
+    "sha256": "da59841ff176132931bddb23731d97054d18529810de1f197c448ad79ede0aa8"
+  },
+  "actualFixedMathH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/HANDOFF.json",
+    "bytes": 6133,
+    "sha256": "777da9b5998580472d5b24c6b835bd56708efd50de312279c418def7732caeb7"
+  },
+  "status": "OWNING_NATIVE_RESOURCE_AGENT7_MATCHED_PAIRED_AUTH_AND_FIXED_MATH_SOURCE_ACTUAL_ONE_ARCHIVE_STILL_REQUIRED",
+  "RootAdmission": false,
+  "AuthPreviousMother": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/HANDOFF.json",
+    "bytes": 3846,
+    "sha256": "8a16663185ee5c1f98925f9bd4bd37fda779f44f36c329287fdf7523de072482"
+  },
+  "captureIncludeRoot": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/source",
+  "normalAuxiliaryIncludeRoots": [
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/inherited",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/native-input",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/core-input"
+  ],
+  "actualFixedMathBody": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/source/packages/wallet-auth/native/ai-agent/FixedOriginalAITaskActionV6Sign.cpp",
+    "bytes": 3203,
+    "sha256": "4060c819703a41399b7315678abf1f8abbab322534ed69fc3f3874de58ae5e84"
+  },
+  "actualFixedMathCABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/core-source/cmd/ynx-artifact-release-cabi/ai_task_agent_fixed_v6.h",
+    "bytes": 652,
+    "sha256": "4cb3a440384a28878b74d211e04d63c92377bb8d309776ddc57de5046f0b3f04"
+  },
+  "actualFixedMathCodec": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp",
+    "bytes": 19393,
+    "sha256": "7d4aec873661ed840eb58089bac8181f41e21b95345c23e0ec68cd956e9f23c5"
+  },
+  "actualFixedMathCodecHeader": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.hpp",
+    "bytes": 2130,
+    "sha256": "2c4885e2fc510f6dc0afa9bf0623d446c5f4ea4fe493365714880bb082822504"
+  },
+  "actualFixedMathRecipe": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/NORMAL_INTEGRATION_RECIPE.json",
+    "bytes": 4569,
+    "sha256": "c9dbda43e2b6e0eeff504018e3c2ea522dea0c8a843f26539aaf57a104c6e046"
+  },
+  "actualMathSourceManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-agent-v6-fixed-native-sign-successor-20261107/SOURCEFILES.json",
+    "bytes": 19551,
+    "sha256": "6686efce32d798e7f5fc487566d92e98076f6bc2215cc28f154632eda1ee7357"
+  },
+  "actualNewArchive": null,
+  "AuthPairedPrevious": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-8PQmau/HANDOFF.json",
+    "bytes": 17950,
+    "sha256": "11263bbb2cef803fe68bbe88f6277fd09c82959bd7befa082510cb0f27c59ff6"
+  },
+  "AuthActualCallerDelta": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-IvNFBD/RESULT.json",
+    "bytes": 1115,
+    "sha256": "8037c4de188b9c4c545cdd2513ecf406c06ef6b672c847547fe111dd7e9c48c6"
+  },
+  "AuthActualCallerFirstRed": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-uJElr9/RESULT.json",
+    "bytes": 1041,
+    "sha256": "c61ffc01394114d8ab88e6b0a3a22655478d1b6c9e70f16f4c8a89366a9a0324"
+  },
+  "AuthPairedBeforePhysicalCleanup": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/HANDOFF.json",
+    "bytes": 24794,
+    "sha256": "fab039e7f1c3d9344c0f770430c50cf403efc7396a6ab7410752259011915e50"
+  },
+  "AuthActualCleanupDelta": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-A5HnzA/RESULT.json",
+    "bytes": 1446,
+    "sha256": "c2a331e188b8e1dedb7c8aa2252292510cb2b3819b0a2ea262a1acdd47dc3ec2"
+  },
+  "AuthActualCleanupFirstRed": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-KJilJc/RESULT.json",
+    "bytes": 1041,
+    "sha256": "8a2f2cfc6ec8af57862dc1a3b6b20f65d0de6286a44bc9f517e04ddf9ed82c18"
+  },
+  "AuthActualPrepareRaw0FirstRed": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/paired-normal-bNO2Ka/RESULT.json",
+    "bytes": 1039,
+    "sha256": "cf1241d8635e20791fb41162302350c804b1084f45efd778350fba1b17d8fba0"
+  },
+  "AuthCleanupIntake": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-agent-auth-cleanup-intake-20261107-m6OBVo/READBACK.json",
+    "bytes": 20075,
+    "sha256": "73e6acdbbd2045b270b388a08e733bf6be5e20ed7a15e511e8c20a7c8bb49e1a"
+  }
+}
