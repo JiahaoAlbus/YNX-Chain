@@ -3,7 +3,7 @@
 // Native Source producer are separate owning CODE, currently NOT_SUPPLIED.
 import {types} from 'node:util';
 import {createIDEFiniteGETReadStateDATA} from './original-ide-finite-get-read-state-data.js';
-import {loadOriginalAuthIdentityNativeImage} from './original-auth-identity-fixed-native-image.js';
+import {acquireOriginalIDECloudGETSourceWithTargetScope} from './original-ide-finite-get-target-source-private.js';
 
 const objectKeys=['method','path','url','operationRequestId'];
 const fail=code=>{throw Object.assign(Error(code),{code})};
@@ -55,12 +55,9 @@ const same=(a,b)=>objectKeys.every(k=>a[k]===b[k]);
 // loader, endpoint, fake parent brand or V4/legacy proof fallback is accepted.
 export function acquireOriginalIDECloudGETRequestController(originalSelection){
  if(arguments.length!==1||!originalSelection||!['object','function'].includes(typeof originalSelection)||types.isProxy(originalSelection))fail('IDE_CLOUD_GET_ORIGINAL_SELECTION');
- const native=loadOriginalAuthIdentityNativeImage();
- if(!native||types.isProxy(native))fail('IDE_CLOUD_GET_NATIVE_SOURCE_NOT_SUPPLIED');
- const getDescriptor=Object.getOwnPropertyDescriptor(native,'acquireOriginalIDECloudGETSource');
- if(!getDescriptor||!Object.hasOwn(getDescriptor,'value')||typeof getDescriptor.value!=='function')fail('IDE_CLOUD_GET_NATIVE_SOURCE_NOT_SUPPLIED');
- const get=getDescriptor.value;
- let owner;try{owner=Reflect.apply(get,native,[originalSelection])}catch(e){throw e}
+ // A distinct Native callee enforces the SAME pre-proof target capture.
+ // Never call the old no-scope getter with an ignorable extra argument.
+ const owner=acquireOriginalIDECloudGETSourceWithTargetScope(originalSelection);
  if(owner===null||owner===undefined)fail('IDE_CLOUD_GET_NATIVE_SOURCE_NOT_SUPPLIED');
  let source;try{source=loan(owner,sourceNames)}catch(cause){throw Object.assign(Error('IDE_CLOUD_GET_SOURCE_PARTIAL'),{code:'IDE_CLOUD_GET_SOURCE_PARTIAL',cause,partial:owner})}
  const readState=createIDEFiniteGETReadStateDATA(),tickets=new WeakMap(),all=[],flights=new Set();let retired=false,active=0,draining=false,firstPresent=false,first,closing=null;

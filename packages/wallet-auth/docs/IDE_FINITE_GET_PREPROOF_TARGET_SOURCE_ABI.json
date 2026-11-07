@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "status": "SDK_REQUIRED_ABI_IMPLEMENTED_NATIVE_BODY_NOT_SUPPLIED",
+  "nodeOnly": true,
+  "preproofFixedExport": {
+    "name": "acquireOriginalIDEFiniteGETTargetSource",
+    "arguments": [
+      "SAME originalSelection"
+    ],
+    "synchronous": true,
+    "returns": "direct actual Native tagged owner",
+    "failure": "throw original value; throw.partial owner adopted before ABI/current",
+    "ownMethods": [
+      "assertCurrent",
+      "readOriginalTargetScope",
+      "retire",
+      "join",
+      "close"
+    ],
+    "scope": "SAME genuine opaque Native capture; not cap29 DATA/ProjectDB/lookup"
+  },
+  "mandatoryBoundFixedExport": {
+    "name": "acquireOriginalIDECloudGETSourceWithTargetScope",
+    "arguments": [
+      "SAME originalSelection",
+      "SAME opaqueNativeScope"
+    ],
+    "returns": "direct cleanup-owning request Source",
+    "ownMethods": [
+      "assertCurrent",
+      "recheck",
+      "captureOriginalGETRequest",
+      "retire",
+      "join",
+      "close"
+    ],
+    "noFallback": "Never call acquireOriginalIDECloudGETSource; extra ignored arg is forbidden"
+  },
+  "normalCallChain": [
+    "original-ide-admission-parent-delivery.js:retainOriginalIDECloudGETForCurrentParent",
+    "original-ide-cloud-retained-get-private.js:captureOriginalIDECloudRetainedGETPrivate",
+    "original-ide-cloud-get-request.js:acquireOriginalIDECloudGETRequestController",
+    "original-ide-finite-get-target-source-private.js:acquireOriginalIDECloudGETSourceWithTargetScope",
+    "fixed Native new preproof getter then distinct bound Source getter"
+  ],
+  "qualificationOwner": "Auth genuine sameNode/project/DEVICE Root cap29+independent release row+TLSFD/current",
+  "sessionRefIsSessionBinding": false,
+  "cleanup": "ticket children before bound request Source before preproof Target; join failure blocks close; explicit same-owner debt continuation; firstCause presence independent of value",
+  "sameCaptureNotFreshCurrent": "scope identity guards captured same owner; Native assertCurrent independently checks revocation/window/current every use",
+  "prototypeRequestedNotFormalBody": true,
+  "postproofR5IsPreproof": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "GETProofProduced": false,
+  "HTTPExecuted": false
+}
