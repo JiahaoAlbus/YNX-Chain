@@ -9,7 +9,8 @@ class Parser{
  uint8_t take(){if(p==b.size())bad();return b[p++];}
  bool literal(const char*s){while(*s)if(take()!=*s++)return false;return true;}
  std::string str(){if(take()!='"')bad();std::string s;while(p<b.size()){auto c=take();if(c=='"')return s;if(c<32)bad();if(c=='\\'){c=take();if(c=='"'||c=='\\')s+=(char)c;else if(c=='b')s+='\b';else if(c=='f')s+='\f';else if(c=='n')s+='\n';else if(c=='r')s+='\r';else if(c=='t')s+='\t';else if(c=='u'){// Canonical JSON uses \u00xx only for controls without short escapes.
- if(take()!='0'||take()!='0')bad();auto hexchar=[](uint8_t v)->int{if(v>='0'&&v<='9')return v-'0';if(v>='a'&&v<='f')return v-'a'+10;return -1;};int a=hexchar(take()),d=hexchar(take());if(a<0||d<0)bad();int v=a*16+d;if(v>=32||v==8||v==9||v==10||v==12||v==13)bad();s+=(char)v;
+ if(take()!='0'||take()!='0'){bad();}
+ auto hexchar=[](uint8_t v)->int{if(v>='0'&&v<='9')return v-'0';if(v>='a'&&v<='f')return v-'a'+10;return -1;};int a=hexchar(take()),d=hexchar(take());if(a<0||d<0)bad();int v=a*16+d;if(v>=32||v==8||v==9||v==10||v==12||v==13)bad();s+=(char)v;
  }else bad();}else if(c<128)s+=(char)c;else{// Canonical non-ASCII UTF8, no BOM/overlong/surrogate encodings.
  unsigned left=c>=0xc2&&c<=0xdf?1:c>=0xe0&&c<=0xef?2:c>=0xf0&&c<=0xf4?3:0;if(!left)bad();uint32_t cp=c&((1u<<(6-left))-1);std::string seq(1,(char)c);for(unsigned i=0;i<left;++i){auto x=take();if((x&0xc0)!=0x80)bad();cp=(cp<<6)|(x&63);seq+=(char)x;}if((left==1&&cp<128)||(left==2&&cp<2048)||(left==3&&cp<65536)||cp>0x10ffff||(cp>=0xd800&&cp<=0xdfff))bad();s+=seq;}}
  bad();}
@@ -17,7 +18,8 @@ class Parser{
  Value value(unsigned depth){if(depth>32||++nodes>32768||p>=b.size())bad();Value v;auto c=b[p];if(c=='{'){take();v.type=Value::object;std::string previous;bool first=true;if(p<b.size()&&b[p]=='}'){take();return v;}while(true){auto key=str();if(!first&&!(utf16(previous)<utf16(key)))bad();first=false;previous=key;if(take()!=':')bad();v.o.emplace(key,value(depth+1));c=take();if(c=='}')break;if(c!=',')bad();}return v;}
  if(c=='['){take();v.type=Value::array;if(p<b.size()&&b[p]==']'){take();return v;}while(true){v.a.push_back(value(depth+1));c=take();if(c==']')break;if(c!=',')bad();}return v;}
  if(c=='"'){v.type=Value::string;v.s=str();return v;}if(c=='t'){if(!literal("true"))bad();v.type=Value::boolean;v.b=true;return v;}if(c=='f'){if(!literal("false"))bad();v.type=Value::boolean;return v;}if(c=='n'){if(!literal("null"))bad();return v;}
- if(c<'0'||c>'9')bad();v.type=Value::integer;if(c=='0'){take();return v;}while(p<b.size()&&b[p]>='0'&&b[p]<='9'){auto d=take()-'0';if(v.n>(9007199254740991ULL-d)/10)bad();v.n=v.n*10+d;}return v;}
+ if(c<'0'||c>'9'){bad();}
+ v.type=Value::integer;if(c=='0'){take();return v;}while(p<b.size()&&b[p]>='0'&&b[p]<='9'){auto d=take()-'0';if(v.n>(9007199254740991ULL-d)/10)bad();v.n=v.n*10+d;}return v;}
  public:explicit Parser(const std::vector<uint8_t>&input):b(input){}Value parse(){auto v=value(0);if(p!=b.size())bad();return v;}
 };
 }

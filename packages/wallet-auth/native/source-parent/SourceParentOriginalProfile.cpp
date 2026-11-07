@@ -48,13 +48,18 @@ struct SHA {
  SHA256_CTX value{};SHA(){SHA256_Init(&value);}void add(const uint8_t*p,size_t n){SHA256_Update(&value,p,n);}std::array<uint8_t,32>finish(){std::array<uint8_t,32>o{};SHA256_Final(o.data(),&value);return o;}
 #endif
 };
+} // namespace
+// Implementation-only field types need named linkage for Impl under GCC.
+// They stay in this translation unit; no header or caller ABI is exposed.
+namespace profile_detail {
 struct FD {int fd=-1;bool closeSelected=false,closed=false;struct stat original{};bool identity=false;
  bool close(){if(fd<0){closed=true;return true;}if(closeSelected)return closed;closeSelected=true;struct stat now{};if(identity&&(fstat(fd,&now)||!directoryStamp(original,now)))return false;if(dropFD(fd))return false;fd=-1;closed=true;return true;}
 };
 struct Directory {std::string path;uint32_t uid=0;std::vector<FD>held;bool closed=false;
  ProfileFailure open(const std::string&p,uint32_t owner){path=p;uid=owner;auto components=parts(p,true);held.emplace_back();held.back().fd=::open("/",O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);if(held.back().fd<0)return failure(ProfileCode::IO,errno);if(fstat(held.back().fd,&held.back().original))return failure(ProfileCode::IO,errno);held.back().identity=true;
   for(auto&part:components){held.emplace_back();auto&f=held.back();f.fd=openat(held[held.size()-2].fd,part.c_str(),O_RDONLY|O_DIRECTORY|O_CLOEXEC|O_NOFOLLOW);if(f.fd<0)return failure(ProfileCode::Path,errno);if(fstat(f.fd,&f.original))return failure(ProfileCode::IO,errno);f.identity=true;if(!S_ISDIR(f.original.st_mode)||(f.original.st_mode&0022)||(f.original.st_uid!=0&&f.original.st_uid!=owner))return failure(ProfileCode::Identity);}
-  if(held.back().original.st_uid!=owner)return failure(ProfileCode::Identity);return current();
+  if(held.back().original.st_uid!=owner){return failure(ProfileCode::Identity);}
+  return current();
  }
  ProfileFailure current()const {if(closed||held.empty())return failure(ProfileCode::Retired);auto components=parts(path,true);struct stat old{},now{};if(fstat(held[0].fd,&now)||!directoryStamp(now,held[0].original))return failure(ProfileCode::Identity);for(size_t i=0;i<components.size();++i){if(fstat(held[i+1].fd,&now)||!directoryStamp(now,held[i+1].original)||fstatat(held[i].fd,components[i].c_str(),&old,AT_SYMLINK_NOFOLLOW)||!directoryStamp(old,now))return failure(ProfileCode::Identity);}return{};}
  bool close(){for(auto i=held.rbegin();i!=held.rend();++i)if(!i->close())return false;closed=true;return true;}
@@ -66,6 +71,8 @@ struct File {Directory parent;FD file;std::string leaf;uint64_t bytes=0;std::arr
  ProfileFailure current(){if(auto f=parent.current();f.present)return f;struct stat now{},named{};if(file.fd<0||fstat(file.fd,&now)||!stamp(file.original,now)||fstatat(parent.descriptor(),leaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!stamp(now,named))return failure(ProfileCode::Identity);auto before=digest;auto f=hash(false);if(f.present)return f;if(captured&&before!=digest)return failure(ProfileCode::Content);if(fstat(file.fd,&now)||!stamp(file.original,now)||fstatat(parent.descriptor(),leaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!stamp(now,named))return failure(ProfileCode::Identity);return parent.current();}
  bool close(){if(!file.close())return false;return parent.close();}
 };
+} // namespace profile_detail
+namespace {
 struct Pin{std::string path,hash;uint64_t bytes=0;};
 Pin pin(const d::Value&v){v.keys({"path","bytes","sha256"});Pin p{v.at("path").text(),v.at("sha256").text(),v.at("bytes").number()};parts(p.path,false);if(!d::hex(p.hash)||!p.bytes)return{};return p;}
 std::pair<std::string,std::string>location(const std::string&root,const std::string&relative){auto p=parts(relative,false);std::string dir=root;for(size_t i=0;i+1<p.size();++i)dir+="/"+p[i];return{dir,p.back()};}
@@ -85,7 +92,7 @@ std::string executablePath(){
 #endif
 }
 }
-struct OriginalSourceParentImageProfile::Impl {std::thread::id actor=std::this_thread::get_id();File registered,images[3],records[3],info,actual;ProfileImages result;ProfileFailure first{};bool retired=false,closed=false;size_t children=0;ProfileFailure fail(ProfileFailure f){retired=true;if(!first.present)first=f;return first;}
+struct OriginalSourceParentImageProfile::Impl {std::thread::id actor=std::this_thread::get_id();profile_detail::File registered,images[3],records[3],info,actual;ProfileImages result;ProfileFailure first{};bool retired=false,closed=false;size_t children=0;ProfileFailure fail(ProfileFailure f){retired=true;if(!first.present)first=f;return first;}
  ProfileFailure current(){if(actor!=std::this_thread::get_id())return failure(ProfileCode::WrongActor);if(first.present)return first;if(retired||closed)return failure(ProfileCode::Retired);if(!mappedExecutableSame(actual.file.original))return fail(failure(ProfileCode::Role));for(auto*f:{&registered,&images[0],&images[1],&images[2],&records[0],&records[1],&records[2],&info,&actual})if(auto e=f->current();e.present)return fail(e);if(!mappedExecutableSame(actual.file.original))return fail(failure(ProfileCode::Role));return{};}
 };
 OriginalSourceParentImageProfile::OriginalSourceParentImageProfile():impl_(new Impl){}

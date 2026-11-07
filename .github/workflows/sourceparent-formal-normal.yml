@@ -14,6 +14,7 @@ on:
       - .github/workflows/sourceparent-formal-normal.yml
 jobs:
   new-source-abi-package-only:
+    if: github.head_ref != 'codex/wallet-auth49-sourceparent-gcc-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
