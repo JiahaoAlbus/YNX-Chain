@@ -1,0 +1,68 @@
+{
+  "schema": "YNX_NATIVE_ACCOUNT_PROOF_MATCHING_PRIVATE_HEADERS_V1",
+  "headers": [
+    {
+      "root": 0,
+      "name": "OriginalAccountPurposeChildPrivate.hpp",
+      "bytes": 1938,
+      "sha256": "c7c0db46daa06fd14f87cb7e65b5b6bea32b9f70632d681050a768f003eeca58"
+    },
+    {
+      "root": 1,
+      "name": "MobileAccountProofHostBindingPrivate.hpp",
+      "bytes": 1511,
+      "sha256": "4ad7133d092779a8de735a1e97afa48910513a6d1f114ca2f5e79c0a853bc083"
+    },
+    {
+      "root": 1,
+      "name": "MobileLedgerProofBackendPrivate.hpp",
+      "bytes": 3942,
+      "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce"
+    },
+    {
+      "root": 2,
+      "name": "normal_native_backend_private.hpp",
+      "bytes": 3255,
+      "sha256": "dac0d60836ffc9ecf2485830ebba22845e7152fd38c7b654fa06cd95437ea5c2"
+    },
+    {
+      "root": 2,
+      "name": "account_source_acquisition_private.hpp",
+      "bytes": 6899,
+      "sha256": "663ef2e06d5154547c57c7c872a1557e1f733a600c6af0d0c4a240182180b24e"
+    },
+    {
+      "root": 2,
+      "name": "account_proof_channel_private.hpp",
+      "bytes": 2318,
+      "sha256": "834c246c01f8288bf8437bd8df95d0ae94fe155c676d1510add7f4743b999ec4"
+    },
+    {
+      "root": 2,
+      "name": "current4_launch_private.hpp",
+      "bytes": 3870,
+      "sha256": "df85fdb4a6f9c3db936f2e1aa6f0d6b58415fa9e9b7a230c889ec21d2b487bcc"
+    },
+    {
+      "root": 3,
+      "name": "MobileAccountProofHostPortPrivate.hpp",
+      "bytes": 3096,
+      "sha256": "8aa0a0bf28ecfc139fc6a6c637abe4e6e38730cc97c1a9f1dfc70cc2ca9823a4"
+    },
+    {
+      "root": 3,
+      "name": "MobileAccountProofWireDATA.hpp",
+      "bytes": 9856,
+      "sha256": "786c9b56aa445e82d0ffbc64e949272cb99692a674341e036199bccbe2b564fe"
+    }
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "meaning": "Exact typed headers only; no public Source, profile or key authority",
+  "defaultP09SourceRoot": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/native-account-proof-p09-cohort-20261107-bNEpta/native",
+  "p09FrozenCohort": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/native-account-proof-p09-cohort-20261107-bNEpta/HANDOFF.json",
+    "bytes": 4754,
+    "sha256": "1822502cd6f1c96ba338d224cdf81b8b1e21294028292d833711b02b9e781999"
+  }
+}

@@ -20,6 +20,11 @@ call(process.execPath,[join(root,'test/run-app-directory-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-account-picker-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-registered-receipt-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-registered-phase-controls.mjs')]);
+call(process.execPath,[join(root,'test/account-proof-reader.mjs')]);
+// Original P09/Native macOS composition job supplies the same frozen cohort.
+// This is a separate process/Source boundary check, not a real Root gate.
+if(process.platform==='darwin')call(process.execPath,[join(root,'test/account-proof-normal.mjs')]);
+else console.log('NOT_RUN: original macOS normal account-purpose process composition; no platform admission inferred.');
 call(process.execPath,['--test',join(root,'test/hermes-client.PUBLIC.test.mjs')],{env:{...process.env,YNX_TYPESCRIPT_MODULE:tsRoot}});
 call('clang++',['-std=c++17','-Wall','-Wextra','-Werror','-fsyntax-only','-I',join(rn,'ReactCommon/jsi'),'-I',join(rn,'ReactCommon/callinvoker'),join(root,'native/CustodyJSI.cpp')]);
 const stage=mkdtempSync(join(tmpdir(),'ynx-mobile-pq-types-'));
