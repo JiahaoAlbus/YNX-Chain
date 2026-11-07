@@ -1,3 +1,4 @@
+import {createDesktopAgentDelegationsRenderer} from './desktop-agent-delegations-renderer.mjs';
 import {createDesktopPQTransferSummary} from './desktop-pq-transfer-summary.mjs';
 import {mountNativePayProductUI} from './native-pay-product-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
@@ -1384,6 +1385,6 @@ window.addEventListener('blur',()=>projectControlUI.invalidate());
 // Full approved desktop presentation consumes only existing public state and
 // delegates all protected actions to their original controls/controllers.
 transferReviewSummaryUI=createDesktopPQTransferSummary({root:document.getElementById('provider-transfer-summary'),document,getContext:()=>keyState});
-desktopUI=createApprovedDesktopUI({document,api:window.ynxWallet,navigate:setView,unlock:()=>document.querySelector('#unlock-wallet').click(),openImport:()=>document.querySelector('#open-import').click(),openCrossChain:()=>{if(window.ynxWallet.crossChain)cctpOpen.click();},openNetworks:()=>document.querySelector('#open-multichain').click(),reviewPending:presentApproval,writeClipboard:writeReceivingClipboard});
+desktopUI=createApprovedDesktopUI({agentManagement:createDesktopAgentDelegationsRenderer(window.ynxWallet),document,api:window.ynxWallet,navigate:setView,unlock:()=>document.querySelector('#unlock-wallet').click(),openImport:()=>document.querySelector('#open-import').click(),openCrossChain:()=>{if(window.ynxWallet.crossChain)cctpOpen.click();},openNetworks:()=>document.querySelector('#open-multichain').click(),reviewPending:presentApproval,writeClipboard:writeReceivingClipboard});
 presentApproval();
 if(accountStatusObserved)desktopUI.render(accountState,keyState);

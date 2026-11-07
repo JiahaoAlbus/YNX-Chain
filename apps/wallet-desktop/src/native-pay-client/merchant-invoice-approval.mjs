@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {nativeInvoiceProductIntentData,assertNativeInvoiceIntentView} from './invoice-product-intent.mjs';
+import {nativeInvoiceProductIntentData,assertNativeInvoiceIntentView,assertNativeInvoiceOrderIntentDATA,assertNativeInvoiceOrderBillDATA} from './invoice-product-intent.mjs';
 import {types} from 'node:util';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -28,9 +28,10 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
   return originals.filter(row=>row.kind==='pq-typed-action'&&row.account===view.merchant&&row.typed?.review?.action?.kind==='invoice_terms'&&digest(messageOf(row.typed.review,encode))===view.signingMessageHash);
  }
  return Object.freeze({
-  async requestMerchantTerms(intentId,current){
+  async requestMerchantTerms(intentId,current,originalOrder){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
    current();const reviewed=await pay.merchantTermsReview(intentId,current);current();
+   if(originalOrder)assertNativeInvoiceOrderIntentDATA(reviewed.intent,originalOrder);
    const bytes=Buffer.from(reviewed.message,'base64'),view=reviewed.intent;
    if(bytes.toString('base64')!==reviewed.message||digest(bytes)!==view.signingMessageHash)fail('NATIVE_INVOICE_REVIEW_BINDING');
    const {decodePQNativeAction,encodePQNativeAction}=await import('@ynx-chain/wallet-auth/pq-native-action');
@@ -45,9 +46,10 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
    }catch(error){if(pending?.request?.id)try{rejectNativePayPending(main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
    return pending; // The existing Main UI/Auth approval path owns this review.
   },
-  async readOriginalMerchantMember(intentId,originalHash,current){
+  async readOriginalMerchantMember(intentId,originalHash,current,originalOrder){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
    current();const view=await pay.readInvoiceIntent(intentId,current);current();
+   if(originalOrder)assertNativeInvoiceOrderIntentDATA(view,originalOrder);
    const {encodePQNativeAction}=await import('@ynx-chain/wallet-auth/pq-native-action');
    const {decodePQActionTransportData}=await import('@ynx-chain/wallet-auth/pq-action-transport');
    const originals=await retained(view,current,encodePQNativeAction),saved=originals.find(row=>row.hash===originalHash);
@@ -198,9 +200,10 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
   }else if(retained.settlement!==null)fail('NATIVE_PAY_INVOICE_ORIGINALS_UNAVAILABLE');
   return retained;
  }
- async function request(kind,merchant,invoiceId,current,refund){
+ async function request(kind,merchant,invoiceId,current,refund,originalOrder){
   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');current();
   const bill=await pay.readInvoice(merchant,invoiceId,current);current();
+  if(originalOrder)assertNativeInvoiceOrderBillDATA(bill,originalOrder);
   const reviewed=kind==='invoice_settle'?await pay.reviewSettlement(merchant,invoiceId,current):await pay.reviewRefund(merchant,invoiceId,refund.refundId,refund.amountAtoms,current);current();
   const bytes=Buffer.from(reviewed.message,'base64'),{decodePQNativeAction,encodePQNativeAction}=await sdk();
   if(bytes.toString('base64')!==reviewed.message)fail('NATIVE_PAY_REVIEW_BINDING');
@@ -215,11 +218,12 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
   return pending;
  }
  return Object.freeze({
-  requestSettlement:(merchant,invoiceId,current)=>request('invoice_settle',merchant,invoiceId,current),
-  requestRefund:(merchant,invoiceId,refundId,amountAtoms,current)=>request('invoice_refund',merchant,invoiceId,current,{refundId,amountAtoms}),
-  async readOriginalActionMember({merchant,invoiceId,kind,originalHash},current){
+  requestSettlement:(merchant,invoiceId,current,originalOrder)=>request('invoice_settle',merchant,invoiceId,current,undefined,originalOrder),
+  requestRefund:(merchant,invoiceId,refundId,amountAtoms,current,originalOrder)=>request('invoice_refund',merchant,invoiceId,current,{refundId,amountAtoms},originalOrder),
+  async readOriginalActionMember({merchant,invoiceId,kind,originalHash},current,originalOrder){
    if(!['invoice_settle','invoice_refund'].includes(kind)||typeof current!=='function')fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
    current();const bill=await pay.readInvoice(merchant,invoiceId,current);current();
+   if(originalOrder)assertNativeInvoiceOrderBillDATA(bill,originalOrder);
    const account=await selected(current),rows=await journal.readPQOriginals(account,current);current();
    const saved=rows.find(row=>row.kind==='pq-typed-action'&&row.hash===originalHash&&row.account===account);
    if(!saved)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_REQUIRED');

@@ -1,3 +1,4 @@
+import {mountDesktopAgentDelegations} from './desktop-agent-delegations-ui.mjs';
 import {createDesktopOverviewActivityUI} from './desktop-overview-activity-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
 import {createAddressResolverUI} from './receive-address-resolver-ui.mjs';
@@ -8,11 +9,12 @@ export function projectDesktopPublicState(account,key){
  const native=address(account?.ynxAccount),initialized=account?.initialized===true&&canonical!==null;
  return Object.freeze({initialized,canonical,native,locked:key?.locked!==false,authenticating:key?.authenticating===true,revision:key?.revision??null,available:account!==null&&typeof account==='object',passwordConfigured:account?.passwordConfigured===true});
 }
-export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openImport,openCrossChain,openNetworks,reviewPending,writeClipboard}){
+export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openImport,openCrossChain,openNetworks,reviewPending,writeClipboard,agentManagement=null}){
  const byId=id=>doc.getElementById(id),zh=()=>doc.documentElement.lang.startsWith('zh'),t=(en,cn)=>zh()?cn:en;
  let overviewActivity=null,keyOwner=null;
  let scope=null,entered=false,disposed=false,policyEpoch=0,policyBusy=false,pending={count:0,ai:false},networkState=null;
  const resolver=createAddressResolverUI({root:byId('desktop-resolver-root'),api,getContext:()=>({open:doc.querySelector('[data-panel="resolver"]')?.hidden===false,account:scope?.canonical??null,keyRevision:scope?.revision,networkId:'ynx_6423-1'}),writeClipboard});
+ const agentDelegations=mountDesktopAgentDelegations({root:byId('desktop-agent-delegations'),document:doc,getContext:()=>({account:scope?.canonical===keyOwner?scope.canonical:null,revision:scope?.revision,locked:scope?.locked!==false,focused:doc.hasFocus?.()!==false}),management:agentManagement,reviewPending});
  const move=(id,target)=>{const n=byId(id),parent=byId(target);if(n&&parent)parent.append(n);};
  move('transaction-history','desktop-history-slot');move('walletconnect-sessions','desktop-permission-slot');
  for(const id of ['pq-key-preparation','pq-account-initial','pq-independent-backup','pq-registered-restore','pq-migration-form','pq-revocation-form'])move(id,'desktop-pq-tools-slot');
@@ -25,6 +27,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
  function viewChanged(name){
   if(name==='connections'||name==='permissions'){const target=name==='connections'?'desktop-connection-sessions-slot':'desktop-permission-slot';move('walletconnect-detail',target);move('walletconnect-sessions',target);}
   const titles={overview:['Assets','资产'],history:['Transactions','交易'],connections:['DApp','DApp'],security:['Security center','安全中心'],agents:['AI Agent','AI Agent'],permissions:['Permissions','授权管理'],accounts:['Accounts & backup','账户与备份'],resolver:['Address Resolver','地址格式转换'],settings:['Settings','设置']};
+  if(name==='agents')void agentDelegations.refresh();
   if(titles[name])byId('page-title').textContent=t(...titles[name]);resolver.invalidate();
  }
  function enterWorkspace(){entered=true;byId('desktop-welcome').hidden=true;byId('desktop-lock-screen').hidden=true;doc.body.dataset.walletStage='workspace';}
@@ -55,7 +58,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   keyOwner=key?.account??null;
   const next=projectDesktopPublicState(account,key),changed=!scope||next.canonical!==scope.canonical||next.revision!==scope.revision||next.locked!==scope.locked;
   if(scope?.locked===false&&next.locked)entered=false;
-  if(changed){if(next.locked||scope?.canonical!==next.canonical)pending={count:0,ai:false};resetPolicy();resolver.invalidate();byId('desktop-history-detail')?.replaceChildren();}scope=next;overviewActivity?.updateContext();doc.body.dataset.walletLocked=String(next.locked);
+  if(changed){if(next.locked||scope?.canonical!==next.canonical)pending={count:0,ai:false};resetPolicy();resolver.invalidate();byId('desktop-history-detail')?.replaceChildren();}scope=next;overviewActivity?.updateContext();agentDelegations.updateContext();doc.body.dataset.walletLocked=String(next.locked);
   const welcome=byId('desktop-welcome'),lock=byId('desktop-lock-screen');
   if(!entered&&!next.initialized){welcome.hidden=false;lock.hidden=true;doc.body.dataset.walletStage='welcome';}
   else if(!entered&&next.locked&&next.initialized){welcome.hidden=true;lock.hidden=false;doc.body.dataset.walletStage='locked';}
@@ -67,12 +70,12 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   updatePending(pending);
  }
  function renderNetwork(){if(!networkState)return;const view=desktopNetworkDisplay(networkState,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';}
- const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();overviewActivity?.render();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
+ const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();overviewActivity?.render();agentDelegations.refreshLanguage();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
  return Object.freeze({render,viewChanged,enterWorkspace,updatePending,updateHistory:(view,actor)=>overviewActivity?.updateHistory(view,actor),showHistoryRecord(record){
   const parent=byId('desktop-history-detail');if(!parent||record?.account!==scope?.canonical)return;parent.replaceChildren();
   const h=doc.createElement('h2'),amount=doc.createElement('p'),facts=doc.createElement('dl'),notice=doc.createElement('p');
   h.textContent=record.successful?t('Transfer observed locally','本地快照已观察到交易'):t('Execution failed','执行失败');amount.className='desktop-history-amount';amount.textContent=record.amount+' YNXT';
   for(const [en,cn,value]of [['Canonical recipient ID','接收方规范 ID',record.to],['Transaction hash','交易哈希',record.hash],['Actual fee','实际手续费',record.actualFee+' YNXT'],['Observed block','观察区块',record.blockNumber]]){const term=doc.createElement('dt'),valueNode=doc.createElement('dd');term.textContent=t(en,cn);valueNode.textContent=String(value);valueNode.dir='ltr';facts.append(term,valueNode);}
   notice.textContent=t('This is the retained verified local snapshot. Independent consensus finality is not supplied. An UNKNOWN operation must never be replayed.','这是已保留且经核对的本地快照；尚未供给独立共识最终性。结果未知的原操作不得重发。');parent.append(h,amount,facts,notice);
- },updateNetwork(value){networkState={available:value?.available===true,chainId:value?.chainId};renderNetwork();},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;overviewActivity?.dispose();policyEpoch++;resolver.destroy();observer?.disconnect();}});
+ },updateNetwork(value){networkState={available:value?.available===true,chainId:value?.chainId};renderNetwork();},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;agentDelegations.dispose();overviewActivity?.dispose();policyEpoch++;resolver.destroy();observer?.disconnect();}});
 }
