@@ -1,0 +1,12 @@
+// New pure-DATA C/Go tests only; no production archive, signer or Source.
+import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import {spawnSync} from 'node:child_process';
+const root=path.resolve(import.meta.dirname,'../..'),moduleRoot=path.join(root,'packages/wallet-auth/native/social-fresh-joint-profile-v1');
+const out=path.join(process.env.RUNNER_TEMP||os.tmpdir(),'social-joint-c-data-'+process.pid),binary=path.join(out,'PUBLIC_CGO_DATA.test');
+const cmds=[['cc',['-std=c11','-Wall','-Wextra','-Werror','-fsyntax-only','-x','c','cabi/social_fresh_joint_profile_data.h']],['go',['test','-c','-tags','social_joint_data_test','-o',binary,'./cabi']],[binary,['-test.v']],['nm',['-g',binary]]];
+if(process.argv.length===3&&process.argv[2]==='--plan'){console.log(JSON.stringify({commands:cmds,module:'packages/wallet-auth/native/social-fresh-joint-profile-v1',productionArchive:false,RootAdmission:false,SourceAdmission:false}));}else{
+ if(process.argv.length!==2)throw Error('SOCIAL_CABI_CI_ARGUMENTS');fs.mkdirSync(out,{recursive:true});let nm='';
+ try{for(let i=0;i<cmds.length;i++){const[c,a]=cmds[i],r=spawnSync(c,a,{cwd:moduleRoot,encoding:'utf8',env:{...process.env,CGO_ENABLED:'1',GOTOOLCHAIN:'go1.25.13'}});fs.writeFileSync(path.join(out,String(i)+'.stdout'),r.stdout||'');fs.writeFileSync(path.join(out,String(i)+'.stderr'),r.stderr||'');process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');if(r.error)throw r.error;if(r.status!==0)throw Error('SOCIAL_CABI_STEP_'+i+'_EXIT_'+r.status);if(i===3)nm=r.stdout;}
+ for(const n of ['YNXSocialFreshJointProfilePrepareBodyDATA','YNXSocialFreshJointProfileInspectBodyDATA'])if(nm.split('\n').filter(l=>new RegExp('\\bT\\s+_?'+n+'$').test(l)).length!==1)throw Error('SOCIAL_CABI_STRONG_EXPORT');
+ const {collectSocialJointProfileCDataInputs}=await import(path.join(root,'packages/wallet-auth/scripts/social-joint-profile-c-data-inputs.mjs'));const inputs=collectSocialJointProfileCDataInputs();const result={passed:true,newCToGoScenarios:25,headerC11:true,testExecutableStrongExports:2,inputs,productionArchive:false,productionNativeQualification:false,RootAdmission:false,SourceAdmission:false,NativeAdmission:false};fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify(result));
+ }catch(e){fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify({passed:false,error:String(e),productionArchive:false})+'\n');throw e;}
+}
