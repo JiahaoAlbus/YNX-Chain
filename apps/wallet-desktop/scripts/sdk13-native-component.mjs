@@ -116,3 +116,5 @@ export {native49C6NormalNodeComponent} from "./native49-c6-normal-component.mjs"
 
 // Independent approved helper-only role; original paired/component gates remain unchanged.
 export {verifyApproved125aHelperComponent,APPROVED125A_HELPER_SOURCE_TUPLE} from './approved125a-helper-component.mjs';
+
+export {native49NAPINormalNodeComponent} from "./native49-napi-normal-component.mjs";

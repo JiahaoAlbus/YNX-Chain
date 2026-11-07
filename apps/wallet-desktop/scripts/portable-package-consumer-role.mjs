@@ -12,6 +12,7 @@ const tokens=new WeakMap(),sha=b=>createHash('sha256').update(b).digest('hex'),f
 function freeze(v){if(v&&typeof v==='object'){for(const x of Object.values(v))freeze(x);Object.freeze(v);}return v;}freeze(approved);
 
 const C6_DATA=scripts+'portable-package-c6-consumer-role-data.json',C6_ANCHOR=scripts+'portable-package-c6-consumer-role-anchor.mjs',SELF=scripts+'portable-package-consumer-role.mjs';
+const NAPI_SDK_ONLY=[scripts+'test/native49-napi-record.test.mjs','apps/wallet-desktop/test/fixtures/native49-napi/record.json','.github/workflows/wallet-native49-napi-component.yml'];
 freeze(approvedC6);
 function approvedC6Consumer(packageCommit,git,blob,compile){
  let selected=false;try{git('merge-base','--is-ancestor',c6Anchor.sourceCommit,packageCommit);selected=true;}catch{}
@@ -24,12 +25,12 @@ function approvedC6Consumer(packageCommit,git,blob,compile){
  same(git('rev-parse',c6Anchor.sourceCommit+'^{tree}').toString().trim(),c6Anchor.sourceTree);
  same(approvedC6.compatibilitySources,c6Anchor.compatibilitySources);same(approvedC6.nodeSourceRoles,c6Anchor.nodeSourceRoles);
  same(approvedC6.helperSourceRoles,{compileSourceCommit:COMPILE,recordProducerCommit:PRODUCER,legacyRecordSHA256:RECORD_SHA});
- same(approvedC6.mainFiles24.length,24);same(approvedC6.sdkSelfPins.map(r=>r.relative),[SELF]);
+ same(approvedC6.mainFiles24.length,24);same(approvedC6.sdkSelfPins.map(r=>r.relative),[SELF,...NAPI_SDK_ONLY]);
  const names=new Set(),isRelative=n=>typeof n==='string'&&n.length>0&&!n.startsWith('/')&&!n.includes('\\')&&!n.includes('\0')&&path.posix.normalize(n)===n&&!n.split('/').some(x=>!x||x==='.'||x==='..');
  for(const row of [...approvedC6.currentFiles,...approvedC6.sdkSelfPins]){
   same(Object.keys(row).sort(),['bytes','relative','sha256']);if(!isRelative(row.relative)||names.has(row.relative)||!Number.isSafeInteger(row.bytes)||row.bytes<1||row.bytes>(16<<20)||!/^[a-f0-9]{64}$/.test(row.sha256))fail('PORTABLE_PACKAGE_C6_PIN_SHAPE');names.add(row.relative);
   if(compile.has(row.relative)||[RECORD,DATA,C6_DATA,C6_ANCHOR].includes(row.relative))fail('PORTABLE_PACKAGE_C6_OVERLAPS_PROTECTED_ROLE');
-  if(row.relative!==SELF)checkBytes(blob(c6Anchor.sourceCommit,row.relative),row);
+  if(row.relative!==SELF&&!NAPI_SDK_ONLY.includes(row.relative))checkBytes(blob(c6Anchor.sourceCommit,row.relative),row);
   checkBytes(blob(packageCommit,row.relative),row);
  }
  const originalRows=new Map(approvedC6.currentFiles.map(r=>[r.relative,r]));

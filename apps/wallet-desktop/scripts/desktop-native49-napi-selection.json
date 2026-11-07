@@ -1,0 +1,105 @@
+{
+  "kind": "YNX_DESKTOP_SEPARATE_NAPI_NODE_SELECTION/v1",
+  "nodeRole": "YNX_NATIVE49_FINITE_NAPI_NORMAL_NODE_COMPONENT/v1",
+  "sourceRoles": {
+    "reusedCPPSourceCommit": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+    "reusedCPPSourceTree": "fb0a18f131615e9cb1886ce1479f7b1fc1df879e",
+    "swiftBuilderCommit": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+    "swiftBuilderTree": "06e98e613f2f677d13bfefc99079bd05e40f8f31",
+    "relinkProducerCommit": "86d0d24c052843516c6cf79e2fe2ee859d43358a",
+    "relinkProducerTree": "13a2b6b5a29a7622658e423c95926990f58a66dd"
+  },
+  "assets": [
+    {
+      "path": "apps/wallet-desktop/native/NATIVE49_NAPI_NORMAL_RECORD.json",
+      "bytes": 123525,
+      "sha256": "e8597d465d4de0d4cd1b55e51de912b0791ce447c3b17665ebfd93a6c314e657",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity.node",
+      "bytes": 15749408,
+      "sha256": "0bb0b0aede20b13fc525e969f3e9f8bcb2f3efe87977a3e41dd594effb098635",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
+      "bytes": 1603,
+      "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE.txt",
+      "bytes": 1079,
+      "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
+      "bytes": 1022,
+      "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
+      "bytes": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libcrypto.3.dylib",
+      "bytes": 5107648,
+      "sha256": "7ee2d33dd3f002e8bcc76d5bc1083333d10ea7064539cc630c4b28ae5a83bfd8",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libssl.3.dylib",
+      "bytes": 979328,
+      "sha256": "8d24bffd50d0a961d283ab711b8176525a643a2679c6b852cb582251c516fe48",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libuv.1.dylib",
+      "bytes": 201824,
+      "sha256": "9e19a85d194e4da4f09939f0d051c6790a7f45b46da3827b85e8919c5de77e4e",
+      "mode": 493
+    }
+  ],
+  "legacyHelperRecord": {
+    "relative": "apps/wallet-desktop/native/original-auth-identity-build.json",
+    "bytes": 255009,
+    "sha256": "125a0fd40168ca7a9842644bb24e70c669bf4596d9eb36e8c4f1daa62dc43485"
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "approved125aHelperSource": {
+    "kind": "YNX_APPROVED125A_HELPER_SOURCE_TUPLE/v1",
+    "recordBytes": 255009,
+    "recordSHA256": "125a0fd40168ca7a9842644bb24e70c669bf4596d9eb36e8c4f1daa62dc43485",
+    "compileCommit": "2602137a3f0382acb52c7d82ac51383153bd9f44",
+    "compileTree": "9d6d970f01c97e9d0fe5f9d266094c7c8e6b57ef",
+    "producerCommit": "9bf0726f96e66a4947a4a8d823b77b89bcc46ff9",
+    "producerTree": "0fdc1a6e5f2791593217b2a98a3554912f32c216",
+    "helperSourceRows": 272,
+    "producerSourceRows": 76,
+    "helperSourceRowsSHA256": "a1b2730b7da8defc3791ee7de2dc8d52be9ded1b46f61314813bd34f755f43df",
+    "producerSourceRowsSHA256": "8c80406ee0f6cbdb4d8496510f59ce947782de9cae6710fa02544ad5cd80cc5a",
+    "helperRecipeSHA256": "987cd210cb5dea9899af0c1c9fda5abd42471971970fbd39ab2d651239c09656",
+    "helperOutputBytes": 1181456,
+    "helperOutputSHA256": "2958be1d233e083535fb186085eafa79accf3ef942d6c00133f74e6a35fb8f15"
+  },
+  "helperPlist": {
+    "source": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
+    "packedSource": "apps/wallet-desktop/native/helper-data/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
+    "bytes": 473,
+    "sha256": "08c5483639227287de41e081c61e3d2e5238db72122d08f5f397d8f4e78af69b"
+  },
+  "minimumMacOS": "13.5",
+  "recordRelative": "apps/wallet-desktop/native/NATIVE49_NAPI_NORMAL_RECORD.json"
+}

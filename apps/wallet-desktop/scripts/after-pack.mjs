@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import {stageDesktopC6ApprovedHelper} from './desktop-native49-c6-helper.mjs';
 import {createRequire} from "node:module";
-import {desktopNative49C6Selected} from "./desktop-native49-c6-pack.mjs";
+import {desktopNative49C6Selected,desktopNative49C6Selection} from "./desktop-native49-c6-pack.mjs";
 import { writeFile,readFile } from "node:fs/promises";
 import { desktopReleaseIdentity, relocateDesktopPackage as assembleCanonicalDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
@@ -17,12 +17,13 @@ export function updatedMacAsarIntegrity(existing, relocated) {
   return {...existing,"Resources/app.asar":{algorithm:"SHA256",hash:relocated.hash}};
 }
 
-export function hardenMacInfoPlist(appOutDir, productFilename, version) {
+export function hardenMacInfoPlist(appOutDir, productFilename, version, minimumSystemVersion="13.0") {
+  if(!["13.0","13.5"].includes(minimumSystemVersion))throw Error("Unselected macOS deployment target");
   const plist = path.join(appOutDir, `${productFilename}.app`, "Contents", "Info.plist");
   execFileSync("plutil", ["-replace", "CFBundleIdentifier", "-string", "com.ynxweb4.wallet.macos", plist]);
   if (typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) throw new Error("macOS package version is invalid");
   execFileSync("plutil", ["-replace", "CFBundleShortVersionString", "-string", version, plist]);
-  execFileSync("plutil", ["-replace", "LSMinimumSystemVersion", "-string", "13.0", plist]);
+  execFileSync("plutil", ["-replace", "LSMinimumSystemVersion", "-string", minimumSystemVersion, plist]);
   execFileSync("plutil", [
     "-replace",
     "CFBundleURLTypes",
@@ -82,5 +83,5 @@ export default async function afterPack(context) {
   const existing=JSON.parse(execFileSync("plutil",["-extract","ElectronAsarIntegrity","json","-o","-",plist],{encoding:"utf8"}));
   const updated=updatedMacAsarIntegrity(existing,desktopAsarHeaderIntegrity(resources,context.packager.projectDir));
   execFileSync("plutil",["-replace","ElectronAsarIntegrity","-json",JSON.stringify(updated),plist]);
-  hardenMacInfoPlist(context.appOutDir, context.packager.appInfo.productFilename, context.packager.appInfo.version);
+  hardenMacInfoPlist(context.appOutDir, context.packager.appInfo.productFilename, context.packager.appInfo.version,desktopNative49C6Selected(packedMetadata)?desktopNative49C6Selection.minimumMacOS:"13.0");
 }

@@ -17,7 +17,7 @@ import {canonicalArchivePlan,SDK_ALIAS,CANONICAL_MAIN} from '../canonical-packag
 const input=process.env.YNX_C6_COMPONENT_INPUT;
 assert.ok(input&&path.isAbsolute(input),'YNX_C6_COMPONENT_INPUT must name the exact original component input directory');
 const asar=createRequire(new URL('../../package.json',import.meta.url))('@electron/asar');
-const recordRelative='apps/wallet-desktop/native/NATIVE49_C6_NORMAL_RECORD.json';
+const recordRelative=selected.recordRelative;
 const pin=b=>({bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')});
 function fixture(t){const dir=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-c6-real-package-'))),project=path.join(dir,'project');fs.mkdirSync(path.join(project,'native'),{recursive:true});fs.writeFileSync(path.join(project,'native/original-auth-identity.node'),'OLD CACHE MUST REMAIN');t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));return {dir,project};}
 test('real c6 stage is frozen, exact re-entry reuses it, and old Node cache remains unchanged',t=>{
@@ -27,7 +27,7 @@ test('real c6 stage is frozen, exact re-entry reuses it, and old Node cache rema
 test('real c6 nine unpacked assets relocate and roll back together; wrong record/image cannot select old pair',t=>{
  const {dir}=fixture(t),raw=path.join(dir,'raw');fs.mkdirSync(raw);for(const row of selected.assets.slice(1)){const to=path.join(raw,row.path.slice('apps/wallet-desktop/'.length));fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(path.join(input,row.path),to);fs.chmodSync(to,row.mode);}
  const record=fs.readFileSync(path.join(input,recordRelative)),tx=beginNativeRuntimeRelocation(null,raw,{c6RecordBytes:record});assert.equal(tx.files,9);assert.equal(verifyDesktopNative49C6Runtime(raw,record,{canonical:true}).nodeArtifactBytesVerified,true);tx.rollback();assert.equal(verifyDesktopNative49C6Runtime(raw,record).nodeArtifactBytesVerified,true);
- assert.throws(()=>beginNativeRuntimeRelocation(null,raw,{c6RecordBytes:Buffer.from('{}')}),/NATIVE49_C6_RECORD_BYTES/);assert.equal(fs.existsSync(path.join(raw,'native/original-auth-identity.node')),true);
+ assert.throws(()=>beginNativeRuntimeRelocation(null,raw,{c6RecordBytes:Buffer.from('{}')}),/NATIVE49_NAPI_RECORD_BYTES/);assert.equal(fs.existsSync(path.join(raw,'native/original-auth-identity.node')),true);
  const lib=path.join(raw,'native/original-auth-runtime-libs/libuv.1.dylib');fs.chmodSync(lib,0o644);assert.throws(()=>beginNativeRuntimeRelocation(null,raw,{c6RecordBytes:record}),/C6_STAGE_FILE_OR_MODE/);
 });
 test('actual canonical ASAR writer retains real c6 stage bytes/sidecar and rejects a changed retained stage',async t=>{
