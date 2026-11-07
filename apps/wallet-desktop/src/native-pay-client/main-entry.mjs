@@ -3,6 +3,9 @@ import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode,nativePayF
 import {rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-archive':['productId','sourceOrder','merchant','invoiceId','nativeHash'],'reconcile-archive':['productId','sourceOrder','merchant','invoiceId'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
+Object.assign(shapes,{'order-invoice':['productId','sourceOrder'],'order-terms-review':['productId','sourceOrder'],'order-pay-review':['productId','sourceOrder'],
+ 'order-refund-review':['productId','sourceOrder','refundId','amountAtoms'],'order-receipt':['productId','sourceOrder','nativeHash'],'order-reconcile':['productId','sourceOrder'],
+ 'order-broadcast-review':['productId','sourceOrder','kind','originalHash']});
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
@@ -77,6 +80,13 @@ export function createNativePayMainEntry({getMain,getContext}){
     else if(action==='intent')state=await client.openIntent(intentId);
     else if(action==='create-intent')state=await client.createInvoiceIntent(request.productId,request.sourceOrder);
     else if(action==='lookup-intent')state=await client.lookupOriginalInvoiceIntent(request.productId,request.sourceOrder);
+    else if(action==='order-invoice')state=await client.openOriginalOrderInvoice(request.productId,request.sourceOrder);
+    else if(action==='order-terms-review')state=await client.reviewOriginalOrderTerms(request.productId,request.sourceOrder);
+    else if(action==='order-pay-review')state=await client.reviewOriginalOrderPayment(request.productId,request.sourceOrder);
+    else if(action==='order-refund-review')state=await client.reviewOriginalOrderRefund(request.productId,request.sourceOrder,request.refundId,request.amountAtoms);
+    else if(action==='order-receipt')state=await client.recoverOriginalOrderReceipt(request.productId,request.sourceOrder,request.nativeHash);
+    else if(action==='order-reconcile')state=await client.reconcileOriginalOrder(request.productId,request.sourceOrder);
+    else if(action==='order-broadcast-review')state=await client.reviewOriginalOrderBroadcast(request.productId,request.sourceOrder,request.kind,request.originalHash);
     else if(action==='terms-review')state=await client.reviewMerchantTerms(intentId);
     else if(action==='pay-review')state=await client.reviewPayment(merchant,invoiceId);
     else if(action==='refund-review')state=await client.reviewRefund(merchant,invoiceId,request.refundId,request.amountAtoms);

@@ -45,3 +45,40 @@ export function assertNativeInvoiceIntentView(value,original){
   value.terms?.recipient!==request.recipient||value.terms.amountAtoms!==request.amountAtoms||value.terms.assetId!==request.assetId||value.terms.unitVersion!==request.unitVersion)fail();
  return value;
 }
+
+// Detached selector DATA for one original order continuation. This does not
+// grant Source, choose terms, or verify a receipt. The original service and
+// Main still own those decisions; every later read is checked against this
+// exact captured request, not a renderer-supplied merchant/invoice pair.
+export function nativeInvoiceOrderBindingDATA(value,original){
+ const request=nativeInvoiceProductIntentData(original),d=descriptors(value),get=k=>d[k]?.value;
+ const saved=nativeInvoiceProductIntentData(get('request'));
+ const td=descriptors(get('terms')),keys=['invoiceId','sessionId','recipient','payer','assetId','unitVersion','feeRule','keyEpoch','revision','amountAtoms','maxFeeAtoms','expiresAtHeight'];
+ if(Reflect.ownKeys(td).length!==keys.length||keys.some(k=>typeof td[k]?.value!=='string'))fail();
+ const terms=Object.freeze(Object.fromEntries(keys.map(k=>[k,td[k].value]))),id=v=>/^[a-z0-9][a-z0-9._:-]{0,63}$/.test(v),hash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
+ if(JSON.stringify(saved)!==JSON.stringify(request)||request.productId!=='shop.order'||!request.storeId||
+  !/^npi_[0-9a-f]{48}$/.test(get('intentId')??'')||get('originalOperation')!==get('intentId')||get('merchant')!==request.merchant||
+  !['PREPARED','ISSUED'].includes(get('state'))||typeof get('phase')!=='string'||!/^[a-z_]{1,96}$/.test(get('phase'))||
+  typeof get('signingMessageHash')!=='string'||!/^[0-9a-f]{64}$/.test(get('signingMessageHash'))||
+  !id(terms.invoiceId)||!id(terms.sessionId)||terms.recipient!==request.recipient||
+  terms.payer!==''&&!/^0x[0-9a-f]{40}$/.test(terms.payer)||terms.assetId!==request.assetId||terms.unitVersion!==request.unitVersion||terms.amountAtoms!==request.amountAtoms||
+  terms.feeRule!=='native-transfer-fee-one/v1'||terms.maxFeeAtoms!=='1'||!['keyEpoch','revision','expiresAtHeight'].every(k=>uint(terms[k]))||
+  get('state')==='ISSUED'&&(!hash(get('termsNativeHash'))||!hash(get('termsAbciHash'))))fail();
+ return Object.freeze({original:request,intentId:get('intentId'),originalOperation:get('originalOperation'),merchant:request.merchant,
+  state:get('state'),phase:get('phase'),signingMessageHash:get('signingMessageHash'),termsNativeHash:get('termsNativeHash')??'',termsAbciHash:get('termsAbciHash')??'',terms});
+}
+export function assertNativeInvoiceOrderIntentDATA(value,expected){
+ const observed=nativeInvoiceOrderBindingDATA(value,expected.original);
+ if(['intentId','merchant','state','phase','signingMessageHash','termsNativeHash','termsAbciHash'].some(k=>observed[k]!==expected[k])||JSON.stringify(observed.terms)!==JSON.stringify(expected.terms))
+  throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
+ return value;
+}
+export function assertNativeInvoiceOrderBillDATA(value,expected){
+ const d=descriptors(value),original=expected.original,terms=expected.terms;
+ const selected={merchant:original.merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,
+  genesis:original.genesis,nativeChainId:original.nativeChainId,assetId:original.assetId,unitVersion:original.unitVersion,
+  principalAtoms:original.amountAtoms,feeRule:terms.feeRule,maxFeeAtoms:terms.maxFeeAtoms,expiresAtHeight:terms.expiresAtHeight,termsNativeHash:expected.termsNativeHash,termsHash:expected.signingMessageHash};
+ if(expected.state!=='ISSUED'||Object.entries(selected).some(([key,v])=>d[key]?.value!==v))
+  throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
+ return value;
+}
