@@ -66,6 +66,8 @@ try:
             need(type(path) is str and path==want,'partial or mismatched halt control path')
         return session
     halt_session=halt_profile(old)
+    quiet=old.get('bootstrapRegistrationMode','')
+    need(type(quiet) is str and quiet in ('','quiet-first-registration-v1') and not (quiet and halt_session),'invalid quiet bootstrap profile or unreachable future halt')
     future=a.get('futureTargetHeight')
     if phase=='quiesce' and halt_session:
         need(decimal(future) and int(future)<2**63-1,'enabled halt requires one independently approved futureTargetHeight string')
@@ -78,6 +80,7 @@ try:
         need(pin(newpin) and a['nextOperatorPlanSHA256']==newpin,'new independent plan pin required')
         raw,target=read(pathlib.Path(newpkg)/'common/operator-plan.json'); need(sha(raw)==newpin,'new plan pin mismatch')
         next_session=halt_profile(target)
+        need(target.get('bootstrapRegistrationMode','')=='','first PQ activation must restore normal automatic block production')
         need(not halt_session or next_session!=halt_session,'retained halt request requires a new independent session/path or disabled control')
         for k in ('version','chainId','validatorManifestSHA256','consensusGenesis','consensusGenesisSHA256','originalGenesisHash','migrationStateHash','stateLayout','runtimePlan','runtimePlanHash'):
             need(old[k]==target[k],'original identity/layout/runtime changed: '+k)

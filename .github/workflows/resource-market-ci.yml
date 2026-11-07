@@ -144,6 +144,7 @@ on:
       - 'scripts/verify/production-custody-review-check.sh'
       - 'scripts/verify/public-bft-cutover-transaction-check.sh'
       - 'scripts/verify/public-bft-operator-transition-check.sh'
+      - 'scripts/ops/test_validate_bootstrap_registration_ci.py'
       - 'scripts/verify/public-bft-validator-registration-check.sh'
       - 'scripts/verify/public-bft-gateway-dependencies-check.sh'
       - 'scripts/verify/public-bft-gateway-ingress-check.sh'
@@ -1954,6 +1955,7 @@ jobs:
         timeout-minutes: 3
         run: |
           bash scripts/verify/public-bft-operator-transition-check.sh
+          python3 -B scripts/ops/test_validate_bootstrap_registration_ci.py -v
       - name: Verify original key ceremony retains partial custody and never creates during resume
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
@@ -2602,6 +2604,42 @@ jobs:
           if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+      - name: Qualify pinned bootstrap registration and normal block restoration
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          # BOOTSTRAP_QUIET_COLLECTOR_BEGIN
+          quiet_core_required = ['TestProductionOperatorQuietRegistrationPinnedPlanAndRestoration', 'TestProductionOperatorQuietRegistrationProofTailAndCold']
+          quiet_cli_required = ['TestBootstrapQuietRegistrationNormalConfig']
+          def qualify_bootstrap_quiet(events, package, required):
+              if not all(isinstance(e, dict) for e in events) or any(e.get('Action') in ('fail', 'build-fail') for e in events):
+                  raise RuntimeError('original quiet-profile stream failed')
+              terminals = [e['Action'] for e in events if e.get('Package') == package and 'Test' not in e and e.get('Action') in ('pass', 'fail', 'skip')]
+              if terminals != ['pass']:
+                  raise RuntimeError('original quiet-profile package did not complete once')
+              for top in required:
+                  family = [e for e in events if e.get('Test') == top or e.get('Test', '').startswith(top + '/')]
+                  if any(e.get('Package') != package for e in family):
+                      raise RuntimeError('quiet-profile case came from a foreign package')
+                  names = {e['Test'] for e in family}
+                  if top not in names:
+                      raise RuntimeError('quiet-profile top did not run: ' + top)
+                  for name in names:
+                      runs = [e for e in family if e['Test'] == name and e.get('Action') == 'run']
+                      outcomes = [e['Action'] for e in family if e['Test'] == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                      if len(runs) != 1 or outcomes != ['pass']:
+                          raise RuntimeError('quiet-profile top/child missing, repeated, failed or skipped: ' + name)
+              return required
+          # BOOTSTRAP_QUIET_COLLECTOR_END
+          root = Path(os.environ['RUNNER_TEMP'])
+          core = [json.loads(line) for line in (root / 'ynx-production-operator-state-tests.jsonl').read_text().splitlines()]
+          cli = [json.loads(line) for line in (root / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          qualify_bootstrap_quiet(core, 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus', quiet_core_required)
+          qualify_bootstrap_quiet(cli, 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet', quiet_cli_required)
+          print('YNX_BOOTSTRAP_QUIET_REGISTRATION_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=quiet_core_required + quiet_cli_required, nodeStarted=False, registrationBroadcast=False, activationVerified=False), sort_keys=True))
           PY
       - name: Verify Current4 original registered observer wire without granting authority
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}

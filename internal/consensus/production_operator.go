@@ -30,25 +30,30 @@ import (
 const ProductionOperatorPlanVersion = "YNX-PRODUCTION-OPERATOR/v1"
 const MaxProductionOperatorPlanBytes = 96 << 20
 
+// This local startup profile is independently pinned in the original operator
+// plan. It changes no transaction, approval, registry or consensus rule.
+const ProductionBootstrapQuietRegistration = "quiet-first-registration-v1"
+
 // ProductionOperatorPlan is public, independently pinned operator input. It
 // carries the exact ORIGINAL genesis, including its original App version. No
 // key, credential, ledger, HRS, or checkpoint is generated from this document.
 // Empty optional pairs select bootstrap-only; runtime and PQ are independent.
 type ProductionOperatorPlan struct {
-	Version                 string                   `json:"version"`
-	ChainID                 string                   `json:"chainId"`
-	ValidatorManifestSHA256 string                   `json:"validatorManifestSHA256"`
-	ConsensusGenesis        []byte                   `json:"consensusGenesis"`
-	ConsensusGenesisSHA256  string                   `json:"consensusGenesisSHA256"`
-	OriginalGenesisHash     string                   `json:"originalGenesisHash"`
-	MigrationStateHash      string                   `json:"migrationStateHash"`
-	StateLayout             string                   `json:"stateLayout"`
-	RuntimePlan             []byte                   `json:"runtimePlan"`
-	RuntimePlanHash         string                   `json:"runtimePlanHash"`
-	PQSchedule              []byte                   `json:"pqSchedule"`
-	PQScheduleHash          string                   `json:"pqScheduleHash"`
-	HeightHaltSessionID     string                   `json:"heightHaltSessionId,omitempty"`
-	Roles                   []ProductionOperatorRole `json:"roles"`
+	Version                   string                   `json:"version"`
+	ChainID                   string                   `json:"chainId"`
+	ValidatorManifestSHA256   string                   `json:"validatorManifestSHA256"`
+	ConsensusGenesis          []byte                   `json:"consensusGenesis"`
+	ConsensusGenesisSHA256    string                   `json:"consensusGenesisSHA256"`
+	OriginalGenesisHash       string                   `json:"originalGenesisHash"`
+	MigrationStateHash        string                   `json:"migrationStateHash"`
+	StateLayout               string                   `json:"stateLayout"`
+	RuntimePlan               []byte                   `json:"runtimePlan"`
+	RuntimePlanHash           string                   `json:"runtimePlanHash"`
+	PQSchedule                []byte                   `json:"pqSchedule"`
+	PQScheduleHash            string                   `json:"pqScheduleHash"`
+	HeightHaltSessionID       string                   `json:"heightHaltSessionId,omitempty"`
+	BootstrapRegistrationMode string                   `json:"bootstrapRegistrationMode,omitempty"`
+	Roles                     []ProductionOperatorRole `json:"roles"`
 }
 
 type ProductionOperatorRole struct {
@@ -247,6 +252,9 @@ func safeProductionOperatorPath(path string) bool {
 }
 
 func validateProductionOperatorPlan(p ProductionOperatorPlan, m chain.ConsensusMigrationState, validators ProductionValidatorManifest, genesisTime time.Time) error {
+	if err := validateProductionBootstrapRegistration(p); err != nil {
+		return err
+	}
 	if p.Version != ProductionOperatorPlanVersion || p.ChainID != validators.ChainID || len(p.Roles) != 4 || len(p.ConsensusGenesis) == 0 || len(p.ConsensusGenesis) > 64<<20 {
 		return errors.New("operator identity or original genesis is incomplete")
 	}
@@ -398,7 +406,17 @@ func productionOperatorRoleFiles(p *ProductionOperatorPlan, r ProductionOperator
 	if r.CheckpointAccess != nil && (len(p.PQSchedule) == 0 || r.RemoteSigner == "") {
 		return nil, errors.New("checkpoint access requires the original remote PQ signer role")
 	}
+	if err := validateProductionBootstrapRegistration(*p); err != nil {
+		return nil, err
+	}
 	args := []string{"start", "--home", r.Home, "--migration-state", ProductionCandidateRoot + "/config/bound-migration.json", "--abci-state", r.ABCIState, "--abci-state-layout", p.StateLayout, "--consensus-genesis-sha256", p.ConsensusGenesisSHA256, "--original-genesis-hash", p.OriginalGenesisHash, "--bound-migration-state-hash", p.MigrationStateHash}
+	if p.BootstrapRegistrationMode == ProductionBootstrapQuietRegistration {
+		// Keep the original Home config byte-identical. The normal pinned
+		// launcher owns this explicit override, including process restarts.
+		// First-PQ plans must omit it; the existing stateful install replaces
+		// the launcher and the unchanged default config resumes empty blocks.
+		args = append(args, "--consensus.create_empty_blocks=false")
+	}
 	if p.HeightHaltSessionID != "" {
 		canonicalPlan, err := json.Marshal(p)
 		if err != nil {
@@ -704,4 +722,23 @@ func productionOperatorCometConfig(node ProductionValidatorNode, nodes []Product
 	c.Instrumentation.Prometheus = true
 	c.Instrumentation.PrometheusListenAddr = fmt.Sprintf("127.0.0.1:%d", ProductionCandidateMetricsPort)
 	return c
+}
+
+// A quiet registration stage must be explicitly selected, bootstrap-only and
+// stopped at its ACTUAL settled height. A future height-halt cannot progress
+// without another transaction and would obscure that boundary.
+func validateProductionBootstrapRegistration(p ProductionOperatorPlan) error {
+	if p.BootstrapRegistrationMode == "" {
+		return nil
+	}
+	if p.BootstrapRegistrationMode != ProductionBootstrapQuietRegistration {
+		return errors.New("unsupported bootstrap registration mode")
+	}
+	if len(p.PQSchedule) != 0 || p.PQScheduleHash != "" {
+		return errors.New("quiet registration is bootstrap-only; PQ activation must restore normal block production")
+	}
+	if p.HeightHaltSessionID != "" {
+		return errors.New("quiet registration cannot use a future height halt")
+	}
+	return nil
 }

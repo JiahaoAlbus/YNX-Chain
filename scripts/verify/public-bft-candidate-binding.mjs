@@ -337,7 +337,7 @@ function pinnedOperator(file, pin) {
 function operatorPreparationProjection(plan, preparation) {
   const future = ["consensusGenesis", "consensusGenesisSHA256", "migrationStateHash"];
   const required = ["version", "chainId", "validatorManifestSHA256", "originalGenesisHash", "stateLayout", "runtimePlan", "runtimePlanHash", "pqSchedule", "pqScheduleHash", "roles"];
-  const allowed = [...required, "heightHaltSessionId", ...(preparation ? ["preparationOnly"] : future)];
+  const allowed = [...required, "heightHaltSessionId", "bootstrapRegistrationMode", ...(preparation ? ["preparationOnly"] : future)];
   if (Object.keys(plan).some(key => !allowed.includes(key)) || required.some(key => !Object.hasOwn(plan, key))) fail("native operator preparation has unexpected or missing stable fields");
   if (preparation && (plan.preparationOnly !== true || future.some(key => Object.hasOwn(plan, key)))) fail("native preparation cannot pin a future genesis or migration result");
   if (!hash(plan.validatorManifestSHA256) || !hash(plan.originalGenesisHash) || !["atomic-json", "snapshot-journal", "block-journal"].includes(plan.stateLayout)) fail("native operator preparation stable pins/layout are incomplete");
@@ -358,7 +358,10 @@ function operatorPreparationProjection(plan, preparation) {
   });
   const session = plan.heightHaltSessionId ?? "";
   if (session !== "" && !hash(session)) fail("native preparation height halt session is invalid");
-  return {...Object.fromEntries(required.filter(key => !["roles", "runtimePlan", "pqSchedule"].includes(key)).map(key => [key, plan[key]])), runtimePlan: null, pqSchedule: null, heightHaltSessionId: session, roles: projectedRoles};
+  const registrationMode = plan.bootstrapRegistrationMode ?? "";
+  if ((registrationMode !== "" && registrationMode !== "quiet-first-registration-v1") || (registrationMode !== "" && session !== "")) fail("bootstrap registration mode is invalid or conflicts with a future height halt");
+  if (Object.hasOwn(plan, "bootstrapRegistrationMode") && registrationMode === "") fail("empty bootstrap registration mode must be omitted");
+  return {...Object.fromEntries(required.filter(key => !["roles", "runtimePlan", "pqSchedule"].includes(key)).map(key => [key, plan[key]])), runtimePlan: null, pqSchedule: null, heightHaltSessionId: session, ...(registrationMode ? {bootstrapRegistrationMode: registrationMode} : {}), roles: projectedRoles};
 }
 function canonicalProjection(value) {
   if (Array.isArray(value)) return value.map(canonicalProjection);
