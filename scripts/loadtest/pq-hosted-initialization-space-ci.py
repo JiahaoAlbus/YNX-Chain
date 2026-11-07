@@ -26,6 +26,10 @@ REPOSITORY = "JiahaoAlbus/YNX-Chain"
 AUTHORIZATION = "remove-unused-android-for-first100-own1b-v1"
 GO_SOURCE = "1b0ea548aca6b5260a9824d0edd3012d52e53521"
 TOOLS_SOURCE = "67870e2be35295fb903e4d6f1723092e2facef7f"
+D24_PROFILE = "first100-d24-initialize-before-load"
+D24_AUTHORIZATION = "remove-unused-android-for-first100-d24-v1"
+D24_GO_SOURCE = "d24ad7e422583906d9823789b049ef2251a09e2c"
+D24_TOOLS_SOURCE = "08a14143434c2c01e2a59ece0f04ad71f9d6c60c"
 TARGET = Path("/usr/local/lib/android")
 SECURE_ANCESTOR = Path("/usr")
 PATH_OWNER_UID = 0
@@ -54,13 +58,22 @@ def prepared():
                 pressureAuthorized=False, originalWindowChanged=False)
 
 
+def fixed_profile(environment):
+    profile = environment.get("PQ_BASELINE_PROFILE")
+    require(profile in (PROFILE, D24_PROFILE), "unknown fixed hosted preparation profile")
+    if profile == D24_PROFILE:
+        return profile, D24_AUTHORIZATION, D24_GO_SOURCE, D24_TOOLS_SOURCE
+    return PROFILE, AUTHORIZATION, GO_SOURCE, TOOLS_SOURCE
+
+
 def validate_host(environment):
+    profile, authorization, _, _ = fixed_profile(environment)
     fixed = {"GITHUB_ACTIONS": "true", "RUNNER_ENVIRONMENT": "github-hosted",
              "RUNNER_OS": "Linux", "RUNNER_ARCH": "X64", "ImageOS": "ubuntu24",
              "GITHUB_REPOSITORY": REPOSITORY, "GITHUB_REF": REF,
-             "GITHUB_RUN_ATTEMPT": "1", "GITHUB_JOB": PROFILE,
-             "PQ_BASELINE_PROFILE": PROFILE,
-             "PQ_HOSTED_SPACE_PREPARATION": AUTHORIZATION,
+             "GITHUB_RUN_ATTEMPT": "1", "GITHUB_JOB": profile,
+             "PQ_BASELINE_PROFILE": profile,
+             "PQ_HOSTED_SPACE_PREPARATION": authorization,
              "GITHUB_WORKFLOW_REF": REPOSITORY + "/" + WORKFLOW + "@" + REF}
     require(sys.platform == "linux" and platform.machine() == "x86_64" and
             all(environment.get(k) == v for k, v in fixed.items()) and
@@ -99,6 +112,7 @@ def overlaps(a, b):
 
 
 def checked_layout(environment):
+    profile, _, source, tools = fixed_profile(environment)
     workspace = canonical(environment["GITHUB_WORKSPACE"])
     parent = canonical(environment["RUNNER_TEMP"])
     home = canonical(environment["HOME"])
@@ -106,7 +120,7 @@ def checked_layout(environment):
     controller = Path(__file__).resolve(strict=True).parents[2]
     require(controller == workspace / "controller", "exact controller checkout location required")
     for name, commit in (("controller", environment["GITHUB_SHA"]),
-                         ("source", GO_SOURCE), ("tools", TOOLS_SOURCE)):
+                         ("source", source), ("tools", tools)):
         checkout = canonical(workspace / name)
         prefix = ["/usr/bin/git", "-c", "core.fsmonitor=false", "-C", str(checkout)]
         require(command(prefix + ["rev-parse", "HEAD"]) == commit and
@@ -127,6 +141,8 @@ def checked_layout(environment):
             for item in environment[name].split(os.pathsep):
                 protected.append(canonical(item, exists=False))
     output = parent / ("pq-hosted-initialization-space-" + environment["GITHUB_RUN_ID"] + "-1")
+    if profile == D24_PROFILE:
+        output = parent / ("pq-hosted-initialization-space-d24-" + environment["GITHUB_RUN_ID"] + "-1")
     require(not output.exists() and not output.is_symlink(), "existing preparation/UNKNOWN evidence retained; no retry")
     return SimpleNamespace(workspace=workspace, parent=parent, home=home,
                            toolcache=toolcache, protected=protected, output=output)
@@ -303,6 +319,7 @@ def execute(environment):
                   runID=environment["GITHUB_RUN_ID"], attempt=1, notNeededReason=REASON,
                   parentReportedPriorFailure=dict(runID="41332298089", stage="original admission before Window/build/key/node", reason="initial disk below original 16GiB floor"),
                   removalAttempted=False, status="UNKNOWN", originalDriverMustReadmit=True)
+    result["profile"] = fixed_profile(environment)[0]
     held = None
     before_written = False
     try:

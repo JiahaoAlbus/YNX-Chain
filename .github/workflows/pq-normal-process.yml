@@ -11,7 +11,7 @@ on:
         description: Exact own1b fresh504 initialization then first100 online100x5; separate fresh Root window required
         type: choice
         default: functional
-        options: [functional, first100-own1b-initialize-before-load]
+        options: [functional, first100-own1b-initialize-before-load, first100-d24-initialize-before-load]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -254,6 +254,144 @@ jobs:
             ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/INTENT.json
             ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/AFTER.json
             ${{ runner.temp }}/pq-hosted-initialization-space-${{ github.run_id }}-1/RESULT.json
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  first100-d24-controller-controls:
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-current75-baseline-ci.py
+            /scripts/loadtest/pq-first100-d24-ci.py
+            /scripts/loadtest/test_pq_first100_d24_ci.py
+            /scripts/loadtest/pq-hosted-initialization-space-ci.py
+            /scripts/loadtest/test_pq_hosted_initialization_space_ci.py
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 08a14143434c2c01e2a59ece0f04ad71f9d6c60c
+          path: tools
+          fetch-depth: 1
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout: scripts/loadtest/
+      - name: Verify separate d24 source and runtime gates without executing a window
+        run: |
+          python3 -I -B controller/scripts/loadtest/test_pq_first100_d24_ci.py
+          python3 -I -B - <<'PYD24'
+          import importlib.util, pathlib
+          p=pathlib.Path('controller/scripts/loadtest/pq-first100-d24-ci.py')
+          s=importlib.util.spec_from_file_location('fixed_d24',p);m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+          m.verify_tools(pathlib.Path('tools').resolve())
+          PYD24
+
+  first100-d24-initialize-before-load:
+    name: D24 normal504 initialization then first100 online100x5
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-d24-initialize-before-load' && inputs.signing_mode == 'online'
+    needs: first100-d24-controller-controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1024MiB
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Receive only this fixed profile controller and its pure controls
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-first100-d24-ci.py
+            /scripts/loadtest/test_pq_first100_d24_ci.py
+            /scripts/loadtest/pq-hosted-initialization-space-ci.py
+            /scripts/loadtest/test_pq_hosted_initialization_space_ci.py
+      - name: Receive exact d24 qualified source graph for initialization and first100
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: d24ad7e422583906d9823789b049ef2251a09e2c
+          path: source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/resource-market-ci.yml
+            /go.mod
+            /go.sum
+            /cmd/
+            /internal/
+            /pkg/
+            /third_party/cometbft/
+            /scripts/ops/validate-pq-remote-normal-ci.py
+            /scripts/loadtest/pq-source-artifact-intake.py
+      - name: Receive exact measured normal initializer and original lifecycle guards
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 08a14143434c2c01e2a59ece0f04ad71f9d6c60c
+          path: tools
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Install the original pinned normal toolchain without shared build caches
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Require original d24 tools CI success before any preparation or window
+        env:
+          PQ_BASELINE_PROFILE: first100-d24-initialize-before-load
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o noclobber
+          python3 -I -B controller/scripts/loadtest/pq-first100-d24-ci.py --check-tools-ci > "${{ runner.temp }}/pq-first100-d24-tools-ci.json"
+      - name: Prepare only explicitly authorized unused Android space on hosted VM
+        env:
+          PQ_BASELINE_PROFILE: first100-d24-initialize-before-load
+          PQ_HOSTED_SPACE_PREPARATION: remove-unused-android-for-first100-d24-v1
+        run: python3 -I -B controller/scripts/loadtest/pq-hosted-initialization-space-ci.py --execute
+      - name: Execute sole same-window normal504 initialization then first100 and cleanup
+        id: first100
+        env:
+          PQ_BASELINE_PROFILE: first100-d24-initialize-before-load
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B controller/scripts/loadtest/pq-first100-d24-ci.py \
+            --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
+      - name: Preserve original preparation census first100 readback resources and first failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-first100-d24-initialize-before-load-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pq-first100-d24-tools-ci.json
+            ${{ runner.temp }}/pq-first100-d24-source-functional-*.json
+            ${{ runner.temp }}/pq-independent-load-*/public/
+            ${{ runner.temp }}/pq-hosted-initialization-space-d24-${{ github.run_id }}-1/BEFORE.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-d24-${{ github.run_id }}-1/INTENT.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-d24-${{ github.run_id }}-1/AFTER.json
+            ${{ runner.temp }}/pq-hosted-initialization-space-d24-${{ github.run_id }}-1/RESULT.json
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
