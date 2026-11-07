@@ -27,6 +27,8 @@ type taskReadExpectation struct {
 	Input                           taskBytesBinding
 	Fields                          []string
 	SourceBinding                   *taskBytesBinding
+	AuthorityOperationID, GrantRef  string
+	ConversationID                  string
 }
 
 type taskReadReceipt struct {
@@ -69,6 +71,9 @@ func (s *Store) commitTaskReadAtEffectFence(ctx context.Context, expected taskRe
 	if err := s.assertTaskAgentConfigurationLocked(task, "ai.conversation.read"); err != nil {
 		return taskReadReceipt{}, err
 	}
+	if expected.ConversationID != "" && expected.ConversationID != task.ConversationID {
+		return taskReadReceipt{}, errToolConflict
+	}
 	if task.Revision != expected.TaskRevision || task.Generation != expected.Generation || task.Holder != expected.Holder || !task.CancelledAt.IsZero() || (task.Status != "READY" && task.Status != "WORKING") {
 		return taskReadReceipt{}, ErrTaskConflict
 	}
@@ -77,6 +82,12 @@ func (s *Store) commitTaskReadAtEffectFence(ctx context.Context, expected taskRe
 		return taskReadReceipt{}, errToolNotFound
 	}
 	binding := *record.ToolStep
+	if expected.GrantRef != "" && binding.TaskGrantRef != expected.GrantRef {
+		return taskReadReceipt{}, errToolConflict
+	}
+	if expected.AuthorityOperationID != "" && binding.AuthorityOperationID != "" && binding.AuthorityOperationID != expected.AuthorityOperationID {
+		return taskReadReceipt{}, errToolConflict
+	}
 	if binding.ToolID != "ai.conversation.read" || binding.ToolVersion != "1" || binding.Holder != task.Holder || binding.Generation != task.Generation || record.ConversationID != task.ConversationID {
 		return taskReadReceipt{}, errToolConflict
 	}
@@ -115,6 +126,9 @@ func (s *Store) commitTaskReadAtEffectFence(ctx context.Context, expected taskRe
 		return taskReadReceipt{}, err
 	}
 	if record.Status == "COMPLETED" {
+		if expected.AuthorityOperationID != "" && binding.AuthorityOperationID != expected.AuthorityOperationID {
+			return taskReadReceipt{}, errToolConflict
+		}
 		if expected.SourceBinding != nil && binding.ResultBinding != *expected.SourceBinding {
 			return taskReadReceipt{}, errToolConflict
 		}
@@ -155,6 +169,10 @@ func (s *Store) commitTaskReadAtEffectFence(ctx context.Context, expected taskRe
 		return taskReadReceipt{}, err
 	}
 	binding.ResultBinding = bindTaskBytes(raw)
+	if expected.AuthorityOperationID != "" {
+		binding.AuthorityOperationID = expected.AuthorityOperationID
+		binding.ResultAuthScope = "egress-only-read-fence"
+	}
 	binding.ResultFields = append([]string(nil), expected.Fields...)
 	previous := record
 	record.ToolStep = &binding
