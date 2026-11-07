@@ -843,7 +843,10 @@
     "native/ai-v6-codec/inherited/ProtectedMobilePQ.h",
     "native/ai-v6-response-originals/AIResponseOutcomeOriginalsDATA.hpp",
     "native/ai-v6-response-originals/AIResponseOutcomeOriginalsDATA.cpp",
-    "AI_V6_RESPONSE_ORIGINALS.md"
+    "AI_V6_RESPONSE_ORIGINALS.md",
+    "native/ai-v6-response-carrier/AIResponseOriginalsCarrierDATA.hpp",
+    "native/ai-v6-response-carrier/AIResponseOriginalsCarrierDATA.cpp",
+    "AI_V6_SIGNED_RESPONSE_CARRIER.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
