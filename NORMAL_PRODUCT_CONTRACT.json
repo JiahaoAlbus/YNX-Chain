@@ -11226,11 +11226,6 @@
       "sha256": "e9f680cda832a47e8886b63b3fca4ad0d01abf60edb5f7c3f054323e3e4c1e4d"
     },
     {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/COCOA_INPUTS.json",
-      "bytes": 233337,
-      "sha256": "88101c314bceb57856f49266aef8db4d9b4039ec32ad711fffd2e186f865975b"
-    },
-    {
       "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/MATERIALS.json",
       "bytes": 3170,
       "sha256": "9e96b5e58a01d189c22eba77ae81b675fe510a2fe14d61ae987dbb082045d540"
@@ -11274,6 +11269,36 @@
       "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-main-portable-pack-interface-20261101/apps/wallet-desktop/native/original-auth-identity-build.json.portable-qa-attempt.json",
       "bytes": 84593,
       "sha256": "771f843c1fd68c0a9278c6a74592f53dfe41a19ced4768756f3e78e8bc390bb1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/COCOA_REPAIR_INPUTS.json",
+      "bytes": 286524,
+      "sha256": "3370e74489ffc58bdcd42386edda87693d3226eefa835b2b24330cef77b52fc7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/OBJECT_SYMBOL_ROSTER_WITH_OBJC.json",
+      "bytes": 3657671,
+      "sha256": "0d311697871d7f7f1ae4d19698f7bf1804d0596ee1c5f50406cc15ecc25d42c4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/ARCHIVE_MEMBERS.json",
+      "bytes": 25561,
+      "sha256": "3e119a3713c79bd247794a1cfc83db4999b9f81937409f4b1d57e53e31610191"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa-execution.json",
+      "bytes": 24391,
+      "sha256": "623a51c4306161e8d3fac8e57f742bb6740c14923c2f02c938255b4ebb2e5a95"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_R8_FIRSTCAUSE_RECONCILIATION_20261107.json",
+      "bytes": 4842,
+      "sha256": "6bb0745fd765aaf5923713808294ff67c86c26cd113d58333636307e44e1f98e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_C6_COCOA_OBJECT_NAPI_DATA_20261107.json",
+      "bytes": 21009,
+      "sha256": "daf0441bdfda243b45d9d2ff91ed866d074aad244451ba33d43673beee0116a7"
     }
   ],
   "productAdapter": {
@@ -11292,30 +11317,30 @@
   "commands": {
     "plan": [
       "node",
-      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
       "--plan"
     ],
     "CocoaPlan": [
       "node",
-      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-plan.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/cocoa-plan.mjs",
       "--plan",
       "P03_FRESH_QA_ROOT/cocoa"
     ],
     "copySDK": [
       "node",
-      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
       "--copy-sdk",
       "APP/Contents/Resources/code/apps/developer/vendor/identity-admission"
     ],
     "stageAssets": [
       "node",
-      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
       "--stage-native",
       "APP/Contents/Resources/code/apps/developer"
     ],
     "postNested": [
       "node",
-      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.mjs",
+      "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
       "--post-nested",
       "CANONICAL_NEW_APP"
     ]
@@ -11355,5 +11380,8 @@
   "helperPackedMap": {
     "apps/wallet-desktop/native/YNXIdentityReceiver": "helper/YNXIdentityReceiver",
     "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist": "helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist"
-  }
+  },
+  "CocoaRepairOnly": true,
+  "NativeNodeRoleChanged": false,
+  "CocoaRepairStage": "only original r8 successful main+parent reuse, 11 qualified NAPI-free CPP incl actual SourceRuntime ObjC category; strict relink3commands; old Node13assets untouched"
 }

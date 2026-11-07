@@ -1,0 +1,87 @@
+{
+  "schema": "YNX_P03_C6_NAPI_COHORT_REPAIR_EXACT_DELTA/v1",
+  "sourceClass": "SDK own Cocoa plan+adopt only, no Node/NAPI/Main/Swift/Go source or image delta",
+  "newPlanner": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/cocoa-plan.mjs",
+    "bytes": 4505,
+    "sha256": "d8ce65f60c9fb326546a26b197a8061654fd77e0deba9437ee06993621a0d93b"
+  },
+  "newModule": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/normal-product.mjs",
+    "bytes": 10447,
+    "sha256": "01296ae4ce913c1344ff0c6803f0a99f25345b8a3662cd6ecb2583e01a0d40d5"
+  },
+  "newContract": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/cocoa-napi-cohort-repair-successor/NORMAL_PRODUCT_CONTRACT.json",
+    "bytes": 758103,
+    "sha256": "baa2147c6119e6b48f8a851a3ec5198802ed835d10700b20739d1b0a2565346c"
+  },
+  "oldFailure": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa-execution.json",
+    "bytes": 24391,
+    "sha256": "623a51c4306161e8d3fac8e57f742bb6740c14923c2f02c938255b4ebb2e5a95"
+  },
+  "oldInputContract": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/NORMAL_PRODUCT_CONTRACT.json",
+    "bytes": 756145,
+    "sha256": "7cb2c777784a17347bc89fad9894847a7f23e81dcd7e216d4659d4ed2e76e4db"
+  },
+  "oldRootObjects": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa/objects/main.m.o",
+      "bytes": 905344,
+      "sha256": "7d19746487b5016f577ae253abfa7961f164ee2887a794f74978e0a9b3557efb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/qa-builds/app-c6-20261107-r8/native-build/cocoa/objects/ynx-wallet-admission-parent.m.o",
+      "bytes": 33232,
+      "sha256": "c3943827bd77447588ab1add20d66751e4557a90efdbf9c73cde4eebd8fee5cd"
+    }
+  ],
+  "candidateObjects": 11,
+  "ordinaryObjectsTotal": 13,
+  "commands": 3,
+  "newCompiles": 0,
+  "selection": "actual main,parent strong undefined\u2192definition closure10 plus associated SourceAuthority RuntimeImage category12. No blanket drop17; exact needed mixed object causes hard error.",
+  "indices": [
+    1,
+    10,
+    11,
+    12,
+    13,
+    14,
+    18,
+    19,
+    22,
+    24,
+    25
+  ],
+  "phaseContract": "new exclusive normal P03 output root; invoke new cocoaPlan, execute only strict relink + same2relative rewrites under existing controlled wrapper/TMP; old r8/main/parent/receipt/output/failure untouched",
+  "newReceiptSameSchema": "YNX_IDE_C6_PRODUCT_COCOA_EXECUTION/v1",
+  "receiptAddRequired": {
+    "normalContinuation": {
+      "originalFailedExecution": "p.originalFailedExecution",
+      "originalInputContract": "p.originalInputContract",
+      "reusedMainParentObjects": "p.retainedRootObjects"
+    }
+  },
+  "p03OwnRequiredCode": [
+    "finite supplier/source pins change to this successor, not loosen oldH",
+    "buildC6Product supports3 relink steps and retains p.retainedRootObjects; no first2 compile replay",
+    "receipt adds normalContinuation exact metadata above, command/status/source/hash exact as before",
+    "adopt uses new normal-product module; before actual copy independently rechecks retained2/A11/archive/source9 pins and actual owned nm0",
+    "Node9/SDK10993/helper13/projection/binding roles preserved; 0bb/e859 Native upgrade if selected later requires its independent newpins, no alias to4207"
+  ],
+  "SourceRuntimeCategory": {
+    "object": 12,
+    "class": "YNXAuthIdentitySourceAuthority",
+    "category": "RuntimeImageNativePrivateV1",
+    "why": "ObjC category method lacks a C undefined edge. Its real same-class metadata/body is retained by the generic closure rule; Native image/current/ownership gate unchanged"
+  },
+  "archive": "same exact815e archive kept ONCE, no force_load/all_load; current dependency graph demands no archive member. No extra Go runtime introduced.",
+  "actualRelinkExecutedBySupplier": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "wholeProductReady": false
+}

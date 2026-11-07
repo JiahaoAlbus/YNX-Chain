@@ -1,18 +1,16 @@
 {
-  "newDistinctControls": 8,
-  "existingGreensNotRepeated": [
-    "P03 53 diagnostics",
-    "P03 42 custody",
-    "Native17 repair",
-    "c6 reader9",
-    "helper12",
-    "old13 AI model",
-    "oldHermes",
-    "solc/Core tests"
+  "newDistinctControls": 6,
+  "actualFullHostChecks": "node --test closure-repair.test.mjs on original P03 matching inputs; already actual4+old86+NAPIimport delta6 passed without Native build",
+  "portablePublicDATA": "node --test --test-name-pattern=\"actual complete84|genuinely required mixed|removing a required\" closure-repair.test.mjs with frozen symbol DATA fixtures only; DATA cannot qualify actual source",
+  "actualPreflight": "node cocoa-plan.mjs --plan /canonical/fresh/qa-root (exact original failed receipt+2objects+11CPP+archive+source9 byte pins and closed argv; no compile/link)",
+  "oldGreensNotRerun": [
+    "53 diagnostics",
+    "8 previousSDK product",
+    "17 repair Native",
+    "84 CPP build",
+    "Go",
+    "Native GUI",
+    "full package"
   ],
-  "normalInputTests": "node --test normal-product.test.mjs (same qualified input host)",
-  "hostedDATAOnly": "node --test --test-name-pattern=\"^(?!actual Cocoa input plan)\" normal-product.test.mjs (7 PUBLIC DATA controls; actual Cocoa/A proof control separate)",
-  "types": "tsc --noEmit --strict --module NodeNext --target ES2022 --typeRoots EMPTY normal-product.types.mts",
-  "stage": "actual SDK+assets copy/verify receipts supplied; no image load",
-  "CIPublicationStatus": "private supplier input CODE, parent/P03 owns normal integration CI; no hosted result claimed"
+  "newHeavyBuild": "P03 original owned wrapper only strictrelink+2vendorname fixes; no SDKworker Native exec"
 }
