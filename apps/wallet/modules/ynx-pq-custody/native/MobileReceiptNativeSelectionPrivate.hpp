@@ -25,6 +25,9 @@ struct DirectoryDATA {
 // role1 source-only; role2 original journal; role3 registered slot. Unprovided
 // independent role2/3 mappings refuse that borrow, without creating anything.
 DirectoryAcquisition borrowOriginalReceiptDirectory(const std::shared_ptr<RegisteredAccountReceipt>&,uint32_t role)noexcept;
+// Explicit SAME pending loan advancement; never reborrow/recapture/renew. The
+// role/leaf/Root locator/identity and parent debt were retained at acquisition.
+ynx::core::mobile::registered::ReadResult resumeOriginalReceiptDirectory(const std::shared_ptr<ReceiptDirectoryLoan>&)noexcept;
 ynx::core::mobile::registered::ReadResult currentOriginalReceiptDirectory(const std::shared_ptr<ReceiptDirectoryLoan>&)noexcept;
 ynx::core::mobile::registered::ReadResult readOriginalReceiptDirectory(const std::shared_ptr<ReceiptDirectoryLoan>&,DirectoryDATA&)noexcept;
 ynx::core::mobile::registered::ReadResult assertOriginalReceiptDirectoryBinding(const std::shared_ptr<ReceiptDirectoryLoan>&,const DirectoryDATA&)noexcept;

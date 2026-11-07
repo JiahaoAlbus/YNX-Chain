@@ -21,6 +21,7 @@ extern "C" int32_t ynx_mobile_pq_selected_original_current_v1(YNXMobilePQSelecte
 }
 namespace ynx::mobilepq::directories {
 std::shared_ptr<SelectedDirectoryInventory> selectedDirectoryInventory(YNXMobilePQSelectedOriginal*s){return s?s->inventory:nullptr;}
+int32_t registeredSourceFenceForDirectory(YNXMobilePQSelectedOriginal*s){return ynx_mobile_pq_selected_original_current_v1(s,1);}
 }
 namespace {
 struct Fixture {

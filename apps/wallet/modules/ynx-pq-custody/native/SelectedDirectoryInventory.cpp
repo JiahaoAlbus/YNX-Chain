@@ -44,7 +44,7 @@ struct SelectedDirectoryInventory::Impl {
  std::atomic<bool> retired{false};
  mutable std::mutex mutex;
  size_t children=0;
- bool ready=false,closing=false,closed=false;
+ bool ready=false,closing=false,closed=false,sourceOnly=false;
  int32_t cleanup=0;
  explicit Impl(YNXMobilePQSelectedOriginal*s):selected(s){}
 };
@@ -66,6 +66,7 @@ int32_t SelectedDirectoryInventory::pinImpl(YNXMobilePQSelectedOriginal*s,const 
  for(size_t i=0;i<count;++i)if(input[i].kind!=i+1||!locator(input[i].root_locator)||!leaf(input[i].leaf)||input[i].parent_fd<0||input[i].directory_fd<0)return invalid;
  try{
   out=std::shared_ptr<SelectedDirectoryInventory>(new SelectedDirectoryInventory(s));
+  out->impl_->sourceOnly=sourceOnly;
   for(size_t i=0;i<count;++i){
    auto&p=out->impl_->pins[i];const auto&v=input[i];p.locator=v.root_locator;p.leaf=v.leaf;
    p.supplied=true;
@@ -79,6 +80,7 @@ int32_t SelectedDirectoryInventory::pinImpl(YNXMobilePQSelectedOriginal*s,const 
  }catch(...){if(out)out->retire();return io;}
 }
 bool SelectedDirectoryInventory::belongsTo(YNXMobilePQSelectedOriginal*s)const noexcept{return s&&s==impl_->selected;}
+bool SelectedDirectoryInventory::registeredSourceOnly()const noexcept{return impl_->sourceOnly;}
 int32_t SelectedDirectoryInventory::current(){
  if(std::this_thread::get_id()!=impl_->actor)return wrongThread;
  std::lock_guard<std::mutex>guard(impl_->mutex);
@@ -126,9 +128,10 @@ int32_t fail(const std::shared_ptr<Loan>&l,int32_t e){if(e){if(!l->first)l->firs
 int32_t loanCurrent(const std::shared_ptr<Loan>&l){
  if(auto e=actor(l))return e;
  if(l->closed)return closed;if(l->first)return l->first;
- if(auto e=ynx_mobile_pq_selected_original_current_v1(l->selected,1))return fail(l,e);
+ const auto selectedCurrent=[&]{return l->inventory->registeredSourceOnly()?registeredSourceFenceForDirectory(l->selected):ynx_mobile_pq_selected_original_current_v1(l->selected,1);};
+ if(auto e=selectedCurrent())return fail(l,e);
  if(auto e=l->inventory->current())return fail(l,e);
- if(auto e=ynx_mobile_pq_selected_original_current_v1(l->selected,1))return fail(l,e);
+ if(auto e=selectedCurrent())return fail(l,e);
  return fail(l,l->inventory->current());
 }
 }
@@ -160,9 +163,9 @@ extern "C" int32_t ynx_mobile_pq_selected_original_borrow_directory_v1(YNXMobile
  if(!s||!out||*out||!view||view->version!=1||view->size!=sizeof(*view))return invalid;
  *view={1,sizeof(*view),-1,0,0,0,0};
  try{
-  if(auto e=ynx_mobile_pq_selected_original_current_v1(s,1))return e;
   auto inventory=selectedDirectoryInventory(s);
   if(!inventory||!inventory->belongsTo(s))return notSupplied;
+  if(auto e=inventory->registeredSourceOnly()?registeredSourceFenceForDirectory(s):ynx_mobile_pq_selected_original_current_v1(s,1))return e;
   return inventory->borrow(kind,key,out,view,inventory);
  }catch(...){return io;}
 }

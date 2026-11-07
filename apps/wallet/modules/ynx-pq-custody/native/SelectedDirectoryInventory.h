@@ -40,6 +40,7 @@ public:
  static int32_t pinRegisteredSourceOnly(YNXMobilePQSelectedOriginal*,const NativeDirectory&,
                                        std::shared_ptr<SelectedDirectoryInventory>&);
  bool belongsTo(YNXMobilePQSelectedOriginal*)const noexcept;
+ bool registeredSourceOnly()const noexcept;
  int32_t current();
  void retire()noexcept; // called by actual account/epoch invalidation, any thread
  int32_t close();       // stops borrows, retains pins until ALL child releases
@@ -58,4 +59,8 @@ public:
  * Missing implementation fails matching platform link; no denial stub exists.
  */
 std::shared_ptr<SelectedDirectoryInventory> selectedDirectoryInventory(YNXMobilePQSelectedOriginal*);
+// Strong SAME registered mother Source/Root/clock-only fence. It never reads
+// or advances its ledger proof. Strict three-role inventories keep legacy
+// selected_original_current instead; outer registered v2 still gates READY.
+int32_t registeredSourceFenceForDirectory(YNXMobilePQSelectedOriginal*);
 }

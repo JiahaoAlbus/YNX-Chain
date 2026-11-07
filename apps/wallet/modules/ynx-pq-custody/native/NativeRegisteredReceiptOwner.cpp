@@ -52,10 +52,22 @@ ReadResult NativeRegisteredReceiptOwner::resumeOriginalReceipt()noexcept{
   original_=std::move(now);ready_=true;return {true,{}};
  }catch(...){return {false,fail({true,notSupplied})};}
 }
+Failure NativeRegisteredReceiptOwner::currentSourceFence()noexcept{
+ if(actor_!=std::this_thread::get_id())return {true,wrongThread};
+ if(retired_.load()||closed_||released_)return {true,retired};
+ try{auto receipt=child();if(!receipt)return fail({true,notSupplied});
+  auto f=auth::currentOriginalReceiptSourceFence(receipt);if(f.present)return fail(f);
+  return retired_.load()?fail({true,retired}):Failure{};
+ }catch(...){return fail({true,notSupplied});}
+}
 ReadResult NativeRegisteredReceiptOwner::current()noexcept{
  if(actor_!=std::this_thread::get_id())return {false,{true,wrongThread}};
  if(retired_.load()||closed_||released_)return {false,{true,retired}};
- if(!ready_)return {false,{},true,pendingCause_};
+ if(!ready_){
+  // originalReceiptCurrent may readCaptured while pending; fence only here.
+  const auto fence=currentSourceFence();
+  return fence.present?ReadResult{false,fence}:ReadResult{false,{},true,pendingCause_};
+ }
  try{auto receipt=child();if(!receipt)return {false,fail({true,notSupplied})};
   auto state=auth::originalReceiptCurrent(receipt);if(state.failure.present)return {false,fail(state.failure)};if(state.ready&&state.notReady)return {false,fail({true,invalid})};
   if(!state.ready){if(!state.notReady)return {false,fail({true,invalid})};pendingCause_=state.pendingCause;return state;}
@@ -134,7 +146,7 @@ Failure NativeRegisteredReceiptOwner::close()noexcept{
  if(actor_!=std::this_thread::get_id())return {true,wrongThread};if(closed_)return cleanup_;
  requestRetire();
  try{const auto ticket=ticket_.load();if(ticket){auto rc=picker::close(ticket);if(rc){if(rc!=picker::pending)keepCleanup({true,rc});return {true,rc};}rc=picker::releaseClosed(ticket);if(rc){if(rc!=picker::pending)keepCleanup({true,rc});return {true,rc};}ticket_.store(0);}
-  auto receipt=child();if(receipt){keepCleanup(auth::joinOriginalReceipt(receipt));keepCleanup(auth::closeOriginalReceipt(receipt));if(!auth::originalReceiptClosed(receipt))return {true,cleanupPending};}
+  auto receipt=child();if(receipt){keepCleanup(auth::joinOriginalReceipt(receipt));if(!authCloseSelected_){authCloseSelected_=true;keepCleanup(auth::closeOriginalReceipt(receipt));}if(!auth::originalReceiptClosed(receipt))return {true,cleanupPending};}
   {std::lock_guard<std::mutex>lock(childMutex_);receipt_.reset();}closed_=true;return cleanup_;
  }catch(...){keepCleanup({true,notSupplied});return cleanup_;}
 }

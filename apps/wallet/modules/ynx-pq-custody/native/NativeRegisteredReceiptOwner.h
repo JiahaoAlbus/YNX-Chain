@@ -22,7 +22,7 @@ class NativeRegisteredReceiptOwner final {
  std::mutex childMutex_;
  std::shared_ptr<ynx::auth::mobile::receipt::RegisteredAccountReceipt>receipt_;
  ReceiptDATA original_;
- bool ready_=false,choiceObserved_=false,selected_=false,closed_=false,released_=false;
+ bool ready_=false,choiceObserved_=false,selected_=false,closed_=false,released_=false,authCloseSelected_=false;
  Failure first_,cleanup_;
  Failure pendingCause_;
  NativeRegisteredReceiptOwner()=default;
@@ -36,6 +36,7 @@ public:
  NativeRegisteredReceiptOwner&operator=(const NativeRegisteredReceiptOwner&)=delete;
  static ReadResult acquire(std::shared_ptr<NativeRegisteredReceiptOwner>&outPartial)noexcept;
  ReadResult resumeOriginalReceipt()noexcept; // explicit SAME child later read only
+ Failure currentSourceFence()noexcept; // no proof read, even after pending UI
  ReadResult current()noexcept;
  ReadResult selectOriginalAccount(uint32_t timeoutMS)noexcept; // UI DATA only
  ReadResult readForNativeInventory(ReceiptDATA&ownedPublicCopy)noexcept;

@@ -408,3 +408,31 @@ The actual Auth held/named binding is rechecked after the Native constraint.
 This does not replace `SelectedDirectoryInventory` physical named/held pins or
 the missing typed registered/selected mother. The original module CI now runs
 35 receipt controls plus the normal-empty and PUBLIC compiled-map groups.
+
+The additive registered-account v2 mother is now implemented in
+`NativeRegisteredAccountPhase.cpp`: eight strong acquire/resume/current/read/
+retire/join/close/release entry points retain the SAME Native receipt and Source
+metadata, the real account-only picker, an opaque Auth directory child, and the
+actual Source-only `SelectedDirectoryInventory` named/held FD pins. It publishes
+partials before status and keeps paired raw failure-present code0 distinct from
+NOT_READY, pendingCause and physical_done. No restore, sign, review or broadcast
+approval is created. Old mode1/3 acquire/claim producers are still required;
+this pre-capture mother does not supply denial stubs for those missing bodies.
+
+Pending current invokes the original Auth Source/Root/clock-only fence. It
+cannot implicitly readCaptured, become READY, recapture H or renew a deadline.
+Only explicit v2 resume advances the SAME receipt and pending directory loan;
+that resumed directory must pass the independent Native map before physical
+pinning. The original pending-expiry regression and failure output are retained.
+
+Source-only role1 directory borrowing/current also uses the SAME mother's
+Source-only fence, while strict three-role inventories keep their original
+selected/ledger current. Outer v2 still requires genuine ledger READY before
+exposing metadata: file availability is not account admission. Close drains the
+Native directory loans, Auth directory and receipt in order; Auth close is
+selected once and later join only progresses the retained cleanup. Closed and
+raw first/cleanup causes remain separate. Original CI now runs 36 receipt,
+17 registered-mother, compiled-map, and the affected 29 directory controls.
+These are PUBLIC Auth/UI/compiled-row controls and actual Native implementation,
+not genuine Root rows, a sealed same-App backend, a matching mobile image or
+installed UI. Normal compiled Native release rows remain empty.

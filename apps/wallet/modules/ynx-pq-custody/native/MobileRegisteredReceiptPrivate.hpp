@@ -20,6 +20,11 @@ struct ReceiptDATA {
 ReceiptAcquisition acquireOriginalRegisteredAccountReceipt()noexcept;
 ynx::core::mobile::registered::ReadResult readOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&,ReceiptDATA&)noexcept;
 ynx::core::mobile::registered::ReadResult originalReceiptCurrent(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
+// Pure qualification/Root/Source/deadline observation, NOT ledger Ready or a
+// resume. No engine read/current/acquire, no captured-H/expiry change. Pending
+// Native current must use this and retain its NOT_READY phase until explicit
+// same-owner resume/readOriginalReceipt obtains a genuine verified result.
+ynx::core::mobile::registered::Failure currentOriginalReceiptSourceFence(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 void retireOriginalReceipt(const std::shared_ptr<RegisteredAccountReceipt>&)noexcept;
 // Actor-only retire; a foreign-thread call is refused without Root/Core work.
 // Only this separate any-thread operation touches the OWN atomic revoke bit.
