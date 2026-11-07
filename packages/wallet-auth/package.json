@@ -511,18 +511,22 @@
       "node": "./src/original-product-device-v4-management-client.js",
       "default": null
     },
-    "./product-pair-pending-original-query-e13": {
-      "types": "./src/product-pair-pending-original-query-e13.d.ts",
+    "./network-resource-source-v2-data": {
+      "types": "./native/original-network-resource-source-v2-contract.d.mts",
       "browser": null,
-      "node": {
-        "import": "./src/product-pair-pending-original-query-e13.js"
-      },
+      "node": "./native/original-network-resource-source-v2-contract.mjs",
       "default": null
     },
-    "./original-product-device-v4-management-source-data": {
-      "types": "./native/management-source-contract.d.mts",
+    "./network-resource-pending-consent-data": {
+      "types": "./native/original-network-resource-pending-source-contract.d.mts",
       "browser": null,
-      "node": "./native/management-source-contract.mjs",
+      "node": "./native/original-network-resource-pending-source-contract.mjs",
+      "default": null
+    },
+    "./network-resource-current-publisher": {
+      "types": "./native/original-network-current-publisher-adapter.d.mts",
+      "browser": null,
+      "node": "./native/original-network-current-publisher-adapter.mjs",
       "default": null
     }
   },
@@ -793,15 +797,34 @@
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json",
     "docs/PRODUCTION_RUNTIME_PACKAGE.md",
     "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md",
-    "docs/PENDING_ORIGINAL_QUERY_E13.md",
-    "docs/PENDING_ORIGINAL_QUERY_E13.json",
-    "native/management-source-contract.mjs",
-    "native/management-source-contract.d.mts",
-    "native/management-originals.mjs",
-    "native/original-device-v4-management-originals-driver.mjs",
-    "native/inherited/canonical.js",
-    "native/inherited/canonical.d.ts",
-    "docs/DEVICE_V4_MANAGEMENT_SOURCE_V2.md"
+    "native/original-network-resource-source-v2-contract.mjs",
+    "native/original-network-resource-source-v2-contract.d.mts",
+    "native/original-network-resource-pending-consent-v1.mjs",
+    "native/original-network-resource-pending-consent-v1.d.mts",
+    "native/original-network-resource-pending-source-contract.mjs",
+    "native/original-network-resource-pending-source-contract.d.mts",
+    "native/original-network-resource-pending-source-factory.mjs",
+    "native/original-network-resource-pending-source-factory.d.mts",
+    "native/original-network-current-publisher-loader-private.d.mts",
+    "native/original-network-current-publisher-loader-private.mjs",
+    "native/original-network-current-publisher-reference-private.d.mts",
+    "native/original-network-current-publisher-reference-private.mjs",
+    "native/original-network-current-publisher-selection-private.mjs",
+    "native/original-network-current-publisher-source-contract.d.mts",
+    "native/original-network-current-publisher-source-contract.mjs",
+    "native/original-network-resource-current-witness-v1.mjs",
+    "native/original-network-resource-current-witness-v1.d.mts",
+    "native/network-current/NetworkCurrentPairStore.h",
+    "native/network-current/NetworkCurrentPairStore.cpp",
+    "docs/NETWORK_CURRENT_PUBLISHER_SOURCE_V1.md",
+    "native/original-network-current-publisher-views-private.mjs",
+    "native/original-network-current-publisher-adapter.d.mts",
+    "native/original-network-current-publisher-adapter.mjs",
+    "native/original-p09-current-snapshot-continuation.mjs",
+    "native/original-wallet-mobile-qualified-source-contract.mjs",
+    "native/original-wallet-mobile-qualified-source-contract.d.mts",
+    "native/wallet-mobile-qualified-source-v1.schema.json",
+    "docs/WALLET_MOBILE_QUALIFIED_SOURCE_V1.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

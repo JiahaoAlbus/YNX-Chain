@@ -69,6 +69,12 @@ extern const char *_GoStringPtr(_GoString_ s);
 
 #line 1 "cgo-generated-wrapper"
 
+#line 3 "network_resource_consent_bridge.go"
+
+#include "network_resource_consent.h"
+
+#line 1 "cgo-generated-wrapper"
+
 #line 3 "pending_query_bridge.go"
 
 #include "product_pair_pending_original_query.h"
@@ -102,6 +108,12 @@ extern const char *_GoStringPtr(_GoString_ s);
 #line 3 "registered_n1_verify_bridge.go"
 
 #include "registered_n1_verify.h"
+
+#line 1 "cgo-generated-wrapper"
+
+#line 3 "source_statement_v2_bridge.go"
+
+#include "auth_source_statement_v2.h"
 
 #line 1 "cgo-generated-wrapper"
 
@@ -179,6 +191,7 @@ extern int32_t YNXProductSessionHTTPProofSignV5(YNXProductSessionHTTPRequestV5* 
 extern int32_t YNXAccountInitialSignV1(YNXAccountInitialRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 extern int32_t YNXAccountMigrationAuthorizationSignV1(YNXAccountMigrationAuthorizationRequestV1* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXAccountMigrationPossessionSignV1(YNXAccountMigrationRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
+extern int32_t YNXNetworkResourceConsentAttemptV1(YNXNetworkResourceConsentRequestV1* req, uint8_t* buffer, size_t capacity, YNXNetworkResourceConsentResultV1* out);
 extern int32_t YNXProductPairPendingOriginalQuerySignV1(YNXPendingOriginalQueryRequestV1* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXProductSessionDeviceChallengeSignV4(YNXProductSessionDeviceChallengeRequestV4* req, uint8_t* buffer, size_t capacity, size_t* length, uint32_t* cleanup);
 extern int32_t YNXProductSessionDeviceKeypairGenerateV4(YNXProductSessionDeviceKeypairRequestV4* req, YNXProductSessionDeviceKeypairOutcomeV4* outcome);
@@ -187,6 +200,7 @@ extern int32_t YNXPublisherGenerateV1(YNXPublisherGenerateRequestV1* req, uint8_
 extern int32_t YNXPublisherPoPSignV1(YNXPublisherPoPRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 extern int32_t YNXPublisherCustodianSignV1(YNXPublisherCustodianRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 extern int32_t YNXRegisteredANDMemberVerifyN1V1(YNXRegisteredANDMemberVerifyN1RequestV1* req, YNXRegisteredANDMemberVerifyN1ResultV1* out);
+extern int32_t YNXAuthSourceStatementVerifyV2(YNXAuthSourceStatementVerifyRequestV2* req, YNXRegisteredANDMemberVerifyN1ResultV1* out);
 extern int32_t YNXTransactionBatchSignV1(YNXTransactionBatchRequestV1* req, uint8_t* callerBuffer, size_t capacity, size_t* outLength, uint32_t* cleanupStatus);
 
 #ifdef __cplusplus

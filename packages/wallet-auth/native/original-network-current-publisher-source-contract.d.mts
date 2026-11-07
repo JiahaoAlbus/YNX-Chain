@@ -1,0 +1,7 @@
+import type{NetworkResourceCurrentPublisherDescriptorV1DATA}from'./original-network-resource-current-witness-v1.mjs';
+export const NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE:'network-resource-current-publisher-source-v1';
+export const NETWORK_CURRENT_PUBLISHER_SELECTION_KEY:'networkResourceCurrentPublisherV1';
+export const NETWORK_CURRENT_PUBLISHER_OPERATIONS:readonly ['resource.current.publish'];
+export interface NetworkCurrentPublisherScopeV1DATA {readonly version:1;readonly networkId:string;readonly subjectOwner:string;readonly sourceId:string;readonly instanceId:string;readonly operation:'resource.current.publish';readonly descriptor:NetworkResourceCurrentPublisherDescriptorV1DATA}
+export interface NetworkCurrentPublisherAssociationV1DATA {readonly account:string;readonly clientId:string;readonly productId:'network';readonly platform:'macos'|'linux'|'windows';readonly applicationId:string;readonly deviceId:string}
+export function inspectOriginalNetworkCurrentPublisherScopeV1DATA(scope:NetworkCurrentPublisherScopeV1DATA,association:NetworkCurrentPublisherAssociationV1DATA,networkId:string,subjectOwner:string,issuerSourceId:string,issuerInstanceId:string,currentOwner:string):Readonly<{scopeOriginal:string;scope:NetworkCurrentPublisherScopeV1DATA;descriptor:NetworkResourceCurrentPublisherDescriptorV1DATA;scopeHead:string;dataOnly:true;authorized:false;executionAllowed:false;RootAdmission:false;SourceAdmission:false;NativeAdmission:false}>;

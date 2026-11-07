@@ -80,6 +80,7 @@ func nativeHolderRegistration(t *testing.T) (*NativeLocalCallerRegistration, *at
 	if err != nil {
 		t.Fatal(err)
 	}
+	ready := localTestServeReady(server)
 	done := make(chan error, 1)
 	go func() { done <- server.Serve(listener) }()
 	client, err := NewLocalCallerClient(LocalCallerClientConfig{Service: "public-holder", SocketPath: path, PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: routes})
@@ -109,6 +110,7 @@ func nativeHolderRegistration(t *testing.T) (*NativeLocalCallerRegistration, *at
 		_ = server.Close()
 		<-done
 	})
+	localTestAwaitServe(t, ready, done)
 	return reg, calls
 }
 func nativeHolderFree(t *testing.T, h *nativeLocalCallerHolder) {

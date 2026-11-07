@@ -1,4 +1,11 @@
-import{PRODUCT_DEVICE_MANAGEMENT_V4_SOURCE_PURPOSE as MANAGEMENT_PURPOSE,PRODUCT_DEVICE_MANAGEMENT_V4_SELECTION_KEY as MANAGEMENT_KEY}from'../native/management-source-contract.mjs';
+import{inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'../native/original-wallet-mobile-qualified-source-contract.mjs';
+import{inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'../native/original-network-current-publisher-source-contract.mjs';
+import{inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'../native/original-network-resource-pending-source-contract.mjs';
+import{inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{NETWORK_RESOURCE_SOURCE_PURPOSE as NR_PURPOSE,NETWORK_RESOURCE_SOURCE_SELECTION_KEY as NR_KEY,NETWORK_RESOURCE_SOURCE_OPERATIONS as NR_OPS,inspectOriginalNetworkResourceSourceScopeV2DATA,captureOriginalNetworkResourceOriginalsV1DATA,assertOriginalNetworkResourceOriginalsCurrentV1DATA}from'../native/original-network-resource-source-v2-contract.mjs';
 import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE}from'../native/original-wallet-product-source-contract.mjs';
 import{inspectOriginalWalletProductSourceIssuanceBodyDATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
 import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'../native/original-browser-selected-pages-source-contract.mjs';
@@ -30,7 +37,7 @@ import{PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE}from'../native/original-product-de
 import{PRODUCT_DEVICE_V4_QUERY_PURPOSE}from'../native/original-product-device-v4-query-source-contract.mjs';
 import {IDE_DEPLOYMENT_V2_SOURCE_PURPOSE} from '../native/original-ide-deployment-v2-contract.mjs';
 import {inspectOriginalIDEDeploymentV2IssuanceBodyDATA} from '../native/original-auth-identity-source-v2-verifier.mjs';
-const devicePurpose=p=>[MANAGEMENT_PURPOSE,PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE].includes(p);
+const devicePurpose=p=>[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE].includes(p);
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
 import {verifyPQRegisteredMemberData} from './pq-registered-member.js';
@@ -39,7 +46,7 @@ const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOU
 // Existing separately admitted families plus the dedicated device-v4 CODE
 // contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze([MANAGEMENT_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
+const PURPOSES=Object.freeze([WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -52,6 +59,8 @@ function independentApproval(p,raw,now){
 // Testable lifecycle only. Normal acquisition below supplies all custody and
 // observations itself; this class is not accepted as a production service.
 export class OriginalSourceIssuanceV2Kernel {
+ #networkCapture;
+ #networkOriginals(){const purpose=this.#plan.policy.signatureContract.purpose,pending=purpose===NPR_PURPOSE;if(![NR_PURPOSE,NPR_PURPOSE].includes(purpose))return undefined;const key=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';if(typeof this.#io[key]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');const o=this.#io[key]();if(!this.#networkCapture)this.#networkCapture=(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(o);else(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(this.#networkCapture,o);return this.#networkCapture;}
  #plan;#approval;#signer;#io;#observe;#clock;#loan;#floor=0;#entered=false;#selected=false;#attempted=false;#retired=false;#unknown=false;#first;#hasFirst=false;#partial;#completion;#closeSelected=false;#closeFailed=false;#closeCause;
  constructor(plan,approval,signer,io,observe,clock=Date.now){this.#plan=structuredClone(plan);this.#approval=approval;this.#signer=signer;this.#io=io;this.#observe=observe;this.#clock=clock;}
  #alive(){if(this.#retired||this.#unknown||this.#closeSelected)fail('AUTH_ISSUANCE_UNRESOLVED');}
@@ -62,7 +71,11 @@ export class OriginalSourceIssuanceV2Kernel {
   exact(p,['role','rootRaw','enrollmentRaw','bodyRaw','policy','binding','approvalDigest','journalPath']);
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;let effectExpiresAtMs=body.expiresAtMs;
-  if(p.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  if(p.policy.signatureContract.purpose===WM_PURPOSE)effectExpiresAtMs=inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===NCP_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===NPR_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now(),this.#networkOriginals()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===NR_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now(),this.#networkOriginals()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===WPR_PURPOSE)effectExpiresAtMs=inspectOriginalWalletProductSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===BROWSER_PURPOSE)effectExpiresAtMs=inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===WPC_PURPOSE)effectExpiresAtMs=inspectOriginalWalletPayClientSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
@@ -82,17 +95,17 @@ export class OriginalSourceIssuanceV2Kernel {
   const approvalRaw=this.#approval.readOriginal(),{message,a}=independentApproval(p,approvalRaw,this.#now());
   this.#signer.assertCurrent(snapshot);if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_ISSUANCE_CUSTODY_CHANGED');
   if(this.#approval.readOriginal()!==approvalRaw)fail('AUTH_ISSUANCE_APPROVAL_CHANGED');
-  const n=this.#now();this.#alive();window(body,n);window(a,n);if(n>=effectExpiresAtMs)fail('IDE_DEPLOYMENT_V2_ISSUANCE_EFFECT_EXPIRED');return{snapshot,message};
+  this.#networkOriginals();const n=this.#now();this.#alive();window(body,n);window(a,n);if(n>=effectExpiresAtMs)fail('IDE_DEPLOYMENT_V2_ISSUANCE_EFFECT_EXPIRED');return{snapshot,message};
  }
  async initialize(){
   if(this.#selected)fail('AUTH_ISSUANCE_ALREADY_SELECTED');this.#selected=true;
-  try{const views=await this.#observe();this.#check(views);this.#loan=this.#io.openV2(dirname(this.#plan.journalPath),basename(this.#plan.journalPath));this.#check(views);
+  try{this.#networkOriginals();const views=await this.#observe();this.#check(views);this.#loan=this.#io.openV2(dirname(this.#plan.journalPath),basename(this.#plan.journalPath));this.#check(views);
    if(this.#io.list(this.#loan).length!==0)fail('AUTH_ISSUANCE_PREVIOUS_ATTEMPT_UNKNOWN');this.#check(views);
   }catch(e){this.#remember(e);throw e;}
  }
  async issueSelected(){
   this.#alive();if(!this.#loan||this.#entered||this.#attempted)fail('AUTH_ISSUANCE_NOT_READY');this.#entered=true;this.#attempted=true;
-  try{const before=await this.#observe(),{snapshot,message}=this.#check(before),p=this.#plan;
+  try{this.#networkOriginals();const before=await this.#observe(),{snapshot,message}=this.#check(before),p=this.#plan;
    const marker=sha(canonical({role:p.role,approvalDigest:p.approvalDigest,bodySHA256:sha(p.bodyRaw)}));
    // Persist selected intent BEFORE a signature may exist. Orphan/restart is
    // UNKNOWN and requires original reconciliation, never implicit re-signing.
@@ -102,8 +115,8 @@ export class OriginalSourceIssuanceV2Kernel {
    this.#partial=Object.freeze({phase:'SIGNED',marker,original:raw});
    verifyPQRegisteredMemberData(snapshot,member,{chainId:p.binding.networkId,owner:p.binding.owner,keyVersion:p.binding.keyVersion,executionHeight:p.binding.executionHeight,purpose:roles[p.role],message});
    const outputPolicy=p.role==='enrollment'?{...p.policy,enrollmentDigest:sha(raw)}:p.policy;
-   if(p.role==='enrollment')verifyOriginalAuthSourceEnrollmentV2(p.rootRaw,raw,outputPolicy,before,this.#now());
-   else verifyOriginalAuthSourceProfileV2(p.rootRaw,p.enrollmentRaw,raw,outputPolicy,before,this.#now());
+   if(p.role==='enrollment')verifyOriginalAuthSourceEnrollmentV2(p.rootRaw,raw,outputPolicy,before,this.#now(),...([NR_PURPOSE,NPR_PURPOSE].includes(p.policy.signatureContract.purpose)?[this.#networkOriginals()]:[]));
+   else verifyOriginalAuthSourceProfileV2(p.rootRaw,p.enrollmentRaw,raw,outputPolicy,before,this.#now(),...([NR_PURPOSE,NPR_PURPOSE].includes(p.policy.signatureContract.purpose)?[this.#networkOriginals()]:[]));
    const after=await this.#observe();for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_ISSUANCE_OBSERVATION_CHANGED');}
    this.#check(after);const terminal=canonical({version:1,originalSHA256:sha(raw)});this.#io.write(this.#loan,marker+'.terminal',terminal);
    if(this.#io.read(this.#loan,marker+'.entered')!==entered||this.#io.read(this.#loan,marker+'.terminal')!==terminal)fail('AUTH_ISSUANCE_READBACK_UNKNOWN');
@@ -135,6 +148,7 @@ class ProtectedApprovalOriginal {
 // Internal release loader. Callers cannot pass a signer callback, role keys,
 // approval string or HTTP body to the normal administrative entrypoint.
 export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
+ if(entry?.plan?.policy?.signatureContract?.purpose===WM_PURPOSE)fail('MOBILE_SOURCE_NATIVE_LOADER_REQUIRED');
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_ISSUANCE_NATIVE_RUNTIME_REQUIRED');
  let approval,a,b,keys,kernel,closed=false,first,present=false;
  const close=()=>{if(closed){if(present)throw first;return;}closed=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_ISSUANCE_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!present){present=true;first=e;}}if(present)throw first;};
@@ -146,10 +160,14 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   const root=document(entry.plan.rootRaw),e=entry.plan.role==='enrollment'?document(entry.plan.bodyRaw):document(Buffer.from(document(entry.plan.enrollmentRaw).body,'base64url').toString('utf8')),p=entry.plan.role==='profile'?document(entry.plan.bodyRaw):null;
   const owners=[root.rootOwner,e.profileOwner,e.currentOwner,p?.subjectOwner??entry.subjectOwner];
   const observe=async()=>{const values=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await fetchOriginalNativeAuthorization(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner})));if(values.some(v=>v.executionHeight!==values[0].executionHeight))fail('AUTH_ISSUANCE_OBSERVATION_CHANGED');return Object.fromEntries(['root','profile','current','subject'].map((r,i)=>[r,values[i]]));};
+  const pending=entry.plan.policy.signatureContract.purpose===NPR_PURPOSE,nr=[NR_PURPOSE,NPR_PURPOSE].includes(entry.plan.policy.signatureContract.purpose),networkGetter=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';const networkIO=nr?createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url))):null;
+  if(nr&&typeof networkIO[networkGetter]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');const networkHeld=nr?(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(networkIO[networkGetter]()):undefined;
   const firstViews=await observe(),selected=firstViews[entry.plan.role==='enrollment'?'root':'profile'],record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_ISSUANCE_ROLE_NOT_CURRENT');
   if(entry.plan.binding.owner!==selected.owner||entry.plan.binding.networkId!==selected.networkId||entry.plan.binding.keyVersion!==record.revision||entry.plan.binding.executionHeight!==selected.executionHeight)fail('AUTH_ISSUANCE_ROLE_BINDING');
   let effectExpiresAtMs=Infinity;
-  if(entry.plan.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
+  if(pending)effectExpiresAtMs=inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now(),networkHeld).effectExpiresAtMs;
+  else if(nr)effectExpiresAtMs=inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now(),networkHeld).effectExpiresAtMs;
+  else if(entry.plan.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===WPR_PURPOSE)effectExpiresAtMs=inspectOriginalWalletProductSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===BROWSER_PURPOSE)effectExpiresAtMs=inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   else if(entry.plan.policy.signatureContract.purpose===WPC_PURPOSE)effectExpiresAtMs=inspectOriginalWalletPayClientSourceIssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
@@ -161,6 +179,7 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   if(Date.now()>=effectExpiresAtMs)fail('IDE_DEPLOYMENT_V2_ISSUANCE_EFFECT_EXPIRED');
   // Separate roleKeys, never entry.currentKeys. Their original protected
   // custodian must independently authorize this release's fixed role.
+  if(nr)(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(networkHeld,networkIO[networkGetter]());
   a=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
   const signer={assertCurrent(view){if(closed)fail('AUTH_ISSUANCE_KEY_CLOSED');a.assertCurrent();b.assertCurrent();assertPQAuthorizationCurrent(selected,view);},signSelected(message,binding,view){this.assertCurrent(view);let batch;try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:roles[entry.plan.role]},[Buffer.from(message)]).batch;return encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}},close};
   const io=createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url)));

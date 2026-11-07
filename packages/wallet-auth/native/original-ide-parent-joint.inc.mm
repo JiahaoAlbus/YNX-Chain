@@ -279,16 +279,17 @@ static napi_value IDEIntentLifecycle(napi_env env,napi_callback_info info){
  return IDEIntentCurrent(h)?Undefined(env):Error(env,(h->first.localizedDescription?:@"IDE_INTENT_CURRENT_FAILED").UTF8String);
 }
 #include "original-ide-private-client-custody.h"
-struct OriginalIDENodeHandle {napi_env env;YNXOriginalIDENodeDelivery *__strong owner;bool closeSelected=false,closeComplete=false;ynx_auth_ide_private::PrivateClientCustody privateClients;napi_ref closeErrorRef=nullptr;};
+struct OriginalIDENodeHandle {napi_env env;YNXOriginalIDENodeDelivery *__strong owner;unsigned cloudLoans=0;bool cloudClosing=false;bool closeSelected=false,closeComplete=false;ynx_auth_ide_private::PrivateClientCustody privateClients;napi_ref closeErrorRef=nullptr;};
 static std::unordered_set<OriginalIDENodeHandle*> ideNodeOwners,ideNodeDebt;
 static bool ideNodeAcquisitionSelected=false;
 static void IDENodeFinalize(napi_env,void *raw,void*){
- auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h))return;if(!h->privateClients.parentCanClose()){ideNodeDebt.insert(h);return;}
+ auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h))return;if(h->cloudLoans||!h->privateClients.parentCanClose()){ideNodeDebt.insert(h);return;}
  NSError *e=nil;if(![h->owner closeOriginal:&e]){ideNodeDebt.insert(h);return;}if(h->closeErrorRef)napi_delete_reference(h->env,h->closeErrorRef);ideNodeOwners.erase(h);ideNodeDebt.erase(h);delete h;
 }
 static napi_value IDENodeCurrent(napi_env env,napi_callback_info info){
  napi_value argv[2];size_t count=2;void *raw=nullptr;if(napi_get_cb_info(env,info,&count,argv,nullptr,&raw)!=napi_ok||count>1)return Error(env,"IDE_NODE_CURRENT_ARGUMENTS_INVALID");
  auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h)||h->env!=env)return Error(env,"IDE_ORIGINAL_NODE_OWNER_REQUIRED");
+ if(h->cloudClosing)return Error(env,"IDE_CLOUD_PARENT_CLOSE_REQUESTED");
  NSDictionary *expected=nil;if(count==1){napi_valuetype type;if(napi_typeof(env,argv[0],&type)!=napi_ok)return Error(env,"IDE_NODE_CURRENT_ARGUMENTS_INVALID");if(type!=napi_undefined){expected=Dictionary(env,argv[0]);if(!expected)return Error(env,"IDE_NODE_CURRENT_EXPECTED_REQUEST_INVALID");}}
  NSError *e=nil;if(![h->owner assertCurrentExpected:expected error:&e])return Error(env,(e.localizedDescription?:@"IDE_NODE_ORIGINAL_CURRENT_FAILED").UTF8String);return Undefined(env);
 }
@@ -296,6 +297,7 @@ static napi_value IDENodeClose(napi_env env,napi_callback_info info){
  napi_value unused[1];void *raw=nullptr;if(!Args(env,info,0,unused,&raw))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h)||h->env!=env)return Error(env,"IDE_ORIGINAL_NODE_OWNER_REQUIRED");
  if(h->closeSelected){if(h->closeComplete)return Undefined(env);napi_value original;if(h->closeErrorRef&&napi_get_reference_value(env,h->closeErrorRef,&original)==napi_ok){napi_throw(env,original);return nullptr;}return Error(env,"IDE_NODE_CLOSE_UNKNOWN");}
+ h->cloudClosing=true;if(h->cloudLoans)return Error(env,"IDE_CLOUD_PROJECT_CHILDREN_PENDING");
  h->closeSelected=true;NSError *e=nil;h->closeComplete=h->privateClients.parentCanClose()&&[h->owner closeOriginal:&e];
  if(!h->closeComplete){ideNodeDebt.insert(h);napi_value original=IDEErrorValue(env,e.localizedDescription?:@"IDE_NODE_CLOSE_UNKNOWN");napi_create_reference(env,original,1,&h->closeErrorRef);napi_throw(env,original);return nullptr;}ideNodeDebt.erase(h);return Undefined(env);
 }

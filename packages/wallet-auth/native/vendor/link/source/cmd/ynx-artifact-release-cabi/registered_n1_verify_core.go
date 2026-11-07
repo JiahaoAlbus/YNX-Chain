@@ -50,7 +50,13 @@ func registeredN1ASCII(value string, maximum int) bool {
 }
 
 func verifyRegisteredANDMemberN1(in registeredN1Inputs) registeredN1VerifyCode {
-	if len(in.member) == 0 || len(in.member) > registeredN1MemberMaximum || len(in.message) > registeredN1MessageMaximum ||
+	return verifyRegisteredANDMemberN1Bounded(in, registeredN1MessageMaximum, registeredN1MemberMaximum)
+}
+
+// Bounds are selected only by fixed internal callers; exported ABI limits stay
+// unchanged. All callers execute the same registration and AND verifier below.
+func verifyRegisteredANDMemberN1Bounded(in registeredN1Inputs, messageMaximum, memberMaximum int) registeredN1VerifyCode {
+	if len(in.member) == 0 || len(in.member) > memberMaximum || len(in.message) > messageMaximum ||
 		len(in.network) != 32 || len(in.pkA) != ynxbatch.PublicKeyASize || len(in.pkB) != ynxbatch.PublicKeyBSize ||
 		!registeredN1ASCII(in.owner, 128) || !registeredN1ASCII(in.purpose, 64) || in.enabled > 1 || in.hasRevokedAt > 1 ||
 		in.hasRevokedAt == 0 && in.revokedAt != 0 {

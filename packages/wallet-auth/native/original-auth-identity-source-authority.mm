@@ -1,3 +1,5 @@
+#include "network_publisher_release_private.hpp"
+#import "network_publisher_source_private.h"
 #include "device_management_v4_release_private.hpp"
 #import "device_management_v4_source_private.h"
 #include "ai_task_client_source_release_private.hpp"
@@ -86,6 +88,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
  uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
  unsigned _httpV5Loans;
+ BOOL _networkPublisher;unsigned _networkPublisherLoans;const ynx::network::publisher::Release*_networkPublisherPolicy;
  BOOL _deviceManagement,_managementEntered,_managementApprovalPinned;unsigned _managementLoans;NSData*_managementImage,*_managementDriver,*_managementRegistry;NSDictionary*_managementOriginals,*_managementProjection;const ynx::device::management::SourceRelease*_managementPolicy;
  BOOL _aiTaskClient;unsigned _aiTaskLoans;NSError*_aiTaskCloseCause;BOOL _aiTaskClosurePinned;NSData*_aiTaskAgentOriginal,*_aiTaskKernelOriginal,*_aiTaskOwnImageOriginal,*_aiTaskNodeLoaderOriginal;const ynx::ai::client::SourceRelease*_aiTaskPolicy;
  BOOL _browserPages;unsigned _browserPagesLoans;NSError*_browserPagesCloseCause;
@@ -431,6 +434,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
    }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query||_productDeviceV4RegisteredFinalization||_productHTTPV5)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="network-resource-current-publisher-source-v1"){if(!_networkPublisher||!_networkPublisherPolicy||_policy!=&_networkPublisherPolicy->source||_networkPublisherPolicy->uid!=getuid()||_networkPublisherPolicy->platform!="macos"||_networkPublisherPolicy->applicationId.empty())return[self fail:@"NETWORK_PUBLISHER_DEDICATED_RELEASE_REQUIRED" error:error];policy[@"applicationId"]=[NSString stringWithUTF8String:_networkPublisherPolicy->applicationId.c_str()];policy[@"productId"]=@"network";policy[@"platform"]=@"macos";}else if(_networkPublisher)return[self fail:@"NETWORK_PUBLISHER_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="product-device-management-source-v4"){if(!_deviceManagement||!_managementPolicy||_policy!=&_managementPolicy->source||_managementPolicy->uid!=getuid()||_managementPolicy->platform!="macos"||_managementPolicy->application_id.empty()||_managementPolicy->product_id.empty())return[self fail:@"DEVICE_MANAGEMENT_V4_RELEASE_POLICY_REQUIRED" error:error];policy[@"applicationId"]=[NSString stringWithUTF8String:_managementPolicy->application_id.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_managementPolicy->product_id.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_managementPolicy->platform.c_str()];}else if(_deviceManagement)return[self fail:@"DEVICE_MANAGEMENT_V4_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="ai-native-task-action-source-v6"){if(!_aiTaskClient||!_aiTaskPolicy||_policy!=&_aiTaskPolicy->source)return[self fail:@"AI_V6_CLIENT_DEDICATED_RELEASE_REQUIRED" error:error];NSDictionary*aiPolicy=YNXOriginalAITaskClientPolicyDATA(*_aiTaskPolicy);if(!aiPolicy)return[self fail:@"AI_V6_CLIENT_POLICY_REQUIRED" error:error];policy=[aiPolicy mutableCopy];}else if(_aiTaskClient)return[self fail:@"AI_V6_CLIENT_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="browser-selected-pages-source-v1"){
@@ -734,9 +738,10 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){if(_walletNativeProduct)ynx_auth_private::OriginalProductSourceMathCompletion::retire(_productObserved);if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_managementEntered||_managementLoans||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_networkPublisherLoans||_managementEntered||_managementLoans||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
  if(_ideCocoaParentSource)return [self closeOriginalIDECocoaParentChildFirst:error];
+ if(_networkPublisher)return[self closeOriginalNetworkCurrentPublisherSource:error];
  if(_deviceManagement)return[self closeOriginalDeviceV4ManagementSource:error];
  if(_aiTaskClient)return[self closeOriginalAITaskActionV6ClientSource:error];
  if(_browserPages)return [self closeOriginalBrowserSelectedPagesSource:error];
@@ -755,6 +760,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "browser_page_source_methods.inc.mm"
 #include "ai_task_client_source_methods.inc.mm"
 #include "device_management_v4_source_methods.inc.mm"
+#include "network_publisher_source.inc.mm"
 #include "product_source_methods.inc"
 #include "pay_native_source_methods.inc"
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {

@@ -1,4 +1,7 @@
 #include <node_api.h>
+#ifdef YNX_NETWORK_CURRENT_PUBLISHER_CAPTURE_V1
+#include "network_publisher_napi_private.hpp"
+#endif
 #include "original-host-dirfd-journal.h"
 #include <unordered_set>
 
@@ -25,6 +28,12 @@ napi_value list(napi_env env,napi_callback_info info){return call(env,info,1,[&]
 napi_value read(napi_env env,napi_callback_info info){return call(env,info,2,[&](Owner *o,napi_value *a){std::string name;if(!text(env,a[1],73,name))throw std::runtime_error("AUTH_SOURCE_STATE_RECORD_INVALID");auto raw=o->io.read(name,o->v2?393216:8192);napi_value result;napi_create_string_utf8(env,raw.data(),raw.size(),&result);return result;});}
 napi_value write(napi_env env,napi_callback_info info){return call(env,info,3,[&](Owner *o,napi_value *a){std::string name,raw;if(!text(env,a[1],73,name)||!text(env,a[2],o->v2?393216:8192,raw))throw std::runtime_error("AUTH_SOURCE_STATE_RECORD_INVALID");if(o->v2)o->io.writeSourceCurrentV2Exclusive(name,raw);else o->io.writeExclusive(name,raw);return undefined(env);});}
 napi_value close(napi_env env,napi_callback_info info){napi_value a[1];if(!args(env,info,1,a))return error(env,"AUTH_SOURCE_STATE_ARGUMENTS_INVALID");auto *o=original(env,a[0]);if(!o||o->busy)return error(env,"AUTH_SOURCE_STATE_JOIN_PENDING");bool done=o->io.close();o->closed=done;if(!done)return error(env,"AUTH_SOURCE_STATE_CLOSE_UNKNOWN");debt.erase(o);return undefined(env);}
-napi_value init(napi_env env,napi_value exports){struct E{const char *name;napi_callback method;};for(auto item:{E{"open",open},E{"openV2",openV2},E{"openV2Existing",openV2Existing},E{"ready",ready},E{"list",list},E{"read",read},E{"write",write},E{"close",close}}){napi_property_descriptor d={item.name,nullptr,item.method,nullptr,nullptr,nullptr,napi_default,nullptr};if(napi_define_properties(env,exports,1,&d)!=napi_ok)return nullptr;}return exports;}
+napi_value init(napi_env env,napi_value exports){struct E{const char *name;napi_callback method;};for(auto item:{E{"open",open},E{"openV2",openV2},E{"openV2Existing",openV2Existing},E{"ready",ready},E{"list",list},E{"read",read},E{"write",write},E{"close",close}}){napi_property_descriptor d={item.name,nullptr,item.method,nullptr,nullptr,nullptr,napi_default,nullptr};if(napi_define_properties(env,exports,1,&d)!=napi_ok)return nullptr;}
+#ifdef YNX_NETWORK_CURRENT_PUBLISHER_CAPTURE_V1
+return RegisterOriginalNetworkCurrentPublisherCaptureV1(env,exports);
+#else
+return exports;
+#endif
+}
 }
 NAPI_MODULE(NODE_GYP_MODULE_NAME,init)

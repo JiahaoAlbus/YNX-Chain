@@ -1,0 +1,4 @@
+'use strict';
+// Future matching A post-build only. Root0 is refusal/custody, not permission.
+const assert=require('node:assert/strict');const addon=require(process.argv[2]);
+(async()=>{assert.equal(typeof addon.acquireOriginalNetworkCurrentPublisherCaptureV1,'function');const r=addon.acquireOriginalNetworkCurrentPublisherCaptureV1();assert(r&&r.partial&&r.partial.capture&&r.partial.store);const c=r.partial.capture,t=r.partial.store;assert(r.error!==null);assert.equal(r.error.code,'NETWORK_PUBLISHER_NO_ROOT_SELECTION');await t.retire();await c.retire();await t.join();await c.join();assert.equal((await t.close()).error,null);const p=c.close();assert.equal(p,c.close());assert.equal((await p).error,null);console.log(JSON.stringify({sameImageFactory:true,root0Refusal:true,partialDrained:true,RootAdmission:false,SourceAdmission:false,NativeAdmission:false}));})().catch(e=>{console.error(e);process.exitCode=1});

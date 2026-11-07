@@ -4,6 +4,7 @@
 #include "../../../packages/wallet-auth/native/original-ide-contract-relay-launch.h"
 #include "../../../packages/wallet-auth/native/original-ide-project-authority-data.h"
 struct WorkspaceProjectSelection {
+ unsigned cloudLoans=0;
  napi_env env=nullptr;YNXAuthIdentitySourceAuthority* __strong source=nil;
  NSDictionary* __strong local=nil;NSDictionary* __strong original=nil;
  ynx_auth_private::TemporaryDescriptor workspace,profile;
@@ -15,7 +16,7 @@ static std::set<WorkspaceProjectSelection*> workspaceProjectSelections;
 static const napi_type_tag workspaceProjectSelectionTag={0x7f5c59902da84175ULL,0xb86dddfc8abb5740ULL};
 static bool WorkspaceSelectionFail(WorkspaceProjectSelection*s,const char*code,NSError*e=nil){if(!s->first){s->first=code;s->cause=e;}return false;}
 static bool WorkspaceSelectionClose(WorkspaceProjectSelection*s){
- if(s->closeSelected)return s->closed;if(s->busy)return false;s->closeSelected=true;bool done=true;
+ if(s->cloudLoans){WorkspaceSelectionFail(s,"IDE_CLOUD_PROJECT_CHILDREN_PENDING");return false;}if(s->closeSelected)return s->closed;if(s->busy)return false;s->closeSelected=true;bool done=true;
  // Independent FDs drain even if another resource or Source close is UNKNOWN.
  for(auto*d:{&s->workspace,&s->profile})if(!d->available()&&!d->closeOnce([](int fd){return ::close(fd);}))done=false;
  @try{[s->source retire];NSError*e=nil;if(s->source&&(![s->source join:&e]||![s->source close:&e]||e)){if(!s->cause)s->cause=e;done=false;}}@catch(id){done=false;}

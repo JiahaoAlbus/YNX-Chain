@@ -1,0 +1,170 @@
+{
+  "schema": "YNX_WALLET_MOBILE_QUALIFIED_SOURCE_CONTRACT_V1",
+  "purpose": "wallet-mobile-qualified-source-v1",
+  "selectionKey": "walletMobileQualifiedV1",
+  "operations": [
+    "mobile.transaction",
+    "mobile.registered-restore",
+    "mobile.original-query"
+  ],
+  "scopeExact": [
+    "version",
+    "mode",
+    "reference",
+    "originalOperationID",
+    "context",
+    "originals",
+    "issuedAtMs",
+    "expiresAtMs"
+  ],
+  "contextExact": [
+    "networkId",
+    "account",
+    "platform",
+    "applicationId",
+    "protectedResourceRef",
+    "nativeChainID",
+    "vaultRevision",
+    "registrationDigest",
+    "keyVersion",
+    "executionHeight",
+    "nonce",
+    "spendingBudgetOriginalDigest"
+  ],
+  "originalsExact": [
+    "binding",
+    "message",
+    "policy",
+    "keyVersion",
+    "executionHeight",
+    "review",
+    "encryptedBackup"
+  ],
+  "originalRefExact": [
+    "bytes",
+    "sha256"
+  ],
+  "canonical": "sole SourceV2 canonical UTF8, complete role body E8; scope is nested selection only",
+  "statement": {
+    "domain": "YNX/AUTH/SOURCE-ORIGINAL/V2",
+    "fields": 8,
+    "encoding": "BE32(8), then 8 BE32 length + UTF8 fields",
+    "rolePurposes": {
+      "enrollment": "AUTH-SOURCE-ENROLLMENT",
+      "profile": "AUTH-SOURCE-PROFILE",
+      "current": "AUTH-SOURCE-CURRENT"
+    },
+    "frame": "independent Root-selected signatureContract.{enrollmentFrame,profileFrame,currentFrame}; no default"
+  },
+  "modes": {
+    "1": {
+      "operation": "mobile.transaction",
+      "sign": true,
+      "submit": true,
+      "restore": false
+    },
+    "2": {
+      "operation": "mobile.registered-restore",
+      "sign": false,
+      "submit": false,
+      "restore": "registered original fullpair + backup + actual ordinary binding; EMPTY -> matching terminal slot only"
+    },
+    "3": {
+      "operation": "mobile.original-query",
+      "sign": false,
+      "submit": false,
+      "restore": false,
+      "borrow43": false,
+      "query": "same durable originalOperationID only; cached observation after retire does not renew authority"
+    }
+  },
+  "nativeFactory": "ynx::auth::mobile::capture::acquireCompiledOriginal(reference,mode)",
+  "ownerABI": "QualifiedOriginal from existing MobileCapturePrivate.hpp; partial owner adopted before status",
+  "rootQualification": {
+    "initial": "independent original Root/enrollment/profile/current originals; full math and registered role policy via actual Native Root owner",
+    "fresh": "genuine current before/after protected operations, independent of immutable initial capture tuple",
+    "registered": "full pair/current active revision/network/account AND actual native owner binding; reference/hash alone never qualifies",
+    "review": "original native review + actual approval AND original op/nonce/body/budget/window; wire internals not defined by this SDK scope",
+    "durable": "once transitions and lost ACK on same original journal; no new operation/nonce on UNKNOWN"
+  },
+  "missingOwningCODE": [
+    "Native acquireCompiledOriginal reviewed mobile qualifier body/real release row (Auth owner)",
+    "new purpose registration/enrollment/profile/current full semantic branches (SDK follow-on; common5 not modified by this handoff)",
+    "native protected selection projection for context nonce/spendingBudgetOriginalDigest/registrationDigest/vaultRevision (Auth owner)",
+    "Root selected policy and registered fullpair/current resources; no Root rows supplied",
+    "actual per-platform links and real-device qualification"
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "productionActivated": false,
+  "sourceV2BodyMapping": {
+    "root": {
+      "schema": "existing exact6 version/algorithmVersion/purpose/rootId/networkId/rootOwner",
+      "purpose": "wallet-mobile-qualified-source-v1",
+      "network": "scope.context.networkId; independent Root-selected match; no Root default"
+    },
+    "enrollment": {
+      "schema": "existing exact19 SourceV2 enrollment fields",
+      "service": "wallet-mobile-qualified-source-v1",
+      "productId": "wallet",
+      "platform": "ios or android AND independent policy platform AND scope.context.platform",
+      "applicationId": "independent Root selected mobile app identity == scope.context.applicationId; no actual value fabricated",
+      "operations": "exact ordered mobile.transaction/mobile.registered-restore/mobile.original-query as family ceiling; profile mode grants no other operation",
+      "currentStatePath": "Root-selected native protected current locator, not JS path or desktop dirfd. The mobile branch must resolve it via protected Native selection, never desktop absolute-path fallback. Actual locator representation/provider still Auth owning CODE.",
+      "profileOwner/currentOwner": "independently registered Source role owners, distinct from Root; not inferred from transaction keyVersion",
+      "gatewayOrigin/registryDigest/endpoint/spki": "existing protected policy exact AND, actual registered mobile values NOT_SUPPLIED"
+    },
+    "profile": {
+      "schema": "existing exact12 profile fields preserved",
+      "selectionExact": [
+        "walletMobileQualifiedV1"
+      ],
+      "scope": "selection.walletMobileQualifiedV1 exact8 defined by this contract",
+      "sourceId": "same original enrollment.sourceId; issuer identity, NOT reference/originalOperationID/nonce",
+      "instanceId": "actual Root selected held issuer instance, independent from target operation",
+      "subjectOwner": "scope.context.account == independent registered subject canonicalOwner",
+      "generation": "existing safe integer Source generation from protected Source state; NOT vaultRevision/keyVersion/operation nonce",
+      "minimumSequence/minimumFloor": "actual protected antirollback facts; no zero/default derivation",
+      "window": "scope issued/expires must be inside independent profile/enrollment/Root/review windows; fresh Native clock checks all AND"
+    },
+    "current17": {
+      "schema": "existing actual exact16 fields (historically called current17 in chat); no new field",
+      "purpose": "wallet-mobile-qualified-source-v1",
+      "sourceId/instanceId/generation/subjectOwner": "same independently verified enrollment/profile facts",
+      "head": "SHA256(sole canonical UTF8 exact scope body); not selected credential or reference hash",
+      "subjectKeyVersion": "independent registered subject active revision; Source current signing owner/keyVersion remain separate",
+      "nonce/sequence/floor/time": "independent held challenge/current protected antirollback lifecycle; never renew from query or JS",
+      "RootCurrent": "fresh genuine Native current, not initial captured Root4 raw equality",
+      "actualExactFields": [
+        "version",
+        "purpose",
+        "sourceId",
+        "enrollmentDigest",
+        "profileDigest",
+        "instanceId",
+        "generation",
+        "subjectOwner",
+        "subjectKeyVersion",
+        "sequence",
+        "floor",
+        "head",
+        "status",
+        "nonce",
+        "issuedAtMs",
+        "expiresAtMs"
+      ]
+    },
+    "originalsSemanticAND": {
+      "binding": "Native custody parser verifies account/network/registered fullpair/vault exact binding; hash alone never qualifies",
+      "message": "Native exact original transaction body/destination/nonce AND UI review and budgets; do not hash a reconstructed DTO",
+      "policy": "original independently reviewed signing policy; active fullpair/height/revocation AND",
+      "keyVersion": "canonical original signing revision equals context keyVersion but not generic Source role revision",
+      "executionHeight": "canonical original transaction execution context equals context executionHeight; not Source generation/floor",
+      "review": "actual Native original UI review+approval for this mode/op/nonce/body/budget/window; no JS approved boolean",
+      "encryptedBackup": "actual registered original backup matches real ordinary owner binding/OS43; never decrypt/export across JS"
+    },
+    "modeQuery": "mode3 new capture requires original durable op witness/flags or original OS outcome; never fresh effect rights. Retained public copy remains read-only after retire/lock/error; no new IO unless current query permission succeeds."
+  },
+  "note": "Schema counts use actual source, not historical chat nicknames. This is contract/reference supply, not completed common5 or Native qualification."
+}

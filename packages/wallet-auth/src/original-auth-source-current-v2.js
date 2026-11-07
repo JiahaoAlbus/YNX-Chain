@@ -1,4 +1,7 @@
-import{PRODUCT_DEVICE_MANAGEMENT_V4_SOURCE_PURPOSE as MANAGEMENT_PURPOSE,PRODUCT_DEVICE_MANAGEMENT_V4_SELECTION_KEY as MANAGEMENT_KEY}from'../native/management-source-contract.mjs';
+import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'../native/original-wallet-mobile-qualified-source-contract.mjs';
+import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'../native/original-network-current-publisher-source-contract.mjs';
+import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'../native/original-network-resource-pending-source-contract.mjs';
+import{NETWORK_RESOURCE_SOURCE_PURPOSE as NR_PURPOSE,NETWORK_RESOURCE_SOURCE_SELECTION_KEY as NR_KEY,NETWORK_RESOURCE_SOURCE_OPERATIONS as NR_OPS,inspectOriginalNetworkResourceSourceScopeV2DATA,captureOriginalNetworkResourceOriginalsV1DATA,assertOriginalNetworkResourceOriginalsCurrentV1DATA}from'../native/original-network-resource-source-v2-contract.mjs';
 import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE,WALLET_NATIVE_PRODUCT_SELECTION_KEY as WPR_KEY}from'../native/original-wallet-product-source-contract.mjs';
 import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE,BROWSER_SELECTED_PAGES_SOURCE_SELECTION_KEY as BROWSER_KEY}from'../native/original-browser-selected-pages-source-contract.mjs';
 import{WALLET_NATIVE_PAY_CLIENT_SOURCE_PURPOSE as WPC_PURPOSE,WALLET_NATIVE_PAY_CLIENT_SELECTION_KEY as WPC_KEY}from'../native/original-wallet-pay-client-source-contract.mjs';
@@ -41,10 +44,11 @@ function parsed(raw,cap=CAP){if(typeof raw!=='string'||!raw.length||Buffer.byteL
 // Only already verified signed originals reach this local final-clock fence.
 // A V2 approval/registered role may end BEFORE the enclosing Source profile.
 function originalSourceEffectExpiry(body,purpose){
- if(purpose===MANAGEMENT_PURPOSE)return body.selection?Math.min(body.expiresAtMs,body.selection[MANAGEMENT_KEY].expiresAtMs):body.expiresAtMs;
  if(purpose==='ide-project-control-authority-v1')return Number(body.selection.projectControlCapture.expiresAtMs);
  if(!body.selection)return Infinity;
  if(purpose===AI_PURPOSE){const s=body.selection[AI_KEY];return s.role==='client'?Math.min(body.expiresAtMs,Date.parse(parsed(s.deviceScope.registrationOriginal,16384).expiresAt),Date.parse(parsed(s.deviceScope.sessionOriginal,16384).expiresAt)):body.expiresAtMs;}
+ if(purpose===WM_PURPOSE)return Math.min(body.expiresAtMs,body.selection[WM_KEY].expiresAtMs);
+ if([NR_PURPOSE,NPR_PURPOSE].includes(purpose)){const s=body.selection[purpose===NPR_PURPOSE?NPR_KEY:NR_KEY];return Math.min(Date.parse(parsed(s.resourceScope.manifestOriginal,16384).expiresAt),Date.parse(parsed(s.resourceScope.consentOriginal,16384).expiresAt),body.expiresAtMs);}
  if(purpose===WPR_PURPOSE)return body.expiresAtMs;
  if(purpose===BROWSER_PURPOSE)return Math.min(body.expiresAtMs,body.selection[BROWSER_KEY].untilMs);
  if(purpose===WPC_PURPOSE)return body.selection?Math.min(body.expiresAtMs,...body.selection[WPC_KEY].bindings.map(b=>b.untilMs)):body.expiresAtMs;
@@ -62,6 +66,8 @@ function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Refle
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
 
 export class OriginalAuthSourceCurrentV2Kernel {
+ #networkCapture;
+ #networkOriginals(){const purpose=this.#policy.signatureContract.purpose,pending=purpose===NPR_PURPOSE;if(![NR_PURPOSE,NPR_PURPOSE].includes(purpose))return [];const key=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';if(typeof this.#io[key]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');const o=this.#io[key]();if(!this.#networkCapture)this.#networkCapture=(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(o);else(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(this.#networkCapture,o);return [this.#networkCapture];}
  #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;#principalCompletions=new WeakMap();#approvalCompletion;
  constructor(rootRaw,enrollmentRaw,profiles,policy,node,signer,nativeIO,clock=Date.now,get=fetchOriginalNativeAuthorization){
   // Explicit test seams exist only here. Normal loader supplies the fixed
@@ -82,23 +88,23 @@ export class OriginalAuthSourceCurrentV2Kernel {
   const height=snapshots[0].executionHeight;if(snapshots.some(s=>s.executionHeight!==height)||BigInt(height)<this.#height)fail('AUTH_SOURCE_V2_OBSERVATION_ROLLBACK');this.#height=BigInt(height);
   return Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,snapshots[i]]));
  }
- #verify(profile,views){this.#alive();const v=verifyOriginalAuthSourceProfileV2(this.#root,this.#enrollment,profile.raw,this.#policy,views,this.#time());this.#signer.assertCurrent(views.current);if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');return v;}
+ #verify(profile,views){this.#alive();const v=verifyOriginalAuthSourceProfileV2(this.#root,this.#enrollment,profile.raw,this.#policy,views,this.#time(),...this.#networkOriginals());this.#signer.assertCurrent(views.current);if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');this.#networkOriginals();return v;}
  async #post(profile,before,expires=Infinity){const after=await this.#views(profile);sameViews(before,after);const v=this.#verify(profile,after);if(this.#time()>=Math.min(expires,v.profile.expiresAtMs,v.enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_EXPIRED');return after;}
  // An awaited post-check is not the caller's completion boundary: queued
  // retirement/time/custody effects may run before its continuation resumes.
  // Recheck actual same-owner custody and exact original receipt synchronously
  // AFTER that await, then fence time/liveness after the last foreign read.
  #completed(profile,views,expires=Infinity,receipt=null){
-  this.#alive();this.#signer.assertCurrent(views.current);
+  this.#alive();this.#networkOriginals();this.#signer.assertCurrent(views.current);
   if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');
   if(receipt&&(this.#rows.get(receipt.digest)!==receipt.state||this.#io.read(this.#loan,receipt.key+'.entered')!==receipt.raw||this.#io.read(this.#loan,receipt.key+'.terminal')!==receipt.terminal))fail('AUTH_SOURCE_V2_POST_COMPLETION_CHANGED');
-  const limit=Math.min(expires,profile.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,originalSourceEffectExpiry(profile.body,this.#policy.signatureContract.purpose));
+  this.#networkOriginals();const limit=Math.min(expires,profile.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,originalSourceEffectExpiry(profile.body,this.#policy.signatureContract.purpose));
   const now=this.#time();this.#alive();if(now>=limit)fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
  }
  async initialize(){
   if(this.#entered||this.#initialized||this.#loan)fail('AUTH_SOURCE_V2_ALREADY_SELECTED');this.#alive();this.#entered=true;
   try{
-   const observations=new Map();let path;
+   this.#networkOriginals();const observations=new Map();let path;
    for(const [digest,p]of this.#profiles){const before=await this.#views(p),v=this.#verify(p,before);path=v.enrollment.currentStatePath;observations.set(digest,before);}
    // Retain the partial native owner BEFORE ready/list may throw.
    this.#loan=this.#io.openV2(dirname(path),basename(path));if(this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');
@@ -108,7 +114,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
     const key=name.slice(0,64);if(!names.includes(key+'.terminal'))fail('AUTH_SOURCE_V2_COLD_UNKNOWN');
     const raw=this.#io.read(this.#loan,name),event=parsed(raw),terminal=parsed(this.#io.read(this.#loan,key+'.terminal'));exact(event,['version','profileDigest','previousDigest','currentRaw']);exact(terminal,['version','eventDigest']);
     if(event.version!==2||terminal.version!==2||terminal.eventDigest!==sha(raw))fail('AUTH_SOURCE_V2_HISTORY_INVALID');const p=this.#profiles.get(event.profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');
-    const body=hint(event.currentRaw),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,event.currentRaw,this.#policy,observations.get(event.profileDigest),body.nonce,ZERO,this.#time());
+    const body=hint(event.currentRaw),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,event.currentRaw,this.#policy,observations.get(event.profileDigest),body.nonce,ZERO,this.#time(),...this.#networkOriginals());
     if(sha(canonical({profileDigest:event.profileDigest,sequence:projection.sequence}))!==key)fail('AUTH_SOURCE_V2_HISTORY_INVALID');events.push({raw,event,projection,body});
    }
    if(names.length!==events.length*2)fail('AUTH_SOURCE_V2_COLD_UNKNOWN');events.sort((a,b)=>a.projection.sequence-b.projection.sequence);
@@ -120,12 +126,11 @@ export class OriginalAuthSourceCurrentV2Kernel {
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
  #body(p,digest,state,challenge,v){const now=this.#time();return {version:2,purpose:this.#policy.signatureContract.purpose,sourceId:v.profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest:digest,instanceId:v.profile.instanceId,generation:v.profile.generation,subjectOwner:v.profile.subjectOwner,subjectKeyVersion:v.subjectKeyVersion,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,v.profile.expiresAtMs,v.enrollment.expiresAtMs,originalSourceEffectExpiry(p.body,this.#policy.signatureContract.purpose))};}
- #signed(body,v,views){const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:views.current.activeRevision,executionHeight:views.current.executionHeight};const bodyRaw=canonical(body),message=encodeOriginalAuthSourceStatementV2('current',this.#policy.signatureContract.currentFrame,binding,bodyRaw);this.#partial=Object.freeze({phase:'SIGN_SELECTED',profileDigest:body.profileDigest,nonce:body.nonce,bodyRaw});const member=this.#signer.signCurrent(message,binding,views.current);const raw=canonicalOriginalAuthSourceEnvelopeV2('current',binding,bodyRaw,member);this.#partial=Object.freeze({phase:'SIGNED',profileDigest:body.profileDigest,nonce:body.nonce,currentRaw:raw});return raw;}
+ #signed(body,v,views){this.#networkOriginals();const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:views.current.activeRevision,executionHeight:views.current.executionHeight};const bodyRaw=canonical(body),message=encodeOriginalAuthSourceStatementV2('current',this.#policy.signatureContract.currentFrame,binding,bodyRaw);this.#partial=Object.freeze({phase:'SIGN_SELECTED',profileDigest:body.profileDigest,nonce:body.nonce,bodyRaw});const member=this.#signer.signCurrent(message,binding,views.current);const raw=canonicalOriginalAuthSourceEnvelopeV2('current',binding,bodyRaw,member);this.#partial=Object.freeze({phase:'SIGNED',profileDigest:body.profileDigest,nonce:body.nonce,currentRaw:raw});this.#networkOriginals();return raw;}
  async transition(profileDigest,state){
   this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');this.#entered=true;
-  try{const p=this.#profiles.get(profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');exact(state,['status','floor','head']);if(this.#policy.signatureContract.purpose===AI_PURPOSE&&state.head!==sha(canonical(p.body.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPR_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPR_KEY])))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===BROWSER_PURPOSE&&state.head!==sha(canonical(p.body.selection[BROWSER_KEY])))fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPC_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPC_KEY])))fail('WALLET_PAY_CLIENT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===PAY_PURPOSE&&state.head!==sha(canonical(p.body.selection[PAY_KEY])))fail('PAY_SOURCE_CURRENT_MAPPING_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');const before=await this.#views(p),v=this.#verify(p,before),old=this.#rows.get(profileDigest),sequence=old?old.sequence+1:p.body.minimumSequence;
+  try{const p=this.#profiles.get(profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');exact(state,['status','floor','head']);if(this.#policy.signatureContract.purpose===WM_PURPOSE&&state.head!==sha(canonical(p.body.selection[WM_KEY])))fail('MOBILE_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===NCP_PURPOSE&&state.head!==sha(canonical(p.body.selection[NCP_KEY])))fail('NETWORK_PUBLISHER_SOURCE_CURRENT_HEAD');if([NR_PURPOSE,NPR_PURPOSE].includes(this.#policy.signatureContract.purpose)&&state.head!==sha(canonical(p.body.selection[this.#policy.signatureContract.purpose===NPR_PURPOSE?NPR_KEY:NR_KEY])))fail('NETWORK_RESOURCE_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===AI_PURPOSE&&state.head!==sha(canonical(p.body.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPR_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPR_KEY])))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===BROWSER_PURPOSE&&state.head!==sha(canonical(p.body.selection[BROWSER_KEY])))fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPC_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPC_KEY])))fail('WALLET_PAY_CLIENT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===PAY_PURPOSE&&state.head!==sha(canonical(p.body.selection[PAY_KEY])))fail('PAY_SOURCE_CURRENT_MAPPING_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');const before=await this.#views(p),v=this.#verify(p,before),old=this.#rows.get(profileDigest),sequence=old?old.sequence+1:p.body.minimumSequence;
    if(!Number.isSafeInteger(sequence)||!['active','revoked','retired'].includes(state.status)||!Number.isSafeInteger(state.floor)||state.floor<Math.max(p.body.minimumFloor,old?.floor??0)||state.floor>sequence||typeof state.head!=='string'||!/^[a-f0-9]{64}$/.test(state.head)||old&&old.status!=='active'&&state.status!==old.status)fail('AUTH_SOURCE_V2_TRANSITION_INVALID');
-   if(this.#policy.signatureContract.purpose===MANAGEMENT_PURPOSE&&state.head!==sha(canonical(p.body.selection[MANAGEMENT_KEY])))fail('DEVICE_MANAGEMENT_SOURCE_CURRENT_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Provisioning)))fail('AUTH_SOURCE_V2_DEVICE_PROVISIONING_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_QUERY_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Query)))fail('AUTH_SOURCE_V2_DEVICE_QUERY_HEAD');
@@ -134,7 +139,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Pending)))fail('AUTH_SOURCE_V2_DEVICE_PENDING_HEAD');
    if([CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(this.#policy.signatureContract.purpose)&&state.head!==sha(canonical(p.body.selection[this.#policy.signatureContract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2'])))fail('DEPLOYMENT_EXECUTION_V2_CURRENT_HEAD');
    if(this.#policy.signatureContract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
-   const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
+   const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time(),...this.#networkOriginals()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
    // Signing and persistence are within one selected operation. Any later
    // exception preserves the exact signed partial and poisons this owner.
    const key=sha(canonical({profileDigest,sequence})),terminal=canonical({version:2,eventDigest:sha(raw)});this.#io.write(this.#loan,key+'.entered',raw);this.#io.write(this.#loan,key+'.terminal',terminal);if(this.#io.read(this.#loan,key+'.entered')!==raw||this.#io.read(this.#loan,key+'.terminal')!==terminal)fail('AUTH_SOURCE_V2_READBACK_UNKNOWN');
@@ -150,7 +155,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
   const p=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);if(!p||!state||state.status!=='active')fail('AUTH_SOURCE_V2_PROFILE_NOT_ACTIVE');const now=this.#time();for(const [n,t]of this.#nonces)if(now-t>=30000)this.#nonces.delete(n);const n=profileDigest+':'+challenge;if(this.#nonces.has(n)||this.#nonces.size>=4096)fail('AUTH_SOURCE_V2_REPLAY_OR_CAPACITY');this.#entered=true;
   try{this.#nonces.set(n,now);
    const before=await this.#views(p),v=this.#verify(p,before),key=sha(canonical({profileDigest,sequence:state.sequence})),raw=this.#io.read(this.#loan,key+'.entered');if(sha(raw)!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_V2_HISTORY_CHANGED');
-   const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());
+   const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time(),...this.#networkOriginals());
    const after=await this.#post(p,before,body.expiresAtMs);
    this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state,key,raw,terminal:canonical({version:2,eventDigest:state.recordDigest})});this.#completionViews=after;this.#completionRaw=signed;return signed;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
@@ -262,22 +267,29 @@ export class OriginalSourceCurrentV2KeyFile {
  close(){if(this.#closeSelected){if(this.#closeFailed)throw this.#closeCause;return;}this.#closeSelected=true;this.wipe();try{if(this.#fd!==undefined)closeSync(this.#fd);}catch(e){this.#closeFailed=true;this.#closeCause=e;throw e;}}
 }
 export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readOnly=false){
+ if(entry?.policy?.signatureContract?.purpose===WM_PURPOSE)fail('MOBILE_SOURCE_NATIVE_LOADER_REQUIRED');
  // No fallback to portable signing or caller crypto. Runtime check occurs
  // before any private file read; provider itself independently enforces it.
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
- const sensitivePurpose=[MANAGEMENT_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
+ // Acquire only from the fixed original Native module; never entry JSON.
+ const pending=entry.policy.signatureContract.purpose===NPR_PURPOSE,networkGetter=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';
+ const networkNative=[NR_PURPOSE,NPR_PURPOSE].includes(entry.policy.signatureContract.purpose)?createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url))):null;
+ if(networkNative&&typeof networkNative[networkGetter]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');
+ const networkHeld=networkNative?(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(networkNative[networkGetter]()):undefined;
+ const networkArgs=()=>{if(!networkNative)return [];(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(networkHeld,networkNative[networkGetter]());return [networkHeld];};
+ const sensitivePurpose=[NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
  const acquisitionTime=()=>{const n=Date.now();if(sensitivePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
  if(sensitivePurpose)acquisitionTime();
  let selected;const selectedViews=[];
- for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,acquisitionTime());selected=views.current;selectedViews.push(views);}
+ for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,acquisitionTime(),...networkArgs());selected=views.current;selectedViews.push(views);}
  if(!selected)fail('AUTH_SOURCE_V2_PROFILES');const record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_SOURCE_V2_CURRENT_ROLE_UNAVAILABLE');
  if(sensitivePurpose){
   // Every asynchronous registration observation must finish BEFORE the final
   // device-profile/key-open fence. A first profile may expire while a later
   // profile is observed; no current role key may be read on that stale set.
-  for(let i=0;i<profiles.length;i++)verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profiles[i],entry.policy,selectedViews[i],acquisitionTime());
+  for(let i=0;i<profiles.length;i++)verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profiles[i],entry.policy,selectedViews[i],acquisitionTime(),...networkArgs());
   // The verifier itself calls retained math/view suppliers. Recheck all local
   // original windows after those callbacks, immediately before key custody.
   const now=acquisitionTime();
@@ -286,10 +298,49 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  let a,b,keys,service,closed=false,closeSelected=false,closeCause,closeFailed=false;
  const signer=Object.freeze({retire(){closed=true;},join(){},assertCurrent(snapshot){if(closed)fail('AUTH_SOURCE_V2_KEY_CLOSED');a.assertCurrent();b.assertCurrent();const view=inspectPQAuthorizationView(snapshot);if(!view.pqSigningEnabled||!view.activeRecord||view.activeRecord.pkA!==record.pkA||view.activeRecord.pkB!==record.pkB||view.activeRecord.revision!==record.revision||snapshot.owner!==selected.owner)fail('AUTH_SOURCE_V2_CURRENT_ROLE_CHANGED');},signCurrent(message,binding,snapshot){this.assertCurrent(snapshot);let batch;try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:'AUTH-SOURCE-CURRENT'},[Buffer.from(message)]).batch;return encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}},close(){if(closeSelected){if(closeFailed)throw closeCause;return;}closed=true;closeSelected=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_SOURCE_V2_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!closeFailed){closeCause=e;closeFailed=true;}}if(closeFailed)throw closeCause;}});
  try{
-  a=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
+  networkArgs();a=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
   const native=createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url)));
   if(readOnly&&typeof native.openV2Existing!=='function')fail('AUTH_PUBLICATION_READONLY_IO_NOT_SUPPLIED');
   const io=readOnly?Object.freeze({openV2:(parent,leaf)=>native.openV2Existing(parent,leaf),ready:ref=>native.ready(ref),list:ref=>native.list(ref),read:(ref,name)=>native.read(ref,name),write:()=>fail('AUTH_PUBLICATION_QUERY_READONLY'),close:ref=>native.close(ref)}):native;
   service=new OriginalAuthSourceCurrentV2Kernel(rootRaw,enrollmentRaw,profiles,entry.policy,entry.node,signer,io);await service.initialize();return service;
  }catch(error){return Object.freeze({partial:service??signer,error});}finally{a?.wipe();b?.wipe();}
+}
+
+// Publisher-only normal loader. The fixed Root capture and full current17
+// qualification precede ALL private-key IO. No consumer13 or fallback signer.
+export async function loadOriginalNetworkCurrentPublisherSelectedKeysV1(entry){
+ if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
+ if(entry?.policy?.signatureContract?.purpose!==NCP_PURPOSE)fail('NETWORK_PUBLISHER_DEDICATED_PURPOSE_REQUIRED');
+ const factory=await import('../native/original-network-current-publisher-reference-private.mjs');
+ let reference,a,b,keys,signer,receiver,retired=false,closeSelected=false,closeErrorPresent=false,closeError;
+ try{
+  reference=await factory.acquireOriginalNetworkResourceCurrentPublisherReferenceV1();
+  await factory.assertOriginalNetworkResourceCurrentPublisherReferenceV1(reference);
+  factory.assertOriginalNetworkCurrentPublisherLoaderEntryV1(reference,entry);
+  const selected=factory.readOriginalNetworkCurrentPublisherRegisteredViewV1(reference),record=inspectPQAuthorizationView(selected).activeRecord;
+  if(!record)fail('AUTH_SOURCE_V2_CURRENT_ROLE_UNAVAILABLE');
+  // A partial key acquisition is owned before opening the second key. This
+  // same inventory is retained on every failure, including receiver creation.
+  const assertKeyCurrent=snapshot=>{if(retired)fail('AUTH_SOURCE_V2_KEY_CLOSED');a?.assertCurrent();b?.assertCurrent();const view=inspectPQAuthorizationView(snapshot);if(snapshot!==selected||!view.pqSigningEnabled||view.authorizationStatus==='revoked'||!view.activeRecord||view.activeRecord.pkA!==record.pkA||view.activeRecord.pkB!==record.pkB||view.activeRecord.revision!==record.revision)fail('AUTH_SOURCE_V2_CURRENT_ROLE_CHANGED');};
+  signer=Object.freeze({
+   retire(){retired=true;},join(){},
+   async assertCurrent(snapshot){await factory.assertOriginalNetworkResourceCurrentPublisherReferenceV1(reference);assertKeyCurrent(snapshot);},
+   async signCurrent(message,binding,snapshot){
+    await this.assertCurrent(snapshot);factory.assertOriginalNetworkCurrentPublisherMessageV1(reference,message,binding);let batch,member;
+    try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:'AUTH-SOURCE-CURRENT'},[Buffer.from(message)]).batch;member=encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}
+    try{await this.assertCurrent(snapshot);}catch(cause){throw Object.assign(Error('Original publisher post-sign current failed'),{code:'NETWORK_PUBLISHER_POST_SIGN_UNKNOWN',partial:member,cause});}
+    return member;
+   },
+   close(){if(closeSelected){if(closeErrorPresent)throw closeError;return;}retired=true;closeSelected=true;for(const close of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_SOURCE_V2_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{close();}catch(error){if(!closeErrorPresent){closeErrorPresent=true;closeError=error;}}if(closeErrorPresent)throw closeError;}
+  });
+  // Recheck AFTER the last awaited qualification and immediately before each
+  // protected file operation. Original key class enforces held identity pins.
+  await signer.assertCurrent(selected);factory.assertOriginalNetworkCurrentPublisherLoaderEntryV1(reference,entry);
+  a=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.A);a.initialize();
+  await signer.assertCurrent(selected);b=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.B);b.initialize();
+  await signer.assertCurrent(selected);keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
+  await signer.assertCurrent(selected);
+  const fixedReceiver=await import('../native/original-network-current-publisher-adapter.mjs');
+  receiver=fixedReceiver.receiveOriginalNetworkCurrentSignerV1(reference,signer);return receiver;
+ }catch(error){const original=error?.errorPresent===true&&Object.hasOwn(error,'error')?error.error:error;return Object.freeze({partial:receiver??Object.freeze({publisherReference:reference??error?.partial??null,keyOwner:signer??null}),error:original,errorPresent:true});}finally{a?.wipe();b?.wipe();}
 }

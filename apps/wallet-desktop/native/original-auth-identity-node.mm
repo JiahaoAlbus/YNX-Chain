@@ -592,6 +592,7 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-ide-contract-relay-binding.inc.mm"
 #include "original-ide-project-authority-binding.inc.mm"
 #include "original-ide-workspace-project-selection.inc.mm"
+#include "ide-cloud-project-node.inc.mm"
 #include "original-pq-host-catalog-source-owner.inc.mm"
 // Fixed Main-owned user-addon binding only. The normal Main build owns the
 // include and its exact source pins; base SDK and root-helper builds omit it.
@@ -639,6 +640,9 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
 #include "original-pq-transaction-binding.inc.mm"
 #endif
+#ifdef YNX_NETWORK_CURRENT_PUBLISHER_CAPTURE_V1
+#include "network_publisher_napi_private.hpp"
+#endif
 extern "C" napi_value RegisterOriginalWalletPaySource(napi_env,napi_value);
 extern "C" napi_value RegisterOriginalProductSource(napi_env,napi_value);
 extern "C" napi_value RegisterOriginalWalletMainNamespaceV1(napi_env,napi_value);
@@ -657,6 +661,7 @@ static napi_value Register(napi_env env,napi_value exports){
  {"readOriginalNativePrivateServiceTerminalResult",ReadPrivateTerminalResult,nullptr},
  {"captureOriginalNativePrivateServiceBorrow",CapturePrivate,nullptr},{"assertOriginalNativePrivateServiceCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalNativePrivateServiceAdmission",AdmissionPrivate,nullptr},{"assertOriginalNativePrivateServiceTerminal",TerminalPrivate,nullptr},{"retireOriginalNativePrivateService",Lifecycle,(void *)jointRetire},{"joinOriginalNativePrivateService",Lifecycle,(void *)jointJoin},{"closeOriginalNativePrivateService",Lifecycle,(void *)jointClose}};
  for(auto &m:methods){napi_property_descriptor descriptor={m.name,nullptr,m.callback,nullptr,nullptr,nullptr,napi_default,m.data};if(napi_define_properties(env,exports,1,&descriptor)!=napi_ok)return nullptr;}
+ if(!RegisterOriginalIDECloudProjectLookup(env,exports))return nullptr;
  if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports)||!RegisterOriginalIDEProjectAuthorityBinding(env,exports)||!RegisterOriginalIDEWorkspaceProjectSelection(env,exports)||!RegisterOriginalPQHostCatalogSource(env,exports))return nullptr;
 #if defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
  if(!RegisterOriginalArtifactPublisherBinding(env,exports))return nullptr;
@@ -680,6 +685,9 @@ static napi_value Register(napi_env env,napi_value exports){
  if(!RegisterOriginalProductDeviceV4QuerySourceStage(env,exports))return nullptr;
 #endif
  if(!RegisterOriginalWalletMainNamespaceV1(env,exports)||!RegisterOriginalWalletPaySource(env,exports)||!RegisterOriginalProductSource(env,exports))return nullptr;
+#ifdef YNX_NETWORK_CURRENT_PUBLISHER_CAPTURE_V1
+ if(!RegisterOriginalNetworkCurrentPublisherCaptureV1(env,exports))return nullptr;
+#endif
 #ifdef YNX_ORIGINAL_AI_TASK_CLIENT_V6_STAGE
  if(!RegisterOriginalAITaskActionClientV6(env,exports))return nullptr;
 #endif
