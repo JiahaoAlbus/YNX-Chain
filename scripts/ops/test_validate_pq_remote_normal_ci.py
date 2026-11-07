@@ -1497,6 +1497,11 @@ PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED = """required = ['TestPQLabSenderPUBLICReadyB
 """
 
 
+SENDER_PARENT_PERSISTENCE_BLOCK = "sender_parent_persistence_required = ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']\ndef qualify_sender_parent_persistence(events):\n    # A durability case never qualifies from a detached PASS or a partial group.\n    qualify_state_partitions(events)\n    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'\n    for name in sender_parent_persistence_required:\n        runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']\n        outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]\n        if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:\n            raise RuntimeError('sender parent persistence did not execute uniquely: ' + name)\n    return sender_parent_persistence_required\n"
+SENDER_PARENT_PERSISTENCE_CALL = "sender_parent_persistence_passed = qualify_sender_parent_persistence(events)\nprint('YNX_SENDER_PARENT_PERSISTENCE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=sender_parent_persistence_passed, suitePassed=True, powerCutTest=False, nativeGrant=False), sort_keys=True))\n"
+SENDER_PARENT_PERSISTENCE_REQUIRED = "required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']\n"
+
+
 def assert_state_math_required_workflow_contract(step):
     """Keep all original cases exactly once across bounded source partitions."""
     required = re.findall(r"(?m)^          required = (.+)$", step)
@@ -1544,6 +1549,9 @@ def assert_state_math_required_workflow_contract(step):
     for block in (PUBLIC_OWNER_CORE_BLOCK, PUBLIC_OWNER_CORE_CALL, PUBLIC_OWNER_CORE_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("public owner core requires exact original cases and whole-stream closure")
+    for block in (SENDER_PARENT_PERSISTENCE_BLOCK, SENDER_PARENT_PERSISTENCE_CALL, SENDER_PARENT_PERSISTENCE_REQUIRED):
+        if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
+            raise AssertionError("five original sender persistence cases require unique complete-stream qualification")
     commands = (command, proof_command, production, live, large_live)
     if [step.index(c) for c in commands] != sorted(step.index(c) for c in commands):
         raise AssertionError("state partition execution order changed")
@@ -4587,6 +4595,59 @@ class PublicTestStreamRetentionControls(unittest.TestCase):
                 _,pins,errors=scope['original_source_identity'](root)
                 self.assertIn('source-file:'+name,errors);self.assertEqual(pins[name],dict(status='missing-or-changed'))
                 path.unlink();self.assertTrue(scope['original_source_identity'](root)[2])
+
+
+
+
+class SenderParentPersistenceCIControls(unittest.TestCase):
+    def actual(self):
+        root, raw, step, scope = CompleteStatePartitionControls().workflow_parts()
+        events = CompleteStatePartitionControls().fixture(scope)
+        package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        at = [i for i, event in enumerate(events) if event['Action'] == 'start'][3] + 1
+        rows = []
+        for name in scope['sender_parent_persistence_required']:
+            rows += [dict(Package=package, Test=test, Action=action) for test, action in
+                     ((name, 'run'), (name+'/original', 'run'), (name+'/original', 'pass'), (name, 'pass'))]
+        return root, raw, step, scope, events[:at] + rows + events[at:]
+
+    def test_sender_parent_persistence_exact_sources_and_unchanged_original_lab_selector(self):
+        root, raw, step, scope, events = self.actual()
+        assert_state_math_required_workflow_contract(step)
+        assert_public_stream_retention_workflow_contract(raw)
+        expected = ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
+        self.assertEqual(scope['sender_parent_persistence_required'], expected)
+        self.assertEqual(scope['qualify_sender_parent_persistence'](events), expected)
+        source = '\n'.join((root/'internal/consensus'/name).read_text() for name in
+                          ('pq_lab_sender_parent_sync_test.go', 'pq_lab_sender_persistence_metrics_test.go'))
+        for name in expected:
+            self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)', source, re.M)), 1)
+            self.assertEqual([partition for partition, run, skip in scope['state_partitions']
+                              if (not run or re.search(run, name)) and (not skip or not re.search(skip, name))], ['lab'])
+        self.assertEqual(step.count('go test -json -p 1 -count=1 -timeout=180s '), 6)
+
+    def test_sender_parent_persistence_refuses_partial_duplicate_rename_and_child_failure(self):
+        _, _, _, scope, events = self.actual()
+        PublicOwnerSessionCIControls().reject_variants(scope, events,
+            'qualify_sender_parent_persistence', scope['sender_parent_persistence_required'])
+        # A successful earlier group cannot replace the original lab package.
+        missing_lab = [e for e in events if not e.get('Test', '').startswith('TestPQLabSenderPUBLICOperationParentPersistenceBarrier')]
+        with self.assertRaises(RuntimeError): scope['qualify_sender_parent_persistence'](missing_lab)
+        starts = [i for i, e in enumerate(events) if e['Action'] == 'start']
+        for broken in (events[:starts[3]], events[starts[3]:starts[4]],
+                       events[:starts[4]], events+events, events[:starts[3]]+events[starts[4]:]):
+            with self.assertRaises(RuntimeError): scope['qualify_sender_parent_persistence'](broken)
+
+    def test_sender_parent_persistence_mandatory_collector_cannot_be_detached_or_skipped(self):
+        _, _, step, scope, _ = self.actual()
+        mutations = [step.replace('sender_parent_persistence_passed = qualify_sender_parent_persistence(events)',
+                                  'sender_parent_persistence_passed = sender_parent_persistence_required', 1),
+                     step.replace('required += '+repr(scope['sender_parent_persistence_required']), 'required += []', 1),
+                     step.replace('YNX_SENDER_PARENT_PERSISTENCE_TESTS', 'UNQUALIFIED', 1)]
+        for name in scope['sender_parent_persistence_required']:
+            mutations.append(step.replace(name, name+'Renamed', 1))
+        for changed in mutations:
+            with self.assertRaises(AssertionError): assert_state_math_required_workflow_contract(changed)
 
 
 if __name__ == "__main__":

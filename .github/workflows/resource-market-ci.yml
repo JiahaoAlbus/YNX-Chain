@@ -2469,12 +2469,25 @@ jobs:
                   if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
                       raise RuntimeError('public owner core did not execute uniquely: ' + name)
               return public_owner_core_required
+          sender_parent_persistence_required = ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
+          def qualify_sender_parent_persistence(events):
+              # A durability case never qualifies from a detached PASS or a partial group.
+              qualify_state_partitions(events)
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+              for name in sender_parent_persistence_required:
+                  runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+                  outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                  if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                      raise RuntimeError('sender parent persistence did not execute uniquely: ' + name)
+              return sender_parent_persistence_required
           state_partition_summary = qualify_state_partitions(events)
           print('YNX_COMPLETE_STATE_PARTITIONS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], **state_partition_summary), sort_keys=True))
           live_cold_owner_passed = qualify_live_cold_owner(events)
           print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_cold_owner_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
           public_owner_core_passed = qualify_public_owner_core(events)
           print('YNX_PUBLIC_OWNER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_core_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
+          sender_parent_persistence_passed = qualify_sender_parent_persistence(events)
+          print('YNX_SENDER_PARENT_PERSISTENCE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=sender_parent_persistence_passed, suitePassed=True, powerCutTest=False, nativeGrant=False), sort_keys=True))
           PY
           python3 -B - <<'PY'
           import json, os
@@ -2490,6 +2503,7 @@ jobs:
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
+          required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
