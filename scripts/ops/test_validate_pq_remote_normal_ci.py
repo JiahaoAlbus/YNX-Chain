@@ -1476,20 +1476,39 @@ def assert_fresh_business_supply_workflow_contract(raw):
         need("|| true" not in step and "continue-on-error:" not in step)
     need("        timeout-minutes: 2\n" in receive and "        timeout-minutes: 2\n" in seal)
     need("          GH_TOKEN: ${{ github.token }}\n" in receive and "timeout 90s /bin/bash -euo pipefail" in receive)
-    for endpoint, limit in (("runs/40220335526", 131073), ("artifacts/12609705118", 65537), ("artifacts/12609705118/zip", 33554433)):
+    for endpoint, limit in (("runs/42358365813", 131073), ("artifacts/13569070487", 65537), ("artifacts/13569070487/zip", 33554433)):
         need(receive.count("gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/" + endpoint + " | head -c " + str(limit) + " >") == 1)
-    for pin in ("9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf",
+    for pin in ("9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a",
                 "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9",
                 "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec",
                 "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"):
         need(pin in receive and pin in seal)
-    for token in ("run.get('conclusion') != 'success'", "artifact.get('digest') != 'sha256:' + digest",
+    for token in ("producer = '5eca0a866b85b82fb756ab290f346b05b9cc8f12'",
+                  "build_producer = 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'",
+                  "run.get('id') != 42358365813", "run.get('head_sha') != producer",
+                  "run.get('event') != 'push'", "run.get('path') != '.github/workflows/pq-client-retained-reissue.yml'",
+                  "run.get('workflow_id') != 410193143", "type(run.get('run_attempt')) is not int", "run.get('run_attempt') != 1",
+                  "run.get('head_branch') != 'ynx-pq-client-retained-reissue-20261107'",
+                  "run.get('repository', {}).get('id') != 1285041796", "run.get('head_repository', {}).get('id') != 1285041796",
+                  "run.get('repository', {}).get('full_name') != 'JiahaoAlbus/YNX-Chain'", "run.get('head_repository', {}).get('full_name') != 'JiahaoAlbus/YNX-Chain'",
+                  "run.get('repository', {}).get('fork') is not False", "run.get('head_repository', {}).get('fork') is not False",
+                  "run.get('status') != 'completed'", "run.get('conclusion') != 'success'",
+                  "artifact.get('id') != 13569070487", "artifact.get('name') != 'pq-client-retained-reissue-42358365813-1'",
+                  "artifact.get('expired') is not False", "artifact.get('size_in_bytes') != 19074595",
+                  "artifact.get('workflow_run', {}).get('id') != 42358365813", "artifact.get('workflow_run', {}).get('head_sha') != producer",
+                  "artifact.get('workflow_run', {}).get('head_branch') != 'ynx-pq-client-retained-reissue-20261107'",
+                  "artifact.get('workflow_run', {}).get('repository_id') != 1285041796", "artifact.get('workflow_run', {}).get('head_repository_id') != 1285041796",
+                  "artifact.get('digest') != 'sha256:' + digest", "metadata.get('producerCommit') != build_producer",
+                  "archive = bounded(root / 'client.zip', 32 << 20)", "len(archive) != 19074595",
                   "hashlib.sha256(archive).hexdigest() != digest", "len(entries) != 3",
                   "{entry.filename for entry in entries} != set(expected)", "stat.S_ISLNK(mode)",
                   "(len(raw), hashlib.sha256(raw).hexdigest()) != expected[entry.filename]"):
         need(token in receive)
     for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
-                  "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+                  "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+                  "performanceClientProducerCommit='5eca0a866b85b82fb756ab290f346b05b9cc8f12'",
+                  "performanceClientBuildProducerCommit='da3060e150e2bd0f5695d67a76f3b30fafd1c696'",
+                  "performanceClientNormalRunId='42358365813', performanceClientArtifactId='13569070487'",
                   "919a942ecfe7e85582613b8a09a10c23443a671c104ef46e6c919fb7338994c1",
                   "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
                   "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
@@ -1553,6 +1572,11 @@ def assert_fresh_business_execution_workflow_contract(raw):
                   "stat.S_IFMT(entry.external_attr >> 16) in (0, stat.S_IFREG)",
                   "set(original) == set(keys)", "original['runId'] == gate['normalRunId']", "original['runAttempt'] == gate['normalRunAttempt']",
                   "original['protocolCommit'] == os.environ['GITHUB_SHA']", "original['protocolTree'] == subprocess.check_output",
+                  "performanceClientProducerCommit performanceClientBuildProducerCommit performanceClientNormalRunId",
+                  "original['performanceClientProducerCommit'] == '5eca0a866b85b82fb756ab290f346b05b9cc8f12'",
+                  "original['performanceClientBuildProducerCommit'] == 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'",
+                  "original['performanceClientNormalRunId'] == '42358365813'", "original['performanceClientArtifactId'] == '13569070487'",
+                  "original['performanceClientArchiveSHA256'] == '9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a'",
                   "pins = guard.consensus_business_source_pins(True)", "set(original['files']) == catalog - {'SOURCE.json'}",
                   "original['sourceLeaves'] == {key: pin['sha256'] for key, pin in pins.items()}",
                   "write(intake / 'SOURCE.json', source_raw)", "original['locationBoundManifest'] == dict(file='build/business-manifest.json'",
@@ -2363,8 +2387,10 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         previous = next(s for s in steps if s.startswith("      - name: Upload only the exact public signed-business build inputs\n"))
         mutations = [
             raw.replace(receive, receive.replace("timeout 90s", "timeout 180s", 1), 1),
-            raw.replace(receive, receive.replace("artifacts/12609705118/zip", "artifacts/12609705119/zip", 1), 1),
-            raw.replace(receive, receive.replace("9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf", "0" * 64), 1),
+            raw.replace(receive, receive.replace("32 << 20", "64 << 20", 1), 1),
+            raw.replace(receive, receive.replace("artifacts/13569070487/zip", "artifacts/13569070488/zip", 1), 1),
+            raw.replace(receive, receive.replace("metadata.get('producerCommit') != build_producer", "metadata.get('producerCommit') != producer", 1), 1),
+            raw.replace(receive, receive.replace("9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a", "0" * 64), 1),
             raw.replace(receive, receive.replace("len(entries) != 3", "len(entries) != 4", 1), 1),
             raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
             raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
@@ -2375,7 +2401,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
             raw.replace(upload, upload.replace("steps.pqfreshbusinessbuild.outcome == 'success'", "true", 1), 1),
             raw.replace(upload, upload.replace("/client/go-build-info.txt", "/private/validator-key.json", 1), 1),
-            raw.replace(receive, receive.replace("gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118/zip", "gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118/zip || true", 1), 1),
+            raw.replace(receive, receive.replace("gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13569070487/zip", "gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13569070487/zip || true", 1), 1),
             raw.replace(receive + seal + upload, "", 1).replace(previous, receive + seal + upload + previous, 1),
         ]
         for index, changed in enumerate(mutations):
@@ -3544,6 +3570,207 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_workflow_contract(changed)
+
+
+class RetainedClientPublisherWorkflowControls(unittest.TestCase):
+    """Execute the real YAML Python guards; no HTTP, ELF, node, or archive build."""
+    @staticmethod
+    def workflow():
+        return (Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml").read_text()
+
+    @staticmethod
+    def body(raw, identifier, job="protocol-delivery"):
+        import textwrap
+        _, steps = workflow_steps(raw, job)
+        selected = [step for step in steps if "        id: " + identifier + "\n" in step]
+        if len(selected) != 1:
+            raise AssertionError("unique original workflow block required")
+        parts = selected[0].split("          python3 -B - <<'PY'\n")
+        # The relocation step first validates gate metadata, then opens the
+        # original artifact. Select its actual artifact block by the marker.
+        blocks = [textwrap.dedent(p.split("          PY\n", 1)[0]) for p in parts[1:]]
+        if identifier == "pqfreshprepare":
+            blocks = [p for p in blocks if "original supply source or DATA boundary differs" in p]
+        if len(blocks) != 1:
+            raise AssertionError("unique original Python block required")
+        return blocks[0]
+
+    @staticmethod
+    def reject_node(tree, message):
+        import ast
+        found = [node for node in tree.body if isinstance(node, ast.If) and
+                 any(isinstance(n, ast.Constant) and n.value == message for n in ast.walk(node))]
+        if len(found) != 1:
+            raise AssertionError("unique original rejecting condition required")
+        return found[0]
+
+    @staticmethod
+    def execute(nodes, values):
+        import ast
+        exec(compile(ast.fix_missing_locations(ast.Module(body=nodes, type_ignores=[])),
+                     "actual-retained-client-workflow-guard", "exec"), values)
+        return values
+
+    def receive_parts(self):
+        import ast
+        tree = ast.parse(self.body(self.workflow(), "pqfreshclient"))
+        assignments = [node for node in tree.body if isinstance(node, ast.Assign) and
+                       len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and
+                       node.targets[0].id in ("producer", "build_producer", "digest", "expected")]
+        self.assertEqual(len(assignments), 4)
+        return tree, assignments
+
+    @staticmethod
+    def metadata_fixture():
+        repository = dict(id=1285041796, full_name="JiahaoAlbus/YNX-Chain", fork=False)
+        run = dict(id=42358365813, head_sha="5eca0a866b85b82fb756ab290f346b05b9cc8f12", event="push",
+                   path=".github/workflows/pq-client-retained-reissue.yml", workflow_id=410193143,
+                   run_attempt=1, head_branch="ynx-pq-client-retained-reissue-20261107",
+                   status="completed", conclusion="success", repository=repository,
+                   head_repository=copy.deepcopy(repository))
+        artifact = dict(id=13569070487, name="pq-client-retained-reissue-42358365813-1", expired=False,
+                        size_in_bytes=19074595, digest="sha256:9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a",
+                        workflow_run=dict(id=run["id"], head_sha=run["head_sha"], head_branch=run["head_branch"],
+                                          repository_id=1285041796, head_repository_id=1285041796))
+        return run, artifact
+
+    def test_retained_publisher_metadata_executes_actual_fixed_guard(self):
+        tree, assignments = self.receive_parts()
+        reject = self.reject_node(tree, "fixed normal client producer/artifact identity differs")
+        run, artifact = self.metadata_fixture()
+        self.execute(assignments + [reject], dict(run=run, artifact=artifact))
+        changes = [
+            ("run", ("id",), 40220335526), ("run", ("head_sha",), "da3060e150e2bd0f5695d67a76f3b30fafd1c696"),
+            ("run", ("event",), "workflow_dispatch"), ("run", ("path",), ".github/workflows/resource-market-ci.yml"),
+            ("run", ("workflow_id",), 410193144), ("run", ("run_attempt",), 2), ("run", ("run_attempt",), True),
+            ("run", ("head_branch",), "main"), ("run", ("status",), "in_progress"), ("run", ("conclusion",), "failure"),
+            ("run", ("repository", "id"), 1), ("run", ("head_repository", "id"), 1),
+            ("run", ("repository", "full_name"), "other/YNX-Chain"), ("run", ("head_repository", "full_name"), "other/YNX-Chain"),
+            ("run", ("repository", "fork"), True), ("run", ("head_repository", "fork"), True),
+            ("artifact", ("id",), 12609705118), ("artifact", ("name",), "pq-client-retained-reissue-42358365813-2"),
+            ("artifact", ("expired",), True), ("artifact", ("size_in_bytes",), 19074594),
+            ("artifact", ("digest",), "sha256:9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf"),
+            ("artifact", ("workflow_run", "id"), 40220335526),
+            ("artifact", ("workflow_run", "head_sha"), "da3060e150e2bd0f5695d67a76f3b30fafd1c696"),
+            ("artifact", ("workflow_run", "head_branch"), "main"),
+            ("artifact", ("workflow_run", "repository_id"), 1), ("artifact", ("workflow_run", "head_repository_id"), 1),
+        ]
+        for subject, keys, value in changes:
+            values = dict(run=copy.deepcopy(run), artifact=copy.deepcopy(artifact))
+            target = values[subject]
+            for key in keys[:-1]:
+                target = target[key]
+            target[keys[-1]] = value
+            with self.subTest(subject=subject, keys=keys, value=value), self.assertRaises(RuntimeError):
+                self.execute(assignments + [reject], values)
+
+    def test_retained_original_source_keeps_its_build_producer(self):
+        tree, assignments = self.receive_parts()
+        reject = self.reject_node(tree, "compiled client source differs from the independent producer")
+        context = self.execute(assignments, {})
+        metadata = dict(commit="70e7e450997a0ae77dbad5a8be3682f482c6ddd8", producerCommit=context["build_producer"],
+                        sourceTree="4866cc3924c060eb6a29939915d39b1c5c625607", clientCodeTree="19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+                        target="linux-amd64", executionAuthorized=False, publicDeployment=False,
+                        files={name: dict(bytes=size, sha256=sha) for name, (size, sha) in context["expected"].items() if name != "SOURCE.json"})
+        self.execute(assignments + [reject], dict(metadata=metadata))
+        for key, value in (("producerCommit", context["producer"]), ("commit", context["producer"]),
+                           ("sourceTree", "0" * 40), ("clientCodeTree", "0" * 40), ("target", "darwin-arm64"),
+                           ("executionAuthorized", True), ("publicDeployment", True), ("files", {})):
+            changed = dict(metadata, **{key: value})
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                self.execute(assignments + [reject], dict(metadata=changed))
+
+    def test_retained_seal_and_relocation_share_closed_publisher_build_tuple(self):
+        import ast
+        from types import SimpleNamespace
+        raw = self.workflow()
+        seal = ast.parse(self.body(raw, "pqfreshbusinessbuild"))
+        record = next(node.value for node in seal.body if isinstance(node, ast.Assign) and
+                      isinstance(node.targets[0], ast.Name) and node.targets[0].id == "record")
+        names = {"performanceClientProducerCommit", "performanceClientBuildProducerCommit", "performanceClientNormalRunId",
+                 "performanceClientArtifactId", "performanceClientArchiveSHA256"}
+        values = {item.arg: ast.literal_eval(item.value) for item in record.keywords if item.arg in names}
+        self.assertEqual(set(values), names)
+        self.assertEqual(values, dict(performanceClientProducerCommit="5eca0a866b85b82fb756ab290f346b05b9cc8f12",
+            performanceClientBuildProducerCommit="da3060e150e2bd0f5695d67a76f3b30fafd1c696", performanceClientNormalRunId="42358365813",
+            performanceClientArtifactId="13569070487", performanceClientArchiveSHA256="9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a"))
+        relocation = ast.parse(self.body(raw, "pqfreshprepare", "focused-go"))
+        nodes = list(ast.walk(relocation))
+        keys = next(node for node in nodes if isinstance(node, ast.Assign) and isinstance(node.targets[0], ast.Name) and node.targets[0].id == "keys")
+        check = next(node for node in nodes if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and
+                     len(node.value.args) == 2 and isinstance(node.value.args[1], ast.Constant) and
+                     node.value.args[1].value == "original supply source or DATA boundary differs")
+        scope = self.execute([keys], {})
+        original = dict.fromkeys(scope["keys"])
+        original.update(values)
+        original.update(version="YNX-PQ-NETWORK-FRESH-BUSINESS-SUPPLY/v1", classification="data", profile="consensus-fresh-paired-business-v1",
+            protocolCommit=SHA, runId="123", runAttempt="1", platform="linux/amd64",
+            performanceClientCommit="70e7e450997a0ae77dbad5a8be3682f482c6ddd8", performanceClientTree="4866cc3924c060eb6a29939915d39b1c5c625607",
+            performanceClientCommandTree="19b9fafcfbb3f434b9ff745fb785afb1d0741247", relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest=True)
+        for key in ("relocatedAbsoluteManifestRunnable", "preparedRecipeSupplied", "binariesExecuted", "nodesStarted", "workloadExecuted", "authorityGranted", "publicDeployment", "pqActivation"):
+            original[key] = False
+
+        def require(ok, message):
+            if not ok:
+                raise RuntimeError(message)
+
+        def validate(value):
+            self.execute([keys, check], dict(original=value, require=require,
+                guard=SimpleNamespace(FRESH_BUSINESS_E2E_PROFILE="consensus-fresh-paired-business-v1",
+                    FRESH_BUSINESS_CLIENT_COMMIT=original["performanceClientCommit"], FRESH_BUSINESS_CLIENT_TREE=original["performanceClientTree"]),
+                os=SimpleNamespace(environ={"GITHUB_SHA": SHA}), gate=dict(normalRunId="123", normalRunAttempt="1")))
+
+        validate(original)
+        for key, value in (("performanceClientProducerCommit", values["performanceClientBuildProducerCommit"]),
+                           ("performanceClientBuildProducerCommit", values["performanceClientProducerCommit"]),
+                           ("performanceClientNormalRunId", "40220335526"), ("performanceClientArtifactId", "12609705118"),
+                           ("performanceClientArchiveSHA256", "9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf")):
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                validate(dict(original, **{key: value}))
+        missing = dict(original); del missing["performanceClientBuildProducerCommit"]
+        for changed in (missing, dict(original, arbitraryPublisherAccepted=True)):
+            with self.subTest(closed_keys=set(changed)), self.assertRaises(RuntimeError):
+                validate(changed)
+
+    def test_retained_zip_inner_guard_rejects_extra_wrong_and_normalized_originals(self):
+        import ast
+        import hashlib
+        import os
+        import stat
+        import tempfile
+        import zipfile
+        tree, assignments = self.receive_parts()
+        checks = [node for node in tree.body if isinstance(node, ast.With)]
+        self.assertEqual(len(checks), 1)
+        # Exact public SOURCE bytes from the independently retained original.
+        # No binary fixture, keys, execution, or substitute outer ZIP digest.
+        original = b'{"clientCodeTree":"19b9fafcfbb3f434b9ff745fb785afb1d0741247","commit":"70e7e450997a0ae77dbad5a8be3682f482c6ddd8","executionAuthorized":false,"files":{"go-build-info.txt":{"bytes":5526,"sha256":"25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"},"ynx-consensus-perf-client":{"bytes":38595797,"sha256":"a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"}},"goVersion":"go version go1.26.10 linux/amd64","kind":"ynx-pq-performance-client-build","normalSourceTestsToolchain":"original chain-core Go 1.25 source job","producerCommit":"da3060e150e2bd0f5695d67a76f3b30fafd1c696","publicDeployment":false,"sourceTree":"4866cc3924c060eb6a29939915d39b1c5c625607","target":"linux-amd64"}\n'
+        self.assertEqual((len(original), hashlib.sha256(original).hexdigest()),
+                         (708, "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9"))
+        normalized = (json.dumps(json.loads(original), indent=2) + "\n").encode()
+        self.assertEqual(json.loads(normalized), json.loads(original))
+        self.assertNotEqual(normalized, original)
+        cases = [
+            ("wrong-member", [("SOURCE.json", original), ("go-build-info.txt", b""), ("wrong-binary", b"")],
+             "original client ZIP must have exactly three public files"),
+            ("extra-member", [("SOURCE.json", original), ("go-build-info.txt", b""), ("ynx-consensus-perf-client", b""), ("extra", b"")],
+             "original client ZIP must have exactly three public files"),
+            ("normalized-source", [("SOURCE.json", normalized), ("go-build-info.txt", b""), ("ynx-consensus-perf-client", b"")],
+             "original client ZIP entry shape differs"),
+            ("same-length-tamper", [("SOURCE.json", original.replace(b"linux-amd64", b"Linux-amd64")), ("go-build-info.txt", b""), ("ynx-consensus-perf-client", b"")],
+             "original client public file pin differs"),
+        ]
+        for label, entries, message in cases:
+            with self.subTest(label=label), tempfile.TemporaryDirectory(prefix="retained-client-inner-") as directory:
+                root = Path(directory)
+                with zipfile.ZipFile(root / "client.zip", "w") as fixture:
+                    for name, content in entries:
+                        fixture.writestr(name, content)
+                with self.assertRaisesRegex(RuntimeError, re.escape(message)):
+                    self.execute(assignments + checks, dict(root=root, zipfile=zipfile, stat=stat, os=os, hashlib=hashlib))
+                # SOURCE is first: normalization/tamper must fail before any
+                # extraction, not because the later placeholder member is empty.
+                self.assertEqual({p.name for p in root.iterdir()}, {"client.zip"})
 
 
 if __name__ == "__main__":

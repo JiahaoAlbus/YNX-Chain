@@ -3078,7 +3078,7 @@ jobs:
                   return raw
               source_raw = small('SOURCE.json')
               original = guard.unique_json(source_raw)
-              keys = 'version classification profile protocolCommit protocolTree performanceClientCommit performanceClientTree performanceClientCommandTree performanceClientProducerCommit performanceClientNormalRunId performanceClientArtifactId performanceClientArchiveSHA256 performanceClientSource performanceClientBuildInformation originalSignedBusinessSourceSHA256 runId runAttempt platform sourceLeaves sourceGitBlobs files locationBoundManifest relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest relocatedAbsoluteManifestRunnable preparedRecipeSupplied binariesExecuted nodesStarted workloadExecuted authorityGranted publicDeployment pqActivation'.split()
+              keys = 'version classification profile protocolCommit protocolTree performanceClientCommit performanceClientTree performanceClientCommandTree performanceClientProducerCommit performanceClientBuildProducerCommit performanceClientNormalRunId performanceClientArtifactId performanceClientArchiveSHA256 performanceClientSource performanceClientBuildInformation originalSignedBusinessSourceSHA256 runId runAttempt platform sourceLeaves sourceGitBlobs files locationBoundManifest relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest relocatedAbsoluteManifestRunnable preparedRecipeSupplied binariesExecuted nodesStarted workloadExecuted authorityGranted publicDeployment pqActivation'.split()
               require(type(original) is dict and set(original) == set(keys)
                   and original['version'] == 'YNX-PQ-NETWORK-FRESH-BUSINESS-SUPPLY/v1' and original['classification'] == 'data'
                   and original['profile'] == guard.FRESH_BUSINESS_E2E_PROFILE and original['protocolCommit'] == os.environ['GITHUB_SHA']
@@ -3086,9 +3086,10 @@ jobs:
                   and original['platform'] == 'linux/amd64' and original['performanceClientCommit'] == guard.FRESH_BUSINESS_CLIENT_COMMIT
                   and original['performanceClientTree'] == guard.FRESH_BUSINESS_CLIENT_TREE
                   and original['performanceClientCommandTree'] == '19b9fafcfbb3f434b9ff745fb785afb1d0741247'
-                  and original['performanceClientProducerCommit'] == 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'
-                  and original['performanceClientNormalRunId'] == '40220335526' and original['performanceClientArtifactId'] == '12609705118'
-                  and original['performanceClientArchiveSHA256'] == '9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf'
+                  and original['performanceClientProducerCommit'] == '5eca0a866b85b82fb756ab290f346b05b9cc8f12'
+                  and original['performanceClientBuildProducerCommit'] == 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'
+                  and original['performanceClientNormalRunId'] == '42358365813' and original['performanceClientArtifactId'] == '13569070487'
+                  and original['performanceClientArchiveSHA256'] == '9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a'
                   and original['relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest'] is True
                   and all(original[key] is False for key in ('relocatedAbsoluteManifestRunnable', 'preparedRecipeSupplied', 'binariesExecuted', 'nodesStarted', 'workloadExecuted', 'authorityGranted', 'publicDeployment', 'pqActivation')), 'original supply source or DATA boundary differs')
               require(original['protocolTree'] == subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
@@ -4989,16 +4990,18 @@ jobs:
           export YNX_FRESH_CLIENT_ORIGINAL
           mkdir -m 0700 "$YNX_FRESH_CLIENT_ORIGINAL"
           timeout 90s /bin/bash -euo pipefail <<'DOWNLOAD'
-          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/runs/40220335526 | head -c 131073 > "$YNX_FRESH_CLIENT_ORIGINAL/run.json"
-          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118 | head -c 65537 > "$YNX_FRESH_CLIENT_ORIGINAL/artifact.json"
-          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118/zip | head -c 33554433 > "$YNX_FRESH_CLIENT_ORIGINAL/client.zip"
+          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/runs/42358365813 | head -c 131073 > "$YNX_FRESH_CLIENT_ORIGINAL/run.json"
+          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13569070487 | head -c 65537 > "$YNX_FRESH_CLIENT_ORIGINAL/artifact.json"
+          gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13569070487/zip | head -c 33554433 > "$YNX_FRESH_CLIENT_ORIGINAL/client.zip"
           DOWNLOAD
           python3 -B - <<'PY'
           import hashlib, json, os, stat, zipfile
           from pathlib import Path
           root = Path(os.environ['YNX_FRESH_CLIENT_ORIGINAL']).resolve(strict=True)
-          producer = 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'
-          digest = '9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf'
+          # The retained publisher reissues exact original build bytes; these identities are distinct.
+          producer = '5eca0a866b85b82fb756ab290f346b05b9cc8f12'
+          build_producer = 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'
+          digest = '9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a'
           expected = {'SOURCE.json': (708, '40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9'),
               'ynx-consensus-perf-client': (38595797, 'a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec'),
               'go-build-info.txt': (5526, '25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603')}
@@ -5008,12 +5011,22 @@ jobs:
               return path.read_bytes()
           run = json.loads(bounded(root / 'run.json', 131072))
           artifact = json.loads(bounded(root / 'artifact.json', 65536))
-          if (run.get('id') != 40220335526 or run.get('head_sha') != producer or run.get('event') != 'push'
+          if (run.get('id') != 42358365813 or run.get('head_sha') != producer or run.get('event') != 'push'
+                  or run.get('path') != '.github/workflows/pq-client-retained-reissue.yml' or run.get('workflow_id') != 410193143
+                  or type(run.get('run_attempt')) is not int or run.get('run_attempt') != 1
+                  or run.get('head_branch') != 'ynx-pq-client-retained-reissue-20261107'
+                  or run.get('repository', {}).get('id') != 1285041796 or run.get('head_repository', {}).get('id') != 1285041796
+                  or run.get('repository', {}).get('full_name') != 'JiahaoAlbus/YNX-Chain' or run.get('head_repository', {}).get('full_name') != 'JiahaoAlbus/YNX-Chain'
+                  or run.get('repository', {}).get('fork') is not False or run.get('head_repository', {}).get('fork') is not False
                   or run.get('status') != 'completed' or run.get('conclusion') != 'success'
-                  or artifact.get('id') != 12609705118 or artifact.get('expired') is not False
+                  or artifact.get('id') != 13569070487 or artifact.get('expired') is not False
+                  or artifact.get('name') != 'pq-client-retained-reissue-42358365813-1'
                   or artifact.get('digest') != 'sha256:' + digest or artifact.get('size_in_bytes') != 19074595
-                  or artifact.get('workflow_run', {}).get('id') != 40220335526
-                  or artifact.get('workflow_run', {}).get('head_sha') != producer):
+                  or artifact.get('workflow_run', {}).get('id') != 42358365813
+                  or artifact.get('workflow_run', {}).get('head_sha') != producer
+                  or artifact.get('workflow_run', {}).get('head_branch') != 'ynx-pq-client-retained-reissue-20261107'
+                  or artifact.get('workflow_run', {}).get('repository_id') != 1285041796
+                  or artifact.get('workflow_run', {}).get('head_repository_id') != 1285041796):
               raise RuntimeError('fixed normal client producer/artifact identity differs')
           archive = bounded(root / 'client.zip', 32 << 20)
           if len(archive) != 19074595 or hashlib.sha256(archive).hexdigest() != digest:
@@ -5036,7 +5049,7 @@ jobs:
                       os.fsync(target.fileno())
           metadata = json.loads((root / 'SOURCE.json').read_bytes())
           if (metadata.get('commit') != '70e7e450997a0ae77dbad5a8be3682f482c6ddd8'
-                  or metadata.get('producerCommit') != producer
+                  or metadata.get('producerCommit') != build_producer
                   or metadata.get('sourceTree') != '4866cc3924c060eb6a29939915d39b1c5c625607'
                   or metadata.get('clientCodeTree') != '19b9fafcfbb3f434b9ff745fb785afb1d0741247'
                   or metadata.get('target') != 'linux-amd64' or metadata.get('executionAuthorized') is not False
@@ -5173,9 +5186,10 @@ jobs:
               protocolTree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
               performanceClientCommit=client_commit, performanceClientTree=client_tree,
               performanceClientCommandTree='19b9fafcfbb3f434b9ff745fb785afb1d0741247',
-              performanceClientProducerCommit='da3060e150e2bd0f5695d67a76f3b30fafd1c696',
-              performanceClientNormalRunId='40220335526', performanceClientArtifactId='12609705118',
-              performanceClientArchiveSHA256='9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf',
+              performanceClientProducerCommit='5eca0a866b85b82fb756ab290f346b05b9cc8f12',
+              performanceClientBuildProducerCommit='da3060e150e2bd0f5695d67a76f3b30fafd1c696',
+              performanceClientNormalRunId='42358365813', performanceClientArtifactId='13569070487',
+              performanceClientArchiveSHA256='9d91a7ff9fcffb57c08553f6f321a7b0702a38a6d00cf411718377823240a43a',
               performanceClientSource=client_source_pin, performanceClientBuildInformation=client_info_pin,
               originalSignedBusinessSourceSHA256=os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA'],
               runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], platform='linux/amd64',
