@@ -1,0 +1,248 @@
+{
+  "version": "YNX-CORE-NORMAL-SOURCE-QUALIFICATION/v1",
+  "sourceCommit": "1b0ea548aca6b5260a9824d0edd3012d52e53521",
+  "sourceTree": "7c8f6cd8af01b366ea31ffc9f58659e6ca0099e6",
+  "productionCometTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7",
+  "normalCI": {
+    "chain": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/42345664402-FINAL-STATUS.json",
+      "bytes": 18327,
+      "sha256": "b739ec7494768ee13361f93cc758d3b0389456720042ca7353f1bcda1f990f58"
+    },
+    "resourceSnapshot": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/42345664409-FINAL-STATUS.json",
+      "bytes": 58628,
+      "sha256": "9a8ed811350b75dfe2a0480a27fce1fca0c3e693c82e53283b83411ed49ef1f4"
+    },
+    "chainConclusion": "success",
+    "focusedGoConclusion": "success",
+    "eightRuntimePlainGovulncheck": "success",
+    "wholeResourceConclusionAtSnapshot": "",
+    "protocolDeliveryAtSnapshot": "in_progress"
+  },
+  "sourceArchives": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/13564005459.zip",
+      "bytes": 11067,
+      "sha256": "b08d6dfd81ef4a387cf409198ad9c683ca569cd7a0cb6de91aac121a14107883"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/13563183469.zip",
+      "bytes": 11502,
+      "sha256": "347a0d9ce401a3463f54ad6dfa8162ee88a70c655bd4acf9de6054f53016b60c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/13563318084.zip",
+      "bytes": 6696,
+      "sha256": "7161456f8e54d29574c998bf782788804c84c09b0c9211453ab6dc64a0a6bcea"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/13563592493.zip",
+      "bytes": 2357,
+      "sha256": "faca376d34f3208f5ec383018312d1fb254a80c13f62b1ad16afb368c92cde8b"
+    }
+  ],
+  "rawJSONLChecks": [
+    {
+      "artifactId": 13564005459,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13564005459/wire-live-source-7bg6fj7m/normal-live-caller.jsonl",
+        "bytes": 28082,
+        "sha256": "7d4917b500b283bff459f9e7bb0ddc0f4c99aec6218385b737e2725b81dbf6ce"
+      },
+      "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet",
+      "uniqueRunPass": [
+        "TestOperatorWireLiveTypedNormalNodeBeforeStartIsUnknown",
+        "TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay",
+        "TestOperatorWireLiveUnknownPreservesOriginalAndRetires",
+        "TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit",
+        "TestOperatorWireLivePermissionsIdentityAndResiduals",
+        "TestOperatorWireLiveRequesterUnknownAndProducerIdentity",
+        "TestOperatorWireLiveSelfProcParsingAndDefaultOff"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13564005459,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13564005459/wire-live-source-7bg6fj7m/original-peer-budget.jsonl",
+        "bytes": 44340,
+        "sha256": "c8411126295308a7db122b67eb874be29a7646cd0bb3a0193747edc5ea900fe0"
+      },
+      "package": "github.com/cometbft/cometbft/mempool",
+      "uniqueRunPass": [
+        "TestLosslessHexBudgetNormalize",
+        "TestLosslessHexBudgetPeerIdentityAndLifetime",
+        "TestLosslessHexBudgetPeerBytes",
+        "TestLosslessHexBudgetPeerClock",
+        "TestLosslessHexBudgetSendAttemptsAndAtomicCharge",
+        "TestLosslessHexBudgetSendIdentityAndClock",
+        "TestLosslessHexBudgetSendClockRollback",
+        "TestLosslessHexBudgetParallelReservations",
+        "TestLosslessHexBudgetParallelAttemptsAndClose",
+        "TestLosslessHexBudgetFullQueueStopsWithoutRawReplay",
+        "TestLosslessHexBudgetReceiveBeforeOriginalCheckTx",
+        "TestLosslessHexBudgetFullQueueElapsedDeadline",
+        "TestLosslessHexBudgetInvalidEnableStaysDefaultOff",
+        "TestLosslessHexBudgetPackReservesBeforeFrameAllocation",
+        "TestLosslessHexBudgetPackFailureNeverFallsBack",
+        "TestLosslessHexBudgetTypedNilPeerCannotClaimCapability",
+        "TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial",
+        "TestLosslessHexTransportDefaultOffAndSingleCarrier",
+        "TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey",
+        "TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback",
+        "TestLosslessHexTransportQueuedRetryKeepsSelectedFormat",
+        "TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13563183469,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13563183469/wire-lossless-source-mt4aruc9/corrected-peer-budget.jsonl",
+        "bytes": 47919,
+        "sha256": "c10cbb6c7128f3fda63bf3c91a02d650ad9258cd10f32f654d920c343900819a"
+      },
+      "package": "github.com/cometbft/cometbft/mempool",
+      "uniqueRunPass": [
+        "TestLosslessHexBudgetNormalize",
+        "TestLosslessHexBudgetPeerIdentityAndLifetime",
+        "TestLosslessHexBudgetPeerBytes",
+        "TestLosslessHexBudgetPeerClock",
+        "TestLosslessHexBudgetSendAttemptsAndAtomicCharge",
+        "TestLosslessHexBudgetSendIdentityAndClock",
+        "TestLosslessHexBudgetSendClockRollback",
+        "TestLosslessHexBudgetParallelReservations",
+        "TestLosslessHexBudgetParallelAttemptsAndClose",
+        "TestLosslessHexBudgetInitialPeerReadinessDeadline",
+        "TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier",
+        "TestLosslessHexBudgetFullQueueStopsWithoutRawReplay",
+        "TestLosslessHexBudgetReceiveBeforeOriginalCheckTx",
+        "TestLosslessHexBudgetFullQueueElapsedDeadline",
+        "TestLosslessHexBudgetInvalidEnableStaysDefaultOff",
+        "TestLosslessHexBudgetPackReservesBeforeFrameAllocation",
+        "TestLosslessHexBudgetPackFailureNeverFallsBack",
+        "TestLosslessHexBudgetTypedNilPeerCannotClaimCapability",
+        "TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial",
+        "TestLosslessHexTransportDefaultOffAndSingleCarrier",
+        "TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey",
+        "TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback",
+        "TestLosslessHexTransportQueuedRetryKeepsSelectedFormat",
+        "TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13563183469,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13563183469/wire-lossless-source-mt4aruc9/normal-lossless-caller.jsonl",
+        "bytes": 11737,
+        "sha256": "da31037fbee5ce1c468fcc81851f9e2e0573041a91a2ae72628936e433aa9144"
+      },
+      "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet",
+      "uniqueRunPass": [
+        "TestOperatorLosslessHexDefaultOffAndClosedFlags",
+        "TestOperatorLosslessPairOriginalPQTimeIsConsensusState",
+        "TestOperatorLosslessHexTypedNormalConstructorBeforeStart",
+        "TestOperatorLosslessHexTypedScopeAndSourceRefusals"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13563318084,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13563318084/distributed-pq-core.jsonl",
+        "bytes": 46768,
+        "sha256": "7a26b4c9ed8caa1b7a7be09bbe524e898a97213110765141fe61ff9fb0b99561"
+      },
+      "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+      "uniqueRunPass": [
+        "TestPQLabDistributedConfigOriginalTemplateRoundTrip",
+        "TestPQLabDistributedPublicPlanHostLocalIsolation",
+        "TestPQLabDistributedIdentityAndSourceRefusalsPreserveOriginals",
+        "TestPQLabDistributedNormalRegistryCustodyAndColdResume",
+        "TestPQLabDistributedPartialImportNeverOverwritesUnknown",
+        "TestPQLabDistributedReadbackQuietRequiresOriginalCoordinates",
+        "TestPQLabDistributedReadbackBootstrapFullStateColdAndUnknown",
+        "TestPQLabDistributedReadbackRealPQProofAndPublicTamper",
+        "TestPQLabFinalizeTraceOriginalCompleteRequestsColdReplayAndRefusals",
+        "TestPQLabFinalizeTraceHeldStreamAndBoundedPartial"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13563318084,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13563318084/distributed-pq-command.jsonl",
+        "bytes": 6333,
+        "sha256": "d3e2146d73495d53f0f9fbf5cf25762f0a63bcdf3810c3487b01677923e7cb83"
+      },
+      "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab",
+      "uniqueRunPass": [
+        "TestPQLabDistributedCommandPublicExchangeAndLocalUnknown",
+        "TestPQLabDistributedCommandRefusesUnpinnedAndForeignSource",
+        "TestPQLabDistributedReadbackCommandSnapshotAndPublicComparison",
+        "TestPQLabDistributedReadbackCommandClosedFlags",
+        "TestPQLabFinalizeTraceCommandClosedInputs",
+        "TestPQLabFinalizeTraceCommandOriginalPublicReplayAndLostOutput"
+      ],
+      "skipOrFail": 0
+    },
+    {
+      "artifactId": 13563592493,
+      "file": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/artifact-13563592493/normal-lossless-default-caller.jsonl",
+        "bytes": 3274,
+        "sha256": "8ead227e094f84c1588c5870fef86574722056ed05d05e3ef1dd41f9fd3d8f67"
+      },
+      "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet",
+      "uniqueRunPass": [
+        "TestOperatorLosslessHexDefaultOffAndClosedFlags",
+        "TestOperatorLosslessPairOriginalPQTimeIsConsensusState",
+        "TestOperatorLosslessHexUnsupportedSourceRefusesBeforeState"
+      ],
+      "skipOrFail": 0
+    }
+  ],
+  "startup6": {
+    "result": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/STARTUP-COLLECTOR-RECEIPTS-FINAL.json",
+      "bytes": 5492,
+      "sha256": "831a7247e8a152731c5539a01e7d2caa6ba7cb35680e1593bc971d613f8246b2"
+    },
+    "originalJobLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/CLIENT-ORIGINAL.log",
+      "bytes": 81035,
+      "sha256": "14303b5d8fdd4ea00e38841bafcd29194654af930b4efd50baa11709a748004f"
+    },
+    "evidenceType": "actual original workflow collector uniquely qualified required terminal PASS from normal Go invocations; raw Go JSONL not uploaded for these six",
+    "requiredPassed": [
+      "TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState",
+      "TestPQLabStartupHeldInputsRejectReplacementAndWrongPin",
+      "TestPQLabStartupTimingNormalRegistrationAndUnknown",
+      "TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed",
+      "TestOperatorStartupTimingDefaultAndOriginalError",
+      "TestOperatorStartupTimingActualColdConstructorWithoutStart"
+    ]
+  },
+  "distributedOriginalLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/DISTRIBUTED-ORIGINAL.log",
+    "bytes": 31477,
+    "sha256": "04761a88795159b20460829ff98064387e9a2e039f3bab6a320ea9d3f68ff0ac"
+  },
+  "stagePublicFixtureArtifact": {
+    "id": 13563992676,
+    "expectedBytes": 12189703,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1b-normal-qualification-p8fwsrkk/13563992676.zip",
+    "state": "download_in_progress_fixture_only_not_required_for_named_source_checks"
+  },
+  "sourceOnlyQualified": true,
+  "freshRuntimePermissionGranted": false,
+  "nodeProcessesStartedByThisReadback": 0,
+  "actual500InitializationQualified": false,
+  "throughputOrFinalityMeasured": false,
+  "walletNativeAuthority": false,
+  "publicActivation": false,
+  "ownObserverOr999eQualification": false,
+  "reranGoOrBuild": false
+}

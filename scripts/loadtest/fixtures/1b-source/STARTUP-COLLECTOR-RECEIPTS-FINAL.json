@@ -1,0 +1,100 @@
+{
+  "rawSource": "original completed client-observations job128322783141 log; raw Go JSONL not retained by this artifact",
+  "receipts": [
+    {
+      "marker": "YNX_PQ_LAB_CALLEES_EXECUTED",
+      "receipt": {
+        "commit": "1b0ea548aca6b5260a9824d0edd3012d52e53521",
+        "nodeProcessesStarted": 0,
+        "publicActivation": false,
+        "requiredPassed": [
+          "TestPQLabNetworkOriginalInputsExclusiveAndLoopback",
+          "TestPQLabNetworkActiveEngineDBRefusesCustodyCreation",
+          "TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody",
+          "TestPQLabNetworkMissingCheckpointPreservesFailedAttempt",
+          "TestPQLabWorkloadRealSourceCorpusExecutionAndRestart",
+          "TestPQLabWorkloadBoundsAliasesAndExactSource",
+          "TestPQLabWorkloadProofOriginalCLIInputsAndNegatives",
+          "TestPQLabWorkloadMaximumProtocolWhole",
+          "TestPQLabNormalCommandFreshIndependentProcessInputs",
+          "TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs",
+          "TestPQLabWorkloadCommandInputsAndNoMutation",
+          "TestPQLabWorkloadCommandRealProofInputs",
+          "TestPQLabExportOriginalFourStoresNormalProofAndRefusals",
+          "TestPQLabMultiOwnerOriginalExecutionAndBounds",
+          "TestPQLabOnlineSenderRevocationAndPartialIntentPreserved",
+          "TestPQLabOnlineSenderOriginalRecoveryAndFullProof",
+          "TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown",
+          "TestPQLabPreSignedCommandCurrentCheckpoint",
+          "TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs",
+          "TestPQLabNormalCommandOnlineIndependentOwnerFlags",
+          "TestPQLabExportCommandOriginalStoppedStoreFixture",
+          "TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm",
+          "TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority",
+          "TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal",
+          "TestPQLabLiveMaterialsCommandStrictInputs",
+          "TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext",
+          "TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead",
+          "TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates",
+          "TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds",
+          "TestPQProofHistoryPersistentBranchesAndOwnedMaterialization",
+          "TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack",
+          "TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound",
+          "TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery",
+          "TestPQProofHistoryCurrentSourceTranscript",
+          "TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation",
+          "TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope",
+          "TestPQLabCanonicalComparisonExactChunks",
+          "TestPQLabCheckpointReadCurrentBytesAndCloseGuards",
+          "TestPQLabCheckpointReadJournalOriginalParity",
+          "TestPQLabCheckpointReadSameInputSevenHeightParity",
+          "TestPQLabProofInputsSameOriginalParityAndCost",
+          "TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState",
+          "TestPQLabStartupHeldInputsRejectReplacementAndWrongPin",
+          "TestPQLabStartupTimingNormalRegistrationAndUnknown",
+          "TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed"
+        ]
+      }
+    },
+    {
+      "marker": "YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED",
+      "receipt": {
+        "commit": "1b0ea548aca6b5260a9824d0edd3012d52e53521",
+        "nodeProcessesStarted": 0,
+        "normalEphemeralInProcessStartStop": true,
+        "physicalBytesMeasured": false,
+        "requiredPassed": [
+          "TestMempoolWireObserverOriginalReceiveAndCheckTx",
+          "TestMempoolWireObserverOriginalSendRetryAndBytes",
+          "TestMempoolWireObserverLifecycleAndConcurrentSnapshot",
+          "TestMempoolWireObserverOverflowIsExplicit",
+          "TestOperatorWireObservationFlagsDefaultAndFailClosed",
+          "TestOperatorWireObservationActualPinnedConstructorAndReactor",
+          "TestOperatorWireObservationActualScopeAndLoopbackRefusals",
+          "TestOperatorWireObservationNormalStopOneOutputAndPublicSchema",
+          "TestOperatorWireObservationFailureAndUnknownPreserveOriginal",
+          "TestOperatorWireObservationPathAndEndpointBoundaries",
+          "TestOperatorWireObservationExactOutputReadback",
+          "TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay",
+          "TestOperatorWireLiveUnknownPreservesOriginalAndRetires",
+          "TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit",
+          "TestOperatorWireLivePermissionsIdentityAndResiduals",
+          "TestOperatorWireLiveRequesterUnknownAndProducerIdentity",
+          "TestOperatorWireLiveSelfProcParsingAndDefaultOff",
+          "TestPQNodeNormalCancellationReturnsAfterOwnedStop",
+          "TestOperatorStartupTimingDefaultAndOriginalError",
+          "TestOperatorStartupTimingActualColdConstructorWithoutStart"
+        ]
+      }
+    }
+  ],
+  "startupRequiredPassed": [
+    "TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState",
+    "TestPQLabStartupHeldInputsRejectReplacementAndWrongPin",
+    "TestPQLabStartupTimingNormalRegistrationAndUnknown",
+    "TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed",
+    "TestOperatorStartupTimingDefaultAndOriginalError",
+    "TestOperatorStartupTimingActualColdConstructorWithoutStart"
+  ],
+  "rawGoReexecuted": false
+}
