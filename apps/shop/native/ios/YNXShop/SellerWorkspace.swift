@@ -80,8 +80,8 @@ private func sellerCanonicalInteger(_ value:String,positive:Bool=false)->Int64? 
 private func sellerRequiredText(_ value:String,_ maximum:Int)->Bool{!value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && value.utf8.count<=maximum}
 
 private enum SellerSheet:Identifiable {
-    case listing(String),inventory(String,String),ship(String),returnDecision(String,Bool),revoke(String)
-    var id:String{switch self{case .listing(let id):return "listing:"+id;case .inventory(let product,let variant):return "inventory:"+product+":"+variant;case .ship(let id):return "ship:"+id;case .returnDecision(let id,let approve):return "return:"+id+String(approve);case .revoke(let account):return "revoke:"+account}}
+    case listing(String),inventory(String,String),ship(String),returnDecision(String,Bool),revoke(String),createStore,createProduct,activateStore,invite
+    var id:String{switch self{case .listing(let id):return "listing:"+id;case .inventory(let product,let variant):return "inventory:"+product+":"+variant;case .ship(let id):return "ship:"+id;case .returnDecision(let id,let approve):return "return:"+id+String(approve);case .revoke(let account):return "revoke:"+account;case .createStore:return "create-store";case .createProduct:return "create-product";case .activateStore:return "activate-store";case .invite:return "invite"}}
 }
 struct SellerWorkspaceView:View {
     @EnvironmentObject var seller:ShopSellerModel
@@ -99,7 +99,7 @@ struct SellerWorkspaceView:View {
             }.shopFont(12).padding(12).background(ShopTheme.warningBackground)}
             if !seller.signedIn{signedOut}
             else if seller.stores.isEmpty && seller.busy{ProgressView().frame(maxWidth:.infinity,maxHeight:.infinity)}
-            else if seller.stores.isEmpty{ContentUnavailableView("seller_no_stores",systemImage:"storefront",description:Text("seller_create_unavailable"))}
+            else if seller.stores.isEmpty{VStack(spacing:20){ContentUnavailableView("seller_no_stores",systemImage:"storefront",description:Text("seller_create_store_note"));Button("seller_create_store"){sheet = .createStore}.buttonStyle(ShopButtonStyle()).disabled(!seller.signedIn || seller.busy || seller.hasPending("create-store"))}.frame(maxWidth:.infinity,maxHeight:.infinity)}
             else if desktop{HStack(spacing:0){sidebar.frame(width:232);ShopTheme.border.frame(width:1);NavigationStack{page(section,desktop:true)}}}
             else{mobile}
         }.background(ShopTheme.background).foregroundStyle(ShopTheme.text).tint(ShopTheme.primary)
@@ -120,7 +120,7 @@ struct SellerWorkspaceView:View {
     }
     @ViewBuilder private var sessionControls:some View {
         if seller.busy{ProgressView().controlSize(.small)}
-        if seller.signedIn{Button{seller.refresh()}label:{Image(systemName:"arrow.clockwise")}.buttonStyle(.plain).disabled(seller.busy).accessibilityLabel("retry");Menu{Button("seller_disconnect",role:.destructive){sheet=nil;seller.disconnect()}}label:{Image(systemName:"person.crop.circle.badge.checkmark")}.accessibilityLabel("seller_disconnect")}
+        if seller.signedIn{Button{seller.refresh()}label:{Image(systemName:"arrow.clockwise")}.buttonStyle(.plain).disabled(seller.busy).accessibilityLabel("retry");Menu{Button("seller_create_store"){sheet = .createStore}.disabled(seller.busy || seller.hasPending("create-store"));Divider();Button("seller_disconnect",role:.destructive){sheet=nil;seller.disconnect()}}label:{Image(systemName:"person.crop.circle.badge.checkmark")}.accessibilityLabel("seller_disconnect")}
     }
     private var signedOut:some View{VStack(spacing:20){Spacer();Image(systemName:"storefront").font(.system(size:40)).foregroundStyle(ShopTheme.primary);Text("seller_workspace").shopFont(28,.bold);Text("seller_authority_boundary").shopFont(14).foregroundStyle(ShopTheme.secondary).multilineTextAlignment(.center).frame(maxWidth:500);Button("seller_connect"){seller.connect()}.buttonStyle(ShopButtonStyle()).disabled(seller.busy);Spacer()}.padding(24).frame(maxWidth:.infinity)}
     private var sidebar:some View{ScrollView{VStack(alignment:.leading,spacing:6){ForEach(SellerSection.allCases){destination in Button{section=destination}label:{Label(destination.title,systemImage:destination.symbol).shopFont(14,.semibold).frame(maxWidth:.infinity,alignment:.leading).padding(12).foregroundStyle(section==destination ? ShopTheme.primary:ShopTheme.secondary).background(section==destination ? ShopTheme.subtle:Color.clear).clipShape(RoundedRectangle(cornerRadius:6))}.buttonStyle(.plain)};Divider().padding(.vertical,12);Text("seller_authority_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(16)}.background(ShopTheme.surface)}
@@ -172,11 +172,15 @@ struct SellerWorkspaceView:View {
     }}
     private func open(_ value:SellerSheet){sheet=value}
     @ViewBuilder private func operation(_ value:SellerSheet)->some View{switch value {
-    case .listing(let id):if let product=seller.products.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerListingEditor(product:product)}else{SellerEmpty()}
+    case .listing(let id):if let product=seller.products.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerListingEditor(product:product,draft:seller.draft(for:product))}else{SellerEmpty()}
     case .inventory(let productID,let variantID):if let product=seller.products.first(where:{$0.ID==productID && $0.StoreID==seller.selectedStoreID}),let variant=product.Variants.first(where:{$0.ID==variantID}){SellerInventoryEditor(product:product,variant:variant)}else{SellerEmpty()}
     case .ship(let id):if let order=seller.orders.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerShipForm(order:order)}else{SellerEmpty()}
     case .returnDecision(let id,let approve):if let order=seller.orders.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerReturnForm(order:order,approve:approve)}else{SellerEmpty()}
     case .revoke(let account):if let member=seller.members.first(where:{$0.Account==account}){SellerRevokeForm(member:member)}else{SellerEmpty()}
+    case .createStore:SellerCreateStoreForm()
+    case .createProduct:SellerCreateProductForm()
+    case .activateStore:if let store=seller.stores.first(where:{$0.ID==seller.selectedStoreID}){SellerActivateStoreForm(store:store)}else{SellerEmpty()}
+    case .invite:SellerInviteForm()
     }}
 }
 
@@ -194,15 +198,15 @@ private struct SellerProductsList:View {
     private var products:[SellerProduct]{seller.products.filter{$0.StoreID==seller.selectedStoreID && (filter=="all" || (filter=="published")==$0.Published) && (query.isEmpty || $0.Title.localizedCaseInsensitiveContains(query) || $0.ID.localizedCaseInsensitiveContains(query) || $0.Variants.contains{$0.SKU.localizedCaseInsensitiveContains(query)})}}
     var body:some View{SellerPage("seller_products",desktop:desktop){
         HStack{TextField("seller_search_product",text:$query).textFieldStyle(.roundedBorder);Picker("seller_listing_state",selection:$filter){Text("seller_all_states").tag("all");Text("seller_published").tag("published");Text("seller_unpublished").tag("draft")}.pickerStyle(.menu)}
-        ShopNotice(title:"seller_create_unavailable")
+        HStack{Spacer();Button{onAction(.createProduct)}label:{Label("seller_create_product",systemImage:"plus")}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("catalog.write") || seller.busy || seller.hasPending("create-product"))}
         if seller.sectionUnavailable.contains("products"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
         else if products.isEmpty{SellerEmpty()}
         else{SellerLedger{
             if desktop{ScrollView(.horizontal){VStack(spacing:0){
                 HStack{Text("seller_products").frame(maxWidth:.infinity,alignment:.leading);Text("seller_category").frame(width:110,alignment:.leading);Text("seller_price").frame(width:135,alignment:.leading);Text("seller_available").frame(width:90);Text("seller_listing_state").frame(width:100);Text("seller_actions").frame(width:80)}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(16).background(ShopTheme.tertiary)
-                ForEach(products){product in Divider();HStack(spacing:16){productLabel(product).frame(maxWidth:.infinity,alignment:.leading);Text(verbatim:product.Category).frame(width:110,alignment:.leading).lineLimit(2);Text(price(product)).monospacedDigit().frame(width:135,alignment:.leading);Text(available(product)).monospacedDigit().frame(width:90);Text(product.Published ? "seller_published":"seller_unpublished").frame(width:100);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:80).disabled(!seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))}.shopFont(13).padding(16)}
+                ForEach(products){product in Divider();HStack(spacing:16){productLabel(product).frame(maxWidth:.infinity,alignment:.leading);Text(verbatim:product.Category).frame(width:110,alignment:.leading).lineLimit(2);Text(price(product)).monospacedDigit().frame(width:135,alignment:.leading);Text(available(product)).monospacedDigit().frame(width:90);Text(product.Published ? "seller_published":"seller_unpublished").frame(width:100);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:80).disabled(!seller.can("catalog.write") || seller.busy )}.shopFont(13).padding(16)}
             }.frame(minWidth:900)}}
-            else{ForEach(products){product in HStack(alignment:.top,spacing:12){productLabel(product);Spacer(minLength:0);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))}.padding(16);HStack{Text(price(product)).shopFont(15,.semibold);Spacer();Text(product.Published ? "seller_published":"seller_unpublished").shopFont(12)}.padding(.horizontal,16).padding(.bottom,16);Divider()}}
+            else{ForEach(products){product in HStack(alignment:.top,spacing:12){productLabel(product);Spacer(minLength:0);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.can("catalog.write") || seller.busy )}.padding(16);HStack{Text(price(product)).shopFont(15,.semibold);Spacer();Text(product.Published ? "seller_published":"seller_unpublished").shopFont(12)}.padding(.horizontal,16).padding(.bottom,16);Divider()}}
         }}
     }}
     private func productLabel(_ product:SellerProduct)->some View{HStack(spacing:12){SellerProductThumbnail(product:product);VStack(alignment:.leading,spacing:6){Text(verbatim:product.Title).shopFont(14,.semibold).lineLimit(2);Text(verbatim:product.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary).lineLimit(1);if !desktop{HStack{Text("seller_available");Text(available(product))}.shopFont(12).foregroundStyle(ShopTheme.secondary)}}}}
@@ -327,7 +331,10 @@ private struct SellerMembersView:View {
     let onAction:(SellerSheet)->Void
     private var store:SellerStore?{seller.stores.first{$0.ID==seller.selectedStoreID}}
     var body:some View{SellerPage("seller_members",desktop:desktop){
-        if let store{SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:store.Name).shopFont(22,.bold);SellerValue(title:"seller_store",value:store.ID);SellerValue(title:"seller_role",value:seller.storeRole);SellerState(status:store.Status);Text(verbatim:store.Description).shopFont(14);Divider();SellerValue(title:"seller_payout_address",value:store.SettlementAccount);SellerValue(title:"seller_store_policy",value:store.Policy);SellerValue(title:"seller_trust_reference",value:store.TrustURL);Text("seller_store_edit_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+        if let store{SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:store.Name).shopFont(22,.bold);SellerValue(title:"seller_store",value:store.ID);SellerValue(title:"seller_role",value:seller.storeRole);SellerState(status:store.Status);Text(verbatim:store.Description).shopFont(14);Divider();SellerValue(title:"seller_payout_address",value:store.SettlementAccount);SellerValue(title:"seller_store_policy",value:store.Policy);SellerValue(title:"seller_trust_reference",value:store.TrustURL);Text("seller_store_profile_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
+            if store.Status != "active"{Button("seller_activate_store"){onAction(.activateStore)}.buttonStyle(ShopButtonStyle()).disabled(!seller.canManageMembers || seller.busy || seller.hasPending(store.ID) || store.UpdatedAt==nil)}
+            if store.Status != "active" && store.UpdatedAt==nil{Text("seller_activation_snapshot_missing").shopFont(12).foregroundStyle(ShopTheme.warning)}
+            if store.Status != "active" && store.Policy.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{Text("seller_activation_policy_required").shopFont(12).foregroundStyle(ShopTheme.warning)}}.padding(20)}}
         ShopSectionTitle(title:"seller_members")
         if seller.sectionUnavailable.contains("members"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
         else if seller.members.isEmpty{SellerEmpty(symbol:"person.2")}
@@ -343,7 +350,9 @@ private struct SellerMembersView:View {
             if !record.LastError.isEmpty{Text(verbatim:record.LastError).shopFont(12).foregroundStyle(ShopTheme.warning)}
             Text("seller_revoke_warning").shopFont(12).foregroundStyle(ShopTheme.secondary)
         }.padding(16);Divider()}}
-        ShopNotice(title:"seller_member_invite_unavailable")
+        HStack{Button("seller_invite_member"){onAction(.invite)}.buttonStyle(ShopButtonStyle()).disabled(!seller.canManageMembers || seller.busy);Spacer()}
+        ShopSectionTitle(title:"seller_invitations")
+        SellerInvitationRows()
         Text("seller_authority_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
     }}
 }
@@ -363,12 +372,16 @@ private struct SellerListingEditor:View {
     @State private var draft:SellerListingDraft
     @State private var reviewed=false
     @State private var submitted=false
-    init(product:SellerProduct){self.product=product;_draft=State(initialValue:SellerListingDraft(product))}
-    private var valid:Bool{
+    @State private var reloadConfirmation=false
+    @State private var localSaveRequested=false
+    init(product:SellerProduct,draft:SellerListingDraft){self.product=product;_draft=State(initialValue:draft)}
+    private var inputValid:Bool{
         guard sellerRequiredText(draft.title,160),draft.description.utf8.count<=5000,draft.category.utf8.count<=80,(1...50).contains(draft.variants.count),Set(draft.variants.map(\.SKU)).count==draft.variants.count else{return false}
         for variant in draft.variants{guard sellerRequiredText(variant.Name,120),sellerRequiredText(variant.SKU,80),sellerCanonicalInteger(variant.PriceYNXT,positive:true) != nil,let inventory=sellerCanonicalInteger(variant.Inventory),inventory >= (product.Variants.first{$0.ID==variant.ID}?.Reserved ?? 0) else{return false}}
-        return seller.products.first(where:{$0.ID==product.ID})?.Revision==Int64(draft.expectedRevision)
+        return true
     }
+    private var valid:Bool{inputValid && seller.products.first(where:{$0.ID==product.ID})?.Revision==Int64(draft.expectedRevision)}
+    private var reviewContent:[String]{[draft.title,draft.description,draft.category]+draft.variants.flatMap{[$0.ID,$0.Name,$0.SKU,$0.PriceYNXT,$0.Inventory]}}
     var body:some View{SellerOperationSheet("seller_edit_product"){
         SellerValue(title:"seller_reference",value:product.ID);SellerValue(title:"seller_revision",value:draft.expectedRevision)
         if seller.products.first(where:{$0.ID==product.ID})?.Revision != Int64(draft.expectedRevision){ShopNotice(title:"seller_revision_changed",warning:true)}
@@ -380,11 +393,16 @@ private struct SellerListingEditor:View {
             Button("seller_remove_variant",role:.destructive){draft.variants.remove(at:index);reviewed=false}.buttonStyle(.plain).disabled(draft.variants.count<=1 || (product.Variants.first{$0.ID==draft.variants[index].ID}?.Reserved ?? 0)>0)
         }.padding(16)}}
         Button("seller_add_variant"){draft.variants.append(SellerVariantDraft());reviewed=false}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(draft.variants.count>=50 || submitted)
+        ShopNotice(title:"seller_local_draft_note")
+        Button("seller_save_local_draft"){localSaveRequested=true;seller.saveLocalDraft(draft)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!inputValid || !seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))
+        Button("seller_reload_listing"){reloadConfirmation=true}.buttonStyle(.plain)
+        if localSaveRequested && !submitted && ["seller_local_draft_saved","seller_local_draft_failed"].contains(seller.state){Text(LocalizedStringKey(seller.state)).shopFont(12).foregroundStyle(ShopTheme.secondary)}
         Text("seller_publish_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
         Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
         Button("seller_publish"){submitted=true;seller.perform(.publish(draft))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))
         SellerFormResult(submitted:submitted)
-    }.disabled(seller.busy)}
+    }.onChange(of:reviewContent){reviewed=false;localSaveRequested=false}.disabled(seller.busy).confirmationDialog("seller_reload_listing_confirmation",isPresented:$reloadConfirmation,titleVisibility:.visible){Button("seller_reload_listing",role:.destructive){draft=SellerListingDraft(product);reviewed=false;submitted=false;localSaveRequested=false};Button("cancel",role:.cancel){}}
+    }
 }
 private struct SellerInventoryEditor:View {
     @EnvironmentObject var seller:ShopSellerModel
@@ -458,4 +476,127 @@ private struct SellerFormResult:View {
     @EnvironmentObject var seller:ShopSellerModel
     let submitted:Bool
     var body:some View{if submitted{VStack(alignment:.leading,spacing:12){Text("seller_check_result").shopFont(12).foregroundStyle(ShopTheme.secondary);if !seller.state.isEmpty{Text(LocalizedStringKey(seller.state)).shopFont(13)};if seller.pendingOriginalCount>0{Button("seller_recover_originals"){seller.recoverOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy)};if seller.preparedOriginalCount>0{Button("seller_retry_prepared"){seller.retryPreparedOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)};Button("retry"){seller.refresh()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy)}}}
+}
+
+private struct SellerCreateStoreForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @State private var name=""
+    @State private var description=""
+    @State private var policy=""
+    @State private var trustURL=""
+    @State private var settlementAccount=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    private var valid:Bool{
+        guard sellerRequiredText(name,100),description.utf8.count<=3000,sellerRequiredText(policy,5000),trustURL.utf8.count<=500 else{return false}
+        if !trustURL.isEmpty{guard let url=URLComponents(string:trustURL),url.scheme=="https",let host=url.host,!host.isEmpty,url.user==nil,url.password==nil else{return false}}
+        return settlementAccount.isEmpty || NativeWire.matches(settlementAccount,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$")
+    }
+    var body:some View{SellerOperationSheet("seller_create_store"){
+        SellerField(title:"seller_store_name",text:$name)
+        SellerField(title:"seller_description",text:$description,multiline:true)
+        SellerField(title:"seller_store_policy",text:$policy,multiline:true)
+        if policy.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{Text("seller_activation_policy_required").shopFont(12).foregroundStyle(ShopTheme.secondary)}
+        SellerField(title:"seller_trust_reference",text:$trustURL)
+        SellerField(title:"seller_payout_address",text:$settlementAccount)
+        ShopNotice(title:"seller_create_store_note")
+        Text("seller_store_input_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+        Button("seller_create_store"){submitted=true;seller.perform(.createStore(name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.signedIn || seller.busy || seller.hasPending("create-store"))
+        SellerFormResult(submitted:submitted)
+    }.onChange(of:[name,description,policy,trustURL,settlementAccount]){reviewed=false}.disabled(seller.busy)}
+}
+private struct SellerCreateProductForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @State private var draft=SellerListingDraft(productID:"",expectedRevision:"0",title:"",description:"",category:"",variants:[SellerVariantDraft()])
+    @State private var reviewed=false
+    @State private var submitted=false
+    private var valid:Bool{
+        guard sellerRequiredText(draft.title,160),draft.description.utf8.count<=5000,draft.category.utf8.count<=80,(1...50).contains(draft.variants.count),Set(draft.variants.map(\.SKU)).count==draft.variants.count else{return false}
+        return draft.variants.allSatisfy{sellerRequiredText($0.Name,120) && sellerRequiredText($0.SKU,80) && sellerCanonicalInteger($0.PriceYNXT,positive:true) != nil && sellerCanonicalInteger($0.Inventory) != nil}
+    }
+    private var reviewContent:[String]{[draft.title,draft.description,draft.category]+draft.variants.flatMap{[$0.ID,$0.Name,$0.SKU,$0.PriceYNXT,$0.Inventory]}}
+    var body:some View{SellerOperationSheet("seller_create_product"){
+        ShopNotice(title:"seller_create_product_note")
+        SellerField(title:"seller_product_title",text:$draft.title)
+        SellerField(title:"seller_description",text:$draft.description,multiline:true)
+        SellerField(title:"seller_category",text:$draft.category)
+        ShopSectionTitle(title:"seller_variants")
+        ForEach(draft.variants.indices,id:\.self){index in SellerLedger{VStack(alignment:.leading,spacing:14){
+            SellerField(title:"seller_variant_name",text:$draft.variants[index].Name)
+            SellerField(title:"seller_sku",text:$draft.variants[index].SKU)
+            SellerField(title:"seller_price",text:$draft.variants[index].PriceYNXT)
+            SellerField(title:"seller_total_inventory",text:$draft.variants[index].Inventory)
+            Button("seller_remove_variant",role:.destructive){draft.variants.remove(at:index);reviewed=false}.buttonStyle(.plain).disabled(draft.variants.count<=1)
+        }.padding(16)}}
+        Button("seller_add_variant"){draft.variants.append(SellerVariantDraft());reviewed=false}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(draft.variants.count>=50 || submitted)
+        Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+        Button("seller_create_product"){submitted=true;seller.perform(.createProduct(draft))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.can("catalog.write") || seller.busy || seller.hasPending("create-product"))
+        SellerFormResult(submitted:submitted)
+    }.onChange(of:reviewContent){reviewed=false}.disabled(seller.busy)}
+}
+private struct SellerActivateStoreForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let store:SellerStore
+    @State private var expectedUpdatedAt:String?
+    @State private var expectedPolicy:String
+    @State private var expectedSettlementAccount:String
+    @State private var reviewed=false
+    @State private var submitted=false
+    init(store:SellerStore){self.store=store;_expectedUpdatedAt=State(initialValue:store.UpdatedAt);_expectedPolicy=State(initialValue:store.Policy);_expectedSettlementAccount=State(initialValue:store.SettlementAccount)}
+    private var snapshotMatches:Bool{guard let current=seller.stores.first(where:{$0.ID==store.ID}) else{return false};return current.UpdatedAt==expectedUpdatedAt && current.Policy==expectedPolicy && current.SettlementAccount==expectedSettlementAccount}
+    private var valid:Bool{expectedUpdatedAt != nil && snapshotMatches && sellerRequiredText(expectedPolicy,5000) && store.Status != "active"}
+    var body:some View{SellerOperationSheet("seller_activate_store"){
+        Text(verbatim:store.Name).shopFont(22,.bold)
+        SellerValue(title:"seller_store",value:store.ID)
+        SellerState(status:store.Status)
+        SellerValue(title:"seller_recorded_at",value:expectedUpdatedAt ?? String(localized:"unavailable"))
+        ShopSectionTitle(title:"seller_store_policy")
+        Text(verbatim:expectedPolicy).shopFont(14).textSelection(.enabled)
+        SellerValue(title:"seller_payout_address",value:expectedSettlementAccount)
+        ShopNotice(title:"seller_activation_note")
+        if expectedPolicy.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{ShopNotice(title:"seller_activation_policy_required",warning:true)}
+        if expectedUpdatedAt==nil{ShopNotice(title:"seller_activation_snapshot_missing",warning:true)}
+        else if !snapshotMatches{ShopNotice(title:"seller_store_changed",warning:true)}
+        Toggle("seller_confirm_activation",isOn:$reviewed).shopFont(13)
+        Button("seller_activate_store"){guard let expectedUpdatedAt else{return};submitted=true;seller.perform(.activateStore(expectedUpdatedAt:expectedUpdatedAt,expectedPolicy:expectedPolicy,expectedSettlementAccount:expectedSettlementAccount))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.canManageMembers || seller.busy || seller.hasPending(store.ID))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private enum SellerInviteRole:String,CaseIterable,Identifiable {
+    case admin,catalog,inventory,fulfillment,finance,support,viewer
+    var id:String{rawValue}
+    var title:LocalizedStringKey{switch self{case .admin:return "seller_role_admin";case .catalog:return "seller_role_catalog";case .inventory:return "seller_role_inventory";case .fulfillment:return "seller_role_fulfillment";case .finance:return "seller_role_finance";case .support:return "seller_role_support";case .viewer:return "seller_role_viewer"}}
+}
+private struct SellerInviteForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @State private var account=""
+    @State private var role=""
+    @State private var ttlSeconds=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    private var valid:Bool{guard NativeWire.matches(account,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$"),SellerInviteRole(rawValue:role) != nil,let seconds=sellerCanonicalInteger(ttlSeconds),(900...604800).contains(seconds) else{return false};return true}
+    var body:some View{SellerOperationSheet("seller_invite_member"){
+        SellerField(title:"seller_member_account",text:$account)
+        Picker("seller_role",selection:$role){Text("seller_select_role").tag("");ForEach(SellerInviteRole.allCases){value in Text(value.title).tag(value.rawValue)}}
+        SellerField(title:"seller_invitation_ttl",text:$ttlSeconds)
+        ShopNotice(title:"seller_invitation_note")
+        Toggle("seller_confirm_invitation",isOn:$reviewed).shopFont(13)
+        Button("seller_invite_member"){submitted=true;seller.perform(.invite(account:account,role:role,ttlSeconds:ttlSeconds))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.canManageMembers || seller.busy || seller.hasPending(account))
+        SellerFormResult(submitted:submitted)
+    }.onChange(of:[account,role,ttlSeconds]){reviewed=false}.disabled(seller.busy)}
+}
+private struct SellerInvitationRows:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    private var invitations:[SellerInvitation]{seller.invitations.filter{$0.StoreID==seller.selectedStoreID}}
+    var body:some View{if invitations.isEmpty{SellerEmpty(symbol:"envelope")}else{SellerLedger{ForEach(invitations){invitation in VStack(alignment:.leading,spacing:12){
+        HStack{Text(verbatim:invitation.Account).font(.caption.monospaced()).textSelection(.enabled);Spacer();invitationStatus(invitation.Status)}
+        SellerValue(title:"seller_reference",value:invitation.ID)
+        SellerValue(title:"seller_role",value:invitation.Role)
+        SellerValue(title:"seller_actor",value:invitation.CreatedBy)
+        SellerValue(title:"seller_invitation_expires_at",value:invitation.ExpiresAt)
+        if !invitation.Reason.isEmpty{Text(verbatim:invitation.Reason).shopFont(13)}
+        Text("seller_invitation_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }.padding(16);Divider()}}}}
+    @ViewBuilder private func invitationStatus(_ status:String)->some View{switch status{case "pending":Text("seller_invitation_pending").shopFont(12,.semibold).foregroundStyle(ShopTheme.warning);case "accepted":Text("seller_invitation_accepted").shopFont(12,.semibold).foregroundStyle(ShopTheme.success);case "expired":Text("seller_invitation_expired").shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary);default:SellerState(status:status)}}
 }

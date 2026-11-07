@@ -54,6 +54,36 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	var original any
 	decode := func(out any) bool { return decodeBusinessBody([]byte(in.OriginalBody), out) == nil }
 	switch {
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && strings.HasSuffix(in.Path, "/native-invitations"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 5 || !invoiceRecoveryID.MatchString(parts[3]) {
+			return nil, "", ErrConflict
+		}
+		var input NativeSellerInvitationInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		storeID, target, key, original = parts[3], input.Account, input.IdempotencyKey, input
+		if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		route = "invitation.native." + storeID
+		kind = "native-invitation"
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && strings.HasSuffix(in.Path, "/native-activate"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 5 || !invoiceRecoveryID.MatchString(parts[3]) {
+			return nil, "", ErrConflict
+		}
+		var input NativeStoreActivationInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		storeID, target, key, original = parts[3], parts[3], input.IdempotencyKey, input
+		if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		route = "store.activate.native." + storeID
+		kind = "native-activation"
 	case in.Method == "POST" && strings.HasSuffix(in.Path, "/native-revoke") && strings.HasPrefix(in.Path, "/seller/stores/"):
 		parts := strings.Split(in.Path, "/")
 		if len(parts) != 7 || parts[4] != "roles" || !invoiceRecoveryID.MatchString(parts[3]) || !invoiceRecoveryID.MatchString(parts[5]) {
@@ -269,7 +299,7 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		}
 	}
 	rec, ok := s.s.Idempotency[idemMapKey(actor, route, key)]
-	if !ok || rec.Actor != actor || rec.Route != route || rec.Key != key || rec.RequestHash != requestHash(original) || (target != "" && kind != "native-role-revocation" && rec.ObjectID != target) {
+	if !ok || rec.Actor != actor || rec.Route != route || rec.Key != key || rec.RequestHash != requestHash(original) || (target != "" && kind != "native-role-revocation" && kind != "native-invitation" && rec.ObjectID != target) {
 		return nil, "", ErrConflict
 	}
 	switch kind {
@@ -294,6 +324,19 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 			return nil, "", err
 		}
 		return detached(value)
+	case "native-invitation":
+		value, ok := s.s.SellerInvitations[rec.ObjectID]
+		if !ok || value.StoreID != storeID || value.Account != target {
+			return nil, "", ErrConflict
+		}
+		value.Status = effectiveSellerInvitationStatus(value, s.now())
+		return detached(NativeSellerInvitationResult{Invitation: value, OriginalApplied: true, QueryOnly: true})
+	case "native-activation":
+		value, ok := s.s.Stores[rec.ObjectID]
+		if !ok || value.ID != storeID {
+			return nil, "", ErrConflict
+		}
+		return detached(NativeStoreActivationResult{Store: value, OriginalApplied: true, QueryOnly: true})
 	case "native-role-revocation":
 		value, ok := s.s.SellerRevocations[rec.ObjectID]
 		if !ok || value.StoreID != storeID || value.Account != target {

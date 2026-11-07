@@ -153,7 +153,7 @@ jobs:
         if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeSellerSetup|TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
         if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         env:
@@ -391,7 +391,7 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/LocalStorageStartupChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-locked-startup-checks"
           "$RUNNER_TEMP/ynx-shop-locked-startup-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-locked-startup.log"
-          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks; do
+          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks SellerSetupChecks; do
             xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" "tests/$CHECK.swift" -o "$RUNNER_TEMP/ynx-shop-$CHECK"
             "$RUNNER_TEMP/ynx-shop-$CHECK" | tee "$RUNNER_TEMP/ynx-shop-$CHECK.log"
           done
@@ -415,6 +415,7 @@ jobs:
             ${{ runner.temp }}/ynx-shop-AgentModelChecks.log
             ${{ runner.temp }}/ynx-shop-SellerConsumerChecks.log
             ${{ runner.temp }}/ynx-shop-SellerModelChecks.log
+            ${{ runner.temp }}/ynx-shop-SellerSetupChecks.log
             ${{ runner.temp }}/ynx-shop-native-buyer-engine.log
             ${{ runner.temp }}/ynx-shop-native-seller-engine.log
 

@@ -16,7 +16,7 @@ import Foundation
         guard values.count<=256 else{throw ShopError.security}
         for (key,r) in values {
             guard r.key==key,r.account==account,["prepared","unknown","confirmed"].contains(r.phase),NativeWire.matches(key,"^[A-Za-z0-9-]{8,128}$"),
-                  NativeWire.matches(r.storeID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),r.method=="POST",r.path.hasPrefix("/"),!r.path.hasPrefix("/api/"),r.body.count<=1_048_576,
+                  (NativeWire.matches(r.storeID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") || (r.storeID.isEmpty && r.kind=="create-store" && r.path=="/seller/stores" && r.target=="create-store")),r.method=="POST",r.path.hasPrefix("/"),!r.path.hasPrefix("/api/"),r.body.count<=1_048_576,
                   let text=String(data:r.body,encoding:.utf8),NativeWire.hash(text)==r.requestHash,
                   var input=try JSONSerialization.jsonObject(with:r.body) as? [String:Any],input["IdempotencyKey"] as? String==key,
                   try CanonicalJSON.data(input)==r.body else{throw ShopError.security}

@@ -52,9 +52,15 @@ authority supplies a receipt bound to the current `ynx-shop-v1` profile. The
 legacy `ynx-seller-v1` revoker is not a compatible Native receipt. There is no automatic Wallet revoke, refund,
 signature or broadcast in that local role operation.
 
-Seller onboarding, invitations, draft management and real money operations are
-not claimed by these five mutation forms. iOS Native private registration and
-new Android visual layouts are separate work. Missing qualified merchant/order/
+Seller setup additionally supports original-key store creation, explicit
+activation of frozen reviewed policy/payout/timestamp, unpublished product
+creation and owner invitations. Invitations remain pending until the target
+accepts through its original Wallet-bound flow; creation grants no membership.
+Editable drafts are stored encrypted on this device with prior versions retained;
+local save does not update or publish a server listing. UNKNOWN remains query
+only, including lost store-creation acknowledgement with no invented Store ID.
+iOS Native private registration, recipient invitation management, actual money
+operations and new Android visual layouts remain separate work. Missing qualified merchant/order/
 invoice Source is never replaced with public fixtures, a new empty Store or
 inferred legacy-to-native pricing. The frozen 5d9 buyer candidate remains
 separate from subsequent seller candidates and their visual acceptance.

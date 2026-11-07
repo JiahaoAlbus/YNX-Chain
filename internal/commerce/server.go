@@ -116,6 +116,8 @@ func (s *Server) routes() {
 	s.handleFunc("GET /api/seller/stores", s.sellerStores)
 	s.handleFunc("PUT /api/seller/stores/{id}", s.updateStore)
 	s.handleFunc("POST /api/seller/stores/{id}/activate", s.activateStore)
+	s.handleFunc("POST /api/seller/stores/{id}/native-activate", s.nativeActivateStore)
+	s.handleFunc("POST /api/seller/stores/{id}/native-invitations", s.nativeInviteSeller)
 	s.handleFunc("POST /api/seller/stores/{id}/exports", s.exportSellerData)
 	s.handleFunc("GET /api/seller/stores/{id}/providers", s.providerConfigs)
 	s.handleFunc("PUT /api/seller/stores/{id}/providers/{kind}", s.configureProvider)

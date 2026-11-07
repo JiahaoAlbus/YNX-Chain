@@ -7,6 +7,8 @@ import SwiftUI
     @Published private(set) var orders:[SellerOrder]=[]
     @Published private(set) var members:[SellerMember]=[]
     @Published private(set) var revocations:[SellerRevocation]=[]
+    @Published private(set) var invitations:[SellerInvitation]=[]
+    @Published private(set) var localDrafts:[String:SellerListingDraft]=[:]
     @Published private(set) var storeRole=""
     var canManageMembers:Bool{signedIn && storeRole=="owner"}
     @Published private(set) var audit:[SellerAudit]=[]
@@ -24,11 +26,12 @@ import SwiftUI
     @Published var workspaceVisible=false
     @Published private(set) var awaitingWalletReturn=false
     let api:APIClient,journal:SellerMutationJournal
+    let localDraftStore:SellerLocalDraftStore
     private var session:ShopSession?,epoch=0,selection=0
     private var pendingReturn:URL?
     private var permissions:[String]=[]
-    init(api:APIClient?=nil,journal:SellerMutationJournal?=nil){self.api=api ?? APIClient(authorityFactory:{try AppleNativeSessionBridge(profile:.seller)});self.journal=journal ?? SellerMutationJournal();self.api.onSessionChanged={[weak self] in self?.identityChanged()}}
-    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingJournalReadable=true}
+    init(api:APIClient?=nil,journal:SellerMutationJournal?=nil,localDraftStore:SellerLocalDraftStore?=nil){self.localDraftStore=localDraftStore ?? SellerLocalDraftStore();self.api=api ?? APIClient(authorityFactory:{try AppleNativeSessionBridge(profile:.seller)});self.journal=journal ?? SellerMutationJournal();self.api.onSessionChanged={[weak self] in self?.identityChanged()}}
+    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];invitations=[];localDrafts=[:];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingJournalReadable=true}
     private func identityChanged(){let current=api.currentSession;guard current != session else{return};epoch+=1;selection+=1;busy=false;clearRows();session=current;signedIn=current != nil;if current != nil{awaitingWalletReturn=false;pendingReturn=nil;refresh()}}
     func can(_ permission:String)->Bool{signedIn && permissions.contains(permission)}
     func retainColdReturn(_ url:URL){guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback",url.absoluteString.utf8.count<=16384 else{return};if pendingReturn==nil{pendingReturn=url}}
@@ -43,7 +46,7 @@ import SwiftUI
     func selectStore(_ id:String){guard stores.contains(where:{$0.ID==id}),!busy else{return};selectedStoreID=id;selection+=1;refresh()}
     private func rows<T:Decodable>(_ key:String,_ value:[String:Any],as type:T.Type)throws->[T]{guard value.keys.contains(key) else{throw ShopError.invalidResponse};if value[key] is NSNull{return []};guard let raw=value[key] as? [Any],raw.count<=10_000 else{throw ShopError.invalidResponse};return try JSONDecoder().decode([T].self,from:CanonicalJSON.data(raw))}
     private func validID(_ id:String)->Bool{NativeWire.matches(id,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")}
-    private func updatePending(){guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];return};do{let pending=try journal.records(account).values.filter{$0.phase != "confirmed"};pendingOriginalCount=pending.count;preparedOriginalCount=pending.filter{$0.storeID==selectedStoreID && $0.phase=="prepared"}.count;pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID}.map(\.target));pendingJournalReadable=true}catch{pendingJournalReadable=false;state="security_error"}}
+    private func updatePending(){guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];return};do{let pending=try journal.records(account).values.filter{$0.phase != "confirmed"};pendingOriginalCount=pending.count;preparedOriginalCount=pending.filter{($0.storeID==selectedStoreID || $0.kind=="create-store") && $0.phase=="prepared"}.count;pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID || $0.kind=="create-store"}.map(\.target));pendingJournalReadable=true}catch{pendingJournalReadable=false;state="security_error"}}
     func refresh(){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection;Task{defer{if at==epoch{busy=false;updatePending()}};do{
         let check=try api.capture();let storeValue=try await api.raw("seller/stores",method:"GET",json:[:]);try check();guard at==epoch,view==selection else{return}
         let fresh: [SellerStore]=try rows("stores",storeValue,as:SellerStore.self)
@@ -52,7 +55,7 @@ import SwiftUI
         if !fresh.contains(where:{$0.ID==selectedStoreID}){selectedStoreID=fresh.first?.ID ?? ""}
         storeRole=access[selectedStoreID]?["role"] as? String ?? ""
         permissions=access[selectedStoreID]?["permissions"] as? [String] ?? []
-        products=[];orders=[];members=[];revocations=[];audit=[];settlements=[];sectionUnavailable=[]
+        products=[];orders=[];members=[];revocations=[];invitations=[];audit=[];settlements=[];sectionUnavailable=[]
         guard !selectedStoreID.isEmpty else{state="no_fake_records";return}
         let store=selectedStoreID
         for section in ["products","orders","members","audit","settlements"] {
@@ -63,18 +66,42 @@ import SwiftUI
                 switch section {
                 case "products":let all:[SellerProduct]=try rows("products",value,as:SellerProduct.self);let items=all.filter{$0.StoreID==store};guard Set(items.map(\.ID)).count==items.count,items.allSatisfy({validID($0.ID) && $0.Revision>0 && !$0.Variants.isEmpty && Set($0.Variants.map(\.ID)).count==$0.Variants.count}) else{throw ShopError.security};products=items
                 case "orders":let all:[SellerOrder]=try rows("orders",value,as:SellerOrder.self);let items=all.filter{$0.StoreID==store};guard Set(items.map(\.ID)).count==items.count,items.allSatisfy({validID($0.ID) && $0.TotalYNXT>=0}) else{throw ShopError.security};orders=items
-                case "members":guard let roles=value["roles"] as? [String:String] else{throw ShopError.invalidResponse};members=roles.keys.sorted().map{SellerMember(Account:$0,Role:roles[$0]!)};revocations=try rows("revocations",value,as:SellerRevocation.self)
+                case "members":guard let roles=value["roles"] as? [String:String] else{throw ShopError.invalidResponse};members=roles.keys.sorted().map{SellerMember(Account:$0,Role:roles[$0]!)};revocations=try rows("revocations",value,as:SellerRevocation.self);invitations=try rows("invitations",value,as:SellerInvitation.self)
                 case "audit":audit=try rows("events",value,as:SellerAudit.self)
                 default:settlements=try rows("settlements",value,as:SellerSettlement.self)
                 }
             }catch{try check();guard at==epoch,view==selection else{return};sectionUnavailable.insert(section)}
         }
+        if let account=api.currentSession?.account {do{localDrafts=try localDraftStore.load(account:account,storeID:store)}catch{localDrafts=[:];state="seller_local_draft_failed";return}}
         state=""
     }catch{guard at==epoch else{return};clearRows();state="unavailable"}}}
+    func draft(for product:SellerProduct)->SellerListingDraft{localDrafts[product.ID] ?? SellerListingDraft(product)}
+    func saveLocalDraft(_ draft:SellerListingDraft){do{
+        let check=try api.capture();guard let account=api.currentSession?.account,can("catalog.write"),!hasPending(draft.productID),products.contains(where:{$0.ID==draft.productID && $0.StoreID==selectedStoreID}),!draft.productID.isEmpty,(1...50).contains(draft.variants.count) else{throw ShopError.security}
+        _ = try integer(draft.expectedRevision,positive:true);_ = try bounded(draft.title,160);_ = try bounded(draft.description,5000,required:false);_ = try bounded(draft.category,80,required:false)
+        var skus=Set<String>();for v in draft.variants{guard skus.insert(v.SKU).inserted,v.ID.isEmpty || validID(v.ID) else{throw ShopError.security};_ = try bounded(v.Name,120);_ = try bounded(v.SKU,80);_ = try integer(v.PriceYNXT,positive:true);_ = try integer(v.Inventory)}
+        try check();try localDraftStore.save(account:account,storeID:selectedStoreID,draft:draft);try check();localDrafts[draft.productID]=draft;state="seller_local_draft_saved"
+    }catch{state="seller_local_draft_failed"}}
     private func integer(_ value:String,positive:Bool=false)throws->Int64{guard let number=Int64(value),number>=0,(!positive || number>0),String(number)==value else{throw ShopError.security};return number}
     private func bounded(_ value:String,_ limit:Int,required:Bool=true)throws->String{guard value.utf8.count<=limit,(!required || !value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty) else{throw ShopError.security};return value}
     private func command(_ command:SellerCommand,store:String)throws->(String,String,String,[String:Any]) {
         switch command {
+        case .createStore(let name,let description,let policy,let trustURL,let settlementAccount):
+            guard !hasPending("create-store") else{throw ShopError.unresolvedMutation}
+            if !trustURL.isEmpty {guard let u=URLComponents(string:trustURL),u.scheme=="https",u.host?.isEmpty==false,u.user==nil,u.password==nil else{throw ShopError.security}}
+            guard settlementAccount.isEmpty || NativeWire.matches(settlementAccount,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$") else{throw ShopError.security}
+            return ("create-store","create-store","/seller/stores",["Name":try bounded(name,100),"Description":try bounded(description,3000,required:false),"Policy":try bounded(policy,5000),"TrustURL":try bounded(trustURL,500,required:false),"SettlementAccount":settlementAccount])
+        case .createProduct(let draft):
+            guard draft.productID.isEmpty,draft.expectedRevision=="0",can("catalog.write"),(1...50).contains(draft.variants.count) else{throw ShopError.security}
+            var variants:[[String:Any]]=[];var skus=Set<String>()
+            for v in draft.variants {guard v.ID.isEmpty,skus.insert(v.SKU).inserted else{throw ShopError.security};variants.append(["ID":"","Name":try bounded(v.Name,120),"SKU":try bounded(v.SKU,80),"PriceYNXT":try integer(v.PriceYNXT,positive:true),"Inventory":try integer(v.Inventory),"Reserved":0])}
+            return ("create-product","create-product","/seller/products",["StoreID":store,"Title":try bounded(draft.title,160),"Description":try bounded(draft.description,5000,required:false),"Category":try bounded(draft.category,80,required:false),"Media":[],"Variants":variants])
+        case .activateStore(let updated,let policy,let settlement):
+            guard canManageMembers,let original=stores.first(where:{$0.ID==store}),original.UpdatedAt==updated,original.Policy==policy,original.SettlementAccount==settlement,!policy.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty else{throw ShopError.security}
+            return ("activate-store",store,"/seller/stores/"+store+"/native-activate",["ExpectedUpdatedAt":updated,"ExpectedPolicy":policy,"ExpectedSettlementAccount":settlement])
+        case .invite(let account,let role,let ttl):
+            guard canManageMembers,NativeWire.matches(account,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$"),["admin","catalog","inventory","fulfillment","finance","support","viewer"].contains(role),(900...604800).contains(try integer(ttl)) else{throw ShopError.security}
+            return ("invite",account,"/seller/stores/"+store+"/native-invitations",["Account":account,"Role":role,"TTLSeconds":ttl])
         case .publish(let draft):
             guard validID(draft.productID),let product=products.first(where:{$0.ID==draft.productID}),product.StoreID==store,try integer(draft.expectedRevision,positive:true)==product.Revision,(1...50).contains(draft.variants.count) else{throw ShopError.security}
             var variants:[[String:Any]]=[];var ids=Set<String>(),skus=Set<String>()
@@ -97,11 +124,14 @@ import SwiftUI
     }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,self.selectedStoreID==original.storeID else{throw ShopError.contextChanged};try self.journal.dispatch(original)})
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.journal.dispatch(original)})
         try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response)
     }
-    func perform(_ command:SellerCommand){guard signedIn,!busy,!selectedStoreID.isEmpty else{return};do{
-        let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let store=selectedStoreID,view=selection,at=epoch
+    func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{
+        let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let view=selection,at=epoch
+        let creatingStore:Bool;if case .createStore = command{creatingStore=true}else{creatingStore=false}
+        let store=creatingStore ? "":selectedStoreID
+        guard creatingStore || !store.isEmpty else{throw ShopError.security}
         let(kind,target,path,input)=try self.command(command,store:store)
         let original=try journal.prepare(account:account,storeID:store,target:target,kind:kind,path:path,input:input)
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
@@ -110,9 +140,9 @@ import SwiftUI
             guard at==epoch,view==selection else{return};state="seller_change_confirmed";reload=true
         }catch{guard at==epoch else{return};state="seller_original_unconfirmed"}};updatePending()
     }catch{state="seller_original_unconfirmed";updatePending()}}
-    func retryPreparedOriginals(){guard signedIn,!busy,!selectedStoreID.isEmpty else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
+    func retryPreparedOriginals(){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
         let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
-        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && $0.storeID==store}.sorted{$0.key<$1.key}
+        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && ($0.storeID==store || $0.kind=="create-store")}.sorted{$0.key<$1.key}
         var failed=false
         for original in originals {do{try await sendPrepared(original,view:view,check:check);reload=true}catch{try check();guard at==epoch,view==selection else{return};failed=true}}
         guard at==epoch else{return};state=failed ? "seller_original_unconfirmed":"seller_change_confirmed"
@@ -131,6 +161,18 @@ import SwiftUI
     private func validate(_ response:[String:Any],original:SellerMutationJournal.Record,recovery:Bool)throws {
         let input=try journal.input(original)
         switch original.kind {
+        case "create-store":
+            let store=try JSONDecoder().decode(SellerStore.self,from:CanonicalJSON.data(response))
+            guard validID(store.ID),!store.Owner.isEmpty,store.Name==(input["Name"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),store.Policy==input["Policy"] as? String,store.SettlementAccount==input["SettlementAccount"] as? String,(recovery || store.Status=="onboarding") else{throw ShopError.security}
+        case "create-product":
+            let product=try JSONDecoder().decode(SellerProduct.self,from:CanonicalJSON.data(response))
+            guard validID(product.ID),product.StoreID==original.storeID,product.Title==(input["Title"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),product.Revision>=1,!product.Variants.isEmpty,(recovery || !product.Published) else{throw ShopError.security}
+        case "activate-store":
+            guard response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let raw=response["Store"] as? [String:Any] else{throw ShopError.security}
+            let store=try JSONDecoder().decode(SellerStore.self,from:CanonicalJSON.data(raw));guard store.ID==original.storeID,(recovery || store.Status=="active") else{throw ShopError.security}
+        case "invite":
+            guard response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let raw=response["Invitation"] as? [String:Any] else{throw ShopError.security}
+            let invitation=try JSONDecoder().decode(SellerInvitation.self,from:CanonicalJSON.data(raw));guard validID(invitation.ID),invitation.StoreID==original.storeID,invitation.Account==original.target,invitation.Role==input["Role"] as? String,["pending","accepted","cancelled","expired"].contains(invitation.Status),(recovery || invitation.Status=="pending") else{throw ShopError.security}
         case "listing":
             guard response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let p=response["Product"] as? [String:Any],p["ID"] as? String==original.target,p["StoreID"] as? String==original.storeID,p["Published"] as? Bool==true,let revision=p["Revision"] as? String,try integer(revision,positive:true)>integer(input["ExpectedRevision"] as? String ?? "") else{throw ShopError.security}
             guard let published=response["Product"] as? [String:Any],let title=published["Title"] as? String,!title.isEmpty,title.utf8.count<=160,

@@ -36,7 +36,7 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
             case "/api/seller/stores":try! request.respond(["stores":[["ID":store,"Owner":account,"Name":"Original store","Description":"","Policy":"","TrustURL":"","SettlementAccount":"","Status":"active"]],"access":[store:["role":"owner","permissions":["seller.read","catalog.write","inventory.write","fulfillment.write","returns.resolve","team.read","audit.read","finance.read"]]]])
             case "/api/seller/products":try! request.respond(["products":[product("p1"),product("p2")]])
             case "/api/orders":try! request.respond(["orders":[]])
-            case "/api/seller/stores/"+store+"/roles":try! request.respond(["roles":[account:"owner"],"revocations":[]])
+            case "/api/seller/stores/"+store+"/roles":try! request.respond(["roles":[account:"owner"],"revocations":[],"invitations":[]])
             case "/api/seller/audit":try! request.respond(["events":[]])
             case "/api/seller/settlements":try! request.respond(["settlements":[]])
             default:preconditionFailure("Unexpected Seller route "+path)
@@ -48,12 +48,23 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
         var storage=["original-Pay-UNKNOWN":Data("original financial operation".utf8)]
         let sentinel=storage["original-Pay-UNKNOWN"]
         let journal=SellerMutationJournal(read:{reads+=1;return storage[$0]},write:{guard allowWrite else{throw ShopError.security};storage[$0]=$1})
-        let model=ShopSellerModel(api:api,journal:journal)
+        let model=ShopSellerModel(api:api,journal:journal,localDraftStore:SellerLocalDraftStore(read:{storage[$0]},write:{guard allowWrite else{throw ShopError.security};storage[$0]=$1}))
         model.workspaceVisible=true
         try check(factoryCalls==0 && reads==0 && authority.connections==0,"opening Seller workspace does not open Keychain or expand Buyer authority")
         model.connect();try await until{model.signedIn && !model.busy && model.products.count==2}
         try check(factoryCalls==1 && authority.restores==1 && authority.connections==1 && model.storeRole=="owner" && model.canManageMembers,"explicit Seller connect adopts only its separate actual profile and owned access projection")
         try check(model.products[0].Variants[0].PriceYNXT==Int64.max,"actual Seller API preserves Int64 maximum price through wire decoding")
+        let sourceProduct=model.products.first(where:{$0.ID=="p1"})!
+        var edited=SellerListingDraft(sourceProduct);edited.title="Private local edited title"
+        model.saveLocalDraft(edited)
+        try check(model.state=="seller_local_draft_saved" && paths.isEmpty && model.draft(for:sourceProduct).title==edited.title && model.products.first(where:{$0.ID=="p1"})?.Title==sourceProduct.Title,"saving a local draft changes encrypted local data only, never the server listing")
+        for _ in 0..<20{model.saveLocalDraft(edited)}
+        try check(model.state=="seller_local_draft_saved","repeated identical local save does not exhaust or rotate draft history")
+        let coldDrafts=SellerLocalDraftStore(read:{storage[$0]},write:{storage[$0]=$1})
+        try check(try coldDrafts.load(account:account,storeID:store)["p1"]?.title==edited.title,"cold local draft restores original product revision and edited text")
+        allowWrite=false;var failedDraft=edited;failedDraft.title="Rejected local edit";model.saveLocalDraft(failedDraft)
+        try check(model.state=="seller_local_draft_failed" && model.draft(for:sourceProduct).title==edited.title && paths.isEmpty,"failed encrypted draft persistence preserves prior draft without false saved status or HTTP")
+        allowWrite=true
         model.perform(.inventory(productID:"p1",variantID:"vp1",expectedRevision:"1",inventory:"9"))
         let first=try await take("seller/inventory/batch"),frozen=try first.body()
         let original=try journal.records(account).values.first(where:{$0.target=="p1"})!
