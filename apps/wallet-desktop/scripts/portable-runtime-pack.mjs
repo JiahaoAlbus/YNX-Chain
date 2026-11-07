@@ -57,7 +57,7 @@ export function createPortablePackageAssetReader(record,readSource,root){
 
 export function beginNativeRuntimeRelocation(record,unpacked,{c6RecordBytes}={}){
  if(!path.isAbsolute(unpacked)||path.normalize(unpacked)!==unpacked)throw Error('PORTABLE_PACK_ABSOLUTE_ROOT_REQUIRED');
- const assets=c6RecordBytes?desktopNative49C6Selection.assets.filter(row=>!row.path.endsWith('/NATIVE49_C6_NORMAL_RECORD.json')).map(row=>({unpackedRelative:row.path.slice('apps/wallet-desktop/'.length)})):portableRuntimeAssets(record);
+ const assets=c6RecordBytes?desktopNative49C6Selection.assets.filter(row=>row.path!==desktopNative49C6Selection.recordRelative).map(row=>({unpackedRelative:row.path.slice('apps/wallet-desktop/'.length)})):portableRuntimeAssets(record);
  if(c6RecordBytes)verifyDesktopNative49C6Runtime(unpacked,c6RecordBytes);
  else if(assets.length)verifyPortableRuntimeFiles(record,unpacked);
  const moves=(assets.length?assets.map(row=>row.unpackedRelative):['native/original-auth-identity.node']).map(relative=>({before:path.join(unpacked,relative),after:path.join(unpacked,'code/apps/wallet-desktop',relative)}));
@@ -79,7 +79,7 @@ export function verifyPortableRuntimePackage(resources,projectDir){
  if(identity.nativeComponentSelection){
   if(!isDeepStrictEqual(identity.nativeComponentSelection,desktopNative49C6Selection))throw Error('C6_RUNTIME_SELECTION_DIFFERS');
   const physical=fs.existsSync(path.join(resources,'ynx-wallet-physical-code-layout.json'));
-  const relative='code/apps/wallet-desktop/native/NATIVE49_C6_NORMAL_RECORD.json';
+  const relative='code/'+desktopNative49C6Selection.recordRelative;
   const bytes=physical?fs.readFileSync(path.join(resources,'app.code',relative)):createRequire(path.join(projectDir,'package.json'))('@electron/asar').extractFile(path.join(resources,'app.asar'),relative);
   return verifyDesktopNative49C6Runtime(path.join(resources,physical?'app.code':'app.asar.unpacked'),bytes,{canonical:true});
  }

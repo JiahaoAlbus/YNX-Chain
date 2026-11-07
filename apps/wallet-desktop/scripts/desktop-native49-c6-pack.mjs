@@ -1,17 +1,17 @@
-// Main's normal build-time stage/ASAR adapter. This is not a runtime Source,
+// Main's separately selected finite-NAPI normal build-time stage/ASAR adapter. This is not a runtime Source,
 // Native loader or helper qualification. The old C227 cache/125a record stay.
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {fileURLToPath} from 'node:url';
-import {native49C6NormalNodeComponent} from './sdk13-native-component.mjs';
+import {native49NAPINormalNodeComponent as selectedNodeComponent} from './sdk13-native-component.mjs';
 import {canonicalSourcePath} from './canonical-package.mjs';
-import selected from './desktop-native49-c6-selection.json' with {type:'json'};
+import selected from './desktop-native49-napi-selection.json' with {type:'json'};
 
 function freeze(value){if(value&&typeof value==='object'){for(const x of Object.values(value))freeze(x);Object.freeze(value);}return value;}
 export const desktopNative49C6Selection=freeze(selected);
-export const DESKTOP_C6_METADATA_ROLE='YNX_DESKTOP_SEPARATE_C6_NODE_SELECTION/v1';
+export const DESKTOP_C6_METADATA_ROLE='YNX_DESKTOP_SEPARATE_NAPI_NODE_SELECTION/v1';
 export function desktopNative49C6Selected(metadata){
   if(!Object.hasOwn(metadata,'ynxNativeComponent'))return false;
   if(metadata.ynxNativeComponent!==DESKTOP_C6_METADATA_ROLE)throw Error('C6_UNKNOWN_PACKAGE_SELECTION');
@@ -23,11 +23,11 @@ export function desktopNative49C6BuilderConfiguration(metadata){
   if(!Array.isArray(old)||[...excluded].some(p=>!old.includes(p)))throw Error('C6_NORMAL_FILE_CONFIGURATION_CHANGED');
   // Builder tests asarUnpack against absolute SOURCE paths before FileSet.to mapping.
   // Keep the exact nine staged paths closed; the new record remains packed DATA.
-  return {...metadata.build,mac:{...metadata.build.mac,minimumSystemVersion:selected.minimumMacOS},asarUnpack:[...metadata.build.asarUnpack,...selected.assets.filter(row=>!row.path.endsWith('/NATIVE49_C6_NORMAL_RECORD.json')).map(row=>stageRelative+'/'+row.path)],extraMetadata:{...metadata.build.extraMetadata,ynxNativeComponent:DESKTOP_C6_METADATA_ROLE},files:[...old.filter(p=>!excluded.has(p)),desktopNative49C6FileSet(),{from:"../developer/helper",to:"native/helper-data",filter:[path.posix.basename(selected.helperPlist.source)]}]};
+  return {...metadata.build,mac:{...metadata.build.mac,minimumSystemVersion:selected.minimumMacOS},asarUnpack:[...metadata.build.asarUnpack,...selected.assets.filter(row=>row.path!==selected.recordRelative).map(row=>stageRelative+'/'+row.path)],extraMetadata:{...metadata.build.extraMetadata,ynxNativeComponent:DESKTOP_C6_METADATA_ROLE},files:[...old.filter(p=>!excluded.has(p)),desktopNative49C6FileSet(),{from:"../developer/helper",to:"native/helper-data",filter:[path.posix.basename(selected.helperPlist.source)]}]};
 }
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
-const stageRelative='native/.native49-c6-input';
+const stageRelative='native/.native49-napi-input';
 
 function regularRoot(root){
   if(typeof root!=='string'||!path.isAbsolute(root)||path.normalize(root)!==root||fs.realpathSync(root)!==path.resolve(root)||!fs.lstatSync(root).isDirectory())fail('C6_REGULAR_ABSOLUTE_ROOT_REQUIRED');
@@ -55,7 +55,7 @@ function readAsset(root,relative){
 }
 export function verifyDesktopNative49C6Input(root,sourceRoles=selected.sourceRoles){
   if(!isDeepStrictEqual(sourceRoles,selected.sourceRoles))fail('C6_INDEPENDENT_SOURCE_SELECTION');
-  return native49C6NormalNodeComponent.verifyPackage({readPackedAsset:relative=>readAsset(root,relative),sourceRoles:selected.sourceRoles});
+  return selectedNodeComponent.verifyPackage({readPackedAsset:relative=>readAsset(root,relative),sourceRoles:selected.sourceRoles});
 }
 export function desktopNative49C6StageRoot(projectDir){return path.join(projectDir,stageRelative);}
 export function stageDesktopNative49C6Input(projectDir,inputRoot){
@@ -80,9 +80,9 @@ export function desktopNative49C6FileSet(){
 }
 export function verifyDesktopNative49C6ASAR({asar,archive,projectDir}){
   const stage=desktopNative49C6StageRoot(projectDir);
-  return native49C6NormalNodeComponent.verifyPackage({sourceRoles:selected.sourceRoles,readPackedAsset:relative=>{
+  return selectedNodeComponent.verifyPackage({sourceRoles:selected.sourceRoles,readPackedAsset:relative=>{
     const name=canonicalSourcePath(relative),info=asar.statFile(archive,name,false);
-    if(info.files||info.link||!!info.unpacked!==!relative.endsWith('/NATIVE49_C6_NORMAL_RECORD.json'))fail('C6_ASAR_ASSET_LAYOUT');
+    if(info.files||info.link||!!info.unpacked!==(relative!==selected.recordRelative))fail('C6_ASAR_ASSET_LAYOUT');
     const bytes=asar.extractFile(archive,name),local=readAsset(stage,relative);
     if(!Buffer.isBuffer(bytes)||!bytes.equals(local))fail('C6_PACKAGED_STAGE_DIFFERS');
     return bytes;
@@ -92,8 +92,8 @@ export function verifyDesktopNative49C6ASAR({asar,archive,projectDir}){
 // Directories are used only by the packaging reader. The separate record is
 // packed DATA; the nine binaries/licenses retain the original unpacked paths.
 export function verifyDesktopNative49C6Runtime(root,recordBytes,{canonical=false}={}){
-  return native49C6NormalNodeComponent.verifyPackage({sourceRoles:selected.sourceRoles,readPackedAsset:relative=>{
-    if(relative.endsWith('/NATIVE49_C6_NORMAL_RECORD.json'))return recordBytes;
+  return selectedNodeComponent.verifyPackage({sourceRoles:selected.sourceRoles,readPackedAsset:relative=>{
+    if(relative===selected.recordRelative)return recordBytes;
     const row=selected.assets.find(row=>row.path===relative);
     if(!row)fail('C6_UNLISTED_RUNTIME_ASSET');
     return checkedAsset(root,{...row,path:canonical?'code/'+relative:relative.slice('apps/wallet-desktop/'.length)});

@@ -416,7 +416,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
     assertSDKProductArchive(product,after);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
-    nativeRelocation=beginNativeRuntimeRelocation(nativeRecord,unpacked,desktopNative49C6Selected(metadata)?{c6RecordBytes:asar.extractFile(archive,'native/NATIVE49_C6_NORMAL_RECORD.json')}:{});
+    nativeRelocation=beginNativeRuntimeRelocation(nativeRecord,unpacked,desktopNative49C6Selected(metadata)?{c6RecordBytes:asar.extractFile(archive,desktopNative49C6Selection.recordRelative.slice('apps/wallet-desktop/'.length))}:{});
     renameSync(archive,backup);archiveMoved=true;renameSync(output,archive);replacement=true;asar.uncache(archive);
     if(!isDeepStrictEqual(archiveInventory(asar,archive),after)) throw new Error("Retained unpacked tree differs");
     const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,nativeBuildEvidence:evidence.public,sdkProductRuntime:product?.public??null,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
