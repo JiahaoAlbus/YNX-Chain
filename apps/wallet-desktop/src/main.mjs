@@ -1,3 +1,4 @@
+import {createWalletCleanupDiagnostics} from './wallet-cleanup-diagnostics.mjs';
 import {createWalletIDEIdentityPeerOwner} from './wallet-ide-identity-peer-owner.mjs';
 import {createDesktopAgentDelegationController} from './desktop-agent-delegation-controller.mjs';
 import {createDesktopAgentDelegationsService,installDesktopAgentDelegationsIPC} from './desktop-agent-delegations-ipc.mjs';
@@ -381,53 +382,64 @@ handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmis
 handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
 handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
-function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=async()=>{},assertCloseSafe=async()=>{}}){
+const originalCleanupDiagnostics=createWalletCleanupDiagnostics();
+function createOriginalAdmissionExitGate({entry,lock,quit,report,diagnostics=null,shutdownWallet=async()=>{},assertCloseSafe=async()=>{}}){
   let pass=null,cleanup=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
   const settle=operation=>{try{return Promise.resolve(operation());}catch(cause){return Promise.reject(cause);}};
   const quitOnce=()=>{if(!quitEntered){quitEntered=true;setImmediate(quit);}};
   function request(){
     if(pass)return pass;
     let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});const current=pass;
-    const failed=()=>{try{report();}catch{}reject(Object.assign(new Error('Original admission cleanup is incomplete'),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'}));};
+    const failed=cause=>{try{report();}catch{}reject(Object.assign(new Error('Original admission cleanup is incomplete'),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'}));};
     // Lock/cancel synchronously in the original close event, after reserving.
     try{
       lock();
-      if(!cleanup)cleanup=Promise.allSettled([settle(()=>entry.shutdown()),settle(shutdownWallet)]).then(results=>{const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;});
-      void cleanup.then(()=>Promise.resolve().then(assertCloseSafe).then(()=>{allowed=true;resolve();},()=>{
+      if(!cleanup)cleanup=Promise.allSettled([settle(()=>entry.shutdown()),settle(shutdownWallet)]).then(results=>{
+        results.forEach((result,i)=>{if(result.status==='rejected')diagnostics?.record(i===0?'admission-entry':'wallet','drain',result.reason);});
+        const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
+      });
+      void cleanup.then(()=>Promise.resolve().then(assertCloseSafe).then(()=>{allowed=true;resolve();},cause=>{
+        diagnostics?.record('storage-check','assert',cause);
         // Only this read-only storage check can run again after an explicit
         // local save. Original cleanup failures remain sticky and unreplayed.
         if(pass===current)pass=null;
         try{report();}catch{}
         reject(Object.assign(new Error('Keep Wallet open; original result storage is unconfirmed'),{code:'PQ_PROGRESS_CLOSE_UNCONFIRMED'}));
       }),failed);
-    }catch{failed();}
+    }catch(cause){diagnostics?.record('lock','retire',cause);failed(cause);}
     void current.catch(()=>{});return current;
   }
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
 async function shutdownOriginalPQWallet(){
-  const settle=operation=>{try{return Promise.resolve(operation());}catch(cause){return Promise.reject(cause);}};
-  let retireFailed=false,retireCause;try{originalMainNamespaceStartup.retire();}catch(cause){retireFailed=true;retireCause=cause;}
-  try{originalPayContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
-  try{originalProductContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
-  try{nativePayMainEntry?.cancel();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
-  try{pqFinalityCollection?.retire();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  // Some Native owners close synchronously. Adopt their thrown failures as
+  // settled results so a failed owner cannot skip or orphan another drain.
+  const diagnostics=typeof originalCleanupDiagnostics==='undefined'?null:originalCleanupDiagnostics;
+  const settle=(owner,operation)=>{let result;try{result=operation();}catch(cause){diagnostics?.record(owner,'drain',cause);return Promise.reject(cause);}return Promise.resolve(result).catch(cause=>{diagnostics?.record(owner,'drain',cause);throw cause;});};
+  try{const s=originalMainNamespaceStartup.statusDATA?.();if(s?.startupErrorPresent)diagnostics?.record('namespace','operation',s.startupError);}catch{}
+  try{const s=agentDelegationsService.readOperationCause?.();if(s?.present)diagnostics?.record('agent-view','operation',s.cause);}catch{}
+  const check=(owner,operation)=>{try{return operation();}catch(cause){diagnostics?.record(owner,'assert',cause);throw cause;}};
+  let retireFailed=false,retireCause;try{originalMainNamespaceStartup.retire();}catch(cause){diagnostics?.record('namespace','retire',cause);retireFailed=true;retireCause=cause;}
+  try{originalPayContextBridge.invalidateAll();}catch(cause){diagnostics?.record('pay-context','retire',cause);if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  try{originalProductContextBridge.invalidateAll();}catch(cause){diagnostics?.record('product-context','retire',cause);if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  try{nativePayMainEntry?.cancel();}catch(cause){diagnostics?.record('pay-entry','retire',cause);if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  try{pqFinalityCollection?.retire();}catch(cause){diagnostics?.record('finality','retire',cause);if(!retireFailed){retireFailed=true;retireCause=cause;}}
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
-  const registration=await Promise.allSettled([settle(()=>originalDeviceRegistration?.close()),settle(()=>originalDeviceFinalization?.close())]);
-  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeerOwner.shutdown()),settle(()=>originalProjectControl.shutdown()),settle(()=>agentDelegationsService.close())]);
+  const registration=await Promise.allSettled([settle('registration',()=>originalDeviceRegistration?.close()),settle('finalization',()=>originalDeviceFinalization?.close())]);
+  const others=await Promise.allSettled([settle('pq-reviews',()=>walletAuthority?.shutdownPQReviews()),settle('pay-entry',()=>nativePayMainEntry?.shutdown()),settle('device-creation',()=>originalDeviceCreation?.close()),settle('device-query',()=>originalDeviceQuery?.close()),settle('finality',()=>pqFinalityCollection?.join()),settle('ide-peer',()=>originalIDEIdentityPeerOwner.shutdown()),settle('project-control',()=>originalProjectControl.shutdown()),settle('agent-view',()=>agentDelegationsService.close())]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');
   // Child owners must drain before releasing the namespace admission parent.
   if(!failed&&!retireFailed)try{
-    nativePayProduct?.assertSafeToClose();agentDelegationsService.assertSafeToClose();
-    originalProductContextBridge.assertSafeToClose();
-    if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');
-    originalPayContextBridge.assertSafeToClose();
-    await originalMainNamespaceStartup.shutdown();
+    check('pay-product',()=>nativePayProduct?.assertSafeToClose());check('agent-view',()=>agentDelegationsService.assertSafeToClose());
+    check('product-context',()=>originalProductContextBridge.assertSafeToClose());
+    check('transaction-cleanup',()=>{if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');});
+    check('pay-context',()=>originalPayContextBridge.assertSafeToClose());
+    await settle('namespace',()=>originalMainNamespaceStartup.shutdown());
   }catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{agentDelegationsService.assertSafeToClose();nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeerOwner.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,diagnostics:typeof originalCleanupDiagnostics==='undefined'?null:originalCleanupDiagnostics,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{agentDelegationsService.assertSafeToClose();nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeerOwner.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。'+(typeof originalCleanupDiagnostics==='undefined'?'':'\n\nCleanup diagnostics (codes only):\n'+originalCleanupDiagnostics.format()))});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
