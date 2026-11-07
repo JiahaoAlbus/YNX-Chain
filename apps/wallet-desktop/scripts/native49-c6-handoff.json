@@ -1,0 +1,950 @@
+{
+  "schema": "YNX_ORIGINAL_A_NATIVE49_SWIFT11_MINIMAL_REPAIR_QUALIFIED_HANDOFF_V1",
+  "createdAt": "2026-11-07T08:19:06.704465+00:00",
+  "originalA": "01a0f351-8f50-7632-8a7e-faba5dac6030",
+  "soleController": "01a19136-8605-7773-9d79-99c6f91c3a36",
+  "state": "NORMAL_NATIVE49_QUALIFIED_NOT_APP_NOT_ADMITTED",
+  "sourceRoles": {
+    "reusedCPPSourceCommit": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+    "reusedCPPSourceTree": "fb0a18f131615e9cb1886ce1479f7b1fc1df879e",
+    "swiftBuilderCommit": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+    "swiftBuilderTree": "06e98e613f2f677d13bfefc99079bd05e40f8f31",
+    "swiftBuilderRoot": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source",
+    "sourceH": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/HANDOFF.json",
+      "bytes": 6092,
+      "sha256": "e043dc9f6241d1c123459d3cc53c55e0e05bf59ffa8015c959d3d8954c5341f5"
+    }
+  },
+  "session": 24239,
+  "runnerPID": 93684,
+  "normalRunPID": 94212,
+  "normalReadPID": 94526,
+  "actualExit": 0,
+  "noInflight": true,
+  "resources": {
+    "elapsedSeconds": 77.55062375,
+    "peakOwnRSSBytes": 828833792,
+    "maxJointCumulativeBytes": 539476192,
+    "guard": null,
+    "remainingOwned": []
+  },
+  "actions": {
+    "forcedPUBLICDataCases": 4,
+    "forcedDataPass": 4,
+    "forcedDataFail": 0,
+    "forcedDataSkip": 0,
+    "CPPReusedByExactContract": 84,
+    "newCPPCompile": 0,
+    "newGoBuild": false,
+    "newSwiftCompile": 1,
+    "newObjectNMSymbolChecks": 2,
+    "strictLink": 1,
+    "newPortableStage": 1,
+    "undefinedScan": 1,
+    "mandatoryPost": 7,
+    "strictCodesignVerify": 4,
+    "normalLedgerEntries": 17,
+    "allActualExit0": true,
+    "originalGatesNotWeakened": true
+  },
+  "actualImage": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-identity.node",
+    "bytes": 15749408,
+    "sha256": "4207948f71120f2cc57d862b97da505e4f9c790bc8f98233f92487032bea7ce6"
+  },
+  "actualLinkedImage": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-identity.linked.node",
+    "bytes": 15841360,
+    "sha256": "b33e23311ec84bea80317db1c8d5f69ecbcdea32d0874fabb2cbcd59a0cbb971"
+  },
+  "newSwiftObject": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.PQ.o",
+    "bytes": 225072,
+    "sha256": "2be6c1b2c8df0f020755a71a897e274f790ff6e767e92dda4b36d4aeec91ad60"
+  },
+  "portableRuntimeAndLicenses": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-identity.node",
+      "bytes": 15749408,
+      "sha256": "4207948f71120f2cc57d862b97da505e4f9c790bc8f98233f92487032bea7ce6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
+      "bytes": 1603,
+      "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/LIBUV-LICENSE.txt",
+      "bytes": 1079,
+      "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
+      "bytes": 1022,
+      "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
+      "bytes": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libcrypto.3.dylib",
+      "bytes": 5107648,
+      "sha256": "7ee2d33dd3f002e8bcc76d5bc1083333d10ea7064539cc630c4b28ae5a83bfd8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libssl.3.dylib",
+      "bytes": 979328,
+      "sha256": "8d24bffd50d0a961d283ab711b8176525a643a2679c6b852cb582251c516fe48"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-runtime-libs/libuv.1.dylib",
+      "bytes": 201824,
+      "sha256": "9e19a85d194e4da4f09939f0d051c6790a7f45b46da3827b85e8919c5de77e4e"
+    }
+  ],
+  "reusedCPPObjects": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.0.o",
+      "bytes": 2189840,
+      "sha256": "1f7fb19d2501a48f962b3e662b25973f8f0e5707e9109ce5b7f97887547462fa"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.1.o",
+      "bytes": 75144,
+      "sha256": "933e23a0f6c030bc613ebcc03f2b1c81c32eb5d191b4e5c754b991099e2126ca"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.2.o",
+      "bytes": 8304,
+      "sha256": "96ab194742113dda6cbaf70c3e9501655f13b5d953af164766bc4baebf5dc108"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.3.o",
+      "bytes": 303504,
+      "sha256": "980a63ee7e77498776e08dd03c49351d6474e92c87a663e3aca04a0688f60d1e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.4.o",
+      "bytes": 76056,
+      "sha256": "9358fdf60a8781a57fc44da10a0defcbcdd82153d39a5ee22c71dd1400b6835c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.5.o",
+      "bytes": 221056,
+      "sha256": "8ec740bd2f2b6213f774c195921e7dd0bac23922f8ebfc0f8b6ead5134cafe95"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.6.o",
+      "bytes": 374216,
+      "sha256": "459a316469ae45ca5c7daed6ccb3a347d6688cc106c393356053fa42a821a80c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.7.o",
+      "bytes": 78856,
+      "sha256": "8babedef8cf13b79e2d90aa9c93586a0c1da6d66126298d1fba2e6d7b581c916"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.8.o",
+      "bytes": 319704,
+      "sha256": "d92087bb070c3414f3091cdf0d4a2ce6664577722d5065ac69b718462cca8304"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.9.o",
+      "bytes": 2832,
+      "sha256": "ab873cef2177cbba4178f7aacd969179d84359f28174fbec6e83046c6e7b7a77"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.10.o",
+      "bytes": 170136,
+      "sha256": "bb8a6c4537e2d28a7c2bfd0041e198d0a954b7e7a4ad2f70ea0054c515070f14"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.11.o",
+      "bytes": 1522488,
+      "sha256": "9ed8d7593756acb1fa57ec1a349efef456c96c87f09fa7984948532cc3ca7bf1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.12.o",
+      "bytes": 97528,
+      "sha256": "e0a8964b8ede8f4af7fa8694df16bf6d82c8bc44074740474f7ba99ac477f7a7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.13.o",
+      "bytes": 71728,
+      "sha256": "adac4c06cb8a72a3732eb36f9d8370ed3463cf7d57f2dfe5ced8b668536fb513"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.14.o",
+      "bytes": 103264,
+      "sha256": "881bcd5b0a0ee249cea167177072b457b72a34528664563b65f227d1433fc3cd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.15.o",
+      "bytes": 76552,
+      "sha256": "9de4d3399a6e28dda79e3794e72999a184ab6f41a33dffee8902da949275bcb1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.16.o",
+      "bytes": 83944,
+      "sha256": "d50737f5d780fba8f634c9105f8b35fb574f9c16c98790ad0915668d72c2291e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.17.o",
+      "bytes": 147720,
+      "sha256": "eef2fa41ff26d6ddd65ff9c9706e404e42073daf5ebd6c1376b7dcbe78956f07"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.18.o",
+      "bytes": 86416,
+      "sha256": "062f05d388f9ba0e1faaf8cfdf86f9a05dff806f977b52c8ca4d39e3ea42d6dc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.19.o",
+      "bytes": 44416,
+      "sha256": "0a84f3a0afb735f186d238d75f60cf4b3c2d636d42cf879407a4c9176a527eb0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.20.o",
+      "bytes": 45424,
+      "sha256": "0a065faca9c0f64bcf7a5ff5c371ac505a7cdcc8f391e015eb4eaf7482f7c50a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.21.o",
+      "bytes": 71136,
+      "sha256": "57f20f3be6e69eebb67142f00521e49bc2997cc47d2563b9ff8861d2d5a52e7d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.22.o",
+      "bytes": 66152,
+      "sha256": "d1a5fbd2222b64667b13b64c732a71c4a336abf749d18e6fa495cfaf1daf10ce"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.23.o",
+      "bytes": 86312,
+      "sha256": "7d822605b9424da8665a8f300005aef02317ca8ec661253f2ff4b30720055148"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.24.o",
+      "bytes": 50208,
+      "sha256": "d8697922636584193b94be12da32034be4b4359f4cc0622f88e952df8c8eda9a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.25.o",
+      "bytes": 40096,
+      "sha256": "c340b443ca91d47f0d8a1fb8d811d9723e2d340d0599922dfd7556b7812b312e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.26.o",
+      "bytes": 45664,
+      "sha256": "d224c628ef031b2921af8b8351f4f13e19aedc1c57adfc9008708842f53bdea9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.27.o",
+      "bytes": 24072,
+      "sha256": "3edba123bfb5504d7cde6aacc7c30ac5565c7759dd836bc7bd23d638be3c8d16"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.28.o",
+      "bytes": 52624,
+      "sha256": "c56094bf21eeed36af6518388988ad91e1480233589ab873447fd70f17c1575f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.29.o",
+      "bytes": 199344,
+      "sha256": "69be9b710ff04a12b8a69e9dafcd2650540fbbaae8b7a7a39c76173dcc15b54b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.30.o",
+      "bytes": 194960,
+      "sha256": "eecdc0aa1b8023bbfb7a9d889d4fa2963158cdfee04c9f9fa43c96102a8adeee"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.31.o",
+      "bytes": 15320,
+      "sha256": "3bf8d3147aba0989638f1021923a424acc4b754b7a72df3e1240a64d2c3fb8fc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.32.o",
+      "bytes": 74064,
+      "sha256": "e1bd063644e274a7e10da69aa925a902f0232026322d2118d0cd9a32cb44a494"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.33.o",
+      "bytes": 507072,
+      "sha256": "b14eb1768e4f8f2cc7a8d92e06bc2abb3285f84b000018c64708f9e4232a9bc3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.34.o",
+      "bytes": 97304,
+      "sha256": "28a57073153f95ee890b6c493f28a194b153b08ddf1222194e76b28198faebd3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.35.o",
+      "bytes": 260832,
+      "sha256": "bc097cf5c751a4b128a6fac22a98aec07ce36079766b9029cd12b53514fa72cf"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.36.o",
+      "bytes": 85152,
+      "sha256": "f4fce77c0bbce7088492dad8aabe96fc3fdb711772d2a3782e0897a4dc3011d8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.37.o",
+      "bytes": 78832,
+      "sha256": "1b364652b12640ed7d9722ce694991b850919ffde7563be8c62ef3b52a94002d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.38.o",
+      "bytes": 294496,
+      "sha256": "f705678bfa96d0f2d9971898e7145343bd9e77c68b682078324851c16728048d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.39.o",
+      "bytes": 43792,
+      "sha256": "68e36d93ef3a7a02d03ed546ed3cdb01a83e5fc4946bcd0acdedda4d2527c530"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.40.o",
+      "bytes": 174000,
+      "sha256": "ad4aa5a528f954eef58df78062a848b7c9901e461bcc944a05f566b8b69b6ce9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.41.o",
+      "bytes": 147144,
+      "sha256": "9326518c093dc8625035b55220f5bc1d56697543cf0ef52a234de360e70e9c85"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.42.o",
+      "bytes": 138472,
+      "sha256": "cdca3bbfe5839a6b2e464c672ff8b2a355ab25a80a12b2e6d2112e55eca1411f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.43.o",
+      "bytes": 83792,
+      "sha256": "89d4a6ebea9643c96a263b26f5a6bd3f3b691904c66ab06b12452043ee45021d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.44.o",
+      "bytes": 60496,
+      "sha256": "6faba836b05b8504cd79981f0f097ddc1ed43006e7a0b03f5f2e0d929905aed8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.45.o",
+      "bytes": 35952,
+      "sha256": "92b9aff7b356d516b07abf809910685e3b873431aa8bc4c52e39f64f3b28fda9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.46.o",
+      "bytes": 592,
+      "sha256": "1a0f9c74d92367121a7814a7bc81b3f7bc8a21122d4a4fbcc93be76837d0d631"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.47.o",
+      "bytes": 11184,
+      "sha256": "d7fefca0ad2272138c94cad5d6005ce703e12091b4b8820bb0bd0607967311d1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.48.o",
+      "bytes": 77352,
+      "sha256": "71c127008c4d853d2a74324115a8779026a42b779ff930557bbd20eda156a00d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.49.o",
+      "bytes": 64240,
+      "sha256": "5bc3c2e5173de807a65e040907906f6803f0cfe40242f3ad1789db7b1ce3731d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.50.o",
+      "bytes": 58568,
+      "sha256": "d4a6b769c989b6f25280d0253ba0f1b0500e67c38d2c4a63b4a467f7f7ada4ae"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.51.o",
+      "bytes": 45240,
+      "sha256": "54fc22f95d8a2f8c4a6978149b94f16017a6400e9cf742ff80390e6cc963e057"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.52.o",
+      "bytes": 257384,
+      "sha256": "a477131b3770084486d417ce14a69c914d3dc84958d3a0e05f10903313bb12d0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.53.o",
+      "bytes": 107424,
+      "sha256": "ca26316c4f1e17cb78ec6aab598bcd7b0a4aa9a7a79115a7f1b92c92e4f2ade2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.54.o",
+      "bytes": 30408,
+      "sha256": "eb9c1a8bdc99723f8162afdef2ced4e29da27c2523c7a7a7617952d69eb011e7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.55.o",
+      "bytes": 142784,
+      "sha256": "12ca2726f4d79168649d6be1b85a2b6cf8942e19fb10d4a276a59ee9737b80ad"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.56.o",
+      "bytes": 385552,
+      "sha256": "13b5f125f3dae3594ebb2c456174c9a790307a3243aeb77a9bb44134a79c69a2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.57.o",
+      "bytes": 104912,
+      "sha256": "140a43c7edb1f6c5e7b20ebd9dc186ad1ae8e9b87a78b5601b507ae580f19bab"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.58.o",
+      "bytes": 63376,
+      "sha256": "2faae4b119c4ef4b20d7dde78ba7e82408f3da443d33564902869bb7ddbaee1b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.59.o",
+      "bytes": 192792,
+      "sha256": "77782e90cf8ba21aec5b3c47eb88088f3c9501f9d751a3774891599a863316a2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.60.o",
+      "bytes": 389296,
+      "sha256": "fbd5b886ffc4c0faefc8afcbd066f0f9d22a3c6a80df20e4000486a215328aae"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.61.o",
+      "bytes": 171312,
+      "sha256": "9f90c4857ff9dbcbebe78618854ba960b7cf124de0193f7a5c4bb3cd67602fd2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.62.o",
+      "bytes": 58992,
+      "sha256": "cc31eddbcc22a4ab1979fe1eb8846cf7af05408cf95eb7942dd0f44ab84934cc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.63.o",
+      "bytes": 78144,
+      "sha256": "7de04ed2722be147edd687d42ea04e2db787ba15d247fddfc272643a97608118"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.64.o",
+      "bytes": 57112,
+      "sha256": "6f5cce9e138e6ac618b2c9c3cf6b7a8850c96590617eea3a9c4aa7b0c5a4b074"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.65.o",
+      "bytes": 115752,
+      "sha256": "ba3d4d51207e7287cfebe8d335d0a20cf32299f30edc48451e54c1bde7898fb5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.66.o",
+      "bytes": 96176,
+      "sha256": "15028a04e3f35c82022c34ce1028ed3df58c19434991796e780cb60940f6934e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.67.o",
+      "bytes": 188176,
+      "sha256": "da53cf7c9324028614f4c8125538db0028cb0bc52b0907abd05d52cba1605c82"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.68.o",
+      "bytes": 134368,
+      "sha256": "3dac4d0652ee0b9a475781697a1f5745111b523ff568b902f64ab57aae768128"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.69.o",
+      "bytes": 84120,
+      "sha256": "73e571b5b65f56815eaa209d1833c0d4efbec990b967eed159fcb425a74b2b1e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.70.o",
+      "bytes": 83192,
+      "sha256": "9c0fb16ba45b354b18d82548214246d542ffae8e25970ee16b8b578233fae75d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.71.o",
+      "bytes": 39728,
+      "sha256": "a42e8c02019c9edb103acece6023c5e4a3afda4d3e5ade1297e599686b582eeb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.72.o",
+      "bytes": 153848,
+      "sha256": "7dd717e144c9c650c23c2ee94a5aebbccd05140789a909477d5778bc0ca275f0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.73.o",
+      "bytes": 158952,
+      "sha256": "c2170e9167da7181e988cbb608b89561e2ef62c04dc244e20dc5a8e5c644c05a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.74.o",
+      "bytes": 342392,
+      "sha256": "fb54b7355dab08bb3a63d477a4aaf33c6578807d43914ccc894ca14e237f5fa5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.75.o",
+      "bytes": 285232,
+      "sha256": "23eb98a07e302b47ac6051f84ba7f21af1735dbf47c2160d8c3aa23fb6cfbfde"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.76.o",
+      "bytes": 380560,
+      "sha256": "994a81c4b6d17fed641bbed3e9c496a18ea593d9f211dbb504281c9a9aa9ae8d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.77.o",
+      "bytes": 183984,
+      "sha256": "20d01ded0be0e5a8e000224351a12afbbfe12725e7b1a3d5d783ba73a8533b6b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.78.o",
+      "bytes": 100392,
+      "sha256": "ca3a9095ceb4f207a53d9d4043ae3dc741c8b5fee648b8b03cb7cc53369e31d4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.79.o",
+      "bytes": 415000,
+      "sha256": "764f9aa78951472260644326e7c1afc2d8c43676290a196afb5c6442e2b42c24"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.80.o",
+      "bytes": 21512,
+      "sha256": "9cd7396c83228ee4fc25e903bca9605202665e08723f4d252562b7be9ee75b86"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.81.o",
+      "bytes": 22568,
+      "sha256": "34cd09b66560f8db10c40d13fc1f5ed4a3eacf1e9e54c33e98d688743d796f78"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.82.o",
+      "bytes": 25352,
+      "sha256": "9d5dbeab249d820cce9c0540ea35b86fbbe25a13befaf5ed724b20d5e004d58c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/single49-network-current/objects/original-auth-common.arm64.83.o",
+      "bytes": 16624,
+      "sha256": "adedbe1a051b627570e553cebfad6f09a2057ff0168d588ffd03e5f21aac1c38"
+    }
+  ],
+  "singleGoArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/packages/wallet-auth/native/vendor/link/libynx_artifact_release.a",
+    "bytes": 16442696,
+    "sha256": "815ebd4bb890a89724d8bb23fefe3f1b3a56b74468a2bdc1ca16cf90e95a7a8a"
+  },
+  "normalProducerRecord": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/NORMAL_SWIFT_REPAIR_RECORD.json",
+    "bytes": 332515,
+    "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52"
+  },
+  "normalProducerAttempt": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/SWIFT_REPAIR_ATTEMPT.json",
+    "bytes": 299455,
+    "sha256": "9bb0eda4dc8a00e57bfdba9443b5849bbd45dc84ae791a0bf9a28a5d86a3c067"
+  },
+  "normalRecordStrictRead": {
+    "complete": true,
+    "reusedCPP": 84,
+    "compiledSwift": 1,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "record": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/NORMAL_SWIFT_REPAIR_RECORD.json",
+      "bytes": 332515,
+      "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52"
+    },
+    "NativeLoadedByReader": false
+  },
+  "Swift11ActualImageGlobalNonprivateReadback": {
+    "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_PUBLIC_READBACK.json",
+    "bytes": 3436,
+    "sha256": "c7c3c4e75aa4682eab4113bdf32b322af715e3e89bc9c316aeffdc7942f450a8"
+  },
+  "post": {
+    "old190Refs85ObjectsRuntimeAndImageUnchanged": true,
+    "original9ToolsWholeSHAEqual": true,
+    "originalFirstAndSecondRedUnchanged": true,
+    "normalTmpAliasAbsent": true,
+    "heavyMutexActualAcquireRelease": true,
+    "noInflight": true,
+    "currentSource4419BytesModesVerifiedByGuardAndNormalPreflight": true,
+    "all17ActualExitZero": true,
+    "normalReadExit": 0,
+    "normalReadNativeLoaded": false
+  },
+  "preservedFailures": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/normal-3c9-once/NATIVE49_3C9_COMPILED_FIRST_POST_FAILURE_HANDOFF.json",
+      "bytes": 89537,
+      "sha256": "9e4c79762eeda2bce82e66eafce3255fea51e42acbab43282d6aa3935c6a6267"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/retained-3c9-post-once/RETAINED_POST_SWIFT11_FIRSTCAUSE_HANDOFF.json",
+      "bytes": 13988,
+      "sha256": "bbb151efe6fb8ad1214e2520a3eabc459b102240c6e51495015da7cd82773d19"
+    }
+  ],
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/ADMISSION.json",
+      "bytes": 221,
+      "sha256": "a6ddfa0b56fa2a0259549c2b18882348f7912ca4938d63b8456f22dcf2959d75"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/BUILD_RESULT.json",
+      "bytes": 11209,
+      "sha256": "74edf6b0a364f3028b76971670b7dc7df5aa256ec4d81d5873faf20385715e95"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/EXACT_MINIMAL_PLAN.json",
+      "bytes": 238520,
+      "sha256": "22064fcedaeb26e8a4a3247b72293381cee619044a6c29324eb31b368a81a719"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_PUBLIC_READBACK.json",
+      "bytes": 3436,
+      "sha256": "c7c3c4e75aa4682eab4113bdf32b322af715e3e89bc9c316aeffdc7942f450a8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_g.txt",
+      "bytes": 380018,
+      "sha256": "eb1d19d88a7a72c51442c5dfcf9884467bb1cf18f4a4341f6f59796b61b55091"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/FINAL_IMAGE_SWIFT11_m.txt",
+      "bytes": 5349301,
+      "sha256": "6948364efdd742b8b1fc706c9906858765aba9c095dd97aabc57adc143b4fcf1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_PLAN.request.json",
+      "bytes": 629,
+      "sha256": "7c4eb4e4dfb9e4dd599c18f6b22462313abcadd12be9d20f92a2a901f4c62c56"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_PLAN.samples.jsonl",
+      "bytes": 7960,
+      "sha256": "dbfe6e70e9097fabb7fe730c40e94acc0350fc43a3f45f0527c058d445849367"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_PLAN.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_PLAN.stdout",
+      "bytes": 238520,
+      "sha256": "22064fcedaeb26e8a4a3247b72293381cee619044a6c29324eb31b368a81a719"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_PLAN.terminal.json",
+      "bytes": 678,
+      "sha256": "fb5ab614a9dae312cd6110488af8e135636cb579a686898f2468fd7e21d37b5b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READ.request.json",
+      "bytes": 629,
+      "sha256": "215119ed72437980868541277b9e606e3a21c2ce9f5d8dcb9e70483530968620"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READ.samples.jsonl",
+      "bytes": 298,
+      "sha256": "fdcfeb2794bd5724257aa1c308b54a8baae1dd9d4cfe09f24c618fab8c7e7d99"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READ.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READ.stdout",
+      "bytes": 542,
+      "sha256": "87b134194ab184cf70c431bb5a00b12649e469f41592fb47f77c2f90004d923c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READ.terminal.json",
+      "bytes": 681,
+      "sha256": "72bc7b097ef8d7a86bfd853809c3b599502f6b786bbaba16cac26a9de5aff491"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_READBACK.json",
+      "bytes": 542,
+      "sha256": "87b134194ab184cf70c431bb5a00b12649e469f41592fb47f77c2f90004d923c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_RUN.request.json",
+      "bytes": 628,
+      "sha256": "17aa84c835c3473fee3cc5f0b8a4493ceed4a9494894a894d5b44b406c2863fe"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_RUN.samples.jsonl",
+      "bytes": 7995,
+      "sha256": "227b90fae1a3ac3f4e27ac5622bf06a99361db0d80e68aa96431fd45fb0a0fc9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_RUN.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_RUN.stdout",
+      "bytes": 542,
+      "sha256": "87b134194ab184cf70c431bb5a00b12649e469f41592fb47f77c2f90004d923c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/NORMAL_SWIFT_REPAIR_RUN.terminal.json",
+      "bytes": 678,
+      "sha256": "f32d8883de6f749a6914abfb265b0b8651529cd0190ac1ad52b7da878cab845a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/ROOT_SWIFT11_START.original.json",
+      "bytes": 4787,
+      "sha256": "e19451b2c39bd2388bbdb1aa9ba799cae863f1b6548303676e16e2a9d754b690"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/run-original-swift11-minimal-repair-once.py",
+      "bytes": 6971,
+      "sha256": "59a9f573354a93ea59e72ed819c042845987c953fd6895ab3652980d9e949bb7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/run-original-3c9-native49-once.py",
+      "bytes": 14135,
+      "sha256": "208d3326d5637e396c30d73f9a6b80dd926c63227922b5f26cc1b0ab6185c0b4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/HANDOFF.json",
+      "bytes": 6092,
+      "sha256": "e043dc9f6241d1c123459d3cc53c55e0e05bf59ffa8015c959d3d8954c5341f5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/BUILD_INPUTS.json",
+      "bytes": 3273,
+      "sha256": "ca96ec4208396c7611027de8fed4789c97834c8e05095000a0ee4c6b4fa66833"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/SOURCEFILES.json",
+      "bytes": 1326954,
+      "sha256": "c2c359674d256af615235ae5fd78bf6bf827271aadf12f084b16559b866baec5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/NORMAL_SWIFT_REPAIR_RECORD.json",
+      "bytes": 332515,
+      "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/SWIFT_REPAIR_ATTEMPT.json",
+      "bytes": 299455,
+      "sha256": "9bb0eda4dc8a00e57bfdba9443b5849bbd45dc84ae791a0bf9a28a5d86a3c067"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/REUSED_CPP_SWIFT_PREPOST.json",
+      "bytes": 307595,
+      "sha256": "9b7f22432e275460535fdaf810cb6b82e522ba7bc4af80d8d64bf208f0217e93"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/original-auth-portable-runtime.json",
+      "bytes": 18369,
+      "sha256": "dd1d2b066538b49c7a23326b516727f4b64a7e717d9c1eb26200966dbce5c467"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/data.stdout",
+      "bytes": 456,
+      "sha256": "a8fdb0d2e3952deff1e14e6c65d9c69c889e5fa7cfdf416fa3786a22644c1dce"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/data.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/000.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/000.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/001.stdout",
+      "bytes": 41526,
+      "sha256": "1d5c3b5768551e5e0ea7ddc1b028a63a76863a62e8737ac0bf63b3a140d289fc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/001.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/002.stdout",
+      "bytes": 106208,
+      "sha256": "78d9c66058452a6af87fa12fcfc1ccd1b473777983c881648a97f5a0883decc1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/002.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/003.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/003.stderr",
+      "bytes": 44,
+      "sha256": "69b6d71fa30c544a0dd74dbed59e93e265fbdc66d9afe992bf515f532799a269"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/004.stdout",
+      "bytes": 455,
+      "sha256": "62fb937585e5b977a557c9ce82cddb8109a1c810e595d9e3483509db1eaa3c08"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/004.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/005.stdout",
+      "bytes": 22393,
+      "sha256": "816004b3e11006b86057adc6921600bad3d7c3d1c5419a6ac8e610947cb09d54"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/005.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/006.stdout",
+      "bytes": 4095,
+      "sha256": "be6171ce00056d521601b12218d0a9bc108f9f1be40311a3e04cf11160cfce83"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/006.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/007.stdout",
+      "bytes": 182,
+      "sha256": "0ee61fa386f053757346eba6cfa7035cc9e01e59a87acf95b674c3afd526fcc2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/007.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/008.stdout",
+      "bytes": 116,
+      "sha256": "ba783309c6fc338a4e5f758990c773944e508d434cc55f26d76b7c9d36b83e0c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/008.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/009.stdout",
+      "bytes": 48,
+      "sha256": "7f19b3debe116666f831bf0022ffadb4fc241fb53b89d8b569295a04d0ec1000"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/009.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/010.stdout",
+      "bytes": 62,
+      "sha256": "d0b718c22326d245927ecb63f1a93ead8850060634fe035e2f076c6d1dca10dd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/010.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/011.stdout",
+      "bytes": 281,
+      "sha256": "65201b7346059ee4c45e9b864390144d430e67a64f46f14c1290ab09c15b8c8b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/011.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/012.stdout",
+      "bytes": 138,
+      "sha256": "76cab371c9015186fcb1ddc367bf3f2e2e6f154cc0191e2c1858714385ed5654"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/012.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/013.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/013.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/014.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/014.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/015.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/015.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/016.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/single49-network-current/logs/016.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/swift11-minimal-repair-once/ACTUAL_SUCCESS_POST.json",
+      "bytes": 400,
+      "sha256": "2b4320a73c1ca3730b00b4f505cfa423f898c8d5a8802fbaa7c73639831d57d3"
+    }
+  ],
+  "next": "Original SDK/Main consumers intake this exact specialized normal record and source roles before matching App; no oldimage/oldreceipt qualification transfer. App build/GUI/install/deployment requires corresponding normal scope.",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeTrustAdmission": false,
+  "normalFactoryComplete": false,
+  "realPeer": false,
+  "AppBuilt": false,
+  "installed": false,
+  "businessVerified": false,
+  "productionSigning": false,
+  "publicActivation": false
+}
