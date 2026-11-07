@@ -79,6 +79,25 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         var cancelled=row;cancelled["Status"]="cancelled";cancelled["Reason"]="Not needed anymore";cancelled["CancelledAt"]=time;invitations=[cancelled]
         try cancel.respond(["Invitation":cancelled,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
         try check(model.invitations[0].Status=="cancelled" && !model.members.contains(where:{$0.Account==target}),"confirmed cancellation grants no membership")
+
+        let profile=model.stores[0],charges=SellerNativeCharges(Genesis:String(repeating:"ab",count:32),NativeChainID:"6423",AssetID:"YNXT",UnitVersion:"1",ShippingAtoms:"0",TaxAtoms:"0")
+        model.perform(.updateStore(profile,name:profile.Name,description:profile.Description,policy:profile.Policy,trustURL:profile.TrustURL,settlementAccount:profile.SettlementAccount,nativeCharges:charges))
+        let nativeProfile=try await take("seller/stores/"+storeID+"/native-profile"),profileBody=try nativeProfile.body(),profileUpdate=profileBody["Update"] as! [String:Any],chargeData=profileUpdate["NativeCharges"] as! [String:Any]
+        try check(chargeData["ShippingAtoms"] as? String=="0" && chargeData["TaxAtoms"] as? String=="0" && chargeData["Genesis"] as? String==String(repeating:"ab",count:32),"profile sends only explicit native charge strings on original owner mutation")
+        store["NativeCharges"]=chargeData;store["NativeChargesApprovalRef"]="shop.charges/"+storeID+"/"+String(repeating:"a",count:64)
+        try nativeProfile.respond(["Store":store,"Applied":profileUpdate,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
+        try check(model.stores[0].NativeCharges?.ShippingAtoms=="0" && model.stores[0].NativeChargesApprovalRef != nil,"matching normal profile receipt adopts native charge data and actual reference")
+        products[0]["Media"]=[["URL":"https://media.example/original.jpg","AltText":"Original","Kind":"image"]];model.refresh();try await until{!model.busy}
+        var nativeDraft=model.draft(for:model.products[0]);nativeDraft.variants[0].nativePrice=SellerNativePriceDraft(genesis:String(repeating:"ab",count:32),nativeChainID:"6423",amountAtoms:String(UInt64.max))
+        model.perform(.publish(nativeDraft));let nativeListing=try await take("seller/products/product_original/native-listing"),nativeBody=try nativeListing.body(),nativeVariants=nativeBody["Variants"] as! [[String:Any]],nativeData=nativeVariants[0]["NativePrice"] as! [String:Any]
+        try check(nativeData["AmountAtoms"] as? String==String(UInt64.max) && nativeVariants[0]["PriceYNXT"] as? String==String(Int64.max),"same authenticated listing keeps UInt64 native atoms separate from exact legacy Int64 price")
+        products[0]["Revision"]=3;products[0]["Published"]=true;var liveVariants=products[0]["Variants"] as! [[String:Any]];liveVariants[0]["NativePrice"]=nativeData;products[0]["Variants"]=liveVariants
+        var acceptedVariant=nativeVariants[0];acceptedVariant["Reserved"]="0";acceptedVariant.removeValue(forKey:"ClearNativePrice")
+        try nativeListing.respond(["OriginalApplied":true,"QueryOnly":false,"Product":["ID":"product_original","StoreID":storeID,"Title":nativeDraft.title,"Revision":"3","Published":true,"Variants":[acceptedVariant]]]);try await until{!model.busy}
+        try check(model.products[0].Variants[0].NativePrice?.AmountAtoms==String(UInt64.max),"fresh normal product read retains configured native price without conversion")
+        let beforeNativeInvalid=writes
+        var invalid=model.draft(for:model.products[0]);invalid.variants[0].nativePrice?.amountAtoms="01";model.perform(.publish(invalid))
+        try check(writes==beforeNativeInvalid && pending.isEmpty,"noncanonical native amount is refused before durable mutation and HTTP")
         try check(saved["retained-Pay-UNKNOWN"]==sentinel && pending.isEmpty,"setup creates no payment and preserves unrelated original invoice UNKNOWN")
         print("Actual Seller setup checks PASS \(checks); controlled fixture only, no real account, Store, provider or funds")
     }

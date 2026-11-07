@@ -25,6 +25,8 @@ const (
 )
 
 type StoreProfile struct {
+	NativeCharges                                                     *NativeChargesDATA `json:",omitempty"`
+	NativeChargesApprovalRef                                          string             `json:",omitempty"`
 	ID, Owner, Name, Description, Policy, TrustURL, SettlementAccount string
 	Status                                                            string
 	CreatedAt, UpdatedAt                                              time.Time
@@ -90,10 +92,12 @@ type Cart struct {
 }
 
 type Variant struct {
-	ID, Name, SKU string
-	PriceYNXT     int64
-	Inventory     int64
-	Reserved      int64
+	NativePrice      *NativePriceDATA `json:",omitempty"`
+	ClearNativePrice bool             `json:",omitempty"`
+	ID, Name, SKU    string
+	PriceYNXT        int64
+	Inventory        int64
+	Reserved         int64
 }
 
 type MediaAsset struct {
@@ -130,6 +134,7 @@ type Address struct {
 }
 
 type OrderLine struct {
+	NativePrice                              *NativeOrderLinePriceDATA `json:",omitempty"`
 	ProductID, VariantID, Title, VariantName string
 	Quantity, UnitPriceYNXT                  int64
 }
@@ -172,8 +177,9 @@ type RefundEvidence struct {
 type CartConsumption struct{ PreviousRevision, Revision string }
 
 type Order struct {
-	ReturnReceipts                                                                              []ReturnReceipt  `json:",omitempty"`
-	CartConsumption                                                                             *CartConsumption `json:",omitempty"`
+	NativePrice                                                                                 *NativeOrderPriceDATA `json:",omitempty"`
+	ReturnReceipts                                                                              []ReturnReceipt       `json:",omitempty"`
+	CartConsumption                                                                             *CartConsumption      `json:",omitempty"`
 	ID, Buyer, StoreID, Status, Currency, InvoiceID, PayIntentID, PayMerchant, PayPayoutAddress string
 	Lines                                                                                       []OrderLine
 	Address                                                                                     Address
@@ -287,11 +293,11 @@ type Snapshot struct {
 // caller edits cannot race with inventory/reservation changes.
 func cloneProduct(product Product) Product {
 	product.Media = append([]MediaAsset(nil), product.Media...)
-	product.Variants = append([]Variant(nil), product.Variants...)
+	product.Variants = copyVariants(product.Variants)
 	product.EditHistory = append([]ProductRevision(nil), product.EditHistory...)
 	for i := range product.EditHistory {
 		product.EditHistory[i].Media = append([]MediaAsset(nil), product.EditHistory[i].Media...)
-		product.EditHistory[i].Variants = append([]Variant(nil), product.EditHistory[i].Variants...)
+		product.EditHistory[i].Variants = copyVariants(product.EditHistory[i].Variants)
 	}
 	return product
 }
@@ -299,6 +305,10 @@ func cloneProduct(product Product) Product {
 // Orders contain mutable evidence pointers as well as line and timeline slices.
 // Keep stored records and response snapshots independent after releasing the lock.
 func cloneOrder(order Order) Order {
+	if order.NativePrice != nil {
+		q := *order.NativePrice
+		order.NativePrice = &q
+	}
 	if order.NativePayment != nil {
 		p := *order.NativePayment
 		p.Receipts = append([]nativeShopArchiveReceipt(nil), p.Receipts...)
@@ -318,6 +328,12 @@ func cloneOrder(order Order) Order {
 		order.CartConsumption = &v
 	}
 	order.Lines = append([]OrderLine(nil), order.Lines...)
+	for i := range order.Lines {
+		if order.Lines[i].NativePrice != nil {
+			q := *order.Lines[i].NativePrice
+			order.Lines[i].NativePrice = &q
+		}
+	}
 	order.Timeline = append([]OrderEvent(nil), order.Timeline...)
 	if order.Settlement != nil {
 		evidence := *order.Settlement

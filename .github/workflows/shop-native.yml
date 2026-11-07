@@ -170,7 +170,7 @@ jobs:
         if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeSellerSetup|TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativePrice|TestNativeSellerSetup|TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
         if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         env:
@@ -390,7 +390,17 @@ jobs:
           cp "$SDK_PATH/sdk-manifest.json" "$RUNNER_TEMP/ynx-shop-macos-sdk-manifest.json"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RUNNER_TEMP/YNXShop-macos-candidate.zip"
           shasum -a 256 "$RUNNER_TEMP/YNXShop-macos-candidate.zip" > "$RUNNER_TEMP/ynx-shop-macos-candidate.sha256"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Produce the actual normal Seller and checkout native-price fixture
+        working-directory: .
+        env:
+          P07_PUBLIC_NATIVE_PRICE_ORDER_FIXTURE: ${{ runner.temp }}/ynx-shop-public-native-price-order.json
+        run: go test -mod=readonly -tags commerce_v2 ./internal/commerce -run '^TestNativePriceNormalSellerHTTPOrderDATA$' -count=1
       - name: Check literal searches and late catalog responses with the actual model
+        env:
+          YNX_SHOP_NATIVE_PRICE_FIXTURE: ${{ runner.temp }}/ynx-shop-public-native-price-order.json
         run: |
           set -euo pipefail
           SDK_PIN="$RUNNER_TEMP/YNXShopMacDerivedData/Build/Intermediates.noindex/YNXShop.build/Debug/YNXShopMac.build/DerivedSources/commerce-native-r9/NativeSDKPin.swift"
@@ -408,7 +418,7 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/LocalStorageStartupChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-locked-startup-checks"
           "$RUNNER_TEMP/ynx-shop-locked-startup-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-locked-startup.log"
-          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks SellerSetupChecks SellerInvitationChecks SellerStoreProfileChecks NativePaymentProjectionChecks OriginalMainPayNavigationChecks; do
+          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks SellerSetupChecks SellerInvitationChecks SellerStoreProfileChecks NativePaymentProjectionChecks OriginalMainPayNavigationChecks NativePriceChecks; do
             xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" "tests/$CHECK.swift" -o "$RUNNER_TEMP/ynx-shop-$CHECK"
             "$RUNNER_TEMP/ynx-shop-$CHECK" | tee "$RUNNER_TEMP/ynx-shop-$CHECK.log"
           done
@@ -437,6 +447,7 @@ jobs:
             ${{ runner.temp }}/ynx-shop-SellerStoreProfileChecks.log
             ${{ runner.temp }}/ynx-shop-NativePaymentProjectionChecks.log
             ${{ runner.temp }}/ynx-shop-OriginalMainPayNavigationChecks.log
+            ${{ runner.temp }}/ynx-shop-NativePriceChecks.log
             ${{ runner.temp }}/ynx-shop-native-buyer-engine.log
             ${{ runner.temp }}/ynx-shop-native-seller-engine.log
 

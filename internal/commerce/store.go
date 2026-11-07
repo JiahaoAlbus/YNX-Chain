@@ -268,6 +268,9 @@ func (s *Store) normalize() (bool, error) {
 	if err := validateNativePayNotifications(s.s); err != nil {
 		return false, err
 	}
+	if err := validateNativeOrderPrices(s.s); err != nil {
+		return false, err
+	}
 	if err := validateNativePaymentRecords(s.s); err != nil {
 		return false, err
 	}

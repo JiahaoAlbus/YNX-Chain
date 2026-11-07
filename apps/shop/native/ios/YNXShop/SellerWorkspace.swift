@@ -387,10 +387,13 @@ private struct SellerListingEditor:View {
     private var inputValid:Bool{
         guard sellerRequiredText(draft.title,160),draft.description.utf8.count<=5000,draft.category.utf8.count<=80,(1...50).contains(draft.variants.count),Set(draft.variants.map(\.SKU)).count==draft.variants.count else{return false}
         for variant in draft.variants{guard sellerRequiredText(variant.Name,120),sellerRequiredText(variant.SKU,80),sellerCanonicalInteger(variant.PriceYNXT,positive:true) != nil,let inventory=sellerCanonicalInteger(variant.Inventory),inventory >= (product.Variants.first{$0.ID==variant.ID}?.Reserved ?? 0) else{return false}}
+        for variant in draft.variants {if let price=variant.nativePrice {
+            guard sellerNativeIdentityValid(genesis:price.genesis,chain:price.nativeChainID),sellerCanonicalUInt64(price.amountAtoms,positive:true),price.assetID=="YNXT",price.unitVersion=="1" else{return false}
+        }}
         return true
     }
     private var valid:Bool{inputValid && seller.products.first(where:{$0.ID==product.ID})?.Revision==Int64(draft.expectedRevision)}
-    private var reviewContent:[String]{[draft.title,draft.description,draft.category]+draft.variants.flatMap{[$0.ID,$0.Name,$0.SKU,$0.PriceYNXT,$0.Inventory]}}
+    private var reviewContent:[String]{[draft.title,draft.description,draft.category]+draft.variants.flatMap{[$0.ID,$0.Name,$0.SKU,$0.PriceYNXT,$0.Inventory]+sellerNativePriceFields($0.nativePrice)}}
     var body:some View{SellerOperationSheet("seller_edit_product"){
         SellerValue(title:"seller_reference",value:product.ID);SellerValue(title:"seller_revision",value:draft.expectedRevision)
         if seller.products.first(where:{$0.ID==product.ID})?.Revision != Int64(draft.expectedRevision){ShopNotice(title:"seller_revision_changed",warning:true)}
@@ -399,6 +402,7 @@ private struct SellerListingEditor:View {
         ForEach(draft.variants.indices,id:\.self){index in SellerLedger{VStack(alignment:.leading,spacing:14){
             if !draft.variants[index].ID.isEmpty{Text(verbatim:draft.variants[index].ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)}
             SellerField(title:"seller_variant_name",text:$draft.variants[index].Name);SellerField(title:"seller_sku",text:$draft.variants[index].SKU);SellerField(title:"seller_price",text:$draft.variants[index].PriceYNXT);SellerField(title:"seller_total_inventory",text:$draft.variants[index].Inventory)
+            SellerNativePriceEditor(price:$draft.variants[index].nativePrice)
             Button("seller_remove_variant",role:.destructive){draft.variants.remove(at:index);reviewed=false}.buttonStyle(.plain).disabled(draft.variants.count<=1 || (product.Variants.first{$0.ID==draft.variants[index].ID}?.Reserved ?? 0)>0)
         }.padding(16)}}
         Button("seller_add_variant"){draft.variants.append(SellerVariantDraft());reviewed=false}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(draft.variants.count>=50 || submitted)
@@ -659,6 +663,11 @@ private struct SellerStoreProfileEditor:View {
     @State private var policy:String
     @State private var trustURL:String
     @State private var settlementAccount:String
+    @State private var nativeChargesEnabled:Bool
+    @State private var nativeGenesis:String
+    @State private var nativeChainID:String
+    @State private var shippingAtoms:String
+    @State private var taxAtoms:String
     @State private var reviewed=false
     @State private var submitted=false
     init(snapshot:SellerStore){
@@ -668,15 +677,24 @@ private struct SellerStoreProfileEditor:View {
         _policy=State(initialValue:snapshot.Policy)
         _trustURL=State(initialValue:snapshot.TrustURL)
         _settlementAccount=State(initialValue:snapshot.SettlementAccount)
+        _nativeChargesEnabled=State(initialValue:snapshot.NativeCharges != nil)
+        _nativeGenesis=State(initialValue:snapshot.NativeCharges?.Genesis ?? "")
+        _nativeChainID=State(initialValue:snapshot.NativeCharges?.NativeChainID ?? "")
+        _shippingAtoms=State(initialValue:snapshot.NativeCharges?.ShippingAtoms ?? "")
+        _taxAtoms=State(initialValue:snapshot.NativeCharges?.TaxAtoms ?? "")
     }
-    private var reviewContent:[String]{[name,description,policy,trustURL,settlementAccount]}
-    private var originalContent:[String]{[snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount]}
+    private var reviewContent:[String]{[name,description,policy,trustURL,settlementAccount]+sellerNativeChargesFields(nativeCharges)}
+    private var originalContent:[String]{[snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount]+sellerNativeChargesFields(snapshot.NativeCharges)}
     private var changed:Bool{reviewContent != originalContent}
     private var snapshotMatches:Bool{
         guard let current=seller.stores.first(where:{$0.ID==snapshot.ID}) else{return false}
-        return [current.ID,current.Owner,current.Name,current.Description,current.Policy,current.TrustURL,current.SettlementAccount,current.Status]==[snapshot.ID,snapshot.Owner,snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount,snapshot.Status] && current.CreatedAt==snapshot.CreatedAt && current.UpdatedAt==snapshot.UpdatedAt
+        return [current.ID,current.Owner,current.Name,current.Description,current.Policy,current.TrustURL,current.SettlementAccount,current.Status]==[snapshot.ID,snapshot.Owner,snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount,snapshot.Status] && current.CreatedAt==snapshot.CreatedAt && current.UpdatedAt==snapshot.UpdatedAt && sellerNativeChargesFields(current.NativeCharges)==sellerNativeChargesFields(snapshot.NativeCharges) && current.NativeChargesApprovalRef==snapshot.NativeChargesApprovalRef
     }
-    private var valid:Bool{sellerValidStoreProfile(name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount)}
+    private var nativeCharges:SellerNativeCharges? {
+        guard nativeChargesEnabled else{return nil}
+        return SellerNativeCharges(Genesis:nativeGenesis,NativeChainID:nativeChainID,AssetID:"YNXT",UnitVersion:"1",ShippingAtoms:shippingAtoms,TaxAtoms:taxAtoms)
+    }
+    private var valid:Bool{sellerValidStoreProfile(name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount) && (!nativeChargesEnabled || (sellerNativeIdentityValid(genesis:nativeGenesis,chain:nativeChainID) && sellerCanonicalUInt64(shippingAtoms) && sellerCanonicalUInt64(taxAtoms)))}
     var body:some View{SellerOperationSheet("seller_edit_store_profile"){
         SellerValue(title:"seller_store",value:snapshot.ID)
         SellerValue(title:"seller_recorded_at",value:snapshot.UpdatedAt ?? String(localized:"unavailable"))
@@ -687,6 +705,7 @@ private struct SellerStoreProfileEditor:View {
         SellerField(title:"seller_store_policy",text:$policy,multiline:true)
         SellerField(title:"seller_trust_reference",text:$trustURL)
         SellerField(title:"seller_payout_address",text:$settlementAccount)
+        nativeChargeConfiguration
         Text("seller_store_input_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
         if !submitted && !snapshotMatches{ShopNotice(title:"seller_store_profile_changed",warning:true)}
         if changed {
@@ -697,15 +716,49 @@ private struct SellerStoreProfileEditor:View {
                 change("seller_store_policy",old:snapshot.Policy,new:policy)
                 change("seller_trust_reference",old:snapshot.TrustURL,new:trustURL)
                 change("seller_payout_address",old:snapshot.SettlementAccount,new:settlementAccount)
+                nativeChargeReview
             }.padding(16)}
         }
         Toggle("seller_confirm_store_profile",isOn:$reviewed).shopFont(13)
         Button("seller_submit_store_profile"){
             submitted=true
-            seller.perform(.updateStore(snapshot,name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount))
+            seller.perform(.updateStore(snapshot,name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount,nativeCharges:nativeCharges))
         }.buttonStyle(ShopButtonStyle()).disabled(!valid || !changed || !reviewed || !snapshotMatches || submitted || !seller.canManageMembers || seller.busy || seller.hasPending(snapshot.ID))
         SellerFormResult(submitted:submitted)
     }.onChange(of:reviewContent){reviewed=false}.disabled(seller.busy)}
+    private var nativeChargeConfiguration:some View{VStack(alignment:.leading,spacing:14){
+        Toggle("seller_configure_native_charges",isOn:$nativeChargesEnabled).shopFont(14,.semibold)
+        if nativeChargesEnabled {
+            SellerField(title:"seller_native_genesis_input",text:$nativeGenesis)
+            SellerField(title:"seller_native_chain_input",text:$nativeChainID)
+            SellerValue(title:"seller_native_asset",value:"YNXT")
+            SellerValue(title:"seller_native_unit_version",value:"1")
+            SellerField(title:"seller_native_shipping_input",text:$shippingAtoms)
+            SellerField(title:"seller_native_tax_input",text:$taxAtoms)
+            Text("seller_native_config_no_conversion").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        }else{Text("seller_native_charges_not_configured").shopFont(12).foregroundStyle(ShopTheme.secondary)}
+    }.padding(16).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
+    @ViewBuilder private var nativeChargeReview:some View {
+        if sellerNativeChargesFields(snapshot.NativeCharges) != sellerNativeChargesFields(nativeCharges) {
+            VStack(alignment:.leading,spacing:12){
+                Text("seller_configure_native_charges").shopFont(14,.semibold)
+                Text("seller_original_value").shopFont(12).foregroundStyle(ShopTheme.secondary)
+                nativeChargeValues(snapshot.NativeCharges)
+                Text("seller_proposed_value").shopFont(12).foregroundStyle(ShopTheme.primary)
+                nativeChargeValues(nativeCharges)
+            }
+        }
+    }
+    @ViewBuilder private func nativeChargeValues(_ charges:SellerNativeCharges?)->some View {
+        if let charges {
+            SellerValue(title:"seller_native_genesis_input",value:charges.Genesis)
+            SellerValue(title:"seller_native_chain_input",value:charges.NativeChainID)
+            SellerValue(title:"seller_native_asset",value:charges.AssetID)
+            SellerValue(title:"seller_native_unit_version",value:charges.UnitVersion)
+            SellerValue(title:"seller_native_shipping_input",value:charges.ShippingAtoms)
+            SellerValue(title:"seller_native_tax_input",value:charges.TaxAtoms)
+        }else{Text("seller_native_charges_not_configured").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+    }
     @ViewBuilder private func change(_ title:LocalizedStringKey,old:String,new:String)->some View {
         if old != new {VStack(alignment:.leading,spacing:8){
             Text(title).shopFont(14,.semibold)
@@ -777,4 +830,36 @@ private struct SellerNativePaymentRecord:View {
         Text("seller_native_amount_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
         Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
     }.padding(20)}}
+}
+
+private func sellerCanonicalUInt64(_ text:String,positive:Bool=false)->Bool {
+    guard let number=UInt64(text),String(number)==text,!positive || number>0 else{return false}
+    return true
+}
+private func sellerNativeIdentityValid(genesis:String,chain:String)->Bool {
+    genesis.utf8.count==64 && genesis.range(of:"^[a-f0-9]{64}$",options:.regularExpression) != nil && sellerCanonicalUInt64(chain)
+}
+private func sellerNativePriceFields(_ price:SellerNativePriceDraft?)->[String] {
+    guard let price else{return ["disabled"]}
+    return ["enabled",price.genesis,price.nativeChainID,price.assetID,price.unitVersion,price.amountAtoms]
+}
+private func sellerNativeChargesFields(_ charges:SellerNativeCharges?)->[String] {
+    guard let charges else{return ["disabled"]}
+    return ["enabled",charges.Genesis,charges.NativeChainID,charges.AssetID,charges.UnitVersion,charges.ShippingAtoms,charges.TaxAtoms]
+}
+private struct SellerNativePriceEditor:View {
+    @Binding var price:SellerNativePriceDraft?
+    private var enabled:Binding<Bool>{Binding(get:{price != nil},set:{value in price=value ? SellerNativePriceDraft(genesis:"",nativeChainID:"",amountAtoms:""):nil})}
+    private func field(_ path:WritableKeyPath<SellerNativePriceDraft,String>)->Binding<String>{Binding(get:{price?[keyPath:path] ?? ""},set:{value in guard var updated=price else{return};updated[keyPath:path]=value;price=updated})}
+    var body:some View{VStack(alignment:.leading,spacing:14){
+        Toggle("seller_configure_native_price",isOn:enabled).shopFont(13,.semibold)
+        if price != nil {
+            SellerField(title:"seller_native_genesis_input",text:field(\.genesis))
+            SellerField(title:"seller_native_chain_input",text:field(\.nativeChainID))
+            SellerValue(title:"seller_native_asset",value:"YNXT")
+            SellerValue(title:"seller_native_unit_version",value:"1")
+            SellerField(title:"seller_native_amount_input",text:field(\.amountAtoms))
+            Text("seller_native_config_no_conversion").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        }else{Text("seller_native_price_not_configured").shopFont(12).foregroundStyle(ShopTheme.secondary)}
+    }.padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
 }

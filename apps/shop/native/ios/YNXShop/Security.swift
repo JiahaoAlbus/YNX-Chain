@@ -11,7 +11,7 @@ import CoreFoundation
     init(read:@escaping (String)throws->Data?={try Vault.read($0)},write:@escaping (String,Data)throws->Void={try Vault.put($0,$1)}){self.read=read;self.write=write}
     private func hash(_ data:Data)->String{SHA256.hash(data:data).map{String(format:"%02x",$0)}.joined()}
     private func namespace(_ account:String)->String{"apple-native-invoice-v1-"+hash(Data(account.utf8))}
-    private func digest(_ order:Order)throws->String{try hash(CanonicalJSON.data([order.orderID,order.buyer ?? "",order.storeID ?? "",String(order.totalYNXT),order.currency ?? ""]))}
+    private func digest(_ order:Order)throws->String{var input:[Any]=[order.orderID,order.buyer ?? "",order.storeID ?? "",String(order.totalYNXT),order.currency ?? ""];if let price=order.nativePrice{try price.validate(order);input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(price)));input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(order.nativeLines)))};return try hash(CanonicalJSON.data(input))}
     func records(_ account:String)throws->[String:Record]{
         guard let raw=try read(namespace(account)) else{return [:]}
         let saved=try JSONDecoder().decode([String:Record].self,from:raw)
@@ -156,6 +156,7 @@ struct OfflineEnvelope:Codable,Identifiable,Equatable {let id:String;let account
 enum AppleBuyerReceipt {
     static func owned(_ order:Order,_ account:String)->Bool {order.buyer==account || (order.walletBuyer==account && NativeWire.matches(order.buyer ?? "","^0x[a-fA-F0-9]{40}$"))}
     static func validate(_ order:Order,account:String)throws {
+        if let price=order.nativePrice{try price.validate(order)}
         guard owned(order,account),NativeWire.matches(order.orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),order.totalYNXT>0,order.currency=="YNXT" else{throw ShopError.security}
         if let payment=order.nativePayment {try payment.validate(order,requirePaid:false)}
         if ["paid","shipped","delivered","reviewed","return_requested","return_approved","return_rejected","refund_requested","refund_approved","refund_rejected","refunded","disputed"].contains(order.status) {

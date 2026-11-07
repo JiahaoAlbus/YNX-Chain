@@ -440,7 +440,11 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 	return deletionReceiptForRequest(receipt, requestID), nil
 }
 
-type StoreUpdate struct{ Name, Description, Policy, TrustURL, SettlementAccount, IdempotencyKey string }
+type StoreUpdate struct {
+	Name, Description, Policy, TrustURL, SettlementAccount, IdempotencyKey string
+	NativeCharges                                                          *NativeChargesDATA `json:",omitempty"`
+	ClearNativeCharges                                                     bool               `json:",omitempty"`
+}
 
 func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, error) {
 	s.mu.Lock()
@@ -467,8 +471,11 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 			if requestDigest != id {
 				return StoreProfile{}, ErrConflict
 			}
-			return st, nil
+			return cloneStoreProfile(st), nil
 		}
+	}
+	if validateNativeCharges(in.NativeCharges) != nil || (in.ClearNativeCharges && in.NativeCharges != nil) || ((in.NativeCharges != nil || in.ClearNativeCharges) && in.IdempotencyKey == "") {
+		return StoreProfile{}, ErrInvalidState
 	}
 	previous, auditLen := st, len(s.s.Audits)
 	st.Name = in.Name
@@ -477,6 +484,13 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 	st.TrustURL = in.TrustURL
 	st.SettlementAccount = in.SettlementAccount
 	st.UpdatedAt = s.now()
+	if in.ClearNativeCharges {
+		st.NativeCharges = nil
+		st.NativeChargesApprovalRef = ""
+	} else if in.NativeCharges != nil {
+		st.NativeCharges = copyNativeCharges(in.NativeCharges)
+		st.NativeChargesApprovalRef = "shop.charges/" + id + "/" + requestDigest
+	}
 	s.s.Stores[id] = st
 	if in.IdempotencyKey != "" {
 		s.recordIdempotencyLocked(actor, "store.update."+id, in.IdempotencyKey, requestDigest, id)
@@ -490,7 +504,7 @@ func (s *Store) UpdateStore(actor, id string, in StoreUpdate) (StoreProfile, err
 		}
 		return StoreProfile{}, err
 	}
-	return st, nil
+	return cloneStoreProfile(st), nil
 }
 func (s *Store) SellerStores(actor string) []StoreProfile {
 	s.mu.Lock()
@@ -499,7 +513,7 @@ func (s *Store) SellerStores(actor string) []StoreProfile {
 	for id := range s.s.SellerRoles {
 		role, ok := s.sellerRoleLocked(id, actor)
 		if ok && sellerRoleAllows(role, permissionSellerRead) {
-			out = append(out, s.s.Stores[id])
+			out = append(out, cloneStoreProfile(s.s.Stores[id]))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })

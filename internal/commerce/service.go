@@ -116,7 +116,7 @@ func (s *Store) ActivateStore(actor, id string) (StoreProfile, error) {
 	if err := s.persistLocked(); err != nil {
 		return StoreProfile{}, err
 	}
-	return v, nil
+	return cloneStoreProfile(v), nil
 }
 
 func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, error) {
@@ -138,7 +138,7 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 	if replay {
 		return cloneProduct(s.s.Products[h]), nil
 	}
-	in.Variants = append([]Variant(nil), in.Variants...)
+	in.Variants = copyVariants(in.Variants)
 	seenID, seenSKU := map[string]bool{}, map[string]bool{}
 	for i := range in.Variants {
 		v := &in.Variants[i]
@@ -148,6 +148,9 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenID[v.ID] || seenSKU[v.SKU] {
 			return Product{}, errors.New("valid unique variant identity, name, SKU, price and inventory required")
 		}
+		if validateNativePrice(v.NativePrice) != nil || (v.ClearNativePrice && v.NativePrice != nil) {
+			return Product{}, ErrInvalidState
+		}
 		seenID[v.ID], seenSKU[v.SKU] = true, true
 		if v.Inventory != 0 {
 			if err := s.requireSellerPermissionLocked(in.StoreID, actor, permissionInventoryWrite); err != nil {
@@ -155,6 +158,7 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 			}
 		}
 		v.Reserved = 0
+		v.ClearNativePrice = false
 	}
 	now := s.now()
 	p := Product{ID: newID("product"), StoreID: in.StoreID, Title: strings.TrimSpace(in.Title), Description: in.Description, Category: strings.TrimSpace(in.Category), Media: append([]MediaAsset(nil), in.Media...), Variants: in.Variants, Revision: 1, CreatedAt: now, UpdatedAt: now}
@@ -191,7 +195,7 @@ func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product,
 	if replay {
 		return cloneProduct(s.s.Products[h]), nil
 	}
-	in.Variants = append([]Variant(nil), in.Variants...)
+	in.Variants = copyVariants(in.Variants)
 	byID := map[string]Variant{}
 	for _, current := range p.Variants {
 		byID[current.ID] = current
@@ -205,8 +209,14 @@ func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product,
 		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenID[v.ID] || seenSKU[v.SKU] {
 			return Product{}, errors.New("valid unique variant identity, name, SKU, price and inventory required")
 		}
+		if validateNativePrice(v.NativePrice) != nil || (v.ClearNativePrice && v.NativePrice != nil) {
+			return Product{}, ErrInvalidState
+		}
 		seenID[v.ID], seenSKU[v.SKU] = true, true
 		if current, exists := byID[v.ID]; exists {
+			if v.NativePrice == nil && !v.ClearNativePrice {
+				v.NativePrice = copyNativePrice(current.NativePrice)
+			}
 			if v.Inventory != current.Inventory {
 				if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionInventoryWrite); err != nil {
 					return Product{}, err
@@ -224,6 +234,9 @@ func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product,
 			}
 			v.Reserved = 0
 		}
+	}
+	for i := range in.Variants {
+		in.Variants[i].ClearNativePrice = false
 	}
 	for id, current := range byID {
 		found := false
@@ -329,7 +342,7 @@ func validateMedia(media []MediaAsset) error {
 }
 
 func productRevision(p Product, actor, action, digest string, at time.Time) ProductRevision {
-	return ProductRevision{Revision: p.Revision, Actor: actor, Action: action, RequestHash: digest, Title: p.Title, Description: p.Description, Category: p.Category, Media: append([]MediaAsset(nil), p.Media...), Variants: append([]Variant(nil), p.Variants...), Published: p.Published, At: at}
+	return ProductRevision{Revision: p.Revision, Actor: actor, Action: action, RequestHash: digest, Title: p.Title, Description: p.Description, Category: p.Category, Media: append([]MediaAsset(nil), p.Media...), Variants: copyVariants(p.Variants), Published: p.Published, At: at}
 }
 
 func (s *Store) SetInventory(actor string, in InventoryInput) (result Product, resultErr error) {
@@ -466,7 +479,11 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultEr
 					return Order{}, errors.New("order total overflow")
 				}
 				total += lineTotal
-				lines = append(lines, OrderLine{ProductID: p.ID, VariantID: v.ID, Title: p.Title, VariantName: v.Name, Quantity: item.Quantity, UnitPriceYNXT: v.PriceYNXT})
+				line := OrderLine{ProductID: p.ID, VariantID: v.ID, Title: p.Title, VariantName: v.Name, Quantity: item.Quantity, UnitPriceYNXT: v.PriceYNXT}
+				if v.NativePrice != nil {
+					line.NativePrice = &NativeOrderLinePriceDATA{NativePriceDATA: *v.NativePrice, ApprovalRef: nativeVariantApproval(p, v)}
+				}
+				lines = append(lines, line)
 				found = true
 			}
 		}
@@ -486,6 +503,12 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultEr
 	}
 	now := s.now()
 	o := Order{ID: newID("order"), Buyer: actor, StoreID: in.StoreID, Status: "payment_pending", Currency: NativeSymbol, Lines: lines, Address: in.Address, SubtotalYNXT: total, TotalYNXT: total, TaxStatus: "unavailable_no_tax_service", LogisticsStatus: "unavailable_no_logistics_provider", RefundStatus: "not_requested", TrustStatus: "not_requested", ReservationExpiresAt: now.Add(30 * time.Minute), CreatedAt: now, UpdatedAt: now}
+	quote, quoteErr := s.captureNativeOrderPriceLocked(o, h)
+	if quoteErr == nil {
+		o.NativePrice = quote
+	} else if quoteErr != ErrUnavailable {
+		return Order{}, quoteErr
+	}
 	if in.CartRevision != nil {
 		c := Cart{Buyer: actor, Revision: newID("cart"), Items: []CartItem{}, UpdatedAt: now}
 		s.s.Carts[actor] = c

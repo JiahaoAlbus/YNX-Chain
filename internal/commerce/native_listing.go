@@ -5,8 +5,15 @@ import (
 	"strconv"
 )
 
-type NativeListingVariant struct{ ID, Name, SKU, PriceYNXT, Inventory, Reserved string }
-type NativeListingVariantInput struct{ ID, Name, SKU, PriceYNXT, Inventory string }
+type NativeListingVariant struct {
+	ID, Name, SKU, PriceYNXT, Inventory, Reserved string
+	NativePrice                                   *NativePriceDATA `json:",omitempty"`
+}
+type NativeListingVariantInput struct {
+	ID, Name, SKU, PriceYNXT, Inventory string
+	NativePrice                         *NativePriceDATA `json:",omitempty"`
+	ClearNativePrice                    bool             `json:",omitempty"`
+}
 type NativeListingInput struct {
 	StoreID, ExpectedRevision, Title, Description, Category, IdempotencyKey string
 	Media                                                                   []MediaAsset
@@ -46,14 +53,14 @@ func nativeListingOriginal(in NativeListingInput) (PublishListingInput, error) {
 		if row.ID != "" && !invoiceRecoveryID.MatchString(row.ID) {
 			return PublishListingInput{}, ErrInvalidState
 		}
-		out.Product.Variants = append(out.Product.Variants, Variant{ID: row.ID, Name: row.Name, SKU: row.SKU, PriceYNXT: price, Inventory: inventory})
+		out.Product.Variants = append(out.Product.Variants, Variant{ID: row.ID, Name: row.Name, SKU: row.SKU, PriceYNXT: price, Inventory: inventory, NativePrice: copyNativePrice(row.NativePrice), ClearNativePrice: row.ClearNativePrice})
 	}
 	return out, nil
 }
 func nativeListingView(p Product, applied, query bool) NativeListingResult {
 	view := NativeListingView{ID: p.ID, StoreID: p.StoreID, Revision: strconv.FormatInt(p.Revision, 10), Title: p.Title, Description: p.Description, Category: p.Category, Published: p.Published, Media: append([]MediaAsset{}, p.Media...), Variants: []NativeListingVariant{}}
 	for _, v := range p.Variants {
-		view.Variants = append(view.Variants, NativeListingVariant{v.ID, v.Name, v.SKU, strconv.FormatInt(v.PriceYNXT, 10), strconv.FormatInt(v.Inventory, 10), strconv.FormatInt(v.Reserved, 10)})
+		view.Variants = append(view.Variants, NativeListingVariant{v.ID, v.Name, v.SKU, strconv.FormatInt(v.PriceYNXT, 10), strconv.FormatInt(v.Inventory, 10), strconv.FormatInt(v.Reserved, 10), copyNativePrice(v.NativePrice)})
 	}
 	return NativeListingResult{view, applied, query}
 }

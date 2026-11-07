@@ -209,7 +209,7 @@ struct ProductVariantRow:View {
     @EnvironmentObject var model:ShopModel
     let product:Product
     let variant:Variant
-    var body:some View{ShopPanel(padding:16){HStack(alignment:.center,spacing:16){VStack(alignment:.leading,spacing:7){Text(variant.name).shopFont(15,.semibold);Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold);Text("\(variant.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").shopFont(12).foregroundStyle(variant.available>0 ? ShopTheme.secondary:ShopTheme.danger)};Spacer();Button("add_cart"){model.add(product,variant)}.buttonStyle(ShopButtonStyle()).disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired || variant.priceYNXT<1 || variant.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==variant.variantID})?.quantity ?? 0)>=20)}}}
+    var body:some View{ShopPanel(padding:16){HStack(alignment:.center,spacing:16){VStack(alignment:.leading,spacing:7){Text(variant.name).shopFont(15,.semibold);Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold);NativeCatalogUnitAmount(price:variant.nativePrice);Text("\(variant.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").shopFont(12).foregroundStyle(variant.available>0 ? ShopTheme.secondary:ShopTheme.danger)};Spacer();Button("add_cart"){model.add(product,variant)}.buttonStyle(ShopButtonStyle()).disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired || variant.priceYNXT<1 || variant.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==variant.variantID})?.quantity ?? 0)>=20)}}}
 }
 
 struct CartView:View {
@@ -234,7 +234,7 @@ struct CartItemView:View {
     @EnvironmentObject var model:ShopModel
     private var product:Product?{let matches=model.products.filter{$0.productID==item.productID};return matches.count==1 ? matches[0]:nil}
     private var variant:Variant?{let matches=product?.variants.filter{$0.variantID==item.variantID} ?? [];return matches.count==1 ? matches[0]:nil}
-    var body:some View{ShopPanel{HStack(alignment:.top,spacing:16){if let product{ProductImage(product:product,height:96).frame(width:96).clipShape(RoundedRectangle(cornerRadius:6))};VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).shopFont(15,.semibold);Text(variant?.name ?? item.variantID).shopFont(12).foregroundStyle(ShopTheme.secondary);if let variant{Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold)};Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity)").monospacedDigit()}.fixedSize();Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}.buttonStyle(.plain).shopFont(12).foregroundStyle(ShopTheme.secondary)};Spacer(minLength:0)}}.disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired)}
+    var body:some View{ShopPanel{HStack(alignment:.top,spacing:16){if let product{ProductImage(product:product,height:96).frame(width:96).clipShape(RoundedRectangle(cornerRadius:6))};VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).shopFont(15,.semibold);Text(variant?.name ?? item.variantID).shopFont(12).foregroundStyle(ShopTheme.secondary);if let variant{Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold);NativeCatalogUnitAmount(price:variant.nativePrice)};Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity)").monospacedDigit()}.fixedSize();Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}.buttonStyle(.plain).shopFont(12).foregroundStyle(ShopTheme.secondary)};Spacer(minLength:0)}}.disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired)}
 }
 struct CartSummary:View {
     @EnvironmentObject var model:ShopModel
@@ -496,6 +496,9 @@ extension View {
 struct NativeOrderAmounts:View {
     let order:Order
     var body:some View {
+        if let quote=order.nativePrice,(try? quote.validate(order)) != nil {
+            VStack(alignment:.leading,spacing:8){Text("seller_original_terms").shopFont(13,.semibold);HStack{Text("seller_principal");Spacer();Text(quote.Price.AmountAtoms+" "+String(localized:"native_atoms_unit")).monospacedDigit()};Text("native_quote_not_payment").foregroundStyle(ShopTheme.secondary)}.shopFont(12).padding(12).background(ShopTheme.tertiary)
+        }
         if let payment=order.nativePayment {
             if payment.ReconciliationRequired{ShopNotice(title:"native_reconcile_required",symbol:"clock.arrow.circlepath",warning:true)}
             else if validated(payment){VStack(alignment:.leading,spacing:8){HStack{Text("native_paid_atoms");Spacer();Text(payment.PaidAtoms).monospacedDigit()};HStack{Text("native_refunded_atoms");Spacer();Text(payment.RefundedAtoms).monospacedDigit()};HStack{Text("native_net_atoms");Spacer();Text(payment.NetPaidAtoms).monospacedDigit()};if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{Text("native_history_pending").foregroundStyle(ShopTheme.warning)}}.shopFont(12).padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
@@ -503,4 +506,9 @@ struct NativeOrderAmounts:View {
         }
     }
     private func validated(_ payment:NativePaymentProjection)->Bool{do{try payment.validate(order,requirePaid:false);return true}catch{return false}}
+}
+
+private struct NativeCatalogUnitAmount:View {
+    let price:SellerNativePriceDATA?
+    var body:some View{if let price,price.AssetID=="YNXT",price.UnitVersion=="1",price.Genesis.utf8.count==64,NativeWire.matches(price.Genesis,"^[a-f0-9]{64}$"),let chain=UInt64(price.NativeChainID),chain>0,String(chain)==price.NativeChainID,let amount=UInt64(price.AmountAtoms),amount>0,String(amount)==price.AmountAtoms {Text(price.AmountAtoms+" "+String(localized:"native_atoms_unit")).shopFont(12).foregroundStyle(ShopTheme.secondary)}}
 }

@@ -239,7 +239,7 @@ type NativeStoreProfileResult struct {
 }
 
 func sameNativeStoreProfile(a, b StoreProfile) bool {
-	return a.ID == b.ID && a.Owner == b.Owner && a.Name == b.Name && a.Description == b.Description && a.Policy == b.Policy && a.TrustURL == b.TrustURL && a.SettlementAccount == b.SettlementAccount && a.Status == b.Status && a.CreatedAt.Equal(b.CreatedAt) && a.UpdatedAt.Equal(b.UpdatedAt)
+	return a.ID == b.ID && a.Owner == b.Owner && a.Name == b.Name && a.Description == b.Description && a.Policy == b.Policy && a.TrustURL == b.TrustURL && a.SettlementAccount == b.SettlementAccount && a.Status == b.Status && a.CreatedAt.Equal(b.CreatedAt) && a.UpdatedAt.Equal(b.UpdatedAt) && sameNativeCharges(a.NativeCharges, b.NativeCharges) && a.NativeChargesApprovalRef == b.NativeChargesApprovalRef
 }
 func (s *Store) UpdateOriginalStoreProfile(actor, storeID string, in NativeStoreProfileInput) (NativeStoreProfileResult, error) {
 	s.mu.Lock()
@@ -276,7 +276,11 @@ func (s *Store) UpdateOriginalStoreProfile(actor, storeID string, in NativeStore
 		return NativeStoreProfileResult{}, err
 	}
 	tx := &Store{s: staged, now: s.now}
-	value, err = tx.UpdateStore(actor, storeID, in.Update)
+	update := in.Update
+	if update.NativeCharges != nil || update.ClearNativeCharges {
+		update.IdempotencyKey = in.IdempotencyKey
+	}
+	value, err = tx.UpdateStore(actor, storeID, update)
 	if err != nil {
 		return NativeStoreProfileResult{}, err
 	}

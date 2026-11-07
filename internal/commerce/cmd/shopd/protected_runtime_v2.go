@@ -56,6 +56,9 @@ func prepareOriginalShopRuntime(ctx context.Context, f originalShopFiles) (origi
 func (p preparedOriginalShopRuntime) servers(ctx context.Context, store *commerce.Store, cfg commerce.ServerConfig) (http.Handler, http.Handler, http.Handler, *commerce.Server, *commerce.Server, error) {
 	cfg.NativePay = p.nativePay
 	cfg.NativeInvoiceDATA = p.nativeInvoiceDATA
+	if cfg.NativeInvoiceDATA == nil {
+		cfg.NativeInvoiceDATA = store
+	} // same original Store, explicit frozen native price DATA only
 	buyer, seller, err := p.prepared.OpenOriginal(ctx, func() (*commerce.Store, error) { return store, nil }, cfg)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err

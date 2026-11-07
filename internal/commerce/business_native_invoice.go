@@ -74,7 +74,8 @@ func nativeInvoiceBillDATA(o Order) (json.RawMessage, error) {
 		Address                                        Address
 		SubtotalYNXT, ShippingYNXT, TaxYNXT, TotalYNXT int64
 		CreatedAt                                      time.Time
-	}{o.ID, o.Buyer, o.StoreID, o.Currency, o.Lines, o.Address, o.SubtotalYNXT, o.ShippingYNXT, o.TaxYNXT, o.TotalYNXT, o.CreatedAt})
+		NativePrice                                    *NativeOrderPriceDATA `json:",omitempty"`
+	}{o.ID, o.Buyer, o.StoreID, o.Currency, o.Lines, o.Address, o.SubtotalYNXT, o.ShippingYNXT, o.TaxYNXT, o.TotalYNXT, o.CreatedAt, o.NativePrice})
 }
 func sameNativeInvoiceBill(a, b Order) bool {
 	x, e := nativeInvoiceBillDATA(a)
@@ -238,6 +239,9 @@ func (s *Server) nativeInvoicePreparation(ctx context.Context, target string, bo
 		}
 		if e = v.current(ctx); e != nil {
 			return businessEffectPlan{}, e
+		}
+		if o.NativePrice != nil && price != o.NativePrice.Price {
+			return businessEffectPlan{}, ErrConflict
 		}
 		data, e := nativeInvoiceRequestDATA(o, price)
 		if e != nil {

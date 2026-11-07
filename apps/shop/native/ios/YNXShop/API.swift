@@ -100,16 +100,18 @@ struct Variant: Codable, Identifiable {
     let priceYNXT: Int64
     let inventory: Int
     var reserved: Int = 0
+    var nativePrice:SellerNativePriceDATA?=nil
     var available: Int {guard inventory>=0,reserved>=0,reserved<=inventory else{return 0};return inventory-reserved}
     var id: String { variantID }
 
-    init(from decoder:Decoder)throws {let c=try decoder.container(keyedBy:CodingKeys.self);variantID=try c.decode(String.self,forKey:.variantID);name=try c.decode(String.self,forKey:.name);priceYNXT=try c.decode(Int64.self,forKey:.priceYNXT);inventory=try c.decode(Int.self,forKey:.inventory);reserved=try c.decodeIfPresent(Int.self,forKey:.reserved) ?? 0}
+    init(from decoder:Decoder)throws {let c=try decoder.container(keyedBy:CodingKeys.self);variantID=try c.decode(String.self,forKey:.variantID);name=try c.decode(String.self,forKey:.name);priceYNXT=try c.decode(Int64.self,forKey:.priceYNXT);inventory=try c.decode(Int.self,forKey:.inventory);reserved=try c.decodeIfPresent(Int.self,forKey:.reserved) ?? 0;nativePrice=try c.decodeIfPresent(SellerNativePriceDATA.self,forKey:.nativePrice)}
     enum CodingKeys: String, CodingKey {
         case variantID = "ID"
         case name = "Name"
         case priceYNXT = "PriceYNXT"
         case inventory = "Inventory"
         case reserved = "Reserved"
+        case nativePrice="NativePrice"
     }
 }
 
@@ -142,6 +144,8 @@ struct Order: Codable, Identifiable {
     var payMerchant:String? = nil
     var payPayoutAddress:String? = nil
     var nativePayment:NativePaymentProjection? = nil
+    var nativePrice:NativeCheckoutPrice?=nil
+    var nativeLines:[NativeCheckoutLine]?=nil
     var settlement:SettlementReceipt? = nil
     var cartConsumption:CartReceipt? = nil
     var id: String { orderID }
@@ -156,7 +160,34 @@ struct Order: Codable, Identifiable {
         case buyer = "Buyer"
         case storeID = "StoreID"
         case currency = "Currency"
+        case nativePrice="NativePrice",nativeLines="Lines"
         case walletBuyer="WalletBuyer",invoiceID="InvoiceID",payIntentID="PayIntentID",payMerchant="PayMerchant",payPayoutAddress="PayPayoutAddress",nativePayment="NativePayment",settlement="Settlement",cartConsumption="CartConsumption"
+    }
+}
+// Frozen native pricing from actual existing seller/profile mutations. Display
+// and journal binding only; approval/Source verification stays with the owners.
+struct NativeCheckoutUnitPrice:Codable {let Genesis,NativeChainID,AssetID,UnitVersion,AmountAtoms,ApprovalRef:String}
+struct NativeCheckoutLine:Codable {let ProductID,VariantID:String;let Quantity:Int64;let NativePrice:NativeCheckoutUnitPrice?}
+struct NativeCheckoutPriceFields:Codable {let Merchant,Recipient,Genesis,NativeChainID,AssetID,UnitVersion,AmountAtoms,PriceApprovalRef:String}
+struct NativeCheckoutPrice:Codable {
+    let Price:NativeCheckoutPriceFields;let Charges:SellerNativeCharges;let ChargesApprovalRef,OrderMutationHash:String
+    func validate(_ order:Order)throws {
+        func atom(_ text:String)throws->UInt64{guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
+        let amount=try atom(Price.AmountAtoms),chain=try atom(Price.NativeChainID)
+        guard amount>0,chain>0,NativeWire.matches(Price.Genesis,"^[a-f0-9]{64}$"),Price.AssetID=="YNXT",Price.UnitVersion=="1",NativeWire.matches(Price.Merchant,"^0x[a-f0-9]{40}$"),NativeWire.matches(Price.Recipient,"^0x[a-f0-9]{40}$"),NativeWire.matches(OrderMutationHash,"^[a-f0-9]{64}$"),Charges.Genesis==Price.Genesis,Charges.NativeChainID==Price.NativeChainID,Charges.AssetID==Price.AssetID,Charges.UnitVersion==Price.UnitVersion,let lines=order.nativeLines,!lines.isEmpty,lines.count<=50 else{throw ShopError.security}
+        let priceRef=Price.PriceApprovalRef.split(separator:"/"),chargeRef=ChargesApprovalRef.split(separator:"/")
+        guard priceRef.count==3,priceRef[0]=="shop.order.price",String(priceRef[1])==order.orderID,NativeWire.matches(String(priceRef[2]),"^[a-f0-9]{64}$"),chargeRef.count==3,chargeRef[0]=="shop.charges",String(chargeRef[1])==order.storeID,NativeWire.matches(String(chargeRef[2]),"^[a-f0-9]{64}$") else{throw ShopError.security}
+        if let merchant=order.payMerchant,!merchant.isEmpty{guard merchant==Price.Merchant else{throw ShopError.security}}
+        if let recipient=order.payPayoutAddress,!recipient.isEmpty{guard recipient==Price.Recipient else{throw ShopError.security}}
+        var sum:UInt64=0,seen=Set<String>()
+        for line in lines {
+            guard (1...20).contains(line.Quantity),seen.insert(line.ProductID+"/"+line.VariantID).inserted,let price=line.NativePrice,price.Genesis==Price.Genesis,price.NativeChainID==Price.NativeChainID,price.AssetID==Price.AssetID,price.UnitVersion==Price.UnitVersion else{throw ShopError.security}
+            let ref=price.ApprovalRef.split(separator:"/")
+            guard ref.count==4,ref[0]=="shop.price",String(ref[1])==line.ProductID,let revision=Int64(ref[2]),revision>0,String(revision)==ref[2],NativeWire.matches(String(ref[3]),"^[a-f0-9]{64}$") else{throw ShopError.security}
+            let unit=try atom(price.AmountAtoms);guard unit>0 else{throw ShopError.security};let product=unit.multipliedReportingOverflow(by:UInt64(line.Quantity));let next=sum.addingReportingOverflow(product.partialValue);guard !product.overflow,!next.overflow else{throw ShopError.security};sum=next.partialValue
+        }
+        for text in [Charges.ShippingAtoms,Charges.TaxAtoms]{let next=sum.addingReportingOverflow(try atom(text));guard !next.overflow else{throw ShopError.security};sum=next.partialValue}
+        guard sum==amount else{throw ShopError.security}
     }
 }
 // Display consistency on the authenticated Shop response; proof verification stays on the server.
@@ -170,6 +201,7 @@ struct NativePaymentProjection:Codable {
         return a==b || (NativeWire.matches(a,"^0x[a-fA-F0-9]{40}$") && NativeWire.matches(b,"^0x[a-fA-F0-9]{40}$") && a.lowercased()==b.lowercased())
     }
     func validate(_ order:Order,requirePaid:Bool=true)throws {
+        if let quote=order.nativePrice{try quote.validate(order);guard quote.Price.AmountAtoms==PrincipalAtoms else{throw ShopError.security}}
         func atoms(_ text:String)throws->UInt64 {guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
         func hex(_ text:String,_ prefix:Bool=false)->Bool{NativeWire.matches(text,prefix ? "^0x[a-f0-9]{64}$":"^[a-f0-9]{64}$")}
         let pending=PendingOriginals ?? []
@@ -179,7 +211,7 @@ struct NativePaymentProjection:Codable {
         var seen=Set<String>(),claims=Set<String>(),refunds=Set<String>(),settlement="",genesis:String?,chain:String?
         var observedPaid:UInt64=0,observedRefunded:UInt64=0,previous:[UInt64]?
         for receipt in Receipts {
-            guard receipt.version=="ynx.pay.native.archive-receipt/v1",receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,hex(receipt.nativeHash,true),hex(receipt.abciHash,true),hex(receipt.archiveDigest),seen.insert(receipt.nativeHash).inserted,hex(receipt.genesis),receipt.assetId=="YNXT",receipt.unitVersion=="1",receipt.proofVerification=="original-independent-core-verifier",receipt.dataOnly,receipt.queryOnly,!receipt.canRetry,!receipt.SourceAdmission,!receipt.nativeGrant else{throw ShopError.security}
+            guard receipt.version=="ynx.pay.native.archive-receipt/v1",receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,hex(receipt.nativeHash,true),hex(receipt.abciHash,true),hex(receipt.archiveDigest),seen.insert(receipt.nativeHash).inserted,hex(receipt.genesis),receipt.assetId=="YNXT",receipt.unitVersion=="1",(order.nativePrice==nil || (receipt.genesis==order.nativePrice!.Price.Genesis && receipt.nativeChainId==order.nativePrice!.Price.NativeChainID)),receipt.proofVerification=="original-independent-core-verifier",receipt.dataOnly,receipt.queryOnly,!receipt.canRetry,!receipt.SourceAdmission,!receipt.nativeGrant else{throw ShopError.security}
             _ = try atoms(receipt.nativeChainId)
             if let genesis,let chain {guard receipt.genesis==genesis,receipt.nativeChainId==chain else{throw ShopError.security}}else{genesis=receipt.genesis;chain=receipt.nativeChainId}
             let coordinate=try [receipt.executionHeight,receipt.executionIndex,receipt.executionMember,receipt.executionEvent].map{try atoms($0)}

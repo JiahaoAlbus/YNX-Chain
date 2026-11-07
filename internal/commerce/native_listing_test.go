@@ -19,7 +19,7 @@ import (
 func nativeListingInputFor(p Product) NativeListingInput {
 	in := NativeListingInput{StoreID: p.StoreID, ExpectedRevision: strconv.FormatInt(p.Revision, 10), Title: p.Title, Description: p.Description, Category: p.Category, Media: append([]MediaAsset{}, p.Media...)}
 	for _, v := range p.Variants {
-		in.Variants = append(in.Variants, NativeListingVariantInput{v.ID, v.Name, v.SKU, strconv.FormatInt(v.PriceYNXT, 10), strconv.FormatInt(v.Inventory, 10)})
+		in.Variants = append(in.Variants, NativeListingVariantInput{v.ID, v.Name, v.SKU, strconv.FormatInt(v.PriceYNXT, 10), strconv.FormatInt(v.Inventory, 10), nil, false})
 	}
 	return in
 }
