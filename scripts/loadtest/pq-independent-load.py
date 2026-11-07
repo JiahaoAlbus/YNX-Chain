@@ -36,6 +36,7 @@ proof_readback=module("original_public_proof_readback","pq-public-proof-readback
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
+preload_initialization=module('original_preload_initialization','pq-preload-initialization.py')
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -753,6 +754,10 @@ def run(args):
             hook=module("original_pq_network_window","pq-network-window.py")
             network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand,header_capture=getattr(args,"header_hop_capture",False),header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
             network.capture("start");monitor.check()
+        if staged and args.commit=='1b0ea548aca6b5260a9824d0edd3012d52e53521' and (args.rate,args.seconds,args.accounts,args.per_account,args.tail_seconds)==(100,5,500,1,30):
+            monitor.check()
+            result['preloadInitialization']=stages.run('preload_initialization_gate','first100-before-release',lambda:preload_initialization.validate(result.get('initializedAccountReadback'),w.process_receipt(),result['preparationUnconfirmedOwners'],w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds']-time.monotonic(),args.seconds,args.tail_seconds))
+            lab.write_new(work/'public/preload-initialization.json',result['preloadInitialization'])
         stages.seal()
         result["loadExecuted"]=True
         result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
