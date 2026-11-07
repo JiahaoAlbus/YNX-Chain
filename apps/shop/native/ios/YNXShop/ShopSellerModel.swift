@@ -24,6 +24,18 @@ import SwiftUI
     @Published private(set) var preparedOriginalCount=0
     @Published private(set) var pendingTargets=Set<String>()
     @Published private(set) var pendingInvitations=Set<String>()
+    @Published private(set) var pendingOperations:[SellerPendingOperation]=[]
+    @Published private(set) var retainedTermsReviews:[String:String]=[:]
+    @Published private(set) var retainedRefundReviews:[String:SellerRefundReview]=[:]
+    private struct ReconciliationBinding:Equatable {
+        let orderID,storeID,buyer,intentID,invoiceID,merchant,payout,paymentInvoiceID,paymentSessionID,termsHash:String
+        init?(_ order:SellerOrder){
+            guard let payment=order.NativePayment,let merchant=order.PayMerchant,let payout=order.PayPayoutAddress else{return nil}
+            orderID=order.ID;storeID=order.StoreID;buyer=order.Buyer;intentID=order.PayIntentID;invoiceID=order.InvoiceID
+            self.merchant=merchant;self.payout=payout;paymentInvoiceID=payment.InvoiceID;paymentSessionID=payment.SessionID;termsHash=payment.TermsHash
+        }
+    }
+    private var submittedReconciliations:[String:ReconciliationBinding]=[:]
     private var pendingJournalReadable=true
     func hasPending(_ target:String)->Bool{!pendingJournalReadable || pendingTargets.contains(target)}
     @Published var workspaceVisible=false
@@ -34,7 +46,7 @@ import SwiftUI
     private var pendingReturn:URL?
     private var permissions:[String]=[]
     init(api:APIClient?=nil,journal:SellerMutationJournal?=nil,localDraftStore:SellerLocalDraftStore?=nil){self.localDraftStore=localDraftStore ?? SellerLocalDraftStore();self.api=api ?? APIClient(authorityFactory:{try AppleNativeSessionBridge(profile:.seller)});self.journal=journal ?? SellerMutationJournal();self.api.onSessionChanged={[weak self] in self?.identityChanged()}}
-    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];invitations=[];receivedInvitations=[];localDrafts=[:];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];pendingJournalReadable=true}
+    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];invitations=[];receivedInvitations=[];localDrafts=[:];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];pendingOperations=[];retainedTermsReviews=[:];retainedRefundReviews=[:];submittedReconciliations=[:];pendingJournalReadable=true}
     private func identityChanged(){let current=api.currentSession;guard current != session else{return};epoch+=1;selection+=1;busy=false;clearRows();session=current;signedIn=current != nil;if current != nil{awaitingWalletReturn=false;pendingReturn=nil;refresh()}}
     func can(_ permission:String)->Bool{signedIn && permissions.contains(permission)}
     func retainColdReturn(_ url:URL){guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback",url.absoluteString.utf8.count<=16384 else{return};if pendingReturn==nil{pendingReturn=url}}
@@ -49,7 +61,132 @@ import SwiftUI
     func selectStore(_ id:String){guard stores.contains(where:{$0.ID==id}),!busy else{return};selectedStoreID=id;selection+=1;refresh()}
     private func rows<T:Decodable>(_ key:String,_ value:[String:Any],as type:T.Type)throws->[T]{guard value.keys.contains(key) else{throw ShopError.invalidResponse};if value[key] is NSNull{return []};guard let raw=value[key] as? [Any],raw.count<=10_000 else{throw ShopError.invalidResponse};return try JSONDecoder().decode([T].self,from:CanonicalJSON.data(raw))}
     private func validID(_ id:String)->Bool{NativeWire.matches(id,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")}
-    private func updatePending(){guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];return};do{let pending=try journal.records(account).values.filter{$0.phase != "confirmed"};pendingOriginalCount=pending.count;pendingInvitations=Set(pending.filter{$0.kind=="accept-invitation" || $0.kind=="cancel-invitation"}.map{$0.storeID+"\n"+$0.target});preparedOriginalCount=pending.filter{($0.storeID==selectedStoreID || $0.kind=="create-store" || $0.kind=="accept-invitation") && $0.phase=="prepared"}.count;pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID || $0.kind=="create-store"}.map(\.target));pendingJournalReadable=true}catch{pendingJournalReadable=false;state="security_error"}}
+    private func updatePending(){
+        guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];pendingOperations=[];return}
+        do{
+            let pending=try journal.records(account).values.filter{$0.phase != "confirmed"}
+            pendingOriginalCount=pending.count
+            pendingOperations=pending.sorted{$0.key<$1.key}.map{SellerPendingOperation(id:$0.key,kind:$0.kind,phase:$0.phase,storeID:$0.storeID,target:$0.target)}
+            pendingInvitations=Set(pending.filter{$0.kind=="accept-invitation" || $0.kind=="cancel-invitation"}.map{$0.storeID+"\n"+$0.target})
+            preparedOriginalCount=pending.filter{($0.storeID==selectedStoreID || $0.kind=="create-store" || $0.kind=="accept-invitation") && $0.phase=="prepared"}.count
+            pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID || $0.kind=="create-store"}.map(\.target));pendingJournalReadable=true
+        }catch{pendingOperations=[];pendingJournalReadable=false;state="security_error"}
+    }
+    func pendingOperations(for target:String)->[SellerPendingOperation]{pendingOperations.filter{$0.storeID==selectedStoreID && $0.target==target}}
+    func canReceiveReturn(_ order:SellerOrder)->Bool {
+        can("fulfillment.write") && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==selectedStoreID}) && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && !order.approvedReturnIDs.isEmpty && !(order.remainingReturnItems ?? []).isEmpty
+    }
+    func canRestockReturn(_ order:SellerOrder,_ receipt:SellerReturnReceipt)->Bool {
+        can("inventory.write") && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==selectedStoreID}) && !hasPending(order.ID) && order.Shipment != nil && order.hasOriginalPaidRecord && order.remainingReturnItems != nil && (order.ReturnReceipts ?? []).contains(where:{$0.ID==receipt.ID && $0.RestockedAt==nil}) && receipt.RestockedAt==nil
+    }
+    private func currentOrder(_ order:SellerOrder)->Bool {
+        signedIn && session==api.currentSession && order.StoreID==selectedStoreID && orders.contains(where:{$0.ID==order.ID && $0.StoreID==order.StoreID && $0.PayIntentID==order.PayIntentID && $0.InvoiceID==order.InvoiceID && $0.PayMerchant==order.PayMerchant})
+    }
+    func canReviewOriginalTerms(_ order:SellerOrder)->Bool {
+        currentOrder(order) && storeRole=="owner" && can("finance.read") && validID(order.InvoiceID) && NativeWire.matches(order.PayIntentID,"^npi_[a-f0-9]{48}$") && NativeWire.matches(order.PayMerchant ?? "","^0x[a-f0-9]{40}$")
+    }
+    private func exactCurrentOrder(_ order:SellerOrder)->Bool {
+        guard currentOrder(order),let actual=orders.first(where:{$0.ID==order.ID}) else{return false}
+        let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+        guard let expected=try? encoder.encode(order),let current=try? encoder.encode(actual) else{return false}
+        return expected==current
+    }
+    func refundableOriginalEvent(_ order:SellerOrder)->SellerTimelineEvent? {
+        guard exactCurrentOrder(order),storeRole=="owner",can("finance.read"),can("refund.approve"),
+              order.validatedNetPaidAtoms != nil,let id=order.originalRefundRequestID else{return nil}
+        return order.Timeline.first(where:{$0.ID==id})
+    }
+    func canReviewOriginalRefund(_ order:SellerOrder)->Bool {
+        guard refundableOriginalEvent(order) != nil else{return false}
+        // A retained review or lost review response cannot be replaced by a
+        // changed amount/event. Only an accepted original receipt retires it.
+        guard let prior=retainedRefundReviews[order.ID] else{return true}
+        return order.NativePayment?.Receipts.contains(where:{$0.refundId==prior.refundID})==true
+    }
+    func reviewOriginalRefund(_ order:SellerOrder,refundID:String,amountAtoms:String){
+        guard !busy,canReviewOriginalRefund(order),refundableOriginalEvent(order)?.ID==refundID,
+              let amount=UInt64(amountAtoms),amount>0,String(amount)==amountAtoms,
+              let balanceText=order.validatedNetPaidAtoms,let balance=UInt64(balanceText),amount<=balance,
+              let expected=api.currentSession else{return}
+        busy=true;let at=epoch,view=selection
+        Task{defer{if at==epoch{busy=false}};do{
+            guard at==epoch,view==selection,api.currentSession==expected,canReviewOriginalRefund(order),refundableOriginalEvent(order)?.ID==refundID else{return}
+            let check=try api.capture()
+            retainedRefundReviews[order.ID]=SellerRefundReview(refundID:refundID,amountAtoms:amountAtoms,reviewID:nil,phase:"unknown")
+            let reviewID=try await api.reviewOriginalNativeRefund(order.PayIntentID,orderID:order.ID,refundID:refundID,amountAtoms:amountAtoms);try check()
+            guard at==epoch,view==selection,exactCurrentOrder(order) else{return}
+            retainedRefundReviews[order.ID]=SellerRefundReview(refundID:refundID,amountAtoms:amountAtoms,reviewID:reviewID,phase:"pending");state="native_main_review_pending"
+        }catch{if at==epoch,view==selection,api.currentSession==expected{state=(error as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}}}
+    }
+    func canReconcileOriginalPayment(_ order:SellerOrder,nativeHash:String)->Bool {
+        guard exactCurrentOrder(order),can("finance.read"),let payment=order.NativePayment,
+              NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$"),payment.PendingOriginals?.contains(nativeHash)==true,
+              submittedReconciliations[order.ID+"\n"+nativeHash]==nil,
+              (try? payment.validate(order.paymentOrder,requirePaid:false)) != nil else{return false}
+        return true
+    }
+    func reconcileOriginalPayment(_ order:SellerOrder,nativeHash:String){
+        guard !busy,canReconcileOriginalPayment(order,nativeHash:nativeHash),let expected=api.currentSession else{return}
+        busy=true;let at=epoch,view=selection
+        Task{defer{if at==epoch{busy=false}};do{
+            guard at==epoch,view==selection,api.currentSession==expected,canReconcileOriginalPayment(order,nativeHash:nativeHash) else{return}
+            let check=try api.capture()
+            // Session-local presentation guard only. Main retains the original
+            // operation; subsequent recovery uses the existing order reader.
+            guard let binding=ReconciliationBinding(order) else{throw ShopError.security}
+            submittedReconciliations[order.ID+"\n"+nativeHash]=binding
+            var mainError:Error?
+            do{try await api.reconcileOriginalNativeOperation(order.PayIntentID,orderID:order.ID,nativeHash:nativeHash);try check()}
+            catch{try check();mainError=error}
+            guard at==epoch,view==selection,exactCurrentOrder(order) else{return}
+            // Main's operation observation is not a Shop settlement receipt.
+            // Keep the same busy/context boundary through an independent GET.
+            _ = try await readOriginalOrderResult(order,at:at,view:view,check:check)
+            if let mainError{state=(mainError as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}
+        }catch{if at==epoch,view==selection,api.currentSession==expected{state=(error as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}}}
+    }
+    // Main retains the actual review. A returned review ID is pending user
+    // approval only; no payment status, journal or accepted receipt is changed.
+    func reviewOriginalTerms(_ order:SellerOrder){
+        guard !busy,canReviewOriginalTerms(order) else{return}
+        busy=true;let at=epoch,view=selection
+        Task{defer{if at==epoch{busy=false}};do{
+            guard at==epoch,view==selection,currentOrder(order) else{return};let check=try api.capture()
+            let id=try await api.reviewOriginalNativeTerms(order.PayIntentID,orderID:order.ID);try check()
+            guard at==epoch,view==selection,currentOrder(order) else{return}
+            retainedTermsReviews[order.ID]=id;state="native_main_review_pending"
+        }catch{if at==epoch,view==selection{state=(error as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}}}
+    }
+    func readOriginalOrder(_ order:SellerOrder){
+        guard !busy,currentOrder(order) else{return}
+        busy=true;let at=epoch,view=selection
+        Task{defer{if at==epoch{busy=false}};do{
+            guard at==epoch,view==selection,currentOrder(order) else{return};let check=try api.capture()
+            let result=try await readOriginalOrderResult(order,at:at,view:view,check:check)
+            // Only this explicit user read may refresh permission to query the
+            // same original again. The reconciliation flow's automatic GET
+            // cannot unlock it, nor can a refreshed but rebound payment tuple.
+            if let binding=ReconciliationBinding(order),binding==ReconciliationBinding(result),
+               let previous=order.NativePayment,let fresh=result.NativePayment,
+               (try? previous.validate(order.paymentOrder,requirePaid:false)) != nil {
+                let previousHashes=Set(previous.PendingOriginals ?? [])
+                for hash in fresh.PendingOriginals ?? [] where previousHashes.contains(hash) {
+                    let key=order.ID+"\n"+hash
+                    if submittedReconciliations[key]==binding{submittedReconciliations.removeValue(forKey:key)}
+                }
+            }
+        }catch{if at==epoch,view==selection{state="unavailable"}}}
+    }
+    private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:()throws->Void)async throws->SellerOrder {
+        let response=try await api.raw("seller/orders/"+order.ID,method:"GET",json:[:]);try check()
+        guard at==epoch,view==selection,currentOrder(order) else{throw ShopError.contextChanged}
+        let result=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response))
+        guard result.ID==order.ID,result.StoreID==order.StoreID,result.Buyer==order.Buyer,result.Currency==order.Currency,result.TotalYNXT==order.TotalYNXT,result.PayIntentID==order.PayIntentID,result.InvoiceID==order.InvoiceID,result.PayMerchant==order.PayMerchant,result.PayPayoutAddress==order.PayPayoutAddress else{throw ShopError.security}
+        guard order.NativePayment==nil || result.NativePayment != nil else{throw ShopError.security}
+        if let payment=result.NativePayment{try payment.validate(result.paymentOrder,requirePaid:false)}
+        guard let index=orders.firstIndex(where:{$0.ID==order.ID}) else{throw ShopError.contextChanged}
+        orders[index]=result;state="";return result
+    }
     func loadInvitationInbox(){guard signedIn,!busy else{return};invitationInboxVisible=true;busy=true;let at=epoch;Task{defer{if at==epoch{busy=false;updatePending()}};do{
         let check=try api.capture();let value=try await api.raw("seller/invitations",method:"GET",json:[:]);try check();guard at==epoch,let account=api.currentSession?.account else{return}
         let rows:[SellerInvitation]=try self.rows("invitations",value,as:SellerInvitation.self)
@@ -140,11 +277,19 @@ import SwiftUI
             guard let product=products.first(where:{$0.ID==productID}),product.StoreID==store,product.Variants.contains(where:{$0.ID==variantID}),try integer(expected,positive:true)==product.Revision else{throw ShopError.security};_ = try integer(inventory)
             return ("inventory",productID,"/seller/inventory/batch",["StoreID":store,"Items":[["ProductID":productID,"VariantID":variantID,"ExpectedRevision":expected,"Inventory":inventory]]])
         case .ship(let id,let carrier,let tracking):
-            guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="paid",!order.PayIntentID.hasPrefix("npi_") || ["native_paid","native_partial_refund"].contains(order.paymentDisplayState) else{throw ShopError.security}
+            guard can("fulfillment.write"),let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="paid",order.hasOriginalPaidRecord,!order.PayIntentID.hasPrefix("npi_") || ["native_paid","native_partial_refund"].contains(order.paymentDisplayState) else{throw ShopError.security}
             return ("ship",id,"/seller/orders/"+id+"/transition",["Action":"shipped","Carrier":try bounded(carrier,120),"TrackingNumber":try bounded(tracking,200),"Explanation":""])
         case .returnDecision(let id,let returnID,let approve,let explanation):
-            guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="return_requested",order.originalReturnID==returnID,validID(returnID) else{throw ShopError.security}
+            guard can("returns.resolve"),let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="return_requested",order.originalReturnID==returnID,validID(returnID) else{throw ShopError.security}
             return ("return",id,"/seller/orders/"+id+"/transition",["Action":approve ? "return_approved":"return_rejected","OriginalReturnID":returnID,"Explanation":try bounded(explanation,5000,required:!approve)])
+        case .receiveReturn(let id,let returnID,let reference,let items):
+            guard let order=orders.first(where:{$0.ID==id}),canReceiveReturn(order),order.approvedReturnIDs.contains(returnID),validID(returnID),validID(reference),(1...50).contains(items.count),let remaining=order.remainingReturnItems else{throw ShopError.security}
+            var seen=Set<String>()
+            for item in items{guard seen.insert(item.id).inserted,let n=SellerOrder.positiveQuantity(item.Quantity),let left=remaining.first(where:{$0.id==item.id}),let available=Int64(left.Quantity),n<=available else{throw ShopError.security}}
+            return ("receive-return",id,"/orders/"+id+"/return-receipts",["ReturnID":returnID,"EvidenceReference":reference,"Items":try JSONSerialization.jsonObject(with:JSONEncoder().encode(items))])
+        case .restockReturn(let id,let receiptID):
+            guard let order=orders.first(where:{$0.ID==id}),let receipt=order.ReturnReceipts?.first(where:{$0.ID==receiptID}),canRestockReturn(order,receipt) else{throw ShopError.security}
+            return ("restock-return",id,"/orders/"+id+"/return-restock",["ReceiptID":receiptID])
         case .revoke(let account,let reason):
             guard canManageMembers,reason.utf8.count>=8,!reason.contains("\n"),!reason.contains("\r"),validID(account),members.contains(where:{$0.Account==account}) else{throw ShopError.security}
             return ("revoke",account,"/seller/stores/"+store+"/roles/"+account+"/native-revoke",["Reason":try bounded(reason,240)])
@@ -168,21 +313,21 @@ import SwiftUI
             guard at==epoch,view==selection else{return};state="seller_change_confirmed";reload=true
         }catch{guard at==epoch else{return};state="seller_original_unconfirmed"}};updatePending()
     }catch{state="seller_original_unconfirmed";updatePending()}}
-    func retryPreparedOriginals(){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
+    func retryPreparedOriginals(for target:String?=nil){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
         let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
-        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && ($0.storeID==store || $0.kind=="create-store" || $0.kind=="accept-invitation")}.sorted{$0.key<$1.key}
+        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && (target == nil ? ($0.storeID==store || $0.kind=="create-store" || $0.kind=="accept-invitation") : ($0.storeID==store && $0.target==target))}.sorted{$0.key<$1.key}
         var failed=false
         for original in originals {do{try await sendPrepared(original,view:view,check:check);reload=true}catch{try check();guard at==epoch,view==selection else{return};failed=true}}
-        guard at==epoch else{return};state=failed ? "seller_original_unconfirmed":"seller_change_confirmed"
+        guard at==epoch else{return};state=failed ? "seller_original_unconfirmed":originals.isEmpty ? (pendingOriginalCount>0 ? "seller_original_unconfirmed":""):"seller_change_confirmed"
     }catch{if at==epoch{state="seller_original_unconfirmed"}}}}
-    func recoverOriginals(){guard signedIn,!busy else{return};busy=true;let at=epoch;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
+    func recoverOriginals(for target:String?=nil){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
         let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
-        let originals=try journal.records(account).values.filter{$0.phase=="unknown"}.sorted{$0.key<$1.key}
+        let originals=try journal.records(account).values.filter{$0.phase=="unknown" && (target==nil || ($0.storeID==store && $0.target==target))}.sorted{$0.key<$1.key}
         var failed=false
         for original in originals {do{
             let response=try await api.raw("seller/mutations/lookup",json:["Method":original.method,"Path":original.path,"OriginalBody":String(data:original.body,encoding:.utf8)!]);try check()
             guard response["Actor"] as? String==account,response["Method"] as? String==original.method,response["Path"] as? String==original.path,response["IdempotencyKey"] as? String==original.key,let result=response["Result"] as? [String:Any] else{throw ShopError.security}
-            try validate(result,original:original,recovery:true);try journal.confirm(original,result:result);reload=true
+            guard at==epoch,view==selection else{throw ShopError.contextChanged};try validate(result,original:original,recovery:true);try journal.confirm(original,result:result);reload=true
         }catch{try check();guard at==epoch else{return};failed=true}}
         guard at==epoch else{return};state=failed ? "seller_original_unconfirmed":originals.isEmpty ? (preparedOriginalCount>0 ? "seller_original_prepared":""):"seller_change_confirmed"
     }catch{if at==epoch{state="seller_original_unconfirmed"}}}}
@@ -243,7 +388,18 @@ import SwiftUI
         case "ship","return":
             let order=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response));guard order.ID==original.target,order.StoreID==original.storeID else{throw ShopError.security}
             if original.kind=="ship"{guard let shipment=order.Shipment,shipment.Carrier==input["Carrier"] as? String,shipment.TrackingNumber==input["TrackingNumber"] as? String,["shipped","delivered","reviewed","return_requested","return_approved","return_rejected","refund_requested","refund_approved","refund_rejected","refunded","disputed"].contains(order.Status) else{throw ShopError.security}}
-            else{guard let id=input["OriginalReturnID"] as? String,let action=input["Action"] as? String,let start=order.Timeline.firstIndex(where:{$0.ID==id && $0.Status=="return_requested"}) else{throw ShopError.security};let rest=Array(order.Timeline.dropFirst(start+1));let events=Array(rest.prefix(while:{$0.Status != "return_requested"})).filter{["return_approved","return_rejected"].contains($0.Status)};guard events.count==1,events[0].Status==action else{throw ShopError.security}}
+            else{guard let id=input["OriginalReturnID"] as? String,let action=input["Action"] as? String,let start=order.Timeline.firstIndex(where:{$0.ID==id && $0.Action=="order_transition" && $0.Status=="return_requested"}) else{throw ShopError.security};let rest=Array(order.Timeline.dropFirst(start+1)).filter{$0.Action=="order_transition"};let events=Array(rest.prefix(while:{$0.Status != "return_requested"})).filter{["return_approved","return_rejected"].contains($0.Status)};guard events.count==1,events[0].Status==action else{throw ShopError.security}}
+        case "receive-return","restock-return":
+            let order=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response))
+            guard order.ID==original.target,order.StoreID==original.storeID,order.remainingReturnItems != nil else{throw ShopError.security}
+            if original.kind=="receive-return" {
+                let items=try JSONDecoder().decode([SellerReturnItem].self,from:CanonicalJSON.data(input["Items"] ?? []))
+                let receipts=(order.ReturnReceipts ?? []).filter{$0.ReturnID==input["ReturnID"] as? String && $0.EvidenceReference==input["EvidenceReference"] as? String && $0.Items==items && $0.ReceivedBy==original.account}
+                guard receipts.count==1 else{throw ShopError.security}
+            }else{
+                let receipts=(order.ReturnReceipts ?? []).filter{$0.ID==input["ReceiptID"] as? String && $0.RestockedBy==original.account && $0.RestockedAt != nil}
+                guard receipts.count==1 else{throw ShopError.security}
+            }
         case "revoke":
             guard response["RoleRevoked"] as? Bool==true,response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let data=response["Revocation"] as? [String:Any] else{throw ShopError.security}
             let r=try JSONDecoder().decode(SellerRevocation.self,from:CanonicalJSON.data(data))

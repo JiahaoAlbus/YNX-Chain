@@ -176,9 +176,18 @@ func TestNativePaymentReceiptLateOrCanceledNeverConsumesReservation(t *testing.T
 		t.Run(mode, func(t *testing.T) {
 			s, buyer, o, cfg, _, _ := nativePaymentFixture(t)
 			if mode == "cancelled" {
-				if _, e := s.transition(buyer, "buyer", o.ID, "cancelled", nil, nil, nil, "native-original-cancel"); e != nil {
+				if _, e := s.transition(buyer, "buyer", o.ID, "cancelled", nil, nil, nil, "native-original-cancel"); e == nil {
+					t.Fatal("bound native invoice was locally cancelled")
+				}
+				// Retain the historical late-payment counterexample even though
+				// normal new transitions now refuse this unsafe cancellation.
+				// This is a PUBLIC legacy snapshot fixture, not a live DB edit.
+				current := s.s.Orders[o.ID]
+				if e := s.applyReservationLocked(current, false); e != nil {
 					t.Fatal(e)
 				}
+				current.Status = "cancelled"
+				s.s.Orders[o.ID] = current
 			} else {
 				current := s.s.Orders[o.ID]
 				current.ReservationExpiresAt = time.Now().Add(-time.Second)

@@ -177,6 +177,7 @@ type RefundEvidence struct {
 type CartConsumption struct{ PreviousRevision, Revision string }
 
 type Order struct {
+	LocalCancellationBlocked                                                                    bool                  `json:",omitempty"`
 	NativePrice                                                                                 *NativeOrderPriceDATA `json:",omitempty"`
 	ReturnReceipts                                                                              []ReturnReceipt       `json:",omitempty"`
 	CartConsumption                                                                             *CartConsumption      `json:",omitempty"`

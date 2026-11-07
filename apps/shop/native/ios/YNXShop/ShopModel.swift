@@ -47,6 +47,10 @@ import SwiftUI
     private var catalogRefreshRevision=0
     @Published private(set) var mutationBusy=false
     @Published private(set) var checkoutRecoveryRequired=false
+    @Published private(set) var orderRecoveryStates:[String:String]=[:]
+    private var preparedTransitionOrders=Set<String>()
+    private var nativeBoundOrderIDs=Set<String>()
+    private var attemptedReconciliations:[String:[String]]=[:]
     @Published var profileName=""
     @Published var profileRecipient=""
     @Published var profileAddress=""
@@ -58,12 +62,12 @@ import SwiftUI
     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil;orderActionPresentation=nil}
     private func refreshCheckoutRecovery(){guard let current=api.currentSession,current==presentedSession else{checkoutRecoveryRequired=false;return};do{let draft=try journey.load(current.account);checkoutRecoveryRequired=draft.checkoutKey != nil || draft.checkoutPhase != nil}catch{checkoutRecoveryRequired=true}}
     init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil,comparisonJournal:ShopComparisonJournal?=nil,localDataInitiallyLocked:Bool?=nil){self.comparisonJournal=comparisonJournal ?? ShopComparisonJournal();self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();localDataLocked=localDataInitiallyLocked ?? (journey==nil);if !localDataLocked{do{cart=try self.journey.guest()}catch{localDataLocked=true}};self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
-    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};clearAgentPresentation();let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];checkoutResult=nil;selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
+    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};clearAgentPresentation();attemptedReconciliations=[:];let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
     func sceneActive(){reconcileIdentity();refreshCheckoutRecovery();Task{await resumeOriginalOrder();await resumeNativeInvoiceReferences()}}
     func setLanguage(_ value:String){appLanguage=ShopLanguage.choose(value,in:.standard,key:"app-language")}
     func setAILanguage(_ value:String){aiLanguage=ShopLanguage.choose(value,in:.standard,key:"ai-language")}
-    private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
-    func signOut(){clearAgentPresentation();localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];checkoutResult=nil;selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
+    private func failure(_ error:Error){if let refusal=error as? OriginalMainPayRefusal{state=refusal.presentationState;return};if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
+    func signOut(){clearAgentPresentation();attemptedReconciliations=[:];localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async {
         catalogRefreshRevision+=1
         let refresh=catalogRefreshRevision,operation=operationRevision,query=search
@@ -85,24 +89,25 @@ import SwiftUI
             failure(error)
         }
     }
-    func loadOrders()async {
+    func loadOrders()async{_ = await readOrders()}
+    private func readOrders()async->Bool {
         ordersRefreshRevision+=1
         let refresh=ordersRefreshRevision,operation=operationRevision
-        guard signedIn else{return}
+        guard signedIn else{return false}
         var authorization:(()throws->Void)?
         do {
             let check=try api.capture();authorization=check
             let response:OrdersResponse=try await api.request("orders")
-            guard refresh==ordersRefreshRevision,operation==operationRevision else{return}
+            guard refresh==ordersRefreshRevision,operation==operationRevision else{return false}
             try check()
             guard let account=api.currentSession?.account else{throw ShopError.signedOut}
             try response.orders.forEach{try AppleBuyerReceipt.validate($0,account:account)}
-            orders=response.orders
+            orders=response.orders;refreshOrderRecoveries();return true
         } catch {
             // Obsolete reads cannot replace a newer list or its error/loading state.
-            guard refresh==ordersRefreshRevision,operation==operationRevision else{return}
-            if let authorization {do{try authorization()}catch{return}}
-            failure(error)
+            guard refresh==ordersRefreshRevision,operation==operationRevision else{return false}
+            if let authorization {do{try authorization()}catch{return false}}
+            failure(error);return false
         }
     }
     func unlockLocalData(){
@@ -116,7 +121,7 @@ import SwiftUI
     func add(_ product:Product,_ variant:Variant){guard !mutationBusy,variant.reserved>=0,variant.inventory>variant.reserved else{return};var next=cart;if let index=next.firstIndex(where:{$0.productID==product.productID && $0.variantID==variant.variantID}){guard next[index].quantity<20 else{return};next[index].quantity+=1}else{next.append(.init(productID:product.productID,variantID:variant.variantID,quantity:1))};do{try editCart(next)}catch{failure(error)}}
     func removeCart(_ item:CartItem,revision:Int?=nil){guard !mutationBusy,revision==nil || revision==privacyRevision else{return};do{try editCart(cart.filter{$0.productID != item.productID || $0.variantID != item.variantID})}catch{failure(error)}}
     func setCartQuantity(_ item:CartItem,quantity:Int,revision:Int){guard !mutationBusy,revision==privacyRevision,(1...20).contains(quantity),let index=cart.firstIndex(where:{$0.productID==item.productID && $0.variantID==item.variantID}),cart[index].quantity==item.quantity else{return};var next=cart;next[index].quantity=quantity;do{try editCart(next)}catch{failure(error)}}
-    func syncCart(){guard signedIn,!mutationBusy,!checkoutRecoveryRequired else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let remote=try await api.raw("cart",method:"GET",json:[:]);try check();try journey.reconcileCart(remote,account:account);let draft=try journey.load(account);if draft.dirty {let pending=try journey.prepareCart(account);let body:[String:Any]=["Items":pending.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"ExpectedRevision":pending.expected,"IdempotencyKey":pending.key];let saved=try await api.raw("cart",method:"PUT",json:body);try check();try journey.reconcileCart(saved,account:account)};cart=try journey.load(account).items;state=""}catch{failure(error)}}}
+    func syncCart(){guard signedIn,!mutationBusy,!checkoutRecoveryRequired else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let remote=try await api.raw("cart",method:"GET",json:[:]);try check();try journey.reconcileCart(remote,account:account);let draft=try journey.load(account);if draft.dirty {let pending=try journey.prepareCart(account);let body:[String:Any]=["Items":pending.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"ExpectedRevision":pending.expected,"IdempotencyKey":pending.key];let saved=try await api.raw("cart",method:"PUT",json:body);try check();try journey.reconcileCart(saved,account:account)};cart=try journey.load(account).items;state=""}catch{failure(error)}}}
     func signIn(){if localDataLocked{unlockLocalData();guard !localDataLocked else{return}};
         if let original=pendingNativeReturnURL {
             guard !nativeReturnBusy else{return};nativeReturnBusy=true
@@ -181,7 +186,7 @@ import SwiftUI
     private func mutation(path:String,input:[String:Any],receipt:@escaping ([String:Any])throws->Void){
         guard signedIn,!mutationBusy else{return}
         do{let authorization=try api.capture(),view=handoffPresentationRevision;let check:()throws->Void={try authorization();guard view==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let account=api.currentSession?.account else{throw ShopError.signedOut};guard try !queue.load(account:account).contains(where:{$0.path==path}) else{throw ShopError.unresolvedMutation};let item=try queue.prepareUnsent(account:account,path:path,input:input);mutationBusy=true;let revision=operationRevision
-            Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let json=try JSONSerialization.jsonObject(with:item.body) as? [String:Any];guard let json else{throw ShopError.security};try check();let result=try await api.raw(item.path,method:item.method,json:json,beforeDispatch:{try check();try self.queue.beginDispatch(item)});try check();_ = try AppleBuyerReceipt.decode(result,account:account);try receipt(result);try queue.confirmedTracked(item);await loadOrders()}catch{do{try queue.markUnknown(item)}catch{failure(error);return};if let err=error as? ShopError,err == .contextChanged || err == .signedOut{failure(error)}else{state="queued_offline"}}}
+            Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let json=try JSONSerialization.jsonObject(with:item.body) as? [String:Any];guard let json else{throw ShopError.security};try check();let result=try await api.raw(item.path,method:item.method,json:json,beforeDispatch:{try check();try self.queue.beginDispatch(item)});try check();_ = try AppleBuyerReceipt.decode(result,account:account);try receipt(result);try queue.confirmedTracked(item);await loadOrders()}catch{do{try queue.markUnknown(item)}catch{guard revision==operationRevision else{return};failure(error);return};guard revision==operationRevision else{return};do{try check()}catch{return};if let err=error as? ShopError,err == .contextChanged || err == .signedOut{failure(error)}else{state="queued_offline"}}}
         }catch{failure(error)}
     }
     func checkout(recipient:String,address:String,city:String,country:String){
@@ -198,7 +203,7 @@ import SwiftUI
             }
             mutationBusy=true;checkoutResult=nil
             Task{
-                defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}}
+                defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}}
                 do{
                     let store=try await api.checkoutStore(draft.items,current:current);try current()
                     let old=try queue.load(account:session.account).contains{$0.path=="orders"}
@@ -214,17 +219,139 @@ import SwiftUI
             }
         }catch{failure(error)}
     }
-    func recoverCheckout(){guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,let item=try queue.load(account:account).first(where:{$0.path=="orders"}),let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let key=body["IdempotencyKey"] as? String else{throw ShopError.unresolvedMutation};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key]);try check();let order=try AppleBuyerReceipt.decode(result,account:account);try journey.checkoutConfirmed(account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(account).items;checkoutResult=order;await loadOrders()}catch{failure(error)}}}
+    func recoverCheckout(){guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let check=try api.capture();guard let account=api.currentSession?.account,let item=try queue.load(account:account).first(where:{$0.path=="orders"}),let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let key=body["IdempotencyKey"] as? String else{throw ShopError.unresolvedMutation};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key]);try check();let order=try AppleBuyerReceipt.decode(result,account:account);try journey.checkoutConfirmed(account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(account).items;checkoutResult=order;await loadOrders()}catch{failure(error)}}}
     func beginOrderAction(_ order:Order,_ action:String,title:String){
         guard signedIn,!mutationBusy,let session=api.currentSession else{return}
-        do{_ = try api.capture();try AppleBuyerReceipt.validate(order,account:session.account);guard BuyerOrderActionInput.allowed(order.status,action) else{throw ShopError.invalidResponse};cancelInvoicePresentation();orderActionPresentation=OrderActionPresentation(order:order,action:action,title:title,session:session,revision:operationRevision)}catch{failure(error)}
+        do{_ = try api.capture();try AppleBuyerReceipt.validate(order,account:session.account);guard orderRecoveryState(order)=="none",action != "cancelled" || canCancelOrder(order),BuyerOrderActionInput.allowed(order.status,action) else{throw ShopError.invalidResponse};cancelInvoicePresentation();orderActionPresentation=OrderActionPresentation(order:order,action:action,title:title,session:session,revision:operationRevision)}catch{failure(error)}
     }
     func submitOrderAction(_ presentation:OrderActionPresentation,rating:Int,reason:String,detail:String)->Bool {
         guard orderActionPresentation?.id==presentation.id,api.currentSession==presentation.session,operationRevision==presentation.revision,signedIn,!mutationBusy else{orderActionPresentation=nil;return false}
         do{let check=try api.capture();try check();guard try !queue.load(account:presentation.session.account).contains(where:{$0.path=="orders/\(presentation.order.orderID)/transition"}) else{state="order_request_pending";return false};try AppleBuyerReceipt.validate(presentation.order,account:presentation.session.account);let input=try BuyerOrderActionInput.build(status:presentation.order.status,action:presentation.action,rating:rating,reason:reason,detail:detail);mutation(path:"orders/\(presentation.order.orderID)/transition",input:input){value in guard value["ID"] as? String==presentation.order.orderID else{throw ShopError.security}};if mutationBusy{orderActionPresentation=nil;return true};return false}catch{state="order_input_required";return false}
     }
-    func checkPayment(_ order:Order){guard signedIn else{return};Task{do{let check=try api.capture();try await api.confirmOriginalPayment(order);try check();await resumeOriginalOrder();await loadOrders()}catch{failure(error)}}}
-    func pay(_ order:Order){guard signedIn,!mutationBusy else{return};if api.nativeInvoiceMode && ((order.payIntentID ?? "").isEmpty || (order.payIntentID ?? "").hasPrefix("npi_")){prepareNativeInvoice(order);return};if (order.payIntentID ?? "").hasPrefix("npi_"){checkPayment(order);return};do{let authorization=try api.capture(),presentation=handoffPresentationRevision;let check:()throws->Void={try authorization();guard presentation==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let session=api.currentSession else{throw ShopError.signedOut};try AppleBuyerReceipt.validate(order,account:session.account);let legacy=try queue.originalHandoff(account:session.account,path:"orders/\(order.orderID)/pay-handoff");let originalKey=try legacy.map{try JSONSerialization.jsonObject(with:$0.body) as? [String:Any]}.flatMap{$0?["IdempotencyKey"] as? String};let existed=try invoiceHandoffs.existing(account:session.account,order:order);let original=try invoiceHandoffs.prepare(account:session.account,order:order,originalKey:originalKey);let review=try journey.prepareReview(session.account,order:order,original:original,existing:existed || legacy != nil);mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let create=review.phase=="prepared";let result=try await api.raw("orders/\(original.orderID)/pay-handoff",method:create ? "POST":"GET",json:create ? ["IdempotencyKey":original.record.key]:[:],beforeDispatch:{try check();if create{try self.journey.reviewDispatch(session.account,review:review)}});try check();guard presentation==handoffPresentationRevision else{return};let url=try invoiceHandoffs.reviewURL(original,response:result);let received=try journey.reviewReceived(session.account,review:review,response:result,url:url);invoicePresentation=InvoicePresentation(review:received,session:session,revision:presentation,url:url)}catch{do{try check()}catch{return};failure(error)}}}catch{failure(error)}}
+    func checkPayment(_ order:Order){
+        guard signedIn,!mutationBusy else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            try AppleBuyerReceipt.validate(order,account:session.account)
+            let at=operationRevision;mutationBusy=true
+            Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
+                do{try check();try await api.confirmOriginalPayment(order,beforeDispatch:check);try check();await resumeOriginalOrder();try check();let fresh=await readOrders();try check();if fresh,let observed=orders.first(where:{$0.orderID==order.orderID}){acceptExplicitReconciliationQuery(order,observed)}}
+                catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
+            }
+        }catch{failure(error)}
+    }
+    // Cached local recovery projection. SwiftUI rendering never reads Vault or
+    // requests a proof. UNKNOWN metadata is refreshed at actual model events.
+    func orderRecoveryState(_ order:Order)->String{orderRecoveryStates[order.orderID] ?? "none"}
+    func canRetryPreparedOrder(_ order:Order)->Bool{preparedTransitionOrders.contains(order.orderID)}
+    func canCancelOrder(_ order:Order)->Bool{order.localCancellationBlocked != true && order.status=="payment_pending" && !(order.payIntentID ?? "").hasPrefix("npi_") && !nativeBoundOrderIDs.contains(order.orderID) && orderRecoveryState(order)=="none"}
+    private func refreshOrderRecoveries(){
+        guard signedIn,let session=api.currentSession,session==presentedSession else{orderRecoveryStates=[:];preparedTransitionOrders=[];nativeBoundOrderIDs=[];return}
+        do{
+            let pending=try queue.load(account:session.account),native=try nativeInvoices.records(session.account)
+            var states:[String:String]=[:],prepared=Set<String>()
+            for order in orders{
+                if let item=pending.first(where:{$0.path=="orders/\(order.orderID)/transition"}){let phase=try queue.dispatchPhase(item);states[order.orderID]=phase=="prepared" ? "prepared":"unknown";if phase=="prepared"{prepared.insert(order.orderID)}}
+                else if let original=native[order.orderID],original.phase != "reference"{states[order.orderID]=original.phase=="prepared" ? "prepared":"unknown"}
+            }
+            orderRecoveryStates=states;preparedTransitionOrders=prepared;nativeBoundOrderIDs=Set(native.values.filter{$0.phase != "prepared"}.map{$0.orderID})
+        }catch{orderRecoveryStates=Dictionary(uniqueKeysWithValues:orders.map{($0.orderID,"unavailable")})}
+    }
+    private func queryNativeInvoice(_ original:NativeInvoicePreparationJournal.Record,check:@escaping ()throws->Void)async throws{
+        guard original.phase != "prepared" else{return}
+        try check()
+        let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(original.lookupByKey ? "-lookup":""),method:original.lookupByKey ? "POST":"GET",json:original.lookupByKey ? ["IdempotencyKey":original.key]:[:],beforeDispatch:check)
+        try check();_ = try nativeInvoices.observed(original,result:result)
+    }
+    func recoverOrder(_ order:Order){
+        guard signedIn,!mutationBusy else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            try AppleBuyerReceipt.validate(order,account:session.account)
+            let at=operationRevision;mutationBusy=true
+            Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
+                do{
+                    try check()
+                    let matching=try queue.load(account:session.account).filter{$0.path=="orders/\(order.orderID)/transition"}
+                    for item in matching{
+                        // The query endpoint returns the original retained
+                        // result. A never-dispatched prepared action is not sent.
+                        guard try queue.dispatchPhase(item) != "prepared" else{throw ShopError.unresolvedMutation}
+                        guard let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any] else{throw ShopError.security}
+                        let value=try await api.raw(item.path+"-intent-lookup",json:body,beforeDispatch:check);try check()
+                        _ = try BuyerTransitionRecovery.receipt(value,session:session,item:item)
+                        try queue.confirmedTracked(item)
+                    }
+                    if let original=try nativeInvoices.records(session.account)[order.orderID]{try await queryNativeInvoice(original,check:check)}
+                    try check();await loadOrders();try check();state=""
+                }catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
+            }
+        }catch{failure(error)}
+    }
+    func retryPreparedOrder(_ order:Order){
+        guard signedIn,!mutationBusy else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            try AppleBuyerReceipt.validate(order,account:session.account)
+            guard let item=try queue.load(account:session.account).first(where:{$0.path=="orders/\(order.orderID)/transition"}),try queue.dispatchPhase(item)=="prepared",let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any] else{throw ShopError.unresolvedMutation}
+            let at=operationRevision;mutationBusy=true
+            Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
+                do{try check();let value=try await api.raw(item.path,method:item.method,json:body,beforeDispatch:{try check();try self.queue.beginDispatch(item)});try check();let observed=try AppleBuyerReceipt.decode(value,account:session.account);guard observed.orderID==order.orderID else{throw ShopError.security};try queue.confirmedTracked(item);await loadOrders();try check();state=""}
+                catch{do{try queue.markUnknown(item)}catch{guard at==operationRevision else{return};failure(error);return};guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
+            }
+        }catch{failure(error)}
+    }
+    private func reconciliationSelection(_ order:Order)->[String]?{
+        guard let payment=order.nativePayment else{return nil}
+        return [order.orderID,order.buyer ?? "",order.storeID ?? "",order.payIntentID ?? "",order.invoiceID ?? "",order.payMerchant ?? "",order.payPayoutAddress ?? "",payment.InvoiceID,payment.SessionID,payment.TermsHash,payment.PrincipalAtoms]
+    }
+    private func acceptExplicitReconciliationQuery(_ previous:Order,_ observed:Order){
+        guard previous.orderID==observed.orderID,previous.payIntentID==observed.payIntentID,previous.invoiceID==observed.invoiceID,previous.payMerchant==observed.payMerchant,previous.payPayoutAddress==observed.payPayoutAddress,let old=previous.nativePayment,let fresh=observed.nativePayment,old.InvoiceID==fresh.InvoiceID,old.SessionID==fresh.SessionID,old.TermsHash==fresh.TermsHash,old.PrincipalAtoms==fresh.PrincipalAtoms,(try? fresh.validate(observed,requirePaid:false)) != nil else{return}
+        for hash in old.PendingOriginals ?? [] where (fresh.PendingOriginals ?? []).contains(hash){let key=previous.orderID+"\n"+hash;if attemptedReconciliations[key]==reconciliationSelection(previous),attemptedReconciliations[key]==reconciliationSelection(observed){attemptedReconciliations.removeValue(forKey:key)}}
+    }
+    func canReconcilePayment(_ order:Order,nativeHash:String)->Bool{
+        signedIn && attemptedReconciliations[order.orderID+"\n"+nativeHash]==nil && (order.nativePayment?.PendingOriginals ?? []).contains(nativeHash) && NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$")
+    }
+    // Explicit reconciliation of an already retained native hash. Foreground
+    // restore, ordinary invoice queries and UNKNOWN recovery never invoke it.
+    func reconcilePayment(_ order:Order,nativeHash:String){
+        guard signedIn,!mutationBusy else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            try AppleBuyerReceipt.validate(order,account:session.account)
+            guard canReconcilePayment(order,nativeHash:nativeHash),let payment=order.nativePayment,(payment.PendingOriginals ?? []).contains(nativeHash),let operation=order.payIntentID,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$") else{throw ShopError.unresolvedMutation}
+            try payment.validate(order,requirePaid:false)
+            attemptedReconciliations[order.orderID+"\n"+nativeHash]=reconciliationSelection(order)
+            let at=operationRevision;mutationBusy=true
+            Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
+                do{
+                    try check();var originalError:Error?
+                    do{try await api.reconcileOriginalNativeOperation(operation,orderID:order.orderID,nativeHash:nativeHash)}catch{originalError=error}
+                    try check()
+                    // Even a lost reconciliation reply recovers through the
+                    // independently verified original archive, never by send.
+                    do{try await api.confirmOriginalPayment(order,beforeDispatch:check)}catch{if originalError==nil{originalError=error}}
+                    try check();await loadOrders();try check()
+                    if let originalError{failure(originalError)}else{state=""}
+                }catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
+            }
+        }catch{failure(error)}
+    }
+    func reviewPayment(_ order:Order){
+        guard signedIn,!mutationBusy else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            try AppleBuyerReceipt.validate(order,account:session.account)
+            guard order.status=="payment_pending",let operation=order.payIntentID,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),orderRecoveryState(order)=="none" else{throw ShopError.unresolvedMutation}
+            let at=operationRevision;mutationBusy=true
+            Task{defer{if at==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
+                do{try check();_ = try await api.reviewOriginalNativePayment(operation,orderID:order.orderID);try check();state="native_main_review_pending"}
+                catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
+            }
+        }catch{failure(error)}
+    }
+
+    func pay(_ order:Order){guard signedIn,!mutationBusy else{return};if api.nativeInvoiceMode && ((order.payIntentID ?? "").isEmpty || (order.payIntentID ?? "").hasPrefix("npi_")){prepareNativeInvoice(order);return};if (order.payIntentID ?? "").hasPrefix("npi_"){checkPayment(order);return};do{let authorization=try api.capture(),presentation=handoffPresentationRevision;let check:()throws->Void={try authorization();guard presentation==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let session=api.currentSession else{throw ShopError.signedOut};try AppleBuyerReceipt.validate(order,account:session.account);let legacy=try queue.originalHandoff(account:session.account,path:"orders/\(order.orderID)/pay-handoff");let originalKey=try legacy.map{try JSONSerialization.jsonObject(with:$0.body) as? [String:Any]}.flatMap{$0?["IdempotencyKey"] as? String};let existed=try invoiceHandoffs.existing(account:session.account,order:order);let original=try invoiceHandoffs.prepare(account:session.account,order:order,originalKey:originalKey);let review=try journey.prepareReview(session.account,order:order,original:original,existing:existed || legacy != nil);mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let create=review.phase=="prepared";let result=try await api.raw("orders/\(original.orderID)/pay-handoff",method:create ? "POST":"GET",json:create ? ["IdempotencyKey":original.record.key]:[:],beforeDispatch:{try check();if create{try self.journey.reviewDispatch(session.account,review:review)}});try check();guard presentation==handoffPresentationRevision else{return};let url=try invoiceHandoffs.reviewURL(original,response:result);let received=try journey.reviewReceived(session.account,review:review,response:result,url:url);invoicePresentation=InvoicePresentation(review:received,session:session,revision:presentation,url:url)}catch{do{try check()}catch{return};failure(error)}}}catch{failure(error)}}
     func prepareNativeInvoice(_ order:Order){
         guard signedIn,!mutationBusy else{return}
         do{
@@ -232,15 +359,16 @@ import SwiftUI
             let legacy=try invoiceHandoffs.existing(account:account,order:order) || queue.originalHandoff(account:account,path:"orders/\(order.orderID)/pay-handoff") != nil
             let original=try nativeInvoices.prepare(order,account:account,legacyPending:legacy)
             mutationBusy=true;let revision=operationRevision,presentation=handoffPresentationRevision
-            Task{defer{if revision==operationRevision{mutationBusy=false}};do{
+            Task{defer{if revision==operationRevision{mutationBusy=false;refreshOrderRecoveries()}};do{
                 let create=original.phase=="prepared",adopted=original.phase=="reference" && !original.lookupByKey
                 let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(!create && !adopted ? "-lookup":""),method:adopted ? "GET":"POST",json:adopted ? [:]:["IdempotencyKey":original.key],beforeDispatch:{try check();guard presentation==self.handoffPresentationRevision else{throw ShopError.contextChanged};if create{try self.nativeInvoices.dispatched(original)}})
                 try check();let retained=try nativeInvoices.observed(original,result:result)
                 guard let operation=retained.originalOperation,presentation==handoffPresentationRevision else{throw ShopError.contextChanged}
                 // The reference is durable before crossing into original Main.
                 // Missing Main navigation preserves it for explicit later use.
-                try await api.openOriginalNativePay(operation,orderID:original.orderID);try check()
-                await resumeNativeInvoiceReferences();try check();await loadOrders()
+                do{try await api.openOriginalNativePay(operation,orderID:original.orderID);try check()}
+                catch{let originalError=error;try check();guard presentation==handoffPresentationRevision else{return};await loadOrders();try check();throw originalError}
+                try await queryNativeInvoice(retained,check:check);try check();await loadOrders()
             }catch{do{try check()}catch{return};failure(error)}}
         }catch{failure(error)}
     }
@@ -250,11 +378,10 @@ import SwiftUI
         // request completes; a later resume may query that same original key.
         guard signedIn,!mutationBusy else{return}
         mutationBusy=true;let revision=operationRevision
-        defer{if revision==operationRevision{mutationBusy=false}}
+        defer{if revision==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
         do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
             for original in try nativeInvoices.records(account).values where original.phase != "prepared" {
-                let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(original.lookupByKey ? "-lookup":""),method:original.lookupByKey ? "POST":"GET",json:original.lookupByKey ? ["IdempotencyKey":original.key]:[:]);try check()
-                _ = try nativeInvoices.observed(original,result:result)
+                try await queryNativeInvoice(original,check:check)
             }
         }catch{failure(error)}
     }
@@ -262,7 +389,7 @@ import SwiftUI
     func resumeOriginalOrder()async {guard signedIn else{return};do{let check=try api.capture();guard let account=api.currentSession?.account,let review=try journey.load(account).review else{return};let value=try await api.raw("orders/\(review.original.orderID)",method:"GET",json:[:]);try check();let order=try AppleBuyerReceipt.decode(value,account:account);try journey.observed(account,order:order,journal:invoiceHandoffs);await loadOrders()}catch{failure(error)}}
     func retryPending(){
         guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision,view=handoffPresentationRevision
-        Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let authorization=try api.capture();let check:()throws->Void={try authorization();guard view==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let session=api.currentSession else{throw ShopError.signedOut};let originals=try queue.load(account:session.account)
+        Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let authorization=try api.capture();let check:()throws->Void={try authorization();guard view==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let session=api.currentSession else{throw ShopError.signedOut};let originals=try queue.load(account:session.account)
             for item in originals{try check();guard let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any] else{throw ShopError.security}
                 if item.path.hasSuffix("/transition"){do{if try queue.dispatchPhase(item)=="prepared"{let result=try await api.raw(item.path,method:item.method,json:body,beforeDispatch:{try check();try self.queue.beginDispatch(item)});try check();let order=try AppleBuyerReceipt.decode(result,account:session.account);guard item.path=="orders/\(order.orderID)/transition" else{throw ShopError.security}}else{let result=try await api.raw(item.path+"-intent-lookup",json:body,beforeDispatch:{try check()});try check();_ = try BuyerTransitionRecovery.receipt(result,session:session,item:item)};try queue.confirmedTracked(item)}catch{try queue.markUnknown(item);throw error}}
                 else if item.path=="orders"{guard let key=body["IdempotencyKey"] as? String else{throw ShopError.security};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key],beforeDispatch:{try check()});try check();let order=try AppleBuyerReceipt.decode(result,account:session.account);try journey.checkoutConfirmed(session.account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(session.account).items}
@@ -271,9 +398,9 @@ import SwiftUI
     }
     private func clearProfilePresentation(){profileName="";profileRecipient="";profileAddress="";profileCity="";profileCountry=""}
     func loadProfile(){guard signedIn else{return};Task{do{let check=try api.capture();let value=try await api.raw("profile",method:"GET",json:[:]);try check();guard let profile=value["profile"] as? [String:Any] else{throw ShopError.invalidResponse};let address=(profile["Addresses"] as? [[String:Any]])?.first ?? [:];profileName=profile["DisplayName"] as? String ?? "";profileRecipient=address["Recipient"] as? String ?? "";profileAddress=address["Line1"] as? String ?? "";profileCity=address["City"] as? String ?? "";profileCountry=address["Country"] as? String ?? ""}catch{failure(error)}}}
-    func saveProfile(){guard signedIn,!mutationBusy else{return};let input:[String:Any]=["DisplayName":profileName,"Addresses":[["Recipient":profileRecipient,"Line1":profileAddress,"City":profileCity,"Country":profileCountry]]];mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();_ = try await api.raw("profile",method:"PUT",json:input);try check();state="profile_saved"}catch{failure(error)}}}
+    func saveProfile(){guard signedIn,!mutationBusy else{return};let input:[String:Any]=["DisplayName":profileName,"Addresses":[["Recipient":profileRecipient,"Line1":profileAddress,"City":profileCity,"Country":profileCountry]]];mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let check=try api.capture();_ = try await api.raw("profile",method:"PUT",json:input);try check();state="profile_saved"}catch{failure(error)}}}
     func exportPrivacyData(){guard signedIn else{signIn();return};Task{do{let check=try api.capture();let data=try await api.data("privacy/export");try check();let url=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-shop-data-\(UUID().uuidString).json");try data.write(to:url,options:.atomic);try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:url.path);privacyExportURL=url;state="privacy_export_ready"}catch{failure(error)}}}
-    func deletePrivacyData(_ confirmation:String){guard signedIn else{signIn();return};guard confirmation=="DELETE_MY_SHOP_DATA" else{state="privacy_exact_required";return};guard !mutationBusy else{state="queued_offline";return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,try !queue.hasPending(account:account),try !invoiceHandoffs.hasPending(account:account),try nativeInvoices.records(account).isEmpty,try comparisonJournal.active(account)==nil,try journey.deletionPermitted(account) else{throw ShopError.unresolvedMutation};_ = try await api.raw("privacy/delete",json:["confirmation":confirmation]);try check();try comparisonJournal.redactCompleted(account);try journey.deletedDraft(account);clearProfilePresentation();cart=[];orders=[];checkoutResult=nil;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;privacyRevision+=1;state="privacy_deleted"}catch{if let error=error as? ShopError,error == .contextChanged || error == .signedOut{failure(error)}else{state="privacy_delete_failed"}}}}
+    func deletePrivacyData(_ confirmation:String){guard signedIn else{signIn();return};guard confirmation=="DELETE_MY_SHOP_DATA" else{state="privacy_exact_required";return};guard !mutationBusy else{state="queued_offline";return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let check=try api.capture();guard let account=api.currentSession?.account,try !queue.hasPending(account:account),try !invoiceHandoffs.hasPending(account:account),try nativeInvoices.records(account).isEmpty,try comparisonJournal.active(account)==nil,try journey.deletionPermitted(account) else{throw ShopError.unresolvedMutation};_ = try await api.raw("privacy/delete",json:["confirmation":confirmation]);try check();try comparisonJournal.redactCompleted(account);try journey.deletedDraft(account);clearProfilePresentation();cart=[];orders=[];checkoutResult=nil;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;privacyRevision+=1;state="privacy_deleted"}catch{if let error=error as? ShopError,error == .contextChanged || error == .signedOut{failure(error)}else{state="privacy_delete_failed"}}}}
     // An AI comparison is a disclosure proposal first. It is never a Task Grant,
     // spending allowance, order, or payment approval.
     func runAI(workflow:String,summary:String){guard workflow=="search_comparison" else{state="unavailable";return};prepareComparison()}

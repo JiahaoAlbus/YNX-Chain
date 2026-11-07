@@ -1,0 +1,53 @@
+{
+  "schema": "ynx.shop.pay-original-operation-fixture/v1",
+  "sourceCommit": "2645269e97e067541c3dc60d3ad84d29497807c0",
+  "supplierHandoffSHA256": "3bf5de51c371cea99dcacb48881a9cfabe27829ea40d680d5d7742a40474b43b",
+  "source": [
+    {
+      "relative": "apps/pay/native/r6/archive-receipt.mjs",
+      "bytes": 5963,
+      "sha256": "062cac857abc0cdb6dcffa738996ff8fb3f80a88c388c2301bc2c26c2237bdc3"
+    },
+    {
+      "relative": "apps/pay/native/r6/cli.mjs",
+      "bytes": 4818,
+      "sha256": "7f58d24b699226249158f4eb431f58a1a55292a064192382ca4b2eabebb2443d"
+    },
+    {
+      "relative": "apps/pay/native/r6/desktop-entry.mjs",
+      "bytes": 2227,
+      "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
+    },
+    {
+      "relative": "apps/pay/native/r6/invoice-product-intent.mjs",
+      "bytes": 9220,
+      "sha256": "610f1ad325a89183078e4ec819f8436b362ece782f59c0810c6b3e402cb5c539"
+    },
+    {
+      "relative": "apps/pay/native/r6/main-entry.mjs",
+      "bytes": 10678,
+      "sha256": "a70f04c83563b580722f4d9f93d237b9059e247ffe35e6e31901503a145a507f"
+    },
+    {
+      "relative": "apps/pay/native/r6/merchant-invoice-approval.mjs",
+      "bytes": 24151,
+      "sha256": "fa12f4d608c449fae5a1ca3f1ff1a156317feaf9b0f00360f88cfa0bdb30469b"
+    },
+    {
+      "relative": "apps/pay/native/r6/notification-inbox.mjs",
+      "bytes": 6267,
+      "sha256": "f49d99f8079142f84c11836d1e0134df67c8a6d714685ab6dc1e2edb258546aa"
+    },
+    {
+      "relative": "apps/pay/native/r6/pay-business-client.mjs",
+      "bytes": 27725,
+      "sha256": "784c1e2cbaebcd5c1fb81a0c3185f3282cc279daf0c06a0a4d022e9e5a759ea3"
+    },
+    {
+      "relative": "apps/pay/native/r6/product-source.mjs",
+      "bytes": 11994,
+      "sha256": "b01157ea9fcde317f9d1b00283844a32618a22dd7d1e4b283becad852c167fa0"
+    }
+  ],
+  "scope": "Controlled transport tests only; no Source authority, signing, funds or installed-host assertion"
+}

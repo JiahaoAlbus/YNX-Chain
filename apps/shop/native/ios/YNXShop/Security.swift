@@ -11,7 +11,7 @@ import CoreFoundation
     init(read:@escaping (String)throws->Data?={try Vault.read($0)},write:@escaping (String,Data)throws->Void={try Vault.put($0,$1)}){self.read=read;self.write=write}
     private func hash(_ data:Data)->String{SHA256.hash(data:data).map{String(format:"%02x",$0)}.joined()}
     private func namespace(_ account:String)->String{"apple-native-invoice-v1-"+hash(Data(account.utf8))}
-    private func digest(_ order:Order)throws->String{var input:[Any]=[order.orderID,order.buyer ?? "",order.storeID ?? "",String(order.totalYNXT),order.currency ?? ""];if let price=order.nativePrice{try price.validate(order);input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(price)));input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(order.nativeLines)))};return try hash(CanonicalJSON.data(input))}
+    private func digest(_ order:Order)throws->String{var input:[Any]=[order.orderID,order.buyer ?? "",order.storeID ?? "",String(order.totalYNXT),order.currency ?? ""];if let price=order.nativePrice{try price.validate(order);input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(price)));input.append(try JSONSerialization.jsonObject(with:JSONEncoder().encode(order.nativeLines?.map{NativeCheckoutLineBinding($0)})))};return try hash(CanonicalJSON.data(input))}
     func records(_ account:String)throws->[String:Record]{
         guard let raw=try read(namespace(account)) else{return [:]}
         let saved=try JSONDecoder().decode([String:Record].self,from:raw)

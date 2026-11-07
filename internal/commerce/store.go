@@ -860,6 +860,12 @@ func (s *Store) recoverExpiredLocked(storeID string) (bool, error) {
 		if o.Status != "payment_pending" || o.ReservationExpiresAt.After(now) || (storeID != "" && o.StoreID != storeID) {
 			continue
 		}
+		// A local reservation deadline cannot cancel an external native invoice
+		// or prove that its original settlement is absent. Preserve the stock
+		// while its original operation still needs qualified reconciliation.
+		if s.nativeInvoiceCancellationBlockedLocked(o) {
+			continue
+		}
 		if err := s.applyReservationLocked(o, false); err != nil {
 			return changed, err
 		}

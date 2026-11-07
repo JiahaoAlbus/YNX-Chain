@@ -146,6 +146,11 @@ struct Order: Codable, Identifiable {
     var nativePayment:NativePaymentProjection? = nil
     var nativePrice:NativeCheckoutPrice?=nil
     var nativeLines:[NativeCheckoutLine]?=nil
+    var address:SellerAddress?=nil
+    var shipment:SellerShipment?=nil
+    var resolution:SellerResolution?=nil
+    var timeline:[SellerTimelineEvent]?=nil
+    var localCancellationBlocked:Bool?=nil
     var settlement:SettlementReceipt? = nil
     var cartConsumption:CartReceipt? = nil
     var id: String { orderID }
@@ -161,13 +166,18 @@ struct Order: Codable, Identifiable {
         case storeID = "StoreID"
         case currency = "Currency"
         case nativePrice="NativePrice",nativeLines="Lines"
+        case address="Address",shipment="Shipment",resolution="Resolution",timeline="Timeline"
+        case localCancellationBlocked="LocalCancellationBlocked"
         case walletBuyer="WalletBuyer",invoiceID="InvoiceID",payIntentID="PayIntentID",payMerchant="PayMerchant",payPayoutAddress="PayPayoutAddress",nativePayment="NativePayment",settlement="Settlement",cartConsumption="CartConsumption"
     }
 }
 // Frozen native pricing from actual existing seller/profile mutations. Display
 // and journal binding only; approval/Source verification stays with the owners.
 struct NativeCheckoutUnitPrice:Codable {let Genesis,NativeChainID,AssetID,UnitVersion,AmountAtoms,ApprovalRef:String}
-struct NativeCheckoutLine:Codable {let ProductID,VariantID:String;let Quantity:Int64;let NativePrice:NativeCheckoutUnitPrice?}
+struct NativeCheckoutLine:Codable {let ProductID,VariantID:String;let Quantity:Int64;let NativePrice:NativeCheckoutUnitPrice?;var Title:String?=nil;var VariantName:String?=nil;var UnitPriceYNXT:Int64?=nil}
+// Preserve the existing a40 journal representation when display-only line
+// fields become available. Historical UNKNOWN digests must remain identical.
+struct NativeCheckoutLineBinding:Encodable {let ProductID,VariantID:String;let Quantity:Int64;let NativePrice:NativeCheckoutUnitPrice?;init(_ line:NativeCheckoutLine){ProductID=line.ProductID;VariantID=line.VariantID;Quantity=line.Quantity;NativePrice=line.NativePrice}}
 struct NativeCheckoutPriceFields:Codable {let Merchant,Recipient,Genesis,NativeChainID,AssetID,UnitVersion,AmountAtoms,PriceApprovalRef:String}
 struct NativeCheckoutPrice:Codable {
     let Price:NativeCheckoutPriceFields;let Charges:SellerNativeCharges;let ChargesApprovalRef,OrderMutationHash:String
@@ -269,15 +279,23 @@ final class ShopRedirectPolicy:NSObject,URLSessionTaskDelegate,@unchecked Sendab
 @MainActor protocol AppleOriginalNativePayNavigation:AnyObject {
     func openOriginalIntent(_ operation:String,expected:ShopSession)async throws
     func openOriginalOrder(_ orderID:String,originalOperation:String,expected:ShopSession)async throws
+    func reviewOriginalOrderTerms(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String
+    func reviewOriginalOrderPayment(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String
+    func reviewOriginalOrderRefund(_ orderID:String,originalOperation:String,refundID:String,amountAtoms:String,expected:ShopSession)async throws->String
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws
 }
 extension AppleOriginalNativePayNavigation {
     func openOriginalOrder(_ orderID:String,originalOperation:String,expected:ShopSession)async throws{throw ShopError.unavailable}
+    func reviewOriginalOrderTerms(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String{throw ShopError.unavailable}
+    func reviewOriginalOrderPayment(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String{throw ShopError.unavailable}
+    func reviewOriginalOrderRefund(_ orderID:String,originalOperation:String,refundID:String,amountAtoms:String,expected:ShopSession)async throws->String{throw ShopError.unavailable}
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws{throw ShopError.unavailable}
 }
 // Concrete Shop consumer of the EXISTING normal Main IPC shape. The original
 // Main/SDK hosting owner supplies authenticated calls plus same-account/current
 // association. These closures are not obtained from URL/ENV or caller JSON.
 // No method serializes a Shop token or creates a transport/approval/Pay effect.
-struct OriginalMainPayRefusal:Error {let code:String}
+struct OriginalMainPayRefusal:Error {let code:String;var presentationState:String{switch code{case "USER_REJECTED_REQUEST","NATIVE_PAY_USER_REJECTED":return "native_main_rejected";case "USER_CANCELLED","USER_CANCELED":return "native_main_cancelled";default:return "unavailable"}}}
 @MainActor final class AppleOriginalMainPayNavigation:AppleOriginalNativePayNavigation {
     typealias StatusCall=(ShopSession)async throws->[String:Any]
     typealias InvokeCall=([String:String],ShopSession)async throws->[String:Any]
@@ -292,14 +310,15 @@ struct OriginalMainPayRefusal:Error {let code:String}
             throw ShopError.unavailable
         };return value
     }
-    private func request(_ input:[String:String],operation:String,expected:ShopSession)async throws->[String:Any]{
+    private func request(_ input:[String:String],operation:String,expected:ShopSession,requireIntent:Bool=true)async throws->[String:Any]{
         guard !active,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unresolvedMutation}
         active=true;defer{active=false}
         try check(expected);let ready=try await status(expected);try check(expected);let state=try value(ready)
         guard state["normalMainEntry"] as? Bool==true,state["paymentAuthorized"] as? Bool==false,state["canRequest"] as? Bool != false,(state["available"] as? Bool==true || state["canRequest"] as? Bool==true) else{throw ShopError.unavailable}
         let envelope=try await invoke(input,expected);try check(expected);let result=try value(envelope)
         if result["ok"] as? Bool==false,let code=result["code"] as? String,NativeWire.matches(code,"^[A-Za-z0-9_:-]{1,128}$"){throw OriginalMainPayRefusal(code:code)}
-        guard result["ok"] as? Bool != false,result["clientIndependentFinality"] as? Bool==false,let reference=result["reference"] as? [String:Any],reference["intentId"] as? String==operation,let intent=result["intent"] as? [String:Any],intent["intentId"] as? String==operation,intent["originalOperation"] as? String==operation,["PREPARED","ISSUED"].contains(intent["state"] as? String ?? "") else{throw ShopError.security}
+        guard result["ok"] as? Bool != false,result["clientIndependentFinality"] as? Bool==false,let reference=result["reference"] as? [String:Any],reference["intentId"] as? String==operation else{throw ShopError.security}
+        if requireIntent{guard let intent=result["intent"] as? [String:Any],intent["intentId"] as? String==operation,intent["originalOperation"] as? String==operation,["PREPARED","ISSUED"].contains(intent["state"] as? String ?? "") else{throw ShopError.security}}
         return result
     }
     func openOriginalIntent(_ operation:String,expected:ShopSession)async throws{
@@ -310,6 +329,33 @@ struct OriginalMainPayRefusal:Error {let code:String}
         let result=try await request(["action":"order-invoice","productId":"shop.order","sourceOrder":orderID],operation:originalOperation,expected:expected)
         guard result["queryOnly"] as? Bool==true,result["approvalRequired"] as? Bool==false,result["canRetry"] as? Bool==false,result["walletRequest"]==nil,let reference=result["reference"] as? [String:Any],reference["productId"] as? String=="shop.order",reference["sourceOrder"] as? String==orderID,let merchant=reference["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=reference["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
         if let bill=result["bill"] as? [String:Any]{guard bill["sourceOrder"] as? String==orderID,bill["merchant"] as? String==merchant,bill["invoiceId"] as? String==invoice else{throw ShopError.security}}
+    }
+    private func review(_ action:String,_ orderID:String,_ operation:String,_ expected:ShopSession,extra:[String:String]=[:])async throws->String {
+        guard NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
+        var input=["action":action,"productId":"shop.order","sourceOrder":orderID];input.merge(extra){_,new in new}
+        let result=try await request(input,operation:operation,expected:expected,requireIntent:false)
+        guard result["queryOnly"] as? Bool==false,result["approvalRequired"] as? Bool==true,result["canRetry"] as? Bool==false,let reference=result["reference"] as? [String:Any],reference["productId"] as? String=="shop.order",reference["sourceOrder"] as? String==orderID,let merchant=reference["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=reference["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),let pending=result["walletRequest"] as? [String:Any],let id=pending["id"] as? String,!id.isEmpty,id.utf8.count<=256,pending["method"] as? String=="ynx_signPQNativeAction",pending["approvalRequired"] as? Bool==true else{throw ShopError.security}
+        if action=="order-refund-review"{guard reference["refundId"] as? String==extra["refundId"] else{throw ShopError.security}}
+        // Main owns the original retained review. This id is neither a signed
+        // action nor permission to send, and is never persisted as a payment.
+        return id
+    }
+    func reviewOriginalOrderTerms(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String{try await review("order-terms-review",orderID,originalOperation,expected)}
+    func reviewOriginalOrderPayment(_ orderID:String,originalOperation:String,expected:ShopSession)async throws->String{try await review("order-pay-review",orderID,originalOperation,expected)}
+    func reviewOriginalOrderRefund(_ orderID:String,originalOperation:String,refundID:String,amountAtoms:String,expected:ShopSession)async throws->String{
+        guard NativeWire.matches(refundID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),let amount=UInt64(amountAtoms),amount>0,String(amount)==amountAtoms else{throw ShopError.security}
+        return try await review("order-refund-review",orderID,originalOperation,expected,extra:["refundId":refundID,"amountAtoms":amountAtoms])
+    }
+    func reconcileOriginalOrderOperation(_ orderID:String,originalOperation:String,nativeHash:String,expected:ShopSession)async throws{
+        guard NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),NativeWire.matches(nativeHash,"^0x[a-f0-9]{64}$") else{throw ShopError.security}
+        let result=try await request(["action":"order-reconcile-operation","productId":"shop.order","sourceOrder":orderID,"nativeHash":nativeHash],operation:originalOperation,expected:expected,requireIntent:false)
+        guard result["queryOnly"] as? Bool==true,result["approvalRequired"] as? Bool==false,result["canRetry"] as? Bool==false,result["walletRequest"]==nil,let ref=result["reference"] as? [String:Any],ref["productId"] as? String=="shop.order",ref["sourceOrder"] as? String==orderID,ref["nativeHash"] as? String==nativeHash,let merchant=ref["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=ref["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),let original=result["reconciledOriginal"] as? [String:Any],original["merchant"] as? String==merchant,original["invoiceId"] as? String==invoice,original["nativeHash"] as? String==nativeHash,let abci=original["abciHash"] as? String,NativeWire.matches(abci,"^0x[a-f0-9]{64}$"),let owner=original["owner"] as? String,NativeWire.matches(owner,"^0x[a-f0-9]{40}$"),let kind=original["kind"] as? String,["invoice_terms","invoice_settle","invoice_refund"].contains(kind),["unknown","submitted","confirmed","confirmed_failed"].contains(original["status"] as? String ?? ""),let bill=result["bill"] as? [String:Any],bill["sourceOrder"] as? String==orderID,bill["merchant"] as? String==merchant,bill["invoiceId"] as? String==invoice else{throw ShopError.security}
+        guard kind=="invoice_settle" ? owner != merchant:owner==merchant else{throw ShopError.security}
+        guard let operations=result["operations"] as? [[String:Any]],operations.count<=4096 else{throw ShopError.security}
+        let matching=operations.filter{$0["nativeHash"] as? String==nativeHash}
+        guard matching.count==1,let operation=matching.first,operation["abciHash"] as? String==abci,operation["kind"] as? String==kind,operation["status"] as? String==original["status"] as? String else{throw ShopError.security}
+        // This response is not applied as funds evidence. The original Shop
+        // receipt reader must independently verify and adopt the archive.
     }
 }
 extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)async throws {throw ShopError.unavailable}}
@@ -328,6 +374,22 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     func openOriginalNativePay(_ operation:String,orderID:String?=nil)async throws {
         let check=try capture();guard NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),let current=currentSession,let navigation=nativePayNavigation else{throw ShopError.unavailable}
         if let orderID{try await navigation.openOriginalOrder(orderID,originalOperation:operation,expected:current)}else{try await navigation.openOriginalIntent(operation,expected:current)};try check()
+    }
+    func reviewOriginalNativeTerms(_ operation:String,orderID:String)async throws->String{
+        let check=try capture();guard let current=currentSession,let navigation=nativePayNavigation,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unavailable}
+        let id=try await navigation.reviewOriginalOrderTerms(orderID,originalOperation:operation,expected:current);try check();return id
+    }
+    func reviewOriginalNativePayment(_ operation:String,orderID:String)async throws->String{
+        let check=try capture();guard let current=currentSession,let navigation=nativePayNavigation,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unavailable}
+        let id=try await navigation.reviewOriginalOrderPayment(orderID,originalOperation:operation,expected:current);try check();return id
+    }
+    func reviewOriginalNativeRefund(_ operation:String,orderID:String,refundID:String,amountAtoms:String)async throws->String{
+        let check=try capture();guard let current=currentSession,let navigation=nativePayNavigation,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unavailable}
+        let id=try await navigation.reviewOriginalOrderRefund(orderID,originalOperation:operation,refundID:refundID,amountAtoms:amountAtoms,expected:current);try check();return id
+    }
+    func reconcileOriginalNativeOperation(_ operation:String,orderID:String,nativeHash:String)async throws{
+        let check=try capture();guard let current=currentSession,let navigation=nativePayNavigation,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.unavailable}
+        try await navigation.reconcileOriginalOrderOperation(orderID,originalOperation:operation,nativeHash:nativeHash,expected:current);try check()
     }
     func invalidate(){revision+=1}
     func restoreNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore()}

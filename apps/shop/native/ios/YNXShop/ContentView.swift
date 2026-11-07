@@ -275,7 +275,7 @@ struct CheckoutView:View {
         let desktop=geometry.size.width>=1000
         ScrollView{VStack(alignment:.leading,spacing:24){
             ShopSectionTitle(title:"order_review")
-            if let createdOrder{ShopPanel{VStack(alignment:.leading,spacing:16){ShopStatusBadge(status:createdOrder.status);Text(createdOrder.orderID).font(.caption.monospaced());Text(ShopMoneyDisplay.order(createdOrder,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);NavigationLink{OrderDetailView(orderID:createdOrder.orderID)}label:{Text("nav_orders")}.buttonStyle(ShopButtonStyle())}}}
+            if let createdOrder{ShopPanel{VStack(alignment:.leading,spacing:16){ShopStatusBadge(status:createdOrder.status);Text(createdOrder.orderID).font(.caption.monospaced());Text(buyerOrderTotal(createdOrder,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);NavigationLink{OrderDetailView(orderID:createdOrder.orderID)}label:{Text("nav_orders")}.buttonStyle(ShopButtonStyle())}}}
             if desktop{HStack(alignment:.top,spacing:32){checkoutForm;CartSummary(showCheckout:false).frame(width:360)}}else{checkoutForm;CartSummary(showCheckout:false)}
             if model.checkoutRecoveryRequired{ShopNotice(title:"cart_checkout_recovery_required",symbol:"clock.arrow.circlepath",warning:true);Button("cart_recover_checkout"){model.recoverCheckout()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(model.mutationBusy)}
         }.padding(desktop ? 40:16).frame(maxWidth:1440).frame(maxWidth:.infinity)}.background(ShopTheme.background).navigationTitle("order_review").shopInlineTitle()
@@ -295,7 +295,7 @@ struct OrdersView:View {
     @State private var query=""
     private var displayed:[Order]{model.orders.filter{order in
         let matching=query.isEmpty || order.orderID.localizedCaseInsensitiveContains(query)
-        switch filter{case "payment_pending":return matching && order.status=="payment_pending";case "fulfillment":return matching && ["paid","shipped"].contains(order.status);case "aftersale":return matching && (order.status.contains("return") || order.status.contains("refund") || order.status=="disputed");case "complete":return matching && ["delivered","reviewed"].contains(order.status);default:return matching}
+        switch filter{case "payment_pending":return matching && (order.status=="payment_pending" || BuyerPaymentDisplay.needsReview(order));case "fulfillment":return matching && ["paid","shipped"].contains(order.status);case "aftersale":return matching && (order.status.contains("return") || order.status.contains("refund") || order.status=="disputed");case "complete":return matching && ["delivered","reviewed"].contains(order.status);default:return matching}
     }}
     var body:some View{ScrollView{VStack(alignment:.leading,spacing:24){
         HStack{ShopSectionTitle(title:"nav_orders");Spacer();TextField("shop_order_search",text:$query).textFieldStyle(.roundedBorder).frame(maxWidth:280)}
@@ -314,8 +314,9 @@ struct OrderSummaryRow:View {
     let order:Order
     var body:some View{ShopPanel{VStack(alignment:.leading,spacing:18){
         HStack(alignment:.top){VStack(alignment:.leading,spacing:8){Text(order.orderID).font(.caption.monospaced()).textSelection(.enabled);if let store=order.storeID{Text(store).shopFont(12).foregroundStyle(ShopTheme.secondary)}};Spacer();ShopStatusBadge(status:order.status)}
-        Divider();HStack(alignment:.firstTextBaseline){Text(ShopMoneyDisplay.order(order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);Spacer();NavigationLink{OrderDetailView(orderID:order.orderID)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}
+        Divider();HStack(alignment:.firstTextBaseline){Text(buyerOrderTotal(order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);Spacer();NavigationLink{OrderDetailView(orderID:order.orderID)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}
         if let refund=order.refundStatus,!refund.isEmpty{Text(LocalizedStringKey(refund)).shopFont(12).foregroundStyle(ShopTheme.secondary)}
+        BuyerPaymentStatus(order:order)
         NativeOrderAmounts(order:order)
         OrderActions(order:order)
     }}}
@@ -323,25 +324,155 @@ struct OrderSummaryRow:View {
 struct OrderActions:View {
     @EnvironmentObject var model:ShopModel
     let order:Order
-    var body:some View{ViewThatFits(in:.horizontal){HStack(spacing:12){buttons};VStack(alignment:.leading,spacing:12){buttons}}}
-    @ViewBuilder private var buttons:some View {
-        if order.status=="payment_pending"{Button("pay_handoff"){model.pay(order)}.buttonStyle(ShopButtonStyle()).disabled(model.mutationBusy)}
-        if order.status=="payment_pending" || (order.payIntentID ?? "").hasPrefix("npi_"){Button("check_payment"){model.checkPayment(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(model.mutationBusy)}
-        Menu("order_actions"){ForEach([("cancelled","cancel_order"),("delivered","confirm_delivery"),("reviewed","write_review"),("return_requested","return_request"),("refund_requested","refund_request"),("disputed","dispute")],id:\.0){action,title in if BuyerOrderActionInput.allowed(order.status,action){Button(LocalizedStringKey(title)){model.beginOrderAction(order,action,title:title)}}}}.disabled(model.mutationBusy)
+    private var recovery:String{model.orderRecoveryState(order)}
+    var body:some View{VStack(alignment:.leading,spacing:12){
+        let phase=recovery
+        ViewThatFits(in:.horizontal){HStack(spacing:12){buttons(phase)};VStack(alignment:.leading,spacing:12){buttons(phase)}}
+        if phase != "none"{BuyerOrderRecovery(order:order,phase:phase)}
+        if order.status=="payment_pending" && !model.canCancelOrder(order){ShopNotice(title:"buyer_native_cancel_unavailable",symbol:"clock.arrow.circlepath",warning:true)}
+    }}
+    @ViewBuilder private func buttons(_ phase:String)->some View {
+        if order.status=="payment_pending" {
+            if (order.payIntentID ?? "").hasPrefix("npi_") {
+                Button("buyer_review_payment"){model.reviewPayment(order)}.buttonStyle(ShopButtonStyle()).disabled(model.mutationBusy || phase != "none")
+            }else{Button("pay_handoff"){model.pay(order)}.buttonStyle(ShopButtonStyle()).disabled(model.mutationBusy || phase != "none")}
+        }
+        if order.status=="payment_pending" || (order.payIntentID ?? "").hasPrefix("npi_"){Button("check_payment"){model.checkPayment(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.mutationBusy)}
+        let actions=BuyerOrderUIAction.available(order.status).filter{$0 != .cancelled || model.canCancelOrder(order)}
+        if !actions.isEmpty{Menu("order_actions"){ForEach(actions){action in Button(action.title){model.beginOrderAction(order,action.rawValue,title:action.key)}}}.disabled(!model.signedIn || model.mutationBusy || phase != "none")}
     }
+}
+private enum BuyerOrderUIAction:String,CaseIterable,Identifiable {
+    case cancelled,delivered,reviewed,returnRequested="return_requested",refundRequested="refund_requested",disputed
+    var id:String{rawValue}
+    var key:String{switch self{case .cancelled:return "cancel_order";case .delivered:return "confirm_delivery";case .reviewed:return "write_review";case .returnRequested:return "return_request";case .refundRequested:return "refund_request";case .disputed:return "dispute"}}
+    var title:LocalizedStringKey{LocalizedStringKey(key)}
+    static func available(_ status:String)->[Self]{allCases.filter{BuyerOrderActionInput.allowed(status,$0.rawValue)}}
 }
 struct OrderDetailView:View {
     @EnvironmentObject var model:ShopModel
     let orderID:String
     private var current:Order?{model.orders.first{$0.orderID==orderID}}
-    var body:some View{ScrollView{VStack(alignment:.leading,spacing:24){
+    var body:some View{GeometryReader{geometry in ScrollView{VStack(alignment:.leading,spacing:24){
         ShopSectionTitle(title:"shop_order_details")
         if let order=current {
             OrderSummaryRow(order:order)
-            ShopPanel{VStack(alignment:.leading,spacing:12){Text("payment_boundary").shopFont(14);if let invoice=order.invoiceID{LabeledContent("shop_invoice_reference"){Text(invoice).font(.caption.monospaced()).textSelection(.enabled)}};if let operation=order.payIntentID{LabeledContent("shop_original_operation"){Text(operation).font(.caption.monospaced()).textSelection(.enabled)}};Text("trust_evidence").shopFont(17,.semibold);Text(order.trustStatus ?? String(localized:"trust_unavailable")).shopFont(13).foregroundStyle(ShopTheme.secondary)}}
+            if geometry.size.width>=1000{HStack(alignment:.top,spacing:24){BuyerOriginalTerms(order:order).frame(maxWidth:.infinity);BuyerDeliveryDetails(order:order).frame(width:320)}}else{BuyerOriginalTerms(order:order);BuyerDeliveryDetails(order:order)}
+            BuyerPaymentDetails(order:order)
+            BuyerResolutionDetails(order:order)
+            BuyerTimeline(order:order)
+            ShopPanel{VStack(alignment:.leading,spacing:12){Text("trust_evidence").shopFont(17,.semibold);Text(verbatim:order.trustStatus ?? String(localized:"trust_unavailable")).shopFont(13).foregroundStyle(ShopTheme.secondary)}}
         }else{ContentUnavailableView("unavailable",systemImage:"shippingbox")}
         Button("retry"){Task{await model.loadOrders()}}.buttonStyle(ShopButtonStyle(kind:.secondary))
-    }.padding(24).frame(maxWidth:1200).frame(maxWidth:.infinity)}.background(ShopTheme.background).navigationTitle("shop_order_details").shopInlineTitle().sheet(item:$model.orderActionPresentation){presentation in BuyerOrderActionForm(presentation:presentation)}.onDisappear{model.orderActionPresentation=nil}}
+    }.padding(24).frame(maxWidth:1360).frame(maxWidth:.infinity)}.background(ShopTheme.background)}.navigationTitle("shop_order_details").shopInlineTitle().sheet(item:$model.orderActionPresentation){presentation in BuyerOrderActionForm(presentation:presentation)}.onDisappear{model.orderActionPresentation=nil}}
+}
+func buyerOrderTotal(_ order:Order,locale:Locale)->String? {
+    if let quote=order.nativePrice{guard (try? quote.validate(order)) != nil else{return nil};return ShopMoneyDisplay.atoms(quote.Price.AmountAtoms,locale:locale)}
+    if let payment=order.nativePayment,(try? payment.validate(order,requirePaid:false)) != nil{return ShopMoneyDisplay.atoms(payment.PrincipalAtoms,locale:locale)}
+    if (order.payIntentID ?? "").hasPrefix("npi_"){return nil}
+    return ShopMoneyDisplay.order(order,locale:locale)
+}
+private enum BuyerPaymentDisplay {
+    static func state(_ order:Order)->String {
+        guard (order.payIntentID ?? "").hasPrefix("npi_") else{return order.settlement?.Status ?? (order.status=="payment_pending" ? "payment_pending":"unavailable")}
+        guard let payment=order.nativePayment,(try? payment.validate(order,requirePaid:false)) != nil else{return "seller_native_receipt_unavailable"}
+        if payment.ReconciliationRequired{return "seller_native_reconcile_required"}
+        if payment.PaidAtoms=="0"{return "seller_native_unpaid"}
+        if payment.RefundedAtoms=="0"{return "seller_native_paid"}
+        return payment.RefundedAtoms==payment.PaidAtoms ? "seller_native_refunded":"seller_native_partial_refund"
+    }
+    static func needsReview(_ order:Order)->Bool {
+        guard (order.payIntentID ?? "").hasPrefix("npi_") else{return order.status=="payment_pending"}
+        return !["seller_native_paid","seller_native_partial_refund","seller_native_refunded"].contains(state(order))
+    }
+}
+private struct BuyerPaymentStatus:View {
+    let order:Order
+    var body:some View{VStack(alignment:.leading,spacing:8){Text("buyer_payment_status").shopFont(12).foregroundStyle(ShopTheme.secondary);Text(LocalizedStringKey(BuyerPaymentDisplay.state(order))).shopFont(13,.semibold).foregroundStyle(BuyerPaymentDisplay.needsReview(order) ? ShopTheme.warning:ShopTheme.secondary)}}
+}
+private struct BuyerDetailValue:View {
+    let title:LocalizedStringKey
+    let value:String
+    var body:some View{VStack(alignment:.leading,spacing:6){Text(title).shopFont(12).foregroundStyle(ShopTheme.secondary);Text(verbatim:value.isEmpty ? "—":value).shopFont(13).textSelection(.enabled)}}
+}
+private struct BuyerOrderRecovery:View {
+    @EnvironmentObject var model:ShopModel
+    let order:Order
+    let phase:String
+    private var title:LocalizedStringKey{switch phase{case "prepared":return "buyer_order_prepared";case "unknown":return "buyer_order_unknown";default:return "buyer_order_recovery_unavailable"}}
+    var body:some View{VStack(alignment:.leading,spacing:12){
+        ShopNotice(title:title,symbol:"clock.arrow.circlepath",warning:true)
+        if phase=="unknown"{Button("buyer_read_original_request"){model.recoverOrder(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.mutationBusy)}
+        if phase=="prepared" {
+            if model.canRetryPreparedOrder(order){Button("buyer_submit_original_prepared"){model.retryPreparedOrder(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.mutationBusy)}
+            else{Button("buyer_continue_original_invoice"){model.pay(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.mutationBusy || order.status != "payment_pending")}
+        }
+    }}
+}
+private struct BuyerOriginalTerms:View {
+    @EnvironmentObject var model:ShopModel
+    let order:Order
+    private var locale:Locale{Locale(identifier:model.appLanguage)}
+    private var nativePrice:NativeCheckoutPrice?{guard let price=order.nativePrice,(try? price.validate(order)) != nil else{return nil};return price}
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:18){
+        Text("seller_original_terms").shopFont(17,.semibold)
+        if let lines=order.nativeLines,!lines.isEmpty{ForEach(Array(lines.enumerated()),id:\.offset){_,line in VStack(alignment:.leading,spacing:8){
+            Text(verbatim:line.Title ?? line.ProductID).shopFont(15,.semibold)
+            Text(verbatim:line.VariantName ?? line.VariantID).shopFont(13).foregroundStyle(ShopTheme.secondary)
+            BuyerDetailValue(title:"buyer_quantity",value:String(line.Quantity))
+            if nativePrice != nil,let price=line.NativePrice{BuyerDetailValue(title:"seller_price",value:ShopMoneyDisplay.atoms(price.AmountAtoms,locale:locale) ?? String(localized:"unavailable"))}
+            else if !(order.payIntentID ?? "").hasPrefix("npi_"),order.nativePrice==nil,let price=line.UnitPriceYNXT{BuyerDetailValue(title:"seller_price",value:order.currency==nil || order.currency=="YNXT" ? ShopMoneyDisplay.legacyYNXT(price,locale:locale):String(localized:"unavailable"))}
+            Divider()
+        }}}else{Text("buyer_original_lines_unavailable").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+        if let price=nativePrice{BuyerDetailValue(title:"buyer_order_total",value:ShopMoneyDisplay.atoms(price.Price.AmountAtoms,locale:locale) ?? String(localized:"unavailable"));BuyerDetailValue(title:"seller_shipping_amount",value:ShopMoneyDisplay.atoms(price.Charges.ShippingAtoms,locale:locale) ?? String(localized:"unavailable"));BuyerDetailValue(title:"seller_tax_amount",value:ShopMoneyDisplay.atoms(price.Charges.TaxAtoms,locale:locale) ?? String(localized:"unavailable"))}
+        Text("buyer_terms_snapshot_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }}}
+}
+private struct BuyerDeliveryDetails:View {
+    let order:Order
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:16){
+        Text("shop_shipping_address").shopFont(17,.semibold)
+        if let address=order.address{Text(verbatim:address.Recipient).shopFont(14,.semibold);Text(verbatim:[address.Line1,address.City,address.Region,address.PostalCode,address.Country].filter{!$0.isEmpty}.joined(separator:"\n")).shopFont(13).textSelection(.enabled)}else{Text("buyer_delivery_unavailable").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+        Divider();Text("seller_fulfillment").shopFont(17,.semibold)
+        if let shipment=order.shipment{BuyerDetailValue(title:"seller_carrier",value:shipment.Carrier);BuyerDetailValue(title:"seller_tracking",value:shipment.TrackingNumber);Text(LocalizedStringKey(shipment.Status)).shopFont(13);Text(verbatim:shipment.UpdatedAt).shopFont(12).foregroundStyle(ShopTheme.secondary)}else{Text("buyer_shipment_unavailable").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+    }}}
+}
+private struct BuyerPaymentDetails:View {
+    @EnvironmentObject var model:ShopModel
+    let order:Order
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:16){
+        Text("seller_payment_evidence").shopFont(17,.semibold);BuyerPaymentStatus(order:order)
+        if let invoice=order.invoiceID{BuyerDetailValue(title:"shop_invoice_reference",value:invoice)}
+        if let operation=order.payIntentID{BuyerDetailValue(title:"shop_original_operation",value:operation)}
+        NativeOrderAmounts(order:order)
+        if let payment=order.nativePayment,(try? payment.validate(order,requirePaid:false)) != nil {
+            BuyerDetailValue(title:"seller_native_session",value:payment.SessionID)
+            BuyerDetailValue(title:"seller_native_terms_hash",value:payment.TermsHash)
+            ForEach(Array(payment.Receipts.enumerated()),id:\.offset){_,receipt in DisclosureGroup{VStack(alignment:.leading,spacing:12){BuyerDetailValue(title:"seller_transaction_hash",value:receipt.nativeHash);BuyerDetailValue(title:"seller_native_settlement_hash",value:receipt.settlementNativeHash);if let refund=receipt.refundId{BuyerDetailValue(title:"seller_refund_record",value:refund)};BuyerDetailValue(title:"seller_native_claim_status",value:receipt.status)}}label:{Text(verbatim:receipt.kind).shopFont(13)}}
+            if !(payment.PendingOriginals ?? []).isEmpty{ShopNotice(title:"shop_explicit_reconcile_note",symbol:"clock.arrow.circlepath",warning:true)}
+            ForEach(Array((payment.PendingOriginals ?? []).enumerated()),id:\.offset){_,original in VStack(alignment:.leading,spacing:10){
+                BuyerDetailValue(title:"shop_original_operation",value:original)
+                Button("shop_reconcile_original_transaction"){model.reconcilePayment(order,nativeHash:original)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.canReconcilePayment(order,nativeHash:original) || model.mutationBusy)
+            }}
+        }
+        Text("payment_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }}}
+}
+private struct BuyerResolutionDetails:View {
+    let order:Order
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:16){
+        Text("shop_aftersale").shopFont(17,.semibold)
+        if let resolution=order.resolution{Text(LocalizedStringKey(resolution.Status)).shopFont(13,.semibold);BuyerDetailValue(title:"order_reason",value:resolution.Reason);BuyerDetailValue(title:"order_explanation",value:resolution.Explanation)}else{Text("buyer_resolution_unavailable").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+        if let status=order.refundStatus,!status.isEmpty{Text(LocalizedStringKey(status)).shopFont(13)}
+        ShopNotice(title:"seller_refund_boundary")
+    }}}
+}
+private struct BuyerTimeline:View {
+    let order:Order
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:16){
+        Text("seller_order_events").shopFont(17,.semibold)
+        if let timeline=order.timeline,!timeline.isEmpty{ForEach(timeline){event in VStack(alignment:.leading,spacing:8){Text(LocalizedStringKey(event.Status)).shopFont(13,.semibold);Text(verbatim:event.At).shopFont(12).foregroundStyle(ShopTheme.secondary);if !event.Detail.isEmpty{Text(verbatim:event.Detail).shopFont(13)};Text(verbatim:event.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);Divider()}}}else{Text("buyer_timeline_unavailable").shopFont(13).foregroundStyle(ShopTheme.secondary)}
+    }}}
 }
 struct BuyerOrderActionForm:View {
     let presentation:ShopModel.OrderActionPresentation
@@ -350,17 +481,23 @@ struct BuyerOrderActionForm:View {
     @State private var reason=""
     @State private var detail=""
     @State private var invalid=false
+    @State private var confirmed=false
     private var review:Bool{presentation.action=="reviewed"}
     private var resolution:Bool{["return_requested","refund_requested","disputed"].contains(presentation.action)}
+    private var submitDisabled:Bool{model.mutationBusy || !confirmed || !inputValid || model.orderRecoveryState(presentation.order) != "none"}
+    private var inputValid:Bool{(try? BuyerOrderActionInput.build(status:presentation.order.status,action:presentation.action,rating:review ? rating:0,reason:resolution ? reason:"",detail:review || resolution ? detail:"")) != nil}
     var body:some View{NavigationStack{Form{
-        Section{Text(presentation.order.orderID).font(.caption.monospaced());Text(ShopMoneyDisplay.order(presentation.order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable"))}
+        Section{Text(presentation.order.orderID).font(.caption.monospaced());Text(buyerOrderTotal(presentation.order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable"))}
         if review{Section{Picker("order_rating",selection:$rating){Text("order_rating_select").tag(0);ForEach(1...5,id:\.self){Text("\($0) ★").tag($0)}};TextField("order_review_text",text:$detail,axis:.vertical).lineLimit(3...8)}}
         else if resolution{Section{TextField("order_reason",text:$reason);TextField("order_explanation",text:$detail,axis:.vertical).lineLimit(3...8)}}
         else{Text(LocalizedStringKey(presentation.title))}
+        if presentation.action=="cancelled"{ShopNotice(title:"buyer_cancel_order_note",warning:true)}
+        if resolution{ShopNotice(title:"seller_refund_boundary")}
+        Toggle("buyer_confirm_order_action",isOn:$confirmed)
         if invalid{Text(LocalizedStringKey(model.state.isEmpty ? "order_input_required":model.state)).foregroundStyle(ShopTheme.danger)}
-        Button("order_submit"){invalid = !model.submitOrderAction(presentation,rating:review ? rating:0,reason:resolution ? reason:"",detail:review || resolution ? detail:"")}.disabled(model.mutationBusy)
+        Button("order_submit"){invalid = !model.submitOrderAction(presentation,rating:review ? rating:0,reason:resolution ? reason:"",detail:review || resolution ? detail:"")}.disabled(submitDisabled)
         Button("cancel"){model.orderActionPresentation=nil}
-    }.navigationTitle(LocalizedStringKey(presentation.title)).shopInlineTitle()}.frame(minWidth:300,minHeight:360)}
+    }.onChange(of:[reason,detail,String(rating)]){confirmed=false}.navigationTitle(LocalizedStringKey(presentation.title)).shopInlineTitle()}.frame(minWidth:300,minHeight:360)}
 }
 struct OriginalOrderLinkSheet:View {
     @EnvironmentObject var model:ShopModel
@@ -369,7 +506,7 @@ struct OriginalOrderLinkSheet:View {
         ShopSectionTitle(title:"nav_orders");Text(link.orderID).font(.caption.monospaced()).textSelection(.enabled);Text(link.account).font(.caption.monospaced());Text(OriginalOrderLink.chainID).shopFont(12).foregroundStyle(ShopTheme.secondary)
         if !model.signedIn{Button("wallet_sign_in"){model.signIn()}.buttonStyle(ShopButtonStyle())}
         else if model.originalOrderLoading{ProgressView()}
-        else if let order=model.linkedOriginalOrder{ShopStatusBadge(status:order.status);Text(ShopMoneyDisplay.order(order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);if let refund=order.refundStatus{Text(LocalizedStringKey(refund)).shopFont(13)};NativeOrderAmounts(order:order)}
+        else if let order=model.linkedOriginalOrder{ShopStatusBadge(status:order.status);Text(buyerOrderTotal(order,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold);if let refund=order.refundStatus{Text(LocalizedStringKey(refund)).shopFont(13)};NativeOrderAmounts(order:order)}
         else{Text("unavailable")}
         ShopNotice(title:"payment_boundary")
         if model.linkedOriginalOrder != nil{Button("check_payment"){Task{await model.checkLinkedOriginalPayment()}}.buttonStyle(ShopButtonStyle()).disabled(model.originalOrderLoading)}
@@ -381,7 +518,7 @@ struct OriginalInvoiceSheet:View {
     @EnvironmentObject var model:ShopModel
     let presentation:ShopModel.InvoicePresentation
     var body:some View{NavigationStack{ScrollView{VStack(alignment:.leading,spacing:20){
-        ShopSectionTitle(title:"order_review");Text(presentation.review.original.orderID).font(.caption.monospaced()).textSelection(.enabled);Text(ShopMoneyDisplay.order(presentation.review.original,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(28,.bold);Text(presentation.review.invoiceID ?? "").font(.caption.monospaced());ShopNotice(title:"payment_boundary")
+        ShopSectionTitle(title:"order_review");Text(presentation.review.original.orderID).font(.caption.monospaced()).textSelection(.enabled);Text(buyerOrderTotal(presentation.review.original,locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(28,.bold);Text(presentation.review.invoiceID ?? "").font(.caption.monospaced());ShopNotice(title:"payment_boundary")
         Button("pay_handoff"){model.openReviewedInvoice()}.buttonStyle(ShopButtonStyle());Button("close"){model.cancelInvoicePresentation()}.buttonStyle(ShopButtonStyle(kind:.secondary))
     }.padding(24)}}.frame(minWidth:320,idealWidth:480,minHeight:380)}
 }
@@ -501,7 +638,7 @@ struct NativeOrderAmounts:View {
         }
         if let payment=order.nativePayment {
             if payment.ReconciliationRequired{ShopNotice(title:"native_reconcile_required",symbol:"clock.arrow.circlepath",warning:true)}
-            else if validated(payment){VStack(alignment:.leading,spacing:8){HStack{Text("native_paid_atoms");Spacer();Text(payment.PaidAtoms).monospacedDigit()};HStack{Text("native_refunded_atoms");Spacer();Text(payment.RefundedAtoms).monospacedDigit()};HStack{Text("native_net_atoms");Spacer();Text(payment.NetPaidAtoms).monospacedDigit()};if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{Text("native_history_pending").foregroundStyle(ShopTheme.warning)}}.shopFont(12).padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
+            if validated(payment){VStack(alignment:.leading,spacing:8){HStack{Text("native_paid_atoms");Spacer();Text(payment.PaidAtoms).monospacedDigit()};HStack{Text("native_refunded_atoms");Spacer();Text(payment.RefundedAtoms).monospacedDigit()};HStack{Text("native_net_atoms");Spacer();Text(payment.NetPaidAtoms).monospacedDigit()};if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{Text("native_history_pending").foregroundStyle(ShopTheme.warning)}}.shopFont(12).padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
             else{ShopNotice(title:"seller_native_receipt_unavailable",symbol:"lock",warning:true)}
         }
     }

@@ -732,7 +732,7 @@ func (s *Store) Order(actor, role, id string) (Order, error) {
 	default:
 		return Order{}, ErrUnauthorized
 	}
-	return cloneOrder(o), nil
+	return s.orderCancellationProjectionLocked(o), nil
 }
 func (s *Store) Orders(actor, role string) []Order {
 	s.mu.Lock()
@@ -745,7 +745,7 @@ func (s *Store) Orders(actor, role string) []Order {
 			allowed = ok && sellerRoleAllows(sellerRole, permissionSellerRead)
 		}
 		if allowed {
-			out = append(out, cloneOrder(o))
+			out = append(out, s.orderCancellationProjectionLocked(o))
 		}
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
@@ -847,7 +847,7 @@ func (s *Store) transitionOriginalReturn(actor, role, id, next string, shipment 
 	allowed := false
 	switch next {
 	case "cancelled":
-		allowed = buyer && o.Status == "payment_pending"
+		allowed = buyer && o.Status == "payment_pending" && !s.nativeInvoiceCancellationBlockedLocked(o)
 	case "shipped":
 		allowed = canFulfill && o.Status == "paid" && originalOrderWasPaid(o) && shipment != nil && shipment.Carrier != "" && shipment.TrackingNumber != ""
 	case "delivered":

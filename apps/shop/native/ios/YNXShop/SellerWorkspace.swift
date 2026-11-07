@@ -260,9 +260,9 @@ private struct SellerOrdersList:View {
         else{SellerLedger{
             if desktop{ScrollView(.horizontal){VStack(spacing:0){
                 HStack{Text("nav_orders").frame(maxWidth:.infinity,alignment:.leading);Text("seller_principal").frame(width:140,alignment:.leading);Text("seller_payment_evidence").frame(width:150,alignment:.leading);Text("seller_fulfillment").frame(width:110,alignment:.leading);Text("seller_aftersales").frame(width:150,alignment:.leading);Text("seller_actions").frame(width:90)}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(16).background(ShopTheme.tertiary)
-                ForEach(orders){order in Divider();HStack(alignment:.top,spacing:16){NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{VStack(alignment:.leading,spacing:8){Text(verbatim:order.ID).font(.caption.monospaced());Text(verbatim:order.Buyer).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);SellerState(status:order.Status)}}.frame(maxWidth:.infinity,alignment:.leading);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).frame(width:140,alignment:.leading).monospacedDigit();SellerPaymentState(order:order).frame(width:150,alignment:.leading);SellerState(status:order.Shipment?.Status ?? "unavailable").frame(width:110,alignment:.leading);SellerState(status:order.Resolution?.Status ?? (order.RefundStatus.isEmpty ? "unavailable":order.RefundStatus)).frame(width:150,alignment:.leading);NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:90)}.shopFont(13).padding(16)}
+                ForEach(orders){order in Divider();HStack(alignment:.top,spacing:16){NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{VStack(alignment:.leading,spacing:8){Text(verbatim:order.ID).font(.caption.monospaced());Text(verbatim:order.Buyer).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);SellerState(status:order.Status)}}.frame(maxWidth:.infinity,alignment:.leading);Text(buyerOrderTotal(order.paymentOrder,locale:locale) ?? String(localized:"unavailable")).frame(width:140,alignment:.leading).monospacedDigit();SellerPaymentState(order:order).frame(width:150,alignment:.leading);SellerState(status:order.Shipment?.Status ?? "unavailable").frame(width:110,alignment:.leading);SellerState(status:order.Resolution?.Status ?? (order.RefundStatus.isEmpty ? "unavailable":order.RefundStatus)).frame(width:150,alignment:.leading);NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:90)}.shopFont(13).padding(16)}
             }.frame(minWidth:1050)}}
-            else{ForEach(orders){order in VStack(alignment:.leading,spacing:14){HStack{Text(verbatim:order.ID).font(.caption.monospaced()).lineLimit(1);Spacer();SellerState(status:order.Status)};ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)};Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(17,.bold);SellerPaymentState(order:order);SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}.padding(16);Divider()}}
+            else{ForEach(orders){order in VStack(alignment:.leading,spacing:14){HStack{Text(verbatim:order.ID).font(.caption.monospaced()).lineLimit(1);Spacer();SellerState(status:order.Status)};ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)};Text(buyerOrderTotal(order.paymentOrder,locale:locale) ?? String(localized:"unavailable")).shopFont(17,.bold);SellerPaymentState(order:order);SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}.padding(16);Divider()}}
         }}
         ShopNotice(title:"seller_unknown_warning",symbol:"clock.arrow.circlepath",warning:true)
     }}
@@ -276,18 +276,20 @@ private struct SellerOrderDetail:View {
     private var current:SellerOrder?{seller.orders.first{$0.ID==orderID && $0.StoreID==seller.selectedStoreID}}
     var body:some View{SellerPage("shop_order_details",desktop:desktop){
         if let order=current {
-            SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(28,.bold);HStack{Text("seller_payment_evidence").shopFont(13).foregroundStyle(ShopTheme.secondary);Spacer();SellerPaymentState(order:order)};SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
+            SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(buyerOrderTotal(order.paymentOrder,locale:locale) ?? String(localized:"unavailable")).shopFont(28,.bold);HStack{Text("seller_payment_evidence").shopFont(13).foregroundStyle(ShopTheme.secondary);Spacer();SellerPaymentState(order:order)};SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
+            SellerTargetRecovery(target:order.ID)
             if desktop{HStack(alignment:.top,spacing:24){terms(order).frame(maxWidth:.infinity);buyer(order).frame(width:320)}}else{terms(order);buyer(order)}
             SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_fulfillment").shopFont(17,.semibold);if let shipment=order.Shipment{SellerValue(title:"seller_carrier",value:shipment.Carrier);SellerValue(title:"seller_tracking",value:shipment.TrackingNumber);SellerState(status:shipment.Status)};Button("seller_ship"){onAction(.ship(order.ID))}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("fulfillment.write") || order.Status != "paid" || (sellerIsNativePayment(order) && (sellerPaymentNeedsReview(order) || order.paymentDisplayState=="native_refunded")) || seller.busy || seller.hasPending(order.ID));ShopNotice(title:"seller_fulfillment_boundary")}.padding(20)}
             if let resolution=order.Resolution{SellerLedger{VStack(alignment:.leading,spacing:14){Text("seller_aftersales").shopFont(17,.semibold);SellerState(status:resolution.Status);Text(verbatim:resolution.Reason).shopFont(14);Text(verbatim:resolution.Explanation).shopFont(13);if order.Status=="return_requested",order.originalReturnID != nil{HStack{Button("seller_approve_return"){onAction(.returnDecision(order.ID,true))}.buttonStyle(ShopButtonStyle());Button("seller_reject_return"){onAction(.returnDecision(order.ID,false))}.buttonStyle(ShopButtonStyle(kind:.secondary))}.disabled(!seller.can("returns.resolve") || seller.busy || seller.hasPending(order.ID))};ShopNotice(title:"seller_refund_boundary")}.padding(20)}}
-            if sellerIsNativePayment(order){SellerNativePaymentRecord(order:order)}
+            if !order.approvedReturnIDs.isEmpty || !(order.ReturnReceipts ?? []).isEmpty{SellerWarehouseView(order:order)}
+            if sellerIsNativePayment(order){SellerNativePaymentRecord(order:order);SellerRefundReviewForm(order:order)}
             else if let settlement=order.Settlement{SellerSettlementRecord(settlement:settlement)}
             if !sellerIsNativePayment(order),let refund=order.Refund{SellerLedger{VStack(alignment:.leading,spacing:12){Text("seller_refund_record").shopFont(17,.semibold);SellerState(status:refund.Status);SellerValue(title:"seller_reference",value:refund.ID);SellerValue(title:"seller_principal",value:sellerMoney(refund.AmountYNXT,currency:refund.Currency,locale:locale));SellerValue(title:"seller_transaction_hash",value:refund.TransactionHash);SellerValue(title:"seller_block",value:String(refund.BlockHeight));Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
             ShopSectionTitle(title:"seller_order_events")
             SellerLedger{ForEach(order.Timeline){event in VStack(alignment:.leading,spacing:8){HStack{SellerState(status:event.Status);Spacer();Text(verbatim:event.At).shopFont(12).foregroundStyle(ShopTheme.secondary)};Text(verbatim:event.Action).font(.caption.monospaced());if !event.Detail.isEmpty{Text(verbatim:event.Detail).shopFont(13)};Text(verbatim:event.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)}.padding(16);Divider()}}
         }else{SellerEmpty()}
     }.navigationTitle("shop_order_details").shopInlineTitle()}
-    private func terms(_ order:SellerOrder)->some View{SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_original_terms").shopFont(17,.semibold);ForEach(order.Lines){line in VStack(alignment:.leading,spacing:8){Text(verbatim:line.Title).shopFont(15,.semibold);Text(verbatim:line.VariantName+" × "+String(line.Quantity)).shopFont(13).foregroundStyle(ShopTheme.secondary);Text(sellerMoney(line.UnitPriceYNXT,currency:order.Currency,locale:locale)).shopFont(15,.semibold);Divider()}};SellerValue(title:"seller_principal",value:sellerMoney(order.SubtotalYNXT,currency:order.Currency,locale:locale));SellerValue(title:"seller_shipping_amount",value:sellerMoney(order.ShippingYNXT,currency:order.Currency,locale:locale));SellerValue(title:"seller_tax_amount",value:sellerMoney(order.TaxYNXT,currency:order.Currency,locale:locale));Text("seller_network_fee_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+    private func terms(_ order:SellerOrder)->some View{SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_original_terms").shopFont(17,.semibold);ForEach(order.Lines){line in VStack(alignment:.leading,spacing:8){Text(verbatim:line.Title).shopFont(15,.semibold);Text(verbatim:line.VariantName+" × "+String(line.Quantity)).shopFont(13).foregroundStyle(ShopTheme.secondary);Text(sellerOrderLineAmount(line,order:order,locale:locale)).shopFont(15,.semibold);Divider()}};SellerValue(title:"seller_principal",value:sellerOrderComponent(order,kind:"subtotal",locale:locale));SellerValue(title:"seller_shipping_amount",value:sellerOrderComponent(order,kind:"shipping",locale:locale));SellerValue(title:"seller_tax_amount",value:sellerOrderComponent(order,kind:"tax",locale:locale));Text("seller_network_fee_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
     private func buyer(_ order:SellerOrder)->some View{SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_buyer").shopFont(17,.semibold);Text(verbatim:order.Buyer).font(.caption.monospaced()).textSelection(.enabled);Divider();Text(verbatim:order.Address.Recipient).shopFont(14,.semibold);Text(verbatim:[order.Address.Line1,order.Address.City,order.Address.Region,order.Address.PostalCode,order.Address.Country].filter{!$0.isEmpty}.joined(separator:"\n")).shopFont(13).textSelection(.enabled)}.padding(20)}}
 }
 private func sellerMoney(_ amount:Int64,currency:String,locale:Locale)->String{guard currency==ShopMoneyDisplay.legacySymbol,amount>=0 else{return String(localized:"unavailable",locale:locale)};return ShopMoneyDisplay.legacyYNXT(amount,locale:locale)}
@@ -450,7 +452,7 @@ private struct SellerShipForm:View {
         Toggle("seller_confirm_shipment",isOn:$reviewed).shopFont(13)
         Button("seller_ship"){submitted=true;seller.perform(.ship(orderID:order.ID,carrier:carrier,trackingNumber:tracking))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || !sellerRequiredText(carrier,120) || !sellerRequiredText(tracking,200) || order.Status != "paid" || (sellerIsNativePayment(order) && (sellerPaymentNeedsReview(order) || order.paymentDisplayState=="native_refunded")) || submitted || !seller.can("fulfillment.write") || seller.busy || seller.hasPending(order.ID))
         SellerFormResult(submitted:submitted)
-    }.disabled(seller.busy)}
+    }.onChange(of:[carrier,tracking]){reviewed=false}.disabled(seller.busy)}
 }
 private struct SellerReturnForm:View {
     @EnvironmentObject var seller:ShopSellerModel
@@ -789,6 +791,7 @@ private struct SellerPaymentState:View {
     var body:some View{Group{if sellerIsNativePayment(order){Text(nativeTitle).shopFont(12,.semibold).foregroundStyle(sellerPaymentNeedsReview(order) ? ShopTheme.warning:ShopTheme.secondary).fixedSize(horizontal:false,vertical:true)}else{SellerState(status:order.Settlement?.Status ?? "unavailable")}}}
 }
 private struct SellerNativePaymentRecord:View {
+    @EnvironmentObject var seller:ShopSellerModel
     let order:SellerOrder
     private var accepted:NativePaymentProjection? {
         guard let payment=order.NativePayment else{return nil}
@@ -806,7 +809,11 @@ private struct SellerNativePaymentRecord:View {
             SellerValue(title:"seller_native_terms_hash",value:payment.TermsHash)
             SellerValue(title:"seller_native_settlement_hash",value:payment.SettlementNativeHash)
             if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{ShopNotice(title:"native_history_pending",warning:true)}
-            ForEach(Array((payment.PendingOriginals ?? []).enumerated()),id:\.offset){_,original in SellerValue(title:"shop_original_operation",value:original)}
+            if !(payment.PendingOriginals ?? []).isEmpty{ShopNotice(title:"shop_explicit_reconcile_note",symbol:"clock.arrow.circlepath",warning:true)}
+            ForEach(Array((payment.PendingOriginals ?? []).enumerated()),id:\.offset){_,original in VStack(alignment:.leading,spacing:10){
+                SellerValue(title:"shop_original_operation",value:original)
+                Button("shop_reconcile_original_transaction"){seller.reconcileOriginalPayment(order,nativeHash:original)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.canReconcileOriginalPayment(order,nativeHash:original) || seller.busy)
+            }}
             ShopSectionTitle(title:"seller_native_receipts")
             ForEach(Array(payment.Receipts.enumerated()),id:\.offset){_,claim in DisclosureGroup{
                 VStack(alignment:.leading,spacing:12){
@@ -827,9 +834,14 @@ private struct SellerNativePaymentRecord:View {
         }else{
             ShopNotice(title:order.paymentDisplayState=="native_reconcile_required" ? "seller_native_reconcile_required":"seller_native_receipt_unavailable",symbol:"clock.arrow.circlepath",warning:true)
         }
+        ViewThatFits(in:.horizontal){HStack{readActions};VStack(alignment:.leading,spacing:12){readActions}}
         Text("seller_native_amount_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
         Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
     }.padding(20)}}
+    @ViewBuilder private var readActions:some View {
+        Button("seller_review_original_terms"){seller.reviewOriginalTerms(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.canReviewOriginalTerms(order) || seller.busy)
+        Button("seller_read_original_order"){seller.readOriginalOrder(order)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.signedIn || seller.busy)
+    }
 }
 
 private func sellerCanonicalUInt64(_ text:String,positive:Bool=false)->Bool {
@@ -862,4 +874,132 @@ private struct SellerNativePriceEditor:View {
             Text("seller_native_config_no_conversion").shopFont(12).foregroundStyle(ShopTheme.secondary)
         }else{Text("seller_native_price_not_configured").shopFont(12).foregroundStyle(ShopTheme.secondary)}
     }.padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
+}
+
+private struct SellerTargetRecovery:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let target:String
+    var body:some View{let originals=seller.pendingOperations(for:target)
+        if !originals.isEmpty{SellerLedger{VStack(alignment:.leading,spacing:14){
+            Text("seller_pending_originals").shopFont(17,.semibold)
+            ForEach(originals){original in VStack(alignment:.leading,spacing:6){SellerValue(title:"seller_reference",value:original.id);SellerValue(title:"seller_actions",value:original.kind);Text(original.phase=="prepared" ? "seller_original_prepared":"seller_original_unconfirmed").shopFont(12).foregroundStyle(ShopTheme.warning)}}
+            if originals.contains(where:{$0.phase=="unknown"}){Button("seller_recover_originals"){seller.recoverOriginals(for:target)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)}
+            if originals.contains(where:{$0.phase=="prepared"}){Button("seller_retry_prepared"){seller.retryPreparedOriginals(for:target)}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)}
+        }.padding(20)}}
+    }
+}
+
+private struct SellerWarehouseView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let order:SellerOrder
+    @State private var selectedReturn=""
+    @State private var evidence=""
+    @State private var quantities:[String:String]=[:]
+    @State private var reviewed=false
+    @State private var submitted=false
+    @State private var restockReceipt:SellerReturnReceipt?
+    private func skuKey(_ item:SellerReturnItem)->String{String(item.ProductID.utf8.count)+":"+item.ProductID+item.VariantID}
+    private var items:[SellerReturnItem]? {
+        guard let available=order.remainingReturnItems else{return nil}
+        var result:[SellerReturnItem]=[]
+        for item in available {
+            let text=quantities[skuKey(item)] ?? ""
+            if text.isEmpty{continue}
+            guard let number=Int64(text),number>0,String(number)==text,let remaining=Int64(item.Quantity),number<=remaining else{return nil}
+            result.append(SellerReturnItem(ProductID:item.ProductID,VariantID:item.VariantID,Quantity:text))
+        }
+        return result.isEmpty ? nil:result
+    }
+    private var reviewContent:[String]{[selectedReturn,evidence]+quantities.keys.sorted().flatMap{[$0,quantities[$0] ?? ""]}}
+    var body:some View{SellerLedger{VStack(alignment:.leading,spacing:18){
+        Text("seller_return_warehouse").shopFont(17,.semibold)
+        ShopNotice(title:"seller_warehouse_boundary")
+        if let receipts=order.ReturnReceipts,!receipts.isEmpty{ForEach(receipts){receipt in VStack(alignment:.leading,spacing:12){
+            SellerValue(title:"seller_reference",value:receipt.ID)
+            SellerValue(title:"seller_original_return",value:receipt.ReturnID)
+            SellerValue(title:"seller_warehouse_evidence",value:receipt.EvidenceReference)
+            SellerValue(title:"seller_recorded_at",value:receipt.ReceivedAt)
+            ForEach(Array(receipt.Items.enumerated()),id:\.offset){_,item in SellerValue(title:"seller_sku",value:item.ProductID+" / "+item.VariantID+" × "+item.Quantity)}
+            if let restockedAt=receipt.RestockedAt{SellerValue(title:"seller_restocked_at",value:restockedAt)}
+            else{Button("seller_restock_return"){restockReceipt=receipt}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.canRestockReturn(order,receipt) || seller.busy || seller.hasPending(order.ID))}
+            Divider()
+        }}}
+        if seller.canReceiveReturn(order),let remaining=order.remainingReturnItems {
+            Picker("seller_original_return",selection:$selectedReturn){Text("seller_select_return").tag("");ForEach(order.approvedReturnIDs,id:\.self){Text(verbatim:$0).tag($0)}}
+            SellerField(title:"seller_warehouse_evidence",text:$evidence)
+            ForEach(Array(remaining.enumerated()),id:\.offset){_,item in VStack(alignment:.leading,spacing:8){
+                SellerValue(title:"seller_sku",value:item.ProductID+" / "+item.VariantID)
+                SellerValue(title:"seller_return_remaining",value:item.Quantity)
+                SellerField(title:"seller_return_receive_quantity",text:Binding(get:{quantities[skuKey(item)] ?? ""},set:{quantities[skuKey(item)]=$0}))
+            }}
+            Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+            Button("seller_record_return_received"){guard let items else{return};submitted=true;seller.perform(.receiveReturn(orderID:order.ID,returnID:selectedReturn,evidenceReference:evidence,items:items))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || submitted || items==nil || !order.approvedReturnIDs.contains(selectedReturn) || !SellerOrder.validWarehouseID(evidence) || seller.busy || seller.hasPending(order.ID))
+        }else if order.remainingReturnItems==nil{ShopNotice(title:"seller_warehouse_unavailable",warning:true)}
+        SellerFormResult(submitted:submitted)
+    }.padding(20)}.onChange(of:reviewContent){reviewed=false}.onChange(of:order.remainingReturnItems){reviewed=false}.onChange(of:order.approvedReturnIDs){reviewed=false}.confirmationDialog("seller_confirm_restock",isPresented:Binding(get:{restockReceipt != nil},set:{if !$0{restockReceipt=nil}}),titleVisibility:.visible){
+        if let receipt=restockReceipt{Button("seller_restock_return"){submitted=true;seller.perform(.restockReturn(orderID:order.ID,receiptID:receipt.ID));restockReceipt=nil}.disabled(!seller.canRestockReturn(order,receipt) || seller.busy || seller.hasPending(order.ID))}
+        Button("cancel",role:.cancel){restockReceipt=nil}
+    }}
+}
+
+private func sellerOrderLineAmount(_ line:SellerOrderLine,order:SellerOrder,locale:Locale)->String {
+    if let quote=order.NativePrice{guard (try? quote.validate(order.paymentOrder)) != nil,let price=line.NativePrice else{return String(localized:"unavailable")};return ShopMoneyDisplay.atoms(price.AmountAtoms,locale:locale) ?? String(localized:"unavailable")}
+    guard !sellerIsNativePayment(order) else{return String(localized:"unavailable")}
+    return sellerMoney(line.UnitPriceYNXT,currency:order.Currency,locale:locale)
+}
+private func sellerOrderComponent(_ order:SellerOrder,kind:String,locale:Locale)->String {
+    if let quote=order.NativePrice {
+        guard (try? quote.validate(order.paymentOrder)) != nil,let total=UInt64(quote.Price.AmountAtoms),let shipping=UInt64(quote.Charges.ShippingAtoms),let tax=UInt64(quote.Charges.TaxAtoms),shipping<=total,tax<=total-shipping else{return String(localized:"unavailable")}
+        let value=kind=="shipping" ? shipping:kind=="tax" ? tax:total-shipping-tax
+        return ShopMoneyDisplay.atoms(String(value),locale:locale) ?? String(localized:"unavailable")
+    }
+    guard !sellerIsNativePayment(order) else{return String(localized:"unavailable")}
+    return sellerMoney(kind=="shipping" ? order.ShippingYNXT:kind=="tax" ? order.TaxYNXT:order.SubtotalYNXT,currency:order.Currency,locale:locale)
+}
+
+private struct SellerRefundReviewForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @Environment(\.locale) private var locale
+    let order:SellerOrder
+    @State private var amountAtoms=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    @State private var refundRequestID:String?
+    init(order:SellerOrder){self.order=order;_refundRequestID=State(initialValue:order.originalRefundRequestID)}
+    private var availableAtoms:String?{order.validatedNetPaidAtoms}
+    private var pendingReview:SellerRefundReview? {
+        guard let retained=seller.retainedRefundReviews[order.ID] else{return nil}
+        if let payment=order.NativePayment,(try? payment.validate(order.paymentOrder,requirePaid:false)) != nil,payment.Receipts.contains(where:{$0.refundId==retained.refundID}){return nil}
+        return retained
+    }
+    private var amountValid:Bool {
+        guard sellerCanonicalUInt64(amountAtoms,positive:true),let amount=UInt64(amountAtoms),let availableAtoms,let maximum=UInt64(availableAtoms),amount<=maximum else{return false}
+        return true
+    }
+    private var sameRequest:Bool{refundRequestID != nil && refundRequestID==seller.refundableOriginalEvent(order)?.ID}
+    var body:some View{if refundRequestID != nil || pendingReview != nil{SellerLedger{VStack(alignment:.leading,spacing:18){
+        Text("seller_refund_review_title").shopFont(17,.semibold)
+        SellerValue(title:"shop_order_details",value:order.ID)
+        SellerValue(title:"shop_invoice_reference",value:order.InvoiceID)
+        SellerValue(title:"seller_refund_request_event",value:refundRequestID ?? String(localized:"unavailable"))
+        SellerValue(title:"seller_refund_available_atoms",value:availableAtoms.flatMap{ShopMoneyDisplay.atoms($0,locale:locale)} ?? String(localized:"unavailable"))
+        ShopNotice(title:"seller_refund_review_boundary")
+        if let retained=pendingReview {
+            SellerValue(title:"seller_refund_request_event",value:retained.refundID)
+            SellerValue(title:"seller_native_amount_input",value:ShopMoneyDisplay.atoms(retained.amountAtoms,locale:locale) ?? String(localized:"unavailable"))
+            SellerValue(title:"seller_refund_main_review_id",value:retained.reviewID ?? String(localized:"unavailable"))
+            Text(retained.phase=="unknown" ? "seller_refund_review_unknown":"seller_refund_review_retained").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        }else{
+            if !sameRequest{ShopNotice(title:"seller_refund_request_changed",warning:true)}
+            SellerField(title:"seller_refund_amount_input",text:$amountAtoms)
+            Text("seller_native_config_no_conversion").shopFont(12).foregroundStyle(ShopTheme.secondary)
+            Toggle("seller_confirm_refund_review",isOn:$reviewed).shopFont(13)
+            Button("seller_request_refund_review"){
+                submitted=true
+                guard let refundRequestID else{return}
+                seller.reviewOriginalRefund(order,refundID:refundRequestID,amountAtoms:amountAtoms)
+            }.buttonStyle(ShopButtonStyle()).disabled(!sameRequest || !amountValid || !reviewed || submitted || !seller.canReviewOriginalRefund(order) || seller.busy)
+        }
+        if submitted && !seller.state.isEmpty{Text(LocalizedStringKey(seller.state)).shopFont(13).foregroundStyle(ShopTheme.secondary)}
+    }.padding(20)}.onChange(of:amountAtoms){reviewed=false}.onChange(of:seller.refundableOriginalEvent(order)?.ID){reviewed=false}.onChange(of:availableAtoms){reviewed=false}}}
 }

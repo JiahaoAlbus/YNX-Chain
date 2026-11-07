@@ -323,7 +323,11 @@ func (s *Server) nativeInvoicePreparation(ctx context.Context, target string, bo
 			if current.PayIntentID != binding.IntentID || current.InvoiceID != binding.InvoiceID || current.PayMerchant != binding.Merchant || current.PayPayoutAddress != binding.PayoutAddress {
 				return nil, ErrConflict
 			}
-		} else if current.Status == "payment_pending" && current.ReservationExpiresAt.After(tx.now()) {
+		} else if current.Status == "payment_pending" {
+			// This is the verified response to the already captured original
+			// operation, including an original-key lookup after a lost ACK.
+			// Retaining its identifiers after a local stock deadline enables
+			// receipt reconciliation; it extends no deadline and proves no funds.
 			if _, e = tx.BindInvoice(actor, target, binding); e != nil {
 				return nil, e
 			}

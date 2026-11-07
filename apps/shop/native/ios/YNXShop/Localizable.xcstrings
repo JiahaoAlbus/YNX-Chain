@@ -31480,6 +31480,3702 @@
           }
         }
       }
+    },
+    "buyer_payment_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment status"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支付状态"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款狀態"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支払い状況"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제 상태"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado del pago"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "État du paiement"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlungsstatus"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado do pagamento"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус оплаты"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حالة الدفع"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status pembayaran"
+          }
+        }
+      }
+    },
+    "buyer_quantity": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "數量"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数量"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수량"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cantidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantité"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menge"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantidade"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Количество"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكمية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jumlah"
+          }
+        }
+      }
+    },
+    "buyer_read_original_request": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check this order’s original request"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查询本订单原请求"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查詢本訂單原請求"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文の元リクエストを照会"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주문의 원래 요청 조회"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultar solicitud original de este pedido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulter la demande d’origine de cette commande"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Anfrage dieser Bestellung prüfen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultar solicitação original deste pedido"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить исходный запрос заказа"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التحقق من الطلب الأصلي لهذا الطلب"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Periksa permintaan asli pesanan ini"
+          }
+        }
+      }
+    },
+    "buyer_order_prepared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This order has a prepared original request. New actions are paused until its original state is reviewed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本订单有已准备的原请求，核对原状态前暂停新操作。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本訂單有已準備的原請求，核對原狀態前暫停新操作。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文には準備済みの元リクエストがあります。元の状態を確認するまで新しい操作を停止します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주문에는 준비된 원래 요청이 있습니다. 원래 상태를 확인할 때까지 새 동작이 중지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este pedido tiene una solicitud original preparada. Las nuevas acciones se pausan hasta revisar su estado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette commande a une demande d’origine préparée. Les nouvelles actions sont suspendues jusqu’à vérification de son état."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diese Bestellung liegt eine vorbereitete Anfrage vor. Neue Aktionen sind bis zur Prüfung ihres Zustands gesperrt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este pedido tem uma solicitação original preparada. Novas ações ficam suspensas até revisar seu estado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для заказа подготовлен исходный запрос. Новые действия приостановлены до проверки его состояния."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يوجد طلب أصلي مُجهّز لهذا الطلب. تتوقف الإجراءات الجديدة حتى مراجعة حالته الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesanan ini memiliki permintaan asli yang disiapkan. Tindakan baru ditunda hingga statusnya ditinjau."
+          }
+        }
+      }
+    },
+    "buyer_order_unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original request outcome is unknown. Query it before sending another action; do not replace it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原请求结果未知。再次操作前请先查询，不要另建替代请求。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原請求結果未知。再次操作前請先查詢，不要另建替代請求。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のリクエストの結果は不明です。別の操作を送る前に照会し、代替リクエストを作成しないでください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 요청의 결과가 불명확합니다. 다른 동작을 보내기 전에 조회하고 대체 요청을 만들지 마세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resultado original es desconocido. Consúltalo antes de enviar otra acción; no lo sustituyas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résultat d’origine est inconnu. Consultez-le avant une autre action, sans créer de demande de remplacement."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Ergebnis der ursprünglichen Anfrage ist unbekannt. Prüfen Sie es vor weiteren Aktionen; ersetzen Sie die Anfrage nicht."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resultado original é desconhecido. Consulte antes de enviar outra ação; não substitua a solicitação."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат исходного запроса неизвестен. Проверьте его перед новым действием; не заменяйте запрос."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نتيجة الطلب الأصلي غير معروفة. استعلم عنها قبل إرسال إجراء آخر ولا تستبدله."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasil permintaan asli belum diketahui. Periksa sebelum tindakan lain; jangan menggantinya."
+          }
+        }
+      }
+    },
+    "buyer_order_recovery_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original request state cannot be read. Restore the current account connection before continuing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取原请求状态，请恢复当前账户连接后再继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取原請求狀態，請恢復目前帳戶連線後再繼續。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のリクエストの状態を読み取れません。現在のアカウント接続を復元してから続行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 요청 상태를 읽을 수 없습니다. 현재 계정 연결을 복원한 후 계속하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede leer el estado original. Restablece la conexión de la cuenta antes de continuar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’état de la demande d’origine est illisible. Rétablissez la connexion du compte avant de continuer."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der ursprüngliche Anfragestatus ist nicht lesbar. Stellen Sie zuerst die Kontoverbindung wieder her."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível ler o estado original. Restaure a conexão da conta antes de continuar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать состояние исходного запроса. Восстановите подключение учётной записи."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر قراءة حالة الطلب الأصلي. استعد اتصال الحساب الحالي قبل المتابعة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status permintaan asli tidak dapat dibaca. Pulihkan koneksi akun saat ini sebelum melanjutkan."
+          }
+        }
+      }
+    },
+    "buyer_cancel_order_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel this unpaid order only after reviewing its current payment state. This action does not cancel or refund a Wallet transaction."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请核对当前支付状态后再取消未付款订单。此操作不会取消或退回 Wallet 交易。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請核對目前付款狀態後再取消未付款訂單。此操作不會取消或退回 Wallet 交易。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の支払い状態を確認してから未払いの注文をキャンセルしてください。この操作はWallet取引の取消や返金を行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 결제 상태를 검토한 후 미결제 주문을 취소하세요. 이 동작은 Wallet 거래를 취소하거나 환불하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa el estado de pago antes de cancelar este pedido sin pagar. Esto no cancela ni reembolsa una transacción de Wallet."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifiez le paiement avant d’annuler cette commande non payée. Cette action n’annule ni ne rembourse une transaction Wallet."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfen Sie den Zahlungsstatus vor dem Stornieren dieser unbezahlten Bestellung. Dies storniert oder erstattet keine Wallet-Transaktion."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revise o pagamento antes de cancelar este pedido não pago. Esta ação não cancela nem reembolsa uma transação Wallet."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте оплату перед отменой неоплаченного заказа. Это не отменяет и не возвращает транзакцию Wallet."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجع حالة الدفع قبل إلغاء هذا الطلب غير المدفوع. لا يلغي هذا الإجراء معاملة Wallet ولا يرد قيمتها."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tinjau status pembayaran sebelum membatalkan pesanan belum dibayar. Ini tidak membatalkan atau mengembalikan transaksi Wallet."
+          }
+        }
+      }
+    },
+    "buyer_confirm_order_action": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have reviewed this order and confirm the selected action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已核对本订单，确认所选操作。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已核對本訂單，確認所選操作。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文を確認し、選択した操作を承認します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주문을 검토했으며 선택한 동작을 확인합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "He revisado el pedido y confirmo la acción elegida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "J’ai vérifié cette commande et confirme l’action choisie."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich habe die Bestellung geprüft und bestätige die gewählte Aktion."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisei este pedido e confirmo a ação selecionada."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Я проверил заказ и подтверждаю выбранное действие."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجعت هذا الطلب وأؤكد الإجراء المحدد."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saya telah meninjau pesanan ini dan mengonfirmasi tindakan yang dipilih."
+          }
+        }
+      }
+    },
+    "buyer_original_lines_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original product lines are unavailable."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得原始商品明细。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得原始商品明細。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の商品明細を取得できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 상품 내역을 사용할 수 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las líneas de producto originales no están disponibles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les lignes de produits d’origine sont indisponibles."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Produktpositionen sind nicht verfügbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os itens originais não estão disponíveis."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходные позиции товаров недоступны."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تفاصيل المنتجات الأصلية غير متاحة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rincian produk asli tidak tersedia."
+          }
+        }
+      }
+    },
+    "buyer_terms_snapshot_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "These are the original order records. Current catalog edits do not replace the order terms."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此处为原订单记录，当前目录编辑不会替换订单条款。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此處為原訂單記錄，目前目錄編輯不會取代訂單條款。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これは元の注文記録です。現在の商品編集で注文条件は置き換わりません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 주문 기록입니다. 현재 카탈로그 수정은 주문 조건을 바꾸지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estos son los registros originales. Los cambios del catálogo no sustituyen las condiciones del pedido."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce sont les enregistrements d’origine. Les modifications du catalogue ne remplacent pas les conditions de la commande."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies sind die ursprünglichen Bestelldaten. Katalogänderungen ersetzen keine Bestellbedingungen."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estes são os registros originais. Alterações no catálogo não substituem as condições do pedido."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это исходные записи заказа. Изменения каталога не заменяют условия заказа."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "هذه سجلات الطلب الأصلية. لا تستبدل تعديلات الكتالوج الحالية شروط الطلب."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ini adalah catatan pesanan asli. Perubahan katalog tidak mengganti ketentuan pesanan."
+          }
+        }
+      }
+    },
+    "buyer_delivery_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delivery address is unavailable."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得收货地址。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未取得收貨地址。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配送先住所を取得できません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배송지 주소를 사용할 수 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La dirección de entrega no está disponible."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’adresse de livraison est indisponible."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Lieferadresse ist nicht verfügbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O endereço de entrega não está disponível."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Адрес доставки недоступен."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عنوان التوصيل غير متاح."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alamat pengiriman tidak tersedia."
+          }
+        }
+      }
+    },
+    "buyer_shipment_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No shipment record is available."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无发货记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無出貨記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "発送記録はありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "발송 기록이 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay registros de envío."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun enregistrement d’expédition disponible."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Versanddatensatz vorhanden."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum registro de envio disponível."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запись отправки недоступна."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا يتوفر سجل شحن."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belum ada catatan pengiriman."
+          }
+        }
+      }
+    },
+    "buyer_resolution_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No after-sales case is recorded."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无售后申请记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無售後申請記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アフターサービスの申請記録はありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구매 후 지원 신청 기록이 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay casos de posventa registrados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun dossier après-vente enregistré."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Kundendienstfall erfasst."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum caso de pós-venda registrado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обращений после покупки не зарегистрировано."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد حالة مسجلة لخدمة ما بعد البيع."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belum ada kasus purnajual tercatat."
+          }
+        }
+      }
+    },
+    "buyer_timeline_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No order events are available."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无订单事件记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫無訂單事件記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文イベントはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주문 이벤트가 없습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay eventos del pedido disponibles."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun événement de commande disponible."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Bestellereignisse verfügbar."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum evento do pedido disponível."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "События заказа недоступны."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا تتوفر أحداث للطلب."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Belum ada peristiwa pesanan."
+          }
+        }
+      }
+    },
+    "seller_return_warehouse": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return receipt and restocking"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退货收货与回库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退貨收貨與回庫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返品受領・在庫戻し"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "반품 수령 및 재입고"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recepción y reposición de devoluciones"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réception et remise en stock des retours"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retourenannahme und Wiedereinlagerung"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recebimento e reposição de devoluções"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приём возврата и пополнение запаса"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استلام المرتجعات وإعادتها للمخزون"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penerimaan retur dan pengembalian stok"
+          }
+        }
+      }
+    },
+    "seller_warehouse_evidence": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goods receipt reference"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实物收货凭证编号"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實物收貨憑證編號"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品受領の証憑ID"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실물 수령 증빙 ID"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referencia de recepción de mercancía"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Référence de réception des marchandises"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wareneingangsreferenz"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referência de recebimento da mercadoria"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Номер подтверждения приёма товара"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرجع استلام البضائع"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referensi penerimaan barang"
+          }
+        }
+      }
+    },
+    "seller_return_remaining": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantity remaining to receive"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩余可收货数量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剩餘可收貨數量"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受領可能な残数"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수령 가능한 잔여 수량"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cantidad pendiente de recibir"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantité restante à recevoir"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch anzunehmende Menge"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantidade restante a receber"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Осталось принять"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكمية المتبقية للاستلام"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jumlah tersisa untuk diterima"
+          }
+        }
+      }
+    },
+    "seller_return_receive_quantity": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantity received (leave blank to skip)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本次收货数量（留空跳过）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本次收貨數量（留空略過）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受領数（空欄でスキップ）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 수령 수량 (빈칸이면 건너뛰기)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cantidad recibida (vacío para omitir)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantité reçue (laisser vide pour ignorer)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erhaltene Menge (leer lassen zum Überspringen)"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quantidade recebida (deixe vazio para ignorar)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Принято (оставьте пустым для пропуска)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكمية المستلمة (اتركها فارغة للتخطي)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jumlah diterima (kosongkan untuk melewati)"
+          }
+        }
+      }
+    },
+    "seller_record_return_received": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record goods received"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登记实物收货"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登記實物收貨"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品の受領を記録"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실물 수령 기록"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar recepción de mercancía"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer la réception"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wareneingang erfassen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registrar recebimento da mercadoria"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записать приём товара"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تسجيل استلام البضائع"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catat penerimaan barang"
+          }
+        }
+      }
+    },
+    "seller_restock_return": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return received goods to stock"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将已收货商品回库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將已收貨商品回庫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受領済み商品を在庫に戻す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수령한 상품 재입고"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reponer mercancía recibida"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remettre les marchandises reçues en stock"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erhaltene Waren wieder einlagern"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repor mercadoria recebida no estoque"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вернуть принятый товар в запас"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة البضائع المستلمة إلى المخزون"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kembalikan barang diterima ke stok"
+          }
+        }
+      }
+    },
+    "seller_restocked_at": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restocked at"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回库时间"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回庫時間"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在庫戻し日時"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "재입고 시각"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha de reposición"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Date de remise en stock"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wieder eingelagert am"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data de reposição"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Время возврата в запас"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وقت الإعادة للمخزون"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waktu pengembalian stok"
+          }
+        }
+      }
+    },
+    "seller_select_return": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose an approved original return"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择已批准的原退货申请"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇已批准的原退貨申請"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認済みの元返品を選択"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "승인된 원래 반품 선택"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir devolución original aprobada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir le retour d’origine approuvé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Genehmigte ursprüngliche Rückgabe wählen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolher devolução original aprovada"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите одобренный исходный возврат"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختيار طلب إرجاع أصلي معتمد"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pilih retur asli yang disetujui"
+          }
+        }
+      }
+    },
+    "seller_warehouse_boundary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Goods receipt and restocking are separate records. Neither sends a refund nor proves a payment. Enter a real receipt reference and the quantity actually received."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实物收货与回库分别登记，均不发送退款，也不证明收款。请填写真实凭证编号和实际收货数量。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實物收貨與回庫分別登記，均不傳送退款，也不證明收款。請填寫真實憑證編號和實際收貨數量。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品の受領と在庫戻しは別々に記録します。返金送金や入金証明にはなりません。実際の証憑IDと受領数を入力してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실물 수령과 재입고는 별도 기록입니다. 환불을 보내거나 결제를 증명하지 않습니다. 실제 증빙 ID와 수령 수량을 입력하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La recepción y reposición se registran por separado. No envían reembolsos ni prueban pagos. Introduce una referencia real y la cantidad recibida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La réception et la remise en stock sont distinctes. Elles n’envoient aucun remboursement et ne prouvent aucun paiement. Saisissez une référence réelle et la quantité reçue."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wareneingang und Wiedereinlagerung sind getrennte Vorgänge. Sie senden keine Erstattung und belegen keine Zahlung. Geben Sie die echte Referenz und erhaltene Menge ein."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recebimento e reposição são registros separados. Não enviam reembolsos nem comprovam pagamentos. Informe uma referência real e a quantidade recebida."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приём товара и пополнение запаса записываются отдельно. Они не переводят возврат и не подтверждают оплату. Укажите реальный номер и принятую величину."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استلام البضائع وإعادتها للمخزون سجلان منفصلان. لا يرسلان استرداداً ولا يثبتان الدفع. أدخل مرجعاً حقيقياً والكمية المستلمة فعلاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penerimaan barang dan pengembalian stok dicatat terpisah. Keduanya tidak mengirim pengembalian dana atau membuktikan pembayaran. Masukkan referensi nyata dan jumlah yang diterima."
+          }
+        }
+      }
+    },
+    "seller_warehouse_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original warehouse records cannot be validated. Refresh the original order before recording receipt or restocking."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法校验原仓库记录。登记收货或回库前，请刷新原订单。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法驗證原倉庫記錄。登記收貨或回庫前，請重新整理原訂單。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の倉庫記録を検証できません。受領や在庫戻しの記録前に元の注文を更新してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 창고 기록을 검증할 수 없습니다. 수령이나 재입고를 기록하기 전에 원래 주문을 새로고침하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pueden validar los registros originales. Actualiza el pedido antes de registrar recepción o reposición."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les enregistrements d’entrepôt d’origine ne sont pas validables. Actualisez la commande avant de recevoir ou remettre en stock."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ursprünglichen Lagerdaten sind nicht validierbar. Aktualisieren Sie die Bestellung vor Wareneingang oder Wiedereinlagerung."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível validar os registros originais. Atualize o pedido antes de registrar recebimento ou reposição."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходные складские записи не прошли проверку. Обновите заказ перед приёмом или пополнением запаса."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر التحقق من سجلات المخزن الأصلية. حدّث الطلب الأصلي قبل تسجيل الاستلام أو الإعادة للمخزون."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catatan gudang asli tidak dapat divalidasi. Segarkan pesanan asli sebelum mencatat penerimaan atau pengembalian stok."
+          }
+        }
+      }
+    },
+    "seller_confirm_restock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Return the quantities on this original goods receipt to inventory? This does not issue a refund."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将本原始收货凭证中的数量回补库存？此操作不发起退款。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將本原始收貨憑證中的數量回補庫存？此操作不發起退款。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この元の受領記録の数量を在庫に戻しますか？返金は行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 원래 수령 기록의 수량을 재고로 돌릴까요? 환불은 실행되지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Reponer las cantidades de este recibo original? Esto no emite un reembolso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remettre en stock les quantités de ce reçu d’origine ? Aucun remboursement ne sera émis."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mengen dieses ursprünglichen Wareneingangs wieder einlagern? Dies löst keine Erstattung aus."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repor as quantidades deste recibo original no estoque? Isto não emite reembolso."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вернуть в запас количества из исходной записи приёма? Это не выполняет возврат денег."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة الكميات في إيصال الاستلام الأصلي إلى المخزون؟ لا يصدر هذا الإجراء استرداداً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kembalikan jumlah pada bukti penerimaan asli ini ke stok? Ini tidak mengirim pengembalian dana."
+          }
+        }
+      }
+    },
+    "buyer_order_total": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Order total"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "订单总额"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訂單總額"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注文合計"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "주문 합계"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total del pedido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total de la commande"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestellsumme"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total do pedido"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Итог заказа"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إجمالي الطلب"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total pesanan"
+          }
+        }
+      }
+    },
+    "buyer_review_payment": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review original payment in Main"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Main 核对原支付"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Main 核對原付款"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainで元の支払いを確認"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main에서 원래 결제 검토"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar pago original en Main"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier le paiement d’origine dans Main"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Zahlung in Main prüfen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar pagamento original no Main"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить исходный платёж в Main"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مراجعة الدفع الأصلي في Main"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tinjau pembayaran asli di Main"
+          }
+        }
+      }
+    },
+    "buyer_submit_original_prepared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit this order’s unsent original request"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交本订单尚未发出的原请求"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交本訂單尚未送出的原請求"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文の未送信の元リクエストを送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주문의 미전송 원래 요청 제출"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar solicitud original no enviada de este pedido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer la demande d’origine non envoyée de cette commande"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nicht gesendete ursprüngliche Bestellanfrage senden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar solicitação original ainda não enviada deste pedido"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить неотправленный исходный запрос заказа"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال الطلب الأصلي غير المرسل لهذا الطلب"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim permintaan asli pesanan yang belum dikirim"
+          }
+        }
+      }
+    },
+    "seller_read_original_order": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Query original order and receipts"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查询原订单与收据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查詢原訂單與收據"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の注文と領収記録を照会"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 주문 및 영수증 조회"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultar pedido y recibos originales"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulter la commande et les reçus d’origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Bestellung und Belege abfragen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultar pedido e recibos originais"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запросить исходный заказ и квитанции"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاستعلام عن الطلب والإيصالات الأصلية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Periksa pesanan dan kuitansi asli"
+          }
+        }
+      }
+    },
+    "seller_review_original_terms": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View original terms in Main"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Main 查看原条款"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Main 檢視原條款"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainで元の条件を表示"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main에서 원래 조건 보기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver condiciones originales en Main"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voir les conditions d’origine dans Main"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Bedingungen in Main ansehen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver condições originais no Main"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть исходные условия в Main"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عرض الشروط الأصلية في Main"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lihat ketentuan asli di Main"
+          }
+        }
+      }
+    },
+    "buyer_continue_original_invoice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue preparing the original invoice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续准备原账单"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續準備原帳單"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の請求書の準備を続ける"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 청구서 준비 계속"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar preparando la factura original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuer la préparation de la facture d’origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Rechnung weiter vorbereiten"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar preparando a fatura original"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить подготовку исходного счёта"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "متابعة إعداد الفاتورة الأصلية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lanjutkan menyiapkan faktur asli"
+          }
+        }
+      }
+    },
+    "native_main_review_pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original review has opened in Main. Payment is not confirmed here; check the original payment result afterward."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在 Main 打开原审核。此处未确认付款；之后请查询原支付结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在 Main 開啟原審核。此處未確認付款；之後請查詢原付款結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainで元の確認画面を開きました。ここでは支払いは未確認です。後で元の支払い結果を照会してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main에서 원래 검토 화면을 열었습니다. 여기서는 결제가 확인되지 않습니다. 이후 원래 결제 결과를 조회하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La revisión original se ha abierto en Main. El pago no está confirmado aquí; consulta después el resultado original."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La vérification d’origine s’est ouverte dans Main. Le paiement n’est pas confirmé ici ; consultez ensuite le résultat d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ursprüngliche Prüfung wurde in Main geöffnet. Die Zahlung ist hier unbestätigt; prüfen Sie anschließend das ursprüngliche Ergebnis."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A revisão original foi aberta no Main. O pagamento não está confirmado aqui; consulte depois o resultado original."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходная проверка открыта в Main. Оплата здесь не подтверждена; затем проверьте исходный результат."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم فتح المراجعة الأصلية في Main. الدفع غير مؤكد هنا؛ تحقق لاحقاً من نتيجة الدفع الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peninjauan asli dibuka di Main. Pembayaran belum dikonfirmasi di sini; periksa hasil pembayaran asli setelahnya."
+          }
+        }
+      }
+    },
+    "native_main_rejected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You declined the Main review. The order remains unchanged; check the original payment result before another action."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已拒绝 Main 审核。订单未因此变更；再次操作前请查询原支付结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已拒絕 Main 審核。訂單未因此變更；再次操作前請查詢原付款結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainでの確認を拒否しました。これにより注文は変更されていません。次の操作前に元の支払い結果を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main 검토를 거절했습니다. 주문은 이로 인해 변경되지 않습니다. 다른 동작 전에 원래 결제 결과를 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has rechazado la revisión en Main. El pedido no cambia por ello; consulta el resultado original antes de otra acción."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez refusé la vérification dans Main. La commande reste inchangée ; consultez le résultat d’origine avant une autre action."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie haben die Prüfung in Main abgelehnt. Die Bestellung bleibt dadurch unverändert; prüfen Sie vor weiteren Aktionen das ursprüngliche Zahlungsergebnis."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você recusou a revisão no Main. O pedido permanece inalterado; consulte o resultado original antes de outra ação."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы отклонили проверку Main. Это не меняет заказ; проверьте исходный результат оплаты перед новым действием."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "رفضت المراجعة في Main. يبقى الطلب دون تغيير بسبب ذلك؛ تحقق من نتيجة الدفع الأصلية قبل إجراء آخر."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anda menolak peninjauan Main. Pesanan tidak berubah karena ini; periksa hasil pembayaran asli sebelum tindakan lain."
+          }
+        }
+      }
+    },
+    "native_main_cancelled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You closed the Main review. This does not cancel the order or an existing transaction. Check the original result."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已关闭 Main 审核。这不会取消订单或已有交易，请查询原结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已關閉 Main 審核。這不會取消訂單或已有交易，請查詢原結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainでの確認を閉じました。注文や既存の取引はキャンセルされません。元の結果を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main 검토를 닫았습니다. 주문이나 기존 거래가 취소되는 것은 아닙니다. 원래 결과를 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Has cerrado la revisión en Main. Esto no cancela el pedido ni una transacción existente. Consulta el resultado original."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez fermé la vérification Main. Cela n’annule ni la commande ni une transaction existante. Vérifiez le résultat d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sie haben die Main-Prüfung geschlossen. Dies storniert weder Bestellung noch bestehende Transaktion. Prüfen Sie das ursprüngliche Ergebnis."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você fechou a revisão no Main. Isso não cancela o pedido nem uma transação existente. Consulte o resultado original."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы закрыли проверку Main. Это не отменяет заказ или существующую транзакцию. Проверьте исходный результат."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أغلقت المراجعة في Main. لا يلغي ذلك الطلب أو معاملة موجودة. تحقق من النتيجة الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anda menutup peninjauan Main. Ini tidak membatalkan pesanan atau transaksi yang ada. Periksa hasil aslinya."
+          }
+        }
+      }
+    },
+    "buyer_native_cancel_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This order has a payment or original request to reconcile. Local cancellation is unavailable; query the original result first."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本订单有支付或原请求待核对，暂不可本地取消，请先查询原结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本訂單有付款或原請求待核對，暫不可本機取消，請先查詢原結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この注文には照合が必要な支払いまたは元のリクエストがあります。ローカルではキャンセルできません。先に元の結果を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 주문에는 확인할 결제 또는 원래 요청이 있습니다. 로컬 취소를 사용할 수 없습니다. 원래 결과를 먼저 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este pedido tiene un pago o solicitud original por conciliar. No se puede cancelar localmente; consulta primero el resultado original."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette commande a un paiement ou une demande d’origine à vérifier. L’annulation locale est indisponible ; consultez d’abord le résultat d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diese Bestellung muss eine Zahlung oder ursprüngliche Anfrage abgeglichen werden. Lokales Stornieren ist nicht verfügbar; prüfen Sie zuerst das ursprüngliche Ergebnis."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este pedido tem um pagamento ou solicitação original a conciliar. O cancelamento local está indisponível; consulte primeiro o resultado original."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужно сверить платёж или исходный запрос заказа. Локальная отмена недоступна; сначала проверьте исходный результат."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يوجد دفع أو طلب أصلي يحتاج إلى مطابقة. الإلغاء المحلي غير متاح؛ تحقق من النتيجة الأصلية أولاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pesanan ini memiliki pembayaran atau permintaan asli yang perlu diperiksa. Pembatalan lokal tidak tersedia; periksa hasil asli terlebih dahulu."
+          }
+        }
+      }
+    },
+    "shop_reconcile_original_transaction": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconcile original transaction"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核对原交易"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "核對原交易"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の取引を照合"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 거래 대사"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conciliar transacción original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rapprocher la transaction d’origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Transaktion abgleichen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conciliar transação original"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сверить исходную транзакцию"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مطابقة المعاملة الأصلية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rekonsiliasi transaksi asli"
+          }
+        }
+      }
+    },
+    "shop_explicit_reconcile_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This hash belongs to an unresolved original transaction. Reconciliation runs only when you select its button. Ordinary refresh only reads the current records; neither action signs a transaction or sends funds."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此哈希属于待核对的原交易，仅点击对应按钮才发起核对。普通刷新只读取当前记录；两者均不签署交易或发送资金。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此雜湊屬於待核對的原交易，僅點擊對應按鈕才發起核對。一般重新整理只讀取目前記錄；兩者均不簽署交易或傳送資金。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これは未解決の元取引のハッシュです。照合は対応するボタンを押したときのみ実行します。通常の更新は記録を読み取るだけで、取引署名や送金は行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 해시는 미확인 원래 거래에 속합니다. 해당 버튼을 눌러야 대사가 실행됩니다. 일반 새로고침은 기록만 읽으며 거래에 서명하거나 자금을 보내지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este hash pertenece a una transacción original sin resolver. La conciliación solo se ejecuta al pulsar su botón. La actualización normal solo lee registros; ninguna acción firma transacciones ni envía fondos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette empreinte appartient à une transaction d’origine non résolue. Le rapprochement n’est lancé qu’avec son bouton. L’actualisation ordinaire lit les enregistrements ; aucune action ne signe de transaction ni n’envoie de fonds."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Hash gehört zu einer ungeklärten ursprünglichen Transaktion. Der Abgleich startet nur über die zugehörige Schaltfläche. Normales Aktualisieren liest nur Datensätze; keine Aktion signiert Transaktionen oder sendet Mittel."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este hash pertence a uma transação original não resolvida. A conciliação só ocorre ao selecionar o botão. Atualizar apenas lê os registros; nenhuma ação assina transações ou envia fundos."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хеш относится к исходной транзакции с невыясненным результатом. Сверка запускается только её кнопкой. Обычное обновление читает записи; обе операции не подписывают транзакции и не переводят средства."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تخص هذه البصمة معاملة أصلية غير محسومة. تبدأ المطابقة فقط عند اختيار زرها. التحديث العادي يقرأ السجلات فقط؛ ولا يوقّع أي إجراء معاملة أو يرسل أموالاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hash ini milik transaksi asli yang belum terselesaikan. Rekonsiliasi hanya berjalan saat tombolnya dipilih. Penyegaran biasa hanya membaca catatan; keduanya tidak menandatangani transaksi atau mengirim dana."
+          }
+        }
+      }
+    },
+    "seller_refund_review_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original refund review"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原退款申请复核"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原退款申請複核"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の返金申請を確認"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 환불 요청 검토"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisión del reembolso original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérification du remboursement d’origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Erstattungsprüfung"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisão do reembolso original"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверка исходного возврата средств"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مراجعة طلب الاسترداد الأصلي"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peninjauan pengembalian dana asli"
+          }
+        }
+      }
+    },
+    "seller_refund_request_event": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original refund request event"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原退款申请事件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原退款申請事件"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の返金申請イベント"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 환불 요청 이벤트"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evento original de solicitud de reembolso"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Événement d’origine de demande de remboursement"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliches Erstattungsanfrageereignis"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Evento original de solicitação de reembolso"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходное событие запроса возврата"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حدث طلب الاسترداد الأصلي"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peristiwa permintaan pengembalian dana asli"
+          }
+        }
+      }
+    },
+    "seller_refund_available_atoms": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validated remaining refundable amount"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已核验的剩余可退金额"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已驗證的剩餘可退金額"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検証済みの返金可能残額"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검증된 환불 가능 잔액"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importe restante reembolsable validado"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Montant remboursable restant validé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Validierter verbleibender Erstattungsbetrag"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor restante reembolsável validado"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверенная оставшаяся сумма возврата"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المبلغ المتبقي القابل للاسترداد المتحقق منه"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jumlah tersisa yang dapat dikembalikan dan tervalidasi"
+          }
+        }
+      }
+    },
+    "seller_refund_main_review_id": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retained Main review reference"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留的 Main 复核编号"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留的 Main 複核編號"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保持されたMain確認ID"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보관된 Main 검토 ID"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referencia de revisión Main conservada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Référence de vérification Main conservée"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherte Main-Prüfreferenz"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referência de revisão Main retida"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранённый номер проверки Main"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مرجع مراجعة Main المحتفظ به"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referensi peninjauan Main tersimpan"
+          }
+        }
+      }
+    },
+    "seller_refund_amount_input": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refund amount in atomic units (positive integer)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退款原子数（正整数）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退款原子數（正整數）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返金の最小単位数（正の整数）"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "환불 원자 수 (양의 정수)"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reembolso en unidades atómicas (entero positivo)"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remboursement en unités atomiques (entier positif)"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstattung in atomaren Einheiten (positive Ganzzahl)"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reembolso em unidades atômicas (inteiro positivo)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возврат в атомарных единицах (положительное целое)"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مبلغ الاسترداد بالوحدات الذرية (عدد صحيح موجب)"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengembalian dalam satuan atomik (bilangan bulat positif)"
+          }
+        }
+      }
+    },
+    "seller_request_refund_review": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send original request to Main for review"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将原申请交 Main 复核"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將原申請交 Main 複核"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の申請をMainで確認"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 요청을 Main 검토로 전달"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar solicitud original a revisión en Main"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transmettre la demande d’origine à Main pour vérification"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprüngliche Anfrage zur Prüfung an Main übergeben"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar solicitação original ao Main para revisão"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Передать исходный запрос на проверку Main"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال الطلب الأصلي إلى Main للمراجعة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim permintaan asli ke Main untuk ditinjau"
+          }
+        }
+      }
+    },
+    "seller_refund_review_boundary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review uses this original request event and your explicit atomic amount. It only opens a retained review in Main. It does not approve a refund, sign a transaction or send funds; check the original result afterward."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复核使用本原申请事件和明确填写的原子额，仅在 Main 打开保留的复核。不批准退款、不签名或发送资金；之后请查询原结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複核使用本原申請事件和明確填寫的原子額，僅在 Main 開啟保留的複核。不批准退款、不簽署或傳送資金；之後請查詢原結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の申請イベントと明示した最小単位額を使用し、Mainに確認を保持して開くだけです。返金承認、取引署名、送金は行いません。後で元の結果を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 요청 이벤트와 직접 입력한 원자 금액으로 Main에 보관된 검토만 엽니다. 환불 승인, 거래 서명 또는 자금 전송은 실행하지 않습니다. 이후 원래 결과를 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La revisión usa el evento original y el importe atómico explícito. Solo abre una revisión retenida en Main. No aprueba reembolsos, firma transacciones ni envía fondos; consulta después el resultado original."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La vérification utilise l’événement d’origine et le montant atomique explicite. Elle ouvre uniquement une vérification conservée dans Main. Elle n’approuve aucun remboursement, ne signe ni n’envoie de fonds ; consultez ensuite le résultat d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Prüfung verwendet das ursprüngliche Ereignis und Ihren expliziten atomaren Betrag. Sie öffnet nur eine gespeicherte Prüfung in Main. Sie genehmigt keine Erstattung, signiert keine Transaktion und sendet keine Mittel. Prüfen Sie danach das ursprüngliche Ergebnis."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A revisão usa o evento original e o valor atômico explícito. Apenas abre uma revisão retida no Main. Não aprova reembolso, assina transação nem envia fundos; consulte depois o resultado original."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверка использует исходное событие и явно указанную атомарную сумму. Она только открывает сохранённую проверку в Main. Она не одобряет возврат, не подписывает транзакцию и не переводит средства; затем проверьте исходный результат."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تستخدم المراجعة حدث الطلب الأصلي والمبلغ الذري الذي أدخلته صراحةً. تفتح مراجعة محفوظة في Main فقط. لا توافق على استرداد أو توقّع معاملة أو ترسل أموالاً؛ تحقق من النتيجة الأصلية لاحقاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peninjauan memakai peristiwa permintaan asli dan jumlah atomik yang Anda masukkan. Ini hanya membuka tinjauan tersimpan di Main. Tidak menyetujui pengembalian, menandatangani transaksi, atau mengirim dana; periksa hasil asli setelahnya."
+          }
+        }
+      }
+    },
+    "seller_confirm_refund_review": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have checked the original request and exact atomic amount for Main review."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已核对原申请及交 Main 复核的精确原子额。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已核對原申請及交 Main 複核的精確原子額。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mainに渡す元の申請と正確な最小単位額を確認しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Main 검토에 전달할 원래 요청과 정확한 원자 금액을 확인했습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "He comprobado la solicitud original y el importe atómico exacto para Main."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "J’ai vérifié la demande d’origine et le montant atomique exact à transmettre à Main."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich habe die ursprüngliche Anfrage und den exakten atomaren Betrag für Main geprüft."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifiquei a solicitação original e o valor atômico exato para revisão no Main."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Я проверил исходный запрос и точную атомарную сумму для Main."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجعت الطلب الأصلي والمبلغ الذري الدقيق لمراجعته في Main."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saya telah memeriksa permintaan asli dan jumlah atomik tepat untuk tinjauan Main."
+          }
+        }
+      }
+    },
+    "seller_refund_review_retained": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original review reference is retained. This is not a completed refund. Query the original records for the result."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保留原复核引用，不代表退款完成。请查询原记录核对结果。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保留原複核參照，不代表退款完成。請查詢原記錄核對結果。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の確認参照を保持しています。返金完了を示すものではありません。元の記録で結果を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 검토 참조가 보관되었습니다. 환불 완료를 뜻하지 않습니다. 원래 기록에서 결과를 조회하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La referencia original se conserva. Esto no es un reembolso completado. Consulta los registros originales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La référence d’origine est conservée. Cela ne signifie pas que le remboursement est terminé. Consultez les enregistrements d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ursprüngliche Prüfreferenz bleibt erhalten. Dies ist keine abgeschlossene Erstattung. Prüfen Sie die ursprünglichen Datensätze."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A referência original foi retida. Isto não é um reembolso concluído. Consulte os registros originais."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходная ссылка проверки сохранена. Это не завершённый возврат. Проверьте результат в исходных записях."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم الاحتفاظ بمرجع المراجعة الأصلي. هذا لا يعني اكتمال الاسترداد. استعلم عن السجلات الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Referensi tinjauan asli disimpan. Ini bukan pengembalian dana selesai. Periksa catatan asli untuk hasilnya."
+          }
+        }
+      }
+    },
+    "seller_refund_review_unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original review outcome is unknown. Its event and amount are retained; do not submit a replacement review. Query the original transaction records."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原复核结果未知，事件与金额已保留；请勿提交替代复核，请查询原交易记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原複核結果未知，事件與金額已保留；請勿提交替代複核，請查詢原交易記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の確認結果は不明です。イベントと金額は保持されています。代替の確認を送らず、元の取引記録を照会してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 검토 결과를 알 수 없습니다. 이벤트와 금액은 보관됩니다. 대체 검토를 제출하지 말고 원래 거래 기록을 조회하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El resultado original es desconocido. Se conservan el evento y el importe; no envíes otra revisión. Consulta las transacciones originales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le résultat d’origine est inconnu. L’événement et le montant sont conservés ; ne soumettez pas de remplacement. Consultez les transactions d’origine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das ursprüngliche Prüfergebnis ist unbekannt. Ereignis und Betrag bleiben erhalten; senden Sie keine Ersatzprüfung. Fragen Sie die ursprünglichen Transaktionen ab."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O resultado original é desconhecido. O evento e o valor estão retidos; não envie uma revisão substituta. Consulte as transações originais."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат исходной проверки неизвестен. Событие и сумма сохранены; не создавайте замену. Проверьте исходные транзакции."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نتيجة المراجعة الأصلية غير معروفة. تم الاحتفاظ بالحدث والمبلغ؛ لا ترسل مراجعة بديلة. استعلم عن المعاملات الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hasil tinjauan asli belum diketahui. Peristiwa dan jumlah disimpan; jangan kirim tinjauan pengganti. Periksa catatan transaksi asli."
+          }
+        }
+      }
+    },
+    "seller_refund_request_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current eligible refund request differs from this form. Reopen the original order and review its current request before continuing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前可复核退款申请与本表单不一致。请重新打开原订单，核对当前申请后再继续。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前可複核退款申請與本表單不一致。請重新開啟原訂單，核對目前申請後再繼續。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在確認できる返金申請がこのフォームと一致しません。元の注文を開き直し、現在の申請を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 검토 가능한 환불 요청이 이 양식과 다릅니다. 원래 주문을 다시 열고 현재 요청을 검토하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La solicitud elegible actual no coincide con este formulario. Abre de nuevo el pedido y revisa la solicitud actual."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La demande de remboursement éligible ne correspond plus à ce formulaire. Rouvrez la commande et vérifiez la demande actuelle."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die aktuell zulässige Erstattungsanfrage stimmt nicht mit diesem Formular überein. Öffnen Sie die ursprüngliche Bestellung erneut und prüfen Sie die aktuelle Anfrage."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A solicitação elegível atual difere deste formulário. Reabra o pedido original e revise a solicitação atual."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущий допустимый запрос возврата не совпадает с формой. Откройте исходный заказ заново и проверьте текущий запрос."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يختلف طلب الاسترداد المؤهل الحالي عن هذا النموذج. أعد فتح الطلب الأصلي وراجع طلبه الحالي قبل المتابعة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permintaan pengembalian yang memenuhi syarat berbeda dari formulir ini. Buka kembali pesanan asli dan tinjau permintaan saat ini."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
