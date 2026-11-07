@@ -106,24 +106,36 @@ func localIdentityHeader(h http.Header) bool {
 
 type localCallerConn struct {
 	*net.UnixConn
-	closed atomic.Bool
+	closed       atomic.Bool
+	continuation *taskReadContinuationConn
+}
+
+func (c *localCallerConn) Read(p []byte) (int, error) {
+	if c.continuation != nil {
+		return c.continuation.read(p)
+	}
+	return c.UnixConn.Read(p)
 }
 
 func (c *localCallerConn) Close() error {
 	c.closed.Store(true)
+	if c.continuation != nil {
+		return c.continuation.closeData()
+	}
 	return c.UnixConn.Close()
 }
 
 type localCallerConnKey struct{}
 
 type localCallerState struct {
-	request  *http.Request
-	ctx      context.Context
-	conn     *localCallerConn
-	server   *LocalCallerServer
-	material LocalCallerMaterial
-	handle   *LocalCaller
-	active   atomic.Bool
+	request      *http.Request
+	ctx          context.Context
+	conn         *localCallerConn
+	server       *LocalCallerServer
+	material     LocalCallerMaterial
+	handle       *LocalCaller
+	active       atomic.Bool
+	continuation *taskReadContinuationState
 }
 
 func (s *localCallerState) currentOriginalCaller(r *http.Request) error {
@@ -181,15 +193,16 @@ func (s *localCallerState) current(ctx context.Context) (LocalCallerMaterial, er
 // independent live UID/PID check on its actual accepted Unix connection. It
 // serves one HTTP/1.1 request per connection; no upgrade or proxy path exists.
 type LocalCallerServer struct {
-	cfg         LocalCallerServerConfig
-	routes      map[string]LocalCallerRoute
-	http        *http.Server
-	closed      atomic.Bool
-	mu          sync.Mutex
-	serving     bool
-	active      map[*localCallerState]context.CancelFunc
-	drained     chan struct{}
-	drainClosed bool
+	cfg                   LocalCallerServerConfig
+	routes                map[string]LocalCallerRoute
+	http                  *http.Server
+	closed                atomic.Bool
+	mu                    sync.Mutex
+	serving               bool
+	active                map[*localCallerState]context.CancelFunc
+	drained               chan struct{}
+	drainClosed           bool
+	taskReadContinuations map[*taskReadContinuationConn]struct{}
 }
 
 func NewLocalCallerServer(cfg LocalCallerServerConfig) (*LocalCallerServer, error) {
@@ -256,7 +269,20 @@ func (l *localCallerListener) Accept() (net.Conn, error) {
 		}
 		u, ok := c.(*net.UnixConn)
 		if ok && localPeer(u, l.server.cfg.PeerUID, l.server.cfg.PeerPID) == nil {
-			return &localCallerConn{UnixConn: u}, nil
+			conn := &localCallerConn{UnixConn: u}
+			if l.server.taskReadContinuations != nil {
+				p := newTaskReadContinuationConn(u, l.server)
+				l.server.mu.Lock()
+				if l.server.closed.Load() {
+					l.server.mu.Unlock()
+					_ = u.Close()
+					continue
+				}
+				l.server.taskReadContinuations[p] = struct{}{}
+				l.server.mu.Unlock()
+				conn.continuation = p
+			}
+			return conn, nil
 		}
 		_ = c.Close()
 	}
@@ -307,12 +333,20 @@ func (s *LocalCallerServer) Retire() error {
 		cancel()
 	}
 	s.finishDrainLocked()
+	var continuations []*taskReadContinuationConn
+	for c := range s.taskReadContinuations {
+		continuations = append(continuations, c)
+	}
 	s.mu.Unlock()
-	return s.http.Close()
+	err := s.http.Close()
+	for _, c := range continuations {
+		_ = c.closeData()
+	}
+	return err
 }
 
 func (s *LocalCallerServer) finishDrainLocked() {
-	if s.closed.Load() && len(s.active) == 0 && !s.drainClosed {
+	if s.closed.Load() && len(s.active) == 0 && len(s.taskReadContinuations) == 0 && !s.drainClosed {
 		s.drainClosed = true
 		close(s.drained)
 	}
@@ -391,6 +425,13 @@ func (s *LocalCallerServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	state.request, state.ctx = bound, bound.Context()
 	state.active.Store(true)
 	bound.Body = io.NopCloser(bytes.NewReader(body))
+	if c.continuation != nil {
+		if err := c.continuation.bind(state); err != nil {
+			http.Error(w, "original continuation denied", http.StatusForbidden)
+			return
+		}
+		defer c.continuation.retire()
+	}
 	if _, err := handle.Current(bound.Context()); err != nil {
 		return
 	}

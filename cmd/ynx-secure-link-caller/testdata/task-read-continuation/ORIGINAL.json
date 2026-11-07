@@ -1,0 +1,32 @@
+{
+  "purpose": "PUBLIC transport interoperability controls; not a Source, reservation verifier, P08 Store or Root",
+  "AuthR2": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/HANDOFF.json",
+    "bytes": 21754,
+    "sha256": "6225a6d7fa52cc009cf837f035af7884f8242b850c194db62ad8a603e46e6276",
+    "CIDependency": false,
+    "selectedABI": "physical paired owner/response; no flat-six fallback"
+  },
+  "protocol": {
+    "marker": 82,
+    "descriptorCount": 1,
+    "commands": ["C", "D", "F"],
+    "requestPayloadBytes": 37,
+    "responseFixedPayloadBytes": 43,
+    "sequenceMin": 1,
+    "sequenceMax": 64,
+    "digest": "SHA256 exact original HTTP entity body bytes; excludes headers and CRLF",
+    "DATABytesMax": 1048576,
+    "errorPresenceIndependentFromCode": true,
+    "claimSelectedBeforeFirstWriteAndInvocation": true,
+    "sameSocketAncillaryTransfer": true,
+    "newReverseService": false
+  },
+  "actualKernelAndGoExpected": true,
+  "heldChildInControls": "PUBLIC lifetime seam only; no Auth capability recognition claim",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "P08StoreExecuted": false,
+  "installed": false,
+  "deployed": false
+}

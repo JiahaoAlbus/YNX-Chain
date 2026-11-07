@@ -32,6 +32,7 @@ typedef struct {
     uid_t peer_uid;
     int resource_close_selected, resource_close_errno;
     unsigned resource_close_unknown;
+    int resource_sideband_selected;
     dev_t original_socket_device;
     ino_t original_socket_inode;
     mode_t original_socket_mode;
@@ -392,6 +393,101 @@ static napi_value retire_task_read_resource(napi_env env,napi_callback_info info
     set_number(env,result,"errorNumber",(uint32_t)value->resource_close_errno);
     set_number(env,result,"unknownCloseBits",value->resource_close_unknown);
     return result;
+}
+
+// Same caller allocation and actual data UDS, with a NEW socketpair. A dup of
+// control_fd is NOT a sideband: the receiver must get exactly one SCM_RIGHTS
+// descriptor and marker R before its one original execute HTTP request.
+static int wait_fd(int fd,short events,int wake,int64_t end);
+typedef struct {
+    napi_async_work work;napi_deferred deferred;napi_ref reference;
+    int data_fd,node_fd,transfer_fd,timeout,error,marker_written;
+    unsigned cleanup_unknown;int cleanup_error;
+    pid_t owner_pid,peer_pid;uid_t peer_uid;
+    const char *failure;
+} task_read_sideband_job;
+
+static void task_read_sideband_close(task_read_sideband_job *job,int *fd,unsigned bit) {
+    if(*fd<0)return;
+    if(close(*fd)){job->cleanup_unknown|=bit;if(!job->cleanup_error)job->cleanup_error=errno;}
+    else *fd=-1;
+}
+static void task_read_sideband_execute(napi_env env,void *data) {
+    (void)env;task_read_sideband_job *job=data;
+    caller actual={.control_fd=job->data_fd,.transfer_fd=-1,.owner_pid=job->owner_pid,.peer_uid=job->peer_uid,.peer_pid=job->peer_pid};
+    int64_t now=monotonic_ms();
+    if(now<0||current(&actual)){job->failure="original resource peer unavailable before R";goto done;}
+#ifdef SO_NOSIGPIPE
+    {int yes=1;if(setsockopt(job->data_fd,SOL_SOCKET,SO_NOSIGPIPE,&yes,sizeof(yes))){job->failure="resource R signal guard failed";goto done;}}
+#endif
+    for(;;){
+        if(wait_fd(job->data_fd,POLLOUT,-1,now+job->timeout)){job->failure="resource R write deadline";goto done;}
+        unsigned char marker=0x52;_Alignas(struct cmsghdr) unsigned char rights[CMSG_SPACE(sizeof(int))];memset(rights,0,sizeof(rights));
+        struct iovec iov={.iov_base=&marker,.iov_len=1};
+        struct msghdr message={0};message.msg_iov=&iov;message.msg_iovlen=1;message.msg_control=rights;message.msg_controllen=sizeof(rights);
+        struct cmsghdr *cmsg=CMSG_FIRSTHDR(&message);cmsg->cmsg_level=SOL_SOCKET;cmsg->cmsg_type=SCM_RIGHTS;cmsg->cmsg_len=CMSG_LEN(sizeof(int));memcpy(CMSG_DATA(cmsg),&job->transfer_fd,sizeof(int));
+        int flags=0;
+#ifdef MSG_NOSIGNAL
+        flags=MSG_NOSIGNAL;
+#endif
+        ssize_t n=sendmsg(job->data_fd,&message,flags);
+        if(n<0&&(errno==EINTR||errno==EAGAIN||errno==EWOULDBLOCK))continue;
+        if(n!=1){job->failure="resource R descriptor transfer incomplete";goto done;}
+        job->marker_written=1;break;
+    }
+    if(current(&actual))job->failure="original resource peer unavailable after R";
+done:
+    job->error=errno;
+    task_read_sideband_close(job,&job->data_fd,1);
+    task_read_sideband_close(job,&job->transfer_fd,2);
+    if(job->cleanup_unknown&&!job->failure){job->failure="resource sideband worker close unknown";job->error=job->cleanup_error;}
+}
+static void task_read_sideband_complete(napi_env env,napi_status status,void *data) {
+    task_read_sideband_job *job=data;napi_value out,part,error;
+    if(status!=napi_ok&&!job->failure)job->failure="resource sideband worker cancelled";
+    napi_create_object(env,&out);
+    napi_create_int32(env,job->node_fd,&part);napi_set_named_property(env,out,"fd",part);
+    napi_get_boolean(env,job->marker_written!=0,&part);napi_set_named_property(env,out,"markerWritten",part);
+    napi_get_boolean(env,job->cleanup_unknown!=0,&part);napi_set_named_property(env,out,"cleanupUnknown",part);
+    napi_get_boolean(env,job->failure!=NULL,&part);napi_set_named_property(env,out,"errorPresent",part);
+    if(job->failure)error=failure_value(env,"RESOURCE_CONTROL_UNKNOWN",job->failure,job->error);
+    else napi_get_null(env,&error);
+    if(job->cleanup_unknown){napi_get_boolean(env,true,&part);napi_set_named_property(env,error,"cleanupUnknown",part);napi_create_int32(env,job->cleanup_error,&part);napi_set_named_property(env,error,"cleanupErrno",part);}
+    napi_set_named_property(env,out,"error",error);
+    // fd ownership is transferred only in this one result, even on a partial
+    // error. JS must adopt it before inspecting errorPresent.
+    napi_resolve_deferred(env,job->deferred,out);job->node_fd=-1;
+    if(job->reference)napi_delete_reference(env,job->reference);
+    if(job->work)napi_delete_async_work(env,job->work);
+    if(!job->cleanup_unknown)free(job); // Retain unknown numeric fd debts once.
+}
+static napi_value open_task_read_sideband(napi_env env,napi_callback_info info) {
+    size_t n=2;napi_value args[2],promise,resource;uint32_t timeout;
+    if(napi_get_cb_info(env,info,&n,args,NULL,NULL)!=napi_ok||n!=2||number_field(env,args[1],"timeoutMs",&timeout,30000)||!timeout)
+        return reject(env,"DENIED","bounded original resource sideband required");
+    caller *value=unwrap(env,args[0]);
+    if(!value||value->resource_sideband_selected||current(value))return reject(env,"DENIED","one original resource sideband required");
+    task_read_sideband_job *job=calloc(1,sizeof(*job));
+    if(!job)return reject(env,"UNAVAILABLE","resource sideband allocation failed");
+    job->data_fd=job->node_fd=job->transfer_fd=-1;job->timeout=(int)timeout;
+    job->owner_pid=value->owner_pid;job->peer_uid=value->peer_uid;job->peer_pid=value->peer_pid;
+    if(napi_create_promise(env,&job->deferred,&promise)!=napi_ok||napi_create_reference(env,args[0],1,&job->reference)!=napi_ok){free(job);return reject(env,"UNAVAILABLE","resource sideband owner retention failed");}
+    value->resource_sideband_selected=1;
+    int pair[2];
+    if(socketpair(AF_UNIX,SOCK_STREAM,0,pair)){job->failure="resource socketpair failed";goto failed;}
+    job->node_fd=pair[0];job->transfer_fd=pair[1];
+    if(fcntl(pair[0],F_SETFD,FD_CLOEXEC)||fcntl(pair[0],F_SETFL,O_NONBLOCK)||fcntl(pair[1],F_SETFD,FD_CLOEXEC)||fcntl(pair[1],F_SETFL,O_NONBLOCK)){
+        job->failure="resource socketpair flags failed";goto failed;
+    }
+    job->data_fd=fcntl(value->control_fd,F_DUPFD_CLOEXEC,0);
+    if(job->data_fd<0){job->failure="resource data descriptor retention failed";goto failed;}
+    if(napi_create_string_utf8(env,"ynx-task-read-resource-sideband",NAPI_AUTO_LENGTH,&resource)!=napi_ok||
+       napi_create_async_work(env,NULL,resource,task_read_sideband_execute,task_read_sideband_complete,job,&job->work)!=napi_ok||
+       napi_queue_async_work(env,job->work)!=napi_ok){job->failure="resource sideband queue failed";goto failed;}
+    return promise;
+failed:
+    job->error=errno;task_read_sideband_close(job,&job->data_fd,1);task_read_sideband_close(job,&job->transfer_fd,2);
+    task_read_sideband_complete(env,napi_ok,job);return promise;
 }
 
 static napi_value retire(napi_env env, napi_callback_info info) {
@@ -760,6 +856,7 @@ static napi_value initialize(napi_env env, napi_value exports) {
         {"retireInbound",NULL,retire_inbound,NULL,NULL,NULL,napi_default,NULL},
         {"inspectOriginalTaskReadResourcePeer",NULL,inspect_task_read_resource_peer,NULL,NULL,NULL,napi_default,NULL},
         {"retireOriginalTaskReadResource",NULL,retire_task_read_resource,NULL,NULL,NULL,napi_default,NULL},
+        {"openTaskReadResourceSideband",NULL,open_task_read_sideband,NULL,NULL,NULL,napi_default,NULL},
         {"waitSocialDirectoryReadRelease",NULL,social_directory_wait,NULL,NULL,NULL,napi_default,NULL},
         {"writeSocialDirectoryClosedAck",NULL,social_directory_ack,NULL,NULL,NULL,napi_default,NULL},
         {"listenTaskRuntime",NULL,listen_runtime,NULL,NULL,NULL,napi_default,NULL},

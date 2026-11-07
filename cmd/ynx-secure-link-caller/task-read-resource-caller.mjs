@@ -11,7 +11,7 @@ import {createRequire} from 'node:module';
 import {types} from 'node:util';
 
 const native = createRequire(import.meta.url)('./build/caller.node');
-const owners = new WeakMap(), responses = new WeakMap();
+const owners = new WeakMap(), responses = new WeakMap(), sidebands = new WeakMap();
 const service = 'ynx-ai-original-task-read-v1';
 const routePaths = Object.freeze({input: '/internal/ai/original-task-read/input',
   execute: '/internal/ai/original-task-read/execute', query: '/internal/ai/original-task-read/query'});
@@ -160,6 +160,7 @@ function exchange(s, operation, input, options) {
   try {
     signal = signalOf(options);
     if (s.retired || s.closed || s.used) throw fault('DENIED', 'original caller already consumed or retired');
+    if (s.sidebandSelected && (!s.sidebandReady || operation !== 'execute')) throw fault('DENIED', 'protected sideband binds only its original execute');
     if (typeof operation !== 'string' || !s.profile?.selected.has(operation)) throw fault('DENIED', 'unregistered finite resource operation');
     route = s.profile.selected.get(operation); body = capture(input, route.maxRequestBytes);
     if (signal && aborted.call(signal)) throw fault('CANCELLED', 'resource request cancelled before dispatch', reason.call(signal));
@@ -304,4 +305,63 @@ export async function openOriginalTaskReadResourceCaller(profile, options) {
     s.opening = false; changed(s);
   }
   return Object.freeze({owner, errorPresent: s.firstPresent, error: s.firstPresent ? s.first : null});
+}
+
+// Package-private transport port used only by task-read-resource-continuation.
+// It opens a real socketpair and sends its receiver end on this SAME native
+// data connection. No caller fd, Source callback or authority brand is accepted.
+export async function openOriginalTaskReadResourceSidebandForContinuation(owner) {
+  const s = stateOf(owner);
+  if (s.used || s.retired || s.sidebandSelected || typeof native.openTaskReadResourceSideband !== 'function')
+    return Object.freeze({owner: null, errorPresent: true, error: fault('DENIED', 'one matching original sideband implementation required')});
+  s.sidebandSelected = true;
+  const c = {pid: process.pid, parent: s, socket: null, socketClosed: false, nativeDone: false, cleanupUnknown: false,
+    firstPresent: false, first: undefined, markerWritten: false, retired: false, socketBorrowed: false, waiters: new Set()};
+  const control = Object.freeze({
+    retire() {
+      if (sidebands.get(this) !== c || c.pid !== process.pid) throw fault('DENIED', 'same original sideband required');
+      if (!c.retired) {c.retired = true; c.socket?.destroy(); if (!c.socket) c.socketClosed = true; changed(c);}
+    },
+    async join(options) {
+      if (sidebands.get(this) !== c || c.pid !== process.pid) throw fault('DENIED', 'same original sideband required');
+      const signal = signalOf(options);
+      while (!c.nativeDone || !c.socketClosed) await wait(c, signal);
+      return Object.freeze({physicalDone: !c.cleanupUnknown, errorPresent: c.firstPresent, error: c.firstPresent ? c.first : null});
+    },
+    lifetime() {
+      if (sidebands.get(this) !== c || c.pid !== process.pid) throw fault('DENIED', 'same original sideband required');
+      return Object.freeze({markerWritten: c.markerWritten, nativeDone: c.nativeDone, socketClosed: c.socketClosed,
+        physicalDone: c.nativeDone && c.socketClosed && !c.cleanupUnknown, cleanupUnknown: c.cleanupUnknown});
+    },
+  });
+  sidebands.set(control, c);
+  const failed = error => {if (!c.firstPresent) {c.firstPresent = true; c.first = error;} if (error?.cleanupUnknown === true) {c.cleanupUnknown = true; s.cleanupUnknown = true;} };
+  try {
+    current(s);
+    const result = await native.openTaskReadResourceSideband(s.native, {timeoutMs: Math.min(s.profile.connectTimeoutMs, 30000)});
+    // Adopt the actual owned Node endpoint even when native transfer/cleanup
+    // also returns an error. It is never reconstructed from a fd/JSON setter.
+    if (Number.isInteger(result?.fd) && result.fd >= 0) {
+      try {c.socket = new net.Socket({fd: result.fd, readable: true, writable: true, highWaterMark: 1024});}
+      catch (error) {try {closeSync(result.fd);} catch (closeError) {c.cleanupUnknown = true; s.cleanupUnknown = true; c.fdDebt = {fd: result.fd, error: closeError};} throw error;}
+      c.socket.on('error', error => {c.socketError = error;});
+      c.socket.once('close', () => {c.socketClosed = true; changed(c);});
+    } else c.socketClosed = true;
+    c.markerWritten = result?.markerWritten === true;
+    if (result?.cleanupUnknown === true) {c.cleanupUnknown = true; s.cleanupUnknown = true;}
+    if (!result || typeof result.errorPresent !== 'boolean') failed(fault('UNAVAILABLE', 'resource sideband status missing'));
+    else if (result.errorPresent) failed(result.error);
+    else if (!c.socket || !c.markerWritten) failed(fault('UNAVAILABLE', 'resource sideband was not transferred'));
+    s.sidebandReady = !c.firstPresent;
+  } catch (error) {failed(error);}
+  finally {c.nativeDone = true; changed(c);}
+  return Object.freeze({owner: control, timeoutMs: Math.min(s.profile.requestTimeoutMs, 30000), errorPresent: c.firstPresent, error: c.firstPresent ? c.first : null});
+}
+
+// Borrowed package-private original socket, one reader/worker only. This is a
+// transport reference, not proof that a Source/Grant or reservation is genuine.
+export function takeOriginalTaskReadResourceSidebandSocket(control) {
+  const c = control && sidebands.get(control);
+  if (!c || c.pid !== process.pid || c.socketBorrowed || !c.socket || c.retired) throw fault('DENIED', 'same one original sideband socket required');
+  c.socketBorrowed = true; return c.socket;
 }
