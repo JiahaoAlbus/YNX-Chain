@@ -1,0 +1,39 @@
+{
+  "schema": "YNX_IDE_CONTROL_MATCHED_WHOLE_SUPPLIER_PUBLICATION_DEPENDENCIES/v1",
+  "originalFrozenWholeH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-control-matched-whole-cohort-successor-20261108/HANDOFF.json",
+    "bytes": 29080,
+    "sha256": "cafb11a58caff277d5ae2e0e31ba79720a387a500c7f48440ed876f8699a8270"
+  },
+  "originalFrozenSource": "3bfaec83dc2a56b013ee8df1a580704c20a5ab9b",
+  "originalFrozenSourceTree": "9f4fee30ace8b73731da625465c645b7e3e8fc60",
+  "actualSupplierBase": "a03725174c45c87525bce012dabcc7510dfe6129",
+  "actualSupplierReplayCommit": "6daa6d1a49d1855814127552d174b455c842164f",
+  "replayTreeExactFrozenSource": true,
+  "mainRepositoryParentClaimed": false,
+  "P03ActualConsumerH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_MATCHED_WHOLE_ADOPTION_HANDOFF_20261108.json",
+    "bytes": 6542,
+    "sha256": "bc18cba252e155b9c89c744048156d8e6a646e6702c3bdb3757792940bfa5fda"
+  },
+  "P03ActualConsumerSource": "037686719990c31f48ee1ffe3feb08b4b93b5c79",
+  "Core18TerminalH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/P03_CORE18_MATCHED_NORMAL_TERMINAL_HANDOFF_20261108.json",
+    "bytes": 3649,
+    "sha256": "f0eaf89f513b5a1a112a1def0cc009af1665a4faf86d3af23ba3ec61711a40d6"
+  },
+  "Core18CompositionDependencyStatus": "SUPPLIED_ORIGINAL_OWNER_NORMAL_PACKAGE_TERMINAL",
+  "Core18ManifestSHA256": "6ad35d28e3f412905b03d8f83788de5c5364200a8961fd2a2fcd12493ed1803b",
+  "Core18TreeSHA256": "1dcc709ff7d7c76835a60322cb486f8e1f8adf19320fa4d39e2d03ee30e3955d",
+  "coreInputsDoNotMutateOriginalSDKContract": true,
+  "CoreCompiledFrontendSource": "556e12d15a00bd8cf4ecb8b6ed5aa06864d9cb53",
+  "CorePluginSource": "ee4626fc4dccfd932232634653d9a4560d71b5b1",
+  "newAppBuilt": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "businessVerified": false,
+  "private7Reexecuted": false,
+  "NativeExecuted": false,
+  "npmPackageRepacked": false,
+  "runtime10995Duplicated": false
+}
