@@ -5,6 +5,8 @@ import {CORE_SUPPLY_PROFILES, normalizeCoreSupply, selectCoreSupplyProfile, veri
   verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden,
   CORE19_C2_BINDING, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
 
+// Preserve the original fixture dialects; Core20 has its own independent suite.
+const legacyProfiles = CORE_SUPPLY_PROFILES.filter(row => row.coreExports <= 19);
 const command = 'cmd/ynx-artifact-release-cabi';
 const pin = (name, bytes) => ({path: name, bytes: bytes.length,
   sha256: createHash('sha256').update(bytes).digest('hex'),
@@ -344,7 +346,7 @@ test('read inventories must be complete and the sole original main cannot be dup
 });
 
 test('post-symbol gate requires every exact approved Core profile and preserves LINK22/Product8 counts', () => {
-  for (const selected of CORE_SUPPLY_PROFILES) {
+  for (const selected of legacyProfiles) {
     const good = () => ({coreExports: [...selected.symbols], linkExports: Array(22), productExports: Array(8), symbols: Array(selected.totalExports)});
     verifyCombinedSupplyResult(selected, good());
     for (const mutation of [r => r.coreExports.pop(), r => {r.coreExports[0] = 'YNXUnlistedSignV1';}, r => r.linkExports.pop(), r => r.productExports.pop(), r => r.symbols.pop()]) {
@@ -548,7 +550,7 @@ test('go-list single command traverses its real LINK edge and leaves the separat
 });
 
 test('go-list requires the original direct LINK edge and its traversable package', () => {
-  for (const selected of CORE_SUPPLY_PROFILES) for (const mutate of [
+  for (const selected of legacyProfiles) for (const mutate of [
     rows => {rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(name => name !== modulePath + 'internal/securelink');},
     rows => rows.splice(rows.findIndex(row => row.ImportPath === modulePath + 'internal/securelink'), 1),
     rows => {
@@ -559,7 +561,7 @@ test('go-list requires the original direct LINK edge and its traversable package
 });
 
 test('go-list rejects multiple roots and dependency rows without true DepOnly', () => {
-  for (const selected of CORE_SUPPLY_PROFILES) for (const mutate of [
+  for (const selected of legacyProfiles) for (const mutate of [
     rows => {rows.find(row => row.ImportPath === modulePath + 'internal/ynxauth').DepOnly = false;},
     rows => {delete rows.find(row => row.ImportPath === modulePath + 'internal/securelink').DepOnly;},
     rows => rows.push({ImportPath: modulePath + 'internal/ynxresourceconsent', Name: 'ynxresourceconsent', DepOnly: false, Imports: []}),

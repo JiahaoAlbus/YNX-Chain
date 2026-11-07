@@ -103,9 +103,54 @@ export const CORE19_C2_BINDING = deepFreeze({
   neutralCSymbols: ['ynx_ctx_new', 'ynx_ssl_new', 'ynx_handshake', 'ynx_read', 'ynx_write', 'ynx_snapshot', 'ynx_export',
     'ynx_runtime_version', 'ynx_ctx_new_fds', 'ynx_peer_spki_der'],
 });
+// Separately frozen Core20 source identity. The former aa60 source and SDK
+// preparation commit remain provenance, never substitutes for this Git tuple.
+export const CORE20_FIXED_AGENT_BINDING = deepFreeze({
+  id: 'core20-fixed-agent-link42031/50', identitySupplied: true,
+  commit: '50c41ab27d6074c46e49d06a0b8f6e559d824778', tree: '58e64d957b9bed45d5ff69784335da433354b244',
+  rawSchema: 'YNX-CORE20-EXACT-GIT-SOURCE/v1',
+  forkTree: CORE19_C2_BINDING.forkTree, originalForkCommit: CORE19_C2_BINDING.commit,
+  linkCommit: CORE19_C2_BINDING.linkCommit, linkTree: CORE19_C2_BINDING.linkTree,
+  modules: CORE19_C2_BINDING.modules, template: CORE19_C2_BINDING.template,
+  normalSourceCount: 172, linkSourceCount: 78, forkFileCount: 1456, forkBytes: 60470640,
+  sourceLeaves: 91, productionGo: 71, handHeaders: 18, cgoTranslationUnits: 20,
+  completeSourceFiles: 1626, completeSourceBytes: 61696256, combinedHandHeaders: 24,
+  neutralCSymbols: CORE19_C2_BINDING.neutralCSymbols,
+  additions: [
+    {repositoryPath: 'internal/ynxbatch/ai_task_v6_fixed_sign.go', bytes: 5681, sha256: 'a228a7b79d25b00320c1d62f4990d135b8ce499bb37d908951432aad6663bc6d', gitBlob: 'b291dcfc05c506412e79cbb0ec1fb94858093321'},
+    {repositoryPath: command + '/ai_task_agent_fixed_v6_bridge.go', bytes: 2799, sha256: 'ad404bd0652ce3ed0f4f855ae79917bde7dfdd8edd3d8c8747914dcbb3ba30ed', gitBlob: '20d966cd8f2f37cec58544104bdd690703ca6f28'},
+    {repositoryPath: command + '/ai_task_agent_fixed_v6.h', bytes: 652, sha256: '4cb3a440384a28878b74d211e04d63c92377bb8d309776ddc57de5046f0b3f04', gitBlob: 'f103723161481516348c43ddd8e2537d43f3984b'},
+  ],
+  // Root-prepared DATA are pinned independently of the still-missing Core H.
+  inputs: {
+    source: {bytes: 79581, sha256: 'b89403f8ff944ad32d40e400a6214ec955c9c71a919bd554e3b125e212ea2bf7'},
+    integration: {bytes: 12062, sha256: '3c212427e65d0a2a6736074323ecbf5bd4c6ee3921e20acba561186d4abf194e'},
+    ownership: {bytes: 5075, sha256: '41fd321573858acb49b92d94875c7687c35340525a25f0e067a8ed6cb1d334cf'},
+    composition: {bytes: 1373387, sha256: 'e2c0a8c4bbbeef98404d68bd138d4fe9464dfc58dc53f38e28f7f07d80ba1c5a'},
+    headerManifest: {bytes: 17140, sha256: '9ff196db814529b54c17a6004ebdd78b833684a53288369b5927f07a960372ef'},
+    expectedExports: {bytes: 3512, sha256: '9d20c9d2014972d7fa3bcc38dcac4c91a5fc9386addd47ad0d9618165b328d0c'},
+    compatibility: {bytes: 16793, sha256: 'e2565e95386d235c4d3d2f650da9d33c79daf013eaf340138a137bd93530a9b0'},
+    nativeCompanions: {bytes: 5144, sha256: '26980e2e45b4868444e09d9e0baf30c1134501d2a0422e043ede73c75844076e'},
+    inputCAS: {bytes: 7558, sha256: '93d39124b65cd92d6a3595f4a31d68daf785857be93a4609d986651c0214a508'},
+    authHeaders: CORE19_C2_BINDING.inputs.authHeaders, nativeUndefined: CORE19_C2_BINDING.inputs.nativeUndefined,
+  },
+});
+const fixedAgentBinding = Object.freeze({symbol: 'YNXAITaskActionAgentFixedSignV6',
+  bridge: command + '/ai_task_agent_fixed_v6_bridge.go', header: command + '/ai_task_agent_fixed_v6.h',
+  implementation: 'internal/ynxbatch/ai_task_v6_fixed_sign.go'});
+const core20Template = Object.freeze({...originalCore19, id: CORE20_FIXED_AGENT_BINDING.id,
+  commit: CORE20_FIXED_AGENT_BINDING.commit, tree: CORE20_FIXED_AGENT_BINDING.tree,
+  bindings: Object.freeze([...originalCore19.bindings, fixedAgentBinding]),
+  sourcePaths: Object.freeze([...originalCore19.sourcePaths, ...CORE20_FIXED_AGENT_BINDING.additions.map(row => row.repositoryPath)].sort()),
+  symbols: Object.freeze([...originalCore19.symbols, fixedAgentBinding.symbol].sort()),
+  headers: Object.freeze([...originalCore19.headers, fixedAgentBinding.header].sort()),
+  bridges: Object.freeze([...originalCore19.bridges, fixedAgentBinding.bridge].sort()),
+  cgoTranslationUnits: Object.freeze([...originalCore19.cgoTranslationUnits, fixedAgentBinding.bridge].sort()),
+  coreExports: 20, totalExports: 50, preparedComposition: CORE20_FIXED_AGENT_BINDING});
 export const CORE_SUPPLY_PROFILES = Object.freeze([...originalProfiles, Object.freeze({...originalCore19,
   id: CORE19_C2_BINDING.id, commit: CORE19_C2_BINDING.commit, tree: CORE19_C2_BINDING.tree,
-  preparedComposition: CORE19_C2_BINDING})]);
+  preparedComposition: CORE19_C2_BINDING}),
+  ...(CORE20_FIXED_AGENT_BINDING.identitySupplied ? [core20Template] : [])]);
 
 const requireValue = (value, message) => {if (!value) throw Error('Core supply profile: ' + message);};
 const exact = (actual, expected, label) => {
@@ -136,6 +181,11 @@ const clone = value => structuredClone(value);
 // claimed. The builder still verifies every byte against the approved f27 tree.
 export function normalizeCoreSupply(raw) {
   if (raw?.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1') return normalizeCore19Supply(raw);
+  if (raw?.schema === 'YNX-CORE20-EXACT-GIT-SOURCE/v1') {
+    const selected = CORE_SUPPLY_PROFILES.find(row => row.coreExports === 20 && row.commit === raw.commit && row.tree === raw.tree);
+    requireValue(selected, 'approved exact Core20 committed source91 identity required; pending template is not selectable');
+    return normalizeCore20Supply(raw, selected);
+  }
   if (raw?.version !== 1) return {supply: raw, provenance: {derivedViewOnly: false, rawSchemaVersion: raw?.version}};
   requireValue(raw.state === 'CORE18_PUBLIC_SOURCE_CARRIER_BASE_PLUS_FROZEN_DELTA_NO_ARCHIVE' &&
     raw.source === undefined && raw.actualCounts === undefined && raw.productionPackageClosure === undefined &&
@@ -267,6 +317,115 @@ function normalizeCore19Supply(raw) {
     fixedResourceCABIBackendSupplied: true, protectedAuthNativeFactoryQualified: false}};
 }
 
+// Independent Core20 dialect. Do not retroactively widen the frozen Core19
+// 88/69/17/19 schema/count gates above.
+function normalizeCore20Supply(raw, selected) {
+  requireValue(raw?.schema === 'YNX-CORE20-EXACT-GIT-SOURCE/v1' &&
+    raw.commit === selected.commit && raw.tree === selected.tree &&
+    raw.source === undefined && raw.actualCommit === undefined && raw.postCommit === undefined,
+    'exact raw Core20 commit/tree schema required');
+  const binding = CORE20_FIXED_AGENT_BINDING;
+  requireValue(raw.parentCommit === CORE19_C2_BINDING.commit && raw.parentTree === CORE19_C2_BINDING.tree &&
+    raw.sourceLeafCount === 91 && raw.moduleContextRows === 4 && raw.physicalCarrierFiles === 95 && raw.uniqueRepositoryPaths === 93 &&
+    raw.actualCommitNotPrediction === true && raw.actualSourceCommitIsNotSDKComposition === true && raw.sourceBytesUnmodified === true &&
+    raw.completeGitTreeIsNotPackaged === true && raw.carrierIsProductionClosureNotStandaloneVendorTree === true &&
+    raw.normalAFullForkAndModuleContextRequired === true && raw.archiveIncluded === false && raw.authority === false,
+    'actual Core20 committed91 production closure and original full normal context required');
+  for (const key of ['sourceRoot', 'moduleContextRoot']) requireValue(typeof raw[key] === 'string' && raw[key].startsWith('/') &&
+    !raw[key].endsWith('/') && !raw[key].split('/').slice(1).some(part => part === '' || part === '.' || part === '..'),
+    'absolute original Core20 carrier root required: ' + key);
+  inputPin(raw.selectedNormalInputH, binding.inputs.integration, 'Core20 selected Root handoff');
+  inputPin(raw.selectedNormalInputCAS, binding.inputs.inputCAS, 'Core20 selected Root CAS');
+  exact(raw.sources?.map(row => row?.repositoryPath), selected.sourcePaths, 'Core20 exact91 source paths');
+  const additions = new Set(binding.additions.map(row => row.repositoryPath));
+  const sources = raw.sources.map(row => {
+    requireValue(validPin(row) && row.gitMode === '100644' && row.path === raw.sourceRoot + '/' + row.repositoryPath &&
+      row.commit === selected.commit && row.tree === selected.tree && row.changeFromParent === (additions.has(row.repositoryPath) ? 'ADD' : 'UNCHANGED'),
+      'Core20 actual committed source pin/carrier/provenance required');
+    return {...clone(row), originalCarrierPath: row.path, path: row.repositoryPath};
+  });
+  const byPath = new Map(sources.map(row => [row.path, row]));
+  for (const expected of binding.additions) requireValue(samePin(byPath.get(expected.repositoryPath) ?? {}, expected),
+    'fixedAgent exact addition required: ' + expected.repositoryPath);
+  const closure = raw.productionClosure;
+  requireValue(closure?.rootPackage === command && closure.packageCount === 5 && closure.goFileCount === 71 && closure.headerCount === 18 &&
+    closure.productionLeafCount === 91 && closure.cgoTranslationUnitCount === 20 && closure.exportCount === 20 && closure.guardCount === 17 &&
+    closure.exactGitOldProductionFileSetChecked === true && closure.staticImportsIndependentlyRewalked === true &&
+    closure.exactGitProductionFileSetChecked === true && closure.exactGitCommit === selected.commit &&
+    closure.freshGoListRun === false && closure.freshGoTestRun === false && closure.nativeArchiveBuilt === false,
+    'Core20 exact static closure is not a fresh command execution');
+  exact(Object.keys(closure.packages ?? {}), selected.packagePaths, 'Core20 package paths');
+  exact(closure.cgoTranslationUnits, selected.cgoTranslationUnits, 'Core20 export/static cgo units');
+  exact(closure.exports?.map(row => row?.symbol), selected.symbols, 'Core20 export identities');
+  exact(closure.pragmaOnceHeaders, [fixedAgentBinding.header], 'Core20 single pragma-once header');
+  exact(closure.includeGuards?.map(row => row?.header), originalCore19.headers, 'Core20 original17 guarded headers');
+  requireValue(closure.includeGuards.every(row => /^[A-Z][A-Z0-9_]*$/.test(row.guard ?? '')) &&
+    new Set(closure.includeGuards.map(row => row.guard)).size === 17, 'Core20 unique original17 include guards required');
+  requireValue(Array.isArray(closure.localIncludes) && closure.localIncludes.every(row => selected.sourcePaths.includes(row?.source) &&
+    selected.headers.includes(row?.include)) && closure.localIncludes.some(row => row.source === fixedAgentBinding.bridge && row.include === fixedAgentBinding.header),
+    'Core20 closed local header includes required');
+  inputPin(closure.oldActualGoList, {bytes: 366975, sha256: '3e90a99beb32341d20212029ed65ecfaa9298385c522e43dfd293a69b4c0a675'},
+    'historical Go-list provenance, not a fresh Core20 execution');
+  const exports = selected.bindings.map(expected => {
+    requireValue(closure.exports.find(row => row.symbol === expected.symbol)?.source === expected.bridge, 'Core20 fixed export bridge required');
+    return {symbol: expected.symbol, ...Object.fromEntries(['bridge', 'header', 'implementation'].map(key => [key, clone(byPath.get(expected[key]))]))};
+  });
+  const productionPackageClosure = Object.fromEntries(Object.entries(closure.packages).map(([name, row]) => {
+    requireValue(Array.isArray(row.productionGoFiles) && Array.isArray(row.imports) && row.imports.every(name => typeof name === 'string') &&
+      new Set(row.imports).size === row.imports.length && row.exactGitProductionFileSetChecked === true,
+      'Core20 original package production/import inventory required');
+    const expected = selected.sourcePaths.filter(p => p.startsWith(name + '/') && p.endsWith('.go'));
+    exact(row.productionGoFiles, expected, 'Core20 package Go paths');
+    return [name, {paths: clone(row.productionGoFiles), goFiles: row.productionGoFiles.length}];
+  }));
+  const prefix = 'github.com/JiahaoAlbus/YNX-Chain/';
+  requireValue(closure.packages[command].imports.includes(prefix + 'internal/ynxresourceconsent'),
+    'Core20 fixed resource backend must remain directly imported');
+  const reached = new Set(), pending = [command];
+  while (pending.length) {
+    const name = pending.pop(); if (reached.has(name)) continue;
+    requireValue(closure.packages[name], 'Core20 static local import missing from closure'); reached.add(name);
+    pending.push(...closure.packages[name].imports.filter(name => name.startsWith(prefix)).map(name => name.slice(prefix.length)));
+  }
+  exact([...reached], selected.packagePaths, 'Core20 static actual local import traversal');
+  exact(raw.moduleContext?.map(row => row?.repositoryPath), modulePaths, 'Core20 exact module descriptor paths');
+  for (const expected of binding.modules) {
+    const row = raw.moduleContext.find(row => row.repositoryPath === expected.repositoryPath);
+    requireValue(validPin(row) && samePin(row, expected) && row.gitMode === '100644' &&
+      row.path === raw.moduleContextRoot + '/' + row.repositoryPath && row.commit === selected.commit && row.tree === selected.tree &&
+      row.changeFromParent === 'UNCHANGED', 'Core20 inherited normal module/fork descriptor pin required');
+    if (byPath.has(row.repositoryPath)) requireValue(samePin(row, byPath.get(row.repositoryPath)), 'Core20 module/source mismatch');
+  }
+  return {supply: {version, source: {commit: selected.commit, tree: selected.tree, module: 'github.com/JiahaoAlbus/YNX-Chain', go: '1.26.10'},
+    LINKReadOnlyComposition: {sourceCommit: binding.linkCommit}, sources, exports,
+    delivery: {sourceDirectory: raw.sourceRoot},
+    moduleContext: {sourceCommit: selected.commit, sourceTree: selected.tree,
+      originalReplace: 'github.com/cometbft/cometbft => ./third_party/cometbft', stubModule: false, descriptors: clone(raw.moduleContext)},
+    productionPackageClosure, actualCounts: {sourceLeaves: 91, productionGo: 71, handHeaders: 18, exportedSymbols: 20,
+      cgoTranslationUnits: 20, cgoTranslationUnitPaths: clone(closure.cgoTranslationUnits)}},
+    provenance: {derivedViewOnly: true, rawSchema: raw.schema, actualCommit: raw.commit, actualTree: raw.tree,
+      rawDependencyClosure: clone(closure), rawAuthority: clone(raw.authority),
+      rawSourceIdentity: {commit: raw.commit, tree: raw.tree, parentCommit: raw.parentCommit, parentTree: raw.parentTree,
+        actualCommitNotPrediction: raw.actualCommitNotPrediction, actualSourceCommitIsNotSDKComposition: raw.actualSourceCommitIsNotSDKComposition},
+      rawCarrier: {sourceRoot: raw.sourceRoot, moduleContextRoot: raw.moduleContextRoot, sourceLeafCount: raw.sourceLeafCount,
+        physicalCarrierFiles: raw.physicalCarrierFiles, uniqueRepositoryPaths: raw.uniqueRepositoryPaths},
+      sourceRowProvenance: clone(raw.sources), rawModuleContext: clone(raw.moduleContext),
+      rawSelectedNormalInputH: clone(raw.selectedNormalInputH), rawSelectedNormalInputCAS: clone(raw.selectedNormalInputCAS),
+      fixedAgentMathSupplied: true, protectedAuthNativeFactoryQualified: false, freshCommandClosureClaimedBySupplier: false}};
+}
+
+// Metadata-only preparation diagnostic for an unadmitted Core20 supplier.
+// It cannot add a profile or make normalize/select accept a pending identity.
+export function diagnoseCore20FixedAgentSupply(raw) {
+  requireValue(/^[a-f0-9]{40}$/.test(raw?.commit ?? '') && /^[a-f0-9]{40}$/.test(raw?.tree ?? '') &&
+    ![CORE19_C2_BINDING.commit, originalCore19.commit, '6e13ba7cf0abd83d974045d765a5e86491af30b4'].includes(raw.commit),
+    'new actual Core candidate identity required; old Core/SDK identities cannot name Core20');
+  const normalized = normalizeCore20Supply(raw, {...core20Template, commit: raw.commit, tree: raw.tree});
+  return {scope: 'CORE20_PUBLIC_SOURCE_METADATA_ONLY_NOT_ADMISSION', counts: clone(normalized.supply.actualCounts),
+    paths: [...core20Template.sourcePaths], symbols: [...core20Template.symbols],
+    normalProfileAdmitted: false, actualGitBytesVerified: false, RootAdmission: false, SourceAdmission: false};
+}
+
 /** Pure metadata gate, called before creating any build output. */
 export function selectCoreSupplyProfile(raw) {
   const {supply: core} = normalizeCoreSupply(raw);
@@ -274,7 +433,8 @@ export function selectCoreSupplyProfile(raw) {
   requireValue(Array.isArray(core.exports), 'declared exports required');
   const selected = CORE_SUPPLY_PROFILES.find(row => row.commit === core.source.commit && row.tree === core.source.tree);
   requireValue(selected && (selected !== core18 || raw.version === 1) &&
-    (selected.coreExports !== 19 || raw.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1'), 'approved Core15, Core17, raw Core18 or exact Core19 commit/tree identity required');
+    (selected.coreExports !== 19 || raw.schema === 'YNX-CORE19-EXACT-GIT-SOURCE/v1') &&
+    (selected.coreExports !== 20 || raw.schema === 'YNX-CORE20-EXACT-GIT-SOURCE/v1'), 'approved exact named Core15/17/18/19/20 raw commit/tree identity required');
   requireValue(core.LINKReadOnlyComposition?.sourceCommit === (selected.preparedComposition?.linkCommit ?? baseLINKCommit), 'profile-specific original LINK contract required');
   exact(core.exports.map(row => row?.symbol), selected.symbols, 'Core export identities');
   requireValue(Array.isArray(core.sources), 'complete source pins required');
@@ -402,6 +562,234 @@ export function verifyCore19C2NeutralSymbols(selected, plain, macho) {
   });
 }
 
+// Closed preparation input layouts are profile-owned, never caller-selected paths.
+const c2InputFiles = Object.freeze({composition: 'COMPOSITION.json', fork: 'FORK-CONTEXT.json',
+  supplier: 'SUPPLIER-CONTRACT.json', handoff: 'HANDOFF.json'});
+const core20InputFiles = Object.freeze({integration: 'INTEGRATION_HANDOFF.json', ownership: 'NORMAL_PRODUCER_HANDOFF.json',
+  composition: 'SOURCE_MANIFEST.json', inputCAS: 'SOURCE_INPUT_CAS.json', headerManifest: 'HEADER_MANIFEST.json',
+  expectedExports: 'EXPECTED_EXPORTS.json', nativeCompanions: 'NATIVE_COMPANIONS.json', compatibility: 'INHERITED_COMPATIBILITY.json'});
+const linkSymbols = Object.freeze(['ynx_link_pay_native_startup_adopt_source_v1', 'ynx_link_pay_native_startup_close_v1',
+  'ynx_link_pay_native_startup_closed_v1', 'ynx_link_pay_native_startup_error_v1', 'ynx_link_pay_native_startup_free_v1',
+  'ynx_link_pay_native_startup_join_v1', 'ynx_link_pay_native_startup_open_v1', 'ynx_link_pay_native_startup_retire_v1',
+  ...['call', 'capture', 'close', 'current_local', 'current_source', 'error', 'free', 'join', 'packet_free', 'recheck',
+    'registration_borrow_current', 'registration_borrow_release', 'registration_from_borrow', 'retire'].map(n => 'ynx_link_private_client_' + n + '_v1')]);
+const productSymbols = Object.freeze(['cancel', 'close', 'join', 'open', 'release_response', 'request', 'response_diagnostics', 'retire']
+  .map(n => 'ynx_product_pay_transport_' + n + '_v1'));
+const repositoryPath = name => typeof name === 'string' && /^[A-Za-z0-9_./@+-]+$/.test(name) &&
+  name.split('/').every(part => part !== '' && part !== '.' && part !== '..');
+const materializedPin = row => row && repositoryPath(row.repositoryPath) && Number.isSafeInteger(row.bytes) && row.bytes >= 0 &&
+  /^[a-f0-9]{64}$/.test(row.sha256 ?? '') && /^[a-f0-9]{40}$/.test(row.gitBlob ?? '') && row.mode === '0o644' &&
+  row.relative === 'source/' + row.repositoryPath;
+const inputPin = (row, pin, label) => requireValue(row && pin && row.bytes === pin.bytes && row.sha256 === pin.sha256,
+  'fixed Core20 dependency pin required: ' + label);
+function preparedKind(selected) {
+  approved(selected);
+  requireValue(selected.preparedComposition === CORE19_C2_BINDING || selected.preparedComposition === CORE20_FIXED_AGENT_BINDING,
+    'named prepared Core profile required');
+  return selected.preparedComposition;
+}
+export function preparedCoreInputFiles(selected) {
+  return preparedKind(selected) === CORE19_C2_BINDING ? c2InputFiles : core20InputFiles;
+}
+function core20Inventories(inputs) {
+  const c = inputs.composition?.value, b = CORE20_FIXED_AGENT_BINDING;
+  requireValue(c?.schema === 'YNX-FIXED-AGENT-ONE-ARCHIVE-SOURCE-PREPARED/v1' && c.completeSourceFiles === b.completeSourceFiles &&
+    c.completeSourceBytes === b.completeSourceBytes && c.normalProducerInputCount === b.normalSourceCount &&
+    c.forkFiles === b.forkFileCount && c.forkTreeUnchanged === b.forkTree && c.normalForkDescriptorAliases === 2 &&
+    c.inputOnly === true && c.CoreReleaseCommitNotIssued === true && c.compiled === false && c.admitted === false,
+    'exact Root-prepared172/1626 source-only graph required');
+  requireValue(Array.isArray(c.normalProducerInputs) && c.normalProducerInputs.length === b.normalSourceCount &&
+    c.normalProducerInputs.every(row => repositoryPath(row.repositoryPath) && validPin(row)) &&
+    new Set(c.normalProducerInputs.map(row => row.repositoryPath)).size === b.normalSourceCount,
+    'unique normal172 byte/hash/Git pins required');
+  requireValue(Array.isArray(c.files) && c.files.length === b.completeSourceFiles && c.files.every(materializedPin) &&
+    new Set(c.files.map(row => row.repositoryPath)).size === b.completeSourceFiles &&
+    c.files.reduce((sum, row) => sum + row.bytes, 0) === b.completeSourceBytes, 'unique regular1626 source pins/bytes required');
+  const full = new Map(c.files.map(row => [row.repositoryPath, row]));
+  for (const row of c.normalProducerInputs) requireValue(samePin(row, full.get(row.repositoryPath) ?? {}), 'normal/materialized source mismatch');
+  const fork = c.files.filter(row => row.repositoryPath.startsWith('third_party/cometbft/'));
+  requireValue(fork.length === b.forkFileCount && fork.reduce((sum, row) => sum + row.bytes, 0) === b.forkBytes,
+    'complete unchanged1456 replacement fork required');
+  exact(c.files.map(row => row.repositoryPath), [...new Set([...c.normalProducerInputs, ...fork].map(row => row.repositoryPath))],
+    'normal/fork exact source union');
+  for (const expected of b.modules.filter(row => row.repositoryPath.startsWith('third_party/')))
+    requireValue(samePin(fork.find(row => row.repositoryPath === expected.repositoryPath) ?? {}, expected), 'unchanged normal fork module pin required');
+  // Root's materialization mode is preserved; the derived value is used only for
+  // the builder's independent comparison with the actual Core Git tree.
+  return {normal: clone(c.normalProducerInputs), fork: fork.map(row => ({...clone(row), validatedGitMode: '100644'}))};
+}
+export function preparedCoreSourceInventories(selected, inputs) {
+  return preparedKind(selected) === CORE19_C2_BINDING ?
+    {normal: inputs.composition.value.normalProducerSources, fork: inputs.fork.value.files} : core20Inventories(inputs);
+}
+function validateCore20Recipe(selected, inputs, {linkCommit, linkTree, linkPaths}, metadataOnly = false) {
+  const b = CORE20_FIXED_AGENT_BINDING;
+  for (const [key, expected] of Object.entries(b.inputs)) {
+    if (key === 'source' && metadataOnly && expected === null) continue;
+    inputPin(inputs[key]?.descriptor, expected, key);
+  }
+  requireValue(linkCommit === b.linkCommit && linkTree === b.linkTree, 'fixed Core20 LINK42031 identity required');
+  const normalized = normalizeCore20Supply(inputs.source?.value, selected).supply;
+  const inventories = core20Inventories(inputs), normal = inventories.normal;
+  const coreRows = new Map([...normalized.sources.map(row => [row.path, row]),
+    ...normalized.moduleContext.descriptors.map(row => [row.repositoryPath, row])]);
+  requireValue(Array.isArray(linkPaths) && linkPaths.length === b.linkSourceCount && new Set(linkPaths).size === linkPaths.length &&
+    linkPaths.every(name => repositoryPath(name) && (name.startsWith('internal/securelink/') ||
+      ['cmd/ynx-secure-link-caller/private_client_v1.h', 'cmd/ynx-secure-link-caller/private_client_startup_v1.h'].includes(name))),
+    'same original LINK78 source paths required');
+  exact(normal.map(row => row.repositoryPath), [...coreRows.keys(), ...linkPaths, b.template.repositoryPath], 'Core20 normal172 source closure');
+  const additions = new Map(b.additions.map(row => [row.repositoryPath, row]));
+  for (const row of normal) {
+    const original = coreRows.get(row.repositoryPath);
+    if (original) {
+      requireValue(samePin(row, original), 'actual Core91 and prepared source bytes/Git must agree');
+      if (additions.has(row.repositoryPath)) requireValue(row.compositeOverlayOnly === true &&
+        row.sourceCommit === '6e13ba7cf0abd83d974045d765a5e86491af30b4' && row.sourcePath === 'core-source/' + row.repositoryPath,
+        'original supplier ADD provenance required');
+      else requireValue(row.owner === 'Core' && row.commit === CORE19_C2_BINDING.commit,
+        'preserve inherited aa60 preparation provenance without claiming the new commit');
+    } else if (row.repositoryPath === b.template.repositoryPath) requireValue(row.owner === 'LINK original composition template' &&
+      row.commit === linkCommit && row.generatedFrom === b.template.generatedFrom && samePin(row, b.template), 'original single-main import template required');
+    else requireValue(row.owner === 'LINK' && row.commit === linkCommit, 'same original LINK42031 preparation provenance required');
+  }
+  const full = new Map(inputs.composition.value.files.map(row => [row.repositoryPath, row]));
+  for (const row of full.values()) requireValue(row.action === (additions.has(row.repositoryPath) ? 'ADD' : 'UNCHANGED'),
+    'only three fixed additions may change the prepared source graph');
+  const cas = inputs.inputCAS.value;
+  requireValue(cas.schema === 'YNX-ROOT-FIXED-AGENT-ONE-ARCHIVE-INPUT-CAS/v1' &&
+    cas.base?.CoreCommit === CORE19_C2_BINDING.commit && cas.base.LINKCommit === linkCommit && cas.base.sourceFiles === 1623 &&
+    cas.base.profile?.id === CORE19_C2_BINDING.id && cas.base.profile.commit === CORE19_C2_BINDING.commit &&
+    cas.base.profile.tree === CORE19_C2_BINDING.tree && cas.base.profile.coreExports === 19 && cas.base.profile.totalExports === 49 &&
+    Array.isArray(cas.MODIFY) && cas.MODIFY.length === 0 && Array.isArray(cas.REMOVE) && cas.REMOVE.length === 0 &&
+    cas.sourceInputsVerifiedAgainstOriginalPins === true && cas.beforeAbsenceVerifiedInOriginalAInventoryAndSourceRoot === true &&
+    cas.baselineNotWritten === true && cas.supplierNotWritten === true && cas.productionSharedWriteSetModified === false &&
+    cas.actualNewArchive === null && cas.AStartAuthorized === false && cas.AStartExecuted === false,
+    'additive source-only Root CAS, not an execution or authority grant, required');
+  exact(cas.changes?.map(row => row.repositoryPath), [...additions.keys()], 'three fixed CAS additions');
+  for (const row of cas.changes) requireValue(materializedPin(row) && row.action === 'ADD' && row.before === null &&
+    samePin(row, additions.get(row.repositoryPath)) && samePin(row, full.get(row.repositoryPath)) &&
+    row.sourceGit?.commit === '6e13ba7cf0abd83d974045d765a5e86491af30b4' &&
+    row.sourceGit.repositoryPath === 'core-source/' + row.repositoryPath &&
+    row.sourceGit.kind === 'SUPPLIER_INDEPENDENT_COMPOSITION_NOT_CORE_RELEASE_COMMIT', 'fixed ADD with independent supplier provenance required');
+  for (const key of ['headerManifest', 'nativeCompanions', 'expectedExports', 'compatibility']) inputPin(cas[key], b.inputs[key], 'CAS ' + key);
+  inputPin(cas.sourceManifest, b.inputs.composition, 'CAS sourceManifest');
+  const integration = inputs.integration.value;
+  requireValue(integration.schema === 'YNX-ROOT-FIXED-AGENT-ONE-ARCHIVE-NORMAL-INPUT-HANDOFF/v1' &&
+    integration.CoreProductionLeaves === 91 && integration.GoExportCount === 50 && integration.twoGoRuntimesAllowed === false &&
+    integration.completeMaterializedSourceFiles === 1626 && integration.completeMaterializedSourceBytes === b.completeSourceBytes &&
+    integration.expectedNewExport === fixedAgentBinding.symbol && integration.fixedN === 1 && integration.wholeBatchANDSecurityUnchanged === true &&
+    integration.truth?.actualNewArchiveBuilt === false && integration.truth.normalProfileAdmitted === false &&
+    integration.truth.AStartAuthorized === false && integration.truth.AStartExecuted === false &&
+    integration.truth.RootAdmission === false && integration.truth.SourceAdmission === false, 'Root source preparation is not normal qualification required');
+  for (const [key, label] of Object.entries({composition: 'SOURCE_MANIFEST', inputCAS: 'SOURCE_INPUT_CAS', headerManifest: 'HEADER_MANIFEST',
+    nativeCompanions: 'NATIVE_COMPANIONS', expectedExports: 'EXPECTED_EXPORTS', compatibility: 'INHERITED_COMPATIBILITY', ownership: 'NORMAL_PRODUCER_HANDOFF'}))
+    inputPin(integration.preparedInputs?.[label], b.inputs[key], 'handoff ' + label);
+  const ownership = inputs.ownership.value;
+  requireValue(ownership.schema === 'YNX-FIXED-AGENT-NORMAL-PRODUCER-OWNERSHIP/v1' &&
+    ownership.uniqueProductionWriter?.threadId === '01a1913c-4f7c-73b1-a774-e67496ebc6d6' &&
+    ownership.noProductPatchGenerated === true && ownership.noReceiverTaskIncluded === true, 'original normal producer ownership required');
+  const h = inputs.headerManifest.value;
+  const auth = inputs.authHeaders.value;
+  requireValue(auth?.version === 1 && Array.isArray(auth.headers) && auth.headers.length === 4, 'original four Auth/Product public build header pins required');
+  exact(auth.headers.map(row => row.name), ['pay_native_actual_context_private.h', 'pay_native_source_lease_private.h',
+    'pay_root_transport_loan_private.h', 'product_pay_transport_private.h'], 'original Auth/Product headers');
+  const headerPins = new Map([...selected.headers.map(path => [path.split('/').at(-1), coreRows.get(path)]),
+    ...linkPaths.filter(path => path.startsWith('cmd/ynx-secure-link-caller/') && path.endsWith('.h')).map(path => [path.split('/').at(-1), normal.find(row => row.repositoryPath === path)]),
+    ...auth.headers.map(row => [row.name, row])]);
+  const productHeader = full.get('internal/securelink/testdata/product-transport-contract-r2/product_pay_transport_private.h');
+  requireValue(productHeader, 'original Product header in actual LINK tree required');
+  inputPin(auth.headers.find(row => row.name === 'product_pay_transport_private.h'), productHeader, 'same Product hand header');
+  headerPins.set('product_pay_transport_private.h', productHeader);
+  requireValue(h.schema === 'YNX-FIXED-AGENT-ONE-ARCHIVE-HEADERS/v1' && h.handwrittenCount === 24 &&
+    h.oldGeneratedHeaderCopiedToNewInput === false && h.newGeneratedHeaderRequiredFromActualGoBuild === true &&
+    h.expectedFinalHeaderInventory?.handwritten === 24 && h.expectedFinalHeaderInventory.generated === 1 && h.expectedFinalHeaderInventory.total === 25 &&
+    h.oldGeneratedHeader?.length === 1 && h.oldGeneratedHeader[0].bytes === 6925 &&
+    h.oldGeneratedHeader[0].sha256 === 'a9946c9466b66a0e4ca5214cfbaa54f9b7ca2f143ed92f2d5d1746a71879efbd',
+    '24 hand headers plus one genuinely new generated header required');
+  exact(h.headers?.map(row => row.name), [...headerPins.keys()], '24 hand-header inventory');
+  for (const row of h.headers) {
+    const pin = headerPins.get(row.name), owner = row.name === 'ai_task_agent_fixed_v6.h' ? 'CoreFixedAgentV6' :
+      selected.headers.some(name => name.endsWith('/' + row.name)) ? 'core' : row.name.startsWith('private_client') ? 'link' :
+      row.name === 'product_pay_transport_private.h' ? 'product' : 'auth';
+    requireValue(row.mode === '0o644' && row.relative === 'include/' + row.name && row.owner === owner &&
+      row.bytes === pin.bytes && row.sha256 === pin.sha256 && (!pin.gitBlob || row.gitBlob === pin.gitBlob), 'exact original hand-header pin/owner required');
+  }
+  const abi = inputs.expectedExports.value;
+  requireValue(abi.schema === 'YNX-FIXED-AGENT-ONE-ARCHIVE-EXPECTED-ABI/v1' && abi.CoreBefore === 19 && abi.CoreAfter === 20 &&
+    abi.LINKUnchanged === 22 && abi.ProductUnchanged === 8 && abi.GoBefore === 49 && abi.GoAfter === 50 &&
+    abi.newStrongSymbol === fixedAgentBinding.symbol && abi.neutralCNotAdditionalGoExports === true && abi.expectedArchives === 1 &&
+    abi.actualNewArchive === null && abi.newNmExecuted === false && abi.actualNewHeader === null &&
+    samePin(abi.newHandHeader ?? {}, additions.get(fixedAgentBinding.header)), 'independent exact Core20/Go50 ABI declaration required');
+  exact(abi.GoStrongSymbolsExpected, [...selected.symbols, ...linkSymbols, ...productSymbols], 'Core20/LINK22/Product8 ABI');
+  exact(abi.neutralC10Unchanged, b.neutralCSymbols, 'unchanged neutralC10');
+  const compatibility = inputs.compatibility.value;
+  requireValue(compatibility.schema === 'YNX-FIXED-AGENT-INHERITED-COMPATIBILITY/v1' && compatibility.rows?.length === 21 &&
+    compatibility.matchingMathematicalSourceLeaves === 19 && compatibility.actualFullCandidateCompiled === false &&
+    compatibility.originalComponentControlsQualificationNotTransferred === true, 'inherited component qualification is not normal qualification required');
+  exact(compatibility.rows.map(row => row.repositoryPath), [...new Set(compatibility.rows.map(row => row.repositoryPath))], 'unique inherited compatibility rows');
+  for (const row of compatibility.rows) {
+    const pin = coreRows.get(row.repositoryPath);
+    requireValue(pin && row.selection === 'KEEP_NORMAL_A_AA60_SOURCE' && row.selectedNormalAInput?.bytes === pin.bytes &&
+      row.selectedNormalAInput.sha256 === pin.sha256 && row.byteExact === !['go.mod', 'go.sum'].includes(row.repositoryPath),
+      'keep inherited normal source/module pins without downgrading compress');
+    if (row.byteExact) inputPin(row.inheritedTestInput, pin, 'inherited mathematical source');
+    else requireValue(row.inheritedTestInput?.sha256 !== pin.sha256, 'component module downgrade is not a normal source');
+  }
+  const companions = inputs.nativeCompanions.value;
+  requireValue(companions.schema === 'YNX-FIXED-AGENT-NATIVE-COMPANIONS-INPUT-ONLY/v1' && companions.notGoArchiveSources === true &&
+    companions.noAuthReceiverSourceIncluded === true && companions.noNativeLinkExecuted === true &&
+    companions.SDKCodecOldBodyRequiredAPIsUnchanged === true, 'Native companions are not archive sources or Native qualification required');
+  exact(companions.files?.map(row => row.target), ['packages/wallet-auth/native/ai-agent/FixedOriginalAITaskActionV6Sign.cpp',
+    'packages/wallet-auth/native/ai-agent/ai_task_agent_fixed_v6.h', 'packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp',
+    'packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.hpp'], 'input-only Native companion paths');
+  requireValue(companions.files.every(validPin) && samePin(companions.files.find(row => row.target.endsWith('/ai_task_agent_fixed_v6.h')),
+    additions.get(fixedAgentBinding.header)), 'matching fixed-agent Native hand header required');
+  return {profile: selected.id, normalSourceInputs: normal.length, linkSourceInputs: linkPaths.length,
+    coreSourceLeaves: 91, coreProductionGo: 71, coreHandHeaders: 18, coreCgoTranslationUnits: 20, coreExports: 20, combinedExports: 50,
+    forkFiles: inventories.fork.length, forkBytes: b.forkBytes, materializedSourceLeaves: b.completeSourceFiles,
+    materializedSourceBytes: b.completeSourceBytes, handwrittenHeaders: 24, requiredFreshGeneratedHeaders: 1,
+    sourceOnly: true, normalNativeImageVerified: false, RootAdmission: false, SourceAdmission: false};
+}
+export function verifyCore20FixedAgentRecipe(selected, inputs, context) {
+  approved(selected);
+  requireValue(selected.preparedComposition === CORE20_FIXED_AGENT_BINDING && CORE20_FIXED_AGENT_BINDING.identitySupplied,
+    'approved actual Core20 identity required');
+  requireValue(selectCoreSupplyProfile(inputs.source?.value) === selected, 'same selected Core20 raw source required');
+  return validateCore20Recipe(selected, inputs, context);
+}
+export function verifyPreparedCoreRecipe(selected, inputs, context) {
+  return preparedKind(selected) === CORE19_C2_BINDING ? verifyCore19C2Recipe(selected, inputs, context) :
+    verifyCore20FixedAgentRecipe(selected, inputs, context);
+}
+export function verifyCore20FixedAgentNeutralSymbols(selected, plain, macho) {
+  approved(selected);
+  requireValue(selected.preparedComposition === CORE20_FIXED_AGENT_BINDING && typeof plain === 'string' && typeof macho === 'string',
+    'Core20 nm readback required');
+  return verifyNeutralSymbols(CORE20_FIXED_AGENT_BINDING.neutralCSymbols, plain, macho);
+}
+export function verifyPreparedCoreNeutralSymbols(selected, plain, macho) {
+  return preparedKind(selected) === CORE19_C2_BINDING ? verifyCore19C2NeutralSymbols(selected, plain, macho) :
+    verifyCore20FixedAgentNeutralSymbols(selected, plain, macho);
+}
+function verifyNeutralSymbols(symbols, plain, macho) {
+  return symbols.map(symbol => {
+    const key = '_' + symbol;
+    const rows = plain.split('\n').map(line => line.trim().split(/\s+/)).filter(parts => parts.at(-1) === key && parts.at(-2) !== 'U');
+    const attrs = macho.split('\n').filter(line => line.trim().split(/\s+/).at(-1) === key);
+    const definitions = attrs.filter(line => !/\bundefined\b/.test(line));
+    requireValue(rows.length === 1 && rows[0].at(-2) === 'T' && definitions.length === 1 && !attrs.some(line => /\bweak\b/.test(line)),
+      'missing/weak/undefined/duplicate neutral C strong callee: ' + symbol);
+    return {symbol, type: 'T', definition: definitions[0].trim(), undefinedReferences: attrs.length - definitions.length};
+  });
+}
+// Complete pending DATA validation is independently testable without promoting
+// an unknown identity to a selectable producer or claiming actual Git readback.
+export function diagnoseCore20FixedAgentRecipe(inputs, context) {
+  diagnoseCore20FixedAgentSupply(inputs.source?.value);
+  return {...validateCore20Recipe({...core20Template, commit: inputs.source.value.commit, tree: inputs.source.value.tree}, inputs, context, true),
+    scope: 'CORE20_PUBLIC_PREPARATION_METADATA_ONLY_NOT_ADMISSION', normalProfileAdmitted: false, actualGitBytesVerified: false};
+}
+
 function verifiedBytes(row, bytes, label) {
   requireValue(Buffer.isBuffer(bytes), 'owned original bytes required: ' + label);
   const sha256 = createHash('sha256').update(bytes).digest('hex');
@@ -440,7 +828,7 @@ export function verifyCoreSupplyBytes(raw, selected, sourceBytes, descriptorByte
     requireValue(headers.find(row => row.symbol === binding.symbol).path === binding.header, 'actual declaration in wrong header: ' + binding.symbol);
   }
   exact(mains, [command + '/core.go'], 'sole original Core main');
-  if (selected === core18 || selected.coreExports === 19) {
+  if (selected === core18 || selected.coreExports === 19 || selected.coreExports === 20) {
     exact(cgo, selected.cgoTranslationUnits, 'actual Core18 cgo translation units including static control');
     for (const name of selected.nonExportCgoTranslationUnits) requireValue(!actual.some(row => row.path === name), 'static cgo control may not add an export');
     const header = sourceBytes.get(command + '/auth_source_statement_v2.h').toString('utf8');
@@ -450,6 +838,15 @@ export function verifyCoreSupplyBytes(raw, selected, sourceBytes, descriptorByte
     for (const [field, offset] of [['member', 16], ['key_version', 128], ['enabled', 168]]) requireValue(
       new RegExp('offsetof\\(YNXAuthSourceStatementVerifyRequestV2,\\s*' + field + '\\)\\s*==\\s*' + offset).test(header),
       'actual Source-v2 header layout required: ' + field);
+  }
+  if (selected.coreExports === 20) {
+    for (const row of raw.productionClosure.includeGuards) {
+      const text = sourceBytes.get(row.header).toString('utf8');
+      requireValue(new RegExp('^#ifndef\\s+' + row.guard + '\\s*$', 'm').test(text) &&
+        new RegExp('^#define\\s+' + row.guard + '\\s*$', 'm').test(text), 'actual Core20 original header guard required');
+    }
+    requireValue(/^#pragma\s+once\s*$/m.test(sourceBytes.get(fixedAgentBinding.header).toString('utf8')),
+      'actual Core20 fixed-agent pragma-once header required');
   }
   for (const row of core.moduleContext.descriptors) {
     verifiedBytes(row, descriptorBytes.get(row.repositoryPath), row.repositoryPath);
@@ -465,6 +862,13 @@ export function verifyCombinedSupplyResult(selected, result) {
   exact(result?.coreExports, selected.symbols, 'strong Core export identities');
   requireValue(result.linkExports?.length === 22 && result.productExports?.length === 8 && result.symbols?.length === selected.totalExports,
     selected.id + ' requires complete Core' + selected.coreExports + ', LINK22 and Product8 strong ABI');
+  if (selected.coreExports === 20) {
+    exact(result.linkExports, linkSymbols, 'Core20 original LINK22 identities');
+    exact(result.productExports, productSymbols, 'Core20 original Product8 identities');
+    exact(result.symbols.map(row => row?.symbol), [...selected.symbols, ...linkSymbols, ...productSymbols], 'Core20 complete strong50 identities');
+    requireValue(result.symbols.every(row => row.type === 'T' && typeof row.definition === 'string' &&
+      !/\b(?:weak|undefined)\b/.test(row.definition)), 'Core20 actual checker strong-function matrix required');
+  }
 }
 
 function jsonSequence(text) {
@@ -526,6 +930,8 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
     const expected = selected.sourcePaths.filter(p => p.startsWith(name + '/') && p.endsWith('.go')).map(p => p.slice(name.length + 1));
     if (name === command) expected.push('link_transport_import.go');
     exact([...(row.GoFiles ?? []), ...(row.CgoFiles ?? [])], expected, 'actual ' + name + ' Go/cgo files');
+    if (selected.coreExports === 20) exact(row.CgoFiles ?? [], selected.cgoTranslationUnits.filter(p => p.startsWith(name + '/'))
+      .map(p => p.slice(name.length + 1)), 'actual Core20 cgo20 including two static controls');
   }
   const resource = prefix + 'internal/ynxresourceconsent';
   requireValue(reached.has(resource) === selected.resourceBackendImported, 'actual fixed resource backend reachability differs from named profile');

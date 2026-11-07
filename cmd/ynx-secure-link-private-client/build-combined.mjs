@@ -3,7 +3,9 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
+import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult,
+  verifyCoreCommandDependencyClosure, verifyPreparedCoreRecipe, verifyPreparedCoreNeutralSymbols,
+  preparedCoreInputFiles, preparedCoreSourceInventories} from './combined-supply-profile.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
@@ -36,8 +38,7 @@ const coreNormalization = normalizeCoreSupply(core.value);
 const coreSupply = coreNormalization.supply;
 const preparedBinding = supplyProfile.preparedComposition;
 const preparedInputs = preparedBinding ? {source: core, authHeaders: auth, nativeUndefined: undefinedInput,
-  ...Object.fromEntries([['composition', 'COMPOSITION.json'], ['fork', 'FORK-CONTEXT.json'],
-    ['supplier', 'SUPPLIER-CONTRACT.json'], ['handoff', 'HANDOFF.json']].map(([key, name]) =>
+  ...Object.fromEntries(Object.entries(preparedCoreInputFiles(supplyProfile)).map(([key, name]) =>
       [key, pinned(path.join(path.dirname(core.descriptor.path), name), preparedBinding.inputs[key].sha256)]))} : null;
 if (preparedBinding) for (const [key, expected] of Object.entries(preparedBinding.inputs)) {
   const descriptor = preparedInputs[key].descriptor;
@@ -89,7 +90,7 @@ function goQuote(argument) {
   if (!argument.includes("'")) return "'" + argument + "'";
   throw Error('Go build argument contains both quote characters');
 }
-let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure, preparedCompositionVerification, neutralCReadback;
+let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure, preparedCompositionVerification, preparedInventories, neutralCReadback;
 try {
   run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
   let preparedLinkPaths;
@@ -98,7 +99,8 @@ try {
     preparedLinkPaths = [...run('git', ['ls-tree', '-r', '--name-only', linkCommit, '--', 'internal/securelink'],
       'prepared-link-paths.log', repository).trim().split('\n').filter(Boolean),
       'cmd/ynx-secure-link-caller/private_client_v1.h', 'cmd/ynx-secure-link-caller/private_client_startup_v1.h'];
-    preparedCompositionVerification = verifyCore19C2Recipe(supplyProfile, preparedInputs, {linkCommit, linkTree, linkPaths: preparedLinkPaths});
+    preparedCompositionVerification = verifyPreparedCoreRecipe(supplyProfile, preparedInputs, {linkCommit, linkTree, linkPaths: preparedLinkPaths});
+    preparedInventories = preparedCoreSourceInventories(supplyProfile, preparedInputs);
     if (run('git', ['rev-parse', supplyProfile.commit + ':third_party/cometbft'], 'fork-exact-tree.log', repository).trim() !== preparedBinding.forkTree)
       throw Error('original exact replacement fork tree required');
   }
@@ -148,17 +150,17 @@ try {
     const treeText = run('git', ['ls-tree', '-r', supplyProfile.commit, '--', 'third_party/cometbft'], 'full-fork-git-tree.log', repository);
     const entries = new Map(treeText.trim().split('\n').map(line => {const [meta, name] = line.split('\t');
       const [mode, kind, blob] = meta.split(' '); return [name, {mode, kind, blob}];}));
-    const files = preparedInputs.fork.value.files;
+    const files = preparedInventories.fork;
     if (entries.size !== files.length || files.some(row => !entries.has(row.repositoryPath))) throw Error('complete original fork path closure required');
     for (const row of files) {
       const actual = entries.get(row.repositoryPath), bytes = gitObject(supplyProfile.commit, row.repositoryPath);
-      if (actual.mode !== row.gitMode || actual.kind !== 'blob' || actual.blob !== row.gitBlob || bytes.length !== row.bytes || hash(bytes) !== row.sha256)
+      if (actual.mode !== (row.validatedGitMode ?? row.gitMode) || actual.kind !== 'blob' || actual.blob !== row.gitBlob || bytes.length !== row.bytes || hash(bytes) !== row.sha256)
         throw Error('original fork bytes/mode/Git pin mismatch: ' + row.repositoryPath);
       if (!sources.some(sourceRow => sourceRow.repositoryPath === row.repositoryPath)) materialize(row.repositoryPath, bytes,
         {owner: 'core-original-complete-fork', commit: supplyProfile.commit, gitBlob: row.gitBlob});
     }
-    const expected = new Map([...preparedInputs.composition.value.normalProducerSources, ...files].map(row => [row.repositoryPath, row]));
-    if (sources.length !== expected.size) throw Error('complete 169-input plus full-fork materialization required');
+    const expected = new Map([...preparedInventories.normal, ...files].map(row => [row.repositoryPath, row]));
+    if (sources.length !== expected.size) throw Error('complete named normal-input plus full-fork materialization required');
     for (const row of sources) {
       const wanted = expected.get(row.repositoryPath), bytes = fs.readFileSync(row.path);
       const blob = createHash('sha1').update(Buffer.from('blob ' + bytes.length + '\0')).update(bytes).digest('hex');
@@ -194,7 +196,10 @@ try {
   const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOMEMLIMIT: '1536MiB', GOWORK: 'off', GOFLAGS: '', GOOS: 'darwin', GOARCH: architecture,
     GOCACHE: goCache, GOTMPDIR: goTmp, TMPDIR: nativeTmp, SDKROOT: sdk, CC: cc, CXX: cxx, MACOSX_DEPLOYMENT_TARGET: deploymentTarget,
     CGO_CFLAGS: goQuote('-I' + include) + ' ' + targetFlags, CGO_CPPFLAGS: '', CGO_CXXFLAGS: '-O2 -g ' + targetFlags, CGO_LDFLAGS: '-O2 -g ' + targetFlags};
+  if (supplyProfile.coreExports === 20) Object.assign(env, {GOTOOLCHAIN: 'local', GOPROXY: 'off', GOSUMDB: 'off',
+    GONOPROXY: 'none', GOPRIVATE: '', GOVCS: '*:off'});
   buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOMEMLIMIT', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
+  if (supplyProfile.coreExports === 20) for (const key of ['GOTOOLCHAIN', 'GOPROXY', 'GOSUMDB', 'GONOPROXY', 'GOPRIVATE', 'GOVCS']) buildEnvironment[key] = env[key];
   const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
   if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
   const buildTags = 'securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport';
@@ -215,7 +220,7 @@ try {
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
   verifyCombinedSupplyResult(supplyProfile, checkResult);
-  if (preparedBinding) neutralCReadback = verifyCore19C2NeutralSymbols(supplyProfile,
+  if (preparedBinding) neutralCReadback = verifyPreparedCoreNeutralSymbols(supplyProfile,
     run('/usr/bin/nm', ['-g', archive], 'neutral-c-symbols-global.log'), run('/usr/bin/nm', ['-m', archive], 'neutral-c-symbols-macho.log'));
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
   const deploymentChecker = await import('./combined-archive-deployment.mjs');

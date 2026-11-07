@@ -69,7 +69,7 @@ jobs:
         with:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
-        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs cmd/ynx-secure-link/server-tls-ci.test.mjs
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/core20-fixed-agent-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs cmd/ynx-secure-link/server-tls-ci.test.mjs
       - name: Check original resource-current native client and Darwin kernel peer lifecycle
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
