@@ -1,0 +1,52 @@
+{
+  "schema": "YNX-SOCIAL-FRESH-CAPTURE-JOINT-PROFILE-ISSUANCE-DATA/v1",
+  "signedBodyUnchanged": [
+    "version",
+    "purpose",
+    "scope",
+    "realm",
+    "client",
+    "network",
+    "identity",
+    "device",
+    "classicPublic",
+    "pqPublic",
+    "v4Expected",
+    "sourceHistoryOriginalSHA256",
+    "issuerEpoch",
+    "anchorEpoch",
+    "issuedMS",
+    "expiresMS"
+  ],
+  "purpose": "YNX/SOCIAL/DEVICE-SESSION-PRINCIPAL/V1",
+  "signedDomainBytesHex": "594e582f534f4349414c2f534f555243452d50524f4f462f563100",
+  "envelopes": [
+    "record-issuer",
+    "record-anchor"
+  ],
+  "crypto": "Existing Source Classic33/MLDSA87 only; same body signed by independently registered issuer and anchor; no E5/N1/WPR/domain change",
+  "order": [
+    "Acquire/hold SAME fresh prepared Source original capture with its genuine random nonce/history",
+    "Independently Root-registered finite issuer selection and actual DEVICE/session/Signal33+PQ binding",
+    "Derive unchanged body16 from SAME full history envelope SHA256/actual issuer+anchor epochs/Scope7/independent binding/window",
+    "Original protected issuer+anchor sign SAME canonical body through existing Source role producer only",
+    "Retain/verify both actual Source envelopes and SAME prepared Source; profileExpires <=capture history/owner/policy deadline",
+    "Qualify original request under SAME held capture; current/revoke before and after; no crosscapture profile reuse"
+  ],
+  "scopeFields": [
+    "source",
+    "store",
+    "schema",
+    "inode",
+    "restore",
+    "sourceGeneration",
+    "nativeRestoreIncarnation"
+  ],
+  "numeric": "Existing Go JSON uint64 numbers stay original body bytes. SDK Go typed uint64 preserves full range; no JS Number or epoch/generation/counter substitution.",
+  "captureOriginals": "Actual full signed history envelope bytes plus issuerCredential/anchorCredential/registration originals. DATA hash matching is not signature/owner qualification.",
+  "sourceLifetime": "Same physical prepared owner stays retained through issuance, profile and request children; retire/close debt retained on late failures; no RootJSON resurrection or profile persistent reuse",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "privateIssuerFactory": "Auth owns real protected finite issuer capture/body; no provider/signer callback, environment selector or default issued row supplied by SDK"
+}
