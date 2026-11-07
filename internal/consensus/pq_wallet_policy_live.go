@@ -22,10 +22,17 @@ type pqWalletPolicyProofChild interface {
 	closeWalletPolicyProofChild() error
 }
 
+// Only the fixed private Current4 DATA worker implements this second child.
+// It coexists with the original proof child and has no public registrar.
+type pqWalletPolicyCurrent4Child interface {
+	closeWalletPolicyCurrent4Child() error
+}
+
 // PQWalletPolicyLiveSource reads the actual constructor-paired Node and local
 // Application. No caller can construct, decode or retarget it. It retains no
-// signer, policy cache or file loan and creates no background worker. One
-// synchronous read may be in flight; concurrent callers receive Busy.
+// signer, policy cache or file loan. The fixed private Current4 child may own
+// one framing worker; Read itself creates none. One synchronous read may be in
+// flight; concurrent callers receive Busy.
 //
 // "Live" distinguishes owning-process reads from opening stopped files, not
 // Native CURRENT or independent client finality. A source is usable after
@@ -37,13 +44,14 @@ type PQWalletPolicyLiveSource struct {
 	app  *Application
 	view *node.ProofSourceView
 
-	mu      sync.Mutex
-	retired bool
-	reading bool
-	child   pqWalletPolicyProofChild
-	wg      sync.WaitGroup
-	close   sync.Once
-	err     error
+	mu       sync.Mutex
+	retired  bool
+	reading  bool
+	child    pqWalletPolicyProofChild
+	current4 pqWalletPolicyCurrent4Child
+	wg       sync.WaitGroup
+	close    sync.Once
+	err      error
 }
 
 // Called ONLY by newPQNodeWithDatabase after constructing the actual local
@@ -109,8 +117,9 @@ func (s *PQWalletPolicyLiveSource) begin() error {
 }
 
 // Close is permanent and idempotent. Node invokes it before closing any store,
-// including failed Start. Retire first; join the original proof child and every
-// admitted wallet read before returning. Never wait for Node.Quit/Node.Stop.
+// including failed Start. Retire first; cancel/join the fixed Current4 child,
+// join the original proof child and every admitted wallet read before returning.
+// Never wait for Node.Quit/Node.Stop.
 func (s *PQWalletPolicyLiveSource) Close() error {
 	if s == nil {
 		return ErrPQWalletPolicyLiveRetired
@@ -119,10 +128,14 @@ func (s *PQWalletPolicyLiveSource) Close() error {
 		s.mu.Lock()
 		s.retired = true
 		child := s.child
+		current4 := s.current4
 		s.mu.Unlock()
 		var err error
+		if current4 != nil {
+			err = current4.closeWalletPolicyCurrent4Child()
+		}
 		if child != nil {
-			err = child.closeWalletPolicyProofChild()
+			err = errors.Join(err, child.closeWalletPolicyProofChild())
 		}
 		s.wg.Wait()
 		s.mu.Lock()

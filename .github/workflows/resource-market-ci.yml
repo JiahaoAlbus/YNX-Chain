@@ -62,6 +62,7 @@ on:
       - 'scripts/ops/test_pq_ci_stage_inputs.py'
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
+      - 'scripts/ops/test_validate_pq_current4_ci.py'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
@@ -150,6 +151,9 @@ on:
       - 'internal/ynxresourcepolicy/**'
       - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
+      - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'internal/consensus/pq_current4_*.go'
+      - 'internal/consensus/pq_wallet_policy_live.go'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
       - 'apps/resource-market/**'
       - 'internal/resourcemarket/**'
@@ -1493,6 +1497,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_current4_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
@@ -2132,7 +2137,7 @@ jobs:
           # Preserve the complete original test set. Production operator cases
           # get their own bounded process so late cases do not inherit an almost
           # expired suite clock. Host and large recovery retain their own groups.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
             exit 1
           fi
@@ -2206,6 +2211,35 @@ jobs:
           if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+      - name: Verify Current4 original registered observer wire without granting authority
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-current4-wire-tests.jsonl').read_text().splitlines()]
+          package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+          current4_required = ['TestPQCurrent4WirePUBLICStrictFramesAndOSPeer', 'TestPQCurrent4WirePUBLICRegisteredObserverData', 'TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain']
+          if not events or any(not isinstance(event, dict) or event.get('Package') != package or event.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for event in events):
+              raise RuntimeError('Current4 original stream failed, skipped, malformed or used another package')
+          if any('Test' in event and (not isinstance(event['Test'], str) or event['Test'].split('/')[0] not in current4_required) for event in events):
+              raise RuntimeError('Current4 stream contains a different test')
+          for name in current4_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [event['Action'] for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or outcomes != ['pass']:
+                  raise RuntimeError('Current4 test did not execute and pass uniquely: ' + name)
+          outcomes = [event['Action'] for event in events if 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+          if outcomes != ['pass']:
+              raise RuntimeError('Current4 original package did not pass once')
+          print('YNX_CURRENT4_WIRE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=current4_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}

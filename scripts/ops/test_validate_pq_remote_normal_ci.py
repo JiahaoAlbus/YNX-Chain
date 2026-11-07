@@ -1229,7 +1229,7 @@ def assert_state_math_required_workflow_contract(step):
     if required != [repr(["TestPQHistoryMathCacheN1ScopeAndBinding"]), repr(list(STATE_MATH_REQUIRED_TESTS))]:
         raise AssertionError("exact chain1/state40 actual terminal qualification required")
     command = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)' "
+               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' "
                "./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
     production = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
                   "-run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n")
@@ -1917,7 +1917,7 @@ def assert_workflow_contract(raw):
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
     assert_state_math_required_workflow_contract(non_host)
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
-    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)' ./internal/consensus" in non_host)
+    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' ./internal/consensus" in non_host)
     need("-run '^TestProduction' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
@@ -3380,7 +3380,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
             ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
-            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestABCI)'"),
+            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestABCI|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
             ("-run '^TestPQLab'", "-run '^TestPQLabMissing'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>'),
