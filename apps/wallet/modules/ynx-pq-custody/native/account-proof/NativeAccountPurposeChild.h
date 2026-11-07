@@ -27,7 +27,8 @@ struct OriginalAccountPurposeChild final {
  private:
   // The complete inventory/Source/parent/drain state is kept in the owning TU.
   struct Impl;
-  Impl* impl=nullptr;
+  // Published once; retained through a concurrent rejected-thread lookup.
+  std::shared_ptr<Impl> impl;
   Failure initialize(Source*,ynx::network::normalnative::AccountAcquisition)noexcept;
   Failure finishClose()noexcept;
   friend OriginalAccountPurposeChild* originalChildForAccountProofHostPort(ynx::sdk::mobile::accountproof::HostPort*)noexcept;

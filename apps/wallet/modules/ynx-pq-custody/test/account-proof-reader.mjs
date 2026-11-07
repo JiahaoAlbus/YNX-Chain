@@ -22,7 +22,7 @@ function run(name,exe,args){const r=spawnSync(exe,args,{encoding:'utf8',timeout:
 const inputs=[here+'/../native/account-proof/NativeAccountProofReader.cpp',here+'/account-proof-reader.PUBLIC.cpp'];
 const binary=evidence+'/reader-public';
 run('compile','clang++',['-std=c++17','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer',...includes.flatMap(x=>['-I',x]),...inputs,'-o',binary]);
-const cases=['ready','not-ready','late-zero','closed-zero','changed-h','wrong-sequence','unknown-open','unknown-close','wrong-thread','invalid-host','wrong-source','intrinsic-reader'];
+const cases=['ready','not-ready','late-zero','closed-zero','changed-h','wrong-sequence','unknown-open','unknown-close','wrong-thread','invalid-host','wrong-source','intrinsic-reader','concurrent-release'];
 for(const name of cases)run(name,binary,[name]);
 fs.writeFileSync(evidence+'/RESULT.json',JSON.stringify({passed:true,groups:cases.length,actualNativeReaderTU:true,protectedChildBoundary:'PUBLIC_ONLY',ASAN_UBSAN:true,LSan:false,SourceAdmission:false,RootAdmission:false,actualCoreProof:false,actualP09Socket:false,installed:false,inputs:inputs.map(pin),runs:pin(evidence+'/RUNS.json')},null,2)+'\n');
 console.log(JSON.stringify({evidence,passed:true,groups:cases.length}));

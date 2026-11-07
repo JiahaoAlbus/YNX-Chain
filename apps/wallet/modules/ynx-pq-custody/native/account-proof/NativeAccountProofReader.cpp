@@ -73,24 +73,24 @@ struct Reader final {
 };
 namespace {
 std::mutex&inventoryMutex=*new std::mutex;
-auto&inventory=*new std::map<uintptr_t,std::unique_ptr<Reader>>;
+auto&inventory=*new std::map<uintptr_t,std::shared_ptr<Reader>>;
 uintptr_t nextToken=1;
-Reader*known(Reader*token){std::lock_guard<std::mutex>lock(inventoryMutex);auto i=inventory.find(reinterpret_cast<uintptr_t>(token));return i==inventory.end()?nullptr:i->second.get();}
+std::shared_ptr<Reader>known(Reader*token){std::lock_guard<std::mutex>lock(inventoryMutex);auto i=inventory.find(reinterpret_cast<uintptr_t>(token));return i==inventory.end()?nullptr:i->second;}
 }
 bool readerBelongsToPurposeChild(Reader*t,native::OriginalAccountPurposeChild*child,ynx::auth::mobile::receipt::OriginalEngineSource*source)noexcept{
- auto*p=known(t);return p&&p->onActor()&&p->child==child&&p->source==source;
+ auto p=known(t);return p&&p->onActor()&&p->child==child&&p->source==source;
 }
 Acquisition Reader::acquire(HostPort*host,ynx::auth::mobile::receipt::OriginalEngineSource*source){
  Acquisition out;
  auto*child=native::originalChildForAccountProofHostPort(host);
  if(!child)return{nullptr,local(invalid)};
- auto owned=std::make_unique<Reader>();owned->child=child;owned->source=source;
+ auto owned=std::make_shared<Reader>();owned->child=child;owned->source=source;
  {std::lock_guard<std::mutex>lock(inventoryMutex);
   if(inventory.size()>=64||nextToken==std::numeric_limits<uintptr_t>::max())return{nullptr,local(capacity)};
   const auto id=nextToken++;owned->token=reinterpret_cast<Reader*>(id);
   inventory.emplace(id,std::move(owned));out.owner=reinterpret_cast<Reader*>(id);
  }
- auto*p=known(out.owner);auto f=p->child->attachReader(out.owner,source);
+ auto p=known(out.owner);auto f=p->child->attachReader(out.owner,source);
  if(f.present){remember(p->first,f);out.failure=f;return out;}
  p->attached=true;wire::FrameDATA reply;f=p->exchange(Operation::Open,false,reply);
  if(!f.present&&reply.status!=wire::Status::OK)f=local(malformed);
@@ -100,21 +100,21 @@ Acquisition open(HostPort*h,ynx::auth::mobile::receipt::OriginalEngineSource*s)n
  try{return Reader::acquire(h,s);}catch(...){return{nullptr,local(invalid)};}
 }
 ReadOutcome read(Reader*t,CommittedProofViewDATA&out)noexcept{
- auto*p=known(t);if(!p||!p->onActor())return{ReadState::Failed,local(p?wrongActor:invalid)};
+ auto p=known(t);if(!p||!p->onActor())return{ReadState::Failed,local(p?wrongActor:invalid)};
  try{return p->observe(Operation::Read,out);}catch(...){remember(p->first,local(invalid));return{ReadState::Failed,p->first};}
 }
 ReadOutcome current(Reader*t,CommittedProofViewDATA&out)noexcept{
- auto*p=known(t);if(!p||!p->onActor())return{ReadState::Failed,local(p?wrongActor:invalid)};
+ auto p=known(t);if(!p||!p->onActor())return{ReadState::Failed,local(p?wrongActor:invalid)};
  try{return p->observe(Operation::Current,out);}catch(...){remember(p->first,local(invalid));return{ReadState::Failed,p->first};}
 }
 void retire(Reader*t)noexcept{
- auto*p=known(t);if(!p||!p->onActor()||p->closed||p->retireSelected)return;
+ auto p=known(t);if(!p||!p->onActor()||p->closed||p->retireSelected)return;
  p->retired=true;p->retireSelected=true;
  if(!p->attached||p->noRemoteReader||!p->sequence.opened)return;
  wire::FrameDATA reply;auto f=p->exchange(Operation::Retire,true,reply);remember(p->first,f);
 }
 Failure join(Reader*t)noexcept{
- auto*p=known(t);if(!p||!p->onActor())return local(p?wrongActor:invalid);
+ auto p=known(t);if(!p||!p->onActor())return local(p?wrongActor:invalid);
  if(p->closed)return p->first;
  if(!p->retired)return local(pending);
  if(p->sequence.pending)return p->first.present?p->first:local(unknown);
@@ -123,7 +123,7 @@ Failure join(Reader*t)noexcept{
  wire::FrameDATA reply;auto f=p->exchange(Operation::Join,true,reply);remember(p->first,f);return p->first;
 }
 Failure close(Reader*t)noexcept{
- auto*p=known(t);if(!p||!p->onActor())return local(p?wrongActor:invalid);
+ auto p=known(t);if(!p||!p->onActor())return local(p?wrongActor:invalid);
  if(p->closeSelected)return p->first;
  p->retired=true;p->closeSelected=true;
  if(!p->attached||p->noRemoteReader||
@@ -134,9 +134,9 @@ Failure close(Reader*t)noexcept{
  wire::FrameDATA reply;auto f=p->exchange(Operation::Close,true,reply);remember(p->first,f);
  if(!p->closed)remember(p->first,local(pending));return p->first;
 }
-bool isClosed(Reader*t)noexcept{auto*p=known(t);return p&&p->onActor()&&p->closed;}
+bool isClosed(Reader*t)noexcept{auto p=known(t);return p&&p->onActor()&&p->closed;}
 Failure releaseClosed(Reader*t)noexcept{
- auto*p=known(t);if(!p||!p->onActor()||!p->closed)return local(p?pending:invalid);
+ auto p=known(t);if(!p||!p->onActor()||!p->closed)return local(p?pending:invalid);
  if(p->attached){p->child->releaseReader(t);p->attached=false;}
  std::lock_guard<std::mutex>lock(inventoryMutex);inventory.erase(reinterpret_cast<uintptr_t>(t));return{};
 }

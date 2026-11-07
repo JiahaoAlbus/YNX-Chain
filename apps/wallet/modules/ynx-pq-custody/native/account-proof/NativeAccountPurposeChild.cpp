@@ -26,10 +26,10 @@ bool same(const ynx::auth::mobile::receipt::EngineSelection&a,const ynx::auth::m
  a.instanceId==b.instanceId&&a.minimumHeight==b.minimumHeight&&a.deadlineMs==b.deadlineMs;
 }
 std::mutex&inventoryMutex=*new std::mutex;
-auto&inventory=*new std::map<uintptr_t,std::unique_ptr<OriginalAccountPurposeChild>>;
+auto&inventory=*new std::map<uintptr_t,std::shared_ptr<OriginalAccountPurposeChild>>;
 uintptr_t nextToken=1;
-OriginalAccountPurposeChild*known(OriginalAccountPurposeChild*t){
- std::lock_guard<std::mutex>l(inventoryMutex);auto i=inventory.find(reinterpret_cast<uintptr_t>(t));return i==inventory.end()?nullptr:i->second.get();
+std::shared_ptr<OriginalAccountPurposeChild>known(OriginalAccountPurposeChild*t){
+ std::lock_guard<std::mutex>l(inventoryMutex);auto i=inventory.find(reinterpret_cast<uintptr_t>(t));return i==inventory.end()?nullptr:i->second;
 }
 }
 struct OriginalAccountPurposeChild::Impl {
@@ -115,19 +115,19 @@ net::ExchangeResult OriginalAccountPurposeChild::exchange(const port::Bytes&requ
  return result;
 }
 OriginalAccountPurposeChild*originalChildForAccountProofHostPort(port::HostPort*h)noexcept{
- auto*p=known(reinterpret_cast<OriginalAccountPurposeChild*>(h));
- return p&&p->impl&&p->impl->onActor()&&p->impl->host==h&&!p->impl->closed?p:nullptr;
+ auto p=known(reinterpret_cast<OriginalAccountPurposeChild*>(h));
+ return p&&p->impl&&p->impl->onActor()&&p->impl->host==h&&!p->impl->closed?p.get():nullptr;
 }
 Failure readOriginalAccountPurposeChild(OriginalAccountPurposeChild*t,Source*s,port::HostPort*&out)noexcept{
- out=nullptr;auto*p=known(t);if(!p)return local(invalid);
+ out=nullptr;auto p=known(t);if(!p)return local(invalid);
  auto f=p->current(s);if(f.present)return f;
  auto*host=p->impl->host;f=p->current(s);if(!f.present)out=host;return f;
 }
 Failure currentOriginalAccountPurposeChild(OriginalAccountPurposeChild*t,Source*s)noexcept{
- auto*p=known(t);return p?p->current(s):local(invalid);
+ auto p=known(t);return p?p->current(s):local(invalid);
 }
 void retireOriginalAccountPurposeChild(OriginalAccountPurposeChild*t)noexcept{
- auto*p=known(t);if(!p||!p->impl||!p->impl->onActor())return;
+ auto p=known(t);if(!p||!p->impl||!p->impl->onActor())return;
  auto&i=*p->impl;i.retired=true;if(i.owner)i.owner->retire();
 }
 Failure OriginalAccountPurposeChild::finishClose()noexcept{
@@ -161,7 +161,7 @@ Failure OriginalAccountPurposeChild::finishClose()noexcept{
  i.backend.reset();i.closed=true;return i.cleanup;
 }
 Failure joinOriginalAccountPurposeChild(OriginalAccountPurposeChild*t)noexcept{
- auto*p=known(t);if(!p||!p->impl||!p->impl->onActor())return local(p?wrongActor:invalid);
+ auto p=known(t);if(!p||!p->impl||!p->impl->onActor())return local(p?wrongActor:invalid);
  auto&i=*p->impl;
  if(i.closing)return p->finishClose();
  if(!i.retired)return local(pending);
@@ -169,34 +169,33 @@ Failure joinOriginalAccountPurposeChild(OriginalAccountPurposeChild*t)noexcept{
  return i.cleanup;
 }
 Failure closeOriginalAccountPurposeChild(OriginalAccountPurposeChild*t)noexcept{
- auto*p=known(t);if(!p||!p->impl||!p->impl->onActor())return local(p?wrongActor:invalid);
+ auto p=known(t);if(!p||!p->impl||!p->impl->onActor())return local(p?wrongActor:invalid);
  auto&i=*p->impl;retireOriginalAccountPurposeChild(t);i.closing=true;
  remember(i.cleanup,i.first);return p->finishClose();
 }
 bool originalAccountPurposeChildClosed(OriginalAccountPurposeChild*t)noexcept{
- auto*p=known(t);return p&&p->impl&&p->impl->onActor()&&p->impl->closed;
+ auto p=known(t);return p&&p->impl&&p->impl->onActor()&&p->impl->closed;
 }
 Failure releaseClosedOriginalAccountPurposeChild(OriginalAccountPurposeChild*t)noexcept{
- auto*p=known(t);if(!p||!p->impl||!p->impl->onActor()||!p->impl->closed)return local(p?pending:invalid);
- delete p->impl;p->impl=nullptr;
+ auto p=known(t);if(!p||!p->impl||!p->impl->onActor()||!p->impl->closed)return local(p?pending:invalid);
  std::lock_guard<std::mutex>l(inventoryMutex);inventory.erase(reinterpret_cast<uintptr_t>(t));return{};
 }
 Acquisition acquireOriginalAccountPurposeChild(Source*s)noexcept{
  Acquisition out;
  try{
-  auto owned=std::make_unique<OriginalAccountPurposeChild>();
-  auto state=std::make_unique<OriginalAccountPurposeChild::Impl>();
+  auto owned=std::make_shared<OriginalAccountPurposeChild>();
+  auto state=std::make_shared<OriginalAccountPurposeChild::Impl>();
   {std::lock_guard<std::mutex>l(inventoryMutex);
    if(inventory.size()>=64||nextToken==std::numeric_limits<uintptr_t>::max())return{nullptr,local(pending)};
    const auto id=nextToken++;
-   state->host=reinterpret_cast<port::HostPort*>(id);owned->impl=state.get();
-   inventory.emplace(id,std::move(owned));state.release();out.owner=reinterpret_cast<OriginalAccountPurposeChild*>(id);
+   state->host=reinterpret_cast<port::HostPort*>(id);owned->impl=state;
+   inventory.emplace(id,std::move(owned));out.owner=reinterpret_cast<OriginalAccountPurposeChild*>(id);
   }
-  auto*p=known(out.owner);
+  auto p=known(out.owner);
   // The actual original startup holds the one capture. No caller-selected
   // process, descriptor, engine string, callback or profile enters this call.
   auto acquired=backend::acquireOriginalNormalSourceAccount(s);
   out.failure=p->initialize(s,std::move(acquired));return out;
- }catch(...){out.failure=local(invalid);if(auto*p=known(out.owner))remember(p->impl->first,out.failure);return out;}
+ }catch(...){out.failure=local(invalid);if(auto p=known(out.owner))remember(p->impl->first,out.failure);return out;}
 }
 }

@@ -33,6 +33,14 @@ sequence/response/close effects retain the original token, pending sequence and
 Source debt; they cannot be reset, replayed or re-opened. Expired local transport
 limits do not fabricate a remote close acknowledgement.
 
+An inventory lookup retains shared physical ownership through the caller's
+actor check. The child's private state has the same lifetime. A rejected foreign
+thread can therefore finish safely while the actor releases the authoritative
+token. Removing the inventory entry still prevents new lookup/access; physical
+retention does not renew Source permission, create an account or undo retirement.
+The old raw-lookup implementation's release race is preserved as an actual
+AddressSanitizer heap-use-after-free counterexample in the successor evidence.
+
 Physical CLOSED and original failure are separate. In particular, a CLOSED
 reply with `failure.present=1, code=0` remains a failure and can still witness
 actual Reader closure. The child waits for actual Reader release, then settles

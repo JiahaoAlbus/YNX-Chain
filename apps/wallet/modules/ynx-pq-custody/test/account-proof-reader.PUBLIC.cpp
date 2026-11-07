@@ -2,6 +2,7 @@
 // real Core proof verification, actual P09 socket or installed qualification.
 #include "../native/account-proof/NativeAccountPurposeChild.h"
 #include <cassert>
+#include <atomic>
 #include <iostream>
 #include <string>
 #include <thread>
@@ -73,6 +74,23 @@ net::ExchangeResult OriginalAccountPurposeChild::exchange(const port::Bytes&requ
 int main(int argc,char**argv){
  assert(argc==2);mode=argv[1];readerID.fill(9);
  selected.chainId="PUBLIC-chain";selected.canonicalOwner="0x0000000000000000000000000000000000000001";selected.minimumHeight=40;selected.deadlineMs=1893456000000;
+ if(mode=="concurrent-release"){
+  std::atomic<port::Reader*>target{nullptr};std::atomic<bool>stop{false},started{false};
+  std::thread observer([&]{started=true;while(!stop.load()){
+   if(auto*r=target.load()){port::CommittedProofViewDATA local;
+    (void)port::isClosed(r);assert(port::read(r,local).failure.present);
+   }
+  }});
+  while(!started.load())std::this_thread::yield();
+  for(unsigned k=0;k<3000;++k){
+   requests=0;sequence=0;closes=0;
+   auto a=port::open(host,source);assert(a.owner&&!a.failure.present);target=a.owner;
+   std::this_thread::yield();assert(!port::close(a.owner).present&&port::isClosed(a.owner));
+   assert(!port::releaseClosed(a.owner).present);target=nullptr;
+  }
+  stop=true;observer.join();assert(!attached);
+  std::cout<<"PUBLIC_CHILD_SEAM_ACTUAL_NATIVE_READER_PASS concurrent-release NOT_ROOT_NOT_CORE_PROOF\n";return 0;
+ }
  if(mode=="invalid-host"){
   auto a=port::open(reinterpret_cast<port::HostPort*>(uintptr_t(99)),source);assert(!a.owner&&a.failure.present&&requests==0);
  }else if(mode=="wrong-source"){

@@ -2,6 +2,7 @@
 // ONLY Source/profile qualification is PUBLIC. No Core proof/sign/Root grant.
 #include "../native/account-proof/NativeAccountPurposeChild.h"
 #include <cassert>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <thread>
@@ -75,10 +76,19 @@ int main(int argc,char**argv){
   auto*foreign=reinterpret_cast<ynx::sdk::mobile::accountproof::Reader*>(uintptr_t(999));
   assert(child->attachReader(foreign,&source).present);
   child->releaseReader(foreign); // cannot settle or create any Reader debt
+  auto*token=reinterpret_cast<ynx::native::accountproof::OriginalAccountPurposeChild*>(host);
+  std::atomic<bool>stop{false},started{false};
+  std::thread rejected([&]{started=true;while(!stop.load()){
+   ynx::sdk::mobile::accountproof::HostPort*copy=nullptr;
+   assert(ynx::native::accountproof::readOriginalAccountPurposeChild(token,&source,copy).present&&!copy);
+   assert(!ynx::native::accountproof::originalAccountPurposeChildClosed(token));
+  }});
+  while(!started.load())std::this_thread::yield();
   assert(normal::closeOriginalNormalNativeBackend().failure==normal::Failure::Pending);
   assert(!auth::closeOriginalAccountProofHost(acquired.owner).present&&auth::originalAccountProofHostClosed(acquired.owner));
   assert(source.borrows==0&&source.releases==2);
   assert(!auth::releaseClosedOriginalAccountProofHost(acquired.owner).present);
+  stop=true;rejected.join();
   assert(!ynx::native::accountproof::originalChildForAccountProofHostPort(host));
   assert(!normal::closeOriginalNormalNativeBackend().failed());
   puts("ACTUAL_NATIVE_HOST_REJECTS_FOREIGN_READER_AND_DRAINS_ORIGINAL_SOURCE_NOT_ROOT");
