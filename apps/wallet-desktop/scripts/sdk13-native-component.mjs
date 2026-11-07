@@ -118,3 +118,6 @@ export {native49C6NormalNodeComponent} from "./native49-c6-normal-component.mjs"
 export {verifyApproved125aHelperComponent,APPROVED125A_HELPER_SOURCE_TUPLE} from './approved125a-helper-component.mjs';
 
 export {native49NAPINormalNodeComponent} from "./native49-napi-normal-component.mjs";
+
+// Independent original A project-control matched image role; old roles unchanged.
+export {walletControlMatchedNormalNodeComponent} from "./wallet-control-matched-normal-component.mjs";
