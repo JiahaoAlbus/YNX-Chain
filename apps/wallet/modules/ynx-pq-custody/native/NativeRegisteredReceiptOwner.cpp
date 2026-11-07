@@ -1,5 +1,6 @@
 #include "NativeRegisteredReceiptOwner.h"
 #include "NativeAccountPicker.h"
+#include "NativeReceiptDirectoryPolicy.h"
 #include <limits>
 #include <map>
 namespace ynx::mobilepq::registered {
@@ -107,6 +108,15 @@ auth::DirectoryAcquisition NativeRegisteredReceiptOwner::borrowOriginalDirectory
   if(out.failure.present){observeFailure(out.failure);out.ready=false;return out;}
   if(!out.owner){out.failure=observeFailure({true,notSupplied});out.ready=false;return out;}
   if(!out.ready)return out;
+  auth::DirectoryDATA directory;state=auth::readOriginalReceiptDirectory(out.owner,directory);
+  if(!state.ready||state.failure.present||state.notReady){out.ready=false;out.failure=observeFailure(state.failure.present?state.failure:state.notReady&&!state.ready?Failure{}:Failure{true,invalid});out.pendingCause=state.pendingCause;return out;}
+  auth::OriginalSourceSelection source;state=readOriginalSourceSelection(source);
+  if(!state.ready||state.failure.present){out.ready=false;out.failure=state.failure;out.pendingCause=state.pendingCause;return out;}
+  if(directory.role!=role||!matchesNativeCompiledReceiptDirectory(source,directory)){
+   out.ready=false;out.failure=observeFailure({true,notSupplied});return out;
+  }
+  state=auth::assertOriginalReceiptDirectoryBinding(out.owner,directory);
+  if(!state.ready||state.failure.present||state.notReady){out.ready=false;out.failure=observeFailure(state.failure.present?state.failure:state.notReady&&!state.ready?Failure{}:Failure{true,invalid});out.pendingCause=state.pendingCause;return out;}
   state=current();if(!state.ready||state.failure.present){out.ready=false;out.failure=state.failure;out.pendingCause=state.pendingCause;}
   return out;
  }catch(...){out.failure=observeFailure({true,notSupplied});out.ready=false;return out;}

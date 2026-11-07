@@ -390,3 +390,21 @@ original actor; a callee that returns after retirement is adopted then revoked.
 A sibling receipt remains live. This does not create a Source or a closed
 witness. The 32 receipt controls use PUBLIC Auth/UI seams, not a genuine ledger
 seal or installed mobile lifecycle.
+
+The Native receipt directory path now ANDs Auth's real opaque directory with
+`NativeReceiptDirectoryPolicy.cpp`, an independent compiled Native lookup over
+the original mode/platform/application/resource/network/account identity. It
+rejects missing or ambiguous rows, absent roles and locator substitutions; an
+Auth-supplied locator cannot populate this map. The normal table is empty until
+original independently reviewed Native release rows are supplied in a fresh
+matching source/image. PUBLIC rows exist only in the explicitly macro-guarded
+control build; the normal-empty build is also exercised. No runtime setter or
+permission/account database is added.
+
+Directory acquisition retains the same Auth partial before all read/binding/
+map checks, preserves paired failure-present code0 and pending causes, and
+refuses only the failed borrow while the genuine receipt may remain current.
+The actual Auth held/named binding is rechecked after the Native constraint.
+This does not replace `SelectedDirectoryInventory` physical named/held pins or
+the missing typed registered/selected mother. The original module CI now runs
+35 receipt controls plus the normal-empty and PUBLIC compiled-map groups.
