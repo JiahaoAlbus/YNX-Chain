@@ -73,7 +73,8 @@ export function stageDesktopNative49C6Input(projectDir,inputRoot){
   return Object.freeze({destination,reused:false,files:selected.assets.length,oldNativeReplaced:false,recordRewritten:false});
 }
 export function desktopNative49C6FileSet(){
-  return Object.freeze({from:stageRelative+'/apps/wallet-desktop',to:'.',filter:selected.assets.map(row=>row.path.slice('apps/wallet-desktop/'.length))});
+  // electron-builder normalizes FileSet.to in place when loading a config.
+  return {from:stageRelative+'/apps/wallet-desktop',to:'.',filter:selected.assets.map(row=>row.path.slice('apps/wallet-desktop/'.length))};
 }
 export function verifyDesktopNative49C6ASAR({asar,archive,projectDir}){
   const stage=desktopNative49C6StageRoot(projectDir);
