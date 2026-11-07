@@ -173,6 +173,35 @@ registered restoration and maintained Core signing remain separate gates.
 
 ## Integration and verification
 
+The isolated selected-directory successor implements the four private directory
+calls in `MobileSelectedOriginalPrivate.h` (3643 bytes, SHA256
+`6942ede12281321a1e03f33f8009f7b8e54c2d421b9e82d84b041f8d83b62b69`).
+`SelectedDirectoryInventory::pin` accepts only three already held Native
+parent/leaf/directory pairs from the same selected app/account backend. It
+duplicates its own FDs, pins named and held inode/owner identities, requires
+0700/euid protection, checks all three roles on current, and never opens a
+Root locator as a pathname. No OS ancestor permission exception is introduced.
+Directory substitution or lifetime loss permanently retires that inventory.
+Auth owns its own dup FDs and closes all of them before closing/releasing each
+Native loan. A child remains mother debt until release, even after child close;
+mother close keeps its pins until every child is released. Opaque loan tokens
+are monotonic and remain Native only. These functions do not create directories,
+account records, reviews, operations, grants, OS43 items or a Source row.
+
+The REAL Native selected-original mother must implement the seven original
+selected calls and the strong private C++ `selectedDirectoryInventory` accessor.
+It must return its same pinned member, check real account/epoch/review current
+without recursing into Auth, retire on actual account/lifecycle invalidation,
+and require inventory `close`/`isClosed` before mother release. The directory
+bridge calls that same selected current before/after physical checks. No
+stand-in selected map, generic provider or permanent-denial implementation is
+supplied here. The actual Auth original receipt bridge, Native account picker/
+review, Main normal initialization/receipt glue, and matching mobile archive
+remain required production code. Missing strong callees fail platform linking;
+the PUBLIC test mother establishes none of those production gates. This entire
+successor must stay separate from the frozen earlier module/image until the
+real mother and receipt producer are linked together.
+
 Android uses the real ReactContext runtime/CallInvoker getters, JNI and the
 module's single native worker. iOS uses RN's
 `RCTTurboModuleWithJSIBindings` runtime/callInvoker hook plus a Swift lifecycle
@@ -183,6 +212,8 @@ missing/unresolved symbols. Supply ONE matching archive, never a second Go
 runtime. iOS final target must likewise strong-link original Auth/Core.
 
 Run new native controls with `node test/run-native-controls.mjs`.
+Run FD/parent controls with `node test/run-directory-controls.mjs`; normal
+module CI includes them. Their files and Native parent are PUBLIC fixtures.
 Parent's ordinary CI should call `node test/ci.mjs <normal-react-native-root>`
 for this module's closed checks; it requires the actual matching RN0.86 tree.
 No parent package/CI file is modified by this owned module. Parent integration

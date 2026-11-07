@@ -14,7 +14,8 @@ add_library(ynx_pq_custody SHARED src/main/cpp/JNI.cpp src/main/cpp/OS43Android.
  src/main/cpp/auth-ordinary/NativeBackupFormat.cpp
  src/main/cpp/auth-ordinary/NativeOrdinary.cpp
  src/main/cpp/auth-ordinary/AndroidOrdinaryCrypto.cpp
- ../native/MobileSecure43.cpp ../native/Wrapped43Record.cpp ../native/CustodySession.cpp ../native/SerialCustodyWorker.cpp ../native/CustodyJSI.cpp)
+ ../native/MobileSecure43.cpp ../native/Wrapped43Record.cpp ../native/SelectedDirectoryInventory.cpp
+ ../native/CustodySession.cpp ../native/SerialCustodyWorker.cpp ../native/CustodyJSI.cpp)
 target_include_directories(ynx_pq_custody PRIVATE ../native)
 target_link_libraries(ynx_pq_custody PRIVATE ReactAndroid::jsi ReactAndroid::reactnative fbjni::fbjni ynx_auth_mobile log)
 target_link_options(ynx_pq_custody PRIVATE -Wl,--no-undefined)
