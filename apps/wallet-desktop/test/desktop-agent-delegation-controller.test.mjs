@@ -80,3 +80,8 @@ test('relock and unlock keep account-bound UNKNOWN recoverable, with reused IDs 
  c={...c,account:'PUBLIC-B',revision:4};await api.cancelView();await api.recoverOperation('PUBLIC-same-id');
  assert.deepEqual(queried,['PUBLIC-A','PUBLIC-B']);assert.equal(mutations,2);
 });
+test('normal close reports actual cleanup debt and duplicate closes join the same cancellation',async()=>{
+ let closes=0;const d=deferred();const api=create({getContext:active,management:{cancelView:()=>{closes++;return d.promise}}});
+ const first=api.close(),second=api.close();assert.equal(first,second);d.resolve(false);
+ assert.equal(await first,false);assert.equal(closes,1);await assert.rejects(api.readProjection(),code('AGENT_VIEW_CLOSED'));
+});

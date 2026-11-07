@@ -5,7 +5,7 @@ const fault=code=>Object.assign(Error(code),{code});
 const unavailable=()=>Object.freeze({state:'unavailable'});
 export function createDesktopAgentDelegationController({getContext,management=null}){
   if(typeof getContext!=='function')throw fault('AGENT_CONTEXT_REQUIRED');
-  let epoch=0,closed=false,busy=false,heldReview=null,scope=null,debt=false;
+  let epoch=0,closed=false,busy=false,heldReview=null,scope=null,debt=false,closing=null;
   const originals=new Map();
   const context=()=>{
     const c=getContext();
@@ -75,6 +75,10 @@ export function createDesktopAgentDelegationController({getContext,management=nu
       const clean=!management||typeof management.cancelView==='function'&&await management.cancelView()===true;
       debt=!clean;return clean;
     },
-    async close(){closed=true;invalidate();if(typeof management?.cancelView==='function')await management.cancelView();},
+    close(){return closing??=(async()=>{
+      closed=true;invalidate();debt=true;
+      const clean=!management||typeof management.cancelView==='function'&&await management.cancelView()===true;
+      debt=!clean;return clean;
+    })();},
   });
 }
