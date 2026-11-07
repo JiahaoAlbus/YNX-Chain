@@ -391,7 +391,7 @@ jobs:
           git diff --exit-code
           git rev-parse HEAD > "$evidence/source-head.txt"
           sha256sum "$evidence/ynx-secure-link-linux-amd64" > "$evidence/binary.sha256"
-      - name: Exercise finite7 original GET through actual fixed PQ TLS and physical cleanup
+      - name: Exercise finite7 GET, Auth loan callee and independent AI V6 physical PQ transport
         env:
           YNX_LINK_IDE_FINITE_GET_TEST_ARTIFACTS: ${{ runner.temp }}/securelink-finite7-private
           YNX_LINK_IDE_FINITE_GET_CI_EVIDENCE: ${{ runner.temp }}/securelink-evidence/finite7
