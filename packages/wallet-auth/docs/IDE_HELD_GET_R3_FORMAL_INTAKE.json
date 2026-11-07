@@ -1,0 +1,81 @@
+{
+  "schema": "SDK_IDE_HELD_GET_R3_FORMAL_INTAKE_V1",
+  "base": "717fdbcf29c8e62167c6bbe9fd289e856495c529",
+  "formalSupplier": {
+    "bytes": 6636,
+    "sha256": "de1b603de178649f3916efaad83ac1fb314343f328b759a26ae42549c68a6b68"
+  },
+  "layers": {
+    "P03SyncRetainedSourceFactory": "must sync return own lifecycle owner, not this async DEVICE function",
+    "internalAsyncHeldDEVICE": "implemented SAME Host context / existing Native Source+store+SDK stage",
+    "actualNativeBorrowAndSameNodeInventory": "implemented, real child count/current/original scope/partial/cleanup; no NAPI public provider",
+    "GoSameContextCompletion": "implemented original ticket.finish and separate actual drain; not Source admission",
+    "qualifiedTargetSource": "NOT_IMPLEMENTED: independent session-target permission contract/normal ctor still owning CODE",
+    "finalJSNativeGoRequestFinish": "NOT_IMPLEMENTED: cannot alias to headers/SDK DATA/Go-only finish",
+    "serverV4PrincipalReceiver": "NOT_IMPLEMENTED: still requires actual Root/DEVICE/current/revoke/durable nonce/principal chain"
+  },
+  "actualEntry": {
+    "internalAsyncDevice": "acquireOriginalIDEHeldSessionReadForOriginalGET(SAME frozen {signal}):Promise<{owner,failed,errorPresent,error,cleanupOnly}>",
+    "actualNativeExisting": "loadOriginalAuthIdentityNativeImage().acquireOriginalIDEHeldSessionReadCapture() [existing fixed getter]",
+    "heldOwner": [
+      "assertCurrent(SAMEctx):Promise<void>",
+      "createBusinessProof(exact{method,path,body,requiredScopes},SAMEctx):Promise<existing SDK result>",
+      "readRetainedProofObservationDATA(SAMEctx):owned DATA usable:false",
+      "retire():void",
+      "close():Promise<void>"
+    ],
+    "privateHeader": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/held-get-r3/frozen-r3-Dl0ZUm/native/ide-get-device-borrow-private.h",
+      "bytes": 865,
+      "sha256": "769c913c9c1de4942c2ba0edda9564c8364f9816d9fdbb2da6f9581f09406a01",
+      "blob": "fb8b23ff64cc82aa6ae8b1fb1c7e8a47c03c5c22"
+    },
+    "privateNative": "YNXOriginalIDEGETDeviceBorrow::holdOriginalCapture(actual YNXIDEHeldSessionNativeCapture*,NSError**); assertCurrent/copyOriginalDeviceScopeDATA/retire/join/close",
+    "nodeSameTU": "IDEHeldBorrowOriginalGETDevice(napi_env,SAME tagged native capture,NSError**)->nonnull partial adopt FIRST",
+    "Go": "(*OriginalGETReadCompletion).FinishOriginalRead(SAME original context.Context)(bool,error); DrainOriginalRead(cleanupContext)(closed bool,error)",
+    "notExportedYet": "JS requestChild.finishOriginalRead(SAMEctx):Promise<boolean> requires actual native-Go request bridge+Native debt AND; no such NAPI method/export is claimed here"
+  },
+  "SDKSourceIntake": "3 original supplier leaves ADD under packages/wallet-auth/src byte-identical; existing relative fixed loader and normal product-wallet-connection export",
+  "NativeCAS": {
+    "action": "mapping only; no Native source installed",
+    "supplierBaseNode": {
+      "bytes": 85152,
+      "sha256": "9d5f78770ef050ccaee743aeeee937a5663d75e4d542947329c61f6bef401b32"
+    },
+    "supplierAfterNode": {
+      "bytes": 85205,
+      "sha256": "1dc81a3acff4924b553fb6d7d57efdaf97978c986a9eec9442d3571023d00013"
+    },
+    "SDK717fNode": {
+      "bytes": 84791,
+      "sha256": "5505f703dd98de2510b2a77390c58ac6ddb7c346d30aeab2573d23b62cb24788"
+    },
+    "SDK717fCapture": "ABSENT",
+    "futureA3c9Node": "85959/dcde99 parent-observed; registrar must be preserved",
+    "rule": "Original Auth/A must apply minimal private include+childcount CAS against matching current mother; never overwrite whole Node leaf or hotmix compiled image"
+  },
+  "normalCallerBoundary": "Async held DEVICE opener is not P03 synchronous retained TargetSource factory, and must not replace existing acquireOriginalIDECloudGETSource or expose header early",
+  "finish": "Go original completion implementation supplied; final JS/Native/Go request-child finish is explicitly NOT_IMPLEMENTED in formal H; existing SDK accepted prototype stays guarded NOT_SUPPLIED",
+  "heldContext": "SAME frozen Host signal context passed to original fixed getter composition; no context-as-once, no caller provider, no source grant",
+  "qualification": {
+    "formalComponentSupplied": true,
+    "SDK3SourceIntegrated": true,
+    "NativeBorrowComponentSupplied": true,
+    "GoCompletionSupplied": true,
+    "finalJSFinishBody": false,
+    "qualifiedTargetSource": false,
+    "receiverAccepted": false,
+    "normalWholeimage": false,
+    "actualHTTPS": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
+  },
+  "remaining": [
+    "Root/sole explicit independent session\u2192target qualification scope; no lookup10/DEVICE grant substitution",
+    "sync sameparent qualified TargetSource normal constructor",
+    "original Native-Go request child bridge with finish=Go known completion AND physical Native child drain + final Source fences",
+    "original AuthHost/P04 finiteV4 receiver current/revoke/durable nonce/principal and Source-owned pinned sender normal binding"
+  ],
+  "tests": "SupplierJS9/Native5/Nodeborrow/Go4ticket/wholeTU68408 reused, not rerun. New normal import and strict declaration only; no Native acquire/GUI/Go."
+}

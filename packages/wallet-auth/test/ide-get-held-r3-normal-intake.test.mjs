@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {acquireOriginalIDEHeldSessionReadForOriginalGET} from '../src/ide-get-held-session-root.js';
+test('formal r3 held DEVICE normal relative module imports without Native acquisition',()=>{assert.equal(typeof acquireOriginalIDEHeldSessionReadForOriginalGET,'function');assert.equal(acquireOriginalIDEHeldSessionReadForOriginalGET.length,0);});
