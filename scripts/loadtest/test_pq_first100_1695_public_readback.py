@@ -15,7 +15,7 @@ cold=module('public1695_cold_controls','test_pq_first100_1695_cold_readback.py')
 
 def records():
     adapter,receipt=cold.records()
-    adapter.update(profile='first100-1695-public-owner',senderBackend='public-owner')
+    adapter.update(controllerCommit=m.CONTROLLER,profile='first100-1695-public-owner',senderBackend='public-owner')
     receipt['loadConditions']['senderBackend']='public-owner'
     receipt.update(loadExecuted=True,normalPublicOwnerTransport=dict(schema='YNX-PERF-PUBLIC-OWNER-TRANSPORT/v1',
         clock='parent_monotonic_ns',recordLimit=2048,automaticRetry=False,authorityGranted=False,
@@ -39,6 +39,8 @@ class Public1695Controls(unittest.TestCase):
         adapter,receipt=records();receipt['loadConditions']['senderBackend']='bounded-cold'
         with self.assertRaises(RuntimeError):m.identities(adapter,receipt)
         adapter,receipt=records();adapter['profile']='first100-1695-bounded-cold'
+        with self.assertRaises(RuntimeError):m.identities(adapter,receipt)
+        adapter,receipt=records();adapter['controllerCommit']='e366c7c0f9cb42c1d2a7ce3568449c2755eab1c4'
         with self.assertRaises(RuntimeError):m.identities(adapter,receipt)
 
     def test_released_window_without_parent_report_is_rejected(self):
