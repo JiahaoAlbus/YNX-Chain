@@ -213,13 +213,18 @@ func (in *pqLabLiveMaterialsInputs) loadStatic() (*pqLabLiveStaticSnapshot, erro
 		}
 		return in.heldStatic, nil
 	}
-	p, m, b, err := loadPQLabObservedWithRead(in.policy.RootDir, in.policy.PlanSHA256, in.metrics, in.uncached.read)
-	if err != nil {
-		return nil, err
-	}
-	end := pqLabMeasure(in.metrics, "lab.validatedMigrationOwnerBuild")
-	witness, err := newValidatedMigration(m, b)
-	end()
+	// This cold public-source owner uses the same complete key/canonical
+	// constructor as the normal sender. No sender key, operation or current
+	// permission is carried into this witness. Its exact held files stay required.
+	var witness *validatedMigration
+	p, _, _, err := loadPQLabObservedWithBootstrap(in.policy.RootDir, in.policy.PlanSHA256, in.metrics, in.uncached.read, func(raw []byte, pins ConsensusBootstrapPins, m chain.ConsensusMigrationState) (*ConsensusBootstrap, error) {
+		var err error
+		witness, err = newPQLabLiveBootstrap(raw, pins, m, in.metrics)
+		if err != nil {
+			return nil, err
+		}
+		return witness.bootstrap, nil
+	})
 	if err != nil {
 		return nil, err
 	}

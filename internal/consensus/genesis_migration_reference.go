@@ -93,6 +93,46 @@ func validateBootstrapMigrationAppState(raw []byte, migration chain.ConsensusMig
 // migration and its FULL validated canonical stream. The normal public path
 // above is unchanged. It removes repeated mathematical validation, never the
 // complete canonical comparison or independent Genesis/reference binding.
+// The cold constructor still has its original typed migration in this exact
+// invocation. Do not replace it with the detached value: decoding can normalize
+// otherwise accepted source strings, whose original canonical bytes must remain
+// the reference/embedded binding. Only the complete private constructor can seal
+// this owner. The original reference streaming validator stays mandatory.
+func validateBootstrapMigrationAppStateColdOwned(raw []byte, source chain.ConsensusMigrationState, owner *validatedMigration) ([]byte, *cometMigrationReference, error) {
+	if owner == nil || owner.valid() != nil || owner.validatedSelf != owner || owner.bootstrapKeysValidated != owner || owner.bootstrap != nil {
+		return nil, nil, errors.New("missing original validated bootstrap migration owner")
+	}
+	var discriminator struct {
+		Version json.RawMessage `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &discriminator); err != nil {
+		return nil, nil, err
+	}
+	var version string
+	if json.Unmarshal(discriminator.Version, &version) == nil {
+		normalized, ref, err := validateBootstrapMigrationAppState(raw, source)
+		if err != nil {
+			return nil, nil, err
+		}
+		if ref == nil || *ref != newCometMigrationReferenceDigest(source, owner.canonicalHash, owner.canonicalBytes) {
+			return nil, nil, errors.New("original validated canonical migration changed")
+		}
+		return normalized, ref, nil
+	}
+	// Full source validation already ran inside the complete key/canonical
+	// constructor. Emit its original bytes here, then retain the public path's
+	// independent embedded typed validation and exact complete byte comparison.
+	canonical, err := json.MarshalIndent(source, "", "  ")
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(canonical) != owner.canonicalBytes || sha256.Sum256(canonical) != owner.canonicalHash {
+		return nil, nil, errors.New("original validated canonical migration changed")
+	}
+	appState, _, err := validateCometMigrationAppState(raw, source, canonical)
+	return appState, nil, err
+}
+
 func validateBootstrapMigrationAppStateOwned(raw []byte, owner *validatedMigration) ([]byte, *cometMigrationReference, error) {
 	if owner == nil || owner.valid() != nil || owner.validatedSelf != owner || owner.bootstrapKeysValidated != owner || owner.bootstrap != nil {
 		return nil, nil, errors.New("missing original validated bootstrap migration owner")

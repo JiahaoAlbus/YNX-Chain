@@ -84,6 +84,12 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 // A nonnil witness is private, constructor-sealed and consumes the complete
 // original migration; there is no public skip-validation option.
 func newConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migration chain.ConsensusMigrationState, witness *validatedMigration) (*ConsensusBootstrap, error) {
+	return newConsensusBootstrapWithColdOwner(rawGenesis, pins, migration, witness, nil)
+}
+
+// The private cold builder runs only at the existing full validator-key boundary,
+// after original Genesis/pin checks. No public option can skip validation.
+func newConsensusBootstrapWithColdOwner(rawGenesis []byte, pins ConsensusBootstrapPins, migration chain.ConsensusMigrationState, witness *validatedMigration, coldOwner func(chain.ConsensusMigrationState) (*validatedMigration, error)) (*ConsensusBootstrap, error) {
 	genesisID, err := canonicalBootstrapHash(pins.CometGenesisSHA256)
 	if err != nil {
 		return nil, err
@@ -103,15 +109,29 @@ func newConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if !bytes.Equal(sum[:], genesisID) {
 		return nil, errors.New("raw Comet genesis differs from independent operator pin")
 	}
+	if coldOwner != nil {
+		if witness != nil {
+			return nil, errors.New("cold owner cannot replace an existing witness")
+		}
+		var err error
+		witness, err = coldOwner(migration)
+		if err != nil {
+			return nil, fmt.Errorf("bootstrap bound migration: %w", err)
+		}
+		if witness == nil || witness.validatedSelf != witness || witness.bootstrapKeysValidated != witness || witness.bootstrap != nil {
+			return nil, errors.New("missing original validated bootstrap migration owner")
+		}
+	}
 	if witness == nil {
 		if err := migration.ValidateConsensusValidatorKeys(); err != nil {
 			return nil, fmt.Errorf("bootstrap bound migration: %w", err)
 		}
 	} else if witness.validatedSelf != witness || witness.bootstrapKeysValidated != witness || witness.bootstrap != nil {
 		return nil, errors.New("missing original validated bootstrap migration owner")
-	} else {
-		// The private owner supplies the migration itself, never a parallel
-		// caller-selected object paired with a reusable validation flag.
+	} else if coldOwner == nil {
+		// An already-issued private owner supplies its own migration. The cold
+		// path instead keeps the original source for its bootstrap comparisons;
+		// the detached JSON value can intentionally normalize original strings.
 		migration = witness.migration
 	}
 	if migration.OriginalGenesisHash != pins.OriginalGenesisHash || migration.StateHash != pins.MigrationStateHash || migration.Height >= math.MaxInt64 {
@@ -138,7 +158,9 @@ func newConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	}
 	var appState []byte
 	var migrationReference *cometMigrationReference
-	if witness == nil {
+	if coldOwner != nil {
+		appState, migrationReference, err = validateBootstrapMigrationAppStateColdOwned(doc.AppState, migration, witness)
+	} else if witness == nil {
 		appState, migrationReference, err = validateBootstrapMigrationAppState(doc.AppState, migration)
 	} else {
 		appState, migrationReference, err = validateBootstrapMigrationAppStateOwned(doc.AppState, witness)

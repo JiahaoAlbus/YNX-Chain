@@ -6,6 +6,8 @@ import (
 	"errors"
 	"os"
 	"sync"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 const pqLabStaticScope = "YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1"
@@ -161,7 +163,15 @@ func (c *PQLabStaticCache) load(root, pin string, metrics *PQLabMetrics) (*pqLab
 			_ = reads.close()
 		}
 	}()
-	p, m, b, err := loadPQLabObserved(root, pin, metrics, reads)
+	var witness *validatedMigration
+	p, _, _, err := loadPQLabObservedWithBootstrap(root, pin, metrics, reads.read, func(raw []byte, pins ConsensusBootstrapPins, m chain.ConsensusMigrationState) (*ConsensusBootstrap, error) {
+		var err error
+		witness, err = newPQLabLiveBootstrap(raw, pins, m, metrics)
+		if err != nil {
+			return nil, err
+		}
+		return witness.bootstrap, nil
+	})
 	if err != nil {
 		if errors.Is(err, ErrPQLabStaticCacheBound) {
 			c.bypasses++
@@ -171,12 +181,6 @@ func (c *PQLabStaticCache) load(root, pin string, metrics *PQLabMetrics) (*pqLab
 	if !reads.cacheable {
 		c.bypasses++
 		return nil, ErrPQLabStaticCacheBound
-	}
-	done := pqLabMeasure(metrics, "lab.validatedMigrationOwnerBuild")
-	witness, err := newValidatedMigration(m, b)
-	done()
-	if err != nil {
-		return nil, err
 	}
 	entry := &pqLabStaticEntry{root: root, pin: pin, plan: p, witness: witness, originals: reads.originals, bytes: reads.bytes, owner: c, generation: c.generation, cached: reads.cacheable}
 	if err = entry.unchangedFiles(); err != nil {
