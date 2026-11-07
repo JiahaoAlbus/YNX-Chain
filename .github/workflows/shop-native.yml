@@ -44,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
+      navigation-only: ${{ steps.scope.outputs.navigation-only }}
       source-only: ${{ steps.scope.outputs.source-only }}
       native-client-only: ${{ steps.scope.outputs.native-client-only }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
@@ -86,6 +87,8 @@ jobs:
               return path in receipt_files or path.startswith("internal/commerce/native_payment_")
           read_path = lambda p: source_path(p) or native_client_path(p) or receipt_path(p)
           allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml", "go.mod"}
+          navigation_files = {"apps/shop/native/pay-intent-navigation.mjs", "apps/shop/native/pay-intent-navigation.test.mjs"}
+          navigation_only = bool(changed) and any(p in navigation_files for p in changed) and all(p in navigation_files or p == ".github/workflows/shop-native.yml" for p in changed)
           native_client_only = bool(changed) and any(p.startswith("apps/shop/native/") for p in changed) and all(p.startswith("apps/shop/native/") or p == ".github/workflows/shop-native.yml" for p in changed)
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           if source_only and "go.mod" in changed:
@@ -125,6 +128,7 @@ jobs:
                       receipt_test_delta = True
                       tests = new_tests
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("navigation-only=" + str(navigation_only).lower() + "\n")
               output.write("listing-only=" + str(listing_only).lower() + "\n")
               output.write("notification-driver-only=" + str(notification_driver_only).lower() + "\n")
               output.write("notification-only=" + str(notification_only).lower() + "\n")
@@ -138,8 +142,21 @@ jobs:
               output.write("read-tests=^(" + "|".join(tests) + ")\n")
           print("Read-plane-only checks:", source_only, "actual changed files:", len(changed))
           PY
+  native-pay-navigation:
+    needs: change-scope
+    if: needs.change-scope.outputs.navigation-only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check original Main order navigation and IPC contract
+        run: node --test apps/shop/native/pay-intent-navigation.test.mjs
   order-recovery:
     needs: change-scope
+    if: needs.change-scope.outputs.navigation-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -150,7 +167,7 @@ jobs:
       - name: Verify complete original Auth and LINK input packages
         run: python3 internal/commerce/verify_product_source_inputs.py
       - name: Verify original intent recovery and build the normal Shop service
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeSellerSetup|TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
@@ -193,12 +210,12 @@ jobs:
           path: ${{ runner.temp }}/shop-notification-original-read-driver
           if-no-files-found: error
       - uses: actions/setup-java@v4
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
+        if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         with:
           distribution: temurin
           java-version: "17"
       - name: Check actual Android intent consumer and narrow route policy
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
+        if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         run: |
           set -euo pipefail
           DEPS="$RUNNER_TEMP/shop-intent-deps"
@@ -268,7 +285,7 @@ jobs:
           name: ynx-shop-fulfillment-original-evidence
           path: ${{ runner.temp }}/shop-fulfillment-evidence
       - name: Check inventory CLI against the original official Native SDK input
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \
@@ -281,7 +298,7 @@ jobs:
 
   android-app-candidate:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
+    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -316,7 +333,7 @@ jobs:
 
   language-regression:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
+    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
     runs-on: macos-15
     timeout-minutes: 5
     steps:
