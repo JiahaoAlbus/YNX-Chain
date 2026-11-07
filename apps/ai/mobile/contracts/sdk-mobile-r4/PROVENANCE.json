@@ -1,0 +1,50 @@
+{
+  "supplierHandoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/HANDOFF.json",
+  "sourceCommit": "9431a723eb61eb61748a97af08a69b0f9c2343b4",
+  "consumption": "byte-exact r4 SDK production files, unchanged public Client7 types reused; Native/common/SDK shared source untouched",
+  "files": [
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile.mjs",
+      "bytes": 10552,
+      "sha256": "e49a90a6b262ae18fcaf47dd9427467c88d38703a04c71b15aaaabaa921f26f8",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile.mjs"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile.d.mts",
+      "bytes": 514,
+      "sha256": "ed6ab833d92e5c91b1e14599a21a0895ef7b62c51dcbca4b83e773a8c6730eb1",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile.d.mts"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile-snapshot-private.mjs",
+      "bytes": 4361,
+      "sha256": "337f0601183a1a6f949c8ed78685be2ac17ef3a376fb6a7258208c00a180e5ac",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile-snapshot-private.mjs"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile-snapshot-private.d.mts",
+      "bytes": 740,
+      "sha256": "e2a8a8c1cc554637b16e1694d8281a5931ed8f4be3f35aa3bba12e2f52eb4c79",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/source/packages/wallet-auth/src/original-ai-task-action-v6-mobile-snapshot-private.d.mts"
+    },
+    {
+      "file": "../sdk047/original-ai-task-action-v6-mobile-data.mjs",
+      "bytes": 4679,
+      "sha256": "1cf598b644a1d69ec860ce037694e582817622ad7d1d0c9ed2c32a441ead7215",
+      "source": "git:b65eb2d353f93287d018a1fea4e7cbda6e3eb19a:packages/wallet-auth/src/original-ai-task-action-v6-mobile-data.mjs"
+    },
+    {
+      "file": "../sdk047/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+      "source": "git:b65eb2d353f93287d018a1fea4e7cbda6e3eb19a:packages/wallet-auth/src/canonical.js"
+    },
+    {
+      "file": "../sdk047/base64url.js",
+      "bytes": 1674,
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf",
+      "source": "git:b65eb2d353f93287d018a1fea4e7cbda6e3eb19a:packages/wallet-auth/src/base64url.js"
+    }
+  ],
+  "NativeInstalled": false
+}

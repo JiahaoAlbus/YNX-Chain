@@ -92,3 +92,21 @@ test('foreign conversation or current-task response is never cached as this task
 test('normal V6 task page includes frozen SDK required afterCursor and preserves exact sequence',async()=>{const f=fixture(),api=createTaskV6API('PUBLIC',f.original),signal=new AbortController().signal;await api.list(signal);await api.task(t.id,signal,42);assert.equal(f.intents[1]!.path,'/api/tasks/task_original?afterCursor=42');await assert.rejects(async()=>api.task(t.id,signal,-1),/CURSOR_INVALID/)});
 test('bounded observation journal compacts only terminal reads and preserves effects/UNKNOWN',async()=>{const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);f.client.send=async()=>{const i=f.intents.at(-1)!;return {operationId:i.operationId,phase:'OBSERVED',unknown:false} as Observation};await a.execute(request(),new AbortController().signal);f.client.send=async()=>{throw Error('PUBLIC read unknown')};await assert.rejects(a.execute(request('task.run-read'),new AbortController().signal),/read unknown/);const retainedUnknown=f.saved!.entries.at(-1)!.operationId;f.client.send=async()=>({operationId:f.intents.at(-1)!.operationId,phase:'OBSERVED',unknown:false} as Observation);for(let i=0;i<160;i++)await a.execute(request('task.read'),new AbortController().signal);assert.ok(f.saved!.entries.length<=35);assert.ok(f.saved!.entries.some(e=>e.action==='task.cancel'));assert.equal(f.saved!.entries.find(e=>e.operationId===retainedUnknown)!.state,'UNKNOWN')});
 test('original reconcile query remains available despite an UNKNOWN effect journal',async()=>{const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);f.client.send=async()=>{throw Error('PUBLIC original effect unknown')};await assert.rejects(a.execute(request('task.dispatch'),new AbortController().signal));f.client.send=async()=>({operationId:f.intents.at(-1)!.operationId,phase:'OBSERVED',unknown:false} as Observation);await a.execute(request('task.reconcile'),new AbortController().signal);await a.execute(request('task.reconcile'),new AbortController().signal);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');assert.deepEqual(f.intents.map(i=>i.action),['task.dispatch','task.reconcile','task.reconcile'])});
+
+test('cold original lookups retain one context and cancellation never renews it',async()=>{
+ const f=fixture(),warm=new NativeTaskV6Adapter('PUBLIC',f.original);
+ await warm.execute(request(),new AbortController().signal);
+ const cold=new NativeTaskV6Adapter('PUBLIC',f.original),contexts:unknown[]=[];
+ f.client.lookupOriginal=async(op,c)=>{contexts.push(c);return {op} as never};
+ await cold.lookupOriginal('operation_1',new AbortController().signal);
+ await cold.lookupOriginal('operation_1',new AbortController().signal);
+ assert.equal(contexts.length,2);assert.equal(contexts[0],contexts[1]);
+ let entered!:()=>void;const started=new Promise<void>(r=>entered=r);
+ f.client.lookupOriginal=async(_op,c)=>{contexts.push(c);entered();await new Promise<void>(r=>c.signal.addEventListener('abort',()=>r(),{once:true}));throw Error('PUBLIC lookup cancelled')};
+ const abort=new AbortController(),pending=cold.lookupOriginal('operation_1',abort.signal);await started;
+ await assert.rejects(cold.lookupOriginal('operation_1',new AbortController().signal),/LOOKUP_ALREADY_ACTIVE/);
+ abort.abort();await assert.rejects(pending,/lookup cancelled/);
+ await assert.rejects(cold.lookupOriginal('operation_1',new AbortController().signal),/CONTEXT_CANCELLED_REOPEN_FOR_QUERY/);
+ assert.equal(contexts.length,3);assert.equal(contexts[2],contexts[0]);
+ assert.equal(f.intents.length,1);assert.equal(f.saved!.entries[0]!.state,'COMMITTED');await cold.close();
+});

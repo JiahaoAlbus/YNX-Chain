@@ -14,6 +14,7 @@ export function validateV6Journal(value:unknown):V6Journal{
  const ids=new Set<string>();for(const e of j.entries){if(!e||e.version!=='6'||typeof e.binding!=='string'||e.binding.length>1024||typeof e.action!=='string'||(e.firstCause!==undefined&&!['SDK_OR_TRANSPORT_UNRESOLVED','CANCELLED','LOCAL_PERSISTENCE_FAILED'].includes(e.firstCause))||!['PENDING','UNKNOWN','COMMITTED','ACCEPTED','OBSERVED','DENIED'].includes(e.state)||!(e.taskId===null||typeof e.taskId==='string')||Object.keys(e).some(k=>!['version','operationId','binding','action','taskId','state','firstCause'].includes(k)))throw Error('V6_JOURNAL_INVALID');id(e.operationId);if(ids.has(e.operationId))throw Error('V6_JOURNAL_INVALID');ids.add(e.operationId)}return j;
 }
 export class NativeTaskV6Adapter{
+ private originalContexts=new Map<string,{abort:AbortController;context:Readonly<{signal:AbortSignal}>}>();
  private record:V6Journal|null=null;private active=new Map<string,AbortController>();private queue=Promise.resolve();private closed=false;private closing:Promise<void>|null=null;private flights=new Set<Promise<unknown>>();
  constructor(private identity:string,private original:NativeTaskV6){if(!identity)throw Error('V6_IDENTITY_REQUIRED')}
  private async locked<T>(fn:()=>Promise<T>){const before=this.queue;let release!:()=>void;this.queue=new Promise<void>(r=>release=r);await before;try{return await fn()}finally{release()}}
@@ -36,13 +37,13 @@ export class NativeTaskV6Adapter{
    // uncertain original operation to make room for a reconnect.
    const terminalReads=record.entries.filter(e=>['task.list','task.read','task.step-result','task.run-read','task.reconcile'].includes(e.action)&&['OBSERVED','COMMITTED','DENIED'].includes(e.state));
    const remove=new Set(terminalReads.slice(0,Math.max(0,terminalReads.length-32)).map(e=>e.operationId));
-   if(remove.size)record.entries=record.entries.filter(e=>!remove.has(e.operationId));
+   if(remove.size){record.entries=record.entries.filter(e=>!remove.has(e.operationId));for(const operationId of remove)if(!this.active.has(operationId)&&!this.active.has('lookup:'+operationId))this.originalContexts.delete(operationId)}
    if(record.entries.length>=128)throw Error('V6_JOURNAL_FULL');
    const operationId=id(this.original.newOperationId());if(record.entries.some(e=>e.operationId===operationId))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
    const e:V6Entry={version:'6',operationId,binding,action:request.action,taskId:request.taskId,state:'PENDING'};record.entries.push(e);await this.save();return e;
   });
   const abort=new AbortController();const cancel=()=>abort.abort();signal.addEventListener('abort',cancel,{once:true});if(signal.aborted)cancel();this.active.set(entry.operationId,abort);
-  const context=Object.freeze({signal:abort.signal});
+  const context=Object.freeze({signal:abort.signal});this.originalContexts.set(entry.operationId,{abort,context});
   try{
    if(this.closed||abort.signal.aborted)throw Error('V6_CANCELLED');
    const packet=this.original.client.prepare({...request,bodyOriginal:request.bodyOriginal.slice(),operationId:entry.operationId,abortContext:context});
@@ -63,7 +64,26 @@ export class NativeTaskV6Adapter{
  async lookupOriginal(operationId:string,signal:AbortSignal){
   if(this.closed||signal.aborted)throw Error('V6_CANCELLED');id(operationId);
   const exists=await this.locked(async()=>(await this.load()).entries.some(e=>e.operationId===operationId));if(!exists)throw Error('V6_ORIGINAL_OPERATION_NOT_RETAINED');if(this.closed||signal.aborted)throw Error('V6_CANCELLED');
-  return this.track((async()=>{const abort=new AbortController(),cancel=()=>abort.abort();signal.addEventListener('abort',cancel,{once:true});if(signal.aborted)cancel();const key='lookup:'+operationId;if(this.active.has(key)){signal.removeEventListener('abort',cancel);throw Error('V6_ORIGINAL_LOOKUP_ALREADY_ACTIVE')}this.active.set(key,abort);try{const token=await this.original.client.lookupOriginal(operationId,Object.freeze({signal:abort.signal}));const result=this.original.client.readRecovery(token);if(this.closed||abort.signal.aborted||result.operationId!==operationId)throw Error('V6_ORIGINAL_LOOKUP_MISMATCH');return result}finally{signal.removeEventListener('abort',cancel);this.active.delete(key)}})());
+  return this.track((async()=>{
+   const key='lookup:'+operationId;
+   if(this.active.has(key))throw Error('V6_ORIGINAL_LOOKUP_ALREADY_ACTIVE');
+   // r4 binds the original operation to the SAME context. Cancellation is
+   // monotonic; querying after cancellation needs a fresh client lifetime.
+   const retained=this.originalContexts.get(operationId);
+   if(retained?.abort.signal.aborted)throw Error('V6_ORIGINAL_CONTEXT_CANCELLED_REOPEN_FOR_QUERY');
+   const abort=retained?.abort??new AbortController();
+   const context=retained?.context??Object.freeze({signal:abort.signal});
+   this.originalContexts.set(operationId,{abort,context});
+   const cancel=()=>abort.abort();
+   signal.addEventListener('abort',cancel,{once:true});if(signal.aborted)cancel();
+   this.active.set(key,abort);
+   try{
+    const token=await this.original.client.lookupOriginal(operationId,context);
+    const result=this.original.client.readRecovery(token);
+    if(this.closed||abort.signal.aborted||result.operationId!==operationId)throw Error('V6_ORIGINAL_LOOKUP_MISMATCH');
+    return result;
+   }finally{signal.removeEventListener('abort',cancel);this.active.delete(key)}
+  })());
  }
  async retained(){return this.locked(async()=>JSON.parse(JSON.stringify(await this.load())) as V6Journal)}
  abortLocal(operationId:string){this.active.get(operationId)?.abort()}
