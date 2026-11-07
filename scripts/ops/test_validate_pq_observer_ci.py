@@ -1,11 +1,13 @@
 """Exercise the real observer CI collectors with PUBLIC synthetic JSONL only.
 
 No Go, key generation, Node.Start, transport or package installation runs here.
-The six real Go cases execute in the normal full streams and fixed fork group.
+The original six Go cases retain their normal full streams and fixed fork group.
+Five account cases join only the existing tagged PUBLIC Current4 invocation.
 """
 import ast
 import contextlib
 import io
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -269,6 +271,157 @@ class ObserverCIControls(unittest.TestCase):
                 with patch("sys.argv", ["actual-leak-control", directory]), self.assertRaises(RuntimeError):
                     exec(compile(program, "actual-leak-control", "exec"), {})
                 self.assertEqual(output.read_bytes(), original.replace(target, b"", 1))
+
+
+# Reuse the actual original Current4 collector and immutable PUBLIC trace guard.
+# This remains a pure source/event check, never a second Go invocation.
+def peer_control(name):
+    spec = importlib.util.spec_from_file_location(name, ROOT / ("scripts/ops/" + name + ".py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+current4_ci = peer_control("test_validate_pq_current4_ci")
+wallet_ci = peer_control("test_validate_pq_wallet_policy_ci")
+ACCOUNT_REQUIRED = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
+ACCOUNT_MARKER = "YNX_PQ_OBSERVER_ACCOUNT_TESTS"
+ACCOUNT_SOURCE = "internal/consensus/pq_observer_account_*.go"
+
+
+def assert_account_contract(raws):
+    assert_contract(raws)  # All original six observer cases and full streams stay.
+    raw = raws["resource"]
+    current4_ci.assert_contract(raw)  # Keep the original Current4 three and joint.
+    if current4_ci.OBSERVER_ACCOUNT_REQUIRED != ACCOUNT_REQUIRED:
+        raise AssertionError("fixed five observer account test names required")
+    for event in ("push", "pull_request"):
+        block = re.findall(r"(?ms)^  " + event + r":\n(.*?)(?=^  [a-z_]+:\n|\Z)", raw)[0]
+        source = "internal/consensus/**" if event == "push" else ACCOUNT_SOURCE
+        for path in (source, wallet_ci.TRACE_PATH + "/**", CONTROL):
+            if block.count("      - '" + path + "'\n") != 1:
+                raise AssertionError("account source, PUBLIC trace and original control must trigger CI")
+    program = current4_ci.collector(raw)
+    values = [ast.literal_eval(node.value) for node in ast.parse(program).body
+              if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "observer_account_required" for target in node.targets)]
+    if values != [ACCOUNT_REQUIRED] or program.count(ACCOUNT_MARKER) != 1:
+        raise AssertionError("one closed observer account list and DATA receipt required")
+    required = ("for name in stream_required:", "if len(runs) != 1 or outcomes != ['pass']:",
+                "if outcomes != ['pass']:", "event['Test'].split('/')[0] not in stream_required",
+                "event.get('Package') != package", "('start', 'run', 'pause', 'cont', 'output', 'pass')")
+    if any(value not in program for value in required):
+        raise AssertionError("unique original package/top/child execution cannot be weakened")
+
+
+def execute_account(raw, rows):
+    with tempfile.TemporaryDirectory(prefix="observer-account-ci-") as directory:
+        (Path(directory) / current4_ci.OUTPUT).write_text("".join(json.dumps(row) + "\n" for row in rows))
+        output = io.StringIO()
+        with patch.dict(os.environ, RUNNER_TEMP=directory, GITHUB_SHA="1" * 40), contextlib.redirect_stdout(output):
+            exec(compile(current4_ci.collector(raw), "actual-observer-account-collector", "exec"), {})
+    records = {}
+    for line in output.getvalue().splitlines():
+        marker, data = line.split(" ", 1)
+        if marker in records:
+            raise AssertionError("duplicate PUBLIC DATA receipt")
+        records[marker] = json.loads(data)
+    if set(records) != {current4_ci.MARKER, ACCOUNT_MARKER}:
+        raise AssertionError("only distinct original Current4 and account DATA receipts required")
+    return records
+
+
+class ObserverAccountCIControls(unittest.TestCase):
+    def test_account_cases_join_only_original_tagged_call_and_keep_all_old_cases(self):
+        raws = workflows()
+        assert_account_contract(raws)
+        self.assertEqual(current4_ci.REQUIRED, ["TestPQCurrent4WirePUBLICStrictFramesAndOSPeer",
+            "TestPQCurrent4WirePUBLICRegisteredObserverData", "TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain"])
+        for name in ACCOUNT_REQUIRED:
+            found = [path for path in (ROOT / "internal/consensus").glob("pq_observer_account_*test.go")
+                     if re.search(r"^func " + name + r"\(t \*testing.T\)", path.read_text(), re.M)]
+            self.assertEqual(len(found), 1, name)
+            self.assertIn("//go:build (linux || darwin) && ynx_public_trace_testsupport", found[0].read_text())
+        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 8)
+
+    def test_actual_combined_collector_emits_separate_data_without_authority(self):
+        records = execute_account(workflows()["resource"], current4_ci.rows())
+        self.assertEqual(records[current4_ci.MARKER]["requiredPassed"], current4_ci.REQUIRED)
+        self.assertEqual(records[ACCOUNT_MARKER]["requiredPassed"], ACCOUNT_REQUIRED)
+        for record in records.values():
+            self.assertEqual(record["sourceCommit"], "1" * 40)
+            self.assertIs(record["suitePassed"], True)
+            for flag in current4_ci.FALSE_FLAGS:
+                self.assertIs(record[flag], False)
+
+    def test_each_account_top_requires_unique_run_pass_in_original_package(self):
+        raw = workflows()["resource"]
+        good = current4_ci.rows()
+        for name in ACCOUNT_REQUIRED:
+            variants = [[event for event in good if event.get("Test") != name]]
+            for action in ("run", "pass"):
+                variants += [[event for event in good if not (event.get("Test") == name and event["Action"] == action)],
+                             good + [dict(Action=action, Package=CORE, Test=name)]]
+            variants += [[dict(event, Package="foreign/package") if event.get("Test") == name else event for event in good]]
+            for rows in variants:
+                with self.subTest(name=name, rows=rows), self.assertRaises(RuntimeError):
+                    execute_account(raw, rows)
+
+    def test_account_child_fail_skip_and_partial_or_merged_streams_never_qualify(self):
+        raw = workflows()["resource"]
+        good = current4_ci.rows()
+        for name in ACCOUNT_REQUIRED:
+            for action in ("skip", "fail", "build-fail", "unknown"):
+                with self.subTest(name=name, action=action), self.assertRaises(RuntimeError):
+                    execute_account(raw, good + [dict(Action=action, Package=CORE, Test=name + "/child")])
+        # Real source owners executed Launch(2), Launch(1), Host(2) separately.
+        # Each full original stream remains partial for this new eight-top CI;
+        # concatenation retains its multiple package terminals and must reject.
+        groups = [current4_ci.REQUIRED, ACCOUNT_REQUIRED[:2], ACCOUNT_REQUIRED[2:3], ACCOUNT_REQUIRED[3:]]
+        partials = [[event for event in good if "Test" not in event or event["Test"] in group] for group in groups]
+        variants = partials + [sum(partials, []), good[:-1], good + [good[-1]],
+                              good + [dict(Action="pass", Package="other/package")],
+                              good + [dict(Action="pass", Package=CORE, Test="TestPQObserverAccountUnapproved")]]
+        for rows in variants:
+            with self.subTest(rows=rows), self.assertRaises(RuntimeError):
+                execute_account(raw, rows)
+
+    def test_fixed_selector_trigger_budget_and_collector_cannot_drift(self):
+        original = workflows()
+        raw = original["resource"]
+        command = current4_ci.COMMAND
+        variants = []
+        for name in ACCOUNT_REQUIRED:
+            variants.append(raw.replace(command, command.replace("|" + name, ""), 1))
+            variants.append(raw.replace("observer_account_required = " + repr(ACCOUNT_REQUIRED),
+                                        "observer_account_required = " + repr([item for item in ACCOUNT_REQUIRED if item != name]), 1))
+        for before, after in (("-timeout=120s", "-timeout=180s"),
+                              ("-tags=ynx_public_trace_testsupport ", ""),
+                              (current4_ci.SELECTOR, "^TestPQObserver"),
+                              ("$GITHUB_WORKSPACE/" + wallet_ci.TRACE_PATH, "$RUNNER_TEMP/other")):
+            variants.append(raw.replace(command, command.replace(before, after), 1))
+        variants += [raw.replace(command, command * 2, 1),
+                     raw.replace("      - '" + ACCOUNT_SOURCE + "'\n", "", 1),
+                     raw.replace("for name in stream_required:", "for name in current4_required:", 1),
+                     raw.replace("if len(runs) != 1 or outcomes != ['pass']:", "if False:", 1)]
+        for changed in variants:
+            self.assertNotEqual(changed, raw)
+            with self.assertRaises(AssertionError):
+                assert_account_contract(dict(original, resource=changed))
+
+    def test_original_nine_public_inputs_remain_exact_and_missing_is_not_skip(self):
+        import shutil
+        wallet_ci.assert_public_trace(wallet_ci.TRACE_ROOT)
+        self.assertEqual(len(wallet_ci.TRACE_FILES), 9)
+        with tempfile.TemporaryDirectory(prefix="observer-account-public-") as directory:
+            copy = Path(directory) / "trace"
+            shutil.copytree(wallet_ci.TRACE_ROOT, copy)
+            for name in wallet_ci.TRACE_FILES:
+                path = copy / name
+                original = path.read_bytes()
+                path.unlink()
+                with self.subTest(missing=name), self.assertRaises((AssertionError, FileNotFoundError)):
+                    wallet_ci.assert_public_trace(copy)
+                path.write_bytes(original)
 
 
 if __name__ == "__main__":

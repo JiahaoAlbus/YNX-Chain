@@ -198,6 +198,7 @@ on:
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'internal/consensus/pq_current4_*.go'
+      - 'internal/consensus/pq_observer_account_*.go'
       - 'internal/consensus/pq_committed_account*.go'
       - 'internal/consensus/pq_wallet_policy_live.go'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
@@ -2383,7 +2384,7 @@ jobs:
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
-          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain|TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold|TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation|TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain|TestPQObserverAccountHostPUBLICSameNodeDistinctScopes|TestPQObserverAccountHostPUBLICIdentityAndScopeFailures)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"
             exit 1
           fi
@@ -2394,11 +2395,13 @@ jobs:
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-current4-wire-tests.jsonl').read_text().splitlines()]
           package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           current4_required = ['TestPQCurrent4WirePUBLICStrictFramesAndOSPeer', 'TestPQCurrent4WirePUBLICRegisteredObserverData', 'TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain']
+          observer_account_required = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
+          stream_required = current4_required + observer_account_required
           if not events or any(not isinstance(event, dict) or event.get('Package') != package or event.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for event in events):
               raise RuntimeError('Current4 original stream failed, skipped, malformed or used another package')
-          if any('Test' in event and (not isinstance(event['Test'], str) or event['Test'].split('/')[0] not in current4_required) for event in events):
+          if any('Test' in event and (not isinstance(event['Test'], str) or event['Test'].split('/')[0] not in stream_required) for event in events):
               raise RuntimeError('Current4 stream contains a different test')
-          for name in current4_required:
+          for name in stream_required:
               runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
               outcomes = [event['Action'] for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
               if len(runs) != 1 or outcomes != ['pass']:
@@ -2407,6 +2410,7 @@ jobs:
           if outcomes != ['pass']:
               raise RuntimeError('Current4 original package did not pass once')
           print('YNX_CURRENT4_WIRE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=current4_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
+          print('YNX_PQ_OBSERVER_ACCOUNT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_account_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
       - name: Verify original Auth r2 cross-process Current4 DATA interoperability
         id: current4authinterop

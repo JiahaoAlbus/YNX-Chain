@@ -32,7 +32,10 @@ REQUIRED = [
     "TestPQCurrent4WirePUBLICRegisteredObserverData",
     "TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain",
 ]
-SELECTOR = "^(" + "|".join(REQUIRED) + ")$"
+# Same original tagged invocation; the original Current4 receipt stays three tests.
+OBSERVER_ACCOUNT_REQUIRED = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
+STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED
+SELECTOR = "^(" + "|".join(STREAM_REQUIRED) + ")$"
 COMMAND = ('          if ! YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE
            + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '
            + "'" + SELECTOR + "' ./internal/consensus > \"$RUNNER_TEMP/" + OUTPUT + '\"; then\n')
@@ -99,6 +102,10 @@ def assert_contract(raw):
                    if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "current4_required" for target in node.targets)]
     if assignments != [REQUIRED] or PACKAGE not in program or OUTPUT not in program:
         raise AssertionError("all three original Current4 tests and original package/output required")
+    account_assignments = [ast.literal_eval(node.value) for node in ast.parse(program).body
+                           if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "observer_account_required" for target in node.targets)]
+    if account_assignments != [OBSERVER_ACCOUNT_REQUIRED] or "stream_required = current4_required + observer_account_required" not in program:
+        raise AssertionError("only the five fixed observer account cases may join the original Current4 stream")
     original = step(raw, "Verify complete state bridge and sponsor continuity")
     commands = re.findall(r"(?m)^          if ! .*go test .+\n", original)
     if commands != OLD_COMMANDS or "-tags=" in original:
@@ -112,7 +119,7 @@ def assert_contract(raw):
 
 def rows():
     events = [{"Action": action, "Package": PACKAGE, "Test": name}
-              for name in REQUIRED for action in ("run", "pass")]
+              for name in STREAM_REQUIRED for action in ("run", "pass")]
     return events + [{"Action": "pass", "Package": PACKAGE}]
 
 
@@ -135,11 +142,11 @@ class Current4CIControls(unittest.TestCase):
 
     def test_normal_tagged_module_and_original_complete_union(self):
         assert_contract(self.raw)
-        examples = REQUIRED + ["TestPQCurrent4WirePUBLICStrictFramesAndOSPeerExtra", "TestPQWalletPolicyLiveOriginalNodeCommittedAndPending", "TestABCIOriginal", "TestProofHostOriginal", "TestProductionOriginal", "TestPQLabOriginal"]
+        examples = STREAM_REQUIRED + ["TestPQCurrent4WirePUBLICStrictFramesAndOSPeerExtra", "TestPQWalletPolicyLiveOriginalNodeCommittedAndPending", "TestABCIOriginal", "TestProofHostOriginal", "TestProductionOriginal", "TestPQLabOriginal"]
         for name in examples:
             with self.subTest(name=name):
                 self.assertEqual(bool(re.search(SKIP, name)), bool(re.search(ORIGINAL_SKIP, name)) or name == REQUIRED[0])
-                self.assertEqual(bool(re.search(SELECTOR, name)), name in REQUIRED)
+                self.assertEqual(bool(re.search(SELECTOR, name)), name in STREAM_REQUIRED)
 
     def test_actual_successful_collector_emits_only_data(self):
         events = rows()
