@@ -840,7 +840,12 @@
     "native/social-directory-lc-v1/codec.go",
     "native/social-directory-lc-v1/go.mod",
     "native/social-directory-lc-v1/IDL.json",
-    "native/social-directory-lc-v1/testdata/vectors.json"
+    "native/social-directory-lc-v1/testdata/vectors.json",
+    "native/social-fresh-joint-profile-v1/body.go",
+    "native/social-fresh-joint-profile-v1/go.mod",
+    "native/social-fresh-joint-profile-v1/contract.d.mts",
+    "native/social-fresh-joint-profile-v1/IDL.json",
+    "native/social-fresh-joint-profile-v1/testdata/public-body-vector.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
