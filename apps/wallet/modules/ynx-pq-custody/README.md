@@ -202,6 +202,21 @@ the PUBLIC test mother establishes none of those production gates. This entire
 successor must stay separate from the frozen earlier module/image until the
 real mother and receipt producer are linked together.
 
+`NativeApplicationDirectory::acquire` obtains the actual OS application
+container with no arguments. Android binds the original Application Context
+only during explicit module installation and calls its `getDataDir`; device
+protected or replacement Contexts refuse. The private JNI class/method is kept
+through R8 and is not a React method. iOS calls `NSHomeDirectory` in the actual
+iOS target. The Native owner opens only that existing directory, holds its
+0700/euid identity and compares both the named inode and freshly observed OS
+Context on current. It does not walk `/data`, create/chmod directories, discover
+accounts or interpret Root locators. A Native selected constructor may borrow
+this owner's FD to construct its real account inventory, retaining and checking
+the same owner; it closes the child inventory before the app owner. Nonnull
+partials and uncertain cleanup remain owned until a real closed witness.
+This physical app-container getter supplies no registered receipt, selected
+account, approved review or Source; those actual producers still must be wired.
+
 Android uses the real ReactContext runtime/CallInvoker getters, JNI and the
 module's single native worker. iOS uses RN's
 `RCTTurboModuleWithJSIBindings` runtime/callInvoker hook plus a Swift lifecycle
@@ -214,6 +229,9 @@ runtime. iOS final target must likewise strong-link original Auth/Core.
 Run new native controls with `node test/run-native-controls.mjs`.
 Run FD/parent controls with `node test/run-directory-controls.mjs`; normal
 module CI includes them. Their files and Native parent are PUBLIC fixtures.
+`node test/run-app-directory-controls.mjs` exercises real temporary filesystem
+and lifecycle cases with a PUBLIC OS-path seam; it does not run real Android
+Context or iOS sandbox services.
 Parent's ordinary CI should call `node test/ci.mjs <normal-react-native-root>`
 for this module's closed checks; it requires the actual matching RN0.86 tree.
 No parent package/CI file is modified by this owned module. Parent integration

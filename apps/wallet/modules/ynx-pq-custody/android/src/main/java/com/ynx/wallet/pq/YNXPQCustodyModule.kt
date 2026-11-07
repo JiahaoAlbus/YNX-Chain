@@ -36,6 +36,7 @@ class YNXPQCustodyModule(private val context: ReactApplicationContext) : ReactCo
         if (installed) return true
         if (runtimeBinding != 0L) return false // retain the same partial, no replacement
         NativeSecure43.bind(context)
+        NativeSelectedAppContext.bind(context)
         // Run on the actual JS thread. RN0.86's original ReactContext exposes
         // these getters in both bridge and BridgelessReactContext. Never create
         // a second runtime or reach through a nonexistent CatalystInstance.
