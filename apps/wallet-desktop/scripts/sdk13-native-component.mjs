@@ -105,3 +105,6 @@ export function verifySDK13HelperBundle(contents,helperBytes,plistBytes){
  for(const [relative,bytes,mode]of bundleRows(helperBytes,plistBytes)){const file=path.join(contents,relative),s=lstatSync(file);if((s.mode&0o777)!==mode||!regular(file).equals(bytes))fail();}
  return {bytesVerified:true,serviceRegistered:false,installed:false,executed:false,nativeQualified:false};
 }
+
+// Independent original A project-control matched image role; old roles unchanged.
+export {walletControlMatchedNormalNodeComponent} from "./wallet-control-matched-normal-component.mjs";

@@ -1,0 +1,87 @@
+{
+  "kind": "YNX_WALLET_CONTROL_MATCHED_NORMAL_NODE_COMPONENT/v1",
+  "metadataRole": "YNX_DESKTOP_WALLET_CONTROL_MATCHED_NODE_SELECTION/v1",
+  "sourceRoles": {
+    "CPPBase": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
+    "SwiftBase": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+    "originalFiniteNAPIProducer": "86d0d24c052843516c6cf79e2fe2ee859d43358a",
+    "projectControlSource": "4a807cdc6e09c25467f06cc912a655a294ccc975",
+    "NodeOriginalSourceUnchanged": true,
+    "NodeCompileClosureChanged": true
+  },
+  "minimumMacOS": "13.5",
+  "recordRelative": "apps/wallet-desktop/native/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json",
+  "assets": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity.node",
+      "bytes": 15917120,
+      "sha256": "6e180505fe4c7c646bfa427162e607a10385ca8865d3f8b7e37f5ccc0aa2771d",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-docs.txt",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE-extra.txt",
+      "bytes": 1603,
+      "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/LIBUV-LICENSE.txt",
+      "bytes": 1079,
+      "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-AUTHORS.md",
+      "bytes": 1022,
+      "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/OPENSSL-LICENSE.txt",
+      "bytes": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+      "mode": 420
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libcrypto.3.dylib",
+      "bytes": 5107648,
+      "sha256": "7ee2d33dd3f002e8bcc76d5bc1083333d10ea7064539cc630c4b28ae5a83bfd8",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libssl.3.dylib",
+      "bytes": 979328,
+      "sha256": "8d24bffd50d0a961d283ab711b8176525a643a2679c6b852cb582251c516fe48",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-runtime-libs/libuv.1.dylib",
+      "bytes": 201824,
+      "sha256": "9e19a85d194e4da4f09939f0d051c6790a7f45b46da3827b85e8919c5de77e4e",
+      "mode": 493
+    },
+    {
+      "path": "apps/wallet-desktop/native/NORMAL_WALLET_PROJECT_CONTROL_MATCHING_RECORD.json",
+      "bytes": 46291,
+      "sha256": "cb77be5f4f015a722254f5e9869a35e985fe0e8c238e0ca1efed906e7ff48c32",
+      "mode": 420
+    }
+  ],
+  "stageRelative": "native/.wallet-control-matched-input",
+  "SDKExport": "walletControlMatchedNormalNodeComponent",
+  "fixedInputSourceH": {
+    "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/wallet-project-control-matching-20261108-01-controller/WALLET_PROJECT_CONTROL_MATCHING_3TU_QUALIFIED_HANDOFF.json",
+    "bytes": 103404,
+    "sha256": "41b4e4ee14fa0b2572c1a90c48283d5554b38025ce2699245124f00b5618200a"
+  },
+  "helper": "SEPARATE_APPROVED125A_UNCHANGED",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "wholeAppReady": false
+}
