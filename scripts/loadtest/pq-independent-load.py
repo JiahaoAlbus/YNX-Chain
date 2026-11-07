@@ -54,6 +54,7 @@ STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-own
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE})
+PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
 
 
 def callee_snapshot(value):
@@ -637,7 +638,8 @@ def process_capacity(args):
     # and proof readers will fit. Keep the original ownership limit unchanged.
     if getattr(args,'staged_publication',False):
         limit=lab.guard.CAPS['ownedProcesses']
-        return dict(originalOwnedPIDLimit=limit,minimumLongLivedPIDs=5,maximumRuntimePIDs=10,originalNodeProcesses=4,maximumSignSenderProcesses=2,maximumSharedProofHelperProcesses=3,accountCount=args.accounts,completeDemand=args.rate*args.seconds,oneWaveIndependentAccountCapacity=args.accounts,oneWaveCoversFullDemand=args.accounts>=args.rate*args.seconds,canFitNecessaryLowerBound=10<=limit,normalLargeOwnerInputQualified=STAGED_SOURCE_QUALIFICATION is not None,interpretation='bounded original cold opens; process leases separate from account pending; large-account input/full normal callee qualification is a separate hard gate')
+        public=sender_backend_kind(args)=='public-owner';senders=1 if public else 2;maximum=5+senders+3
+        return dict(originalOwnedPIDLimit=limit,minimumLongLivedPIDs=6 if public else 5,maximumRuntimePIDs=maximum,originalNodeProcesses=4,maximumSignSenderProcesses=senders,maximumSharedProofHelperProcesses=3,accountCount=args.accounts,completeDemand=args.rate*args.seconds,oneWaveIndependentAccountCapacity=args.accounts,oneWaveCoversFullDemand=args.accounts>=args.rate*args.seconds,canFitNecessaryLowerBound=maximum<=limit,normalLargeOwnerInputQualified=STAGED_SOURCE_QUALIFICATION is not None,interpretation=('one normal public-owner stream with per-account original custody; cold validation remains in first command' if public else 'bounded original cold opens; process leases separate from account pending; large-account input/full normal callee qualification is a separate hard gate'))
     senders=args.accounts if args.mode=="online" else 0
     required=1+4+senders  # parent supervisor + four original nodes + per-owner CLI
     limit=lab.guard.CAPS["ownedProcesses"]
@@ -652,11 +654,36 @@ def tool_identity():
         driverSHA256=lab.guard.digest(Path(__file__)),resourceGuardSHA256=lab.guard.digest(Path(__file__).with_name('consensus-linux-cohort.py')))
 
 
+def sender_backend_kind(args):
+    selected=getattr(args,'sender_backend','auto')
+    lab.require(selected in ('auto','bounded-cold','public-owner'),'explicit normal sender backend required')
+    staged=getattr(args,'staged_publication',False)
+    if selected=='auto':return 'bounded-cold' if staged else 'per-account'
+    lab.require(staged and args.mode=='online','selected sender backend requires original staged online demand')
+    if selected=='public-owner':
+        lab.require(args.commit==PUBLIC_OWNER_ABI_SOURCE,'exact1695 public owner ABI required; source qualification is separate')
+    return selected
+
+
+def make_sender_backend(ceremony,owners,stop,kind):
+    if kind=='per-account':return NormalBackend(ceremony,owners,stop)
+    if kind=='bounded-cold':
+        pool=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
+        return pool.backend_class(NormalBackend,SenderSession,normal,lab)(ceremony,owners,stop)
+    lab.require(kind=='public-owner' and ceremony.consumer_source==PUBLIC_OWNER_ABI_SOURCE,
+                'exact normal public-owner source required; no backend fallback')
+    transport=module('normal_public_owner_transport','pq-public-owner-transport.py')
+    pool=module('normal_public_owner_backend','pq-public-owner-backend.py')
+    Session=transport.session_class(SenderSession,normal,lab)
+    return pool.backend_class(NormalBackend,Session,normal,lab)(ceremony,owners,stop)
+
+
 def load_conditions(args):
     # Rate increases are intentional. All other workload/observer settings
     # must remain fixed across a source's 100 -> 500 -> 1000 progression.
     # This does NOT assert equal random keys/canonical inputs across sources.
     return dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
+        senderBackend=sender_backend_kind(args),
         firstTrialProfile=getattr(args,'first_trial_profile','own1b'),
         seconds=args.seconds,tailSeconds=args.tail_seconds,proofTimeout=args.proof_timeout,
         **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture','startup_timings','initialize_before_load')},
@@ -677,6 +704,7 @@ def validate_escalation(args):
 
 def run(args):
     demand=validate_options(args)
+    backend_kind=sender_backend_kind(args) # Source/semantic/window gates below still run before any Window.
     lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     first_trial=getattr(args,'initialize_before_load',False)
@@ -765,11 +793,11 @@ def run(args):
             result['initializationOnlyComplete']=True
             result['initializationScope']='normal create504, four-node bootstrap/activation/live policies, full500 original account census; original reserved preparation traffic only; no business load release, signing, POST, or finality claim'
             return result # Existing finally performs the same bounded stop and preserves all originals.
-        if staged:
-            pool_module=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
-            backend=pool_module.backend_class(NormalBackend,SenderSession,normal,lab)(ceremony,owners,stop)
+        backend=make_sender_backend(ceremony,owners,stop,backend_kind)
+        if backend_kind=='bounded-cold':
             result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
-        else:backend=NormalBackend(ceremony,owners,stop)
+        elif backend_kind=='public-owner':
+            result['signerTransport']='original sender-owners public scope; one serialized Go stream, separate original owner custody/nonce/UNKNOWN; first command retains measured cold validation; no automatic retry'
         journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
         result["senderPoolPreparation"]=stages.run("sender_pool_preparation",None,lambda:backend.prepare(monitor.check))
@@ -875,6 +903,7 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
     p.add_argument('--first-trial-profile',choices=('own1b','d24'),default='own1b',help='explicit fixed source selection for same-window first100 only; each source consumes its own pinned CI originals; no pressure grant')
