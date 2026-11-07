@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {pathToFileURL,fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
+import {fixture} from './wpr-typed-release.fixture.mjs';import {canonical} from '../../../packages/wallet-auth/native/original-auth-identity-source-verifier.mjs';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..'),sha=b=>createHash('sha256').update(b).digest('hex');
+async function emit(rawKind){const tmp=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'wpr-independent-'))),put=(p,b)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,b)};try{
+ const module='apps/wallet-desktop/scripts/wallet-product-typed-release.mjs';put(path.join(tmp,module),fs.readFileSync(path.join(root,module)));const verifier='packages/wallet-auth/native/original-auth-identity-source-verifier.mjs';put(path.join(tmp,verifier),fs.readFileSync(path.join(root,verifier)));
+ const f=fixture(),rebase=v=>typeof v==='string'&&v.startsWith('/PUBLIC')?tmp+v:Array.isArray(v)?v.map(rebase):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,rebase(x)])):v,input=rebase(f.input);
+ for(const k of ['root','enrollment','verifier','node'])put(input[k].path,f.originals[k]);put(input.runtime.manifest.path,f.originals.runtimeManifest);put(input.runtime.dispatch.path,f.originals.dispatch);
+ for(const r of JSON.parse(f.originals.runtimeManifest).files){const p=path.join(input.runtime.packageRoot,r.path);if(!fs.existsSync(p))put(p,Buffer.from('PUBLIC '+r.path))}
+ const independent=path.join(tmp,'independent.original'),raw=Buffer.from(rawKind==='unrelated'?'PUBLIC unrelated bytes, hash is valid':rawKind==='bom'?'\ufeff'+canonical(input):rawKind==='whitespace'?canonical(input)+' ':canonical(input));put(independent,raw);
+ put(path.join(tmp,'apps/wallet-desktop/native/wpr-build/normal-inputs.json'),JSON.stringify({version:input.version,externalTypedProductSourceRelease:{input,independentExpected:structuredClone(input),independentPin:{path:independent,bytes:raw.length,sha256:sha(raw)}}}));
+ const m=await import(pathToFileURL(path.join(tmp,module)).href);return m.emitReviewedWalletProductTypedRelease();
+ }finally{fs.rmSync(tmp,{recursive:true,force:true})}}
+test('matching independently pinned canonical exact16 original binds actual emitter input without Root qualification',async()=>{const r=await emit('matching');assert.equal(r.allDeclaredRuntimeLeafBytesVerified,true);assert.equal(r.RootAdmission,false);assert.equal(r.SourceAdmission,false);assert.equal(r.NativeAdmission,false)});
+test('unrelated actual independent file with valid bytes and SHA is rejected',async()=>{await assert.rejects(emit('unrelated'),{code:'WPR_INDEPENDENT_ORIGINAL_INVALID'})});
+test('independent original BOM and whitespace aliases are not silently normalized',async()=>{for(const kind of ['bom','whitespace'])await assert.rejects(emit(kind),{code:'WPR_INDEPENDENT_ORIGINAL_INVALID'})});
