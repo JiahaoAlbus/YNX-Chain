@@ -29,14 +29,22 @@ export function createOriginalTaskEffectOrchestrator(inputs,current,clock=Date.n
      fenceKind:'EGRESS_FENCE_ONLY',readCurrent:refresh,assertCurrent:()=>checked(base,'assertCurrent'),verifyGrantProof:(...a)=>method(base,'verifyGrantProof')(...a),verifyHolderProof:(...a)=>method(base,'verifyHolderProof')(...a),verifyDisclosureAtEffect:(...a)=>method(base,'verifyDisclosureAtEffect')(...a),
      async commitAtEffectFence(expected,finalCheck){
       const c=await refresh();
+      const reserveOriginal=()=>ledger.reserveTaskEffect({grant:g,step:g.binding,amount:c.budget.requested,inputBinding:g.binding.input,at:clock(),assertCurrent(){alive();syncChecked(base,'assertGrantAuthorityAtCommit',{issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision});finalCheck(c);}});
+      // Persistence can narrow this request to recovery, never create authority.
+      // Do not read protected input again for an already-owned/UNKNOWN slot.
+      if(c.budget.ownState!==null){
+       const old=reserveOriginal();actualOperation=old.operationId;scope='egress-only';
+       if(!old.recoveryOnly){ledger.markEffectUnknown(old.ticket,clock());fail('TASK_EFFECT_RECOVERY_SLOT_CHANGED_UNKNOWN');}
+       return {state:old.state,scope,effectRef:actualOperation,original:old.original,recoveryOnly:true};
+      }
       // The raw original input is obtained from actual protected caller IO.
       // Registered protected-file input reader is one concrete implementation.
-      const opened=await method(inputs.source,'readOriginalTaskEffectInput')(ctx,g);inputOwner=opened?.owner;if(!opened||typeof opened.errorPresent!=='boolean')fail('TASK_EFFECT_INPUT_ACQUIRE_STATUS');if(opened.errorPresent)throw opened.error;
+      const opened=await method(inputs.source,'readOriginalTaskEffectInput')(ctx,g,body.holderProof);inputOwner=opened?.owner;if(!opened||typeof opened.errorPresent!=='boolean')fail('TASK_EFFECT_INPUT_ACQUIRE_STATUS');if(opened.errorPresent)throw opened.error;
       input=Buffer.from(opened.bytes??[]);if(!same(bindGrantBytesDATA(input),g.binding.input))fail('TASK_EFFECT_RAW_INPUT_BINDING');await checked(inputOwner,'assertCurrent');
       const entries=inputs.registeredTaskExecutors;if(!Array.isArray(entries))fail('TASK_EFFECT_REGISTERED_EXECUTOR_UNAVAILABLE');const selected=entries.filter(v=>v&&same(v.target,g.binding.target));if(selected.length!==1)fail('TASK_EFFECT_REGISTERED_EXECUTOR_UNAVAILABLE');const executor=selected[0];
       // At the original same-SQL reserve transaction: verify original current
       // and invoke the shared policy's single final checker, not an HTTP bool.
-      const reserved=ledger.reserveTaskEffect({grant:g,step:g.binding,amount:c.budget.requested,inputBinding:g.binding.input,at:clock(),assertCurrent(){alive();syncChecked(base,'assertGrantAuthorityAtCommit',{issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision});finalCheck(c);}});
+      const reserved=reserveOriginal();
       actualOperation=reserved.operationId;scope='egress-only';
       if(reserved.recoveryOnly)return {state:reserved.state,scope,effectRef:actualOperation,original:reserved.original,recoveryOnly:true};
       let transport,returned,result,first,continuation,settled=false;
