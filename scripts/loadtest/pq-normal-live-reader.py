@@ -387,7 +387,7 @@ def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
     spec=importlib.util.spec_from_file_location('pair_original_leg_trace',Path(__file__).with_name('pq-normal-leg-trace.py'))
     trace_reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(trace_reader)
     bundle['completeTraceData']=trace_reader.read(public,receipt,bundle['stoppedStateBytes'],original)
-    requested=any(arg=='--startup-timings' or arg=='--startup-timings=true' for row in receipt['processes'] if '-node-' in row['name'] for arg in row.get('command',[]))
+    requested=any(arg=='--startup-timings' or arg.startswith('--startup-timings=') for row in receipt['processes'] if '-node-' in row['name'] for arg in row.get('command',[]))
     if requested:
         spec=importlib.util.spec_from_file_location('pair_original_node_startup',Path(__file__).with_name('pq-node-startup-measurements.py'))
         startup=importlib.util.module_from_spec(spec);spec.loader.exec_module(startup)

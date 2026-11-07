@@ -70,7 +70,7 @@ def original_nodes(files,prefix,processes):
                     except (RuntimeError,ValueError,TypeError) as error:row['originalStages']=dict(status='INVALID_OR_UNKNOWN_DIAGNOSTIC',errorType=type(error).__name__,elapsedNs=None,missingStagesAreUnknown=True)
                 rows.append(row);continue
             process=matches[0];argv=process.get('command',[]);flags=[v for v in argv if v=='--startup-timings' or v.startswith('--startup-timings=')]
-            requested=(flags[0] in ('--startup-timings','--startup-timings=true')) if len(flags)==1 else False if not flags else None
+            requested=(True if flags[0] in ('--startup-timings','--startup-timings=true') else False if flags[0]=='--startup-timings=false' else None) if len(flags)==1 else False if not flags else None
             record=dict(name=name,processIdentityBound=(type(process.get('pid')) is int and process['pid']>0 and type(process.get('startTicks')) is int and process['startTicks']>0),pid=process.get('pid'),startTicks=process.get('startTicks'),rawReturnCode=process.get('rawReturnCode'),startupTimingFlags=flags)
             if raw is None:record.update(status='ORIGINAL_LOG_NOT_SUPPLIED',elapsedNs=None)
             else:
