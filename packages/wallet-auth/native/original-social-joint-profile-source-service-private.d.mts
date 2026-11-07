@@ -4,3 +4,6 @@ export interface OriginalSocialSource3Service { assertSocialDeviceDirectoryPrinc
 export type OriginalSocialSource3Acquisition=Readonly<{owner:OriginalSocialSource3Service;errorPresent:false}>|Readonly<{owner:OriginalSocialSource3Service;errorPresent:true;error:unknown}>;
 export function originalSocialJointSourceServiceConfiguredDATA():boolean;
 export function acquireOriginalSocialJointSourceService():Promise<OriginalSocialSource3Acquisition>;
+
+// Custody origin only; never proves Root/current/approval.
+export function isOriginalSocialJointSourceService(owner:unknown):boolean;

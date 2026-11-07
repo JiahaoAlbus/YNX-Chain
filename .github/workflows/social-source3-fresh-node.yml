@@ -1,0 +1,37 @@
+name: Social Source3 R8 fixed Node normal caller
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/original-social-joint-profile-source-service-private.*
+      - packages/wallet-auth/native/social-source3-fresh-v1/**
+      - packages/wallet-auth/src/original-auth-identity-source-current.js
+      - packages/wallet-auth/src/original-social-joint-source-current-private.*
+      - packages/wallet-auth/test/social-source3-r8-integration.test.mjs
+      - packages/wallet-auth/test/types/social-source3-fresh-node.mts
+      - packages/wallet-auth/scripts/social-source3-fresh-node-inputs.mjs
+      - packages/wallet-auth/package.json
+      - scripts/ci/social-source3-fresh-node.mjs
+      - .github/workflows/social-source3-fresh-node.yml
+jobs:
+  new-r8-sdk-integration-types-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/social-source3-fresh-node.mjs 2>&1 | tee social-source3-fresh-node.log
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: social-source3-fresh-node-normal
+          path: |
+            social-source3-fresh-node.log
+            canonical-common-source-package
