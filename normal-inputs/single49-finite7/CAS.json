@@ -1,0 +1,164 @@
+{
+  "schema": "YNX-SINGLE49-FINITE7-SOURCE-CAS/v1",
+  "mode": "fixed-source-input-composition-not-primary-patch-application",
+  "primarySourceReadOnly": true,
+  "sourceInput": {
+    "Core": {
+      "commit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+      "tree": "ab99445e46339d2376ec1c0b2aae2674b60c1c7f",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/SOURCE.json",
+        "bytes": 61763,
+        "sha256": "dbbab75b29a040f287d9df045595b5726dda378a1578ec9bd2a66a0309ebf53e"
+      },
+      "fullOriginalForkTree": "5a128880d14bfc73de4334cba23218859ad3473c"
+    },
+    "LINK": {
+      "commit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "tree": "2ed56d8c98590900d977a7ff2dba09c70fc2366a"
+    }
+  },
+  "coreModules": [
+    {
+      "repositoryPath": "go.mod",
+      "before": {
+        "bytes": 4913,
+        "sha256": "2892248959ac73f0aaf16197ba18c78594ad956a2e9b9617404c2ebb50818858",
+        "gitBlob": "e613ede87a4cc1409bda80c0957932e90ecb1668"
+      },
+      "after": {
+        "bytes": 4913,
+        "sha256": "07b303f8099eebb861f8ce1671089939e45069efbb1f71884b892548af47f803",
+        "gitBlob": "711fee87261c833a6e4cae5c9706d9fd32e9aed4"
+      },
+      "sameBytes": false
+    },
+    {
+      "repositoryPath": "go.sum",
+      "before": {
+        "bytes": 39759,
+        "sha256": "cfa98a228afc945aa54730a821b80cfc31cb1b8c0aa57aa0bd1e7cf3827d23ad",
+        "gitBlob": "e91dac3afe3201d14bfcb1a41e2e6e8982194f4a"
+      },
+      "after": {
+        "bytes": 39759,
+        "sha256": "87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c",
+        "gitBlob": "940892c107fd2facdd222a07d11f227bb0963473"
+      },
+      "sameBytes": false
+    }
+  ],
+  "linkProduction": [
+    {
+      "repositoryPath": "internal/securelink/native/bridge.c",
+      "before": {
+        "bytes": 12615,
+        "sha256": "f02544b772a5612508847da0d04ae111c6183dbd01e92322e59f705e2080400c",
+        "gitBlob": "dcf9117cf17492c2e752ec023516afb620d03a92"
+      },
+      "after": {
+        "bytes": 22770,
+        "sha256": "bc264b2723f1a1b3f2c0fa1339d0c9b71b8062c640ac230000d8139586623216",
+        "gitBlob": "03d0cb32e6a66325d85836d3b149de4c4862628e"
+      },
+      "sameBytes": false,
+      "role": "production-or-source-context"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/bridge.h",
+      "before": {
+        "bytes": 909,
+        "sha256": "1907167f353b83af9465b2d45b0791f686b633bf39d56ca17515a5138a5ebc1c",
+        "gitBlob": "e69ec39871afb84b94c7bc6416c69df09084ffaf"
+      },
+      "after": {
+        "bytes": 1673,
+        "sha256": "ae0edc878ab2cd0ee8cd109e29d04d6893091d70ecc4d5ec8537ab87db55ce1d",
+        "gitBlob": "e6ab3cff542422be8f22e91922633cd04e34e1b4"
+      },
+      "sameBytes": false,
+      "role": "production-or-source-context"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/peer_spki_openssl.go",
+      "before": null,
+      "after": {
+        "bytes": 1468,
+        "sha256": "fb53ff6aaf9bc9d6e5b6c4ea77f82ec74e9393678ac7ae8d7ee0e840f573c861",
+        "gitBlob": "f4cd0b9a3fcd666f2452d6af22674ad560226410"
+      },
+      "sameBytes": false,
+      "role": "production-or-source-context"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/peer_spki_unavailable.go",
+      "before": null,
+      "after": {
+        "bytes": 208,
+        "sha256": "ab2a364211d6407d7c00c6d5c179b4673459b977bea825a8263df25c1c5c3e1a",
+        "gitBlob": "073594b618bcc36a8a89cf44c10bef58d156089d"
+      },
+      "sameBytes": false,
+      "role": "production-or-source-context"
+    }
+  ],
+  "linkTests": [
+    {
+      "repositoryPath": "internal/securelink/authority_ingress_openssl_test.go",
+      "before": {
+        "bytes": 17517,
+        "sha256": "27bf76c3e021d7bf8280066670d519788fe6237f648290cdebe0fabe0a17eb3d",
+        "gitBlob": "6324f3602b2699a9198cb4a49c41c03d8b3d15cc"
+      },
+      "after": {
+        "bytes": 21524,
+        "sha256": "6e17e6bbf7876a4c2cb53909b3df6cc4b05e4dc40568d4812a72becceb995a6d",
+        "gitBlob": "9fd22b4541989b52da0018d86b991849d90e3254"
+      },
+      "sameBytes": false,
+      "role": "test-only"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/peer_spki_openssl_test.go",
+      "before": null,
+      "after": {
+        "bytes": 7543,
+        "sha256": "84b237bc200a6a7e9264aeeaccfafd42763a9e808d01a0e02c0e1c3b0558e6ba",
+        "gitBlob": "6ebc7f9cda5beace5c16cade9a4313f9c1428fda"
+      },
+      "sameBytes": false,
+      "role": "test-only"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/peer_spki_unavailable_test.go",
+      "before": null,
+      "after": {
+        "bytes": 646,
+        "sha256": "3930b0d94a02a0441c20009cbfedfc6b77fe712a185c5b1f8aa830e220893f34",
+        "gitBlob": "26ef814e9c557d0073b8775dc4db7d633557a8a3"
+      },
+      "sameBytes": false,
+      "role": "test-only"
+    }
+  ],
+  "productionPatch": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/finite7-native-production.patch",
+    "bytes": 17106,
+    "sha256": "3394ee45b0bb38afca80ddb2bb833a7eb31ba5b0e583595cf2a72a26215c36dd"
+  },
+  "testPatch": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/finite7-native-tests.patch",
+    "bytes": 17822,
+    "sha256": "8f9f068fd1bdf1ea36eff02d1f3ad206395352ec9e78c88adfe10b87f2e92ad7"
+  },
+  "modulePatch": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/core-module-context.patch",
+    "bytes": 1541,
+    "sha256": "a72e22894c5aed37907c542d2f40f32d988d94517afb34a0310d43cb4c04a285"
+  },
+  "patchBeforeCore": "e12036079d28adef2559733739a4743e258ba4e5",
+  "patchBeforeLINK": "f4b124226034e165a4828948004e542efaaaa0df",
+  "warning": "The four LINK production-file delta is relative to original f4 supplier, NOT the older securelink subtree in aa60. Consume the complete exact42031 securelink closure. Do not apply four files to an unmatched source.",
+  "composedCommitOrTreeClaimed": false,
+  "newSupplierProfileApproved": false
+}

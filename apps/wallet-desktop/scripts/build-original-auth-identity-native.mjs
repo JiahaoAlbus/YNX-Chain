@@ -260,7 +260,7 @@ export function completeOriginalAuthNativeBuild(plan){
  for(const row of [...plan.matchingInputs,...plan.systemInputs]){let current=path.parse(row.path).root;for(const part of row.path.slice(current.length).split('/').slice(0,-1)){current=path.join(current,part);const st=lstatSync(current);if(!st.isDirectory()||st.isSymbolicLink())throw Error('AUTH_NATIVE_COMMON_POST_PARENT_CHANGED');}const st=lstatSync(row.path),raw=readFileSync(row.path);if(!st.isFile()||st.isSymbolicLink()||raw.length!==row.bytes||createHash('sha256').update(raw).digest('hex')!==row.sha256)throw Error('AUTH_NATIVE_COMMON_POST_INPUT_CHANGED');if(row.path.includes('/vendor/runtime-inputs/')&&(st.mode&0o222)!==0o200)throw Error('AUTH_NATIVE_COMMON_POST_RUNTIME_MODE_CHANGED');}
 }
 export async function originalAuthRoot14Product45Resource8NativeBuildPlan(arch,headers){const role=await import('./original-auth-root14-product45-profile.mjs');return role.originalAuthRoot14Product45BuildPlan(arch,headers);}
-if(process.argv[1]&&path.resolve(process.argv[1])===here){
+if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]!=='finite7'){
  if(process.argv[2]==='single49-network-current-swift-visibility-repair'){if(process.argv.length!==4||!['--plan','--run','--read'].includes(process.argv[3]))throw Error('SINGLE49_SWIFT_REPAIR_EXACT_ARGV');const r=await import('./original-auth-single49-network-swift-repair.mjs');console.log(JSON.stringify(process.argv[3]==='--plan'?r.planOriginalAuthSingle49SwiftVisibilityRepair():process.argv[3]==='--run'?r.runOriginalAuthSingle49SwiftVisibilityRepair():r.verifyOriginalAuthSingle49SwiftVisibilityRepairRecord(),null,2));process.exit(0);}
  if(process.argv[2]==='single49-network-current-retained-post'){if(process.argv.length!==4||!['--plan','--run','--read'].includes(process.argv[3]))throw Error('SINGLE49_RETAINED_POST_EXACT_ARGV');const r=await import('./original-auth-single49-network-retained-post.mjs');console.log(JSON.stringify(process.argv[3]==='--plan'?r.planOriginalAuthSingle49RetainedPost():process.argv[3]==='--run'?r.runOriginalAuthSingle49RetainedPost():r.verifyOriginalAuthSingle49RetainedPostRecord(),null,2));process.exit(0);}
  if(process.argv[2]==='single49-network-current'){const {runOriginalAuthRoot14Product45}=await import('./original-auth-single49-network-profile.mjs');if(process.argv.length!==5&&!(process.argv.length===6&&process.argv[5]==='--plan'))throw Error('SINGLE49_NETWORK_EXACT_ARGV');runOriginalAuthRoot14Product45({arch:process.argv[3],headers:process.argv[4],planOnly:process.argv[5]==='--plan'});process.exit(0);}
@@ -294,4 +294,10 @@ if(process.argv[2]==='root14-product45-resource8'){if(![5,6].includes(process.ar
  }
 }
 
+}
+
+// Finite7 is a distinct matched SOURCE role, never an alias for the old c6 plan.
+if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]==='finite7'){
+ if(process.argv.length!==4||!['--plan','--read','--read-inputs','--run'].includes(process.argv[3]))throw Error('FINITE7_FIXED_NORMAL_ENTRY_ARGUMENTS');
+ const m=await import('./original-auth-finite7-normal-profile.mjs');const op=process.argv[3];const result=op==='--plan'?await m.originalAuthFinite7NormalBuildPlan():op==='--read'?await m.readOriginalAuthFinite7NormalRecord():op==='--read-inputs'?await m.verifyOriginalAuthFinite7NormalInputs():await m.runOriginalAuthFinite7NormalBuild();console.log(JSON.stringify(result,null,2));
 }

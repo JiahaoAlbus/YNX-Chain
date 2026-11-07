@@ -1,0 +1,128 @@
+{
+  "schema": "YNX-LINK-FINITE7-EXACT-NORMAL-NATIVE-TUS/v1",
+  "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+  "sourceTree": "2ed56d8c98590900d977a7ff2dba09c70fc2366a",
+  "LINKOwnedTranslationUnitCount": 3,
+  "translationUnits": [
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-wire.cpp",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 19964,
+      "sha256": "948bdf90791b2f53c80ec8c057f216f931c6a10514eeb73b08ec478a4a991b63",
+      "gitBlob": "a55f71fb0b448c89a7c4dbac7182c0d1a220f2c8",
+      "flags": [
+        "-std=c++17",
+        "-mmacosx-version-min=13.0"
+      ],
+      "publicTestMacrosForbidden": [
+        "YNX_LINK_IDE_FINITE_GET_PUBLIC_CONTROLS",
+        "YNX_LINK_IDE_FINITE_GET_ABI_PUBLIC_CONTROLS"
+      ]
+    },
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-transport.cpp",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 30399,
+      "sha256": "37cbf835f0ae30240b489c8bbc43b519ca691dc5334618429a0e8d14a6090768",
+      "gitBlob": "78dc6dda97d5f67bfc14a1a108569071fff91c71",
+      "flags": [
+        "-std=c++17",
+        "-mmacosx-version-min=13.0"
+      ],
+      "publicTestMacrosForbidden": [
+        "YNX_LINK_IDE_FINITE_GET_PUBLIC_CONTROLS",
+        "YNX_LINK_IDE_FINITE_GET_ABI_PUBLIC_CONTROLS"
+      ]
+    },
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-abi.cpp",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 22522,
+      "sha256": "8278cf0ee8383c764b5d73af69df1888618dc77cdefba936d86152c24d3f83c7",
+      "gitBlob": "893298030eaf648254a08b7eea6e494e2fd94255",
+      "flags": [
+        "-std=c++17",
+        "-mmacosx-version-min=13.0"
+      ],
+      "publicTestMacrosForbidden": [
+        "YNX_LINK_IDE_FINITE_GET_PUBLIC_CONTROLS",
+        "YNX_LINK_IDE_FINITE_GET_ABI_PUBLIC_CONTROLS"
+      ]
+    }
+  ],
+  "headers": [
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-wire.hpp",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 1394,
+      "sha256": "f894232022ed5bb6eead568b325a8e06070c35726336d5e6bc596470316e1585",
+      "gitBlob": "bfe7e2cdf1809a0b19827f0526621757e74a4a2b"
+    },
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-transport.hpp",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 4225,
+      "sha256": "532521b9ad7f582387031837e4e189a7fd946c63172264060f1ca9505750d636",
+      "gitBlob": "af4323168694952e065e8f240b370ed34929a7f6"
+    },
+    {
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide_finite_get_transport_v1.h",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 4674,
+      "sha256": "caab6efc9b32425d8bd103a458ddd611db97236d05b681d5a13d983f03bfaf36",
+      "gitBlob": "61e792e6845c9db35bb22706053fc41dd38ddf8b"
+    },
+    {
+      "repositoryPath": "internal/securelink/native/bridge.h",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 1673,
+      "sha256": "ae0edc878ab2cd0ee8cd109e29d04d6893091d70ecc4d5ec8537ab87db55ce1d",
+      "gitBlob": "e6ab3cff542422be8f22e91922633cd04e34e1b4"
+    }
+  ],
+  "AuthMotherHeader": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/ticket-source-r5/native/ide_finite_get_auth_mother_v1.h",
+    "bytes": 4247,
+    "sha256": "9d80c959d3a05937ac41487b386878330b725f67e63582dbf714b4379c1b0ec6",
+    "owner": "OriginalAuth",
+    "normalProductionOriginRequired": true
+  },
+  "OpenSSLExactHeaders": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/openssl364-normal-headers-20261107/HANDOFF.json",
+    "bytes": 93780,
+    "sha256": "1fc1e311117747e3ef76f436b9b6d5813aa603b9760e054ae98c3762d4d4d3e4"
+  },
+  "CBridgeOwnership": {
+    "source": {
+      "repositoryPath": "internal/securelink/native/bridge.c",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 22770,
+      "sha256": "bc264b2723f1a1b3f2c0fa1339d0c9b71b8062c640ac230000d8139586623216",
+      "gitBlob": "03d0cb32e6a66325d85836d3b149de4c4862628e"
+    },
+    "header": {
+      "repositoryPath": "internal/securelink/native/bridge.h",
+      "sourceCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+      "bytes": 1673,
+      "sha256": "ae0edc878ab2cd0ee8cd109e29d04d6893091d70ecc4d5ec8537ab87db55ce1d",
+      "gitBlob": "e6ab3cff542422be8f22e91922633cd04e34e1b4"
+    },
+    "compileExactlyOnceInOriginalSingleGo49Archive": true,
+    "compileAgainAsNativeTU": false
+  },
+  "wholeImageContext": {
+    "originalManifest": {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/native49-e966-normal-20261107/source-3c9/apps/wallet-desktop/native/original-wallet-single49-network-build-inputs.json",
+      "bytes": 1184620,
+      "sha256": "9e772e7970cde967e3585bcab47a108de13f9779bc0f775f090e7fd2add6e7a4"
+    },
+    "oldManifestTUCount": 84,
+    "oldManifestSwiftSourceCount": 2,
+    "oldManifestIsNotNewImageQualification": true,
+    "otherOwnersNewTUSet": "OriginalAuth/Native/SDK provide their actual frozen source list; do not infer a full18-TU set from LINK3 or alias old84 baseline"
+  },
+  "normalAuthOriginMethodsIncludedByLINK": false,
+  "normalWholeImageBuilt": false,
+  "RootAdmission": false,
+  "SourceAdmission": false
+}

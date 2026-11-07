@@ -1,0 +1,33 @@
+name: Finite7 normal Native source contract DATA
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/scripts/original-auth-finite7-*.mjs
+      - apps/wallet-desktop/scripts/finite7-actual4ca-supplier.mjs
+      - apps/wallet-desktop/test/finite7-actual4ca-supplier.test.mjs
+      - normal-inputs/finite7-actual4ca/**
+      - scripts/ci/finite7-actual4ca-supplier.mjs
+      - apps/wallet-desktop/native/original-wallet-finite7-normal-inputs.json
+      - apps/wallet-desktop/test/finite7-normal-source.test.mjs
+      - scripts/ci/finite7-normal-source.mjs
+      - .github/workflows/finite7-normal-source.yml
+jobs:
+  pure-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/finite7-actual4ca-supplier.mjs 2>&1 | tee finite7-source-controls.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: finite7-source-data
+          path: |
+            finite7-source-controls.log
+            finite7-actual4ca-controls

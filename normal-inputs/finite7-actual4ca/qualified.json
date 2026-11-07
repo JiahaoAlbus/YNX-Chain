@@ -1,0 +1,540 @@
+{
+  "schema": "YNX-ORIGINAL-A-SINGLE49-AA60-LINK42031-MAC13-CONTINUATION-QUALIFIED/v1",
+  "atUTC": "2026-11-07T11:05:03.055094+00:00",
+  "owner": "01a0f351-8f50-7632-8a7e-faba5dac6030",
+  "state": "NEW_ACTUAL_SINGLE_GO49_ARCHIVE_NORMAL_RECEIPT_VERIFIED_NOT_WHOLE_NATIVE",
+  "session": 77903,
+  "terminal": {
+    "elapsed": 14.004290416,
+    "peakOwnRSS": 357548032,
+    "guard": null,
+    "remainingOwned": [],
+    "mutexReleased": true
+  },
+  "producerSourceCommit": "c995ddc26c4f6a7235f249bb19d6b121d0c0fedd",
+  "profile": {
+    "id": "core19-aa60-link42031/49",
+    "commit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+    "tree": "ab99445e46339d2376ec1c0b2aae2674b60c1c7f",
+    "coreExports": 19,
+    "totalExports": 49
+  },
+  "coreCommit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+  "linkCommit": "42031b7d6a915b357f81e8faded3434d4c053b1f",
+  "archive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-archive/libynx_artifact_release.a",
+    "bytes": 16453296,
+    "sha256": "4ca267ceecc12886e152a0503d53e1073b0bd65e4a50b4f8e397c6d9cdc3d9ce",
+    "dev": 16777254,
+    "ino": 22426849
+  },
+  "normalReceipt": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/BUILD-RECEIPT.json",
+    "bytes": 931471,
+    "sha256": "b189d34c5e7f08638c1e8129fd1bfdb6b87f9ec55e385713addc56177f1f2cfd"
+  },
+  "generatedHeaders": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-archive/libynx_artifact_release.h",
+      "bytes": 6925,
+      "sha256": "a9946c9466b66a0e4ca5214cfbaa54f9b7ca2f143ed92f2d5d1746a71879efbd",
+      "dev": 16777254,
+      "ino": 22426799,
+      "name": "libynx_artifact_release.h",
+      "owner": "generated"
+    }
+  ],
+  "resumeProvenance": {
+    "observer": {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-aa60-link42031-mac13-20261107/SINGLE49_MAC13_OBSERVER_RACE_FIRSTCAUSE_HANDOFF.json",
+      "bytes": 5953,
+      "sha256": "f3bd7c1cd3c3965f3ce03fad31f0e77b51fa26f27fe3cf35288e5a1f8bdd19db",
+      "dev": 16777254,
+      "ino": 22162588
+    },
+    "priorReadbackReuse": {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-20261107/SINGLE49_RETAINED_GOTOOLCHAIN_LOCAL_FIRSTCAUSE_HANDOFF.json",
+        "bytes": 97577,
+        "sha256": "c0b524a60dc81dd601b827f921bc912e935b77ff1bdc8cded100ad693a192954",
+        "dev": 16777254,
+        "ino": 22319538
+      },
+      "retainedReceipt": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r1/original-a-normal-continuation-r1/RETAINED-SUFFIX-RECEIPT.json",
+        "bytes": 957601,
+        "sha256": "b6884a6e7c74399d62a13a26c19c7ab9a2983dae67c300a57588c838f4aa519f",
+        "dev": 16777254,
+        "ino": 22312691
+      },
+      "reports": {
+        "symbols": {
+          "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r1/original-a-normal-continuation-r1/SYMBOL-RESULT.json",
+          "bytes": 44491,
+          "sha256": "68ef9ffe249007efadf04095d2af0896ceee8d53ed3e2d755b382d4940cf41e7",
+          "dev": 16777254,
+          "ino": 22312664
+        },
+        "neutralC": {
+          "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r1/original-a-normal-continuation-r1/NEUTRAL-C-RESULT.json",
+          "bytes": 1633,
+          "sha256": "dc6b65b8c864933f0355c5a930679348e14098f3b107d49a2a501a4c588a3b7d",
+          "dev": 16777254,
+          "ino": 22312671
+        },
+        "deployment": {
+          "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r1/original-a-normal-continuation-r1/DEPLOYMENT-RESULT.json",
+          "bytes": 33989,
+          "sha256": "3072605abf9b2bd1aa4efb16ec1c1668c606c2bb50ca2fe3e25c536f360cfb99",
+          "dev": 16777254,
+          "ino": 22312690
+        }
+      },
+      "priorGoExit": "UNKNOWN",
+      "priorBuildInvocations": 0,
+      "priorSourcePostVerified": false,
+      "currentSourceHeadersAndInputsVerifiedBeforeReuse": true,
+      "originalArtifactBytesIdentical": true,
+      "newNmOrDeploymentRun": false
+    },
+    "continuationReportReuse": null,
+    "retainedSuffixReceipt": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/RETAINED-SUFFIX-RECEIPT.json",
+      "bytes": 964413,
+      "sha256": "27cf985f9cbf54324829920457e49f10df6d39272d8dd0f21d655f6f724a6423",
+      "dev": 16777254,
+      "ino": 22426862
+    },
+    "originalOutput": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/core19-c2-profile-r1/normal-single49-aa60-link42031-build",
+    "originalProducerExit": -15,
+    "originalGoExit": "UNKNOWN",
+    "originalGoExitCode": null,
+    "originalRecordsRewritten": false,
+    "newGo": {
+      "command": "/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.10.darwin-arm64/bin/go",
+      "args": [
+        "build",
+        "-x",
+        "-work",
+        "-mod=readonly",
+        "-p",
+        "1",
+        "-trimpath",
+        "-tags=securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport",
+        "-buildmode=c-archive",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-archive/libynx_artifact_release.a",
+        "./cmd/ynx-artifact-release-cabi"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/core19-c2-profile-r1/normal-single49-aa60-link42031-build/source",
+      "exit": 0,
+      "signal": null,
+      "pid": 9416,
+      "timeoutMs": 180000,
+      "startedUTC": "2026-11-07T11:04:12.662Z",
+      "finishedUTC": "2026-11-07T11:04:19.360Z",
+      "error": null,
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dev": 16777254,
+        "ino": 22426731
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stderr",
+        "bytes": 72694,
+        "sha256": "a368839dc6a41d575101b525a7d5bbc4ba22ee804e40399c52f3a5ebb9704f83",
+        "dev": 16777254,
+        "ino": 22426732
+      }
+    },
+    "newGoExit": 0,
+    "newGoSignal": null,
+    "sameOriginalSource": true,
+    "sameOriginalGoCache": true,
+    "originalGoCacheMayBeWritten": true,
+    "originalSourceArtifactsAndHeadersWritten": false,
+    "sourceAndInputPostVerified": true,
+    "actualCompileOrCacheHitEvidence": {
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stdout",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "dev": 16777254,
+        "ino": 22426731
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stderr",
+        "bytes": 72694,
+        "sha256": "a368839dc6a41d575101b525a7d5bbc4ba22ee804e40399c52f3a5ebb9704f83",
+        "dev": 16777254,
+        "ino": 22426732
+      },
+      "flags": [
+        "-x",
+        "-work"
+      ],
+      "cacheHitNotAssumed": true
+    }
+  },
+  "sourceContract": {
+    "actualMaterializedSources": 1623,
+    "headers": 24,
+    "sourceAndInputPOSTVerified": true,
+    "A25FrozenInputPOSTExact": true,
+    "profileVerifier": {
+      "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/cmd/ynx-secure-link-private-client/combined-supply-profile.mjs",
+      "bytes": 50075,
+      "sha256": "93537b3c553bf73d1b4468cdf97bd28cbc967ed9a7772bc89790c467cca98ac2",
+      "dev": 16777239,
+      "ino": 285382525
+    },
+    "sameOriginalGoCache": true
+  },
+  "qualification": {
+    "symbolsStatus": "COMBINED_GO_ARCHIVE_STRONG_SYMBOLS_VERIFIED",
+    "coreExports": 19,
+    "totalExports": 49,
+    "neutralCStrongCount": 10,
+    "deployment": {
+      "status": "ARCHIVE_DEPLOYMENT_TARGET_VERIFIED",
+      "objectCount": 42,
+      "verifiedObjects": 42,
+      "maximumObservedMinimum": "13.0.0",
+      "firstCause": null
+    },
+    "newArchiveSHADiffersOld": true,
+    "changedArchiveGateActualNotOldReuse": true,
+    "newActualGoBuildInvocations": 1
+  },
+  "oldFailuresPreserved": {
+    "originalNodeExit": -15,
+    "originalGoExit": "UNKNOWN",
+    "r1GoProbeMismatch": "go1.25.7 rejected",
+    "noOldReceiptRewrite": true
+  },
+  "authority": {
+    "wholeNativeBuilt": false,
+    "CPPCompiled": false,
+    "SwiftCompiled": false,
+    "helperBuilt": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "installed": false,
+    "deployed": false,
+    "actualMacOS13RuntimeTested": false
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NODE_VERSION.stdout",
+      "bytes": 8,
+      "sha256": "fe9da612097c5b1f2808feef32b5685e7a19a607fd96c7d6abe1454f0edc7e1c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NORMAL_RETAINED_GO49_CONTINUATION.intent.json",
+      "bytes": 1092,
+      "sha256": "7ee6e0d1265517b2136fb88e3e715d61456a7223c42a31b63c3503ef5eb17dc0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/PRODUCER_COMMIT.terminal.json",
+      "bytes": 795,
+      "sha256": "99df579c255b79a2306dee542d3e22ef59d7d7fb63ecab7ff62749c867c1c581"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/GO_VERSION.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/OPENSSL_VERSION.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/PRODUCER_COMMIT.stdout",
+      "bytes": 41,
+      "sha256": "5114b0d5362b4c6730b7b08abb557b3921758fa9414a4ee0a03e4fff6bc74631"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/BUILD_RESULT.json",
+      "bytes": 47316,
+      "sha256": "6c68b126cf5abc4237dde43a8a5972761c918a15427ba5ab88b856fa0c6f8005"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/GO_VERSION.terminal.json",
+      "bytes": 780,
+      "sha256": "1411e6815458ab052ddb5154f5a3e24da5cdad36f584d2e26337b5e0d3f03829"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NORMAL_RETAINED_GO49_CONTINUATION.terminal.json",
+      "bytes": 843,
+      "sha256": "28649101fe16d054f3d5b0ae730dc5f8ea6ad83f796e479b643a4a15e5cd5fbc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/PRODUCER_COMMIT.intent.json",
+      "bytes": 188,
+      "sha256": "1788ee6524ad59dea2f0f2d019bb322e09f4734adc1719f611dd42671f87a91c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/OPENSSL_VERSION.intent.json",
+      "bytes": 192,
+      "sha256": "2fa1173263e0d5d052b67e91eec78bb10ccd25a72354ee602b5bd752b0521386"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/PRODUCER_COMMIT.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NODE_VERSION.intent.json",
+      "bytes": 204,
+      "sha256": "31f29f20649edacd78b548d4577c4317a1c4ae9ee409802df8037a4160c04e40"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NODE_VERSION.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/OPENSSL_VERSION.stdout",
+      "bytes": 6,
+      "sha256": "9a989ebd95efe334f4248db1d63432eaa07e6fbe0e1234e47c91e5fc88906ca1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/GO_VERSION.stdout",
+      "bytes": 34,
+      "sha256": "077dec62e8d33611342a1349cacb348362593f6028f03f3d345b05b156bd9662"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NORMAL_RETAINED_GO49_CONTINUATION.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NODE_VERSION.terminal.json",
+      "bytes": 785,
+      "sha256": "287812c6460e6b607afeac17f2251aee37bf6b79d3880493b58b4597dd41f9ea"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/PRE.json",
+      "bytes": 10141,
+      "sha256": "9556559903c4a0b28ed51b642ce28d69e7247523dae325109edf54829cd6bbce"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/GO_VERSION.intent.json",
+      "bytes": 199,
+      "sha256": "76cc1245640e9d678a7ef6ddf2d43dd1a5bcf3e6a5dd69da73bf789761b5d5f1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/OPENSSL_VERSION.terminal.json",
+      "bytes": 794,
+      "sha256": "a9af5ec7251b187dba162f5737e6d1de7e167671c149d9af72693237b190f0c4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/NORMAL_RETAINED_GO49_CONTINUATION.stdout",
+      "bytes": 731,
+      "sha256": "2178419e9d7f97e21f5a5a9cd5cee99797542522d1c829d7278b7f93020409e2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/single49-retained-normal-continuation-r2-20261107/POST.json",
+      "bytes": 10201,
+      "sha256": "900e2e47f0da33a8f2dddab458fe1912cf10058c12acd7a008142f5482c3ba87"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-paths.intent.json",
+      "bytes": 326,
+      "sha256": "c53fb56a818058561b5b6d9ce4504e2229f13afb5912f6a1fdf264a92213574b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/fork-tree.intent.json",
+      "bytes": 283,
+      "sha256": "63f171dee13122998950af145611b8b7516f9bac581a3eeab65472ce47d13358"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/CONTINUATION-NEUTRAL-C-RESULT.json",
+      "bytes": 1633,
+      "sha256": "dc6b65b8c864933f0355c5a930679348e14098f3b107d49a2a501a4c588a3b7d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/core-tree.stdout",
+      "bytes": 41,
+      "sha256": "f45663a592eee636a3ad7e1344f93b2614aa35741d44381d378b8ab8511093f0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/BUILD-RECEIPT.json",
+      "bytes": 931471,
+      "sha256": "b189d34c5e7f08638c1e8129fd1bfdb6b87f9ec55e385713addc56177f1f2cfd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/DEPLOYMENT-RESULT.json",
+      "bytes": 33989,
+      "sha256": "3072605abf9b2bd1aa4efb16ec1c1668c606c2bb50ca2fe3e25c536f360cfb99"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-paths.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-go-environment.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-compiler-version.stdout",
+      "bytes": 200,
+      "sha256": "ce403379b194079b66c357f092406ba3c976e92f75e4a332c2580339788ba1b1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/RETAINED-SUFFIX-RECEIPT.json",
+      "bytes": 964413,
+      "sha256": "27cf985f9cbf54324829920457e49f10df6d39272d8dd0f21d655f6f724a6423"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/core-tree.intent.json",
+      "bytes": 269,
+      "sha256": "8afca365890194931e1dd42159c003c3e5b29dbf37551f7bbd3c7066cad1e56c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-compiler-version.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/CONTINUATION-SYMBOL-PLAN.json",
+      "bytes": 26947,
+      "sha256": "d62c7f4463e0045322a117c5c71ecdac87c81b30b01a99dcca7d7c6e29d76269"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-paths.stdout",
+      "bytes": 3375,
+      "sha256": "d659337d0ea211b0e8c5a9b208d0c28ad36169389e775c6d9e90f1ffe8357251"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-go-environment.stdout",
+      "bytes": 1296,
+      "sha256": "d1aebb872d85ca7c5b9c307e9921408a414a363670acdba1aba4e5572b3e49c0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/core-tree.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-tree.intent.json",
+      "bytes": 269,
+      "sha256": "0d5c98ea5a3f7c594eda4b6a2d86af20f89786deb62595c92158a50804c624b0"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-compiler-version.intent.json",
+      "bytes": 378,
+      "sha256": "f173ca635fdc4aa4661646cb1389fdfcd10d4ade5361c5aff3db9a3249e7e70e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-macho.stdout",
+      "bytes": 821921,
+      "sha256": "5901bf49e6b69eb3b859cd36ff4e940174d52c14cf75d0dc4f30bc75a9385322"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/CONTINUATION-SYMBOL-RESULT.json",
+      "bytes": 44566,
+      "sha256": "1c9c17b9fea9dab032caf3b60f980174e503c76ec45124646eb89badfcb6daea"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/INCREMENTAL-GO-PLAN-NOT-EXECUTED.json",
+      "bytes": 4927,
+      "sha256": "855bbca2b5da06e1f6f8fa111aa894944219aa87711428aa7e224de5f43e7ccd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-go-environment.intent.json",
+      "bytes": 635,
+      "sha256": "be58c16c55111380cf4497c73018462392a61ceb67301e7db152f66189f8ad38"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/fork-tree.stdout",
+      "bytes": 41,
+      "sha256": "7d702d6619f1e4a349279563d63e6d21411c38a0b018b10f8eb802077a8df42a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/PRIOR-STATIC-READBACK-REUSE.json",
+      "bytes": 1957,
+      "sha256": "b13fbaba8ecbc78f8b4bfc179bccbd85e324f257bb972d0d5e167e160d7c35ce"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-tree.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/SYMBOL-PLAN.json",
+      "bytes": 26917,
+      "sha256": "530ccc9918f5d854f46847d722ac5d428f8bd4d2875bcea47db46765859255b2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-macho.intent.json",
+      "bytes": 458,
+      "sha256": "8b5996db6cddd934a9daffb9cb75d0fb75a3a1066949b4f95d724a282df14693"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-global.stdout",
+      "bytes": 28937,
+      "sha256": "507e67520d43ba59e9f413f4eb58cf6edbba4fb4681a16d9e66a4b111a3e98e8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.intent.json",
+      "bytes": 802,
+      "sha256": "5eab9a181507d0970e7e4328967b825554a277f91dae841ae18e0a7888881846"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/SYMBOL-RESULT.json",
+      "bytes": 44491,
+      "sha256": "68ef9ffe249007efadf04095d2af0896ceee8d53ed3e2d755b382d4940cf41e7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/CONTINUATION-DEPLOYMENT-RESULT.json",
+      "bytes": 34004,
+      "sha256": "1d918b0a50b93b9f7052845b8855b72e699642912919af4f6cf89060fb687a0c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-global.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/incremental-go.stderr",
+      "bytes": 72694,
+      "sha256": "a368839dc6a41d575101b525a7d5bbc4ba22ee804e40399c52f3a5ebb9704f83"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/link-tree.stdout",
+      "bytes": 41,
+      "sha256": "054e7e1380be121cde2a3f41e02118c6d9fd1a9c76b609384cac9da896880e71"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/fork-tree.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-global.intent.json",
+      "bytes": 458,
+      "sha256": "4f26dbdb0e8b6dcf74c0ebb69f2d0b85bfee6762d1fb3c37cb07ba3a82010ff8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/continuation-neutral-macho.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/retained-suffix-r2/original-a-normal-continuation-r2/NEUTRAL-C-RESULT.json",
+      "bytes": 1633,
+      "sha256": "dc6b65b8c864933f0355c5a930679348e14098f3b107d49a2a501a4c588a3b7d"
+    }
+  ]
+}

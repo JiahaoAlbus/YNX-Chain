@@ -1,0 +1,1 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const t=fileURLToPath(new URL('../../apps/wallet-desktop/test/finite7-normal-source.test.mjs',import.meta.url));const r=spawnSync(process.execPath,['--test',t],{stdio:'inherit'});if(r.error)throw r.error;process.exitCode=r.status??1;

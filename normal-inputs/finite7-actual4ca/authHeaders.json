@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "headers": [
+    {
+      "name": "pay_root_transport_loan_private.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-root-qualification-successor/final-r1/source/pay_root_transport_loan_private.h",
+      "bytes": 1441,
+      "sha256": "df01e639f2909d5ad370db6eac9b6f2bca17a801a85805d0b38ef171bd030e47"
+    },
+    {
+      "name": "pay_native_actual_context_private.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/actual-context-r1/source/pay_native_actual_context_private.h",
+      "bytes": 1306,
+      "sha256": "075f5d736ec6ba9d9aca19756249f66f9ad7b91863f3456befc3d37141d6045a"
+    },
+    {
+      "name": "pay_native_source_lease_private.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-pay-native-source-successor/actual-context-r1/source/pay_native_source_lease_private.h",
+      "bytes": 2252,
+      "sha256": "ef2e3eb8aba2610fb8315945a9124300040b7fab7c07855529dbabe800e14157"
+    },
+    {
+      "name": "product_pay_transport_private.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/product-original-read-assembly-successor/source-loan-r1/source/product_pay_transport_private.h",
+      "bytes": 5717,
+      "sha256": "eb76abb33deb029cb2506dc2e0863deb6560479bac88eefb25526caa4927e612"
+    }
+  ],
+  "meaning": "Normal single archive compile header inputs only; original3 plus exact stable Product Auth header. Native body/Root qualification remains its owning sourceH.",
+  "productSourceLoanHandoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/product-original-read-assembly-successor/source-loan-r1/HANDOFF.json",
+    "bytes": 10449,
+    "sha256": "41452787e5a4f422853de446c1509d932526de07072c85f0b726976becc066ea"
+  }
+}

@@ -1,0 +1,1275 @@
+{
+  "schema": "YNX-CORE19-EXACT-GIT-SOURCE/v1",
+  "owner": "Protocol original crypto Go owner; source preparation only",
+  "commit": "aa60e45ee5ab2ae4422f62a8932fe6065ed19dcf",
+  "tree": "ab99445e46339d2376ec1c0b2aae2674b60c1c7f",
+  "sourceReadMethod": "fixed git show commit:path plus independent git cat-file blob; no dirty working bytes",
+  "productionLeafCount": 88,
+  "sources": [
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/account_initial.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/account_initial.h",
+      "gitMode": "100644",
+      "gitBlob": "8b1968be17e7b9c937f4054cf05a575709219d94",
+      "bytes": 4317,
+      "sha256": "c8a8a7402fe1d411451512bdb281d30d2f6baa8ef93ec791e066b2a8f71772ee"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/account_migration.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/account_migration.h",
+      "gitMode": "100644",
+      "gitBlob": "dba0f8c373555ffb308c6b4b66399f06a8b31792",
+      "bytes": 5377,
+      "sha256": "5e18290f86081046301642462c3b9af46de173562fc2a6375c9965289e828aa5"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/account_migration_authorization.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/account_migration_authorization.h",
+      "gitMode": "100644",
+      "gitBlob": "a77c054dc87143807cf6c4d0285b87b32da3a105",
+      "bytes": 4605,
+      "sha256": "72adbd0fa90bfc1e24ab14c979e4037bafa4eeb5a51f1202e843566cb3966d64"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h",
+      "gitMode": "100644",
+      "gitBlob": "e406c75eeb2e5722daa10ceb8ca7b69b86a3c6d9",
+      "bytes": 4189,
+      "sha256": "534e8a0cd2846de0565c2322d252da1a3f72ca8ce42373089c53258d430c7657"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "461d0615d607fdd570b0eb49f5793e60bbbdbb72",
+      "bytes": 5299,
+      "sha256": "d683e746369c10295ce15c6f4235d2213859f47f4e59a5f5cf823e0765cc2ccf"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/control_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/control_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "d03406cf6784d78962cb89c77d3ddc49414c7b5e",
+      "bytes": 5601,
+      "sha256": "e4ad9eab83f1ebaf76cadeff46cdb41473e252fc817ada0c092d03c02c63ceb4"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/control_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/control_core.go",
+      "gitMode": "100644",
+      "gitBlob": "8364f86ef8ed8448c54c6afd065233c08bc53eaa",
+      "bytes": 5815,
+      "sha256": "bb096183a12dfea439be14ca810d56b0c9773c2fb8e8b925ace9f4d9e72d09ae"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/core.go",
+      "gitMode": "100644",
+      "gitBlob": "36242e06f7812569ef7d970603c6b587dd96e94e",
+      "bytes": 7100,
+      "sha256": "3fddbe2ee16ee33d8d4a34984c1c51cc00f23528023ab62d8f37e2f9488b7536"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+      "gitMode": "100644",
+      "gitBlob": "602898a544a391c3d00e39a5dc47c933ea18670e",
+      "bytes": 4243,
+      "sha256": "502a86840c3029878cdbfc7531b4dd64a58179e630e861842b9c104433921781"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "b1f36fd5eb6faeb1999e6ae7b04038cb8279f72f",
+      "bytes": 4726,
+      "sha256": "912194bac65bb01f4d3c7cb44637551f118c28ddf129dd128e87a003deecb937"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/deployment_manifest_v2_core.go",
+      "gitMode": "100644",
+      "gitBlob": "8b57929dc96a0ddba6efdb53d3634b1ca32311b6",
+      "bytes": 4776,
+      "sha256": "fe2a0334cccc45c457a2a747f29341947bc22c9af5b1f1350cd72f24663abfa5"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/device_http_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/device_http_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "3f85af103b9d69f67f63fb1edd53dead7261a700",
+      "bytes": 4130,
+      "sha256": "aac414d17e49a1162f91984ee51b49afd1af1bba70b57300cfdc1f29bc651184"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/device_http_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/device_http_core.go",
+      "gitMode": "100644",
+      "gitBlob": "fa497215aeb42a22dbcea33e1f12e1941bd54ea9",
+      "bytes": 6601,
+      "sha256": "bf06b48f7e5596164f3dbb7a1ff9995568c6f4281baeba2b961719e05c69b68e"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "ee88f5cf86877db8a913040d953e1ed47294a07f",
+      "bytes": 4454,
+      "sha256": "ec4dc87baaa7e7acf63501bc32c428cd94496c96979aa7e28127cfe6fb18ae3a"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/device_http_v5_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/device_http_v5_core.go",
+      "gitMode": "100644",
+      "gitBlob": "d89f1b7b5c2e49fd31c12487e3ea14fc3a6721ef",
+      "bytes": 5329,
+      "sha256": "f78f20ab8ad430697246476673a89b3472516d2705a865393b4c5bd575bff011"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/initial_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/initial_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "a59b83d0ebb37a6f695a8c831348bef5ee1ff2e2",
+      "bytes": 4376,
+      "sha256": "008adf3e28478b4168c1ef65b6f54af5f9937eddfa77effc094683e41838fe8b"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/initial_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/initial_core.go",
+      "gitMode": "100644",
+      "gitBlob": "99d6d5d79cdd263d7f966422175583ac05d70b54",
+      "bytes": 11576,
+      "sha256": "4632cf0c7152f34267be6278af43833c9221acdf56c5f86ab062eaff6cc38bbe"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "6786db6cf48bc7ec708f9aa542dc2bd7393bb505",
+      "bytes": 5150,
+      "sha256": "a70d58f92c40e94ae595af5f6aeb42bc3b85b415c3d1ff2490776258f1577b9e"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/migration_authorization_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/migration_authorization_core.go",
+      "gitMode": "100644",
+      "gitBlob": "8d3b24b0a10ee01bf284ab4fc6afeb7884f33215",
+      "bytes": 7008,
+      "sha256": "b9325dae045fa52d1eba27b15da4ab9459a8b357a81f75dcaea837ee6a4bcd54"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/migration_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/migration_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "9dac1a24e4c5a32f78074d7c75830c646f0d427d",
+      "bytes": 5884,
+      "sha256": "bedbf2af5b766cf97f09fac776208d856922328ea2b07cd9b325a601ad1c7d40"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/migration_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/migration_core.go",
+      "gitMode": "100644",
+      "gitBlob": "94480e117177c251859e85328ef208eb1e44670a",
+      "bytes": 6877,
+      "sha256": "79b681ab92bccef5caf07887b08cd1d49864a6dd97514e90f06db53b72f56242"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/network_resource_consent.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/network_resource_consent.h",
+      "gitMode": "100644",
+      "gitBlob": "bfae8a3fc73cae0aa58525c9b0dd40a99dd46ff0",
+      "bytes": 5089,
+      "sha256": "164c50bbb66ad026e4fb6f695d10d9b7829d92acfe223e94a6a3a890c954744e"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "21362dbca756fde2c04d44b8d2067f717d1cec61",
+      "bytes": 9012,
+      "sha256": "5d9d5ef543349e594ff51086135f13b38c87bc11917f7f92206da96d3e787233"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/network_resource_consent_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/network_resource_consent_core.go",
+      "gitMode": "100644",
+      "gitBlob": "46a3c3b879ce3fddb60487c140ed6b74a6760b5e",
+      "bytes": 3238,
+      "sha256": "fde168fe83ed215f9449a363f1445e4efc4183f4e6883b3a1a5579d7d7fa15d0"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go",
+      "gitMode": "100644",
+      "gitBlob": "95cf4461fec5d45c226ac04dc4a235999442bb60",
+      "bytes": 7972,
+      "sha256": "c55304185bf75d83596e14bd31fb64009a21be808ca1be18cce9fde6cb02f56a"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/pending_query_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/pending_query_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "04e2f75da83e965ea36d234a776353231b0c5d9f",
+      "bytes": 4519,
+      "sha256": "775b917e49e6532988ba3b92d499ea0b9f150268d4a7693356642620144ae695"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/pending_query_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/pending_query_core.go",
+      "gitMode": "100644",
+      "gitBlob": "b713d801b8b67dbe662398e63e21f62c8d36c8cd",
+      "bytes": 5293,
+      "sha256": "aa55fc0d69810e8e01c0728fe5dab7e6eebe0d8a996c9d12d60673c9c6f0985b"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_challenge_v4.h",
+      "gitMode": "100644",
+      "gitBlob": "1c52835df8abc2c7390dd3113357f57524fd5b69",
+      "bytes": 2673,
+      "sha256": "fc4e2d792f52fe259744bfd1920713ee69a58f30bd3f0b7ceeecba09d78b4ef9"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "a508dc6057a9b534242bc869b97e25b4d48722c4",
+      "bytes": 2335,
+      "sha256": "06dadd666383ed6d4344230ee6ce267ae531fa33f234d08ab3b1b148925f443c"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_challenge_v4_core.go",
+      "gitMode": "100644",
+      "gitBlob": "be1cdb38a0de201a9dc8c14101b6f2cba8aa9981",
+      "bytes": 885,
+      "sha256": "0364f4862b6b98107048319878535cb971491f7c2335b3f5d286972147793852"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_keypair_v4.h",
+      "gitMode": "100644",
+      "gitBlob": "253874945551d84a5d0478d4306fa6845d6ded4a",
+      "bytes": 5650,
+      "sha256": "6028679ecd106de7b92824efd48ec2493f622b2e14191029ae1c82742ba7eed2"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "2885c6e0cddfc0e4848cd689376a76f7ea2afec9",
+      "bytes": 3538,
+      "sha256": "aa4b06702b281dbd8a413e06378fd7628273f75d718c42ebca925a211186f208"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_keypair_v4_core.go",
+      "gitMode": "100644",
+      "gitBlob": "2554bb8231e1e1fee44651b806e5a9f9b783be2f",
+      "bytes": 3969,
+      "sha256": "4ac94029d2aa8f216da8d37f148748a06c6b3ac2ade0a6f8c7d20aed26e97129"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_registration_v4.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_registration_v4.h",
+      "gitMode": "100644",
+      "gitBlob": "67f018848778181dd26765e138eb9f82cb91b467",
+      "bytes": 5814,
+      "sha256": "aa630561ec84d70892e06020bb377dd9c603ce3bc3f7a769fd14fff497010c70"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "30b1a57845ed0e58876c976485a54137d1ac783d",
+      "bytes": 5054,
+      "sha256": "e46f2f1e87da939c70f4d0d4b4af920cae80cc55f7d4c8fb27771fcdee7438c3"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_device_registration_v4_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_device_registration_v4_core.go",
+      "gitMode": "100644",
+      "gitBlob": "9e41cfc262025aa039a0119c82191e03148b4a40",
+      "bytes": 8250,
+      "sha256": "204f49a87b65ecceb7d79fb84d00626c5429afa6582a9b03c6501d881570514b"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h",
+      "gitMode": "100644",
+      "gitBlob": "9cba4bad80cb29084fcf9033587f87b66086b508",
+      "bytes": 4864,
+      "sha256": "7d89c6df4679f6b00cc077ee87309d414ab3f36c4f7249027b00557950f97c5c"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_session_http.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_session_http.h",
+      "gitMode": "100644",
+      "gitBlob": "7bcf80c7a617ffd347239ce541da1d61ceac7010",
+      "bytes": 5009,
+      "sha256": "4123d8eb6f0814c24c5f94761e8dfaf607561c13e243e327635e4e3785beee25"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/product_session_http_v5.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/product_session_http_v5.h",
+      "gitMode": "100644",
+      "gitBlob": "7ddced46d92b29f91ca6079184a524abab5145be",
+      "bytes": 3429,
+      "sha256": "00100302fe9ee1c0e0ab81d6c1c52975f31f4a35967b73d51691ab8b275e28b7"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/publisher_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/publisher_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "9b81459cfa1320964894acfebe12a0e0e07a657f",
+      "bytes": 13768,
+      "sha256": "da82df1ffd54d0fc072f09c6c11dc8009db238b52505fb8f443ac5c9cd8bca16"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/publisher_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/publisher_core.go",
+      "gitMode": "100644",
+      "gitBlob": "ebdded39030de0c24e9bc04ef73ad5a0edbae898",
+      "bytes": 12946,
+      "sha256": "583a34b53d0c6af3a2be1c8f204666fb1089b91a7f13d84301a9ccb44925ee37"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/publisher_registration.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/publisher_registration.h",
+      "gitMode": "100644",
+      "gitBlob": "538b86ca18a8f2763257569f78e97d728a6e5c34",
+      "bytes": 5416,
+      "sha256": "0cde9f0c04696cfda2ca1236f7c41ea7de934519c2a1ff75889c69902cf6a25d"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/registered_n1_verify.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/registered_n1_verify.h",
+      "gitMode": "100644",
+      "gitBlob": "da08d9676a45cb542849436ad06775a3e61a4a51",
+      "bytes": 4487,
+      "sha256": "6b097bdfc31c2f7b38c77bee5ddf07bfe14d0f0a983f5dc0fe062a53e52fbcaa"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "307246001287a89309fa526d9ce26421790ec786",
+      "bytes": 3620,
+      "sha256": "e4cf20c77009c62b79d66068f2a898380d9d28378d19e4c49638b34f3e64b9bf"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/registered_n1_verify_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/registered_n1_verify_core.go",
+      "gitMode": "100644",
+      "gitBlob": "bce9bdcc126c3bd551610be341f964958782b076",
+      "bytes": 4552,
+      "sha256": "d665245cf0f5673c4644f0e598b8f21e926a4386dcfd2517f7ebc1c428f0dbe6"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "52c05abef919927e46db0b88a909388cb77cd754",
+      "bytes": 3043,
+      "sha256": "778c79f392871b822b7f3f050355065c23eede0800b27f0d11d7e722e1b05073"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/source_statement_v2_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/source_statement_v2_core.go",
+      "gitMode": "100644",
+      "gitBlob": "085104a49decc2c29488de68eee878a0547bd8a7",
+      "bytes": 1407,
+      "sha256": "3952286ee998b1e5b50967667fbe4fff15e013a7f26f2f95a01bfac0669e1b6b"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go",
+      "gitMode": "100644",
+      "gitBlob": "05826836ab76ac239f1bf6090264ee1f3b59e135",
+      "bytes": 3544,
+      "sha256": "ab6c5b13caa55818fed55270ba79c01a2038771ba4b5225bc1374a33607f2478"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/tx_batch.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/tx_batch.h",
+      "gitMode": "100644",
+      "gitBlob": "a19160954005b093a8312199c98778f8be2fe915",
+      "bytes": 4569,
+      "sha256": "8c963d7fd62b6ed64b7e08d1bbf8ffb99b8b747cb95e868b192afbdfe9d66a62"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/tx_bridge.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/tx_bridge.go",
+      "gitMode": "100644",
+      "gitBlob": "09b2be13c49ac45ce6379e2222fc36d74d562e3f",
+      "bytes": 4624,
+      "sha256": "5654db8695e0fd99ed1c2034eff626dcc93bbcdc8e5878f5b623e78aa777ee1d"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/tx_core.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/tx_core.go",
+      "gitMode": "100644",
+      "gitBlob": "cbb0f3fff0cd213ccf5cd6bceeec3356d8e34bb7",
+      "bytes": 7283,
+      "sha256": "5665bfbdffeda886b1294798e12dd83524a5f4add01bdda96b4df488e6832e25"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/ynx_artifact_release.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/ynx_artifact_release.h",
+      "gitMode": "100644",
+      "gitBlob": "45731c5ebceeb648240f6f7f9c8e9132179e714d",
+      "bytes": 5089,
+      "sha256": "1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616"
+    },
+    {
+      "repositoryPath": "cmd/ynx-artifact-release-cabi/ynx_project_control.h",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/cmd/ynx-artifact-release-cabi/ynx_project_control.h",
+      "gitMode": "100644",
+      "gitBlob": "b71099584b08776b5cced5092be0727a2d700f04",
+      "bytes": 4420,
+      "sha256": "98c4f5fa607d6a1e87b5ea091c7110288aee7f8ac9ff5a901f98e1c2990ca5af"
+    },
+    {
+      "repositoryPath": "go.mod",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/go.mod",
+      "gitMode": "100644",
+      "gitBlob": "711fee87261c833a6e4cae5c9706d9fd32e9aed4",
+      "bytes": 4913,
+      "sha256": "07b303f8099eebb861f8ce1671089939e45069efbb1f71884b892548af47f803"
+    },
+    {
+      "repositoryPath": "go.sum",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/go.sum",
+      "gitMode": "100644",
+      "gitBlob": "940892c107fd2facdd222a07d11f227bb0963473",
+      "bytes": 39759,
+      "sha256": "87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c"
+    },
+    {
+      "repositoryPath": "internal/accountaddress/address.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/accountaddress/address.go",
+      "gitMode": "100644",
+      "gitBlob": "fac1104f2b7e55374124108146e307f70a832040",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/action.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/action.go",
+      "gitMode": "100644",
+      "gitBlob": "2f8b9fca2dc701cfc22316a6bac86e188e169031",
+      "bytes": 15818,
+      "sha256": "9e7e882f3ba12f5e0c701327dff3e8c74ebf39fb86e5c9d2a2693aba791fde57"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/contract_action.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/contract_action.go",
+      "gitMode": "100644",
+      "gitBlob": "455162aca61252b9bcf62b61e401503ff20f52a1",
+      "bytes": 5539,
+      "sha256": "95de41d16bdaa06ce35073e87953e995d602ab9a8b10eb0ffc48c3b86593c19e"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/ethereum.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/ethereum.go",
+      "gitMode": "100644",
+      "gitBlob": "c1978324a5df8d9d99d68a46756c41f41d22c599",
+      "bytes": 6187,
+      "sha256": "09c465067b24f7ca6d4bbf22b824a16ae3300010630f1578ece14ca644c241be"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/invoice_action.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/invoice_action.go",
+      "gitMode": "100644",
+      "gitBlob": "cb952d1597d62802ebc6a4cee69b6b8a175fdf04",
+      "bytes": 5432,
+      "sha256": "bcd011e971ee69d844c989c70ca20fedad804f7bdf28595e35bb982f73af23f8"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/message.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/message.go",
+      "gitMode": "100644",
+      "gitBlob": "71c336aa6f796a93b97a70469fe601031891f895",
+      "bytes": 5493,
+      "sha256": "42cbcb9e83e6712be924174e7ce3e7d4bf0d5f77ac9e7bad28954e2264702f27"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/migration_signing.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/migration_signing.go",
+      "gitMode": "100644",
+      "gitBlob": "5e148e6ccb1da6bc56d59953eb45c0a428e74fec",
+      "bytes": 893,
+      "sha256": "a71a2e6fad1e94c3127853c28ad24bb6fd161f55b2515e2893d752741b7ac707"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/policy.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/policy.go",
+      "gitMode": "100644",
+      "gitBlob": "2bf160abe3a005fe09bd29eda7116ca2aef4fe20",
+      "bytes": 15085,
+      "sha256": "7849b712fe5abcb3dbdec9300477cb4197b9622634d1c47283b3ac7859f70330"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/pq_initial_policy.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/pq_initial_policy.go",
+      "gitMode": "100644",
+      "gitBlob": "3b38a91994129e49652edb5076770c4e79148b73",
+      "bytes": 1835,
+      "sha256": "677cbf52d123c16cb746e9c97307347d0231b6d8d1bcdb4190a50da51c07008b"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/pq_initial_possession.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/pq_initial_possession.go",
+      "gitMode": "100644",
+      "gitBlob": "92d2c327a61a1af617b82b52cf3c7acabebe9ebc",
+      "bytes": 4775,
+      "sha256": "803a743eafa041f9325917deb749bf3f2175e540881e3d73dbe73c35f393c7f7"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/revocation.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/revocation.go",
+      "gitMode": "100644",
+      "gitBlob": "5620929da9179aab43a41f56aee14e26c05a5238",
+      "bytes": 10633,
+      "sha256": "f52ccc939b7f4d754d35c6ce2bf13236176d2b3a27cdc82e1f04ed027474f748"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/staking_action.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/staking_action.go",
+      "gitMode": "100644",
+      "gitBlob": "d1110254fd7dd6a33181d2148c310cd1ee7555f9",
+      "bytes": 2587,
+      "sha256": "42e2add87821ee13a4f31f0abefb5e25c61175968862841ab6d18dde3a1f454a"
+    },
+    {
+      "repositoryPath": "internal/ynxauth/wallet_policy_json.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxauth/wallet_policy_json.go",
+      "gitMode": "100644",
+      "gitBlob": "3987b8e40d65a4c2117809667e019b4b8aca5175",
+      "bytes": 5608,
+      "sha256": "7d04f9f30585f03ac4a52af6abe79efe4bba54fb91d9241206f282ca2cf2701a"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/artifact_publication.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/artifact_publication.go",
+      "gitMode": "100644",
+      "gitBlob": "ff25cef33e3141678b0c5eb06a0e9a306d8d502a",
+      "bytes": 12934,
+      "sha256": "d47936adacc71c093bce15f6801553f849de728edf1af1f228d2d3a0cc85e962"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/auth_source_statement_v2.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/auth_source_statement_v2.go",
+      "gitMode": "100644",
+      "gitBlob": "a06b9d33a00ff33090ac83a7cd5f5ab8b85407e1",
+      "bytes": 3268,
+      "sha256": "ae2d184860589c219a39e9bbc1ecccbb899d1a4f0c53cbd822198dc229283517"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/certificate_cache.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/certificate_cache.go",
+      "gitMode": "100644",
+      "gitBlob": "b50edff98384a0335ddd37957a61d35506cd930e",
+      "bytes": 3033,
+      "sha256": "b24c173e8bcac5b179e73064893832a6da561a165cf4705874057b805eb6ef90"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/codec.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/codec.go",
+      "gitMode": "100644",
+      "gitBlob": "aa3c1f0b6cbfabefd887ee1f9060d8b118cb0dbc",
+      "bytes": 10489,
+      "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/deployment_manifest_v2.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/deployment_manifest_v2.go",
+      "gitMode": "100644",
+      "gitBlob": "257cf3025a2ca682c896a8c0423ecadb6220b8ea",
+      "bytes": 13808,
+      "sha256": "29f1169e6fbf4917d6ce0514c599a45cdaa12f98fa2e7121b219e3e294f2d435"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/key_material.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/key_material.go",
+      "gitMode": "100644",
+      "gitBlob": "5119c266d58b8f4b596372e982af7179ccdbcea4",
+      "bytes": 6348,
+      "sha256": "8e110786013ba79d3cb0a834fe7c7faa3581af2c6bc218eb451f2e5250a756dd"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/parallel_provider.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/parallel_provider.go",
+      "gitMode": "100644",
+      "gitBlob": "c66ed5de883be7cf948c9ff75f55cbad8a32fd17",
+      "bytes": 2970,
+      "sha256": "31ee65025f33a6dc752c9ba9d24220753928a72466e2db5c22d39c6c69b29bfe"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/product_device_v4.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/product_device_v4.go",
+      "gitMode": "100644",
+      "gitBlob": "2901b6deace6c18be82bb7f672ebfb7ae90a98bb",
+      "bytes": 17397,
+      "sha256": "2031531734f67a1a57dd1fa59fe75ef877a3448019d213057d6b9de3f6e567c8"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/product_pair_pending_original_query.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/product_pair_pending_original_query.go",
+      "gitMode": "100644",
+      "gitBlob": "74384132a6e5b5baba99823747f297d0bc84c868",
+      "bytes": 14700,
+      "sha256": "efc6c906258a52ab42e6047cb00004125edf9764f0dc90c43fd9a74caee7024c"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/product_session_http.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/product_session_http.go",
+      "gitMode": "100644",
+      "gitBlob": "89c6d1291e26667ff601aff3b01b43c93ee43ea0",
+      "bytes": 16643,
+      "sha256": "bb407c3706238dd8137e2d0da2a1241bf10abfa8e4615256387ca4d053d68ac3"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/product_session_http_v5.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/product_session_http_v5.go",
+      "gitMode": "100644",
+      "gitBlob": "35be17397763fd4acc7678358d08761f7548912a",
+      "bytes": 8450,
+      "sha256": "2ea6c8aa5ff45d2eb844b0cc97cca0ed394ac31ab40ad810be47ef1d11218e7b"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/project_control.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/project_control.go",
+      "gitMode": "100644",
+      "gitBlob": "9780dce5602d0535af57ce7298b3e1ac0d86fb8a",
+      "bytes": 19332,
+      "sha256": "579e20dcff1c01db86c9b72dd254af390fff19f8832d7bf27b209831ff7c26f3"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/provider.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/provider.go",
+      "gitMode": "100644",
+      "gitBlob": "2b9672dfc5584b6f6ae091aaac4eb06ccd113df5",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/publisher_registration.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/publisher_registration.go",
+      "gitMode": "100644",
+      "gitBlob": "fee15c0715138baaa722b530297a2e1839c0f439",
+      "bytes": 19245,
+      "sha256": "48b95eb168de221472c87347aff90776e7ac8f1ff0711ebbca6243c19a9c0a35"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/resource_consent.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/resource_consent.go",
+      "gitMode": "100644",
+      "gitBlob": "8cb51cfc6bbbce7ecd60f827b57ed3146443cbfe",
+      "bytes": 16037,
+      "sha256": "7fb568686d1feec2af9d20d1beb0cb68d11114625ec1149035e636eea16d8a70"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/sign.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/sign.go",
+      "gitMode": "100644",
+      "gitBlob": "de99191c1b962a88db89acac1814ee2d1f9f228a",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/tree.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/tree.go",
+      "gitMode": "100644",
+      "gitBlob": "883439e618b73c5fa654dfe1c8cd49edd2e3ff9b",
+      "bytes": 3853,
+      "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+    },
+    {
+      "repositoryPath": "internal/ynxbatch/verify.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxbatch/verify.go",
+      "gitMode": "100644",
+      "gitBlob": "f1f475d5ff635f9616b905ff526674bf9446a62e",
+      "bytes": 10590,
+      "sha256": "677ee7da9ec73f3442b545e81b05572667aa2ff81aa7b2b0393e531bc01a4159"
+    },
+    {
+      "repositoryPath": "internal/ynxresourceconsent/consent.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxresourceconsent/consent.go",
+      "gitMode": "100644",
+      "gitBlob": "830462784fcc9a8edd9a9bfb03f2900bd9afda71",
+      "bytes": 8536,
+      "sha256": "9199bb434395752a9ea151792916bf6daa3e9dac43805960ad28f9e84b69cda8"
+    },
+    {
+      "repositoryPath": "internal/ynxresourceconsent/material_attempt.go",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/src/internal/ynxresourceconsent/material_attempt.go",
+      "gitMode": "100644",
+      "gitBlob": "d72e028bb8260c106586dc4aed2d50119db5ee3a",
+      "bytes": 6217,
+      "sha256": "13718b462b59cc926af9a559306fb92b7786be095cd19eac9294494b2cc5c384"
+    }
+  ],
+  "moduleContext": [
+    {
+      "repositoryPath": "go.mod",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/module-context/go.mod",
+      "gitMode": "100644",
+      "gitBlob": "711fee87261c833a6e4cae5c9706d9fd32e9aed4",
+      "bytes": 4913,
+      "sha256": "07b303f8099eebb861f8ce1671089939e45069efbb1f71884b892548af47f803"
+    },
+    {
+      "repositoryPath": "go.sum",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/module-context/go.sum",
+      "gitMode": "100644",
+      "gitBlob": "940892c107fd2facdd222a07d11f227bb0963473",
+      "bytes": 39759,
+      "sha256": "87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c"
+    },
+    {
+      "repositoryPath": "third_party/cometbft/go.mod",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/module-context/third_party/cometbft/go.mod",
+      "gitMode": "100644",
+      "gitBlob": "9cd25a5e363527c015c81bb5a5b07f64cad25c39",
+      "bytes": 6552,
+      "sha256": "265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59"
+    },
+    {
+      "repositoryPath": "third_party/cometbft/go.sum",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/single49-finite7-aa60-k7k3pxxy/carrier/module-context/third_party/cometbft/go.sum",
+      "gitMode": "100644",
+      "gitBlob": "920f8c3e63d286c702c4a38bbadfcc446466017b",
+      "bytes": 51533,
+      "sha256": "daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd"
+    }
+  ],
+  "originalCometForkTree": "5a128880d14bfc73de4334cba23218859ad3473c",
+  "moduleContextIsDescriptorOnly": true,
+  "normalOriginalModuleAndForkRequired": true,
+  "goModReplaceNotRemovedOrStubbed": true,
+  "productionClosure": {
+    "rootPackage": "cmd/ynx-artifact-release-cabi",
+    "singleExplicitRoot": true,
+    "resourceConsentActuallyImported": true,
+    "blankImport": false,
+    "packages": {
+      "cmd/ynx-artifact-release-cabi": {
+        "importPath": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi",
+        "productionGoFiles": [
+          "cmd/ynx-artifact-release-cabi/bridge.go",
+          "cmd/ynx-artifact-release-cabi/control_bridge.go",
+          "cmd/ynx-artifact-release-cabi/control_core.go",
+          "cmd/ynx-artifact-release-cabi/core.go",
+          "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go",
+          "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_core.go",
+          "cmd/ynx-artifact-release-cabi/device_http_bridge.go",
+          "cmd/ynx-artifact-release-cabi/device_http_core.go",
+          "cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go",
+          "cmd/ynx-artifact-release-cabi/device_http_v5_core.go",
+          "cmd/ynx-artifact-release-cabi/initial_bridge.go",
+          "cmd/ynx-artifact-release-cabi/initial_core.go",
+          "cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go",
+          "cmd/ynx-artifact-release-cabi/migration_authorization_core.go",
+          "cmd/ynx-artifact-release-cabi/migration_bridge.go",
+          "cmd/ynx-artifact-release-cabi/migration_core.go",
+          "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+          "cmd/ynx-artifact-release-cabi/network_resource_consent_core.go",
+          "cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go",
+          "cmd/ynx-artifact-release-cabi/pending_query_bridge.go",
+          "cmd/ynx-artifact-release-cabi/pending_query_core.go",
+          "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go",
+          "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_core.go",
+          "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go",
+          "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_core.go",
+          "cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go",
+          "cmd/ynx-artifact-release-cabi/product_device_registration_v4_core.go",
+          "cmd/ynx-artifact-release-cabi/publisher_bridge.go",
+          "cmd/ynx-artifact-release-cabi/publisher_core.go",
+          "cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go",
+          "cmd/ynx-artifact-release-cabi/registered_n1_verify_core.go",
+          "cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go",
+          "cmd/ynx-artifact-release-cabi/source_statement_v2_core.go",
+          "cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go",
+          "cmd/ynx-artifact-release-cabi/tx_bridge.go",
+          "cmd/ynx-artifact-release-cabi/tx_core.go"
+        ],
+        "imports": [
+          "C",
+          "bytes",
+          "crypto/sha256",
+          "encoding/binary",
+          "encoding/hex",
+          "encoding/json",
+          "errors",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent",
+          "io",
+          "math",
+          "strconv",
+          "strings",
+          "sync",
+          "unicode/utf8",
+          "unsafe"
+        ],
+        "actualPriorGoListSelectionUnchanged": true,
+        "exactGitTreeAllProductionGoFilesMatch": true
+      },
+      "internal/accountaddress": {
+        "importPath": "github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress",
+        "productionGoFiles": [
+          "internal/accountaddress/address.go"
+        ],
+        "imports": [
+          "encoding/hex",
+          "errors",
+          "fmt",
+          "strings"
+        ],
+        "actualPriorGoListSelectionUnchanged": true,
+        "exactGitTreeAllProductionGoFilesMatch": true
+      },
+      "internal/ynxauth": {
+        "importPath": "github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth",
+        "productionGoFiles": [
+          "internal/ynxauth/action.go",
+          "internal/ynxauth/contract_action.go",
+          "internal/ynxauth/ethereum.go",
+          "internal/ynxauth/invoice_action.go",
+          "internal/ynxauth/message.go",
+          "internal/ynxauth/migration_signing.go",
+          "internal/ynxauth/policy.go",
+          "internal/ynxauth/pq_initial_policy.go",
+          "internal/ynxauth/pq_initial_possession.go",
+          "internal/ynxauth/revocation.go",
+          "internal/ynxauth/staking_action.go",
+          "internal/ynxauth/wallet_policy_json.go"
+        ],
+        "imports": [
+          "bytes",
+          "crypto/sha256",
+          "encoding/binary",
+          "encoding/hex",
+          "encoding/json",
+          "errors",
+          "fmt",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch",
+          "github.com/decred/dcrd/dcrec/secp256k1/v4",
+          "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa",
+          "golang.org/x/crypto/sha3",
+          "io",
+          "math",
+          "regexp",
+          "strconv",
+          "strings",
+          "time",
+          "unicode",
+          "unicode/utf8"
+        ],
+        "actualPriorGoListSelectionUnchanged": true,
+        "exactGitTreeAllProductionGoFilesMatch": true
+      },
+      "internal/ynxbatch": {
+        "importPath": "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch",
+        "productionGoFiles": [
+          "internal/ynxbatch/artifact_publication.go",
+          "internal/ynxbatch/auth_source_statement_v2.go",
+          "internal/ynxbatch/certificate_cache.go",
+          "internal/ynxbatch/codec.go",
+          "internal/ynxbatch/deployment_manifest_v2.go",
+          "internal/ynxbatch/key_material.go",
+          "internal/ynxbatch/parallel_provider.go",
+          "internal/ynxbatch/product_device_v4.go",
+          "internal/ynxbatch/product_pair_pending_original_query.go",
+          "internal/ynxbatch/product_session_http.go",
+          "internal/ynxbatch/product_session_http_v5.go",
+          "internal/ynxbatch/project_control.go",
+          "internal/ynxbatch/provider.go",
+          "internal/ynxbatch/publisher_registration.go",
+          "internal/ynxbatch/resource_consent.go",
+          "internal/ynxbatch/sign.go",
+          "internal/ynxbatch/tree.go",
+          "internal/ynxbatch/verify.go"
+        ],
+        "imports": [
+          "bytes",
+          "container/list",
+          "crypto/rand",
+          "crypto/sha256",
+          "crypto/sha3",
+          "crypto/sha512",
+          "crypto/subtle",
+          "encoding",
+          "encoding/base64",
+          "encoding/binary",
+          "encoding/hex",
+          "encoding/json",
+          "errors",
+          "fmt",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress",
+          "github.com/cloudflare/circl/sign/mldsa/mldsa87",
+          "github.com/cloudflare/circl/sign/slhdsa",
+          "golang.org/x/net/idna",
+          "hash",
+          "io",
+          "net",
+          "net/url",
+          "regexp",
+          "slices",
+          "strconv",
+          "strings",
+          "sync",
+          "sync/atomic",
+          "time",
+          "unicode",
+          "unicode/utf16",
+          "unicode/utf8"
+        ],
+        "actualPriorGoListSelectionUnchanged": true,
+        "exactGitTreeAllProductionGoFilesMatch": true
+      },
+      "internal/ynxresourceconsent": {
+        "importPath": "github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent",
+        "productionGoFiles": [
+          "internal/ynxresourceconsent/consent.go",
+          "internal/ynxresourceconsent/material_attempt.go"
+        ],
+        "imports": [
+          "bytes",
+          "errors",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth",
+          "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch",
+          "reflect",
+          "strconv",
+          "sync"
+        ],
+        "actualPriorGoListSelectionUnchanged": true,
+        "exactGitTreeAllProductionGoFilesMatch": true
+      }
+    },
+    "packageCount": 5,
+    "goFileCount": 69,
+    "headerCount": 17,
+    "productionLeafCount": 88,
+    "cgoTranslationUnitCount": 19,
+    "exportCount": 19,
+    "guardCount": 17,
+    "cgoTranslationUnits": [
+      "cmd/ynx-artifact-release-cabi/bridge.go",
+      "cmd/ynx-artifact-release-cabi/control_bridge.go",
+      "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go",
+      "cmd/ynx-artifact-release-cabi/device_http_bridge.go",
+      "cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go",
+      "cmd/ynx-artifact-release-cabi/initial_bridge.go",
+      "cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go",
+      "cmd/ynx-artifact-release-cabi/migration_bridge.go",
+      "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+      "cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go",
+      "cmd/ynx-artifact-release-cabi/pending_query_bridge.go",
+      "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go",
+      "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go",
+      "cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go",
+      "cmd/ynx-artifact-release-cabi/publisher_bridge.go",
+      "cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go",
+      "cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go",
+      "cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go",
+      "cmd/ynx-artifact-release-cabi/tx_bridge.go"
+    ],
+    "exports": [
+      {
+        "symbol": "YNXAccountInitialSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/initial_bridge.go"
+      },
+      {
+        "symbol": "YNXAccountMigrationAuthorizationSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go"
+      },
+      {
+        "symbol": "YNXAccountMigrationPossessionSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/migration_bridge.go"
+      },
+      {
+        "symbol": "YNXArtifactPublicationSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/bridge.go"
+      },
+      {
+        "symbol": "YNXAuthSourceStatementVerifyV2",
+        "source": "cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go"
+      },
+      {
+        "symbol": "YNXDeploymentManifestSignV2",
+        "source": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go"
+      },
+      {
+        "symbol": "YNXNetworkResourceConsentAttemptV1",
+        "source": "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go"
+      },
+      {
+        "symbol": "YNXProductPairPendingOriginalQuerySignV1",
+        "source": "cmd/ynx-artifact-release-cabi/pending_query_bridge.go"
+      },
+      {
+        "symbol": "YNXProductSessionDeviceChallengeSignV4",
+        "source": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go"
+      },
+      {
+        "symbol": "YNXProductSessionDeviceKeypairGenerateV4",
+        "source": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go"
+      },
+      {
+        "symbol": "YNXProductSessionDeviceRegistrationSignV4",
+        "source": "cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go"
+      },
+      {
+        "symbol": "YNXProductSessionHTTPProofSignV4",
+        "source": "cmd/ynx-artifact-release-cabi/device_http_bridge.go"
+      },
+      {
+        "symbol": "YNXProductSessionHTTPProofSignV5",
+        "source": "cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go"
+      },
+      {
+        "symbol": "YNXProjectControlSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/control_bridge.go"
+      },
+      {
+        "symbol": "YNXPublisherCustodianSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/publisher_bridge.go"
+      },
+      {
+        "symbol": "YNXPublisherGenerateV1",
+        "source": "cmd/ynx-artifact-release-cabi/publisher_bridge.go"
+      },
+      {
+        "symbol": "YNXPublisherPoPSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/publisher_bridge.go"
+      },
+      {
+        "symbol": "YNXRegisteredANDMemberVerifyN1V1",
+        "source": "cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go"
+      },
+      {
+        "symbol": "YNXTransactionBatchSignV1",
+        "source": "cmd/ynx-artifact-release-cabi/tx_bridge.go"
+      }
+    ],
+    "includeGuards": [
+      {
+        "guard": "YNX_ACCOUNT_INITIAL_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/account_initial.h"
+      },
+      {
+        "guard": "YNX_ACCOUNT_MIGRATION_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/account_migration.h"
+      },
+      {
+        "guard": "YNX_ACCOUNT_MIGRATION_AUTHORIZATION_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/account_migration_authorization.h"
+      },
+      {
+        "guard": "YNX_AUTH_SOURCE_STATEMENT_V2_H",
+        "header": "cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h"
+      },
+      {
+        "guard": "YNX_DEPLOYMENT_MANIFEST_CABI_V2_H",
+        "header": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h"
+      },
+      {
+        "guard": "YNX_NETWORK_RESOURCE_CONSENT_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/network_resource_consent.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_DEVICE_CHALLENGE_CABI_V4_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_DEVICE_KEYPAIR_CABI_V4_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_DEVICE_REGISTRATION_CABI_V4_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_device_registration_v4.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_PAIR_PENDING_ORIGINAL_QUERY_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_SESSION_HTTP_PROOF_CABI_V4_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_session_http.h"
+      },
+      {
+        "guard": "YNX_PRODUCT_SESSION_HTTP_V5_H",
+        "header": "cmd/ynx-artifact-release-cabi/product_session_http_v5.h"
+      },
+      {
+        "guard": "YNX_PUBLISHER_REGISTRATION_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/publisher_registration.h"
+      },
+      {
+        "guard": "YNX_REGISTERED_N1_VERIFY_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/registered_n1_verify.h"
+      },
+      {
+        "guard": "YNX_TRANSACTION_BATCH_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/tx_batch.h"
+      },
+      {
+        "guard": "YNX_ARTIFACT_RELEASE_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/ynx_artifact_release.h"
+      },
+      {
+        "guard": "YNX_PROJECT_CONTROL_CABI_V1_H",
+        "header": "cmd/ynx-artifact-release-cabi/ynx_project_control.h"
+      }
+    ],
+    "localIncludes": [
+      {
+        "source": "cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h",
+        "include": "cmd/ynx-artifact-release-cabi/registered_n1_verify.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/ynx_artifact_release.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/control_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/ynx_project_control.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+        "include": "cmd/ynx-artifact-release-cabi/ynx_artifact_release.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/device_http_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_session_http.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_session_http_v5.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/initial_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/account_initial.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/account_migration_authorization.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/migration_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/account_migration.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/network_resource_consent.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go",
+        "include": "cmd/ynx-artifact-release-cabi/network_resource_consent.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/pending_query_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4.h",
+        "include": "cmd/ynx-artifact-release-cabi/product_device_registration_v4.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_device_challenge_v4.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_device_keypair_v4.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/product_device_registration_v4_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/product_device_registration_v4.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/publisher_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/publisher_registration.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/publisher_registration.h",
+        "include": "cmd/ynx-artifact-release-cabi/ynx_artifact_release.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/publisher_registration.h",
+        "include": "cmd/ynx-artifact-release-cabi/ynx_project_control.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/registered_n1_verify_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/registered_n1_verify.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go",
+        "include": "cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h"
+      },
+      {
+        "source": "cmd/ynx-artifact-release-cabi/tx_bridge.go",
+        "include": "cmd/ynx-artifact-release-cabi/tx_batch.h"
+      }
+    ],
+    "previousActualGoList": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/resource-consent-fixed-cabi-f27-6HD2pM/evidence/go-list-deps.jsonl",
+      "bytes": 366975,
+      "sha256": "3e90a99beb32341d20212029ed65ecfaa9298385c522e43dfd293a69b4c0a675",
+      "gitBlob": "ce7ccbb8cc477bfae62741c4a880e07de7ba8cb6"
+    },
+    "currentExactGitImportsIndependentlyRewalked": true,
+    "allPackageProductionFilesCheckedAgainstExactTree": true,
+    "freshGoListRun": false,
+    "freshGoTestRun": false,
+    "sourceBytesAndImportsMatchPriorActualGoListExceptPrivatePanicHelper": true
+  },
+  "panicCleanup": {
+    "included": true,
+    "source": "cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go",
+    "sha256": "5d9d5ef543349e594ff51086135f13b38c87bc11917f7f92206da96d3e787233",
+    "behavior": "uninstalled PREPARE reservation removes only via original same-entry active==1 guard; installed original and first cause remain retained"
+  },
+  "priorEvidencePreserved": {
+    "old83": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/source-v2-core18-supply-06c-TetbEI/H.json",
+      "bytes": 171241,
+      "sha256": "6e650e146a95f44dc8d0a789b1dc9b9d1f5a14f75aad8f757d2b971648b3f161",
+      "gitBlob": "8d0de6af0e9e043d63405f1d6923d1e79200425a"
+    },
+    "old88": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/resource-consent-fixed-cabi-f27-6HD2pM/H.json",
+      "bytes": 20671,
+      "sha256": "9adc4ec2fb2c83ce77c8476d97484500f75e0a70c5f031791907d152e291fdcd",
+      "gitBlob": "6a248c6897590cff2ae625eea81eb311b20088bf"
+    },
+    "fixed88": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/resource-consent-prepare-recover-upiJwO/H.json",
+      "bytes": 6390,
+      "sha256": "3492e6a87385f26b40d8d71eab1b1cdc321f449147481929bb0e03e47d4385c6",
+      "gitBlob": "ffb934a5f19efcbceca31cb19101fffa6968d1df"
+    },
+    "e120Exact": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/core19-source-e120-qrFyB2/SOURCE.json",
+      "bytes": 61042,
+      "sha256": "9e532bc1d84a856f451b879c0234828f3e37c31b8383f13be5280612bfc1199b",
+      "gitBlob": "8fe3761d6e6d8f2e9125d0497eb447adcf979ecd"
+    }
+  },
+  "authority": false,
+  "archiveIncluded": false,
+  "freshCIQualified": false
+}
