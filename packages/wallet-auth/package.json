@@ -829,7 +829,18 @@
     "native/social-f06-directory-readonly-data.mjs",
     "native/social-f06-directory-readonly-data.d.mts",
     "native/mobile-accountproof-host-v1/MobileAccountProofHostPortPrivate.hpp",
-    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp"
+    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp",
+    "native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp",
+    "native/ai-v6-codec/MobileAITaskV6CodecDATA.hpp",
+    "native/ai-v6-codec/MobileAITaskV6HeaderDATA.cpp",
+    "native/ai-v6-codec/MobileAITaskV6HeaderDATA.hpp",
+    "native/ai-v6-codec/inherited/MobileAITaskPlatformPrivate.h",
+    "native/ai-v6-codec/inherited/MobileAITaskRuntimePrivate.h",
+    "native/ai-v6-codec/inherited/MobileCanonicalDATA.cpp",
+    "native/ai-v6-codec/inherited/MobileCanonicalDATA.hpp",
+    "native/ai-v6-codec/inherited/MobileSecure43.h",
+    "native/ai-v6-codec/inherited/OS43Private.h",
+    "native/ai-v6-codec/inherited/ProtectedMobilePQ.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
