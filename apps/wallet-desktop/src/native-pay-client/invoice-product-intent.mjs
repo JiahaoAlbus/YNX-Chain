@@ -73,12 +73,39 @@ export function assertNativeInvoiceOrderIntentDATA(value,expected){
   throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
  return value;
 }
-export function assertNativeInvoiceOrderBillDATA(value,expected){
+export function assertNativeInvoiceOrderBillDATA(value,expected,allowPendingTerms=false){
  const d=descriptors(value),original=expected.original,terms=expected.terms;
  const selected={merchant:original.merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,
   genesis:original.genesis,nativeChainId:original.nativeChainId,assetId:original.assetId,unitVersion:original.unitVersion,
   principalAtoms:original.amountAtoms,feeRule:terms.feeRule,maxFeeAtoms:terms.maxFeeAtoms,expiresAtHeight:terms.expiresAtHeight,termsNativeHash:expected.termsNativeHash,termsHash:expected.signingMessageHash};
- if(expected.state!=='ISSUED'||Object.entries(selected).some(([key,v])=>d[key]?.value!==v))
+ const pending=allowPendingTerms&&expected.state==='PREPARED'&&/^0x[0-9a-f]{64}$/.test(expected.termsNativeHash);
+ if(expected.state!=='ISSUED'&&!pending||Object.entries(selected).some(([key,v])=>d[key]?.value!==v))
   throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
+ return value;
+}
+// The retained original operation, never an ABCI hash retargeted as a native
+// hash. No Member is decoded/replaced and no approval is constructed here.
+export function nativeInvoiceOrderOperationDATA(value,expected,nativeHash){
+ assertNativeInvoiceOrderBillDATA(value,expected,true);
+ const d=descriptors(value),operations=descriptors(d.operations?.value),saved=operations[nativeHash]?.value;
+ if(!saved)throw Object.assign(Error('NATIVE_PAY_ORIGINAL_HASH_REQUIRED'),{code:'NATIVE_PAY_ORIGINAL_HASH_REQUIRED'});
+ const op=descriptors(saved),keys=['merchant','invoiceId','nativeHash','abciHash','kind','owner','status'];
+ const out=Object.fromEntries(keys.map(k=>[k,op[k]?.value]));
+ if(out.nativeHash!==nativeHash||out.merchant!==expected.merchant||out.invoiceId!==expected.terms.invoiceId||
+  !/^0x[0-9a-f]{64}$/.test(out.abciHash??'')||!['invoice_terms','invoice_settle','invoice_refund'].includes(out.kind)||
+  !['unknown','submitted','confirmed','confirmed_failed'].includes(out.status)||!/^0x[0-9a-f]{40}$/.test(out.owner??'')||
+  out.kind==='invoice_terms'&&(nativeHash!==expected.termsNativeHash||out.owner!==expected.merchant)||
+  out.kind==='invoice_refund'&&out.owner!==expected.merchant||
+  out.kind==='invoice_settle'&&(out.owner===expected.merchant||expected.terms.payer!==''&&out.owner!==expected.terms.payer)||
+  out.kind!=='invoice_terms'&&expected.state!=='ISSUED')
+  throw Object.assign(Error('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED'),{code:'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED'});
+ return Object.freeze(out);
+}
+export function assertNativeInvoiceOriginalOperationDATA(value,original){
+ const d=descriptors(value);
+ if(['merchant','invoiceId','nativeHash','abciHash','kind','owner'].some(k=>d[k]?.value!==original[k])||
+  !['unknown','submitted','confirmed','confirmed_failed'].includes(d.status?.value)||
+  ['confirmed','confirmed_failed'].includes(original.status)&&d.status?.value!==original.status)
+  throw Object.assign(Error('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED'),{code:'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED'});
  return value;
 }

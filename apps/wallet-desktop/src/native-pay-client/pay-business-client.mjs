@@ -1,6 +1,6 @@
 import {types} from 'node:util';
 import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,rejectNativePayPending} from './merchant-invoice-approval.mjs';
-import {nativeInvoiceProductIntentData,nativeInvoiceOrderBindingDATA,assertNativeInvoiceOrderBillDATA} from './invoice-product-intent.mjs';
+import {nativeInvoiceProductIntentData,nativeInvoiceOrderBindingDATA,assertNativeInvoiceOrderBillDATA,nativeInvoiceOrderOperationDATA,assertNativeInvoiceOriginalOperationDATA} from './invoice-product-intent.mjs';
 import {nativeArchiveReceiptData,nativeArchiveReconciliationData} from './archive-receipt.mjs';
 const failure=code=>Object.assign(Error(code),{code});
 const clone=value=>structuredClone(value);
@@ -132,6 +132,30 @@ export class NativePayBusinessClient {
   if(reconciliation.receipts.some(row=>row.sessionId!==binding.terms.sessionId||row.termsHash!==binding.signingMessageHash))throw failure('NATIVE_PAY_ORIGINAL_ORDER_BINDING');
   return {reconciliation,bill:null,queryOnly:true,clientIndependentFinality:false};
  });}
+ async reconcileOriginalOrderOperation(productId,sourceOrder,nativeHash){const reference={productId,sourceOrder,nativeHash};return this.#run(reference,'recovering',async current=>{
+  if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))throw failure('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');
+  const {binding}=await this.#originalOrder(reference,current);
+  if(typeof this.#pay.reconcileOperation!=='function')throw failure('NATIVE_PAY_ORIGINAL_RECONCILER_UNAVAILABLE');
+  const before=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
+  const original=nativeInvoiceOrderOperationDATA(before,binding,nativeHash);
+  // Existing original-operation reconciliation reads independent Core proof.
+  // It never submits a Member, chooses another nonce or recreates an intent.
+  const result=await this.#pay.reconcileOperation(binding.merchant,binding.terms.invoiceId,nativeHash,current);current();
+  assertNativeInvoiceOriginalOperationDATA(result,original);
+  const reconciled=Object.freeze({...original,status:Object.getOwnPropertyDescriptor(result,'status').value});
+  const bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
+  const observed=nativeInvoiceOrderOperationDATA(bill,binding,nativeHash);
+  assertNativeInvoiceOriginalOperationDATA(observed,reconciled);
+  let archiveReceipt;
+  if(['invoice_settle','invoice_refund'].includes(observed.kind)&&['confirmed','confirmed_failed'].includes(observed.status)){
+   if(typeof this.#runtime.readOriginalArchiveReceipt!=='function')throw failure('NATIVE_PAY_ARCHIVE_READER_UNAVAILABLE');
+   const ref=Object.freeze({productId,sourceOrder,merchant:binding.merchant,invoiceId:binding.terms.invoiceId,nativeHash});
+   const value=await this.#runtime.readOriginalArchiveReceipt(ref,current);current();
+   archiveReceipt=nativeArchiveReceiptData(value,binding.original,ref);
+   if(archiveReceipt.sessionId!==binding.terms.sessionId||archiveReceipt.termsHash!==binding.signingMessageHash||archiveReceipt.kind!==observed.kind||archiveReceipt.abciHash!==observed.abciHash||archiveReceipt.status!==observed.status)throw failure('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');
+  }
+  return {bill,reconciledOriginal:observed,...(archiveReceipt?{archiveReceipt}:{}),queryOnly:true,clientIndependentFinality:false};
+ });}
  async createInvoiceIntent(productId,sourceOrder){return this.#run({productId,sourceOrder},'creating-intent',async current=>{
   if(typeof this.#pay.createInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_PRODUCER_UNAVAILABLE');
   const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
@@ -254,5 +278,6 @@ export function nativePaySummary(state){
  if(state.archive)summary.archive=state.archive;
  if(state.archiveReceipt)summary.archiveReceipt=state.archiveReceipt;
  if(state.reconciliation)summary.reconciliation=state.reconciliation;
+ if(state.reconciledOriginal)summary.reconciledOriginal=state.reconciledOriginal;
  return summary;
 }

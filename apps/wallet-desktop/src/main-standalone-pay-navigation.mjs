@@ -1,5 +1,5 @@
 import {types} from 'node:util';
-// Main-private read-only step consumer. NOT a Native registrar, caller capture,
+// Main-private order/review/reconciliation consumer. NOT a Native registrar, caller capture,
 // transport, Source or permission. Only the existing Main keyAccess ALS lease
 // may enter. There is no renderer/IPC/URL/path/token/provider input here.
 const fault=code=>Object.assign(Error(code),{code});
@@ -8,10 +8,11 @@ export function createMainStandalonePayNavigationSteps({nativePayProduct,keyAcce
  let closing=false,held=null,shutdown=null;
  function open(action,args){
   if(closing)throw fault('STANDALONE_PAY_NAVIGATION_CLOSED');if(held)throw fault('STANDALONE_PAY_NAVIGATION_BUSY');
-  if(args.length!==(action==='order-refund-review'?3:1)||typeof args[0]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(args[0]))throw fault('STANDALONE_PAY_ORDER_INVALID');
+  if(args.length!==(action==='order-refund-review'?3:action==='order-reconcile-operation'?2:1)||typeof args[0]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(args[0]))throw fault('STANDALONE_PAY_ORDER_INVALID');
   const sourceOrder=args[0];
   if(action==='order-refund-review'&&(typeof args[1]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(args[1])||typeof args[2]!=='string'||!/^[0-9]{1,256}$/.test(args[2])))throw fault('STANDALONE_PAY_REFUND_INVALID');
-  const request=Object.freeze({action,productId:'shop.order',sourceOrder,...(action==='order-refund-review'?{refundId:args[1],amountAtoms:args[2]}:{})});
+  if(action==='order-reconcile-operation'&&(typeof args[1]!=='string'||!/^0x[0-9a-f]{64}$/.test(args[1])))throw fault('STANDALONE_PAY_ORIGINAL_HASH_INVALID');
+  const request=Object.freeze({action,productId:'shop.order',sourceOrder,...(action==='order-reconcile-operation'?{nativeHash:args[1]}:{}),...(action==='order-refund-review'?{refundId:args[1],amountAtoms:args[2]}:{})});
   const guard=keyAccess.current();guard.assert();const original=keyAccess.status();
   if(original.locked||original.authenticating||original.account!==guard.account||!/^0x[0-9a-f]{40}$/.test(original.account??'')||!Number.isSafeInteger(original.revision)||!Number.isSafeInteger(guard.expiresAtMs))throw fault('STANDALONE_PAY_CONTEXT_REQUIRED');
   const account=original.account,generation=original.revision,deadline=guard.expiresAtMs;
@@ -39,5 +40,5 @@ export function createMainStandalonePayNavigationSteps({nativePayProduct,keyAcce
    readFirstCause:()=>({present:firstPresent,...(firstPresent?{cause:firstCause}:{})})});
   held=owner;return owner;
  }
- return Object.freeze({openOrder:(...a)=>open('order-invoice',a),openOrderTermsReview:(...a)=>open('order-terms-review',a),openOrderPayReview:(...a)=>open('order-pay-review',a),openOrderRefundReview:(...a)=>open('order-refund-review',a),retireAll(){held?.retire();},async join(){if(held)await held.join();},close(){closing=true;return shutdown??=(async()=>{const child=held;if(child){child.retire();await child.join();await child.close();child.assertSafeToClose();}})();},assertSafeToClose(){if(held)throw fault('STANDALONE_PAY_CHILD_NOT_CLOSED');}});
+ return Object.freeze({openOrder:(...a)=>open('order-invoice',a),openOrderTermsReview:(...a)=>open('order-terms-review',a),openOrderPayReview:(...a)=>open('order-pay-review',a),openOrderRefundReview:(...a)=>open('order-refund-review',a),openOrderReconcileOperation:(...a)=>open('order-reconcile-operation',a),retireAll(){held?.retire();},async join(){if(held)await held.join();},close(){closing=true;return shutdown??=(async()=>{const child=held;if(child){child.retire();await child.join();await child.close();child.assertSafeToClose();}})();},assertSafeToClose(){if(held)throw fault('STANDALONE_PAY_CHILD_NOT_CLOSED');}});
 }
