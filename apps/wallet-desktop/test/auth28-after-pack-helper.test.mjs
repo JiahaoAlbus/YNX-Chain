@@ -4,13 +4,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {fileURLToPath} from 'node:url';
+import {desktopNative49C6Selected} from '../scripts/desktop-native49-c6-pack.mjs';
 
 // Controlled build boundary only: execute the actual afterPack branch and stop
 // at staging. This does not compile/sign/stage/register a real Native helper.
 const raw=fs.readFileSync(new URL('../scripts/after-pack.mjs',import.meta.url),'utf8');
 function caller(sdkVersion,arch=3){
  const staged=Error('PUBLIC original helper staging boundary'),plist=Error('PUBLIC plist boundary'),calls=[];
- const context={path,process:{env:{}},desktopReleaseIdentity:()=>({PUBLIC:true}),writeFile:async()=>{},assembleCanonicalDesktopPackage:()=>{},WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC.json',buildPublicWalletConnectConfig:()=>({}),readFile:async()=>JSON.stringify({version:sdkVersion}),stageSDK13HelperBundle:args=>{calls.push(args);throw staged;},installPackagedPQVerifierAssets:async()=>{},originalPQVerifierReceipt:{PUBLIC:true},execFileSync:()=>{throw plist;}};
+ const context={path,createRequire:()=>()=>({extractFile:()=>Buffer.from('{}')}),desktopNative49C6Selected,preservePortableNestedSignatures:()=>{},process:{env:{}},desktopReleaseIdentity:()=>({PUBLIC:true}),writeFile:async()=>{},assembleCanonicalDesktopPackage:()=>{},WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC.json',buildPublicWalletConnectConfig:()=>({}),readFile:async()=>JSON.stringify({version:sdkVersion}),stageSDK13HelperBundle:args=>{calls.push(args);throw staged;},installPackagedPQVerifierAssets:async()=>{},originalPQVerifierReceipt:{PUBLIC:true},execFileSync:()=>{throw plist;}};
  const code=raw.replace(/^import .*;\n/gm,'').replaceAll('export default ','').replace(/^export /gm,'');
  runInNewContext(code+'\nthis.run=afterPack;',context);
  return {calls,staged,plist,run:()=>context.run({packager:{projectDir:'/PUBLIC/source/apps/wallet-desktop',appInfo:{version:'0.6.10',productFilename:'YNX Wallet'}},appOutDir:'/PUBLIC/build',electronPlatformName:'darwin',arch})};
@@ -36,7 +37,7 @@ test('actual build-mac control flow refuses failed SDK46 helper verification bef
  const context={path,URL,fileURLToPath,process:{platform:'darwin',argv:['node','build-mac.mjs','arm64','--proof-verifier-stage=/PUBLIC/stage'],execPath:'/PUBLIC/node',env:{},exit:()=>{throw Error('unexpected exit');}},console:{log:()=>{}},stat:async()=>({isFile:()=>true,isDirectory:()=>true,size:1}),readFile:async value=>{
   const file=String(value);if(file.endsWith('/packages/wallet-auth/package.json'))return JSON.stringify({version:'1.3.0-pq.3.32-auth.46'});
   if(file.endsWith('/package.json'))return JSON.stringify(metadata);if(file.endsWith('/YNXIdentityReceiver'))return helper;return plist;
- },assertSelectedProofVerifierForSDK:()=>{},verifyPackagedPQVerifierAssets:async()=>{},originalPQVerifierReceipt:{},spawnSync:()=>({status:0}),verifySDK13HelperBundle:(...args)=>{calls.push(args);throw failure;},SDK13_HELPER_ASSET:'apps/wallet-desktop/native/YNXIdentityReceiver',SDK13_HELPER_PLIST:'apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist',withMacDmgSource:async()=>{image=true;},execFileSync:()=>{throw Error('unexpected disk image operation');}};
+ },assertSelectedProofVerifierForSDK:()=>{},verifyPackagedPQVerifierAssets:async()=>{},originalPQVerifierReceipt:{},spawnSync:()=>({status:0}),verifyPortableRuntimePackage:()=>{},verifySDK13HelperBundle:(...args)=>{calls.push(args);throw failure;},SDK13_HELPER_ASSET:'apps/wallet-desktop/native/YNXIdentityReceiver',SDK13_HELPER_PLIST:'apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist',withMacDmgSource:async()=>{image=true;},execFileSync:()=>{throw Error('unexpected disk image operation');}};
  context.assertNativeComponentGitSourceClosure=()=>{};
  context.execFileSync=(tool,args)=>{if(tool==='git')return args.includes('HEAD')?'a'.repeat(40)+'\n':'/PUBLIC/source\n';throw Error('unexpected disk image operation');};
  const code=source.replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(url.href));runInNewContext('this.run=async()=>{'+code+'\n};',context);

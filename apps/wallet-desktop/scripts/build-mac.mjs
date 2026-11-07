@@ -8,6 +8,7 @@ import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs'
 import {assertSelectedProofVerifierForSDK} from './proof-verifier-source-policy.mjs';
 import {verifySDK13HelperBundle,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST} from './sdk13-native-component.mjs';
 import {assertNativeComponentGitSourceClosure} from './native-component-source-closure.mjs';
+import {stageDesktopNative49C6Input} from './desktop-native49-c6-pack.mjs';
 import {verifyPortableRuntimePackage} from './portable-runtime-pack.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
@@ -16,9 +17,12 @@ if (!["arm64", "x64", "universal"].includes(arch)) throw new Error("Choose arm64
 const root = fileURLToPath(new URL("..", import.meta.url));
 // Narrow normal-entry overrides for an already pinned local distribution.
 // Never silently drop flags or pass arbitrary builder configuration through.
-const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false,qaOutput=null;
+const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false,qaOutput=null,c6Input=null;
 for(const option of extra){
-  if(option.startsWith('--config.electronDist=')&&electronDist===null){
+  if(option.startsWith('--native49-c6-component-input=')&&c6Input===null){
+    c6Input=option.slice('--native49-c6-component-input='.length);
+    if(arch!=='arm64'||!path.isAbsolute(c6Input)||path.normalize(c6Input)!==c6Input||c6Input.includes('\0'))throw Error('C6_ABSOLUTE_ARM64_INPUT_REQUIRED');
+  }else if(option.startsWith('--config.electronDist=')&&electronDist===null){
     electronDist=option.slice('--config.electronDist='.length);
     if(!path.isAbsolute(electronDist)||electronDist.includes('\0')||electronDist.split('/').some(p=>p==='.'||p==='..'))throw Error('LOCAL_ELECTRON_DIST_ABSOLUTE_REQUIRED');
   }else if(option.startsWith('--proof-verifier-stage=')&&proofVerifierStage===null){
@@ -52,6 +56,7 @@ if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version
   const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   assertNativeComponentGitSourceClosure(sourceRoot,sourceCommit,await readFile(path.join(root,'native/original-auth-identity-build.json')));
 }
+if(c6Input!==null){stageDesktopNative49C6Input(root,c6Input);builderOptions.unshift('--config='+fileURLToPath(new URL('./desktop-native49-c6-builder-config.mjs',import.meta.url)));}
 const buildEnvironment={...process.env,YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:proofVerifierStage??''};
 if(physicalQA){buildEnvironment.CSC_IDENTITY_AUTO_DISCOVERY='false';for(const key of ['CSC_LINK','CSC_KEY_PASSWORD','CSC_NAME','CSC_IDENTITY_NAME'])delete buildEnvironment[key];}
 const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modules/electron-builder/cli.js", import.meta.url)), "--mac", "--dir", `--${arch}`, "--publish", "never", ...builderOptions], {

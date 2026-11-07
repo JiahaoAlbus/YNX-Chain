@@ -1,5 +1,8 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
+import {stageDesktopC6ApprovedHelper} from './desktop-native49-c6-helper.mjs';
+import {createRequire} from "node:module";
+import {desktopNative49C6Selected} from "./desktop-native49-c6-pack.mjs";
 import { writeFile,readFile } from "node:fs/promises";
 import { desktopReleaseIdentity, relocateDesktopPackage as assembleCanonicalDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
@@ -40,11 +43,13 @@ export function hardenMacInfoPlist(appOutDir, productFilename, version) {
 }
 
 export default async function afterPack(context) {
-  const identity = desktopReleaseIdentity(context.packager.projectDir, context.packager.appInfo.version);
   if(context.electronPlatformName==='darwin')preservePortableNestedSignatures(JSON.parse(await readFile(path.join(context.packager.projectDir,'native/original-auth-identity-build.json'),'utf8')),context.packager.platformSpecificBuildOptions);
   const resources = context.electronPlatformName === "darwin"
     ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, "Contents", "Resources")
     : path.join(context.appOutDir, "resources");
+  const asar=createRequire(path.join(context.packager.projectDir,"package.json"))("@electron/asar");
+  const packedMetadata=JSON.parse(asar.extractFile(path.join(resources,"app.asar"),"package.json"));
+  const identity=desktopReleaseIdentity(context.packager.projectDir,context.packager.appInfo.version,{native49C6:desktopNative49C6Selected(packedMetadata)});
   await writeFile(path.join(resources, "ynx-wallet-build-identity.json"), JSON.stringify(identity, null, 2) + "\n");
   // Source-owned canonical path assembly runs before entrypoint evaluation.
   // Keep every JS byte unchanged, one SDK copy plus its package alias, and the
@@ -55,7 +60,10 @@ export default async function afterPack(context) {
   const sdk=JSON.parse(await readFile(path.resolve(context.packager.projectDir,'../../packages/wallet-auth/package.json'),'utf8'));
   // SDK46's frozen Native100/helper105 arm64 pair uses the same original
   // normal stager and exact Library destinations, never extraFiles/manual copy.
-  if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(sdk.version)){
+  if(desktopNative49C6Selected(packedMetadata)){
+    if(context.arch!==3)throw Error('C6 helper component is arm64 only');
+    stageDesktopC6ApprovedHelper({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
+  }else if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(sdk.version)){
     if(context.arch!==3)throw Error('SDK46 paired component is arm64 only');
     stageSDK13HelperBundle({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
   }
