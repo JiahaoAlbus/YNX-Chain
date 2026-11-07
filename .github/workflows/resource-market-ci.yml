@@ -11,6 +11,7 @@ on:
       - 'internal/ynxbatch/**'
       - 'internal/ynxresourceconsent/**'
       - 'internal/ynxresourcepolicy/**'
+      - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'internal/ynxauth/**'
       - 'internal/ynxconsensusauth/**'
       - 'internal/chain/**'
@@ -61,6 +62,7 @@ on:
       - 'scripts/ops/test_pq_ci_stage_inputs.py'
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
+      - 'scripts/ops/test_validate_pq_observer_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/deploy-consensus-overlay.sh'
@@ -146,7 +148,9 @@ on:
     paths:
       - 'internal/ynxresourceconsent/**'
       - 'internal/ynxresourcepolicy/**'
+      - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
+      - 'scripts/ops/test_validate_pq_observer_ci.py'
       - 'apps/resource-market/**'
       - 'internal/resourcemarket/**'
       - 'internal/resourceproduct/**'
@@ -1489,8 +1493,56 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
+      - name: Verify explicit ordinary observer fork role without starting a node
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          CGO_ENABLED: '0'
+          GOMEMLIMIT: 1536MiB
+        run: |
+          set -euo pipefail
+          # Same existing Comet test-only dependency; production modules stay byte-identical.
+          python3 -B - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          module, sums = root / 'wire-observer-test.mod', root / 'wire-observer-test.sum'
+          for src, dst in [('go.mod', module), ('go.sum', sums)]:
+              with dst.open('xb') as f:
+                  f.write(Path(src).read_bytes())
+          subprocess.run(['go', 'mod', 'edit', '-modfile=' + str(module), '-require=github.com/stretchr/objx@v0.5.2'], check=True)
+          lines = [line for line in Path('third_party/cometbft/go.sum').read_text().splitlines() if line.startswith('github.com/stretchr/objx v0.5.2')]
+          if len(lines) != 2:
+              raise RuntimeError('exact original Comet test dependency sum pair required')
+          with sums.open('a') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
+          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^(TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner|TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup)$' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/rpc/core > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+          git diff --exit-code -- go.mod go.sum
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-pq-observer-fork-tests.jsonl').read_text().splitlines()]
+          observer_required = [('github.com/cometbft/cometbft/node', 'TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner'), ('github.com/cometbft/cometbft/rpc/core', 'TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup')]
+          for package, name in observer_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
+          for package in {package for package, _ in observer_required}:
+              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
+                  raise RuntimeError('original observer package did not pass: ' + package)
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
+              raise RuntimeError('observer stream failed or an observer child skipped')
+          print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -1550,7 +1602,7 @@ jobs:
       - name: Verify wallet policy checkpoint consumer without granting authority
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
-          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then
+          if ! YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"
             exit 1
           fi
@@ -1560,7 +1612,7 @@ jobs:
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-wallet-policy-consumer-tests.jsonl').read_text().splitlines()]
           package = 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourcepolicy'
-          required = ['TestResourcePolicyPUBLICOriginalLedgerConsumer', 'TestResourcePolicyPUBLICReaderRejectionAndNoAuthority']
+          required = ['TestResourcePolicyPUBLICOriginalLedgerConsumer', 'TestResourcePolicyPUBLICReaderRejectionAndNoAuthority', 'TestResourcePolicyPUBLICRegisteredObserverTrace']
           for name in required:
               runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
               outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
@@ -1634,24 +1686,24 @@ jobs:
           mkdir "$YNX_DB_CASE"
           cp third_party/cometbft/node/node.go "$YNX_DB_CASE/fixed-node.go"
           trap 'cp "$YNX_DB_CASE/fixed-node.go" third_party/cometbft/node/node.go' EXIT
-          git show 359766879bdb1fa10114394c58ab287c5b8996ae:third_party/cometbft/node/node.go > "$YNX_DB_CASE/original-node.go"
-          # Retain the exact original and supply only the new optional fields
-          # needed by separate current API leaves to compile against it. Nil
-          # never starts maintenance work; original close logic stays broken.
-          python3 -B - "$YNX_DB_CASE/original-node.go" <<'PY'
+          git show 359766879bdb1fa10114394c58ab287c5b8996ae:third_party/cometbft/node/node.go > "$YNX_DB_CASE/original-node-upstream.go"
+          # Preserve the historical source, but inject only its missing root-DB
+          # close into current source. Whole-file replacement would remove the
+          # observer API and produce a compile error instead of the real leak.
+          python3 -B - "$YNX_DB_CASE" <<'PY'
           import pathlib, sys
-          source = pathlib.Path(sys.argv[1])
-          raw = source.read_bytes()
-          anchor = b'type Node struct {\n'
-          if raw.count(anchor) != 1 or b'heightHalt *heightHaltControl' in raw or b'proofSourceConsumer proofSourceConsumerLifetime' in raw:
-              raise RuntimeError('unexpected frozen original node API')
-          with source.with_name('original-node-upstream.go').open('xb') as saved:
-              saved.write(raw)
-          field = (b'\theightHalt *heightHaltControl // optional API only; nil in original DB regression\n'
-              b'\tproofSourceConsumer proofSourceConsumerLifetime // optional API only; zero value in original DB regression\n')
-          source.write_bytes(raw.replace(anchor, anchor + field, 1))
+          case = pathlib.Path(sys.argv[1])
+          raw = (case / 'fixed-node.go').read_bytes()
+          missing_close = (b'\tif n.ownedDatabases != nil {\n'
+              b'\t\tif err := n.ownedDatabases.Close(); err != nil {\n'
+              b'\t\t\tn.Logger.Error("Error closing node databases", "err", err)\n'
+              b'\t\t}\n\t}\n')
+          if raw.count(missing_close) != 1 or b'func NewObserverNodeWithConsensusAuthority(' not in raw:
+              raise RuntimeError('current observer source lacks the exact owned-close fault-injection target')
+          with (case / 'missing-owner-close-node.go').open('xb') as counterexample:
+              counterexample.write(raw.replace(missing_close, b'', 1))
           PY
-          cp "$YNX_DB_CASE/original-node.go" third_party/cometbft/node/node.go
+          cp "$YNX_DB_CASE/missing-owner-close-node.go" third_party/cometbft/node/node.go
           set +e
           go test -p 1 -count=1 -timeout=60s -run '^TestNodeOwnedDatabaseSameDirectoryReopen$' github.com/cometbft/cometbft/node > "$YNX_DB_CASE/original-red.log" 2>&1
           YNX_DB_RED_STATUS=$?
@@ -1906,6 +1958,24 @@ jobs:
           go vet ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          observer_required = [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet', 'TestObserverCLIPUBLICRealConstructorWithoutStart'), ('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet', 'TestObserverCLIPUBLICRejectsSignerFlagsAndManagedEscape')]
+          for package, name in observer_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
+          for package in {package for package, _ in observer_required}:
+              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
+                  raise RuntimeError('original observer package did not pass: ' + package)
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
+              raise RuntimeError('observer stream failed or an observer child skipped')
+          print('YNX_PQ_OBSERVER_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
       - name: Exercise original lab callee readiness and actual cold costs
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -2118,6 +2188,24 @@ jobs:
           if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQWalletPolicyCheckpoint', 'TestPQWalletPolicyLive'))) for event in events):
               raise RuntimeError('original state stream failed or wallet policy reader skipped')
           print('YNX_WALLET_POLICY_READER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=wallet_policy_required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
+          observer_required = [('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'TestPQObserverPUBLICConstructorAllLayoutsNoValidator'), ('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'TestPQObserverPUBLICRejectsSignerAndUnboundState')]
+          for package, name in observer_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
+          for package in {package for package, _ in observer_required}:
+              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
+                  raise RuntimeError('original observer package did not pass: ' + package)
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
+              raise RuntimeError('observer stream failed or an observer child skipped')
+          print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}

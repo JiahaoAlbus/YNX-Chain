@@ -1,0 +1,189 @@
+{
+  "traceLots": {
+    "71f2687e57c35551d3d0c168b90533bc13dd0ecf33d616bd83632c40e9549e16": {
+      "lotId": "71f2687e57c35551d3d0c168b90533bc13dd0ecf33d616bd83632c40e9549e16",
+      "amount": 8,
+      "origin": "devnet faucet mint",
+      "riskWeightBps": 0,
+      "lastInboundTx": "ynx_validator_pq_lab_1"
+    }
+  },
+  "accountPolicy": {
+    "version": "YNX-ACCOUNT-POLICY/v1",
+    "networkId": "lKOyDJEYOoVhHmvnqZrE9aMqKageR6U/lQyyS7ETFek=",
+    "enableAt": 2,
+    "records": [
+      {
+        "algorithmVersion": "YNX-BATCH/v0.1",
+        "owner": "0xae45b350fbc6f5e66aa18c43fe464f0c5229a7e0",
+        "pkA": "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",
+        "pkB": "HqjDDW2mnS6RqksAXEBeZL0MEeFMIbCF/E/49BilhAmbjswd6XTDMRtcMPqCaCYOsoHvQq5QNCBirxKXGBTcFA==",
+        "revision": 1,
+        "registeredAt": 2,
+        "activeFrom": 3,
+        "ledgerNonce": 1
+      }
+    ]
+  },
+  "version": 18,
+  "chainId": 642399,
+  "migrationStateHash": "4e40334ef6f463153549549cb23f2e34b8bd781042115d47f3c190c0f9fd4565",
+  "initialized": false,
+  "height": 3,
+  "accounts": [
+    {
+      "address": "0xae45b350fbc6f5e66aa18c43fe464f0c5229a7e0",
+      "balance": 7,
+      "staked": 0,
+      "nonce": 1,
+      "resourceUsage": {
+        "bandwidthUsed": 1,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {
+        "71f2687e57c35551d3d0c168b90533bc13dd0ecf33d616bd83632c40e9549e16": 7
+      }
+    },
+    {
+      "address": "ynx_faucet",
+      "balance": 999999992,
+      "staked": 0,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    },
+    {
+      "address": "ynx_protocol_resource_pool",
+      "balance": 0,
+      "staked": 10000000,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    },
+    {
+      "address": "ynx_protocol_resource_treasury",
+      "balance": 0,
+      "staked": 0,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    },
+    {
+      "address": "ynx_validator_pq_lab_0",
+      "balance": 10000000,
+      "staked": 10000000,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    },
+    {
+      "address": "ynx_validator_pq_lab_1",
+      "balance": 10000001,
+      "staked": 10000000,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {
+        "71f2687e57c35551d3d0c168b90533bc13dd0ecf33d616bd83632c40e9549e16": 1
+      }
+    },
+    {
+      "address": "ynx_validator_pq_lab_2",
+      "balance": 10000000,
+      "staked": 10000000,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    },
+    {
+      "address": "ynx_validator_pq_lab_3",
+      "balance": 10000000,
+      "staked": 10000000,
+      "nonce": 0,
+      "resourceUsage": {
+        "bandwidthUsed": 0,
+        "computeUsed": 0,
+        "aiCreditsUsed": 0,
+        "trustUsed": 0,
+        "payCreditsUsed": 0
+      },
+      "lots": {}
+    }
+  ],
+  "feeEvents": [],
+  "strategyMandates": [],
+  "strategyVaults": [],
+  "assetAuditEvents": [],
+  "smartAccounts": [],
+  "paymasters": [],
+  "userOperationEvents": [],
+  "stakeDelegations": [],
+  "unbondings": [],
+  "aiPermissions": [],
+  "aiActions": [],
+  "aiAuditEvents": [],
+  "payIntents": [],
+  "payInvoices": [],
+  "payRefunds": [],
+  "payWebhooks": [],
+  "payEvents": [],
+  "payIdempotency": [],
+  "resourceQuotes": [],
+  "resourceDelegations": [],
+  "resourceRentals": [],
+  "resourceIncome": [],
+  "resourceEvents": [],
+  "resourceIdempotency": [],
+  "governanceRequests": [],
+  "trustAppeals": [],
+  "trustCorrections": [],
+  "trustLabels": [],
+  "trustEvidence": [],
+  "trackingReviews": [],
+  "transparencyEntries": [],
+  "contracts": [],
+  "evmReceipts": [],
+  "evmLogs": [],
+  "ideIdempotency": [],
+  "governanceExecutions": [],
+  "governanceExecutionAudit": [],
+  "appHash": "4e40334ef6f463153549549cb23f2e34b8bd781042115d47f3c190c0f9fd4565"
+}

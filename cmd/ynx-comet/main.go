@@ -542,6 +542,7 @@ func main() {
 	root.AddCommand(newInitializeApplicationCommand(), newInspectFreshApplicationCommand())
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
 	root.AddCommand(newInspectWalletPolicyCommand())
+	root.AddCommand(newObserverCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())
 	root.AddCommand(newInspectProofHostTargetCommand())

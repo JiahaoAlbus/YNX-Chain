@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"testing"
 	"time"
 
@@ -31,6 +32,54 @@ type authorityTestBackend struct {
 	mu          sync.Mutex
 	connections []net.Conn
 	wg          sync.WaitGroup
+}
+
+// Hold only the test-owned TLS transport's physical Close so the ingress's
+// already-closed backend can publish its real HTTP denial first. This selects
+// the valid Retire interleaving without changing production cancellation,
+// capability checks, fd ownership, or the native TLS implementation.
+type authorityCloseBarrier struct {
+	armed       atomic.Bool
+	entered     chan struct{}
+	release     chan struct{}
+	enteredOnce sync.Once
+	releaseOnce sync.Once
+}
+
+func (b *authorityCloseBarrier) unblock() { b.releaseOnce.Do(func() { close(b.release) }) }
+
+type authorityBarrierListener struct {
+	net.Listener
+	barrier *authorityCloseBarrier
+}
+
+func (l authorityBarrierListener) Accept() (net.Conn, error) {
+	c, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &authorityBarrierConn{Conn: c, barrier: l.barrier}, nil
+}
+
+type authorityBarrierConn struct {
+	net.Conn
+	barrier *authorityCloseBarrier
+}
+
+func (c *authorityBarrierConn) SyscallConn() (syscall.RawConn, error) {
+	sc, ok := c.Conn.(syscall.Conn)
+	if !ok {
+		return nil, ErrDenied
+	}
+	return sc.SyscallConn()
+}
+
+func (c *authorityBarrierConn) Close() error {
+	if c.barrier.armed.Load() {
+		c.barrier.enteredOnce.Do(func() { close(c.barrier.entered) })
+		<-c.barrier.release
+	}
+	return c.Conn.Close()
 }
 
 func authorityReceiveControl(c *net.UnixConn) (*net.UnixConn, error) {
@@ -176,6 +225,10 @@ func authorityTLS(t *testing.T, f tlsFixture, b *authorityTestBackend, change fu
 }
 
 func authorityTLSMiddleware(t *testing.T, f tlsFixture, b *authorityTestBackend, change func(*AuthorityIPCIngressConfig), middleware func(http.Handler) http.Handler) (*AuthorityIPCIngress, *runningHTTP) {
+	return authorityTLSListener(t, f, b, change, middleware, nil)
+}
+
+func authorityTLSListener(t *testing.T, f tlsFixture, b *authorityTestBackend, change func(*AuthorityIPCIngressConfig), middleware func(http.Handler) http.Handler, wrap func(net.Listener) net.Listener) (*AuthorityIPCIngress, *runningHTTP) {
 	t.Helper()
 	cfg := AuthorityIPCIngressConfig{Service: "auth-node", SocketPath: b.path, PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: []AuthorityIngressRoute{authorityTestRoute()}}
 	if change != nil {
@@ -200,6 +253,9 @@ func authorityTLSMiddleware(t *testing.T, f tlsFixture, b *authorityTestBackend,
 	l, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if wrap != nil {
+		l = wrap(l)
 	}
 	done := make(chan error, 1)
 	go func() { done <- s.Serve(l) }()
@@ -292,6 +348,40 @@ func authorityWriteRequest(c *native.Conn, body []byte) (*http.Response, error) 
 	return http.ReadResponse(bufio.NewReader(c), r)
 }
 
+type authorityResponseResult struct {
+	status  int
+	body    string
+	err     error
+	bodyErr error
+}
+
+func authorityCaptureResponse(c *native.Conn, body []byte) authorityResponseResult {
+	resp, err := authorityWriteRequest(c, body)
+	out := authorityResponseResult{err: err}
+	if resp != nil {
+		out.status = resp.StatusCode
+		if resp.Body != nil {
+			body, bodyErr := io.ReadAll(resp.Body)
+			out.body, out.bodyErr = string(body), bodyErr
+			_ = resp.Body.Close()
+		}
+	}
+	return out
+}
+
+func authorityRequireRefusal(t *testing.T, out authorityResponseResult) {
+	t.Helper()
+	t.Logf("failed capability response: status=%d body=%q headerErr=%v bodyErr=%v", out.status, out.body, out.err, out.bodyErr)
+	// ReadResponse reports nil for a valid HTTP denial as well as a success.
+	// A close/error is also fail-closed, but a success status or any original
+	// backend response must never escape, even with a later body/transport error.
+	if strings.Contains(out.body, "originalResponse") ||
+		(out.status != 0 && (out.status < 400 || out.status > 599)) ||
+		(out.err == nil && out.status == 0) {
+		t.Fatal("failed capability emitted success", out)
+	}
+}
+
 func authorityBackendResponse(c net.Conn, status int, body []byte) error {
 	_, err := fmt.Fprintf(c, "HTTP/1.1 %d Original\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", status, len(body))
 	if err != nil {
@@ -373,6 +463,8 @@ func TestAuthorityIngressCurrentRevocationAndDisconnect(t *testing.T) {
 			f := newTLSFixture(t)
 			ready := make(chan *net.UnixConn, 1)
 			release := make(chan struct{})
+			var releaseOnce sync.Once
+			unblockBackend := func() { releaseOnce.Do(func() { close(release) }) }
 			denied := make(chan error, 1)
 			b := authorityBackend(t, func(data, control *net.UnixConn, r *http.Request) {
 				_, _ = io.Copy(io.Discard, r.Body)
@@ -389,14 +481,11 @@ func TestAuthorityIngressCurrentRevocationAndDisconnect(t *testing.T) {
 				denied <- e
 			})
 			ingress, r := authorityTLS(t, f, b, nil)
+			t.Cleanup(unblockBackend)
 			c := dialNative(t, f, r.address)
-			done := make(chan error, 1)
+			done := make(chan authorityResponseResult, 1)
 			go func() {
-				resp, e := authorityWriteRequest(c, []byte("original"))
-				if e == nil {
-					_ = resp.Body.Close()
-				}
-				done <- e
+				done <- authorityCaptureResponse(c, []byte("original"))
 			}()
 			<-ready
 			if mode == "revoke" {
@@ -423,13 +512,11 @@ func TestAuthorityIngressCurrentRevocationAndDisconnect(t *testing.T) {
 					t.Fatal("real server did not observe TCP EOF")
 				}
 			}
-			close(release)
+			unblockBackend()
 			if e := <-denied; e == nil {
 				t.Fatal("revoked/disconnected request retained materials")
 			}
-			if e := <-done; e == nil {
-				t.Fatal("aborted request manufactured a response")
-			}
+			authorityRequireRefusal(t, <-done)
 		})
 	}
 }
@@ -483,7 +570,10 @@ func TestAuthorityIngressQueryBoundUnknownByteAndRetire(t *testing.T) {
 			f := newTLSFixture(t)
 			ready := make(chan struct{})
 			release := make(chan struct{})
+			var releaseOnce sync.Once
+			unblockBackend := func() { releaseOnce.Do(func() { close(release) }) }
 			result := make(chan error, 1)
+			barrier := &authorityCloseBarrier{entered: make(chan struct{}), release: make(chan struct{})}
 			b := authorityBackend(t, func(data, control *net.UnixConn, r *http.Request) {
 				_, _ = io.Copy(io.Discard, r.Body)
 				if mode == "queries" {
@@ -521,20 +611,43 @@ func TestAuthorityIngressQueryBoundUnknownByteAndRetire(t *testing.T) {
 					result <- nil
 				}
 			})
-			i, r := authorityTLS(t, f, b, nil)
-			c := dialNative(t, f, r.address)
-			done := make(chan error, 1)
-			go func() {
-				resp, e := authorityWriteRequest(c, []byte("original"))
-				if e == nil {
-					_ = resp.Body.Close()
+			i, r := authorityTLSListener(t, f, b, nil, nil, func(l net.Listener) net.Listener {
+				if mode == "retire" {
+					return authorityBarrierListener{Listener: l, barrier: barrier}
 				}
-				done <- e
+				return l
+			})
+			t.Cleanup(func() { barrier.unblock(); unblockBackend() })
+			c := dialNative(t, f, r.address)
+			done := make(chan authorityResponseResult, 1)
+			go func() {
+				done <- authorityCaptureResponse(c, []byte("original"))
 			}()
+			var observed *authorityResponseResult
 			if mode == "retire" {
 				<-ready
-				_ = i.Retire()
-				close(release)
+				barrier.armed.Store(true)
+				retired := make(chan error, 1)
+				go func() { retired <- i.Retire() }()
+				select {
+				case <-barrier.entered:
+				case <-time.After(3 * time.Second):
+					t.Fatal("Retire did not reach the test-owned TLS close")
+				}
+				select {
+				case out := <-done:
+					if out.err != nil || out.bodyErr != nil || out.status != http.StatusBadGateway || out.body != "invalid authority response\n" {
+						t.Fatal("controlled close did not preserve the real HTTP refusal", out)
+					}
+					observed = &out
+				case <-time.After(3 * time.Second):
+					t.Fatal("closed backend did not emit a bounded HTTP refusal")
+				}
+				barrier.unblock()
+				if e := <-retired; e != nil {
+					t.Fatal(e)
+				}
+				unblockBackend()
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				defer cancel()
 				if e := i.Join(ctx); e != nil {
@@ -544,9 +657,13 @@ func TestAuthorityIngressQueryBoundUnknownByteAndRetire(t *testing.T) {
 			if e := <-result; e != nil {
 				t.Fatal(e)
 			}
-			if e := <-done; e == nil {
-				t.Fatal("failed capability emitted success")
+			var out authorityResponseResult
+			if observed != nil {
+				out = *observed
+			} else {
+				out = <-done
 			}
+			authorityRequireRefusal(t, out)
 		})
 	}
 }

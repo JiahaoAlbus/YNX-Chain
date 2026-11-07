@@ -6,11 +6,13 @@ qualify them, and that their DATA receipts do not claim Source or live authority
 """
 import ast
 import contextlib
+import hashlib
 import io
 import json
 import os
 from pathlib import Path
 import re
+import shutil
 import tempfile
 import textwrap
 import unittest
@@ -18,6 +20,21 @@ from unittest.mock import patch
 
 
 WORKFLOW = Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml"
+TRACE_PATH = "scripts/loadtest/fixtures/finalize-1b-public"
+TRACE_ROOT = WORKFLOW.parents[2] / TRACE_PATH
+# Original public signed trace bytes, also consumed by the Go fixture. No keys,
+# regenerated transactions, normalized records or newly asserted trust anchors.
+TRACE_FILES = {
+    "final-state.json": (517890, "38d32aa3bddfc5e7c21b4343095283eb3c3e1b8da514c9b267fd222aca0ba2fa"),
+    "genesis.json": (147821, "6e09180e59a88862edc4776081de5a44f39c4a0a60e2c6cd0784a32368aeec10"),
+    "init-chain.pb": (146789, "65d2f618928fe6c7229721f001c355898cb7aea04aa10fd2e92c0b2724ee619d"),
+    "initial-state.json": (8091, "e6a613a06b304c3fde545bcbf223bd1ff68448f2fa6aecdb61a34361f00d2806"),
+    "intent.json": (555, "99946b5a605d1c2022e101dd3cf4d5bd6b7a69e01b5bf67a5e680d3bbd86e230"),
+    "migration.json": (151841, "c4afd84f68caa5d1ec488f31d6cd207751b0cab5c69e20a97bcd88472fe507be"),
+    "records.jsonl": (4439710, "6777a90f7ca86a0ecd462ded9740d0413d7dc063b73e114f1c1722e960590573"),
+    "result.json": (2027, "11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6"),
+    "schedule.json": (498, "e6ec87fa003d32387e438290a91c0e4b03cdee9ec0a87495eb4df8ed1a5c95bc"),
+}
 NORMAL_IF = "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
 MODULE = "github.com/JiahaoAlbus/YNX-Chain/"
 SPECS = {
@@ -27,6 +44,7 @@ SPECS = {
         "YNX_WALLET_POLICY_CONSUMER_TESTS", "required", [
             "TestResourcePolicyPUBLICOriginalLedgerConsumer",
             "TestResourcePolicyPUBLICReaderRejectionAndNoAuthority",
+            "TestResourcePolicyPUBLICRegisteredObserverTrace",
         ]),
     "reader": (
         "Verify complete state bridge and sponsor continuity",
@@ -55,7 +73,7 @@ COMMAND_PACKAGES = (
     "cmd/ynx-consensus-pq-key-init", "cmd/ynx-consensus-pq-remote-signer",
     "cmd/ynx-consensus-proof-verify",
 )
-CONSUMER_COMMAND = '          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then\n'
+CONSUMER_COMMAND = '          if ! YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE_PATH + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then\n'
 CLI_COMMAND = ('          if ! go test -json -p 1 -count=1 -timeout=90s '
                + ' '.join('./' + package for package in COMMAND_PACKAGES)
                + ' > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n')
@@ -104,12 +122,25 @@ def literal_list(program, name):
     return values
 
 
+def assert_public_trace(directory):
+    if directory.is_symlink() or not directory.is_dir():
+        raise AssertionError("original public trace directory required")
+    if {path.name for path in directory.iterdir()} != set(TRACE_FILES):
+        raise AssertionError("exact nine original public trace files required")
+    for name, (size, digest) in TRACE_FILES.items():
+        path = directory / name
+        if path.is_symlink() or not path.is_file() or path.stat().st_size != size:
+            raise AssertionError("original public trace type or length differs: " + name)
+        if hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise AssertionError("original public trace digest differs: " + name)
+
+
 def assert_contract(raw):
     for event in ("push", "pull_request"):
         blocks = re.findall(r"(?ms)^  " + event + r":\n(.*?)(?=^  [a-z_]+:\n|\Z)", raw)
         if len(blocks) != 1:
             raise AssertionError("one trigger required")
-        for path in ("internal/ynxresourcepolicy/**", "scripts/ops/test_validate_pq_wallet_policy_ci.py"):
+        for path in ("internal/ynxresourcepolicy/**", "scripts/ops/test_validate_pq_wallet_policy_ci.py", TRACE_PATH + "/**"):
             if blocks[0].count("      - '" + path + "'\n") != 1:
                 raise AssertionError("normal source trigger missing: " + path)
     controls = step_named(raw, "Verify Linux window controls without starting a node")
@@ -195,6 +226,38 @@ class WalletPolicyCIControls(unittest.TestCase):
     def test_normal_source_paths_full_packages_and_unique_controls(self):
         assert_contract(self.raw)
 
+    def test_original_nine_public_trace_bytes_are_closed_and_unchanged(self):
+        assert_public_trace(TRACE_ROOT)
+        with tempfile.TemporaryDirectory(prefix="pq-wallet-public-trace-ci-") as directory:
+            copied = Path(directory) / "trace"
+            shutil.copytree(TRACE_ROOT, copied)
+            target = copied / "intent.json"
+            original = target.read_bytes()
+            target.write_bytes(original[:-1] + bytes([original[-1] ^ 1]))
+            with self.assertRaisesRegex(AssertionError, "digest differs"):
+                assert_public_trace(copied)
+            target.write_bytes(original + b" ")
+            with self.assertRaisesRegex(AssertionError, "length differs"):
+                assert_public_trace(copied)
+            target.unlink()
+            with self.assertRaisesRegex(AssertionError, "exact nine"):
+                assert_public_trace(copied)
+            target.symlink_to(TRACE_ROOT / "intent.json")
+            with self.assertRaisesRegex(AssertionError, "type or length"):
+                assert_public_trace(copied)
+            target.unlink()
+            target.write_bytes(original)
+            extra = copied / "extra.json"
+            extra.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(AssertionError, "exact nine"):
+                assert_public_trace(copied)
+            extra.unlink()
+            assert_public_trace(copied)
+            alias = Path(directory) / "alias"
+            alias.symlink_to(copied, target_is_directory=True)
+            with self.assertRaisesRegex(AssertionError, "directory required"):
+                assert_public_trace(alias)
+
     def test_original_execution_qualifies_only_data(self):
         for kind, spec in SPECS.items():
             with self.subTest(kind=kind):
@@ -269,12 +332,17 @@ class WalletPolicyCIControls(unittest.TestCase):
         mutations = [
             self.raw.replace("      - 'internal/ynxresourcepolicy/**'\n", "", 1),
             self.raw.replace("      - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'\n", "", 1),
+            self.raw.replace("      - '" + TRACE_PATH + "/**'\n", "", 1),
             self.raw.replace(CONTROL_COMMAND, "", 1),
             self.raw.replace(CONTROL_COMMAND, CONTROL_COMMAND * 2, 1),
             self.raw.replace(CONSUMER_COMMAND, CONSUMER_COMMAND.replace("./internal/ynxresourcepolicy", "-run '^$' ./internal/ynxresourcepolicy"), 1),
             self.raw.replace(CONSUMER_COMMAND, CONSUMER_COMMAND.replace("./internal/ynxresourcepolicy", "-skip '^TestResourcePolicy' ./internal/ynxresourcepolicy"), 1),
             self.raw.replace(CLI_COMMAND, CLI_COMMAND.replace(" ./cmd/ynx-abci", ""), 1),
             self.raw.replace(SPECS["consumer"][5][0], "TestNotTheOriginalConsumer", 1),
+            self.raw.replace(SPECS["consumer"][5][2], "TestNotTheRegisteredObserver", 1),
+            self.raw.replace(" -tags=ynx_public_trace_testsupport", "", 1),
+            self.raw.replace('YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE_PATH + '" ', "", 1),
+            self.raw.replace('YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE_PATH + '" ', 'YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$RUNNER_TEMP/other-trace" ', 1),
             self.raw.replace(SPECS["reader"][5][0], "TestNotTheOriginalReader", 1),
             self.raw.replace(SPECS["cli"][5][0], "TestNotTheOriginalCLI", 1),
         ]

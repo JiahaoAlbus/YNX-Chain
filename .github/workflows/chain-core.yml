@@ -27,6 +27,9 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/ops/test_validate_pq_observer_ci.py"
+      - "third_party/cometbft/node/**"
+      - "third_party/cometbft/rpc/core/**"
   pull_request:
     branches:
       - main
@@ -52,6 +55,9 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/ops/test_validate_pq_observer_ci.py"
+      - "third_party/cometbft/node/**"
+      - "third_party/cometbft/rpc/core/**"
   workflow_dispatch:
 
 permissions:
@@ -105,6 +111,7 @@ jobs:
             internal/ynxconsensusauth internal/accountaddress internal/bftgateway \
             scripts/loadtest/same-control-readback.mjs scripts/loadtest/same-control-readback.test.mjs \
             scripts/verify/wire-live-matching-source-ci.py scripts/verify/test_wire_live_matching_source_ci.py \
+            scripts/ops/test_validate_pq_observer_ci.py \
             .github/workflows/chain-core.yml > "$RUNNER_TEMP/client-observation-changes.txt"
           if [[ -s "$RUNNER_TEMP/client-observation-changes.txt" ]]; then
             printf 'client_changed=true\n' >> "$GITHUB_OUTPUT"
@@ -340,6 +347,31 @@ jobs:
           print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0, normalEphemeralInProcessStartStop=True), sort_keys=True))
           PY
 
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_observer_ci.py' -v
+          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^(TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner|TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup)$' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/rpc/core > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"
+          git diff --exit-code -- go.mod go.sum
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-pq-observer-fork-tests.jsonl').read_text().splitlines()]
+          observer_required = [('github.com/cometbft/cometbft/node', 'TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner'), ('github.com/cometbft/cometbft/rpc/core', 'TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup')]
+          for package, name in observer_required:
+              runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
+              outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                  raise RuntimeError('original observer test did not execute and pass uniquely: ' + name)
+          for package in {package for package, _ in observer_required}:
+              outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
+              if not outcomes or any(outcome != 'pass' for outcome in outcomes) or (package != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' and outcomes != ['pass']):
+                  raise RuntimeError('original observer package did not pass: ' + package)
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
+              raise RuntimeError('observer stream failed or an observer child skipped')
+          print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
       - name: Verify strict source availability and separated Go stream controls
         run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py
       - name: Acquire only the immutable optional supplier object

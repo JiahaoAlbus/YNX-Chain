@@ -16,6 +16,7 @@ import (
 	bc "github.com/cometbft/cometbft/blocksync"
 	cfg "github.com/cometbft/cometbft/config"
 	cs "github.com/cometbft/cometbft/consensus"
+	"github.com/cometbft/cometbft/crypto"
 	"github.com/cometbft/cometbft/evidence"
 	"github.com/cometbft/cometbft/light"
 
@@ -51,6 +52,7 @@ type Node struct {
 	config        *cfg.Config
 	genesisDoc    *types.GenesisDoc   // initial validator set
 	privValidator types.PrivValidator // local node's validator key
+	observer      bool                // explicit no-validator constructor; never inferred from a failed signer
 
 	// network
 	transport   *p2p.MultiplexTransport
@@ -296,6 +298,25 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 	authoritySource types.ConsensusAuthoritySource,
 	options ...Option,
 ) (*Node, error) {
+	return newNodeWithAuthorityRole(ctx, config, privValidator, nodeKey, clientCreator, genesisDocProvider, dbProvider, metricsProvider, logger, authoritySource, false, options...)
+}
+
+// NewObserverNodeWithConsensusAuthority constructs a non-signing full node using
+// its original independently authenticated application. It never obtains a
+// private validator, including through the remote signer configuration. All
+// handshake, block, proposal, commit and historical authority checks are shared
+// with the normal node. Construction starts no node listeners.
+func NewObserverNodeWithConsensusAuthority(config *cfg.Config, nodeKey *p2p.NodeKey, clientCreator proxy.ClientCreator, genesisDocProvider GenesisDocProvider, dbProvider cfg.DBProvider, metricsProvider MetricsProvider, logger log.Logger, authoritySource types.ConsensusAuthoritySource) (*Node, error) {
+	if config == nil || authoritySource == nil || nodeKey == nil || nodeKey.PrivKey == nil || logger == nil || clientCreator == nil || genesisDocProvider == nil || dbProvider == nil || metricsProvider == nil || config.PrivValidatorListenAddr != "" {
+		return nil, fmt.Errorf("observer requires original node identity/application and forbids a private validator socket")
+	}
+	return newNodeWithAuthorityRole(context.TODO(), config, nil, nodeKey, clientCreator, genesisDocProvider, dbProvider, metricsProvider, logger, authoritySource, true)
+}
+
+func newNodeWithAuthorityRole(ctx context.Context, config *cfg.Config, privValidator types.PrivValidator, nodeKey *p2p.NodeKey, clientCreator proxy.ClientCreator, genesisDocProvider GenesisDocProvider, dbProvider cfg.DBProvider, metricsProvider MetricsProvider, logger log.Logger, authoritySource types.ConsensusAuthoritySource, observer bool, options ...Option) (*Node, error) {
+	if !observer && privValidator == nil && (config == nil || config.PrivValidatorListenAddr == "") {
+		return nil, fmt.Errorf("normal validator constructor requires an explicit private validator; use the observer constructor")
+	}
 	ownedDatabases := &nodeOwnedDatabases{}
 	dbProvider = ownedDatabases.provider(dbProvider)
 	var stopConstructed []func()
@@ -369,14 +390,21 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 		}
 	}
 
-	pubKey, err := privValidator.GetPubKey()
-	if err != nil {
-		return nil, fmt.Errorf("can't get pubkey: %w", err)
+	var pubKey crypto.PubKey
+	var localAddr crypto.Address
+	if !observer {
+		pubKey, err = privValidator.GetPubKey()
+		if err != nil {
+			return nil, fmt.Errorf("can't get pubkey: %w", err)
+		}
+		if pubKey == nil {
+			return nil, fmt.Errorf("validator public key unavailable")
+		}
+		localAddr = pubKey.Address()
 	}
-	localAddr := pubKey.Address()
 
 	// Determine whether we should attempt state sync.
-	stateSync := config.StateSync.Enable && !onlyValidatorIsUs(state, localAddr)
+	stateSync := config.StateSync.Enable && (observer || !onlyValidatorIsUs(state, localAddr))
 	if stateSync && state.LastBlockHeight > 0 {
 		logger.Info("Found local state with non-zero height, skipping state sync")
 		stateSync = false
@@ -419,9 +447,13 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 
 	// Determine whether we should do block sync. This must happen after the handshake, since the
 	// app may modify the validator set, specifying ourself as the only validator.
-	blockSync := !onlyValidatorIsUs(state, localAddr)
+	blockSync := observer || !onlyValidatorIsUs(state, localAddr)
 
-	logNodeStartupInfo(state, pubKey, logger, consensusLogger)
+	if observer {
+		consensusLogger.Info("This node is an observer without a private validator")
+	} else {
+		logNodeStartupInfo(state, pubKey, logger, consensusLogger)
+	}
 
 	mempool, mempoolReactor := createMempoolAndMempoolReactor(config, proxyApp, state, memplMetrics, logger)
 
@@ -528,6 +560,7 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 		config:        config,
 		genesisDoc:    genDoc,
 		privValidator: privValidator,
+		observer:      observer,
 
 		transport: transport,
 		sw:        sw,
@@ -732,9 +765,18 @@ func (n *Node) OnStop() {
 
 // ConfigureRPC makes sure RPC has all the objects it needs to operate.
 func (n *Node) ConfigureRPC() (*rpccore.Environment, error) {
-	pubKey, err := n.privValidator.GetPubKey()
-	if pubKey == nil || err != nil {
-		return nil, fmt.Errorf("can't get pubkey: %w", err)
+	var pubKey crypto.PubKey
+	if !n.observer {
+		if n.privValidator == nil {
+			return nil, fmt.Errorf("validator RPC requires its original private validator")
+		}
+		var err error
+		pubKey, err = n.privValidator.GetPubKey()
+		if pubKey == nil || err != nil {
+			return nil, fmt.Errorf("can't get pubkey: %w", err)
+		}
+	} else if n.privValidator != nil {
+		return nil, fmt.Errorf("observer cannot acquire a private validator")
 	}
 	rpcCoreEnv := rpccore.Environment{
 		ProxyAppQuery:   n.proxyApp.Query(),

@@ -166,7 +166,14 @@ func TestPQInitialGenesisBindingStrictIndependentSource(t *testing.T) {
 		if err != nil {
 			t.Fatal("normal node constructor lost raw Genesis registration bindings", err)
 		}
-		defer func() { n.OnStop(); _ = n.ProxyApp().Stop() }()
+		stopped := false
+		stopNode := func() {
+			if !stopped {
+				n.OnStop()
+				stopped = true
+			}
+		}
+		t.Cleanup(stopNode)
 		if n.IsRunning() || n.BlockStore().Height() != 0 || app.bootstrap.record.PQInitialAccounts == nil {
 			t.Fatal("constructor started a node or lost independently pinned account assignments")
 		}
@@ -178,10 +185,20 @@ func TestPQInitialGenesisBindingStrictIndependentSource(t *testing.T) {
 		if err != nil || !bytes.Equal(retained, raw) {
 			t.Fatal("normal node rewrote the original Genesis through a typed document", err)
 		}
+		stopNode()
+		if _, err := newPQNodeWithDatabase(config, app, pv, nodeKey, log.NewNopLogger(), database); err == nil || !strings.Contains(err.Error(), "already paired with a Node") {
+			t.Fatal("stopped node application was reused for a second node", err)
+		}
+		// A cold node owns a new Application. Keep its bootstrap bound to the
+		// independently pinned original bytes, not the replaced Genesis below.
+		coldApp, err := NewPersistentApplicationWithBootstrap(f.f.migration, "", bootstrap)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(config.GenesisFile(), plain, 0o600); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := newPQNodeWithDatabase(config, app, pv, nodeKey, log.NewNopLogger(), database); err == nil || !strings.Contains(err.Error(), "independently pinned") {
+		if _, err := newPQNodeWithDatabase(config, coldApp, pv, nodeKey, log.NewNopLogger(), database); err == nil || !strings.Contains(err.Error(), "independently pinned") {
 			t.Fatal("typed round-trip without registration fields bypassed exact Genesis pin", err)
 		}
 	})
