@@ -1,0 +1,16 @@
+{
+  "vectors": [
+    {
+      "path": "PUBLIC-open-u64.bin",
+      "meaning": "DATA-only Open request seq9007199254740993; no owner/current/Root. SequenceSTATE still starts1; this tests lossless field only"
+    },
+    {
+      "path": "PUBLIC-partial-code0.bin",
+      "meaning": "DATA-only Open failed reply nonzero inert owner token, present=true/code0 retained; never genuine inventory handle"
+    }
+  ],
+  "encoder": "sole MobileAccountProofWireDATA.hpp encodeFrameDATA, own decode roundtrip",
+  "privateKeys": false,
+  "ledgerProof": false,
+  "RootAdmission": false
+}
