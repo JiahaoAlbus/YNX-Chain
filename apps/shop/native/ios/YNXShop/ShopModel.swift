@@ -56,7 +56,11 @@ import SwiftUI
         var authorization:(()throws->Void)?
         do {
             let check=try api.capture(requireSession:false);authorization=check
-            let response:CatalogResponse=try await api.request("products?q=\(query.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? "")")
+            var components=URLComponents()
+            components.queryItems=[URLQueryItem(name:"q",value:query)]
+            // Go's query decoder treats a literal + as a form-encoded space.
+            guard let encoded=components.percentEncodedQuery?.replacingOccurrences(of:"+",with:"%2B") else{throw ShopError.invalidResponse}
+            let response:CatalogResponse=try await api.request("products?\(encoded)")
             guard refresh==catalogRefreshRevision,operation==operationRevision,query==search else{return}
             try check()
             products=response.products;state=products.isEmpty ? "empty_catalog":""

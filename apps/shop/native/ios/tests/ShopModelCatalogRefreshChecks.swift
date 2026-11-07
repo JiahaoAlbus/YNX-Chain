@@ -76,6 +76,19 @@ final class CatalogRefreshHTTP:URLProtocol,@unchecked Sendable {
         try await until{model.products.first?.productID=="bootstrap"}
         try check(model.state.isEmpty && model.cart.first?.quantity==3,"current guest catalog and original cart restore")
 
+        for term in ["C++", "cable & adapter", "kind=usb&limit=1", "50% #中文 ?", "a/b: c", ""] {
+            model.search=term
+            let search=Task{await model.loadCatalog()};let request=await inbox.take()
+            let encoded=request.request.url!.query ?? ""
+            // The Go API uses form query decoding: literal + is a space.
+            let pairs=encoded.split(separator:"&",omittingEmptySubsequences:false)
+            let value=pairs.first?.split(separator:"=",maxSplits:1,omittingEmptySubsequences:false)
+            let decoded=value?.last.map{String($0).replacingOccurrences(of:"+",with:" ").removingPercentEncoding}
+            request.respond(200,response("literal-search"));await search.value
+            try check(pairs.count==1 && value?.count==2 && value?.first=="q" && decoded==term,
+                      "catalog sends one literal search term without query parameters or form-space substitution")
+        }
+
         model.search="old";let first=Task{await model.loadCatalog()};let old=await inbox.take()
         model.search="new";let second=Task{await model.loadCatalog()};let new=await inbox.take()
         new.respond(200,response("new"));await second.value

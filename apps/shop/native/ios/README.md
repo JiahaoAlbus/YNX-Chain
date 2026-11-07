@@ -10,4 +10,13 @@ This checkout intentionally does not include signing credentials or generated bu
 
 2026-10-03 canonical macOS continuation: WalletAuth, APIClient and ShopModel now use the exact adopted Native SDK through a private pinned WebKit engine and protected ports. The owned project includes YNXShopMac and a shared macOS scheme. Actual engine checks, controlled API/invoice checks, model/core compile and locale/static checks pass. iOS is not a registered Native tuple and does not inherit macOS authority.
 
-Full SwiftUI app compilation with current Command Line Tools still fails due to absent SwiftUIMacros; xcodebuild requires full Xcode. The macOS target, asset/metadata packaging, signing, installed Secure Enclave behavior, real Wallet approval/return, cold recovery/server ACK and private business readback must be verified through A's sole final release. See NATIVE_PRODUCT_SESSION_PORTS.md and the apple-native-sdk-bridge-20261003 evidence.
+Build the registered macOS consumer with full Xcode and the exact dependencies used by `.github/workflows/shop-native.yml`:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
+  -project YNXShop.xcodeproj -scheme YNXShopMac -configuration Debug \
+  -destination 'generic/platform=macOS' -derivedDataPath /absolute/owned/output \
+  CODE_SIGNING_ALLOWED=NO build
+```
+
+The normal build generates the current Native module, manifest and compiled pin from the same verified SDK archive. The original CI now builds the macOS target, verifies the packaged module hash and retains the app plus provenance. Its actual Model/API catalog checks cover literal query characters and late responses. A candidate archive is separate from production signing, installed Secure Enclave behavior, real Wallet approval/return, cold recovery/server ACK and private business readback. Original A retains formal release ownership. See NATIVE_PRODUCT_SESSION_PORTS.md.
