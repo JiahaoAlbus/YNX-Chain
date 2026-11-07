@@ -23,6 +23,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
  function translate(){for(const node of doc.querySelectorAll('[data-desktop-en]'))node.textContent=zh()?node.dataset.desktopZh??node.dataset.desktopEn:node.dataset.desktopEn;}
  function resetPolicy(){policyEpoch++;policyBusy=false;byId('desktop-pq-a').textContent=byId('desktop-pq-b').textContent=t('Not checked','未核对');byId('desktop-pq-policy').textContent=t('Check the current original policy. Local keys and registration are separate.','请核对当前原链上授权；本地密钥与链上登记分别确认。');}
  function viewChanged(name){
+  if(name==='connections'||name==='permissions'){const target=name==='connections'?'desktop-connection-sessions-slot':'desktop-permission-slot';move('walletconnect-detail',target);move('walletconnect-sessions',target);}
   const titles={overview:['Assets','资产'],history:['Transactions','交易'],connections:['DApp','DApp'],security:['Security center','安全中心'],agents:['AI Agent','AI Agent'],permissions:['Permissions','授权管理'],accounts:['Accounts & backup','账户与备份'],resolver:['Address Resolver','地址格式转换'],settings:['Settings','设置']};
   if(titles[name])byId('page-title').textContent=t(...titles[name]);resolver.invalidate();
  }

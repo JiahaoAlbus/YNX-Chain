@@ -157,3 +157,10 @@ body[data-wallet-stage='workspace'] #desktop-welcome { display:none; }
 .desktop-overview-activity-row>strong { font-family:var(--ynx-font-mono); overflow-wrap:anywhere; text-align:right; }
 .desktop-overview-activity-row span,.desktop-overview-caption { color:var(--ynx-text-secondary); font-size:.6875rem!important; line-height:1.6!important; }
 .desktop-overview-recent>.text-button { display:block; margin:16px auto 0; }
+.desktop-connected-session-row { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px 20px; padding:18px 0; border-bottom:1px solid var(--ynx-border); }
+.desktop-connected-session-row:last-child { border-bottom:0; }
+.desktop-connected-session-row>span { overflow-wrap:anywhere; font-size:.8125rem; }
+.desktop-connected-session-row>button { margin:0; }
+.desktop-connected-session-row>.desktop-session-expiry { grid-column:1/-1; margin:0; color:var(--ynx-text-secondary); font-size:.6875rem; }
+#desktop-permission-slot>#walletconnect-detail { line-height:1.6; }
+@media(max-width:760px){.desktop-connected-session-row { grid-template-columns:minmax(0,1fr); }.desktop-connected-session-row>button { justify-self:start; }}

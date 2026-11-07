@@ -73,7 +73,9 @@ test("same-context inventory replacement cannot dispatch a duplicate pending top
 });
 test("all twelve languages include every session read/revoke/retry state without translating session data",()=>{
  for(const locale of WALLET_LOCALES){assert.equal(Object.keys(SESSION_COPY[locale]).length,8);for(const key of ["WalletConnect not started","The Relay connection is not yet confirmed. Your wallet and accounts remain accessible."])assert.ok(SESSION_COPY[locale][key]);for(const [key,value] of Object.entries(SESSION_COPY[locale])){assert.equal(WALLET_COPY[locale][key],value);assert.ok(value.length>0);}}
- assert.match(source,/function renderAccount\(payload\)\s*\{\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);\s*invalidateWalletConnectSessions\(\)/);
+ assert.match(source,/function renderAccount\(payload\)\s*\{\s*accountStatusObserved=true;\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);\s*invalidateWalletConnectSessions\(\)/);
  assert.match(source,/accountSecurityIntent\+\+;invalidateWalletConnectSessions\(\)/);
- assert.match(source,/if \(name === "connections"\) void refreshWalletConnectConnectionView\(\)/);
+ assert.match(source,/if \(name === "connections"\|\|name === "permissions"\) void refreshWalletConnectConnectionView\(\)/);
 });
+
+test('connected row shows actual expiry without granting scopes and re-rendered in-flight disconnect stays disabled',async()=>{const h=fixture();const first=await h.load();assert.match(h.panel.children[0].children[2].textContent,/Expiry/);const expected=new Date(session.expiry*1000).toLocaleString();assert(h.panel.children[0].children[2].textContent.includes(expected));const action=first.click();const reload=h.context.refreshWalletConnectSessions();h.reads.at(-1).resolve({ok:true,value:[session]});await reload;assert.equal(h.panel.children[0].children[1].disabled,true);h.actions[0].resolve({ok:false});await new Promise(r=>setImmediate(r));h.reads.at(-1).resolve({ok:true,value:[session]});await action;assert.equal(h.panel.children[0].children[1].disabled,false);});

@@ -708,12 +708,14 @@ async function refreshWalletConnectSessions() {
     return;
   }
   for (const session of sessions) {
-    const row = document.createElement("div");
+    const row = document.createElement("div");row.className="desktop-connected-session-row";
     const label = document.createElement("span");
     label.textContent = `${session.name} · ${session.origin}`;
+    const expiry = document.createElement("p"), expiryDate=new Date(session.expiry*1000);expiry.className="desktop-session-expiry";expiry.textContent="Expiry / 到期时间: "+(Number.isFinite(expiryDate.getTime())?expiryDate.toLocaleString(document.documentElement?.lang||undefined):"Unavailable / 暂不可用");
     const disconnect = document.createElement("button");
     disconnect.type = "button";
     copyUI(disconnect,"Disconnect and revoke");
+    disconnect.disabled=walletConnectDisconnectOwners.get(session.topic)?.contextCurrent()===true;
     let busy = false;
     disconnect.addEventListener("click", async () => {
       if (!current() || busy) return;
@@ -738,7 +740,7 @@ async function refreshWalletConnectSessions() {
         if (refresh) await refreshWalletConnectSessions();
       }
     });
-    row.append(label, disconnect);
+    row.append(label, disconnect, expiry);
     sessionsPanel.append(row);
   }
 }

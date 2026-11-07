@@ -79,3 +79,9 @@ test('late account refresh preserves a selected history/settings page but redire
   const run=Function('document','setView',source.slice(from,to)+';return reconcileAccountView;')(document,name=>calls.push(name));run({initialized},previous);assert.deepEqual(calls,expected,selected);
  }
 });
+test('DApp and permissions routes keep the same actual session controls and original outcome visible in the active view',()=>{
+ const f=fixture(),sessions=f.id('walletconnect-sessions'),detail=f.id('walletconnect-detail');
+ let clicks=0;const button=f.document.createElement('button');button.addEventListener('click',()=>clicks++);sessions.append(button);detail.textContent='Original disconnect acknowledgement UNKNOWN';
+ for(const route of ['connections','permissions','connections']){f.ui.viewChanged(route);const target=route==='connections'?'desktop-connection-sessions-slot':'desktop-permission-slot';assert.equal(sessions.parentElement.id,target);assert.equal(detail.parentElement.id,target);assert.equal(f.id('walletconnect-sessions'),sessions);assert.equal(detail.textContent,'Original disconnect acknowledgement UNKNOWN');}
+ button.click();assert.equal(clicks,1);assert.equal(f.document.querySelectorAll('[id="walletconnect-sessions"]').length,1);
+});
