@@ -54,3 +54,14 @@ test('explicit EVM Receive shares only the genuine current compatibility address
  const previous=globalThis.window,writes=[];globalThis.window={ynxWallet:{receiveCompatibilityCode:async()=>({ok:true,value:await createYNXEVMCompatibilityReceiveCode(account,async()=>selected())})}};
  try{const ui=createReceiveShareUI({getPresentation:()=>({ready:true,format:'evm'}),getContext:()=>({open:true,account,keyRevision:1}),requestCode:()=>{assert.fail('Native URI must not be shared in EVM format');},writeClipboard:async v=>writes.push(v),report(){}});await ui.copyAddress();await ui.copyLink();assert.deepEqual(writes,[canonical,canonical]);}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
+
+test('Resolver language refresh keeps current input, validated target and query count',async()=>{
+ const doc=dom();doc.documentElement.lang='en';const root=doc.createElement('section');let queries=0;
+ const ui=createAddressResolverUI({root,getContext:()=>({open:true,account:canonical,keyRevision:1,networkId:'ynx_6423-1'}),api:{resolveReceivingAddress:async input=>{queries++;return {ok:true,value:await resolveReceivingAddress(input,async()=>selected())};}}});
+ ui.input.value=account;ui.input.emit('input');await ui.resolve();const result=root.children.find(n=>n.tagName==='DL'),status=root.children.find(n=>n.id==='receive-resolver-status'),actions=root.children.find(n=>n.className==='resolver-actions');
+ assert.equal(root.children[0].textContent,'Address format conversion');doc.documentElement.lang='zh-Hans';ui.refreshLanguage();
+ assert.equal(root.children[0].textContent,'地址格式转换');assert.equal(status.textContent,'地址格式与当前所选账户一致。');assert.equal(result.children[3].children[1].textContent,'同账户可逆编码');assert.equal(actions.children[1].disabled,false);
+ assert.equal(ui.input.value,account);assert.equal(result.children[1].children[1].textContent,canonical);assert.equal(queries,1);assert.equal(root.dataset.resolverState,'ready');
+ doc.documentElement.lang='en';ui.refreshLanguage();assert.equal(status.textContent,'Address format and selected account match.');assert.equal(result.children[3].children[1].textContent,'Same-account reversible encoding');assert.equal(queries,1);
+ ui.input.value='bad';ui.input.emit('input');doc.documentElement.lang='zh-Hans';ui.refreshLanguage();assert.equal(status.textContent,'无法识别地址格式，请检查完整地址。');assert.equal(actions.children[1].disabled,true);assert.equal(result.children[1].children[1].textContent,'—');assert.equal(queries,1);
+});

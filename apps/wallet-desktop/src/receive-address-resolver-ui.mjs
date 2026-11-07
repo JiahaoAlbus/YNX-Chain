@@ -1,14 +1,16 @@
 // Pure production view. Only Main's fixed codec/status API supplies a result.
 // Matching a DATA shape here never creates Source/Root or ownership authority.
 export function createAddressResolverUI({root,api,getContext,writeClipboard}){
- const doc=root.ownerDocument,zh=doc.documentElement?.lang?.startsWith('zh'),text=(en,cn)=>zh?cn:en;
- const make=(tag,content,cls)=>{const n=doc.createElement(tag);if(tag==='button')n.type='button';if(content)n.textContent=content;if(cls)n.className=cls;return n;};
+ const doc=root.ownerDocument,translations=new Map(),translatedNodes=new Set();
+ const text=(en,cn)=>{const pair=[en,cn];translations.set(en,pair);translations.set(cn,pair);return doc.documentElement?.lang?.startsWith('zh')?cn:en;};
+ function refreshLanguage(){for(const node of translatedNodes){const pair=translations.get(node.textContent);if(pair)node.textContent=text(...pair);}}
+ const make=(tag,content,cls)=>{const n=doc.createElement(tag);if(tag==='button')n.type='button';if(content){n.textContent=content;if(translations.has(content))translatedNodes.add(n);}if(cls)n.className=cls;return n;};
  root.classList.add('address-resolver-design');
  const title=make('h2',text('Address format conversion','地址格式转换')),description=make('p',text('Look up the supported format for this selected account.','查询当前账户支持的另一种地址格式。'),'resolver-description');
  const label=make('label',text('Address input','地址输入')),input=make('input');input.id='receive-resolver-input';input.autocomplete='off';input.spellcheck=false;label.htmlFor=input.id;
- const status=make('p');status.id='receive-resolver-status';status.setAttribute('role','status');input.setAttribute('aria-describedby',status.id);
+ const status=make('p');translatedNodes.add(status);status.id='receive-resolver-status';status.setAttribute('role','status');input.setAttribute('aria-describedby',status.id);
  const directions=make('div',null,'resolver-directions'),toEVM=make('button','YNX → EVM'),toYNX=make('button','EVM → YNX');directions.append(toEVM,toYNX);
- const result=make('dl',null,'resolver-result'),fields={};for(const [key,en,cn]of [['source','Original address','原始地址'],['target','Target address','目标地址'],['network','Network','网络'],['method','Conversion method','转换方式']]){const row=make('div'),term=make('dt',text(en,cn)),value=make('dd','—');row.append(term,value);result.append(row);fields[key]=value;}
+ const result=make('dl',null,'resolver-result'),fields={};for(const [key,en,cn]of [['source','Original address','原始地址'],['target','Target address','目标地址'],['network','Network','网络'],['method','Conversion method','转换方式']]){const row=make('div'),term=make('dt',text(en,cn)),value=make('dd','—');row.append(term,value);result.append(row);fields[key]=value;if(key==='method')translatedNodes.add(value);}
  const actions=make('div',null,'resolver-actions'),query=make('button',text('Look up corresponding address','查询对应地址')),copy=make('button',text('Copy target address','复制目标地址'));query.classList.add('primary');actions.append(query,copy);
  const evidence=make('details',null,'resolver-evidence'),summary=make('summary',text('Technical details and validation','技术详情与校验依据')),explanation=make('p',text('The fixed YNX codec checks the address checksum and round trip. A result is shown only for the same currently selected account. This does not confirm balances, transactions or support on another chain.','固定 YNX 编码器校验地址格式、校验和与往返一致性；仅显示与当前所选账户一致的地址。不代表余额、交易或其他链支持已确认。'));evidence.append(summary,explanation);
  root.append(title,description,label,input,status,directions,result,actions,evidence);let epoch=0,held=null,direction='ynx-to-evm',closed=false;
@@ -33,5 +35,5 @@ export function createAddressResolverUI({root,api,getContext,writeClipboard}){
  async function copyTarget(){const original=held;if(!original||!same(original.before,original.token))return;await resolve();if(!held||held.value.target!==original.value.target||held.value.canonicalOwner!==original.value.canonicalOwner||typeof writeClipboard!=='function')return;const h=held;try{await writeClipboard(h.value.target,()=>held===h&&same(h.before,h.token));if(held===h&&same(h.before,h.token))state('ready',text('Target address copied.','目标地址已复制。'));}catch{if(held===h&&same(h.before,h.token))state('ready',text('Clipboard unavailable. Select the full target address to copy.','无法写入剪贴板，请选择完整目标地址复制。'));}}
  input.addEventListener('input',edit);query.addEventListener('click',resolve);copy.addEventListener('click',copyTarget);
  for(const [button,value]of [[toEVM,'ynx-to-evm'],[toYNX,'evm-to-ynx']])button.addEventListener('click',()=>{direction=value;invalidate();updateDirection();query.disabled=!valid();state(valid()?'idle':'invalid',text('Check the address for the selected direction.','请核对所选转换方向与地址。'));});
- edit();return Object.freeze({invalidate,resolve,copyTarget,destroy(){closed=true;invalidate();},input,root});
+ edit();return Object.freeze({invalidate,resolve,copyTarget,refreshLanguage,destroy(){closed=true;invalidate();},input,root});
 }

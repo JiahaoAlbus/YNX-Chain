@@ -1,3 +1,4 @@
+import {createWalletCleanupDiagnostics} from '../src/wallet-cleanup-diagnostics.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -49,7 +50,7 @@ test('R11 PUBLIC normal main initializes fixed private owner with the same Vault
 });
 test('R12 PUBLIC actual normal main retains absent producer and protected four IPC routes',async()=>{
  const main=source('main.mjs'),start=main.indexOf('let originalAdmissionSupply = null;'),end=main.indexOf('const recipientCameraPermission',start);assert.ok(start>=0&&end>start,'actual main entry absent');
- const routes=new Map(),context={createOriginalAdmissionController:()=>({status:()=>({available:false,busy:false,hasReview:false}),cancel(){}}),openOriginalAdmissionSupply:async()=>null,closeOriginalAdmissionSupply:async()=>undefined,readOriginalAdmissionSummary:async()=>({state:'not-supplied'}),originalAdmissionSelectionUnresolved:()=>false,originalAuthIdentityStartupUnresolved:()=>false,keyAccess:{status:()=>({locked:false,account:'PUBLIC-account',revision:1,unlockExpiresAt:2000}),run:()=>{throw Error('no original supply; no key operation');}},mainWindow:{isFocused:()=>true,webContents:{send(){}}},accountChangeInProgress:false,randomUUID:()=> 'PUBLIC-id',handleWalletIPC:(c,h)=>routes.set(c,h),safeIPC:async f=>{try{return {ok:true,value:await f()};}catch{return {ok:false};}}};
+ const routes=new Map(),context={createWalletCleanupDiagnostics,createOriginalAdmissionController:()=>({status:()=>({available:false,busy:false,hasReview:false}),cancel(){}}),openOriginalAdmissionSupply:async()=>null,closeOriginalAdmissionSupply:async()=>undefined,readOriginalAdmissionSummary:async()=>({state:'not-supplied'}),originalAdmissionSelectionUnresolved:()=>false,originalAuthIdentityStartupUnresolved:()=>false,keyAccess:{status:()=>({locked:false,account:'PUBLIC-account',revision:1,unlockExpiresAt:2000}),run:()=>{throw Error('no original supply; no key operation');}},mainWindow:{isFocused:()=>true,webContents:{send(){}}},accountChangeInProgress:false,randomUUID:()=> 'PUBLIC-id',handleWalletIPC:(c,h)=>routes.set(c,h),safeIPC:async f=>{try{return {ok:true,value:await f()};}catch{return {ok:false};}}};
  context.app={on(){},quit(){}}; // PUBLIC Event registration dependency; no app runs.
  runInNewContext(main.slice(start,end),context);assert.equal(routes.size,4);assert.equal((await routes.get('wallet:original-admission-status')()).value.available,false);assert.equal((await routes.get('wallet:original-admission-review')()).ok,false);
  assert.match(main,/assertWalletIPC\(event, mainWindow\?\.webContents/);assert.match(main,/originalAdmissionSecurityStamp/);

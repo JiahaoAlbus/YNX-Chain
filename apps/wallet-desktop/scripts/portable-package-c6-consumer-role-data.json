@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "b46a1c60f439c5416fc7b0880b673958e0250d8b",
-  "sourceTree": "0b129c79a0aa49e2d3f1e130854ce002a0a9f569",
+  "sourceCommit": "b8d24da8b1531254795c8d36a91f328bb0a843dd",
+  "sourceTree": "db19da1a106b19465acdf49d2aa82026dcda9564",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -216,8 +216,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/approved-desktop-ui.mjs",
-      "bytes": 14040,
-      "sha256": "874e10aaf7e42f9694409ec04b2f8805736fc5f58c7ff871bf9f86dc4e0a4729"
+      "bytes": 14067,
+      "sha256": "06da1a88e0f01009df3c27797b74c11afc7b83c0cfb0de330682567d8aac6d6a"
     },
     {
       "relative": "apps/wallet-desktop/src/approved-wallet-tokens.css",
@@ -231,8 +231,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/desktop-agent-delegations-ipc.mjs",
-      "bytes": 4621,
-      "sha256": "62685ab848df6ee01557029efee122e8284c9e848b33f148872f9ee9c6c7c384"
+      "bytes": 4650,
+      "sha256": "42fcbb67748903a9520eacf3ff6e1796e8b059c74b630c0f1aaa60b57ba45186"
     },
     {
       "relative": "apps/wallet-desktop/src/desktop-agent-delegations-renderer.mjs",
@@ -291,8 +291,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/main.mjs",
-      "bytes": 127950,
-      "sha256": "fb165e0f3b5f6d383eec9c6a7e768b0bfbb161e4f2faa9457b5c620f91dcdf3e"
+      "bytes": 129991,
+      "sha256": "d48e99ed808044a1f019250dae82c531e86a43093a1e76194c46038636dfe177"
     },
     {
       "relative": "apps/wallet-desktop/src/native-pay-client/SOURCE_RECEIPT.json",
@@ -361,8 +361,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/receive-address-resolver-ui.mjs",
-      "bytes": 7704,
-      "sha256": "b8579e94aa9b3a580c12ab93211d3e9321d2b28d8a3636d8401184c7e4d944ca"
+      "bytes": 8130,
+      "sha256": "1afabc6a1048aa2470691111b28e411bd9ea7cc53f4ac3586fb70511149633f8"
     },
     {
       "relative": "apps/wallet-desktop/src/receive-code-ui.mjs",
@@ -398,6 +398,11 @@
       "relative": "apps/wallet-desktop/src/wallet-appearance.mjs",
       "bytes": 4591,
       "sha256": "d1fc1546ccf127d15a43ff7182c830879b233d3f243031137f45d617d7dd78bb"
+    },
+    {
+      "relative": "apps/wallet-desktop/src/wallet-cleanup-diagnostics.mjs",
+      "bytes": 1498,
+      "sha256": "55b5dd02dfdf8a67848e0eadd997a20cefa100324c048a65d387c5db87b1d05a"
     },
     {
       "relative": "apps/wallet-desktop/src/wallet-ide-identity-peer-kernel.mjs",
@@ -466,8 +471,8 @@
     },
     {
       "relative": "apps/wallet-desktop/test/desktop-agent-delegations-ipc.test.mjs",
-      "bytes": 11692,
-      "sha256": "a7b7169622cb55a63dc8483e8138c72ff1eb3d323e517a4274f6c45e9af1f66d"
+      "bytes": 11705,
+      "sha256": "03e1353688a45c4e219a94d09fce07816252cadea2c0765330cfc5dc42ba4306"
     },
     {
       "relative": "apps/wallet-desktop/test/desktop-agent-delegations-ui.test.mjs",
@@ -545,6 +550,11 @@
       "sha256": "7146b28c3199e9860eb0d7ad1d2514ea7d75d090586f28a5ff42867cd2ac0ff7"
     },
     {
+      "relative": "apps/wallet-desktop/test/original-admission-normal-entry.test.mjs",
+      "bytes": 38541,
+      "sha256": "d1717fa84b399f4d0fe96e70791edd1fb2a4dba80847e57d736912ed83bc5592"
+    },
+    {
       "relative": "apps/wallet-desktop/test/product-native-context.test.mjs",
       "bytes": 13036,
       "sha256": "b76b654474ca64a023037c08adf00f3f5114b8c668e980fc25e4b3d7c152bbdc"
@@ -556,8 +566,8 @@
     },
     {
       "relative": "apps/wallet-desktop/test/receive-approved-design.test.mjs",
-      "bytes": 11635,
-      "sha256": "e7200639f00724485a6cbbe0da1dfabd96096f505919bf4415a5a30884d6cc66"
+      "bytes": 13503,
+      "sha256": "093a520a5a1fc118d36c91af9d5a40a35bc3c965041b99f72a4c4774a4c6d7ca"
     },
     {
       "relative": "apps/wallet-desktop/test/receive-main-ipc.test.mjs",
@@ -573,6 +583,11 @@
       "relative": "apps/wallet-desktop/test/session-reentry-mounted.test.mjs",
       "bytes": 10857,
       "sha256": "366c9b87c4b076019fcd730597cf89265502c73d4a2e2320536c9c2e534fc97e"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/wallet-cleanup-diagnostics.test.mjs",
+      "bytes": 7599,
+      "sha256": "32dfc7caf310ba8093949612a1e2c5a256f1380e41c193da3a09ef16b3459a4f"
     },
     {
       "relative": "apps/wallet-desktop/test/wallet-ide-identity-peer-owner.test.mjs",

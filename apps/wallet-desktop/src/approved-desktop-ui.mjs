@@ -70,7 +70,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   updatePending(pending);
  }
  function renderNetwork(){if(!networkState)return;const view=desktopNetworkDisplay(networkState,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';}
- const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();overviewActivity?.render();agentDelegations.refreshLanguage();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
+ const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();overviewActivity?.render();agentDelegations.refreshLanguage();resolver.refreshLanguage();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
  return Object.freeze({render,viewChanged,enterWorkspace,updatePending,updateHistory:(view,actor)=>overviewActivity?.updateHistory(view,actor),showHistoryRecord(record){
   const parent=byId('desktop-history-detail');if(!parent||record?.account!==scope?.canonical)return;parent.replaceChildren();
   const h=doc.createElement('h2'),amount=doc.createElement('p'),facts=doc.createElement('dl'),notice=doc.createElement('p');

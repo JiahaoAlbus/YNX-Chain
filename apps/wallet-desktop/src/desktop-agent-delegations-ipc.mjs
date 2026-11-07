@@ -10,7 +10,7 @@ export function createDesktopAgentDelegationsService({controller}){
  function call(method,value){if(closing)fail('AGENT_VIEW_CLOSED');if(cleanupDebt)fail('AGENT_CLEANUP_REQUIRED');let result;try{result=method==='readProjection'?controller.readProjection():controller[method](value);}catch(error){firstOperationCause??={cause:error};return Promise.reject(error);}const selected=Promise.resolve(result).catch(cause=>{firstOperationCause??={cause};throw cause;});return track(selected);}
  function cancelView(){if(cancelFlight)return cancelFlight;let resolve,reject;cancelFlight=new Promise((yes,no)=>{resolve=yes;reject=no;});const selected=cancelFlight;
   let result;try{result=controller.cancelView();}catch(cause){result=Promise.reject(cause);}
-  void Promise.resolve(result).then(clean=>{if(clean!==true)fail('AGENT_CLEANUP_UNCONFIRMED');cleanupDebt=false;resolve(true);}).catch(cause=>{cleanupDebt=true;firstCleanupCause??={cause};reject(cause);}).finally(()=>{if(cancelFlight===selected)cancelFlight=null;});void selected.catch(()=>{});return selected;
+  void Promise.resolve(result).then(clean=>{if(clean!==true)fail('AGENT_CLEANUP_UNCONFIRMED');cleanupDebt=false;if(cancelFlight===selected)cancelFlight=null;resolve(true);}).catch(cause=>{cleanupDebt=true;firstCleanupCause??={cause};if(cancelFlight===selected)cancelFlight=null;reject(cause);});void selected.catch(()=>{});return selected;
  }
  function assertSafeToClose(){if(active.size||cancelFlight||cleanupDebt)fail('AGENT_CLEANUP_PENDING');}
  return Object.freeze({readProjection:()=>call('readProjection'),reviewDraft:draft=>call('reviewDraft',draft),reviewAction:ref=>call('reviewAction',ref),recoverOperation:id=>call('recoverOperation',id),cancelView,
