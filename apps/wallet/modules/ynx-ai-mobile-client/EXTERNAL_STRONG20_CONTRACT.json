@@ -1,0 +1,119 @@
+{
+  "schema": "YNX_NATIVE_AI_V6_REQUIRED_PLATFORM20/v1",
+  "status": "EXACT_AUTH_PRIVATE_TYPED_DECLARATIONS_AND_CALLER_SEMANTICS_NOT_BODY_CLAIM",
+  "matchingAuth": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/HANDOFF.json",
+    "bytes": 3846,
+    "sha256": "8a16663185ee5c1f98925f9bd4bd37fda779f44f36c329287fdf7523de072482"
+  },
+  "strong20": [
+    {
+      "family": "application",
+      "owner": "Original SDK/Wallet platform install and protected review owner via Root/A; no generic provider",
+      "header": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskPlatformPrivate.h",
+        "bytes": 1646,
+        "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
+      },
+      "signatures": [
+        "int32_t ynx_ai_mobile_application_acquire_v6(YNXAIMobileApplication**);",
+        "int32_t ynx_ai_mobile_application_read_v6(YNXAIMobileApplication*,YNXAIMobileApplicationDATA*);",
+        "int32_t ynx_ai_mobile_application_current_v6(YNXAIMobileApplication*);",
+        "void ynx_ai_mobile_application_retire_v6(YNXAIMobileApplication*);",
+        "int32_t ynx_ai_mobile_application_close_v6(YNXAIMobileApplication*);",
+        "int32_t ynx_ai_mobile_application_release_closed_v6(YNXAIMobileApplication*);"
+      ]
+    },
+    {
+      "family": "approval",
+      "owner": "Original SDK/Wallet platform install and protected review owner via Root/A; no generic provider",
+      "header": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskRuntimePrivate.h",
+        "bytes": 6437,
+        "sha256": "aedd77226172124609e29dc1641df10fd8abef0cc4eff569bd3e512c6b953998"
+      },
+      "signatures": [
+        "int32_t ynx_ai_mobile_approval_acquire_v6(YNXAIMobileSigningCapture*,YNXAIMobileApproval**);",
+        "int32_t ynx_ai_mobile_approval_current_v6(YNXAIMobileApproval*,YNXAIMobileSigningCapture*);",
+        "int32_t ynx_ai_mobile_approval_claim_v6(YNXAIMobileApproval*,YNXAIMobileSigningCapture*);",
+        "void ynx_ai_mobile_approval_retire_v6(YNXAIMobileApproval*);",
+        "int32_t ynx_ai_mobile_approval_join_v6(YNXAIMobileApproval*);",
+        "int32_t ynx_ai_mobile_approval_close_v6(YNXAIMobileApproval*);",
+        "int32_t ynx_ai_mobile_approval_release_closed_v6(YNXAIMobileApproval*);"
+      ]
+    },
+    {
+      "family": "agent_operation",
+      "owner": "Original Native/PQ owner successor, with original Core dedicated V6 typed signer; Root/A selects single final image",
+      "header": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskRuntimePrivate.h",
+        "bytes": 6437,
+        "sha256": "aedd77226172124609e29dc1641df10fd8abef0cc4eff569bd3e512c6b953998"
+      },
+      "signatures": [
+        "int32_t ynx_ai_mobile_agent_operation_acquire_v6(YNXAIMobileSigningCapture*,YNXAIMobileAgentOperation**);",
+        "int32_t ynx_ai_mobile_agent_operation_sign_once_v6(YNXAIMobileAgentOperation*);",
+        "int32_t ynx_ai_mobile_agent_operation_read_v6(YNXAIMobileAgentOperation*,YNXAIMobileAgentOutcome*);",
+        "void ynx_ai_mobile_agent_operation_retire_v6(YNXAIMobileAgentOperation*);",
+        "int32_t ynx_ai_mobile_agent_operation_join_v6(YNXAIMobileAgentOperation*);",
+        "int32_t ynx_ai_mobile_agent_operation_close_v6(YNXAIMobileAgentOperation*);",
+        "int32_t ynx_ai_mobile_agent_operation_release_closed_v6(YNXAIMobileAgentOperation*);"
+      ]
+    }
+  ],
+  "semantics": {
+    "common": [
+      "Only genuine same-process Native inventory tokens; never JS pointer/DTO/global setter/provider.",
+      "Original serial OS actor for acquire/read/current/sign/claim/join/close/release; explicit retire/cancel reduce only as declared.",
+      "Every nonnull partial retained before int rc or Failure.present inspection; present=true code0 remains original failure.",
+      "Full Root/Source/current recheck outside Core/store locks; no DATA or brand grants authority.",
+      "Physical close must be witnessed through exact release_closed success; preserve UNKNOWN and close debt, no hidden retry/replacement."
+    ],
+    "application": [
+      "Zero-input acquire returns original normal installed application owner; applicationDATA version6/sizeof, actual platform/applicationId and installed image/module manifest digests.",
+      "Auth Root independently compares application6 fields against Source18 nativeIdentity and imagePins; no fake current bool or guessed app identity.",
+      "Retire reduces app lifetime, close then release_closed; no application join export exists."
+    ],
+    "approval": [
+      "Acquire receives genuine Auth signing-capture token from SAME review, unsigned35/digest/Root, actual selected Native account/current epoch.",
+      "Use existing protected native review UI; approval_current binds SAME capture; claim exactly once after actual independent approval.",
+      "No JS approved flag/AbortSignal snapshot, no implicit approval from prepare, no Wallet key handoff."
+    ],
+    "agent": [
+      "Acquire only genuine Auth signing capture; dedicated PRODUCT-SESSION-AI-TASK-ACTION purpose, exact35/E5/N1 and original agent registered resource.",
+      "sign_once is single selection even failure/UNKNOWN; no second key/nonce/operation, Wallet asset43 stays Native/Wallet.",
+      "read returns memberOriginal plus primitive_status, cleanup_status and paired failure; Native/Auth retain actual Member partial before interpreting status.",
+      "Auth verifies registered AND Member on E5; no Wallet/device/server response key reuse, no generic signer or fallback."
+    ]
+  },
+  "callerPins": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskRoot.cpp",
+      "bytes": 16861,
+      "sha256": "ec9f1f95cccc80cbc8cff4f6df2cf963bf74abec8bd5795ed751d16d7e03e31f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskClient.cpp",
+      "bytes": 31616,
+      "sha256": "4289559e06604cfe55999af28d1367d48f7faa1c132d18a0c7a60d83f7c472cb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskClientC.cpp",
+      "bytes": 10251,
+      "sha256": "685c5ea7e7ae82959cd851e474e1f7ffd741e0f0ab6b34eb73e45ad7473a51be"
+    }
+  ],
+  "normalStrongReadback": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-normal-composition-20261107-N9Kllv/REQUIRED_EXTERNAL_STRONG_IMPORTS.txt",
+    "bytes": 1470,
+    "sha256": "2b73ecba00a6bd89254b1bb26ef66af3eb625cc8591aec1a5d78b02b8bb43d4d"
+  },
+  "otherImports": {
+    "directorySHA": "Original PQ SelectedAppDirectory plus original OS43 platform objects, no second runtime",
+    "Core": "Original single platform Core Source18/N1 archive selected by A",
+    "neutralTLS": "Original LINK neutral native library, no duplicate bridge/provider/Go"
+  },
+  "RootAdmission": false,
+  "realSigner": false,
+  "installed": false
+}

@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.22)
+project(ynx_ai_mobile_thin LANGUAGES CXX)
+file(READ "${CMAKE_CURRENT_LIST_DIR}/../RESPONSE_CARRIER_PINS.json" _ynx_ai_pair_pins)
+string(JSON _ynx_ai_pair_type TYPE "${_ynx_ai_pair_pins}" authMatchedPair)
+if(_ynx_ai_pair_type STREQUAL "NULL")
+  message(FATAL_ERROR "Native signed carrier requires the matching whole Auth client successor; never hot-mix old Auth body")
+endif()
+# A owns the sole Auth/Core/Go image. This module is only thin native objects;
+# no static Auth archive import and no second runtime library are permitted.
+if(NOT DEFINED YNX_AI_COMBINED_NATIVE_TARGET)
+  message(FATAL_ERROR "A must supply the ONE existing shared/combined native target")
+endif()
+if(NOT TARGET "${YNX_AI_COMBINED_NATIVE_TARGET}")
+  message(FATAL_ERROR "A must supply the ONE existing shared/combined native target")
+endif()
+file(GLOB AI_NATIVE CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../native/*.cpp")
+add_library(ynx_ai_mobile_thin OBJECT ${AI_NATIVE} src/main/cpp/Registration.cpp)
+target_compile_features(ynx_ai_mobile_thin PRIVATE cxx_std_20)
+set_target_properties(ynx_ai_mobile_thin PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(NOT DEFINED YNX_AI_MATCHING_AUTH_INCLUDE_ROOTS)
+  message(FATAL_ERROR "A must provide the exact matching Auth source/inherited include roots")
+endif()
+target_include_directories(ynx_ai_mobile_thin PRIVATE ../native ${YNX_AI_MATCHING_AUTH_INCLUDE_ROOTS})
+target_link_libraries(ynx_ai_mobile_thin PRIVATE ReactAndroid::reactnative ReactAndroid::jsi fbjni::fbjni)
+target_sources(${YNX_AI_COMBINED_NATIVE_TARGET} PRIVATE $<TARGET_OBJECTS:ynx_ai_mobile_thin>)
+# The final target supplies matching Auth recovery source, sole codec/header and
+# reviewed LINK/Core/OS strong bodies once. Unresolved dependencies fail linkage.

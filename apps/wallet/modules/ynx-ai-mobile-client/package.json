@@ -1,0 +1,14 @@
+{
+  "name": "@ynx/original-ai-mobile-v6-native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Original C17 native AI binding thin sources; no second Auth/Go image",
+  "scripts": {
+    "test": "node test/ci.mjs",
+    "test:worker": "node test/run-worker-controls.mjs",
+    "test:bridge": "node test/run-bridge-controls.mjs",
+    "test:context": "node test/run-context-controls.mjs",
+    "test:normal": "node test/compile-normal-composition.mjs",
+    "test:platform": "node test/compile-platform.mjs"
+  }
+}

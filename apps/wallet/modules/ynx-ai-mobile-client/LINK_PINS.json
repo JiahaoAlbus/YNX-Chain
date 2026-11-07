@@ -1,0 +1,114 @@
+{
+  "schema": "YNX-LINK-AI-V6-NATIVE-STRONG-PHYSICAL-CALLEE/v1",
+  "state": "ACTUAL_PHYSICAL_CODE_LOCAL_AND_ORIGINAL_CI_QUALIFIED_NATIVE_TWO_LOAN_ADAPTER_REQUIRED",
+  "sourceCommit": "e1487b05368e86eaa5dded8a9e27cbc1b93ce62c",
+  "files": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ai-mobile-v6-transport-wire.cpp",
+      "bytes": 5307,
+      "sha256": "b8e86c26d4f5a1219ebd9962c4e6cc015e9a69bcdd92192a10a195a80fa21180",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ai-mobile-v6-transport-wire.cpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ai-mobile-v6-transport-wire.hpp",
+      "bytes": 1266,
+      "sha256": "b16815be098c8257ba945a45de4eb2c2e715194b5eef268d0a7ae584657d5523",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ai-mobile-v6-transport-wire.hpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ai-mobile-v6-transport.cpp",
+      "bytes": 31742,
+      "sha256": "603b553a78a33b17c17066da56cfe88aabcccf4b4b16220933a61937fc224de8",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ai-mobile-v6-transport.cpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ai-mobile-v6-transport.hpp",
+      "bytes": 5663,
+      "sha256": "b2f8488abb47d97fe4cf55fe715d37c72d710b2df9dfee7b6ff8084c671d9dc7",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ai-mobile-v6-transport.hpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ide-finite-get-wire.cpp",
+      "bytes": 19964,
+      "sha256": "948bdf90791b2f53c80ec8c057f216f931c6a10514eeb73b08ec478a4a991b63",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-wire.cpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ide-finite-get-wire.hpp",
+      "bytes": 1394,
+      "sha256": "f894232022ed5bb6eead568b325a8e06070c35726336d5e6bc596470316e1585",
+      "repositoryPath": "cmd/ynx-secure-link-caller/ide-finite-get-wire.hpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/internal/securelink/native/bridge.c",
+      "bytes": 22770,
+      "sha256": "bc264b2723f1a1b3f2c0fa1339d0c9b71b8062c640ac230000d8139586623216",
+      "repositoryPath": "internal/securelink/native/bridge.c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/internal/securelink/native/bridge.h",
+      "bytes": 1673,
+      "sha256": "ae0edc878ab2cd0ee8cd109e29d04d6893091d70ecc4d5ec8537ab87db55ce1d",
+      "repositoryPath": "internal/securelink/native/bridge.h"
+    }
+  ],
+  "privateHeader": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/source-e1487b05368e86eaa5dded8a9e27cbc1b93ce62c/cmd/ynx-secure-link-caller/ai-mobile-v6-transport.hpp",
+    "bytes": 5663,
+    "sha256": "b2f8488abb47d97fe4cf55fe715d37c72d710b2df9dfee7b6ff8084c671d9dc7",
+    "repositoryPath": "cmd/ynx-secure-link-caller/ai-mobile-v6-transport.hpp"
+  },
+  "namespace": "ynx::ai_mobile_v6::physical",
+  "start": "RequestOwner::start(native_loan::OriginalAttempt*,shared_ptr<RequestOwner>&out)",
+  "ownedResponse": "wait_response(timeout,&constPacket) -> original status/headers/trailers/entity+failure/dispatch_possible/unknown; adopt nonnull before code; release_packet exactidentity",
+  "lifecycle": [
+    "retire/abort same attempt, never resend",
+    "join(timeout,&completed) requires actual worker/reaper/packet debt, DRAINING nonsticky",
+    "close(&completed) releases Native borrow only after physical drain; error+nonnull partial remains owned",
+    "first_error/lifetime observed DATA only"
+  ],
+  "strongNativeAdapter": {
+    "type": "native_loan::OriginalAttempt, incomplete in LINK; original Native actual inventory defines it from same Peer/Context/Prepared/frame",
+    "ports": [
+      "int32_t retain_original(OriginalAttempt*)",
+      "int32_t read_original_material(OriginalAttempt*, Material&)",
+      "int32_t current_before_write(OriginalAttempt*)",
+      "void release_after_physical_join(OriginalAttempt*)"
+    ],
+    "requirements": [
+      "retain atomically selects same attempt once plus one borrow; selection consumed after failed/UNKNOWN, no generic reusable retain",
+      "read on original actor binds actual Native payload original method/path/head/body and independently approved sameC17 Auth target/SPKI/FDcredential/SAN/epoch/window",
+      "full Native and Auth current only on original actor; worker port atomic cancel+Auth workerCurrent+fixed deadline, no actor/IO/JS under LINK locks",
+      "decode actual final proof-v6 via soleSDK r2; byte-equal retained Auth unsigned35/member/body plus original nonce/opctx lineage, endpoint whole/path/subtree preserved",
+      "Native response owner maps Auth retainPacket/releasePacket independently; payload+Auth physical child/packet debt clear before Source/TLSFD release",
+      "YNXAIMobileFailureV6.present true is failure even when code0: save original failure and return nonzero to int32 ports",
+      "normal ports have no PUBLIC fixture fallback, URL/header/FD or Source setter"
+    ]
+  },
+  "normalNativeAdapterFourPortsImplementedByLINK": false,
+  "normalAuthorityNotSuppliedByLINK": true,
+  "CBridgeOnceInOriginalSingleGo49": true,
+  "normalNativeTranslationUnits": [
+    "ai-mobile-v6-transport.cpp",
+    "ai-mobile-v6-transport-wire.cpp",
+    "existing ide-finite-get-wire.cpp exactly once as shared pure HTTP parser, not finite7 authority"
+  ],
+  "CI": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/ai-mobile-v6-next/CI-QUALIFIED-HANDOFF.json",
+    "bytes": 4009,
+    "sha256": "04d20e8530d331b5676e1338f7dca6ea129fbbf3f3a03256679a50ad79393d5c"
+  },
+  "payloadLoan": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-loan-20261107-WoeMeS/HANDOFF.json",
+    "bytes": 2957,
+    "sha256": "c796d680ca7ae2c873acc5b46248edae892351cd20c2f54f034c1492b061e016"
+  },
+  "SDKCarrier": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-native-codec-successor-20261107/header-r2/HANDOFF.json",
+    "bytes": 4061,
+    "sha256": "32ffedbc67a6e095f5bbd5380a3f5529f72de7b70637346f9332ba1e4e389d76"
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "actualMobileOSLinkedOrInstalled": false
+}

@@ -1,0 +1,64 @@
+{
+  "supplierH": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/HANDOFF.json",
+  "Hbytes": 3846,
+  "Hsha256": "8a16663185ee5c1f98925f9bd4bd37fda779f44f36c329287fdf7523de072482",
+  "headers": [
+    {
+      "name": "MobileAITaskClientC.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskClientC.h",
+      "bytes": 3147,
+      "sha256": "1182f7f9d104c6e6b9ac5bdd5e8ea5f69a452248b2480ceb84bc64763374eefc"
+    },
+    {
+      "name": "MobileAITaskRuntimePrivate.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskRuntimePrivate.h",
+      "bytes": 6437,
+      "sha256": "aedd77226172124609e29dc1641df10fd8abef0cc4eff569bd3e512c6b953998"
+    },
+    {
+      "name": "MobileAITaskPlatformPrivate.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITaskPlatformPrivate.h",
+      "bytes": 1646,
+      "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
+    },
+    {
+      "name": "MobileAITransportAuthorityPrivate.hpp",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITransportAuthorityPrivate.hpp",
+      "bytes": 4136,
+      "sha256": "5308c3c21b839394ba5d459bb8d6c4c3f4f47dca299990804998064e42bb9d6d"
+    },
+    {
+      "name": "MobileAITransportAccessPrivate.hpp",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/MobileAITransportAccessPrivate.hpp",
+      "bytes": 894,
+      "sha256": "026e6f546e48afde0cd395353e059a2acc91bd39b244816904f108ababf61e08"
+    }
+  ],
+  "canonicalIncludeRoots": [
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/inherited",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/native-input",
+    "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/core-input"
+  ],
+  "sourceRoot": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source",
+  "sourcePins": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/SOURCEPINS.json",
+    "bytes": 78285,
+    "sha256": "d2faa5e3fa434e11510cf5c507011775026c5129d0a587e57d8afbe187830a80"
+  },
+  "canonicalData": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/inherited/MobileCanonicalDATA.hpp",
+    "bytes": 1495,
+    "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+  },
+  "wholeSource": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/SOURCEFILES.json",
+    "bytes": 7399,
+    "sha256": "82d64ad42f828bd18080529329ed84bf5e4a96207fb50c9133b424c5b7ed123b"
+  },
+  "dependencies": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/DEPENDENCIES.json",
+    "bytes": 2859,
+    "sha256": "29aad8cd5c3f0d49054119151d829882495cd3e756df05c88a78bb4799d341cd"
+  }
+}

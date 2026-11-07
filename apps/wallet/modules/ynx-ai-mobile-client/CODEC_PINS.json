@@ -1,0 +1,61 @@
+{
+  "codec": {
+    "version": 1,
+    "header": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-native-codec-successor-20261107/final-r1/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.hpp",
+      "bytes": 1828,
+      "sha256": "235447334ecf2e31669c8d2be5f24f82e89ed790f3e5850ee0fae4a350d76fe3"
+    },
+    "implementation": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-native-codec-successor-20261107/final-r1/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6CodecDATA.cpp",
+      "bytes": 19014,
+      "sha256": "1d4753257fc9116831cd3e700e67aeaf34e3086750b960a00c3ca2075dc912a8"
+    },
+    "strong": [
+      "ynx_ai_mobile_validate_request_message_v6",
+      "ynx_ai_mobile_validate_response_message_v6"
+    ],
+    "constructors": [
+      "buildRequestDATA(RequestFields, networkHex, actualBodyOriginal)",
+      "prepareRequestDATA(canonical35, networkHex, actualBodyOriginal)"
+    ],
+    "output": [
+      "owned canonical35 unsignedOriginal",
+      "owned E5 messageOriginal"
+    ],
+    "signature": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
+  },
+  "header": {
+    "namespace": "ynx::sdk::ai::v6::data",
+    "requestHeader": "x-ynx-product-session-proof-v6",
+    "responseHeader": "x-ynx-product-session-response-proof-v6",
+    "header": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-native-codec-successor-20261107/header-r2/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6HeaderDATA.hpp",
+      "bytes": 952,
+      "sha256": "072dad86558c822307589e2a349035d8ff525130de70b3b919e55d9060b087c7"
+    },
+    "implementation": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-native-codec-successor-20261107/header-r2/source/packages/wallet-auth/native/ai-v6-codec/MobileAITaskV6HeaderDATA.cpp",
+      "bytes": 2076,
+      "sha256": "8a0cc6998260c738c5c792e45d6997a8aed61c043c4542c8dd7f2e3909fc3e34"
+    },
+    "functions": [
+      "encodeRequestHeaderDATA(canonical35,networkHex,bodyOriginal,memberOriginal)",
+      "decodeRequestHeaderDATA(header,networkHex,bodyOriginal)",
+      "encodeResponseHeaderDATA(canonical16,networkHex,memberOriginal)",
+      "decodeResponseHeaderDATA(header,networkHex)"
+    ],
+    "outputOwned": [
+      "unsignedOriginal",
+      "messageOriginal",
+      "memberOriginal"
+    ],
+    "signatureVerified": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
+  }
+}

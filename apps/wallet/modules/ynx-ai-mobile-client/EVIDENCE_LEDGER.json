@@ -1,0 +1,143 @@
+{
+  "status": "NATIVE_OWNING_CODE_MATCHED_AUTH_LINK_NORMAL_RELOCATABLE_COMPOSITION_VERIFIED_NOT_ACTIVATED",
+  "noAggregateBusinessPassCount": true,
+  "evidence": [
+    {
+      "name": "baseline-worker-16",
+      "scope": "Earlier tool stdout (16) retained in chat; superseded targeted join validation below",
+      "retainedOutput": "Earlier tool stdout (16) retained in chat; superseded targeted join validation below",
+      "businessProof": false
+    },
+    {
+      "name": "actual-JSC-9",
+      "scope": "Native HostObjects/producer/Prepared on actual RN/JSC; PUBLIC C17 seam, baseline unaffected controls",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-bridge-20261107-X5VMLs/RUNS.json",
+        "bytes": 27238,
+        "sha256": "8a3985a2099ff7fcd53f3b82b74a47196f1c41858bcf22cabe8ff362236e4a64"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "actual-Native-adapter-4",
+      "scope": "Actual attempt/four-wrapper/response/JSI with PUBLIC Auth+LINK ABI seams; not TLS/Root",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-transport-public-20261107-mhZ3P8/RUNS.json",
+        "bytes": 42398,
+        "sha256": "e55eaaa0906d008fa38b263c5979dfba7505076e6b6bd47b90d2c8c4e8ba6854"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "focused-private-join-1",
+      "scope": "Actual worker explicit join/release/physical-closed sticky present0; only new focused control",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-focused-join-20261107-PHOuEx/RUNS.json",
+        "bytes": 1929,
+        "sha256": "808876babcdbfad9f6362a03a7b8665d0fa69f036c321a79d9ce5e18b14a87f9"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "paired-native-response-4",
+      "scope": "Post simulated-Auth-success C4/C5 against sole carrier bytes; PUBLIC Auth+LINK ABI seams",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-paired-response-20261107-y33cph/RUNS.json",
+        "bytes": 42986,
+        "sha256": "f90142673d72d32b67feac9fbc8eca823059ffcb7dde927fa0578b8c16135c36"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "context-Source-deadline-4",
+      "scope": "Native same-Ckind1 Scope expiresAtMs, no renewal/expired/latepresent0/thread/cancel; PUBLIC C17 DATA",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-context-deadline-20261107-64ZcFc/RUNS.json",
+        "bytes": 2284,
+        "sha256": "264a8e36ed693e34d403899f230c00f3b375bfecd67a48d7f2b9d4921b821612"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "normal-mobile-objects",
+      "scope": "Six common TUs on Android+iOS + per-platform normal registrar = fourteen target objects; headers-only composition",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-platform-20261107-ViPrzH/RUNS.json",
+        "bytes": 30974,
+        "sha256": "94ce828bb7b504f1cf4e76ac2617ea5caf9463c1f0987844e8785327c41b6ad0"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "Kotlin-normal-registration",
+      "scope": "Actual Kotlin/RN/fbjni AAR source compile",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-os-20261107-Su1lzl/RUNS.json",
+        "bytes": 17289,
+        "sha256": "36091836a0f6a76b22e40ff25a192da3328013162d1fc6586edcca7bc0441f6f"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "final-matched-paired-response-4",
+      "scope": "Actual Native/sole carrier and final matching headers with PUBLIC C17/Auth/LINK boundary; not actual crypto or TLS",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-final-paired-response-20261107-QP4nJD/RUNS.json",
+        "bytes": 43534,
+        "sha256": "329971439b9ec99ed4627bfdaf48125c0990a4feea71036075ce41e582e77682"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "focused-current-raw0-1",
+      "scope": "Native current post-state preserves late original failure present0 over int status",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-focused-current0-20261107-4nGnSN/RUNS.json",
+        "bytes": 1928,
+        "sha256": "31c51d664a4761a55a5ccaee2bc6e31abeec44c2325d1f67c9c754557ca4d43f"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "normal-production-composition-23",
+      "scope": "23 actual normal Native/Auth/sole/LINK CPP TUs, no PUBLIC macros or ABI replacements, relocatable link only; strong external gates remain",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-normal-composition-20261107-N9Kllv/RUNS.json",
+        "bytes": 53883,
+        "sha256": "ec988566d0fd649039b6f5c3f308e6c2468c256a5d6e021e5b88d66e1aa92928"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "final-matched-platform-objects-14",
+      "scope": "6 current common Native TUs per Android/iOS plus normal per-platform registrar; no final executable/image",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-platform-20261107-b7OOxM/RUNS.json",
+        "bytes": 31254,
+        "sha256": "bbeebc0a1e165d05b2f4ce5a0c691c2a0351a52c2e10284dd4cc4f9e0d1c0b9c"
+      },
+      "businessProof": false
+    },
+    {
+      "name": "parent-auth-266-readback",
+      "scope": "Parent supplier recursive exact readback, reused not rerun",
+      "run": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/ai-auth-carrier-final2-intake-20261107-mp1335/READBACK.json",
+        "bytes": 82192,
+        "sha256": "d1100c80fb2e9e7f725a1da26c08da96ba38518e0f52e523b5148999115e54ef"
+      },
+      "businessProof": false
+    }
+  ],
+  "qualification": {
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "actualTLS": false,
+    "actualSigner": false,
+    "wholeMobileImage": false,
+    "installed": false,
+    "deployed": false,
+    "realBusinessCompletion": false
+  },
+  "pending": "Actual A-selected single final image, original App6/approval/V6-agent platform bodies, mobile Core/neutral TLS, installed provenance/Root and real product acceptance remain separate"
+}

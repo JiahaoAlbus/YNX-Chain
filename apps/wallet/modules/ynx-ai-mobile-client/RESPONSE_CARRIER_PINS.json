@@ -1,0 +1,37 @@
+{
+  "supplierH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-signed-response-carrier-successor-20261107/independent-integration-review/HANDOFF.json",
+    "bytes": 6368,
+    "sha256": "64822680f0e969ca04c2bd89e4b3b44497cb7d207dc4fd5f4acbe24308375251"
+  },
+  "header": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-signed-response-carrier-successor-20261107/independent-integration-review/source/packages/wallet-auth/native/ai-v6-response-carrier/AIResponseOriginalsCarrierDATA.hpp",
+    "bytes": 737,
+    "sha256": "6f93b66f7de03d8bd76e97f3bf2aedb9ae4c078baeac97b7618a9b172093e216"
+  },
+  "implementation": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/source/AIResponseOriginalsCarrierDATA.cpp",
+    "bytes": 1576,
+    "sha256": "33ad6142bfa5c60602f2bc42cc6928bec1d10118769caa6e6f17f4159bf15495"
+  },
+  "authMatchedPair": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/response-carrier-outcome-successor/final-r2/HANDOFF.json",
+    "bytes": 3846,
+    "sha256": "8a16663185ee5c1f98925f9bd4bd37fda779f44f36c329287fdf7523de072482"
+  },
+  "originalSupplierH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-signed-response-carrier-successor-20261107/HANDOFF.json",
+    "bytes": 6619,
+    "sha256": "c9b7346f578139101fcee4fcb5e77402dc9c34e4557e7037f6d077b1831ddfe8"
+  },
+  "optionalReceiptRecovery": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-recovery-evidence-index-successor-20261107/optional-receipt-successor/HANDOFF.json",
+    "bytes": 2748,
+    "sha256": "1a8741aff3b79c8d1aac151e816a43e7c6234893e7ccecae0339989ccec1f883"
+  },
+  "actualServer": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-action-source-successor/signed-response-carrier-server-successor/frozen-server-EOH6aw/HANDOFF.json",
+    "bytes": 7568,
+    "sha256": "a9252a04d922c4a2a3ca2381e6f529a125fd7a7c2c9453a4c7dfd9169a5dafe2"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "r4": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/contracts/HANDOFF.json",
+    "bytes": 1751,
+    "sha256": "128f17ddf1b8df5aab9c372b73c24e5208bce654e23a8a2f0abbe6deb2db216c"
+  },
+  "r5": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/private-lifecycle-r5/HANDOFF.json",
+    "bytes": 775,
+    "sha256": "e6ac7b9ceda48449a824ab402fc0d1f1907f842676caa6fdae365cdd5b8b4b76"
+  },
+  "r4Contract": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/contracts/PRIVATE_JSI_CONTRACT_R4.json",
+    "bytes": 12389,
+    "sha256": "67aa9845d1438be9853b9339edea8f2629faa6936645f956f60b4c9181de53e6"
+  },
+  "r5Contract": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ai-v6-mobile-real-binding-successor-20261107/sdk-adapter-r4/private-lifecycle-r5/PRIVATE_HOST_LIFECYCLE_R5.json",
+    "bytes": 2920,
+    "sha256": "a7d2285d24d5c1637eade639b8e1adbdc75acc12c6bc876e097c329a51a4389d"
+  }
+}
