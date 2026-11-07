@@ -62,6 +62,27 @@ type StoreBackupVerification struct {
 	Verified        bool     `json:"verified"`
 }
 
+// BackupExistingStore reads and validates one persisted source before creating
+// a backup. Unlike OpenStore's service-startup path, a missing source must not
+// initialize an empty snapshot and produce a successful recovery receipt.
+func BackupExistingStore(source, destination string, integrityKey []byte) (StoreBackupReceipt, error) {
+	if len(integrityKey) < 32 {
+		return StoreBackupReceipt{}, errors.New("pay product integrity key must contain at least 32 bytes")
+	}
+	if strings.TrimSpace(source) == "" {
+		return StoreBackupReceipt{}, errors.New("pay product backup source is required")
+	}
+	raw, err := os.ReadFile(source)
+	if err != nil {
+		return StoreBackupReceipt{}, fmt.Errorf("read existing pay product backup source: %w", err)
+	}
+	_, store, err := verifyStoreBytes(source, raw, integrityKey)
+	if err != nil {
+		return StoreBackupReceipt{}, fmt.Errorf("validate existing pay product backup source: %w", err)
+	}
+	return store.CreateBackup(destination)
+}
+
 // CreateBackup captures one lock-consistent, integrity-protected snapshot. The
 // artifact is written with mode 0600 and atomically renamed only after fsync.
 func (s *Store) CreateBackup(destination string) (StoreBackupReceipt, error) {
@@ -374,7 +395,7 @@ func detectStoreMigrations(raw []byte) []string {
 }
 
 func snapshotRecordCount(snapshot Snapshot) int {
-	return len(snapshot.Merchants) + len(snapshot.MerchantMembers) + len(snapshot.ConsoleSessions) + len(snapshot.GatewaySeen) + len(snapshot.Catalog) + len(snapshot.Invoices) + len(snapshot.Refunds) + len(snapshot.Disputes) + len(snapshot.Deliveries) + len(snapshot.AIRuns) + len(snapshot.Idempotency) + len(snapshot.Nonces) + len(snapshot.Sponsorships) + len(snapshot.BridgeTransfers) + len(snapshot.RouteQuotes) + len(snapshot.RecurringDrafts) + len(snapshot.SplitPayments) + len(snapshot.QuantBills) + len(snapshot.Audit)
+	return len(snapshot.MerchantActions) + len(snapshot.BusinessDispatches) + len(snapshot.Merchants) + len(snapshot.MerchantMembers) + len(snapshot.ConsoleSessions) + len(snapshot.GatewaySeen) + len(snapshot.Catalog) + len(snapshot.Invoices) + len(snapshot.Refunds) + len(snapshot.Disputes) + len(snapshot.Deliveries) + len(snapshot.AIRuns) + len(snapshot.Idempotency) + len(snapshot.Nonces) + len(snapshot.Sponsorships) + len(snapshot.BridgeTransfers) + len(snapshot.RouteQuotes) + len(snapshot.RecurringDrafts) + len(snapshot.SplitPayments) + len(snapshot.QuantBills) + len(snapshot.Audit)
 }
 
 func sha256Hex(raw []byte) string {

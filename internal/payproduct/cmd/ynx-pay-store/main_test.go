@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/hex"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -68,5 +70,19 @@ func TestRunRequiresIntegrityKeyBeforeFileAccess(t *testing.T) {
 	t.Setenv("YNX_PAY_PRODUCT_INTEGRITY_KEY", "")
 	if err := run([]string{"verify", "--store", "missing.json"}); err == nil || !strings.Contains(err.Error(), "YNX_PAY_PRODUCT_INTEGRITY_KEY") {
 		t.Fatalf("missing integrity key did not fail closed: %v", err)
+	}
+}
+
+func TestBackupMissingSourceNeverCreatesVerifiedEmptyArtifact(t *testing.T) {
+	t.Setenv("YNX_PAY_PRODUCT_INTEGRITY_KEY", hex.EncodeToString(bytes.Repeat([]byte{0x33}, 32)))
+	dir := t.TempDir()
+	source, output := filepath.Join(dir, "missing-original.json"), filepath.Join(dir, "backup.json")
+	if err := run([]string{"backup", "--store", source, "--output", output}); err == nil {
+		t.Fatal("missing original store was reported as a verified backup")
+	}
+	for _, path := range []string{source, output} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("failed backup created an artifact: %s: %v", filepath.Base(path), err)
+		}
 	}
 }

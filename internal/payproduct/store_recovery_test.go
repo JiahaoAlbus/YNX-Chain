@@ -5,10 +5,58 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
 )
+
+func TestStoreBackupCountsAndRetainsNativeCustody(t *testing.T) {
+	dir := t.TempDir()
+	key := bytes32(31)
+	snapshot := emptySnapshot()
+	snapshot.BusinessDispatches = map[string]BusinessDispatchRecord{
+		"original": {Operation: "native.originals", Phase: "retained", ResultCipher: "PUBLIC-opaque-original"},
+		"invoice":  {Operation: "native.invoice", Phase: "retained", ResultCipher: "PUBLIC-opaque-invoice"},
+		"intent":   {Operation: "native.invoice.intent", Phase: "unknown", ResultCipher: "PUBLIC-opaque-unknown"},
+	}
+	snapshot.MerchantActions = map[string]MerchantActionRecord{"original-action": {}}
+	raw, err := encodeStoreSnapshot(snapshot, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, backup, destination := filepath.Join(dir, "source.json"), filepath.Join(dir, "backup.json"), filepath.Join(dir, "restored.json")
+	if err = atomicWritePrivateFile(source, raw); err != nil {
+		t.Fatal(err)
+	}
+	store, err := OpenStore(source, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := store.CreateBackup(backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if receipt.RecordCount != 4 {
+		t.Fatalf("native custody-only backup has %d records, want 4; it must not be reported empty", receipt.RecordCount)
+	}
+	restored, err := RestoreStoreFromBackup(backup, destination, key)
+	if err != nil || restored.RecordCount != 4 {
+		t.Fatalf("native custody restore: %+v: %v", restored, err)
+	}
+	cold, err := OpenStore(destination, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = cold.View(func(got Snapshot) error {
+		if !reflect.DeepEqual(got.BusinessDispatches, snapshot.BusinessDispatches) || !reflect.DeepEqual(got.MerchantActions, snapshot.MerchantActions) {
+			return errors.New("backup/restore changed original native custody or UNKNOWN")
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestStoreFixtureMigrationBackupRestoreAndRollback(t *testing.T) {
 	dir := t.TempDir()

@@ -53,11 +53,7 @@ func run(args []string) error {
 		if strings.TrimSpace(*storePath) == "" || strings.TrimSpace(*outputPath) == "" {
 			return errors.New("backup requires --store and --output")
 		}
-		store, err := payproduct.OpenStore(*storePath, key)
-		if err != nil {
-			return err
-		}
-		receipt, err := store.CreateBackup(*outputPath)
+		receipt, err := payproduct.BackupExistingStore(*storePath, *outputPath, key)
 		if err != nil {
 			return err
 		}

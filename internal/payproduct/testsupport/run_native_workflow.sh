@@ -85,6 +85,15 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = store-operator-recovery ]; then
+ : "${PAY_STORE_OPERATOR_BINARY:?frozen normal Store operator required}"
+ : "${PAY_STORE_OPERATOR_SHA256:?exact Store operator SHA256 required}"
+ : "${PAY_STORE_RETAINED_SOURCE:?retained PUBLIC native Store required}"
+ : "${PAY_STORE_RETAINED_SHA256:?exact retained Store SHA256 required}"
+ : "${PAY_STORE_RECOVERY_OUTPUT:?owned persistent PUBLIC recovery evidence directory required}"
+ go test -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_store_original pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeStoreActualOperatorBackupRestorePreservesOriginals$' -count=1 -timeout=3m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = webhook-shop-original ]; then
  : "${PAY_SHOP_NOTIFICATION_DRIVER_BINARY:?frozen original Shop driver required}"
  : "${PAY_SHOP_NOTIFICATION_DRIVER_SHA256:?exact driver SHA256 required}"

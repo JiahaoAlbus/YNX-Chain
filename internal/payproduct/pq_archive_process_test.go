@@ -85,6 +85,10 @@ func TestNativePayArchiveReadbackChild(t *testing.T) {
 }
 
 func assertNativeArchiveTwoProcessRestarts(t *testing.T, n *NativePayService, f nativeCoreWorkflowManifest, before map[string]string) {
+	assertNativeArchiveTwoProcessRestartsAt(t, n, f, before, "order-100")
+}
+
+func assertNativeArchiveTwoProcessRestartsAt(t *testing.T, n *NativePayService, f nativeCoreWorkflowManifest, before map[string]string, sourceOrder string) {
 	t.Helper()
 	original, err := os.ReadFile(n.parent.store.path)
 	if err != nil {
@@ -98,7 +102,7 @@ func assertNativeArchiveTwoProcessRestarts(t *testing.T, n *NativePayService, f 
 		func() {
 			dir := t.TempDir()
 			ready := filepath.Join(dir, "ready.json")
-			cfg := archiveReadProcessConfig{StorePath: n.parent.store.path, IntegrityKey: n.parent.key, Genesis: n.cfg.Genesis, NativeChainID: n.cfg.NativeChainID, Merchant: f.Merchant, InvoiceID: f.Terms.InvoiceID, SourceOrder: "order-100", SessionID: f.Terms.SessionID, Ready: ready}
+			cfg := archiveReadProcessConfig{StorePath: n.parent.store.path, IntegrityKey: n.parent.key, Genesis: n.cfg.Genesis, NativeChainID: n.cfg.NativeChainID, Merchant: f.Merchant, InvoiceID: f.Terms.InvoiceID, SourceOrder: sourceOrder, SessionID: f.Terms.SessionID, Ready: ready}
 			raw, _ := json.Marshal(cfg)
 			file := filepath.Join(dir, "PUBLIC-read-config.json")
 			if err = os.WriteFile(file, raw, 0600); err != nil {

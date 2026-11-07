@@ -62,3 +62,12 @@ longer selected by the automatic retry worker. `POST
 for an owner/developer session; it creates and signs a new delivery ID linked
 to the original and records the Wallet actor in audit. It never changes invoice
 or settlement state.
+
+`ynx-pay-store backup --store <existing-store> --output <new-backup>` requires
+an existing, integrity-valid persisted Store. A missing source is an error and
+creates no backup. Backup and restore receipts count native business journals
+and merchant action custody alongside the other stored records. Offline
+restore preserves the original sealed archives, operation identities, UNKNOWN
+records and webhook attempts; it retains a rollback copy of a valid destination
+or quarantines an invalid destination. It does not recreate an archive from a
+receipt digest, authorize a Source or submit a payment.
