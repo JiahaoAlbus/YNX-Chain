@@ -281,4 +281,28 @@ int ynx_export(SSL *ssl, const char *label, size_t label_len,
                unsigned char *out, size_t length) {
     return SSL_export_keying_material(ssl, out, length, label, label_len, context, context_len, 1);
 }
+
+int ynx_peer_spki_der(SSL *ssl, unsigned char *out, size_t capacity,
+                      size_t *length, char *err, size_t err_capacity) {
+    if (length) *length = 0;
+    if (!ssl || !out || !length || !capacity || capacity > YNX_PEER_SPKI_DER_MAX ||
+        !SSL_is_init_finished(ssl) || SSL_get_verify_result(ssl) != X509_V_OK) {
+        failure(err, err_capacity, "held TLS peer SPKI unavailable"); return 0;
+    }
+    X509 *peer = SSL_get0_peer_certificate(ssl);
+    X509_PUBKEY *spki = peer ? X509_get_X509_PUBKEY(peer) : NULL;
+    int needed = spki ? i2d_X509_PUBKEY(spki, NULL) : 0;
+    if (needed <= 0 || (size_t)needed > YNX_PEER_SPKI_DER_MAX ||
+        (size_t)needed > capacity) {
+        failure(err, err_capacity, "held TLS peer SPKI exceeds bound or is unavailable"); return 0;
+    }
+    // The Go SSL mutex spans both length inspection and this copy. Neither the
+    // borrowed X509/SPKI pointer nor the output buffer is retained by this helper.
+    unsigned char *cursor = out;
+    if (i2d_X509_PUBKEY(spki, &cursor) != needed || cursor != out + needed) {
+        failure(err, err_capacity, "held TLS peer SPKI copy failed"); return 0;
+    }
+    *length = (size_t)needed;
+    return 1;
+}
 const char *ynx_runtime_version(void) { return OpenSSL_version(OPENSSL_VERSION); }

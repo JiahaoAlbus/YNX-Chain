@@ -17,5 +17,8 @@ int ynx_read(SSL *, void *, size_t, size_t *, char *, size_t);
 int ynx_write(SSL *, const void *, size_t, size_t *, char *, size_t);
 int ynx_snapshot(SSL *, const char *, int, ynx_tls_state *, char *, size_t);
 int ynx_export(SSL *, const char *, size_t, const unsigned char *, size_t, unsigned char *, size_t);
+#define YNX_PEER_SPKI_DER_MAX 16384u
+/* Public peer SubjectPublicKeyInfo only, copied from the caller-held SSL. */
+int ynx_peer_spki_der(SSL *, unsigned char *, size_t, size_t *, char *, size_t);
 const char *ynx_runtime_version(void);
 #endif
