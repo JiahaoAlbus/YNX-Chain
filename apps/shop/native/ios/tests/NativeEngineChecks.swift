@@ -4,13 +4,13 @@ import Security
 @main struct EngineChecks {
  @MainActor static func main()throws {
   let app=NSApplication.shared;app.setActivationPolicy(.prohibited)
-  let root="/Users/huangjiahao/Desktop/YNX Final Worktrees/63-shop-connect-state/apps/shop/native/ios/YNXShop/native-session"
+  guard let root=ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_ENGINE_ASSETS"],FileManager.default.fileExists(atPath:root+"/sdk-manifest.json"),let profile=ShopAccessProfile(rawValue:ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_ENGINE_PROFILE"] ?? "buyer") else{throw ShopError.security}
   let registry=try JSONSerialization.jsonObject(with:Data(contentsOf:URL(fileURLWithPath:root+"/registry.json")))
-  var saved:Data?;let key=NativeWire.base64(Data([2])+Data(repeating:0,count:32));let state=try AppleNativeProductState(platform:"macos",deviceId:"qa-wk-original-device-20261003",deviceKey:key,securityLevel:"hardware-backed",read:{saved},write:{saved=$0})
+  var saved:Data?;let key=NativeWire.base64(Data([2])+Data(repeating:0,count:32));let state=try AppleNativeProductState(platform:"macos",deviceId:"qa-wk-original-device-20261003",deviceKey:key,securityLevel:"hardware-backed",profile:profile,read:{saved},write:{saved=$0})
   var engine:AppleNativeEngine!;var network=0,signing=0,opening=0
   engine=try AppleNativeEngine(assets:URL(fileURLWithPath:root),port:{method,args in
    switch method {
-   case "config":return ["gateway":"https://wallet-auth.ynxweb4.com","registry":registry,"purpose":"Explicit controlled engine QA"]
+   case "config":return ["gateway":"https://wallet-auth.ynxweb4.com","registry":registry,"purpose":"Explicit controlled engine QA", "scopes":profile.scopes]
    case "readContext":return try state.context()
    case "walletDetected":return true
    case "randomBytes":var data=Data(count:32);guard args["length"] as? Int==32,data.withUnsafeMutableBytes({SecRandomCopyBytes(kSecRandomDefault,32,$0.baseAddress!)})==errSecSuccess else{throw ShopError.security};return NativeWire.base64(data)
@@ -28,7 +28,7 @@ import Security
    if id=="ready" {guard response["ok"] as? Bool==true else{print("FAIL SDK boot");exit(1)};do{try engine.dispatch("disconnect-check","disconnect",[:])}catch{print(error);exit(1)}}
    if id=="disconnect-check" {guard response["ok"] as? Bool==true,let value=response["value"] as? [String:Any],value["status"] as? String=="revoked" || value["status"] as? String=="disconnected",network==0,signing==0,opening==0 else{print("FAIL local SDK disconnect boundary");exit(1)};print("PASS actual WebKit custom-scheme ES module and synchronous protected storage ports; no network/signature/Wallet");do{try engine.dispatch("restore-check","restore",[:])}catch{print(error);exit(1)}}
    if id=="restore-check"{guard response["ok"] as? Bool==true,let restored=response["state"] as? [String:Any],restored["status"] as? String != "network-unavailable",restored["status"] as? String != "connected",network==1,signing==0,opening==0 else{print("FAIL cold restore");exit(1)};print("PASS actual SDK cold restore through asynchronous reply Gateway with exact time codec/headers");try! engine.dispatch("connect-check","connect",[:])}
-   if id=="connect-check"{guard response["ok"] as? Bool==true,let value=response["value"] as? [String:Any],value["approved"] as? Bool==false,value["opened"] as? Bool==false,opening==1,signing==0 else{print("FAIL launch boundary");exit(1)};print("PASS exact SDK prepared launch remains unapproved");try! engine.dispatch("business-check","business",["method":"POST","path":"/api/orders","body":"{}","requiredScopes":["account:read","shop:orders:write"]])}
+   if id=="connect-check"{guard response["ok"] as? Bool==true,let value=response["value"] as? [String:Any],value["approved"] as? Bool==false,value["opened"] as? Bool==false,opening==1,signing==0 else{print("FAIL launch boundary");exit(1)};print("PASS exact SDK prepared launch remains unapproved");try! engine.dispatch("business-check","business",["method":"POST","path":profile == .buyer ? "/api/orders":"/api/seller/stores","body":"{}","requiredScopes":profile == .buyer ? ["account:read","shop:orders:write"]:profile.scopes])}
    if id=="business-check"{guard response["ok"] as? Bool==false,signing==0 else{print("FAIL business proof escaped");exit(1)};print("PASS unapproved Native state cannot release business proof");try! engine.dispatch("return-check","handleReturn",["url":"ynxshop://wallet-auth/callback?response=legacy-token"])}
    if id=="return-check"{guard let state=response["state"] as? [String:Any],state["status"] as? String != "connected",state["session"]==nil,signing==0 else{print("FAIL legacy callback");exit(1)};print("PASS legacy callback cannot become private Native authority");try! engine.dispatch("logout-check","disconnect",[:])}
    if id=="logout-check"{guard response["ok"] as? Bool==true,let value=response["value"] as? [String:Any],value["revocationConfirmed"] as? Bool==false,signing==0 else{print("FAIL logout authority claim");exit(1)};print("PASS cancellation only confirms local cleanup, no server ACK claim");engine.close();exit(0)}

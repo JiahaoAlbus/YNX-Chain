@@ -125,6 +125,7 @@ func (s *Server) routes() {
 	s.handleFunc("GET /api/seller/stores/{id}/roles", s.roles)
 	s.handleFunc("PUT /api/seller/stores/{id}/roles", s.setRole)
 	s.handleFunc("POST /api/seller/stores/{id}/roles/{account}/revoke", s.revokeRole)
+	s.handleFunc("POST /api/seller/stores/{id}/roles/{account}/native-revoke", s.nativeRevokeSellerRole)
 	s.handleFunc("GET /api/seller/invitations", s.mySellerInvitations)
 	s.handleFunc("POST /api/seller/invitations/{invitation}/accept", s.acceptSellerInvitation)
 	s.handleFunc("POST /api/seller/stores/{id}/invitations", s.createSellerInvitation)

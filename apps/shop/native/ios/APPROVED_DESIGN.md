@@ -32,3 +32,29 @@ HTTP/authority fixtures grant no real Wallet, provider, Source or funds authorit
 The original native CI builds both Apple targets and runs these checks. Source,
 package, installed visual acceptance, real business acceptance and publication
 remain separate results. Existing frozen candidates are never modified.
+
+
+## Seller continuation
+
+`SellerWorkspace.swift` adapts the original 11 desktop and 7 mobile seller
+frames using a separate explicit Shop Seller profile. It never expands an
+existing Buyer session. The original SDK checks each profile's scopes and
+uses separate protected state. A shared opaque callback asks the user which
+profile should consume its original return; it never becomes a grant itself.
+
+Native listing publication, inventory adjustment, fulfillment and return-case
+decisions retain frozen original requests and keys. UNKNOWN recovery is query
+only. A known unsent request has a separate explicit continuation control.
+Unrelated targets can continue; a pending mutation locks only its own object.
+Native role removal is an actual Store operation with original-key lookup.
+Wallet session invalidation remains independently pending until its original
+authority supplies a receipt bound to the current `ynx-shop-v1` profile. The
+legacy `ynx-seller-v1` revoker is not a compatible Native receipt. There is no automatic Wallet revoke, refund,
+signature or broadcast in that local role operation.
+
+Seller onboarding, invitations, draft management and real money operations are
+not claimed by these five mutation forms. iOS Native private registration and
+new Android visual layouts are separate work. Missing qualified merchant/order/
+invoice Source is never replaced with public fixtures, a new empty Store or
+inferred legacy-to-native pricing. The frozen 5d9 buyer candidate remains
+separate from subsequent seller candidates and their visual acceptance.

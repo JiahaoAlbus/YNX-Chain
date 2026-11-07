@@ -16,22 +16,23 @@ enum AppleNativeVault {
 @MainActor final class AppleNativeProtectedRuntime {
     private let key:SecureEnclave.P256.Signing.PrivateKey
     let state:AppleNativeProductState
-    init(bundle:Bundle = .main)throws {
+    init(bundle:Bundle = .main,profile:ShopAccessProfile = .buyer)throws {
 #if os(macOS)
         guard bundle.bundleIdentifier==AppleNativeProductState.app,SecureEnclave.isAvailable else{throw ShopError.unavailable}
         let original=try AppleNativeVault.read("secure-enclave-p256-v2")
-        let protected=try AppleNativeVault.read("native-product-state-v2")
+        let buyerState=try AppleNativeVault.read(ShopAccessProfile.buyer.stateStorageKey)
+        let sellerState=try AppleNativeVault.read(ShopAccessProfile.seller.stateStorageKey)
         if let original {key=try SecureEnclave.P256.Signing.PrivateKey(dataRepresentation:original)}
         else {
             // Never replace a missing key while original protected state exists.
-            guard protected==nil else{throw ShopError.security}
+            guard buyerState==nil,sellerState==nil else{throw ShopError.security}
             var failure:Unmanaged<CFError>?
             guard let access=SecAccessControlCreateWithFlags(nil,kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,[.privateKeyUsage],&failure) else{throw ShopError.security}
             key=try SecureEnclave.P256.Signing.PrivateKey(accessControl:access)
             let blob=key.dataRepresentation;try AppleNativeVault.write("secure-enclave-p256-v2",blob);guard try AppleNativeVault.read("secure-enclave-p256-v2")==blob else{throw ShopError.security}
         }
         let deviceKey=NativeWire.base64(key.publicKey.compressedRepresentation)
-        state=try AppleNativeProductState(platform:"macos",deviceId:UUID().uuidString.lowercased(),deviceKey:deviceKey,securityLevel:"hardware-backed",read:{try AppleNativeVault.read("native-product-state-v2")},write:{try AppleNativeVault.write("native-product-state-v2",$0)})
+        state=try AppleNativeProductState(platform:"macos",deviceId:UUID().uuidString.lowercased(),deviceKey:deviceKey,securityLevel:"hardware-backed",profile:profile,read:{try AppleNativeVault.read(profile.stateStorageKey)},write:{try AppleNativeVault.write(profile.stateStorageKey,$0)})
 #else
         // Only the adopted registered macOS Native tuple is admitted here.
         throw ShopError.unavailable

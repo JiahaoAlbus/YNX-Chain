@@ -52,6 +52,7 @@ var commerceBusinessRoutes = map[string]businessRoutePolicy{
 	"POST /api/seller/stores/{id}/providers/{kind}/rotate":         {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"GET /api/seller/stores/{id}/roles":                            {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"PUT /api/seller/stores/{id}/roles":                            {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/stores/{id}/roles/{account}/native-revoke":   {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/stores/{id}/roles/{account}/revoke":          {mode: "external", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"GET /api/seller/invitations":                                  {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/invitations/{invitation}/accept":             {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},

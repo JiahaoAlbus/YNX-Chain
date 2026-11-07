@@ -1,0 +1,461 @@
+import SwiftUI
+
+// Native layouts adapted from the approved local .fig's 11 seller desktop and
+// 7 seller mobile frames. API data and authority belong to ShopSellerModel.
+private enum SellerSection:String,CaseIterable,Identifiable {
+    case overview,products,inventory,orders,fulfillment,aftersales,reconciliation,members,audit
+    var id:String{rawValue}
+    var title:LocalizedStringKey{switch self {
+    case .overview:return "seller_workbench"
+    case .products:return "seller_products"
+    case .inventory:return "seller_inventory"
+    case .orders:return "nav_orders"
+    case .fulfillment:return "seller_fulfillment"
+    case .aftersales:return "seller_aftersales"
+    case .reconciliation:return "seller_reconciliation"
+    case .members:return "seller_members"
+    case .audit:return "seller_audit"
+    }}
+    var symbol:String{switch self {
+    case .overview:return "checklist"
+    case .products:return "shippingbox"
+    case .inventory:return "square.stack.3d.up"
+    case .orders:return "list.bullet.rectangle"
+    case .fulfillment:return "truck.box"
+    case .aftersales:return "arrow.uturn.backward"
+    case .reconciliation:return "list.bullet.clipboard"
+    case .members:return "person.2"
+    case .audit:return "clock.arrow.circlepath"
+    }}
+}
+
+private struct SellerPage<Content:View>:View {
+    let title:LocalizedStringKey
+    let subtitle:LocalizedStringKey?
+    let desktop:Bool
+    let content:Content
+    init(_ title:LocalizedStringKey,subtitle:LocalizedStringKey?=nil,desktop:Bool,@ViewBuilder content:()->Content){self.title=title;self.subtitle=subtitle;self.desktop=desktop;self.content=content()}
+    var body:some View{ScrollView{VStack(alignment:.leading,spacing:24){
+        VStack(alignment:.leading,spacing:8){Text(title).shopFont(28,.bold,relativeTo:.title);if let subtitle{Text(subtitle).shopFont(13).foregroundStyle(ShopTheme.secondary).fixedSize(horizontal:false,vertical:true)}}
+        content
+    }.padding(desktop ? 32:16).frame(maxWidth:1440).frame(maxWidth:.infinity,alignment:.topLeading)}.background(ShopTheme.background)}
+}
+private struct SellerLedger<Content:View>:View {
+    let content:Content
+    init(@ViewBuilder content:()->Content){self.content=content()}
+    var body:some View{VStack(alignment:.leading,spacing:0){content}.frame(maxWidth:.infinity,alignment:.leading).background(ShopTheme.surface).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radius)).overlay(RoundedRectangle(cornerRadius:ShopTheme.radius).stroke(ShopTheme.border,lineWidth:1))}
+}
+private struct SellerField:View {
+    let title:LocalizedStringKey
+    @Binding var text:String
+    var multiline=false
+    var body:some View{VStack(alignment:.leading,spacing:8){Text(title).shopFont(13,.semibold);if multiline{TextField(title,text:$text,axis:.vertical).lineLimit(3...8).textFieldStyle(.roundedBorder)}else{TextField(title,text:$text).textFieldStyle(.roundedBorder).shopCapitalization(false).autocorrectionDisabled()}}}
+}
+private struct SellerEmpty:View {
+    var symbol="tray"
+    var body:some View{ContentUnavailableView("seller_empty",systemImage:symbol,description:Text("no_fake_records")).frame(maxWidth:.infinity,minHeight:180)}
+}
+private struct SellerTaskRow:View {
+    let title:LocalizedStringKey
+    let count:Int?
+    let symbol:String
+    let action:()->Void
+    var body:some View{Button(action:action){HStack(spacing:14){Image(systemName:symbol).foregroundStyle(ShopTheme.primary).frame(width:24);Text(title).shopFont(14);Spacer(minLength:8);Text(count.map{$0.formatted()} ?? String(localized:"unavailable")).shopFont(17,.semibold).monospacedDigit();Image(systemName:"chevron.right").font(.caption).foregroundStyle(ShopTheme.muted)}.foregroundStyle(ShopTheme.text).padding(18).contentShape(Rectangle())}.buttonStyle(.plain)}
+}
+private struct SellerValue:View {
+    let title:LocalizedStringKey
+    let value:String
+    var body:some View{LabeledContent{Text(verbatim:value).shopFont(13).textSelection(.enabled)}label:{Text(title).shopFont(13).foregroundStyle(ShopTheme.secondary)}}
+}
+private struct SellerOperationSheet<Content:View>:View {
+    @Environment(\.dismiss) private var dismiss
+    let title:LocalizedStringKey
+    let content:Content
+    init(_ title:LocalizedStringKey,@ViewBuilder content:()->Content){self.title=title;self.content=content()}
+    var body:some View{NavigationStack{ScrollView{VStack(alignment:.leading,spacing:18){content}.padding(24)}.background(ShopTheme.background).navigationTitle(title).shopInlineTitle().toolbar{ToolbarItem(placement:.cancellationAction){Button("close"){dismiss()}}}}.frame(minWidth:320,idealWidth:560,minHeight:480)}
+}
+private func sellerCanonicalInteger(_ value:String,positive:Bool=false)->Int64? {
+    guard value.range(of:"^(0|[1-9][0-9]{0,18})$",options:.regularExpression) != nil,let number=Int64(value),!positive || number>0 else{return nil};return number
+}
+private func sellerRequiredText(_ value:String,_ maximum:Int)->Bool{!value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && value.utf8.count<=maximum}
+
+private enum SellerSheet:Identifiable {
+    case listing(String),inventory(String,String),ship(String),returnDecision(String,Bool),revoke(String)
+    var id:String{switch self{case .listing(let id):return "listing:"+id;case .inventory(let product,let variant):return "inventory:"+product+":"+variant;case .ship(let id):return "ship:"+id;case .returnDecision(let id,let approve):return "return:"+id+String(approve);case .revoke(let account):return "revoke:"+account}}
+}
+struct SellerWorkspaceView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var section=SellerSection.overview
+    @State private var sheet:SellerSheet?
+    var body:some View{GeometryReader{geometry in
+        let desktop=geometry.size.width>=1000
+        VStack(spacing:0){
+            header(desktop:desktop)
+            if !seller.state.isEmpty{Text(LocalizedStringKey(seller.state)).shopFont(12).frame(maxWidth:.infinity,alignment:.leading).padding(12).background(ShopTheme.tertiary).accessibilityLabel("accessibility_status")}
+            if seller.pendingOriginalCount>0{VStack(alignment:.leading,spacing:10){
+                HStack{Label("seller_pending_originals",systemImage:"clock.arrow.circlepath");Text(seller.pendingOriginalCount.formatted()).monospacedDigit();Spacer()}
+                ViewThatFits(in:.horizontal){HStack{originalActions};VStack(alignment:.leading,spacing:10){originalActions}}
+            }.shopFont(12).padding(12).background(ShopTheme.warningBackground)}
+            if !seller.signedIn{signedOut}
+            else if seller.stores.isEmpty && seller.busy{ProgressView().frame(maxWidth:.infinity,maxHeight:.infinity)}
+            else if seller.stores.isEmpty{ContentUnavailableView("seller_no_stores",systemImage:"storefront",description:Text("seller_create_unavailable"))}
+            else if desktop{HStack(spacing:0){sidebar.frame(width:232);ShopTheme.border.frame(width:1);NavigationStack{page(section,desktop:true)}}}
+            else{mobile}
+        }.background(ShopTheme.background).foregroundStyle(ShopTheme.text).tint(ShopTheme.primary)
+    }.sheet(item:$sheet){value in operation(value)}
+    .onChange(of:seller.selectedStoreID){sheet=nil}
+    .onChange(of:seller.signedIn){if !seller.signedIn{sheet=nil}}
+    .frame(minWidth:320,minHeight:500)}
+    @ViewBuilder private var originalActions:some View {
+        Button("seller_recover_originals"){seller.recoverOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)
+        if seller.preparedOriginalCount>0{Button("seller_retry_prepared"){seller.retryPreparedOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)}
+    }
+    private func header(desktop:Bool)->some View{VStack(spacing:12){
+        HStack(spacing:16){Label("seller_workspace",systemImage:"storefront").shopFont(17,.semibold);if desktop{storePicker};Spacer(minLength:0);if desktop{sessionControls};Button("close"){dismiss()}.buttonStyle(ShopButtonStyle(kind:.quiet))}
+        if !desktop && seller.signedIn{HStack{storePicker;Spacer(minLength:0);sessionControls}}
+    }.padding(.horizontal,desktop ? 24:16).padding(.vertical,12).background(ShopTheme.surface).overlay(alignment:.bottom){ShopTheme.border.frame(height:1)}}
+    @ViewBuilder private var storePicker:some View {
+        if seller.signedIn && !seller.stores.isEmpty{Picker("seller_store",selection:Binding(get:{seller.selectedStoreID},set:{sheet=nil;seller.selectStore($0)})){ForEach(seller.stores){store in Text(verbatim:store.Name).tag(store.ID)}}.labelsHidden().frame(maxWidth:300).disabled(seller.busy)}
+    }
+    @ViewBuilder private var sessionControls:some View {
+        if seller.busy{ProgressView().controlSize(.small)}
+        if seller.signedIn{Button{seller.refresh()}label:{Image(systemName:"arrow.clockwise")}.buttonStyle(.plain).disabled(seller.busy).accessibilityLabel("retry");Menu{Button("seller_disconnect",role:.destructive){sheet=nil;seller.disconnect()}}label:{Image(systemName:"person.crop.circle.badge.checkmark")}.accessibilityLabel("seller_disconnect")}
+    }
+    private var signedOut:some View{VStack(spacing:20){Spacer();Image(systemName:"storefront").font(.system(size:40)).foregroundStyle(ShopTheme.primary);Text("seller_workspace").shopFont(28,.bold);Text("seller_authority_boundary").shopFont(14).foregroundStyle(ShopTheme.secondary).multilineTextAlignment(.center).frame(maxWidth:500);Button("seller_connect"){seller.connect()}.buttonStyle(ShopButtonStyle()).disabled(seller.busy);Spacer()}.padding(24).frame(maxWidth:.infinity)}
+    private var sidebar:some View{ScrollView{VStack(alignment:.leading,spacing:6){ForEach(SellerSection.allCases){destination in Button{section=destination}label:{Label(destination.title,systemImage:destination.symbol).shopFont(14,.semibold).frame(maxWidth:.infinity,alignment:.leading).padding(12).foregroundStyle(section==destination ? ShopTheme.primary:ShopTheme.secondary).background(section==destination ? ShopTheme.subtle:Color.clear).clipShape(RoundedRectangle(cornerRadius:6))}.buttonStyle(.plain)};Divider().padding(.vertical,12);Text("seller_authority_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(16)}.background(ShopTheme.surface)}
+    private var mobile:some View{TabView{
+        NavigationStack {
+            page(section,desktop:false).toolbar {
+                ToolbarItem(placement:.cancellationAction) {
+                    if section != .overview {
+                        Button{section = .overview}label:{Label("seller_workbench",systemImage:"chevron.backward")}
+                    }
+                }
+            }
+        }.tabItem{Label("seller_workbench",systemImage:"checklist")}
+        NavigationStack{SellerOrdersList(desktop:false,mode:.orders,onAction:open)}.tabItem{Label("nav_orders",systemImage:"list.bullet.rectangle")}
+        NavigationStack{SellerProductsList(desktop:false,onAction:open)}.tabItem{Label("seller_products",systemImage:"shippingbox")}
+        NavigationStack{SellerMembersView(desktop:false,onAction:open)}.tabItem{Label("seller_members",systemImage:"storefront")}
+    }}
+    private func page(_ destination:SellerSection,desktop:Bool)->AnyView {AnyView(Group{switch destination {
+    case .overview:SellerPage("seller_workbench",desktop:desktop){workbench;if !desktop{mobileDestinations}}
+    case .products:SellerProductsList(desktop:desktop,onAction:open)
+    case .inventory:SellerInventoryView(desktop:desktop,onAction:open)
+    case .orders,.fulfillment,.aftersales:SellerOrdersList(desktop:desktop,mode:destination,onAction:open)
+    case .reconciliation:SellerReconciliationView(desktop:desktop)
+    case .members:SellerMembersView(desktop:desktop,onAction:open)
+    case .audit:SellerAuditView(desktop:desktop)
+    }})}
+    private var workbench:some View{VStack(alignment:.leading,spacing:24){
+        ShopSectionTitle(title:"seller_tasks")
+        SellerLedger{
+            SellerTaskRow(title:"seller_fulfillment",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && $0.Status=="paid"}.count,symbol:"truck.box"){section = .fulfillment};Divider()
+            SellerTaskRow(title:"seller_aftersales",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && ["return_requested","refund_requested","disputed"].contains($0.Status)}.count,symbol:"arrow.uturn.backward"){section = .aftersales};Divider()
+            SellerTaskRow(title:"seller_payment_unresolved",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && $0.Status=="payment_pending"}.count,symbol:"clock.arrow.circlepath"){section = .reconciliation};Divider()
+            SellerTaskRow(title:"seller_inventory",count:zeroStockCount,symbol:"square.stack.3d.up"){section = .inventory}
+        }
+        if seller.sectionUnavailable.contains("orders") || seller.sectionUnavailable.contains("products"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        Text("seller_no_inferred_metrics").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        ShopSectionTitle(title:"seller_recent_activity")
+        Text("seller_audit_scope").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        SellerAuditRows(events:Array(seller.audit.prefix(8)))
+    }}
+    private var zeroStockCount:Int? {
+        guard !seller.sectionUnavailable.contains("products") else{return nil}
+        let variants=seller.products.filter{$0.StoreID==seller.selectedStoreID}.flatMap(\.Variants)
+        guard variants.allSatisfy({$0.Inventory>=0 && $0.Reserved>=0 && $0.Reserved<=$0.Inventory}) else{return nil}
+        return variants.filter{$0.available==0}.count
+    }
+    private var mobileDestinations:some View{VStack(alignment:.leading,spacing:16){
+        ForEach([SellerSection.inventory,.fulfillment,.aftersales,.reconciliation,.audit]){destination in NavigationLink{page(destination,desktop:false)}label:{Label(destination.title,systemImage:destination.symbol).shopFont(14).padding(.vertical,8)}}
+    }}
+    private func open(_ value:SellerSheet){sheet=value}
+    @ViewBuilder private func operation(_ value:SellerSheet)->some View{switch value {
+    case .listing(let id):if let product=seller.products.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerListingEditor(product:product)}else{SellerEmpty()}
+    case .inventory(let productID,let variantID):if let product=seller.products.first(where:{$0.ID==productID && $0.StoreID==seller.selectedStoreID}),let variant=product.Variants.first(where:{$0.ID==variantID}){SellerInventoryEditor(product:product,variant:variant)}else{SellerEmpty()}
+    case .ship(let id):if let order=seller.orders.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerShipForm(order:order)}else{SellerEmpty()}
+    case .returnDecision(let id,let approve):if let order=seller.orders.first(where:{$0.ID==id && $0.StoreID==seller.selectedStoreID}){SellerReturnForm(order:order,approve:approve)}else{SellerEmpty()}
+    case .revoke(let account):if let member=seller.members.first(where:{$0.Account==account}){SellerRevokeForm(member:member)}else{SellerEmpty()}
+    }}
+}
+
+private struct SellerProductThumbnail:View {
+    let product:SellerProduct
+    var body:some View{Group{if let media=product.Media?.first(where:{$0.imageURL != nil}),let url=media.imageURL{AsyncImage(url:url){phase in if let image=phase.image{image.resizable().scaledToFit()}else{Image(systemName:"photo").foregroundStyle(ShopTheme.muted)}}.accessibilityLabel(media.altText ?? product.Title)}else{Image(systemName:"photo").foregroundStyle(ShopTheme.muted).accessibilityLabel(product.Title)}}.frame(width:56,height:56).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:6))}
+}
+private struct SellerProductsList:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @Environment(\.locale) private var locale
+    let desktop:Bool
+    let onAction:(SellerSheet)->Void
+    @State private var query=""
+    @State private var filter="all"
+    private var products:[SellerProduct]{seller.products.filter{$0.StoreID==seller.selectedStoreID && (filter=="all" || (filter=="published")==$0.Published) && (query.isEmpty || $0.Title.localizedCaseInsensitiveContains(query) || $0.ID.localizedCaseInsensitiveContains(query) || $0.Variants.contains{$0.SKU.localizedCaseInsensitiveContains(query)})}}
+    var body:some View{SellerPage("seller_products",desktop:desktop){
+        HStack{TextField("seller_search_product",text:$query).textFieldStyle(.roundedBorder);Picker("seller_listing_state",selection:$filter){Text("seller_all_states").tag("all");Text("seller_published").tag("published");Text("seller_unpublished").tag("draft")}.pickerStyle(.menu)}
+        ShopNotice(title:"seller_create_unavailable")
+        if seller.sectionUnavailable.contains("products"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        else if products.isEmpty{SellerEmpty()}
+        else{SellerLedger{
+            if desktop{ScrollView(.horizontal){VStack(spacing:0){
+                HStack{Text("seller_products").frame(maxWidth:.infinity,alignment:.leading);Text("seller_category").frame(width:110,alignment:.leading);Text("seller_price").frame(width:135,alignment:.leading);Text("seller_available").frame(width:90);Text("seller_listing_state").frame(width:100);Text("seller_actions").frame(width:80)}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(16).background(ShopTheme.tertiary)
+                ForEach(products){product in Divider();HStack(spacing:16){productLabel(product).frame(maxWidth:.infinity,alignment:.leading);Text(verbatim:product.Category).frame(width:110,alignment:.leading).lineLimit(2);Text(price(product)).monospacedDigit().frame(width:135,alignment:.leading);Text(available(product)).monospacedDigit().frame(width:90);Text(product.Published ? "seller_published":"seller_unpublished").frame(width:100);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:80).disabled(!seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))}.shopFont(13).padding(16)}
+            }.frame(minWidth:900)}}
+            else{ForEach(products){product in HStack(alignment:.top,spacing:12){productLabel(product);Spacer(minLength:0);Button("seller_edit"){onAction(.listing(product.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))}.padding(16);HStack{Text(price(product)).shopFont(15,.semibold);Spacer();Text(product.Published ? "seller_published":"seller_unpublished").shopFont(12)}.padding(.horizontal,16).padding(.bottom,16);Divider()}}
+        }}
+    }}
+    private func productLabel(_ product:SellerProduct)->some View{HStack(spacing:12){SellerProductThumbnail(product:product);VStack(alignment:.leading,spacing:6){Text(verbatim:product.Title).shopFont(14,.semibold).lineLimit(2);Text(verbatim:product.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary).lineLimit(1);if !desktop{HStack{Text("seller_available");Text(available(product))}.shopFont(12).foregroundStyle(ShopTheme.secondary)}}}}
+    private func price(_ product:SellerProduct)->String{product.Variants.map(\.PriceYNXT).min().map{ShopMoneyDisplay.legacyYNXT($0,locale:locale)} ?? String(localized:"unavailable")}
+    private func available(_ product:SellerProduct)->String{var n:Int64=0;for variant in product.Variants{guard variant.Inventory>=0,variant.Reserved>=0,variant.Reserved<=variant.Inventory else{return String(localized:"unavailable")};let next=n.addingReportingOverflow(variant.available);guard !next.overflow else{return String(localized:"unavailable")};n=next.partialValue};return n.formatted()}
+}
+private struct SellerInventoryView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let desktop:Bool
+    let onAction:(SellerSheet)->Void
+    @State private var query=""
+    private var products:[SellerProduct]{seller.products.filter{$0.StoreID==seller.selectedStoreID && (query.isEmpty || $0.Title.localizedCaseInsensitiveContains(query) || $0.Variants.contains{$0.SKU.localizedCaseInsensitiveContains(query)})}}
+    var body:some View{SellerPage("seller_inventory",subtitle:"seller_inventory_note",desktop:desktop){
+        TextField("seller_search_product",text:$query).textFieldStyle(.roundedBorder)
+        if seller.sectionUnavailable.contains("products"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        else if products.isEmpty{SellerEmpty()}
+        else{SellerLedger{ForEach(products){product in
+            HStack(spacing:12){SellerProductThumbnail(product:product);VStack(alignment:.leading,spacing:6){Text(verbatim:product.Title).shopFont(15,.semibold);Text(verbatim:product.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)};Spacer();Text(String(product.Revision)).font(.caption.monospaced()).accessibilityLabel("seller_revision")}.padding(16).background(ShopTheme.tertiary)
+            ForEach(product.Variants){variant in VStack(alignment:.leading,spacing:14){
+                HStack(alignment:.top){VStack(alignment:.leading,spacing:6){Text(verbatim:variant.Name).shopFont(14,.semibold);Text(verbatim:variant.SKU).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)};Spacer();Button("seller_adjust_inventory"){onAction(.inventory(product.ID,variant.ID))}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.can("inventory.write") || seller.busy || seller.hasPending(product.ID))}
+                ViewThatFits(in:.horizontal){HStack(spacing:32){counts(variant)};VStack(alignment:.leading,spacing:10){counts(variant)}}
+            }.padding(16);Divider()}
+        }}}
+        ShopSectionTitle(title:"seller_inventory_history")
+        SellerAuditRows(events:seller.audit.filter{event in event.Action.localizedCaseInsensitiveContains("inventory") && (event.ObjectID==seller.selectedStoreID || products.contains(where:{$0.ID==event.ObjectID}))})
+    }}
+    @ViewBuilder private func counts(_ variant:SellerVariant)->some View{SellerValue(title:"seller_total_inventory",value:variant.Inventory.formatted());SellerValue(title:"seller_reserved",value:variant.Reserved.formatted());SellerValue(title:"seller_available",value:variant.Inventory>=variant.Reserved && variant.Reserved>=0 ? variant.available.formatted():String(localized:"unavailable"))}
+}
+
+private struct SellerOrdersList:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @Environment(\.locale) private var locale
+    let desktop:Bool
+    let mode:SellerSection
+    let onAction:(SellerSheet)->Void
+    @State private var query=""
+    @State private var filter="all"
+    private var orders:[SellerOrder]{seller.orders.filter{order in
+        guard order.StoreID==seller.selectedStoreID,query.isEmpty || order.ID.localizedCaseInsensitiveContains(query) || order.Buyer.localizedCaseInsensitiveContains(query) else{return false}
+        let scope=mode == .fulfillment ? "fulfillment":mode == .aftersales ? "aftersales":filter
+        switch scope{case "fulfillment":return order.Status=="paid" || order.Shipment != nil;case "aftersales":return order.Resolution != nil || !order.RefundStatus.isEmpty;case "pending":return order.Status=="payment_pending";default:return true}
+    }}
+    var body:some View{SellerPage(mode.title,subtitle:"seller_order_states_note",desktop:desktop){
+        TextField("shop_order_search",text:$query).textFieldStyle(.roundedBorder)
+        if mode == .orders{Picker("nav_orders",selection:$filter){Text("shop_all_orders").tag("all");Text("seller_fulfillment").tag("fulfillment");Text("payment_pending").tag("pending");Text("seller_aftersales").tag("aftersales")}.pickerStyle(.segmented)}
+        if seller.sectionUnavailable.contains("orders"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        else if orders.isEmpty{SellerEmpty()}
+        else{SellerLedger{
+            if desktop{ScrollView(.horizontal){VStack(spacing:0){
+                HStack{Text("nav_orders").frame(maxWidth:.infinity,alignment:.leading);Text("seller_principal").frame(width:140,alignment:.leading);Text("seller_payment_evidence").frame(width:150,alignment:.leading);Text("seller_fulfillment").frame(width:110,alignment:.leading);Text("seller_aftersales").frame(width:150,alignment:.leading);Text("seller_actions").frame(width:90)}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(16).background(ShopTheme.tertiary)
+                ForEach(orders){order in Divider();HStack(alignment:.top,spacing:16){NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{VStack(alignment:.leading,spacing:8){Text(verbatim:order.ID).font(.caption.monospaced());Text(verbatim:order.Buyer).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);SellerState(status:order.Status)}}.frame(maxWidth:.infinity,alignment:.leading);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).frame(width:140,alignment:.leading).monospacedDigit();SellerState(status:order.Settlement?.Status ?? "unavailable").frame(width:150,alignment:.leading);SellerState(status:order.Shipment?.Status ?? "unavailable").frame(width:110,alignment:.leading);SellerState(status:order.Resolution?.Status ?? (order.RefundStatus.isEmpty ? "unavailable":order.RefundStatus)).frame(width:150,alignment:.leading);NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:90)}.shopFont(13).padding(16)}
+            }.frame(minWidth:1050)}}
+            else{ForEach(orders){order in VStack(alignment:.leading,spacing:14){HStack{Text(verbatim:order.ID).font(.caption.monospaced()).lineLimit(1);Spacer();SellerState(status:order.Status)};ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)};Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(17,.bold);SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}.padding(16);Divider()}}
+        }}
+        ShopNotice(title:"seller_unknown_warning",symbol:"clock.arrow.circlepath",warning:true)
+    }}
+}
+private struct SellerOrderDetail:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @Environment(\.locale) private var locale
+    let orderID:String
+    let desktop:Bool
+    let onAction:(SellerSheet)->Void
+    private var current:SellerOrder?{seller.orders.first{$0.ID==orderID && $0.StoreID==seller.selectedStoreID}}
+    var body:some View{SellerPage("shop_order_details",desktop:desktop){
+        if let order=current {
+            SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(28,.bold);SellerValue(title:"seller_payment_evidence",value:order.Settlement?.Status ?? String(localized:"unavailable"));SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
+            if desktop{HStack(alignment:.top,spacing:24){terms(order).frame(maxWidth:.infinity);buyer(order).frame(width:320)}}else{terms(order);buyer(order)}
+            SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_fulfillment").shopFont(17,.semibold);if let shipment=order.Shipment{SellerValue(title:"seller_carrier",value:shipment.Carrier);SellerValue(title:"seller_tracking",value:shipment.TrackingNumber);SellerState(status:shipment.Status)};Button("seller_ship"){onAction(.ship(order.ID))}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("fulfillment.write") || order.Status != "paid" || seller.busy || seller.hasPending(order.ID));ShopNotice(title:"seller_fulfillment_boundary")}.padding(20)}
+            if let resolution=order.Resolution{SellerLedger{VStack(alignment:.leading,spacing:14){Text("seller_aftersales").shopFont(17,.semibold);SellerState(status:resolution.Status);Text(verbatim:resolution.Reason).shopFont(14);Text(verbatim:resolution.Explanation).shopFont(13);if order.Status=="return_requested",order.originalReturnID != nil{HStack{Button("seller_approve_return"){onAction(.returnDecision(order.ID,true))}.buttonStyle(ShopButtonStyle());Button("seller_reject_return"){onAction(.returnDecision(order.ID,false))}.buttonStyle(ShopButtonStyle(kind:.secondary))}.disabled(!seller.can("returns.resolve") || seller.busy || seller.hasPending(order.ID))};ShopNotice(title:"seller_refund_boundary")}.padding(20)}}
+            if let settlement=order.Settlement{SellerSettlementRecord(settlement:settlement)}
+            if let refund=order.Refund{SellerLedger{VStack(alignment:.leading,spacing:12){Text("seller_refund_record").shopFont(17,.semibold);SellerState(status:refund.Status);SellerValue(title:"seller_reference",value:refund.ID);SellerValue(title:"seller_principal",value:sellerMoney(refund.AmountYNXT,currency:refund.Currency,locale:locale));SellerValue(title:"seller_transaction_hash",value:refund.TransactionHash);SellerValue(title:"seller_block",value:String(refund.BlockHeight));Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+            ShopSectionTitle(title:"seller_order_events")
+            SellerLedger{ForEach(order.Timeline){event in VStack(alignment:.leading,spacing:8){HStack{SellerState(status:event.Status);Spacer();Text(verbatim:event.At).shopFont(12).foregroundStyle(ShopTheme.secondary)};Text(verbatim:event.Action).font(.caption.monospaced());if !event.Detail.isEmpty{Text(verbatim:event.Detail).shopFont(13)};Text(verbatim:event.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)}.padding(16);Divider()}}
+        }else{SellerEmpty()}
+    }.navigationTitle("shop_order_details").shopInlineTitle()}
+    private func terms(_ order:SellerOrder)->some View{SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_original_terms").shopFont(17,.semibold);ForEach(order.Lines){line in VStack(alignment:.leading,spacing:8){Text(verbatim:line.Title).shopFont(15,.semibold);Text(verbatim:line.VariantName+" × "+String(line.Quantity)).shopFont(13).foregroundStyle(ShopTheme.secondary);Text(sellerMoney(line.UnitPriceYNXT,currency:order.Currency,locale:locale)).shopFont(15,.semibold);Divider()}};SellerValue(title:"seller_principal",value:sellerMoney(order.SubtotalYNXT,currency:order.Currency,locale:locale));SellerValue(title:"seller_shipping_amount",value:sellerMoney(order.ShippingYNXT,currency:order.Currency,locale:locale));SellerValue(title:"seller_tax_amount",value:sellerMoney(order.TaxYNXT,currency:order.Currency,locale:locale));Text("seller_network_fee_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+    private func buyer(_ order:SellerOrder)->some View{SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_buyer").shopFont(17,.semibold);Text(verbatim:order.Buyer).font(.caption.monospaced()).textSelection(.enabled);Divider();Text(verbatim:order.Address.Recipient).shopFont(14,.semibold);Text(verbatim:[order.Address.Line1,order.Address.City,order.Address.Region,order.Address.PostalCode,order.Address.Country].filter{!$0.isEmpty}.joined(separator:"\n")).shopFont(13).textSelection(.enabled)}.padding(20)}}
+}
+private func sellerMoney(_ amount:Int64,currency:String,locale:Locale)->String{guard currency==ShopMoneyDisplay.legacySymbol,amount>=0 else{return String(localized:"unavailable",locale:locale)};return ShopMoneyDisplay.legacyYNXT(amount,locale:locale)}
+private struct SellerState:View {
+    let status:String
+    private let known:Set<String>=["paid","shipped","delivered","reviewed","cancelled","return_requested","return_approved","return_rejected","refund_requested","refund_approved","refund_rejected","refunded","disputed","failed","rejected","payment_pending","review_required","applied_draft","recorded_by_authoritative_pay","requested_no_transfer","approved_pending_authoritative_pay_refund","rejected_no_transfer","unavailable"]
+    var body:some View{Group{if known.contains(status){Text(LocalizedStringKey(status))}else{Text(verbatim:status)}}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(.horizontal,8).padding(.vertical,5).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:6))}
+}
+
+private struct SellerReconciliationView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let desktop:Bool
+    private var related:[SellerSettlement]{let ids=Set(seller.orders.filter{$0.StoreID==seller.selectedStoreID}.map(\.InvoiceID).filter{!$0.isEmpty});return seller.settlements.filter{ids.contains($0.InvoiceID)}}
+    private var unresolved:[SellerOrder]{seller.orders.filter{$0.StoreID==seller.selectedStoreID && ($0.Status=="payment_pending" || $0.Settlement==nil)}}
+    var body:some View{SellerPage("seller_reconciliation",subtitle:"seller_finance_read_only",desktop:desktop){
+        ShopNotice(title:"seller_network_fee_unavailable")
+        if seller.sectionUnavailable.contains("settlements") || seller.sectionUnavailable.contains("orders"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        ShopSectionTitle(title:"seller_payment_unresolved")
+        if unresolved.isEmpty{SellerEmpty(symbol:"checklist")}
+        else{SellerLedger{ForEach(unresolved){order in VStack(alignment:.leading,spacing:10){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);SellerValue(title:"shop_invoice_reference",value:order.InvoiceID);SellerValue(title:"shop_original_operation",value:order.PayIntentID);Text("seller_unknown_warning").shopFont(12).foregroundStyle(ShopTheme.warning)}.padding(16);Divider()}}}
+        ShopSectionTitle(title:"seller_payment_evidence")
+        if related.isEmpty{SellerEmpty(symbol:"list.bullet.clipboard")}
+        ForEach(related){settlement in SellerSettlementRecord(settlement:settlement)}
+        Text("seller_settlement_scope").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }}
+}
+private struct SellerSettlementRecord:View {
+    @Environment(\.locale) private var locale
+    let settlement:SellerSettlement
+    var body:some View{SellerLedger{VStack(alignment:.leading,spacing:14){
+        HStack{Text(verbatim:settlement.InvoiceID).font(.caption.monospaced()).textSelection(.enabled);Spacer();SellerState(status:settlement.Status)}
+        Text(sellerMoney(settlement.AmountYNXT,currency:settlement.Currency,locale:locale)).shopFont(22,.bold).monospacedDigit()
+        SellerValue(title:"shop_original_operation",value:settlement.IntentID)
+        SellerValue(title:"seller_transaction_hash",value:settlement.TransactionHash)
+        SellerValue(title:"seller_block",value:String(settlement.BlockHeight))
+        SellerValue(title:"seller_payout_address",value:settlement.PayoutAddress)
+        SellerValue(title:"seller_audit_hash",value:settlement.AuditHash)
+        SellerValue(title:"seller_recorded_at",value:settlement.ConfirmedAt)
+        Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }.padding(20)}}
+}
+private struct SellerMembersView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let desktop:Bool
+    let onAction:(SellerSheet)->Void
+    private var store:SellerStore?{seller.stores.first{$0.ID==seller.selectedStoreID}}
+    var body:some View{SellerPage("seller_members",desktop:desktop){
+        if let store{SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:store.Name).shopFont(22,.bold);SellerValue(title:"seller_store",value:store.ID);SellerValue(title:"seller_role",value:seller.storeRole);SellerState(status:store.Status);Text(verbatim:store.Description).shopFont(14);Divider();SellerValue(title:"seller_payout_address",value:store.SettlementAccount);SellerValue(title:"seller_store_policy",value:store.Policy);SellerValue(title:"seller_trust_reference",value:store.TrustURL);Text("seller_store_edit_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+        ShopSectionTitle(title:"seller_members")
+        if seller.sectionUnavailable.contains("members"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
+        else if seller.members.isEmpty{SellerEmpty(symbol:"person.2")}
+        else{SellerLedger{ForEach(seller.members){member in HStack(alignment:.top,spacing:16){Image(systemName:"person.crop.circle").font(.title2).foregroundStyle(ShopTheme.secondary);VStack(alignment:.leading,spacing:8){Text(verbatim:member.Account).font(.caption.monospaced()).textSelection(.enabled);SellerValue(title:"seller_role",value:member.Role)};Spacer(minLength:0);Button("seller_revoke",role:.destructive){onAction(.revoke(member.Account))}.buttonStyle(ShopButtonStyle(kind:.destructive)).disabled(!seller.canManageMembers || member.Role=="owner" || seller.busy || seller.hasPending(member.Account))}.padding(16);Divider()}}}
+        ShopSectionTitle(title:"seller_revocation_records")
+        SellerLedger{ForEach(seller.revocations.filter{$0.StoreID==seller.selectedStoreID}){record in VStack(alignment:.leading,spacing:12){
+            SellerValue(title:"seller_member_account",value:record.Account)
+            SellerValue(title:"seller_reference",value:record.ID)
+            SellerValue(title:"seller_session_revocation",value:record.SessionStatus)
+            SellerValue(title:"seller_session_reference",value:record.SessionRevocationID)
+            SellerValue(title:"seller_session_count",value:String(record.SessionCount))
+            SellerValue(title:"seller_revoke_reason",value:record.Reason)
+            if !record.LastError.isEmpty{Text(verbatim:record.LastError).shopFont(12).foregroundStyle(ShopTheme.warning)}
+            Text("seller_revoke_warning").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        }.padding(16);Divider()}}
+        ShopNotice(title:"seller_member_invite_unavailable")
+        Text("seller_authority_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }}
+}
+private struct SellerAuditView:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let desktop:Bool
+    var body:some View{SellerPage("seller_audit",subtitle:"seller_audit_scope",desktop:desktop){if seller.sectionUnavailable.contains("audit"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}else{SellerAuditRows(events:seller.audit)}}}
+}
+private struct SellerAuditRows:View {
+    let events:[SellerAudit]
+    var body:some View{if events.isEmpty{SellerEmpty(symbol:"clock.arrow.circlepath")}else{SellerLedger{ForEach(events){event in DisclosureGroup{VStack(alignment:.leading,spacing:12){SellerValue(title:"seller_reference",value:event.ID);SellerValue(title:"seller_actor",value:event.Actor);SellerValue(title:"seller_role",value:event.Role);SellerValue(title:"seller_object",value:event.ObjectType+": "+event.ObjectID);Text(verbatim:event.Detail).shopFont(13).textSelection(.enabled)}.padding(.top,12)}label:{HStack(alignment:.top,spacing:16){VStack(alignment:.leading,spacing:6){Text(verbatim:event.Action).shopFont(14,.semibold);Text(verbatim:event.At).shopFont(12).foregroundStyle(ShopTheme.secondary)};Spacer();SellerState(status:event.Outcome)}}.padding(16);Divider()}}}}
+}
+
+private struct SellerListingEditor:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let product:SellerProduct
+    @State private var draft:SellerListingDraft
+    @State private var reviewed=false
+    @State private var submitted=false
+    init(product:SellerProduct){self.product=product;_draft=State(initialValue:SellerListingDraft(product))}
+    private var valid:Bool{
+        guard sellerRequiredText(draft.title,160),draft.description.utf8.count<=5000,draft.category.utf8.count<=80,(1...50).contains(draft.variants.count),Set(draft.variants.map(\.SKU)).count==draft.variants.count else{return false}
+        for variant in draft.variants{guard sellerRequiredText(variant.Name,120),sellerRequiredText(variant.SKU,80),sellerCanonicalInteger(variant.PriceYNXT,positive:true) != nil,let inventory=sellerCanonicalInteger(variant.Inventory),inventory >= (product.Variants.first{$0.ID==variant.ID}?.Reserved ?? 0) else{return false}}
+        return seller.products.first(where:{$0.ID==product.ID})?.Revision==Int64(draft.expectedRevision)
+    }
+    var body:some View{SellerOperationSheet("seller_edit_product"){
+        SellerValue(title:"seller_reference",value:product.ID);SellerValue(title:"seller_revision",value:draft.expectedRevision)
+        if seller.products.first(where:{$0.ID==product.ID})?.Revision != Int64(draft.expectedRevision){ShopNotice(title:"seller_revision_changed",warning:true)}
+        SellerField(title:"seller_product_title",text:$draft.title);SellerField(title:"seller_description",text:$draft.description,multiline:true);SellerField(title:"seller_category",text:$draft.category)
+        ShopSectionTitle(title:"seller_variants")
+        ForEach(draft.variants.indices,id:\.self){index in SellerLedger{VStack(alignment:.leading,spacing:14){
+            if !draft.variants[index].ID.isEmpty{Text(verbatim:draft.variants[index].ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)}
+            SellerField(title:"seller_variant_name",text:$draft.variants[index].Name);SellerField(title:"seller_sku",text:$draft.variants[index].SKU);SellerField(title:"seller_price",text:$draft.variants[index].PriceYNXT);SellerField(title:"seller_total_inventory",text:$draft.variants[index].Inventory)
+            Button("seller_remove_variant",role:.destructive){draft.variants.remove(at:index);reviewed=false}.buttonStyle(.plain).disabled(draft.variants.count<=1 || (product.Variants.first{$0.ID==draft.variants[index].ID}?.Reserved ?? 0)>0)
+        }.padding(16)}}
+        Button("seller_add_variant"){draft.variants.append(SellerVariantDraft());reviewed=false}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(draft.variants.count>=50 || submitted)
+        Text("seller_publish_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+        Button("seller_publish"){submitted=true;seller.perform(.publish(draft))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.can("catalog.write") || seller.busy || seller.hasPending(product.ID))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private struct SellerInventoryEditor:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let product:SellerProduct
+    let variant:SellerVariant
+    @State private var inventory:String
+    @State private var expectedRevision:String
+    @State private var reviewed=false
+    @State private var submitted=false
+    init(product:SellerProduct,variant:SellerVariant){self.product=product;self.variant=variant;_inventory=State(initialValue:String(variant.Inventory));_expectedRevision=State(initialValue:String(product.Revision))}
+    private var valid:Bool{guard let number=sellerCanonicalInteger(inventory),number>=variant.Reserved,number != variant.Inventory else{return false};return seller.products.first{$0.ID==product.ID}?.Revision==Int64(expectedRevision)}
+    var body:some View{SellerOperationSheet("seller_adjust_inventory"){
+        Text(verbatim:product.Title).shopFont(17,.semibold);Text(verbatim:variant.Name).shopFont(14);SellerValue(title:"seller_sku",value:variant.SKU);SellerValue(title:"seller_revision",value:expectedRevision);SellerValue(title:"seller_reserved",value:String(variant.Reserved));SellerValue(title:"seller_available",value:String(variant.available))
+        if seller.products.first(where:{$0.ID==product.ID})?.Revision != Int64(expectedRevision){ShopNotice(title:"seller_revision_changed",warning:true)}
+        SellerField(title:"seller_total_inventory",text:$inventory);ShopNotice(title:"seller_inventory_note")
+        Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+        Button("seller_adjust_inventory"){submitted=true;seller.perform(.inventory(productID:product.ID,variantID:variant.ID,expectedRevision:expectedRevision,inventory:inventory))}.buttonStyle(ShopButtonStyle()).disabled(!valid || !reviewed || submitted || !seller.can("inventory.write") || seller.busy || seller.hasPending(product.ID))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private struct SellerShipForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let order:SellerOrder
+    @State private var carrier=""
+    @State private var tracking=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    var body:some View{SellerOperationSheet("seller_ship"){
+        Text(verbatim:order.ID).font(.caption.monospaced());ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)}
+        SellerField(title:"seller_carrier",text:$carrier);SellerField(title:"seller_tracking",text:$tracking)
+        ShopNotice(title:"seller_fulfillment_boundary",symbol:"truck.box")
+        Toggle("seller_confirm_shipment",isOn:$reviewed).shopFont(13)
+        Button("seller_ship"){submitted=true;seller.perform(.ship(orderID:order.ID,carrier:carrier,trackingNumber:tracking))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || !sellerRequiredText(carrier,120) || !sellerRequiredText(tracking,200) || order.Status != "paid" || submitted || !seller.can("fulfillment.write") || seller.busy || seller.hasPending(order.ID))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private struct SellerReturnForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let order:SellerOrder
+    let approve:Bool
+    @State private var originalReturnID:String?
+    init(order:SellerOrder,approve:Bool){self.order=order;self.approve=approve;_originalReturnID=State(initialValue:order.originalReturnID)}
+    @State private var explanation=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    var body:some View{SellerOperationSheet(approve ? "seller_approve_return":"seller_reject_return"){
+        Text(verbatim:order.ID).font(.caption.monospaced());SellerValue(title:"seller_original_return",value:originalReturnID ?? String(localized:"unavailable"));if let resolution=order.Resolution{Text(verbatim:resolution.Reason).shopFont(14);Text(verbatim:resolution.Explanation).shopFont(13)}
+        SellerField(title:"seller_explanation",text:$explanation,multiline:true);ShopNotice(title:"seller_return_boundary")
+        Toggle("seller_review_changes",isOn:$reviewed).shopFont(13)
+        Button(approve ? "seller_approve_return":"seller_reject_return"){guard let returnID=originalReturnID else{return};submitted=true;seller.perform(.returnDecision(orderID:order.ID,returnID:returnID,approve:approve,explanation:explanation))}.buttonStyle(ShopButtonStyle(kind:approve ? .primary:.destructive)).disabled(!reviewed || originalReturnID==nil || order.originalReturnID != originalReturnID || order.Status != "return_requested" || explanation.utf8.count>5000 || (!approve && !sellerRequiredText(explanation,5000)) || submitted || !seller.can("returns.resolve") || seller.busy || seller.hasPending(order.ID))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private struct SellerRevokeForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let member:SellerMember
+    @State private var reason=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    var body:some View{SellerOperationSheet("seller_revoke"){
+        SellerValue(title:"seller_member_account",value:member.Account);SellerValue(title:"seller_role",value:member.Role)
+        ShopNotice(title:"seller_revoke_warning",symbol:"person.crop.circle.badge.xmark",warning:true)
+        SellerField(title:"seller_revoke_reason",text:$reason)
+        Text("seller_revoke_reason_hint").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        Toggle("seller_confirm_revoke",isOn:$reviewed).shopFont(13)
+        Button("seller_confirm_revoke_action",role:.destructive){submitted=true;seller.perform(.revoke(account:member.Account,reason:reason))}.buttonStyle(ShopButtonStyle(kind:.destructive)).disabled(!reviewed || !sellerRequiredText(reason,240) || reason.utf8.count<8 || reason.contains("\n") || reason.contains("\r") || member.Role=="owner" || submitted || !seller.canManageMembers || seller.busy || seller.hasPending(member.Account))
+        SellerFormResult(submitted:submitted)
+    }.disabled(seller.busy)}
+}
+private struct SellerFormResult:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let submitted:Bool
+    var body:some View{if submitted{VStack(alignment:.leading,spacing:12){Text("seller_check_result").shopFont(12).foregroundStyle(ShopTheme.secondary);if !seller.state.isEmpty{Text(LocalizedStringKey(seller.state)).shopFont(13)};if seller.pendingOriginalCount>0{Button("seller_recover_originals"){seller.recoverOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy)};if seller.preparedOriginalCount>0{Button("seller_retry_prepared"){seller.retryPreparedOriginals()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy || !seller.signedIn)};Button("retry"){seller.refresh()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(seller.busy)}}}
+}

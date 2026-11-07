@@ -54,6 +54,21 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	var original any
 	decode := func(out any) bool { return decodeBusinessBody([]byte(in.OriginalBody), out) == nil }
 	switch {
+	case in.Method == "POST" && strings.HasSuffix(in.Path, "/native-revoke") && strings.HasPrefix(in.Path, "/seller/stores/"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 7 || parts[4] != "roles" || !invoiceRecoveryID.MatchString(parts[3]) || !invoiceRecoveryID.MatchString(parts[5]) {
+			return nil, "", ErrConflict
+		}
+		var input NativeSellerRoleRevocationInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		storeID, target, key, original = parts[3], parts[5], input.IdempotencyKey, input
+		if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		route = "role.revoke.native." + storeID + "." + target
+		kind = "native-role-revocation"
 	case in.Method == "POST" && in.Path == "/seller/inventory/batch":
 		var input InventoryBatchInput
 		if !decode(&input) || len(input.Items) == 0 || len(input.Items) > 100 {
@@ -254,7 +269,7 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		}
 	}
 	rec, ok := s.s.Idempotency[idemMapKey(actor, route, key)]
-	if !ok || rec.Actor != actor || rec.Route != route || rec.Key != key || rec.RequestHash != requestHash(original) || (target != "" && rec.ObjectID != target) {
+	if !ok || rec.Actor != actor || rec.Route != route || rec.Key != key || rec.RequestHash != requestHash(original) || (target != "" && kind != "native-role-revocation" && rec.ObjectID != target) {
 		return nil, "", ErrConflict
 	}
 	switch kind {
@@ -279,6 +294,12 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 			return nil, "", err
 		}
 		return detached(value)
+	case "native-role-revocation":
+		value, ok := s.s.SellerRevocations[rec.ObjectID]
+		if !ok || value.StoreID != storeID || value.Account != target {
+			return nil, "", ErrConflict
+		}
+		return detached(nativeSellerRoleRevocation(value, true))
 	case "product":
 		value, ok := s.s.Products[rec.ObjectID]
 		if !ok || value.StoreID != storeID {

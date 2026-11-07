@@ -57,6 +57,7 @@ struct ContentView:View {
 
 struct DesktopShopHeader:View {
     @EnvironmentObject var model:ShopModel
+    @EnvironmentObject var seller:ShopSellerModel
     @Binding var selectedTab:Int
     var body:some View {
         GeometryReader{geometry in
@@ -69,7 +70,7 @@ struct DesktopShopHeader:View {
             Button{selectedTab=2}label:{Label{if spacious{Text("nav_cart")};if !model.cart.isEmpty{Text("\(model.cart.count)")}}icon:{Image(systemName:"cart")}}.buttonStyle(.plain)
             Button(model.signedIn ? "wallet_active":"wallet_sign_in"){if model.signedIn{selectedTab=4}else{model.signIn()}}.buttonStyle(ShopButtonStyle(kind:.secondary))
             Button{selectedTab=4}label:{Image(systemName:"person.crop.circle").font(.title2)}.buttonStyle(.plain).accessibilityLabel("nav_account")
-            Menu{Button("nav_catalog"){selectedTab=0};Button("nav_orders"){selectedTab=3};Button("nav_account"){selectedTab=4};Divider();Link("seller_console",destination:URL(string:"https://shop.ynxweb4.com/seller/")!);Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}label:{Image(systemName:"square.grid.2x2")}.menuStyle(.automatic).fixedSize().accessibilityLabel("commerce_services")
+            Menu{Button("nav_catalog"){selectedTab=0};Button("nav_orders"){selectedTab=3};Button("nav_account"){selectedTab=4};Divider();Button("seller_console"){seller.workspaceVisible=true};Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}label:{Image(systemName:"square.grid.2x2")}.menuStyle(.automatic).fixedSize().accessibilityLabel("commerce_services")
         }.padding(.horizontal,32).frame(height:64).background(ShopTheme.surface).overlay(alignment:.bottom){ShopTheme.border.frame(height:1)}
         }.frame(height:64)
     }
@@ -387,6 +388,7 @@ struct OriginalInvoiceSheet:View {
 
 struct AccountView:View {
     @EnvironmentObject var model:ShopModel
+    @EnvironmentObject var seller:ShopSellerModel
     @State private var deletionConfirmation=""
     @AppStorage("shop-text-size") private var textSize="standard"
     @AppStorage("shop-color-scheme") private var themeChoice="system"
@@ -395,7 +397,7 @@ struct AccountView:View {
         ShopPanel{VStack(alignment:.leading,spacing:16){Label("wallet_security",systemImage:"lock.shield").shopFont(17,.semibold);if model.signedIn{Text("wallet_active");Button("sign_out",role:.destructive){model.signOut()}.buttonStyle(ShopButtonStyle(kind:.secondary))}else{Button("wallet_sign_in"){model.signIn()}.buttonStyle(ShopButtonStyle())};Text("privacy_boundary").shopFont(13).foregroundStyle(ShopTheme.secondary)}}
         if model.signedIn{profile;privacy}
         ShopPanel{VStack(alignment:.leading,spacing:18){Text("settings_language").shopFont(17,.semibold);Picker("settings_language",selection:Binding(get:{model.appLanguage},set:model.setLanguage)){ForEach(supportedLanguages,id:\.self){Text(Locale.current.localizedString(forIdentifier:$0) ?? $0).tag($0)}};Picker("ai_language",selection:Binding(get:{model.aiLanguage},set:model.setAILanguage)){ForEach(supportedLanguages,id:\.self){Text($0).tag($0)}};Picker("text_size",selection:$textSize){Text("text_compact").tag("compact");Text("text_standard").tag("standard");Text("text_larger").tag("larger")};Picker("shop_theme",selection:$themeChoice){Text("shop_theme_system").tag("system");Text("shop_theme_light").tag("light");Text("shop_theme_dark").tag("dark")};Text("ai_privacy").shopFont(12).foregroundStyle(ShopTheme.secondary)}}
-        ShopPanel{VStack(alignment:.leading,spacing:12){Text("service_boundaries").shopFont(17,.semibold);Text("tax_unavailable");Text("logistics_unavailable");Divider();Link("seller_console",destination:URL(string:"https://shop.ynxweb4.com/seller/")!);Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}.shopFont(13)}
+        ShopPanel{VStack(alignment:.leading,spacing:12){Text("service_boundaries").shopFont(17,.semibold);Text("tax_unavailable");Text("logistics_unavailable");Divider();Button("seller_console"){seller.workspaceVisible=true};Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}.shopFont(13)}
     }.padding(24).frame(maxWidth:1000).frame(maxWidth:.infinity)}.background(ShopTheme.background).navigationTitle("nav_account").shopInlineTitle()}
     private var profile:some View{ShopPanel{VStack(alignment:.leading,spacing:14){Text("save_profile").shopFont(17,.semibold);TextField("recipient",text:$model.profileRecipient);TextField("address",text:$model.profileAddress);TextField("city",text:$model.profileCity);TextField("country",text:$model.profileCountry);HStack{Button("retry"){model.loadProfile()}.buttonStyle(ShopButtonStyle(kind:.secondary));Button("save_profile"){model.saveProfile()}.buttonStyle(ShopButtonStyle()).disabled(model.mutationBusy)}}.textFieldStyle(.roundedBorder)}}
     private var privacy:some View{ShopPanel{VStack(alignment:.leading,spacing:16){Text("privacy_data_title").shopFont(17,.semibold);Text("privacy_data_description").shopFont(13).foregroundStyle(ShopTheme.secondary);Button("privacy_export_button"){model.exportPrivacyData()}.buttonStyle(ShopButtonStyle(kind:.secondary));if let url=model.privacyExportURL{ShareLink(item:url){Label("privacy_share_label",systemImage:"square.and.arrow.up")}};Divider();Text("privacy_delete_warning").shopFont(13);TextField("DELETE_MY_SHOP_DATA",text:$deletionConfirmation).shopCapitalization(true).autocorrectionDisabled().textFieldStyle(.roundedBorder);Button("privacy_delete_button",role:.destructive){model.deletePrivacyData(deletionConfirmation)}.buttonStyle(ShopButtonStyle(kind:.destructive)).disabled(model.mutationBusy)}}}

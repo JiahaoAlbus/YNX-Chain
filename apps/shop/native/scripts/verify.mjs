@@ -119,6 +119,12 @@ assert.ok(localeController.includes('config.setLayoutDirection(locale)'), 'Andro
 const iosModel = await readFile(new URL('ios/YNXShop/ShopModel.swift', root), 'utf8');
 const iosView = await readFile(new URL('ios/YNXShop/ContentView.swift', root), 'utf8');
 const iosApp = await readFile(new URL('ios/YNXShop/YNXShopApp.swift', root), 'utf8');
+const sellerView = await readFile(new URL('ios/YNXShop/SellerWorkspace.swift', root), 'utf8');
+const sellerModel = await readFile(new URL('ios/YNXShop/ShopSellerModel.swift', root), 'utf8');
+for (const key of new Set([...sellerView.matchAll(/"(seller_[a-z_]+)"/g), ...sellerModel.matchAll(/"(seller_[a-z_]+)"/g), ...iosApp.matchAll(/"(shop_[a-z_]+)"/g)].map(match=>match[1]))) {
+  for (const language of iosLanguages) assert.ok(catalog.strings[key]?.localizations?.[language]?.stringUnit?.value?.trim(), `Seller/native-role string missing: ${key}:${language}`);
+}
+
 for (const term of ['privacy/export', 'privacy/delete', 'DELETE_MY_SHOP_DATA', 'privacyExportURL', 'privacy_export_ready', 'privacy_delete_failed']) assert.ok(iosModel.includes(term) || iosView.includes(term), `iOS privacy: ${term}`);
 for (const term of ['privacy_data_title', 'privacy_data_description', 'privacy_export_button', 'privacy_share_label', 'privacy_delete_warning', 'privacy_delete_button']) assert.ok(iosView.includes(term), `iOS privacy view: ${term}`);
 for (const forbidden of ['Shop data export and deletion', 'Prepare JSON export', 'Delete personal Shop data', 'Shop data export ready.', 'Exact deletion confirmation required.']) assert.ok(!iosModel.includes(forbidden) && !iosView.includes(forbidden), `iOS hard-coded privacy copy: ${forbidden}`);

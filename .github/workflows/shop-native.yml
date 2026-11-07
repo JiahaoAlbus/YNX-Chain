@@ -153,7 +153,7 @@ jobs:
         if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeSellerRoleRevocation|TestAIOriginal|TestAIRecent|TestAINormal|TestCommerceLateAI|TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
         if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         env:
@@ -381,7 +381,7 @@ jobs:
           SOURCES=()
           for SOURCE in YNXShop/*.swift; do
             case "$SOURCE" in
-              */ContentView.swift|*/YNXShopApp.swift) ;;
+              */ContentView.swift|*/SellerWorkspace.swift|*/YNXShopApp.swift) ;;
               *) SOURCES+=("$SOURCE") ;;
             esac
           done
@@ -391,9 +391,15 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/LocalStorageStartupChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-locked-startup-checks"
           "$RUNNER_TEMP/ynx-shop-locked-startup-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-locked-startup.log"
-          for CHECK in AgentComparisonChecks AgentModelChecks; do
+          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks; do
             xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" "tests/$CHECK.swift" -o "$RUNNER_TEMP/ynx-shop-$CHECK"
             "$RUNNER_TEMP/ynx-shop-$CHECK" | tee "$RUNNER_TEMP/ynx-shop-$CHECK.log"
+          done
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/NativeEngineChecks.swift -o "$RUNNER_TEMP/ynx-shop-native-profile-engine-checks"
+          for PROFILE in buyer seller; do
+            YNX_SHOP_NATIVE_ENGINE_ASSETS="$RUNNER_TEMP/YNXShopMacDerivedData/Build/Products/Debug/YNX Shop.app/Contents/Resources/native-session" \
+            YNX_SHOP_NATIVE_ENGINE_PROFILE="$PROFILE" \
+              "$RUNNER_TEMP/ynx-shop-native-profile-engine-checks" | tee "$RUNNER_TEMP/ynx-shop-native-$PROFILE-engine.log"
           done
       - uses: actions/upload-artifact@v4
         with:
@@ -407,6 +413,10 @@ jobs:
             ${{ runner.temp }}/ynx-shop-macos-locked-startup.log
             ${{ runner.temp }}/ynx-shop-AgentComparisonChecks.log
             ${{ runner.temp }}/ynx-shop-AgentModelChecks.log
+            ${{ runner.temp }}/ynx-shop-SellerConsumerChecks.log
+            ${{ runner.temp }}/ynx-shop-SellerModelChecks.log
+            ${{ runner.temp }}/ynx-shop-native-buyer-engine.log
+            ${{ runner.temp }}/ynx-shop-native-seller-engine.log
 
   ios-simulator:
     needs: language-regression
@@ -448,7 +458,7 @@ jobs:
           SOURCES=()
           for SOURCE in YNXShop/*.swift; do
             case "$SOURCE" in
-              */ContentView.swift|*/YNXShopApp.swift) ;;
+              */ContentView.swift|*/SellerWorkspace.swift|*/YNXShopApp.swift) ;;
               *) SOURCES+=("$SOURCE") ;;
             esac
           done

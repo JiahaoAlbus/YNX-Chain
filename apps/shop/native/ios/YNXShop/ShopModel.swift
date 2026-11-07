@@ -124,6 +124,11 @@ import SwiftUI
             return
         }
         originalOrderSignInDispatched=pendingOriginalOrderAfterSignIn != nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;Task{do{try await WalletAuth.begin(api:api)}catch{failure(error)}}}
+    func resumeAuthorizationReturnByUser(_ url:URL){
+        guard pendingNativeReturnURL==nil || pendingNativeReturnURL==url else{state="security_error";return}
+        walletCallback(url)
+        if nativeReturnPending{signIn()}
+    }
     func walletCallback(_ url:URL){if AppleBuyerJourney.wakeHint(url){Task{await resumeOriginalOrder()};return};if url.scheme=="ynxshop",url.host=="orders"{do{_ = try OriginalOrderLink.parse(url.absoluteString);if originalLinkRestoring{pendingOriginalOrderURL=url;return};try openOriginalOrderLink(url)}catch{state="security_error"};return};guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback" else{return};
         guard url.absoluteString.utf8.count<=16384 else{state="security_error";return}
         if nativeReturnPending || api.nativeAccessLocked {
