@@ -5,9 +5,12 @@ if [[ $# != 3 || -e "$1" ]]; then
  echo 'new external evidence directory, existing same-platform Source18 archive, exact SHA256 required' >&2
  exit 2
 fi
-YNX_ACCOUNT_AUTH_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+YNX_ACCOUNT_AUTH_ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"
 mkdir -p "$1"
-YNX_ACCOUNT_AUTH_EVIDENCE="$(cd "$1" && pwd)"
+YNX_ACCOUNT_AUTH_EVIDENCE="$(cd "$1" && pwd -P)"
+mkdir -m 0700 "$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"
+# Go testing.TempDir prefers GOTMPDIR; both runtimes use this case-owned physical path.
+export TMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp" GOTMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"
 cd "$YNX_ACCOUNT_AUTH_ROOT"
 # Original Auth PUBLIC platform body is Darwin; no Linux/mobile positive claimed.
 python3 -B scripts/verify/build-account-auth-interop.py "$YNX_ACCOUNT_AUTH_EVIDENCE/cpp" "$2" "$3"

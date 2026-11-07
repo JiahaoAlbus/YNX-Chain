@@ -10,6 +10,8 @@ fixture_path='third_party/cometbft/rpc/jsonrpc/server/test.key'
 public_fixture="$source_root/$fixture_path"
 http_v5_fixture_path='internal/ynxbatch/testdata/product-session-proof-v5-public.json'
 http_v5_public_fixture="$source_root/$http_v5_fixture_path"
+account_source_path='internal/consensus/testdata/account_auth_interop/auth-public-fixture/public/current.original'
+account_source_fixture="$source_root/$account_source_path"
 bash_bin=$(command -v bash)
 git_bin=$(command -v git)
 original_path=$PATH
@@ -19,7 +21,8 @@ unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
 unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
 
 if [[ ! -f "$scanner" || ! -f "$public_fixture" || -L "$public_fixture" ||
-      ! -f "$http_v5_public_fixture" || -L "$http_v5_public_fixture" ]]; then
+      ! -f "$http_v5_public_fixture" || -L "$http_v5_public_fixture" ||
+      ! -f "$account_source_fixture" || -L "$account_source_fixture" ]]; then
   echo 'secret-scan-check: required production source or public fixture missing' >&2
   exit 1
 fi
@@ -115,6 +118,122 @@ digest_then_mutate() {
   } >"$case_dir/bin/sha256sum"
   chmod 0700 "$case_dir/bin/sha256sum"
 }
+
+account_source_copy() {
+  mkdir -p -- "$repo/$(dirname -- "$account_source_path")"
+  cp -- "$account_source_fixture" "$repo/$account_source_path"
+}
+
+# Exact signed PUBLIC Source-v2 fixture; similar names/objects never qualify.
+new_case exact-public-account-source
+account_source_copy
+expect_exit 0
+
+new_case changed-public-account-source
+account_source_copy
+printf '\n' >>"$repo/$account_source_path"
+expect_exit 2
+
+new_case same-size-changed-public-account-source
+account_source_copy
+printf 'X' | dd of="$repo/$account_source_path" bs=1 count=1 conv=notrunc 2>>"$case_dir/setup.stderr"
+expect_exit 2
+
+new_case public-account-source-at-another-path
+cp -- "$account_source_fixture" "$repo/another.original"
+expect_exit 1
+
+new_case public-account-source-leaf-symlink
+mkdir -p -- "$repo/$(dirname -- "$account_source_path")"
+cp -- "$account_source_fixture" "$case_dir/original"
+ln -s -- "$case_dir/original" "$repo/$account_source_path"
+expect_exit 2
+
+new_case public-account-source-parent-symlink
+account_source_copy
+(cd -- "$repo" && "$git_bin" add -- "$account_source_path")
+mv -- "$repo/internal/consensus/testdata/account_auth_interop/auth-public-fixture/public" "$case_dir/original-public"
+ln -s -- "$case_dir/original-public" "$repo/internal/consensus/testdata/account_auth_interop/auth-public-fixture/public"
+expect_exit 2
+
+new_case public-account-source-hardlink
+mkdir -p -- "$repo/$(dirname -- "$account_source_path")"
+cp -- "$account_source_fixture" "$case_dir/original"
+ln -- "$case_dir/original" "$repo/$account_source_path"
+expect_exit 2
+
+new_case public-account-source-executable
+account_source_copy
+chmod 0755 "$repo/$account_source_path"
+expect_exit 2
+
+new_case public-account-source-missing-tracked
+account_source_copy
+(cd -- "$repo" && "$git_bin" add -- "$account_source_path")
+rm -- "$repo/$account_source_path"
+expect_exit 2
+
+new_case public-account-source-does-not-hide-other-private-marker
+account_source_copy
+key_header >"$repo/ordinary-private-input"
+expect_exit 1
+
+new_case private-marker-cannot-replace-public-account-source
+account_source_copy
+key_header >"$repo/$account_source_path"
+expect_exit 2
+
+new_case public-account-source-parser-unavailable
+account_source_copy
+stub_command python3 1
+expect_exit 2 "$case_dir/bin:$original_path"
+
+# Mutate only this test fixture after the actual digest, while the recognizer
+# still holds its original fd. Equal bytes never excuse a replaced identity.
+account_source_mutate_after_digest() {
+  local mutation=$1 python_bin
+  python_bin=$(command -v python3)
+  mkdir -p -- "$case_dir/bin"
+  cat >"$case_dir/mutate-public.py" <<'PY_ACCOUNT_MUTATE'
+import hashlib, os, pathlib, sys
+mutation, copied, saved = sys.argv[1:4]
+sys.argv = sys.argv[4:]
+code = sys.stdin.read()
+real = hashlib.sha256
+class Digest:
+    def __init__(self, value):
+        self.value = value
+    def hexdigest(self):
+        digest = self.value.hexdigest()
+        p = pathlib.Path(copied)
+        if mutation == 'replace':
+            p.rename(saved)
+            p.write_bytes(pathlib.Path(saved).read_bytes())
+        elif mutation == 'parent':
+            p.parent.rename(saved)
+            p.parent.symlink_to(saved, target_is_directory=True)
+        elif mutation == 'hardlink':
+            os.link(p, saved)
+        else:
+            raise ValueError('unknown PUBLIC test mutation')
+        return digest
+hashlib.sha256 = lambda b: Digest(real(b))
+exec(compile(code, '<actual fixed PUBLIC recognizer>', 'exec'))
+PY_ACCOUNT_MUTATE
+  {
+    printf '#!%s\nexec ' "$bash_bin"
+    printf '%q ' "$python_bin" "$case_dir/mutate-public.py" "$mutation" "$repo/$account_source_path" "$case_dir/retained-original"
+    printf '"$@"\n'
+  } >"$case_dir/bin/python3"
+  chmod 0700 "$case_dir/bin/python3"
+}
+
+for mutation in replace parent hardlink; do
+  new_case "public-account-source-during-read-$mutation"
+  account_source_copy
+  account_source_mutate_after_digest "$mutation"
+  expect_exit 2 "$case_dir/bin:$original_path"
+done
 
 # These existing public member encodings contain accidental token-shaped
 # substrings. Only the exact source-pinned path/bytes and regular-file identity

@@ -141,7 +141,11 @@ def assert_contract(raw, recipe, builder):
         raise AssertionError('missing evidence is fatal')
     if tuple(collector.REQUIRED) != REQUIRED or collector.PACKAGE != PACKAGE:
         raise AssertionError('exact one top and three subcases/package required')
-    for literal in ('set -euo pipefail', 'umask 077', '[[ $# != 3 || -e "$1" ]]',
+    for literal in ('set -euo pipefail', 'umask 077',
+                    'YNX_ACCOUNT_AUTH_ROOT="$(cd "$(dirname "$0")/../.." && pwd -P)"',
+                    'YNX_ACCOUNT_AUTH_EVIDENCE="$(cd "$1" && pwd -P)"',
+                    'mkdir -m 0700 "$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"',
+                    'export TMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp" GOTMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"', '[[ $# != 3 || -e "$1" ]]',
                     'python3 -B ' + BUILDER + ' "$YNX_ACCOUNT_AUTH_EVIDENCE/cpp" "$2" "$3"',
                     'export GOMAXPROCS=2 GOMEMLIMIT=1536MiB YNX_PQ_NETWORK_E2E=\'\'',
                     'export YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$YNX_ACCOUNT_AUTH_ROOT/' + TRACE + '"',
@@ -236,6 +240,32 @@ class AccountAuthInteropCI(unittest.TestCase):
                          ('MobileAccountProofClient.cpp', 'stub.cpp'), ("str(archive),'-Wl,-dead_strip'", "'other.a'")):
             with self.subTest(old=old), self.assertRaises(AssertionError):
                 assert_contract(self.raw, self.recipe, self.builder.replace(old, new, 1))
+
+    def test_actual_recipe_prelude_uses_owned_physical_tmp_for_go_and_cpp(self):
+        prelude = self.recipe.split('# Original Auth PUBLIC platform body', 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            real = Path(directory).resolve() / 'real'
+            real.mkdir()
+            alias = real.parent / 'alias'
+            alias.symlink_to(real, target_is_directory=True)
+            output = alias / 'case'
+            command = prelude + "printf '%s\\0' \"$YNX_ACCOUNT_AUTH_ROOT\" \"$YNX_ACCOUNT_AUTH_EVIDENCE\" \"$TMPDIR\" \"$GOTMPDIR\"\n"
+            result = subprocess.run(['bash', '-c', command, str(ROOT / RECIPE), str(output), '/PUBLIC/archive', 'PUBLIC-pin'], capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            fields = result.stdout.decode().split('\0')[:-1]
+            self.assertEqual(fields, [str(ROOT.resolve()), str(output.resolve()), str(output.resolve() / 'tmp'), str(output.resolve() / 'tmp')])
+            self.assertEqual((output / 'tmp').stat().st_mode & 0o777, 0o700)
+            self.assertFalse((output / 'tmp').is_symlink())
+            repeated = subprocess.run(['bash', '-c', command, str(ROOT / RECIPE), str(output), '/PUBLIC/archive', 'PUBLIC-pin'], capture_output=True, timeout=5)
+            self.assertEqual(repeated.returncode, 2)
+
+    def test_case_owned_tmp_contract_cannot_be_removed_or_alias_reintroduced(self):
+        for old, new in (('&& pwd -P)', '&& pwd)'),
+                         ('mkdir -m 0700 "$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"', 'mkdir -m 0777 "$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"'),
+                         (' GOTMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"', ''),
+                         ('export TMPDIR="$YNX_ACCOUNT_AUTH_EVIDENCE/tmp"', 'export TMPDIR=/tmp')):
+            with self.subTest(old=old), self.assertRaises(AssertionError):
+                assert_contract(self.raw, self.recipe.replace(old, new), self.builder)
 
     def test_collector_requires_original_top_three_children_and_package(self):
         self.assertTrue(collector.qualify(valid_events())['jointPUBLICPassed'])
