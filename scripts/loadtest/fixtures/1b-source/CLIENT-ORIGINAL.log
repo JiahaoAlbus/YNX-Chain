@@ -1,0 +1,738 @@
+﻿2026-11-07T06:08:41.5732532Z Current runner version: '2.338.2'
+2026-11-07T06:08:41.5760835Z ##[group]Runner Image Provisioner
+2026-11-07T06:08:41.5761790Z Hosted Compute Agent
+2026-11-07T06:08:41.5762562Z Version: 20261028.624
+2026-11-07T06:08:41.5763558Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-07T06:08:41.5764497Z Build Date: 2026-10-28T21:51:42Z
+2026-11-07T06:08:41.5765340Z Worker ID: {8d185cd8-d104-461d-a10c-b204bd5010a7}
+2026-11-07T06:08:41.5766189Z Region: eastus2
+2026-11-07T06:08:41.5766937Z Cloud: Azure
+2026-11-07T06:08:41.5767575Z ##[endgroup]
+2026-11-07T06:08:41.5769410Z ##[group]Operating System
+2026-11-07T06:08:41.5770171Z Ubuntu
+2026-11-07T06:08:41.5770756Z 24.04.5
+2026-11-07T06:08:41.5771452Z LTS
+2026-11-07T06:08:41.5772142Z ##[endgroup]
+2026-11-07T06:08:41.5772830Z ##[group]Runner Image
+2026-11-07T06:08:41.5773727Z Image: ubuntu-24.04
+2026-11-07T06:08:41.5774387Z Version: 20261101.360.1
+2026-11-07T06:08:41.5776002Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-07T06:08:41.5778014Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-07T06:08:41.5779235Z ##[endgroup]
+2026-11-07T06:08:41.5780713Z ##[group]GITHUB_TOKEN Permissions
+2026-11-07T06:08:41.5783506Z Contents: read
+2026-11-07T06:08:41.5784199Z Metadata: read
+2026-11-07T06:08:41.5785001Z ##[endgroup]
+2026-11-07T06:08:41.5787331Z Secret source: Actions
+2026-11-07T06:08:41.5788544Z Cache mode: write
+2026-11-07T06:08:41.5789876Z Prepare workflow directory
+2026-11-07T06:08:41.6219244Z Prepare all required actions
+2026-11-07T06:08:41.6275030Z Getting action download info
+2026-11-07T06:08:41.8235332Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-11-07T06:08:41.9309713Z Download action repository 'actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e' (SHA:b7ad1dad31e06c5925ef5d2fc7ad053ef454303e)
+2026-11-07T06:08:42.1771274Z Download action repository 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-11-07T06:08:42.3414726Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-07T06:08:42.5504695Z Complete job name: Original client observations and cohort readback
+2026-11-07T06:08:42.6270956Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-11-07T06:08:42.6271848Z with:
+2026-11-07T06:08:42.6272264Z   ref: 1b0ea548aca6b5260a9824d0edd3012d52e53521
+2026-11-07T06:08:42.6272771Z   fetch-depth: 1
+2026-11-07T06:08:42.6273310Z   persist-credentials: false
+2026-11-07T06:08:42.6273769Z   repository: JiahaoAlbus/YNX-Chain
+2026-11-07T06:08:42.6276976Z   token: ***
+2026-11-07T06:08:42.6277359Z   ssh-strict: true
+2026-11-07T06:08:42.6277758Z   ssh-user: git
+2026-11-07T06:08:42.6278123Z   clean: true
+2026-11-07T06:08:42.6278519Z   sparse-checkout-cone-mode: true
+2026-11-07T06:08:42.6279009Z   fetch-tags: false
+2026-11-07T06:08:42.6279408Z   show-progress: true
+2026-11-07T06:08:42.6279801Z   lfs: false
+2026-11-07T06:08:42.6280161Z   submodules: false
+2026-11-07T06:08:42.6280557Z   set-safe-directory: true
+2026-11-07T06:08:42.6281174Z env:
+2026-11-07T06:08:42.6281530Z   GOMAXPROCS: 2
+2026-11-07T06:08:42.6281906Z ##[endgroup]
+2026-11-07T06:08:42.8183981Z Syncing repository: JiahaoAlbus/YNX-Chain
+2026-11-07T06:08:42.8187132Z ##[group]Getting Git version info
+2026-11-07T06:08:42.8188268Z Working directory is '/home/runner/work/YNX-Chain/YNX-Chain'
+2026-11-07T06:08:42.8189577Z [command]/usr/bin/git version
+2026-11-07T06:08:42.8237275Z git version 2.56.0
+2026-11-07T06:08:42.8255274Z ##[endgroup]
+2026-11-07T06:08:42.8269162Z Temporarily overriding HOME='/home/runner/work/_temp/d8daa2e5-a4fe-4896-8b7e-8ec1364e410a' before making global git config changes
+2026-11-07T06:08:42.8271441Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-07T06:08:42.8274783Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/YNX-Chain/YNX-Chain
+2026-11-07T06:08:42.8323241Z Deleting the contents of '/home/runner/work/YNX-Chain/YNX-Chain'
+2026-11-07T06:08:42.8331449Z ##[group]Initializing the repository
+2026-11-07T06:08:42.8344395Z [command]/usr/bin/git init /home/runner/work/YNX-Chain/YNX-Chain
+2026-11-07T06:08:42.8433216Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-07T06:08:42.8434891Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-07T06:08:42.8436359Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-07T06:08:42.8437490Z hint: call:
+2026-11-07T06:08:42.8438107Z hint:
+2026-11-07T06:08:42.8438920Z hint: 	git config --global init.defaultBranch <name>
+2026-11-07T06:08:42.8439899Z hint:
+2026-11-07T06:08:42.8441205Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-07T06:08:42.8442425Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-07T06:08:42.8443432Z hint:
+2026-11-07T06:08:42.8443861Z hint: 	git branch -m <name>
+2026-11-07T06:08:42.8444415Z hint:
+2026-11-07T06:08:42.8445002Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-07T06:08:42.8445928Z Initialized empty Git repository in /home/runner/work/YNX-Chain/YNX-Chain/.git/
+2026-11-07T06:08:42.8456715Z [command]/usr/bin/git remote add origin https://github.com/JiahaoAlbus/YNX-Chain
+2026-11-07T06:08:42.8500189Z ##[endgroup]
+2026-11-07T06:08:42.8501296Z ##[group]Disabling automatic garbage collection
+2026-11-07T06:08:42.8503616Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-07T06:08:42.8536924Z ##[endgroup]
+2026-11-07T06:08:42.8538219Z ##[group]Setting up auth
+2026-11-07T06:08:42.8542724Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-07T06:08:42.8584080Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-07T06:08:42.8893986Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-07T06:08:42.8933186Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-07T06:08:42.9145671Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-07T06:08:42.9192381Z ##[endgroup]
+2026-11-07T06:08:42.9202304Z ##[group]Fetching the repository
+2026-11-07T06:08:42.9204075Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 1b0ea548aca6b5260a9824d0edd3012d52e53521
+2026-11-07T06:08:46.3267927Z From https://github.com/JiahaoAlbus/YNX-Chain
+2026-11-07T06:08:46.3268686Z  * branch            1b0ea548aca6b5260a9824d0edd3012d52e53521 -> FETCH_HEAD
+2026-11-07T06:08:46.3271180Z ##[endgroup]
+2026-11-07T06:08:46.3271911Z ##[group]Determining the checkout info
+2026-11-07T06:08:46.3274162Z ##[endgroup]
+2026-11-07T06:08:46.3278915Z [command]/usr/bin/git sparse-checkout disable
+2026-11-07T06:08:46.3332336Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-07T06:08:46.3372124Z ##[group]Checking out the ref
+2026-11-07T06:08:46.3376696Z [command]/usr/bin/git checkout --progress --force 1b0ea548aca6b5260a9824d0edd3012d52e53521
+2026-11-07T06:08:47.3513026Z Updating files:  65% (4973/7630)
+2026-11-07T06:08:47.3557380Z Updating files:  66% (5036/7630)
+2026-11-07T06:08:47.3599404Z Updating files:  67% (5113/7630)
+2026-11-07T06:08:47.3768488Z Updating files:  68% (5189/7630)
+2026-11-07T06:08:47.3883550Z Updating files:  69% (5265/7630)
+2026-11-07T06:08:47.3930055Z Updating files:  70% (5341/7630)
+2026-11-07T06:08:47.3965400Z Updating files:  71% (5418/7630)
+2026-11-07T06:08:47.4021703Z Updating files:  72% (5494/7630)
+2026-11-07T06:08:47.4074418Z Updating files:  73% (5570/7630)
+2026-11-07T06:08:47.4120966Z Updating files:  74% (5647/7630)
+2026-11-07T06:08:47.4178741Z Updating files:  75% (5723/7630)
+2026-11-07T06:08:47.4248673Z Updating files:  76% (5799/7630)
+2026-11-07T06:08:47.4282001Z Updating files:  77% (5876/7630)
+2026-11-07T06:08:47.4336311Z Updating files:  78% (5952/7630)
+2026-11-07T06:08:47.4384251Z Updating files:  79% (6028/7630)
+2026-11-07T06:08:47.4420126Z Updating files:  80% (6104/7630)
+2026-11-07T06:08:47.4459556Z Updating files:  81% (6181/7630)
+2026-11-07T06:08:47.4502811Z Updating files:  82% (6257/7630)
+2026-11-07T06:08:47.4538696Z Updating files:  83% (6333/7630)
+2026-11-07T06:08:47.4579240Z Updating files:  84% (6410/7630)
+2026-11-07T06:08:47.4735962Z Updating files:  85% (6486/7630)
+2026-11-07T06:08:47.5199199Z Updating files:  86% (6562/7630)
+2026-11-07T06:08:47.5651074Z Updating files:  87% (6639/7630)
+2026-11-07T06:08:47.5974202Z Updating files:  88% (6715/7630)
+2026-11-07T06:08:47.6012407Z Updating files:  89% (6791/7630)
+2026-11-07T06:08:47.6048136Z Updating files:  90% (6867/7630)
+2026-11-07T06:08:47.6085514Z Updating files:  91% (6944/7630)
+2026-11-07T06:08:47.6133047Z Updating files:  92% (7020/7630)
+2026-11-07T06:08:47.6168741Z Updating files:  93% (7096/7630)
+2026-11-07T06:08:47.6217150Z Updating files:  94% (7173/7630)
+2026-11-07T06:08:47.6266113Z Updating files:  95% (7249/7630)
+2026-11-07T06:08:47.6309987Z Updating files:  96% (7325/7630)
+2026-11-07T06:08:47.6350520Z Updating files:  97% (7402/7630)
+2026-11-07T06:08:47.6383317Z Updating files:  98% (7478/7630)
+2026-11-07T06:08:47.6423616Z Updating files:  99% (7554/7630)
+2026-11-07T06:08:47.6424237Z Updating files: 100% (7630/7630)
+2026-11-07T06:08:47.6424621Z Updating files: 100% (7630/7630), done.
+2026-11-07T06:08:47.6492789Z Note: switching to '1b0ea548aca6b5260a9824d0edd3012d52e53521'.
+2026-11-07T06:08:47.6493257Z 
+2026-11-07T06:08:47.6493486Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-07T06:08:47.6494139Z changes and commit them, and you can discard any commits you make in this
+2026-11-07T06:08:47.6494700Z state without impacting any branches by switching back to a branch.
+2026-11-07T06:08:47.6495054Z 
+2026-11-07T06:08:47.6495290Z If you want to create a new branch to retain commits you create, you may
+2026-11-07T06:08:47.6496201Z do so (now or later) by using -c with the switch command. Example:
+2026-11-07T06:08:47.6496550Z 
+2026-11-07T06:08:47.6496687Z   git switch -c <new-branch-name>
+2026-11-07T06:08:47.6496917Z 
+2026-11-07T06:08:47.6497051Z Or undo this operation with:
+2026-11-07T06:08:47.6497254Z 
+2026-11-07T06:08:47.6497372Z   git switch -
+2026-11-07T06:08:47.6497528Z 
+2026-11-07T06:08:47.6497817Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-07T06:08:47.6498215Z 
+2026-11-07T06:08:47.6498526Z HEAD is now at 1b0ea54 Fix reachable zstd decoder panic with upstream security release
+2026-11-07T06:08:47.6591077Z ##[endgroup]
+2026-11-07T06:08:47.6642732Z [command]/usr/bin/git log -1 --format=%H
+2026-11-07T06:08:47.6673101Z 1b0ea548aca6b5260a9824d0edd3012d52e53521
+2026-11-07T06:08:47.6686405Z ##[group]Removing auth
+2026-11-07T06:08:47.6687011Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-07T06:08:47.6720637Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-07T06:08:47.6942784Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-07T06:08:47.6984037Z http.https://github.com/.extraheader
+2026-11-07T06:08:47.6990580Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-07T06:08:47.7029059Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-07T06:08:47.7243881Z ##[endgroup]
+2026-11-07T06:08:47.7458586Z ##[group]Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+2026-11-07T06:08:47.7458912Z with:
+2026-11-07T06:08:47.7459087Z   go-version-file: go.mod
+2026-11-07T06:08:47.7459294Z   check-latest: false
+2026-11-07T06:08:47.7459476Z   cache: true
+2026-11-07T06:08:47.7461476Z   token: ***
+2026-11-07T06:08:47.7461644Z env:
+2026-11-07T06:08:47.7461802Z   GOMAXPROCS: 2
+2026-11-07T06:08:47.7461979Z ##[endgroup]
+2026-11-07T06:08:47.8476693Z Setup go version spec 1.26.10
+2026-11-07T06:08:47.8489269Z Found in cache @ /opt/hostedtoolcache/go/1.26.10/x64
+2026-11-07T06:08:47.8489974Z Added go to the path
+2026-11-07T06:08:47.8492818Z Successfully set up Go version 1.26.10
+2026-11-07T06:08:47.9029683Z [command]/opt/hostedtoolcache/go/1.26.10/x64/bin/go env GOMODCACHE
+2026-11-07T06:08:47.9067776Z [command]/opt/hostedtoolcache/go/1.26.10/x64/bin/go env GOCACHE
+2026-11-07T06:08:47.9102035Z /home/runner/go/pkg/mod
+2026-11-07T06:08:47.9120828Z /home/runner/.cache/go-build
+2026-11-07T06:08:48.0021246Z Cache is not found
+2026-11-07T06:08:48.0039102Z go version go1.26.10 linux/amd64
+2026-11-07T06:08:48.0039275Z 
+2026-11-07T06:08:48.0039531Z ##[group]go env
+2026-11-07T06:08:48.1289247Z AR='ar'
+2026-11-07T06:08:48.1289628Z CC='gcc'
+2026-11-07T06:08:48.1289872Z CGO_CFLAGS='-O2 -g'
+2026-11-07T06:08:48.1290142Z CGO_CPPFLAGS=''
+2026-11-07T06:08:48.1290395Z CGO_CXXFLAGS='-O2 -g'
+2026-11-07T06:08:48.1290663Z CGO_ENABLED='1'
+2026-11-07T06:08:48.1290900Z CGO_FFLAGS='-O2 -g'
+2026-11-07T06:08:48.1291162Z CGO_LDFLAGS='-O2 -g'
+2026-11-07T06:08:48.1291421Z CXX='g++'
+2026-11-07T06:08:48.1291623Z GCCGO='gccgo'
+2026-11-07T06:08:48.1291795Z GO111MODULE=''
+2026-11-07T06:08:48.1291958Z GOAMD64='v1'
+2026-11-07T06:08:48.1292120Z GOARCH='amd64'
+2026-11-07T06:08:48.1292275Z GOAUTH='netrc'
+2026-11-07T06:08:48.1292427Z GOBIN=''
+2026-11-07T06:08:48.1292614Z GOCACHE='/home/runner/.cache/go-build'
+2026-11-07T06:08:48.1293151Z GOCACHEPROG=''
+2026-11-07T06:08:48.1293374Z GODEBUG=''
+2026-11-07T06:08:48.1293638Z GOENV='/home/runner/.config/go/env'
+2026-11-07T06:08:48.1293942Z GOEXE=''
+2026-11-07T06:08:48.1294156Z GOEXPERIMENT=''
+2026-11-07T06:08:48.1294386Z GOFIPS140='off'
+2026-11-07T06:08:48.1294633Z GOFLAGS=''
+2026-11-07T06:08:48.1295437Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2875847359=/tmp/go-build -gno-record-gcc-switches'
+2026-11-07T06:08:48.1296214Z GOHOSTARCH='amd64'
+2026-11-07T06:08:48.1296461Z GOHOSTOS='linux'
+2026-11-07T06:08:48.1296713Z GOINSECURE=''
+2026-11-07T06:08:48.1297033Z GOMOD='/home/runner/work/YNX-Chain/YNX-Chain/go.mod'
+2026-11-07T06:08:48.1297431Z GOMODCACHE='/home/runner/go/pkg/mod'
+2026-11-07T06:08:48.1297737Z GONOPROXY=''
+2026-11-07T06:08:48.1297967Z GONOSUMDB=''
+2026-11-07T06:08:48.1298181Z GOOS='linux'
+2026-11-07T06:08:48.1298416Z GOPATH='/home/runner/go'
+2026-11-07T06:08:48.1298669Z GOPRIVATE=''
+2026-11-07T06:08:48.1298975Z GOPROXY='https://proxy.golang.org,direct'
+2026-11-07T06:08:48.1299376Z GOROOT='/opt/hostedtoolcache/go/1.26.10/x64'
+2026-11-07T06:08:48.1299731Z GOSUMDB='sum.golang.org'
+2026-11-07T06:08:48.1299991Z GOTELEMETRY='local'
+2026-11-07T06:08:48.1300293Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2026-11-07T06:08:48.1300632Z GOTMPDIR=''
+2026-11-07T06:08:48.1300860Z GOTOOLCHAIN='local'
+2026-11-07T06:08:48.1301230Z GOTOOLDIR='/opt/hostedtoolcache/go/1.26.10/x64/pkg/tool/linux_amd64'
+2026-11-07T06:08:48.1301631Z GOVCS=''
+2026-11-07T06:08:48.1301857Z GOVERSION='go1.26.10'
+2026-11-07T06:08:48.1302105Z GOWORK=''
+2026-11-07T06:08:48.1302377Z PKG_CONFIG='pkg-config'
+2026-11-07T06:08:48.1302553Z 
+2026-11-07T06:08:48.1303243Z ##[endgroup]
+2026-11-07T06:08:48.1450862Z ##[group]Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+2026-11-07T06:08:48.1451167Z with:
+2026-11-07T06:08:48.1451337Z   node-version: 24.19.0
+2026-11-07T06:08:48.1451524Z   check-latest: false
+2026-11-07T06:08:48.1453798Z   token: ***
+2026-11-07T06:08:48.1454136Z   package-manager-cache: true
+2026-11-07T06:08:48.1454342Z env:
+2026-11-07T06:08:48.1454502Z   GOMAXPROCS: 2
+2026-11-07T06:08:48.1454682Z   GOTOOLCHAIN: local
+2026-11-07T06:08:48.1454859Z ##[endgroup]
+2026-11-07T06:08:48.2496520Z Attempting to download 24.19.0...
+2026-11-07T06:08:48.7676409Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-linux-x64.tar.gz
+2026-11-07T06:08:49.1809024Z Extracting ...
+2026-11-07T06:08:49.1929959Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/110088da-4449-4432-8817-8c0f1adee7c2 -f /home/runner/work/_temp/5feaab90-97fe-497b-a140-47ab078a309f
+2026-11-07T06:08:50.2356158Z Adding to the cache ...
+2026-11-07T06:08:52.1295151Z ##[group]Environment details
+2026-11-07T06:08:52.3290080Z node: v24.19.0
+2026-11-07T06:08:52.3290397Z npm: 11.17.0
+2026-11-07T06:08:52.3290648Z yarn: 1.22.22
+2026-11-07T06:08:52.3291202Z ##[endgroup]
+2026-11-07T06:08:52.3456609Z ##[group]Run set -euo pipefail
+2026-11-07T06:08:52.3456936Z [36;1mset -euo pipefail[0m
+2026-11-07T06:08:52.3457201Z [36;1mtest "$(git rev-parse HEAD)" = "$GITHUB_SHA"[0m
+2026-11-07T06:08:52.3458204Z [36;1mif ! go test -json -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestMonotonicObservation.*|TestDeclaredCohort.*)$' -count=1 -timeout=45s > "$RUNNER_TEMP/client-observation-tests.jsonl"; then[0m
+2026-11-07T06:08:52.3459224Z [36;1m  cat "$RUNNER_TEMP/client-observation-tests.jsonl"[0m
+2026-11-07T06:08:52.3459483Z [36;1m  exit 1[0m
+2026-11-07T06:08:52.3459648Z [36;1mfi[0m
+2026-11-07T06:08:52.3459816Z [36;1mpython3 -B - <<'PY'[0m
+2026-11-07T06:08:52.3460016Z [36;1mimport json, os[0m
+2026-11-07T06:08:52.3460229Z [36;1mfrom pathlib import Path[0m
+2026-11-07T06:08:52.3460717Z [36;1mrows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'client-observation-tests.jsonl').read_text().splitlines()][0m
+2026-11-07T06:08:52.3463889Z [36;1mrequired = ['TestReadySenderFastAccountAdvancesBeforeSlowPeer', 'TestReadySenderSegmentedIntentBarrierAndRecovery', 'TestMonotonicObservationExportUsesActualClockAndOriginalFinalGate', 'TestMonotonicObservationExportNeverReconstructsUTCOrDropsMissingSlots', 'TestMonotonicObservationExportKeepsExactNsAndPrivateOrigin', 'TestMonotonicObservationCaptureOnGroupedObserver', 'TestMonotonicObservationCaptureOnPacedScheduler', 'TestMonotonicObservationExportWithholdsReversedPoint', 'TestDeclaredCohortPlanPredeclaresFullDemandAndRefusesOverwrite', 'TestDeclaredCohortOriginalReadyPoolKeepsUnsentFutureRequests', 'TestDeclaredCohortCancellationRetainsOriginalPlanWithoutInventingArrivals', 'TestDeclaredCohortSignedExecutionPersistenceAndRestart', 'TestDeclaredCohortOptionsKeepOriginalResourceAndModeBounds'][0m
+2026-11-07T06:08:52.3466630Z [36;1mfor name in required:[0m
+2026-11-07T06:08:52.3467027Z [36;1m    terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')][0m
+2026-11-07T06:08:52.3467428Z [36;1m    if terminal != ['pass']:[0m
+2026-11-07T06:08:52.3467771Z [36;1m        raise RuntimeError('current client function did not execute and pass: ' + name)[0m
+2026-11-07T06:08:52.3468448Z [36;1mprint('YNX_CLIENT_OBSERVATIONS_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, publicTPSMeasured=False), sort_keys=True))[0m
+2026-11-07T06:08:52.3468976Z [36;1mPY[0m
+2026-11-07T06:08:52.3490431Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:08:52.3490657Z env:
+2026-11-07T06:08:52.3490828Z   GOMAXPROCS: 2
+2026-11-07T06:08:52.3491006Z   GOTOOLCHAIN: local
+2026-11-07T06:08:52.3491194Z ##[endgroup]
+2026-11-07T06:08:52.5600251Z go: downloading github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+2026-11-07T06:08:54.3737005Z go: downloading github.com/cometbft/cometbft-db v0.14.1
+2026-11-07T06:08:54.4340903Z go: downloading github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+2026-11-07T06:08:54.4667201Z go: downloading golang.org/x/sys v0.48.0
+2026-11-07T06:08:54.8493886Z go: downloading golang.org/x/crypto v0.57.0
+2026-11-07T06:08:55.0683993Z go: downloading github.com/cosmos/gogoproto v1.7.0
+2026-11-07T06:08:55.0701048Z go: downloading github.com/spf13/viper v1.19.0
+2026-11-07T06:08:55.3732406Z go: downloading google.golang.org/grpc v1.83.2
+2026-11-07T06:08:55.5994572Z go: downloading github.com/oasisprotocol/curve25519-voi v0.0.0-20220708102147-0a8a51822cae
+2026-11-07T06:08:55.7749459Z go: downloading github.com/golang/protobuf v1.5.4
+2026-11-07T06:08:55.7776745Z go: downloading github.com/stretchr/testify v1.10.0
+2026-11-07T06:08:56.4025920Z go: downloading github.com/hashicorp/golang-lru/v2 v2.0.7
+2026-11-07T06:08:56.4027753Z go: downloading github.com/google/btree v1.1.3
+2026-11-07T06:08:56.5396750Z go: downloading github.com/cloudflare/circl v1.6.5
+2026-11-07T06:08:56.9675564Z go: downloading golang.org/x/net v0.60.0
+2026-11-07T06:08:57.1318278Z go: downloading github.com/go-kit/log v0.2.1
+2026-11-07T06:08:57.1538432Z go: downloading github.com/go-logfmt/logfmt v0.6.0
+2026-11-07T06:08:57.1653589Z go: downloading github.com/pkg/errors v0.9.1
+2026-11-07T06:08:57.1782524Z go: downloading github.com/lib/pq v1.12.0
+2026-11-07T06:08:57.1817184Z go: downloading github.com/prometheus/client_golang v1.21.0
+2026-11-07T06:08:57.3685469Z go: downloading github.com/rs/cors v1.11.1
+2026-11-07T06:08:57.3700415Z go: downloading github.com/go-kit/kit v0.13.0
+2026-11-07T06:08:57.4218826Z go: downloading github.com/fsnotify/fsnotify v1.7.0
+2026-11-07T06:08:57.4258194Z go: downloading github.com/mitchellh/mapstructure v1.5.0
+2026-11-07T06:08:57.4433705Z go: downloading github.com/sagikazarmark/slog-shim v0.1.0
+2026-11-07T06:08:57.4447873Z go: downloading github.com/spf13/afero v1.11.0
+2026-11-07T06:08:57.4613644Z go: downloading github.com/spf13/cast v1.6.0
+2026-11-07T06:08:57.4703520Z go: downloading github.com/spf13/pflag v1.0.6
+2026-11-07T06:08:57.4882592Z go: downloading github.com/google/go-cmp v0.7.0
+2026-11-07T06:08:57.4972080Z go: downloading google.golang.org/protobuf v1.36.11
+2026-11-07T06:08:57.6738588Z go: downloading google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa
+2026-11-07T06:08:57.7179811Z go: downloading github.com/gorilla/websocket v1.5.3
+2026-11-07T06:08:57.7289181Z go: downloading github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
+2026-11-07T06:08:58.0030154Z go: downloading golang.org/x/text v0.42.0
+2026-11-07T06:08:58.3216944Z go: downloading golang.org/x/sync v0.23.0
+2026-11-07T06:08:58.3358377Z go: downloading github.com/minio/highwayhash v1.0.4
+2026-11-07T06:08:58.3672428Z go: downloading github.com/klauspost/compress v1.20.2
+2026-11-07T06:08:58.3796782Z go: downloading github.com/beorn7/perks v1.0.1
+2026-11-07T06:08:58.4025960Z go: downloading github.com/cespare/xxhash/v2 v2.3.0
+2026-11-07T06:08:58.4199721Z go: downloading github.com/prometheus/client_model v0.6.1
+2026-11-07T06:08:58.4405322Z go: downloading github.com/prometheus/common v0.62.0
+2026-11-07T06:08:58.4757366Z go: downloading github.com/prometheus/procfs v0.15.1
+2026-11-07T06:08:58.6708199Z go: downloading github.com/subosito/gotenv v1.6.0
+2026-11-07T06:08:58.6881711Z go: downloading github.com/hashicorp/hcl v1.0.0
+2026-11-07T06:08:58.7192541Z go: downloading gopkg.in/ini.v1 v1.67.0
+2026-11-07T06:08:58.7452188Z go: downloading github.com/magiconair/properties v1.8.7
+2026-11-07T06:08:58.7648955Z go: downloading github.com/pelletier/go-toml/v2 v2.2.2
+2026-11-07T06:08:58.7670136Z go: downloading gopkg.in/yaml.v3 v3.0.1
+2026-11-07T06:08:58.8309355Z go: downloading github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
+2026-11-07T06:08:58.8409704Z go: downloading github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
+2026-11-07T06:08:58.9056944Z go: downloading github.com/golang/snappy v0.0.4
+2026-11-07T06:08:58.9335448Z go: downloading github.com/google/orderedcode v0.0.1
+2026-11-07T06:08:58.9447425Z go: downloading github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+2026-11-07T06:10:07.7984955Z YNX_CLIENT_OBSERVATIONS_EXECUTED {"commit": "1b0ea548aca6b5260a9824d0edd3012d52e53521", "publicTPSMeasured": false, "requiredPassed": ["TestReadySenderFastAccountAdvancesBeforeSlowPeer", "TestReadySenderSegmentedIntentBarrierAndRecovery", "TestMonotonicObservationExportUsesActualClockAndOriginalFinalGate", "TestMonotonicObservationExportNeverReconstructsUTCOrDropsMissingSlots", "TestMonotonicObservationExportKeepsExactNsAndPrivateOrigin", "TestMonotonicObservationCaptureOnGroupedObserver", "TestMonotonicObservationCaptureOnPacedScheduler", "TestMonotonicObservationExportWithholdsReversedPoint", "TestDeclaredCohortPlanPredeclaresFullDemandAndRefusesOverwrite", "TestDeclaredCohortOriginalReadyPoolKeepsUnsentFutureRequests", "TestDeclaredCohortCancellationRetainsOriginalPlanWithoutInventingArrivals", "TestDeclaredCohortSignedExecutionPersistenceAndRestart", "TestDeclaredCohortOptionsKeepOriginalResourceAndModeBounds"]}
+2026-11-07T06:10:07.8711704Z ##[group]Run node --test scripts/loadtest/same-control-readback.test.mjs
+2026-11-07T06:10:07.8712169Z [36;1mnode --test scripts/loadtest/same-control-readback.test.mjs[0m
+2026-11-07T06:10:07.8730691Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:10:07.8730907Z env:
+2026-11-07T06:10:07.8731074Z   GOMAXPROCS: 2
+2026-11-07T06:10:07.8731251Z   GOTOOLCHAIN: local
+2026-11-07T06:10:07.8731434Z ##[endgroup]
+2026-11-07T06:10:08.1591843Z ✔ complete byte identities qualify only report-level counts with independent proof unknown (1.817254ms)
+2026-11-07T06:10:08.1593529Z ✔ duplicate, mismatched, incomplete and late-publication evidence cannot inflate finals (1.544114ms)
+2026-11-07T06:10:08.1595083Z ✔ comparison refuses changed workload controls and incomplete business windows (0.519561ms)
+2026-11-07T06:10:08.1599515Z ✔ baseline proof binding refuses another observation, changed bytes or incomplete actual verifier (1.275389ms)
+2026-11-07T06:10:08.1601056Z ✔ T-REL-05 complete terminal partition keeps rejection timeout lost rows and signing groups (1.384403ms)
+2026-11-07T06:10:08.1601971Z ✔ T-REL-05 prior backlog and tail drain cannot inflate the fixed-window final numerator (0.623227ms)
+2026-11-07T06:10:08.1603319Z ✔ T-REL-05 censored P95/P99 retain the full denominator and overdue SLO violations (0.241193ms)
+2026-11-07T06:10:08.1604585Z ✔ T-REL-05 valid inclusion remains separate from unfinished final Commit and execution failures (0.21978ms)
+2026-11-07T06:10:08.1606914Z ✔ T-REL-05 incomplete selected inventory duplicate members and foreign clocks fail closed (0.593833ms)
+2026-11-07T06:10:08.1608106Z ✔ T-REL-05 exact ns beyond float precision and R6 length are measurement DATA only (0.550809ms)
+2026-11-07T06:10:08.1609134Z ✔ T-REL-05 the exact 99.9 percent floor never forgives any unknown observation (18.471604ms)
+2026-11-07T06:10:08.1610277Z ✔ T-REL-05 adapter binds original raw journal and summary to the cohort kernel without proof promotion (1.632186ms)
+2026-11-07T06:10:08.1611560Z ✔ T-REL-05 adapter keeps the original denominator when a report row is lost and refuses fabricated recovery (0.972994ms)
+2026-11-07T06:10:08.1612795Z ✔ T-REL-05 adapter refuses mixed raw bytes summary totals and promoted unqualified observations (0.789919ms)
+2026-11-07T06:10:08.1614304Z ✔ T-REL-05 adapter actual read-only CLI preserves originals and refuses overwrite and links (108.229356ms)
+2026-11-07T06:10:08.1615478Z ✔ T-REL-05 adapter separates included execution failures from successful members and final Commit (0.618871ms)
+2026-11-07T06:10:08.1616681Z ✔ T-REL-05 monotonic bridge consumes producer clock data without UTC or formal-window invention (0.664319ms)
+2026-11-07T06:10:08.1619767Z ✔ T-REL-05 monotonic bridge refuses detached slots reversed clocks and widened producer claims (1.172985ms)
+2026-11-07T06:10:08.1623749Z ✔ T-REL-05 monotonic bridge actual producer-schema CLI delivers bounded readback data (30.522657ms)
+2026-11-07T06:10:08.1635800Z ✔ T-REL-05 declared source keeps fixed-window finals distinct from tail drain and signing groups (1.602281ms)
+2026-11-07T06:10:08.1637659Z ✔ T-REL-05 declared source preserves unsigned and unsubmitted logical successors after failure (0.492281ms)
+2026-11-07T06:10:08.1639242Z ✔ T-REL-05 declared source refuses effects before generation and postselected source plans (0.992773ms)
+2026-11-07T06:10:08.1640597Z ✔ T-REL-05 declared source withholds window rate when generation remains incomplete (0.53819ms)
+2026-11-07T06:10:08.1642517Z ✔ T-REL-05 declared source actual CLI consumes persisted plan and seed through the original entry (32.520749ms)
+2026-11-07T06:10:08.1739932Z ℹ tests 24
+2026-11-07T06:10:08.1740258Z ℹ suites 0
+2026-11-07T06:10:08.1740555Z ℹ pass 24
+2026-11-07T06:10:08.1740830Z ℹ fail 0
+2026-11-07T06:10:08.1741115Z ℹ cancelled 0
+2026-11-07T06:10:08.1741430Z ℹ skipped 0
+2026-11-07T06:10:08.1741728Z ℹ todo 0
+2026-11-07T06:10:08.1742057Z ℹ duration_ms 269.82788
+2026-11-07T06:10:08.1826492Z ##[group]Run set -euo pipefail
+2026-11-07T06:10:08.1826795Z [36;1mset -euo pipefail[0m
+2026-11-07T06:10:08.1827029Z [36;1mtest "$(git rev-parse HEAD)" = "$GITHUB_SHA"[0m
+2026-11-07T06:10:08.1827321Z [36;1mtest ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"[0m
+2026-11-07T06:10:08.1827589Z [36;1mtest ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"[0m
+2026-11-07T06:10:08.1827849Z [36;1mtest ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"[0m
+2026-11-07T06:10:08.1828558Z [36;1mif ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then[0m
+2026-11-07T06:10:08.1829277Z [36;1m  cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"[0m
+2026-11-07T06:10:08.1829524Z [36;1m  exit 1[0m
+2026-11-07T06:10:08.1829689Z [36;1mfi[0m
+2026-11-07T06:10:08.1830160Z [36;1mif ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/pq-lab-live-tests.jsonl"; then[0m
+2026-11-07T06:10:08.1830680Z [36;1m  cat "$RUNNER_TEMP/pq-lab-live-tests.jsonl"[0m
+2026-11-07T06:10:08.1830925Z [36;1m  exit 1[0m
+2026-11-07T06:10:08.1831085Z [36;1mfi[0m
+2026-11-07T06:10:08.1831624Z [36;1mif ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLab(Distributed|FinalizeTrace)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then[0m
+2026-11-07T06:10:08.1832258Z [36;1m  cat "$RUNNER_TEMP/pq-lab-command-tests.jsonl"[0m
+2026-11-07T06:10:08.1832513Z [36;1m  exit 1[0m
+2026-11-07T06:10:08.1832670Z [36;1mfi[0m
+2026-11-07T06:10:08.1833296Z [36;1mif ! go test -json -p 1 -count=1 -timeout=45s -run '^TestPQProofHistory' ./internal/consensus > "$RUNNER_TEMP/pq-proof-history-tests.jsonl"; then[0m
+2026-11-07T06:10:08.1833825Z [36;1m  cat "$RUNNER_TEMP/pq-proof-history-tests.jsonl"[0m
+2026-11-07T06:10:08.1834078Z [36;1m  exit 1[0m
+2026-11-07T06:10:08.1834238Z [36;1mfi[0m
+2026-11-07T06:10:08.1834413Z [36;1mpython3 -B - <<'PY'[0m
+2026-11-07T06:10:08.1834615Z [36;1mimport json, os[0m
+2026-11-07T06:10:08.1834818Z [36;1mfrom pathlib import Path[0m
+2026-11-07T06:10:08.1835043Z [36;1mrows = [][0m
+2026-11-07T06:10:08.1835476Z [36;1mfor name in ('pq-lab-core-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl'):[0m
+2026-11-07T06:10:08.1836114Z [36;1m    rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / name).read_text().splitlines()][0m
+2026-11-07T06:10:08.1838401Z [36;1mrequired = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs'][0m
+2026-11-07T06:10:08.1842293Z [36;1mrequired += ['TestPQLabExportOriginalFourStoresNormalProofAndRefusals', 'TestPQLabMultiOwnerOriginalExecutionAndBounds', 'TestPQLabOnlineSenderRevocationAndPartialIntentPreserved', 'TestPQLabOnlineSenderOriginalRecoveryAndFullProof', 'TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown', 'TestPQLabPreSignedCommandCurrentCheckpoint', 'TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs', 'TestPQLabNormalCommandOnlineIndependentOwnerFlags', 'TestPQLabExportCommandOriginalStoppedStoreFixture'][0m
+2026-11-07T06:10:08.1845215Z [36;1mrequired += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal', 'TestPQLabLiveMaterialsCommandStrictInputs', 'TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext'][0m
+2026-11-07T06:10:08.1846921Z [36;1mrequired += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds'][0m
+2026-11-07T06:10:08.1849021Z [36;1mrequired += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope'][0m
+2026-11-07T06:10:08.1851326Z [36;1mrequired += ['TestPQLabCanonicalComparisonExactChunks', 'TestPQLabCheckpointReadCurrentBytesAndCloseGuards', 'TestPQLabCheckpointReadJournalOriginalParity', 'TestPQLabCheckpointReadSameInputSevenHeightParity', 'TestPQLabProofInputsSameOriginalParityAndCost'][0m
+2026-11-07T06:10:08.1853130Z [36;1mrequired += ['TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState', 'TestPQLabStartupHeldInputsRejectReplacementAndWrongPin', 'TestPQLabStartupTimingNormalRegistrationAndUnknown', 'TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed'][0m
+2026-11-07T06:10:08.1854058Z [36;1mfor name in required:[0m
+2026-11-07T06:10:08.1854446Z [36;1m    terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')][0m
+2026-11-07T06:10:08.1854840Z [36;1m    if terminal != ['pass']:[0m
+2026-11-07T06:10:08.1855174Z [36;1m        raise RuntimeError('normal PQ lab function did not execute and pass: ' + name)[0m
+2026-11-07T06:10:08.1855872Z [36;1mprint('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))[0m
+2026-11-07T06:10:08.1856441Z [36;1mPY[0m
+2026-11-07T06:10:08.1874068Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:10:08.1874274Z env:
+2026-11-07T06:10:08.1874435Z   GOMAXPROCS: 2
+2026-11-07T06:10:08.1874614Z   GOTOOLCHAIN: local
+2026-11-07T06:10:08.1874897Z   YNX_PQ_LAB_PROOF_FIXTURE_OUT: /home/runner/work/_temp/pq-lab-source-proof
+2026-11-07T06:10:08.1875313Z   YNX_PQ_LAB_STOPPED_FIXTURE_ROOT: /home/runner/work/_temp/pq-lab-stopped-stores
+2026-11-07T06:10:08.1875706Z   YNX_PQ_LAB_LIVE_FIXTURE_ROOT: /home/runner/work/_temp/pq-lab-live-source
+2026-11-07T06:10:08.1876011Z   GOMEMLIMIT: 1536MiB
+2026-11-07T06:10:08.1876192Z ##[endgroup]
+2026-11-07T06:12:30.1651001Z YNX_PQ_LAB_CALLEES_EXECUTED {"commit": "1b0ea548aca6b5260a9824d0edd3012d52e53521", "nodeProcessesStarted": 0, "publicActivation": false, "requiredPassed": ["TestPQLabNetworkOriginalInputsExclusiveAndLoopback", "TestPQLabNetworkActiveEngineDBRefusesCustodyCreation", "TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody", "TestPQLabNetworkMissingCheckpointPreservesFailedAttempt", "TestPQLabWorkloadRealSourceCorpusExecutionAndRestart", "TestPQLabWorkloadBoundsAliasesAndExactSource", "TestPQLabWorkloadProofOriginalCLIInputsAndNegatives", "TestPQLabWorkloadMaximumProtocolWhole", "TestPQLabNormalCommandFreshIndependentProcessInputs", "TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs", "TestPQLabWorkloadCommandInputsAndNoMutation", "TestPQLabWorkloadCommandRealProofInputs", "TestPQLabExportOriginalFourStoresNormalProofAndRefusals", "TestPQLabMultiOwnerOriginalExecutionAndBounds", "TestPQLabOnlineSenderRevocationAndPartialIntentPreserved", "TestPQLabOnlineSenderOriginalRecoveryAndFullProof", "TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown", "TestPQLabPreSignedCommandCurrentCheckpoint", "TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs", "TestPQLabNormalCommandOnlineIndependentOwnerFlags", "TestPQLabExportCommandOriginalStoppedStoreFixture", "TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm", "TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority", "TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal", "TestPQLabLiveMaterialsCommandStrictInputs", "TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext", "TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead", "TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates", "TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds", "TestPQProofHistoryPersistentBranchesAndOwnedMaterialization", "TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack", "TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound", "TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery", "TestPQProofHistoryCurrentSourceTranscript", "TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation", "TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope", "TestPQLabCanonicalComparisonExactChunks", "TestPQLabCheckpointReadCurrentBytesAndCloseGuards", "TestPQLabCheckpointReadJournalOriginalParity", "TestPQLabCheckpointReadSameInputSevenHeightParity", "TestPQLabProofInputsSameOriginalParityAndCost", "TestPQLabStartupMeasuredRegistrationActivationPreserveFreshState", "TestPQLabStartupHeldInputsRejectReplacementAndWrongPin", "TestPQLabStartupTimingNormalRegistrationAndUnknown", "TestPQLabStartupTimingFlagsAndMissingSourcesFailClosed"]}
+2026-11-07T06:12:30.1703340Z ##[group]Run set -euo pipefail
+2026-11-07T06:12:30.1703771Z [36;1mset -euo pipefail[0m
+2026-11-07T06:12:30.1704219Z [36;1m# The original mempool tests use testify/mock. Keep its already[0m
+2026-11-07T06:12:30.1704878Z [36;1m# pinned Comet objx dependency in a temporary test module; production[0m
+2026-11-07T06:12:30.1705523Z [36;1m# go.mod/go.sum and their crypto dependency graph stay untouched.[0m
+2026-11-07T06:12:30.1706012Z [36;1mpython3 -B - <<'PY'[0m
+2026-11-07T06:12:30.1706338Z [36;1mimport os, subprocess[0m
+2026-11-07T06:12:30.1706689Z [36;1mfrom pathlib import Path[0m
+2026-11-07T06:12:30.1707079Z [36;1mroot = Path(os.environ['RUNNER_TEMP'])[0m
+2026-11-07T06:12:30.1707677Z [36;1mmodule, sums = root / 'wire-observer-test.mod', root / 'wire-observer-test.sum'[0m
+2026-11-07T06:12:30.1708325Z [36;1mfor src, dst in [('go.mod', module), ('go.sum', sums)]:[0m
+2026-11-07T06:12:30.1708780Z [36;1m    with dst.open('xb') as f:[0m
+2026-11-07T06:12:30.1709203Z [36;1m        f.write(Path(src).read_bytes())[0m
+2026-11-07T06:12:30.1709934Z [36;1msubprocess.run(['go', 'mod', 'edit', '-modfile=' + str(module), '-require=github.com/stretchr/objx@v0.5.2'], check=True)[0m
+2026-11-07T06:12:30.1711086Z [36;1mlines = [line for line in Path('third_party/cometbft/go.sum').read_text().splitlines() if line.startswith('github.com/stretchr/objx v0.5.2')][0m
+2026-11-07T06:12:30.1711902Z [36;1mif len(lines) != 2:[0m
+2026-11-07T06:12:30.1712426Z [36;1m    raise RuntimeError('exact original Comet test dependency sum pair required')[0m
+2026-11-07T06:12:30.1713134Z [36;1mwith sums.open('a') as f:[0m
+2026-11-07T06:12:30.1713497Z [36;1m    f.write('\n'.join(lines) + '\n')[0m
+2026-11-07T06:12:30.1713851Z [36;1mPY[0m
+2026-11-07T06:12:30.1714999Z [36;1mif ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^TestMempoolWireObserver' github.com/cometbft/cometbft/mempool > "$RUNNER_TEMP/wire-observer-tests.jsonl"; then[0m
+2026-11-07T06:12:30.1716485Z [36;1m  cat "$RUNNER_TEMP/wire-observer-tests.jsonl"[0m
+2026-11-07T06:12:30.1716890Z [36;1m  exit 1[0m
+2026-11-07T06:12:30.1717135Z [36;1mfi[0m
+2026-11-07T06:12:30.1717414Z [36;1mgit diff --exit-code -- go.mod go.sum[0m
+2026-11-07T06:12:30.1718702Z [36;1mif ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation|TestOperatorStartupTiming)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then[0m
+2026-11-07T06:12:30.1720000Z [36;1m  cat "$RUNNER_TEMP/wire-caller-tests.jsonl"[0m
+2026-11-07T06:12:30.1720391Z [36;1m  exit 1[0m
+2026-11-07T06:12:30.1720638Z [36;1mfi[0m
+2026-11-07T06:12:30.1720892Z [36;1mpython3 -B - <<'PY'[0m
+2026-11-07T06:12:30.1721203Z [36;1mimport json, os[0m
+2026-11-07T06:12:30.1721510Z [36;1mfrom pathlib import Path[0m
+2026-11-07T06:12:30.1721837Z [36;1mrows = [][0m
+2026-11-07T06:12:30.1722315Z [36;1mfor filename in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl'):[0m
+2026-11-07T06:12:30.1723289Z [36;1m    rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / filename).read_text().splitlines()][0m
+2026-11-07T06:12:30.1727618Z [36;1mrequired = ['TestMempoolWireObserverOriginalReceiveAndCheckTx', 'TestMempoolWireObserverOriginalSendRetryAndBytes', 'TestMempoolWireObserverLifecycleAndConcurrentSnapshot', 'TestMempoolWireObserverOverflowIsExplicit', 'TestOperatorWireObservationFlagsDefaultAndFailClosed', 'TestOperatorWireObservationActualPinnedConstructorAndReactor', 'TestOperatorWireObservationActualScopeAndLoopbackRefusals', 'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema', 'TestOperatorWireObservationFailureAndUnknownPreserveOriginal', 'TestOperatorWireObservationPathAndEndpointBoundaries', 'TestOperatorWireObservationExactOutputReadback'][0m
+2026-11-07T06:12:30.1733927Z [36;1mrequired += ['TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay', 'TestOperatorWireLiveUnknownPreservesOriginalAndRetires', 'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit', 'TestOperatorWireLivePermissionsIdentityAndResiduals', 'TestOperatorWireLiveRequesterUnknownAndProducerIdentity', 'TestOperatorWireLiveSelfProcParsingAndDefaultOff'][0m
+2026-11-07T06:12:30.1736506Z [36;1mrequired += ['TestPQNodeNormalCancellationReturnsAfterOwnedStop'][0m
+2026-11-07T06:12:30.1737615Z [36;1mrequired += ['TestOperatorStartupTimingDefaultAndOriginalError', 'TestOperatorStartupTimingActualColdConstructorWithoutStart'][0m
+2026-11-07T06:12:30.1738543Z [36;1mfor name in required:[0m
+2026-11-07T06:12:30.1739152Z [36;1m    terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')][0m
+2026-11-07T06:12:30.1739786Z [36;1m    if terminal != ['pass']:[0m
+2026-11-07T06:12:30.1740386Z [36;1m        raise RuntimeError('original observation adapter did not execute and pass: ' + name)[0m
+2026-11-07T06:12:30.1742028Z [36;1mprint('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0, normalEphemeralInProcessStartStop=True), sort_keys=True))[0m
+2026-11-07T06:12:30.1743535Z [36;1mPY[0m
+2026-11-07T06:12:30.1765758Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:12:30.1766068Z env:
+2026-11-07T06:12:30.1766310Z   GOMAXPROCS: 2
+2026-11-07T06:12:30.1766574Z   GOTOOLCHAIN: local
+2026-11-07T06:12:30.1766839Z   CGO_ENABLED: 0
+2026-11-07T06:12:30.1767095Z   GOMEMLIMIT: 1536MiB
+2026-11-07T06:12:30.1767365Z ##[endgroup]
+2026-11-07T06:12:30.2360110Z go: downloading github.com/stretchr/objx v0.5.2
+2026-11-07T06:12:31.3679505Z go: downloading github.com/fortytw2/leaktest v1.3.0
+2026-11-07T06:12:45.5610439Z go: downloading github.com/spf13/cobra v1.9.1
+2026-11-07T06:13:06.1552368Z YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED {"commit": "1b0ea548aca6b5260a9824d0edd3012d52e53521", "nodeProcessesStarted": 0, "normalEphemeralInProcessStartStop": true, "physicalBytesMeasured": false, "requiredPassed": ["TestMempoolWireObserverOriginalReceiveAndCheckTx", "TestMempoolWireObserverOriginalSendRetryAndBytes", "TestMempoolWireObserverLifecycleAndConcurrentSnapshot", "TestMempoolWireObserverOverflowIsExplicit", "TestOperatorWireObservationFlagsDefaultAndFailClosed", "TestOperatorWireObservationActualPinnedConstructorAndReactor", "TestOperatorWireObservationActualScopeAndLoopbackRefusals", "TestOperatorWireObservationNormalStopOneOutputAndPublicSchema", "TestOperatorWireObservationFailureAndUnknownPreserveOriginal", "TestOperatorWireObservationPathAndEndpointBoundaries", "TestOperatorWireObservationExactOutputReadback", "TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay", "TestOperatorWireLiveUnknownPreservesOriginalAndRetires", "TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit", "TestOperatorWireLivePermissionsIdentityAndResiduals", "TestOperatorWireLiveRequesterUnknownAndProducerIdentity", "TestOperatorWireLiveSelfProcParsingAndDefaultOff", "TestPQNodeNormalCancellationReturnsAfterOwnedStop", "TestOperatorStartupTimingDefaultAndOriginalError", "TestOperatorStartupTimingActualColdConstructorWithoutStart"]}
+2026-11-07T06:13:06.1615736Z ##[group]Run python3 -B scripts/verify/test_wire_live_matching_source_ci.py
+2026-11-07T06:13:06.1616433Z [36;1mpython3 -B scripts/verify/test_wire_live_matching_source_ci.py[0m
+2026-11-07T06:13:06.1640681Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:13:06.1641004Z env:
+2026-11-07T06:13:06.1641251Z   GOMAXPROCS: 2
+2026-11-07T06:13:06.1641522Z   GOTOOLCHAIN: local
+2026-11-07T06:13:06.1641807Z ##[endgroup]
+2026-11-07T06:13:06.2437338Z test_cold_cache_stderr_is_preserved_separately (__main__.WireLiveSourceControls.test_cold_cache_stderr_is_preserved_separately) ... ok
+2026-11-07T06:13:06.2467746Z test_corrected_successor_requires_both_readiness_fixes_and_every_named_pass (__main__.WireLiveSourceControls.test_corrected_successor_requires_both_readiness_fixes_and_every_named_pass) ... ok
+2026-11-07T06:13:06.2497919Z test_exact_off_and_successor_compositions_keep_original_sources_and_false_run_claims (__main__.WireLiveSourceControls.test_exact_off_and_successor_compositions_keep_original_sources_and_false_run_claims) ... ok
+2026-11-07T06:13:06.2501293Z test_existing_result_is_never_overwritten_or_reexecuted (__main__.WireLiveSourceControls.test_existing_result_is_never_overwritten_or_reexecuted) ... ok
+2026-11-07T06:13:06.2512111Z test_fullheight_change_during_read_is_not_laundered_by_matching_pin (__main__.WireLiveSourceControls.test_fullheight_change_during_read_is_not_laundered_by_matching_pin) ... ok
+2026-11-07T06:13:06.2533482Z test_fullheight_equality_keeps_every_byte_and_never_claims_execution (__main__.WireLiveSourceControls.test_fullheight_equality_keeps_every_byte_and_never_claims_execution) ... ok
+2026-11-07T06:13:06.2542293Z test_fullheight_pin_alias_empty_symlink_and_oversize_reject (__main__.WireLiveSourceControls.test_fullheight_pin_alias_empty_symlink_and_oversize_reject) ... ok
+2026-11-07T06:13:06.2547907Z test_lossless_requires_independent_successor_and_preserves_off_api (__main__.WireLiveSourceControls.test_lossless_requires_independent_successor_and_preserves_off_api) ... ok
+2026-11-07T06:13:06.2581025Z test_missing_skipped_failed_duplicate_or_empty_named_results_reject (__main__.WireLiveSourceControls.test_missing_skipped_failed_duplicate_or_empty_named_results_reject) ... ok
+2026-11-07T06:13:06.2587095Z test_missing_supplier_does_not_create_composition_or_change_shared_api (__main__.WireLiveSourceControls.test_missing_supplier_does_not_create_composition_or_change_shared_api) ... ok
+2026-11-07T06:13:06.2617806Z test_non_json_stdout_is_never_filtered_into_pass (__main__.WireLiveSourceControls.test_non_json_stdout_is_never_filtered_into_pass) ... ok
+2026-11-07T06:13:06.2624132Z test_nonzero_exit_cannot_be_hidden_by_pass_events (__main__.WireLiveSourceControls.test_nonzero_exit_cannot_be_hidden_by_pass_events) ... ok
+2026-11-07T06:13:06.2637760Z test_successor_extra_or_deleted_leaf_rejects_before_archive (__main__.WireLiveSourceControls.test_successor_extra_or_deleted_leaf_rejects_before_archive) ... ok
+2026-11-07T06:13:06.2643867Z test_supplier_missing_or_wrong_is_explicit_and_never_fetches (__main__.WireLiveSourceControls.test_supplier_missing_or_wrong_is_explicit_and_never_fetches) ... ok
+2026-11-07T06:13:06.2656149Z test_timeout_retains_both_streams_without_inventing_exit (__main__.WireLiveSourceControls.test_timeout_retains_both_streams_without_inventing_exit) ... ok
+2026-11-07T06:13:06.2668530Z test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential (__main__.WireLiveSourceControls.test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential) ... ok
+2026-11-07T06:13:06.2669477Z 
+2026-11-07T06:13:06.2669802Z ----------------------------------------------------------------------
+2026-11-07T06:13:06.2670259Z Ran 16 tests in 0.024s
+2026-11-07T06:13:06.2670429Z 
+2026-11-07T06:13:06.2670527Z OK
+2026-11-07T06:13:06.2819646Z ##[group]Run python3 -B - <<'PY'
+2026-11-07T06:13:06.2820103Z [36;1mpython3 -B - <<'PY'[0m
+2026-11-07T06:13:06.2820433Z [36;1mimport base64, os, subprocess[0m
+2026-11-07T06:13:06.2820870Z [36;1mcommit = '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076'[0m
+2026-11-07T06:13:06.2821380Z [36;1mtree = 'b1e9a83ab11ed141fda90bc47521faa412176caa'[0m
+2026-11-07T06:13:06.2821936Z [36;1m# contents:read only; never write credentials to config, argv, disk[0m
+2026-11-07T06:13:06.2822555Z [36;1m# or logs. This one explicit fetch is outside the offline helper.[0m
+2026-11-07T06:13:06.2823275Z [36;1menvironment = os.environ.copy()[0m
+2026-11-07T06:13:06.2823719Z [36;1mtoken = environment.pop('WIRE_SUPPLIER_READ_TOKEN')[0m
+2026-11-07T06:13:06.2824132Z [36;1mif not token:[0m
+2026-11-07T06:13:06.2824582Z [36;1m    raise RuntimeError('read-only supplier acquisition credential missing')[0m
+2026-11-07T06:13:06.2825164Z [36;1menvironment.update(GIT_CONFIG_COUNT='1',[0m
+2026-11-07T06:13:06.2825810Z [36;1m    GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',[0m
+2026-11-07T06:13:06.2826556Z [36;1m    GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + token).encode()).decode(),[0m
+2026-11-07T06:13:06.2827397Z [36;1m    GIT_TERMINAL_PROMPT='0', GIT_TRACE='0', GIT_TRACE_CURL='0', GIT_CURL_VERBOSE='0')[0m
+2026-11-07T06:13:06.2828076Z [36;1msubprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules',[0m
+2026-11-07T06:13:06.2828562Z [36;1m    '--depth=1', '--no-write-fetch-head', 'origin', commit], env=environment, check=True, timeout=60)[0m
+2026-11-07T06:13:06.2829130Z [36;1mactual_commit = subprocess.check_output(['git', 'rev-parse', '--verify', commit + '^{commit}'], text=True).strip()[0m
+2026-11-07T06:13:06.2829748Z [36;1mactual_tree = subprocess.check_output(['git', 'rev-parse', '--verify', commit + ':third_party/cometbft'], text=True).strip()[0m
+2026-11-07T06:13:06.2830224Z [36;1mif actual_commit != commit or actual_tree != tree:[0m
+2026-11-07T06:13:06.2830586Z [36;1m    raise RuntimeError('received immutable supplier identity differs')[0m
+2026-11-07T06:13:06.2831057Z [36;1mif subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != os.environ['GITHUB_SHA']:[0m
+2026-11-07T06:13:06.2831514Z [36;1m    raise RuntimeError('supplier acquisition changed original HEAD')[0m
+2026-11-07T06:13:06.2831905Z [36;1mif subprocess.check_output(['git', 'status', '--porcelain']).strip():[0m
+2026-11-07T06:13:06.2832320Z [36;1m    raise RuntimeError('supplier acquisition changed original checkout')[0m
+2026-11-07T06:13:06.2832747Z [36;1mprint('YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)[0m
+2026-11-07T06:13:06.2833553Z [36;1mPY[0m
+2026-11-07T06:13:06.2851003Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:13:06.2851211Z env:
+2026-11-07T06:13:06.2851376Z   GOMAXPROCS: 2
+2026-11-07T06:13:06.2851551Z   GOTOOLCHAIN: local
+2026-11-07T06:13:06.2854084Z   WIRE_SUPPLIER_READ_TOKEN: ***
+2026-11-07T06:13:06.2854429Z ##[endgroup]
+2026-11-07T06:13:06.3156246Z 06:13:06.315432 http.c:994              == Info: Couldn't find host github.com in the .netrc file; using defaults
+2026-11-07T06:13:06.3185379Z 06:13:06.318429 http.c:994              == Info: Host github.com:443 was resolved.
+2026-11-07T06:13:06.3185846Z 06:13:06.318437 http.c:994              == Info: IPv6: (none)
+2026-11-07T06:13:06.3186307Z 06:13:06.318438 http.c:994              == Info: IPv4: 140.82.113.3
+2026-11-07T06:13:06.3186976Z 06:13:06.318455 http.c:994              == Info:   Trying 140.82.113.3:443...
+2026-11-07T06:13:06.3241984Z 06:13:06.324085 http.c:994              == Info: Connected to github.com (140.82.113.3) port 443
+2026-11-07T06:13:06.3421656Z 06:13:06.342066 http.c:994              == Info: found 362 certificates in /etc/ssl/certs
+2026-11-07T06:13:06.3422351Z 06:13:06.342112 http.c:994              == Info: GnuTLS ciphers: NORMAL:-ARCFOUR-128:-CTYPE-ALL:+CTYPE-X509:-VERS-SSL3.0
+2026-11-07T06:13:06.3423405Z 06:13:06.342137 http.c:994              == Info: ALPN: curl offers h2,http/1.1
+2026-11-07T06:13:06.3486332Z 06:13:06.348511 http.c:994              == Info: SSL connection using TLS1.3 / ECDHE_RSA_AES_128_GCM_SHA256
+2026-11-07T06:13:06.3499774Z 06:13:06.349885 http.c:994              == Info:   server certificate verification OK
+2026-11-07T06:13:06.3500625Z 06:13:06.349892 http.c:994              == Info:   server certificate status verification SKIPPED
+2026-11-07T06:13:06.3501437Z 06:13:06.349950 http.c:994              == Info:   common name: github.com (matched)
+2026-11-07T06:13:06.3502190Z 06:13:06.349956 http.c:994              == Info:   server certificate expiration date OK
+2026-11-07T06:13:06.3503109Z 06:13:06.349959 http.c:994              == Info:   server certificate activation date OK
+2026-11-07T06:13:06.3503639Z 06:13:06.349964 http.c:994              == Info:   certificate public key: EC/ECDSA
+2026-11-07T06:13:06.3504084Z 06:13:06.349968 http.c:994              == Info:   certificate version: #3
+2026-11-07T06:13:06.3504533Z 06:13:06.349978 http.c:994              == Info:   subject: CN=github.com
+2026-11-07T06:13:06.3505005Z 06:13:06.349985 http.c:994              == Info:   start date: Fri, 30 Oct 2026 00:00:00 GMT
+2026-11-07T06:13:06.3505515Z 06:13:06.349989 http.c:994              == Info:   expire date: Wed, 27 Jan 2027 23:59:59 GMT
+2026-11-07T06:13:06.3506131Z 06:13:06.350002 http.c:994              == Info:   issuer: C=GB,O=Sectigo Limited,CN=Sectigo Public Server Authentication CA DV E36
+2026-11-07T06:13:06.3506676Z 06:13:06.350013 http.c:994              == Info: ALPN: server accepted h2
+2026-11-07T06:13:06.3507057Z 06:13:06.350073 http.c:994              == Info: using HTTP/2
+2026-11-07T06:13:06.3507719Z 06:13:06.350114 http.c:994              == Info: [HTTP/2] [1] OPENED stream for https://github.com/JiahaoAlbus/YNX-Chain/info/refs?service=git-upload-pack
+2026-11-07T06:13:06.3508318Z 06:13:06.350119 http.c:994              == Info: [HTTP/2] [1] [:method: GET]
+2026-11-07T06:13:06.3508752Z 06:13:06.350121 http.c:994              == Info: [HTTP/2] [1] [:scheme: https]
+2026-11-07T06:13:06.3509193Z 06:13:06.350123 http.c:994              == Info: [HTTP/2] [1] [:authority: github.com]
+2026-11-07T06:13:06.3509804Z 06:13:06.350126 http.c:994              == Info: [HTTP/2] [1] [:path: /JiahaoAlbus/YNX-Chain/info/refs?service=git-upload-pack]
+2026-11-07T06:13:06.3510372Z 06:13:06.350128 http.c:994              == Info: [HTTP/2] [1] [user-agent: git/2.56.0]
+2026-11-07T06:13:06.3510825Z 06:13:06.350134 http.c:994              == Info: [HTTP/2] [1] [accept: */*]
+2026-11-07T06:13:06.3511313Z 06:13:06.350136 http.c:994              == Info: [HTTP/2] [1] [accept-encoding: deflate, gzip, br, zstd]
+2026-11-07T06:13:06.3511824Z 06:13:06.350140 http.c:994              == Info: [HTTP/2] [1] [authorization: basic <redacted>]
+2026-11-07T06:13:06.3512293Z 06:13:06.350142 http.c:994              == Info: [HTTP/2] [1] [accept-language: C, *;q=0.9]
+2026-11-07T06:13:06.3512740Z 06:13:06.350144 http.c:994              == Info: [HTTP/2] [1] [pragma: no-cache]
+2026-11-07T06:13:06.3513617Z 06:13:06.350146 http.c:994              == Info: [HTTP/2] [1] [git-protocol: version=2]
+2026-11-07T06:13:06.3514071Z 06:13:06.350176 http.c:941              => Send header, 0000000787 bytes (0x00000313)
+2026-11-07T06:13:06.3514651Z 06:13:06.350198 http.c:953              => Send header: GET /JiahaoAlbus/YNX-Chain/info/refs?service=git-upload-pack HTTP/2
+2026-11-07T06:13:06.3515162Z 06:13:06.350208 http.c:953              => Send header: Host: github.com
+2026-11-07T06:13:06.3515574Z 06:13:06.350217 http.c:953              => Send header: User-Agent: git/2.56.0
+2026-11-07T06:13:06.3515975Z 06:13:06.350226 http.c:953              => Send header: Accept: */*
+2026-11-07T06:13:06.3516428Z 06:13:06.350235 http.c:953              => Send header: Accept-Encoding: deflate, gzip, br, zstd
+2026-11-07T06:13:06.3516899Z 06:13:06.350243 http.c:953              => Send header: AUTHORIZATION: basic <redacted>
+2026-11-07T06:13:06.3517451Z 06:13:06.350251 http.c:953              => Send header: Accept-Language: C, *;q=0.9
+2026-11-07T06:13:06.3517878Z 06:13:06.350259 http.c:953              => Send header: Pragma: no-cache
+2026-11-07T06:13:06.3518295Z 06:13:06.350268 http.c:953              => Send header: Git-Protocol: version=2
+2026-11-07T06:13:06.3518655Z 06:13:06.350276 http.c:953              => Send header:
+2026-11-07T06:13:06.4072402Z 06:13:06.407037 http.c:941              <= Recv header, 0000000013 bytes (0x0000000d)
+2026-11-07T06:13:06.4073244Z 06:13:06.407051 http.c:953              <= Recv header: HTTP/2 200
+2026-11-07T06:13:06.4073753Z 06:13:06.407056 http.c:941              <= Recv header, 0000000026 bytes (0x0000001a)
+2026-11-07T06:13:06.4074452Z 06:13:06.407057 http.c:953              <= Recv header: server: GitHub-Babel/3.0
+2026-11-07T06:13:06.4075160Z 06:13:06.407060 http.c:941              <= Recv header, 0000000059 bytes (0x0000003b)
+2026-11-07T06:13:06.4076046Z 06:13:06.407061 http.c:953              <= Recv header: content-type: application/x-git-upload-pack-advertisement
+2026-11-07T06:13:06.4076680Z 06:13:06.407063 http.c:941              <= Recv header, 0000000054 bytes (0x00000036)
+2026-11-07T06:13:06.4077228Z 06:13:06.407064 http.c:953              <= Recv header: content-security-policy: default-src 'none'; sandbox
+2026-11-07T06:13:06.4077723Z 06:13:06.407065 http.c:941              <= Recv header, 0000000040 bytes (0x00000028)
+2026-11-07T06:13:06.4078191Z 06:13:06.407067 http.c:953              <= Recv header: expires: Fri, 01 Jan 1980 00:00:00 GMT
+2026-11-07T06:13:06.4078635Z 06:13:06.407068 http.c:941              <= Recv header, 0000000018 bytes (0x00000012)
+2026-11-07T06:13:06.4079067Z 06:13:06.407069 http.c:953              <= Recv header: pragma: no-cache
+2026-11-07T06:13:06.4079491Z 06:13:06.407071 http.c:941              <= Recv header, 0000000053 bytes (0x00000035)
+2026-11-07T06:13:06.4079988Z 06:13:06.407072 http.c:953              <= Recv header: cache-control: no-cache, max-age=0, must-revalidate
+2026-11-07T06:13:06.4080470Z 06:13:06.407073 http.c:941              <= Recv header, 0000000023 bytes (0x00000017)
+2026-11-07T06:13:06.4080889Z 06:13:06.407074 http.c:953              <= Recv header: vary: Accept-Encoding
+2026-11-07T06:13:06.4081298Z 06:13:06.407075 http.c:941              <= Recv header, 0000000045 bytes (0x0000002d)
+2026-11-07T06:13:06.4081779Z 06:13:06.407077 http.c:953              <= Recv header: strict-transport-security: max-age=31536000
+2026-11-07T06:13:06.4082230Z 06:13:06.407078 http.c:941              <= Recv header, 0000000037 bytes (0x00000025)
+2026-11-07T06:13:06.4082668Z 06:13:06.407080 http.c:953              <= Recv header: date: Sat, 07 Nov 2026 06:13:06 GMT
+2026-11-07T06:13:06.4083285Z 06:13:06.407081 http.c:941              <= Recv header, 0000000057 bytes (0x00000039)
+2026-11-07T06:13:06.4083836Z 06:13:06.407082 http.c:953              <= Recv header: x-github-request-id: BC30:8CBDA:E1A559:10DED57:6AEEC172
+2026-11-07T06:13:06.4084338Z 06:13:06.407083 http.c:941              <= Recv header, 0000000027 bytes (0x0000001b)
+2026-11-07T06:13:06.4084806Z 06:13:06.407084 http.c:953              <= Recv header: x-github-edge-region: iad
+2026-11-07T06:13:06.4085505Z 06:13:06.407086 http.c:941              <= Recv header, 0000000023 bytes (0x00000017)
+2026-11-07T06:13:06.4085920Z 06:13:06.407087 http.c:953              <= Recv header: x-frame-options: DENY
+2026-11-07T06:13:06.4086328Z 06:13:06.407089 http.c:941              <= Recv header, 0000000002 bytes (0x00000002)
+2026-11-07T06:13:06.4086685Z 06:13:06.407090 http.c:953              <= Recv header:
+2026-11-07T06:13:06.4087109Z 06:13:06.407099 http.c:994              == Info: Connection #0 to host github.com left intact
+2026-11-07T06:13:06.4087686Z 06:13:06.407421 http.c:994              == Info: Couldn't find host github.com in the .netrc file; using defaults
+2026-11-07T06:13:06.4088244Z 06:13:06.407431 http.c:994              == Info: Found bundle for host: 0x558c55add170 [can multiplex]
+2026-11-07T06:13:06.4088930Z 06:13:06.407437 http.c:994              == Info: Re-using existing connection with host github.com
+2026-11-07T06:13:06.4089590Z 06:13:06.407468 http.c:994              == Info: [HTTP/2] [3] OPENED stream for https://github.com/JiahaoAlbus/YNX-Chain/git-upload-pack
+2026-11-07T06:13:06.4090143Z 06:13:06.407471 http.c:994              == Info: [HTTP/2] [3] [:method: POST]
+2026-11-07T06:13:06.4090561Z 06:13:06.407474 http.c:994              == Info: [HTTP/2] [3] [:scheme: https]
+2026-11-07T06:13:06.4090987Z 06:13:06.407476 http.c:994              == Info: [HTTP/2] [3] [:authority: github.com]
+2026-11-07T06:13:06.4091490Z 06:13:06.407482 http.c:994              == Info: [HTTP/2] [3] [:path: /JiahaoAlbus/YNX-Chain/git-upload-pack]
+2026-11-07T06:13:06.4091967Z 06:13:06.407484 http.c:994              == Info: [HTTP/2] [3] [user-agent: git/2.56.0]
+2026-11-07T06:13:06.4092453Z 06:13:06.407487 http.c:994              == Info: [HTTP/2] [3] [accept-encoding: deflate, gzip, br, zstd]
+2026-11-07T06:13:06.4093083Z 06:13:06.407495 http.c:994              == Info: [HTTP/2] [3] [authorization: basic <redacted>]
+2026-11-07T06:13:06.4093642Z 06:13:06.407497 http.c:994              == Info: [HTTP/2] [3] [content-type: application/x-git-upload-pack-request]
+2026-11-07T06:13:06.4094210Z 06:13:06.407499 http.c:994              == Info: [HTTP/2] [3] [accept: application/x-git-upload-pack-result]
+2026-11-07T06:13:06.4094706Z 06:13:06.407501 http.c:994              == Info: [HTTP/2] [3] [accept-language: C, *;q=0.9]
+2026-11-07T06:13:06.4095195Z 06:13:06.407503 http.c:994              == Info: [HTTP/2] [3] [git-protocol: version=2]
+2026-11-07T06:13:06.4095645Z 06:13:06.407505 http.c:994              == Info: [HTTP/2] [3] [content-length: 237]
+2026-11-07T06:13:06.4096091Z 06:13:06.407552 http.c:941              => Send header, 0000000859 bytes (0x0000035b)
+2026-11-07T06:13:06.4096606Z 06:13:06.407568 http.c:953              => Send header: POST /JiahaoAlbus/YNX-Chain/git-upload-pack HTTP/2
+2026-11-07T06:13:06.4097071Z 06:13:06.407572 http.c:953              => Send header: Host: github.com
+2026-11-07T06:13:06.4097490Z 06:13:06.407573 http.c:953              => Send header: User-Agent: git/2.56.0
+2026-11-07T06:13:06.4097963Z 06:13:06.407575 http.c:953              => Send header: Accept-Encoding: deflate, gzip, br, zstd
+2026-11-07T06:13:06.4098435Z 06:13:06.407576 http.c:953              => Send header: AUTHORIZATION: basic <redacted>
+2026-11-07T06:13:06.4098958Z 06:13:06.407578 http.c:953              => Send header: Content-Type: application/x-git-upload-pack-request
+2026-11-07T06:13:06.4099505Z 06:13:06.407579 http.c:953              => Send header: Accept: application/x-git-upload-pack-result
+2026-11-07T06:13:06.4099987Z 06:13:06.407581 http.c:953              => Send header: Accept-Language: C, *;q=0.9
+2026-11-07T06:13:06.4100416Z 06:13:06.407583 http.c:953              => Send header: Git-Protocol: version=2
+2026-11-07T06:13:06.4100835Z 06:13:06.407584 http.c:953              => Send header: Content-Length: 237
+2026-11-07T06:13:06.4101190Z 06:13:06.407590 http.c:953              => Send header:
+2026-11-07T06:13:06.6679554Z 06:13:06.667804 http.c:941              <= Recv header, 0000000013 bytes (0x0000000d)
+2026-11-07T06:13:06.6680553Z 06:13:06.667820 http.c:953              <= Recv header: HTTP/2 200
+2026-11-07T06:13:06.6681237Z 06:13:06.667826 http.c:941              <= Recv header, 0000000026 bytes (0x0000001a)
+2026-11-07T06:13:06.6681958Z 06:13:06.667829 http.c:953              <= Recv header: server: GitHub-Babel/3.0
+2026-11-07T06:13:06.6682537Z 06:13:06.667832 http.c:941              <= Recv header, 0000000052 bytes (0x00000034)
+2026-11-07T06:13:06.6683307Z 06:13:06.667834 http.c:953              <= Recv header: content-type: application/x-git-upload-pack-result
+2026-11-07T06:13:06.6683837Z 06:13:06.667836 http.c:941              <= Recv header, 0000000054 bytes (0x00000036)
+2026-11-07T06:13:06.6684367Z 06:13:06.667838 http.c:953              <= Recv header: content-security-policy: default-src 'none'; sandbox
+2026-11-07T06:13:06.6684989Z 06:13:06.667839 http.c:941              <= Recv header, 0000000040 bytes (0x00000028)
+2026-11-07T06:13:06.6685459Z 06:13:06.667841 http.c:953              <= Recv header: expires: Fri, 01 Jan 1980 00:00:00 GMT
+2026-11-07T06:13:06.6685906Z 06:13:06.667843 http.c:941              <= Recv header, 0000000018 bytes (0x00000012)
+2026-11-07T06:13:06.6686314Z 06:13:06.667845 http.c:953              <= Recv header: pragma: no-cache
+2026-11-07T06:13:06.6686750Z 06:13:06.667848 http.c:941              <= Recv header, 0000000053 bytes (0x00000035)
+2026-11-07T06:13:06.6687266Z 06:13:06.667849 http.c:953              <= Recv header: cache-control: no-cache, max-age=0, must-revalidate
+2026-11-07T06:13:06.6687745Z 06:13:06.667851 http.c:941              <= Recv header, 0000000023 bytes (0x00000017)
+2026-11-07T06:13:06.6688163Z 06:13:06.667853 http.c:953              <= Recv header: vary: Accept-Encoding
+2026-11-07T06:13:06.6688588Z 06:13:06.667855 http.c:941              <= Recv header, 0000000045 bytes (0x0000002d)
+2026-11-07T06:13:06.6689072Z 06:13:06.667856 http.c:953              <= Recv header: strict-transport-security: max-age=31536000
+2026-11-07T06:13:06.6689537Z 06:13:06.667858 http.c:941              <= Recv header, 0000000037 bytes (0x00000025)
+2026-11-07T06:13:06.6689980Z 06:13:06.667860 http.c:953              <= Recv header: date: Sat, 07 Nov 2026 06:13:06 GMT
+2026-11-07T06:13:06.6690409Z 06:13:06.667862 http.c:941              <= Recv header, 0000000057 bytes (0x00000039)
+2026-11-07T06:13:06.6690924Z 06:13:06.667864 http.c:953              <= Recv header: x-github-request-id: BC30:8CBDA:E1A593:10DED90:6AEEC172
+2026-11-07T06:13:06.6691409Z 06:13:06.667866 http.c:941              <= Recv header, 0000000027 bytes (0x0000001b)
+2026-11-07T06:13:06.6691844Z 06:13:06.667868 http.c:953              <= Recv header: x-github-edge-region: iad
+2026-11-07T06:13:06.6692266Z 06:13:06.667870 http.c:941              <= Recv header, 0000000023 bytes (0x00000017)
+2026-11-07T06:13:06.6692690Z 06:13:06.667871 http.c:953              <= Recv header: x-frame-options: DENY
+2026-11-07T06:13:06.6693207Z 06:13:06.667874 http.c:941              <= Recv header, 0000000002 bytes (0x00000002)
+2026-11-07T06:13:06.6693576Z 06:13:06.667875 http.c:953              <= Recv header:
+2026-11-07T06:13:10.1075600Z 06:13:10.107412 http.c:994              == Info: Connection #0 to host github.com left intact
+2026-11-07T06:13:12.1804488Z YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076 forkTree=b1e9a83ab11ed141fda90bc47521faa412176caa
+2026-11-07T06:13:12.1872609Z ##[group]Run python3 -B scripts/verify/wire-live-matching-source-ci.py
+2026-11-07T06:13:12.1873308Z [36;1mpython3 -B scripts/verify/wire-live-matching-source-ci.py[0m
+2026-11-07T06:13:12.1890779Z shell: /usr/bin/bash -e {0}
+2026-11-07T06:13:12.1890998Z env:
+2026-11-07T06:13:12.1891162Z   GOMAXPROCS: 2
+2026-11-07T06:13:12.1891340Z   GOTOOLCHAIN: local
+2026-11-07T06:13:12.1891522Z ##[endgroup]
+2026-11-07T06:14:38.0391797Z YNX_NORMAL_LIVE_WIRE_SOURCE {"actualKernelAndPrivateControlTests": true, "actualPreStartNodeGetter": true, "actualRunningWindow": false, "buildTags": ["ynx_live_wire_observation"], "carrierEnabled": false, "exactOptionalDifference": ["mempool/live_wire_observer.go", "mempool/live_wire_observer_clock_unix.go", "mempool/live_wire_observer_clock_unsupported.go", "mempool/live_wire_observer_test.go", "mempool/live_wire_observer_unsupported_test.go", "mempool/lossless_hex_budget.go", "mempool/lossless_hex_budget_test.go", "mempool/lossless_hex_codec.go", "mempool/lossless_hex_codec_test.go", "mempool/lossless_hex_retry_budget_test.go", "mempool/lossless_hex_transport.go", "mempool/lossless_hex_transport_test.go", "mempool/reactor.go", "mempool/wire_observer.go", "node/lossless_hex_test.go", "node/node.go", "proto/tendermint/mempool/types.pb.go", "proto/tendermint/mempool/types.proto"], "nodeProcessesStarted": 0, "normalProducer": {"bytes": 28082, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/normal-live-caller.jsonl", "requiredPassed": ["TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay", "TestOperatorWireLiveUnknownPreservesOriginalAndRetires", "TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit", "TestOperatorWireLivePermissionsIdentityAndResiduals", "TestOperatorWireLiveRequesterUnknownAndProducerIdentity", "TestOperatorWireLiveSelfProcParsingAndDefaultOff", "TestOperatorWireLiveTypedNormalNodeBeforeStartIsUnknown"], "result": {"bytes": 1021, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/normal-live-caller.result.json", "sha256": "a6dc41409cf7a4dc5041c9d44df9ce26ae00cba1eb4c5e1bcd02d137862091af"}, "sha256": "7d4917b500b283bff459f9e7bb0ddc0f4c99aec6218385b737e2725b81dbf6ce", "stderr": {"bytes": 0, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/normal-live-caller.stderr.log", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}}, "optionalForkCommit": "54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076", "optionalForkTree": "b1e9a83ab11ed141fda90bc47521faa412176caa", "originalSupplierBudget": {"bytes": 44340, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/original-peer-budget.jsonl", "requiredPassed": ["TestLosslessHexBudgetFullQueueElapsedDeadline", "TestLosslessHexBudgetFullQueueStopsWithoutRawReplay", "TestLosslessHexBudgetInvalidEnableStaysDefaultOff", "TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial", "TestLosslessHexBudgetNormalize", "TestLosslessHexBudgetPackFailureNeverFallsBack", "TestLosslessHexBudgetPackReservesBeforeFrameAllocation", "TestLosslessHexBudgetParallelAttemptsAndClose", "TestLosslessHexBudgetParallelReservations", "TestLosslessHexBudgetPeerBytes", "TestLosslessHexBudgetPeerClock", "TestLosslessHexBudgetPeerIdentityAndLifetime", "TestLosslessHexBudgetReceiveBeforeOriginalCheckTx", "TestLosslessHexBudgetSendAttemptsAndAtomicCharge", "TestLosslessHexBudgetSendClockRollback", "TestLosslessHexBudgetSendIdentityAndClock", "TestLosslessHexBudgetTypedNilPeerCannotClaimCapability", "TestLosslessHexTransportDefaultOffAndSingleCarrier", "TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry", "TestLosslessHexTransportQueuedRetryKeepsSelectedFormat", "TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback", "TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey"], "result": {"bytes": 1821, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/original-peer-budget.result.json", "sha256": "6126b39d1f2747ad85c764315b1895ba2572b77680cce3c7242e1e1e74e5cacc"}, "sha256": "c8411126295308a7db122b67eb874be29a7646cd0bb3a0193747edc5ea900fe0", "stderr": {"bytes": 0, "path": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/original-peer-budget.stderr.log", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}}, "physicalBytesMeasured": false, "preparedSourceSelection": {"receiptBytes": 1646, "receiptPath": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/composition/SOURCE-SELECTION.json", "receiptSHA256": "ee95b92d6a35cb79cebd0912bb841c65c06b7529a7dbc7580533d8a77953e97a", "sourceDirectory": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/composition/source", "sourceSelection": {"buildReceiptRequired": "actual argv/cwd/go BuildInfo/binary SHA and this source-selection pin", "buildTags": ["ynx_live_wire_observation"], "carrierEnabled": false, "exactOptionalDifference": ["mempool/live_wire_observer.go", "mempool/live_wire_observer_clock_unix.go", "mempool/live_wire_observer_clock_unsupported.go", "mempool/live_wire_observer_test.go", "mempool/live_wire_observer_unsupported_test.go", "mempool/lossless_hex_budget.go", "mempool/lossless_hex_budget_test.go", "mempool/lossless_hex_codec.go", "mempool/lossless_hex_codec_test.go", "mempool/lossless_hex_retry_budget_test.go", "mempool/lossless_hex_transport.go", "mempool/lossless_hex_transport_test.go", "mempool/reactor.go", "mempool/wire_observer.go", "node/lossless_hex_test.go", "node/node.go", "proto/tendermint/mempool/types.pb.go", "proto/tendermint/mempool/types.proto"], "fakeVCSIdentity": false, "nodeStarted": false, "originalCheckoutWritten": false, "originalModuleDescriptorsChanged": false, "originalProductionForkTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7", "originalSourceCommit": "1b0ea548aca6b5260a9824d0edd3012d52e53521", "originalSourceTree": "7c8f6cd8af01b366ea31ffc9f58659e6ca0099e6", "publicActivation": false, "selectedOptionalForkCommit": "54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076", "selectedOptionalForkTree": "b1e9a83ab11ed141fda90bc47521faa412176caa", "sourceDirectory": "/home/runner/work/_temp/wire-live-source-7bg6fj7m/composition/source", "sourceOnly": true, "version": "YNX-WIRE-LIVE-EXACT-SOURCE-SELECTION/v1"}}, "productionForkModified": false, "productionForkTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7", "publicActivation": false, "sourceCommit": "1b0ea548aca6b5260a9824d0edd3012d52e53521", "sourceOnly": true, "sourceTree": "7c8f6cd8af01b366ea31ffc9f58659e6ca0099e6", "version": "YNX-NORMAL-LIVE-WIRE-SOURCE-COMPOSITION/v1"}
+2026-11-07T06:14:38.0478208Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-07T06:14:38.0478536Z with:
+2026-11-07T06:14:38.0478825Z   name: normal-live-wire-source-1b0ea548aca6b5260a9824d0edd3012d52e53521
+2026-11-07T06:14:38.0480548Z   path: /home/runner/work/_temp/wire-live-source-*/SOURCE.json
+/home/runner/work/_temp/wire-live-source-*/normal-live-caller.jsonl
+/home/runner/work/_temp/wire-live-source-*/normal-live-caller.stderr.log
+/home/runner/work/_temp/wire-live-source-*/normal-live-caller.result.json
+/home/runner/work/_temp/wire-live-source-*/original-peer-budget.jsonl
+/home/runner/work/_temp/wire-live-source-*/original-peer-budget.stderr.log
+/home/runner/work/_temp/wire-live-source-*/original-peer-budget.result.json
+/home/runner/work/_temp/wire-live-source-*/composition/SOURCE-SELECTION.json
+
+2026-11-07T06:14:38.0482144Z   if-no-files-found: warn
+2026-11-07T06:14:38.0482342Z   retention-days: 14
+2026-11-07T06:14:38.0482525Z   compression-level: 6
+2026-11-07T06:14:38.0482735Z   overwrite: false
+2026-11-07T06:14:38.0483113Z   include-hidden-files: false
+2026-11-07T06:14:38.0483314Z env:
+2026-11-07T06:14:38.0483474Z   GOMAXPROCS: 2
+2026-11-07T06:14:38.0483643Z   GOTOOLCHAIN: local
+2026-11-07T06:14:38.0483822Z ##[endgroup]
+2026-11-07T06:14:38.1818536Z (node:15541) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-07T06:14:38.1819217Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-07T06:14:38.1906785Z With the provided path, there will be 8 files uploaded
+2026-11-07T06:14:38.1910922Z Artifact name is valid!
+2026-11-07T06:14:38.1911357Z Root directory input is valid!
+2026-11-07T06:14:38.3960535Z Beginning upload of artifact content to blob storage
+2026-11-07T06:14:38.4185690Z (node:15541) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-07T06:14:38.4466479Z Uploaded bytes 11067
+2026-11-07T06:14:38.4600870Z Finished uploading artifact content to blob storage!
+2026-11-07T06:14:38.4601809Z SHA256 digest of uploaded artifact zip is b08d6dfd81ef4a387cf409198ad9c683ca569cd7a0cb6de91aac121a14107883
+2026-11-07T06:14:38.4603024Z Finalizing artifact upload
+2026-11-07T06:14:38.9013008Z Artifact normal-live-wire-source-1b0ea548aca6b5260a9824d0edd3012d52e53521.zip successfully finalized. Artifact ID 13564005459
+2026-11-07T06:14:38.9014247Z Artifact normal-live-wire-source-1b0ea548aca6b5260a9824d0edd3012d52e53521 has been successfully uploaded! Final size is 11067 bytes. Artifact ID is 13564005459
+2026-11-07T06:14:38.9018156Z Artifact download URL: https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/42345664402/artifacts/13564005459
+2026-11-07T06:14:38.9201190Z Post job cleanup.
+2026-11-07T06:14:39.0280968Z Post job cleanup.
+2026-11-07T06:14:39.1341699Z [command]/opt/hostedtoolcache/go/1.26.10/x64/bin/go env GOMODCACHE
+2026-11-07T06:14:39.1388904Z [command]/opt/hostedtoolcache/go/1.26.10/x64/bin/go env GOCACHE
+2026-11-07T06:14:39.1448208Z /home/runner/.cache/go-build
+2026-11-07T06:14:39.1451636Z /home/runner/go/pkg/mod
+2026-11-07T06:14:39.1814687Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/YNX-Chain/YNX-Chain --files-from manifest.txt --use-compress-program zstdmt
+2026-11-07T06:14:41.5875024Z Failed to save: Unable to reserve cache with key setup-go-Linux-x64-ubuntu24-go-1.26.10-bdcedc824452c888f7047a974be3c409263d3202882f7e822d22505d472cbad1, another job may be creating this cache.
+2026-11-07T06:14:41.6341387Z Post job cleanup.
+2026-11-07T06:14:41.7063597Z [command]/usr/bin/git version
+2026-11-07T06:14:41.7099975Z git version 2.56.0
+2026-11-07T06:14:41.7194207Z Temporarily overriding HOME='/home/runner/work/_temp/319df48c-4e0f-45cd-8f73-914f0cbe2b8f' before making global git config changes
+2026-11-07T06:14:41.7195295Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-07T06:14:41.7196274Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/YNX-Chain/YNX-Chain
+2026-11-07T06:14:41.7211097Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-07T06:14:41.7246056Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-07T06:14:41.7506126Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-07T06:14:41.7539746Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-07T06:14:41.7920367Z Cleaning up orphan processes
+2026-11-07T06:14:41.8202350Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
