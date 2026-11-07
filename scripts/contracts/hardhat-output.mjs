@@ -46,6 +46,18 @@ function treeContents(directory){
 // the compiler namespace, and never move or replace controlled source inputs.
 export function finishHardhatOutput(root=process.cwd()){
  const {base,managed}=prepareHardhatOutput(root);root=path.resolve(root);
+ const lock=path.join(base,'.ynx-hardhat-publish.lock');
+ try{fs.mkdirSync(lock,{mode:0o700});}catch(err){
+  if(err.code==='EEXIST')throw Object.assign(Error('Hardhat artifact publication is already active or unresolved; retained lock: '+lock),{code:'HARDHAT_PUBLISH_IN_PROGRESS'});
+  throw err;
+ }
+ let failure;
+ try{return publishHardhatOutput(root,base,managed);}
+ catch(err){failure=err;throw err;}
+ finally{try{fs.rmdirSync(lock);}catch(err){if(failure)failure.cleanupError=err;else throw err;}}
+}
+
+function publishHardhatOutput(root,base,managed){
  const entries=['contracts','build-info'].map(name=>({name,target:path.join(managed,name),destination:path.join(base,name)}));
  for(const e of entries){
   regularDirectory(e.target);if(!info(e.target))throw Error('successful Hardhat output missing: '+e.name);
@@ -56,7 +68,10 @@ export function finishHardhatOutput(root=process.cwd()){
  const backups=[];
  for(const e of entries){
   if(e.done)continue;
-  const temp=fs.mkdtempSync(path.join(base,'.'+e.name+'-publish-'));let backup;
+  // mkdtemp creates the exclusive container. Strict cp requires its payload
+  // destination to be absent (including for directories on Node 24).
+  const staging=fs.mkdtempSync(path.join(base,'.'+e.name+'-publish-'));
+  const temp=path.join(staging,'output');let backup;
   try{
    fs.cpSync(e.target,temp,{recursive:true,errorOnExist:true,force:false});
    if(treeContents(temp)!==treeContents(e.target))throw Error('copied artifact output differs');
@@ -65,10 +80,14 @@ export function finishHardhatOutput(root=process.cwd()){
     const saved=fs.mkdtempSync(path.join(savedBase,'build-'));backup=path.join(saved,e.name);fs.renameSync(e.destination,backup);backups.push(backup);
    }
    fs.renameSync(temp,e.destination);
+   fs.rmdirSync(staging);
   }catch(err){
-   if(backup&&!info(e.destination))fs.renameSync(backup,e.destination);
+   // Keep this operation's partial payload and all older staging/backup bytes.
+   // Never hide the first copy/publication error with a rollback failure.
+   err.stagingDirectory=staging;
+   if(backup&&!info(e.destination))try{fs.renameSync(backup,e.destination);}catch(rollbackError){err.rollbackError=rollbackError;}
    throw err;
-  }finally{if(info(temp))fs.rmSync(temp,{recursive:true});}
+  }
  }
  return {managedArtifacts:namespace,compatibilityDirectories:entries.map(e=>path.relative(root,e.destination)),retainedPreviousDirectories:backups.map(p=>path.relative(root,p))};
 }
