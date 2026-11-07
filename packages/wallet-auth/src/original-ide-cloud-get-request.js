@@ -2,6 +2,7 @@
 // HTTP proof or confer Source qualification. The accepted GET proof wire and
 // Native Source producer are separate owning CODE, currently NOT_SUPPLIED.
 import {types} from 'node:util';
+import {createIDEFiniteGETReadStateDATA} from './original-ide-finite-get-read-state-data.js';
 import {loadOriginalAuthIdentityNativeImage} from './original-auth-identity-fixed-native-image.js';
 
 const objectKeys=['method','path','url','operationRequestId'];
@@ -48,7 +49,8 @@ function loan(owner,names){return {owner,refs:refs(owner,names),retired:false,cl
 function context(v){const c=exact(v,['signal']);if(!Object.isFrozen(v)||types.isProxy(c.signal))fail('IDE_CLOUD_GET_CONTEXT');try{aborted.call(c.signal)}catch{fail('IDE_CLOUD_GET_CONTEXT')}return v}
 const same=(a,b)=>objectKeys.every(k=>a[k]===b[k]);
 
-// Draft Native ABI, intentionally not exported in package.json until its owner
+// Source acquisition/proof/sender bodies remain NOT_SUPPLIED; the accepted
+// completion method alone does not qualify a Native source. Intentionally not exported in package.json until its owner
 // freezes the corresponding Source and server proof wire. No injected provider,
 // loader, endpoint, fake parent brand or V4/legacy proof fallback is accepted.
 export function acquireOriginalIDECloudGETRequestController(originalSelection){
@@ -61,12 +63,12 @@ export function acquireOriginalIDECloudGETRequestController(originalSelection){
  let owner;try{owner=Reflect.apply(get,native,[originalSelection])}catch(e){throw e}
  if(owner===null||owner===undefined)fail('IDE_CLOUD_GET_NATIVE_SOURCE_NOT_SUPPLIED');
  let source;try{source=loan(owner,sourceNames)}catch(cause){throw Object.assign(Error('IDE_CLOUD_GET_SOURCE_PARTIAL'),{code:'IDE_CLOUD_GET_SOURCE_PARTIAL',cause,partial:owner})}
- const tickets=new WeakMap(),all=[],flights=new Set();let retired=false,active=0,draining=false,firstPresent=false,first,closing=null;
+ const readState=createIDEFiniteGETReadStateDATA(),tickets=new WeakMap(),all=[],flights=new Set();let retired=false,active=0,draining=false,firstPresent=false,first,closing=null;
  const remember=e=>{if(!firstPresent){firstPresent=true;first=e}};
  const invoke=(l,name,...args)=>{active++;try{return Reflect.apply(l.refs[name],l.owner,args)}finally{active--}};
  const zero=(l,name,...args)=>{if(invoke(l,name,...args)!==undefined)fail('IDE_CLOUD_GET_NATIVE_RESULT')};
  function stopLoan(l){if(!l||l.closed||l.retired)return;l.retired=true;zero(l,'retire')}
- function stop(){retired=true;let bad=false,cause;for(const r of all){try{stopLoan(r.loan)}catch(e){if(!bad){bad=true;cause=e;remember(e)}}}try{stopLoan(source)}catch(e){if(!bad){bad=true;cause=e;remember(e)}}if(bad)throw cause}
+ function stop(){retired=true;readState.retireSourceDATA();let bad=false,cause;for(const r of all){try{stopLoan(r.loan)}catch(e){if(!bad){bad=true;cause=e;remember(e)}}}try{stopLoan(source)}catch(e){if(!bad){bad=true;cause=e;remember(e)}}if(bad)throw cause}
  function current(r){if(r&&aborted.call(r.context.signal))throw abortReason.call(r.context.signal);if(retired||firstPresent)fail('IDE_CLOUD_GET_RETIRED');zero(source,'assertCurrent');if(retired)fail('IDE_CLOUD_GET_RETIRED');if(r){zero(r.loan,'assertCurrent');if(aborted.call(r.context.signal))throw abortReason.call(r.context.signal);if(retired)fail('IDE_CLOUD_GET_RETIRED')}}
  function known(ticket){const r=tickets.get(ticket);if(!r)fail('IDE_CLOUD_GET_ORIGINAL_REQUEST_REQUIRED');return r}
  async function drain(l){if(l.closed)return;if(l.joining)fail('IDE_CLOUD_GET_DRAIN_BUSY');l.joining=true;try{stopLoan(l);if(await invoke(l,'join')!==undefined)fail('IDE_CLOUD_GET_JOIN_PENDING');if(await invoke(l,'close')!==undefined)fail('IDE_CLOUD_GET_CLOSE_PENDING');l.closed=true}finally{l.joining=false}}
@@ -82,23 +84,73 @@ export function acquireOriginalIDECloudGETRequestController(originalSelection){
  }
  function prepare(input,ctx){
   const request=snapshot(input),c=context(ctx);if(retired||firstPresent)fail('IDE_CLOUD_GET_RETIRED');if(aborted.call(c.signal))throw abortReason.call(c.signal);
-  if(all.some(r=>same(r.request,request)))fail('IDE_CLOUD_GET_QUERY_ORIGINAL_ONLY');
-  const r={request,context:c,loan:null,unknown:false,causePresent:false,cause:undefined,uncapturedOwner:null};all.push(r);
+  // Exactly one read sequence, not merely one pending request per route.
+  // A completed route may be explicitly polled under the still-live original Host context (or a new Host read context).
+  if(all.some(r=>!r.finished))fail('IDE_CLOUD_GET_ORIGINAL_READ_PENDING');
+  const modelTicket=readState.beginReadDATA(request,{serviceOrigin:new URL(request.url).origin,operationRequestId:request.operationRequestId},{originalRequestContext:c}); // syntax/custody DATA only, not target authority
+  const r={request,context:c,modelTicket,loan:null,unknown:false,causePresent:false,cause:undefined,uncapturedOwner:null,finished:false,finishKnown:false,finishPromise:null,drainFlight:null,finishRef:null,rechecks:new Set()};all.push(r);
   const ticket=Object.freeze({});tickets.set(ticket,r);
-  const onAbort=()=>{remember(abortReason.call(c.signal));try{stop()}catch(e){remember(e)}};r.onAbort=onAbort;add.call(c.signal,'abort',onAbort,{once:true});
+  const onAbort=()=>{const e=abortReason.call(c.signal);r.unknown=true;if(!r.causePresent){r.causePresent=true;r.cause=e}readState.retainUnknownDATA(r.modelTicket,c,e);remember(e);try{stop()}catch(e){remember(e)}};r.onAbort=onAbort;add.call(c.signal,'abort',onAbort,{once:true});
   try{
    current();let child;
    try{child=invoke(source,'captureOriginalGETRequest',request,c)}catch(e){child=partial(e);if(child!==null&&child!==undefined){r.uncapturedOwner=child;try{r.loan=loan(child,childNames);r.uncapturedOwner=null}catch{}}throw e}
    // Adopt before ABI inspection, current checks or observing a late abort.
    r.uncapturedOwner=child??null;r.loan=loan(child,childNames);r.uncapturedOwner=null;
+   // Auth accepted this completion name, but its actual Native body is still
+   // NOT_SUPPLIED. Retain the cleanup-capable child before refusing the gap.
+   const finishDescriptor=Object.getOwnPropertyDescriptor(child,'finishOriginalRead');
+   if(!finishDescriptor||!Object.hasOwn(finishDescriptor,'value')||typeof finishDescriptor.value!=='function')fail('IDE_CLOUD_GET_FINISH_CALLEE_NOT_SUPPLIED');r.finishRef=finishDescriptor.value;r.loan.refs=Object.freeze({...r.loan.refs,finishOriginalRead:r.finishRef});
    const actual=snapshot(invoke(r.loan,'readOriginalRequestDATA'));if(!same(actual,request))fail('IDE_CLOUD_GET_REQUEST_CHANGED');current(r);return ticket;
-  }catch(cause){r.unknown=true;r.causePresent=true;r.cause=cause;remember(cause);try{stop()}catch{}throw Object.assign(Error('IDE_CLOUD_GET_REQUEST_PARTIAL'),{code:'IDE_CLOUD_GET_REQUEST_PARTIAL',cause,partial:ticket})}
+  }catch(cause){r.unknown=true;r.causePresent=true;r.cause=cause;readState.retainUnknownDATA(r.modelTicket,r.context,cause);remember(cause);try{stop()}catch{}throw Object.assign(Error('IDE_CLOUD_GET_REQUEST_PARTIAL'),{code:'IDE_CLOUD_GET_REQUEST_PARTIAL',cause,partial:ticket})}
  }
- function read(ticket){const r=known(ticket);return Object.freeze({request:r.request,unknown:r.unknown,causePresent:r.causePresent,cause:r.cause,unclassifiedPartial:r.uncapturedOwner,dataOnly:true,SourceAdmission:false,NativeAdmission:false})}
+ function read(ticket){const r=known(ticket);return Object.freeze({request:r.request,unknown:r.unknown,causePresent:r.causePresent,cause:r.cause,unclassifiedPartial:r.uncapturedOwner,finished:r.finished,finishKnown:r.finishKnown,childClosed:r.loan?.closed===true,dataOnly:true,SourceAdmission:false,NativeAdmission:false})}
  async function recheck(ticket){const r=known(ticket);current(r);if(await invoke(source,'recheck')!==undefined)fail('IDE_CLOUD_GET_NATIVE_RESULT');current(r);if(await invoke(r.loan,'recheck')!==undefined)fail('IDE_CLOUD_GET_NATIVE_RESULT');current(r);const a=snapshot(invoke(r.loan,'readOriginalRequestDATA'));if(!same(a,r.request))fail('IDE_CLOUD_GET_REQUEST_CHANGED');return read(ticket)}
- function track(ticket){const f=recheck(ticket);flights.add(f);f.then(()=>flights.delete(f),cause=>{flights.delete(f);const r=known(ticket);r.unknown=true;r.causePresent=true;r.cause=cause;remember(cause);try{stop()}catch{}});return f}
- function headers(){fail('IDE_CLOUD_GET_PROOF_WIRE_NOT_SUPPLIED')}
- return Object.freeze({prepareOriginalGETRequest:prepare,readOriginalRequestDATA:read,recheckOriginalGETRequest:track,
+ function track(ticket){const r=known(ticket);if(r.finishPromise)fail('IDE_CLOUD_GET_FINISH_ALREADY_SELECTED');const f=Promise.resolve().then(()=>recheck(ticket));r.rechecks.add(f);flights.add(f);f.then(()=>{flights.delete(f);r.rechecks.delete(f)},cause=>{flights.delete(f);r.rechecks.delete(f);r.unknown=true;if(!r.causePresent){r.causePresent=true;r.cause=cause}readState.retainUnknownDATA(r.modelTicket,r.context,cause);remember(cause);try{stop()}catch{}});return f}
+ function drainRead(r){
+  if(r.drainFlight)return r.drainFlight;
+  r.drainFlight=Promise.resolve().then(async()=>{
+   if(!r.loan)fail('IDE_CLOUD_GET_UNCLASSIFIED_PARTIAL');
+   try{await drain(r.loan)}catch(e){readState.retainUnknownDATA(r.modelTicket,r.context,e);r.unknown=true;if(!r.causePresent){r.causePresent=true;r.cause=e}remember(e);throw e}
+   // Real JS child drain is a separate layer from Go sender.finish join/close.
+   readState.observeChildJoinDATA(r.modelTicket,r.context,{physicalComplete:true,errorPresent:false,error:undefined});
+   readState.observeChildCloseDATA(r.modelTicket,r.context,{physicalComplete:true,errorPresent:false,error:undefined});
+   remove.call(r.context.signal,'abort',r.onAbort);return read(ticketsForRead.get(r));
+  }).finally(()=>{r.drainFlight=null});return r.drainFlight;
+ }
+ const ticketsForRead=new WeakMap();
+ function finishRead(ticket){
+  const r=known(ticket);ticketsForRead.set(r,ticket);if(r.finishPromise)return r.finishPromise;
+  // Publish the unique flight BEFORE executing any foreign Native own method.
+  r.finishPromise=Promise.resolve().then(async()=>{
+   let failed=false,cause;
+   try{
+    if(!r.loan||typeof r.finishRef!=='function')fail('IDE_CLOUD_GET_FINISH_CALLEE_NOT_SUPPLIED');
+    await Promise.allSettled([...r.rechecks]);
+    readState.selectCompletionDATA(r.modelTicket,r.context);
+    const complete=await invoke(r.loan,'finishOriginalRead',r.context);
+    if(typeof complete!=='boolean')fail('IDE_CLOUD_GET_FINISH_RESULT_INVALID');
+    r.finishKnown=complete; // retain same-original outcome before current/abort
+    readState.observeGoFinishDATA(r.modelTicket,r.context,{knownComplete:complete,errorPresent:false,error:undefined});
+    if(!complete)r.unknown=true;
+    if(complete){const actual=snapshot(invoke(r.loan,'readOriginalRequestDATA'));if(!same(actual,r.request))fail('IDE_CLOUD_GET_REQUEST_CHANGED');current(r);}
+   }catch(e){failed=true;cause=e;r.unknown=true;if(!r.causePresent){r.causePresent=true;r.cause=e}readState.retainUnknownDATA(r.modelTicket,r.context,e);remember(e);}
+   try{await drainRead(r)}catch(e){if(!failed){failed=true;cause=e}}
+   if(!failed&&r.finishKnown&&!r.unknown){
+    try{if(aborted.call(r.context.signal))throw abortReason.call(r.context.signal);if(retired||firstPresent)fail('IDE_CLOUD_GET_RETIRED');zero(source,'assertCurrent');r.finished=true;}catch(e){failed=true;cause=e;r.unknown=true;if(!r.causePresent){r.causePresent=true;r.cause=e}readState.retainUnknownDATA(r.modelTicket,r.context,e);remember(e)}
+   }
+   if(failed)throw cause;return read(ticket);
+  });
+  flights.add(r.finishPromise);r.finishPromise.then(()=>flights.delete(r.finishPromise),()=>flights.delete(r.finishPromise));return r.finishPromise;
+ }
+ function drainOriginalRead(ticket){const r=known(ticket);ticketsForRead.set(r,ticket);return drainRead(r)}
+ function headers(input,c){
+  // New P04 hook may pass the SAME context as a separate second argument;
+  // the request stays exact4. Old zero/one-arg hooks remain failclosed.
+  if(arguments.length>2)fail('IDE_CLOUD_GET_ARGUMENTS');
+  if(arguments.length){const r=all[all.length-1],request=snapshot(input);if(!r||r.finished||!same(r.request,request))fail('IDE_CLOUD_GET_ORIGINAL_REQUEST_REQUIRED');if(arguments.length===2&&(context(c)!==r.context))fail('IDE_CLOUD_GET_SAME_CONTEXT_REQUIRED');}
+  fail('IDE_CLOUD_GET_PROOF_WIRE_NOT_SUPPLIED');
+ }
+ return Object.freeze({prepareOriginalGETRequest:prepare,readOriginalRequestDATA:read,recheckOriginalGETRequest:track,finishOriginalGETRequest:finishRead,drainOriginalGETRequest:drainOriginalRead,
   // No guessed V2/V4/V5 headers, crypto/domain change, HTTP request or replay.
   getDeploymentRequestHeaders:headers,retire:stop,join:cleanup,
   close(){try{stop()}catch(e){remember(e)}if(!closing)closing=cleanup().finally(()=>{closing=null});return closing},drainOriginal:cleanup,

@@ -135,6 +135,9 @@ export interface OriginalIDECloudRetainedGETOwner {
  prepareOriginalGETRequest(request:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestDATA,context:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETAbortContext):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket;
  readOriginalRequestDATA(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA;
  recheckOriginalGETRequest(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):Promise<import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA>;
+ finishOriginalGETRequest(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):Promise<import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA>;
+ drainOriginalGETRequest(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):Promise<import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA>;
+ getDeploymentRequestHeaders(request:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestDATA,sameOriginalContext?:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETAbortContext):never;
  getDeploymentRequestHeaders():never;retire():undefined;join():Promise<void>;close():Promise<void>;statusDATA():Readonly<{retired:boolean;closed:boolean;firstCausePresent:boolean;firstCause:unknown;CloudGETProof:false;RootAdmission:false;SourceAdmission:false;NativeAdmission:false}>;
 }
 export interface OriginalIDERetainedWorkspaceForCloud<T> {

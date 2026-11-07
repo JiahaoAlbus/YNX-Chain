@@ -18,6 +18,7 @@ export interface OriginalIDECloudGETRetainedDATA extends OriginalIDECloudGETInsp
  readonly unknown:boolean;readonly causePresent:boolean;readonly cause:unknown;
  /** A returned/partial owner whose drain ABI was invalid. Retained verbatim. */
  readonly unclassifiedPartial:unknown;
+ readonly finished:boolean;readonly finishKnown:boolean;readonly childClosed:boolean;
 }
 export interface OriginalIDECloudGETControllerStatusDATA {
  readonly retired:boolean;readonly sourceClosed:boolean;readonly cleanupDebt:boolean;
@@ -29,8 +30,13 @@ export interface OriginalIDECloudGETRequestController {
  prepareOriginalGETRequest(request:OriginalIDECloudGETRequestDATA,sameFrozenContext:OriginalIDECloudGETAbortContext):OriginalIDECloudGETRequestTicket;
  readOriginalRequestDATA(ticket:OriginalIDECloudGETRequestTicket):OriginalIDECloudGETRetainedDATA;
  recheckOriginalGETRequest(ticket:OriginalIDECloudGETRequestTicket):Promise<OriginalIDECloudGETRetainedDATA>;
+ /** Actual Go known completion plus JS child drain; no caller completed/nonce input. */
+ finishOriginalGETRequest(ticket:OriginalIDECloudGETRequestTicket):Promise<OriginalIDECloudGETRetainedDATA>;
+ /** Same child debt only; permitted after cancel/retire, never re-finishes/signs. */
+ drainOriginalGETRequest(ticket:OriginalIDECloudGETRequestTicket):Promise<OriginalIDECloudGETRetainedDATA>;
  /** Always throws IDE_CLOUD_GET_PROOF_WIRE_NOT_SUPPLIED until the owner supplies the real accepted wire. */
  getDeploymentRequestHeaders():never;
+ getDeploymentRequestHeaders(request:OriginalIDECloudGETRequestDATA,sameOriginalContext?:OriginalIDECloudGETAbortContext):never;
  retire():undefined;join():Promise<void>;close():Promise<void>;drainOriginal():Promise<void>;
  status():OriginalIDECloudGETControllerStatusDATA;
 }
