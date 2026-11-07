@@ -1,0 +1,26 @@
+{
+  "schema": "YNX_SWIFT11_VISIBILITY_OWNER_SOURCE_RECEIPT/v1",
+  "status": "EXACT_OWNER_SUPPLIER_SWIFT11_PUBLIC_VISIBILITY",
+  "supplierH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-swift11-visibility-successor/frozen-swift11-r1/HANDOFF.json",
+    "bytes": 6633,
+    "sha256": "d3bdf93653df62ead9477a1bd54b9497f744553e4da8a915c7f9ebd209bc30f8"
+  },
+  "changes": [
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/NativePQCustodyExports.swift",
+      "before": {
+        "bytes": 9714,
+        "sha256": "67995bb100fa49716f45cc00afd1c61ac0b2c954213bf3f1607f42601d82b398"
+      },
+      "after": {
+        "bytes": 9791,
+        "sha256": "dd147452711036b1bbea85a60350084c297bd3e706fd5ab604127b98cf13367f"
+      }
+    }
+  ],
+  "swiftCompileExtraFlags": [],
+  "sourceOnlyPublicAccess11": true,
+  "RootAdmission": false,
+  "SourceAdmission": false
+}

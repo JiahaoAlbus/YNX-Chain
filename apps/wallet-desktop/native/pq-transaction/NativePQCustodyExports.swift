@@ -28,7 +28,7 @@ private func installOwner(_ owner: PQNativeOpenedAccount, _ output: UnsafeMutabl
     let id = custodyNextID; custodyNextID += 1; custodyOwners[id] = owner; output.pointee = id; return 0
 }
 @_cdecl("ynx_auth_pq_native_open_v1")
-func nativePQOpen(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ credential: UnsafePointer<UInt8>?, _ credentialCount: Int, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int, _ purpose: UInt32, _ output: UnsafeMutablePointer<UInt64>?) -> Int32 {
+public func nativePQOpen(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ credential: UnsafePointer<UInt8>?, _ credentialCount: Int, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int, _ purpose: UInt32, _ output: UnsafeMutablePointer<UInt64>?) -> Int32 {
     guard let output = output, UInt(bitPattern: output) % 8 == 0, output.pointee == 0,
           let credential = credential, credentialCount == 43,
           let wire = wire, wireCount > 0 && wireCount <= 196608,
@@ -43,11 +43,11 @@ func nativePQOpen(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ credential:
     } catch { return failureCode(error) }
 }
 @_cdecl("ynx_auth_pq_native_current_v1")
-func nativePQCurrent(_ id: UInt64) -> Int32 { do { try owned(id).current(); return 0 } catch { return failureCode(error) } }
+public func nativePQCurrent(_ id: UInt64) -> Int32 { do { try owned(id).current(); return 0 } catch { return failureCode(error) } }
 @_cdecl("ynx_auth_pq_native_retire_v1")
-func nativePQRetire(_ id: UInt64) -> Int32 { do { try owned(id).retire(); return 0 } catch { return failureCode(error) } }
+public func nativePQRetire(_ id: UInt64) -> Int32 { do { try owned(id).retire(); return 0 } catch { return failureCode(error) } }
 @_cdecl("ynx_auth_pq_native_transaction_once_v1")
-func nativePQTransaction(_ id: UInt64, _ message: UnsafePointer<UInt8>?, _ messageCount: Int, _ policy: UnsafePointer<UInt8>?, _ policyCount: Int, _ chainID: UInt64, _ keyVersion: UnsafePointer<UInt8>?, _ versionCount: Int, _ height: UnsafePointer<UInt8>?, _ heightCount: Int) -> Int32 {
+public func nativePQTransaction(_ id: UInt64, _ message: UnsafePointer<UInt8>?, _ messageCount: Int, _ policy: UnsafePointer<UInt8>?, _ policyCount: Int, _ chainID: UInt64, _ keyVersion: UnsafePointer<UInt8>?, _ versionCount: Int, _ height: UnsafePointer<UInt8>?, _ heightCount: Int) -> Int32 {
     do {
         let owner = try owned(id); try owner.current()
         let m = try readPublic(message, messageCount, 8192), p = try readPublic(policy, policyCount, 8388608)
@@ -57,7 +57,7 @@ func nativePQTransaction(_ id: UInt64, _ message: UnsafePointer<UInt8>?, _ messa
     } catch { return failureCode(error) }
 }
 @_cdecl("ynx_auth_pq_native_copy_outcome_v1")
-func nativePQOutcome(_ id: UInt64, _ buffer: UnsafeMutablePointer<UInt8>?, _ capacity: Int, _ length: UnsafeMutablePointer<Int>?, _ status: UnsafeMutablePointer<Int32>?, _ cleanup: UnsafeMutablePointer<UInt32>?, _ selected: UnsafeMutablePointer<UInt32>?) -> Int32 {
+public func nativePQOutcome(_ id: UInt64, _ buffer: UnsafeMutablePointer<UInt8>?, _ capacity: Int, _ length: UnsafeMutablePointer<Int>?, _ status: UnsafeMutablePointer<Int32>?, _ cleanup: UnsafeMutablePointer<UInt32>?, _ selected: UnsafeMutablePointer<UInt32>?) -> Int32 {
     guard capacity >= 0 && capacity <= 98304, let length = length, let status = status, let cleanup = cleanup, let selected = selected,
           UInt(bitPattern: length) % UInt(MemoryLayout<Int>.alignment) == 0, UInt(bitPattern: status) % 4 == 0, UInt(bitPattern: cleanup) % 4 == 0, UInt(bitPattern: selected) % 4 == 0,
           (buffer == nil && capacity == 0) || (buffer != nil && capacity > 0) else { return 1 }
@@ -73,15 +73,15 @@ func nativePQOutcome(_ id: UInt64, _ buffer: UnsafeMutablePointer<UInt8>?, _ cap
     } catch { return failureCode(error) }
 }
 @_cdecl("ynx_auth_pq_native_close_v1")
-func nativePQClose(_ id: UInt64) -> Int32 { do { switch try owned(id).close() { case .success: return 0; case .failure(let cause): return failureCode(cause) } } catch { return failureCode(error) } }
+public func nativePQClose(_ id: UInt64) -> Int32 { do { switch try owned(id).close() { case .success: return 0; case .failure(let cause): return failureCode(cause) } } catch { return failureCode(error) } }
 @_cdecl("ynx_auth_pq_native_release_closed_v1")
-func nativePQRelease(_ id: UInt64) -> Int32 {
+public func nativePQRelease(_ id: UInt64) -> Int32 {
     do { let owner = try owned(id); guard owner.closedForNativeRelease() else { return 6 }
         custodyLock.lock(); defer { custodyLock.unlock() }; guard custodyOwners[id] === owner else { return 6 }; custodyOwners.removeValue(forKey: id); return 0
     } catch { return failureCode(error) }
 }
 @_cdecl("ynx_auth_pq_native_capabilities_v1")
-func nativePQCapabilities() -> UInt32 {
+public func nativePQCapabilities() -> UInt32 {
     #if YNX_ACCOUNT_INITIAL_NATIVE_V1
     return 3
     #else
@@ -89,7 +89,7 @@ func nativePQCapabilities() -> UInt32 {
     #endif
 }
 @_cdecl("ynx_auth_pq_native_open_initial_v1")
-func nativePQOpenInitial(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ credential: UnsafePointer<UInt8>?, _ credentialCount: Int, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int, _ message: UnsafePointer<UInt8>?, _ messageCount: Int, _ genesis: UnsafePointer<UInt8>?, _ genesisCount: Int, _ pin: UnsafePointer<UInt8>?, _ pinCount: Int, _ chainID: UInt64, _ height: UnsafePointer<UInt8>?, _ heightCount: Int, _ output: UnsafeMutablePointer<UInt64>?) -> Int32 {
+public func nativePQOpenInitial(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ credential: UnsafePointer<UInt8>?, _ credentialCount: Int, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int, _ message: UnsafePointer<UInt8>?, _ messageCount: Int, _ genesis: UnsafePointer<UInt8>?, _ genesisCount: Int, _ pin: UnsafePointer<UInt8>?, _ pinCount: Int, _ chainID: UInt64, _ height: UnsafePointer<UInt8>?, _ heightCount: Int, _ output: UnsafeMutablePointer<UInt64>?) -> Int32 {
     #if YNX_ACCOUNT_INITIAL_NATIVE_V1
     guard let output = output, UInt(bitPattern: output) % 8 == 0, output.pointee == 0,
           let credential = credential, credentialCount == 43 else { return 1 }
@@ -106,7 +106,7 @@ func nativePQOpenInitial(_ wire: UnsafePointer<UInt8>?, _ wireCount: Int, _ cred
     #endif
 }
 @_cdecl("ynx_auth_pq_native_account_initial_once_v1")
-func nativePQAccountInitial(_ id: UInt64) -> Int32 {
+public func nativePQAccountInitial(_ id: UInt64) -> Int32 {
     #if YNX_ACCOUNT_INITIAL_NATIVE_V1
     do { try owned(id).attemptAccountInitial(); return 0 } catch { return failureCode(error) }
     #else
@@ -116,7 +116,7 @@ func nativePQAccountInitial(_ id: UInt64) -> Int32 {
 
 // Read-only same-ordinary-owner public binding fence. No Source or restore grant.
 @_cdecl("ynx_auth_pq_native_assert_binding_v1")
-func nativePQAssertBinding(_ id: UInt64, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int) -> Int32 {
+public func nativePQAssertBinding(_ id: UInt64, _ binding: UnsafePointer<UInt8>?, _ bindingCount: Int) -> Int32 {
     do {
         let owner = try owned(id); try owner.current()
         guard owner.purpose == .transaction else { return 7 }

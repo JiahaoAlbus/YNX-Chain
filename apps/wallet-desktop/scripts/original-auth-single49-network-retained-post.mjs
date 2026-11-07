@@ -18,6 +18,13 @@ export function assertRetainedPrefixDATA(h,p,s,a){
  same(a.ledger[87].tool,'/usr/bin/nm');same(a.ledger[87].argv,['-u',p.output]);same(a.ledger[87].exit,0);same(a.ledger[88].tool,p.postCommands[0].tool);same(a.ledger[88].argv,p.postCommands[0].argv);same(a.ledger[88].exit,1);same(a.ledger[88].stderrSHA256,'59649b2b30781bc001b1c2f3e546168158b60cf5cfbf8cf7d1e06267a440f2c6');
  return{compiledSourceCommit:COMPILED,objects:85,normalCommands:87,originalSuccessfulPrefix:88,originalFailedPost:1,metadataCorrection:{coldObjects:{original:84,actual:85},normalCommands:{original:86,actual:87}},RootAdmission:false,SourceAdmission:false};
 }
+export function verifyOriginalAuthSingle49CompiledPrefixForRepair(){
+ const raw=read(AH);if(raw.length!==89537||hash(raw)!==AH_SHA)fail('RETAINED_ORIGINAL_A_HANDOFF_CHANGED');const h=JSON.parse(raw),root=h.sourceRoot,out=path.join(root,'apps/wallet-desktop/native/single49-network-current');
+ for(const r of [...h.refs,...h.objects,...h.portableLibrariesAndLicenses,h.actualImage,h.actualLinkedImage])bound(r);
+ const ref=n=>{const rows=h.refs.filter(x=>path.basename(x.path)===n);if(rows.length!==1)fail('RETAINED_REF_NOT_UNIQUE');return rows[0];};
+ const p=json(ref('OWN_NORMAL_PLAN.json').path),s=json(path.join(out,'original-auth-single49Network-prepost.json')),a=json(path.join(out,'original-auth-root14-attempt.json'));const checked=assertRetainedPrefixDATA(h,p,s,a);
+ for(const r of [...s.sourceInputs,...s.sourceProvenance,...s.tools])bound(r);const tools=json(ref('TOOLS_PRE.json').path);same(Object.keys(tools).length,9);for(const r of Object.values(tools))bound(r);same(filePin(process.execPath),tools[process.execPath]);unchangedSource(root,COMPILED,4414);return{h,p,s,a,checked,tools,originalAHandoff:filePin(AH),originalSnapshot:filePin(path.join(out,'original-auth-single49Network-prepost.json')),originalFailedAttempt:filePin(path.join(out,'original-auth-root14-attempt.json'))};
+}
 function preflight(){
  const raw=read(AH);if(raw.length!==89537||hash(raw)!==AH_SHA)fail('RETAINED_ORIGINAL_A_HANDOFF_CHANGED');const h=JSON.parse(raw),root=h.sourceRoot,out=path.join(root,'apps/wallet-desktop/native/single49-network-current');
  for(const r of [...h.refs,...h.objects,...h.portableLibrariesAndLicenses,h.actualImage,h.actualLinkedImage])bound(r);
