@@ -11,6 +11,15 @@ import (
 )
 
 func TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth(t *testing.T) {
+	var public *os.File
+	if path := os.Getenv("YNX_PQ_HELD_INPUT_FOOTPRINT_OUT"); path != "" {
+		var err error
+		public, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer public.Close()
+	}
 	for _, large := range []bool{false, true} {
 		p, pin, _ := checkpointReadFixture(t, 1)
 		if large {
@@ -69,6 +78,11 @@ func TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth(t *testing.T) {
 		}
 		if bytes.Contains(raw, []byte(p.RootDir)) || bytes.Contains(raw, []byte(pin)) {
 			t.Fatal("footprint exposed original paths or source identity")
+		}
+		if public != nil {
+			if err := json.NewEncoder(public).Encode(map[string]any{"sourceInputs": stats, "staticCache": before}); err != nil {
+				t.Fatal(err)
+			}
 		}
 		if err := s.Close(); err != nil {
 			t.Fatal(err)
