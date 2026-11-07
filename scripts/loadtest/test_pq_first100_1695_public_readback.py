@@ -1,5 +1,6 @@
 """Public-owner original receipt controls; synthetic fixtures are not a run."""
 import importlib.util
+import json
 from pathlib import Path
 import unittest
 
@@ -24,6 +25,25 @@ def records():
 
 
 class Public1695Controls(unittest.TestCase):
+    def test_original_replies_preserve_cache_bypass_and_missing_reasons(self):
+        row=dict(index=0,ownerIndex=4,operationId='a'*64)
+        load=dict(configuredDemand=500,rows=[row,dict(index=1,ownerIndex=5,operationId='b'*64)])
+        reply=dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1',ownerIndex=4,operationId='a'*64,
+                   code='REJECTED',result=None,staticCache=dict(entries=0,hits=0,bypasses=1),
+                   sourceInputs=dict(staticOriginalBytes=70418160,cacheMaxBytes=33554432,
+                                     cacheRetained=False,cacheAdmissionReason='BYTE_BOUND'))
+        path='public/load-operations/00000/original-sign-reply.json'
+        files={path:json.dumps(reply).encode()}
+        result=m.original_sign_replies(files,'public/',load)
+        self.assertEqual(result['replyCounts'],{'REJECTED':1})
+        self.assertEqual(result['missingReplyRows'],1)
+        self.assertFalse(result['missingReplyIsRejection'])
+        self.assertEqual(result['records'][0]['errorReasonStatus'],'NOT_EMITTED_BY_FROZEN_CLI')
+        self.assertEqual(result['records'][0]['sourceInputs']['cacheAdmissionReason'],'BYTE_BOUND')
+        self.assertFalse(result['cacheBenefitQualified'])
+        reply['operationId']='b'*64;files[path]=json.dumps(reply).encode()
+        with self.assertRaises(RuntimeError):m.original_sign_replies(files,'public/',load)
+
     def test_exact_public_identity_and_report_projection_are_labelled(self):
         adapter,receipt=records();m.identities(adapter,receipt)
         result=m.public_transport(receipt)

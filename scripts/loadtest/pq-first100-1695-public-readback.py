@@ -68,6 +68,42 @@ def public_transport(receipt):
     return value
 
 
+def original_sign_replies(files, prefix, load):
+    """Keep raw reply/cache evidence separate from parent terminal outcomes.
+
+    The frozen CLI discards Go errors. A null result is not a reason, and a
+    retained held-input witness is not admission to the bounded static cache.
+    """
+    rows = {} if load is None else {row['index']: row for row in load['rows']}
+    records, counts = [], {}
+    for name in sorted(files):
+        if not name.startswith(prefix):
+            continue
+        match = original.re.fullmatch(r'load-operations/(\d{5})/original-sign-reply\.json', name[len(prefix):])
+        if match is None:
+            continue
+        index = int(match[1]); reply = strict(files[name]); row = rows.get(index)
+        require(row is not None and reply['version'] == 'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
+                and (reply['ownerIndex'], reply['operationId']) == (row['ownerIndex'], row['operationId']),
+                'original sign reply does not bind to full-cohort row')
+        code = reply['code']
+        require(code in ('ORIGINAL_SAVED', 'REJECTED', 'UNKNOWN'), 'unexpected original sign reply code')
+        counts[code] = counts.get(code, 0) + 1
+        cache, inputs = reply.get('staticCache'), reply.get('sourceInputs')
+        records.append(dict(index=index, ownerIndex=reply['ownerIndex'], operationId=reply['operationId'],
+                            code=code, originalPath=name, originalBytes=len(files[name]),
+                            originalSHA256=hashlib.sha256(files[name]).hexdigest(),
+                            calleeElapsedNs=reply.get('calleeElapsedNs'), resultSupplied=reply.get('result') is not None,
+                            errorReasonStatus='NOT_EMITTED_BY_FROZEN_CLI' if code != 'ORIGINAL_SAVED' else 'NOT_APPLICABLE',
+                            staticCache=cache, sourceInputs=inputs))
+    return dict(schema='YNX-PERF-1695-ORIGINAL-SIGN-REPLIES/v1', records=records, replyCounts=counts,
+                configuredDemand=None if load is None else load['configuredDemand'],
+                observed=len(records), missingReplyRows=len(rows)-len(records),
+                missingReplyIsRejection=False, goErrorReasonInferred=False,
+                cacheBenefitQualified=False, businessQualificationGranted=False,
+                meaning='Raw replies bound to original rows; missing replies and CLI-suppressed error reasons remain unknown.')
+
+
 def conditions(adapter,receipt):
     caps=dict(totalSeconds=900,cleanupSeconds=15,rssBytes=4<<30,newBytes=8<<30,initialMemoryBytes=6<<30,initialDiskBytes=16<<30,logBytes=4<<20,cpus=2)
     require(adapter['caps']==receipt['caps']==caps,'fixed original resource caps differ')
@@ -141,6 +177,7 @@ def inspect(files, prefix=''):
                 originalOwnedStorageAccounting=receipt.get('ownedStorageAccounting'),
                 originalRuntimeHardware=receipt.get('runtimeHardware'),
                 originalPublicOwnerParentTimings=parent_transport, originalResources={k:receipt.get(k) for k in ('elapsedSeconds','peakRSSBytes','peakNewBytes','resourceGuardStageElapsed')},
+                originalSignReplies=original_sign_replies(files,prefix,load),
                 pressureAuthorized=False, physicalFaultDomains=1, stable1000TPSQualified=False,
                 runtimeBinaryBytesIndependentlyRehashed=False)
 
