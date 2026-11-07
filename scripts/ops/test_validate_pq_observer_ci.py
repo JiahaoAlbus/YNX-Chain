@@ -326,8 +326,8 @@ def execute_account(raw, rows):
         if marker in records:
             raise AssertionError("duplicate PUBLIC DATA receipt")
         records[marker] = json.loads(data)
-    if set(records) != {current4_ci.MARKER, ACCOUNT_MARKER, "YNX_PQ_SOURCE_PARENT_TESTS"}:
-        raise AssertionError("only distinct Current4, observer account and Source-parent DATA receipts required")
+    if set(records) != {current4_ci.MARKER, ACCOUNT_MARKER, "YNX_PQ_SOURCE_PARENT_TESTS", "YNX_PQ_NORMAL_SOURCE_PARENT_TESTS"}:
+        raise AssertionError("four distinct Current4, observer account, Source-parent and normal Source-parent DATA receipts required")
     return records
 
 
@@ -342,18 +342,40 @@ class ObserverAccountCIControls(unittest.TestCase):
                      if re.search(r"^func " + name + r"\(t \*testing.T\)", path.read_text(), re.M)]
             self.assertEqual(len(found), 1, name)
             self.assertIn("//go:build (linux || darwin) && ynx_public_trace_testsupport", found[0].read_text())
-        self.assertEqual(current4_ci.STREAM_REQUIRED, current4_ci.REQUIRED + ACCOUNT_REQUIRED + current4_ci.SOURCE_PARENT_REQUIRED)
-        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 16)
+        self.assertEqual(current4_ci.STREAM_REQUIRED, current4_ci.REQUIRED + ACCOUNT_REQUIRED + current4_ci.SOURCE_PARENT_REQUIRED + current4_ci.NORMAL_SOURCE_PARENT_REQUIRED)
+        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 19)
 
     def test_actual_combined_collector_emits_separate_data_without_authority(self):
         records = execute_account(workflows()["resource"], current4_ci.rows())
         self.assertEqual(records[current4_ci.MARKER]["requiredPassed"], current4_ci.REQUIRED)
         self.assertEqual(records[ACCOUNT_MARKER]["requiredPassed"], ACCOUNT_REQUIRED)
+        self.assertEqual(records["YNX_PQ_SOURCE_PARENT_TESTS"]["requiredPassed"], current4_ci.SOURCE_PARENT_REQUIRED)
+        self.assertEqual(records["YNX_PQ_NORMAL_SOURCE_PARENT_TESTS"]["requiredPassed"], current4_ci.NORMAL_SOURCE_PARENT_REQUIRED)
         for record in records.values():
             self.assertEqual(record["sourceCommit"], "1" * 40)
             self.assertIs(record["suitePassed"], True)
             for flag in current4_ci.FALSE_FLAGS:
                 self.assertIs(record[flag], False)
+
+    def test_normal_group_and_fourth_receipt_cannot_disappear_or_merge(self):
+        raw = workflows()["resource"]
+        good = current4_ci.rows()
+        normal = current4_ci.NORMAL_SOURCE_PARENT_REQUIRED
+        old_only = [event for event in good if event.get("Test") not in normal]
+        variants = [old_only]
+        for name in normal:
+            variants.append([event for event in good if event.get("Test") != name])
+            variants += [good + [dict(Action=action, Package=CORE, Test=name)] for action in ("run", "pass")]
+            variants += [good + [dict(Action=action, Package=CORE, Test=name + "/child")] for action in ("skip", "fail")]
+        for rows in variants:
+            with self.subTest(rows=rows), self.assertRaises(RuntimeError):
+                execute_account(raw, rows)
+        marker = "YNX_PQ_NORMAL_SOURCE_PARENT_TESTS"
+        line = next(line for line in raw.splitlines(keepends=True) if "print('" + marker + " " in line)
+        for replacement in ("", line * 2, line.replace(marker, "UNEXPECTED_DATA"),
+                            line.replace(marker, "YNX_PQ_SOURCE_PARENT_TESTS")):
+            with self.subTest(replacement=replacement), self.assertRaises(AssertionError):
+                execute_account(raw.replace(line, replacement, 1), good)
 
     def test_each_account_top_requires_unique_run_pass_in_original_package(self):
         raw = workflows()["resource"]
