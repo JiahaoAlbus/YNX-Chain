@@ -63,6 +63,8 @@ on:
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'scripts/verify/current4-auth-r2-interop-check.sh'
+      - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
@@ -152,6 +154,8 @@ on:
       - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'scripts/verify/current4-auth-r2-interop-check.sh'
+      - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'internal/consensus/pq_current4_*.go'
       - 'internal/consensus/pq_wallet_policy_live.go'
       - 'scripts/ops/test_validate_pq_observer_ci.py'
@@ -2241,6 +2245,27 @@ jobs:
               raise RuntimeError('Current4 original package did not pass once')
           print('YNX_CURRENT4_WIRE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=current4_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
+      - name: Verify original Auth r2 cross-process Current4 DATA interoperability
+        id: current4authinterop
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 5
+        run: bash scripts/verify/current4-auth-r2-interop-check.sh "$RUNNER_TEMP/ynx-current4-auth-r2-interop"
+      - name: Retain only public Current4 Auth r2 joint evidence
+        if: ${{ !cancelled() && (steps.current4authinterop.outcome == 'success' || steps.current4authinterop.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-current4-auth-r2-interop-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/RESULT.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/FAILURE.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.result.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stdout
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/COMPILE.stderr
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.result.json
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stdout
+            ${{ runner.temp }}/ynx-current4-auth-r2-interop/GO.stderr
+          if-no-files-found: error
+          retention-days: 7
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "testOnly": true,
+  "authH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/HANDOFF.json",
+  "authHSHA256": "abc03a4814732290286fe93f5c2c90a26a9b84e7bde3c580e40b8ed3ab34b22a",
+  "foreignSources": [
+    {
+      "file": "Current4WireClient.hpp",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/source/Current4WireClient.hpp",
+      "owner": "original Auth",
+      "bytes": 1655,
+      "sha256": "f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424",
+      "verbatim": true
+    },
+    {
+      "file": "Current4WireClient.cpp",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-current4-client-successor/frozen-wire-client-r2/source/Current4WireClient.cpp",
+      "owner": "original Auth",
+      "bytes": 6923,
+      "sha256": "039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107",
+      "verbatim": true
+    },
+    {
+      "file": "network-consent-policy-current-wire-v1.h",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/SDK/resource-current4-wire-v1-20261107/network-consent-policy-current-wire-v1.h",
+      "owner": "sole SDK",
+      "bytes": 2406,
+      "sha256": "1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487",
+      "verbatim": true
+    },
+    {
+      "file": "network-consent-policy-current-next-private.h",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/fixed-consent-binder-r5/native/network-consent-policy-current-next-private.h",
+      "owner": "original Auth",
+      "bytes": 1927,
+      "sha256": "a4d3f115858235ac8bd7261bb7ac73539a048de2e18278de930542350bd97e70",
+      "verbatim": true
+    },
+    {
+      "file": "network_pending_principal_private.h",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/fixed-consent-binder-r5/permit-r1/source/network_pending_principal_private.h",
+      "owner": "original Auth",
+      "bytes": 1181,
+      "sha256": "f49a03d73ab2947e3962fb2cd6055490cfdd323d1a4ff5da6187309259da69ba",
+      "verbatim": true
+    },
+    {
+      "file": "network_pending_native.h",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/fixed-consent-binder-r5/permit-r1/native-Y3wNF7/source/network_pending_native.h",
+      "owner": "original Auth",
+      "bytes": 1325,
+      "sha256": "20ea77e66f672c199acd284ca2bacda1543814fa156b86436c22d3fb41371104",
+      "verbatim": true
+    },
+    {
+      "file": "network_resource_native.h",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/network-resource-source-execution-successor/fixed-consent-binder-r5/permit-r1/native-Y3wNF7/source/network_resource_native.h",
+      "owner": "original Auth",
+      "bytes": 3902,
+      "sha256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da",
+      "verbatim": true
+    }
+  ],
+  "productionAuthModified": false,
+  "SDKWireSchemaChanged": false,
+  "installed": false,
+  "RootGrant": false
+}

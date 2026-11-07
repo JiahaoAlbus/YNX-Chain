@@ -218,5 +218,149 @@ class Current4CIControls(unittest.TestCase):
                 assert_contract(raw)
 
 
+
+# Joint tests consume the exact original Auth BODY in another process. These
+# are pure control checks only; synthetic collector rows grant no authority.
+JOINT_STEP = "Verify original Auth r2 cross-process Current4 DATA interoperability"
+JOINT_RECIPE = "scripts/verify/current4-auth-r2-interop-check.sh"
+JOINT_NAME = "TestPQCurrent4WirePUBLICAuthR2CrossProcessInterop"
+JOINT_INPUT = "internal/consensus/testdata/current4_auth_r2"
+JOINT_COMMAND = '        run: bash ' + JOINT_RECIPE + ' "$RUNNER_TEMP/ynx-current4-auth-r2-interop"\n'
+JOINT_PINS = {
+ "Current4WireClient.cpp":"039aa90079102a5fb66ad376cc659f9971e09d1f32f5cc6595deb0a77a18d107",
+ "Current4WireClient.hpp":"f8ed5dc77e06ac70bf224a2816deaaa4db9b25173b4d135a8d2b51e58c5f3424",
+ "network-consent-policy-current-wire-v1.h":"1197965ac26958a39f65b0314c2779f6046bafbe583a9959c78b6a335b460487",
+ "network-consent-policy-current-next-private.h":"a4d3f115858235ac8bd7261bb7ac73539a048de2e18278de930542350bd97e70",
+ "network_pending_principal_private.h":"f49a03d73ab2947e3962fb2cd6055490cfdd323d1a4ff5da6187309259da69ba",
+ "network_pending_native.h":"20ea77e66f672c199acd284ca2bacda1543814fa156b86436c22d3fb41371104",
+ "network_resource_native.h":"ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da"}
+
+
+def joint_qualifier(recipe=None):
+    recipe = recipe if recipe is not None else (ROOT / JOINT_RECIPE).read_text()
+    program = recipe.split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
+    functions = [node for node in ast.parse(program).body if isinstance(node, ast.FunctionDef) and node.name == "qualify_joint"]
+    if len(functions) != 1:
+        raise AssertionError("one actual recipe collector required")
+    scope = {"json": json}
+    exec(compile(ast.Module(body=functions, type_ignores=[]), "actual-joint-recipe-collector", "exec"), scope)
+    return scope["qualify_joint"]
+
+
+def assert_joint_contract(raw, recipe):
+    assert_contract(raw)  # original three tests / full old union stay intact
+    body = step(raw, JOINT_STEP)
+    if body.count(JOINT_COMMAND) != 1 or raw.count(JOINT_COMMAND) != 1 or "        id: current4authinterop\n" not in body:
+        raise AssertionError("one mandatory original cross-process recipe required")
+    if re.findall(r"(?m)^        if: (.*)$", body) != [NORMAL_IF] or "        timeout-minutes: 5\n" not in body:
+        raise AssertionError("joint normal admission and bounded budget required")
+    if "continue-on-error" in body or "|| true" in body or "go test" in body:
+        raise AssertionError("joint result cannot be ignored or replaced")
+    for event in ("push", "pull_request"):
+        block = re.findall(r"(?ms)^  " + event + r":\n(.*?)(?=^  [a-z_]+:|^concurrency:|^permissions:)", raw)[0]
+        for path in (JOINT_RECIPE, JOINT_INPUT + "/**"):
+            if block.count("      - '" + path + "'\n") != 1:
+                raise AssertionError("joint source/recipe must trigger CI")
+    upload = step(raw, "Retain only public Current4 Auth r2 joint evidence")
+    files = re.findall(r"(?m)^            \$\{\{ runner.temp \}\}/ynx-current4-auth-r2-interop/(.+)$", upload)
+    if files != ["RESULT.json", "FAILURE.json", "COMPILE.result.json", "COMPILE.stdout", "COMPILE.stderr", "GO.result.json", "GO.stdout", "GO.stderr"]:
+        raise AssertionError("only exact public joint evidence may upload")
+    if "steps.current4authinterop.outcome == 'failure'" not in upload or "if-no-files-found: error" not in upload:
+        raise AssertionError("first failure evidence must survive")
+    required = ["'-fsanitize=address,undefined'", "'-std=c++17'", "str(inputs/'Current4WireClient.cpp')", "str(inputs/'interop.cpp')", "],60)", "],210)", "'-p','1'", "'-timeout=120s'", "'-tags=ynx_public_trace_testsupport,ynx_current4_auth_interop'", "'^" + JOINT_NAME + "$'", "GOMEMLIMIT='1536MiB'", "GOMAXPROCS='2'", "GOPROXY='off'", "fixture=repo/'" + TRACE + "'", "receipt=qualify_joint(rows,pin(out/'auth-r2-interop')['sha256'])"]
+    if any(value not in recipe for value in required) or recipe.count("run('GO',") != 1 or recipe.count("run('COMPILE',") != 1:
+        raise AssertionError("one bounded original Auth compile and actual fourth Go test required")
+    joint_qualifier(recipe)
+
+
+def assert_joint_originals(directory):
+    import hashlib
+    manifest = json.loads((directory / "PROVENANCE.json").read_text())
+    entries = manifest["foreignSources"]
+    if len(entries) != 7 or {e["file"] for e in entries} != set(JOINT_PINS):
+        raise AssertionError("closed seven original Auth/SDK files required")
+    if {p.name for p in directory.iterdir()} != set(JOINT_PINS) | {"PROVENANCE.json", "interop.cpp"}:
+        raise AssertionError("joint test source catalogue differs")
+    for entry in entries:
+        raw = (directory / entry["file"]).read_bytes()
+        if entry["verbatim"] is not True or len(raw) != entry["bytes"] or hashlib.sha256(raw).hexdigest() != entry["sha256"] or entry["sha256"] != JOINT_PINS[entry["file"]]:
+            raise AssertionError("original foreign BODY/header changed")
+
+
+def joint_rows(receipt=None):
+    if receipt is None:
+        receipt = dict(PUBLIC=True, distinctProcesses=True, RootQualifiedPeer=False, NativeCurrent=False, formalP09Slot=False, positiveAndPartialCleanupAcknowledged=True, parentPID=12, cppPID=13, positiveOps=6, deniedOps=4, sourceNodesStarted=0, policyBytes=5631, policySHA256="b" * 64, executionHeight="13", cppSHA256="a" * 64)
+    return [dict(Action="run", Package=PACKAGE, Test=JOINT_NAME),
+            dict(Action="output", Package=PACKAGE, Test=JOINT_NAME, Output="YNX_CURRENT4_AUTH_R2_PUBLIC_INTEROP " + json.dumps(receipt) + "\n"),
+            dict(Action="pass", Package=PACKAGE, Test=JOINT_NAME), dict(Action="pass", Package=PACKAGE)]
+
+
+class Current4AuthR2JointCIControls(unittest.TestCase):
+    def test_normal_joint_step_is_separate_from_all_original_groups(self):
+        assert_joint_contract(WORKFLOW.read_text(), (ROOT / JOINT_RECIPE).read_text())
+
+    def test_exact_foreign_bodies_and_missing_or_changed_header_refused(self):
+        import shutil
+        assert_joint_originals(ROOT / JOINT_INPUT)
+        for name in JOINT_PINS:
+            with self.subTest(name=name), tempfile.TemporaryDirectory(prefix="current4-foreign-") as temp:
+                directory = Path(temp) / "foreign"
+                shutil.copytree(ROOT / JOINT_INPUT, directory)
+                path = directory / name
+                raw = path.read_bytes()
+                path.write_bytes(raw + b"\n")
+                with self.assertRaises(AssertionError):
+                    assert_joint_originals(directory)
+                path.unlink()
+                with self.assertRaises((AssertionError, FileNotFoundError)):
+                    assert_joint_originals(directory)
+
+    def test_actual_recipe_collector_qualifies_only_joint_data(self):
+        receipt = joint_qualifier()(joint_rows(), "a" * 64)
+        self.assertEqual(receipt["positiveOps"], 6)
+        self.assertEqual(receipt["deniedOps"], 4)
+        for key in ("RootQualifiedPeer", "NativeCurrent", "formalP09Slot"):
+            self.assertIs(receipt[key], False)
+
+    def test_actual_recipe_missing_duplicate_foreign_or_failed_stream_refused(self):
+        good = joint_rows()
+        bad = [[], good[1:], good[:-1], good + [good[-1]], good + [good[0]], good + [good[1]], good + [good[2]],
+               [dict(e, Package="foreign") for e in good], [dict(e, Test="WrongTest") for e in good]]
+        bad += [good + [dict(Action=a, Package=PACKAGE, Test=JOINT_NAME + "/nested")] for a in ("skip", "fail", "build-fail", "unknown")]
+        for rows in bad:
+            with self.assertRaises((RuntimeError, ValueError, TypeError)):
+                joint_qualifier()(rows, "a" * 64)
+
+    def test_joint_receipt_cannot_claim_authority_or_false_process_and_operation_counts(self):
+        good = joint_qualifier()(joint_rows(), "a" * 64)
+        mutations = {"RootQualifiedPeer": True, "NativeCurrent": True, "formalP09Slot": True,
+                     "PUBLIC": 1, "distinctProcesses": False, "parentPID": 13, "cppPID": 0,
+                     "positiveOps": 5, "deniedOps": 6, "sourceNodesStarted": False,
+                     "policyBytes": 8388609, "executionHeight": "013", "cppSHA256": "c" * 64,
+                     "policySHA256": "B" * 64, "positiveAndPartialCleanupAcknowledged": False}
+        for key, value in mutations.items():
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                joint_qualifier()(joint_rows(dict(good, **{key: value})), "a" * 64)
+        with self.assertRaises(RuntimeError):
+            joint_qualifier()(joint_rows(dict(good, SourceGrant=True)), "a" * 64)
+
+    def test_source_mutations_cannot_skip_joint_or_widen_recipe_and_upload(self):
+        raw, recipe = WORKFLOW.read_text(), (ROOT / JOINT_RECIPE).read_text()
+        body = step(raw, JOINT_STEP)
+        for changed in [raw.replace(JOINT_COMMAND, "", 1), raw.replace(JOINT_COMMAND, JOINT_COMMAND * 2, 1),
+                        raw.replace(body, body.replace(NORMAL_IF, "${{ false }}"), 1),
+                        raw.replace(body, body.replace("timeout-minutes: 5", "timeout-minutes: 6"), 1),
+                        raw.replace("/ynx-current4-auth-r2-interop/GO.stderr", "/ynx-current4-auth-r2-interop/**", 1),
+                        raw.replace("      - '" + JOINT_INPUT + "/**'\n", "", 1)]:
+            with self.assertRaises(AssertionError):
+                assert_joint_contract(changed, recipe)
+        for old, new in [("-timeout=120s", "-timeout=180s"), ("-fsanitize=address,undefined", "-O0"),
+                         ("^" + JOINT_NAME + "$", "^TestPQCurrent4"), ("],210)", "],300)"),
+                         ("str(inputs/'Current4WireClient.cpp')", "'fake-client.cpp'"),
+                         ("GOMEMLIMIT='1536MiB'", "GOMEMLIMIT='4096MiB'")]:
+            with self.assertRaises(AssertionError):
+                assert_joint_contract(raw, recipe.replace(old, new, 1))
+
+
 if __name__ == "__main__":
     unittest.main()
