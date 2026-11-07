@@ -16,6 +16,11 @@
 - (NSDictionary*)copyOriginalDesktopTaskGrantLINKRegistration:(NSError**)error;
 - (NSString*)copyOriginalDesktopTaskGrantBootstrapModule:(NSError**)error;
 - (NSString*)copyOriginalDesktopTaskGrantLINKModule:(NSError**)error;
+- (NSDictionary*)copyOriginalDesktopTaskReadMaterial:(NSError**)error;
+- (NSDictionary*)copyOriginalDesktopTaskReadPeer:(NSError**)error;
+- (NSDictionary*)copyOriginalDesktopTaskReadTarget:(NSError**)error;
+- (NSDictionary*)copyOriginalDesktopTaskReadAvailability:(NSError**)error;
+- (NSString*)copyOriginalDesktopTaskReadModule:(NSError**)error;
 - (BOOL)holdOriginalDesktopTaskGrantNativeAddress:(const void*)address error:(NSError**)error;
 - (BOOL)closeOriginalDesktopTaskGrantAuthority:(NSError**)error;
 @end

@@ -54,6 +54,33 @@
   return [NSString stringWithUTF8String:_desktopGrantPolicy->link_module_path.c_str()];
  }
 }
+// These Root-reviewed resources narrow the SAME already authenticated Source.
+// Their wrapper is private DATA, not a new approval/signature or authority.
+- (NSDictionary*)readDesktopTaskReadOriginal:(const ynx::auth::desktopgrant::PublicOriginalRef&)ref kind:(NSString*)kind error:(NSError**)error {
+ if(!_desktopGrantPolicy||_desktopGrantPolicy->task_read_account.empty())return [self fail:@"DESKTOP_TASK_READ_ACCOUNT_NOT_SUPPLIED" error:error],nil;
+ NSDictionary*r=[self readDesktopGrantOriginal:ref error:error],*c=[self copyOriginalDesktopTaskGrantAuthorityContext:error],*s=c[@"scope"];
+ NSSet*keys=[NSSet setWithArray:@[@"version",@"sourceId",@"instanceId",@"authorityRef",@"realm",@"tenant",@"issuerAccount",@"holderAccount",@"issuerEpoch",@"policyRevision",@"account",@"kind",@"value"]];
+ if(!r||!c||![[NSSet setWithArray:r.allKeys]isEqual:keys]||![r[@"version"]isEqual:@"AUTH-TASK-READ-RESOURCE/private-v1"]||![r[@"kind"]isEqual:kind]||![r[@"value"]isKindOfClass:NSDictionary.class]||![r[@"sourceId"]isEqual:c[@"sourceId"]]||![r[@"instanceId"]isEqual:c[@"instanceId"]]||![r[@"account"]isEqual:[NSString stringWithUTF8String:_desktopGrantPolicy->task_read_account.c_str()]])return [self fail:@"DESKTOP_TASK_READ_SAME_SOURCE_RESOURCE" error:error],nil;
+ for(NSString*k in @[@"authorityRef",@"realm",@"tenant",@"issuerAccount",@"holderAccount",@"issuerEpoch",@"policyRevision"])if(![r[k]isEqual:s[k]])return [self fail:@"DESKTOP_TASK_READ_SCOPE_MISMATCH" error:error],nil;
+ if([kind isEqual:@"material"]&&![r[@"value"][@"Account"]isEqual:r[@"account"]])return [self fail:@"DESKTOP_TASK_READ_LOGICAL_ACCOUNT_MISMATCH" error:error],nil;
+ if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error]||![self heldCurrent:error])return nil;return [r[@"value"]copy];
+}
+- (NSDictionary*)copyOriginalDesktopTaskReadAvailability:(NSError**)error {@synchronized(self){if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error]||!_desktopGrantPolicy)return nil;const auto&p=*_desktopGrantPolicy;BOOL a=!p.task_read_material.path.empty(),b=!p.task_read_peer.path.empty(),c=!p.task_read_target.path.empty(),d=!p.task_read_module_path.empty(),e=!p.task_read_code_closure.empty(),f=!p.task_read_account.empty();if((a||b||c||d||e||f)&&!(a&&b&&c&&d&&e&&f))return [self fail:@"DESKTOP_TASK_READ_PARTIAL_REGISTRATION" error:error],nil;return @{@"available":@(a&&b&&c&&d&&e&&f)};}}
+- (NSDictionary*)copyOriginalDesktopTaskReadMaterial:(NSError**)error {@synchronized(self){if(!_desktopGrantPolicy)return nil;return [self readDesktopTaskReadOriginal:_desktopGrantPolicy->task_read_material kind:@"material" error:error];}}
+- (NSDictionary*)copyOriginalDesktopTaskReadPeer:(NSError**)error {@synchronized(self){if(!_desktopGrantPolicy)return nil;return [self readDesktopTaskReadOriginal:_desktopGrantPolicy->task_read_peer kind:@"peer" error:error];}}
+- (NSDictionary*)copyOriginalDesktopTaskReadTarget:(NSError**)error {@synchronized(self){if(!_desktopGrantPolicy)return nil;return [self readDesktopTaskReadOriginal:_desktopGrantPolicy->task_read_target kind:@"target" error:error];}}
+- (NSString*)copyOriginalDesktopTaskReadModule:(NSError**)error {
+ @synchronized(self){if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error])return nil;
+  if(!_desktopGrantPolicy||_desktopGrantPolicy->task_read_module_path.empty()||_desktopGrantPolicy->task_read_code_closure.empty()||_desktopGrantPolicy->task_read_code_closure.size()>256)return [self fail:@"DESKTOP_GRANT_TASK_READ_CLOSURE_NOT_SUPPLIED" error:error],nil;
+  BOOL moduleHeld=NO,addonHeld=NO;uint64_t total=0;
+  for(const auto&f:_desktopGrantPolicy->task_read_code_closure){if(!f.bytes||f.bytes>16777216||total+f.bytes>67108864)return [self fail:@"DESKTOP_GRANT_TASK_READ_CLOSURE_BOUND" error:error],nil;total+=f.bytes;
+   NSData*raw=[self holdPublic:[NSString stringWithUTF8String:f.path.c_str()] maximum:16777216 image:NO digest:f.sha256 error:error];if(!raw||raw.length!=f.bytes)return nil;
+   if(f.path==_desktopGrantPolicy->task_read_module_path)moduleHeld=YES;if(f.path.size()>12&&f.path.substr(f.path.size()-12)=="/caller.node")addonHeld=YES;
+  }
+  if(!moduleHeld||!addonHeld||![self heldCurrent:error])return [self fail:@"DESKTOP_GRANT_TASK_READ_COMPLETE_CODE_REQUIRED" error:error],nil;
+  return [NSString stringWithUTF8String:_desktopGrantPolicy->task_read_module_path.c_str()];
+ }
+}
 - (BOOL)holdOriginalDesktopTaskGrantNativeAddress:(const void*)address error:(NSError**)error {
  @synchronized(self){if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error]||!address||!_desktopGrantPolicy)return NO;
   Dl_info own={},source={};static const unsigned char desktopGrantImageMarker=0;

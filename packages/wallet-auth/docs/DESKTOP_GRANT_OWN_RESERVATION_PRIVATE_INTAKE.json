@@ -28,5 +28,15 @@
   "SourceAdmission": false,
   "NativeAdmission": false,
   "newPublicOwnReservedState": false,
-  "OPENE21E3GrammarChanged": false
+  "OPENE21E3GrammarChanged": false,
+  "resourceCohort": {
+    "handoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-resource-9funXl/HANDOFF.json",
+    "sha256": "183fa2418acbe46f6dfb910f2b4d2a53be4919eaeff8c4aeaa15e9c7a2a47b47",
+    "sixNativeAndTwoJSExactBefore": true,
+    "privateJSAdds": 4,
+    "collectorRows": 162,
+    "holderProofThirdOperandCodeSupplied": true,
+    "actualFinite3ProtectedCarrier": false,
+    "wholeAddon": false
+  }
 }
