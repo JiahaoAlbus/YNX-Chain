@@ -1420,6 +1420,25 @@ required += ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
 """
 
 
+LIVE_COLD_OWNER_BLOCK = """live_cold_owner_required = ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
+def qualify_live_cold_owner(events):
+    # Reuse the original complete five-package stream guard: no detached PASS,
+    # missing package, wrong group or failed/skipped child can qualify an owner.
+    qualify_state_partitions(events)
+    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+    for name in live_cold_owner_required:
+        runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+        outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+        if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+            raise RuntimeError('live cold owner did not execute uniquely: ' + name)
+    return live_cold_owner_required
+"""
+LIVE_COLD_OWNER_CALL = """live_cold_owner_passed = qualify_live_cold_owner(events)
+print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_cold_owner_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
+"""
+LIVE_COLD_OWNER_REQUIRED = "required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']\n"
+
+
 def assert_state_math_required_workflow_contract(step):
     """Keep all original cases exactly once across bounded source partitions."""
     required = re.findall(r"(?m)^          required = (.+)$", step)
@@ -1461,6 +1480,9 @@ def assert_state_math_required_workflow_contract(step):
     for block in (COMBINED_VALIDATOR_KEYS_BLOCK, COMBINED_MIGRATION_OWNER_BLOCK):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("combined full-validation regressions require exact unique original execution")
+    for block in (LIVE_COLD_OWNER_BLOCK, LIVE_COLD_OWNER_CALL, LIVE_COLD_OWNER_REQUIRED):
+        if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
+            raise AssertionError("live cold owner requires both actual cases and the complete original stream")
     commands = (command, proof_command, production, live, large_live)
     if [step.index(c) for c in commands] != sorted(step.index(c) for c in commands):
         raise AssertionError("state partition execution order changed")
@@ -4235,6 +4257,62 @@ class CombinedValidatorKeysCIControls(unittest.TestCase):
                 bad.append(rows + [dict(Action=action, Package=package, Test=name+'/child')])
         for i, events in enumerate(bad):
             with self.subTest(index=i), self.assertRaises(RuntimeError):scope['qualify_combined_validator_keys'](events)
+
+
+
+class LiveColdOwnerCIControls(unittest.TestCase):
+    def parts(self):
+        controls = CompleteStatePartitionControls()
+        root, raw, step, scope = controls.workflow_parts()
+        events = controls.fixture(scope)
+        package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        lab_start = [i for i, event in enumerate(events) if event['Action'] == 'start'][3] + 1
+        owner_events = []
+        for name in scope['live_cold_owner_required']:
+            owner_events += [dict(Package=package, Test=name, Action='run'),
+                             dict(Package=package, Test=name+'/original_guard', Action='run'),
+                             dict(Package=package, Test=name+'/original_guard', Action='pass'),
+                             dict(Package=package, Test=name, Action='pass')]
+        return root, step, scope, events[:lab_start] + owner_events + events[lab_start:]
+
+    def test_live_cold_owner_uses_existing_lab_union_and_exact_source_tops(self):
+        root, step, scope, events = self.parts()
+        assert_state_math_required_workflow_contract(step)
+        source = (root/'internal/consensus/pq_lab_live_cold_bootstrap_test.go').read_text()
+        for name in scope['live_cold_owner_required']:
+            self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)', source, re.M)), 1)
+            groups = [g[0] for g in scope['state_partitions'] if (not g[1] or re.search(g[1], name)) and (not g[2] or not re.search(g[2], name))]
+            self.assertEqual(groups, ['lab'])
+        self.assertEqual(scope['qualify_live_cold_owner'](events), scope['live_cold_owner_required'])
+        mutations = [step.replace('live_cold_owner_passed = qualify_live_cold_owner(events)', 'live_cold_owner_passed = live_cold_owner_required', 1),
+                     step.replace('    qualify_state_partitions(events)\n', '    pass\n', 1),
+                     step.replace('YNX_LIVE_COLD_OWNER_TESTS ', 'YNX_LIVE_COLD_OWNER_TESTS_MISSING ', 1),
+                     step.replace('required += '+repr(scope['live_cold_owner_required']), 'required += []', 1),
+                     step.replace(scope['live_cold_owner_required'][0], scope['live_cold_owner_required'][0]+'Renamed', 1)]
+        for changed in mutations:
+            self.assertNotEqual(changed, step)
+            with self.assertRaises(AssertionError):assert_state_math_required_workflow_contract(changed)
+
+    def test_live_cold_owner_collector_refuses_missing_duplicate_child_skip_and_partial_packages(self):
+        _, _, scope, events = self.parts()
+        qualify = scope['qualify_live_cold_owner']
+        package = events[0]['Package']
+        bad = [[], events[1:], events[:-1], events+events,
+               [e for e in events if not (e['Action']=='pass' and 'Test' not in e)],
+               events+[dict(Package=package, Action='pass')]]
+        for name in scope['live_cold_owner_required']:
+            bad += [[e for e in events if not e.get('Test','').startswith(name)],
+                    [dict(e, Test=e['Test'].replace(name,name+'Renamed',1)) if e.get('Test','').startswith(name) else e for e in events]]
+            for test in (name, name+'/original_guard'):
+                for action in ('run','pass'):
+                    at=next(i for i,e in enumerate(events) if e.get('Test')==test and e['Action']==action)
+                    bad += [events[:at]+events[at+1:],events[:at]+[events[at]]+events[at:]]
+                at=next(i for i,e in enumerate(events) if e.get('Test')==test and e['Action']=='pass')
+                for action in ('fail','skip','build-fail'):
+                    changed=copy.deepcopy(events);changed[at]['Action']=action;bad.append(changed)
+                changed=copy.deepcopy(events);changed[at]['Package']='foreign';bad.append(changed)
+        for index, changed in enumerate(bad):
+            with self.subTest(index=index), self.assertRaises(RuntimeError):qualify(changed)
 
 
 if __name__ == "__main__":

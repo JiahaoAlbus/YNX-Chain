@@ -2410,8 +2410,22 @@ jobs:
                   raise RuntimeError('state partition stream is incomplete')
               return dict(groups=completed, topCount=len(top_names), testCount=len(seen),
                           optInSkipped=sorted(skipped), suitePassed=True)
+          live_cold_owner_required = ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
+          def qualify_live_cold_owner(events):
+              # Reuse the original complete five-package stream guard: no detached PASS,
+              # missing package, wrong group or failed/skipped child can qualify an owner.
+              qualify_state_partitions(events)
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+              for name in live_cold_owner_required:
+                  runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+                  outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                  if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                      raise RuntimeError('live cold owner did not execute uniquely: ' + name)
+              return live_cold_owner_required
           state_partition_summary = qualify_state_partitions(events)
           print('YNX_COMPLETE_STATE_PARTITIONS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], **state_partition_summary), sort_keys=True))
+          live_cold_owner_passed = qualify_live_cold_owner(events)
+          print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_cold_owner_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
           PY
           python3 -B - <<'PY'
           import json, os
@@ -2426,6 +2440,7 @@ jobs:
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
+          required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
