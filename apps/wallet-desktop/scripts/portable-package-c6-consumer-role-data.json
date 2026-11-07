@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "73d3d2d69e7f885243bceb58807d57749213f6a0",
-  "sourceTree": "1eaf0a59f671853c2d285f008b827aa0011f4522",
+  "sourceCommit": "bd9d05f2b9305fd02ef45f0e5b3045133bafd34f",
+  "sourceTree": "0677b88ea3a79205a348d82a3a27ff8097d7a65b",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -91,8 +91,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/desktop-native49-c6-pack.mjs",
-      "bytes": 6667,
-      "sha256": "402304ded176d612f9f251ac93b48361cd002340b360e59a9b585cd059f31ae1"
+      "bytes": 7001,
+      "sha256": "234f5da8762867b7a6bd631c4398825c107ada4a5eb3014a14a0b24aa5b4217a"
     },
     {
       "relative": "apps/wallet-desktop/scripts/desktop-native49-c6-selection.json",
@@ -161,8 +161,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/desktop-native49-c6-real-package.test.mjs",
-      "bytes": 7596,
-      "sha256": "f8377886bd3e37494939636876b51462fb8dc66420321709a4da80ef1f4543f2"
+      "bytes": 9266,
+      "sha256": "ac6bf1f9a3c05847870d5d73c6fc8015081b7faf85e68c512b231de64a99aa68"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/fixtures/approved125a-helper/original-inputs.tar.gz",
