@@ -1,3 +1,4 @@
+import type{ProductSessionManagementV4Response,ProductSessionManagementV4Flags}from'./product-session-management-v4.js';
 declare const reviewBrand:unique symbol,proofBrand:unique symbol;
 export type OriginalManagementAbortContextV4=Readonly<{signal:AbortSignal}>;
 export type OriginalManagementResultV4<T>=Readonly<{owner:T;errorPresent:false}>|Readonly<{owner:T|null;errorPresent:true;error:unknown}>;
@@ -23,12 +24,16 @@ export interface OriginalProductDeviceV4ManagementClient {
  /** Originals remain readable after failure/retirement for no-replay recovery. */
  readReviewDATA(originalHandle:OriginalManagementReviewHandleV4):OriginalManagementReviewDATAV4|null;
  readProofDATA(originalHandle:OriginalManagementProofHandleV4):OriginalManagementProofDATAV4|null;
+ /** Same verified proof and same captured request/original target. Pure DATA response correlation only; no HTTP, session mutation or authority. */
+ inspectResponseDATA(handle:OriginalManagementProofHandleV4,actualResponseOriginal:Uint8Array):Readonly<{responseOriginal:Uint8Array;response:Readonly<ProductSessionManagementV4Response>;queryOnly:true;retryAuthorized:false;executionVerified:false}&ProductSessionManagementV4Flags>;
+ /** Retained even after first failure/retirement; copied, no replay authority. */
+ readRetainedResponseOriginalDATA(handle:OriginalManagementProofHandleV4):Uint8Array|null;
  retire():void;
  /** Exact first Promise. Strict proof -> review -> Source retire/join/close; pending join forbids parent close. */
  close():Promise<void>;
  /** Explicitly retry remaining cleanup stages of SAME owners; first close Promise/cause remain unchanged. */
  drainCleanup():Promise<void>;
- statusDATA():Readonly<{reviewSelected:boolean;proofSelected:boolean;retired:boolean;closed:boolean;sourceRetained:boolean;reviewRetained:boolean;proofRetained:boolean;opaqueManagementLeaseRetained:boolean;firstCausePresent:boolean;firstCause:unknown;cleanupFailurePresent:boolean;cleanupFirstCause:unknown;cleanupDebt:boolean;signatureMathVerified:boolean;independentRegisteredOriginalsMatched:boolean;RootAdmission:false;SourceAdmission:false;NativeAdmission:false;connected:false}>;
+ statusDATA():Readonly<{reviewSelected:boolean;proofSelected:boolean;retired:boolean;closed:boolean;sourceRetained:boolean;reviewRetained:boolean;proofRetained:boolean;opaqueManagementLeaseRetained:boolean;firstCausePresent:boolean;firstCause:unknown;cleanupFailurePresent:boolean;cleanupFirstCause:unknown;cleanupDebt:boolean;responseOriginalRetained:boolean;responseInspected:boolean;signatureMathVerified:boolean;independentRegisteredOriginalsMatched:boolean;RootAdmission:false;SourceAdmission:false;NativeAdmission:false;connected:false}>;
 }
 /** Fixed image, zero arguments. Actual Native ABI is declared, not admitted by this type. */
 export function openOriginalProductSessionDeviceV4ManagementClient():OriginalManagementResultV4<OriginalProductDeviceV4ManagementClient>;
