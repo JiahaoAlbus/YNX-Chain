@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "kind": "YNX_SOURCEPARENT_FORMAL_NORMAL_SOURCE/v1",
+  "supplierH": {
+    "bytes": 5452,
+    "sha256": "05cddb3f1bd38460494ddd1dc7199918ade4070c2fba03cc0a2d1fdad11a5ae5"
+  },
+  "files": [
+    {
+      "path": "go/sourceparentprofile/canonical.cpp",
+      "bytes": 62,
+      "sha256": "6b0ae48f4eb5aa62b9e9845e96df1beaeadec2a66fc0f83736a2c584062ee49c"
+    },
+    {
+      "path": "go/sourceparentprofile/inventory.cpp",
+      "bytes": 63,
+      "sha256": "0d2c369e9e4787adff266eefafec296b80c80fdbf3ac4fcc80ebaa97b86de6f2"
+    },
+    {
+      "path": "go/sourceparentprofile/original.cpp",
+      "bytes": 70,
+      "sha256": "423e51d2791e5857c8311c20c8fcee9355526b2c063cbdf146214f9877afb62d"
+    },
+    {
+      "path": "go/sourceparentprofile/profile.go",
+      "bytes": 4298,
+      "sha256": "30231b0651967201e21fa55eefe7779661514d8c61d8367e2b90244b62d34788"
+    },
+    {
+      "path": "native/SourceParentManagerProfileDATA.h",
+      "bytes": 1216,
+      "sha256": "8a9bb26d002c184d143c2c7a878d26a23028491b9b26fe37c41f2bbdbccafb11"
+    },
+    {
+      "path": "native/source-parent/MobileCanonicalDATA.cpp",
+      "bytes": 5235,
+      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+    },
+    {
+      "path": "native/source-parent/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "path": "native/source-parent/SourceParentNormalNativeProfile.cpp",
+      "bytes": 2626,
+      "sha256": "c5556654d55a9b9afb25f82144f415f5106fd5d040db1898085a95d977ac4238"
+    },
+    {
+      "path": "native/source-parent/SourceParentOriginalProfile.cpp",
+      "bytes": 16198,
+      "sha256": "d51d6e44a6cdadecb06d64f16b4d3514169ca88c4f39509a759c2a2c82cf8e44"
+    },
+    {
+      "path": "native/source-parent/SourceParentOriginalProfilePrivate.hpp",
+      "bytes": 1711,
+      "sha256": "390eb2da9217acdedff8200c8b2c477b277e2d9bbee7652d9e8148883179ef9b"
+    },
+    {
+      "path": "native/source-parent/SourceParentProfileC.cpp",
+      "bytes": 3876,
+      "sha256": "44a14f3ef40d2f474d1fc544389cca18688625d4dee5b19f4dc5efd6e073f04a"
+    },
+    {
+      "path": "native/source-parent/SourceParentProfileCPrivate.h",
+      "bytes": 1608,
+      "sha256": "f631d68d5abae5c1814f0a213599c437aa5428354b417c21e969ff7248775c63"
+    },
+    {
+      "path": "native/source-parent/SourceParentReviewedProfilePrivate.hpp",
+      "bytes": 773,
+      "sha256": "e9ff75c819a1d1b948018d1b3e866ac7f60447e53fdcf5e3c555eef7eda276fe"
+    },
+    {
+      "path": "native/source-parent/dependencies/MobileLedgerProofBackendPrivate.hpp",
+      "bytes": 3942,
+      "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce"
+    }
+  ],
+  "p09DeclarationFixtures": [
+    {
+      "path": "test/fixtures/source-parent-abi/MobileLedgerProofBackendPrivate.hpp",
+      "bytes": 3942,
+      "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/account_proof_channel_private.hpp",
+      "bytes": 2658,
+      "sha256": "688f0e670a4a0cd0b009d649a66ff755d3b43680b5966e8fad88fddba73b03d0"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/account_source_acquisition_private.hpp",
+      "bytes": 7429,
+      "sha256": "5a651db14c9aed36d8297bb33d1ab2e8d3ae771a6e2b0db00954f87f40a9c9ca"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/current4_launch_private.hpp",
+      "bytes": 4634,
+      "sha256": "06175ab870bcd7febb1d153165d69c139602b9e99b5522df2f6ae78285f4e33c"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/fresh_scope_broker_private.hpp",
+      "bytes": 3340,
+      "sha256": "9df159d896ff8943fc294ebacb082d5891ee70fe43a47680abe2c8a8b65efed7"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/normal_native_backend_private.hpp",
+      "bytes": 4423,
+      "sha256": "85a79c2935da7d490e157d91d93a31a9e7403a0ad97222f7e63083025bfd15f3"
+    },
+    {
+      "path": "test/fixtures/source-parent-abi/normal_native_backend_private.cpp.original",
+      "bytes": 12368,
+      "sha256": "1d6863f6c81adf324d1c0842191ac2b43172db17c132c0fe1d6d0876a8a8c9ce"
+    }
+  ],
+  "nativeCallerExpectedAfter": [
+    {
+      "path": "apps/network/qa/normal_native_backend_private.hpp",
+      "bytes": 4423,
+      "sha256": "85a79c2935da7d490e157d91d93a31a9e7403a0ad97222f7e63083025bfd15f3"
+    },
+    {
+      "path": "apps/network/qa/normal_native_backend_private.cpp",
+      "bytes": 12368,
+      "sha256": "1d6863f6c81adf324d1c0842191ac2b43172db17c132c0fe1d6d0876a8a8c9ce"
+    },
+    {
+      "path": "apps/network/qa/account_source_acquisition_private.hpp",
+      "bytes": 7429,
+      "sha256": "5a651db14c9aed36d8297bb33d1ab2e8d3ae771a6e2b0db00954f87f40a9c9ca"
+    },
+    {
+      "path": "apps/network/qa/account_proof_channel_private.hpp",
+      "bytes": 2658,
+      "sha256": "688f0e670a4a0cd0b009d649a66ff755d3b43680b5966e8fad88fddba73b03d0"
+    },
+    {
+      "path": "apps/network/qa/current4_launch_private.hpp",
+      "bytes": 4634,
+      "sha256": "06175ab870bcd7febb1d153165d69c139602b9e99b5522df2f6ae78285f4e33c"
+    },
+    {
+      "path": "apps/network/qa/fresh_scope_broker_private.hpp",
+      "bytes": 3340,
+      "sha256": "9df159d896ff8943fc294ebacb082d5891ee70fe43a47680abe2c8a8b65efed7"
+    }
+  ],
+  "GoImport": "github.com/JiahaoAlbus/YNX-Chain/packages/wallet-auth/go/sourceparentprofile",
+  "CABI": [
+    "ynx_sourceparent_profile_acquire_parent_original_v1",
+    "ynx_sourceparent_profile_acquire_core_original_v1",
+    "ynx_sourceparent_profile_acquire_native_original_v1",
+    "ynx_sourceparent_profile_current_original_v1",
+    "ynx_sourceparent_profile_read_original_v1",
+    "ynx_sourceparent_profile_retire_original_v1",
+    "ynx_sourceparent_profile_close_original_v1",
+    "ynx_sourceparent_profile_release_closed_original_v1"
+  ],
+  "roles": {
+    "parent": {
+      "factory": "AcquireOriginalParentProfile",
+      "GoWrappers": [
+        "go/sourceparentprofile/canonical.cpp",
+        "go/sourceparentprofile/inventory.cpp",
+        "go/sourceparentprofile/original.cpp"
+      ],
+      "NativeCPPUnits": []
+    },
+    "core": {
+      "factory": "AcquireOriginalCoreProfile",
+      "GoWrappers": [
+        "go/sourceparentprofile/canonical.cpp",
+        "go/sourceparentprofile/inventory.cpp",
+        "go/sourceparentprofile/original.cpp"
+      ],
+      "NativeCPPUnits": []
+    },
+    "native": {
+      "factory": "ynx::network::normalnative::qualified::readOriginalNormalHostProfile",
+      "GoWrappers": [],
+      "NativeCPPUnits": [
+        "native/source-parent/SourceParentOriginalProfile.cpp",
+        "native/source-parent/SourceParentProfileC.cpp",
+        "native/source-parent/MobileCanonicalDATA.cpp",
+        "native/source-parent/SourceParentNormalNativeProfile.cpp"
+      ]
+    }
+  },
+  "NoNewGoRuntimeOrArchive": true,
+  "actualThreePostbuildArtifacts": null,
+  "RootAdmission": false,
+  "SourceBINDAdmission": false,
+  "NativeAdmission": false,
+  "nativeCPPFlags": [
+    "-std=c++17",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-Wno-deprecated-declarations",
+    "-DYNX_NETWORK_QUALIFIED_NORMAL_NATIVE_HOST"
+  ],
+  "GoBuildTags": "cgo && (darwin || linux)",
+  "GoRootModule": "github.com/JiahaoAlbus/YNX-Chain",
+  "nativeCallerExternalDeclarationPin": {
+    "path": "native/source-parent/dependencies/MobileLedgerProofBackendPrivate.hpp",
+    "bytes": 3942,
+    "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce"
+  }
+}

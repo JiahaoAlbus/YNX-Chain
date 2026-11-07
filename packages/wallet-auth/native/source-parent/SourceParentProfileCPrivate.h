@@ -1,0 +1,22 @@
+#pragma once
+#include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+// Private code-profile bridge, not C20/math, SourceBIND or an account ABI.
+typedef struct ynx_sourceparent_profile_owner_v1 ynx_sourceparent_profile_owner_v1;
+typedef struct {uint32_t present;int32_t code,system_error;} ynx_sourceparent_profile_failure_v1;
+typedef struct {ynx_sourceparent_profile_owner_v1*owner;ynx_sourceparent_profile_failure_v1 failure;} ynx_sourceparent_profile_acquisition_v1;
+typedef struct {uint32_t version,size;uint8_t images[3][32];} ynx_sourceparent_profile_images_v1;
+typedef struct {ynx_sourceparent_profile_failure_v1 failure;uint32_t physical_done;} ynx_sourceparent_profile_drain_v1;
+ynx_sourceparent_profile_acquisition_v1 ynx_sourceparent_profile_acquire_parent_original_v1(void);
+ynx_sourceparent_profile_acquisition_v1 ynx_sourceparent_profile_acquire_core_original_v1(void);
+ynx_sourceparent_profile_acquisition_v1 ynx_sourceparent_profile_acquire_native_original_v1(void);
+ynx_sourceparent_profile_failure_v1 ynx_sourceparent_profile_current_original_v1(ynx_sourceparent_profile_owner_v1*);
+ynx_sourceparent_profile_failure_v1 ynx_sourceparent_profile_read_original_v1(ynx_sourceparent_profile_owner_v1*,ynx_sourceparent_profile_images_v1*);
+void ynx_sourceparent_profile_retire_original_v1(ynx_sourceparent_profile_owner_v1*);
+ynx_sourceparent_profile_drain_v1 ynx_sourceparent_profile_close_original_v1(ynx_sourceparent_profile_owner_v1*);
+ynx_sourceparent_profile_failure_v1 ynx_sourceparent_profile_release_closed_original_v1(ynx_sourceparent_profile_owner_v1*);
+#ifdef __cplusplus
+}
+#endif
