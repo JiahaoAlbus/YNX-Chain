@@ -72,6 +72,13 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
         let row:[String:Any]=["ID":"invitation_original","StoreID":storeID,"Account":target,"Role":"support","CreatedBy":authority.account,"Status":"pending","Reason":"","CreatedAt":time,"ExpiresAt":"2099-01-01T00:00:00Z","UpdatedAt":time,"AcceptedAt":"0001-01-01T00:00:00Z","CancelledAt":"0001-01-01T00:00:00Z"]
         invitations=[row];try invitation.respond(["Invitation":row,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy && model.invitations.count==1}
         try check(model.invitations[0].Status=="pending" && !model.members.contains(where:{$0.Account==target}),"pending invitation grants no role or approved Wallet session")
+        let pendingInvitation=model.invitations[0]
+        model.perform(.invitationDecision(pendingInvitation,accept:true,reason:""));try check(pending.isEmpty,"store owner cannot accept an invitation addressed to a different account")
+        model.perform(.invitationDecision(pendingInvitation,accept:false,reason:"Not needed anymore"));let cancel=try await take("seller/stores/"+storeID+"/invitations/"+pendingInvitation.ID+"/native-cancel"),cancelBody=try cancel.body()
+        try check(cancelBody["ExpectedAccount"] as? String==target && cancelBody["ExpectedRole"] as? String=="support" && cancelBody["ExpectedUpdatedAt"] as? String==time,"owner cancellation freezes the actual reviewed invitation")
+        var cancelled=row;cancelled["Status"]="cancelled";cancelled["Reason"]="Not needed anymore";cancelled["CancelledAt"]=time;invitations=[cancelled]
+        try cancel.respond(["Invitation":cancelled,"OriginalApplied":true,"QueryOnly":false]);try await until{!model.busy}
+        try check(model.invitations[0].Status=="cancelled" && !model.members.contains(where:{$0.Account==target}),"confirmed cancellation grants no membership")
         try check(saved["retained-Pay-UNKNOWN"]==sentinel && pending.isEmpty,"setup creates no payment and preserves unrelated original invoice UNKNOWN")
         print("Actual Seller setup checks PASS \(checks); controlled fixture only, no real account, Store, provider or funds")
     }

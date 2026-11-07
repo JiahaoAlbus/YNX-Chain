@@ -3,6 +3,8 @@ package commerce
 // Fixed owner route policy from COMMERCE_V2_INTEGRATION_CONTRACT_20261003.json.
 // A caller never supplies scopes, execution class or capability role.
 var commerceBusinessRoutes = map[string]businessRoutePolicy{
+	"POST /api/seller/stores/{id}/invitations/{invitation}/native-accept": {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/stores/{id}/invitations/{invitation}/native-cancel": {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/orders/{id}/warehouse":                       {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/orders/{id}/native-pay-intent":                      {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/{id}/native-pay-intent-lookup":               {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},

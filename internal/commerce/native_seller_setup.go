@@ -136,3 +136,90 @@ func (s *Server) nativeActivateStore(w http.ResponseWriter, r *http.Request) {
 	}
 	write(w, http.StatusOK, value)
 }
+
+// The reviewed invitation, actor and original key are committed together with
+// the existing Store transition. A lost acknowledgement never requires replay.
+type NativeInvitationDecisionInput struct {
+	ExpectedUpdatedAt, ExpectedRole, ExpectedAccount, Reason, IdempotencyKey string
+}
+
+func (s *Store) DecideOriginalSellerInvitation(actor, storeID, invitationID string, accept bool, in NativeInvitationDecisionInput) (NativeSellerInvitationResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	value, ok := s.s.SellerInvitations[invitationID]
+	if !ok || value.StoreID != storeID {
+		return NativeSellerInvitationResult{}, ErrNotFound
+	}
+	action := "cancel"
+	if accept {
+		action = "accept"
+		if value.Account != actor {
+			return NativeSellerInvitationResult{}, ErrNotFound
+		}
+		if in.Reason != "" {
+			return NativeSellerInvitationResult{}, ErrInvalidState
+		}
+	} else if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+		return NativeSellerInvitationResult{}, err
+	}
+	if len(in.IdempotencyKey) < 8 || len(in.IdempotencyKey) > 128 {
+		return NativeSellerInvitationResult{}, ErrInvalidState
+	}
+	route := "invitation." + action + ".native." + invitationID
+	id, found, err := s.idempotencyLocked(actor, route, in.IdempotencyKey, in)
+	if err != nil {
+		return NativeSellerInvitationResult{}, err
+	}
+	if found {
+		if id != invitationID || (accept && value.Status != sellerInvitationAccepted) || (!accept && value.Status != sellerInvitationCancelled) {
+			return NativeSellerInvitationResult{}, ErrConflict
+		}
+		return NativeSellerInvitationResult{Invitation: value, OriginalApplied: true}, nil
+	}
+	if value.UpdatedAt.Format(time.RFC3339Nano) != in.ExpectedUpdatedAt || value.Role != in.ExpectedRole || value.Account != in.ExpectedAccount || effectiveSellerInvitationStatus(value, s.now()) != sellerInvitationPending {
+		return NativeSellerInvitationResult{}, ErrConflict
+	}
+	staged, err := cloneSnapshot(s.s)
+	if err != nil {
+		return NativeSellerInvitationResult{}, err
+	}
+	tx := &Store{s: staged, now: s.now}
+	if accept {
+		value, err = tx.AcceptSellerInvitation(actor, invitationID)
+	} else {
+		value, err = tx.CancelSellerInvitation(actor, storeID, invitationID, in.Reason)
+	}
+	if err != nil {
+		return NativeSellerInvitationResult{}, err
+	}
+	tx.recordIdempotencyLocked(actor, route, in.IdempotencyKey, requestHash(in), invitationID)
+	before := s.s
+	s.s = tx.s
+	if err = s.persistLocked(); err != nil {
+		s.s = before
+		return NativeSellerInvitationResult{}, err
+	}
+	return NativeSellerInvitationResult{Invitation: value, OriginalApplied: true}, nil
+}
+func (s *Server) nativeAcceptSellerInvitation(w http.ResponseWriter, r *http.Request) {
+	s.nativeDecideSellerInvitation(w, r, true)
+}
+func (s *Server) nativeCancelSellerInvitation(w http.ResponseWriter, r *http.Request) {
+	s.nativeDecideSellerInvitation(w, r, false)
+}
+func (s *Server) nativeDecideSellerInvitation(w http.ResponseWriter, r *http.Request, accept bool) {
+	actor, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in NativeInvitationDecisionInput
+	if !decode(w, r, &in) {
+		return
+	}
+	value, err := s.store.DecideOriginalSellerInvitation(actor.Account, r.PathValue("id"), r.PathValue("invitation"), accept, in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, value)
+}

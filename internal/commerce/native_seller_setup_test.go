@@ -119,3 +119,109 @@ func TestNativeSellerSetupNormalV2RoutesRequireOwnerAndKeepInvitePending(t *test
 		t.Fatal("HTTP invitation manufactured membership")
 	}
 }
+
+func TestNativeSellerSetupInvitationDecisionColdRecovery(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "shop.json")
+	s, _ := Open(path)
+	_, owner := actor(t, 121)
+	_, target := actor(t, 122)
+	_, other := actor(t, 123)
+	store, err := s.CreateStore(owner, CreateStoreInput{Name: "Original Store", Policy: "Reviewed", IdempotencyKey: "invitation-decision-store"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	invite, err := s.CreateSellerInvitation(owner, store.ID, target, SellerRoleSupport, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := NativeInvitationDecisionInput{ExpectedUpdatedAt: invite.UpdatedAt.Format(time.RFC3339Nano), ExpectedRole: invite.Role, ExpectedAccount: target, IdempotencyKey: "original-invitation-accept"}
+	if _, err = s.DecideOriginalSellerInvitation(other, store.ID, invite.ID, true, in); !errors.Is(err, ErrNotFound) {
+		t.Fatal("foreign actor accepted", err)
+	}
+	changed := in
+	changed.ExpectedRole = SellerRoleAdmin
+	if _, err = s.DecideOriginalSellerInvitation(target, store.ID, invite.ID, true, changed); !errors.Is(err, ErrConflict) {
+		t.Fatal("unreviewed role accepted", err)
+	}
+	result, err := s.DecideOriginalSellerInvitation(target, store.ID, invite.ID, true, in)
+	if err != nil || result.Invitation.Status != "accepted" || s.s.SellerRoles[store.ID][target] != SellerRoleSupport {
+		t.Fatal(result, err)
+	}
+	// A subsequent local role revocation must never be undone by recovery.
+	if _, _, err = s.RevokeSellerRole(owner, store.ID, target, "No longer required"); err != nil {
+		t.Fatal(err)
+	}
+	cold, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.ReadFile(path)
+	raw, _ := json.Marshal(in)
+	route := "/seller/stores/" + store.ID + "/invitations/" + invite.ID + "/native-accept"
+	recovered, _, err := cold.lookupSellerMutation(target, sellerMutationLookupInput{"POST", route, string(raw)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(recovered)
+	if !bytes.Contains(encoded, []byte(`"QueryOnly":true`)) {
+		t.Fatal(string(encoded))
+	}
+	after, _ := os.ReadFile(path)
+	if !bytes.Equal(before, after) || cold.s.SellerRoles[store.ID][target] != "" {
+		t.Fatal("original query changed role or Store")
+	}
+	if _, _, err = cold.lookupSellerMutation(other, sellerMutationLookupInput{"POST", route, string(raw)}); err == nil {
+		t.Fatal("foreign lookup admitted")
+	}
+	changed = in
+	changed.IdempotencyKey = "unknown-original-key"
+	raw, _ = json.Marshal(changed)
+	if _, _, err = cold.lookupSellerMutation(target, sellerMutationLookupInput{"POST", route, string(raw)}); err == nil {
+		t.Fatal("new key inferred an original result")
+	}
+	// Owner cancellation is a separate original, never an acceptance.
+	invitation, err := cold.CreateSellerInvitation(owner, store.ID, other, SellerRoleViewer, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancel := NativeInvitationDecisionInput{ExpectedUpdatedAt: invitation.UpdatedAt.Format(time.RFC3339Nano), ExpectedRole: invitation.Role, ExpectedAccount: other, Reason: "Invitation no longer needed", IdempotencyKey: "original-invitation-cancel"}
+	if _, err = cold.DecideOriginalSellerInvitation(target, store.ID, invitation.ID, false, cancel); !errors.Is(err, ErrUnauthorized) {
+		t.Fatal("nonowner cancelled", err)
+	}
+	cancelled, err := cold.DecideOriginalSellerInvitation(owner, store.ID, invitation.ID, false, cancel)
+	if err != nil || cancelled.Invitation.Status != "cancelled" {
+		t.Fatal(cancelled, err)
+	}
+	if _, err = cold.DecideOriginalSellerInvitation(other, store.ID, invitation.ID, true, NativeInvitationDecisionInput{ExpectedUpdatedAt: invitation.UpdatedAt.Format(time.RFC3339Nano), ExpectedRole: invitation.Role, ExpectedAccount: other, IdempotencyKey: "accept-cancelled-invitation"}); !errors.Is(err, ErrConflict) {
+		t.Fatal("cancelled invitation accepted", err)
+	}
+	raw, _ = json.Marshal(cancel)
+	if _, _, err = cold.lookupSellerMutation(owner, sellerMutationLookupInput{"POST", "/seller/stores/" + store.ID + "/invitations/" + invitation.ID + "/native-cancel", string(raw)}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestNativeSellerSetupInvitationDecisionNormalProofFence(t *testing.T) {
+	s, _ := Open("")
+	_, owner := actor(t, 124)
+	_, target := actor(t, 125)
+	store, _ := s.CreateStore(owner, CreateStoreInput{Name: "Own Store", Policy: "Reviewed", IdempotencyKey: "native-decision-http-store"})
+	invitation, _ := s.CreateSellerInvitation(owner, store.ID, target, SellerRoleCatalog, time.Hour)
+	input := NativeInvitationDecisionInput{ExpectedUpdatedAt: invitation.UpdatedAt.Format(time.RFC3339Nano), ExpectedRole: invitation.Role, ExpectedAccount: target, IdempotencyKey: "native-decision-http-accept"}
+	raw, _ := json.Marshal(input)
+	route := "/api/seller/stores/" + store.ID + "/invitations/" + invitation.ID + "/native-accept"
+	server := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: target, role: "seller"}})
+	if w := businessHTTPRequest(server, "POST", route, "", string(raw)); w.Code != 401 {
+		t.Fatal("no proof accepted", w.Code)
+	}
+	if w := businessHTTPRequest(server, "POST", route, strings.Repeat("a", 43), string(raw)); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if s.s.SellerRoles[store.ID][target] != SellerRoleCatalog {
+		t.Fatal("reviewed target role absent")
+	}
+	ownerServer := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: owner, role: "seller"}})
+	if w := businessHTTPRequest(ownerServer, "POST", route, strings.Repeat("b", 43), string(raw)); w.Code != 404 {
+		t.Fatal("owner accepted on behalf of target", w.Code, w.Body.String())
+	}
+}

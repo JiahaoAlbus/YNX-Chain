@@ -21,6 +21,7 @@ enum SellerCommand {
     case createStore(name:String,description:String,policy:String,trustURL:String,settlementAccount:String)
     case createProduct(SellerListingDraft)
     case activateStore(expectedUpdatedAt:String,expectedPolicy:String,expectedSettlementAccount:String)
+    case invitationDecision(SellerInvitation,accept:Bool,reason:String)
     case invite(account:String,role:String,ttlSeconds:String)
     case publish(SellerListingDraft)
     case inventory(productID:String,variantID:String,expectedRevision:String,inventory:String)

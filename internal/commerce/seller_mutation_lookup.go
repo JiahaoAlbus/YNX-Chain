@@ -54,6 +54,32 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	var original any
 	decode := func(out any) bool { return decodeBusinessBody([]byte(in.OriginalBody), out) == nil }
 	switch {
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && (strings.HasSuffix(in.Path, "/native-accept") || strings.HasSuffix(in.Path, "/native-cancel")):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 7 || parts[4] != "invitations" || !invoiceRecoveryID.MatchString(parts[3]) || !invoiceRecoveryID.MatchString(parts[5]) {
+			return nil, "", ErrConflict
+		}
+		var input NativeInvitationDecisionInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		value, ok := s.s.SellerInvitations[parts[5]]
+		if !ok || value.StoreID != parts[3] {
+			return nil, "", ErrNotFound
+		}
+		action := "cancel"
+		kind = "native-invitation-cancel"
+		if parts[6] == "native-accept" {
+			action = "accept"
+			kind = "native-invitation-accept"
+			if value.Account != actor {
+				return nil, "", ErrNotFound
+			}
+		} else if err := s.requireSellerLocked(parts[3], actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		storeID, target, key, original = parts[3], parts[5], input.IdempotencyKey, input
+		route = "invitation." + action + ".native." + target
 	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && strings.HasSuffix(in.Path, "/native-invitations"):
 		parts := strings.Split(in.Path, "/")
 		if len(parts) != 5 || !invoiceRecoveryID.MatchString(parts[3]) {
@@ -288,7 +314,7 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	if len(key) < 8 || len(key) > 128 {
 		return nil, "", ErrConflict
 	}
-	if storeID != "" {
+	if storeID != "" && kind != "native-invitation-accept" {
 		if err := s.requireSellerPermissionLocked(storeID, actor, permission); err != nil {
 			return nil, "", err
 		}
@@ -303,6 +329,13 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		return nil, "", ErrConflict
 	}
 	switch kind {
+	case "native-invitation-accept", "native-invitation-cancel":
+		value, ok := s.s.SellerInvitations[rec.ObjectID]
+		input := original.(NativeInvitationDecisionInput)
+		if !ok || value.StoreID != storeID || value.Account != input.ExpectedAccount || value.Role != input.ExpectedRole || (kind == "native-invitation-accept" && value.Status != sellerInvitationAccepted) || (kind == "native-invitation-cancel" && (value.Status != sellerInvitationCancelled || value.Reason != strings.TrimSpace(input.Reason))) {
+			return nil, "", ErrConflict
+		}
+		return detached(NativeSellerInvitationResult{Invitation: value, OriginalApplied: true, QueryOnly: true})
 	case "native-listing":
 		p, ok := s.s.Products[rec.ObjectID]
 		if !ok || p.StoreID != storeID {

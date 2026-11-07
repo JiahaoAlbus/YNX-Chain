@@ -97,7 +97,9 @@ struct SellerWorkspaceView:View {
                 HStack{Label("seller_pending_originals",systemImage:"clock.arrow.circlepath");Text(seller.pendingOriginalCount.formatted()).monospacedDigit();Spacer()}
                 ViewThatFits(in:.horizontal){HStack{originalActions};VStack(alignment:.leading,spacing:10){originalActions}}
             }.shopFont(12).padding(12).background(ShopTheme.warningBackground)}
+            if seller.signedIn{HStack{Button("seller_invitation_inbox"){seller.loadInvitationInbox()}.disabled(seller.busy);Spacer()}.padding(.horizontal,16)}
             if !seller.signedIn{signedOut}
+            else if seller.invitationInboxVisible{SellerInvitationInbox()}
             else if seller.stores.isEmpty && seller.busy{ProgressView().frame(maxWidth:.infinity,maxHeight:.infinity)}
             else if seller.stores.isEmpty{VStack(spacing:20){ContentUnavailableView("seller_no_stores",systemImage:"storefront",description:Text("seller_create_store_note"));Button("seller_create_store"){sheet = .createStore}.buttonStyle(ShopButtonStyle()).disabled(!seller.signedIn || seller.busy || seller.hasPending("create-store"))}.frame(maxWidth:.infinity,maxHeight:.infinity)}
             else if desktop{HStack(spacing:0){sidebar.frame(width:232);ShopTheme.border.frame(width:1);NavigationStack{page(section,desktop:true)}}}
@@ -588,8 +590,9 @@ private struct SellerInviteForm:View {
 }
 private struct SellerInvitationRows:View {
     @EnvironmentObject var seller:ShopSellerModel
+    @State private var decision:SellerInvitation?
     private var invitations:[SellerInvitation]{seller.invitations.filter{$0.StoreID==seller.selectedStoreID}}
-    var body:some View{if invitations.isEmpty{SellerEmpty(symbol:"envelope")}else{SellerLedger{ForEach(invitations){invitation in VStack(alignment:.leading,spacing:12){
+    var body:some View{Group{if invitations.isEmpty{SellerEmpty(symbol:"envelope")}else{SellerLedger{ForEach(invitations){invitation in VStack(alignment:.leading,spacing:12){
         HStack{Text(verbatim:invitation.Account).font(.caption.monospaced()).textSelection(.enabled);Spacer();invitationStatus(invitation.Status)}
         SellerValue(title:"seller_reference",value:invitation.ID)
         SellerValue(title:"seller_role",value:invitation.Role)
@@ -597,6 +600,36 @@ private struct SellerInvitationRows:View {
         SellerValue(title:"seller_invitation_expires_at",value:invitation.ExpiresAt)
         if !invitation.Reason.isEmpty{Text(verbatim:invitation.Reason).shopFont(13)}
         Text("seller_invitation_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
-    }.padding(16);Divider()}}}}
+        if invitation.Status=="pending"{Button("seller_cancel_invitation",role:.destructive){decision=invitation}.disabled(!seller.canManageMembers || seller.busy || seller.invitationPending(invitation))}
+    }.padding(16);Divider()}}}}.sheet(item:$decision){SellerInvitationDecisionForm(invitation:$0,accept:false)}}
     @ViewBuilder private func invitationStatus(_ status:String)->some View{switch status{case "pending":Text("seller_invitation_pending").shopFont(12,.semibold).foregroundStyle(ShopTheme.warning);case "accepted":Text("seller_invitation_accepted").shopFont(12,.semibold).foregroundStyle(ShopTheme.success);case "expired":Text("seller_invitation_expired").shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary);default:SellerState(status:status)}}
+}
+
+private struct SellerInvitationInbox:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    @State private var decision:SellerInvitation?
+    var body:some View{ScrollView{VStack(alignment:.leading,spacing:16){
+        HStack{Text("seller_invitation_inbox").shopFont(22,.bold);Spacer();Button("close"){seller.invitationInboxVisible=false}}
+        Text("seller_authority_boundary").shopFont(13).foregroundStyle(ShopTheme.secondary)
+        if seller.receivedInvitations.isEmpty{SellerEmpty(symbol:"envelope")}
+        ForEach(seller.receivedInvitations){row in SellerLedger{VStack(alignment:.leading,spacing:12){
+            SellerValue(title:"seller_reference",value:row.ID);SellerValue(title:"seller_store",value:row.StoreID);SellerValue(title:"seller_member_account",value:row.Account);SellerValue(title:"seller_role",value:row.Role);SellerValue(title:"seller_actor",value:row.CreatedBy);SellerValue(title:"seller_invitation_expires_at",value:row.ExpiresAt);SellerState(status:row.Status)
+            if row.Status=="pending"{Button("seller_accept_invitation"){decision=row}.buttonStyle(ShopButtonStyle()).disabled(seller.busy || seller.invitationPending(row))}
+        }.padding(16)}}
+    }.padding(20)}.sheet(item:$decision){SellerInvitationDecisionForm(invitation:$0,accept:true)}}
+}
+private struct SellerInvitationDecisionForm:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    let invitation:SellerInvitation
+    let accept:Bool
+    @State private var reason=""
+    @State private var reviewed=false
+    @State private var submitted=false
+    var body:some View{SellerPage(accept ? "seller_accept_invitation":"seller_cancel_invitation",desktop:false){
+        SellerValue(title:"seller_store",value:invitation.StoreID);SellerValue(title:"seller_reference",value:invitation.ID);SellerValue(title:"seller_member_account",value:invitation.Account);SellerValue(title:"seller_role",value:invitation.Role);SellerValue(title:"seller_actor",value:invitation.CreatedBy);SellerValue(title:"seller_invitation_expires_at",value:invitation.ExpiresAt)
+        if !accept{SellerField(title:"seller_revoke_reason",text:$reason)}
+        Toggle("seller_review_invitation_decision",isOn:$reviewed)
+        Button(accept ? "seller_accept_invitation":"seller_cancel_invitation"){submitted=true;seller.perform(.invitationDecision(invitation,accept:accept,reason:reason))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || submitted || seller.busy || seller.invitationPending(invitation) || (!accept && (reason.utf8.count<8 || reason.utf8.count>240 || reason.contains("\n") || reason.contains("\r"))))
+        SellerFormResult(submitted:submitted)
+    }.onChange(of:reason){reviewed=false}.frame(minWidth:320,minHeight:450)}
 }

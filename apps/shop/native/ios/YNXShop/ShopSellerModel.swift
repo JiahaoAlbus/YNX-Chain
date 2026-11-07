@@ -7,6 +7,8 @@ import SwiftUI
     @Published private(set) var orders:[SellerOrder]=[]
     @Published private(set) var members:[SellerMember]=[]
     @Published private(set) var revocations:[SellerRevocation]=[]
+    @Published private(set) var receivedInvitations:[SellerInvitation]=[]
+    @Published var invitationInboxVisible=false
     @Published private(set) var invitations:[SellerInvitation]=[]
     @Published private(set) var localDrafts:[String:SellerListingDraft]=[:]
     @Published private(set) var storeRole=""
@@ -21,6 +23,7 @@ import SwiftUI
     @Published private(set) var pendingOriginalCount=0
     @Published private(set) var preparedOriginalCount=0
     @Published private(set) var pendingTargets=Set<String>()
+    @Published private(set) var pendingInvitations=Set<String>()
     private var pendingJournalReadable=true
     func hasPending(_ target:String)->Bool{!pendingJournalReadable || pendingTargets.contains(target)}
     @Published var workspaceVisible=false
@@ -31,7 +34,7 @@ import SwiftUI
     private var pendingReturn:URL?
     private var permissions:[String]=[]
     init(api:APIClient?=nil,journal:SellerMutationJournal?=nil,localDraftStore:SellerLocalDraftStore?=nil){self.localDraftStore=localDraftStore ?? SellerLocalDraftStore();self.api=api ?? APIClient(authorityFactory:{try AppleNativeSessionBridge(profile:.seller)});self.journal=journal ?? SellerMutationJournal();self.api.onSessionChanged={[weak self] in self?.identityChanged()}}
-    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];invitations=[];localDrafts=[:];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingJournalReadable=true}
+    private func clearRows(){stores=[];products=[];orders=[];members=[];revocations=[];invitations=[];receivedInvitations=[];localDrafts=[:];storeRole="";audit=[];settlements=[];permissions=[];selectedStoreID="";sectionUnavailable=[];pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];pendingJournalReadable=true}
     private func identityChanged(){let current=api.currentSession;guard current != session else{return};epoch+=1;selection+=1;busy=false;clearRows();session=current;signedIn=current != nil;if current != nil{awaitingWalletReturn=false;pendingReturn=nil;refresh()}}
     func can(_ permission:String)->Bool{signedIn && permissions.contains(permission)}
     func retainColdReturn(_ url:URL){guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback",url.absoluteString.utf8.count<=16384 else{return};if pendingReturn==nil{pendingReturn=url}}
@@ -46,7 +49,14 @@ import SwiftUI
     func selectStore(_ id:String){guard stores.contains(where:{$0.ID==id}),!busy else{return};selectedStoreID=id;selection+=1;refresh()}
     private func rows<T:Decodable>(_ key:String,_ value:[String:Any],as type:T.Type)throws->[T]{guard value.keys.contains(key) else{throw ShopError.invalidResponse};if value[key] is NSNull{return []};guard let raw=value[key] as? [Any],raw.count<=10_000 else{throw ShopError.invalidResponse};return try JSONDecoder().decode([T].self,from:CanonicalJSON.data(raw))}
     private func validID(_ id:String)->Bool{NativeWire.matches(id,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")}
-    private func updatePending(){guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];return};do{let pending=try journal.records(account).values.filter{$0.phase != "confirmed"};pendingOriginalCount=pending.count;preparedOriginalCount=pending.filter{($0.storeID==selectedStoreID || $0.kind=="create-store") && $0.phase=="prepared"}.count;pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID || $0.kind=="create-store"}.map(\.target));pendingJournalReadable=true}catch{pendingJournalReadable=false;state="security_error"}}
+    private func updatePending(){guard let account=api.currentSession?.account else{pendingOriginalCount=0;preparedOriginalCount=0;pendingTargets=[];pendingInvitations=[];return};do{let pending=try journal.records(account).values.filter{$0.phase != "confirmed"};pendingOriginalCount=pending.count;pendingInvitations=Set(pending.filter{$0.kind=="accept-invitation" || $0.kind=="cancel-invitation"}.map{$0.storeID+"\n"+$0.target});preparedOriginalCount=pending.filter{($0.storeID==selectedStoreID || $0.kind=="create-store" || $0.kind=="accept-invitation") && $0.phase=="prepared"}.count;pendingTargets=Set(pending.filter{$0.storeID==selectedStoreID || $0.kind=="create-store"}.map(\.target));pendingJournalReadable=true}catch{pendingJournalReadable=false;state="security_error"}}
+    func loadInvitationInbox(){guard signedIn,!busy else{return};invitationInboxVisible=true;busy=true;let at=epoch;Task{defer{if at==epoch{busy=false;updatePending()}};do{
+        let check=try api.capture();let value=try await api.raw("seller/invitations",method:"GET",json:[:]);try check();guard at==epoch,let account=api.currentSession?.account else{return}
+        let rows:[SellerInvitation]=try self.rows("invitations",value,as:SellerInvitation.self)
+        guard Set(rows.map(\.ID)).count==rows.count,rows.allSatisfy({validID($0.ID) && validID($0.StoreID) && $0.Account==account}) else{throw ShopError.security}
+        receivedInvitations=rows;state=""
+    }catch{if at==epoch{receivedInvitations=[];state="unavailable"}}}}
+    func invitationPending(_ row:SellerInvitation)->Bool{!signedIn || !pendingJournalReadable || pendingInvitations.contains(row.StoreID+"\n"+row.ID)}
     func refresh(){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection;Task{defer{if at==epoch{busy=false;updatePending()}};do{
         let check=try api.capture();let storeValue=try await api.raw("seller/stores",method:"GET",json:[:]);try check();guard at==epoch,view==selection else{return}
         let fresh: [SellerStore]=try rows("stores",storeValue,as:SellerStore.self)
@@ -86,6 +96,11 @@ import SwiftUI
     private func bounded(_ value:String,_ limit:Int,required:Bool=true)throws->String{guard value.utf8.count<=limit,(!required || !value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty) else{throw ShopError.security};return value}
     private func command(_ command:SellerCommand,store:String)throws->(String,String,String,[String:Any]) {
         switch command {
+        case .invitationDecision(let row,let accept,let reason):
+            guard validID(row.ID),row.StoreID==store,row.Status=="pending",!invitationPending(row),!row.UpdatedAt.isEmpty else{throw ShopError.security}
+            if accept {guard receivedInvitations.contains(where:{$0.ID==row.ID && $0.UpdatedAt==row.UpdatedAt && $0.Role==row.Role && $0.StoreID==row.StoreID && $0.Account==row.Account}),row.Account==api.currentSession?.account,reason.isEmpty else{throw ShopError.security}}
+            else {guard canManageMembers,invitations.contains(where:{$0.ID==row.ID && $0.UpdatedAt==row.UpdatedAt && $0.Role==row.Role && $0.Account==row.Account}),reason.utf8.count>=8,!reason.contains("\n"),!reason.contains("\r") else{throw ShopError.security};_ = try bounded(reason,240)}
+            return (accept ? "accept-invitation":"cancel-invitation",row.ID,"/seller/stores/"+store+"/invitations/"+row.ID+(accept ? "/native-accept":"/native-cancel"),["ExpectedUpdatedAt":row.UpdatedAt,"ExpectedRole":row.Role,"ExpectedAccount":row.Account,"Reason":reason])
         case .createStore(let name,let description,let policy,let trustURL,let settlementAccount):
             guard !hasPending("create-store") else{throw ShopError.unresolvedMutation}
             if !trustURL.isEmpty {guard let u=URLComponents(string:trustURL),u.scheme=="https",u.host?.isEmpty==false,u.user==nil,u.password==nil else{throw ShopError.security}}
@@ -124,13 +139,13 @@ import SwiftUI
     }
     private func sendPrepared(_ original:SellerMutationJournal.Record,view:Int,check:@escaping ()throws->Void)async throws {
         guard original.phase=="prepared" else{throw ShopError.unresolvedMutation}
-        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.journal.dispatch(original)})
-        try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response)
+        let response=try await api.raw(String(original.path.dropFirst()),json:journal.input(original),beforeDispatch:{try check();guard self.selection==view,(original.kind=="create-store" || original.kind=="accept-invitation" || self.selectedStoreID==original.storeID) else{throw ShopError.contextChanged};try self.journal.dispatch(original)})
+        try check();try validate(response,original:original,recovery:false);try journal.confirm(original,result:response);if original.kind=="accept-invitation"{receivedInvitations.removeAll{$0.ID==original.target}}
     }
     func perform(_ command:SellerCommand){guard signedIn,!busy else{return};do{
         let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let view=selection,at=epoch
         let creatingStore:Bool;if case .createStore = command{creatingStore=true}else{creatingStore=false}
-        let store=creatingStore ? "":selectedStoreID
+        let store:String;if case .invitationDecision(let row,let accept,_) = command,accept{store=row.StoreID}else{store=creatingStore ? "":selectedStoreID}
         guard creatingStore || !store.isEmpty else{throw ShopError.security}
         let(kind,target,path,input)=try self.command(command,store:store)
         let original=try journal.prepare(account:account,storeID:store,target:target,kind:kind,path:path,input:input)
@@ -142,7 +157,7 @@ import SwiftUI
     }catch{state="seller_original_unconfirmed";updatePending()}}
     func retryPreparedOriginals(){guard signedIn,!busy else{return};busy=true;let at=epoch,view=selection,store=selectedStoreID;Task{var reload=false;defer{if at==epoch{busy=false;updatePending();if reload{refresh()}}};do{
         let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
-        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && ($0.storeID==store || $0.kind=="create-store")}.sorted{$0.key<$1.key}
+        let originals=try journal.records(account).values.filter{$0.phase=="prepared" && ($0.storeID==store || $0.kind=="create-store" || $0.kind=="accept-invitation")}.sorted{$0.key<$1.key}
         var failed=false
         for original in originals {do{try await sendPrepared(original,view:view,check:check);reload=true}catch{try check();guard at==epoch,view==selection else{return};failed=true}}
         guard at==epoch else{return};state=failed ? "seller_original_unconfirmed":"seller_change_confirmed"
@@ -161,6 +176,12 @@ import SwiftUI
     private func validate(_ response:[String:Any],original:SellerMutationJournal.Record,recovery:Bool)throws {
         let input=try journal.input(original)
         switch original.kind {
+        case "accept-invitation","cancel-invitation":
+            guard response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let raw=response["Invitation"] as? [String:Any] else{throw ShopError.security}
+            let row=try JSONDecoder().decode(SellerInvitation.self,from:CanonicalJSON.data(raw))
+            guard row.ID==original.target,row.StoreID==original.storeID,row.Account==input["ExpectedAccount"] as? String,row.Role==input["ExpectedRole"] as? String,row.Status==(original.kind=="accept-invitation" ? "accepted":"cancelled") else{throw ShopError.security}
+            if original.kind=="accept-invitation"{guard row.Account==original.account,!row.AcceptedAt.isEmpty,!row.AcceptedAt.hasPrefix("0001-") else{throw ShopError.security}}
+            else{guard row.Reason==(input["Reason"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),!row.CancelledAt.isEmpty,!row.CancelledAt.hasPrefix("0001-") else{throw ShopError.security}}
         case "create-store":
             let store=try JSONDecoder().decode(SellerStore.self,from:CanonicalJSON.data(response))
             guard validID(store.ID),!store.Owner.isEmpty,store.Name==(input["Name"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),store.Policy==input["Policy"] as? String,store.SettlementAccount==input["SettlementAccount"] as? String,(recovery || store.Status=="onboarding") else{throw ShopError.security}
