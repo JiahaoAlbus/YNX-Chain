@@ -4,6 +4,13 @@ name: PQ complete source comparisons
 # another 528-input record. Original B8 before is downloaded, never regenerated.
 on:
   workflow_dispatch:
+    inputs:
+      profile:
+        description: 'One explicitly authorized original-input semantic replay; no legacy B8/load execution'
+        type: choice
+        required: true
+        options:
+          - finalize-1b-vs-f27
 
 permissions:
   contents: read
@@ -20,7 +27,7 @@ env:
 
 jobs:
   intake-controls:
-    if: github.run_attempt == 1
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'original-source-compare-v1' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -38,6 +45,7 @@ jobs:
         run: python3 -B scripts/loadtest/pq-source-artifact-intake_test.py
 
   b8-original-replay:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'original-source-compare-v1' && github.run_attempt == 1
     needs: intake-controls
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -109,6 +117,7 @@ jobs:
           retention-days: 7
 
   multi-original-before:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'original-source-compare-v1' && github.run_attempt == 1
     needs: b8-original-replay
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -191,6 +200,7 @@ jobs:
           retention-days: 7
 
   multi-a-replay:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'original-source-compare-v1' && github.run_attempt == 1
     needs: multi-original-before
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -264,6 +274,7 @@ jobs:
           retention-days: 7
 
   multi-b-replay:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'original-source-compare-v1' && github.run_attempt == 1
     needs: [b8-original-replay, multi-original-before, multi-a-replay]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -332,6 +343,69 @@ jobs:
         with:
           name: pq-source-multi-b-controller-${{ github.run_id }}
           path: ${{ steps.scope.outputs.diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+  finalize-1b-semantic:
+    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'finalize-1b-vs-f27' && github.run_attempt == 1 && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Exact resolved semantic controller and original PUBLIC nine-file input
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-source-compare.yml
+            /scripts/loadtest/pq-finalize-1b-semantic-ci.py
+            /scripts/loadtest/test_pq_finalize_1b_semantic_ci.py
+            /scripts/loadtest/consensus-linux-cohort.py
+            /scripts/loadtest/pq-paired-linux-window.py
+            /scripts/loadtest/fixtures/finalize-1b-public/
+      - name: Semantic source and no-effect failure controls
+        run: python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/test_pq_finalize_1b_semantic_ci.py" -v
+      - name: Exact original after source and its object database
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 1b0ea548aca6b5260a9824d0edd3012d52e53521
+          path: after-source
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /cmd/
+            /internal/
+            /third_party/cometbft/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: One bounded two-Linux-binary original FinalizeBlock semantic replay
+        id: semantic
+        env:
+          YNX_SEMANTIC_PROFILE: ${{ inputs.profile }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/pq-finalize-1b-semantic-ci.py" \
+            --profile '${{ inputs.profile }}' \
+            --controller "$GITHUB_WORKSPACE/controller" \
+            --after-source "$GITHUB_WORKSPACE/after-source" \
+            --operation "$RUNNER_TEMP/pq-finalize-1b-semantic" --execute
+      - name: Preserve original PUBLIC semantic outputs and first-cause resource evidence
+        if: always() && steps.semantic.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-finalize-1b-semantic-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.semantic.outputs.public }}/**
           include-hidden-files: false
           if-no-files-found: error
           retention-days: 7
