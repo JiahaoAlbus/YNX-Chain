@@ -1,0 +1,36 @@
+name: WPR typed build input DATA
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs
+      - apps/wallet-desktop/test/wpr-normal-publication.test.mjs
+      - apps/wallet-desktop/test/wpr-independent-original.test.mjs
+      - apps/wallet-desktop/test/wpr-napi-plan-composition.test.mjs
+      - apps/wallet-desktop/scripts/wpr-matched-native-plan.mjs
+      - apps/wallet-desktop/native/wpr-build/matched-native-plan.json
+      - apps/wallet-desktop/scripts/wallet-product-typed-release.mjs
+      - apps/wallet-desktop/scripts/original-auth-wallet-product-*.mjs
+      - apps/wallet-desktop/native/wpr-build/normal-inputs.json
+      - apps/wallet-desktop/test/wpr-typed-*
+      - scripts/ci/wpr-normal-typed-release.mjs
+      - .github/workflows/wpr-normal-typed-release.yml
+jobs:
+  public-build-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node --test apps/wallet-desktop/test/wpr-napi-plan-composition.test.mjs 2>&1 | tee wpr-typed-data.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: wpr-typed-data
+          path: |
+            wpr-typed-data.log
+            ${{ runner.temp }}/wpr-typed-cpp-data-*
