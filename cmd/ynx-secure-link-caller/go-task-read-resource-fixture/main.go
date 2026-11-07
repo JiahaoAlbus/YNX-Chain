@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -74,7 +75,7 @@ func normal(socket, mode string, uid uint32, pid int) {
 			event(map[string]any{"event": "request", "method": actual.Method, "path": actual.Path, "host": actual.Service,
 				"body": base64.StdEncoding.EncodeToString(raw), "length": actual.ContentLength, "contentType": actual.ContentType,
 				"peerUID": actual.PeerUID, "peerPID": actual.PeerPID, "sameContextCaller": true, "cloneDenied": true, "originalCurrent": true})
-			if mode == "normal-hold" {
+			if mode == "normal-hold" || mode == "p08-data-hold" {
 				select {
 				case <-commands:
 				case <-done:
@@ -88,6 +89,21 @@ func normal(socket, mode string, uid uint32, pid int) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Add("X-Public-Multi", "first")
 			w.Header().Add("X-Public-Multi", "second")
+			// Additive original-client compatibility controls. These are PUBLIC
+			// DATA responses, not a P08 Store/receipt/Grant implementation. The
+			// original opaque request is still checked by actual LocalCaller.
+			if strings.HasPrefix(mode, "p08-") {
+				switch actual.Path {
+				case "/internal/ai/original-task-read/input":
+					_, _ = w.Write([]byte("{ \"input\":\"UFVCTElDAGlucHV0/wo=\" }\n"))
+				case "/internal/ai/original-task-read/query":
+					_, _ = w.Write([]byte("{ \"operationId\":\"PUBLIC-original-operation\", \"state\":\"UNKNOWN\", \"original\":null, \"authScope\":\"\" }\n"))
+				default:
+					w.WriteHeader(http.StatusForbidden)
+					_, _ = w.Write([]byte("{\"PUBLIC\":\"no execute authority\"}"))
+				}
+				return
+			}
 			_, _ = w.Write(raw)
 		}),
 	})
@@ -127,7 +143,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if os.Args[2] == "normal" || os.Args[2] == "normal-hold" {
+	if os.Args[2] == "normal" || os.Args[2] == "normal-hold" || os.Args[2] == "p08-data" || os.Args[2] == "p08-data-hold" {
 		normal(os.Args[1], os.Args[2], uint32(uid), pid)
 		return
 	}

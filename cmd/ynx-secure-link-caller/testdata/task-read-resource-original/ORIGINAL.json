@@ -1,0 +1,34 @@
+{
+  "purpose": "Actual Auth six-callee compatibility contract; PUBLIC transport tests do not construct its Native Root, Source or continuation",
+  "supplierHandoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-resource-9funXl/HANDOFF.json",
+    "bytes": 12578,
+    "sha256": "183fa2418acbe46f6dfb910f2b4d2a53be4919eaeff8c4aeaa15e9c7a2a47b47"
+  },
+  "actualBridge": {
+    "path": "source/src/desktop-grant-resource-bridge.mjs",
+    "bytes": 9276,
+    "sha256": "62420ea9a3506e0080f531fafc83ac533b1f9c1605fc15a2a52180856c4a3dc2",
+    "callSites": "lines20-22: direct handle and packet adoption before synchronous Current; strict void retire/join/close"
+  },
+  "actualDATA": {
+    "path": "source/src/desktop-grant-resource-data.mjs",
+    "bytes": 7975,
+    "sha256": "201888d9615789b9f64b2a5c8708c4b53db4dfbd4136678b4b9bc53bc85929a7"
+  },
+  "requiredCallees": [
+    "openOriginalTaskReadResourceCaller",
+    "currentOriginalTaskReadResourceCaller",
+    "exchangeOriginalTaskReadResource",
+    "retireOriginalTaskReadResourceCaller",
+    "joinOriginalTaskReadResourceCaller",
+    "closeOriginalTaskReadResourceCaller"
+  ],
+  "runtimeExternalFileDependency": false,
+  "actualNativeRootExecuted": false,
+  "actualAuthStoreExecuted": false,
+  "P08StoreExecuted": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "protectedExecuteContinuationSupplied": false
+}
