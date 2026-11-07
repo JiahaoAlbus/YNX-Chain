@@ -1,0 +1,31 @@
+name: SourceParent normal profile DATA supply
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/scripts/source-parent-normal-profile*
+      - apps/wallet-desktop/scripts/test/source-parent-normal-profile*
+      - scripts/ci/source-parent-normal-profile.mjs
+      - docs/engineering/SOURCE_PARENT_NORMAL_PROFILE*
+      - .github/workflows/source-parent-normal-profile.yml
+jobs:
+  normal-profile-data-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/source-parent-normal-profile.mjs 2>&1 | tee source-parent-normal-profile.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: source-parent-normal-profile-data
+          path: |
+            source-parent-normal-profile.log
+            source-parent-normal-profile-controls

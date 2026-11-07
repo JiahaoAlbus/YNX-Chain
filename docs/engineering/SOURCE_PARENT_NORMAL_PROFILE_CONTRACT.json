@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "kind": "YNX_SOURCE_PARENT_NORMAL_BUILD_PROFILE/v1",
+  "classification": "DETACHED_POSTBUILD_DATA_NOT_ROOT_QUALIFICATION",
+  "CorePrivateTarget": {
+    "source": "internal/consensus/pq_source_parent_bootstrap.go",
+    "type": "pqOriginalSourceProfile",
+    "images": [
+      "parent",
+      "Core",
+      "Native"
+    ],
+    "normalGetter": "originalPQObserverSourceBuildProfile()",
+    "existingGetterState": "permanent ErrPQOriginalSourceProfileNotSupplied; not modified by SDK"
+  },
+  "producer": {
+    "module": "apps/wallet-desktop/scripts/source-parent-normal-profile.mjs",
+    "exports": [
+      "inspectSourceParentNormalProfileDATA",
+      "materializeSourceParentNormalProfileDATA",
+      "encodeSourceParentNormalProfileModuleDATA"
+    ],
+    "canonical": "existing sole native/original-auth-identity-source-verifier.mjs canonical",
+    "buildInputExact": [
+      "sourceRoot",
+      "profileOriginal",
+      "independentOriginal"
+    ],
+    "profileExact": [
+      "version",
+      "kind",
+      "images",
+      "observerOptions"
+    ],
+    "imageRoles": [
+      "parent",
+      "Core",
+      "Native"
+    ],
+    "imageRoleExact": [
+      "image",
+      "sourceCommit",
+      "sourceTree",
+      "record"
+    ],
+    "pinExact": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "generatedGetter": "getOriginalSourceParentNormalBuildProfileDATA()",
+    "runtimeGetterQualified": false
+  },
+  "observerOptions": {
+    "exact": [
+      "home",
+      "application"
+    ],
+    "applicationExact": [
+      "migration",
+      "state",
+      "stateLayout",
+      "genesisHash",
+      "originalGenesisHash",
+      "migrationHash",
+      "schedule",
+      "scheduleHash",
+      "runtimePlan",
+      "runtimePlanHash",
+      "invoiceSchedule",
+      "invoiceScheduleHash"
+    ],
+    "unchangedOwnerValidation": [
+      "real private home/key absence",
+      "actual Comet config",
+      "layout/store",
+      "process context",
+      "Source BIND canonicalOwner/chain/minHeight"
+    ],
+    "notAdded": [
+      "owner",
+      "chain",
+      "minHeight",
+      "Source",
+      "approval",
+      "provider",
+      "FD",
+      "clock",
+      "key",
+      "signing",
+      "endpoint"
+    ]
+  },
+  "requiredOriginalNormalRuntimeOwnerPort": {
+    "status": "NOT_SUPPLIED",
+    "owningLayer": "original qualified Root/A initializer -> Core private getter/P09 actualLaunch",
+    "callerArguments": "none; no public provider or claims input",
+    "result": "independently authenticated readonly same-cohort images[3] and original observerOptions; retained qualification/current owner where required by original protocol",
+    "factsSource": "independent original postbuild reviewed resource, not received v3 bootstrap identity fields",
+    "selfReferenceForbidden": "do not compile final Core hash into same Core binary or parent hash into same parent binary; authenticate detached postbuild resource via original independent qualifier",
+    "existingSDKPurposesNotBorrowed": [
+      "HTTP V5 runtime image",
+      "WPR runtime image",
+      "Wallet runtime observer old service role"
+    ]
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "newWire": false,
+  "newPurpose": false,
+  "CoreOrP09SourceModified": false
+}
