@@ -5,6 +5,7 @@ on:
     paths:
       - apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs
       - apps/wallet-desktop/test/wpr-normal-publication.test.mjs
+      - apps/wallet-desktop/test/wpr-independent-original.test.mjs
       - apps/wallet-desktop/scripts/wallet-product-typed-release.mjs
       - apps/wallet-desktop/scripts/original-auth-wallet-product-*.mjs
       - apps/wallet-desktop/native/wpr-build/normal-inputs.json
@@ -22,7 +23,7 @@ jobs:
       - shell: bash
         run: |
           set -euo pipefail
-          node --test apps/wallet-desktop/test/wpr-normal-publication.test.mjs 2>&1 | tee wpr-typed-data.log
+          node --test apps/wallet-desktop/test/wpr-independent-original.test.mjs 2>&1 | tee wpr-typed-data.log
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
