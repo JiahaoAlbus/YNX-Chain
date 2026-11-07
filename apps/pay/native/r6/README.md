@@ -25,6 +25,16 @@ Pending terms may be reconciled before issuance; payment/refund require issued
 terms. A terminal result cannot regress or change in the next read. A lost
 response offers only original archive queries, with no automatic reconciliation
 retry, new intent, Member dispatch, signature or replacement nonce.
+`canRetry:false` does not permanently lock a retained hash against a later
+explicit proof reconciliation. It supplies no retry permission and never
+dispatches another action automatically. After a fresh original-order query
+under a valid original Source/current still lists that same hash as `unknown`
+or `submitted`, the user may explicitly request the same reconciliation again.
+The original npi, invoice, session, kind, owner and native/ABCI identities must
+remain bound; the normal consumer rechecks them. A failed query, absent or
+changed original, retired Source or unconfirmed cleanup keeps recovery on
+queries only. Terminal originals use their retained archive query. Keep only
+an in-flight presentation guard; do not add a permanent attempted-hash ledger.
 The CLI exposes the same names and positional fields. These actions reject
 renderer-supplied merchant, invoice, grant or price overrides.
 

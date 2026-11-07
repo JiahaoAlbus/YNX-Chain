@@ -156,3 +156,15 @@ test('finality cannot regress in post-read or splice another receipt after recon
   const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(r.bill,undefined);assert.equal(r.archiveReceipt,undefined);
  }
 });
+test('fresh original query may precede another explicit same-hash proof reconciliation without automatic retry',async()=>{
+ let posts=0,confirmed=false;
+ const f=boot({read:()=>({...bill(),status:confirmed?'committed_paid':'unknown',paidAtoms:confirmed?'100':'0',netPaidAtoms:confirmed?'100':'0',operations:{[nativeHash]:{...originalOperation(),status:confirmed?'confirmed':'unknown'}}}),operation:()=>{
+  if(++posts===1)throw Object.assign(Error(),{code:'PUBLIC_ORIGINAL_PROOF_UNAVAILABLE'});
+  confirmed=true;return {...originalOperation(),status:'confirmed'};
+ },extra:{readOriginalArchiveReceipt:async()=>receipt()}});
+ const action={action:'order-reconcile-operation',...ref,nativeHash};
+ const first=await f.entry.invokeResult(action);assert.equal(first.ok,false);assert.equal(first.canRetry,false);assert.equal(posts,1);assert.ok(first.recoveryActions.every(v=>v.action==='recover-archive'));
+ const queried=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(queried.ok,true);assert.equal(queried.canRetry,false);assert.deepEqual(queried.pendingOriginals,[nativeHash]);assert.equal(queried.operations[0].status,'unknown');assert.equal(posts,1);
+ // A second explicit invocation, never dispatched by the failure/query path.
+ const next=await f.entry.invokeResult(action);assert.equal(next.ok,true,JSON.stringify(next));assert.equal(next.canRetry,false);assert.equal(next.reconciledOriginal.nativeHash,nativeHash);assert.equal(next.reconciledOriginal.status,'confirmed');assert.equal(posts,2);
+});
