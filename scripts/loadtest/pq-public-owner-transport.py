@@ -93,8 +93,10 @@ def session_class(Base, normal, lab):
                             and reply.get('operationId')==identity
                             and reply.get('code') in (*allowed[operation],'UNKNOWN','REJECTED'),
                             'original reply owner/operation/outcome differs; preserve UNKNOWN')
-                if operation!='close-owner':
-                    self.c.measurements.record(operation,identity,reply,owner=owner)
+                if operation in ('sign','confirm'):
+                    # Operation IDs belong to an owner's custody scope. Two
+                    # independent owners may legally use the same ID.
+                    self.c.measurements.record(operation,(owner,identity),reply,owner=owner)
                 self.poisoned=False
                 trace['code']=reply['code']
                 return reply

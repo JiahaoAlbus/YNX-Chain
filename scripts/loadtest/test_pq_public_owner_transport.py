@@ -1,8 +1,11 @@
 """Stream isolation and uncertain acknowledgement controls; no signer or nodes."""
 import importlib.util
 import io
+import hashlib
+import json
 from pathlib import Path
 import threading
+import tempfile
 from types import SimpleNamespace
 import unittest
 
@@ -51,6 +54,41 @@ def response(owner=4,identity='a'*64,code='ORIGINAL_SAVED'):
 
 
 class TransportControls(unittest.TestCase):
+    def test_actual_go_stream_through_original_reader_and_callee_collector(self):
+        fixture=Path(__file__).with_name('fixtures')/'public-owner-original-go.jsonl'
+        raw=fixture.read_bytes()
+        self.assertEqual((len(raw),hashlib.sha256(raw).hexdigest()),
+                         (14737,'57411342e3eaae744cbb3a351a9174b66b6a88d0670e309f0e89ed09e6a88020'))
+        rows=[json.loads(line) for line in raw.splitlines()]
+        self.assertEqual(len(rows),7)
+        # Read ORIGINAL producer output using the real file-stream reader. No
+        # process or command is executed in this offline cross-language case.
+        RealSession=m.session_class(d.SenderSession,n,d.lab)
+        s=RealSession.__new__(RealSession)
+        s.__dict__.update(session(lambda:None).__dict__)
+        s.owners=(0,1);s.offset=0;s.partial=b'';s.ready=None;s.name='original-go-fixture';s.path=fixture
+        with tempfile.TemporaryDirectory() as tmp:
+            work=Path(tmp);(work/'public').mkdir()
+            s.c=SimpleNamespace(w=SimpleNamespace(work=work),
+                                measurements=d.CalleeMeasurements(3,2,source='ORIGINAL_GO_FIXTURE_ONLY'))
+            stop=threading.Event();ready=s.wait_ready(stop,None,lambda:None)
+            self.assertFalse(ready['bootstrapLoaded'])
+            commands=[command(0),command(0,'c'*64),command(0,'',phase='close-owner'),
+                      command(1),command(1,phase='recover')]
+            commands[2]['request'].update(firstNonce='0',members=0)
+            for i,cmd in enumerate(commands):
+                received=s.exchange(cmd,work/'public'/('%d.json'%i),stop)
+                self.assertEqual(received,rows[i+1])
+            # The original sixth reply is an intentional out-of-scope refusal;
+            # it cannot be relabelled as a reply to an allowed owner command.
+            self.assertEqual(json.loads(s.partial)['code'],'REJECTED')
+            report=s.c.measurements.report()['groups']['sign']
+            self.assertEqual(report['outcomes'],dict(ORIGINAL_SAVED=2,UNKNOWN=1))
+            self.assertEqual(report['calleeElapsed']['observed'],3)
+            self.assertEqual(report['stages']['lab.bootstrapFullValidation']['calls'],1)
+            self.assertEqual(set(report['lastHeldInputFootprintByOwner']),{'0','1'})
+            self.assertEqual(s.transport_report()['attempted'],5)
+
     def test_unknown_is_retained_and_next_independent_owner_can_proceed(self):
         replies=iter([response(code='UNKNOWN'),response(5,'c'*64)])
         s=session(lambda:next(replies));stop=threading.Event()

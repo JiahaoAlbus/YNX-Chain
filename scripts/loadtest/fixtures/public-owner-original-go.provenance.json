@@ -1,0 +1,26 @@
+{
+  "schema": "YNX-PERF-ORIGINAL-GO-STREAM-FIXTURE/v1",
+  "fixture": "public-owner-original-go.jsonl",
+  "bytes": 14737,
+  "sha256": "57411342e3eaae744cbb3a351a9174b66b6a88d0670e309f0e89ed09e6a88020",
+  "producer": "TestPQLabSenderPUBLICOwnersOriginalStream",
+  "goVersion": "go1.26.10 darwin/arm64",
+  "sourceBase": "da96d51c936042676d433f0815acf6a33cf1eb7e",
+  "sourceOverlayLeafHashes": {
+    "cmd/ynx-consensus-pq-lab/public_owner_session.go": "b5ee40389349ea9e988c50c4432d8f06b835fc501079d4dc87cf5df5780e6e9e",
+    "cmd/ynx-consensus-pq-lab/public_owner_session_test.go": "d71b079f209de68a78f9fdf4ca016675bd6f11ddccf94a6cf34409f7e8f99aff",
+    "cmd/ynx-consensus-pq-lab/workload.go": "2f818bf32871a72ed4be732b43f23cd13e58d593e0290d034bb01024ef1b8063",
+    "internal/consensus/pq_lab_public_owner_session.go": "0267715fe598da5a11cd8b0efcfebfb1fc6d81ff7784fa37dce321acd989c808",
+    "internal/consensus/pq_lab_sender_source_stats.go": "294eec237ffaed391b5ca3fee14a90fe7919664862e4763a00b26fbf20ac255f"
+  },
+  "actualProducerPackageSeconds": 6.986,
+  "outerSeconds": 77.3114127079998,
+  "rows": 7,
+  "readyRows": 1,
+  "replyRows": 6,
+  "sourceFrozen": false,
+  "nodeStarted": false,
+  "performanceQualification": false,
+  "livePipeInterop": false,
+  "meaning": "Original normal Go producer JSONL read through Python file reader and collector offline. Synthetic two-owner fixture; no business inclusion/finality, actual504 input or four-node performance claim."
+}
