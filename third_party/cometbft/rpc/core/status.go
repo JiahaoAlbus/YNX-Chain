@@ -51,6 +51,10 @@ func (env *Environment) Status(*rpctypes.Context) (*ctypes.ResultStatus, error) 
 		votingPower = val.VotingPower
 	}
 
+	var localAddress cmtbytes.HexBytes
+	if env.PubKey != nil {
+		localAddress = env.PubKey.Address()
+	}
 	result := &ctypes.ResultStatus{
 		NodeInfo: env.P2PTransport.NodeInfo().(p2p.DefaultNodeInfo),
 		SyncInfo: ctypes.SyncInfo{
@@ -65,7 +69,7 @@ func (env *Environment) Status(*rpctypes.Context) (*ctypes.ResultStatus, error) 
 			CatchingUp:          env.ConsensusReactor.WaitSync(),
 		},
 		ValidatorInfo: ctypes.ValidatorInfo{
-			Address:     env.PubKey.Address(),
+			Address:     localAddress,
 			PubKey:      env.PubKey,
 			VotingPower: votingPower,
 		},
@@ -75,6 +79,10 @@ func (env *Environment) Status(*rpctypes.Context) (*ctypes.ResultStatus, error) 
 }
 
 func (env *Environment) validatorAtHeight(h int64) *types.Validator {
+	// The explicit observer constructor has no validator key or voting power.
+	if env.PubKey == nil {
+		return nil
+	}
 	valsWithH, err := env.StateStore.LoadValidators(h)
 	if err != nil {
 		return nil
