@@ -180,7 +180,7 @@ def assert_contract(raw):
             raise AssertionError("original Go failure must print evidence and exit")
     reader = step_named(raw, SPECS["reader"][0])
     commands = re.findall(r"(?m)^          if ! .*go test .+$", reader)
-    if len(commands) != 6 or sum('./internal/consensus > ' in line for line in commands) != 5:
+    if len(commands) != 7 or sum('./internal/consensus > ' in line for line in commands) != 6:
         raise AssertionError("reader qualification must reuse the original complete execution")
     # Qualify the same nine readers from exactly one complementary bounded
     # group; no other Wallet/ResourcePolicy filtering or second execution is allowed.
@@ -337,7 +337,11 @@ class WalletPolicyCIControls(unittest.TestCase):
                     self.execute(kind, raw_json=raw)
 
     def test_source_mutations_cannot_remove_execution_or_restore_skip(self):
+        caller_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
+        self.assertEqual(self.raw.count(caller_command), 1)
         mutations = [
+            self.raw.replace(caller_command, "", 1),
+            self.raw.replace(caller_command, caller_command * 2, 1),
             self.raw.replace("      - 'internal/ynxresourcepolicy/**'\n", "", 1),
             self.raw.replace("      - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'\n", "", 1),
             self.raw.replace("      - '" + TRACE_PATH + "/**'\n", "", 1),
