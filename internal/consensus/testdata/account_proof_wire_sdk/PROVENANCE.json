@@ -1,0 +1,23 @@
+{
+  "contractH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-mobile-genuine-ledger-receipt-contract-20261107/core-paired-host-contract-successor/HANDOFF.json",
+  "contractHSHA256": "df06446ca993a46dd7e0054a6415b7665de0fd0a3a4cde6728d73154873e9ab9",
+  "files": [
+    {
+      "file": "MobileAccountProofHostPortPrivate.hpp",
+      "bytes": 3096,
+      "sha256": "8aa0a0bf28ecfc139fc6a6c637abe4e6e38730cc97c1a9f1dfc70cc2ca9823a4",
+      "owner": "soleSDK",
+      "verbatim": true
+    },
+    {
+      "file": "MobileAccountProofWireDATA.hpp",
+      "bytes": 9856,
+      "sha256": "786c9b56aa445e82d0ffbc64e949272cb99692a674341e036199bccbe2b564fe",
+      "owner": "soleSDK",
+      "verbatim": true
+    }
+  ],
+  "dataInteropOnly": true,
+  "authClientBody": false,
+  "rootQualification": false
+}

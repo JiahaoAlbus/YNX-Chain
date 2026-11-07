@@ -28,6 +28,14 @@ type pqWalletPolicyCurrent4Child interface {
 	closeWalletPolicyCurrent4Child() error
 }
 
+// The account-purpose worker group is private lifecycle accounting. Source
+// retirement cancels every admitted channel before joining outside the lock.
+// Only actual worker/reader completion removes an entry; no owner/engine lookup.
+type pqWalletPolicyAccountProofChild interface {
+	retireWalletPolicyAccountProofChild()
+	closeWalletPolicyAccountProofChild() error
+}
+
 // PQWalletPolicyLiveSource reads the actual constructor-paired Node and local
 // Application. No caller can construct, decode or retarget it. It retains no
 // signer, policy cache or file loan. The fixed private Current4 child may own
@@ -44,14 +52,15 @@ type PQWalletPolicyLiveSource struct {
 	app  *Application
 	view *node.ProofSourceView
 
-	mu       sync.Mutex
-	retired  bool
-	reading  bool
-	child    pqWalletPolicyProofChild
-	current4 pqWalletPolicyCurrent4Child
-	wg       sync.WaitGroup
-	close    sync.Once
-	err      error
+	mu           sync.Mutex
+	retired      bool
+	reading      bool
+	child        pqWalletPolicyProofChild
+	current4     pqWalletPolicyCurrent4Child
+	accountProof map[pqWalletPolicyAccountProofChild]struct{}
+	wg           sync.WaitGroup
+	close        sync.Once
+	err          error
 }
 
 // Called ONLY by newPQNodeWithDatabase after constructing the actual local
@@ -129,10 +138,20 @@ func (s *PQWalletPolicyLiveSource) Close() error {
 		s.retired = true
 		child := s.child
 		current4 := s.current4
+		accountProof := make([]pqWalletPolicyAccountProofChild, 0, len(s.accountProof))
+		for c := range s.accountProof {
+			accountProof = append(accountProof, c)
+		}
 		s.mu.Unlock()
 		var err error
+		for _, c := range accountProof {
+			c.retireWalletPolicyAccountProofChild()
+		}
+		for _, c := range accountProof {
+			err = errors.Join(err, c.closeWalletPolicyAccountProofChild())
+		}
 		if current4 != nil {
-			err = current4.closeWalletPolicyCurrent4Child()
+			err = errors.Join(err, current4.closeWalletPolicyCurrent4Child())
 		}
 		if child != nil {
 			err = errors.Join(err, child.closeWalletPolicyProofChild())
