@@ -282,6 +282,21 @@ function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registratio
 }
 // Unsigned DATA preflight under the SAME original schemas, not Root authority.
 // Normal issuer calls before opening role keys and again at each signing fence.
+export function inspectOriginalIDEContractRelayIssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);
+ if(contract.purpose!==relayPurpose||!['enrollment','profile'].includes(role))fail('IDE_RELAY_ISSUANCE_ROLE_REQUIRED');
+ exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
+ if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==relayPurpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);
+ if(role==='enrollment')originalSourceEnrollmentBodyDATA(root,body,policy,registrations,atMs);
+ else{const {enrollment}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);originalSourceProfileBodyDATA(root,enrollment,body,enrollmentRaw,policy,registrations,atMs);}
+ // The existing verifier validates the dedicated project/peer/launch schema.
+ // The issuer must fence its shorter signed project lease BEFORE key entry,
+ // not discover expiry only in the post-signature profile verifier.
+ const effectExpiresAtMs=role==='profile'?Math.min(body.expiresAtMs,body.selection.contractRelay.expiresMS,body.selection.projectCurrent.expiresMS):body.expiresAtMs;
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
 export function inspectOriginalIDEDeploymentV2IssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);if(![IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(contract.purpose)||!['enrollment','profile'].includes(role))fail('IDE_DEPLOYMENT_V2_ISSUANCE_ROLE_REQUIRED');
  exact(registrations,['root','profile','current','subject']);
