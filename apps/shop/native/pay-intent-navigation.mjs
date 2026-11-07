@@ -10,7 +10,7 @@ export function createOriginalShopPayNavigation({entry,current}){
   active=true;
   try{
    current();const status=await entry.status();current();
-   if((status?.available!==true&&status?.canRequest!==true)||status?.normalMainEntry!==true||status?.paymentAuthorized!==false){
+   if(status?.canRequest===false||(status?.available!==true&&status?.canRequest!==true)||status?.normalMainEntry!==true||status?.paymentAuthorized!==false){
     const reason=typeof status?.reason==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(status.reason)?Object.assign(Error(status.reason),{code:status.reason}):undefined;
     fail('SHOP_NATIVE_PAY_MAIN_UNAVAILABLE',reason);
    }

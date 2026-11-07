@@ -108,3 +108,9 @@ test('Main IPC error/current withdrawal never turns into available status or a r
  const numeric=createOriginalShopPayNavigationFromMainIPC({api:{nativePayStatus:async()=>({ok:false,error:{code:4100}}),nativePayInvoke:()=>{calls++;}},current(){}});
  await assert.rejects(numeric.openOriginalOrder(sourceOrder),error=>error.code==='SHOP_NATIVE_PAY_MAIN_UNAVAILABLE'&&error.cause?.code===4100);assert.equal(calls,1);
 });
+
+test('explicit current Main request refusal wins over an older available flag',async()=>{
+ const f=originalEntry({status(){return {available:true,canRequest:false,normalMainEntry:true,paymentAuthorized:false,reason:'NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE'};}});
+ await assert.rejects(f.nav.openOriginalOrder(sourceOrder),error=>error.code==='SHOP_NATIVE_PAY_MAIN_UNAVAILABLE'&&error.cause?.code==='NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');
+ assert.equal(f.calls.length,0);
+});
