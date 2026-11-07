@@ -798,6 +798,7 @@ def run(args):
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
             result['normalObservationRPCTiming']=backend.rpc_measurements.report()
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
+            if hasattr(backend,'public_owner_report'):result['normalPublicOwnerTransport']=backend.public_owner_report()
         stages.seal();result['initializationStages']=stages.report()
         try:
             initialization_journal.close()

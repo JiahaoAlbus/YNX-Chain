@@ -13,6 +13,11 @@ def backend_class(Base, Session, normal, lab):
             # original three proof helpers fit the unchanged owned PID cap.
             lab.require(6+self.helper_limit<=lab.guard.CAPS['ownedProcesses'],'unchanged original PID cap exceeded')
             self.public_session=Session(ceremony,indices)
+            # Exactly one process in the existing session registry. Reuse the
+            # original SIGTERM-before-close path and its broken-pipe handling.
+            # Helper capacity was computed before this one shared handle, and
+            # the complete parent/node/session/helper PID bound is above.
+            self.sessions={indices[0]:self.public_session}
             self.checkpoint_after_ready=True
 
         def prepare(self,check):
@@ -42,11 +47,6 @@ def backend_class(Base, Session, normal, lab):
                                                materials_sha=proof['materials']['sha256'],proof=proof['proof']['path'])
             return self.public_session.exchange(command,case/'original-confirm-reply.json',stop)
 
-        def stop(self):
-            # Original Window owns process identity, SIGTERM and debt; neither
-            # closing this scope nor cleanup clears any account pending state.
-            super().stop()
-            proc=self.public_session.proc
-            if proc.stdin is not None and not proc.stdin.closed:
-                proc.stdin.close()
+        def public_owner_report(self):
+            return self.public_session.transport_report()
     return PublicOwnerBackend

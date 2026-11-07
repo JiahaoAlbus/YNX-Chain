@@ -3,6 +3,7 @@ import importlib.util
 import io
 import hashlib
 import json
+import os
 from pathlib import Path
 import threading
 import tempfile
@@ -189,6 +190,24 @@ class TransportControls(unittest.TestCase):
         self.assertEqual(confirm['checkpointHeight'],'0')
         self.assertEqual((confirm['materialsFile'],confirm['materialsSHA256'],confirm['proofFile']),
                          ('/public/materials','d'*64,'/public/proof'))
+
+    def test_actual_broken_pipe_close_uses_original_cleanup_path(self):
+        reader,writer=os.pipe();os.close(reader)
+        stream=os.fdopen(writer,'wb');stream.write(b'buffered original command')
+        class Callee:
+            def __init__(self,ceremony,indices):self.owners=indices;self.proc=SimpleNamespace(stdin=stream)
+        Backend=b.backend_class(d.NormalBackend,Callee,n,d.lab)
+        window=SimpleNamespace(lock=threading.RLock(),children=[],stopping=False)
+        c=SimpleNamespace(mode='online',workload=dict(transactions=None),live=[],w=window,proof_timeout=30)
+        stop=threading.Event();backend=Backend(c,[dict(ownerIndex=4)],stop)
+        try:
+            backend.stop()
+            self.assertTrue(stop.is_set());self.assertTrue(window.stopping)
+            self.assertTrue(stream.closed)
+        finally:
+            if not stream.closed:
+                try:stream.close()
+                except BrokenPipeError:pass
 
 
 if __name__=='__main__':unittest.main()
