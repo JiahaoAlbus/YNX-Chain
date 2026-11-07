@@ -800,6 +800,10 @@ func pqLabRead(path string, limit int64) ([]byte, error) {
 	return readPQOperatorFile(path, limit, true)
 }
 func pqLabNetworkFreshDirectory(path string) error {
+	return pqLabNetworkFreshDirectoryWithSync(path, nil)
+}
+
+func pqLabNetworkFreshDirectoryWithSync(path string, syncParent func(*os.File) error) error {
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 		return errors.New("lab output requires a canonical absolute fresh directory")
 	}
@@ -811,7 +815,12 @@ func pqLabNetworkFreshDirectory(path string) error {
 	if err != nil || !info.IsDir() || info.Mode().Perm()&0022 != 0 {
 		return errors.New("lab output parent must be an existing non-writable-by-others directory")
 	}
-	return os.Mkdir(path, 0700)
+	if err := os.Mkdir(path, 0700); err != nil {
+		return err
+	}
+	// Publish the newly created lab root's entry before creating custody or
+	// returning any plan. On failure keep the original partial root intact.
+	return pqLabSyncOriginalDirectory(parent, syncParent)
 }
 func pqLabWriteJSON(path string, value any) error {
 	raw, err := json.Marshal(value)

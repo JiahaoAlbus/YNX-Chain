@@ -46,12 +46,13 @@ type PQLabWorkloadOptions struct {
 // material awaiting encrypted custody. WriteCorpus/Destroy clear those private
 // copies. No caller can obtain a raw signing capability from this source.
 type PQLabWorkloadSource struct {
-	Migration chain.ConsensusMigrationState
-	mu        sync.Mutex
-	original  []byte
-	manifest  PQLabWorkloadManifest
-	files     map[string][]byte
-	materials []ynxbatch.KeyMaterial
+	Migration       chain.ConsensusMigrationState
+	mu              sync.Mutex
+	original        []byte
+	manifest        PQLabWorkloadManifest
+	files           map[string][]byte
+	materials       []ynxbatch.KeyMaterial
+	publicationSync func(*os.File) error // private per-source filesystem fault seam; normal nil
 }
 
 type PQLabWorkloadFile struct {
@@ -633,9 +634,14 @@ func (s *PQLabWorkloadSource) WriteCorpus(directory string, bound chain.Consensu
 		return PQLabWorkloadManifest{}, err
 	}
 	if manifest.Mode == "online" {
-		if err = writePQLabSenderVault(directory, manifest, raw, s.materials); err != nil {
+		if err = writePQLabSenderVault(directory, manifest, raw, s.materials, s.publicationSync); err != nil {
 			return PQLabWorkloadManifest{}, err
 		}
+	}
+	// Network generation published its root before this workload was created.
+	// Persist the new workload name in that root before publishing its manifest.
+	if err = pqLabSyncOriginalDirectory(filepath.Dir(directory), s.publicationSync); err != nil {
+		return PQLabWorkloadManifest{}, err
 	}
 	if err = pqLabWriteExclusive(filepath.Join(directory, "PUBLIC-WORKLOAD.json"), raw); err != nil {
 		return PQLabWorkloadManifest{}, err
@@ -647,6 +653,13 @@ func (s *PQLabWorkloadSource) WriteCorpus(directory string, bound chain.Consensu
 }
 
 func pqLabFreshDirectory(path string) error {
+	if err := pqLabFreshDirectoryParent(path); err != nil {
+		return err
+	}
+	return os.Mkdir(path, 0700)
+}
+
+func pqLabFreshDirectoryParent(path string) error {
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 		return errors.New("canonical absolute fresh lab directory required")
 	}
@@ -659,7 +672,56 @@ func pqLabFreshDirectory(path string) error {
 	if err != nil || !info.IsDir() || info.Mode().Perm()&0022 != 0 {
 		return errors.New("lab parent must not be writable by others")
 	}
-	return os.Mkdir(path, 0700)
+	return nil
+}
+
+// Callers select only a directory whose entries they just created. This is a
+// bounded filesystem barrier, not an ancestor walk or a Source/authority grant.
+func pqLabSyncOriginalDirectory(path string, syncDirectory func(*os.File) error) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	if syncDirectory == nil {
+		err = directory.Sync()
+	} else {
+		err = syncDirectory(directory)
+	}
+	return errors.Join(err, directory.Close())
+}
+
+// A new operation's name must be durable in its ORIGINAL owner directory
+// before writing request/intent or calling the signer. Syncing files and the
+// child directory does not persist the parent directory entry. After Mkdir,
+// every failure is UNKNOWN; the original partial directory is never removed.
+func pqLabFreshOperationDirectory(path string, metrics *PQLabMetrics, syncParent func(*os.File) error) error {
+	defer pqLabMeasure(metrics, "sender.operationDirectoryPersistenceTotal")()
+	if err := pqLabFreshDirectoryParent(path); err != nil {
+		return err
+	}
+	if err := os.Mkdir(path, 0700); err != nil {
+		// The actual mutation was attempted. Do not turn an uncertain Mkdir
+		// result or a racing preexisting original into permission to retry.
+		return errors.Join(ErrPQLabSenderUnknown, err)
+	}
+	parent, err := os.Open(filepath.Dir(path))
+	if err != nil {
+		return errors.Join(ErrPQLabSenderUnknown, err)
+	}
+	endSync := pqLabMeasure(metrics, "sender.operationParentFsync")
+	var syncErr error
+	if syncParent == nil {
+		syncErr = parent.Sync()
+	} else {
+		// Private per-sender filesystem fault seam. The normal constructor
+		// leaves it nil; no public setter or durability-skip option exists.
+		syncErr = syncParent(parent)
+	}
+	endSync()
+	if err = errors.Join(syncErr, parent.Close()); err != nil {
+		return errors.Join(ErrPQLabSenderUnknown, err)
+	}
+	return nil
 }
 
 func pqLabWriteExclusive(path string, raw []byte) error {
@@ -667,32 +729,36 @@ func pqLabWriteExclusive(path string, raw []byte) error {
 }
 func pqLabWriteExclusiveMeasured(path string, raw []byte, metrics *PQLabMetrics) error {
 	defer pqLabMeasure(metrics, "sender.exclusivePersistenceTotal")()
+	defer pqLabMeasureSenderPersistence(metrics, path, "total")()
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
 	}
+	endRoleWrite := pqLabMeasureSenderPersistence(metrics, path, "write")
 	n, writeErr := f.Write(raw)
+	endRoleWrite()
 	if writeErr == nil && n != len(raw) {
 		writeErr = errors.New("incomplete lab original write")
 	}
 	if writeErr == nil {
 		endSync := pqLabMeasure(metrics, "sender.fileFsync")
+		endRoleSync := pqLabMeasureSenderPersistence(metrics, path, "fileFsync")
 		writeErr = f.Sync()
+		endRoleSync()
 		endSync()
 	}
 	closeErr := f.Close()
-	if writeErr != nil {
-		return writeErr
-	}
-	if closeErr != nil {
-		return closeErr
+	if writeErr != nil || closeErr != nil {
+		return errors.Join(writeErr, closeErr)
 	}
 	d, err := os.Open(filepath.Dir(path))
 	if err != nil {
 		return err
 	}
 	endSync := pqLabMeasure(metrics, "sender.directoryFsync")
+	endRoleSync := pqLabMeasureSenderPersistence(metrics, path, "directoryFsync")
 	syncErr := d.Sync()
+	endRoleSync()
 	endSync()
 	return errors.Join(syncErr, d.Close())
 }
@@ -716,7 +782,7 @@ func pqLabSenderAEAD(credential, salt []byte) (cipher.AEAD, error) {
 	return cipher.NewGCM(block)
 }
 
-func writePQLabSenderVault(directory string, m PQLabWorkloadManifest, manifestRaw []byte, materials []ynxbatch.KeyMaterial) error {
+func writePQLabSenderVault(directory string, m PQLabWorkloadManifest, manifestRaw []byte, materials []ynxbatch.KeyMaterial, syncPublication func(*os.File) error) error {
 	if len(materials) != len(m.Owners) || len(materials) == 0 || len(materials) > MaxPQLabOwners {
 		return errors.New("complete fresh online owner materials required")
 	}
@@ -783,7 +849,10 @@ func writePQLabSenderVault(directory string, m PQLabWorkloadManifest, manifestRa
 			return err
 		}
 	}
-	return nil
+	// One barrier persists ALL owner directory entries. The final workload
+	// manifest's existing directory Sync persists private-senders/sender-public
+	// in workload; do not add one parent Sync per owner or remove any file Sync.
+	return pqLabSyncOriginalDirectory(public, syncPublication)
 }
 
 var ErrPQLabSenderUnknown = errors.New("lab signing result UNKNOWN; reconcile the original operation, never re-sign")
@@ -811,14 +880,15 @@ type PQLabSenderResult struct {
 // There is no background queue or batch assembly: callers supply a complete
 // legal count and receive its original immediately after durable publication.
 type PQLabSender struct {
-	mu         sync.Mutex
-	directory  string
-	manifest   PQLabWorkloadManifest
-	owner      PQLabWorkloadOwner
-	key        *ynxbatch.PrivateKey
-	public     ynxbatch.PublicKey
-	lease      *ApplicationStateWriterLease
-	historyKey []byte
+	mu                  sync.Mutex
+	directory           string
+	manifest            PQLabWorkloadManifest
+	owner               PQLabWorkloadOwner
+	key                 *ynxbatch.PrivateKey
+	public              ynxbatch.PublicKey
+	lease               *ApplicationStateWriterLease
+	historyKey          []byte
+	operationParentSync func(*os.File) error // private fault seam, normal constructor nil
 }
 
 func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLabSender, error) {
@@ -1350,45 +1420,45 @@ func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSender
 			return out, errors.New("actual checkpoint regressed behind original confirmed operation")
 		}
 	}
-	if err = pqLabFreshDirectory(directory); err != nil {
+	if err = pqLabFreshOperationDirectory(directory, metrics, s.operationParentSync); err != nil {
 		return out, err
 	}
 	raw, err := json.Marshal(r)
 	if err != nil {
-		return out, err
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "request.json"), raw, metrics); err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	intentRaw, err := json.Marshal(pqLabSenderIntent{Version: "YNX-PQ-LAB-SENDER-INTENT/v1", Request: r, CheckpointHeight: checkpoint.state.Height, CheckpointAppHash: checkpoint.state.AppHash, Registration: registration})
 	if err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = s.writeRecordMeasured(filepath.Join(directory, "INTENT.json"), intentRaw, metrics); err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	endCrypto := pqLabMeasure(metrics, "sender.dualSignEncodeAndSelfVerify")
 	kind, wire, envelope, err := pqLabSignTransferGroupMeasured(s.key, checkpoint.state.AccountPolicy, s.owner, r.FirstNonce, r.Members, uint64(checkpoint.state.Height+1), metrics)
 	endCrypto()
 	if err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "transaction.wire"), wire, metrics); err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "transaction.abci"), envelope, metrics); err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = checkpoint.current(); err != nil {
-		return out, ErrPQLabSenderUnknown
+		return out, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	out = pqLabSenderResult(r, checkpoint.state.Height, checkpoint.state.AppHash, kind, wire, envelope)
 	raw, err = json.Marshal(out)
 	if err != nil {
-		return PQLabSenderResult{}, ErrPQLabSenderUnknown
+		return PQLabSenderResult{}, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	if err = s.writeRecordMeasured(filepath.Join(directory, "RESULT.json"), raw, metrics); err != nil {
-		return PQLabSenderResult{}, ErrPQLabSenderUnknown
+		return PQLabSenderResult{}, errors.Join(ErrPQLabSenderUnknown, err)
 	}
 	return out, nil
 }
