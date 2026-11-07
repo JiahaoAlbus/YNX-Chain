@@ -23,6 +23,12 @@ typedef struct {
 /* Nonnull partial is adopted before rc; every span stays owned until release.
  * mode3 selects SAME original operation, never creates a review/op or nonce. */
 int32_t ynx_mobile_pq_selected_original_acquire_v1(uint32_t mode,YNXMobilePQSelectedOriginal**);
+/* Independent PRE-CAPTURE account inventory selection. No review claim,
+ * slot/journal dependency, secret read or new operation. Metadata identifies
+ * the original registered-restore Source (mode2); it does NOT approve restore.
+ * Implement from the actual registered account inventory, not by calling the
+ * review-dependent selected_original_acquire function. Adopt partial first. */
+int32_t ynx_mobile_pq_registered_account_acquire_v1(YNXMobilePQSelectedOriginal**);
 int32_t ynx_mobile_pq_selected_original_read_v1(YNXMobilePQSelectedOriginal*,YNXMobilePQSelectedOriginalDATA*);
 int32_t ynx_mobile_pq_selected_original_current_v1(YNXMobilePQSelectedOriginal*,uint32_t phase);
 /* Source builds the exact original review/body/op digest from its held bytes.

@@ -15,7 +15,7 @@ struct Pin {
  std::string locator,leaf;
  int parent=-1,directory=-1;
  struct stat parentIdentity{},identity{};
- bool closeUncertain=false;
+ bool supplied=false,closeUncertain=false;
 };
 bool same(const struct stat&a,const struct stat&b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid;}
 bool protectedDirectory(const struct stat&s){return S_ISDIR(s.st_mode)&&(s.st_mode&07777)==0700&&s.st_uid==geteuid()&&s.st_nlink>0;}
@@ -55,12 +55,20 @@ SelectedDirectoryInventory::~SelectedDirectoryInventory(){
  for(auto&p:impl_->pins){if(!p.closeUncertain){if(p.directory>=0)::close(p.directory);if(p.parent>=0)::close(p.parent);}}
 }
 int32_t SelectedDirectoryInventory::pin(YNXMobilePQSelectedOriginal*s,const std::array<NativeDirectory,3>&input,std::shared_ptr<SelectedDirectoryInventory>&out){
+ return pinImpl(s,input,false,out);
+}
+int32_t SelectedDirectoryInventory::pinRegisteredSourceOnly(YNXMobilePQSelectedOriginal*s,const NativeDirectory&source,std::shared_ptr<SelectedDirectoryInventory>&out){
+ return pinImpl(s,{source,NativeDirectory{},NativeDirectory{}},true,out);
+}
+int32_t SelectedDirectoryInventory::pinImpl(YNXMobilePQSelectedOriginal*s,const std::array<NativeDirectory,3>&input,bool sourceOnly,std::shared_ptr<SelectedDirectoryInventory>&out){
  if(!s||out)return invalid;
- for(size_t i=0;i<3;++i)if(input[i].kind!=i+1||!locator(input[i].root_locator)||!leaf(input[i].leaf)||input[i].parent_fd<0||input[i].directory_fd<0)return invalid;
+ const size_t count=sourceOnly?1:3;
+ for(size_t i=0;i<count;++i)if(input[i].kind!=i+1||!locator(input[i].root_locator)||!leaf(input[i].leaf)||input[i].parent_fd<0||input[i].directory_fd<0)return invalid;
  try{
   out=std::shared_ptr<SelectedDirectoryInventory>(new SelectedDirectoryInventory(s));
-  for(size_t i=0;i<3;++i){
+  for(size_t i=0;i<count;++i){
    auto&p=out->impl_->pins[i];const auto&v=input[i];p.locator=v.root_locator;p.leaf=v.leaf;
+   p.supplied=true;
    p.parent=fcntl(v.parent_fd,F_DUPFD_CLOEXEC,0);if(p.parent<0){out->retire();return io;}
    p.directory=fcntl(v.directory_fd,F_DUPFD_CLOEXEC,0);if(p.directory<0){out->retire();return io;}
    if(fstat(p.parent,&p.parentIdentity)||fstat(p.directory,&p.identity)||!check(p)){out->retire();return changed;}
@@ -75,7 +83,7 @@ int32_t SelectedDirectoryInventory::current(){
  if(std::this_thread::get_id()!=impl_->actor)return wrongThread;
  std::lock_guard<std::mutex>guard(impl_->mutex);
  if(!impl_->ready||impl_->retired||impl_->closing||impl_->closed)return closed;
- for(const auto&p:impl_->pins)if(!check(p)){impl_->retired=true;return changed;}
+ for(const auto&p:impl_->pins)if(p.supplied&&!check(p)){impl_->retired=true;return changed;}
  return 0;
 }
 void SelectedDirectoryInventory::retire()noexcept{impl_->retired=true;}
@@ -128,7 +136,8 @@ int32_t SelectedDirectoryInventory::borrow(uint32_t kind,YNXMobileSelectedPublic
  if(!out||*out||!view||view->version!=1||view->size!=sizeof(*view)||kind<1||kind>3||!key.bytes||!key.length||key.length>128||self.get()!=this)return invalid;
  *view={1,sizeof(*view),-1,0,0,0,0};
  if(auto e=current())return e;
- auto&p=impl_->pins[kind-1];if(key.length!=p.locator.size()||memcmp(key.bytes,p.locator.data(),key.length))return invalid;
+ auto&p=impl_->pins[kind-1];if(!p.supplied)return notSupplied;
+ if(key.length!=p.locator.size()||memcmp(key.bytes,p.locator.data(),key.length))return invalid;
  try{
   auto l=std::make_shared<Loan>();l->inventory=self;l->selected=impl_->selected;
   {

@@ -24,6 +24,8 @@ class SelectedDirectoryInventory final {
  struct Impl;
  std::unique_ptr<Impl> impl_;
  explicit SelectedDirectoryInventory(YNXMobilePQSelectedOriginal*);
+ static int32_t pinImpl(YNXMobilePQSelectedOriginal*,const std::array<NativeDirectory,3>&,
+                        bool sourceOnly,std::shared_ptr<SelectedDirectoryInventory>&);
 public:
  ~SelectedDirectoryInventory();
  SelectedDirectoryInventory(const SelectedDirectoryInventory&)=delete;
@@ -32,6 +34,11 @@ public:
   * These physical pins confer no Root/Source/review/account authority. */
  static int32_t pin(YNXMobilePQSelectedOriginal*,const std::array<NativeDirectory,3>&,
                     std::shared_ptr<SelectedDirectoryInventory>&);
+ /* Independent pre-capture registered-account observation. Pins Source role1
+  * ONLY; no journal/slot directory (even an empty one) is a prerequisite.
+  * This owner cannot gain more roles or claim a review after construction. */
+ static int32_t pinRegisteredSourceOnly(YNXMobilePQSelectedOriginal*,const NativeDirectory&,
+                                       std::shared_ptr<SelectedDirectoryInventory>&);
  bool belongsTo(YNXMobilePQSelectedOriginal*)const noexcept;
  int32_t current();
  void retire()noexcept; // called by actual account/epoch invalidation, any thread

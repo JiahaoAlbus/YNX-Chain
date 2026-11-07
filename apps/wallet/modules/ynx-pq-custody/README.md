@@ -174,14 +174,20 @@ registered restoration and maintained Core signing remain separate gates.
 ## Integration and verification
 
 The isolated selected-directory successor implements the four private directory
-calls in `MobileSelectedOriginalPrivate.h` (3643 bytes, SHA256
-`6942ede12281321a1e03f33f8009f7b8e54c2d421b9e82d84b041f8d83b62b69`).
+calls in `MobileSelectedOriginalPrivate.h`. The matching Auth final-r1 additive
+header is 4116 bytes, SHA256
+`f3066002598f5f2ace4f32677fde07bff6aded1cabdf1800e506785e36ab3327`.
 `SelectedDirectoryInventory::pin` accepts only three already held Native
 parent/leaf/directory pairs from the same selected app/account backend. It
 duplicates its own FDs, pins named and held inode/owner identities, requires
 0700/euid protection, checks all three roles on current, and never opens a
 Root locator as a pathname. No OS ancestor permission exception is introduced.
 Directory substitution or lifetime loss permanently retires that inventory.
+The separate `pinRegisteredSourceOnly` constructor retains only Source role1
+for independent pre-capture registered-account observation; journal and slot
+directories need not exist. Missing roles refuse without creating a loan, and
+this retained owner cannot acquire more roles later. Full operation selection
+continues to require the original three-role constructor and checks all three.
 Auth owns its own dup FDs and closes all of them before closing/releasing each
 Native loan. A child remains mother debt until release, even after child close;
 mother close keeps its pins until every child is released. Opaque loan tokens
@@ -189,18 +195,29 @@ are monotonic and remain Native only. These functions do not create directories,
 account records, reviews, operations, grants, OS43 items or a Source row.
 
 The REAL Native selected-original mother must implement the seven original
-selected calls and the strong private C++ `selectedDirectoryInventory` accessor.
+selected calls, the independent `ynx_mobile_pq_registered_account_acquire_v1`
+account selector, and the strong private C++ `selectedDirectoryInventory` accessor.
 It must return its same pinned member, check real account/epoch/review current
 without recursing into Auth, retire on actual account/lifecycle invalidation,
 and require inventory `close`/`isClosed` before mother release. The directory
 bridge calls that same selected current before/after physical checks. No
 stand-in selected map, generic provider or permanent-denial implementation is
-supplied here. The actual Auth original receipt bridge, Native account picker/
-review, Main normal initialization/receipt glue, and matching mobile archive
-remain required production code. Missing strong callees fail platform linking;
+supplied here. Native account picker/review, the authenticated account backend/
+ledger receipt, Main normal initialization/receipt glue and matching mobile
+archive remain required production code. Missing strong callees fail platform linking;
 the PUBLIC test mother establishes none of those production gates. This entire
 successor must stay separate from the frozen earlier module/image until the
 real mother and receipt producer are linked together.
+
+Auth final-r1 supplies the zero-input
+`ynx_auth_mobile_pq_acquire_registered_original_v1` body without review capture,
+journal or slot access. It calls the independent Native registered-account
+selector; that selector must NOT call this Auth factory or the review-dependent
+selected acquire to bootstrap itself. Its observations remain Root/Source18
+qualified public originals, not independent chain-registration or inclusion
+receipts. The authenticated account backend/ledger proofreader is a separate
+production dependency. The original post-capture registered loan is retained
+for its original purpose and cannot bootstrap a selected mother either.
 
 `NativeApplicationDirectory::acquire` obtains the actual OS application
 container with no arguments. Android binds the original Application Context
