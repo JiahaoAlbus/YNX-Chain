@@ -94,13 +94,11 @@ static napi_value RelayAcquire(napi_env env,napi_callback_info info){
 static napi_value RelayRead(napi_env env,napi_callback_info info){napi_value a[1];if(!Args(env,info,1,a))return Error(env,"YNX_CONTRACT_RELAY_ARGUMENTS_INVALID");auto*h=RelayOriginal(env,a[0]);if(!h)return Error(env,"YNX_CONTRACT_RELAY_ORIGINAL_REQUIRED");if(h->originalError)return Error(env,RelayCode(h->originalError));NSError*e=nil;NSDictionary*s=[h->owner copyScopeLocal:&e];if(!s||e){RelayRemember(h,e);return Error(env,RelayCode(e));}return RelayScopeValue(env,s);}
 static napi_value RelayCurrent(napi_env env,napi_callback_info info){
  napi_value a[1];if(!Args(env,info,1,a))return Error(env,"YNX_CONTRACT_RELAY_ARGUMENTS_INVALID");auto*h=RelayOriginal(env,a[0]);if(!h)return Error(env,"YNX_CONTRACT_RELAY_ORIGINAL_REQUIRED");if(h->originalError)return Error(env,RelayCode(h->originalError));NSError*e=nil;
- if(h->retired||![h->owner assertLocalCurrent:&e]){RelayRemember(h,e);return Error(env,e?RelayCode(e):"YNX_CONTRACT_RELAY_RETIRED");}
- // This is a concrete activation fence, NOT a successful guard stub: local
- // peer/project qualification cannot stop unqualified inbound WC handlers
- // before Verify. Normal initiator requires ZERO Verify HTTP. Qualify only
- // the actual initiator-role boundary and exact installed runtime closure;
- // never replace this with a broad Verify permission or caller boolean.
- return Error(env,"YNX_CONTRACT_RELAY_INITIATOR_ROLE_BOUNDARY_UNQUALIFIED");
+ if(h->retired||![h->owner assertInitiatorOnlyBoundaryCurrent:&e]){RelayRemember(h,e);return Error(env,e?RelayCode(e):"YNX_CONTRACT_RELAY_RETIRED");}
+ // Actual Source/peer/project + typed fixed initiator CODE boundary. The
+ // independently pinned SDK still installs the per-instance inbound/Verify
+ // refusal BEFORE SignClient.init. No generic Verify permission is returned.
+ return RelayTrue(env);
 }
 struct RelaySubscription{NativeRelayRef*handle;napi_ref owner;bool active=true;};
 static void RelaySubscriptionFinalize(napi_env env,void*raw,void*){auto*t=static_cast<RelaySubscription*>(raw);if(t->owner)napi_delete_reference(env,t->owner);delete t;}

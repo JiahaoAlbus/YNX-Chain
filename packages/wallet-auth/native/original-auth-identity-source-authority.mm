@@ -17,6 +17,8 @@
 static void YNXOriginalWalletNativePayHiddenMarker(){}
 namespace ynx_auth_private {const void* original_wallet_pay_source_code_marker()noexcept{return (const void*)&YNXOriginalWalletNativePayHiddenMarker;}}
 #import "original-auth-identity-source-authority.h"
+#import "original-ide-contract-initiator-private.h"
+#include "original-ide-contract-initiator-pins-private.hpp"
 #include "original-product-device-v4-pending-journal.h"
 #include "original-product-device-v4-provisioning-journal.h"
 #include "original-product-device-v4-query-journal.h"
@@ -371,6 +373,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-auth-proof-source.inc.mm"
 #include "original-ide-contract-relay-source.inc.mm"
 #include "original-ide-contract-relay-runtime.inc.mm"
+#include "original-ide-contract-initiator-source.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
 #include "original-product-device-v4-query-source.inc.mm"
 #include "original-product-device-v4-registered-finalization-source.inc.mm"

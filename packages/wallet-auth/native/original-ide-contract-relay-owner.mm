@@ -1,4 +1,5 @@
 #import "original-ide-contract-relay-owner.h"
+#import "original-ide-contract-initiator-private.h"
 #import "original-auth-identity-source-authority.h"
 #include "original-ide-parent-kernel.h"
 #include "original-ide-contract-relay-peer.h"
@@ -10,6 +11,7 @@
 static NSMutableSet *RelayOwners(){static NSMutableSet *owners;static dispatch_once_t once;dispatch_once(&once,^{owners=[NSMutableSet set];});return owners;}
 @implementation YNXOriginalIDEContractRelayOwner {
  YNXAuthIdentitySourceAuthority *_source;
+ YNXOriginalIDEContractInitiatorCodeBoundary *_initiatorBoundary;
  NSDictionary *_scope,*_peerBinding;
  NSDictionary *_launch,*_localContext;
  ynx_auth_private::TemporaryDescriptor _workspaceDir,_profileDir;
@@ -71,6 +73,8 @@ static NSMutableSet *RelayOwners(){static NSMutableSet *owners;static dispatch_o
    if([k isEqual:@"profile"]&&(identity.st_uid!=getuid()||(identity.st_mode&0077)))return [s fail:@"IDE_CONTRACT_RELAY_PRIVATE_PROFILE_REQUIRED" error:error],s;
   }
   if(![s->_source pinOriginalIDEContractRelayRuntime:&e])return [s recordActualError:e fallback:@"IDE_CONTRACT_RELAY_RUNTIME_NOT_QUALIFIED" error:error],s;
+  s->_initiatorBoundary=[YNXOriginalIDEContractInitiatorCodeBoundary captureFromOriginalSource:s->_source error:&e];
+  if(e||!s->_initiatorBoundary)return [s recordActualError:e fallback:@"IDE_CONTRACT_RELAY_INITIATOR_BOUNDARY_REQUIRED" error:error],s;
   s->_ready=YES;[s assertLocalCurrent:error];return s;
  }catch(const std::exception&e){[s fail:[NSString stringWithUTF8String:e.what()] error:error];return s;}}
  @catch(id){[s fail:@"IDE_CONTRACT_RELAY_ACQUIRE_UNKNOWN" error:error];return s;}
@@ -86,12 +90,14 @@ static NSMutableSet *RelayOwners(){static NSMutableSet *owners;static dispatch_o
   if(e||![launch isEqual:_launch]||!ynx_auth_ide_relay_private::actualLaunch(launch,_scope,_localContext,_node.original)||!ynx_auth_ide_relay_private::namedDirectory(_localContext[@"workspace"],_workspaceIdentity,_workspaceDir.identity())||!ynx_auth_ide_relay_private::namedDirectory(_localContext[@"profile"],_profileIdentity,_profileDir.identity()))return [self recordActualError:e fallback:@"IDE_CONTRACT_RELAY_LOCAL_PROJECT_CURRENT_CHANGED" error:error];
   if(!ynx_auth_ide_private::sameKernel(_node,ynx_auth_ide_private::observeKernel(getpid()))||!ynx_auth_ide_private::sameKernel(_ide,ynx_auth_ide_private::observeKernel(getppid()))||!ynx_auth_ide_private::sameKernel(_wallet,ynx_auth_ide_private::observeKernel((pid_t)_wallet.original.pid))||!ynx_auth_ide_private::identityResourceBytes(_resources,_peerBinding,_resourceDebt))return [self fail:@"IDE_CONTRACT_RELAY_KERNEL_OR_RESOURCE_CHANGED" error:error];
   if(![_source assertOriginalIDEContractRelayRuntimeCurrent:&e])return [self recordActualError:e fallback:@"IDE_CONTRACT_RELAY_RUNTIME_CURRENT_CHANGED" error:error];
+  if(!_initiatorBoundary||![_initiatorBoundary assertCurrent:&e])return [self recordActualError:e fallback:@"IDE_CONTRACT_RELAY_INITIATOR_BOUNDARY_CHANGED" error:error];
   NSDictionary *last=[_source copyOriginalIDEContractRelayScopeLocal:&e];
   if(e||![last isEqual:_scope]||_retired)return [self recordActualError:e fallback:@"IDE_CONTRACT_RELAY_POST_CURRENT_REFUSED" error:error];return YES;
  }catch(const std::exception&e){return [self fail:[NSString stringWithUTF8String:e.what()] error:error];}}
  @catch(id){return [self fail:@"IDE_CONTRACT_RELAY_LOCAL_UNKNOWN" error:error];}
  @finally{_busy=NO;}
 }
+- (BOOL)assertInitiatorOnlyBoundaryCurrent:(NSError**)error {return [self assertLocalCurrent:error];}
 - (NSDictionary*)copyScopeLocal:(NSError**)error {return [self assertLocalCurrent:error]?[_scope copy]:nil;}
 - (BOOL)observeLocalRevocation:(dispatch_block_t)callback error:(NSError**)error {
  if(!callback||_observer||![self assertLocalCurrent:error])return [self fail:@"IDE_CONTRACT_RELAY_OBSERVER_REFUSED" error:error];_observer=[callback copy];return YES;
@@ -106,7 +112,7 @@ static NSMutableSet *RelayOwners(){static NSMutableSet *owners;static dispatch_o
 - (BOOL)retire:(NSError**)error {
  if(!pthread_main_np())return [self fail:@"IDE_CONTRACT_RELAY_THREAD_REQUIRED" error:error];
  if(_retired){if(error)*error=_retireError;return _retireResult;}
- _retired=YES;_retireResult=YES;_ready=NO;[_source retire];
+ _retired=YES;_retireResult=YES;_ready=NO;[_initiatorBoundary retire];[_source retire];
  if(!_notified){_notified=YES;dispatch_block_t callback=_observer;_observer=nil;_observerRunning=YES;@try{if(callback)callback();}@catch(id){_retireResult=NO;NSError *actual=nil;[self fail:@"IDE_CONTRACT_RELAY_OBSERVER_UNKNOWN" error:&actual];_retireError=actual;if(error)*error=_retireError;return NO;}@finally{_observerRunning=NO;}}
  return YES;
 }
@@ -114,17 +120,21 @@ static NSMutableSet *RelayOwners(){static NSMutableSet *owners;static dispatch_o
 - (BOOL)revokeLocal:(NSError**)error {return [self retire:error];}
 - (BOOL)join:(NSError**)error {
  if(!pthread_main_np()||!_retired||_busy||_observerRunning){if(error)*error=[NSError errorWithDomain:@"YNXOriginalContractRelay" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_CONTRACT_RELAY_JOIN_PENDING"}];return NO;}
- return !_source||[_source join:error];
+ return !_initiatorBoundary||[_initiatorBoundary join:error];
 }
 - (BOOL)close:(NSError**)error {
  if(_closeSelected){if(error)*error=_closeFirst;return _closed;}
  if(![self join:error])return NO;
- _closeSelected=YES;NSError *actual=nil;
- BOOL complete=_resourceDebt.clean();
- for(auto*slot:{&_workspaceDir,&_profileDir})if(!slot->available()&&!slot->closeOnce([](int fd){return ::close(fd);}))complete=NO;
- // Independent resources drain even when another cleanup is UNKNOWN.
- if(_source&&![_source close:&actual])complete=NO;
- if(!complete){_closeFirst=actual?:[NSError errorWithDomain:@"YNXOriginalContractRelay" code:3 userInfo:@{NSLocalizedDescriptionKey:@"IDE_CONTRACT_RELAY_CLOSE_UNKNOWN"}];if(error)*error=_closeFirst;return NO;}
+ NSError *actual=nil;
+ if(_initiatorBoundary&&![_initiatorBoundary close:&actual]){if(error)*error=actual;return NO;}
+ _initiatorBoundary=nil;
+ auto unknown=[&](){_closeSelected=YES;_closeFirst=actual?:[NSError errorWithDomain:@"YNXOriginalContractRelay" code:3 userInfo:@{NSLocalizedDescriptionKey:@"IDE_CONTRACT_RELAY_CLOSE_UNKNOWN"}];if(error)*error=_closeFirst;return NO;};
+ if(!_resourceDebt.clean())return unknown();
+ for(auto*slot:{&_workspaceDir,&_profileDir})if(!slot->available()&&!slot->closeOnce([](int fd){return ::close(fd);}))return unknown();
+ // Code boundary and actual original resources close BEFORE their Source.
+ if(_source&&![_source join:&actual]){if(error)*error=actual;return NO;}
+ _closeSelected=YES;
+ if(_source&&![_source close:&actual])return unknown();
  _source=nil;_observer=nil;_closed=YES;[RelayOwners()removeObject:self];return YES;
 }
 @end
