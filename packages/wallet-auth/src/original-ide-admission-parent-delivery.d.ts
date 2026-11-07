@@ -1,3 +1,5 @@
+import type{OriginalIDECloudProjectLookupDATA}from'./original-ide-cloud-project-lookup-private.js';
+export type{OriginalIDECloudProjectLookupDATA,OriginalIDECloudRegisteredFullRefDATA}from'./original-ide-cloud-project-lookup-private.js';
 import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData,OriginalIDECurrentServiceRegistrationData,OriginalIDEWorkspaceProjectSelectionRef,OriginalIDEWorkspaceProjectSelectionData} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
@@ -125,11 +127,11 @@ export declare function closeOriginalIDEWorkspaceProjectSelection(originalSelect
 /** PRIVATE backend module declarations only. No new package.json export or
  * admission. Native must authenticate the actual parent + opaque selector. */
 export interface OriginalIDECloudLookupOwner {
- assertCurrent():undefined;readOriginalMappingDATA():unknown;
+ assertCurrent():undefined;readOriginalMappingDATA():OriginalIDECloudProjectLookupDATA;
  retire():undefined;join():undefined;close():undefined;statusDATA():Readonly<{RootAdmission:false;CloudGETAuthority:false;E11Authority:false;closed:boolean;firstCausePresent:boolean;firstCause:unknown}>;
 }
 export interface OriginalIDECloudRetainedGETOwner {
- assertCurrent():undefined;readOriginalMappingDATA():unknown;
+ assertCurrent():undefined;readOriginalMappingDATA():OriginalIDECloudProjectLookupDATA;
  prepareOriginalGETRequest(request:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestDATA,context:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETAbortContext):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket;
  readOriginalRequestDATA(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA;
  recheckOriginalGETRequest(ticket:import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRequestTicket):Promise<import('./original-ide-cloud-get-request.js').OriginalIDECloudGETRetainedDATA>;
