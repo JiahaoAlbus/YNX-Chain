@@ -169,10 +169,28 @@ func loadObserverConfig(o observerOptions) (*cfg.Config, error) {
 	return conf, nil
 }
 
-type observerCustody struct{ p2p []byte }
+type observerCustody struct {
+	p2p     []byte
+	startup *consensus.PQObserverSourceStartup
+	logger  log.Logger
+}
 
 func (c *observerCustody) Close() error {
 	if c != nil {
+		defer func() { clear(c.p2p); c.p2p = nil }()
+		if c.startup != nil {
+			c.startup.Close()
+			// Caller stops the actual Node before closing custody. Source-only
+			// failure is recorded without converting ordinary observer shutdown
+			// into a profile admission failure.
+			err := c.startup.Join(context.Background())
+			if !c.startup.LocalComplete() {
+				return err
+			}
+			if err != nil && c.logger != nil {
+				c.logger.Info("optional original Source scope closed", "error", err)
+			}
+		}
 		clear(c.p2p)
 		c.p2p = nil
 	}
@@ -180,7 +198,13 @@ func (c *observerCustody) Close() error {
 }
 
 // Caller holds only the application writer lease; no HRS or signer is opened.
-func constructObserverNode(conf *cfg.Config, logger log.Logger, o observerOptions) (_ *node.Node, _ io.Closer, result error) {
+func constructObserverNode(process context.Context, conf *cfg.Config, logger log.Logger, o observerOptions) (_ *node.Node, _ io.Closer, result error) {
+	if process == nil {
+		return nil, nil, errors.New("observer requires its actual process before construction")
+	}
+	if err := process.Err(); err != nil {
+		return nil, nil, err
+	}
 	if err := o.validate(); err != nil {
 		return nil, nil, err
 	}
@@ -215,7 +239,7 @@ func constructObserverNode(conf *cfg.Config, logger log.Logger, o observerOption
 	if err != nil {
 		return nil, nil, err
 	}
-	custody := &observerCustody{p2p: key.PrivKey.Bytes()}
+	custody := &observerCustody{p2p: key.PrivKey.Bytes(), logger: logger}
 	defer func() {
 		if result != nil {
 			_ = custody.Close()
@@ -225,7 +249,8 @@ func constructObserverNode(conf *cfg.Config, logger log.Logger, o observerOption
 	if err != nil {
 		return nil, nil, err
 	}
-	n, err := consensus.NewPQObserverNode(conf, app, key, logger)
+	n, startup, err := consensus.NewPQObserverNodeWithOriginalSourceStartup(process, conf, app, key, logger)
+	custody.startup = startup
 	if err != nil {
 		return nil, nil, err
 	}
@@ -245,13 +270,13 @@ func runObserverNode(parent context.Context, o observerOptions, logger log.Logge
 		return err
 	}
 	defer func() { result = errors.Join(result, lease.Close()) }()
-	n, custody, err := constructObserverNode(conf, logger, o)
+	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	n, custody, err := constructObserverNode(ctx, conf, logger, o)
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, custody.Close()) }()
-	ctx, stop := signal.NotifyContext(parent, os.Interrupt, syscall.SIGTERM)
-	defer stop()
 	if err = ctx.Err(); err != nil {
 		n.OnStop()
 		return err
@@ -264,5 +289,8 @@ func runObserverNode(parent context.Context, o observerOptions, logger log.Logge
 	case <-ctx.Done():
 	case <-n.Quit():
 	}
+	// Actual Node/process termination remains independent of optional Source
+	// retirement. Stop closes source children before the final profile Join.
+	stop()
 	return stopPQNodeWithObservations(n, nil, nil)
 }

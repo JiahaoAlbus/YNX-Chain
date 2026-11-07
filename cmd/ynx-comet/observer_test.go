@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -74,7 +75,7 @@ func TestObserverCLIPUBLICRealConstructorWithoutStart(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer lease.Close()
-			n, custody, err := constructObserverNode(conf, log.NewNopLogger(), options)
+			n, custody, err := constructObserverNode(context.Background(), conf, log.NewNopLogger(), options)
 			if err != nil {
 				t.Fatal(err)
 			}

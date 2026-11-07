@@ -19,7 +19,10 @@ import (
 
 // This private profile is supplied only by Core's original qualified build
 // entry, independently of stdin. There is no public FD/JSON/profile setter.
-type pqOriginalSourceProfile struct{ images [3]string }
+type pqOriginalSourceProfile struct {
+	images      [3]string
+	codeProfile *pqSourceCodeProfile
+}
 type sourcePortStamp struct {
 	fd            int
 	device, inode uint64
@@ -81,6 +84,12 @@ func readSourcePort(r *bytes.Reader, purpose uint32) (sourcePortStamp, error) {
 	return sourcePortStamp{int(fd), device, inode}, nil
 }
 func (l *pqOriginalSourceLaunch) check(process context.Context) error {
+	if l.profile.codeProfile == nil {
+		return ErrPQOriginalSourceProfileNotSupplied
+	}
+	if err := l.profile.codeProfile.Current(); err != nil {
+		return err
+	}
 	if process == nil {
 		return errSourceParent
 	}
@@ -107,7 +116,10 @@ func (l *pqOriginalSourceLaunch) check(process context.Context) error {
 	if l.sourceConn != nil {
 		return l.checkControl(process)
 	}
-	return checkSourceSocket(l.control, l.processes[0], l.processes[2])
+	if err := checkSourceSocket(l.control, l.processes[0], l.processes[2]); err != nil {
+		return err
+	}
+	return l.profile.codeProfile.Current()
 }
 func checkSourceSocket(p sourcePortStamp, creator, opposite pqSourceProcessIdentity) error {
 	var st unix.Stat_t
@@ -135,6 +147,12 @@ func checkSourceSocket(p sourcePortStamp, creator, opposite pqSourceProcessIdent
 // Every port is checked against independently expected actual processes before
 // adoption. The tuple arrives LATER from the real Native Source-only producer.
 func captureOriginalSourceLaunch(process context.Context, profile pqOriginalSourceProfile) (*pqOriginalSourceLaunch, error) {
+	return captureOriginalSourceLaunchWithReadContext(process, process, profile)
+}
+
+// Only initial optional capture reads use readCtx. Independently observed
+// processes and subsequent Source lifetime always use the real process.
+func captureOriginalSourceLaunchWithReadContext(process, readCtx context.Context, profile pqOriginalSourceProfile) (*pqOriginalSourceLaunch, error) {
 	sourceBootstrapOnce.Lock()
 	if sourceBootstrapOnce.entered {
 		sourceBootstrapOnce.Unlock()
@@ -142,7 +160,7 @@ func captureOriginalSourceLaunch(process context.Context, profile pqOriginalSour
 	}
 	sourceBootstrapOnce.entered = true
 	sourceBootstrapOnce.Unlock()
-	if process == nil {
+	if process == nil || readCtx == nil {
 		return nil, errSourceParent
 	}
 	for _, s := range profile.images {
@@ -151,13 +169,19 @@ func captureOriginalSourceLaunch(process context.Context, profile pqOriginalSour
 			return nil, errSourceParent
 		}
 	}
+	if err := profile.codeProfile.Current(); err != nil {
+		return nil, err
+	}
 	info, err := os.Stdin.Stat()
 	if err != nil || info.Mode()&os.ModeNamedPipe == 0 {
 		return nil, errSourceParent
 	}
-	stopInput := context.AfterFunc(process, func() { _ = os.Stdin.Close() })
+	stopInput := context.AfterFunc(readCtx, func() { _ = os.Stdin.Close() })
 	raw, err := io.ReadAll(io.LimitReader(os.Stdin, 13329))
 	stopInput()
+	if readCtx.Err() != nil {
+		return nil, readCtx.Err()
+	}
 	if process.Err() != nil {
 		return nil, process.Err()
 	}
@@ -258,6 +282,25 @@ func (l *pqOriginalSourceLaunch) checkControl(ctx context.Context) error {
 	if err := l.checkPeers(ctx); err != nil {
 		return err
 	}
+	if err := l.checkControlSocket(); err != nil {
+		return err
+	}
+	return l.profile.codeProfile.Current()
+}
+
+// An original negative CANCEL cannot grant productive permission. It must keep
+// the unchanged physical process/image/socket checks, but a revoked CODE record
+// must not prevent same-reader cleanup from receiving that negative result.
+func (l *pqOriginalSourceLaunch) checkControlIdentity(ctx context.Context) error {
+	if err := l.checkPeerIdentities(ctx); err != nil {
+		return err
+	}
+	return l.checkControlSocket()
+}
+func (l *pqOriginalSourceLaunch) checkControlSocket() error {
+	if l == nil || l.sourceConn == nil {
+		return errSourceParent
+	}
 	raw, err := l.sourceConn.SyscallConn()
 	if err != nil {
 		return err
@@ -273,6 +316,18 @@ func (l *pqOriginalSourceLaunch) checkControl(ctx context.Context) error {
 	return result
 }
 func (l *pqOriginalSourceLaunch) checkPeers(ctx context.Context) error {
+	if l.profile.codeProfile == nil {
+		return ErrPQOriginalSourceProfileNotSupplied
+	}
+	if err := l.profile.codeProfile.Current(); err != nil {
+		return err
+	}
+	if err := l.checkPeerIdentities(ctx); err != nil {
+		return err
+	}
+	return l.profile.codeProfile.Current()
+}
+func (l *pqOriginalSourceLaunch) checkPeerIdentities(ctx context.Context) error {
 	if ctx == nil || l.processes[0].PID != int32(os.Getppid()) || l.processes[1].PID != int32(os.Getpid()) {
 		return errSourceParent
 	}

@@ -288,7 +288,47 @@ func (w *pqCommittedAccountWire) failed(f pqAccountWireFrame, err error) pqAccou
 	f.payload = nil
 	return f
 }
-func (w *pqCommittedAccountWire) execute(f pqAccountWireFrame) pqAccountWireFrame {
+
+// Only the normal sealed capture carries Auth's concrete CODE owner. The
+// existing tagged PUBLIC lifecycle fixture has no images/owner and grants no
+// normal admission; captureOriginalSourceLaunch rejects that shape before it
+// can create a production Source. Never run this physical check on cleanup.
+func (w *pqCommittedAccountWire) currentOriginalCodeProfile() error {
+	p := w.protectedSource
+	if p == nil || p.original == nil {
+		return nil
+	}
+	p.original.mu.Lock()
+	profile := p.original.profile
+	p.original.mu.Unlock()
+	if profile.codeProfile == nil && profile.images == [3]string{} {
+		return nil
+	}
+	err := profile.codeProfile.Current()
+	if err != nil {
+		// Keep the actual Auth failure while retiring productive work under the
+		// original paired code-zero channel contract. Same-reader cleanup lives.
+		p.cancel(context.Canceled, errors.Join(sourceParentFailure{present: true, code: 0, reason: 1}, err))
+	}
+	return err
+}
+
+func (w *pqCommittedAccountWire) execute(f pqAccountWireFrame) (out pqAccountWireFrame) {
+	if f.op == pqAccountWireOpen || f.op == pqAccountWireRead || f.op == pqAccountWireCurrent {
+		if f.op == pqAccountWireOpen {
+			w.selected = true
+		}
+		if err := w.currentOriginalCodeProfile(); err != nil {
+			return w.failed(f, err)
+		}
+		defer func() {
+			if out.status != pqAccountWireFailed {
+				if err := w.currentOriginalCodeProfile(); err != nil {
+					out = w.failed(out, err)
+				}
+			}
+		}()
+	}
 	f.status = pqAccountWireOK
 	f.reader = w.reader
 	w.retainProtectedSourceCause()

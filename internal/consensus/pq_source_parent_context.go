@@ -154,15 +154,26 @@ func decodeSourceCancel(b []byte, generation uint64) (sourceParentFailure, error
 // Only the same verified original Core bootstrap calls this private receiver.
 // This is not a constructor accepting public fields, callbacks or an FD setter.
 func receiveOriginalSourceParent(process context.Context, original *pqOriginalSourceLaunch) (*pqProtectedSourceParent, error) {
-	if process == nil || original == nil {
+	return receiveOriginalSourceParentWithReadContext(process, process, original)
+}
+
+// readCtx may interrupt ONLY the initial BIND read; all post-BIND lifetime,
+// original capture seal and process-loss guard keep the actual Node process.
+func receiveOriginalSourceParentWithReadContext(process, readCtx context.Context, original *pqOriginalSourceLaunch) (*pqProtectedSourceParent, error) {
+	if process == nil || readCtx == nil || original == nil {
 		return nil, errSourceParent
 	}
 	if err := original.claimSourceParent(process); err != nil {
 		return nil, err
 	}
 	conn := original.sourceConn
-	stop := context.AfterFunc(process, func() { _ = conn.Close() })
+	stop := context.AfterFunc(readCtx, func() { _ = conn.Close() })
 	kind, b, err := readSourceFrame(conn)
+	if readCtx.Err() != nil {
+		stop()
+		_ = conn.Close()
+		return nil, readCtx.Err()
+	}
 	if err != nil {
 		stop()
 		_ = conn.Close()
@@ -201,7 +212,7 @@ func receiveOriginalSourceParent(process context.Context, original *pqOriginalSo
 			p.cancel(context.Canceled, errors.Join(errSourceParentLoss, e))
 			return
 		}
-		if e = original.check(process); e != nil {
+		if e = original.checkControlIdentity(process); e != nil {
 			p.cancel(context.Canceled, e)
 			return
 		}
