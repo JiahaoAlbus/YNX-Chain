@@ -381,8 +381,8 @@
     "supportFiles": [
       {
         "relative": "apps/wallet-desktop/scripts/normal-pay-compatible-source.mjs",
-        "bytes": 4179,
-        "sha256": "fda1c9046d270aab1503d530c478e7b04c2825b3d825f5390a9316643957b93e"
+        "bytes": 4444,
+        "sha256": "9c364a9f3efd4046cf61a7686f45e3f5bfa9d3edaec53ade2e84107cb180c1a4"
       },
       {
         "relative": "apps/wallet-desktop/test/normal-pay-finite-source.test.mjs",
