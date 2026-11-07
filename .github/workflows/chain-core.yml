@@ -136,6 +136,10 @@ jobs:
         run: |
           python3 -B scripts/loadtest/test_pq_public_owner_transport.py -v
           python3 -B scripts/loadtest/test_pq_public_owner_readback.py -v
+      - name: Verify hardware observation and record actual CI host separately
+        run: |
+          python3 -B scripts/loadtest/test_pq_runtime_hardware.py -v
+          python3 -B scripts/loadtest/pq-runtime-hardware.py --workdir "$RUNNER_TEMP"
       - run: npm ci
       - run: npm run hardhat:build
       - name: Generate original contract selectors required by ABCI execution fixtures

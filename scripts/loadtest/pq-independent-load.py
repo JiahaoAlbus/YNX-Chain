@@ -718,6 +718,9 @@ def run(args):
     result["toolIdentity"]=tool_identity()
     result["loadConditions"]=load_conditions(args)
     result["freshResourceAdmission"]=admission
+    hardware=module('original_runtime_hardware','pq-runtime-hardware.py')
+    result['runtimeHardware']=hardware.capture(work)
+    lab.write_new(work/'public/runtime-hardware.json',result['runtimeHardware'])
     if first_trial:result['sameWindowInitializationSourceFunctionalData']=trial_qualification
     result["initializationOnlyRequested"]=getattr(args,"initialization_only",False)
     if result["initializationOnlyRequested"]:result["initializationSourceFunctionalData"]=initialization.source_functional_data()
