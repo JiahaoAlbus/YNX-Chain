@@ -2,7 +2,8 @@
   "schema": "YNX_IDE_RELAY_GUARD_BOUNDED_DIAGNOSTIC_V1",
   "fields": [
     "relayGuardFailureStage",
-    "relayGuardCauseCode"
+    "relayGuardCauseCode",
+    "relayGuardScopePhase"
   ],
   "stageAllowlist": [
     "NATIVE_LOAD",
@@ -69,5 +70,14 @@
   "sameOriginalErrorAndCausePreserved": true,
   "partialCleanupOwnerPreserved": true,
   "NativeInvokedByDiagnostic": false,
-  "sourceBase": "f0465b67ccd56de5c2e92e69653bd0098079fc85"
+  "sourceBase": "f0465b67ccd56de5c2e92e69653bd0098079fc85",
+  "scopePhaseAllowlist": [
+    "NATIVE_READ",
+    "VALIDATE",
+    "MATCH_CAPTURE"
+  ],
+  "scopePhaseStages": [
+    "SCOPE_INITIAL",
+    "SCOPE_RECHECK"
+  ]
 }
