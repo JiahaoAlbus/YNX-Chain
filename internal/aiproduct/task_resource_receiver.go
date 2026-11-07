@@ -71,16 +71,17 @@ type OriginalTaskReadResource struct {
 }
 
 type OriginalTaskResourceReadCall struct {
-	mu        sync.Mutex
-	parent    *OriginalTaskReadResource
-	check     *authgrant.TaskGrantCheck
-	cancel    context.CancelFunc
-	context   context.Context
-	first     error
-	peer      *link.LocalCaller
-	closed    bool
-	closeOnce sync.Once
-	closeErr  error
+	mu          sync.Mutex
+	parent      *OriginalTaskReadResource
+	reservation *authgrant.OriginalTaskReservationCheck
+	check       *authgrant.TaskGrantCheck
+	cancel      context.CancelFunc
+	context     context.Context
+	first       error
+	peer        *link.LocalCaller
+	closed      bool
+	closeOnce   sync.Once
+	closeErr    error
 }
 
 var errTaskResourceChildren = errors.New("AI_ORIGINAL_TASK_RESOURCE_CHILDREN_RETAINED")
@@ -159,28 +160,6 @@ func (o *OriginalTaskReadResource) Close() error {
 	return nil
 }
 
-// operationBoundTaskResourceVerifier reads the independently verified original
-// Source slot. A caller operationID is not a reservation/current witness.
-type operationBoundTaskResourceVerifier struct {
-	original authgrant.OriginalTaskGrantVerifier
-	op       string
-}
-
-func (v operationBoundTaskResourceVerifier) OpenTaskGrantSource(ctx context.Context, b authgrant.TaskEffectBinding, g, h authgrant.Proof) (authgrant.HeldTaskGrantSource, error) {
-	held, err := v.original.OpenTaskGrantSource(ctx, b, g, h)
-	if err != nil || missingTaskRuntimeOperand(held) {
-		return held, err
-	}
-	s, err := held.Snapshot(ctx)
-	if err != nil {
-		return held, err
-	}
-	if s.Effect.OriginalOp != v.op || s.Effect.Slot != b.Slot() || held.FenceScope() != authgrant.EgressOnlyReadFence {
-		return held, errToolConflict
-	}
-	return held, held.AssertCurrent(ctx, s.Version)
-}
-
 func cloneOriginalResourceRequest(r OriginalTaskResourceReadRequest) OriginalTaskResourceReadRequest {
 	if r.Binding.EgressActual != nil {
 		copy := *r.Binding.EgressActual
@@ -215,12 +194,19 @@ func (o *OriginalTaskReadResource) begin(ctx context.Context, r OriginalTaskReso
 		return nil, err
 	}
 	callCtx := c.context
-	verifier := o.verifier
 	if execution {
-		verifier = operationBoundTaskResourceVerifier{o.verifier, r.AuthorityOperationID}
-	}
-	check, err := authgrant.OpenTaskGrantAtEffect(callCtx, verifier, r.Binding, r.Grant, r.Holder)
-	c.check = check // adopt original partial BEFORE interpreting open error
+		// Only the originally installed protected local owner can implement this
+		// sibling. Ordinary grant verification/op DATA cannot substitute for it.
+		verifier, ok := o.verifier.(authgrant.OriginalTaskReservationVerifier)
+		if !ok || missingTaskRuntimeOperand(verifier) {
+			c.first = errTaskEffectSourceUnavailable
+			return c, c.first
+		}
+		c.reservation, err = authgrant.OpenOriginalReservedTaskRead(callCtx, verifier, r.Binding, r.Grant, r.Holder, r.AuthorityOperationID)
+	} else {
+		c.check, err = authgrant.OpenTaskGrantAtEffect(callCtx, o.verifier, r.Binding, r.Grant, r.Holder)
+	} // adopt the original partial BEFORE inspecting the acquisition error
+
 	if err != nil {
 		c.first = err
 		return c, err
@@ -295,7 +281,24 @@ func (c *OriginalTaskResourceReadCall) Current(ctx context.Context) error {
 			return err
 		}
 	}
+	if c.reservation != nil {
+		_, err := c.reservation.Current(ctx) // repeatable, never dispatches
+		return err
+	}
 	_, err := authgrant.CheckTaskGrantAtEffect(ctx, c.check)
+	return err
+}
+
+// Only Execute passes this original dedicated claim into the Store.mu final
+// callback. Current checks elsewhere must never select the once-only claim.
+func (c *OriginalTaskResourceReadCall) claimAtEffect(ctx context.Context) error {
+	if c == nil || c.reservation == nil {
+		return errTaskEffectSourceUnavailable
+	}
+	if err := c.Current(ctx); err != nil {
+		return err
+	}
+	_, err := c.reservation.ClaimAtEffect(ctx)
 	return err
 }
 
@@ -310,7 +313,9 @@ func (c *OriginalTaskResourceReadCall) Close() error {
 	}
 	c.closeOnce.Do(func() {
 		c.Retire()
-		if c.check != nil {
+		if c.reservation != nil {
+			c.closeErr = c.reservation.Close()
+		} else if c.check != nil {
 			c.closeErr = c.check.Close()
 		}
 		if c.closeErr == nil {
@@ -361,7 +366,7 @@ func (o *OriginalTaskReadResource) Execute(ctx context.Context, request Original
 	if b.Task.Kind != "task" || b.Resources[0].Kind != "conversation" || b.Resources[0].ID != task.ConversationID || b.Tool.Schema != (authgrant.Bind{Bytes: strconv.Itoa(len(taskModelTools()[0].Parameters)), SHA3_512: bindTaskBytes(taskModelTools()[0].Parameters).SHA3_512, SHA512: bindTaskBytes(taskModelTools()[0].Parameters).SHA512}) {
 		return owner, result, errToolConflict
 	}
-	receipt, e := o.store.commitTaskReadAtEffectFence(owner.context, expected, func() error { return owner.Current(owner.context) })
+	receipt, e := o.store.commitTaskReadAtEffectFence(owner.context, expected, func() error { return owner.claimAtEffect(owner.context) })
 	if e != nil {
 		return owner, result, e
 	}

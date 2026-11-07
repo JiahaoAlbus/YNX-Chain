@@ -32,12 +32,24 @@ read, checks both hashes and actual approved active task/step/resource/tool/sche
 under Store.mu. Response is `{input: <base64 original bytes>}`; nothing reserved.
 
 Execute: same DATA with RawInput and Auth's original ledger AuthorityOperationID.
-The independently verified Source must itself report that exact OriginalOp and
-semantic slot. Caller-supplied operation IDs are not reservation evidence.
-**The sole policy currently requires NEW.** If the genuine post-reservation Source
-reports RESERVED/UNKNOWN/another state, this callee refuses. The owning adapter
-must resolve that normal contract without relabelling states, excluding real
-debt, or weakening policy. A live matching adapter is not claimed here.
+Execution uses the sole Auth `OpenOriginalReservedTaskRead` sibling over the
+original installed local owner's `OriginalTaskReservationVerifier` capability.
+If that original owner does not implement the protected callee, execution is
+unavailable; it never falls back to the ordinary NEW verifier. The earlier
+operation-only verifier has been removed. AuthorityOperationID remains only
+correlation DATA passed unchanged to the original protected callee; P08 never
+recomputes Auth's ledger operation or equates it with the Go semantic slot.
+
+ReadInput still uses the unchanged NEW-only entry with an empty operation.
+Execution retains the original reservation check/partial. `Current` is repeatable
+and non-consuming before, during and after work. Only the dedicated
+`ClaimAtEffect` is passed into the SAME Store.mu final callback immediately before
+read/save. A second selection or lost claim acknowledgement cannot rearm it.
+Independent query-UNKNOWN projection plus the genuine private capability is the
+sole sibling's contract, not permission for a consumer to manufacture a Source
+or relabel state. A plain NEW/UNKNOWN snapshot, operation string or copied proof
+cannot substitute for the missing capability. The actual Native/registered
+carrier and runtime/local supplier are still required for normal execution.
 
 Dual input/source hashes, task revision/generation, holder, fields, GrantRef and
 selected conversation are checked. Final Source check, resource read, encrypted
@@ -118,3 +130,18 @@ A default whole-receipt query still respects the same 1 MiB serialized bound
 and returns the bounded recovery hint if it cannot fit. The original Auth
 bridge must explicitly consume this private query extension; until it does,
 its existing strict bound/UNKNOWN behavior is correct.
+
+## Sole Auth reserved-policy intake
+
+`ORIGINAL_TASK_RESERVATION_INTAKE.json` pins the complete frozen Auth r1 supplier
+and the three byte-exact imported Go leaves. P08 did not edit that policy logic;
+NEW-only behavior remains owned by Auth. Consumer tests now use the actual
+reserved sibling instead of the former NEW+operation fixture. Their opaque
+reservation/current/claim boundary is still explicitly PUBLIC, with no real
+SQLite ticket or normal Source/crypto admission. They verify unavailable
+callee handling, non-consuming Current, Store.mu-held single claim, concurrent
+single effect, lost claim/no-rearm, partial adoption and retained close debt.
+The prior real LINK response-bound/chunk/cold-query cases run against that sibling.
+These checks do not prove the required real input->Auth SQLite reservation->
+Native protected carrier->resource claim->original receipt->Auth settlement flow.
+That same-owner closure is pending the genuine registered callee supply.

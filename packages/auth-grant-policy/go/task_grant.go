@@ -194,6 +194,7 @@ type Decision struct {
 type TaskGrantCheck struct {
 	mu                      sync.Mutex
 	source                  HeldTaskGrantSource
+	originalOperation       string
 	expected                TaskEffectBinding
 	selected                SourceVersion
 	scope                   FenceScope
@@ -215,6 +216,9 @@ func OpenTaskGrantAtEffect(ctx context.Context, verifier OriginalTaskGrantVerifi
 
 // Only tests in this package can substitute the clock; no public clock/setter.
 func openWithClock(ctx context.Context, verifier OriginalTaskGrantVerifier, expected TaskEffectBinding, grantProof, holderProof Proof, clock func() time.Time) (*TaskGrantCheck, error) {
+	return openPhaseWithClock(ctx, verifier, expected, grantProof, holderProof, "", clock)
+}
+func openPhaseWithClock(ctx context.Context, verifier OriginalTaskGrantVerifier, expected TaskEffectBinding, grantProof, holderProof Proof, operation string, clock func() time.Time) (*TaskGrantCheck, error) {
 	if ctx == nil || nilInterface(verifier) {
 		return nil, refusal(Unavailable, "original-protected-verifier")
 	}
@@ -233,8 +237,17 @@ func openWithClock(ctx context.Context, verifier OriginalTaskGrantVerifier, expe
 	if err != nil {
 		return nil, err
 	}
-	check := &TaskGrantCheck{expected: expected, clock: clock}
-	guard, err := verifier.OpenTaskGrantSource(ctx, cloneBinding(expected), g, h)
+	check := &TaskGrantCheck{expected: expected, clock: clock, originalOperation: operation}
+	var guard HeldTaskGrantSource
+	if operation == "" {
+		guard, err = verifier.OpenTaskGrantSource(ctx, cloneBinding(expected), g, h)
+	} else {
+		original, ok := verifier.(OriginalTaskReservationVerifier)
+		if !ok || nilInterface(original) {
+			return check, check.record(refusal(Unavailable, "original-reservation-verifier"))
+		}
+		guard, err = original.OpenOriginalTaskReservationSource(ctx, cloneBinding(expected), g, h, operation)
+	}
 	check.source = guard // Adopt original partial BEFORE inspecting the error.
 	if err != nil {
 		check.first = err
@@ -268,7 +281,7 @@ func (c *TaskGrantCheck) initialize(ctx context.Context) error {
 	if !validScope(scope) {
 		return refusal(Unavailable, "source-fence-scope")
 	}
-	if err = validateSnapshot(c.expected, s, scope, now); err != nil {
+	if err = c.validateSnapshot(s, scope, now); err != nil {
 		return err
 	}
 	deadline, _ := uint64Value(s.Expires)
@@ -281,6 +294,9 @@ func (c *TaskGrantCheck) initialize(ctx context.Context) error {
 		if end < deadline {
 			deadline = end
 		}
+	}
+	if err = c.assertOriginalReservation(ctx, s.Version); err != nil {
+		return err
 	}
 	if err = c.source.AssertCurrent(ctx, s.Version); err != nil {
 		return err
@@ -351,7 +367,7 @@ func (c *TaskGrantCheck) CheckTaskGrantAtEffect(ctx context.Context) (Decision, 
 	if c.source.FenceScope() != scope {
 		return Decision{}, c.record(refusal(Stale, "source-fence-scope"))
 	}
-	if err = validateSnapshot(c.expected, s, scope, now); err != nil {
+	if err = c.validateSnapshot(s, scope, now); err != nil {
 		return Decision{}, c.record(err)
 	}
 	currentDeadline, err := snapshotDeadline(s)
@@ -365,6 +381,9 @@ func (c *TaskGrantCheck) CheckTaskGrantAtEffect(ctx context.Context) (Decision, 
 			c.deadline = deadline
 		}
 		c.mu.Unlock()
+	}
+	if err = c.assertOriginalReservation(ctx, selected); err != nil {
+		return Decision{}, c.record(err)
 	}
 	if err = c.source.AssertCurrent(ctx, selected); err != nil {
 		return Decision{}, c.record(err)
@@ -387,7 +406,7 @@ func (c *TaskGrantCheck) CheckTaskGrantAtEffect(ctx context.Context) (Decision, 
 	if c.source.FenceScope() != scope {
 		return Decision{}, c.record(refusal(Stale, "source-fence-scope"))
 	}
-	if err = validateSnapshot(c.expected, s, scope, now); err != nil {
+	if err = c.validateSnapshot(s, scope, now); err != nil {
 		return Decision{}, c.record(err)
 	}
 	if err = ctx.Err(); err != nil {
@@ -402,6 +421,9 @@ func (c *TaskGrantCheck) CheckTaskGrantAtEffect(ctx context.Context) (Decision, 
 	}
 	if now >= deadline {
 		return Decision{}, c.record(refusal(Expired, "final-deadline"))
+	}
+	if err = c.assertOriginalReservation(ctx, selected); err != nil {
+		return Decision{}, c.record(err)
 	}
 	return Decision{Scope: scope, Version: selected, GrantID: c.expected.GrantID, GrantRevision: c.expected.GrantRevision, Slot: c.expected.Slot()}, nil
 }
@@ -645,6 +667,9 @@ func validateBinding(b TaskEffectBinding) error {
 }
 
 func validateSnapshot(b TaskEffectBinding, s Snapshot, scope FenceScope, now uint64) error {
+	return validateSnapshotPhase(b, s, scope, now, "")
+}
+func validateSnapshotPhase(b TaskEffectBinding, s Snapshot, scope FenceScope, now uint64, operation string) error {
 	if !identifier(s.Version.Authority) {
 		return refusal(Unavailable, "authority-version")
 	}
@@ -731,7 +756,12 @@ func validateSnapshot(b TaskEffectBinding, s Snapshot, scope FenceScope, now uin
 	if s.Budget.Status != "ready" || s.Budget.Slot != b.Slot() || s.Effect.Slot != b.Slot() {
 		return refusal(Stale, "semantic-slot")
 	}
-	if s.Effect.State != "NEW" {
+	// No projection is relabelled. The sibling requires a separate genuine held
+	// continuation, while the public original query projection stays UNKNOWN.
+	if operation != "" && (scope != EgressOnlyReadFence || b.Tool.ID != "ai.conversation.read" || b.Tool.Version != "1" || b.Tool.Operation != "ai.conversation.read" || b.Tool.Risk != "read") {
+		return refusal(Denied, "original-reserved-read-only")
+	}
+	if (operation == "" && s.Effect.State != "NEW") || (operation != "" && (s.Effect.State != "UNKNOWN" || s.Effect.OriginalOp != operation)) {
 		return &PolicyError{Code: OriginalOnly, Field: "no-replay", OriginalOp: s.Effect.OriginalOp}
 	}
 	if s.Budget.Cap != s.Grant.Cap || s.Budget.SingleMax != s.Grant.SingleMax {

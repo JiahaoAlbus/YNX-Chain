@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "kind": "Byte-exact original Auth policy supplier intake; no independent P08 policy implementation",
+  "owner": "Original Auth /root/auth_grant_effect",
+  "handoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/HANDOFF.json",
+    "bytes": 2672,
+    "sha256": "b86326b4beda824b4ca1c693ebad5409ea0c0fe7f96aa0c581ab55ea600f0b35"
+  },
+  "sourcefiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/SOURCEFILES.json",
+    "bytes": 1929,
+    "sha256": "d082859f692ae00a40e5c62d1d89d6b5b3ea61c3c4cd87947b4dbe63ab2f0394"
+  },
+  "imported": [
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/source/task_grant.go",
+        "bytes": 27211,
+        "sha256": "a472e518b53747b346daf4ef0bf2832d0c2039efe7f5c0b52a43864e6aab15a8"
+      },
+      "target": "packages/auth-grant-policy/go/task_grant.go",
+      "byteExact": true
+    },
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/source/original_reservation.go",
+        "bytes": 3745,
+        "sha256": "dc42f870f129b500dd5e866e3efbdf5769278df66c0f63426ca43b5894b83cb6"
+      },
+      "target": "packages/auth-grant-policy/go/original_reservation.go",
+      "byteExact": true
+    },
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/source/original_reservation_test.go",
+        "bytes": 6431,
+        "sha256": "fedac14297830dc9d6d3e06071b39f2b54a1928042dc3c21646324b00882835f"
+      },
+      "target": "packages/auth-grant-policy/go/original_reservation_test.go",
+      "byteExact": true
+    }
+  ],
+  "policyBefore": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/frozen-policy-r1/before/task_grant.go",
+    "bytes": 25544,
+    "sha256": "fb4a74cec0588f48fed2636adcbc6283cf81113a096d3f813d11503516ac9036"
+  },
+  "consumer": "internal/aiproduct/task_resource_receiver.go",
+  "contract": {
+    "api": "OpenOriginalReservedTaskRead + OriginalTaskReservationCheck.Current/ClaimAtEffect/Close",
+    "productionSelection": "Type assertion only on the SAME private verifier installed by original Server/nativeTaskRuntimeAuthority.localOwner. No external constructor/setter/DTO/callback. Missing original protected callee fails unavailable.",
+    "current": "Repeatable non-consuming; original check child adopted before acquisition error.",
+    "claim": "Dedicated original ClaimAtEffect exactly once at Store.mu final resource callback. No operation recomputation, NEW fallback or UNKNOWN replay.",
+    "queries": "History-only; 1MiB serialized response and original chunk recovery preserved."
+  },
+  "evidenceBoundary": "Actual original policy/Store/Unix LINK tested, opaque reservation and crypto/history boundary is PUBLIC stand-in. Real original SQLite/Native registered carrier/runtime/local getter and settlement closure not supplied/claimed.",
+  "supplierChecksReused": "Frozen original Auth 4 top / 19 including subcases race-pass, not re-run here; no old13 rerun.",
+  "ci": "Existing ynx-ai-runtime runs affected internal/aiproduct race tests. Shared policy remains owned/tested in original Auth line."
+}

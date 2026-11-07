@@ -35,8 +35,8 @@ func taskResourceFixture(t *testing.T) (*OriginalTaskReadResource, OriginalTaskR
 	}
 	proof := authgrant.Proof{Payload: []byte("PUBLIC payload"), Wire: []byte("PUBLIC not signature"), Purpose: "PUBLIC-fixture"}
 	r := OriginalTaskResourceReadRequest{Version: "1", AuthorityOperationID: "PUBLIC_AUTH_ORIGINAL_OP", ExpectedGrantRevision: b.GrantRevision, Binding: b, Grant: proof, Holder: proof, RawInput: []byte(input), AuthorizationRef: "PUBLIC_QUERY_REF"}
-	held.snapshot.Effect.OriginalOp = r.AuthorityOperationID
-	o := &OriginalTaskReadResource{store: store, verifier: p08OriginalVerifierFixture{held: held}, current: func(ctx context.Context) error { return ctx.Err() }, children: make(map[*OriginalTaskResourceReadCall]struct{}), queryCurrent: func(ctx context.Context) error { return ctx.Err() }}
+	held.snapshot.Effect.OriginalOp = "" // genuine NEW has no reserved operation
+	o := &OriginalTaskReadResource{store: store, verifier: &p08ResourceReservationFixture{held: held, operation: r.AuthorityOperationID}, current: func(ctx context.Context) error { return ctx.Err() }, children: make(map[*OriginalTaskResourceReadCall]struct{}), queryCurrent: func(ctx context.Context) error { return ctx.Err() }}
 	o.queryMaterial = func(ctx context.Context, q OriginalTaskAuthorizationRequest) (originalBrokerQueryMaterial, error) {
 		if !q.QueryOriginal || q.AuthorizationRef != r.AuthorizationRef {
 			return originalBrokerQueryMaterial{}, errToolConflict
@@ -126,7 +126,7 @@ func TestP08TaskResourceRetainsUncertainCloseAndPartial(t *testing.T) {
 			o, r, held := taskResourceFixture(t)
 			cause := errors.New("PUBLIC original close/partial cause")
 			if partial {
-				o.verifier = p08OriginalVerifierFixture{held: held, first: cause}
+				o.verifier = &p08ResourceReservationFixture{held: held, operation: r.AuthorityOperationID, first: cause}
 			} else {
 				held.closeErr = cause
 			}
