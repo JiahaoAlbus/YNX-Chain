@@ -58,6 +58,10 @@ on:
       - 'scripts/verify/init-consensus-candidate-keys-check.sh'
       - 'scripts/ops/consensus-recovery-capsule.sh'
       - 'scripts/ops/test_consensus_recovery_capsule.py'
+      - 'scripts/verify/pq-light-source-check.sh'
+      - 'scripts/ops/collect_pq_light_source_tests.py'
+      - 'scripts/ops/test_collect_pq_light_source_tests.py'
+      - 'scripts/ops/test_validate_pq_light_source_ci.py'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
       - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
@@ -180,6 +184,10 @@ on:
       - 'scripts/verify/init-consensus-candidate-keys-check.sh'
       - 'scripts/ops/consensus-recovery-capsule.sh'
       - 'scripts/ops/test_consensus_recovery_capsule.py'
+      - 'scripts/verify/pq-light-source-check.sh'
+      - 'scripts/ops/collect_pq_light_source_tests.py'
+      - 'scripts/ops/test_collect_pq_light_source_tests.py'
+      - 'scripts/ops/test_validate_pq_light_source_ci.py'
       - 'testdata/ethereum-native/**'
       - 'internal/api/ethereum_ethers_test.go'
       - 'internal/ynxresourceconsent/**'
@@ -1956,6 +1964,32 @@ jobs:
         run: |
           bash scripts/verify/public-bft-operator-transition-check.sh
           python3 -B scripts/ops/test_validate_bootstrap_registration_ci.py -v
+          python3 -B scripts/ops/test_collect_pq_light_source_tests.py -v
+          python3 -B scripts/ops/test_validate_pq_light_source_ci.py -v
+      - name: Verify original zero-transaction light source and normal verifier
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 4
+        env:
+          YNX_PQ_LIGHT_SOURCE_EVIDENCE: ${{ runner.temp }}/ynx-pq-light-source-public
+        run: timeout -k 5s 205s bash scripts/verify/pq-light-source-check.sh
+      - name: Retain original zero-transaction light source public evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-light-source-public-${{ github.sha }}
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/ynx-pq-light-source-public/GO.jsonl
+            ${{ runner.temp }}/ynx-pq-light-source-public/STDERR.log
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/migration.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/genesis.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/committed-state.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/schedule.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/trusted-light-block.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/request.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/trust-context.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/delivery.json
+            ${{ runner.temp }}/ynx-pq-light-source-public/public-delivery/PUBLIC-test-receipt.json
       - name: Verify original key ceremony retains partial custody and never creates during resume
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2

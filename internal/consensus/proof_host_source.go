@@ -447,6 +447,13 @@ func loadProofHostInputs(raw []byte, pin string) (_ *proofHostInputs, resultErr 
 	if err != nil {
 		return nil, err
 	}
+	return loadProofHostOriginalInputs(p, p.ExpectedTransaction.Block.ChainID)
+}
+
+// Shared original-file admission only. Each public entry validates its own
+// complete independently pinned plan before calling this private helper.
+func loadProofHostOriginalInputs(p ProofHostSourcePlan, chainID string) (_ *proofHostInputs, resultErr error) {
+	var err error
 	in := &proofHostInputs{plan: p, originals: map[string]*proofHostOriginal{}}
 	defer func() {
 		if resultErr != nil {
@@ -490,7 +497,7 @@ func loadProofHostInputs(raw []byte, pin string) (_ *proofHostInputs, resultErr 
 			return nil, err
 		}
 	}
-	if in.bootstrap.record.ChainID != p.ExpectedTransaction.Block.ChainID {
+	if in.bootstrap.record.ChainID != chainID {
 		return nil, errors.New("plan chain differs from independently pinned genesis")
 	}
 	return in, nil

@@ -545,6 +545,7 @@ func main() {
 	root.AddCommand(newObserverCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())
+	root.AddCommand(newExportLightSourceCommand())
 	root.AddCommand(newInspectProofHostTargetCommand())
 	root.AddCommand(newRequestProofHostSourceCommand())
 	root.AddCommand(newRequestWireObservationCommand())
