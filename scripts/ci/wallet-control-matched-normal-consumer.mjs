@@ -1,0 +1,2 @@
+// PUBLIC negative entry only. No A artifact, Native load, /Volumes reads or old suites.
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const root=fileURLToPath(new URL('../../',import.meta.url)),r=spawnSync(process.execPath,['--test','apps/wallet-desktop/scripts/test/wallet-control-matched-normal-component-public.test.mjs'],{cwd:root,stdio:'inherit'});if(r.signal||r.status!==0)process.exit(r.status??1);

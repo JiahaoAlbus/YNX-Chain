@@ -1,5 +1,7 @@
 import {verifyDesktopC6ApprovedHelper,desktopC6HelperPackedPath} from './desktop-native49-c6-helper.mjs';
-import {desktopNative49C6Selected,desktopNative49C6Selection,verifyDesktopNative49C6ASAR} from './desktop-native49-c6-pack.mjs';
+import {desktopNative49C6Selection} from './desktop-native49-c6-pack.mjs';
+import {desktopWalletControlMatchedSelection} from './desktop-wallet-control-matched-pack.mjs';
+import {desktopPackageNativeComponent,desktopPackageNativeOptions} from './desktop-package-native-selection.mjs';
 import {createPortablePackageConsumerRole} from './portable-package-consumer-role.mjs';
 import {COMMON_QA_INPUT_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {PORTABLE_QA_INPUT_NAMES,isPortableQARecord,isPortableQASourceAsset} from './canonical-native-portable-qa-profile.mjs';
@@ -356,7 +358,7 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   const archive=path.join(resources,"app.asar");
   asar.uncache(archive);
   const metadata=JSON.parse(asar.extractFile(archive,"package.json").toString("utf8"));
-  const expected=desktopReleaseIdentity(cwd,metadata.version,{native49C6:desktopNative49C6Selected(metadata)}),plan=relocationPlan(cwd,expected);
+  const expected=desktopReleaseIdentity(cwd,metadata.version,desktopPackageNativeOptions(metadata)),plan=relocationPlan(cwd,expected);
   const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit),evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
   // Preserve the normal early refusal for already-canonical/foreign inputs,
   // before attempting any raw source-path lookup or creating output streams.
@@ -395,7 +397,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   const archive=path.join(resources,"app.asar");
   asar.uncache(archive);
   const metadata=JSON.parse(asar.extractFile(archive,"package.json").toString("utf8"));
-  const expected=desktopReleaseIdentity(cwd,metadata.version,{native49C6:desktopNative49C6Selected(metadata)}),plan=relocationPlan(cwd,expected);
+  const expected=desktopReleaseIdentity(cwd,metadata.version,desktopPackageNativeOptions(metadata)),plan=relocationPlan(cwd,expected);
   assertSDKRuntimePackCoverage(cwd,expected.sourceCommit);
   const before=archiveInventory(asar,archive);
   const metadataInput=asar.extractFile(archive,'package.json');
@@ -416,7 +418,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
     assertSDKProductArchive(product,after);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
-    nativeRelocation=beginNativeRuntimeRelocation(nativeRecord,unpacked,desktopNative49C6Selected(metadata)?{c6RecordBytes:asar.extractFile(archive,desktopNative49C6Selection.recordRelative.slice('apps/wallet-desktop/'.length))}:{});
+    nativeRelocation=beginNativeRuntimeRelocation(nativeRecord,unpacked,desktopPackageNativeComponent(metadata)?{separateNative:desktopPackageNativeComponent(metadata),separateRecordBytes:asar.extractFile(archive,desktopPackageNativeComponent(metadata).selection.recordRelative.slice('apps/wallet-desktop/'.length))}:{});
     renameSync(archive,backup);archiveMoved=true;renameSync(output,archive);replacement=true;asar.uncache(archive);
     if(!isDeepStrictEqual(archiveInventory(asar,archive),after)) throw new Error("Retained unpacked tree differs");
     const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,nativeBuildEvidence:evidence.public,sdkProductRuntime:product?.public??null,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
@@ -431,7 +433,8 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   }finally{if(!retainTemporary)rmSync(temporary,{recursive:true,force:true});}
 }
 
-export function desktopReleaseIdentity(cwd = projectDir, version,{native49C6=false}={}) {
+export function desktopReleaseIdentity(cwd = projectDir, version,{native49C6=false,walletControlMatched=false}={}) {
+  if(native49C6&&walletControlMatched)throw Error('SEPARATE_NATIVE_SELECTION_CONFLICT');
   const root = git(cwd, "rev-parse", "--show-toplevel");
   const sourceCommit = git(root, "rev-parse", "HEAD");
   if (!/^[0-9a-f]{40}$/.test(sourceCommit)) throw new Error("An exact source commit is required");
@@ -443,7 +446,7 @@ export function desktopReleaseIdentity(cwd = projectDir, version,{native49C6=fal
   return Object.freeze({ schemaVersion: 1, product: "YNX Wallet", version, sourceVersion: metadata.version, sourceCommit,
     walletTree: git(root, "rev-parse", `${sourceCommit}:apps/wallet-desktop`),
     walletAuthTree: git(root, "rev-parse", `${sourceCommit}:packages/wallet-auth`),
-    ...(native49C6?{nativeComponentSelection:desktopNative49C6Selection}:{}),
+    ...(native49C6?{nativeComponentSelection:desktopNative49C6Selection}:walletControlMatched?{nativeComponentSelection:desktopWalletControlMatchedSelection}:{}),
     distribution: "testnet-preview", productionSigned: false, storeReleased: false,
     installedRuntimeVerified: false, publicDownloadVerified: false });
 }
@@ -456,7 +459,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // Verification must read the current archive, including after an in-process rebuild.
   asar.uncache(archive);
   const metadata = JSON.parse(asar.extractFile(archive, "package.json").toString("utf8"));
-  const expected = desktopReleaseIdentity(cwd, metadata.version,{native49C6:desktopNative49C6Selected(metadata)});
+  const expected = desktopReleaseIdentity(cwd, metadata.version,desktopPackageNativeOptions(metadata));
   assertSDKRuntimePackCoverage(cwd,expected.sourceCommit);
   const actual = JSON.parse(readFileSync(path.join(resources, "ynx-wallet-build-identity.json"), "utf8"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
@@ -492,17 +495,17 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(isCommonQARecord(nativeReceipt)||isPortableQARecord(nativeReceipt)?['apps/developer/helper','apps/pay/native/producer','apps/wallet-desktop/scripts']:nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
   const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
-  const c6Selected=desktopNative49C6Selected(metadata);
+  const separateNative=desktopPackageNativeComponent(metadata),c6Selected=separateNative!==null;
   if(c6Selected&&(sdkMetadata.version!==SDK49_VERSION||product?.public.sourceVariant!==SDK49_NORMAL_VARIANT))throw Error('C6_REQUIRES_NORMAL_SDK49_PRODUCT');
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||(!c6Selected&&!nativeBytes.equals(readFileSync(localNative)))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
   let originalR155=null,originalSDK13=null,separateC6=null;
   if(c6Selected){
-    const nodeComponent=verifyDesktopNative49C6ASAR({asar,archive,projectDir:cwd});
+    const nodeComponent=separateNative.verifyASAR({asar,archive,projectDir:cwd});
     const helperComponent=verifyDesktopC6ApprovedHelper({projectDir:cwd,recordBytes:nativeReceiptBytes,readPackedAsset:relative=>asar.extractFile(archive,desktopC6HelperPackedPath(relative))});
     if(!macAsarIntegrityVerified)throw Error("C6_SEPARATE_COMPONENTS_REQUIRE_MAC_BUNDLE");
     const helperBundle=verifySDK13HelperBundle(path.dirname(resources),asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),asar.extractFile(archive,desktopC6HelperPackedPath(SDK13_HELPER_PLIST)));
-    separateC6={kind:"YNX_DESKTOP_SEPARATELY_VERIFIED_NATIVE_COMPONENTS/v1",sourceRoles:desktopNative49C6Selection.sourceRoles,nodeComponent,helperComponent,helperBundle,JSRuntimeQualification:"SEPARATE_OUTER_SOURCE_VERIFICATION",pairedComponentVerified:false,RootAdmission:false,SourceAdmission:false,businessVerified:false};
+    separateC6={kind:"YNX_DESKTOP_SEPARATELY_VERIFIED_NATIVE_COMPONENTS/v1",sourceRoles:separateNative.selection.sourceRoles,nodeComponent,helperComponent,helperBundle,JSRuntimeQualification:"SEPARATE_OUTER_SOURCE_VERIFICATION",pairedComponentVerified:false,RootAdmission:false,SourceAdmission:false,businessVerified:false};
   }
   if([SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION].includes(sdkMetadata.version)){
     const extra=name=>{const packed=asar.extractFile(archive,canonicalSourcePath(name)),local=path.join(root,name);if(!lstatSync(local).isFile()||lstatSync(local).isSymbolicLink()||!packed.equals(readFileSync(local)))throw Error('R155 packaged supplier asset differs');return packed};
