@@ -1,3 +1,5 @@
+import {createDesktopAgentDelegationController} from './desktop-agent-delegation-controller.mjs';
+import {createDesktopAgentDelegationsService,installDesktopAgentDelegationsIPC} from './desktop-agent-delegations-ipc.mjs';
 import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
 import {createOriginalDeviceQueryController} from './original-device-query-controller.mjs';
 import {createOriginalDeviceFinalizationController} from './original-device-finalization-controller.mjs';
@@ -200,6 +202,7 @@ function captureOriginalMainProductFactories(){
  });
 }
 function invalidateOriginalMainContexts(){
+ if(agentDelegationsService)void agentDelegationsService.cancelView().catch(()=>{});
  let failed=false,cause;
  for(const bridge of [originalPayContextBridge,originalProductContextBridge])try{bridge.invalidateAll();}catch(error){if(!failed){failed=true;cause=error;}}
  if(failed)throw cause;
@@ -249,6 +252,7 @@ async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard,pay
   }
   if(failed)throw cause;return result;
 }
+let agentDelegationsService=null;
 let nativeWallet;
 let multichain;
 let familyAccounts;
@@ -264,6 +268,11 @@ let pqKeyPreparation;
 let pqBackupActions;
 let pqRegisteredRestore;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true,beforeInvalidate:invalidateOriginalMainContexts });
+// Formal protected grant getter/current fence is not supplied by this SDK
+// package. No renderer/provider substitute: the normal consumer stays absent.
+const agentDelegationsController=createDesktopAgentDelegationController({getContext:()=>keyAccess.status(),management:null});
+agentDelegationsService=createDesktopAgentDelegationsService({controller:agentDelegationsController});
+installDesktopAgentDelegationsIPC({handleWalletIPC,safeIPC,service:agentDelegationsService});
 const originalProjectControl=createOriginalWalletProjectControl();
 keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();if(status.locked)originalIDEIdentityPeer?.retire();if(status.locked)originalProjectControl.retire();});
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
@@ -405,11 +414,11 @@ async function shutdownOriginalPQWallet(){
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
   const registration=await Promise.allSettled([settle(()=>originalDeviceRegistration?.close()),settle(()=>originalDeviceFinalization?.close())]);
-  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeer?.shutdown()),settle(()=>originalProjectControl.shutdown())]);
+  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeer?.shutdown()),settle(()=>originalProjectControl.shutdown()),settle(()=>agentDelegationsService.close())]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');
   // Child owners must drain before releasing the namespace admission parent.
   if(!failed&&!retireFailed)try{
-    nativePayProduct?.assertSafeToClose();
+    nativePayProduct?.assertSafeToClose();agentDelegationsService.assertSafeToClose();
     originalProductContextBridge.assertSafeToClose();
     if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');
     originalPayContextBridge.assertSafeToClose();
@@ -417,7 +426,7 @@ async function shutdownOriginalPQWallet(){
   }catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{agentDelegationsService.assertSafeToClose();nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),

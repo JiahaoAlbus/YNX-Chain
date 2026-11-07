@@ -27,13 +27,14 @@ function fixture(failure,originalCause){
   originalDeviceQuery:{close:invoke('query-close')},
   originalIDEIdentityPeer:{shutdown:invoke('peer-close')},
   originalProjectControl:{shutdown:invoke('project-close')},
+  agentDelegationsService:{close:invoke('agent-close'),assertSafeToClose(){}},
   nativePayProduct:{assertSafeToClose(){}},pqTransactionSubmission:null,
   aiTaskPublicCleanupPresent:false,aiTaskPublicCleanupCause:undefined,aiTaskPublicParents:new Map()
  };
  return {calls,release,run:compileFunction(main.slice(begin,end)+';return shutdownOriginalPQWallet;',[],{contextExtensions:[context]})()};
 }
 
-for(const [failure,cause] of [['registration-close',false],['reviews-close',null],['pay-close',0],['finality-retire',undefined]]){
+for(const [failure,cause] of [['agent-close',Error('agent cleanup failed')],['registration-close',false],['reviews-close',null],['pay-close',0],['finality-retire',undefined]]){
  test('actual Main drains every original owner after synchronous '+failure+' failure',async()=>{
   const f=fixture(failure,cause);let settled=false;
   const work=f.run();const observed=work.then(()=>{settled=true;return {failed:false};},error=>{settled=true;return {failed:true,error};});
@@ -42,7 +43,7 @@ for(const [failure,cause] of [['registration-close',false],['reviews-close',null
   f.release();const outcome=await observed;
   assert.equal(beforeRelease.settled,false,'must wait for the original pending child despite a synchronous failure');
   assert(beforeRelease.calls.includes('finalization-close'),'one synchronous close cannot skip a sibling');
-  for(const name of ['reviews-close','pay-close','creation-close','query-close','finality-join','peer-close','project-close'])assert.equal(f.calls.filter(value=>value===name).length,1,name);
+  for(const name of ['reviews-close','pay-close','creation-close','query-close','finality-join','peer-close','project-close','agent-close'])assert.equal(f.calls.filter(value=>value===name).length,1,name);
   assert(f.calls.indexOf('creation-close')>f.calls.indexOf('finalization-done'),'registration children drain before creation parent');
   assert.equal(outcome.failed,true);assert.equal(outcome.error,cause,'preserve the exact falsy original failure');
   assert.equal(f.calls.includes('namespace-close'),false,'unresolved cleanup cannot release the namespace parent');

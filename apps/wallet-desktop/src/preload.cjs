@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  agentDelegationsRead:()=>ipcRenderer.invoke('wallet:agent-delegations-read'),
+  agentDelegationsDraft:draft=>ipcRenderer.invoke('wallet:agent-delegations-draft',draft),
+  agentDelegationsAction:selection=>ipcRenderer.invoke('wallet:agent-delegations-action',selection),
+  agentDelegationsRecover:operationId=>ipcRenderer.invoke('wallet:agent-delegations-recover',operationId),
+  agentDelegationsCancel:()=>ipcRenderer.invoke('wallet:agent-delegations-cancel'),
   prepareDeviceCreate:()=>ipcRenderer.invoke('wallet:prepare-device-create'),
   deviceCreateStatus:()=>ipcRenderer.invoke('wallet:device-create-status'),
   queryOriginalDevice:()=>ipcRenderer.invoke('wallet:query-original-device'),
