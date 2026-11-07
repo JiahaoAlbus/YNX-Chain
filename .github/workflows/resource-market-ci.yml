@@ -2158,6 +2158,43 @@ jobs:
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-lab-callee-tests.jsonl').read_text().splitlines()]
           required = ['TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost', 'TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost', 'TestPQLabCalleeElapsedPUBLICColdSingleBefore', 'TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter', 'TestPQLabCheckpointCacheFallbackLargeOriginal', 'TestPQLabCheckpointCacheFallbackOnlyExactBound', 'TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent']
+          public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+          required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+          def qualify_public_owner_cli(events):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
+              if any(not isinstance(e, dict) for e in events):
+                  raise RuntimeError('original lab CLI stream is malformed')
+              build_notices = [e for e in events if e.get('Action') == 'build-output']
+              if build_notices != events[:len(build_notices)] or any(set(e) != {'Action', 'ImportPath', 'Output'} or e['ImportPath'] != package + '.test' or not isinstance(e['Output'], str) or not e['Output'] for e in build_notices):
+                  raise RuntimeError('original lab CLI build diagnostic differs from its package')
+              events = events[len(build_notices):]
+              if not events or any(e.get('Package') != package or e.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for e in events):
+                  raise RuntimeError('original lab CLI stream failed, skipped or changed package')
+              if [i for i, e in enumerate(events) if 'Test' not in e and e['Action'] == 'start'] != [0] or [i for i, e in enumerate(events) if 'Test' not in e and e['Action'] == 'pass'] != [len(events) - 1]:
+                  raise RuntimeError('original lab CLI package did not start and pass uniquely')
+              seen, passed = set(), set()
+              for event in events:
+                  name, action = event.get('Test'), event['Action']
+                  if name is None:
+                      continue
+                  if not isinstance(name, str) or not name or name.split('/')[0] not in required or any(not part for part in name.split('/')):
+                      raise RuntimeError('original lab CLI test differs from the required scope')
+                  parent = name.rsplit('/', 1)[0] if '/' in name else None
+                  if action == 'run':
+                      if name in seen or (parent is not None and (parent not in seen or parent in passed)):
+                          raise RuntimeError('original lab CLI run repeated or lacks active parent')
+                      seen.add(name)
+                  elif action == 'pass':
+                      if name not in seen or name in passed:
+                          raise RuntimeError('original lab CLI pass lacks its unique run')
+                      passed.add(name)
+                  elif action not in ('pause', 'cont', 'output') or name not in seen or name in passed:
+                      raise RuntimeError('original lab CLI event lacks its active run')
+              if seen != passed or not set(required).issubset(passed):
+                  raise RuntimeError('original lab CLI top or child is incomplete')
+              return public_owner_cli_required
+          public_owner_cli_passed = qualify_public_owner_cli(events)
+          print('YNX_PUBLIC_OWNER_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_cli_passed, suitePassed=True, networkLoadMeasured=False, publicFinality=False, nativeGrant=False), sort_keys=True))
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -2422,10 +2459,22 @@ jobs:
                   if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
                       raise RuntimeError('live cold owner did not execute uniquely: ' + name)
               return live_cold_owner_required
+          public_owner_core_required = ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
+          def qualify_public_owner_core(events):
+              qualify_state_partitions(events)
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+              for name in public_owner_core_required:
+                  runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+                  outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                  if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                      raise RuntimeError('public owner core did not execute uniquely: ' + name)
+              return public_owner_core_required
           state_partition_summary = qualify_state_partitions(events)
           print('YNX_COMPLETE_STATE_PARTITIONS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], **state_partition_summary), sort_keys=True))
           live_cold_owner_passed = qualify_live_cold_owner(events)
           print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_cold_owner_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
+          public_owner_core_passed = qualify_public_owner_core(events)
+          print('YNX_PUBLIC_OWNER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_core_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
           PY
           python3 -B - <<'PY'
           import json, os
@@ -2440,6 +2489,7 @@ jobs:
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
+          required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
@@ -3153,6 +3203,125 @@ jobs:
           done
           [[ $ynx_cases == 22 ]] || fail 'unexpected control count'
           printf 'YNX_REMOTE_CHECKPOINT_OPERATOR_CONTROLS_PASS %s\n' "$ynx_cases"
+      - name: Retain exact public test streams and same-job source identity
+        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}
+        run: |
+          python3 -B - <<'PYCI'
+          import hashlib, json, os, re, stat, subprocess
+          from pathlib import Path
+
+          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl')
+          PUBLIC_STREAM_SOURCE_NAMES = ('.github/workflows/resource-market-ci.yml', 'scripts/ops/test_validate_pq_remote_normal_ci.py')
+
+          def file_identity(info):
+              return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+          def retain_public_streams(originals, output, identity, source_files, source_errors):
+              output.mkdir(mode=0o700)
+              files, errors = [], list(source_errors)
+              for name in PUBLIC_STREAM_NAMES:
+                  source, target = originals / name, output / name
+                  record = dict(path=name, status='missing')
+                  fd = None
+                  try:
+                      fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                      before = os.fstat(fd)
+                      if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+                          raise RuntimeError('nonregular or aliased original stream')
+                      digest, length = hashlib.sha256(), 0
+                      with target.open('xb') as destination:
+                          os.chmod(target, 0o600)
+                          while True:
+                              chunk = os.read(fd, 1 << 20)
+                              if not chunk:
+                                  break
+                              destination.write(chunk)
+                              digest.update(chunk)
+                              length += len(chunk)
+                          destination.flush()
+                          os.fsync(destination.fileno())
+                      after, current = os.fstat(fd), os.lstat(source)
+                      if file_identity(before) != file_identity(after) or file_identity(after) != file_identity(current) or length != before.st_size:
+                          raise RuntimeError('original stream changed during capture')
+                      with target.open('rb') as captured:
+                          copied_sha = hashlib.file_digest(captured, 'sha256').hexdigest()
+                      if target.stat().st_size != length or copied_sha != digest.hexdigest():
+                          raise RuntimeError('captured public stream differs from original bytes')
+                      record = dict(path=name, status='captured', bytes=length, sha256=copied_sha)
+                  except FileNotFoundError:
+                      errors.append(name + ':missing')
+                  except (OSError, RuntimeError) as error:
+                      record['status'] = 'refused'
+                      record['reason'] = type(error).__name__
+                      errors.append(name + ':refused')
+                  finally:
+                      if fd is not None:
+                          try:
+                              os.close(fd)
+                          except OSError:
+                              record['status'] = 'refused'
+                              record['reason'] = 'close-error'
+                              errors.append(name + ':close-error')
+                  files.append(record)
+              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1', **identity, sourceFiles=source_files,
+                              files=files, captureComplete=not errors, errors=errors,
+                              testQualification='not-evaluated', nativeGrant=False, nodeStartAuthorized=False, publicDeployment=False)
+              with (output / 'SOURCE.json').open('x') as destination:
+                  json.dump(metadata, destination, sort_keys=True, separators=(',', ':'))
+                  destination.write('\n')
+                  destination.flush()
+                  os.fsync(destination.fileno())
+              if errors:
+                  raise RuntimeError('original public streams or source identity missing/refused; retained SOURCE.json records first cause')
+              return metadata
+
+          def original_source_identity(workspace):
+              errors, source_files = [], {}
+              def git(*args):
+                  try:
+                      return subprocess.check_output(['git', *args], cwd=workspace, text=True, stderr=subprocess.PIPE).strip()
+                  except subprocess.CalledProcessError:
+                      errors.append('git:' + args[0])
+                      return None
+              identity = dict(commit=git('rev-parse', 'HEAD'), sourceTree=git('rev-parse', 'HEAD^{tree}'),
+                              cometForkTree=git('rev-parse', 'HEAD:third_party/cometbft'),
+                              repository=os.environ.get('GITHUB_REPOSITORY'), runId=os.environ.get('GITHUB_RUN_ID'),
+                              runAttempt=os.environ.get('GITHUB_RUN_ATTEMPT'), job=os.environ.get('GITHUB_JOB'))
+              if identity['commit'] != os.environ.get('GITHUB_SHA') or any(not isinstance(identity[key], str) or not re.fullmatch(r'[0-9a-f]{40}', identity[key]) for key in ('commit', 'sourceTree', 'cometForkTree')):
+                  errors.append('source-identity')
+              if identity['repository'] != 'JiahaoAlbus/YNX-Chain' or identity['job'] != 'focused-go' or any(not isinstance(identity[key], str) or not re.fullmatch(r'[1-9][0-9]*', identity[key]) for key in ('runId', 'runAttempt')):
+                  errors.append('job-identity')
+              for name in PUBLIC_STREAM_SOURCE_NAMES:
+                  try:
+                      actual = (workspace / name).read_bytes()
+                      original = subprocess.check_output(['git', 'show', 'HEAD:' + name], cwd=workspace, stderr=subprocess.PIPE)
+                      if actual != original:
+                          raise RuntimeError('original CI source bytes changed')
+                      source_files[name] = dict(bytes=len(actual), sha256=hashlib.sha256(actual).hexdigest(), gitBlob=git('rev-parse', 'HEAD:' + name))
+                  except (OSError, RuntimeError, subprocess.CalledProcessError):
+                      source_files[name] = dict(status='missing-or-changed')
+                      errors.append('source-file:' + name)
+              return identity, source_files, errors
+
+          workspace = Path(os.environ['GITHUB_WORKSPACE'])
+          originals = Path(os.environ['RUNNER_TEMP'])
+          identity, source_files, source_errors = original_source_identity(workspace)
+          retain_public_streams(originals, originals / 'ynx-focused-public-test-streams', identity, source_files, source_errors)
+          PYCI
+      - name: Upload only original focused public test streams
+        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-focused-public-test-streams-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-focused-public-test-streams/SOURCE.json
+            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-native-history-chain-tests.jsonl
+            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-initial-cache-state-tests.jsonl
+            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-current4-wire-tests.jsonl
+            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-lab-callee-tests.jsonl
+          if-no-files-found: error
+          compression-level: 6
+          retention-days: 7
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}

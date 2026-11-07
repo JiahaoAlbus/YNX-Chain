@@ -1439,6 +1439,64 @@ print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GI
 LIVE_COLD_OWNER_REQUIRED = "required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']\n"
 
 
+PUBLIC_OWNER_CORE_BLOCK = """public_owner_core_required = ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
+def qualify_public_owner_core(events):
+    qualify_state_partitions(events)
+    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+    for name in public_owner_core_required:
+        runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+        outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+        if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+            raise RuntimeError('public owner core did not execute uniquely: ' + name)
+    return public_owner_core_required
+"""
+PUBLIC_OWNER_CORE_CALL = """public_owner_core_passed = qualify_public_owner_core(events)
+print('YNX_PUBLIC_OWNER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_core_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
+"""
+PUBLIC_OWNER_CORE_REQUIRED = """required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
+"""
+PUBLIC_OWNER_CLI_BLOCK = """public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+def qualify_public_owner_cli(events):
+    package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
+    if any(not isinstance(e, dict) for e in events):
+        raise RuntimeError('original lab CLI stream is malformed')
+    build_notices = [e for e in events if e.get('Action') == 'build-output']
+    if build_notices != events[:len(build_notices)] or any(set(e) != {'Action', 'ImportPath', 'Output'} or e['ImportPath'] != package + '.test' or not isinstance(e['Output'], str) or not e['Output'] for e in build_notices):
+        raise RuntimeError('original lab CLI build diagnostic differs from its package')
+    events = events[len(build_notices):]
+    if not events or any(e.get('Package') != package or e.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for e in events):
+        raise RuntimeError('original lab CLI stream failed, skipped or changed package')
+    if [i for i, e in enumerate(events) if 'Test' not in e and e['Action'] == 'start'] != [0] or [i for i, e in enumerate(events) if 'Test' not in e and e['Action'] == 'pass'] != [len(events) - 1]:
+        raise RuntimeError('original lab CLI package did not start and pass uniquely')
+    seen, passed = set(), set()
+    for event in events:
+        name, action = event.get('Test'), event['Action']
+        if name is None:
+            continue
+        if not isinstance(name, str) or not name or name.split('/')[0] not in required or any(not part for part in name.split('/')):
+            raise RuntimeError('original lab CLI test differs from the required scope')
+        parent = name.rsplit('/', 1)[0] if '/' in name else None
+        if action == 'run':
+            if name in seen or (parent is not None and (parent not in seen or parent in passed)):
+                raise RuntimeError('original lab CLI run repeated or lacks active parent')
+            seen.add(name)
+        elif action == 'pass':
+            if name not in seen or name in passed:
+                raise RuntimeError('original lab CLI pass lacks its unique run')
+            passed.add(name)
+        elif action not in ('pause', 'cont', 'output') or name not in seen or name in passed:
+            raise RuntimeError('original lab CLI event lacks its active run')
+    if seen != passed or not set(required).issubset(passed):
+        raise RuntimeError('original lab CLI top or child is incomplete')
+    return public_owner_cli_required
+public_owner_cli_passed = qualify_public_owner_cli(events)
+print('YNX_PUBLIC_OWNER_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_cli_passed, suitePassed=True, networkLoadMeasured=False, publicFinality=False, nativeGrant=False), sort_keys=True))
+"""
+PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED = """required = ['TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost', 'TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost', 'TestPQLabCalleeElapsedPUBLICColdSingleBefore', 'TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter', 'TestPQLabCheckpointCacheFallbackLargeOriginal', 'TestPQLabCheckpointCacheFallbackOnlyExactBound', 'TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent']
+"""
+
+
 def assert_state_math_required_workflow_contract(step):
     """Keep all original cases exactly once across bounded source partitions."""
     required = re.findall(r"(?m)^          required = (.+)$", step)
@@ -1483,6 +1541,9 @@ def assert_state_math_required_workflow_contract(step):
     for block in (LIVE_COLD_OWNER_BLOCK, LIVE_COLD_OWNER_CALL, LIVE_COLD_OWNER_REQUIRED):
         if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
             raise AssertionError("live cold owner requires both actual cases and the complete original stream")
+    for block in (PUBLIC_OWNER_CORE_BLOCK, PUBLIC_OWNER_CORE_CALL, PUBLIC_OWNER_CORE_REQUIRED):
+        if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
+            raise AssertionError("public owner core requires exact original cases and whole-stream closure")
     commands = (command, proof_command, production, live, large_live)
     if [step.index(c) for c in commands] != sorted(step.index(c) for c in commands):
         raise AssertionError("state partition execution order changed")
@@ -4313,6 +4374,219 @@ class LiveColdOwnerCIControls(unittest.TestCase):
                 changed=copy.deepcopy(events);changed[at]['Package']='foreign';bad.append(changed)
         for index, changed in enumerate(bad):
             with self.subTest(index=index), self.assertRaises(RuntimeError):qualify(changed)
+
+
+
+PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test streams and same-job source identity\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        run: |\n          python3 -B - <<'PYCI'\n          import hashlib, json, os, re, stat, subprocess\n          from pathlib import Path\n\n          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl')\n          PUBLIC_STREAM_SOURCE_NAMES = ('.github/workflows/resource-market-ci.yml', 'scripts/ops/test_validate_pq_remote_normal_ci.py')\n\n          def file_identity(info):\n              return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)\n\n          def retain_public_streams(originals, output, identity, source_files, source_errors):\n              output.mkdir(mode=0o700)\n              files, errors = [], list(source_errors)\n              for name in PUBLIC_STREAM_NAMES:\n                  source, target = originals / name, output / name\n                  record = dict(path=name, status='missing')\n                  fd = None\n                  try:\n                      fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n                      before = os.fstat(fd)\n                      if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:\n                          raise RuntimeError('nonregular or aliased original stream')\n                      digest, length = hashlib.sha256(), 0\n                      with target.open('xb') as destination:\n                          os.chmod(target, 0o600)\n                          while True:\n                              chunk = os.read(fd, 1 << 20)\n                              if not chunk:\n                                  break\n                              destination.write(chunk)\n                              digest.update(chunk)\n                              length += len(chunk)\n                          destination.flush()\n                          os.fsync(destination.fileno())\n                      after, current = os.fstat(fd), os.lstat(source)\n                      if file_identity(before) != file_identity(after) or file_identity(after) != file_identity(current) or length != before.st_size:\n                          raise RuntimeError('original stream changed during capture')\n                      with target.open('rb') as captured:\n                          copied_sha = hashlib.file_digest(captured, 'sha256').hexdigest()\n                      if target.stat().st_size != length or copied_sha != digest.hexdigest():\n                          raise RuntimeError('captured public stream differs from original bytes')\n                      record = dict(path=name, status='captured', bytes=length, sha256=copied_sha)\n                  except FileNotFoundError:\n                      errors.append(name + ':missing')\n                  except (OSError, RuntimeError) as error:\n                      record['status'] = 'refused'\n                      record['reason'] = type(error).__name__\n                      errors.append(name + ':refused')\n                  finally:\n                      if fd is not None:\n                          try:\n                              os.close(fd)\n                          except OSError:\n                              record['status'] = 'refused'\n                              record['reason'] = 'close-error'\n                              errors.append(name + ':close-error')\n                  files.append(record)\n              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1', **identity, sourceFiles=source_files,\n                              files=files, captureComplete=not errors, errors=errors,\n                              testQualification='not-evaluated', nativeGrant=False, nodeStartAuthorized=False, publicDeployment=False)\n              with (output / 'SOURCE.json').open('x') as destination:\n                  json.dump(metadata, destination, sort_keys=True, separators=(',', ':'))\n                  destination.write('\\n')\n                  destination.flush()\n                  os.fsync(destination.fileno())\n              if errors:\n                  raise RuntimeError('original public streams or source identity missing/refused; retained SOURCE.json records first cause')\n              return metadata\n\n          def original_source_identity(workspace):\n              errors, source_files = [], {}\n              def git(*args):\n                  try:\n                      return subprocess.check_output(['git', *args], cwd=workspace, text=True, stderr=subprocess.PIPE).strip()\n                  except subprocess.CalledProcessError:\n                      errors.append('git:' + args[0])\n                      return None\n              identity = dict(commit=git('rev-parse', 'HEAD'), sourceTree=git('rev-parse', 'HEAD^{tree}'),\n                              cometForkTree=git('rev-parse', 'HEAD:third_party/cometbft'),\n                              repository=os.environ.get('GITHUB_REPOSITORY'), runId=os.environ.get('GITHUB_RUN_ID'),\n                              runAttempt=os.environ.get('GITHUB_RUN_ATTEMPT'), job=os.environ.get('GITHUB_JOB'))\n              if identity['commit'] != os.environ.get('GITHUB_SHA') or any(not isinstance(identity[key], str) or not re.fullmatch(r'[0-9a-f]{40}', identity[key]) for key in ('commit', 'sourceTree', 'cometForkTree')):\n                  errors.append('source-identity')\n              if identity['repository'] != 'JiahaoAlbus/YNX-Chain' or identity['job'] != 'focused-go' or any(not isinstance(identity[key], str) or not re.fullmatch(r'[1-9][0-9]*', identity[key]) for key in ('runId', 'runAttempt')):\n                  errors.append('job-identity')\n              for name in PUBLIC_STREAM_SOURCE_NAMES:\n                  try:\n                      actual = (workspace / name).read_bytes()\n                      original = subprocess.check_output(['git', 'show', 'HEAD:' + name], cwd=workspace, stderr=subprocess.PIPE)\n                      if actual != original:\n                          raise RuntimeError('original CI source bytes changed')\n                      source_files[name] = dict(bytes=len(actual), sha256=hashlib.sha256(actual).hexdigest(), gitBlob=git('rev-parse', 'HEAD:' + name))\n                  except (OSError, RuntimeError, subprocess.CalledProcessError):\n                      source_files[name] = dict(status='missing-or-changed')\n                      errors.append('source-file:' + name)\n              return identity, source_files, errors\n\n          workspace = Path(os.environ['GITHUB_WORKSPACE'])\n          originals = Path(os.environ['RUNNER_TEMP'])\n          identity, source_files, source_errors = original_source_identity(workspace)\n          retain_public_streams(originals, originals / 'ynx-focused-public-test-streams', identity, source_files, source_errors)\n          PYCI\n      - name: Upload only original focused public test streams\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: ynx-focused-public-test-streams-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n          path: |\n            ${{ runner.temp }}/ynx-focused-public-test-streams/SOURCE.json\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-native-history-chain-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-initial-cache-state-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-current4-wire-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-lab-callee-tests.jsonl\n          if-no-files-found: error\n          compression-level: 6\n          retention-days: 7\n"
+
+
+def assert_public_owner_cli_workflow_contract(step):
+    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
+    if step.count(command) != 1 or step.count('go test ') != 1 or '        timeout-minutes: 3\n' not in step:
+        raise AssertionError('original single bounded lab CLI call must remain')
+    for block in (PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED, PUBLIC_OWNER_CLI_BLOCK):
+        if step.count(''.join('          '+line+'\n' for line in block.splitlines())) != 1:
+            raise AssertionError('all old lab cases and exact two owner CLI cases must remain qualified')
+    if step.count("          print('YNX_LAB_CALLEE_TESTS '") != 1:
+        raise AssertionError('original lab evidence marker must remain')
+
+
+class PublicOwnerSessionCIControls(unittest.TestCase):
+    def core(self):
+        controls=CompleteStatePartitionControls()
+        root,raw,step,scope=controls.workflow_parts();events=controls.fixture(scope)
+        package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        at=[i for i,e in enumerate(events) if e['Action']=='start'][3]+1
+        rows=[]
+        for name in scope['public_owner_core_required']:
+            rows += [dict(Package=package,Test=n,Action=a) for n,a in ((name,'run'),(name+'/original','run'),(name+'/original','pass'),(name,'pass'))]
+        return root,step,scope,events[:at]+rows+events[at:]
+
+    def cli(self):
+        import textwrap
+        root=Path(__file__).resolve().parents[2]
+        _,steps=workflow_steps((root/'.github/workflows/resource-market-ci.yml').read_text())
+        step=next(s for s in steps if s.startswith('      - name: Exercise original lab callee readiness and actual cold costs\n'))
+        start=step.index('          required = ');end=step.index('          public_owner_cli_passed = ',start)
+        scope={};exec(compile(textwrap.dedent(step[start:end]),'actual-public-owner-cli-collector','exec'),scope)
+        package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
+        events=[dict(Package=package,Action='start')]
+        for name in scope['required']:
+            events += [dict(Package=package,Test=n,Action=a) for n,a in ((name,'run'),(name+'/original','run'),(name+'/original','pass'),(name,'pass'))]
+        events.append(dict(Package=package,Action='pass'))
+        return root,step,scope,events
+
+    def reject_variants(self,scope,events,qualifier,names):
+        bad=[[],events[1:],events[:-1],events+events,[dict(e,Package='foreign') if i==1 else e for i,e in enumerate(events)]]
+        for name in names:
+            bad += [[e for e in events if not e.get('Test','').startswith(name)],
+                    [dict(e,Test=e['Test'].replace(name,name+'Renamed',1)) if e.get('Test','').startswith(name) else e for e in events]]
+            for test in (name,name+'/original'):
+                for action in ('run','pass'):
+                    at=next(i for i,e in enumerate(events) if e.get('Test')==test and e['Action']==action)
+                    bad += [events[:at]+events[at+1:],events[:at]+[events[at]]+events[at:]]
+                at=next(i for i,e in enumerate(events) if e.get('Test')==test and e['Action']=='pass')
+                for action in ('skip','fail','build-fail'):
+                    v=copy.deepcopy(events);v[at]['Action']=action;bad.append(v)
+        for i,v in enumerate(bad):
+            with self.subTest(index=i),self.assertRaises(RuntimeError):scope[qualifier](v)
+
+    def test_public_owner_core_exact_source_and_original_lab_call(self):
+        root,step,scope,events=self.core();assert_state_math_required_workflow_contract(step)
+        sources=[root/'internal/consensus/pq_lab_sender_source_stats_test.go',root/'internal/consensus/pq_lab_public_owner_session_test.go']
+        source='\n'.join(p.read_text() for p in sources)
+        for name in scope['public_owner_core_required']:
+            self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)',source,re.M)),1)
+        self.assertEqual(scope['qualify_public_owner_core'](events),scope['public_owner_core_required'])
+        for changed in (step.replace('public_owner_core_passed = qualify_public_owner_core(events)','public_owner_core_passed = public_owner_core_required',1),step.replace("required += "+repr(scope['public_owner_core_required']), 'required += []',1)):
+            with self.assertRaises(AssertionError):assert_state_math_required_workflow_contract(changed)
+
+    def test_public_owner_core_rejects_partial_duplicate_or_failed_child(self):
+        _,_,scope,events=self.core()
+        self.reject_variants(scope,events,'qualify_public_owner_core',scope['public_owner_core_required'])
+
+    def test_public_owner_cli_exact_source_keeps_old_seven_and_single_90_second_call(self):
+        root,step,scope,events=self.cli();assert_public_owner_cli_workflow_contract(step)
+        self.assertEqual(len(scope['required']),9)
+        source=(root/'cmd/ynx-consensus-pq-lab/public_owner_session_test.go').read_text()
+        for name in scope['public_owner_cli_required']:
+            self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)',source,re.M)),1)
+        self.assertEqual(scope['qualify_public_owner_cli'](events),scope['public_owner_cli_required'])
+        mutations=[step.replace('-timeout=90s','-timeout=91s',1),step.replace('TestPQLab(SenderPUBLIC|','TestPQLab(MissingPUBLIC|',1),step.replace('public_owner_cli_passed = qualify_public_owner_cli(events)','public_owner_cli_passed = public_owner_cli_required',1),step.replace(scope['required'][0],'OldCaseOmitted',1)]
+        for changed in mutations:
+            with self.assertRaises(AssertionError):assert_public_owner_cli_workflow_contract(changed)
+
+    def test_public_owner_cli_rejects_missing_duplicate_foreign_child_skip_and_build_failure(self):
+        _,_,scope,events=self.cli()
+        self.reject_variants(scope,events,'qualify_public_owner_cli',scope['required'])
+        package=events[0]['Package'];notice=dict(Action='build-output',ImportPath=package+'.test',Output='original compiler diagnostic\n')
+        self.assertEqual(scope['qualify_public_owner_cli']([notice]+events),scope['public_owner_cli_required'])
+        for changed in (events+[notice],[dict(notice,ImportPath='foreign')]+events,[dict(notice,Action='build-fail')]+events, events[1:2]+events[:1]+events[2:], events[:1]+events[-1:]+events[1:-1]):
+            with self.assertRaises(RuntimeError):scope['qualify_public_owner_cli'](changed)
+
+
+
+def assert_public_stream_retention_workflow_contract(raw):
+    _, steps = workflow_steps(raw)
+    names = ('Retain exact public test streams and same-job source identity', 'Upload only original focused public test streams')
+    found = [step for step in steps if any(step.startswith('      - name: '+name+'\n') for name in names)]
+    if len(found) != 2 or ''.join(found) != PUBLIC_TEST_STREAM_RETENTION_STEPS:
+        raise AssertionError('exact four public byte streams and same-job source capture/upload required')
+    prior = next(i for i, step in enumerate(steps) if step.startswith('      - name: Verify operator checkpoint format and original read-lock admission\n'))
+    indices = [steps.index(step) for step in found]
+    if indices != [prior+1, prior+2]:
+        raise AssertionError('public capture must follow ordinary execution and precede optional node windows')
+
+
+class PublicTestStreamRetentionControls(unittest.TestCase):
+    def parts(self):
+        import textwrap
+        root=Path(__file__).resolve().parents[2]
+        raw=(root/'.github/workflows/resource-market-ci.yml').read_text()
+        _,steps=workflow_steps(raw)
+        step=next(s for s in steps if s.startswith('      - name: Retain exact public test streams and same-job source identity\n'))
+        start=step.index('          import hashlib, json, os, re, stat, subprocess\n')
+        end=step.index("          workspace = Path(os.environ['GITHUB_WORKSPACE'])\n",start)
+        scope={};exec(compile(textwrap.dedent(step[start:end]),'actual-public-test-stream-retention','exec'),scope)
+        return raw,scope
+
+    def test_public_streams_have_exact_original_paths_source_and_failure_retention(self):
+        raw,_=self.parts();assert_public_stream_retention_workflow_contract(raw)
+        block=PUBLIC_TEST_STREAM_RETENTION_STEPS
+        changes=[block.replace('!cancelled()', 'success()',1),block.replace('retention-days: 7','retention-days: 8',1),block.replace('compression-level: 6','compression-level: 0',1),block.replace('if-no-files-found: error','if-no-files-found: warn',1),block.replace('/ynx-current4-wire-tests.jsonl','/*',1),block.replace("git('rev-parse', 'HEAD^{tree}')","os.environ.get('SOURCE_TREE')",1),block.replace('testQualification=\'not-evaluated\'','testQualification=\'pass\'',1),block.replace('source_errors)','[])',1),block.replace('os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK','os.O_RDONLY',1)]
+        for changed in changes:
+            self.assertNotEqual(block,changed)
+            with self.assertRaises(AssertionError):assert_public_stream_retention_workflow_contract(raw.replace(block,changed,1))
+        with self.assertRaises(AssertionError):assert_public_stream_retention_workflow_contract(raw.replace(block,block+block,1))
+
+    def fixture(self,scope,root):
+        originals=root/'originals';originals.mkdir()
+        raw={name:('original stdout, not a manufactured JSON success: '+name+'\n').encode()+b'\x00\xff' for name in scope['PUBLIC_STREAM_NAMES']}
+        for name,data in raw.items():(originals/name).write_bytes(data)
+        (originals/'private-key').write_bytes(b'NEVER-UPLOAD')
+        return originals,raw
+
+    def test_actual_capture_keeps_each_original_byte_and_source_pin_without_claiming_tests_passed(self):
+        import tempfile,hashlib
+        _,scope=self.parts()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);originals,raw=self.fixture(scope,root);output=root/'public'
+            identity=dict(commit='a'*40,sourceTree='b'*40,cometForkTree='c'*40,repository='synthetic-control',runId='1',runAttempt='1',job='focused-go')
+            source_files={'example-source':dict(bytes=3,sha256=hashlib.sha256(b'abc').hexdigest())}
+            result=scope['retain_public_streams'](originals,output,identity,source_files,[])
+            self.assertEqual({f.name for f in output.iterdir()},set(raw)|{'SOURCE.json'})
+            self.assertTrue(result['captureComplete']);self.assertEqual(result['testQualification'],'not-evaluated')
+            self.assertFalse(result['nativeGrant']);self.assertEqual(result['sourceFiles'],source_files)
+            for item in result['files']:
+                self.assertEqual(item,dict(path=item['path'],status='captured',bytes=len(raw[item['path']]),sha256=hashlib.sha256(raw[item['path']]).hexdigest()))
+                self.assertEqual((output/item['path']).read_bytes(),raw[item['path']]);self.assertEqual((originals/item['path']).read_bytes(),raw[item['path']])
+            self.assertNotIn(b'NEVER-UPLOAD',(output/'SOURCE.json').read_bytes())
+            before=(output/'SOURCE.json').read_bytes()
+            with self.assertRaises(FileExistsError):scope['retain_public_streams'](originals,output,identity,source_files,[])
+            self.assertEqual(before,(output/'SOURCE.json').read_bytes())
+
+    def test_missing_unsafe_or_changing_originals_preserve_real_failure_not_empty_success(self):
+        import tempfile,os
+        _,scope=self.parts()
+        for mode in ('missing','symlink','source-mismatch','changing','close-error'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as directory:
+                root=Path(directory);originals,raw=self.fixture(scope,root);output=root/'public';name=scope['PUBLIC_STREAM_NAMES'][0];target=originals/name
+                errors=[]
+                if mode=='missing':target.unlink()
+                if mode=='symlink':target.unlink();target.symlink_to(originals/'private-key')
+                if mode=='source-mismatch':errors=['source-identity']
+                original_read=os.read;changed=False
+                def read(fd,n):
+                    nonlocal changed
+                    result=original_read(fd,n)
+                    if mode=='changing' and result and not changed:
+                        with target.open('ab') as f:f.write(b'changed-after-read')
+                        changed=True
+                    return result
+                original_close=os.close;close_failed=False
+                def close(fd):
+                    nonlocal close_failed
+                    original_close(fd)
+                    if mode=='close-error' and not close_failed:
+                        close_failed=True
+                        raise OSError('controlled close first cause')
+                with patch.object(scope['os'],'read',read),patch.object(scope['os'],'close',close),self.assertRaises(RuntimeError):scope['retain_public_streams'](originals,output,dict(commit='a'*40),{},errors)
+                metadata=json.loads((output/'SOURCE.json').read_text());self.assertFalse(metadata['captureComplete']);self.assertTrue(metadata['errors']);self.assertEqual(metadata['testQualification'],'not-evaluated')
+                if mode in ('missing','symlink'):
+                    self.assertFalse((output/name).exists());self.assertNotIn('sha256',metadata['files'][0]);self.assertNotIn('bytes',metadata['files'][0])
+                for other in scope['PUBLIC_STREAM_NAMES'][1:]:self.assertEqual((output/other).read_bytes(),raw[other])
+                self.assertNotIn(b'NEVER-UPLOAD',(output/'SOURCE.json').read_bytes())
+
+
+
+    def test_source_identity_uses_original_git_bytes_and_actual_job_not_caller_claims(self):
+        import tempfile,subprocess,hashlib
+        _,scope=self.parts()
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            originals={name:('fixed public source '+name+'\n').encode() for name in scope['PUBLIC_STREAM_SOURCE_NAMES']}
+            for name,data in originals.items():
+                path=root/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+            env=dict(GITHUB_SHA='a'*40,GITHUB_REPOSITORY='JiahaoAlbus/YNX-Chain',GITHUB_RUN_ID='12',GITHUB_RUN_ATTEMPT='1',GITHUB_JOB='focused-go')
+            def git(argv,**kw):
+                self.assertEqual(kw['cwd'],root)
+                if argv==['git','rev-parse','HEAD']:return 'a'*40+'\n'
+                if argv==['git','rev-parse','HEAD^{tree}']:return 'b'*40+'\n'
+                if argv==['git','rev-parse','HEAD:third_party/cometbft']:return 'c'*40+'\n'
+                for name,data in originals.items():
+                    if argv==['git','show','HEAD:'+name]:return data
+                    if argv==['git','rev-parse','HEAD:'+name]:return 'd'*40+'\n'
+                self.fail('unexpected identity subprocess: '+repr(argv))
+            with patch.dict(scope['os'].environ,env,clear=True),patch.object(scope['subprocess'],'check_output',git):
+                identity,pins,errors=scope['original_source_identity'](root)
+                self.assertEqual(errors,[]);self.assertEqual(identity,dict(commit='a'*40,sourceTree='b'*40,cometForkTree='c'*40,repository=env['GITHUB_REPOSITORY'],runId='12',runAttempt='1',job='focused-go'))
+                for name,data in originals.items():self.assertEqual(pins[name],dict(bytes=len(data),sha256=hashlib.sha256(data).hexdigest(),gitBlob='d'*40))
+                for key,value in [('GITHUB_SHA','f'*40),('GITHUB_JOB','other'),('GITHUB_RUN_ATTEMPT','0')]:
+                    with patch.dict(scope['os'].environ,{key:value}):self.assertTrue(scope['original_source_identity'](root)[2])
+                name=next(iter(originals));path=root/name;path.write_bytes(b'changed source')
+                _,pins,errors=scope['original_source_identity'](root)
+                self.assertIn('source-file:'+name,errors);self.assertEqual(pins[name],dict(status='missing-or-changed'))
+                path.unlink();self.assertTrue(scope['original_source_identity'](root)[2])
 
 
 if __name__ == "__main__":
