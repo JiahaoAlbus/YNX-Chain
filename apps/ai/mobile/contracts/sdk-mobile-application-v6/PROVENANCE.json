@@ -1,0 +1,22 @@
+{
+  "supplierHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-mobile-ai-application-normal-supplier-successor-20261107/HANDOFF.json",
+    "bytes": 4276,
+    "sha256": "6a07c5234e506340bd824db415ef2698bdefe03fa5f097b4a77abc4bb7668245"
+  },
+  "files": [
+    {
+      "file": "MobileInstalledApplicationOriginalPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-mobile-ai-application-normal-supplier-successor-20261107/source/packages/wallet-auth/native/mobile-ai-application-v6/MobileInstalledApplicationOriginalPrivate.hpp",
+      "bytes": 1331,
+      "sha256": "c5e18ee03a2bcd7d971c5cb0d0e6f19fc1e278e41bdec214b70951f26ac424c7"
+    },
+    {
+      "file": "MobileAITaskPlatformPrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-mobile-ai-application-normal-supplier-successor-20261107/source/packages/wallet-auth/native/mobile-ai-application-v6/MobileAITaskPlatformPrivate.h",
+      "bytes": 1646,
+      "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
+    }
+  ],
+  "consumption": "private declarations only; no duplicate SDK application6 implementation"
+}

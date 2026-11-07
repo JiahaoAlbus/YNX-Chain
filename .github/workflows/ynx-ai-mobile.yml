@@ -34,6 +34,8 @@ jobs:
           cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Verify installed iOS original file custody
+        run: node scripts/installed-ios-originals-check.mjs --output-dir "$RUNNER_TEMP/ynx-ai-installed-originals"
       - name: Read iOS normal native build inputs
         run: pnpm run native-build-inputs --platform ios --output-dir "$RUNNER_TEMP/ynx-ai-ios-inputs"
       - name: Install CocoaPods
@@ -75,6 +77,7 @@ jobs:
             apps/ai/mobile/ios/YNXAI-simulator.zip
             apps/ai/mobile/ios/YNXAI-simulator.sha256
             ${{ runner.temp }}/ynx-ai-ios-inputs/
+            ${{ runner.temp }}/ynx-ai-installed-originals/
           if-no-files-found: error
 
   android-preview:
