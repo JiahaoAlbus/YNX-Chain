@@ -36,6 +36,8 @@ jobs:
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
       - name: Verify installed iOS original file custody
         run: node scripts/installed-ios-originals-check.mjs --output-dir "$RUNNER_TEMP/ynx-ai-installed-originals"
+      - name: Verify owning iOS protected native review
+        run: node scripts/protected-ios-review-check.mjs --output-dir "$RUNNER_TEMP/ynx-ai-protected-review"
       - name: Read iOS normal native build inputs
         run: pnpm run native-build-inputs --platform ios --output-dir "$RUNNER_TEMP/ynx-ai-ios-inputs"
       - name: Install CocoaPods
@@ -78,6 +80,7 @@ jobs:
             apps/ai/mobile/ios/YNXAI-simulator.sha256
             ${{ runner.temp }}/ynx-ai-ios-inputs/
             ${{ runner.temp }}/ynx-ai-installed-originals/
+            ${{ runner.temp }}/ynx-ai-protected-review/
           if-no-files-found: error
 
   android-preview:

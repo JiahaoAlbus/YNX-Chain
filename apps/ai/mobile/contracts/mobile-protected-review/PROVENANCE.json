@@ -1,0 +1,87 @@
+{
+  "AuthHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/HANDOFF.json",
+    "bytes": 24794,
+    "sha256": "fab039e7f1c3d9344c0f770430c50cf403efc7396a6ab7410752259011915e50"
+  },
+  "files": [
+    {
+      "file": "MobileAIProtectedReviewPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/source/MobileAIProtectedReviewPrivate.hpp",
+      "bytes": 1976,
+      "sha256": "c745985d0e59ec5786ada7c54d03107351a76ffb03756f7d71dc2e1a4477ef2e",
+      "kind": "Auth frozen coherent tVNdsr"
+    },
+    {
+      "file": "MobileAISigningCapturePairedPrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/source/MobileAISigningCapturePairedPrivate.hpp",
+      "bytes": 1679,
+      "sha256": "da59841ff176132931bddb23731d97054d18529810de1f197c448ad79ede0aa8",
+      "kind": "Auth frozen coherent tVNdsr"
+    },
+    {
+      "file": "MobileAISigningCaptureSourceFencePrivate.hpp",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/source/MobileAISigningCaptureSourceFencePrivate.hpp",
+      "bytes": 564,
+      "sha256": "aa14183c75a663026a95d9f4a89ba771b73e8b09c181293ded7906ceeae291c2",
+      "kind": "Auth frozen coherent tVNdsr"
+    },
+    {
+      "file": "MobileAITaskRuntimePrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/source/MobileAITaskRuntimePrivate.h",
+      "bytes": 6437,
+      "sha256": "aedd77226172124609e29dc1641df10fd8abef0cc4eff569bd3e512c6b953998",
+      "kind": "Auth frozen coherent tVNdsr"
+    },
+    {
+      "file": "MobileAITaskPlatformPrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-tVNdsr/source/MobileAITaskPlatformPrivate.h",
+      "bytes": 1646,
+      "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a",
+      "kind": "Auth frozen coherent tVNdsr"
+    },
+    {
+      "file": "MobileRegisteredAccountPhasePrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/MobileRegisteredAccountPhasePrivate.h",
+      "bytes": 2751,
+      "sha256": "f017cd14e3750418f2970eb2b8d1e8214df447c43b9750bce2b793d420142d91",
+      "kind": "Observed original Native v2 account metadata-only loan; whole assembly requires original Native owner coherent freeze"
+    },
+    {
+      "file": "MobileSelectedOriginalPrivate.h",
+      "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/MobileSelectedOriginalPrivate.h",
+      "bytes": 4116,
+      "sha256": "f3066002598f5f2ace4f32677fde07bff6aded1cabdf1800e506785e36ab3327",
+      "kind": "Observed original Native v2 account metadata-only loan; whole assembly requires original Native owner coherent freeze"
+    }
+  ],
+  "noDuplicateAuthApproval7": true,
+  "noSecretAccountOrAgentKeyRead": true,
+  "latestCoherentAuthHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-ai-native-source-successor/approval-producer-successor/frozen-paired-FDAKuh/HANDOFF.json",
+    "bytes": 27460,
+    "sha256": "7051e0af3c729b38ee4e88b65a65f78a0ca2367b29072d79c8e0093ffd7d8136",
+    "consumedHeaderEquality": [
+      {
+        "file": "MobileAIProtectedReviewPrivate.hpp",
+        "byteEqualLatestFDAKuh": true
+      },
+      {
+        "file": "MobileAISigningCapturePairedPrivate.hpp",
+        "byteEqualLatestFDAKuh": true
+      },
+      {
+        "file": "MobileAISigningCaptureSourceFencePrivate.hpp",
+        "byteEqualLatestFDAKuh": true
+      },
+      {
+        "file": "MobileAITaskRuntimePrivate.h",
+        "byteEqualLatestFDAKuh": true
+      },
+      {
+        "file": "MobileAITaskPlatformPrivate.h",
+        "byteEqualLatestFDAKuh": true
+      }
+    ]
+  }
+}

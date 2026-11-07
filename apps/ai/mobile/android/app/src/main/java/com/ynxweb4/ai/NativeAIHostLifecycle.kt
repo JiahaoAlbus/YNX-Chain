@@ -19,6 +19,7 @@ internal object NativeAIHostLifecycle {
     if (registered) return
     try {
       NativeInstalledApplication.bindNativeClass()
+      NativeProtectedReview.bindNativeClass()
       YNXOriginalAIMobileV6Registration.registerBeforeReactHost()
       registered = true
     } catch (failure: Throwable) { originalFailure = failure; throw failure }

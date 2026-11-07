@@ -13,4 +13,5 @@
 
 # Add any project specific keep options here:
 -keep class com.ynxweb4.ai.NativeInstalledApplication { *; }
+-keep class com.ynxweb4.ai.NativeProtectedReview { *; }
 -keep class com.ynx.wallet.ai.YNXOriginalAIMobileV6Registration { *; }

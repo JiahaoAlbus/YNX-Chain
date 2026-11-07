@@ -51,9 +51,15 @@ try:
     for row in provenance['files']:
         data = (includes / row['file']).read_bytes()
         assert len(data) == row['bytes'] and hashlib.sha256(data).hexdigest() == row['sha256']
+    review_include = app / 'contracts/mobile-protected-review'
+    for row in json.loads((review_include / 'PROVENANCE.json').read_text())['files']:
+        data = (review_include / row['file']).read_bytes()
+        assert len(data) == row['bytes'] and hashlib.sha256(data).hexdigest() == row['sha256']
     for target in ['aarch64-linux-android28', 'x86_64-linux-android28']:
         run(target, [toolchain / (target + '-clang++'), '-std=c++20', '-Wall', '-Wextra', '-Werror', '-fPIC', '-I', includes,
                      '-c', app / 'native/installed-application/InstalledApplicationOriginal.android.cpp', '-o', out / (target + '.o')])
+        run(target + '-UI7', [toolchain / (target + '-clang++'), '-std=c++20', '-Wall', '-Wextra', '-Werror', '-fPIC', '-I', includes, '-I', review_include,
+                             '-c', app / 'native/protected-review/OriginalProtectedReview.android.cpp', '-o', out / (target + '-UI7.o')])
     compiler = jar('org.jetbrains.kotlin', 'kotlin-compiler-embeddable')
     selected_version = compiler.parent.parent.name
     stdlib = jar('org.jetbrains.kotlin', 'kotlin-stdlib', selected_version)
@@ -68,6 +74,8 @@ try:
                '-no-stdlib', '-no-reflect', '-jvm-target', '17', '-Werror']
     android_jar = sorted((sdk / 'platforms').glob('*/android.jar'), key=lambda f: version(f.parent))[-1]
     production = app / 'android/app/src/main/java/com/ynxweb4/ai/NativeInstalledApplication.kt'
+    review = app / 'android/app/src/main/java/com/ynxweb4/ai/NativeProtectedReview.kt'
+    presentation = app / 'android/app/src/main/java/com/ynxweb4/ai/ProtectedReviewPresentation.kt'
     run('normal-kotlin', command + ['-classpath', os.pathsep.join(map(str, [android_jar] + runtime)), '-d', out / 'normal-kotlin.jar', production])
     react_root = Path(a.gradle_cache) / 'com.facebook.react/react-android/0.86.0'
     react_aar = next(react_root.rglob('*-release.aar'))
@@ -79,7 +87,7 @@ try:
     host = app / 'android/app/src/main/java/com/ynxweb4/ai/NativeAIHostLifecycle.kt'
     registrar = app / 'android/app/src/main/java/com/ynx/wallet/ai/YNXOriginalAIMobileV6Registration.kt'
     run('normal-RN-host-interface', command + ['-classpath', os.pathsep.join(map(str, [android_jar, react_classes] + runtime)),
-                                             '-d', out / 'normal-RN-host-interface.jar', production, host, registrar, flag])
+                                             '-d', out / 'normal-RN-host-interface.jar', production, host, registrar, review, presentation, flag])
     model_sources = sorted((app / 'native/installed-application/test/android-model').rglob('*.kt'))
     run('PUBLIC-model-compile', command + ['-classpath', os.pathsep.join(map(str, runtime + [Path(a.json_jar)])),
                                           '-d', out / 'PUBLIC-model.jar', production] + model_sources)
@@ -90,6 +98,10 @@ try:
     host_cp = os.pathsep.join(map(str, [out / 'PUBLIC-host.jar'] + runtime))
     run('PUBLIC-host-lifecycle', ['java', '-cp', host_cp, 'HostControlsKt'])
     run('PUBLIC-host-first-failure', ['java', '-cp', host_cp, 'HostControlsKt', 'bootstrap-error'])
+    run('PUBLIC-review-presentation-compile', command + ['-classpath', os.pathsep.join(map(str, runtime + [Path(a.json_jar)])),
+        '-d', out / 'PUBLIC-presentation.jar', presentation, app / 'native/protected-review/Presentation.PUBLIC.kt'])
+    run('PUBLIC-review-presentation', ['java', '-cp', os.pathsep.join(map(str, [out / 'PUBLIC-presentation.jar', Path(a.json_jar)] + runtime)),
+        'com.ynxweb4.ai.Presentation_PUBLICKt'])
 finally:
     (out / 'RESULT.json').write_text(json.dumps({'steps': steps,
         'scope': 'actual NDK arm64/x86_64 and Android SDK Kotlin compiler; PUBLIC OS-double real-file controls',
