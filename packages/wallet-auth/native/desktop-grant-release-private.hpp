@@ -15,6 +15,12 @@ struct Release {
  // not an Auth handle/brand or credential; original LINK mints its own owner.
  std::string link_module_path;
  std::vector<PublicOriginalRef>link_code_closure;
+ // Independent reviewed DATA resources; never caller paths or Source grants.
+ // All absent preserves management-only composition, never enables an effect.
+ PublicOriginalRef task_read_material,task_read_peer,task_read_target;
+ std::string task_read_account;
+ std::string task_read_module_path;
+ std::vector<PublicOriginalRef>task_read_code_closure;
 };
 inline const std::vector<Release>&original_desktop_grant_releases(){
 #ifdef YNX_REVIEWED_DESKTOP_TASK_GRANT_RELEASE_ROWS

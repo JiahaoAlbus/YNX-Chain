@@ -16,6 +16,7 @@ int32_t qualification_observed_current(const std::shared_ptr<Qualification>&)noe
 // key is a CLOSED compile-time dispatch in the implementation, never a path.
 int32_t qualification_json(const std::shared_ptr<Qualification>&,const char*key,std::string&out)noexcept;
 int32_t qualification_module(const std::shared_ptr<Qualification>&,bool link,std::string&out)noexcept;
+int32_t qualification_task_read_module(const std::shared_ptr<Qualification>&,std::string&out)noexcept;
 void qualification_retire(const std::shared_ptr<Qualification>&)noexcept;
 int32_t qualification_join(const std::shared_ptr<Qualification>&)noexcept;
 int32_t qualification_close(const std::shared_ptr<Qualification>&)noexcept;

@@ -10,7 +10,10 @@ const original=v=>{if(typeof v!=='string'||!v.length||Buffer.byteLength(v)>10485
 function binding(v){if(!v||Object.keys(v).sort().join('|')!=='bytes|sha3_512|sha512')fail('GRANT_STORE_BINDING');u(v.bytes);if(!/^[a-f0-9]{128}$/.test(v.sha3_512)||!/^[a-f0-9]{128}$/.test(v.sha512))fail('GRANT_STORE_BINDING');return canonicalJSON(v);}
 function check(fn,expected){if(typeof fn!=='function')fail('GRANT_STORE_AUTHORITY_FENCE_REQUIRED');if(fn(expected)!==undefined)fail('GRANT_STORE_SYNC_AUTHORITY_FENCE_REQUIRED');}
 const tickets=new WeakMap();
+const effectContinuations=new WeakMap();
+const frozenDATA=v=>{if(v&&typeof v==='object'){for(const x of Object.values(v))frozenDATA(x);Object.freeze(v);}return v;};
 export function createOriginalTaskGrantLedger({db,namespace,transaction}){
+ let activeSettlement=null;
  db.exec(`CREATE TABLE IF NOT EXISTS issuer_task_grant_operations(namespace TEXT NOT NULL,realm TEXT NOT NULL,tenant TEXT NOT NULL,grant_id TEXT NOT NULL,revision TEXT NOT NULL,issuer_key TEXT NOT NULL,approval_nonce TEXT NOT NULL,terms_binding TEXT NOT NULL,grant_original TEXT NOT NULL,phase TEXT NOT NULL,signed_original TEXT,issued_ms INTEGER NOT NULL,terminal_ms INTEGER,PRIMARY KEY(namespace,realm,tenant,grant_id,revision),UNIQUE(namespace,realm,tenant,issuer_key,approval_nonce)) STRICT;
  CREATE TABLE IF NOT EXISTS issuer_task_grants(namespace TEXT NOT NULL,realm TEXT NOT NULL,tenant TEXT NOT NULL,grant_id TEXT NOT NULL,revision TEXT NOT NULL,status TEXT NOT NULL,grant_original TEXT NOT NULL,signed_original TEXT NOT NULL,terms_binding TEXT NOT NULL,authority_original TEXT NOT NULL,spent TEXT NOT NULL,reserved TEXT NOT NULL,PRIMARY KEY(namespace,realm,tenant,grant_id)) STRICT;
  CREATE TABLE IF NOT EXISTS issuer_task_grant_effects(namespace TEXT NOT NULL,realm TEXT NOT NULL,tenant TEXT NOT NULL,grant_id TEXT NOT NULL,slot TEXT NOT NULL,input_binding TEXT NOT NULL,amount TEXT NOT NULL,phase TEXT NOT NULL,result_original TEXT,created_ms INTEGER NOT NULL,terminal_ms INTEGER,PRIMARY KEY(namespace,realm,tenant,grant_id,slot),UNIQUE(namespace,realm,tenant,slot)) STRICT;`);
@@ -22,6 +25,21 @@ export function createOriginalTaskGrantLedger({db,namespace,transaction}){
  // reserve. A handoff/new approval cannot replay an UNKNOWN original operation.
  const slotFor=(g,step)=>digest({realm:g.realm,tenant:g.tenant,task:{kind:step.task.kind,id:step.task.id},stepId:step.stepId});
  function take(ticket,kind){const t=tickets.get(ticket);if(!t||t.owner!==api||t.kind!==kind||t.used)fail('GRANT_STORE_FRESH_TICKET_REQUIRED');return t;}
+ function continuationRecord(owner){const c=effectContinuations.get(owner);if(!c||c.api!==api||c.closed||c.retired||c.failed)fail('GRANT_STORE_ORIGINAL_CONTINUATION_REQUIRED');return c;}
+ function continuationCurrent(c,at){
+  if(c.checking){c.failed=true;fail('GRANT_STORE_CONTINUATION_REENTRANT');}
+  time(at);const t=take(c.ticket,'EFFECT');if(c.checking||c.closed||c.retired||t!==c.ticketRecord||t.continuation!==c.owner||canonicalJSON(t.g)!==canonicalJSON(c.expected.grant))fail('GRANT_STORE_CONTINUATION_SUBSTITUTED');
+  c.checking=true;try{const readCurrentAt=lockedAt=>{if(lockedAt!==undefined)at=lockedAt;alive(t.g,at);grantRow(t.g);
+   const r=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(t.g),t.slot);
+   if(!r||r.phase!=='PENDING'||r.input_binding!==t.bound||r.amount!==t.amount)fail('GRANT_STORE_CONTINUATION_QUERY_ONLY');
+   check(c.assertCurrent,c.expected);
+   if(c.closed||c.retired||c.failed||take(c.ticket,'EFFECT')!==t)fail('GRANT_STORE_CONTINUATION_SUBSTITUTED');
+   grantRow(t.g);const post=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(t.g),t.slot);
+   if(!post||post.phase!=='PENDING'||post.input_binding!==t.bound||post.amount!==t.amount)fail('GRANT_STORE_CONTINUATION_QUERY_ONLY');
+   return undefined;
+  };if(activeSettlement){if(activeSettlement.ticketRecord!==t)fail('GRANT_STORE_FOREIGN_SETTLEMENT_FENCE');return readCurrentAt(activeSettlement.at);}return transaction(at,readCurrentAt);
+  }catch(cause){c.failed=true;c.first??={cause};throw cause;}finally{c.checking=false;}
+ }
  function ownerRef(v){if(!v||Object.keys(v).sort().join('|')!=='id|kind|realm|rev|tenant'||!['human','organization','service'].includes(v.kind))fail('GRANT_STORE_MANAGEMENT_OWNER');for(const k of['realm','tenant','kind','id'])text(v[k]);u(v.rev);return v;}
  function ownedRow(row,owner){if(!row)fail('GRANT_STORE_NOT_FOUND');const g=inspectBoundGrantDATA(JSON.parse(row.grant_original));if(g.realm!==owner.realm||g.tenant!==owner.tenant||g.issuer.realm!==owner.realm||g.issuer.tenant!==owner.tenant||g.issuer.kind!==owner.kind||g.issuer.id!==owner.id)fail('GRANT_STORE_MANAGEMENT_OWNER');return g;}
  function summary(row,owner,at){const g=ownedRow(row,owner);const expired=BigInt(at)>=u(g.expires),pending=BigInt(at)<u(g.validFrom);return Object.freeze({ref:{realm:g.realm,tenant:g.tenant,kind:'grant',id:g.id,rev:row.revision},status:row.status,effectiveStatus:row.status==='ACTIVE'?(expired?'EXPIRED':pending?'NOT_YET_VALID':'ACTIVE'):row.status,termsRevision:g.rev,issuer:g.issuer,holder:g.holder,holderEpoch:g.holderEpoch,audience:g.audience,operation:g.operation,resources:g.resources,cap:g.cap,singleMax:g.singleMax,validFrom:g.validFrom,expires:g.expires,spent:row.spent,reserved:row.reserved,available:(u(g.cap)-u(row.spent)-u(row.reserved)).toString(),task:g.binding.task,onceRecoveryOnly:row.status!=='ACTIVE'||expired||pending,persistenceOnly:true});}
@@ -55,6 +73,29 @@ export function createOriginalTaskGrantLedger({db,namespace,transaction}){
 
  const api=Object.freeze({
   manageOriginal,
+  // PRIVATE normal composition only. The original fresh in-memory ticket is
+  // required, not a query projection or operationId. This ledger capability
+  // narrows persistence custody; the SAME separately held Source/caller must
+  // still supply its actual protected continuation at the Native boundary.
+  openOriginalTaskEffectContinuation(ticket,{grant,step,operationId,amount,inputBinding,at,assertCurrent}){
+   const t=take(ticket,'EFFECT'),g=inspectBoundGrantDATA(grant);
+   if(t.continuation||canonicalJSON(g)!==canonicalJSON(t.g)||canonicalJSON(step)!==canonicalJSON(g.binding)||operationId!==t.slot||slotFor(g,step)!==t.slot||amount!==t.amount||binding(inputBinding)!==t.bound)fail('GRANT_STORE_CONTINUATION_BINDING');
+   const c={api,ticket,ticketRecord:t,owner:undefined,closed:false,retired:false,claimed:false,checking:false,failed:false,assertCurrent,expected:frozenDATA({grant:structuredClone(g),step:structuredClone(step),operationId:t.slot,amount:t.amount,inputBinding:t.bound})};
+   continuationCurrent(c,at);
+   const owner=Object.freeze({});c.owner=owner;t.continuation=owner;effectContinuations.set(owner,c);return owner;
+  },
+  currentOriginalTaskEffectContinuation(owner,{grant,operationId,at}){
+   const c=continuationRecord(owner);if(c.expected.operationId!==operationId||canonicalJSON(c.expected.grant)!==canonicalJSON(grant))fail('GRANT_STORE_CONTINUATION_BINDING');continuationCurrent(c,at);
+  },
+  claimOriginalTaskEffectContinuation(owner,{grant,operationId,at}){
+   const c=continuationRecord(owner);if(c.claimed)fail('GRANT_STORE_CONTINUATION_ALREADY_CLAIMED');
+   api.currentOriginalTaskEffectContinuation(owner,{grant,operationId,at});
+   // Separate from settlement's ticket.used. Current remains repeatable after
+   // this one claim until settlement/UNKNOWN/retirement closes its authority.
+   c.claimed=true;
+  },
+  retireOriginalTaskEffectContinuation(owner){const c=effectContinuations.get(owner);if(!c||c.api!==api)fail('GRANT_STORE_ORIGINAL_CONTINUATION_REQUIRED');c.retired=true;},
+  closeOriginalTaskEffectContinuation(owner){const c=effectContinuations.get(owner);if(!c||c.api!==api)fail('GRANT_STORE_ORIGINAL_CONTINUATION_REQUIRED');c.retired=true;c.closed=true;},
 
   reserveGrantIssuanceOnce({grant,approvalNonce,binding:terms,at}){const g=inspectBoundGrantDATA(grant);text(approvalNonce);const raw=canonicalJSON(g),bound=binding(terms),issuerKey=canonicalJSON({realm:g.issuer.realm,tenant:g.issuer.tenant,kind:g.issuer.kind,id:g.issuer.id});time(at);return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;alive(g,at);const prior=get('SELECT * FROM issuer_task_grant_operations WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND revision=?',...scope(g),g.rev);if(prior){if(prior.terms_binding!==bound||prior.grant_original!==raw||prior.approval_nonce!==approvalNonce||prior.issuer_key!==issuerKey)fail('GRANT_STORE_INPUT_CONFLICT');return Object.freeze({recoveryOnly:true,phase:prior.phase==='COMMITTED'?'COMMITTED':'UNKNOWN',original:prior.signed_original??null});}const old=get('SELECT status FROM issuer_task_grants WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',...scope(g));if(old)fail('GRANT_STORE_ID_ALREADY_ISSUED');run("INSERT INTO issuer_task_grant_operations VALUES(?,?,?,?,?,?,?,?,?,'ENTERED',NULL,?,NULL)",...scope(g),g.rev,issuerKey,approvalNonce,bound,raw,at);const ticket=Object.freeze({});tickets.set(ticket,{owner:api,kind:'ISSUE',g,bound,used:false});return Object.freeze({recoveryOnly:false,ticket});});},
   captureSignedGrantOriginal(ticket,value,at){const t=take(ticket,'ISSUE');original(value);time(at);return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;const r=get('SELECT phase,signed_original FROM issuer_task_grant_operations WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND revision=?',...scope(t.g),t.g.rev);if(!r||r.phase!=='ENTERED'||(r.signed_original!==null&&r.signed_original!==value))fail('GRANT_STORE_ORIGINAL_CONFLICT');run('UPDATE issuer_task_grant_operations SET signed_original=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND revision=?',value,...scope(t.g),t.g.rev);return value;});},
@@ -64,7 +105,19 @@ export function createOriginalTaskGrantLedger({db,namespace,transaction}){
   reserveTaskEffect({grant,step,amount,inputBinding,at,assertCurrent}){const g=inspectBoundGrantDATA(grant);u(amount);time(at);if(canonicalJSON(step)!==canonicalJSON(g.binding))fail('GRANT_STORE_STEP_CONFLICT');const bound=binding(inputBinding),slot=slotFor(g,step);return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;alive(g,at);check(assertCurrent,{grant:g,step});const row=grantRow(g),prior=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(g),slot);if(prior){if(prior.input_binding!==bound||prior.amount!==amount)fail('GRANT_STORE_EFFECT_INPUT_CONFLICT');return Object.freeze({recoveryOnly:true,operationId:slot,state:prior.phase==='PENDING'?'UNKNOWN':prior.phase,original:prior.result_original});}if(get('SELECT grant_id FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND slot=?',namespace,g.realm,g.tenant,slot))fail('GRANT_STORE_EFFECT_SEMANTIC_SLOT_CONFLICT');if(u(amount)>u(g.singleMax)||u(row.spent)+u(row.reserved)+u(amount)>u(g.cap))fail('GRANT_STORE_BUDGET');run("INSERT INTO issuer_task_grant_effects VALUES(?,?,?,?,?,?,?,'PENDING',NULL,?,NULL)",...scope(g),slot,bound,amount,at);run('UPDATE issuer_task_grants SET reserved=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',(u(row.reserved)+u(amount)).toString(),...scope(g));const ticket=Object.freeze({});tickets.set(ticket,{owner:api,kind:'EFFECT',g,slot,bound,amount,used:false});return Object.freeze({recoveryOnly:false,ticket,operationId:slot,state:'PENDING'});});},
   budgetForTaskEffect({grant,step,amount,at}){const g=inspectBoundGrantDATA(grant);u(amount);time(at);if(canonicalJSON(step)!==canonicalJSON(g.binding))fail('GRANT_STORE_STEP_CONFLICT');const slot=slotFor(g,step);return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;const row=grantRow(g),own=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(g),slot);if(own&&own.amount!==amount)fail('GRANT_STORE_EFFECT_INPUT_CONFLICT');const ownSpent=own?.phase==='COMMITTED'?u(own.amount):0n,ownReserved=own&&['PENDING','UNKNOWN'].includes(own.phase)?u(own.amount):0n;if(u(row.spent)<ownSpent||u(row.reserved)<ownReserved)fail('GRANT_STORE_BUDGET_CORRUPT');return Object.freeze({status:'ready',cap:g.cap,spent:(u(row.spent)-ownSpent).toString(),reserved:(u(row.reserved)-ownReserved).toString(),requested:amount,operationId:slot,ownState:own?.phase??null,persistenceOnly:true});});},
   markEffectUnknown(ticket,at){const t=take(ticket,'EFFECT');time(at);return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;run("UPDATE issuer_task_grant_effects SET phase='UNKNOWN' WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=? AND phase='PENDING'",...scope(t.g),t.slot);return Object.freeze({operationId:t.slot,state:'UNKNOWN',reservationRetained:true});});},
-  settleTaskEffect(ticket,{state,original:value,at,assertOriginalReceipt}){const t=take(ticket,'EFFECT');if(!['COMMITTED','FAILED'].includes(state))fail('GRANT_STORE_SETTLEMENT_STATE');original(value);time(at);t.used=true;return transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;check(assertOriginalReceipt,{operationId:t.slot,state,original:value,amount:t.amount,inputBinding:t.bound});const row=get('SELECT * FROM issuer_task_grants WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',...scope(t.g)),r=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(t.g),t.slot);if(!row||!r||!['PENDING','UNKNOWN'].includes(r.phase)||r.input_binding!==t.bound||r.amount!==t.amount||u(row.reserved)<u(t.amount))fail('GRANT_STORE_SETTLEMENT_CONFLICT');run('UPDATE issuer_task_grants SET spent=?,reserved=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',(u(row.spent)+(state==='COMMITTED'?u(t.amount):0n)).toString(),(u(row.reserved)-u(t.amount)).toString(),...scope(t.g));run('UPDATE issuer_task_grant_effects SET phase=?,result_original=?,terminal_ms=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',state,value,at,...scope(t.g),t.slot);return Object.freeze({operationId:t.slot,state,original:value,persistenceOnly:true});});},
+  settleTaskEffect(ticket,{state,original:value,at,assertOriginalReceipt}){
+   const t=take(ticket,'EFFECT');if(t.settling||activeSettlement)fail('GRANT_STORE_SETTLEMENT_REENTRANT');if(!['COMMITTED','FAILED'].includes(state))fail('GRANT_STORE_SETTLEMENT_STATE');original(value);time(at);t.settling=true;
+   try{const result=transaction(at,lockedAt=>{if(lockedAt!==undefined)at=lockedAt;activeSettlement={ticketRecord:t,at};try{
+    // SAME continuation Current can read inside this exact existing SQL lock;
+    // it must neither start a nested transaction nor observe ticket.used early.
+    check(assertOriginalReceipt,{operationId:t.slot,state,original:value,amount:t.amount,inputBinding:t.bound});
+    const row=get('SELECT * FROM issuer_task_grants WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',...scope(t.g)),r=get('SELECT * FROM issuer_task_grant_effects WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',...scope(t.g),t.slot);
+    if(!row||!r||!['PENDING','UNKNOWN'].includes(r.phase)||r.input_binding!==t.bound||r.amount!==t.amount||u(row.reserved)<u(t.amount))fail('GRANT_STORE_SETTLEMENT_CONFLICT');
+    run('UPDATE issuer_task_grants SET spent=?,reserved=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=?',(u(row.spent)+(state==='COMMITTED'?u(t.amount):0n)).toString(),(u(row.reserved)-u(t.amount)).toString(),...scope(t.g));
+    run('UPDATE issuer_task_grant_effects SET phase=?,result_original=?,terminal_ms=? WHERE namespace=? AND realm=? AND tenant=? AND grant_id=? AND slot=?',state,value,at,...scope(t.g),t.slot);
+    return Object.freeze({operationId:t.slot,state,original:value,persistenceOnly:true});
+   }finally{activeSettlement=null;}});t.used=true;return result;}finally{t.settling=false;}
+  },
   // Cold recovery cannot reuse an in-memory fresh ticket. Only a protected
   // verifier of the ORIGINAL resource receipt can settle this existing row.
   // Revocation blocks new effects, not reconciliation of an already sent one.

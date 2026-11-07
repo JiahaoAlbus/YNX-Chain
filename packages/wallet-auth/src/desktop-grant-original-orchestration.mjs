@@ -29,26 +29,40 @@ export function createOriginalTaskEffectOrchestrator(inputs,current,clock=Date.n
      fenceKind:'EGRESS_FENCE_ONLY',readCurrent:refresh,assertCurrent:()=>checked(base,'assertCurrent'),verifyGrantProof:(...a)=>method(base,'verifyGrantProof')(...a),verifyHolderProof:(...a)=>method(base,'verifyHolderProof')(...a),verifyDisclosureAtEffect:(...a)=>method(base,'verifyDisclosureAtEffect')(...a),
      async commitAtEffectFence(expected,finalCheck){
       const c=await refresh();
+      const reserveOriginal=()=>ledger.reserveTaskEffect({grant:g,step:g.binding,amount:c.budget.requested,inputBinding:g.binding.input,at:clock(),assertCurrent(){alive();syncChecked(base,'assertGrantAuthorityAtCommit',{issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision});finalCheck(c);}});
+      // Persistence can narrow this request to recovery, never create authority.
+      // Do not read protected input again for an already-owned/UNKNOWN slot.
+      if(c.budget.ownState!==null){
+       const old=reserveOriginal();actualOperation=old.operationId;scope='egress-only';
+       if(!old.recoveryOnly){ledger.markEffectUnknown(old.ticket,clock());fail('TASK_EFFECT_RECOVERY_SLOT_CHANGED_UNKNOWN');}
+       return {state:old.state,scope,effectRef:actualOperation,original:old.original,recoveryOnly:true};
+      }
       // The raw original input is obtained from actual protected caller IO.
       // Registered protected-file input reader is one concrete implementation.
-      const opened=await method(inputs.source,'readOriginalTaskEffectInput')(ctx,g);inputOwner=opened?.owner;if(!opened||typeof opened.errorPresent!=='boolean')fail('TASK_EFFECT_INPUT_ACQUIRE_STATUS');if(opened.errorPresent)throw opened.error;
+      const opened=await method(inputs.source,'readOriginalTaskEffectInput')(ctx,g,body.holderProof);inputOwner=opened?.owner;if(!opened||typeof opened.errorPresent!=='boolean')fail('TASK_EFFECT_INPUT_ACQUIRE_STATUS');if(opened.errorPresent)throw opened.error;
       input=Buffer.from(opened.bytes??[]);if(!same(bindGrantBytesDATA(input),g.binding.input))fail('TASK_EFFECT_RAW_INPUT_BINDING');await checked(inputOwner,'assertCurrent');
       const entries=inputs.registeredTaskExecutors;if(!Array.isArray(entries))fail('TASK_EFFECT_REGISTERED_EXECUTOR_UNAVAILABLE');const selected=entries.filter(v=>v&&same(v.target,g.binding.target));if(selected.length!==1)fail('TASK_EFFECT_REGISTERED_EXECUTOR_UNAVAILABLE');const executor=selected[0];
       // At the original same-SQL reserve transaction: verify original current
       // and invoke the shared policy's single final checker, not an HTTP bool.
-      const reserved=ledger.reserveTaskEffect({grant:g,step:g.binding,amount:c.budget.requested,inputBinding:g.binding.input,at:clock(),assertCurrent(){alive();syncChecked(base,'assertGrantAuthorityAtCommit',{issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision});finalCheck(c);}});
+      const reserved=reserveOriginal();
       actualOperation=reserved.operationId;scope='egress-only';
       if(reserved.recoveryOnly)return {state:reserved.state,scope,effectRef:actualOperation,original:reserved.original,recoveryOnly:true};
-      let transport,returned,result,first,settled=false;
+      let transport,returned,result,first,continuation,settled=false;
       try{
        alive();await current();await checked(base,'assertCurrent');await checked(inputOwner,'assertCurrent');
-       returned=await method(executor,'executeOriginalTaskEffect')(ctx,{grant:g,step:g.binding,operationId:actualOperation,rawInput:input,holderProof:body.holderProof,expectedGrantRevision:g.rev});transport=returned?.owner;
+       continuation=ledger.openOriginalTaskEffectContinuation(reserved.ticket,{grant:g,step:g.binding,operationId:actualOperation,amount:c.budget.requested,inputBinding:g.binding.input,at:clock(),assertCurrent(){alive();syncChecked(base,'assertGrantAuthorityAtCommit',{issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision});}});
+       // The third PRIVATE operand is the SAME recognized in-memory owner.
+       // It is not part of request DATA/JSON or reconstructed from query.
+       // The registered backend must pair it with SAME base Source/caller;
+       // only the final resource fence may claim it, never a read Current.
+       returned=await method(executor,'executeOriginalTaskEffect')(ctx,{grant:g,step:g.binding,operationId:actualOperation,rawInput:input,holderProof:body.holderProof,expectedGrantRevision:g.rev},continuation);transport=returned?.owner;
        if(!returned||typeof returned.errorPresent!=='boolean')fail('TASK_EFFECT_EXECUTOR_STATUS_REQUIRED');if(returned.errorPresent)throw returned.error;
        const receipt=returned.result;if(!receipt||receipt.operationId!==actualOperation||!['COMMITTED','FAILED'].includes(receipt.state)||typeof receipt.original!=='string'||!receipt.original||Buffer.byteLength(receipt.original)>1048576)fail('TASK_EFFECT_ACTUAL_RECEIPT_UNRESOLVED');
        await checked(transport,'assertCurrent');await checked(base,'assertCurrent');await current();
        result=ledger.settleTaskEffect(reserved.ticket,{state:receipt.state,original:receipt.original,at:clock(),assertOriginalReceipt(expected){alive();syncChecked(inputs.source,'assertOriginalTaskEffectReceiptAtCommit',ctx,{...expected,grant:g});}});settled=true;
       }catch(cause){first={cause};if(!settled)try{ledger.markEffectUnknown(reserved.ticket,clock());}catch(error){first.persistenceError=error;}}
       if(transport)for(const n of ['retire','join','close'])try{await checked(transport,n);}catch(cause){first??={cause};}
+      if(continuation)try{ledger.closeOriginalTaskEffectContinuation(continuation);}catch(cause){first??={cause};}
       if(!first)try{alive();await checked(base,'assertCurrent');await current();if(BigInt(clock())>=BigInt(g.expires)||BigInt(clock())>=BigInt(c.expires))fail('TASK_EFFECT_POST_COMPLETION_EXPIRED');}catch(cause){first={cause};}
       if(first)throw Object.assign(Error('TASK_EFFECT_COMMIT_UNKNOWN'),{code:'TASK_EFFECT_COMMIT_UNKNOWN',cause:first.cause,persistenceError:first.persistenceError,partial:result??returned?.result??null,originalOp:actualOperation,recoverOnly:true});
       return {state:result.state,scope,effectRef:actualOperation,original:result.original,recoveryOnly:false};

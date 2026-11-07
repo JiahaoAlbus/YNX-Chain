@@ -1,3 +1,5 @@
+import{openOriginalTaskReadResourceBridge}from'./desktop-grant-resource-bridge.mjs';
+import{createOriginalTaskReadContinuationInventory}from'./desktop-grant-continuation-owner.mjs';
 // Fixed package-private compositor, invoked ONLY by the original Native
 // zeroarg export after its own independent Root/Source/image qualification.
 // This constructor is not a package export or provider registration API.
@@ -12,6 +14,7 @@ async function checked(v,k,...a){if(await method(v,k)(...a)!==undefined)throw fa
 function sync(v,k,...a){if(method(v,k)(...a)!==undefined)throw fault('DESKTOP_NATIVE_SYNC_RESULT')}
 const paths=new Map(ORIGINAL_DESKTOP_GRANT_ROUTES.map(([method,path,action])=>[path,{method,action}]));
 export function createOriginalTaskGrantNativeBackend(originalNativeRoot){
+ let resourcePromise,resourceOwner,continuationInventory;
  const records=new WeakMap(),holds=new Set(),pending=new Set();let linkOwner,server,scope,authority,callerScope,retired=false,joined=false,closed=false,first,init,joining,closing,kernel,service,effects;
  const remember=cause=>{first??={cause};return first.cause};
  const alive=()=>{if(first)throw first.cause;if(retired||closed)throw fault('DESKTOP_NATIVE_RETIRED')};
@@ -23,6 +26,10 @@ export function createOriginalTaskGrantNativeBackend(originalNativeRoot){
   if(r.material&&(r.material.Path!==actual.Path||!r.material.Body.equals(actual.Body)))throw fault('DESKTOP_NATIVE_ORIGINAL_BODY_CHANGED');r.material??={...actual,Body:Buffer.from(actual.Body)};local(ctx);return r;
  }
  async function serviceInputs(){const a=await acquireOriginalTaskGrantAuthorityInputs();if(a?.errorPresent)throw a.error;if(!a?.owner)throw fault('DESKTOP_NATIVE_AUTHORITY_INPUTS_REQUIRED');await checked(a.owner,'assertCurrent');return method(a.owner,'readOriginalTaskGrantServiceInputs')()}
+ async function resource(){return resourcePromise??=(async()=>{await owner.assertCurrent();const inputs=await serviceInputs();await owner.assertCurrent();continuationInventory=createOriginalTaskReadContinuationInventory(originalNativeRoot,inputs.store,owner);
+   const actualRoot=Object.freeze({assertNativeCurrent:()=>sync(originalNativeRoot,'assertNativeCurrent'),assertNativeObservedCurrent:()=>sync(originalNativeRoot,'assertNativeObservedCurrent'),readOriginalTaskReadMaterialDATA:()=>method(originalNativeRoot,'readOriginalTaskReadMaterialDATA')(),readOriginalTaskReadPeerDATA:()=>method(originalNativeRoot,'readOriginalTaskReadPeerDATA')(),readOriginalTaskReadClientModulePath:()=>method(originalNativeRoot,'readOriginalTaskReadClientModulePath')(),openOriginalTaskReadContinuation:(ctx,req,cap)=>continuationInventory.openOriginal(ctx,req,cap)});
+   resourceOwner=openOriginalTaskReadResourceBridge(actualRoot,inputs.store);return resourceOwner;
+  })()}
  async function handler(req,res){await owner.assertCurrent();if(!kernel){const inputs=await serviceInputs();await owner.assertCurrent();service=new OriginalTaskGrantAuthorityServiceKernel(inputs.source,inputs.store,{encodeBoundGrant,encodeGrantEffect});effects=createOriginalTaskEffectOrchestrator(inputs,owner.assertCurrent);const wrapped={issue:(...a)=>service.issue(...a),queryGrant:(...a)=>service.queryGrant(...a),queryEffect:(...a)=>service.queryEffect(...a),reconcileEffect:(...a)=>service.reconcileEffect(...a),revoke:(...a)=>service.revoke(...a),authorizeAtEffect:effects.authorizeAtEffect};kernel=new OriginalTaskGrantHTTPKernel(wrapped,inputs.callerResolver)}
   if(req.url==='/internal/auth/task-grants/management'){
    // No invented public management WIRE. The typed management API remains
@@ -44,18 +51,18 @@ export function createOriginalTaskGrantNativeBackend(originalNativeRoot){
   assertOriginalTaskCallerAtCommit(ctx){local(ctx)},
   async assertTaskCaller(ctx,request){const r=await callerCurrent(ctx),route=paths.get(r.material.Path);if(route.action!==request?.action||!callerScope.actions.includes(request.action))throw fault('DESKTOP_NATIVE_CALLER_ACTION');const value=request.value;if(value&&(value.realm!==scope.realm||value.tenant!==scope.tenant))throw fault('DESKTOP_NATIVE_CALLER_TENANT');local(ctx)},
   assertOriginalManagementCallerAtCommit(ctx,expected){const r=local(ctx);if(paths.get(r.material?.Path)?.action!=='management'||canonicalJSON(expected.owner)!==canonicalJSON(scope.issuerFullRef))throw fault('DESKTOP_NATIVE_MANAGEMENT_ORIGINAL_CALLER');local(ctx)},
-  readOriginalRegisteredTaskExecutors(){alive();rootCurrent();return method(originalNativeRoot,'readOriginalRegisteredTaskExecutors')()},
+  readOriginalRegisteredTaskExecutors(){alive();rootCurrent();const available=method(originalNativeRoot,'readOriginalTaskReadAvailabilityDATA')();if(!available||Object.keys(available).join('|')!=='available'||typeof available.available!=='boolean')throw fault('DESKTOP_NATIVE_TASK_READ_AVAILABILITY');if(!available.available)return [];const target=method(originalNativeRoot,'readOriginalTaskReadTargetDATA')();rootCurrent();if(!target||Object.keys(target).sort().join('|')!=='operation|origin|path|region|service|tenant'||target.tenant!==scope.tenant||target.operation!=='ai.conversation.read')throw fault('DESKTOP_NATIVE_TASK_READ_TARGET');return[Object.freeze({target:structuredClone(target),async executeOriginalTaskEffect(ctx,request,cap){await callerCurrent(ctx);return(await resource()).executeOriginalTaskEffect(ctx,request,cap)}})]},
   // These methods require the original resource's registered typed bridge.
   // Native Root owns it; LINK transport DATA and caller grant JSON cannot
   // synthesize raw input, a receipt, a Store.mu fence or a query original.
-  async readOriginalTaskEffectInput(ctx,g){await callerCurrent(ctx);return method(originalNativeRoot,'readOriginalTaskEffectInput')(g)},
+  async readOriginalTaskEffectInput(ctx,g,holderProof){await callerCurrent(ctx);return(await resource()).readOriginalTaskEffectInput(g,holderProof)},
   async verifyOriginalGrantQuery(ctx,...a){await callerCurrent(ctx);await checked(originalNativeRoot,'verifyOriginalGrantQuery',...a);local(ctx)},
   async verifyOriginalEffectQuery(ctx,...a){await callerCurrent(ctx);await checked(originalNativeRoot,'verifyOriginalEffectQuery',...a);local(ctx)},
   async queryOriginalTaskEffect(ctx,...a){await callerCurrent(ctx);return method(originalNativeRoot,'queryOriginalTaskEffect')(...a)},
-  assertOriginalTaskEffectReceiptAtCommit(ctx,expected){local(ctx);sync(originalNativeRoot,'assertOriginalTaskEffectReceiptAtCommit',expected);local(ctx)},
-  retire(){if(!retired){retired=true;service?.retire();effects?.retire();try{if(linkOwner)sync(linkOwner,'retire')}catch(cause){remember(cause)}try{sync(originalNativeRoot,'retire')}catch(cause){remember(cause)}}},
-  join(){if(!retired)throw fault('DESKTOP_NATIVE_RETIRE_REQUIRED');return joining??=(async()=>{await Promise.allSettled([init,...pending]);if(linkOwner)try{await checked(linkOwner,'join')}catch(cause){remember(cause);if(!method(linkOwner,'lifetime')().joined)throw cause}if(holds.size)throw fault('DESKTOP_NATIVE_CALLER_CHILDREN_RETAINED');await checked(originalNativeRoot,'join');joined=true})()},
-  close(){return closing??=(async()=>{owner.retire();await owner.join();if(linkOwner){let error;try{await checked(linkOwner,'close')}catch(cause){error={cause}}const life=method(linkOwner,'lifetime')();if(!life.closed)throw error?.cause??fault('DESKTOP_NATIVE_LINK_CLOSE_PENDING');if(error)remember(error.cause)}await checked(originalNativeRoot,'close');closed=true})()},
+  assertOriginalTaskEffectReceiptAtCommit(ctx,expected){local(ctx);if(!resourceOwner)throw fault('DESKTOP_NATIVE_ORIGINAL_RESOURCE_REQUIRED');sync(resourceOwner,'assertOriginalTaskEffectReceiptAtCommit',expected);local(ctx)},
+  retire(){if(!retired){retired=true;service?.retire();effects?.retire();resourceOwner?.retire();continuationInventory?.retire();try{if(linkOwner)sync(linkOwner,'retire')}catch(cause){remember(cause)}try{sync(originalNativeRoot,'retire')}catch(cause){remember(cause)}}},
+  join(){if(!retired)throw fault('DESKTOP_NATIVE_RETIRE_REQUIRED');return joining??=(async()=>{await Promise.allSettled([init,...pending]);if(linkOwner)try{await checked(linkOwner,'join')}catch(cause){remember(cause);if(!method(linkOwner,'lifetime')().joined)throw cause}if(resourcePromise)await Promise.allSettled([resourcePromise]);if(resourceOwner)await checked(resourceOwner,'join');if(continuationInventory)await checked(continuationInventory,'join');if(holds.size)throw fault('DESKTOP_NATIVE_CALLER_CHILDREN_RETAINED');await checked(originalNativeRoot,'join');joined=true})()},
+  close(){return closing??=(async()=>{owner.retire();await owner.join();if(linkOwner){let error;try{await checked(linkOwner,'close')}catch(cause){error={cause}}const life=method(linkOwner,'lifetime')();if(!life.closed)throw error?.cause??fault('DESKTOP_NATIVE_LINK_CLOSE_PENDING');if(error)remember(error.cause)}if(resourceOwner)await checked(resourceOwner,'close');if(continuationInventory)await checked(continuationInventory,'close');await checked(originalNativeRoot,'close');closed=true})()},
   lifetime(){return Object.freeze({retired,joined,closed,pending:pending.size,callerHolds:holds.size,firstCausePresent:!!first})},firstCause(){return first?.cause}
  });
  init=Promise.resolve().then(async()=>{rootCurrent();scope=method(originalNativeRoot,'readOriginalScopeDATA')();authority=method(originalNativeRoot,'readOriginalAuthorityBindingDATA')();callerScope=inspectOriginalDesktopCallerResourceDATA(canonicalJSON(method(originalNativeRoot,'readOriginalCallerRegistrationDATA')()),scope);rootCurrent();
