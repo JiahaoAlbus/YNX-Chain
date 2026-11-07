@@ -74,7 +74,7 @@ COMMAND_PACKAGES = (
     "cmd/ynx-consensus-proof-verify",
 )
 CONSUMER_COMMAND = '          if ! YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE_PATH + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=180s ./internal/ynxresourcepolicy > "$RUNNER_TEMP/ynx-wallet-policy-consumer-tests.jsonl"; then\n'
-CLI_COMMAND = ('          if ! go test -json -p 1 -count=1 -timeout=90s '
+CLI_COMMAND = ('          if ! CGO_ENABLED=1 go test -json -p 1 -count=1 -timeout=90s '
                + ' '.join('./' + package for package in COMMAND_PACKAGES)
                + ' > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n')
 CONTROL_COMMAND = "          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v\n"

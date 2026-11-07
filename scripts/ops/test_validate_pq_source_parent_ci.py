@@ -35,7 +35,7 @@ current4 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(current4)
 MARKERS = {current4.MARKER: current4.REQUIRED,
            "YNX_PQ_OBSERVER_ACCOUNT_TESTS": current4.OBSERVER_ACCOUNT_REQUIRED,
-           MARKER: REQUIRED}
+           MARKER: REQUIRED, "YNX_PQ_NORMAL_SOURCE_PARENT_TESTS": current4.NORMAL_SOURCE_PARENT_REQUIRED}
 SOURCE_PATHS = ("internal/consensus/pq_source_parent_*.go", "internal/consensus/pq_source_identity*.go")
 
 
@@ -53,7 +53,7 @@ def execute(raw, events=None, text=None):
             raise AssertionError("duplicate DATA marker")
         records[marker] = json.loads(data)
     if set(records) != set(MARKERS):
-        raise AssertionError("three distinct original DATA markers required")
+        raise AssertionError("four distinct original DATA markers required")
     for marker, names in MARKERS.items():
         record = records[marker]
         if set(record) != {"sourceCommit", "requiredPassed", "suitePassed", *current4.FALSE_FLAGS}:
@@ -67,15 +67,15 @@ def execute(raw, events=None, text=None):
 
 def assert_contract(raw):
     current4.assert_contract(raw)  # Original 3 + 5 and complete state union stay.
-    if current4.SOURCE_PARENT_REQUIRED != REQUIRED or current4.STREAM_REQUIRED != current4.REQUIRED + current4.OBSERVER_ACCOUNT_REQUIRED + REQUIRED:
-        raise AssertionError("only the fixed eight Source-parent cases may join")
+    if current4.SOURCE_PARENT_REQUIRED != REQUIRED or current4.STREAM_REQUIRED != current4.REQUIRED + current4.OBSERVER_ACCOUNT_REQUIRED + REQUIRED + current4.NORMAL_SOURCE_PARENT_REQUIRED:
+        raise AssertionError("only the fixed eight plus three normal Source-parent cases may join")
     program = current4.collector(raw)
     assignments = [ast.literal_eval(node.value) for node in ast.parse(program).body
                    if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "source_parent_required" for target in node.targets)]
     if assignments != [REQUIRED] or program.count(MARKER) != 1:
         raise AssertionError("one exact Source-parent list and independent receipt required")
     guards = (
-        "stream_required = current4_required + observer_account_required + source_parent_required",
+        "stream_required = current4_required + observer_account_required + source_parent_required + normal_source_parent_required",
         "for name in stream_required:",
         "build_notices = [event for event in events if event.get('Action') == 'build-output']",
         "if build_notices != events[:len(build_notices)] or any(set(event) != {'Action', 'ImportPath', 'Output'} or event['ImportPath'] != package + '.test' or not isinstance(event['Output'], str) or not event['Output'] for event in build_notices):",
@@ -84,7 +84,7 @@ def assert_contract(raw):
         "('start', 'run', 'pause', 'cont', 'output', 'pass')",
         "event['Test'].split('/')[0] not in stream_required",
         "if len(runs) != 1 or outcomes != ['pass']:",
-        "source_parent_names = {event['Test'] for event in events if 'Test' in event and event['Test'].split('/')[0] in source_parent_required}",
+        "source_parent_names = {event['Test'] for event in events if 'Test' in event and event['Test'].split('/')[0] in source_parent_required + normal_source_parent_required}",
         "for name in source_parent_names:",
         "if any(not part for part in parts) or any('/'.join(parts[:i]) not in source_parent_names for i in range(1, len(parts))):",
         "if len(runs) != 1 or len(passed) != 1 or runs[0] >= passed[0]:",
@@ -112,7 +112,7 @@ class SourceParentCIControls(unittest.TestCase):
 
     def test_normal_single_call_keeps_original_tests_budget_and_full_union(self):
         assert_contract(self.raw)
-        self.assertEqual(len(current4.STREAM_REQUIRED), 16)
+        self.assertEqual(len(current4.STREAM_REQUIRED), 19)
         for name in REQUIRED:
             self.assertIsNotNone(re.fullmatch(current4.SELECTOR, name))
             self.assertIsNone(re.fullmatch(current4.SELECTOR, name + "Extra"))

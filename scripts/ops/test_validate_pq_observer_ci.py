@@ -38,7 +38,7 @@ FILES = {"CORE": "ynx-initial-cache-state-tests.jsonl", "CLI": "ynx-production-e
 FORK_SELECTOR = "^(" + "|".join(name for _, name in REQUIRED["FORK"]) + ")$"
 FORK_COMMAND = ('          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '
                 + "'" + FORK_SELECTOR + "' " + NODE + " " + RPC + ' > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then\n')
-FULL_CLI = '          if ! go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n'
+FULL_CLI = '          if ! CGO_ENABLED=1 go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n'
 FULL_CORE = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -skip \'^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then\n'
 
 

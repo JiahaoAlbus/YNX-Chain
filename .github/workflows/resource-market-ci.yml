@@ -169,6 +169,8 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/resource-market-ci.yml'
+      - 'packages/wallet-auth/go/sourceparentprofile/**'
+      - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
       - 'testdata/ethereum-native/**'
@@ -215,6 +217,8 @@ on:
       - 'scripts/validate/**'
       - 'scripts/verify/resource-market*'
       - '.github/workflows/resource-market-ci.yml'
+      - 'packages/wallet-auth/go/sourceparentprofile/**'
+      - 'packages/wallet-auth/native/source-parent/**'
   workflow_dispatch:
     inputs:
       candidate_sha:
@@ -2101,7 +2105,7 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
           go test -p 1 -count=1 -timeout=90s -run '^TestCommittedPQSource' ./internal/consensus
-          if ! go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then
+          if ! CGO_ENABLED=1 go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"
             exit 1
           fi
@@ -2144,6 +2148,37 @@ jobs:
           if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
+          normal_source_cmd_required = ['TestObserverCLINormalOriginalSourcePartialWithoutStart']
+          def qualify_normal_source_cmd(rows):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+              if not rows or any(not isinstance(row, dict) or row.get('Action') in ('fail', 'build-fail') for row in rows):
+                  raise RuntimeError('normal Source CLI original stream failed or is malformed')
+              starts = [i for i, row in enumerate(rows) if row.get('Package') == package and 'Test' not in row and row.get('Action') == 'start']
+              ends = [i for i, row in enumerate(rows) if row.get('Package') == package and 'Test' not in row and row.get('Action') in ('pass', 'fail', 'skip')]
+              if len(starts) != 1 or len(ends) != 1 or rows[ends[0]]['Action'] != 'pass' or starts[0] >= ends[0]:
+                  raise RuntimeError('normal Source CLI original package must start and pass once')
+              selected = [row for row in rows if isinstance(row.get('Test'), str) and row['Test'].split('/')[0] in normal_source_cmd_required]
+              if any(row.get('Package') != package or row.get('Action') not in ('run', 'pause', 'cont', 'output', 'pass') for row in selected):
+                  raise RuntimeError('normal Source CLI top or child failed, skipped or changed package')
+              names = {row['Test'] for row in selected}
+              if not set(normal_source_cmd_required).issubset(names):
+                  raise RuntimeError('normal Source CLI did not execute')
+              for name in names:
+                  parts = name.split('/')
+                  if any(not part for part in parts) or any('/'.join(parts[:i]) not in names for i in range(1, len(parts))):
+                      raise RuntimeError('normal Source CLI child lacks its original parent')
+                  runs = [i for i, row in enumerate(rows) if row.get('Test') == name and row.get('Action') == 'run']
+                  passed = [i for i, row in enumerate(rows) if row.get('Test') == name and row.get('Action') == 'pass']
+                  if len(runs) != 1 or len(passed) != 1 or not starts[0] < runs[0] < passed[0] < ends[0]:
+                      raise RuntimeError('normal Source CLI top or child did not run and pass uniquely')
+              return normal_source_cmd_required
+          normal_source_cmd_passed = qualify_normal_source_cmd(events)
+          print('YNX_PQ_NORMAL_SOURCE_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=normal_source_cmd_passed, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, nodeStarted=False), sort_keys=True))
           PY
       - name: Exercise original lab callee readiness and actual cold costs
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -2566,7 +2601,7 @@ jobs:
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
-          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain|TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold|TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation|TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain|TestPQObserverAccountHostPUBLICSameNodeDistinctScopes|TestPQObserverAccountHostPUBLICIdentityAndScopeFailures|TestSourceParentFrameBounds|TestSourceParentOriginalClockRace|TestPQSourceParentPUBLICQualifiedCleanupAndLoss|TestPQSourceParentPUBLICOriginalUnnamedSocket|TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC|TestPQProtectedSourceParentStableHostScopesPUBLIC|TestPQCommittedAccountWirePUBLICCloseDebt|TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
+          if ! CGO_ENABLED=1 YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain|TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold|TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation|TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain|TestPQObserverAccountHostPUBLICSameNodeDistinctScopes|TestPQObserverAccountHostPUBLICIdentityAndScopeFailures|TestSourceParentFrameBounds|TestSourceParentOriginalClockRace|TestPQSourceParentPUBLICQualifiedCleanupAndLoss|TestPQSourceParentPUBLICOriginalUnnamedSocket|TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC|TestPQProtectedSourceParentStableHostScopesPUBLIC|TestPQCommittedAccountWirePUBLICCloseDebt|TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause|TestPQNormalStartupSeparateProcessAndScopePUBLIC|TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC|TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"
             exit 1
           fi
@@ -2579,7 +2614,8 @@ jobs:
           current4_required = ['TestPQCurrent4WirePUBLICStrictFramesAndOSPeer', 'TestPQCurrent4WirePUBLICRegisteredObserverData', 'TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain']
           observer_account_required = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
           source_parent_required = ['TestSourceParentFrameBounds', 'TestSourceParentOriginalClockRace', 'TestPQSourceParentPUBLICQualifiedCleanupAndLoss', 'TestPQSourceParentPUBLICOriginalUnnamedSocket', 'TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC', 'TestPQProtectedSourceParentStableHostScopesPUBLIC', 'TestPQCommittedAccountWirePUBLICCloseDebt', 'TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause']
-          stream_required = current4_required + observer_account_required + source_parent_required
+          normal_source_parent_required = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC']
+          stream_required = current4_required + observer_account_required + source_parent_required + normal_source_parent_required
           # Go may emit compiler diagnostics before the test stream. They never
           # stand in for a test/package outcome and remain in the original JSONL.
           if any(not isinstance(event, dict) for event in events):
@@ -2598,7 +2634,7 @@ jobs:
               if len(runs) != 1 or outcomes != ['pass']:
                   raise RuntimeError('Current4 test did not execute and pass uniquely: ' + name)
           # Every observed Source-parent child must actually run and finish once.
-          source_parent_names = {event['Test'] for event in events if 'Test' in event and event['Test'].split('/')[0] in source_parent_required}
+          source_parent_names = {event['Test'] for event in events if 'Test' in event and event['Test'].split('/')[0] in source_parent_required + normal_source_parent_required}
           for name in source_parent_names:
               parts = name.split('/')
               if any(not part for part in parts) or any('/'.join(parts[:i]) not in source_parent_names for i in range(1, len(parts))):
@@ -2613,6 +2649,7 @@ jobs:
           print('YNX_CURRENT4_WIRE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=current4_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           print('YNX_PQ_OBSERVER_ACCOUNT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_account_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           print('YNX_PQ_SOURCE_PARENT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=source_parent_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
+          print('YNX_PQ_NORMAL_SOURCE_PARENT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=normal_source_parent_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
       - name: Verify original Auth r2 cross-process Current4 DATA interoperability
         id: current4authinterop
@@ -3225,7 +3262,7 @@ jobs:
           import hashlib, json, os, re, stat, subprocess
           from pathlib import Path
 
-          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl')
+          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl', 'ynx-production-entrypoint-tests.jsonl')
           PUBLIC_STREAM_SOURCE_NAMES = ('.github/workflows/resource-market-ci.yml', 'scripts/ops/test_validate_pq_remote_normal_ci.py')
 
           def file_identity(info):
@@ -3278,7 +3315,7 @@ jobs:
                               record['reason'] = 'close-error'
                               errors.append(name + ':close-error')
                   files.append(record)
-              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1', **identity, sourceFiles=source_files,
+              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2', **identity, sourceFiles=source_files,
                               files=files, captureComplete=not errors, errors=errors,
                               testQualification='not-evaluated', nativeGrant=False, nodeStartAuthorized=False, publicDeployment=False)
               with (output / 'SOURCE.json').open('x') as destination:
@@ -3334,6 +3371,7 @@ jobs:
             ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-initial-cache-state-tests.jsonl
             ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-current4-wire-tests.jsonl
             ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-lab-callee-tests.jsonl
+            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-production-entrypoint-tests.jsonl
           if-no-files-found: error
           compression-level: 6
           retention-days: 7

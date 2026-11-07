@@ -35,9 +35,10 @@ REQUIRED = [
 # Same original tagged invocation; the original Current4 receipt stays three tests.
 OBSERVER_ACCOUNT_REQUIRED = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
 SOURCE_PARENT_REQUIRED = ['TestSourceParentFrameBounds', 'TestSourceParentOriginalClockRace', 'TestPQSourceParentPUBLICQualifiedCleanupAndLoss', 'TestPQSourceParentPUBLICOriginalUnnamedSocket', 'TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC', 'TestPQProtectedSourceParentStableHostScopesPUBLIC', 'TestPQCommittedAccountWirePUBLICCloseDebt', 'TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause']
-STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED + SOURCE_PARENT_REQUIRED
+NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC']
+STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED + SOURCE_PARENT_REQUIRED + NORMAL_SOURCE_PARENT_REQUIRED
 SELECTOR = "^(" + "|".join(STREAM_REQUIRED) + ")$"
-COMMAND = ('          if ! YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE
+COMMAND = ('          if ! CGO_ENABLED=1 YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE
            + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '
            + "'" + SELECTOR + "' ./internal/consensus > \"$RUNNER_TEMP/" + OUTPUT + '\"; then\n')
 ORIGINAL_SKIP = "^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)"
@@ -107,7 +108,7 @@ def assert_contract(raw):
         raise AssertionError("all three original Current4 tests and original package/output required")
     account_assignments = [ast.literal_eval(node.value) for node in ast.parse(program).body
                            if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "observer_account_required" for target in node.targets)]
-    if account_assignments != [OBSERVER_ACCOUNT_REQUIRED] or "stream_required = current4_required + observer_account_required + source_parent_required" not in program:
+    if account_assignments != [OBSERVER_ACCOUNT_REQUIRED] or "stream_required = current4_required + observer_account_required + source_parent_required + normal_source_parent_required" not in program:
         raise AssertionError("the five fixed observer account cases must remain in the original Current4 stream")
     original = step(raw, "Verify complete state bridge and sponsor continuity")
     commands = re.findall(r"(?m)^          if ! .*go test .+\n", original)

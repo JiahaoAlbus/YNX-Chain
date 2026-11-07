@@ -4385,7 +4385,7 @@ class LiveColdOwnerCIControls(unittest.TestCase):
 
 
 
-PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test streams and same-job source identity\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        run: |\n          python3 -B - <<'PYCI'\n          import hashlib, json, os, re, stat, subprocess\n          from pathlib import Path\n\n          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl')\n          PUBLIC_STREAM_SOURCE_NAMES = ('.github/workflows/resource-market-ci.yml', 'scripts/ops/test_validate_pq_remote_normal_ci.py')\n\n          def file_identity(info):\n              return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)\n\n          def retain_public_streams(originals, output, identity, source_files, source_errors):\n              output.mkdir(mode=0o700)\n              files, errors = [], list(source_errors)\n              for name in PUBLIC_STREAM_NAMES:\n                  source, target = originals / name, output / name\n                  record = dict(path=name, status='missing')\n                  fd = None\n                  try:\n                      fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n                      before = os.fstat(fd)\n                      if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:\n                          raise RuntimeError('nonregular or aliased original stream')\n                      digest, length = hashlib.sha256(), 0\n                      with target.open('xb') as destination:\n                          os.chmod(target, 0o600)\n                          while True:\n                              chunk = os.read(fd, 1 << 20)\n                              if not chunk:\n                                  break\n                              destination.write(chunk)\n                              digest.update(chunk)\n                              length += len(chunk)\n                          destination.flush()\n                          os.fsync(destination.fileno())\n                      after, current = os.fstat(fd), os.lstat(source)\n                      if file_identity(before) != file_identity(after) or file_identity(after) != file_identity(current) or length != before.st_size:\n                          raise RuntimeError('original stream changed during capture')\n                      with target.open('rb') as captured:\n                          copied_sha = hashlib.file_digest(captured, 'sha256').hexdigest()\n                      if target.stat().st_size != length or copied_sha != digest.hexdigest():\n                          raise RuntimeError('captured public stream differs from original bytes')\n                      record = dict(path=name, status='captured', bytes=length, sha256=copied_sha)\n                  except FileNotFoundError:\n                      errors.append(name + ':missing')\n                  except (OSError, RuntimeError) as error:\n                      record['status'] = 'refused'\n                      record['reason'] = type(error).__name__\n                      errors.append(name + ':refused')\n                  finally:\n                      if fd is not None:\n                          try:\n                              os.close(fd)\n                          except OSError:\n                              record['status'] = 'refused'\n                              record['reason'] = 'close-error'\n                              errors.append(name + ':close-error')\n                  files.append(record)\n              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1', **identity, sourceFiles=source_files,\n                              files=files, captureComplete=not errors, errors=errors,\n                              testQualification='not-evaluated', nativeGrant=False, nodeStartAuthorized=False, publicDeployment=False)\n              with (output / 'SOURCE.json').open('x') as destination:\n                  json.dump(metadata, destination, sort_keys=True, separators=(',', ':'))\n                  destination.write('\\n')\n                  destination.flush()\n                  os.fsync(destination.fileno())\n              if errors:\n                  raise RuntimeError('original public streams or source identity missing/refused; retained SOURCE.json records first cause')\n              return metadata\n\n          def original_source_identity(workspace):\n              errors, source_files = [], {}\n              def git(*args):\n                  try:\n                      return subprocess.check_output(['git', *args], cwd=workspace, text=True, stderr=subprocess.PIPE).strip()\n                  except subprocess.CalledProcessError:\n                      errors.append('git:' + args[0])\n                      return None\n              identity = dict(commit=git('rev-parse', 'HEAD'), sourceTree=git('rev-parse', 'HEAD^{tree}'),\n                              cometForkTree=git('rev-parse', 'HEAD:third_party/cometbft'),\n                              repository=os.environ.get('GITHUB_REPOSITORY'), runId=os.environ.get('GITHUB_RUN_ID'),\n                              runAttempt=os.environ.get('GITHUB_RUN_ATTEMPT'), job=os.environ.get('GITHUB_JOB'))\n              if identity['commit'] != os.environ.get('GITHUB_SHA') or any(not isinstance(identity[key], str) or not re.fullmatch(r'[0-9a-f]{40}', identity[key]) for key in ('commit', 'sourceTree', 'cometForkTree')):\n                  errors.append('source-identity')\n              if identity['repository'] != 'JiahaoAlbus/YNX-Chain' or identity['job'] != 'focused-go' or any(not isinstance(identity[key], str) or not re.fullmatch(r'[1-9][0-9]*', identity[key]) for key in ('runId', 'runAttempt')):\n                  errors.append('job-identity')\n              for name in PUBLIC_STREAM_SOURCE_NAMES:\n                  try:\n                      actual = (workspace / name).read_bytes()\n                      original = subprocess.check_output(['git', 'show', 'HEAD:' + name], cwd=workspace, stderr=subprocess.PIPE)\n                      if actual != original:\n                          raise RuntimeError('original CI source bytes changed')\n                      source_files[name] = dict(bytes=len(actual), sha256=hashlib.sha256(actual).hexdigest(), gitBlob=git('rev-parse', 'HEAD:' + name))\n                  except (OSError, RuntimeError, subprocess.CalledProcessError):\n                      source_files[name] = dict(status='missing-or-changed')\n                      errors.append('source-file:' + name)\n              return identity, source_files, errors\n\n          workspace = Path(os.environ['GITHUB_WORKSPACE'])\n          originals = Path(os.environ['RUNNER_TEMP'])\n          identity, source_files, source_errors = original_source_identity(workspace)\n          retain_public_streams(originals, originals / 'ynx-focused-public-test-streams', identity, source_files, source_errors)\n          PYCI\n      - name: Upload only original focused public test streams\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: ynx-focused-public-test-streams-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n          path: |\n            ${{ runner.temp }}/ynx-focused-public-test-streams/SOURCE.json\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-native-history-chain-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-initial-cache-state-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-current4-wire-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-lab-callee-tests.jsonl\n          if-no-files-found: error\n          compression-level: 6\n          retention-days: 7\n"
+PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test streams and same-job source identity\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        run: |\n          python3 -B - <<'PYCI'\n          import hashlib, json, os, re, stat, subprocess\n          from pathlib import Path\n\n          PUBLIC_STREAM_NAMES = ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl', 'ynx-production-entrypoint-tests.jsonl')\n          PUBLIC_STREAM_SOURCE_NAMES = ('.github/workflows/resource-market-ci.yml', 'scripts/ops/test_validate_pq_remote_normal_ci.py')\n\n          def file_identity(info):\n              return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)\n\n          def retain_public_streams(originals, output, identity, source_files, source_errors):\n              output.mkdir(mode=0o700)\n              files, errors = [], list(source_errors)\n              for name in PUBLIC_STREAM_NAMES:\n                  source, target = originals / name, output / name\n                  record = dict(path=name, status='missing')\n                  fd = None\n                  try:\n                      fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)\n                      before = os.fstat(fd)\n                      if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:\n                          raise RuntimeError('nonregular or aliased original stream')\n                      digest, length = hashlib.sha256(), 0\n                      with target.open('xb') as destination:\n                          os.chmod(target, 0o600)\n                          while True:\n                              chunk = os.read(fd, 1 << 20)\n                              if not chunk:\n                                  break\n                              destination.write(chunk)\n                              digest.update(chunk)\n                              length += len(chunk)\n                          destination.flush()\n                          os.fsync(destination.fileno())\n                      after, current = os.fstat(fd), os.lstat(source)\n                      if file_identity(before) != file_identity(after) or file_identity(after) != file_identity(current) or length != before.st_size:\n                          raise RuntimeError('original stream changed during capture')\n                      with target.open('rb') as captured:\n                          copied_sha = hashlib.file_digest(captured, 'sha256').hexdigest()\n                      if target.stat().st_size != length or copied_sha != digest.hexdigest():\n                          raise RuntimeError('captured public stream differs from original bytes')\n                      record = dict(path=name, status='captured', bytes=length, sha256=copied_sha)\n                  except FileNotFoundError:\n                      errors.append(name + ':missing')\n                  except (OSError, RuntimeError) as error:\n                      record['status'] = 'refused'\n                      record['reason'] = type(error).__name__\n                      errors.append(name + ':refused')\n                  finally:\n                      if fd is not None:\n                          try:\n                              os.close(fd)\n                          except OSError:\n                              record['status'] = 'refused'\n                              record['reason'] = 'close-error'\n                              errors.append(name + ':close-error')\n                  files.append(record)\n              metadata = dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2', **identity, sourceFiles=source_files,\n                              files=files, captureComplete=not errors, errors=errors,\n                              testQualification='not-evaluated', nativeGrant=False, nodeStartAuthorized=False, publicDeployment=False)\n              with (output / 'SOURCE.json').open('x') as destination:\n                  json.dump(metadata, destination, sort_keys=True, separators=(',', ':'))\n                  destination.write('\\n')\n                  destination.flush()\n                  os.fsync(destination.fileno())\n              if errors:\n                  raise RuntimeError('original public streams or source identity missing/refused; retained SOURCE.json records first cause')\n              return metadata\n\n          def original_source_identity(workspace):\n              errors, source_files = [], {}\n              def git(*args):\n                  try:\n                      return subprocess.check_output(['git', *args], cwd=workspace, text=True, stderr=subprocess.PIPE).strip()\n                  except subprocess.CalledProcessError:\n                      errors.append('git:' + args[0])\n                      return None\n              identity = dict(commit=git('rev-parse', 'HEAD'), sourceTree=git('rev-parse', 'HEAD^{tree}'),\n                              cometForkTree=git('rev-parse', 'HEAD:third_party/cometbft'),\n                              repository=os.environ.get('GITHUB_REPOSITORY'), runId=os.environ.get('GITHUB_RUN_ID'),\n                              runAttempt=os.environ.get('GITHUB_RUN_ATTEMPT'), job=os.environ.get('GITHUB_JOB'))\n              if identity['commit'] != os.environ.get('GITHUB_SHA') or any(not isinstance(identity[key], str) or not re.fullmatch(r'[0-9a-f]{40}', identity[key]) for key in ('commit', 'sourceTree', 'cometForkTree')):\n                  errors.append('source-identity')\n              if identity['repository'] != 'JiahaoAlbus/YNX-Chain' or identity['job'] != 'focused-go' or any(not isinstance(identity[key], str) or not re.fullmatch(r'[1-9][0-9]*', identity[key]) for key in ('runId', 'runAttempt')):\n                  errors.append('job-identity')\n              for name in PUBLIC_STREAM_SOURCE_NAMES:\n                  try:\n                      actual = (workspace / name).read_bytes()\n                      original = subprocess.check_output(['git', 'show', 'HEAD:' + name], cwd=workspace, stderr=subprocess.PIPE)\n                      if actual != original:\n                          raise RuntimeError('original CI source bytes changed')\n                      source_files[name] = dict(bytes=len(actual), sha256=hashlib.sha256(actual).hexdigest(), gitBlob=git('rev-parse', 'HEAD:' + name))\n                  except (OSError, RuntimeError, subprocess.CalledProcessError):\n                      source_files[name] = dict(status='missing-or-changed')\n                      errors.append('source-file:' + name)\n              return identity, source_files, errors\n\n          workspace = Path(os.environ['GITHUB_WORKSPACE'])\n          originals = Path(os.environ['RUNNER_TEMP'])\n          identity, source_files, source_errors = original_source_identity(workspace)\n          retain_public_streams(originals, originals / 'ynx-focused-public-test-streams', identity, source_files, source_errors)\n          PYCI\n      - name: Upload only original focused public test streams\n        if: ${{ !cancelled() && !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: ynx-focused-public-test-streams-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n          path: |\n            ${{ runner.temp }}/ynx-focused-public-test-streams/SOURCE.json\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-native-history-chain-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-initial-cache-state-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-current4-wire-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-lab-callee-tests.jsonl\n            ${{ runner.temp }}/ynx-focused-public-test-streams/ynx-production-entrypoint-tests.jsonl\n          if-no-files-found: error\n          compression-level: 6\n          retention-days: 7\n"
 
 
 def assert_public_owner_cli_workflow_contract(step):
@@ -4479,7 +4479,7 @@ def assert_public_stream_retention_workflow_contract(raw):
     names = ('Retain exact public test streams and same-job source identity', 'Upload only original focused public test streams')
     found = [step for step in steps if any(step.startswith('      - name: '+name+'\n') for name in names)]
     if len(found) != 2 or ''.join(found) != PUBLIC_TEST_STREAM_RETENTION_STEPS:
-        raise AssertionError('exact four public byte streams and same-job source capture/upload required')
+        raise AssertionError('exact five public byte streams and same-job source capture/upload required')
     prior = next(i for i, step in enumerate(steps) if step.startswith('      - name: Verify operator checkpoint format and original read-lock admission\n'))
     indices = [steps.index(step) for step in found]
     if indices != [prior+1, prior+2]:
@@ -4648,6 +4648,127 @@ class SenderParentPersistenceCIControls(unittest.TestCase):
             mutations.append(step.replace(name, name+'Renamed', 1))
         for changed in mutations:
             with self.assertRaises(AssertionError): assert_state_math_required_workflow_contract(changed)
+
+
+
+
+NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC']
+NORMAL_SOURCE_CMD_REQUIRED = ['TestObserverCLINormalOriginalSourcePartialWithoutStart']
+
+
+def normal_source_ci_parts():
+    import ast, textwrap
+    root = Path(__file__).resolve().parents[2]
+    raw = (root / '.github/workflows/resource-market-ci.yml').read_text()
+    spec = importlib.util.spec_from_file_location('normal_source_current4_controls', root / 'scripts/ops/test_validate_pq_current4_ci.py')
+    current4 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(current4)
+    body = current4.step(raw, 'Compile production entry points')
+    programs = re.findall(r"(?ms)^          python3 -B - <<'PY'\n(.*?)^          PY\n", body)
+    selected = [textwrap.dedent(p) for p in programs if 'YNX_PQ_NORMAL_SOURCE_CLI_TESTS' in p]
+    if len(selected) != 1:
+        raise AssertionError('one normal Source command collector in original invocation required')
+    tree = ast.parse(selected[0])
+    nodes = [node for node in tree.body if (isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'normal_source_cmd_required' for t in node.targets)) or (isinstance(node, ast.FunctionDef) and node.name == 'qualify_normal_source_cmd')]
+    if len(nodes) != 2:
+        raise AssertionError('exact required list and actual command qualifier required')
+    scope = {}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), 'actual-normal-source-command-collector', 'exec'), scope)
+    return root, raw, current4, body, selected[0], scope
+
+
+def assert_normal_source_ci_contract(raw):
+    import ast
+    root, _, current4, _, _, _ = normal_source_ci_parts()
+    current4.assert_contract(raw)
+    if current4.NORMAL_SOURCE_PARENT_REQUIRED != NORMAL_SOURCE_PARENT_REQUIRED or len(current4.STREAM_REQUIRED) != 19:
+        raise AssertionError('original sixteen plus exact three normal Source tops required')
+    tagged = current4.collector(raw)
+    lists = [ast.literal_eval(n.value) for n in ast.parse(tagged).body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'normal_source_parent_required' for t in n.targets)]
+    if lists != [NORMAL_SOURCE_PARENT_REQUIRED] or tagged.count("print('YNX_PQ_NORMAL_SOURCE_PARENT_TESTS '") != 1:
+        raise AssertionError('independent exact normal Source DATA list required')
+    if "event['Test'].split('/')[0] in source_parent_required + normal_source_parent_required}" not in tagged:
+        raise AssertionError('normal Source observed children must retain strict closure')
+    body = current4.step(raw, 'Compile production entry points')
+    command = '          if ! CGO_ENABLED=1 go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n'
+    if body.count(command) != 1 or raw.count(command) != 1:
+        raise AssertionError('same complete production command call must use cgo once at original 90s')
+    required = "normal_source_cmd_required = " + repr(NORMAL_SOURCE_CMD_REQUIRED)
+    for text in (required, 'normal_source_cmd_passed = qualify_normal_source_cmd(events)', "print('YNX_PQ_NORMAL_SOURCE_CLI_TESTS '"):
+        if body.count(text) != 1:
+            raise AssertionError('normal Source CLI actual qualification cannot be detached')
+    for event in ('push', 'pull_request'):
+        block = re.findall(r'(?ms)^  ' + event + r':\n(.*?)(?=^  [a-z_]+:\n|\Z)', raw)
+        if len(block) != 1 or any(block[0].count("      - '" + p + "'\n") != 1 for p in ('packages/wallet-auth/go/sourceparentprofile/**', 'packages/wallet-auth/native/source-parent/**')):
+            raise AssertionError('both original Go/native source prefixes must trigger same CI')
+    assert_public_stream_retention_workflow_contract(raw)
+    if "version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2'" not in raw:
+        raise AssertionError('five-stream source uses its explicit closed version')
+
+
+class NormalSourceParentCIControls(unittest.TestCase):
+    def test_normal_source_uses_original_calls_exact19_and_actual_source_names(self):
+        root, raw, current4, _, _, scope = normal_source_ci_parts()
+        assert_normal_source_ci_contract(raw)
+        self.assertEqual(scope['normal_source_cmd_required'], NORMAL_SOURCE_CMD_REQUIRED)
+        for directory, names in [('internal/consensus', NORMAL_SOURCE_PARENT_REQUIRED), ('cmd/ynx-comet', NORMAL_SOURCE_CMD_REQUIRED)]:
+            for name in names:
+                count = sum(len(re.findall(r'^func ' + name + r'\(t \*testing.T\)', p.read_text(), re.M)) for p in (root / directory).glob('*_test.go'))
+                self.assertEqual(count, 1, name)
+        self.assertIn("CGO_ENABLED=1 YNX_PQ_NETWORK_E2E=''", current4.COMMAND)
+        self.assertEqual(len(current4.REQUIRED), 3)
+        self.assertEqual(len(current4.OBSERVER_ACCOUNT_REQUIRED), 5)
+        self.assertEqual(len(current4.SOURCE_PARENT_REQUIRED), 8)
+
+    def test_normal_source_tagged_collector_refuses_old_partial_and_each_new_child_failure(self):
+        _, raw, current4, _, _, _ = normal_source_ci_parts()
+        current4.execute(raw, current4.rows())
+        old = [e for e in current4.rows() if e.get('Test') not in NORMAL_SOURCE_PARENT_REQUIRED]
+        for events in (old, current4.rows()[:-1], current4.rows() + current4.rows(), old + current4.rows()):
+            with self.assertRaises(RuntimeError): current4.execute(raw, events)
+        for name in NORMAL_SOURCE_PARENT_REQUIRED:
+            good = current4.rows()
+            child = [dict(Action=a, Package=current4.PACKAGE, Test=name+'/actual') for a in ('run', 'pass')]
+            current4.execute(raw, good[:-1] + child + good[-1:])
+            variants = [[e for e in good if e.get('Test') != name], good + [dict(Action='pass', Package=current4.PACKAGE, Test=name)], good[:-1] + child[:1] + good[-1:], good[:-1] + child[::-1] + good[-1:]]
+            variants += [good + [dict(Action=a, Package=current4.PACKAGE, Test=name+'/actual')] for a in ('skip', 'fail', 'build-fail')]
+            for events in variants:
+                with self.subTest(name=name), self.assertRaises(RuntimeError): current4.execute(raw, events)
+
+    def test_normal_source_cmd_requires_same_package_original_top_and_complete_children(self):
+        _, _, _, _, _, scope = normal_source_ci_parts()
+        package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+        name = NORMAL_SOURCE_CMD_REQUIRED[0]
+        good = [dict(Package=package, Action='start')] + [dict(Package=package, Action=a, Test=n) for n,a in [(name,'run'),(name+'/original','run'),(name+'/original','pass'),(name,'pass')]] + [dict(Package=package, Action='pass')]
+        qualify = scope['qualify_normal_source_cmd']
+        self.assertEqual(qualify(good), NORMAL_SOURCE_CMD_REQUIRED)
+        bad = [[], good[:-1], good[1:], good+good, [dict(e,Package='foreign') if 'Test' in e else e for e in good]]
+        for i in range(len(good)):
+            bad += [good[:i]+good[i+1:], good[:i]+[good[i]]+good[i:]]
+        for action in ('skip', 'fail', 'build-fail', 'unknown'):
+            bad.append(good[:-2]+[dict(good[-2],Action=action)]+good[-1:])
+            bad.append(good[:3]+[dict(good[3],Action=action)]+good[4:])
+        bad += [[dict(e,Test=name+'Renamed') if e.get('Test')==name else e for e in good], [good[-1]]+good[:-1], good[:2]+good[3:4]+good[2:3]+good[4:]]
+        for events in bad:
+            with self.assertRaises(RuntimeError): qualify(events)
+
+    def test_normal_source_contract_refuses_missing_cgo_prefixes_guards_or_new_selection(self):
+        _, raw, current4, _, _, _ = normal_source_ci_parts()
+        command = current4.COMMAND
+        changes = [raw.replace(command, command.replace('CGO_ENABLED=1 ',''),1), raw.replace(command,command.replace('-timeout=120s','-timeout=121s'),1), raw.replace(command,command.replace('-p 1','-p 2'),1)]
+        changes += [raw.replace(command,command.replace('|'+name,''),1) for name in NORMAL_SOURCE_PARENT_REQUIRED]
+        changes += [raw.replace("      - '"+prefix+"'\n",'',1) for prefix in ('packages/wallet-auth/go/sourceparentprofile/**','packages/wallet-auth/native/source-parent/**')]
+        changes += [raw.replace('if ! CGO_ENABLED=1 go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci', 'if ! go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci',1), raw.replace('normal_source_cmd_passed = qualify_normal_source_cmd(events)','normal_source_cmd_passed = normal_source_cmd_required',1), raw.replace("version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2'", "version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1'",1)]
+        for changed in changes:
+            self.assertNotEqual(raw, changed)
+            with self.assertRaises(AssertionError): assert_normal_source_ci_contract(changed)
+
+    def test_fifth_original_command_stream_is_not_merged_or_replaced(self):
+        raw, scope = PublicTestStreamRetentionControls().parts()
+        self.assertEqual(scope['PUBLIC_STREAM_NAMES'], ('ynx-native-history-chain-tests.jsonl', 'ynx-initial-cache-state-tests.jsonl', 'ynx-current4-wire-tests.jsonl', 'ynx-lab-callee-tests.jsonl', 'ynx-production-entrypoint-tests.jsonl'))
+        self.assertEqual(raw.count(' > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"'),1)
+        self.assertNotIn(' >> "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"', raw)
+        self.assertIn("version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2'", PUBLIC_TEST_STREAM_RETENTION_STEPS)
 
 
 if __name__ == "__main__":
