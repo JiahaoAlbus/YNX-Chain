@@ -24,7 +24,11 @@ export function captureOriginalIDECloudRetainedGETPrivate(lookupResult,originalS
   prepareOriginalGETRequest(r,c){live();const ticket=controller.prepareOriginalGETRequest(r,c);live();return ticket},
   readOriginalRequestDATA(t){return controller.readOriginalRequestDATA(t)},
   async recheckOriginalGETRequest(t){live();const out=await controller.recheckOriginalGETRequest(t);live();return out},
-  getDeploymentRequestHeaders(){live();return controller.getDeploymentRequestHeaders()},retire,join,close,
+  // Completion/cleanup observes the same original even after cancel/retire.
+  // Do not call live(), replace signal, reacquire Source or create new proof.
+  finishOriginalGETRequest(t){if(!controller)throw fail('IDE_CLOUD_COMPOSITION_GET_NOT_SUPPLIED');return controller.finishOriginalGETRequest(t)},
+  drainOriginalGETRequest(t){if(!controller)throw fail('IDE_CLOUD_COMPOSITION_GET_NOT_SUPPLIED');return controller.drainOriginalGETRequest(t)},
+  getDeploymentRequestHeaders(...args){live();return controller.getDeploymentRequestHeaders(...args)},retire,join,close,
   statusDATA(){return Object.freeze({retired,closed,firstCausePresent:firstPresent,firstCause:first,GET:controller?.status()??null,partialDebt:partial!==null&&!partialClosed,lookup:lookup.statusDATA(),RootAdmission:false,SourceAdmission:false,NativeAdmission:false,CloudGETProof:false})}
  });
  try{lookup.assertCurrent();controller=acquireOriginalIDECloudGETRequestController(originalSelector);live();return owner;}

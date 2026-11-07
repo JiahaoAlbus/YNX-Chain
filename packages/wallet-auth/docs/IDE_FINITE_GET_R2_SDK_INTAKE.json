@@ -1,0 +1,155 @@
+{
+  "schema": "YNX_IDE_FINITE_GET_R2_SDK_INTAKE_V1",
+  "baseSDKCommit": "419b13fb8099f33804323a469e0efd7b1093794e",
+  "AuthComponent": {
+    "schema": "AUTH_IDE_FINITE_GET_COMPONENT_R2",
+    "HANDOFFbytes": 10818,
+    "HANDOFFsha256": "f782c9be70841b6adc48f0675e436e9bb5bc68fd892412825517a3a722e00e4b",
+    "code": "7 Go production files only; no JS/Native Source factory supplied",
+    "sourcePinsVerified": 28,
+    "tests": "existing Auth component evidence reused, not rerun"
+  },
+  "P03Context": {
+    "HANDOFFbytes": 2587,
+    "HANDOFFsha256": "ef09fc5f298d2c5044cf5babe47e07f3428c201da4ab83800708e8eda0c0882a",
+    "sourceCommit": "83e6c4dc081df87ad6e145e1ac244d2aaa8896fb",
+    "actualCaller": "project-services-host.mjs:51 creates Object.freeze({signal:controller.signal}); line52 passes SAME object as opts.originalRequestContext with projectLease",
+    "meaning": "same per-read signal/context, not Source/selection authority; actual Native header/sender was not consumed"
+  },
+  "completionBridge": {
+    "prototypeAccepted": true,
+    "bodySupplied": false,
+    "qualificationSupplied": false,
+    "name": "finishOriginalRead",
+    "owner": "existing SAME Native original request child",
+    "signature": "finishOriginalRead(SAME frozen originalRequestContext): Promise<boolean>",
+    "GoMapping": "originalReadTicket.finish(ctx) -> (true,nil) => true; (false,nil) => false/UNKNOWN; nonnil error => reject original value; no new owner returned",
+    "noInput": [
+      "completed bool",
+      "new signal",
+      "request replacement",
+      "nonce/member/response replacement",
+      "provider/signer/URL setter"
+    ],
+    "trueMeaning": "known HTTP result + original Go sender join/close + target.Current AND; successful HTTP means known transport outcome, not necessarily2xx, accepted receiver or business success",
+    "twoDrainLayers": "Go finish drains Go sender. SDK child retire/join/close drains Native request wrapper; Source remains held until actual child debt clears. These are not repeated HTTP effects.",
+    "falseOrReject": "Sticky UNKNOWN/firstCausePresent including false/0/null/undefined; physically complete cleanup alone never opens a new read",
+    "evidenceStatus": "Name/semantics accepted by original Auth via parent confirmation in this task; supplied frozen r2 H contains Go only. No actual Native bridge body/factory/runtime proof."
+  },
+  "SDKCode": {
+    "internalState": "src/original-ide-finite-get-read-state-data.js pure memory DATA algorithm; boolean DATA is never a Native result/provenance or grant",
+    "normalCaller": "src/original-ide-cloud-get-request.js exact successor: accepted finish own-method required; missing method fails IDE_CLOUD_GET_FINISH_CALLEE_NOT_SUPPLIED only after adopting cleanup-capable child",
+    "retainedParent": "src/original-ide-cloud-retained-get-private.js forwards per-read finish/drain WITHOUT live()/signal gate, preserving cleanup after retire",
+    "readonlyParentTypes": "src/original-ide-admission-parent-delivery.d.ts exposes ticket-only finish/drain to existing private owner",
+    "noProductionGetFactoryAdded": true,
+    "noSourceSetterAdded": true,
+    "oldHeaderGetterStillNever": true,
+    "headersCallbackRequestShape": "same exact4 method/path/url/operationRequestId; context is passed separately and held from opts.originalRequestContext, not added to callback DATA",
+    "sourceCurrentBeforeNewRead": "existing source.assertCurrent + same original opaque Native selection; data state never substitutes it"
+  },
+  "sequenceRules": [
+    "one active last read blocks ALL next routes, not merely same exact4",
+    "known actual finish + JS child physically joined/closed + Source current + no firstcause/UNKNOWN permits explicit new read",
+    "same still-live SAME Host context may span sequential HTTP tickets (status then logs/usage), after prior known+physical drain; context is not a once token",
+    "one finish Promise is published before any foreign method; same ticket reuses same promise; per-read rechecks settle before finish",
+    "UNKNOWN/false/reject never recreates nonce/member or reacquires Source automatically; no replay path",
+    "same original canceled/retired read still permits cached observation and real cleanup with old signal; no replacement signal",
+    "retired Source never authorizes new read, even if old original result is known",
+    "cleanup retry drains same owner only, never re-enters finish/sign/send; join failure never advances close",
+    "memory-only DATA state does not replace Native durable DEVICE once/journal or restart recovery"
+  ],
+  "mapping": [
+    {
+      "SDK": "finite7 path/operationRequestId",
+      "Go": "captureOriginalFiniteGETRoute Path/OperationID/Kind/Period; identical seven kinds, no query/body/aliases",
+      "state": "compatible DATA syntax; not target grant"
+    },
+    {
+      "SDK": "V4 E5 unsigned21/N1/header x-ynx-product-session-proof-v4",
+      "Go": "receiver.go verifyOriginalMath uses actual Core19 InspectProductSessionHTTPMember; CaptureOriginalFiniteGETV4 only captures header",
+      "state": "same SDK codec/math; no second header parser; live AuthHost current/device/principal/nonce transaction missing"
+    },
+    {
+      "SDK": "old all.some(same exact4) permanence",
+      "Go": "read_ticket.go begin refuses s.last!=nil&&!last.finished for ANY path",
+      "state": "fixed in successor; known+child drain enables explicit new read, not implicit retry"
+    },
+    {
+      "SDK": "JS child close after known completion",
+      "Go": "ticket.finish joins/closes Go sender and checks Unknown/entered/first/current",
+      "state": "separate drain layers; not a second send"
+    },
+    {
+      "SDK": "Root-selected serviceOrigin/SPKI/fullRef expected",
+      "Go": "private targetBinding+target_gate and target_read descriptor candidate only",
+      "state": "session->target authorization not supplied; metadata cannot be grant"
+    },
+    {
+      "SDK": "fixed target sender requirement",
+      "Go": "sender.go private WebPKI+hostname+SPKI+Current, no proxy/redirect, keepalive reuse disabled; retains partial response before late checks",
+      "state": "component implementation exists; no normal Native JS transport bridge or live HTTPS run"
+    },
+    {
+      "SDK": "generic HTTPS DATA expected serviceOrigin",
+      "Go": "targetBinding.validate demands u.Host==ServerName and u.Hostname==ServerName (thus rejects explicit port/bracketed literal forms)",
+      "state": "component target subset narrower; do not silently normalize/loosen either layer"
+    },
+    {
+      "SDK": "retained Source lifetime/current",
+      "Go": "target_read reviewedTargets empty; target TTL min(5 seconds, record expiry)",
+      "state": "default NOT_SUPPLIED; no implicit refresh/renewal invented for polling"
+    }
+  ],
+  "remainingOwningCODE": [
+    "Auth actual fixed Native GET factory/private child/same Go ctx/body and registration/current/Root qualification; prototype acceptance is not body supply",
+    "Auth session/registered DEVICE + same parent/project -> target serviceOrigin/SPKI/fullRef authorization, not private target candidate DATA",
+    "AuthHost/P04 sole SDK-decoder use + independent registered device/current/revocation/principal/durable nonce transaction and accepted V4 server route/parser budget",
+    "P04 normal original GET caller must consume actual Source-owned fixed TLS transport, never ordinary fetch substitute",
+    "Complete matching Source/Native package/image and actual sender/header/source receipt accepted by original owners before replacing never getter",
+    "Native durable once/journal/restart original operation recovery; new memory-only SDK model proves none of that"
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "receiverAccepted": false,
+  "actualNativeCompleted": false,
+  "dispatch": false,
+  "P04Context": {
+    "checkpoint": {
+      "bytes": 7130,
+      "sha256": "0f0703135757fd641d91858859b25d081b08416106ae55fab203641836f94039"
+    },
+    "headersHook": "(requestExact4,SAME originalRequestContext); old one-argument hook remains compatible",
+    "actualLogicalRead": "lookupOriginal then logs/usage/nativeIntent forwards same originalRequestContext; no WeakSet permanent context ban",
+    "eachTicket": "finish/drain bound to stored original context; fresh context may not replace old ticket context"
+  },
+  "heldGetR3Observed": {
+    "formalHANDOFFFound": false,
+    "observedPins": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/held-get-r3/CAS.json",
+        "bytes": 1681,
+        "sha256": "873ad0f0a9d16829f4e7f554de95f6326bf363e888b38464a270d5066d2be268"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/held-get-r3/src/ide-get-held-session-root.js",
+        "bytes": 4388,
+        "sha256": "94f14e2b8c4a3181d831fc71dfbf5970c66e82e78c1458a525b80d06d1e2089c"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/held-get-r3/src/ide-get-held-session-owner-private.js",
+        "bytes": 8796,
+        "sha256": "def17d9fa9867cb155433376bfb9452f457deec849bb5c81d394b64b2388b298"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/held-get-r3/native/ide-held-session-native-capture.mm",
+        "bytes": 9061,
+        "sha256": "7d5596859e19b2fff9a9eaeeb4edd4900d4e4a7a568706ce12868ea4921fe896"
+      }
+    ],
+    "actualEntry": "acquireOriginalIDEHeldSessionReadForOriginalGET(SAMEctx) -> fixed image.acquireOriginalIDEHeldSessionReadCapture() -> original storage/native stage -> createProductWalletBusinessReadClient",
+    "notSameEntry": "No supplied formal factory for acquireOriginalIDECloudGETSource(originalSelection)/per-request finishOriginalRead found in these observed JS leaves",
+    "status": "WIP/standalone BODY observed only; not matching wholeimage or genuine target/Source admission",
+    "wholeimage": "must not hot-install into compiled 3c9/C227 image"
+  }
+}
