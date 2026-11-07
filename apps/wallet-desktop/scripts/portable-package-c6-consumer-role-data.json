@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "15a02a4b1b4f95329bd2329630ce5fcf2c8a2f83",
-  "sourceTree": "ecd68ab4e4c395ef3610ad7851ae064ba09ddc94",
+  "sourceCommit": "b46a1c60f439c5416fc7b0880b673958e0250d8b",
+  "sourceTree": "0b129c79a0aa49e2d3f1e130854ce002a0a9f569",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -291,8 +291,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/main.mjs",
-      "bytes": 127992,
-      "sha256": "8ffa3217a81ba633270dafbffb2cf86c75d7dc929abf6fdf1a6bbc242380517b"
+      "bytes": 127950,
+      "sha256": "fb165e0f3b5f6d383eec9c6a7e768b0bfbb161e4f2faa9457b5c620f91dcdf3e"
     },
     {
       "relative": "apps/wallet-desktop/src/native-pay-client/SOURCE_RECEIPT.json",
@@ -398,6 +398,16 @@
       "relative": "apps/wallet-desktop/src/wallet-appearance.mjs",
       "bytes": 4591,
       "sha256": "d1fc1546ccf127d15a43ff7182c830879b233d3f243031137f45d617d7dd78bb"
+    },
+    {
+      "relative": "apps/wallet-desktop/src/wallet-ide-identity-peer-kernel.mjs",
+      "bytes": 17628,
+      "sha256": "a02c173d1665337ace450152faa54b8da8318a3d73f61a3c3523575ed374cf15"
+    },
+    {
+      "relative": "apps/wallet-desktop/src/wallet-ide-identity-peer-owner.mjs",
+      "bytes": 1607,
+      "sha256": "ee48ffe19ed8c7c7cd53f7b56673018a226322f778b589ce118e84d2e21a61b5"
     },
     {
       "relative": "apps/wallet-desktop/src/wallet-native-pay-product-startup.mjs",
@@ -565,9 +575,19 @@
       "sha256": "366c9b87c4b076019fcd730597cf89265502c73d4a2e2320536c9c2e534fc97e"
     },
     {
+      "relative": "apps/wallet-desktop/test/wallet-ide-identity-peer-owner.test.mjs",
+      "bytes": 4475,
+      "sha256": "0de4df2a4e0888c97d0b2b83c5bb16b6213998154a15f40a204a36555c420d69"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/wallet-ide-identity-peer.test.mjs",
+      "bytes": 15858,
+      "sha256": "ba9673b5291e54f3e727c21905aacae5d4458cac0772ac3ad312a8eb384b9ee6"
+    },
+    {
       "relative": "apps/wallet-desktop/test/wallet-main-shutdown-sync-failure.test.mjs",
-      "bytes": 4932,
-      "sha256": "eccacaf574a8270f0ca876980fe1122b8a266d3411eab7773a906f45ff81e2ad"
+      "bytes": 4937,
+      "sha256": "7861490fa6872fbe9069a5b589b75c1377db12cdc7a94a20896760cb8ab77070"
     },
     {
       "relative": "apps/wallet-desktop/test/wallet-native-pay-product-startup.test.mjs",
