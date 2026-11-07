@@ -187,6 +187,20 @@ returns or during close. No actor-bound Root/Core callee is invoked off-thread.
 Header snapshots and all producer bodies must be composed in one fresh matching
 image: changing C++ return types alone is not detectable by symbol-name checks.
 
+The consumer also calls the SAME receipt's actual Source-selection and opaque
+directory-loan getters. Original Source reference/op, vault revision, source
+execution height/nonce, native chain ID and budget remain independent original
+fields; the numeric native chain ID is not the consensus chain ID string. It
+checks Source identity against its selected receipt and returns no late-invalid
+copy. Directory acquisition adopts every real opaque child before failure,
+preserves raw code0, and keeps parent cleanup blocked until children close.
+An unprovided journal/slot role refuses only that borrow; it does not retire a
+valid account/Source role. Auth's exact directory-v2 header provides held parent
+FD, literal leaf, directory FD, both identities and independently reviewed Root
+locator; a full Native selected inventory must still independently AND its
+compiled locator and named/held identity pins. No path or locator is derived
+from the scope resourceRef. These getters are Native-only, not a JS provider.
+
 This is real consumer/lifetime CODE, not a supplied genuine backend or complete
 selected7 implementation. Original Core/Auth must supply the strong producer,
 recognized engine host, authentic seal and Root selection. The selected mother

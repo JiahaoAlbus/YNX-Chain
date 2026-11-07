@@ -1,5 +1,6 @@
 #pragma once
 #include "MobileRegisteredReceiptPrivate.hpp"
+#include "MobileReceiptNativeSelectionPrivate.hpp"
 #include <atomic>
 #include <mutex>
 #include <thread>
@@ -26,6 +27,7 @@ class NativeRegisteredReceiptOwner final {
  Failure pendingCause_;
  NativeRegisteredReceiptOwner()=default;
  Failure fail(Failure)noexcept;
+ Failure observeFailure(Failure f)noexcept{if(f.present&&!first_.present)first_=f;return f;}
  void keepCleanup(Failure)noexcept;
  std::shared_ptr<ynx::auth::mobile::receipt::RegisteredAccountReceipt>child();
 public:
@@ -37,6 +39,11 @@ public:
  ReadResult current()noexcept;
  ReadResult selectOriginalAccount(uint32_t timeoutMS)noexcept; // UI DATA only
  ReadResult readForNativeInventory(ReceiptDATA&ownedPublicCopy)noexcept;
+ ReadResult readOriginalSourceSelection(ynx::auth::mobile::receipt::OriginalSourceSelection&ownedCopy)noexcept;
+ /* Returns real opaque Auth child/partial; caller adopts before status and
+  * closes it before this parent. Missing one role does not retire siblings or
+  * create paths. Native named pinning still ANDs its compiled locator. */
+ ynx::auth::mobile::receipt::DirectoryAcquisition borrowOriginalDirectory(uint32_t role)noexcept;
  void requestRetire()noexcept; // any thread, same proof/picker only
  Failure close()noexcept;
  bool isClosed()const noexcept{return actor_==std::this_thread::get_id()&&closed_;}

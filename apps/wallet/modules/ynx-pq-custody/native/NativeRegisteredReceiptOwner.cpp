@@ -85,6 +85,32 @@ ReadResult NativeRegisteredReceiptOwner::readForNativeInventory(ReceiptDATA&out)
  auto status=current();if(!status.ready||status.failure.present)return status;
  try{auto copy=original_;status=current();if(!status.ready||status.failure.present)return status;out=std::move(copy);return {true,{}};}catch(...){return {false,fail({true,notSupplied})};}
 }
+ReadResult NativeRegisteredReceiptOwner::readOriginalSourceSelection(auth::OriginalSourceSelection&out)noexcept{
+ if(actor_!=std::this_thread::get_id())return {false,{true,wrongThread}};
+ if(!selected_)return {false,{true,notSupplied}};
+ auto state=current();if(!state.ready||state.failure.present)return state;
+ try{auth::OriginalSourceSelection copy;state=auth::readOriginalSourceSelection(child(),copy);
+  if(state.failure.present){observeFailure(state.failure);state.ready=false;return state;}if(!state.ready)return state;
+  // Compare Source identity to the same genuine receipt. Source nonce/height/
+  // vaultRevision remain their OWN original values, never ledger aliases.
+  if(state.notReady||copy.version!=1||copy.mode<1||copy.mode>3||copy.reviewClaimed||copy.account!=original_.account||copy.networkId!=original_.networkId||copy.platform!=original_.platform||copy.registrationDigest!=original_.registrationDigest||copy.keyVersion!=original_.keyVersion||copy.nativeChainID.empty()||copy.reference.empty()||copy.declaredOriginalOperationId.empty()||copy.applicationId.empty()||copy.protectedResourceRef.empty()||copy.vaultRevision.empty()||copy.sourceExecutionHeight.empty()||copy.sourceNonce.empty()||copy.spendingBudgetOriginalDigest.empty()||copy.scopeOriginal.empty()||copy.contextOriginal.empty()||copy.issuedAtMs>=copy.expiresAtMs)return {false,fail({true,changed})};
+  state=current();if(!state.ready||state.failure.present)return state;out=std::move(copy);return {true,{}};
+ }catch(...){return {false,fail({true,notSupplied})};}
+}
+auth::DirectoryAcquisition NativeRegisteredReceiptOwner::borrowOriginalDirectory(uint32_t role)noexcept{
+ auth::DirectoryAcquisition out;
+ if(actor_!=std::this_thread::get_id()){out.failure={true,wrongThread};return out;}
+ if(role<1||role>3||!selected_){out.failure={true,invalid};return out;}
+ auto state=current();if(!state.ready||state.failure.present){out.failure=state.failure;out.pendingCause=state.pendingCause;return out;}
+ try{
+  out=auth::borrowOriginalReceiptDirectory(child(),role); // adopt partial first
+  if(out.failure.present){observeFailure(out.failure);out.ready=false;return out;}
+  if(!out.owner){out.failure=observeFailure({true,notSupplied});out.ready=false;return out;}
+  if(!out.ready)return out;
+  state=current();if(!state.ready||state.failure.present){out.ready=false;out.failure=state.failure;out.pendingCause=state.pendingCause;}
+  return out;
+ }catch(...){out.failure=observeFailure({true,notSupplied});out.ready=false;return out;}
+}
 void NativeRegisteredReceiptOwner::requestRetire()noexcept{
  retired_.store(true);const auto ticket=ticket_.load();if(ticket)picker::requestCancel(ticket);
  // Auth/Core close/retire actor APIs are never called from a foreign thread.
