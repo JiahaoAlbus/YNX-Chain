@@ -21,6 +21,9 @@ struct Release {
  std::string task_read_account;
  std::string task_read_module_path;
  std::vector<PublicOriginalRef>task_read_code_closure;
+ // Separate exact Root-selected continuation carrier; no sibling path inference.
+ std::string task_read_continuation_module_path;
+ std::vector<PublicOriginalRef>task_read_continuation_code_closure;
 };
 inline const std::vector<Release>&original_desktop_grant_releases(){
 #ifdef YNX_REVIEWED_DESKTOP_TASK_GRANT_RELEASE_ROWS

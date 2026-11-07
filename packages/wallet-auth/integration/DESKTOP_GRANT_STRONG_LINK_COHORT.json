@@ -1,0 +1,65 @@
+{
+  "schema": "SDK-DESKTOP-GRANT-STRONG-LINK-SOURCE-COHORT/v1",
+  "linkSourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "sourceInputs": [
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "cmd/ynx-secure-link-caller/task-read-resource-continuation.mjs",
+      "bytes": 17700,
+      "sha256": "78fac4ece796e0ba868be86d11bfb5ffd701492144cbc786cdf5d4a041b7b141"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "cmd/ynx-secure-link-caller/task-read-resource-caller.mjs",
+      "bytes": 23696,
+      "sha256": "8ba3def8e94cdcb7504215066183631c4a44698cdbc6d3dd30c764e6e3c5792f"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "cmd/ynx-secure-link-caller/native.c",
+      "bytes": 59559,
+      "sha256": "606dc5eaca01d811e057fa8f7a3dcd87172a018c83e800a58878e3b4f40a4af9"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "internal/securelink/task_read_continuation.go",
+      "bytes": 3327,
+      "sha256": "5870073d9d2817cd9393fcce26ec565c48167fc54519472c7340708b51f49ef7"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "internal/securelink/task_read_continuation_unix.go",
+      "bytes": 15188,
+      "sha256": "3bd0abf1660bdcecbc2fcc34ee2bc27a00d52be8257946c124866f5f7c24e0b8"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "internal/securelink/task_read_continuation_unsupported.go",
+      "bytes": 915,
+      "sha256": "7d2d846f8b557b329eadb877696da0cd57c26763b165742ebdcf1f85e8bd2839"
+    },
+    {
+      "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "path": "internal/securelink/local_caller_unix.go",
+      "bytes": 19014,
+      "sha256": "5e02ac3fa94ad5ce9d8fa75548fc45841319e30ff7cdff93f2f54a0e15300ad9"
+    }
+  ],
+  "carrierExport": "openOriginalTaskReadContinuationTransport",
+  "RootModuleGetter": "readOriginalTaskReadContinuationModulePath",
+  "RootFields": [
+    "task_read_continuation_module_path",
+    "task_read_continuation_code_closure"
+  ],
+  "sameRootClosureRequired": [
+    "exact carrier",
+    "exact physical caller",
+    "matching caller.node and its reviewed dependency closure"
+  ],
+  "dynamicPostbuildBinaryPin": "independent Root-reviewed producer receipt, not a source hash or a caller-supplied binary",
+  "flat6OrOld6382Fallback": false,
+  "secondHTTPClient": false,
+  "RootReviewOrAdmission": false,
+  "wholeAuthAddonMatching": false,
+  "MainOrP03HotReplacement": false
+}

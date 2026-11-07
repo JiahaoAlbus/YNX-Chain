@@ -81,6 +81,33 @@
   return [NSString stringWithUTF8String:_desktopGrantPolicy->task_read_module_path.c_str()];
  }
 }
+- (NSString*)copyOriginalDesktopTaskReadContinuationModule:(NSError**)error {
+ @synchronized(self){
+  if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error])return nil;
+  // This is a separately selected carrier entry. Never derive dirname/sibling
+  // from the physical caller, accept a JS path, or fall back to an older ABI.
+  if(!_desktopGrantPolicy||_desktopGrantPolicy->task_read_continuation_module_path.empty()||_desktopGrantPolicy->task_read_module_path.empty()||_desktopGrantPolicy->task_read_continuation_code_closure.empty()){
+   // Optional operation not supplied is not revocation of a genuine management
+   // Source. Configured integrity failures below still fail the original owner.
+   if(error)*error=[NSError errorWithDomain:@"YNXDesktopGrant" code:1 userInfo:@{NSLocalizedDescriptionKey:@"DESKTOP_GRANT_TASK_READ_CONTINUATION_CLOSURE_NOT_SUPPLIED"}];return nil;
+  }
+  if(_desktopGrantPolicy->task_read_continuation_module_path==_desktopGrantPolicy->task_read_module_path||_desktopGrantPolicy->task_read_continuation_code_closure.size()>256)return [self fail:@"DESKTOP_GRANT_TASK_READ_CONTINUATION_CLOSURE_INVALID" error:error],nil;
+  BOOL carrierHeld=NO,physicalHeld=NO,addonHeld=NO;uint64_t total=0;
+  std::vector<std::string> seen;
+  for(const auto&f:_desktopGrantPolicy->task_read_continuation_code_closure){
+   if(f.path.empty()||!f.bytes||f.bytes>16777216||total+f.bytes>67108864)return [self fail:@"DESKTOP_GRANT_TASK_READ_CONTINUATION_CLOSURE_BOUND" error:error],nil;
+   for(const auto&previous:seen)if(previous==f.path)return [self fail:@"DESKTOP_GRANT_TASK_READ_CONTINUATION_CLOSURE_DUPLICATE" error:error],nil;
+   seen.push_back(f.path);total+=f.bytes;
+   NSData*raw=[self holdPublic:[NSString stringWithUTF8String:f.path.c_str()] maximum:16777216 image:NO digest:f.sha256 error:error];
+   if(!raw||raw.length!=f.bytes)return nil;
+   if(f.path==_desktopGrantPolicy->task_read_continuation_module_path)carrierHeld=YES;
+   if(f.path==_desktopGrantPolicy->task_read_module_path)physicalHeld=YES;
+   if(f.path.size()>12&&f.path.substr(f.path.size()-12)=="/caller.node")addonHeld=YES;
+  }
+  if(!carrierHeld||!physicalHeld||!addonHeld||![self heldCurrent:error]||![self assertOriginalDesktopTaskGrantAuthorityCurrent:error])return [self fail:@"DESKTOP_GRANT_TASK_READ_CONTINUATION_COMPLETE_CODE_REQUIRED" error:error],nil;
+  return [NSString stringWithUTF8String:_desktopGrantPolicy->task_read_continuation_module_path.c_str()];
+ }
+}
 - (BOOL)holdOriginalDesktopTaskGrantNativeAddress:(const void*)address error:(NSError**)error {
  @synchronized(self){if(![self assertOriginalDesktopTaskGrantAuthorityCurrent:error]||!address||!_desktopGrantPolicy)return NO;
   Dl_info own={},source={};static const unsigned char desktopGrantImageMarker=0;
