@@ -51,7 +51,13 @@ export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,loca
   const actions=new Map();
   const remember=error=>{unknown=true;if(firstCause===null){const code=error&&Object.getOwnPropertyDescriptor(error,'code')?.value;firstCause=typeof code==='string'&&/^YNX_CONTRACT_RELAY_(?:CANCEL|REVOKE|CLEANUP)_UNKNOWN$/.test(code)?code:'UNCLASSIFIED';}return error;};
   const invoke=n=>native[nativeNames[n]](ref);
-  const scope=()=>{const actual=assertContractRelayScope(invoke('readScope'),expected);if(capturedScope)assertSameContractRelayScope(actual,capturedScope);else capturedScope=actual;return actual;};
+  let scopePhase;
+  const scope=()=>{
+    scopePhase='NATIVE_READ';const original=invoke('readScope');
+    scopePhase='VALIDATE';const actual=assertContractRelayScope(original,expected);
+    scopePhase='MATCH_CAPTURE';if(capturedScope)assertSameContractRelayScope(actual,capturedScope);else capturedScope=actual;
+    scopePhase=undefined;return actual;
+  };
   const current=()=>{
     if(closed||terminal||nativeCurrentEntered)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
     nativeCurrentEntered=true;
@@ -77,7 +83,7 @@ export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,loca
   });
   registerOriginalContractRelayGuard(owner,{scope,current,cancel:owner.cancel,runtimeCheck:async()=>{const {verifyContractInitiatorRuntime}=await import('./walletconnect-contract-initiator-boundary-node.js');return verifyContractInitiatorRuntime();},observe:listener=>native[nativeNames.observeRevocation](ref,()=>{terminal=true;listener();})});
   let initialStage='SCOPE_INITIAL';
-  try{scope();initialStage='CURRENT_INITIAL';if(current()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');initialStage='SCOPE_RECHECK';scope();}catch(cause){throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause,cleanupOwner:owner}),initialStage,cause);}
+  try{scope();initialStage='CURRENT_INITIAL';if(current()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');initialStage='SCOPE_RECHECK';scope();}catch(cause){throw diagnostic(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause,cleanupOwner:owner}),initialStage,cause,scopePhase);}
   // A partial cleanupOwner is deliberately absent from this ready registry.
   readyOwners.set(owner,()=>{
     if(closed||terminal||publicCurrentEntered)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
