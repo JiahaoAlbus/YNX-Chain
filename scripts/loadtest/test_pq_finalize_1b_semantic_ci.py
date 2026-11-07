@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import stat
 import tarfile
 import tempfile
 import types
@@ -120,6 +121,26 @@ class FinalizeSemanticCIControls(unittest.TestCase):
             with self.assertRaises(RuntimeError): m.validate_fixture(root)
             (root / 'intent.json').symlink_to(PUBLIC / 'intent.json')
             with self.assertRaises(RuntimeError): m.validate_fixture(root)
+
+    def test_git_modes_materialize_privately_without_changing_original_bytes_or_modes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve(); original = root / 'checkout'; shutil.copytree(PUBLIC, original)
+            for p in original.iterdir(): os.chmod(p, 0o644)
+            before = {p.name: (m.pin(p), stat.S_IMODE(p.stat().st_mode)) for p in original.iterdir()}
+            (root / '.private').mkdir(); (root / 'public').mkdir()
+            private = m.prepare_private_fixture(original, root)
+            self.assertEqual(stat.S_IMODE(private.stat().st_mode), 0o700)
+            for p in private.iterdir():
+                self.assertEqual(stat.S_IMODE(p.stat().st_mode), 0o600)
+                self.assertEqual(m.pin(p), before[p.name][0])
+            self.assertEqual(before, {p.name: (m.pin(p), stat.S_IMODE(p.stat().st_mode)) for p in original.iterdir()})
+            receipt = m.read_json(root / 'public/FIXTURE-MATERIALIZATION.json')
+            self.assertFalse(receipt['normalizationApplied'])
+            self.assertEqual(len(receipt['files']), 9)
+            (private / 'UNKNOWN').write_text('retain')
+            with self.assertRaisesRegex(RuntimeError, 'fresh private trace required'):
+                m.prepare_private_fixture(original, root)
+            self.assertEqual((private / 'UNKNOWN').read_text(), 'retain')
 
     def test_same_complete_outputs_qualify_only_the_comparison_not_execution(self):
         with tempfile.TemporaryDirectory() as tmp:

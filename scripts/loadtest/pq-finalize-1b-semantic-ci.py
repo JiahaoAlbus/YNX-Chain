@@ -121,6 +121,31 @@ def validate_fixture(root):
     return read_json(root / 'result.json')
 
 
+def prepare_private_fixture(original, work):
+    """Materialize exact PUBLIC bytes under the normal CLI's private-file rule."""
+    validate_fixture(original)
+    destination = work / '.private/trace'
+    require(not destination.exists() and not destination.is_symlink(), 'fresh private trace required')
+    destination.mkdir(mode=0o700)
+    require(stat.S_IMODE(destination.stat().st_mode) == 0o700, 'private trace directory must remain 0700')
+    for name, (size, digest) in FIXTURE.items():
+        with (original / name).open('rb') as reader:
+            raw = reader.read(size + 1)
+        require(len(raw) == size and sha(raw) == digest, 'original trace changed before private materialization')
+        descriptor = os.open(destination / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, 'wb') as output:
+            output.write(raw); output.flush(); os.fsync(output.fileno())
+        require(stat.S_IMODE((destination / name).stat().st_mode) == 0o600, 'private trace file must remain 0600')
+    validate_fixture(original)
+    validate_fixture(destination)
+    write_new(work / 'public/FIXTURE-MATERIALIZATION.json', dict(
+        originalDirectory=str(original), privateDirectory=str(destination),
+        traceSHA256=TRACE_PIN, originalBytesUnchanged=True, privateFileMode='0600',
+        privateDirectoryMode='0700', normalizationApplied=False,
+        files=[dict(name=name, **pin(destination / name)) for name in sorted(FIXTURE)]))
+    return destination
+
+
 def git(repo, *args, env=None):
     return subprocess.check_output(['git', '-C', str(repo), *args], env=env, timeout=45).strip()
 
@@ -349,6 +374,11 @@ def run(args):
         # through Git's child environment, never argv/logs/build/replay.
         fetch_original_objects(window, repo, call, os.environ.get('GH_TOKEN', ''))
         call('prepare-fixed-two-source-trees', [sys.executable, '-B', str(Path(__file__).resolve()), '_prepare', str(repo), str(work)], repo)
+        # Git checkouts use 0644; the unchanged lab CLI correctly insists on
+        # its dedicated 0700 directory and 0600 inputs. Never chmod the checkout.
+        fixture = work / '.private/trace'
+        validate_fixture(fixture)
+        record['fixtureMaterialization'] = pin(work / 'public/FIXTURE-MATERIALIZATION.json')
         for arm in ('before', 'after'):
             src = work / '.private' / arm
             binary = work / '.private/bin' / ('ynx-consensus-pq-lab-' + arm)
@@ -391,6 +421,7 @@ def main(argv=None):
         require(len(argv) == 3, 'fixed private preparation arguments required')
         validate_identity(PROFILE, os.environ, sys.platform)
         prepare_sources(canonical(argv[1]), canonical(argv[2]))
+        prepare_private_fixture(Path(__file__).resolve().parent / 'fixtures/finalize-1b-public', canonical(argv[2]))
         return 0
     flags = [arg.split('=', 1)[0] for arg in argv if arg.startswith('--')]
     require(len(flags) == len(set(flags)), 'duplicate controller option refused')
