@@ -56,6 +56,32 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 0
+      - name: Execute original Linux worker affinity limits stdin and cleanup case
+        run: |
+          python3 -B - <<'PYLINUX'
+          import importlib.util, io, json, os, pathlib, platform, sys, unittest
+          assert sys.platform == 'linux', 'actual Linux process test must not skip'
+          destination = pathlib.Path(os.environ['RUNNER_TEMP']) / 'pq-post-ready-linux-controls'
+          destination.mkdir(mode=0o700)
+          path = pathlib.Path('scripts/loadtest/test_pq_independent_load.py')
+          spec = importlib.util.spec_from_file_location('original_linux_worker_controls', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          name = 'IndependentLoadControls.test_real_worker_thread_spawn_keeps_limits_and_stdin_without_preexec'
+          suite = unittest.defaultTestLoader.loadTestsFromName(name, module)
+          output = io.StringIO()
+          result = unittest.TextTestRunner(stream=output, verbosity=2).run(suite)
+          log = output.getvalue()
+          print(log, end='')
+          (destination / 'original-case.log').write_text(log)
+          value = dict(case=name, sourceCommit=os.environ['GITHUB_SHA'], runID=os.environ['GITHUB_RUN_ID'],
+                       platform=sys.platform, kernel=platform.release(), testsRun=result.testsRun,
+                       skipped=len(result.skipped), failures=len(result.failures), errors=len(result.errors),
+                       successful=result.wasSuccessful(), nodeStarted=False, businessLoadExecuted=False,
+                       meaning='Original real child from worker thread; inherited CPU affinity and file-size rlimit, piped stdin, exit0 and owned cleanup assertions. No chain throughput measured.')
+          (destination / 'RESULT.json').write_text(json.dumps(value, sort_keys=True) + '\n')
+          assert result.testsRun == 1 and not result.skipped and result.wasSuccessful(), 'original Linux worker case failed or skipped'
+          PYLINUX
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version: "1.25"
@@ -228,5 +254,13 @@ jobs:
             release/chain-core/artifact-registry.json
             release/chain-core/product-release.json
             release/chain-core/public-product-metadata.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Preserve original Linux worker case result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pq-post-ready-linux-controls-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-post-ready-linux-controls/
           if-no-files-found: error
           retention-days: 90
