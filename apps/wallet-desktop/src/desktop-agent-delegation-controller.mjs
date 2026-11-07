@@ -75,10 +75,18 @@ export function createDesktopAgentDelegationController({getContext,management=nu
       const clean=!management||typeof management.cancelView==='function'&&await management.cancelView()===true;
       debt=!clean;return clean;
     },
-    close(){return closing??=(async()=>{
-      closed=true;invalidate();debt=true;
-      const clean=!management||typeof management.cancelView==='function'&&await management.cancelView()===true;
-      debt=!clean;return clean;
-    })();},
+    close(){
+      if(closing)return closing;
+      const attempt=(async()=>{
+        closed=true;invalidate();debt=true;
+        const clean=!management||typeof management.cancelView==='function'&&await management.cancelView()===true;
+        debt=!clean;return clean;
+      })();
+      closing=attempt;
+      // Failed cleanup remains debt, but a later explicit cleanup/close may
+      // finish the SAME retirement. Business stays closed; originals persist.
+      void attempt.then(clean=>{if(clean!==true&&closing===attempt)closing=null;},()=>{if(closing===attempt)closing=null;});
+      return attempt;
+    },
   });
 }

@@ -85,3 +85,5 @@ test('normal close reports actual cleanup debt and duplicate closes join the sam
  const first=api.close(),second=api.close();assert.equal(first,second);d.resolve(false);
  assert.equal(await first,false);assert.equal(closes,1);await assert.rejects(api.readProjection(),code('AGENT_VIEW_CLOSED'));
 });
+
+test('failed close preserves closed business but permits explicit original cleanup and later close',async()=>{for(const failure of ['false','throw']){let clean=false,cancels=0;const c=create({getContext:()=>({account:'PUBLIC-account',revision:1,locked:false}),management:{cancelView:async()=>{cancels++;if(!clean&&failure==='throw')throw Error('PUBLIC-cleanup-first');return clean;}}});if(failure==='throw')await assert.rejects(c.close(),/PUBLIC-cleanup-first/);else assert.equal(await c.close(),false);await assert.rejects(c.readProjection(),{code:'AGENT_VIEW_CLOSED'});clean=true;assert.equal(await c.cancelView(),true);assert.equal(await c.close(),true);const n=cancels;assert.equal(await c.close(),true);assert.equal(cancels,n);await assert.rejects(c.readProjection(),{code:'AGENT_VIEW_CLOSED'});}});
