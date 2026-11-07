@@ -473,7 +473,7 @@ func (s *NativeInvoiceIntents) SubmitMerchantTerms(ctx context.Context, id strin
 	return view, sendErr
 }
 func (s *NativeInvoiceIntents) ReconcileInvoiceIntent(ctx context.Context, id string) (NativeInvoiceIntentView, error) {
-	r, _, err := s.readRecord(ctx, id, "reconcile")
+	r, grant, err := s.readRecord(ctx, id, "reconcile")
 	if err != nil {
 		return NativeInvoiceIntentView{}, err
 	}
@@ -482,6 +482,9 @@ func (s *NativeInvoiceIntents) ReconcileInvoiceIntent(ctx context.Context, id st
 		// its original operation but BEFORE this intent recorded that same hash.
 		if len(r.Member) > 0 {
 			err = s.native.parent.store.Update(func(data *Snapshot) error {
+				if e := s.fence(ctx, grant); e != nil {
+					return e
+				}
 				state, found, e := s.native.load(*data, r.Merchant, r.Terms.InvoiceID)
 				if e != nil {
 					return e

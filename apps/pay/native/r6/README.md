@@ -17,6 +17,14 @@ The normal order continuation additionally accepts `order-invoice`,
 `productId:shop.order` and the original `sourceOrder`. `order-refund-review`
 adds `refundId` and decimal `amountAtoms`; `order-receipt` adds `nativeHash`;
 `order-broadcast-review` adds `kind` and the original Main `originalHash`.
+`order-reconcile-operation` adds the retained `nativeHash` and explicitly
+reconciles that original operation through the existing private Pay service.
+It checks the original order, operation owner/kind/native and ABCI identities,
+then rereads the bill and the matching independently verified compact receipt.
+Pending terms may be reconciled before issuance; payment/refund require issued
+terms. A terminal result cannot regress or change in the next read. A lost
+response offers only original archive queries, with no automatic reconciliation
+retry, new intent, Member dispatch, signature or replacement nonce.
 The CLI exposes the same names and positional fields. These actions reject
 renderer-supplied merchant, invoice, grant or price overrides.
 
@@ -42,6 +50,13 @@ each original review once. Its setup imports two preexisting PUBLIC historical
 Members/proofs; the review journey signs, approves and submits nothing. Exact
 runtime, Main module hash, source root and fixture paths must be supplied to
 the existing runner. Generic CI runs the r6 Node checks automatically.
+`original-operation-recovery` runs the new recovery checks and actual normal
+HTTP/Main workflow against the same fixed PUBLIC three-row Core proof fixture:
+lost terms/payment/refund acknowledgements, four Store reopens, a lost reconcile
+reply after durable proof archival, cold read-only receipt/reconciliation and
+retirement. It also checks Source retirement immediately before intent crash
+repair writes. The original installed Main wrapper and its exact hash are
+required. This is controlled integration evidence, not genuine merchant payment.
 
 Both first reread the original product request from the held ProductSource.
 Its original qualified `readOriginalArchiveReceipt(ref,current)` or

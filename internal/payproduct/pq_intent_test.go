@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http/httptest"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -295,5 +296,71 @@ func TestNativeInvoiceIntentConcurrentCreateHasOneOriginalNoSigning(t *testing.T
 		return nil
 	}); err != nil || count != 1 || f.writes != 0 {
 		t.Fatal("concurrent reservation produced additional original or external effect", err, count, f.writes)
+	}
+}
+
+// A Source may retire after the initial read but before durable crash repair.
+// The Current callback is pure; the lock check only injects that exact boundary.
+type nativeIntentResolveFunc func(context.Context, NativeInvoiceIntentAccess) (NativeInvoiceIntentBinding, error)
+
+func (f nativeIntentResolveFunc) ResolveInvoiceIntent(ctx context.Context, access NativeInvoiceIntentAccess) (NativeInvoiceIntentBinding, error) {
+	return f(ctx, access)
+}
+
+func TestNativeInvoiceIntentCrashRepairFencesBeforeDurableMutation(t *testing.T) {
+	f := newNativeServiceFixture(t)
+	request := nativeIntentTestRequest(f)
+	source, reader := nativeIntentTestSource(t, f.service.parent, request, f.terms)
+	intents, _ := NewNativeInvoiceIntents(f.service, source)
+	ctx := context.Background()
+	view, err := intents.CreateInvoiceIntent(ctx, request, func() error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire := f.sign(t, ynxauth.ActionInvoiceTerms, f.terms, 2)
+	if err = f.service.parent.store.Update(func(data *Snapshot) error {
+		record, _, e := intents.load(*data, view.IntentID)
+		if e != nil {
+			return e
+		}
+		record.Member, record.Phase = wire, "signed_not_submitted"
+		return intents.save(data, record)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reader.snapshot.Caller = f.merchant
+	if _, err = f.service.RegisterTerms(ctx, request.SourceOrder, wire); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(f.service.parent.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var deniedAtWrite bool
+	intents.source = nativeIntentResolveFunc(func(ctx context.Context, access NativeInvoiceIntentAccess) (NativeInvoiceIntentBinding, error) {
+		grant, e := source.ResolveInvoiceIntent(ctx, access)
+		if e != nil {
+			return grant, e
+		}
+		original := grant.Current
+		grant.Current = func() error {
+			if !f.service.parent.store.mu.TryRLock() {
+				deniedAtWrite = true
+				return ErrNativePayUnavailable
+			}
+			f.service.parent.store.mu.RUnlock()
+			return original()
+		}
+		return grant, nil
+	})
+	if _, err = intents.ReconcileInvoiceIntent(ctx, view.IntentID); !errors.Is(err, ErrNativePayUnavailable) {
+		t.Fatal("retired Source repaired original metadata", err)
+	}
+	after, err := os.ReadFile(f.service.parent.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !deniedAtWrite || !bytes.Equal(before, after) || f.writes != 1 {
+		t.Fatal("late retirement failed to preserve exact original disk/Member", deniedAtWrite, f.writes)
 	}
 }

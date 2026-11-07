@@ -9,7 +9,7 @@ const ref={productId:original.productId,sourceOrder:original.sourceOrder};
 const terms={invoiceId:'invoice-original',sessionId:'session-original',recipient:merchant,payer,assetId:'YNXT',unitVersion:'1',feeRule:'native-transfer-fee-one/v1',keyEpoch:'1',revision:'1',amountAtoms:'100',maxFeeAtoms:'1',expiresAtHeight:'100'};
 const view=()=>({intentId,originalOperation:intentId,request:structuredClone(original),merchant,state:'ISSUED',phase:'confirmed',signingMessageHash:'b'.repeat(64),termsNativeHash:termsHash,termsAbciHash:'0x'+'5'.repeat(64),terms:{...terms},invoice:{}});
 const bill=()=>({genesis:original.genesis,nativeChainId:'6423',merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,assetId:'YNXT',unitVersion:'1',principalAtoms:'100',paidAtoms:'0',refundedAtoms:'0',netPaidAtoms:'0',feeRule:terms.feeRule,maxFeeAtoms:'1',expiresAtHeight:'100',termsNativeHash:termsHash,termsHash:'b'.repeat(64),status:'terms_registered',refundStatus:'none',operations:{}});
-function boot({lookup=view,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),extra={}}={}){
+function boot({lookup=view,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),operation=()=>{throw Error('Unexpected reconciliation');},extra={}}={}){
  const calls=[];let live=true;
  const current=()=>{if(!live)throw Object.assign(Error(),{code:'ORIGINAL_SOURCE_RETIRED'});};
  const pay=createPrivateNativeProductPayClient({origin:'https://pay.original.test',async requestPrivate(request){
@@ -17,6 +17,7 @@ function boot({lookup=view,read=bill,main=null,change=()=>{},originalRead=()=>st
   if(request.path==='/v5/pay/invoice-intents/lookup'){result=await lookup();change('lookup');}
   else if(request.method==='GET'&&request.path===`/v5/pay/invoices/${merchant}/${terms.invoiceId}`){result=await read();change('invoice');}
   else if(request.path===`/v5/pay/invoice-intents/${intentId}/merchant-review`||request.path===`/v5/pay/invoice-intents/${intentId}`){result=await review();}
+  else if(request.method==='POST'&&request.path.startsWith(`/v5/pay/invoices/${merchant}/${terms.invoiceId}/operations/`)&&request.path.endsWith('/reconcile')){result=await operation();change('operation');}
   else throw Object.assign(Error(),{code:'PUBLIC_UNEXPECTED_CALL'});
   return {method:request.method,requestPath:request.path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(result))};
  }});
@@ -106,4 +107,52 @@ test('late retirement during receipt read drains the original read without publi
  const pending=f.entry.invokeResult({action:'order-receipt',...ref,nativeHash});
  for(let i=0;i<100&&!release;i++)await new Promise(resolve=>setImmediate(resolve));assert.equal(typeof release,'function');
  f.revoke();release(receipt());const r=await pending;assert.equal(r.ok,false);assert.equal(r.reference,null);assert.equal(r.archiveReceipt,undefined);assert.equal(f.calls.length,2);
+});
+
+const originalOperation=()=>({merchant,invoiceId:terms.invoiceId,nativeHash,abciHash:'0x'+'7'.repeat(64),kind:'invoice_settle',owner:payer,status:'unknown'});
+test('normal original-operation recovery reconciles the retained hash once and reads the same receipt',async()=>{
+ let reconciled=false,archives=0;
+ const f=boot({read:()=>({...bill(),status:reconciled?'committed_paid':'unknown',paidAtoms:reconciled?'100':'0',netPaidAtoms:reconciled?'100':'0',operations:{[nativeHash]:{...originalOperation(),status:reconciled?'confirmed':'unknown'}}}),operation:()=>{reconciled=true;return {...originalOperation(),status:'confirmed'};},extra:{readOriginalArchiveReceipt:async(selected,current)=>{current();archives++;assert.equal(selected.nativeHash,nativeHash);return receipt();}}});
+ const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});
+ assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.queryOnly,true);assert.equal(r.bill.paidAtoms,'100');assert.equal(r.archiveReceipt.nativeHash,nativeHash);assert.equal(r.reconciledOriginal.nativeHash,nativeHash);assert.equal(r.reconciledOriginal.status,'confirmed');assert.equal(r.canRetry,false);assert.equal(r.clientIndependentFinality,false);assert.equal(archives,1);
+ assert.equal(f.calls.filter(c=>c.method==='POST'&&c.path?.endsWith('/reconcile')).length,1);assert.deepEqual(f.calls.find(c=>c.path?.endsWith('/reconcile')).body,Buffer.from('{}'));
+});
+test('operation recovery refuses an absent original hash before any reconcile call',async()=>{
+ const f=boot({read:()=>({...bill(),operations:{}})}),r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});
+ assert.equal(r.code,'NATIVE_PAY_ORIGINAL_HASH_REQUIRED');assert.equal(f.calls.length,3);assert.equal(r.canRetry,false);
+});
+test('operation recovery cannot splice a different response hash, kind or original owner',async()=>{
+ for(const mutate of [v=>v.nativeHash=termsHash,v=>v.kind='invoice_refund',v=>v.owner=merchant,v=>v.abciHash='0x'+'8'.repeat(64)]){
+  const f=boot({read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}}),operation:()=>{const v=originalOperation();mutate(v);return v;}});
+  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(r.bill,undefined);assert.equal(f.calls.length,4);
+ }
+});
+test('a lost original reconciliation response exposes only original queries, never another dispatch',async()=>{
+ let posts=0;const f=boot({read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}}),operation:()=>{posts++;throw Object.assign(Error(),{code:'PUBLIC_RECONCILIATION_REPLY_LOST'});}});
+ const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.ok,false);assert.equal(r.code,'PUBLIC_RECONCILIATION_REPLY_LOST');assert.equal(posts,1);assert.equal(r.reference.nativeHash,nativeHash);assert.equal(r.canRetry,false);assert.ok(r.recoveryActions.every(a=>['recover-archive','order-receipt','order-invoice','reconcile-archive'].includes(a.action)));
+});
+test('post-reconcile current revocation cannot publish old bill/receipt or retry',async()=>{
+ let revoke;const f=boot({read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}}),operation:()=>{revoke();return {...originalOperation(),status:'confirmed'};}});revoke=f.revoke;
+ const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.ok,false);assert.equal(r.reference,null);assert.equal(r.archiveReceipt,undefined);assert.equal(f.calls.length,4);
+});
+test('terms recovery accepts PREPARED original terms and cannot select payment before issuance',async()=>{
+ const op={...originalOperation(),nativeHash:termsHash,kind:'invoice_terms',owner:merchant};
+ const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),operations:{[termsHash]:op}}),operation:()=>op});
+ const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash:termsHash});assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.reconciledOriginal.kind,'invoice_terms');assert.equal(r.archiveReceipt,undefined);
+ const pending=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}})});
+ assert.equal((await pending.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash})).code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(pending.calls.length,3);
+});
+test('invalid hash fails before Source read and terminal originals cannot change or regress',async()=>{
+ const invalid=boot();assert.equal((await invalid.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash:'different'})).code,'NATIVE_PAY_ORIGINAL_HASH_REQUIRED');assert.equal(invalid.calls.length,0);
+ for(const status of ['unknown','submitted','confirmed_failed']){
+  const f=boot({read:()=>({...bill(),operations:{[nativeHash]:{...originalOperation(),status:'confirmed'}}}),operation:()=>({...originalOperation(),status})});
+  assert.equal((await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash})).code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(f.calls.length,4);
+ }
+});
+test('finality cannot regress in post-read or splice another receipt after reconciliation',async()=>{
+ for(const mode of ['regress','receipt']){
+  let reads=0;
+  const f=boot({read:()=>({...bill(),operations:{[nativeHash]:{...originalOperation(),status:++reads===1||mode==='regress'?'unknown':'confirmed'}}}),operation:()=>({...originalOperation(),status:'confirmed'}),extra:{readOriginalArchiveReceipt:async()=>({...receipt(),abciHash:'0x'+'8'.repeat(64)})}});
+  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.code,'NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');assert.equal(r.bill,undefined);assert.equal(r.archiveReceipt,undefined);
+ }
 });

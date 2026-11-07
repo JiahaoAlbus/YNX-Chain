@@ -5,7 +5,7 @@ const fail=code=>{throw Object.assign(Error(code),{code});};
 const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-archive':['productId','sourceOrder','merchant','invoiceId','nativeHash'],'reconcile-archive':['productId','sourceOrder','merchant','invoiceId'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
 Object.assign(shapes,{'order-invoice':['productId','sourceOrder'],'order-terms-review':['productId','sourceOrder'],'order-pay-review':['productId','sourceOrder'],
  'order-refund-review':['productId','sourceOrder','refundId','amountAtoms'],'order-receipt':['productId','sourceOrder','nativeHash'],'order-reconcile':['productId','sourceOrder'],
- 'order-broadcast-review':['productId','sourceOrder','kind','originalHash']});
+ 'order-broadcast-review':['productId','sourceOrder','kind','originalHash'],'order-reconcile-operation':['productId','sourceOrder','nativeHash']});
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
@@ -86,6 +86,7 @@ export function createNativePayMainEntry({getMain,getContext}){
     else if(action==='order-refund-review')state=await client.reviewOriginalOrderRefund(request.productId,request.sourceOrder,request.refundId,request.amountAtoms);
     else if(action==='order-receipt')state=await client.recoverOriginalOrderReceipt(request.productId,request.sourceOrder,request.nativeHash);
     else if(action==='order-reconcile')state=await client.reconcileOriginalOrder(request.productId,request.sourceOrder);
+    else if(action==='order-reconcile-operation')state=await client.reconcileOriginalOrderOperation(request.productId,request.sourceOrder,request.nativeHash);
     else if(action==='order-broadcast-review')state=await client.reviewOriginalOrderBroadcast(request.productId,request.sourceOrder,request.kind,request.originalHash);
     else if(action==='terms-review')state=await client.reviewMerchantTerms(intentId);
     else if(action==='pay-review')state=await client.reviewPayment(merchant,invoiceId);

@@ -90,6 +90,15 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-operation-recovery ]; then
+ : "${PAY_NODE_BINARY:?exact original Main Node executable required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
+ export PAY_ORDER_OPERATION_DRIVER="$client_root/testsupport/original-operation-recovery.mjs"
+ "$PAY_NODE_BINARY" --test "$client_root/r6/original-order.test.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_order_operation_recovery pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery$|^TestNativeInvoiceIntentCrashRepairFencesBeforeDurableMutation$' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-price-joint ]; then
  : "${PAY_NODE_BINARY:?exact installed Main runtime required}"
  : "${PAY_CLIENT_MAIN_SOURCE:?exact installed Main/SDK source root required}"
