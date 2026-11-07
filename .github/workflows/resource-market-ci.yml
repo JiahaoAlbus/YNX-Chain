@@ -2097,6 +2097,7 @@ jobs:
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
+          required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -2105,6 +2106,7 @@ jobs:
           # opt-in network skips are not proof that a reader case executed.
           wallet_policy_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           wallet_policy_required = ['TestPQWalletPolicyCheckpointRegisteredHistoryAcrossLayouts', 'TestPQWalletPolicyCheckpointRefusesWrongAnchorAndAuthority', 'TestPQWalletPolicyCheckpointHeldSourceChangeAndClose', 'TestPQWalletPolicyCheckpointRuntimeAndSchedulePins']
+          wallet_policy_required += ['TestPQWalletPolicyLiveOriginalNodeCommittedAndPending', 'TestPQWalletPolicyLiveCurrentCheckpointAndPersistenceFence', 'TestPQWalletPolicyLiveNoCallerAuthorityAndCancellation', 'TestPQWalletPolicyLiveNodeStopDrainsAndRetires', 'TestPQWalletPolicyLiveOriginalProofChildComposition']
           for name in wallet_policy_required:
               runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
               outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
@@ -2113,7 +2115,7 @@ jobs:
           package_outcomes = [event['Action'] for event in events if event.get('Package') == wallet_policy_package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
           if not package_outcomes or any(outcome != 'pass' for outcome in package_outcomes):
               raise RuntimeError('original state package execution did not pass')
-          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith('TestPQWalletPolicyCheckpoint')) for event in events):
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQWalletPolicyCheckpoint', 'TestPQWalletPolicyLive'))) for event in events):
               raise RuntimeError('original state stream failed or wallet policy reader skipped')
           print('YNX_WALLET_POLICY_READER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=wallet_policy_required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY

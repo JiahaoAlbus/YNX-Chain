@@ -36,6 +36,11 @@ SPECS = {
             "TestPQWalletPolicyCheckpointRefusesWrongAnchorAndAuthority",
             "TestPQWalletPolicyCheckpointHeldSourceChangeAndClose",
             "TestPQWalletPolicyCheckpointRuntimeAndSchedulePins",
+            'TestPQWalletPolicyLiveOriginalNodeCommittedAndPending',
+            'TestPQWalletPolicyLiveCurrentCheckpointAndPersistenceFence',
+            'TestPQWalletPolicyLiveNoCallerAuthorityAndCancellation',
+            'TestPQWalletPolicyLiveNodeStopDrainsAndRetires',
+            'TestPQWalletPolicyLiveOriginalProofChildComposition',
         ]),
     "cli": (
         "Compile production entry points",
@@ -146,7 +151,7 @@ def assert_contract(raw):
     commands = re.findall(r"(?m)^          if ! .*go test .+$", reader)
     if len(commands) != 5 or sum('./internal/consensus > ' in line for line in commands) != 4:
         raise AssertionError("reader qualification must reuse the original complete execution")
-    # No second focused Go run for any of the eight new cases.
+    # Qualify every checkpoint, live-reader and consumer case from the existing full runs.
     if re.search(r"go test[^\n]*-(?:run|skip)[^\n]*(?:WalletPolicy|ResourcePolicy)", raw):
         raise AssertionError("new cases must not replace or repeat complete suites")
 
@@ -203,27 +208,28 @@ class WalletPolicyCIControls(unittest.TestCase):
     def test_zero_missing_duplicate_foreign_and_unexecuted_cases_refused(self):
         for kind, spec in SPECS.items():
             good = self.rows(kind)
-            name = spec[5][0]
-            bad_cases = {
-                "zero": [],
-                "missing": [row for row in good if row.get("Test") != name],
-                "no-run": [row for row in good if not (row.get("Test") == name and row["Action"] == "run")],
-                "duplicate-pass": good + [dict(Action="pass", Package=MODULE + spec[1], Test=name)],
-                "duplicate-run": good + [dict(Action="run", Package=MODULE + spec[1], Test=name)],
-                "foreign": [dict(row, Package=MODULE + "wrong") if row.get("Test") == name else row for row in good],
-                "foreign-extra": good + [dict(Action="pass", Package=MODULE + "wrong", Test=name)],
-            }
-            for reason, events in bad_cases.items():
-                with self.subTest(kind=kind, reason=reason), self.assertRaises((RuntimeError, AssertionError)):
-                    self.execute(kind, events)
+            for name in spec[5]:
+                bad_cases = {
+                    "zero": [],
+                    "missing": [row for row in good if row.get("Test") != name],
+                    "no-run": [row for row in good if not (row.get("Test") == name and row["Action"] == "run")],
+                    "duplicate-pass": good + [dict(Action="pass", Package=MODULE + spec[1], Test=name)],
+                    "duplicate-run": good + [dict(Action="run", Package=MODULE + spec[1], Test=name)],
+                    "foreign": [dict(row, Package=MODULE + "wrong") if row.get("Test") == name else row for row in good],
+                    "foreign-extra": good + [dict(Action="pass", Package=MODULE + "wrong", Test=name)],
+                }
+                for reason, events in bad_cases.items():
+                    with self.subTest(kind=kind, reason=reason), self.assertRaises((RuntimeError, AssertionError)):
+                        self.execute(kind, events)
 
     def test_failed_skipped_subcase_and_build_failure_cannot_hide_behind_pass(self):
         for kind, spec in SPECS.items():
             for action in ("fail", "skip", "build-fail"):
-                for suffix in ("", "/original-ledger"):
-                    row = dict(Action=action, Package=MODULE + spec[1], Test=spec[5][0] + suffix)
-                    with self.subTest(kind=kind, action=action, suffix=suffix), self.assertRaises((RuntimeError, AssertionError)):
-                        self.execute(kind, self.rows(kind) + [row])
+                for name in spec[5]:
+                    for suffix in ("", "/original-ledger"):
+                        row = dict(Action=action, Package=MODULE + spec[1], Test=name + suffix)
+                        with self.subTest(kind=kind, name=name, action=action, suffix=suffix), self.assertRaises((RuntimeError, AssertionError)):
+                            self.execute(kind, self.rows(kind) + [row])
 
     def test_package_terminal_is_required_and_failures_are_retained(self):
         for kind, spec in SPECS.items():

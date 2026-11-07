@@ -58,6 +58,7 @@ type Application struct {
 	runtimeUpgradeCursor        *runtimeUpgradeCursor
 
 	commitValidationTimingEnabled bool
+	pqWalletPolicyLive            *PQWalletPolicyLiveSource // actual Node pairing; never serialized or restored
 }
 
 type transactionError struct {

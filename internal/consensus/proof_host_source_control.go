@@ -227,7 +227,7 @@ func NewProofHostLiveControl(n *node.Node, app *Application, policyPath, pin str
 		return nil, err
 	}
 	control = &ProofHostLiveControl{in: in, node: n, app: app, done: make(chan struct{})}
-	if err = n.RegisterProofSourceConsumer(control.Close); err != nil {
+	if err = app.attachWalletPolicyProofHost(n, control); err != nil {
 		return nil, err
 	}
 	return control, nil

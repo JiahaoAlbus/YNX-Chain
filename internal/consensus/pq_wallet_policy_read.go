@@ -246,40 +246,46 @@ func readPQWalletPolicyAtCheckpoint(req PQWalletPolicyReadRequest, capture func(
 	if _, err := newPQEngineSnapshotOwned(witness, witness.bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height); err != nil {
 		return nil, err
 	}
-	if _, exists := accountIndex(state.Accounts, req.Owner); !exists {
+	return pqWalletPolicyProjection(state, witness.migration, req.Owner, req.Checkpoint, PQWalletPolicyIndependentCheckpointInput)
+}
+
+// Only the original full-state reader or a constructor-bound owning Node/App
+// read calls this projection. It is not a public decoder or trust constructor.
+func pqWalletPolicyProjection(state CommittedState, migration chain.ConsensusMigrationState, owner string, checkpoint PQWalletPolicyCheckpoint, origin PQWalletPolicyCheckpointOrigin) (*PQWalletPolicyAtCheckpoint, error) {
+	if _, exists := accountIndex(state.Accounts, owner); !exists {
 		return nil, errors.New("Wallet policy owner has no original ledger account")
 	}
-	view, err := pqWalletAccountView(state, witness.migration, req.Owner)
+	view, err := pqWalletAccountView(state, migration, owner)
 	if err != nil {
 		return nil, err
 	}
 	if view.Policy == nil || len(view.Policy.Records) == 0 {
 		return nil, errors.New("Wallet policy owner has no committed PQ registration history")
 	}
-	original, err := ynxauth.EncodeWalletPolicyProjection(*view.Policy, req.Owner)
+	original, err := ynxauth.EncodeWalletPolicyProjection(*view.Policy, owner)
 	if err != nil {
 		return nil, err
 	}
 	v := PQWalletPolicyAtCheckpointView{
-		Owner: req.Owner, NativeChainID: view.NativeChainID, CommittedHeight: view.CommittedHeight,
+		Owner: owner, NativeChainID: view.NativeChainID, CommittedHeight: view.CommittedHeight,
 		ExecutionHeight: view.ExecutionHeight, LedgerNonce: view.LedgerNonce, PolicyOriginal: original,
 		CommittedAuthorizationStatus: view.CommittedAuthorizationStatus, CommittedPQSigningEnabled: view.CommittedPQSigningEnabled,
 		AuthorizationStatus: view.AuthorizationStatus, PQSigningEnabled: view.PQSigningEnabled,
 	}
 	copy(v.NetworkID[:], view.Policy.NetworkID)
 	if view.CommittedPQSigningEnabled {
-		if _, err := view.Policy.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, uint64(state.Height)); err != nil {
+		if _, err := view.Policy.TrustedRegistration(owner, ynxauth.TransactionPurpose, uint64(state.Height)); err != nil {
 			return nil, err
 		}
-		r, _ := view.Policy.PolicyAt(req.Owner, uint64(state.Height))
+		r, _ := view.Policy.PolicyAt(owner, uint64(state.Height))
 		v.CommittedRegistration = clonePQWalletPolicyRecord(&r)
 	}
 	if view.PQSigningEnabled {
-		if _, err := view.Policy.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, view.ExecutionHeight); err != nil {
+		if _, err := view.Policy.TrustedRegistration(owner, ynxauth.TransactionPurpose, view.ExecutionHeight); err != nil {
 			return nil, err
 		}
-		r, _ := view.Policy.PolicyAt(req.Owner, view.ExecutionHeight)
+		r, _ := view.Policy.PolicyAt(owner, view.ExecutionHeight)
 		v.ExecutionRegistration = clonePQWalletPolicyRecord(&r)
 	}
-	return &PQWalletPolicyAtCheckpoint{seal: &pqWalletPolicySeal{checkpoint: req.Checkpoint, view: v, origin: PQWalletPolicyIndependentCheckpointInput}}, nil
+	return &PQWalletPolicyAtCheckpoint{seal: &pqWalletPolicySeal{checkpoint: checkpoint, view: v, origin: origin}}, nil
 }

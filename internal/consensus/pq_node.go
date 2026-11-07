@@ -57,7 +57,11 @@ func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator
 	}
 	app.mu.RLock()
 	bootstrap := app.bootstrap
+	alreadyBound := app.pqWalletPolicyLive != nil
 	app.mu.RUnlock()
+	if alreadyBound {
+		return nil, errors.New("original application is already paired with a Node; construct a new application for cold restart")
+	}
 	rawGenesis, err := os.ReadFile(config.GenesisFile())
 	if err != nil {
 		return nil, fmt.Errorf("read original node genesis: %w", err)
@@ -76,7 +80,19 @@ func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator
 		}
 		return &genesis, nil
 	}
-	return node.NewNodeWithConsensusAuthority(config, validator, nodeKey,
+	n, err := node.NewNodeWithConsensusAuthority(config, validator, nodeKey,
 		proxy.NewLocalClientCreator(app), genesisProvider, database,
 		node.DefaultMetricsProvider(config.Instrumentation), logger, app, options...)
+	if err != nil {
+		return nil, err
+	}
+	// Only this constructor knows that the local ABCI client and consensus
+	// authority are the same original app. No public caller can pair pointers.
+	if err = bindPQWalletPolicyLiveSource(n, app); err != nil {
+		// OnStop owns proxy, consumer and database teardown. A second
+		// ProxyApp.Stop would append ErrAlreadyStopped to the bind failure.
+		n.OnStop()
+		return nil, err
+	}
+	return n, nil
 }

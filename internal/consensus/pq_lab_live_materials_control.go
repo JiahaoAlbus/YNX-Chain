@@ -95,7 +95,7 @@ func NewPQLabLiveMaterialsControl(n *node.Node, app *Application, path, pin stri
 		}
 	}
 	c = &PQLabLiveMaterialsControl{in: in, node: n, app: app, view: view, next: 1, seen: make(map[string]bool), done: make(chan struct{})}
-	if err = n.RegisterProofSourceConsumer(c.Close); err != nil {
+	if err = app.attachWalletPolicyProofLab(n, c); err != nil {
 		return nil, err
 	}
 	return c, nil
