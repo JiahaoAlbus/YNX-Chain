@@ -1392,6 +1392,34 @@ def qualify_state_partitions(events):
 """
 
 
+COMBINED_VALIDATOR_KEYS_BLOCK = """combined_validator_keys_required = ['TestCombinedDetachedValidatorKeysSameOriginalBytesAndNormalization', 'TestCombinedDetachedValidatorKeysFirstFailureAndNoCandidate', 'TestCombinedDetachedValidatorKeysKeepsNestedOwnership']
+def qualify_combined_validator_keys(events):
+    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/chain'
+    if not events or any(not isinstance(e, dict) or e.get('Package') != package or
+                        e.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for e in events):
+        raise RuntimeError('combined validator key stream failed, skipped or changed package')
+    for name in combined_validator_keys_required:
+        runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+        outcomes = [e['Action'] for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+        if len(runs) != 1 or outcomes != ['pass']:
+            raise RuntimeError('combined validator key test did not execute uniquely: ' + name)
+    outcomes = [e['Action'] for e in events if 'Test' not in e and e.get('Action') in ('pass', 'fail', 'skip')]
+    if outcomes != ['pass']:
+        raise RuntimeError('combined validator key original package did not pass uniquely')
+    return combined_validator_keys_required
+combined_validator_keys_passed = qualify_combined_validator_keys(events)
+print('YNX_COMBINED_VALIDATOR_KEYS_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=combined_validator_keys_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
+"""
+COMBINED_MIGRATION_OWNER_BLOCK = """combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
+for name in combined_owner_required:
+    runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+    outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+    if len(runs) != 1 or runs[0].get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' or outcomes != [('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'pass')]:
+        raise RuntimeError('combined private migration owner did not execute uniquely: ' + name)
+required += ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
+"""
+
+
 def assert_state_math_required_workflow_contract(step):
     """Keep all original cases exactly once across bounded source partitions."""
     required = re.findall(r"(?m)^          required = (.+)$", step)
@@ -1427,6 +1455,12 @@ def assert_state_math_required_workflow_contract(step):
             step.count(terminal) != 2 or step.count("            exit 1\n") != 6 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
+    chain_command = "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n"
+    if step.count(chain_command) != 1:
+        raise AssertionError("complete original chain selector must include the three combined validator cases")
+    for block in (COMBINED_VALIDATOR_KEYS_BLOCK, COMBINED_MIGRATION_OWNER_BLOCK):
+        if step.count("".join("          " + line + "\n" for line in block.splitlines())) != 1:
+            raise AssertionError("combined full-validation regressions require exact unique original execution")
     commands = (command, proof_command, production, live, large_live)
     if [step.index(c) for c in commands] != sorted(step.index(c) for c in commands):
         raise AssertionError("state partition execution order changed")
@@ -4151,6 +4185,56 @@ class CompleteStatePartitionControls(unittest.TestCase):
             self.assertNotEqual(changed, step)
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_state_math_required_workflow_contract(changed)
+
+
+
+class CombinedValidatorKeysCIControls(unittest.TestCase):
+    def parts(self):
+        import textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / ".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw)
+        step = next(s for s in steps if s.startswith("      - name: Verify complete state bridge and sponsor continuity\n"))
+        start = step.index("          combined_validator_keys_required = ")
+        end = step.index("          combined_validator_keys_passed = ", start)
+        scope = {}
+        exec(compile(textwrap.dedent(step[start:end]), "actual-combined-validator-collector", "exec"), scope)
+        return root, step, scope
+
+    def test_exact_combined_validator_source_calls_keep_original_groups_and_cold_owner(self):
+        root, step, scope = self.parts()
+        assert_state_math_required_workflow_contract(step)
+        for name in scope['combined_validator_keys_required']:
+            source = (root / 'internal/chain/consensus_migration_detach_validator_keys_test.go').read_text()
+            self.assertEqual(len(re.findall(r'^func ' + name + r'\(t \*testing.T\)', source, re.M)), 1)
+        owner = 'TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary'
+        source = (root / 'internal/consensus/validated_migration_validator_keys_test.go').read_text()
+        self.assertEqual(len(re.findall(r'^func ' + owner + r'\(t \*testing.T\)', source, re.M)), 1)
+        mutations = [step.replace('|TestCombinedDetachedValidatorKeys)', ')', 1),
+                     step.replace('TestCombinedDetachedValidatorKeys)', 'TestCombinedDetachedValidatorKeysMissing)', 1),
+                     step.replace("required += ['" + owner + "']", "required += []", 1),
+                     step.replace("combined_validator_keys_passed = qualify_combined_validator_keys(events)", "combined_validator_keys_passed = combined_validator_keys_required", 1),
+                     step.replace("if len(runs) != 1 or outcomes != ['pass']:", "if False:", 1)]
+        for changed in mutations:
+            self.assertNotEqual(changed, step)
+            with self.assertRaises(AssertionError):assert_state_math_required_workflow_contract(changed)
+
+    def test_actual_combined_validator_collector_refuses_partial_duplicate_foreign_child_fail_skip(self):
+        _, _, scope = self.parts()
+        package = 'github.com/JiahaoAlbus/YNX-Chain/internal/chain'
+        names = scope['combined_validator_keys_required']
+        rows = [dict(Action=a, Package=package, Test=n) for n in names for a in ('run','pass')]
+        rows += [dict(Action='pass', Package=package)]
+        self.assertEqual(scope['qualify_combined_validator_keys'](rows), names)
+        bad = [[], rows[:-1], rows + [rows[-1]], rows + [dict(Action='pass', Package='foreign')]]
+        for name in names:
+            bad += [[e for e in rows if e.get('Test') != name],
+                    rows + [dict(Action='run', Package=package, Test=name)],
+                    rows + [dict(Action='pass', Package=package, Test=name)]]
+            for action in ('fail','skip','build-fail'):
+                bad.append(rows + [dict(Action=action, Package=package, Test=name+'/child')])
+        for i, events in enumerate(bad):
+            with self.subTest(index=i), self.assertRaises(RuntimeError):scope['qualify_combined_validator_keys'](events)
 
 
 if __name__ == "__main__":

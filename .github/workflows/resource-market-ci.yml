@@ -2278,7 +2278,7 @@ jobs:
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
           YNX_PQ_MIGRATION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-migration-transaction-proof-public.json
         run: |
-          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache)' ./internal/chain > "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"
             exit 1
           fi
@@ -2291,6 +2291,23 @@ jobs:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
           print('YNX_NATIVE_HISTORY_CHAIN_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
+          combined_validator_keys_required = ['TestCombinedDetachedValidatorKeysSameOriginalBytesAndNormalization', 'TestCombinedDetachedValidatorKeysFirstFailureAndNoCandidate', 'TestCombinedDetachedValidatorKeysKeepsNestedOwnership']
+          def qualify_combined_validator_keys(events):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/chain'
+              if not events or any(not isinstance(e, dict) or e.get('Package') != package or
+                                  e.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for e in events):
+                  raise RuntimeError('combined validator key stream failed, skipped or changed package')
+              for name in combined_validator_keys_required:
+                  runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+                  outcomes = [e['Action'] for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                  if len(runs) != 1 or outcomes != ['pass']:
+                      raise RuntimeError('combined validator key test did not execute uniquely: ' + name)
+              outcomes = [e['Action'] for e in events if 'Test' not in e and e.get('Action') in ('pass', 'fail', 'skip')]
+              if outcomes != ['pass']:
+                  raise RuntimeError('combined validator key original package did not pass uniquely')
+              return combined_validator_keys_required
+          combined_validator_keys_passed = qualify_combined_validator_keys(events)
+          print('YNX_COMBINED_VALIDATOR_KEYS_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=combined_validator_keys_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
           PY
           # Preserve the complete original test set in disjoint bounded groups.
           # Proof and wallet-policy cases no longer consume the state/journal
@@ -2404,6 +2421,13 @@ jobs:
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestZstdDependencyRejectsUpstreamTwoBlockFrame']
+          combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
+          for name in combined_owner_required:
+              runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+              outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+              if len(runs) != 1 or runs[0].get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus' or outcomes != [('github.com/JiahaoAlbus/YNX-Chain/internal/consensus', 'pass')]:
+                  raise RuntimeError('combined private migration owner did not execute uniquely: ' + name)
+          required += ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           required += ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           sender_checkpoint_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
