@@ -122,6 +122,10 @@ jobs:
           python3 -B scripts/loadtest/test_pq_d24_source_readback.py -v
       - name: Verify full first100 cohort counts and censored latency readback
         run: python3 -B scripts/loadtest/test_pq_first100_readback.py -v
+      - name: Verify original d24 cohort and separate stage denominators
+        run: |
+          python3 -B scripts/loadtest/test_pq_first100_d24_readback.py -v
+          python3 -B scripts/loadtest/test_pq_first100_stage_summary.py -v
       - name: Verify original bounded sender and post-ready checkpoint ordering
         run: python3 -B scripts/loadtest/test_pq_bounded_sender_backend.py -v
       - run: npm ci
