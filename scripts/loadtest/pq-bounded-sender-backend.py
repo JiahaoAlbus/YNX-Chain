@@ -1,7 +1,8 @@
-"""Bounded cold opens of the EXISTING one-owner normal sender command.
+"""Bounded transport of the EXISTING one-owner normal sender command.
 
 Normal EOF releases only a process/key lease, never ledger pending/nonce.
-Final confirmation reopens that same owner and confirms the same operation.
+By default confirmation reopens that same owner for the same operation. Explicit
+retention holds at most2 original sign processes until same-operation confirm.
 No signer, key codec, signature check, proof verifier or retry is implemented.
 """
 import os
@@ -9,12 +10,14 @@ import signal
 import threading
 import time
 
-def backend_class(Base,Session,normal,lab):
+def backend_class(Base,Session,normal,lab,retain_until_confirm=False):
+    lab.require(type(retain_until_confirm) is bool,'explicit original sender retention mode required')
     class BoundedSenderBackend(Base):
         def __init__(self,ceremony,owners,stop):
             lab.require(ceremony.mode=='online','bounded original sender pool is online-only')
             super().__init__(ceremony,owners,stop,open_persistent=False)
             self.sign_slots=threading.BoundedSemaphore(2);self.cold_lock=threading.Lock();self.cold_sessions={};self.cold_records=[];self.cold_attempts=0;self.cold_peak=0;self.cold_cleanup_debt=[];self.initialized_owners={v['ownerIndex'] for v in owners}
+            self.operation_sessions={};self.operation_attempts={};self.operation_identity_attempts=set();self.confirm_attempts=set();self.retained_cleanup_records=[];self.retained_stopping=False
             lab.require(len(self.initialized_owners)==len(owners),'original initialized owners must be distinct')
             lab.require(1+4+2+self.helper_limit<=lab.guard.CAPS['ownedProcesses'],'unchanged original PID cap cannot fit bounded sender/helper pools')
         def prepare(self,check):
@@ -39,11 +42,18 @@ def backend_class(Base,Session,normal,lab):
         def _sender(self,row,request,phase,notify,stop,exchange):
             lab.require(phase in ('sign','confirm'),'original sender phase differs')
             lab.require(row['ownerIndex'] in self.initialized_owners and request['ownerIndex']==row['ownerIndex'] and request['operationId']==row['operationId'] and request['firstNonce']==str(row['nonce']) and request['members']==1,'same original account/operation/nonce required; no replacement or retry')
+            identity=(row['index'],row['ownerIndex'],row['operationId'],row['nonce'])
+            if retain_until_confirm:
+                if phase=='confirm':return self._confirm_retained(row,identity,notify,stop,exchange)
+                with self.cold_lock:
+                    lab.require(row['index'] not in self.operation_attempts and identity[1:] not in self.operation_identity_attempts,'original sign already attempted; no second open/re-sign')
+                    self.operation_attempts[row['index']]=identity
+                    self.operation_identity_attempts.add(identity[1:])
             notify(dict(kind='normal_stage',stage='sender_open_'+phase))
             slots=self.sign_slots if phase=='sign' else self.helper_slots
             trace=dict(index=row['index'],ownerIndex=row['ownerIndex'],operationId=row['operationId'],nonce=row['nonce'],phase=phase,requestedMonotonicNs=time.monotonic_ns())
             with self.cold_lock:self.cold_attempts+=1
-            acquired=False;session=None;original_error=None;cleanup_error=None
+            acquired=False;session=None;original_error=None;cleanup_error=None;retained=False
             name='load-%05d-%s-sender'%(row['index'],phase)
             try:
                 while not stop.is_set():
@@ -60,12 +70,20 @@ def backend_class(Base,Session,normal,lab):
                 session.wait_ready(stop,time.monotonic()+self.c.proof_timeout,self.w.sample)
                 trace['normalDataReadyMonotonicNs']=time.monotonic_ns()
                 trace['commandRequestedMonotonicNs']=time.monotonic_ns()
-                value=exchange(session);trace['commandReturnedMonotonicNs']=time.monotonic_ns();return value
+                value=exchange(session);trace['commandReturnedMonotonicNs']=time.monotonic_ns()
+                if retain_until_confirm and value.get('code')=='ORIGINAL_SAVED':
+                    with self.cold_lock:
+                        if not self.retained_stopping and not stop.is_set():
+                            self.operation_sessions[row['index']]=dict(session=session,identity=identity,name=name,trace=trace)
+                            retained=True;trace['heldForSameOperationConfirm']=True
+                return value
             except BaseException as error:
                 original_error=error;trace['firstCause']=str(error);raise
             finally:
                 retired=session is None
-                if session is not None:
+                if retained:
+                    retired=False
+                elif session is not None:
                     try:self._close_original(session,trace)
                     except BaseException as error:cleanup_error=error;trace['cleanupError']=str(error)
                     retired=session.proc.poll() is not None
@@ -86,24 +104,77 @@ def backend_class(Base,Session,normal,lab):
                         except BaseException as error:cleanup_error=error;trace['cleanupError']=str(error)
                         retired=proc.poll() is not None
                 if acquired and retired:slots.release()
-                elif acquired:
+                elif acquired and not retained:
                     with self.cold_lock:self.cold_cleanup_debt.append(dict(name=name,pid=trace.get('pid'),operationId=row['operationId']))
                     self.stop_event.set()
                 trace['returnedMonotonicNs']=time.monotonic_ns()
                 with self.cold_lock:
                     if len(self.cold_records)<2048:self.cold_records.append(trace)
                 if original_error is None and cleanup_error is not None:raise cleanup_error
+        def _retire_retained(self,index,lease,trace):
+            session=lease['session'];cleanup_error=None
+            try:self._close_original(session,trace)
+            except BaseException as error:cleanup_error=error;trace['cleanupError']=str(error)
+            retired=session.proc.poll() is not None
+            with self.cold_lock:
+                self.operation_sessions.pop(index,None)
+                if retired:self.cold_sessions.pop(lease['name'],None)
+                else:self.cold_cleanup_debt.append(dict(name=lease['name'],pid=session.proc.pid,operationId=lease['identity'][2]))
+            if retired:self.sign_slots.release()
+            else:self.stop_event.set()
+            if cleanup_error is not None:raise cleanup_error
+        def _confirm_retained(self,row,identity,notify,stop,exchange):
+            with self.cold_lock:
+                lease=self.operation_sessions.get(row['index'])
+                lab.require(lease is not None and lease['identity']==identity,'original same-operation sender lease absent; never reopen or re-sign')
+                lab.require(row['index'] not in self.confirm_attempts,'original confirmation already attempted; reconcile original, never retry')
+                self.confirm_attempts.add(row['index'])
+                self.cold_attempts+=1
+            trace=dict(index=row['index'],ownerIndex=row['ownerIndex'],operationId=row['operationId'],nonce=row['nonce'],phase='confirm-reused',pid=lease['session'].proc.pid,reusedOriginalSender=True,requestedMonotonicNs=time.monotonic_ns())
+            original_error=None
+            try:
+                notify(dict(kind='normal_stage',stage='sender_reuse_confirm'))
+                lab.require(not stop.is_set(),'original confirmation canceled before command; preserve pending')
+                trace['commandRequestedMonotonicNs']=time.monotonic_ns()
+                result=exchange(lease['session']);trace['commandReturnedMonotonicNs']=time.monotonic_ns();return result
+            except BaseException as error:
+                original_error=error;trace['firstCause']=str(error);raise
+            finally:
+                try:self._retire_retained(row['index'],lease,trace)
+                except BaseException as error:
+                    trace['cleanupError']=str(error)
+                    if original_error is None:raise
+                finally:
+                    trace['returnedMonotonicNs']=time.monotonic_ns()
+                    with self.cold_lock:
+                        if len(self.cold_records)<2048:self.cold_records.append(trace)
         def sign_original(self,row,request,checkpoint,case,notify,stop):
             return self._sender(row,request,'sign',notify,stop,lambda session:session.exchange(normal.sender_command_data('sign',request,checkpoint['height'],checkpoint['appHash']),case/'original-sign-reply.json',stop))
         def confirm_original(self,row,request,proof,case,notify,stop):
             return self._sender(row,request,'confirm',notify,stop,lambda session:session.exchange(normal.sender_command_data('confirm',request,materials=proof['materials']['path'],materials_sha=proof['materials']['sha256'],proof=proof['proof']['path']),case/'original-confirm-reply.json',stop))
         def cold_sender_report(self):
-            with self.cold_lock:return dict(schema='YNX-PERF-BOUNDED-NORMAL-SENDER-LIFECYCLE/v1',attempted=self.cold_attempts,retained=len(self.cold_records),recordLimit=2048,omitted=max(0,self.cold_attempts-len(self.cold_records)),maxConcurrentSigners=2,maximumProofHelperSlots=self.helper_limit,observedPeakOpenSenderProcesses=self.cold_peak,cleanupDebt=[dict(v) for v in self.cold_cleanup_debt],records=[dict(v) for v in self.cold_records],accountPendingReleasedByProcessClose=False,automaticReSign=False,maximumOwnedRuntimePIDs=5+2+self.helper_limit)
+            with self.cold_lock:
+                report=dict(schema='YNX-PERF-BOUNDED-NORMAL-SENDER-LIFECYCLE/v1',attempted=self.cold_attempts,retained=len(self.cold_records),recordLimit=2048,omitted=max(0,self.cold_attempts-len(self.cold_records)),maxConcurrentSigners=2,maximumProofHelperSlots=self.helper_limit,observedPeakOpenSenderProcesses=self.cold_peak,cleanupDebt=[dict(v) for v in self.cold_cleanup_debt],records=[dict(v) for v in self.cold_records],accountPendingReleasedByProcessClose=False,automaticReSign=False,maximumOwnedRuntimePIDs=5+2+self.helper_limit)
+                if retain_until_confirm:report.update(sameOperationSenderRetention=True,heldOriginalOperationLeases=len(self.operation_sessions),normalConfirmReusesOriginalPID=True,retainedCleanup=[dict(v) for v in self.retained_cleanup_records])
+                return report
         def stop(self):
+            if retain_until_confirm:
+                with self.cold_lock:self.retained_stopping=True
             super().stop() # Original Window registry owns ALL load-* processes.
             with self.cold_lock:sessions=list(self.cold_sessions.values())
             for session in sessions:
                 if session.proc.stdin is not None and not session.proc.stdin.closed:
                     try:session.proc.stdin.close()
                     except (OSError,ValueError):pass
+            if retain_until_confirm:
+                with self.cold_lock:
+                    parked=[(i,v) for i,v in self.operation_sessions.items() if i not in self.confirm_attempts]
+                    for i,_ in parked:self.confirm_attempts.add(i) # Claim cleanup, never a confirmation.
+                for index,lease in parked:
+                    trace=dict(phase='unconfirmed-stop',index=index,pid=lease['session'].proc.pid,pendingPreserved=True)
+                    try:self._retire_retained(index,lease,trace)
+                    except BaseException as error:trace['cleanupError']=str(error)
+                    finally:
+                        with self.cold_lock:
+                            if len(self.retained_cleanup_records)<2048:self.retained_cleanup_records.append(trace)
     return BoundedSenderBackend

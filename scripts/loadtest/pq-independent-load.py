@@ -614,6 +614,8 @@ def validate_options(args):
         lab.require((args.mode,args.rate,args.seconds,args.accounts,args.per_account,args.tail_seconds,args.proof_timeout)==('online',100,5,500,1,30,30) and getattr(args,'staged_publication',False) and not getattr(args,'initialization_only',False),'selected same-window initialization then first100 profile only; no500/1000 permission')
         lab.require(all(getattr(args,key,False) is True for key in ('startup_timings','wire_observation','commit_observation','network_accounting','owned_storage_accounting')) and not getattr(args,'header_hop_capture',False),'selected original first100 observation configuration required')
     if getattr(args,'staged_publication',False):lab.require(args.mode=='online','staged cold sender pipeline requires explicit online mode')
+    if getattr(args,'retain_sender_until_confirm',False):
+        lab.require(args.mode=='online' and getattr(args,'staged_publication',False) and not getattr(args,'initialization_only',False),'same-operation sender retention requires explicit staged online business flow')
     return demand
 
 
@@ -644,6 +646,7 @@ def load_conditions(args):
     return dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
         seconds=args.seconds,tailSeconds=args.tail_seconds,proofTimeout=args.proof_timeout,
         **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture','startup_timings','initialize_before_load')},
+        **({'retain_sender_until_confirm':True} if getattr(args,'retain_sender_until_confirm',False) else {}),
         sameHost=True,physicalFaultDomains=1,cryptoOrAuthorityChanged=False,canonicalInputPairEquality='NOT_YET_QUALIFIED')
 
 
@@ -747,8 +750,9 @@ def run(args):
             return result # Existing finally performs the same bounded stop and preserves all originals.
         if staged:
             pool_module=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
-            backend=pool_module.backend_class(NormalBackend,SenderSession,normal,lab)(ceremony,owners,stop)
-            result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
+            retained=getattr(args,'retain_sender_until_confirm',False)
+            backend=pool_module.backend_class(NormalBackend,SenderSession,normal,lab,retain_until_confirm=retained)(ceremony,owners,stop)
+            result['signerTransport']=('original DATA-ready/sign and same-operation same-PID full-proof Confirm/EOF; at most2 retained senders; no reopen/retry' if retained else 'original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry')
         else:backend=NormalBackend(ceremony,owners,stop)
         journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
@@ -854,6 +858,7 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--retain-sender-until-confirm',action='store_true',help='candidate opt-in: at most2 original same-operation sender processes retained through normal proof confirmation; no new runtime grant or UNKNOWN replay')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
