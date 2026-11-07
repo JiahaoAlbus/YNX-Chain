@@ -1,0 +1,33 @@
+name: SourceParent image release split DATA
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/scripts/source-parent-image-release*
+      - apps/wallet-desktop/scripts/test/source-parent-image-release*
+      - apps/wallet-desktop/scripts/templates/source_parent_manager_capture.go.core
+      - packages/wallet-auth/native/SourceParentManagerProfileDATA.h
+      - docs/engineering/SOURCE_PARENT_RELEASE_MANAGER*
+      - scripts/ci/source-parent-image-release-profile.mjs
+      - .github/workflows/source-parent-image-release.yml
+jobs:
+  new-role-split-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/source-parent-image-release-profile.mjs 2>&1 | tee source-parent-image-release.log
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: source-parent-image-release-data
+          path: |
+            source-parent-image-release.log
+            source-parent-image-release-controls

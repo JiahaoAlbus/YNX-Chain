@@ -1,0 +1,8 @@
+import type {SourceParentFilePin,SourceParentImageRecord} from './source-parent-normal-profile.mjs';
+export const SOURCE_PARENT_IMAGE_RELEASE_KIND:'YNX_SOURCE_PARENT_IMAGE_BUILD_PROFILE/v1';
+export const SOURCE_PARENT_IMAGE_ROLES:readonly ['parentCreator','coreChild','nativeChild'];
+export interface SourceParentImageReleaseProfile {readonly version:1;readonly kind:typeof SOURCE_PARENT_IMAGE_RELEASE_KIND;readonly images:Readonly<{parentCreator:SourceParentImageRecord;coreChild:SourceParentImageRecord;nativeChild:SourceParentImageRecord}>;readonly nativeInfo:SourceParentFilePin}
+export interface SourceParentImageReleaseProfileDATA {readonly profileOriginal:string;readonly profileSHA256:string;readonly images:readonly [string,string,string];readonly nativeInfo:SourceParentFilePin;readonly dataOnly:true;readonly postbuildBytesVerified:true;readonly normalExecutionVerified:false;readonly RootAdmission:false;readonly SourceAdmission:false;readonly NativeAdmission:false;readonly qualifiedRuntimeResource:false}
+export function inspectSourceParentImageReleaseProfileDATA(profileOriginal:string,independentOriginal:string):SourceParentImageReleaseProfile;
+export function materializeSourceParentImageReleaseProfileDATA(sourceRoot:string,profileOriginal:string,independentOriginal:string):Readonly<SourceParentImageReleaseProfileDATA>;
+export function encodeSourceParentImageReleaseModuleDATA(sourceRoot:string,profileOriginal:string,independentOriginal:string):string;
