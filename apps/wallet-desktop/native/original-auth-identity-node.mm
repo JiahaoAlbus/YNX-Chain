@@ -1,3 +1,4 @@
+#include "WPRMaterializationNodeHostPrivate.h"
 #import <Foundation/Foundation.h>
 #include "original-private-terminal-recovery.h"
 #include <node_api.h>
@@ -670,6 +671,7 @@ static napi_value Register(napi_env env,napi_value exports){
 #ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
  if(!RegisterOriginalPQTransaction(env,exports))return nullptr;
 #endif
+ if(YNXInstallWPRMaterializationLoanV1(env,exports)!=napi_ok)return nullptr;
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }
 NAPI_MODULE(NODE_GYP_MODULE_NAME,Register)

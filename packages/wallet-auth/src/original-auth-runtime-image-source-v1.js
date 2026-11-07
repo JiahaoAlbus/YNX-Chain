@@ -33,9 +33,9 @@ function observe(path,cap,retained){
  for(const p of retained.filter(r=>r.kind==='parent')){const n=lstatSync(p.path);if(!sameParent(p.stat,fstatSync(p.fd))||!sameParent(p.stat,n))fail('AUTH_IMAGE_SOURCE_PARENT_CHANGED');}
  return{path,bytes:b.length,sha256:sha(b)};
 }
-function actualBuildFacts(retained){
+function actualBuildFacts(retained,purpose){
  const here=fileURLToPath(import.meta.url);if(realpathSync(here)!==here)fail('AUTH_IMAGE_SOURCE_MODULE_ALIAS');const root=dirname(dirname(here));
- const privatePath=root+'/src/original-http-binary-v5-client-private.js';
+ const privatePath=root+(purpose==='wallet-native-product-source-v1'?'/native/original-wpr-materialization-native-entry.mjs':'/src/original-http-binary-v5-client-private.js');
  return{version:'1',normalPackageRoot:root,fixedLoader:observe(root+'/src/original-auth-identity-fixed-native-image.js',16384,retained),runtimeManifest:observe(root+'/native/original-ide-auth-runtime-manifest.json',1048576,retained),implementingImage:observe(dirname(dirname(root))+'/apps/wallet-desktop/native/original-auth-identity.node',16777216,retained),privateModule:{...observe(privatePath,16777216,retained),uri:pathToFileURL(privatePath).href}};
 }
 class PublicOriginalRecord {
@@ -54,7 +54,7 @@ class OriginalRuntimeImageAdmissionOwnerV1 {
  #live(){if(this.#first)throw this.#first.cause;if(this.#retired)fail('AUTH_IMAGE_SOURCE_RETIRED');}
  async initialize(){try{if(this.#initializationSelected)fail('AUTH_IMAGE_SOURCE_INITIALIZE_SELECTED');this.#initializationSelected=true;this.#record=new PublicOriginalRecord(this.#entry.recordPath);this.#originals=this.#record.open();await this.recheck();return this;}catch(cause){throw this.#remember(cause);}}
  recheck(){this.#live();if(this.#checking)return this.#checking;const work=(async()=>{try{
-   this.#live();this.#record.current();const started=Date.now(),mono=performance.now(),expected=actualBuildFacts(this.#observed),e=this.#entry;
+   this.#live();this.#record.current();const started=Date.now(),mono=performance.now(),expected=actualBuildFacts(this.#observed,this.#entry.policy.signatureContract.purpose),e=this.#entry;
    if(!Number.isSafeInteger(started)||!Number.isFinite(mono))fail('AUTH_IMAGE_SOURCE_CLOCK_INVALID');
    inspectOriginalAuthRuntimeImageBindingV1DATA(expected,e.policy.signatureContract.purpose);
    const observed=await dispatchOriginalSourceV2({operation:'auth-source-v2-native-node/v1',node:e.node,...this.#originals,policy:e.policy,previous:this.#previous}),p=observed.projection;
@@ -88,4 +88,43 @@ export function acquireOriginalAuthRuntimeImageAdmissionV1(...args){
  if(released.length!==1)return Promise.resolve(Object.freeze({owner:null,error:Object.assign(Error('AUTH_RUNTIME_IMAGE_ADMISSION_NOT_SUPPLIED'),{code:'AUTH_RUNTIME_IMAGE_ADMISSION_NOT_SUPPLIED'})}));
  const owner=active=new OriginalRuntimeImageAdmissionOwnerV1(released[0]);
  opening=(async()=>{try{await owner.initialize();return Object.freeze({owner,error:null});}catch(cause){return Object.freeze({owner,error:Object.assign(Error('AUTH_IMAGE_SOURCE_UNRESOLVED'),{code:'AUTH_IMAGE_SOURCE_UNRESOLVED',cause})});}finally{opening=undefined;}})();return opening;
+}
+
+// Independent NORMAL HOST selection. This is not the installed target's
+// released[] and can never be populated by a runtime setter/ENV/caller DATA.
+const releasedWPR=Object.freeze([]);let wprState,wprOpening;
+const WPR_PURPOSE='wallet-native-product-source-v1';
+function wprFault(code){return Object.assign(Error(code),{code});}
+function wprCurrent(s){if(s?.first)throw s.first.cause;if(!s||s!==wprState||s.retired)throw wprFault('WPR_HOST_PRELOAD_NOT_CURRENT');s.source.assertPreLoadCurrent();}
+function makeWPRHost(entry){
+ if(entry?.policy?.signatureContract?.purpose!==WPR_PURPOSE)throw wprFault('WPR_HOST_DEDICATED_SOURCE_REQUIRED');
+ const source=new OriginalRuntimeImageAdmissionOwnerV1(entry),s={source,children:new Set(),retired:false,first:null,closeRequested:false,parentCloseSelected:false,parentClosed:false,opening:true};
+ const remember=e=>{s.first??={cause:e};return s.first.cause;};
+ const drain=async()=>{await source.join();if(s.children.size)throw wprFault('WPR_HOST_NATIVE_CHILDREN_RETAINED');if(!s.parentCloseSelected){s.parentCloseSelected=true;try{await source.close();s.parentClosed=true}catch(e){throw remember(e)}}};
+ const owner=Object.freeze({
+  assertCurrent(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');wprCurrent(s);},
+  async recheck(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');if(s.first)throw s.first.cause;if(s.retired)throw wprFault('WPR_HOST_RETIRED');try{await source.recheck();wprCurrent(s)}catch(e){throw remember(e)}},
+  retire(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');s.retired=true;source.retire();},
+  async join(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');if(!s.retired)throw wprFault('WPR_HOST_RETIRE_REQUIRED');await source.join();if(s.children.size)throw wprFault('WPR_HOST_NATIVE_CHILDREN_RETAINED');},
+  async close(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');s.closeRequested=true;owner.retire();try{await drain()}catch(e){remember(e);throw s.first.cause}if(s.first)throw s.first.cause;},
+  async drainPartial(){if(arguments.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');if(!s.closeRequested)throw wprFault('WPR_HOST_CLOSE_REQUIRED');try{await drain()}catch(e){remember(e)}if(s.first)throw s.first.cause;},
+  isClosed(){return s.parentClosed;},
+  statusDATA(){return Object.freeze({retired:s.retired,children:s.children.size,opening:s.opening,parentCloseSelected:s.parentCloseSelected,parentClosed:s.parentClosed,firstCausePresent:!!s.first,firstCause:s.first?.cause,dataOnly:true,RootAdmission:false,SourceAdmission:false,NativeAdmission:false});}
+ });s.owner=owner;return s;
+}
+export function acquireOriginalWPRHostPreloadV1(...args){
+ if(args.length)return Promise.reject(wprFault('WPR_HOST_ZERO_ARGUMENTS'));
+ if(wprOpening)return wprOpening;
+ if(wprState){try{wprCurrent(wprState);return Promise.resolve(Object.freeze({owner:wprState.owner,errorPresent:false,error:null}))}catch(error){return Promise.resolve(Object.freeze({owner:wprState.owner,errorPresent:true,error}))}}
+ if(releasedWPR.length!==1)return Promise.resolve(Object.freeze({owner:null,errorPresent:true,error:wprFault('WPR_HOST_PRELOAD_RELEASE_NOT_SUPPLIED')}));
+ try{wprState=makeWPRHost(releasedWPR[0])}catch(error){return Promise.resolve(Object.freeze({owner:null,errorPresent:true,error}))}
+ const s=wprState;wprOpening=(async()=>{try{await s.source.initialize();wprCurrent(s);return Object.freeze({owner:s.owner,errorPresent:false,error:null})}catch(error){s.first??={cause:error};return Object.freeze({owner:s.owner,errorPresent:true,error:s.first.cause})}finally{s.opening=false;wprOpening=undefined}})();return wprOpening;
+}
+export function assertOriginalWPRHostPreLoadCurrentV1(...args){if(args.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');wprCurrent(wprState);}
+// Private child custody, not a Native/Source constructor. No owner, provider,
+// path or qualified=true argument exists. Real Native child token stays hidden
+// inside the fixed loader and cannot be released through the returned facade.
+export function retainOriginalWPRHostPreloadChildV1(...args){
+ if(args.length)throw wprFault('WPR_HOST_ZERO_ARGUMENTS');const s=wprState;wprCurrent(s);const token=Object.freeze({});s.children.add(token);let released=false;
+ return Object.freeze({current(){if(released)throw wprFault('WPR_HOST_CHILD_RELEASED');wprCurrent(s);},release(){if(!released){released=true;s.children.delete(token);}},isReleased(){return released;}});
 }

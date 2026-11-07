@@ -1,0 +1,168 @@
+{
+  "version": "YNX-WPR-NORMAL-BOOTSTRAP-NATIVE-INPUTS/v1",
+  "rootSourceGit": "7fb457d5a30af21149ebbdeea2c5007c9f36a5fc plus formal sequential cohort receipt",
+  "mainInitializer": {
+    "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+    "bytes": 84915,
+    "sha256": "9c52a7b44c69eec10998da904a1630257cfb673f6005c621dc2f850443b28c0c"
+  },
+  "fixedLoader": {
+    "path": "src/original-auth-identity-fixed-native-image.js",
+    "bytes": 9005,
+    "sha256": "3f57e2056d331fba2a15d5d1c5278b7585760881c0e70c9968938f65772844df"
+  },
+  "sourceAuthority": {
+    "path": "native/original-auth-identity-source-authority.mm",
+    "bytes": 93789,
+    "sha256": "f705b75b3ca737b995b9c38ca25f7ba2ebd83809ff2b65c756ec3bf1753fee0c"
+  },
+  "files": [
+    {
+      "path": "native/WPRMaterializationRPCPrivate.mm",
+      "bytes": 12282,
+      "sha256": "06645b24313a9e7481164abdb530494b6a1b61ce6b47b8ce8fc628450a4c39b0",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRPublicReceiverPrivate.h",
+      "bytes": 445,
+      "sha256": "6a37dc0762a90c6a9dc63668e0e34d4674042804caeab6275dc7e9c61d985bff",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationSourcePrivate.h",
+      "bytes": 650,
+      "sha256": "cbce9c45895251312db459f39e2a66de9a6d130b4378bb3e11e09a32b003676c",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRMaterializationNormalCallPrivate.h",
+      "bytes": 333,
+      "sha256": "943a170d4ff684e68e604537c16678824ce5d259fb8d64d7e7e176cf4162fef3",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationPeerPrivate.mm",
+      "bytes": 8158,
+      "sha256": "6c780a76172500fdcdd21e327a173ff356288cf3f3bac496f39449b1103b6d02",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRMaterializationRPCPrivate.h",
+      "bytes": 2770,
+      "sha256": "3710c544219ab0d59808d0a27a12d49305a512dbe84bd3401b8e9b0c07c0eefc",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRStagedOriginalsPrivate.hpp",
+      "bytes": 1406,
+      "sha256": "048f037d4b460d761918274c994ef64f1086d8cc7ef2512bfef2f34e13d88d3a",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRMaterializationNodeHostPrivate.mm",
+      "bytes": 6153,
+      "sha256": "3363ea003bd9fbacaf561b203ce0b3addb7d90930705496dd62f50ffe5143c57",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRPublicationSourcePrivate.inc.mm",
+      "bytes": 5625,
+      "sha256": "47edd7a353aceea4a7f6116c7e31422b1b0e22f0992da43b3e463cdcfb7121a5",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRMaterializationNormalCallPrivate.mm",
+      "bytes": 763,
+      "sha256": "b01132d3c3c7c84836388f5dedbd450108750e74dcba94b8e0d5ab2ef8eb1e8f",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRMaterializationClientPrivate.h",
+      "bytes": 675,
+      "sha256": "17b5c3521229fe96dc129e0d5d0ac754f69cfbf6d453a3e01a1b0cf8a50dacc1",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationWindowPrivate.hpp",
+      "bytes": 1050,
+      "sha256": "ae6c99cd361102c2400e6732752802dd2e307987a033ad35a50a6942de0b54c1",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationReleasePrivate.hpp",
+      "bytes": 5055,
+      "sha256": "7e1e4c485edda15a427776642ea4bf1a410746be7d639d19c049c975dd94781d",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRMaterializationSourcePrivate.h",
+      "bytes": 723,
+      "sha256": "74754afa7c58700a18448007c4959b626c833934f58526b00d768982c87363c3",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicReceiverPrivate.mm",
+      "bytes": 12630,
+      "sha256": "a876558340a151893aeea12c5c4db33f7b01078f8c087a9683bad24698633196",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRMaterializationSourcePrivate.inc.mm",
+      "bytes": 8526,
+      "sha256": "248af6408a4bb8cfa915089d9e46749ad8646d193f8c7a47ef9e94111c80bca7",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationNormalCallPrivate.h",
+      "bytes": 796,
+      "sha256": "fbe348c8846171bda2c5912558dda3b7f99a10069cc488b31367a5628bf45832",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRPublicationNormalCallPrivate.mm",
+      "bytes": 2205,
+      "sha256": "997fe5024667cd40596caa22994dd5a9073ed0711dc822ca36836cf1a8d040a6",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRPublicationPeerPrivate.h",
+      "bytes": 663,
+      "sha256": "11b99d34de134cb2926d56db10c9b87f139c3ed5289a3143482a1c60bf800c5e",
+      "kind": "include-only"
+    },
+    {
+      "path": "native/WPRStagedOriginalsPrivate.cpp",
+      "bytes": 5806,
+      "sha256": "107d1622920507b7c31413bbe54699dd11d62a94e0898b9ca3011f4e84938dfd",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRMaterializationClientPrivate.mm",
+      "bytes": 12397,
+      "sha256": "d4e1b3dac46f35f039eabdc5a847bde4cb44f612cfe4c77fd2dfdb3966dea8dc",
+      "kind": "translation-unit"
+    },
+    {
+      "path": "native/WPRMaterializationNodeHostPrivate.h",
+      "bytes": 414,
+      "sha256": "f19b84bb91b8ce9eb5feecf1427d8b2777091e198d8a7b05ab03590d4e330e01",
+      "kind": "include-only"
+    }
+  ],
+  "exactlyOnceDefinition": {
+    "symbol": "YNXInstallWPRMaterializationLoanV1",
+    "implementation": "native/WPRMaterializationNodeHostPrivate.mm",
+    "mainNapiModule": "existing original-auth-identity-node.mm only",
+    "includeOnlyNeverSeparateTU": [
+      "native/WPRPublicationSourcePrivate.inc.mm",
+      "native/WPRMaterializationSourcePrivate.inc.mm"
+    ]
+  },
+  "normalRuntimeReleaseRows": 0,
+  "sameVersionImage": "NOT_BUILT_NOT_SUPPLIED",
+  "NativeBuilt": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

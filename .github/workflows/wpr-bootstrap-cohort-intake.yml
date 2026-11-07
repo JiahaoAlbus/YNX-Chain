@@ -1,0 +1,37 @@
+name: WPR matched normal bootstrap cohort intake
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/original-wpr-*.mjs
+      - packages/wallet-auth/native/original-wpr-*.d.mts
+      - packages/wallet-auth/src/original-auth-runtime-image-source-v1.*
+      - packages/wallet-auth/src/original-auth-identity-fixed-native-image.js
+      - packages/wallet-auth/scripts/wpr-fixed-native-closure.mjs
+      - packages/wallet-auth/test/wpr-bootstrap-cohort-intake.test.mjs
+      - scripts/ci/wpr-bootstrap-cohort-*.mjs
+      - .github/workflows/wpr-bootstrap-cohort-intake.yml
+jobs:
+  new-cohort-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/wpr-bootstrap-cohort-intake.mjs 2>&1 | tee wpr-bootstrap-cohort-controls.log
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/wpr-bootstrap-cohort-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: wpr-bootstrap-cohort-normal-source
+          path: |
+            wpr-bootstrap-cohort-controls.log
+            wpr-bootstrap-cohort-controls
+            canonical-common-source-package
