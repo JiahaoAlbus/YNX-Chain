@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "kind": "SOCIAL_SOURCE3_FRESH_R7_NODE_NORMAL_SOURCE_ONLY/v1",
+  "SDKBase": "6dbd6a848c8f109ad6d7e4fcd165177a90fd7a8c",
+  "stdioBase": "0e04fa18aac0026f9561c084679cd6e8ed388013",
+  "HostACKBase": "eac4dcb8ea510449e0de09f5068f0cf9f2d0b87d",
+  "files": [
+    {
+      "path": "native/original-social-joint-profile-source-service-private.mjs",
+      "bytes": 18632,
+      "sha256": "bdd2d1179570a4c8cd20ba574077b95989bc4226db690f8824a6e0dd9fa5192a"
+    },
+    {
+      "path": "native/original-social-joint-profile-source-service-private.d.mts",
+      "bytes": 1475,
+      "sha256": "f5c06980d41f5e190dfb2d945971093dc97e32ad9eea6041c3c5ca920dbf59f0"
+    },
+    {
+      "path": "native/social-principal-stdio-v1/codec.mjs",
+      "bytes": 10409,
+      "sha256": "c80df49ba17566af07eb8960101efd5e0142f622be2cf702defb80e87557d50d"
+    },
+    {
+      "path": "native/social-principal-stdio-v1/codec.d.mts",
+      "bytes": 4689,
+      "sha256": "bc249df7866752790d2d8198a1b1d83a31e7042cd8621769a0ec03f2177b75da"
+    },
+    {
+      "path": "native/social-directory-lc-v1/codec.mjs",
+      "bytes": 6823,
+      "sha256": "2f9ee5c0dac8ee45dddca89f17676a8c8332244e05bdca8d43672d170af7c0b8"
+    },
+    {
+      "path": "src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "path": "src/original-auth-identity-source-current.js",
+      "bytes": 24034,
+      "sha256": "381cc36ced5eff4a845baadde882988c56bab72c8d3b1100838abe98b3ac4674"
+    },
+    {
+      "path": "src/original-social-joint-source-current-private.js",
+      "bytes": 239,
+      "sha256": "ba441332aaefadc85f1496515870150c45cf14324268bf757282a47787c1e216"
+    },
+    {
+      "path": "src/original-social-joint-source-current-private.d.ts",
+      "bytes": 385,
+      "sha256": "b64a19ad9e1b315c39412aae81a7fffaeb5c5e0af3cfeaa16d4e53e76447a41c"
+    },
+    {
+      "path": "src/original-social-device-directory-principal-dispatch-private.js",
+      "bytes": 4084,
+      "sha256": "7b15693d80a6b2d7f692c9629693f893defa7a6c927c9661c6d52d0823633698"
+    },
+    {
+      "path": "src/original-social-directory-response-loan-private.js",
+      "bytes": 5715,
+      "sha256": "10a45d09b6fb2e8ff6b13f8fb20736cc97c26356673a6169ebc5a9f659a60877"
+    },
+    {
+      "path": "src/product-session-gateway-node-host.js",
+      "bytes": 84506,
+      "sha256": "21bf6c7f076d673ebac1c6e1029dc4d3a7d348fe9ee59cc3296b50a214cd006f"
+    },
+    {
+      "path": "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
+      "bytes": 7878,
+      "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3"
+    }
+  ],
+  "normalEntry": "src/original-social-joint-source-current-private.js",
+  "acquire": "acquireOriginalSocialDeviceDirectoryPrincipalSourceV4",
+  "drain": "drainOriginalSocialDeviceDirectoryPrincipalSourceV4",
+  "privateFactory": "native/original-social-joint-profile-source-service-private.mjs::acquireOriginalSocialJointSourceService",
+  "entryInputs": "ZERO_ARGUMENTS; no provider/selector/path/approval object",
+  "ownerCustody": "SAME actual owner adopted as cleanup debt first; only actual producer origin verifier and producer-sealed methods allow Host identity registration. SDK never freezes possibly poisoned prototypes.",
+  "oneOwnerDebt": "No second acquisition while original Source3 acquisition/owner debt remains; only actual isClosed releases SDK slot",
+  "SourceInputHeader": {
+    "version": 2,
+    "bytes": 7878,
+    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3",
+    "SourceR6H": {
+      "bytes": 10737,
+      "sha256": "63b8a80b7ddf0ab71ba6f36d9056353ec4bb2714d8933d8b80e9559b3f4f8020"
+    }
+  },
+  "Historical5444HeaderIsNotMatchingInput": true,
+  "closedLinkage": {
+    "matchedNativeStrong17": "NOT_LINKED",
+    "sameVersionGoHelperExecutable": "NOT_SUPPLIED",
+    "actualRootHelperLocatorRows": 0,
+    "genuineSourceResources": "NOT_SUPPLIED"
+  },
+  "graphBoundary": {
+    "strictDataEntries": [
+      "native/social-principal-stdio-v1/codec.mjs",
+      "native/social-directory-lc-v1/codec.mjs"
+    ],
+    "guardedPrivateIO": [
+      "native/original-social-joint-profile-source-service-private.mjs",
+      "src/original-auth-identity-source-current.js",
+      "src/product-session-gateway-node-host.js"
+    ],
+    "genericStrictScannerMustRejectChildProcessAndCreateRequire": true,
+    "wholeNodeExternalHelperQualification": "NOT_SUPPLIED",
+    "notClaimedPureDATAWholeSourceGraph": true
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "requiredProducerMethodContract": {
+    "originVerifier": "isOriginalSocialJointSourceService(owner)",
+    "trustedBeforeFirstPublication": [
+      "class/prototype method slots fixed",
+      "actual owner instance fixed",
+      "private initializer/fixed zeroarg selection"
+    ],
+    "R7ContainsOriginVerifier": false,
+    "status": "AUTH_FORMAL_NODE_SUCCESSOR_REQUIRED"
+  }
+}
