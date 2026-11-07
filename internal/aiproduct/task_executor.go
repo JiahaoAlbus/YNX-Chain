@@ -171,6 +171,9 @@ func (s *Store) commitTaskReadAtEffectFence(ctx context.Context, expected taskRe
 	binding.ResultBinding = bindTaskBytes(raw)
 	if expected.AuthorityOperationID != "" {
 		binding.AuthorityOperationID = expected.AuthorityOperationID
+		if binding.RemoteOperationID == "" {
+			binding.RemoteOperationID = record.ID
+		}
 		binding.ResultAuthScope = "egress-only-read-fence"
 	}
 	binding.ResultFields = append([]string(nil), expected.Fields...)

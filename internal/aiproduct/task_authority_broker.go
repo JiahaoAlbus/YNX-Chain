@@ -78,12 +78,12 @@ func (e *originalRuntimeToolEffects) taskToolAvailable(ctx context.Context, tool
 		return err
 	}
 	if e.runtime.broker != nil {
-		// The original broker currently registers Shop. Its service is not an
-		// alias for local conversation reads or an implicit once/budget grant.
-		if toolID != shopOrderToolID {
+		// Readiness of the original registered Auth action is not an approval.
+		// Full target/tool/proof selection and actual reservation remain Auth's.
+		if toolID != shopOrderToolID && toolID != "ai.conversation.read" {
 			return errTaskEffectSourceUnavailable
 		}
-		return nil
+		return e.runtime.broker.effectCurrent(ctx)
 	}
 	// A native signature/read gate alone must never activate production
 	// effects without the original authority's reservation and receipt CAS.
@@ -177,6 +177,9 @@ func (b *originalTaskAuthorityBroker) dispatch(ctx context.Context, e *originalR
 }
 
 func (b *originalTaskAuthorityBroker) reconcile(ctx context.Context, e *originalRuntimeToolEffects, call taskEffectCall, ref string) (taskReadReceipt, error) {
+	if call.OriginalStep.ToolStep != nil && call.OriginalStep.ToolStep.ToolID == "ai.conversation.read" {
+		return b.reconcileConversation(ctx, e, call, ref)
+	}
 	request, err := e.originalQueryRequest(ctx, call, ref)
 	if err != nil {
 		return taskReadReceipt{}, err

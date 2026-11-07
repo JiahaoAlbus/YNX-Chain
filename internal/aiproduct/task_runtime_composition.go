@@ -325,6 +325,9 @@ func (e *originalRuntimeToolEffects) dispatchTaskTool(ctx context.Context, call 
 		}
 		return e.runtime.shop.dispatchTaskOrder(ctx, e.store, call, auth)
 	}
+	if e.runtime.broker != nil {
+		return e.runtime.broker.dispatchConversation(ctx, e, call, ref, auth)
+	}
 	outcome, err := e.store.commitOriginalAuthTaskRead(ctx, auth.Verifier, auth.Binding, auth.Grant, auth.Holder)
 	if err != nil {
 		return outcome.Receipt, err

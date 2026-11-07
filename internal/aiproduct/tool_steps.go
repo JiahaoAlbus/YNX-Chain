@@ -234,8 +234,7 @@ func (s *Store) reserveTaskProposalLocked(session ProductSession, taskID string,
 	}
 	binding.InputDigest = digest
 
-	slot := sha256.Sum256([]byte(session.Account + "\x00" + taskID + "\x00" + input.OperationID))
-	id := "toolstep_" + hex.EncodeToString(slot[:])
+	id := toolStepRecordID(session.Account, taskID, input.OperationID)
 	if old, exists := s.state.Actions[id]; exists {
 		if old.Account != session.Account || old.ToolStep == nil || old.ToolStep.InputDigest != binding.InputDigest {
 			return ActionRecord{}, false, errToolConflict
@@ -287,4 +286,10 @@ func originalToolStepInputDigest(b ToolStepBinding, input []byte) (string, error
 	}
 	sum := sha512.Sum512(raw)
 	return hex.EncodeToString(sum[:]), nil
+}
+
+// Product-local step identity only; never Auth's authority operation or claim.
+func toolStepRecordID(account, taskID, operation string) string {
+	slot := sha256.Sum256([]byte(account + "\x00" + taskID + "\x00" + operation))
+	return "toolstep_" + hex.EncodeToString(slot[:])
 }

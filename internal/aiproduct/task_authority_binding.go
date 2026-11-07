@@ -27,7 +27,8 @@ func bindOriginalGrantRequest(request OriginalTaskAuthorizationRequest) (origina
 		// The actual query API fences the CURRENT task revision/generation while
 		// retaining the immutable signed original slot separately. This metadata
 		// mapping grants no holder transfer or query authorization.
-		if binding.RemoteOperationID != step.ID || (step.Status != "UNKNOWN" && step.Status != "DISPATCHING" && step.Status != "RECONCILING") {
+		localAwaitingAuthority := step.Status == "COMPLETED" && originalConversationReceiptPending(step)
+		if binding.RemoteOperationID != step.ID || (!localAwaitingAuthority && step.Status != "UNKNOWN" && step.Status != "DISPATCHING" && step.Status != "RECONCILING") {
 			return zero, errToolConflict
 		}
 	} else {

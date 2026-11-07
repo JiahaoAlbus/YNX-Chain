@@ -362,7 +362,7 @@ func (e *taskModelExecutor) ExecuteTool(ctx context.Context, call aigateway.Tool
 	if toolID == taskWebDAVToolID {
 		return e.executeWebDAVTool(ctx, call)
 	}
-	step, _, err := e.s.store.reserveToolStep(e.session, e.run.TaskID, toolStepRequest{OperationID: modelToolOperation(e.run.TaskID, e.run.RunID, call.ID), TaskRevision: e.run.TaskRevision, Generation: e.run.Generation, ToolID: toolID, ToolVersion: "1", Input: json.RawMessage(call.Function.Arguments)})
+	step, _, err := e.s.store.reserveModelToolStep(ctx, e.session, e.run, toolStepRequest{OperationID: modelToolOperation(e.run.TaskID, e.run.RunID, call.ID), TaskRevision: e.run.TaskRevision, Generation: e.run.Generation, ToolID: toolID, ToolVersion: "1", Input: json.RawMessage(call.Function.Arguments)})
 	if err != nil {
 		return aigateway.ToolExecution{Status: aigateway.ToolStopped}, err
 	}
@@ -385,8 +385,11 @@ func (e *taskModelExecutor) ExecuteTool(ctx context.Context, call aigateway.Tool
 	if receipt.State != "COMMITTED" {
 		return aigateway.ToolExecution{Status: aigateway.ToolUnknown}, errTaskEffectUnresolved
 	}
-	result, err := json.Marshal(receipt)
-	return aigateway.ToolExecution{Status: aigateway.ToolCompleted, Content: result}, err
+	result, err := e.s.store.taskModelFeedbackContent(e.session.Account, e.run.TaskID, step.ID, receipt)
+	if err != nil {
+		return aigateway.ToolExecution{Status: aigateway.ToolUnknown}, err
+	}
+	return aigateway.ToolExecution{Status: aigateway.ToolCompleted, Content: result}, nil
 }
 
 func (s *Server) runTaskModel(ctx context.Context, session ProductSession, taskID string, input taskRunRequest) (taskRunView, error) {

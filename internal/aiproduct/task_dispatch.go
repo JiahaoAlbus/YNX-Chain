@@ -136,7 +136,7 @@ func (s *Server) dispatchApprovedStep(ctx context.Context, session ProductSessio
 		return taskReadReceipt{}, errToolConflict
 	}
 	if effectErr == nil {
-		stored, readErr := s.store.taskReadReceiptLocked(current)
+		stored, readErr := s.store.taskFeedbackReceiptLocked(current)
 		if readErr == nil && receipt.EffectRef == call.OriginalOperationID && receipt.State == "COMMITTED" && receipt.Scope == stored.Scope && receipt.Binding == stored.Binding {
 			return stored, nil
 		}
@@ -167,15 +167,18 @@ func (s *Server) reconcileStep(ctx context.Context, session ProductSession, task
 	s.store.mu.Lock()
 	call, err := s.store.effectCallLocked(session, taskID, stepID, false)
 	if err == nil && call.OriginalStep.Status == "COMPLETED" {
-		receipt, readErr := s.store.taskReadReceiptLocked(call.OriginalStep)
-		s.store.mu.Unlock()
-		return receipt, readErr
+		receipt, readErr := s.store.taskFeedbackReceiptLocked(call.OriginalStep)
+		if readErr == nil || !errors.Is(readErr, errTaskEffectUnresolved) {
+			s.store.mu.Unlock()
+			return receipt, readErr
+		} // a local commit without original Auth receipt still queries Auth
+
 	}
 	s.store.mu.Unlock()
 	if err != nil {
 		return taskReadReceipt{}, err
 	}
-	if call.OriginalStep.Status != "PENDING" && call.OriginalStep.Status != "SENT" && call.OriginalStep.Status != "UNKNOWN" && call.OriginalStep.Status != "DISPATCHING" && call.OriginalStep.Status != "RECONCILING" {
+	if call.OriginalStep.Status != "COMPLETED" && call.OriginalStep.Status != "PENDING" && call.OriginalStep.Status != "SENT" && call.OriginalStep.Status != "UNKNOWN" && call.OriginalStep.Status != "DISPATCHING" && call.OriginalStep.Status != "RECONCILING" {
 		return taskReadReceipt{}, errToolConflict
 	}
 	if call.OriginalStep.ToolStep.RemoteOperationID == "" || call.OriginalStep.ToolStep.RemoteOperationID != call.OriginalOperationID {
@@ -191,7 +194,7 @@ func (s *Server) reconcileStep(ctx context.Context, session ProductSession, task
 	}
 	s.store.mu.Lock()
 	defer s.store.mu.Unlock()
-	stored, err := s.store.taskReadReceiptLocked(s.store.state.Actions[stepID])
+	stored, err := s.store.taskFeedbackReceiptLocked(s.store.state.Actions[stepID])
 	if err != nil || receipt.EffectRef != call.OriginalOperationID || receipt.State != "COMMITTED" || receipt.Binding != stored.Binding {
 		return taskReadReceipt{}, errTaskEffectUnresolved
 	}

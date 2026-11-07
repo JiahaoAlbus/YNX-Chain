@@ -15,6 +15,11 @@ func (s *Store) taskHasUnresolvedEffectLocked(taskID string) bool {
 
 	for _, record := range s.state.Actions {
 		if record.ToolStep != nil && record.ToolStep.TaskID == taskID {
+			if originalConversationReceiptPending(record) {
+				if _, err := s.taskFeedbackReceiptLocked(record); err != nil {
+					return true
+				}
+			}
 			switch record.Status {
 			case "PENDING", "UNKNOWN", "DISPATCHING", "SENT", "RECONCILING":
 				return true
@@ -78,7 +83,7 @@ func (s *Store) completeTaskLocked(account, id string, revision, generation uint
 		if !ok || record.Account != account || record.ToolStep == nil || record.ToolStep.TaskID != id {
 			return TaskRecord{}, errToolNotFound
 		}
-		if _, err := s.taskReadReceiptLocked(record); err != nil {
+		if _, err := s.taskFeedbackReceiptLocked(record); err != nil {
 			return TaskRecord{}, err
 		}
 	}
