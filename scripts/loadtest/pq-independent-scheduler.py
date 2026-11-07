@@ -159,6 +159,10 @@ class Ledger:
         # Descriptive only: never assert no growth from too few observations.
         growth=None if len(backlog_samples)<3 else backlog_samples[-1]["unconfirmedReleased"]>backlog_samples[len(backlog_samples)//2]["unconfirmedReleased"]
         evidenced_inside=sum((r["ackNs"] is not None and r["ackNs"]<window) or (r["includedNs"] is not None and r["includedNs"]<window) for r in self.rows)
+        accepted=[r for r in self.rows if r['ackNs'] is not None]
+        included=[r for r in self.rows if r['includedNs'] is not None]
+        accepted_inside=sum(r['ackNs']<window for r in accepted)
+        included_inside=sum(r['includedNs']<window for r in included)
         operational=sorted((r for r in self.rows if r["error"] is not None),key=lambda r:r["terminalNs"])
         stages=collections.defaultdict(list)
         for row in self.rows:
@@ -181,7 +185,9 @@ class Ledger:
         return dict(schema="YNX-PQ-INDEPENDENT-LOAD-RESULT/v1",mode=self.plan["mode"],requestedOfferedTPS=self.plan["requestedOfferedTPS"],configuredDemand=n,windowNs=window,observationCutoffNs=cutoff,windowCompleted=cutoff>=window,
             logicalReleased=self.next_release,releasedWithinWindow=releases_inside,notReleased=n-self.next_release,submitted=len(submitted),submittedWithinWindow=submissions_inside,lateSubmitted=len(submitted)-submissions_inside,notSubmitted=n-len(submitted),
             qualified=len(final),qualifiedWithinWindow=len(inside),qualifiedInTail=len(final)-len(inside),notQualified=n-len(final),terminalCounts=dict(counts),actualSubmissionAttemptTPS=submissions_inside*1e9/window,sourceAcceptanceOrInclusionWithinWindow=evidenced_inside,actualSourceEvidencedTPS=evidenced_inside*1e9/window,actualQualifiedWindowTPS=len(inside)*1e9/window,
+            observedThroughput=dict(denominatorWindowNs=window,checkTxAccepted=len(accepted),checkTxAcceptedWithinWindow=accepted_inside,checkTxAcceptedInTail=len(accepted)-accepted_inside,successfulInclusion=len(included),successfulInclusionWithinWindow=included_inside,successfulInclusionInTail=len(included)-included_inside,checkTxAcceptedTPS=accepted_inside*1e9/window,successfulInclusionTPS=included_inside*1e9/window,qualifiedReceiptTPS=len(inside)*1e9/window,includedWithoutAckObservation=sum(r['ackNs'] is None for r in included),meaning='Separate parent-observed boundaries, never the acceptance-or-inclusion union. ACK requires hash-bound successful CheckTx; inclusion requires same hash and code0 at all four nodes; qualified receipt additionally requires original normal proof/verifier/confirm. Window end is exclusive; tail excluded from TPS. Missing ACK is not rejection, source reception time and consensus commit timestamp are not measured. Finite cohort only, not sustained throughput.'),
             endToEndLogicalArrivalToQualified=quantiles("logicalArrivalOffsetNs","finalNs"),submitToInclusionObserved=quantiles("submittedNs","includedNs"),submitToQualifiedReceiptObserved=quantiles("submittedNs","finalNs"),
+            submitToCheckTxAckObserved=quantiles('submittedNs','ackNs'),inclusionToQualifiedReceiptObserved=quantiles('includedNs','finalNs'),
             releaseToAccountClaim=quantiles("releasedNs","claimedNs"),completedStageIntervals=stage_summary,
             releaseLagMs=[None if r["releasedNs"] is None else (r["releasedNs"]-r["logicalArrivalOffsetNs"])/1e6 for r in self.rows],queueSamples=self.samples,backlogGrowing=growth,
             accountState=[dict(a) for a in self.accounts.values()],accountStateMeaning="pending is the retained controller reservation; normal CORE journal remains authoritative for actual native pending state",rows=self.rows,firstCause=first_cause,firstOperationalFailure=None if not operational else dict(index=operational[0]["index"],id=operational[0]["id"],atNs=operational[0]["terminalNs"],error=operational[0]["error"]),stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",physicalCommitMeasured=False,

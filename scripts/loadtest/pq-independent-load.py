@@ -49,7 +49,7 @@ STAGED_CALLEE_TREE = initialization.LIVE_TREE
 STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-owner input still required.
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 # ABI support only. This is neither source qualification nor window permission.
-STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c'})
+STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521'})
 
 
 def callee_snapshot(value):
