@@ -33,13 +33,13 @@ void retireRuntime(uint64_t binding)noexcept{
  }catch(...){/* Tickets remain owned; release never manufactures a closed ACK. */}
 }
 bool releaseRuntime(uint64_t binding)noexcept{try{std::lock_guard<std::mutex>lock(mutex);if(!binding||binding!=currentBinding||!runtimeRetired)return false;for(const auto&[id,t]:tickets){(void)id;if(t->binding==binding)return false;}currentBinding=0;return true;}catch(...){return false;}}
-int32_t open(uint64_t binding,const std::vector<AccountChoice>&choices,uint32_t timeout,uint64_t*out)noexcept{
+static int32_t openImpl(uint64_t binding,const std::vector<AccountChoice>&choices,uint32_t timeout,uint64_t*out,bool accountOnly)noexcept{
  if(!out||*out||choices.empty()||choices.size()>20||timeout<1000||timeout>120000)return invalid;
  try{
   std::vector<std::string>labels;std::set<std::string>identities;
-  for(const auto&c:choices){if(c.account.size()!=42||c.account.substr(0,2)!="0x"||!lowerHex(c.account.substr(2),40)||!lowerHex(c.network,64)||!operation(c.originalOperation))return invalid;
+  for(const auto&c:choices){if(c.account.size()!=42||c.account.substr(0,2)!="0x"||!lowerHex(c.account.substr(2),40)||(accountOnly?(!operation(c.network)||!c.originalOperation.empty()):(!lowerHex(c.network,64)||!operation(c.originalOperation))))return invalid;
    if(!identities.insert(c.account+"/"+c.network+"/"+c.originalOperation).second)return invalid;
-   labels.push_back(c.account+"\nNetwork: "+c.network+"\nOriginal operation: "+c.originalOperation);
+   labels.push_back(c.account+"\nNetwork: "+c.network+(accountOnly?"":"\nOriginal operation: "+c.originalOperation));
   }
   auto t=std::make_shared<Ticket>();t->binding=binding;t->count=choices.size();t->deadline=Clock::now()+std::chrono::milliseconds(timeout);uint64_t id;
   {std::lock_guard<std::mutex>lock(mutex);if(!binding||binding!=currentBinding||runtimeRetired)return unavailable;if(tickets.size()>=32||nextTicket==uint64_t(std::numeric_limits<int64_t>::max()))return capacity;id=nextTicket++;tickets.emplace(id,t);*out=id;}
@@ -48,11 +48,19 @@ int32_t open(uint64_t binding,const std::vector<AccountChoice>&choices,uint32_t 
   return rc;
  }catch(...){return unavailable;}
 }
+int32_t open(uint64_t binding,const std::vector<AccountChoice>&choices,uint32_t timeout,uint64_t*out)noexcept{return openImpl(binding,choices,timeout,out,false);}
 int32_t openForCurrentRuntime(const std::vector<AccountChoice>&choices,uint32_t timeout,uint64_t*out)noexcept{
  try{uint64_t binding;{std::lock_guard<std::mutex>lock(mutex);if(!currentBinding||runtimeRetired)return unavailable;binding=currentBinding;}
   // open rechecks this SAME binding after validation. A retire/replacement in
   // that interval cannot silently redirect the inventory to a later runtime.
   return open(binding,choices,timeout,out);
+ }catch(...){return unavailable;}
+}
+int32_t openRegisteredAccountForCurrentRuntime(const std::vector<RegisteredAccountChoice>&choices,uint32_t timeout,uint64_t*out)noexcept{
+ try{uint64_t binding;{std::lock_guard<std::mutex>lock(mutex);if(!currentBinding||runtimeRetired)return unavailable;binding=currentBinding;}
+  if(choices.empty()||choices.size()>20)return invalid;
+  std::vector<AccountChoice>rows;rows.reserve(choices.size());for(const auto&c:choices)rows.push_back({c.account,c.network,{}});
+  return openImpl(binding,rows,timeout,out,true);
  }catch(...){return unavailable;}
 }
 int32_t wait(uint64_t id,uint32_t*out)noexcept{

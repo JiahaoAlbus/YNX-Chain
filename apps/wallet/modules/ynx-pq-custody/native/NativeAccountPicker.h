@@ -5,6 +5,7 @@
 namespace ynx::mobilepq::picker {
 enum Code:int32_t {ok=0,invalid=9801,unavailable=9802,cancelled=9803,expired=9804,pending=9805,wrongThread=9806,closed=9807,capacity=9808};
 struct AccountChoice {std::string account,network,originalOperation;};
+struct RegisteredAccountChoice {std::string account,network;};
 /* Native lifecycle identities and UI tickets ONLY, never JS values or grants.
  * Caller supplies the SAME real Native account inventory's public observations
  * and checks its actual account/epoch/current before AND after selection. No
@@ -17,6 +18,9 @@ int32_t open(uint64_t,const std::vector<AccountChoice>&,uint32_t timeoutMS,uint6
 /* Normal Native account factories use the already bound App lifetime, not a
  * JS/native ID supplied by their caller. No install or account lookup here. */
 int32_t openForCurrentRuntime(const std::vector<AccountChoice>&,uint32_t timeoutMS,uint64_t*outTicket)noexcept;
+/* Genuine pre-capture account choice has NO operation/review ID. Network is
+ * bounded public display DATA, not a Source/chain identifier parser. */
+int32_t openRegisteredAccountForCurrentRuntime(const std::vector<RegisteredAccountChoice>&,uint32_t timeoutMS,uint64_t*outTicket)noexcept;
 int32_t wait(uint64_t,uint32_t*outIndex)noexcept; // dedicated worker only
 /* Any-thread revoke of this SAME selection only, for actual account/proof
  * lifetime loss. Wakes its actor and requests dismissal, never closes/releases

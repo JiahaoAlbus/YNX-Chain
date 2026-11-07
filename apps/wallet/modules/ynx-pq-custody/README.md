@@ -146,6 +146,42 @@ class is kept through R8; there is no React account selector method/setter.
 These UI mechanics are not the missing genuine selected7/account inventory
 producer. The strong production factories remain required, not stubbed.
 
+The new Native-only `NativeRegisteredReceiptOwner` consumes the NEW Auth
+`acquireOriginalRegisteredAccountReceipt()` zero-input producer. It does not
+call the old Source-qualified `acquire_registered_original` loan. Auth's exact
+immutable header-r1 Backend3533/Receipt1538 paired-failure headers are retained
+unchanged in `native/`; all error-bearing calls inspect `Failure.present`, so
+an original error with code0 cannot become success. A retained Native resource
+inventory adopts the caller partial and Auth shared owner before result checks.
+It has no account discovery, receipt setter, engine tuple/FD constructor or JS
+export, and retains cleanup debt when a caller drops its C++ shared pointer.
+
+The consumer checks actual Auth current before/after public reads, fixes the
+captured H/AppHash/full pair/account/revision/nonce/Source tuple, and allows only
+the separately reported current engine height to advance. The fixed public
+widths and H+1/overflow/account checks are additional framing checks; they never
+verify or replace Core's ledger seal and Auth's independent Root/Source proof.
+`openRegisteredAccountForCurrentRuntime` displays this genuine pre-capture
+account/network without any invented operation/review ID. Its selected index
+is DATA only. A late proof change rejects the selection and preserves the owner.
+Any-thread retire revokes only its own proof/picker. Close requires actual UI
+closed ACK and ticket release BEFORE joining/closing the Auth proof; an Auth
+close error and actual physical closed witness stay distinct. Explicit Native
+release removes only a truly closed resource; there is no GC cleanup success.
+The future selected-account mother must own this child on its actual Native
+actor, retire it on account/App invalidation, and drain it before mother release.
+This helper is not separately exported to App/JS as a source or capability.
+
+This is real consumer/lifetime CODE, not a supplied genuine backend or complete
+selected7 implementation. Original Core/Auth must supply the strong producer,
+recognized engine host, authentic seal and Root selection. The selected mother
+also needs original Source context/reference/op, Native directory mapping and
+review/current interfaces. Ledger H/nonce/revision are never renamed to Source
+executionHeight/nonce/vaultRevision; missing Source/journal/slot data is not
+invented from the receipt. Those selected7 production definitions stay required
+strong dependencies, not permanent-denial stand-ins. No new Go/C20/wire/crypto,
+registration, key, operation or signing/broadcast approval is created here.
+
 The normal protected account/original-operation selector is not yet supplied.
 `preparePQOperation` still accepts only a lookup constraint and must never be
 used with a fabricated reference for availability detection. Auth owns the
@@ -297,6 +333,11 @@ Context or iOS sandbox services.
 actor ownership, release debt and stale callback handling through PUBLIC UI
 callbacks only. It does not launch UI or qualify an account. Normal module CI
 includes these controls and the explicit lifecycle export/type regressions.
+`node test/run-registered-receipt-controls.mjs` exercises the actual new Native
+receipt consumer through PUBLIC Auth receipt/UI callees only, including raw
+code0 failures, late drift, same-owner cleanup, actor cancellation and retained
+GC debt. These controls do not execute the genuine Auth/Core producer, engine,
+Root, ledger seal or OS UI. The normal module CI includes this new target.
 Parent's ordinary CI should call `node test/ci.mjs <normal-react-native-root>`
 for this module's closed checks; it requires the actual matching RN0.86 tree.
 No parent package/CI file is modified by this owned module. Parent integration

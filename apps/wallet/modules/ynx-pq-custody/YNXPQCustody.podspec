@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
   s.author = 'YNX'
   s.source = { :path => '.' }
   s.platforms = { :ios => '15.1' }
-  s.source_files = 'ios/*.{mm,swift}', 'native/*.{h,cpp}'
+  s.source_files = 'ios/*.{mm,swift}', 'native/*.{h,hpp,cpp}'
   s.pod_target_xcconfig = { 'CLANG_CXX_LANGUAGE_STANDARD' => 'c++17', 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
   s.frameworks = 'Security', 'LocalAuthentication', 'UIKit'
