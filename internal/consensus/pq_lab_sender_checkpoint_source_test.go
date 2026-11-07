@@ -133,8 +133,8 @@ func testPQLabSenderCheckpointSourceParity(t *testing.T, large bool) {
 		if b["lab.bootstrapFullValidation"].Calls != beforeBootstrap || a["lab.bootstrapFullValidation"].Calls != wantBootstrap {
 			t.Fatal("cold/steady original bootstrap validation count differs", b, a)
 		}
-		if a["lab.validatorKeyFullValidation"].Calls != wantBootstrap || a["lab.validatedMigrationOwnerBuild"].Calls != wantBootstrap {
-			t.Fatal("original key validator or full canonical writer was omitted/repeated", a)
+		if a["lab.validatorKeyFullValidation"].Calls != 0 || a["lab.validatedMigrationOwnerBuild"].Calls != wantBootstrap {
+			t.Fatal("combined full key/canonical owner was omitted/repeated or a separate pass reappeared", a)
 		}
 		stats := afterSource.CacheStats()
 		if large && (stats.Entries != 0 || stats.HeldFiles != 0 || stats.OriginalBytes != 0 || stats.Misses != 1 || stats.Bypasses != 1) {
@@ -466,8 +466,8 @@ func TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness(t *testing.T) {
 				t.Fatal("complete original bootstrap/canonical ownership changed")
 			}
 			stages := metrics.Snapshot().Stages
-			if stages["lab.validatorKeyFullValidation"].Calls != 1 || stages["lab.validatedMigrationOwnerBuild"].Calls != 1 {
-				t.Fatal("full key API/writer denominators", stages)
+			if stages["lab.validatorKeyFullValidation"].Calls != 0 || stages["lab.validatedMigrationOwnerBuild"].Calls != 1 {
+				t.Fatal("combined full key API/writer denominators", stages)
 			}
 			if _, err = newConsensusBootstrap(raw, pins, f.migration, owned); err == nil {
 				t.Fatal("already-bound witness retargeted")

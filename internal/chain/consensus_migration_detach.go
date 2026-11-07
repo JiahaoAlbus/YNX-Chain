@@ -22,6 +22,25 @@ func (s ConsensusMigrationState) WriteDetachedCanonicalJSON(w io.Writer) (Consen
 	if err := s.Validate(); err != nil {
 		return ConsensusMigrationState{}, err
 	}
+	return s.writeDetachedCanonicalJSON(w)
+}
+
+// WriteDetachedCanonicalJSONWithConsensusValidatorKeys retains the complete
+// normal validator-key boundary, including Validate, before emitting any bytes.
+// It then performs the identical detachment and canonical writer used above.
+// No caller may supply a digest, validation flag or previously validated state.
+// The caller must keep s immutable throughout this call. Failure returns a zero
+// state; partial output never confers authority.
+func (s ConsensusMigrationState) WriteDetachedCanonicalJSONWithConsensusValidatorKeys(w io.Writer) (ConsensusMigrationState, error) {
+	if err := s.ValidateConsensusValidatorKeys(); err != nil {
+		return ConsensusMigrationState{}, err
+	}
+	return s.writeDetachedCanonicalJSON(w)
+}
+
+// Only the two complete public validation boundaries above call this body.
+// Encode the original source, not the detached/normalized decoded values.
+func (s ConsensusMigrationState) writeDetachedCanonicalJSON(w io.Writer) (ConsensusMigrationState, error) {
 	metadata := s
 	metadata.Runtime = nil
 	raw, err := json.Marshal(metadata)

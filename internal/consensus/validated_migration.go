@@ -69,6 +69,34 @@ func newValidatedMigration(migration chain.ConsensusMigrationState, bootstrap *C
 	return witness, nil
 }
 
+// newValidatedMigrationWithConsensusValidatorKeys is a complete normal chain
+// operation followed by a private constructor. The caller cannot inject a
+// validation flag, digest or detached object. The full key check precedes the
+// unchanged detach/canonical body, preserving its original failure ordering.
+// The generic newValidatedMigration path above retains its original contract.
+func newValidatedMigrationWithConsensusValidatorKeys(migration chain.ConsensusMigrationState) (*validatedMigration, error) {
+	validatedMigrationFullChecks.Add(1)
+	binding := newCanonicalMigrationStreamBinding(nil)
+	stream := validatedMigrationCanonicalWriter{digest: sha256.New(), binding: binding}
+	detached, err := migration.WriteDetachedCanonicalJSONWithConsensusValidatorKeys(&stream)
+	if err != nil {
+		return nil, err
+	}
+	var canonicalHash [sha256.Size]byte
+	copy(canonicalHash[:], stream.digest.Sum(nil))
+	if err := binding.matches(detached, canonicalHash, stream.count); err != nil {
+		return nil, err
+	}
+	witness := &validatedMigration{migration: detached, canonicalHash: canonicalHash, canonicalBytes: stream.count}
+	if err := witness.initializeMath(); err != nil {
+		return nil, err
+	}
+	// Seal only this exact private object after the complete operation succeeds.
+	witness.validatedSelf = witness
+	witness.bootstrapKeysValidated = witness
+	return witness, nil
+}
+
 func (m *validatedMigration) initializeMath() error {
 	m.historyCertificates = chain.NewPQHistoryCertificateCache()
 	if m.bootstrap != nil {

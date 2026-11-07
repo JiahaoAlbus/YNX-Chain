@@ -169,27 +169,19 @@ func (s *PQLabSenderCheckpointSource) Load(root, pin, activationPin string, heig
 	return cp, nil
 }
 
-// First cold construction retains the FULL original validator-key API check
-// (including its full migration Validate), then the FULL detached canonical
-// writer check. This is two complete validations, not a claim of only one.
-// The old inline Bootstrap plus newValidatedMigration performed four. Reference
-// Genesis keeps its original streaming full validator as an additional pass;
-// it never materializes a potentially history-sized canonical byte slice.
-// Only redundant checks of the same fully bound canonical object are removed.
+// First cold construction uses the complete normal validator-key API once,
+// followed by the unchanged detached canonical writer in the same chain call.
+// The owner-build stage now INCLUDES full validator-key validation; there is no
+// independent lab.validatorKeyFullValidation stage to add to it. Reference
+// Genesis retains its additional original streaming full validator unchanged.
+// All input, canonical, membership and current-file checks remain mandatory.
 func newPQLabSenderBootstrap(raw []byte, pins ConsensusBootstrapPins, m chain.ConsensusMigrationState, metrics *PQLabMetrics) (*validatedMigration, error) {
-	end := pqLabMeasure(metrics, "lab.validatorKeyFullValidation")
-	err := m.ValidateConsensusValidatorKeys()
+	end := pqLabMeasure(metrics, "lab.validatedMigrationOwnerBuild")
+	w, err := newValidatedMigrationWithConsensusValidatorKeys(m)
 	end()
 	if err != nil {
 		return nil, err
 	}
-	end = pqLabMeasure(metrics, "lab.validatedMigrationOwnerBuild")
-	w, err := newValidatedMigration(m, nil)
-	end()
-	if err != nil {
-		return nil, err
-	}
-	w.bootstrapKeysValidated = w
 	b, err := newConsensusBootstrap(raw, pins, w.migration, w)
 	if err != nil {
 		return nil, err
