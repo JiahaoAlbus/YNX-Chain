@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <thread>
+#include <cstring>
 
 // Private Native-only transport custody. Its profile/fence MUST originate from
 // the actual qualified inventory. This class does not mint Source permission.
@@ -19,6 +20,26 @@ class ReaderV2 final {
  const std::thread::id thread_=std::this_thread::get_id();
  int32_t remember(int32_t rc){if(rc&&!first_)first_=rc;return rc;}
  bool actor()const{return std::this_thread::get_id()==thread_;}
+ // Only Join/Close use this status classifier. LINK's DRAINING is known
+ // local ACK ownership/pending progress, NOT a sticky operation failure.
+ // Independently ask the SAME client for true firstcause and UNKNOWN; never
+ // globally ignore numeric 5 or infer completion from a returned ACK alone.
+ int32_t lifecycleStatus(int32_t rc,const char*operation){
+  if(rc!=YNX_LINK_RESOURCE_CURRENT_DRAINING_V1)return remember(rc);
+  int32_t native=0,system=0;
+  const int32_t first=ynx_link_resource_current_first_error_v2(client_,&native,&system);
+  if(first)return remember(first);
+  ynx_link_resource_current_lifetime_v2 life{};
+  const int32_t observed=ynx_link_resource_current_get_lifetime_v2(client_,&life);
+  if(observed)return remember(observed);
+  if(life.remote_unknown)return remember(YNX_LINK_RESOURCE_CURRENT_REMOTE_UNKNOWN_V2);
+  if(packet_&&(!packet_->operation||std::strcmp(packet_->operation,operation)||
+    !packet_->transport.body_complete||packet_->transport.status_code!=200||
+    packet_->transport.error_code||packet_->lifetime.remote_unknown))
+   return remember(YNX_LINK_RESOURCE_CURRENT_PROTOCOL_V1);
+  return rc; // caller drops its packet BEFORE cached/local completion probes.
+ }
+
  int32_t adopt(const ynx_link_resource_current_packet_v2*p){
   if(!p)return 0;
   // Calls are serialized and never made while an earlier packet is retained.
@@ -103,14 +124,14 @@ public:
   rc=ynx_link_resource_current_get_lifetime_v2(client_,&life);if(rc)return remember(rc);
   if(life.remote_unknown)return remember(YNX_LINK_RESOURCE_CURRENT_REMOTE_UNKNOWN_V2);
   uint8_t done=0;const ynx_link_resource_current_packet_v2*q=nullptr;
-  rc=ynx_link_resource_current_join_v2(client_,10000,&done,&q);const int32_t a=adopt(q);remember(rc);
+  rc=ynx_link_resource_current_join_v2(client_,10000,&done,&q);const int32_t a=adopt(q);lifecycleStatus(rc,"resource_current_join");
   if(drop())return first_;if(a)return a;
   // Sticky firstcause is not a claim of physical debt: independently probe.
   q=nullptr;uint8_t cached=0;
-  const int32_t probe=ynx_link_resource_current_join_v2(client_,0,&cached,&q);const int32_t pa=adopt(q);remember(probe);
+  const int32_t probe=ynx_link_resource_current_join_v2(client_,0,&cached,&q);const int32_t pa=adopt(q);lifecycleStatus(probe,"resource_current_join");
   if(drop())return first_;if(pa)return pa;
   if(!cached)return first_?first_:YNX_LINK_RESOURCE_CURRENT_DRAINING_V1;
-  q=nullptr;done=0;rc=ynx_link_resource_current_close_v2(client_,&done,&q);const int32_t ca=adopt(q);remember(rc);
+  q=nullptr;done=0;rc=ynx_link_resource_current_close_v2(client_,&done,&q);const int32_t ca=adopt(q);lifecycleStatus(rc,"resource_current_close");
   if(drop())return first_;if(ca)return ca;
   life={};const int32_t observed=ynx_link_resource_current_get_lifetime_v2(client_,&life);
   if(observed)return remember(observed);
@@ -118,7 +139,7 @@ public:
   if(!life.remote_close_ack)return first_?first_:YNX_LINK_RESOURCE_CURRENT_DRAINING_V1;
   // A second Close is a cached/finalization probe, never a new Close request
   // after UNKNOWN. LINK owns that exact same-session state machine.
-  q=nullptr;done=0;rc=ynx_link_resource_current_close_v2(client_,&done,&q);const int32_t fa=adopt(q);remember(rc);
+  q=nullptr;done=0;rc=ynx_link_resource_current_close_v2(client_,&done,&q);const int32_t fa=adopt(q);lifecycleStatus(rc,"resource_current_close");
   if(drop())return first_;if(fa)return fa;
   if(!done)return first_?first_:YNX_LINK_RESOURCE_CURRENT_DRAINING_V1;
   rc=ynx_link_resource_current_free_v2(client_);if(rc)return remember(rc);
