@@ -1,3 +1,4 @@
+import{SERVER_TLS_SOURCE_PURPOSE as TLS_PURPOSE,SERVER_TLS_SOURCE_SELECTION_KEY as TLS_KEY,SERVER_TLS_SOURCE_OPERATIONS as TLS_OPS,inspectOriginalServerTLSIdentityScopeV1DATA}from'./original-server-tls-source-contract.mjs';
 import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
 import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'./original-network-current-publisher-source-contract.mjs';
 import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'./original-network-resource-pending-source-contract.mjs';
@@ -105,7 +106,7 @@ function sourcePolicy(policy){
  const pqCatalog=policy?.signatureContract?.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const ai=policy?.signatureContract?.purpose===AI_PURPOSE;
  const mobile=policy?.signatureContract?.purpose===WM_PURPOSE;
- const device=deviceFamily(policy?.signatureContract?.purpose),pay=[NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
+ const device=deviceFamily(policy?.signatureContract?.purpose),pay=[TLS_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
  exact(policy,mobile?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
  if(mobile&&(policy.productId!=='wallet'||!['ios','android'].includes(policy.platform)||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)))fail('MOBILE_SOURCE_POLICY');
  if(ai&&(!['client','server'].includes(policy.sourceRole)||!(policy.sourceRole==='client'?['ios','android']:['linux','macos','windows']).includes(policy.platform)||policy.productId!=='ai'||policy.sourceRole==='client'&&policy.applicationId!=='com.ynxweb4.ai'||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)))fail('AI_TASK_SOURCE_POLICY');
@@ -163,7 +164,35 @@ export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role,rootRaw,enro
  else{const verified=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);deviceProfileBodyDATA(root,verified.enrollment,body,policy,registrations,atMs);}
  return Object.freeze({role,bodySHA256:sha(bodyRaw),dataOnly:true,authorized:false,nativeAdmission:false});
 }
+function serverTLSEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
+ if(e.version!==2||e.purpose!==TLS_PURPOSE||root.purpose!==TLS_PURPOSE||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==TLS_PURPOSE||e.productId!==policy.productId||e.platform!==policy.platform||e.applicationId!==policy.applicationId||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||!absolute(e.currentStatePath)||canonical(e.operations)!==canonical(TLS_OPS))fail('SERVER_TLS_SOURCE_ENROLLMENT');
+ window(e,atMs,86400000);const height=registrations.root.executionHeight,records=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
+ for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+}
+function serverTLSProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs){
+ exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
+ if(p.version!==2||p.purpose!==TLS_PURPOSE||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('SERVER_TLS_SOURCE_PROFILE');
+ window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+ const s=p.selection;exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',TLS_KEY]);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
+ if(a.account!==p.subjectOwner||a.productId!==policy.productId||a.platform!==policy.platform||a.applicationId!==policy.applicationId)fail('SERVER_TLS_SOURCE_ASSOCIATION');
+ const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
+ if(r.service!==TLS_PURPOSE||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(TLS_OPS)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('SERVER_TLS_SOURCE_REQUEST');
+ const data=inspectOriginalServerTLSIdentityScopeV1DATA(s[TLS_KEY],a,root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
+ const records=[[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]].map(([snapshot,id])=>active(snapshot,root.networkId,id,height));
+ for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+ return Object.freeze({subjectKeyVersion:selectOriginalAuthSourceAlgorithm(registrations.subject,2).keyVersion,effectExpiresAtMs:data.effectExpiresAtMs});
+}
+export function inspectOriginalServerTLSSourceIssuanceBodyV1DATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(contract.purpose!==TLS_PURPOSE||!['enrollment','profile'].includes(role))fail('SERVER_TLS_SOURCE_ISSUANCE_ROLE');exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==TLS_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);let effectExpiresAtMs=body.expiresAtMs;
+ if(role==='enrollment')serverTLSEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const{enrollment}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);effectExpiresAtMs=serverTLSProfileBodyDATA(root,enrollment,body,enrollmentRaw,policy,registrations,atMs).effectExpiresAtMs;}
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
+
 function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ if(policy.signatureContract.purpose===TLS_PURPOSE)return serverTLSEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===WM_PURPOSE)return mobileEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===NCP_PURPOSE)return publisherEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if([NR_PURPOSE,NPR_PURPOSE].includes(policy.signatureContract.purpose))return networkEnrollmentBodyDATA(root,e,policy,registrations,atMs);
@@ -181,6 +210,8 @@ function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
  for(let i=0;i<roleKeys.length;i++)for(let j=0;j<i;j++)if(roleKeys[i].pkA===roleKeys[j].pkA||roleKeys[i].pkB===roleKeys[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
 }
 function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals){
+ if(policy.signatureContract.purpose===TLS_PURPOSE)return serverTLSProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
+ if(Object.hasOwn(p.selection??{},TLS_KEY))fail("SERVER_TLS_DEDICATED_PURPOSE_REQUIRED");
  if(policy.signatureContract.purpose===WM_PURPOSE)return mobileProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
  if(Object.hasOwn(p.selection??{},WM_KEY))fail('MOBILE_SOURCE_DEDICATED_PURPOSE_REQUIRED');
  if(policy.signatureContract.purpose===NCP_PURPOSE)return publisherProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
@@ -346,6 +377,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(contract.purpose===NCP_PURPOSE&&c.head!==sha(canonical(p.selection[NCP_KEY])))fail('NETWORK_PUBLISHER_SOURCE_CURRENT_HEAD');
  if(contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
  if(contract.purpose===AI_PURPOSE){const data=inspectOriginalAITaskActionV6SourceScopeDATA(p.selection[AI_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(canonical(p.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('AI_TASK_SOURCE_CURRENT_WINDOW');}
+ if(contract.purpose===TLS_PURPOSE){const data=inspectOriginalServerTLSIdentityScopeV1DATA(p.selection[TLS_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==data.scopeHead||c.expiresAtMs>data.effectExpiresAtMs)fail('SERVER_TLS_SOURCE_CURRENT_HEAD_OR_WINDOW');}
  if(contract.purpose===WPR_PURPOSE){const data=inspectOriginalWalletProductScopeV1DATA(p.selection[WPR_KEY],verified.root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('WALLET_PRODUCT_SOURCE_CURRENT_WINDOW');}
  if(contract.purpose===BROWSER_PURPOSE){const data=inspectOriginalBrowserSelectedPagesScopeV1DATA(p.selection[BROWSER_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_WINDOW');}
  if(contract.purpose===WPC_PURPOSE){const data=inspectOriginalWalletPayClientScopeV1DATA(p.selection[WPC_KEY],verified.root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('WALLET_PAY_CLIENT_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('WALLET_PAY_CLIENT_SOURCE_CURRENT_WINDOW');}

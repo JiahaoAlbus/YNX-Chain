@@ -1,3 +1,4 @@
+import{SERVER_TLS_SOURCE_PURPOSE as TLS_PURPOSE,SERVER_TLS_SOURCE_SELECTION_KEY as TLS_KEY,SERVER_TLS_SOURCE_OPERATIONS as TLS_OPS,inspectOriginalServerTLSIdentityScopeV1DATA}from'./original-server-tls-source-contract.mjs';
 import{snapshotWPRJSONDATA,captureWPRBatchDATA,sealWPRRegistrationCaptureDATA}from'./original-wallet-product-registration-capture.mjs';
 import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
 import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'./original-network-current-publisher-source-contract.mjs';
@@ -65,7 +66,7 @@ async function runOriginalSourceV2(input,get,getCurrent,networkOriginals,capture
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[TLS_PURPOSE,WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);

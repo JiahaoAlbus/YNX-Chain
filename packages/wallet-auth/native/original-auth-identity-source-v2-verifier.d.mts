@@ -156,3 +156,5 @@ export function inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA(role:'e
 export function inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
 
 export interface OriginalWalletMobileQualifiedSourceV1Selection { readonly walletMobileQualifiedV1:import('./original-wallet-mobile-qualified-source-contract.mjs').MobileScope; }
+
+export function inspectOriginalServerTLSSourceIssuanceBodyV1DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
