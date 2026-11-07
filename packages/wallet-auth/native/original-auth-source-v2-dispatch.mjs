@@ -1,3 +1,4 @@
+import{snapshotWPRJSONDATA,captureWPRBatchDATA,sealWPRRegistrationCaptureDATA}from'./original-wallet-product-registration-capture.mjs';
 import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
 import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'./original-network-current-publisher-source-contract.mjs';
 import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'./original-network-resource-pending-source-contract.mjs';
@@ -40,15 +41,20 @@ function hint(raw){
  const bytes=Buffer.from(e.body,'base64url');if(!bytes.length||bytes.length>65536||bytes.toString('base64url')!==e.body)fail('AUTH_SOURCE_V2_DISPATCH_ENCODING');
  let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('AUTH_SOURCE_V2_DISPATCH_ENCODING');}return parsed(text,65536);
 }
-async function registrations(node,owners,networkId,get){
+async function registrations(node,owners,networkId,get,capture,phase){
  const raw=await Promise.all(owners.map(owner=>get(node,owner)));
- const views=raw.map((dto,i)=>parsePQAccountAuthorization(dto,{chainId:networkId,nativeChainId:node.nativeChainId,owner:owners[i]}));
+ const actual=capture?captureWPRBatchDATA(raw):raw;if(capture)capture[phase]=actual;
+ const views=actual.map((dto,i)=>parsePQAccountAuthorization(dto,{chainId:networkId,nativeChainId:node.nativeChainId,owner:owners[i]}));
  const height=views[0].executionHeight;if(views.some(v=>v.executionHeight!==height))fail('AUTH_SOURCE_V2_DISPATCH_ROLE_HEIGHT_MISMATCH');
  return {root:views[0],profile:views[1],current:views[2],subject:views[3]};
 }
 // Optional getters are explicit PUBLIC DATA test seams only. The stdin branch
 // NEVER accepts a function/module/provider/clock selector and passes neither.
-export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2,networkOriginals){
+export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2,networkOriginals){return runOriginalSourceV2(input,get,getCurrent,networkOriginals);}
+// Private fixed WPR NodeHost capture. Not exposed by stdin or package exports.
+// Optional getters remain PUBLIC test seams, never accepted over RPC/stdin.
+export async function captureOriginalWalletProductSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2){const detached=snapshotWPRJSONDATA(input,2097152);if(detached?.policy?.signatureContract?.purpose!==WPR_PURPOSE)fail('WPR_CAPTURE_PURPOSE');return runOriginalSourceV2(detached,get,getCurrent,undefined,{});}
+async function runOriginalSourceV2(input,get,getCurrent,networkOriginals,capture){
  const pending=input?.policy?.signatureContract?.purpose===NPR_PURPOSE,nr=pending||input?.policy?.signatureContract?.purpose===NR_PURPOSE;const held=nr?(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(networkOriginals):undefined;const fence=()=>{if(nr)(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(held);};
  exact(input,['operation','node','rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  if(input.operation!=='auth-source-v2-native-node/v1')fail('AUTH_SOURCE_V2_DISPATCH_OPERATION');
@@ -71,12 +77,13 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  if(root?.version!==2||root.algorithmVersion!=='YNX-BATCH/v0.1'||typeof root.networkId!=='string'||!/^[0-9a-f]{64}$/.test(root.networkId))fail('AUTH_SOURCE_V2_DISPATCH_ROOT');
  const owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,profile.subjectOwner];
  if(owners.some(v=>typeof v!=='string'||!/^0x[0-9a-f]{40}$/.test(v)))fail('AUTH_SOURCE_V2_DISPATCH_OWNER');
- const before=await registrations(input.node,owners,root.networkId,get);fence();
+ const before=await registrations(input.node,owners,root.networkId,get,capture,'before');fence();
  // The held baseline is immutable and may predate a successful prior fetch.
  // Verify its own signed history from zero, then merge it with retained Native
  // watermarks. Passing a later Native sequence as the historical head's prior
  // would make every second current check spuriously fail as rollback.
- const baseline=verifyOriginalAuthSourceTransitionV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.headRaw,input.policy,before,head.nonce,{sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'},Date.now(),...(nr?[held]:[]));fence();
+ const baselineAtMs=Date.now();
+ const baseline=verifyOriginalAuthSourceTransitionV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.headRaw,input.policy,before,head.nonce,{sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'},baselineAtMs,...(nr?[held]:[]));fence();
  if(baseline.historical!==true||baseline.dataOnly!==true||baseline.nativeAdmission!==false)fail('AUTH_SOURCE_V2_DISPATCH_BASELINE_RESULT');
  if(baseline.status!=='active')fail('AUTH_SOURCE_V2_DISPATCH_TERMINAL_BASELINE');
  if(BigInt(before.root.executionHeight)<BigInt(p.executionHeight))fail('AUTH_SOURCE_V2_DISPATCH_OBSERVATION_ROLLBACK');
@@ -84,12 +91,13 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  const previous={sequence:Math.max(input.previous.sequence,baseline.sequence),floor:Math.max(input.previous.floor,baseline.floor),head:baseline.sequence>input.previous.sequence?baseline.head:input.previous.head,timeFloor:Math.max(input.previous.timeFloor,baseline.timeFloor),executionHeight:baseline.executionHeight};
  const nonce=randomBytes(32).toString('base64url');
  const currentRaw=await getCurrent(input.policy.endpoint,input.policy.spki,sha(input.profileRaw),nonce);
- const projection=verifyOriginalAuthSourceCurrentV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,currentRaw,input.policy,before,nonce,previous,Date.now(),...(nr?[held]:[]));fence();
- const after=await registrations(input.node,owners,root.networkId,get);fence();
+ const atMs=Date.now();
+ const projection=verifyOriginalAuthSourceCurrentV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,currentRaw,input.policy,before,nonce,previous,atMs,...(nr?[held]:[]));fence();
+ const after=await registrations(input.node,owners,root.networkId,get,capture,'after');fence();
  for(const role of ['root','profile','current','subject']){
   assertPQAuthorizationCurrent(before[role],after[role]);
   if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_DISPATCH_HEIGHT_CHANGED');
  }
  const now=Date.now();if(now<projection.timeFloor||now>=projection.expiresAtMs||projection.status!=='active'||projection.dataOnly!==true||projection.nativeAdmission!==false)fail('AUTH_SOURCE_V2_DISPATCH_POST_CURRENT_EXPIRED');
- fence();return Object.freeze({projection,currentRaw});
+ fence();if(capture)return sealWPRRegistrationCaptureDATA({input,context:{node:input.node,networkId:root.networkId,owners},before:capture.before,after:capture.after,nonce,previous,baselineAtMs,atMs,afterAtMs:now,projection,currentRaw});return Object.freeze({projection,currentRaw});
 }

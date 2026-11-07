@@ -830,6 +830,11 @@
     "native/social-f06-directory-readonly-data.d.mts",
     "native/mobile-accountproof-host-v1/MobileAccountProofHostPortPrivate.hpp",
     "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp",
+    "native/original-wallet-product-registration-capture.mjs",
+    "native/original-wallet-product-registration-capture.d.mts",
+    "native/original-auth-source-v2-dispatch.d.mts",
+    "native/original-wallet-product-registration-capture-runner.mjs",
+    "docs/wpr-fixed-registration-capture-runner.md",
     "scripts/ynx-wallet-product-public-materialize.mjs",
     "WPR_PUBLIC_MATERIALIZER.md"
   ],

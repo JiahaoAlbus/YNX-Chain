@@ -1,0 +1,37 @@
+name: WPR fixed capture private Node runner
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/original-wallet-product-registration-capture-runner.mjs
+      - packages/wallet-auth/test/wpr-fixed-capture-runner.test.mjs
+      - packages/wallet-auth/package.json
+      - scripts/ci/wpr-fixed-capture-runner.mjs
+      - scripts/ci/wpr-nodehost-composition.mjs
+      - .github/workflows/wpr-fixed-capture-runner.yml
+jobs:
+  fixed-runner-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/wpr-fixed-capture-runner.mjs 2>&1 | tee wpr-fixed-capture-runner.log
+      - run: node scripts/ci/wpr-nodehost-composition.mjs
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/wpr-nodehost-composition.mjs --packed
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: wpr-fixed-capture-runner-normal-source
+          path: |
+            wpr-fixed-capture-runner.log
+            wpr-fixed-capture-runner-controls
+            wpr-nodehost-composition-controls
+            canonical-common-source-package

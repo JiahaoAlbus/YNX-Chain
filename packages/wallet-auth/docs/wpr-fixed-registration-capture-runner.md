@@ -1,0 +1,13 @@
+# Fixed WPR private registration capture runner
+
+Exact entry: `native/original-wallet-product-registration-capture-runner.mjs`. Invoke pinned Node with this one script path and zero additional argv. Existing generic CLI/stdin/output remain unchanged. This is private finite Source-v2 capture DATA, not a public export/provider/Root/Source factory.
+
+stdin is the existing canonical UTF8 exact8 input `{operation,node,rootRaw,enrollmentRaw,profileRaw,headRaw,policy,previous}` (max2097152 bytes). Only `auth-source-v2-native-node/v1` and policy.signatureContract.purpose `wallet-native-product-source-v1` are accepted. Schema/purpose are checked before fixed dynamic module imports. Existing release/Root/Node/role and registration verification stays in the sole dispatcher, using its normal fixed GET/current implementation. No caller getter/provider/module/clock is passed: captureOriginalWalletProductSourceV2(input), then encodeWPRRegistrationCaptureOriginalDATA(result).
+
+stdout is exactly the encoder Uint8Array (<=33554432 bytes), no LF or outer JSON. Encoding/capture failures produce no success stdout, one fixed stderr line WPR_REGISTRATION_CAPTURE_RUNNER_INVALID and exit65. Output writes use callback/backpressure accounting; a physical pipe failure may leave a partial byte prefix, so nonzero exit/truncated output is UNKNOWN and must never be treated as a capture. Native waits for full bytes, EOF and successful process exit before decoding. Native retains independent expectedInput/context/currentOriginal and rechecks/decodes against those; received metadata cannot create expected authority. Never replay an effect or replace a failed capture owner from partial output.
+
+Normal Auth NodeHost pins actual Node plus the full installed SDK graph with this entry (not an old generic CLI graph). New CI generates NORMAL_WPR_CAPTURE_RUNNER_CLOSURE.json from the actual normal package root; SDKFiles includes every manifest row. Runtime pins are provenance DATA, not Root qualification.
+
+New8 runner controls only: controlled PUBLIC serialization through the sole encoder; real cold normal pin refusal; purpose/schema before module; canonical/BOM/duplicate/UTF8; argv/budget; falsy/partial; output cap; pipe failure. No old8 N1/strict crypto rerun. Controlled modules never enter production or npm. No Native/Go build/load, TLS service, real Root/key/account or business execution.
+
+This faaa successor alone does not include WPR1 a7f97 materializer; final NodeHost package must combine that disjoint source with structural package.files union and regenerate its graph. This runner is not whole NodeHost qualification.
