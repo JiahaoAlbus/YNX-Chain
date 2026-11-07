@@ -4,6 +4,19 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
+configurations { installedOriginalsModel }
+dependencies { installedOriginalsModel "org.json:json:20250517" }
+tasks.register("verifyInstalledApplicationOriginals", Exec) {
+    doFirst {
+        def evidence = layout.buildDirectory.dir("installed-originals-checks-${System.nanoTime()}").get().asFile
+        def checkerPython = System.getenv("YNX_AI_CHECK_PYTHON") ?: (new File("/usr/bin/python3").canExecute() ? "/usr/bin/python3" : "python3")
+        commandLine checkerPython, "${projectRoot}/scripts/installed-android-originals-check.py",
+            "--sdk", android.sdkDirectory.absolutePath,
+            "--json-jar", configurations.installedOriginalsModel.singleFile.absolutePath,
+            "--output-dir", evidence.absolutePath
+    }
+}
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -94,6 +107,10 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
+
+        // A enables this only for its one matching Native/Auth/SDK image.
+        // False preserves the existing cohort; it never claims V6 admission.
+        buildConfigField "boolean", "YNX_AI_MATCHED_NATIVE_V6", "${(findProperty('ynx.ai.matchedNativeV6') ?: 'false').toBoolean()}"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

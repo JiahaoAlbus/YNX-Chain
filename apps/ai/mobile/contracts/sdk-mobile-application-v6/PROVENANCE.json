@@ -18,5 +18,12 @@
       "sha256": "6bb7e5981fc4cc3594dcbc1f2bd5ffcba3dfa74cdd14b92cf19d211e164ad38a"
     }
   ],
-  "consumption": "private declarations only; no duplicate SDK application6 implementation"
+  "consumption": "private declarations only; no duplicate SDK application6 implementation",
+  "normalAndroidRegistrarFacade": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-pq-native-v01-20261025/evidence/mobile-ai-native-binding-final-20261107-ACXrC7/module/android/src/main/java/com/ynx/wallet/ai/YNXOriginalAIMobileV6Registration.kt",
+    "bytes": 504,
+    "sha256": "6af5a64893f817349f0fc64e6a09cd7d746f0e4d24023fa43445eaa5e6944afc",
+    "consumedAppPath": "android/app/src/main/java/com/ynx/wallet/ai/YNXOriginalAIMobileV6Registration.kt",
+    "note": "byte-exact Kotlin declarations only; original common Native owns JNI bodies"
+  }
 }

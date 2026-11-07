@@ -13,6 +13,10 @@ class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+#if YNX_AI_MATCHED_NATIVE_V6
+    precondition(Self.nativeRetainedOwners.isEmpty, "AI_ORIGINAL_HOST_CLOSE_DEBT_RETAINED")
+    YNXOriginalAIMobileV6RegisterBeforeReactHost()
+#endif
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -30,6 +34,44 @@ class AppDelegate: ExpoAppDelegate {
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+
+#if YNX_AI_MATCHED_NATIVE_V6
+  // A enables both this Swift condition and the matching bridging-header macro
+  // only for its one selected image. This never registers a permission provider.
+  private final class RetainedNativeHost: @unchecked Sendable {
+    let owner: AnyObject
+    init(_ owner: AnyObject) { self.owner = owner }
+  }
+  private static let nativeTeardown = DispatchQueue(label: "ynx.ai.native.teardown")
+  private static var nativeRetainedOwners: [RetainedNativeHost] = []
+
+  // Normal explicit host retirement and termination. Never drain on JS/main,
+  // nor drop a retained factory because a timeout or failed close looked done.
+  func retireOriginalNativeHost() {
+    guard let owner = reactNativeFactory else { return }
+    if Self.nativeRetainedOwners.contains(where: { $0.owner === owner }) { return }
+    let retained = RetainedNativeHost(owner)
+    Self.nativeRetainedOwners.append(retained)
+    YNXOriginalAIMobileV6RequestRetireBeforeHostInvalidation()
+    Self.nativeTeardown.async { [weak self, retained] in
+      let physicallyClosed = YNXOriginalAIMobileV6DrainOnNativeTeardownExecutor()
+      guard physicallyClosed else { return } // owner and original debt remain retained
+      DispatchQueue.main.async { [weak self, retained] in
+        if let self, self.reactNativeFactory === retained.owner {
+          self.reactNativeFactory = nil
+          self.reactNativeDelegate = nil
+        }
+        AppDelegate.nativeRetainedOwners.removeAll { $0 === retained }
+      }
+    }
+  }
+  public override func applicationWillTerminate(_ application: UIApplication) {
+    retireOriginalNativeHost()
+    // OS termination may preempt this asynchronous drain. It is never recorded
+    // as physicalDone; persisted UNKNOWN belongs to original cold recovery.
+    super.applicationWillTerminate(application)
+  }
+#endif
 
   // Linking API
   public override func application(

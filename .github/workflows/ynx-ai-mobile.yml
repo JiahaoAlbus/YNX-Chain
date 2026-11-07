@@ -121,6 +121,8 @@ jobs:
         env:
           NODE_ENV: production
         run: cd android && ./gradlew :app:assembleRelease --console=plain
+      - name: Verify Android installed application originals
+        run: cd android && ./gradlew :app:verifyInstalledApplicationOriginals --console=plain
       - name: Verify manifest, signing class, and hash
         run: |
           APK=android/app/build/outputs/apk/release/app-release.apk
@@ -136,5 +138,6 @@ jobs:
             apps/ai/mobile/android/app-release-signing.txt
             apps/ai/mobile/android/app-release-badging.txt
             apps/ai/mobile/android/app-release.sha256
+            apps/ai/mobile/android/app/build/installed-originals-checks-*/
             ${{ runner.temp }}/ynx-ai-android-inputs/
           if-no-files-found: error

@@ -12,3 +12,5 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+-keep class com.ynxweb4.ai.NativeInstalledApplication { *; }
+-keep class com.ynx.wallet.ai.YNXOriginalAIMobileV6Registration { *; }

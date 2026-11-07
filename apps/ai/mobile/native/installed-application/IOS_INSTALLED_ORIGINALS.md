@@ -4,7 +4,9 @@
 `InstalledApplicationOriginal` class. It does not implement application6 exports,
 register a provider, accept JS identity fields, or grant approval. Compile it in
 the original A selected combined image against the matching private SDK headers.
-Android's producer and normal App registrar/teardown wiring remain owning CODE.
+Android producer and guarded normal App bootstrap/retire-drain source are supplied
+in the matching successor; see `ANDROID_INSTALLED_ORIGINALS.md`. Original A whole
+image selection, actual signed artifacts and normal installation remain separate.
 This source is not an installed or admitted App.
 
 The zero-input acquisition obtains `NSBundle.mainBundle`, requires the actual
