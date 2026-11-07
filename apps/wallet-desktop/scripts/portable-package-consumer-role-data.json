@@ -40,8 +40,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
-      "bytes": 9930,
-      "sha256": "3542985f9ea799d4da453412c3275ff86f738daae2fdff4b837f90cf6d5e61b6"
+      "bytes": 13026,
+      "sha256": "0d80aa7dc39ed18157928c91c80be3d0621651c6b310afe09748a620120a6732"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/portable-package-consumer-role.test.mjs",
@@ -219,6 +219,175 @@
         "relative": "apps/wallet-desktop/test/wallet-pq-key-ui.test.mjs",
         "bytes": 4372,
         "sha256": "fcd381f3756f258fdee19282c171329bb169965258eaef4cbbdc997b11754d8b"
+      }
+    ]
+  },
+  "approvedNormalPay": {
+    "kind": "YNX_NORMAL_PAY_FINITE_CONSUMER/v1",
+    "baselineCommit": "020b91a36daf2f2a41cfc14d8c6bbff64cb2b792",
+    "sourceCommit": "020b91a36daf2f2a41cfc14d8c6bbff64cb2b792",
+    "files": [
+      {
+        "relative": "apps/wallet-desktop/src/approved-desktop-ui.mjs",
+        "bytes": 12635,
+        "sha256": "cd415895eff7665e7c036e6960bfe57075ec577ecbe4b71b7109983daa2cec91"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/desktop-approved-layout.css",
+        "bytes": 16402,
+        "sha256": "8c94b04606a78a5dd80a8fb0c7d5d0a8ac67d4475db4546bef352f89c3ee8384"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/index.html",
+        "bytes": 54052,
+        "sha256": "f06ae54e509c741e07aa5f40c5ce18b492a2375223e7b0e8eb5d376bfb666686"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/main.mjs",
+        "bytes": 127042,
+        "sha256": "9625e99d318216508d04c9a610b9c68abf0201cab98ac80b8c1cf4066b56f9b4"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/SOURCE_RECEIPT.json",
+        "bytes": 2562,
+        "sha256": "e2a644b0852e8ced9fc0ffc023363d80cc9d754db050572475a8026b2f6d5c26"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/archive-receipt.mjs",
+        "bytes": 5963,
+        "sha256": "062cac857abc0cdb6dcffa738996ff8fb3f80a88c388c2301bc2c26c2237bdc3"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/cli.mjs",
+        "bytes": 3753,
+        "sha256": "23d56e5a698cb30e0a2875d8a298dbd553da3e98734536dbd4658f5f7a9599a9"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/main-entry.mjs",
+        "bytes": 9058,
+        "sha256": "2d87b5c3f1fad35334051b2d74889b00bceaabc0f67dc052d2990cdd14560c54"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/main-product-peer-pay.mjs",
+        "bytes": 10280,
+        "sha256": "e1435f007054ecdf87fd2b8305ff2ebbf327b5668bb934ece6dad57f703040a5"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/merchant-invoice-approval.mjs",
+        "bytes": 23651,
+        "sha256": "382792ec958ac4880128b30b8c8cca09271b37e76dacef8995a1f05a70c5d95f"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/pay-business-client.mjs",
+        "bytes": 19513,
+        "sha256": "d3a078419dc986967e465e0259145dd884a24d5be7ace95fb16e5ac8ccddc0a5"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-client/product-source.mjs",
+        "bytes": 11994,
+        "sha256": "b01157ea9fcde317f9d1b00283844a32618a22dd7d1e4b283becad852c167fa0"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/native-pay-product-ui.mjs",
+        "bytes": 19643,
+        "sha256": "69dae1f42917701f472692900790323c17391e84eb4cdb94b7dd85545727aaeb"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/original-policy-supplier/product-native-context.mjs",
+        "bytes": 13363,
+        "sha256": "b505c379c8ab2d0ad258abe1436e1f184f2d987fa8d751d23ce71aeaa97e58c9"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/renderer.js",
+        "bytes": 120031,
+        "sha256": "e0a09632d2f0bf40dc7e8046af1117d4b7f11108f25b7b8cc01e090b646dc052"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/transaction-intent-store.mjs",
+        "bytes": 130076,
+        "sha256": "a7c491230cb6463f3b471fb1896457686569c8e5983e20392e719d95034dd666"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/wallet-native-pay-product-startup.mjs",
+        "bytes": 5495,
+        "sha256": "ce9479fb834bf6e0f62da48d774dc379b68e853550f8e0df80a90890ab18ea0a"
+      },
+      {
+        "relative": "apps/wallet-desktop/src/wallet-pq-typed-original.test.mjs",
+        "bytes": 61405,
+        "sha256": "5a39fc2635e8e6eda38b65d3598139f70ca8e7907e9bd7f63a90f9607262c390"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/approved-desktop-ui.test.mjs",
+        "bytes": 12919,
+        "sha256": "20c0a5d42185f6faba0ee59ed9fd3e760a2d4482ecb7e7e5a738b7ba63c48a84"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/desktop-history-network.test.mjs",
+        "bytes": 8510,
+        "sha256": "77291cf47179a6f1ee63ff2d929a7ef14ed0a1fe603d6ebf1db53527f203159a"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/main-product-peer-pay.test.mjs",
+        "bytes": 13206,
+        "sha256": "a5c8ece25ec8d28f26353ffe0f197e4a5f5f0b8436fe588e0348af1b90065a58"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/native-pay-broadcast-ui.test.mjs",
+        "bytes": 8638,
+        "sha256": "ecfe8586969ef14c48321429a58aa872b47fa25915d6358102f2cbd06073af7a"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/native-pay-normal-preload-chain.test.mjs",
+        "bytes": 8951,
+        "sha256": "42a57779b2ab9f8f58b592e8b98ac7fe1edcc60850c7ffbf11ee45944078c8d6"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/native-pay-product-ui.test.mjs",
+        "bytes": 12472,
+        "sha256": "f70d79257ad5eb06e2a1afe5be606a76909dca8e0a6a16999406069d33084aaf"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/native-pay-result.test.mjs",
+        "bytes": 6911,
+        "sha256": "2012f7b0833206eec3871c500af7a5f8192672904c4ac63d5ccb6318d17ed4e2"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/product-native-context.test.mjs",
+        "bytes": 13036,
+        "sha256": "b76b654474ca64a023037c08adf00f3f5114b8c668e980fc25e4b3d7c152bbdc"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/product-native-main-composition.test.mjs",
+        "bytes": 3772,
+        "sha256": "968ad3c9cecfa8945ef824ab8604419f2dae275f90cc319fad0a80a2070834c8"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/wallet-main-shutdown-sync-failure.test.mjs",
+        "bytes": 4793,
+        "sha256": "63570de571dbe1cc74cfb2be58934f363c7df6fe328955f2ad1461f4fcb320ad"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/wallet-native-pay-product-startup.test.mjs",
+        "bytes": 4667,
+        "sha256": "91fa0a6c3322688b49733f3edfb0a0288d5d617aa101c10ee5c4cc8725b15859"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/wallet-native-pay-product.test.mjs",
+        "bytes": 6821,
+        "sha256": "787ae5e3a85c7f02a9dda66f82343f6a68bcf2651e60f637842eb8fb53224494"
+      }
+    ],
+    "supportFiles": [
+      {
+        "relative": "apps/wallet-desktop/scripts/normal-pay-compatible-source.mjs",
+        "bytes": 4179,
+        "sha256": "fda1c9046d270aab1503d530c478e7b04c2825b3d825f5390a9316643957b93e"
+      },
+      {
+        "relative": "apps/wallet-desktop/test/normal-pay-finite-source.test.mjs",
+        "bytes": 914,
+        "sha256": "7146b28c3199e9860eb0d7ad1d2514ea7d75d090586f28a5ff42867cd2ac0ff7"
       }
     ]
   }
