@@ -48,6 +48,13 @@ int32_t open(uint64_t binding,const std::vector<AccountChoice>&choices,uint32_t 
   return rc;
  }catch(...){return unavailable;}
 }
+int32_t openForCurrentRuntime(const std::vector<AccountChoice>&choices,uint32_t timeout,uint64_t*out)noexcept{
+ try{uint64_t binding;{std::lock_guard<std::mutex>lock(mutex);if(!currentBinding||runtimeRetired)return unavailable;binding=currentBinding;}
+  // open rechecks this SAME binding after validation. A retire/replacement in
+  // that interval cannot silently redirect the inventory to a later runtime.
+  return open(binding,choices,timeout,out);
+ }catch(...){return unavailable;}
+}
 int32_t wait(uint64_t id,uint32_t*out)noexcept{
  if(!out)return invalid;
  try{std::unique_lock<std::mutex>lock(mutex);auto t=get(id);if(!t)return invalid;if(t->actor!=std::this_thread::get_id())return wrongThread;

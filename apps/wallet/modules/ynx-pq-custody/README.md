@@ -119,6 +119,10 @@ Per-operation `cancel`, `retire`, `join` and `close` remain methods on the SAME
 held operation. Project/account children must not globally retire the App.
 
 `NativeAccountPicker` supplies private Native UI and lifetime mechanics only.
+Its normal private `openForCurrentRuntime` consumes the already installed App
+lifetime without accepting a caller binding ID, creating another runtime or
+performing account lookup. A retirement/replacement between validation and open
+refuses the same original binding rather than targeting a successor.
 The genuine Native account inventory must supply finite canonical public
 account/network/original-operation rows and check its actual account/epoch and
 current before and after the selected index. The index supplies no Source,

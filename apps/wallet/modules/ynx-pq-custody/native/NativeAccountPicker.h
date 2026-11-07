@@ -14,6 +14,9 @@ bool bindRuntime(uint64_t)noexcept;
 void retireRuntime(uint64_t)noexcept;
 bool releaseRuntime(uint64_t)noexcept;
 int32_t open(uint64_t,const std::vector<AccountChoice>&,uint32_t timeoutMS,uint64_t*outTicket)noexcept;
+/* Normal Native account factories use the already bound App lifetime, not a
+ * JS/native ID supplied by their caller. No install or account lookup here. */
+int32_t openForCurrentRuntime(const std::vector<AccountChoice>&,uint32_t timeoutMS,uint64_t*outTicket)noexcept;
 int32_t wait(uint64_t,uint32_t*outIndex)noexcept; // dedicated worker only
 int32_t close(uint64_t)noexcept;
 int32_t releaseClosed(uint64_t)noexcept;
