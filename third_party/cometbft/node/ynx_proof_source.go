@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmtstate "github.com/cometbft/cometbft/proto/tendermint/state"
 	sm "github.com/cometbft/cometbft/state"
 	"github.com/cometbft/cometbft/types"
 )
@@ -40,6 +41,41 @@ func (v *ProofSourceView) LoadState() (sm.State, error) {
 		return sm.State{}, errors.New("node checkpoint is crossing commit; no proof-source snapshot available")
 	}
 	return s, nil
+}
+
+// LoadCommittedState reads only this original Node's committed state store.
+// It is distinct from LoadState's unchanged consensus-round-copy fence: normal
+// block execution can durably commit before that round copy advances. This
+// method alone establishes neither application equality nor proof authority.
+// The fixed account-proof caller must independently match the owning App,
+// rebind full consensus authority and verify the actual signed H/H+1 linkage.
+// Protobuf round-trip detaches every byte slice/validator pointer and does not
+// transfer a mutable cached validator or a runtime authority capability.
+func (v *ProofSourceView) LoadCommittedState() (sm.State, error) {
+	if v == nil || v.node == nil || v.node.stateStore == nil {
+		return sm.State{}, errors.New("original initialized node state store is required")
+	}
+	s, err := v.node.stateStore.Load()
+	if err != nil {
+		return sm.State{}, err
+	}
+	p, err := s.ToProto()
+	if err != nil {
+		return sm.State{}, err
+	}
+	raw, err := p.Marshal()
+	if err != nil || len(raw) == 0 || len(raw) > 64<<20 {
+		return sm.State{}, errors.New("original bounded committed state cannot be detached")
+	}
+	var detached cmtstate.State
+	if err = detached.Unmarshal(raw); err != nil {
+		return sm.State{}, err
+	}
+	copy, err := sm.FromProto(&detached)
+	if err != nil {
+		return sm.State{}, err
+	}
+	return *copy, nil
 }
 func (v *ProofSourceView) LoadValidators(h int64) (*types.ValidatorSet, error) {
 	return v.node.stateStore.LoadValidators(h)
