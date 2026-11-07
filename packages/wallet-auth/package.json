@@ -898,7 +898,15 @@
     "native/SourceParentManagerProfileDATA.h",
     "native/source-parent/",
     "go/sourceparentprofile/",
-    "docs/sourceparent-formal-normal-integration.md"
+    "docs/sourceparent-formal-normal-integration.md",
+    "native/original-desktop-task-grant-source-contract.mjs",
+    "native/desktop-grant-native-private.h",
+    "native/desktop-grant-release-private.hpp",
+    "native/desktop-grant-source-methods.inc",
+    "native/desktop-grant-qualification-private.hpp",
+    "native/desktop-grant-qualification.mm",
+    "native/desktop-grant-native-stage.cpp",
+    "native/desktop-grant-backend-contract.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

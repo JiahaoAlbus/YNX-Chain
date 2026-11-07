@@ -8,6 +8,9 @@
 #include "browser_page_source_release_private.hpp"
 #import "browser_page_source_private.h"
 #include "browser_page_policy_data_private.hpp"
+#include "desktop-grant-release-private.hpp"
+#import "desktop-grant-native-private.h"
+#include <dlfcn.h>
 #include "product_source_release_private.hpp"
 #import "WPRPublicationSourcePrivate.h"
 #import "WPRMaterializationSourcePrivate.h"
@@ -101,6 +104,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _wprPublication,_wprPublicationRuntimeClosed;YNXWPRPublicationPeer*_wprPublicationPeer;
  const ynx::wallet::product::publication::InstallationRelease*_wprPublicationRow;
  std::shared_ptr<ynx::wallet::product::publication::StagedOriginals>_wprPublicationInputs;
+ BOOL _desktopTaskGrant;const ynx::auth::desktopgrant::Release*_desktopGrantPolicy;
  BOOL _walletNativeProduct;
  const ynx::wallet::product::ProductSourceRelease*_productPolicy;
  std::shared_ptr<ynx_auth_private::ProductObservedState>_productObserved;
@@ -450,6 +454,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     if(!_browserPages||!_browserPagePolicy||_policy!=&_browserPagePolicy->source)return [self fail:@"BROWSER_PAGE_DEDICATED_RELEASE_REQUIRED" error:error];
     NSDictionary*browserPolicy=YNXOriginalBrowserSourcePolicyDATA(*_browserPagePolicy);if(!browserPolicy)return [self fail:@"BROWSER_PAGE_DEDICATED_POLICY_REQUIRED" error:error];policy=[browserPolicy mutableCopy];
    }else if(_browserPages)return [self fail:@"BROWSER_PAGE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose==ynx::auth::desktopgrant::purpose){if(!_desktopTaskGrant||!_desktopGrantPolicy||_desktopGrantPolicy->uid!=getuid()||_desktopGrantPolicy->product_id!="wallet"||_desktopGrantPolicy->platform!="macos"||_desktopGrantPolicy->application_id.empty())return [self fail:@"DESKTOP_GRANT_DEDICATED_RELEASE_REQUIRED" error:error];policy[@"applicationId"]=[NSString stringWithUTF8String:_desktopGrantPolicy->application_id.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_desktopGrantPolicy->product_id.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_desktopGrantPolicy->platform.c_str()];}else if(_desktopTaskGrant)return [self fail:@"DESKTOP_GRANT_DEDICATED_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-native-product-source-v1"){
     if(_wprPublication){if(_walletNativeProduct||!_wprPublicationInputs||!ynx::wallet::product::publication::registered(_wprPublicationRow)||_policy!=&_wprPublicationRow->product.source||_productPolicy!=&_wprPublicationRow->product||![_wprPublicationPeer assertCurrentMessage:error])return[self fail:@"WPR_PUBLICATION_DEDICATED_RELEASE_REQUIRED" error:error];}
     else if(!_walletNativeProduct||!_productPolicy||_productPolicy->uid!=getuid()||_productPolicy->product_id!="wallet"||_productPolicy->platform!="macos"||_productPolicy->application_id.empty())return [self fail:@"PRODUCT_SOURCE_DEDICATED_RELEASE_REQUIRED" error:error];
@@ -759,6 +764,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  if(_deviceManagement)return[self closeOriginalDeviceV4ManagementSource:error];
  if(_aiTaskClient)return[self closeOriginalAITaskActionV6ClientSource:error];
  if(_browserPages)return [self closeOriginalBrowserSelectedPagesSource:error];
+ if(_desktopTaskGrant)return [self closeOriginalDesktopTaskGrantAuthority:error];
  if(_walletNativeProduct)return [self closeOriginalWalletProductSource:error];
  if(_walletNativePay)return [self closeOriginalWalletNativePaySource:error];
  @synchronized(self){[self retire];if(_runtimeImageLoans){if(!_runtimeImageCloseCause)_runtimeImageCloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_RUNTIME_IMAGE_CHILDREN_RETAINED"}];if(error)*error=_runtimeImageCloseCause;return NO;}}
@@ -778,6 +784,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "product_source_methods.inc"
 #include "WPRPublicationSourcePrivate.inc.mm"
 #include "WPRMaterializationSourcePrivate.inc.mm"
+#include "desktop-grant-source-methods.inc"
 #include "pay_native_source_methods.inc"
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}if(![self join:error])return NO;_closeSelected=YES;

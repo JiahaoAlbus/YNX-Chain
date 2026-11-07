@@ -1,0 +1,46 @@
+// PRIVATE controller over an actual verified Source owner, the SAME authority
+// ledger and original protected Native backend. No public provider/register.
+import{encodeFields}from'@ynx/batch-v01-candidate';
+import{encodeBoundGrant,encodeGrantEffect,BOUND_GRANT_DOMAIN,GRANT_EFFECT_DOMAIN}from'@ynx-chain/open-protocol/bound-grant';
+import{canonicalJSON}from'./canonical.js';
+import{inspectBoundGrantDATA,bindGrantBytesDATA}from'./original-bound-grant-policy.js';
+import{verifyPQRegisteredMemberData}from'./pq-registered-member.js';
+import{parsePQAccountAuthorization,inspectPQAuthorizationView}from'./pq-wallet-policy.js';
+import{fetchOriginalNativeAuthorization}from'../native/original-ide-auth-proof-dispatch.mjs';
+const fail=c=>{throw Object.assign(Error(c),{code:c})},same=(a,b)=>canonicalJSON(a)===canonicalJSON(b),method=(v,n)=>{if(typeof v?.[n]!=='function')fail('DESKTOP_GRANT_ORIGINAL_'+n+'_NOT_SUPPLIED');return v[n].bind(v)};
+async function checked(v,n,...a){if(await method(v,n)(...a)!==undefined)fail('DESKTOP_GRANT_VOID_RESULT')}
+function sync(v,n,...a){if(method(v,n)(...a)!==undefined)fail('DESKTOP_GRANT_SYNC_FENCE_REQUIRED')}
+function member(v){if(!(v instanceof Uint8Array)||v.buffer instanceof SharedArrayBuffer||!v.length||v.length>262144)fail('DESKTOP_GRANT_MEMBER');return Buffer.from(v)}
+export function createOriginalDesktopGrantSourceController(sourceOwner,store,nativeBackend,node){
+ const callers=new WeakSet();
+ const current=async()=>{await sourceOwner.current();sourceOwner.assertSnapshot();await checked(nativeBackend,'assertCurrent');sourceOwner.assertSnapshot()};
+ async function registered(account,epoch,loan){loan.assertCurrent();await current();loan.assertCurrent();const raw=await fetchOriginalNativeAuthorization(node,account),view=parsePQAccountAuthorization(raw,{chainId:sourceOwner.readScope().networkId,nativeChainId:node.nativeChainId,owner:account}),v=inspectPQAuthorizationView(view);if(!view.enabled||!v.activeRecord||v.authorizationStatus==='revoked'||v.activeRecord.revision!==epoch)fail('DESKTOP_GRANT_REGISTERED_ROLE_REVOKED');loan.assertCurrent();await current();loan.assertCurrent();return view}
+ async function verify(wire,account,epoch,purpose,payload,loan){const before=await registered(account,epoch,loan);verifyPQRegisteredMemberData(before,member(wire),{chainId:sourceOwner.readScope().networkId,owner:account,keyVersion:epoch,executionHeight:before.executionHeight,purpose,message:payload});const after=await registered(account,epoch,loan);if(!same(before,after))fail('DESKTOP_GRANT_REGISTERED_ROLE_CHANGED');loan.assertCurrent()}
+ function scopeGrant(g){const scope=sourceOwner.readScope();if(g.realm!==scope.realm||g.tenant!==scope.tenant||!same(g.issuer,scope.issuerFullRef)||g.issuerEpoch!==scope.issuerEpoch)fail('DESKTOP_GRANT_SCOPE');return scope}
+ function acquire(input,effect){const g=inspectBoundGrantDATA(input);scopeGrant(g);const loan=sourceOwner.borrow();let approval,issuerMember,retired=false,closed=false;const alive=()=>{if(retired||closed)fail('DESKTOP_GRANT_LOAN_RETIRED');loan.assertCurrent();scopeGrant(g)};
+  const snapshot=()=>{alive();const scope=loan.readScope(),c=JSON.parse(scope.currentPolicyOriginal);if(effect){const row=store.taskGrants.readGrant({realm:g.realm,tenant:g.tenant,id:g.id,at:Date.now()});c.grant={status:row.status.toLowerCase(),rev:row.ref.rev,value:row.value};c.budget=store.taskGrants.budgetForTaskEffect({grant:g,step:g.binding,amount:scope.effectAmount,at:Date.now()});}alive();return c};
+  return Object.freeze({fenceKind:'EGRESS_FENCE_ONLY',
+   async assertCurrent(){alive();await current();alive()},readCurrent:snapshot,
+   assertGrantAuthorityAtCommit(expected){alive();const c=JSON.parse(loan.readScope().currentPolicyOriginal);if(!same({issuerEpoch:c.issuer.epoch,holderEpoch:c.holder.epoch,task:c.task.ref,generation:c.task.generation,session:c.session.binding,policyRevision:c.policyRevision},expected))fail('DESKTOP_GRANT_POLICY_CHANGED');alive()},
+   verifyIssuerApproval(a,terms){alive();if(!same(a.principal,g.issuer)||a.principalKind!==g.issuer.kind||a.purpose!=='AUTH-GRANT-ISSUE'||!same(a.binding,bindGrantBytesDATA(terms)))fail('DESKTOP_GRANT_APPROVAL');approval=structuredClone(a);},
+   async verifyIssuerProof(proof,terms){alive();if(!approval||!proof||Object.keys(proof).sort().join('|')!=='approvalMemberOriginal|grantMemberOriginal')fail('DESKTOP_GRANT_ISSUER_PROOF');const scope=loan.readScope();await verify(proof.approvalMemberOriginal,scope.issuerAccount,scope.issuerEpoch,'AUTH-GRANT-ISSUE',new Uint8Array(encodeFields(['AUTH-GRANT-ISSUE',canonicalJSON(approval)])),loan);await verify(proof.grantMemberOriginal,scope.issuerAccount,scope.issuerEpoch,BOUND_GRANT_DOMAIN,terms,loan);issuerMember=member(proof.grantMemberOriginal);alive()},
+   // No key import/new signing/fallback. Transfer the exact pre-existing,
+   // independently verified issuer E21 original; missing original denies.
+   signBoundGrant(selected){alive();if(!same(selected,g)||!issuerMember)fail('DESKTOP_GRANT_ORIGINAL_ISSUER_MEMBER_REQUIRED');return Object.freeze({original:issuerMember.toString('base64url'),errorPresent:false,alreadySignedOriginal:true})},
+   async verifyIssuedGrant(selected,original,terms){alive();if(!same(selected,g)||!issuerMember||original!==issuerMember.toString('base64url'))fail('DESKTOP_GRANT_ISSUED_ORIGINAL_MISMATCH');const scope=loan.readScope();await verify(issuerMember,scope.issuerAccount,scope.issuerEpoch,BOUND_GRANT_DOMAIN,terms,loan);alive()},
+   async verifyGrantProof(selected){alive();const row=store.taskGrants.readGrant({realm:g.realm,tenant:g.tenant,id:g.id,at:Date.now()});if(!same(row.value,selected)||row.status!=='ACTIVE'||row.ref.rev!==g.rev)fail('DESKTOP_GRANT_REVOKED_OR_STALE');const wire=Buffer.from(row.original,'base64url');if(wire.toString('base64url')!==row.original)fail('DESKTOP_GRANT_ORIGINAL_MEMBER_ENCODING');const scope=loan.readScope();await verify(wire,scope.issuerAccount,scope.issuerEpoch,BOUND_GRANT_DOMAIN,encodeBoundGrant(g),loan)},
+   async verifyHolderProof(proof,payload){alive();if(!proof||Object.keys(proof).join('|')!=='memberOriginal')fail('DESKTOP_GRANT_HOLDER_PROOF');const scope=loan.readScope(),c=snapshot();await verify(proof.memberOriginal,scope.holderAccount,c.holder.epoch,GRANT_EFFECT_DOMAIN,payload,loan)},
+   verifyDisclosureAtEffect(selected,step){alive();const c=snapshot();if(!c.disclosure||!same(c.disclosure.sources,step.sources)||!same(c.disclosure.actual,step.input)||!same(c.disclosure.target,step.target)||c.disclosure.grantId!==selected.id)fail('DESKTOP_GRANT_DISCLOSURE_REQUIRED');},
+   async commitAtEffectFence(){fail('DESKTOP_GRANT_ORIGINAL_ORCHESTRATOR_REQUIRED')},
+   retire(){retired=true;loan.retire()},join(){loan.join()},close(){if(!closed){closed=true;loan.release()}}
+  });
+ }
+ const resolver=Object.freeze({async acquireOriginalTaskCaller(req){await current();const caller=await method(nativeBackend,'acquireOriginalTaskCaller')(req);if(caller)callers.add(caller);try{await current();sync(nativeBackend,'assertOriginalTaskCallerAtCommit',caller);return caller}catch(e){if(caller)await checked(nativeBackend,'releaseOriginalTaskCaller',caller);throw e}},async releaseOriginalTaskCaller(c){if(!callers.has(c))fail('DESKTOP_GRANT_ORIGINAL_CALLER');await checked(nativeBackend,'releaseOriginalTaskCaller',c);callers.delete(c)}});
+ const source=Object.freeze({async assertTaskCaller(ctx,request){if(!callers.has(ctx))fail('DESKTOP_GRANT_ORIGINAL_CALLER');await current();sync(nativeBackend,'assertOriginalTaskCallerAtCommit',ctx);const s=sourceOwner.readScope();if(ctx.realm!==s.realm||ctx.tenant!==s.tenant)fail('DESKTOP_GRANT_CALLER_TENANT');await checked(nativeBackend,'assertTaskCaller',ctx,request);sourceOwner.assertSnapshot()},acquireGrantIssuance:g=>acquire(g,false),acquireGrantEffect:g=>acquire(g,true),
+  async verifyGrantQuery(ctx,ref,proof){await source.assertTaskCaller(ctx,{action:'query-grant',value:ref});await checked(nativeBackend,'verifyOriginalGrantQuery',ctx,ref,proof)},async verifyEffectQuery(ctx,ref,op,proof){await source.assertTaskCaller(ctx,{action:'query-effect',value:ref});await checked(nativeBackend,'verifyOriginalEffectQuery',ctx,ref,op,proof)},
+  async readOriginalTaskEffectInput(ctx,g){await source.assertTaskCaller(ctx,{action:'effect',value:g});const opened=await method(nativeBackend,'readOriginalTaskEffectInput')(ctx,g);try{if(!opened||typeof opened.errorPresent!=='boolean')fail('DESKTOP_GRANT_ORIGINAL_INPUT_STATUS');if(opened.errorPresent)throw opened.error;await current();return opened}catch(cause){return Object.freeze({owner:opened?.owner??null,bytes:new Uint8Array(),errorPresent:true,error:opened?.errorPresent?opened.error:cause})}},
+  queryOriginalTaskEffect:(...a)=>method(nativeBackend,'queryOriginalTaskEffect')(...a),assertOriginalTaskEffectReceiptAtCommit(...a){sourceOwner.assertSnapshot();return method(nativeBackend,'assertOriginalTaskEffectReceiptAtCommit')(...a)},
+  // Old revocation Source declarations are not promoted to management proof.
+  verifyGrantRevocation(){fail('DESKTOP_GRANT_USE_MANAGEMENT_PROOF_REQUIRED')},assertGrantRevocationAtCommit(){fail('DESKTOP_GRANT_USE_MANAGEMENT_PROOF_REQUIRED')}
+ });return Object.freeze({source,callerResolver:resolver});
+}

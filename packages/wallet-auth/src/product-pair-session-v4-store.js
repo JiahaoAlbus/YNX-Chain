@@ -1,3 +1,4 @@
+import{createOriginalTaskGrantLedger}from'./original-task-grant-ledger.js';
 // Private issuer storage. Persistence is NOT Source/account authority.
 import {DatabaseSync} from 'node:sqlite';
 import {decodePendingPairOriginalQueryDATA,projectPendingPairOriginalQueryDATA} from './product-pair-pending-original-query-data.mjs';
@@ -12,7 +13,7 @@ const instant=v=>{if(!Number.isSafeInteger(v)||v<0)fail('PAIR_V4_TIME');return v
 const raw=v=>{if(typeof v!=='string'||!v.length||Buffer.byteLength(v)>393216)fail('PAIR_V4_ORIGINAL');JSON.parse(v);return v;};
 const same=(a,b)=>a.dev===b.dev&&a.ino===b.ino&&a.uid===b.uid&&a.gid===b.gid;
 const tickets=new WeakMap();
-export function openProductPairSessionV4Store({path,namespace}){
+function openStore({path,namespace},originalProtectedClock){
  id(namespace);if(typeof path!=='string'||resolve(path)!==path)fail('PAIR_V4_PATH');
  const parent=dirname(path),ps=lstatSync(parent),uid=process.getuid();
  if(!ps.isDirectory()||ps.isSymbolicLink()||ps.uid!==uid||(ps.mode&511)!==448||realpathSync(parent)!==parent)fail('PAIR_V4_PARENT');
@@ -26,9 +27,9 @@ export function openProductPairSessionV4Store({path,namespace}){
  try{identity();db=new DatabaseSync(path);if(!created&&db.prepare('PRAGMA user_version').get().user_version!==4)fail('PAIR_V4_SCHEMA');db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');db.exec(readFileSync(new URL('./product-pair-session-v4-schema.sql',import.meta.url),'utf8'));db.prepare('INSERT OR IGNORE INTO issuer_v4_meta VALUES(?,4,0)').run(namespace);identity();}
  catch(e){db?.close();closeSync(fd);throw e;}
  const run=(sql,...a)=>db.prepare(sql).run(...a),get=(sql,...a)=>db.prepare(sql).get(...a);
- const transaction=(at,fn)=>{
+ const transaction=(at,fn,checkAtCommit)=>{
   identity();if(unknown)fail('PAIR_V4_UNKNOWN_RECOVER_ONLY');instant(at);db.exec('BEGIN IMMEDIATE');let committing=false;
-  try{const floor=get('SELECT clock_floor_ms FROM issuer_v4_meta WHERE namespace=?',namespace).clock_floor_ms;if(at<floor)fail('PAIR_V4_CLOCK_ROLLBACK');run('UPDATE issuer_v4_meta SET clock_floor_ms=? WHERE namespace=?',at,namespace);const out=fn();identity();committing=true;db.exec('COMMIT');return out;}
+  try{if(originalProtectedClock){at=instant(originalProtectedClock.readOriginalClockAtStoreFence());if(originalProtectedClock.assertCurrentAtStoreFence({at,phase:'LOCK_ACQUIRED'})!==undefined)fail('PAIR_V4_SYNC_CLOCK_SOURCE_REQUIRED');}const floor=get('SELECT clock_floor_ms FROM issuer_v4_meta WHERE namespace=?',namespace).clock_floor_ms;if(at<floor)fail('PAIR_V4_CLOCK_ROLLBACK');run('UPDATE issuer_v4_meta SET clock_floor_ms=? WHERE namespace=?',at,namespace);const out=fn(originalProtectedClock?at:undefined);if(originalProtectedClock){const after=instant(originalProtectedClock.readOriginalClockAtStoreFence());if(checkAtCommit)checkAtCommit(after);if(after<at)fail('PAIR_V4_CLOCK_ROLLBACK');if(originalProtectedClock.assertCurrentAtStoreFence({at:after,phase:'BEFORE_COMMIT'})!==undefined)fail('PAIR_V4_SYNC_CLOCK_SOURCE_REQUIRED');run('UPDATE issuer_v4_meta SET clock_floor_ms=? WHERE namespace=?',after,namespace);}identity();committing=true;db.exec('COMMIT');return out;}
   catch(e){if(committing){unknown=true;throw Object.assign(Error('PAIR_V4_COMMIT_UNKNOWN'),{code:'PAIR_V4_COMMIT_UNKNOWN',cause:e});}try{db.exec('ROLLBACK');}catch{unknown=true;}throw e;}
  };
  function lookup(actor,op){const row=get('SELECT * FROM issuer_v4_operations WHERE namespace=? AND operation_id=?',namespace,hex(op));if(row&&row.actor_digest!==hex(actor))fail('PAIR_V4_ACTOR_MISMATCH');return row;}
@@ -37,7 +38,10 @@ export function openProductPairSessionV4Store({path,namespace}){
   const t=tickets.get(ticket);if(!t||t.store!==api||t.kind!==kind||t.used)fail('PAIR_V4_FRESH_TICKET_REQUIRED');raw(result);t.used=true;
   return transaction(at,()=>{const op=lookup(t.actor,t.op);if(!op||op.phase!=='ENTERED'||op.input_sha256!==t.digest)fail('PAIR_V4_OPERATION_NOT_ENTERED');apply(t.actor);const changed=run("UPDATE issuer_v4_operations SET phase='COMMITTED',result_original=?,terminal_ms=? WHERE namespace=? AND operation_id=? AND phase='ENTERED'",result,at,namespace,t.op);if(changed.changes!==1)fail('PAIR_V4_OPERATION_CAS');run('INSERT INTO issuer_v4_audit(namespace,operation_id,actor_digest,kind,result_sha256,at_ms) VALUES(?,?,?,?,?,?)',namespace,t.op,t.actor,kind,pairV4Digest(result),at);return result;});
  }
+ const taskGrants=createOriginalTaskGrantLedger({db,namespace,transaction});
  const api=Object.freeze({
+  assertOriginalCurrent(){identity();if(unknown)fail('PAIR_V4_UNKNOWN_RECOVER_ONLY');},
+  taskGrants,taskGrantClockContract:originalProtectedClock?'ORIGINAL_SOURCE_LOCKED_CLOCK_V1':'LEGACY_EXPLICIT_AT',
   reserve({actor,operation,kind,input,at}){hex(actor);hex(operation);raw(input);if(!['PAIR','CHALLENGE','COMPLETE','REVOKE','CANCEL'].includes(kind))fail('PAIR_V4_KIND');const digest=pairV4Digest(input);return transaction(at,()=>{const prior=lookup(actor,operation);if(prior){if(prior.input_sha256!==digest||prior.kind!==kind)fail('PAIR_V4_IDEMPOTENCY_MISMATCH');return Object.freeze({recoveryOnly:true,phase:prior.phase,original:prior.result_original??null});}run("INSERT INTO issuer_v4_operations VALUES(?,?,?,?,?,?,'ENTERED',NULL,?,NULL)",namespace,operation,actor,kind,digest,input,at);const ticket=Object.freeze({});tickets.set(ticket,{store:api,op:operation,actor,kind,digest,used:false});return Object.freeze({recoveryOnly:false,ticket});});},
   commitPairChallenge(ticket,{registrationId,registrationDigest,registrationOriginal,challengeId,challengeOriginal,requestDigest,nonce,state,pairExpiresMs,challengeExpiresMs,result},at){
    id(registrationId);hex(registrationDigest);id(challengeId);hex(requestDigest);id(nonce);id(state);raw(registrationOriginal);raw(challengeOriginal);instant(pairExpiresMs);instant(challengeExpiresMs);if(pairExpiresMs<=at||challengeExpiresMs<=at||challengeExpiresMs>pairExpiresMs)fail('PAIR_V4_EXPIRED');
@@ -67,7 +71,7 @@ export function openProductPairSessionV4Store({path,namespace}){
    }finally{reader?.close();}
   },
   recover({actor,operation}){identity();hex(actor);hex(operation);let reader;try{reader=new DatabaseSync(path,{readOnly:true});const row=reader.prepare('SELECT * FROM issuer_v4_operations WHERE namespace=? AND operation_id=?').get(namespace,operation);identity();if(row&&row.actor_digest!==actor)fail('PAIR_V4_ACTOR_MISMATCH');return row?Object.freeze({phase:row.phase==='ENTERED'?'UNKNOWN':row.phase,input:row.input_original,original:row.result_original??null}):null;}finally{reader?.close();}},
-  close(){if(!closed){closed=true;try{db.close();}catch(e){closeError=e;}try{closeSync(fd);}catch(e){closeError=closeError?new AggregateError([closeError,e],'PAIR_V4_CLOSE'):e;}}if(closeError)throw closeError;}
+  close(){if(closeError)throw closeError;if(!closed){closed=true;try{db.close();}catch(e){closeError=e;throw e;}try{closeSync(fd);}catch(e){closeError=e;throw e;}}}
  });return api;
 }
 
@@ -92,3 +96,6 @@ export function openProductPairSessionV4CurrentStore({path,namespace}){
   close
  });
 }
+
+export function openProductPairSessionV4Store(config){return openStore(config)}
+export function openOriginalTaskGrantClockStore(config,source){if(!source||typeof source.readOriginalClockAtStoreFence!=='function'||typeof source.assertCurrentAtStoreFence!=='function')fail('PAIR_V4_ORIGINAL_PROTECTED_CLOCK_REQUIRED');return openStore(config,source)}
