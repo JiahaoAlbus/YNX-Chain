@@ -33,6 +33,13 @@ SELECTED={
     13568784007:(1454,'6fcabdf62ef3c31c538ca73c79227dbd142d2d1d308d8b23d688060484b256de'),
     13568519289:(13359,'a2835443d37f4e009e54fd1c94f436827e83b011b34a7ae9094fffc7b040a743'),
 }
+METADATA_PINS={
+    'CHAIN-RUN.json':(12409,'c50660ec4c056f66c914547c613bf74d62549e7283fe0310eae941fc2747d758'),
+    'RESOURCE-RUN.json':(12438,'73662a0685662c54af155e4fc9744b1be67b93813803d704dc6aaa0e81d694e1'),
+    'CHAIN-JOBS.json':(21155,'26b2d233e8c1b083dcc813f500599d692150c982f40a65fa08b2db78adee48ec'),
+    'RESOURCE-JOBS.json':(70827,'aa1196b8196abef04af08f646b8479a80723eadf50ea56bb4e1a40bf0bc75438'),
+    'CLIENT128365907200.log':(91291,'44b12ca914f9d8c493e2053e17dddfacf981038853cb4cc2d75c9daa68b3650c'),
+}
 
 
 def sha(raw):return hashlib.sha256(raw).hexdigest()
@@ -73,7 +80,9 @@ def named_stream(raw,expected,packages):
 def read(directory):
     files={};manifests={}
     for identifier,(size,pin) in SELECTED.items():
-        raw=(Path(directory)/(str(identifier)+'.zip')).read_bytes()
+        path=Path(directory)/(str(identifier)+'.zip')
+        require(not path.is_symlink(),'original selected ZIP may not redirect')
+        with path.open('rb') as stream:raw=stream.read(size+1)
         require(len(raw)==size and sha(raw)==pin,'selected own-d24 artifact pin differs')
         original,manifest,_=archive.public_archive(raw,pin)
         files[identifier]=original;manifests[identifier]=manifest
@@ -148,8 +157,13 @@ def ci_jobs(chain, resource, chain_jobs, resource_jobs):
     return dict(requiredJobs=list(required),eightRuntimeGovulncheckConsumed=True,govulncheckEvidence='original job step outcome; raw scanner output not re-read',wholeResourceCIQualified=False)
 
 
-def qualification(directory):
-    directory=Path(directory)
+def qualification(directory=None):
+    directory=Path(directory) if directory is not None else Path(__file__).with_name('fixtures')/'d24-source'
+    for name,(size,pin) in METADATA_PINS.items():
+        path=directory/name
+        require(not path.is_symlink(),'original metadata may not redirect')
+        with path.open('rb') as stream:raw=stream.read(size+1)
+        require(len(raw)==size and sha(raw)==pin,'selected original metadata size/SHA differs')
     files,manifests=read(directory);report=inspect(files)
     report['archives']=manifests
     report['startup']=startup_collectors((directory/'CLIENT128365907200.log').read_bytes())

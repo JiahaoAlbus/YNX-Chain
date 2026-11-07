@@ -4,6 +4,8 @@ import importlib.util
 import json
 from pathlib import Path
 import unittest
+from types import SimpleNamespace
+from unittest import mock
 
 s=importlib.util.spec_from_file_location('d24_source_controls',Path(__file__).with_name('pq-d24-source-readback.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 
@@ -57,5 +59,24 @@ class SourceStreamControls(unittest.TestCase):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):m.named_stream(raw(changed),['T'],['p'])
     def test_self_asserted_case_set_cannot_omit_requested_execution(self):
         with self.assertRaises(RuntimeError):m.named_stream(raw(rows()),['T','missing'],['p'])
+
+class D24ProfileControls(unittest.TestCase):
+    def driver(self):
+        spec=importlib.util.spec_from_file_location('d24_driver',Path(__file__).with_name('pq-independent-load.py'));driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver);return driver
+    def args(self):return SimpleNamespace(mode='online',rate=100,seconds=5,accounts=500,per_account=1,tail_seconds=30,proof_timeout=30,staged_publication=True,initialize_before_load=True,startup_timings=True,wire_observation=True,network_accounting=True,commit_observation=True,owned_storage_accounting=True,header_hop_capture=False,initialization_only=False,source='/CONTROL_ONLY',commit=m.SOURCE,execute=False,first_trial_profile='d24')
+    def test_actual_d24_originals_qualify_source_only(self):
+        r=m.qualification();self.assertTrue(r['sourceOnlyQualified']);self.assertFalse(r['runtimePermissionGranted']);self.assertEqual(r['rawFlowsRead'],9)
+    def test_prepared_profile_reads_originals_without_window_and_keeps_old_pin(self):
+        d=self.driver();args=self.args()
+        with mock.patch.object(d.lab,'check_source',return_value=dict(commit=m.SOURCE,tree=m.TREE)),mock.patch.object(d.lab,'git'),mock.patch.object(d.subprocess,'check_output',return_value=b'live-materials'),mock.patch.object(d.lab,'Window') as window:
+            result=d.run(args)
+        self.assertFalse(result['actualLoadExecuted']);window.assert_not_called();self.assertEqual(result['sourceFunctionalData']['source'],m.SOURCE)
+        self.assertEqual(d.first_trial_source.SOURCE,'1b0ea548aca6b5260a9824d0edd3012d52e53521')
+    def test_d24_cannot_omit_explicit_profile_or_change_denominator(self):
+        d=self.driver()
+        for key,value in [('first_trial_profile','own1b'),('initialize_before_load',False),('accounts',499),('rate',500),('rate',1000)]:
+            args=self.args();setattr(args,key,value)
+            with self.subTest(key=key,value=value),mock.patch.object(d.lab,'Window') as window,self.assertRaises(RuntimeError):d.run(args)
+            window.assert_not_called()
 
 if __name__=='__main__':unittest.main()

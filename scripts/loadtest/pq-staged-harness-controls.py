@@ -8,6 +8,7 @@ import unittest
 
 GROUPS=[
  ('test_pq_first_trial_source.py',None,8),
+ ('test_pq_d24_source_readback.py',None,12),
  ('test_pq_preload_initialization.py',None,8),
  ('test_pq_observed_throughput.py',None,5),
  ('test_pq_rpc_measurements.py',None,5),
