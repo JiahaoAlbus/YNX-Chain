@@ -24,6 +24,11 @@ const (
 )
 
 var ErrToolLoopLimit = errors.New("model tool loop limit reached")
+
+// A persisted transcript without an outstanding original tool callback cannot
+// establish the outcome of its last model request. Never issue another request
+// from that checkpoint, including checkpoints produced by older versions.
+var ErrToolModelResponseUnconfirmed = errors.New("original model response unresolved; query the original run")
 var toolNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 // ToolDefinition is supplied by the service catalog, never by the model or
@@ -90,7 +95,9 @@ type toolLoopCheckpoint struct {
 	Rounds      int             `json:"rounds"`
 	Calls       int             `json:"calls"`
 	SeenIDs     []string        `json:"seenIDs"`
-	// -1 means ready for the next model request. Otherwise this indexes the
+	// -1 means ready for the next model request in the LIVE loop only. A saved
+	// checkpoint at this point cannot resume a possibly sent model request.
+	// Otherwise this indexes the
 	// original assistant batch; Cursor counts completed results in that batch.
 	BatchStart     int              `json:"batchStart"`
 	Cursor         int              `json:"cursor"`
@@ -316,6 +323,12 @@ func (s *Service) validateToolCheckpoint(state *toolLoopCheckpoint, session, req
 		if state.SeenIDs[i] != step.Call.ID {
 			return invalid
 		}
+	}
+	if pendingStart < 0 {
+		if state.Rounds >= toolLoopRounds || state.Calls >= toolLoopCalls {
+			return errors.Join(ErrToolLoopLimit, ErrToolModelResponseUnconfirmed)
+		}
+		return ErrToolModelResponseUnconfirmed
 	}
 	return nil
 }
