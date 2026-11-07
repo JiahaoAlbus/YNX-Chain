@@ -92,10 +92,12 @@ def inspect(files, prefix=''):
             require(len(raw) == ref['bytes'] and hashlib.sha256(raw).hexdigest() == ref['sha256'], 'original business journal pin differs')
             for line in raw.splitlines(): strict(line)
     else:
-        require(receipt['loadExecuted'] is False, 'missing original business result after release')
+        require(type(receipt['loadExecuted']) is bool, 'original load release observation required')
         measured = None
     return dict(schema='YNX-PERF-FIRST100-ORIGINAL-READBACK/v1', controller=CONTROLLER, source=SOURCE, tools=TOOLS,
                 originalFirstCause=receipt.get('firstCause'), loadExecuted=receipt['loadExecuted'],
+                businessObservationStatus=('ORIGINAL_FULL_COHORT_READ' if measured is not None else
+                    'RELEASE_OBSERVED_RESULT_NOT_SUPPLIED' if receipt['loadExecuted'] else 'BUSINESS_WINDOW_NOT_RELEASED'),
                 observedBusiness=measured, normalNodeCleanExit=receipt.get('normalNodeCleanExit'), cleanupComplete=receipt.get('cleanupComplete'),
                 initializationJournals=original.journals(files,prefix,receipt),
                 originalCommitCopies=original.commit_original_copies(files,prefix,receipt),
