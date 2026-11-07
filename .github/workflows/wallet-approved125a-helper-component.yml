@@ -1,0 +1,22 @@
+name: Wallet approved125a helper-only component
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-approved125a-helper-component-20261107]
+    paths:
+      - apps/wallet-desktop/scripts/approved125a-helper-component*
+      - apps/wallet-desktop/scripts/sdk13-native-component.mjs
+      - apps/wallet-desktop/scripts/test/approved125a-helper-component.test.mjs
+      - apps/wallet-desktop/scripts/test/fixtures/approved125a-helper/**
+      - scripts/ci/approved125a-helper-component.mjs
+      - .github/workflows/wallet-approved125a-helper-component.yml
+jobs:
+  finite-helper-reader:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node scripts/ci/approved125a-helper-component.mjs

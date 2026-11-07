@@ -1,0 +1,1 @@
+import{spawnSync}from'node:child_process';import path from'node:path';import{fileURLToPath}from'node:url';const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');const r=spawnSync(process.execPath,['--test',path.join(root,'apps/wallet-desktop/scripts/test/approved125a-helper-component.test.mjs')],{stdio:'inherit'});if(r.status!==0)process.exit(r.status??1);
