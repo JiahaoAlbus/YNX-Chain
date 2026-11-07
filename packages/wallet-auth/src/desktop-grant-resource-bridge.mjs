@@ -2,6 +2,7 @@
 // Actual normal operands are that backend's qualified Native Root, SAME store,
 // and its recognized caller operation, never a renderer provider or target URL.
 import{openOriginalTaskReadTransport}from'./desktop-grant-resource-transport-owner.mjs';
+import{openOriginalTaskReadStrongTransport}from'./desktop-grant-strong-continuation-transport-private.mjs';
 import{inspectBoundGrantDATA}from'./original-bound-grant-policy.js';
 import{canonicalJSON}from'./canonical.js';
 import{RESOURCE_SERVICE,RESOURCE_PATHS,originalProofsDATA,requestDATA,decodeResponseDATA}from'./desktop-grant-resource-data.mjs';
@@ -29,24 +30,41 @@ export function openOriginalTaskReadResourceBridge(nativeRoot,store){
  async function run(...a){current();const p=exchange(...a);pending.add(p);try{return await p}finally{pending.delete(p)}}
  const owner=Object.freeze({
   async readOriginalTaskEffectInput(g,holderProof){const opened=await run('input',g,holderProof),actual=opened.owner;const input=Object.freeze({assertCurrent:()=>actual.assertCurrent(),retire:()=>actual.retire(),async join(){const r=await actual.join();if(r.errorPresent)throw r.error;if(!r.physicalDone)fail('TASK_RESOURCE_INPUT_JOIN_PENDING')},async close(){const r=await actual.close();if(r.errorPresent)throw r.error;if(!r.physicalDone)fail('TASK_RESOURCE_INPUT_CLOSE_PENDING')},isClosed:()=>actual.isClosed(),isJoined:()=>actual.isJoined(),firstCause:()=>actual.firstCause(),lifetime:()=>actual.lifetime()});return{owner:input,errorPresent:opened.errorPresent,error:opened.error,bytes:opened.errorPresent?Buffer.alloc(0):Buffer.from(opened.result.input),partial:opened.partial??null,transportPartial:opened.transportPartial??null,dispatchPossible:opened.dispatchPossible??false,sourceCurrentErrorPresent:opened.sourceCurrentErrorPresent??false}},
-  async executeOriginalTaskEffect(ctx,request,continuation){const g=request.grant;if(!same(request.step,g.binding)||request.expectedGrantRevision!==g.rev)fail('TASK_RESOURCE_EXECUTE_EXACT_BINDING');
-   // Query deliberately maps persisted PENDING to UNKNOWN. Only the SAME
-   // ledger-private fresh ticket can select a continuation. Current NEVER
-   // claims it; the actual Go resource Store.mu is the sole final claimant.
+  async executeOriginalTaskEffect(ctx,request,continuation){
+   const g=request.grant;if(!same(request.step,g.binding)||request.expectedGrantRevision!==g.rev)fail('TASK_RESOURCE_EXECUTE_EXACT_BINDING');
    const expected={grant:g,operationId:request.operationId,at:Date.now()};method(store.taskGrants,'currentOriginalTaskEffectContinuation')(continuation,expected);current();
-   // This is a strong private Native acquisition, not a public provider. The
-   // addon must retain the original inventory/caller association through LINK
-   // physical drain. No serialized ticket/OWN_RESERVED state is accepted.
-   const opened=await method(nativeRoot,'openOriginalTaskReadContinuation')(ctx,request,continuation);const child=opened?.owner;let outer,returned;
-   if(child){outer=Object.freeze({assertCurrent:()=>method(child,'assertCurrent')(),retire:()=>method(child,'retire')(),async join(){let first;try{await checked(child,'join')}catch(cause){first={cause}}const physicalDone=method(child,'isJoined')()===true;return Object.freeze({physicalDone,errorPresent:!!first,error:first?first.cause:null})},async close(){let first;try{await checked(child,'close')}catch(cause){first={cause}}const physicalDone=method(child,'isClosed')()===true;if(physicalDone)calls.delete(outer);return Object.freeze({physicalDone,errorPresent:!!first,error:first?first.cause:null})},isClosed:()=>method(child,'isClosed')(),isJoined:()=>method(child,'isJoined')()});calls.add(outer)}if(!opened||typeof opened.errorPresent!=='boolean')return{owner:outer??null,errorPresent:true,error:Object.assign(Error('TASK_RESOURCE_CONTINUATION_ACQUIRE_STATUS'),{code:'TASK_RESOURCE_CONTINUATION_ACQUIRE_STATUS'}),operationId:request.operationId,partial:null};if(opened.errorPresent)return{owner:outer??null,errorPresent:true,error:opened.error,operationId:request.operationId,partial:opened.partial??null};
-   if(!child)fail('TASK_RESOURCE_CONTINUATION_OWNER_REQUIRED');
-   try{await checked(child,'assertCurrent');method(store.taskGrants,'currentOriginalTaskEffectContinuation')(continuation,expected);current();
-    returned=await method(child,'executeOriginalTaskEffect')(request);if(!returned||typeof returned.errorPresent!=='boolean')fail('TASK_RESOURCE_CONTINUATION_EXECUTE_STATUS');
-    // The Native child owns any returned transport partial; do not drop it on
-    // late Source failure. It must adopt before interpreting status/current.
-    if(returned.errorPresent)return{...returned,owner:outer};await checked(child,'assertCurrent');current();
-    const r=returned.result;if(r?.state==='COMMITTED'&&r.operationId===request.operationId&&typeof r.original==='string'&&r.original&&Buffer.byteLength(r.original)<=1048576)receipts.set(request.operationId,{g:structuredClone(g),original:r.original,child});else fail('TASK_RESOURCE_CONTINUATION_ORIGINAL_RECEIPT');return{...returned,owner:outer};
-   }catch(cause){return{owner:outer,errorPresent:true,error:cause,operationId:request.operationId,partial:returned?.result??returned?.partial??null}}
+   // The sole existing DATA chain, captured before Native acquisition awaits.
+   const row=actualGrant(g),material=originalMaterial(g),proofs=originalProofsDATA(g,row.original,request.holderProof),wire=requestDATA('execute',g,material,proofs,request.operationId,request.rawInput);
+   let opened;try{opened=await method(nativeRoot,'openOriginalTaskReadContinuation')(ctx,request,continuation)}catch(error){opened={owner:error?.partial??null,errorPresent:true,error}}
+   const child=opened?.owner;let transport,packet,parsed,first,retired=false,childJoined=false,childClosed=false,closeWork;
+   const remember=error=>{first??={error}},pair=physicalDone=>Object.freeze({physicalDone,errorPresent:!!first,error:first?first.error:null});
+   const outer=child?Object.freeze({
+    async assertCurrent(){if(retired)fail('TASK_RESOURCE_CONTINUATION_RETIRED');await checked(child,'assertCurrent');current();if(transport)await checked(transport,'assertCurrent');current()},
+    retire(){retired=true;if(transport)try{transport.retire()}catch(error){remember(error)}},
+    async join(){outer.retire();try{if(transport){const r=await transport.join();if(r.errorPresent)remember(r.error);if(!r.physicalDone)return pair(false)}
+      // Auth child remains live until packet release and actual LINK drain.
+      await checked(child,'retire');try{await checked(child,'join')}catch(error){remember(error)}childJoined=method(child,'isJoined')()===true;return pair(childJoined)
+     }catch(error){remember(error);return pair(false)}},
+    close(){return closeWork??=Promise.resolve().then(async()=>{const j=await outer.join();if(!j.physicalDone)return pair(false);try{if(transport){const r=await transport.close();if(r.errorPresent)remember(r.error);if(!r.physicalDone)return pair(false)}try{await checked(child,'close')}catch(error){remember(error)}childClosed=method(child,'isClosed')()===true;if(childClosed)calls.delete(outer);return pair(childClosed)}catch(error){remember(error);return pair(false)}})},
+    isJoined(){return childJoined&&(!transport||transport.isJoined())},isClosed(){return childClosed&&(!transport||transport.isClosed())},firstCause(){return pair(childClosed)}
+   }):null;
+   if(outer)calls.add(outer); // Adopt partial before status, current, or cleanup.
+   try{
+    if(!opened||typeof opened.errorPresent!=='boolean')fail('TASK_RESOURCE_CONTINUATION_ACQUIRE_STATUS');if(opened.errorPresent)throw opened.error;if(!child)fail('TASK_RESOURCE_CONTINUATION_OWNER_REQUIRED');
+    await checked(child,'assertCurrent');method(store.taskGrants,'currentOriginalTaskEffectContinuation')(continuation,expected);current();
+    const original=method(child,'readOriginalRequestDATA')(),heldProofs=originalProofsDATA(original.grant,row.original,original.holderProof),heldWire=requestDATA('execute',original.grant,material,heldProofs,original.operationId,original.rawInput);
+    if(!wire.equals(heldWire))fail('TASK_RESOURCE_CONTINUATION_ORIGINAL_BODY_CHANGED');
+    const profile=method(nativeRoot,'readOriginalTaskReadPeerDATA')();current();
+    if(profile.service!==RESOURCE_SERVICE||profile.routes?.length!==3||Object.values(RESOURCE_PATHS).some(path=>!profile.routes.some(r=>r.path===path&&r.method==='POST'&&r.maxRequestBytes<=1048576&&r.maxResponseBytes<=1048576)))fail('TASK_RESOURCE_FINITE_REGISTERED_PROFILE');
+    // Separate Root-selected, held-closure reference. Never guess a sibling.
+    const modulePath=method(nativeRoot,'readOriginalTaskReadContinuationModulePath')();current();
+    const a=await openOriginalTaskReadStrongTransport(nativeRoot,profile,modulePath,wire,child);transport=a.owner;packet=a.data;let decodeError;
+    if(packet)try{if(packet.path!==RESOURCE_PATHS.execute||!Number.isInteger(packet.statusCode)||!(packet.body instanceof Uint8Array))fail('TASK_RESOURCE_TRANSPORT_PACKET');parsed=decodeResponseDATA('execute',packet.body,packet.statusCode,g,request.operationId)}catch(error){decodeError={error}}
+    if(a.errorPresent)throw a.error;if(decodeError)throw decodeError.error;
+    if(parsed?.state!=='COMMITTED'||typeof parsed.original!=='string')fail('TASK_RESOURCE_CONTINUATION_ACTUAL_RECEIPT_UNRESOLVED');
+    await outer.assertCurrent();receipts.set(request.operationId,{g:structuredClone(g),original:parsed.original,child});
+    return{owner:outer,errorPresent:false,error:null,result:parsed,transportPartial:packet};
+   }catch(error){remember(error);return{owner:outer,errorPresent:true,error,operationId:request.operationId,partial:parsed??null,transportPartial:packet??null,dispatchPossible:packet?.dispatchPossible??false}}
   },
   async queryOriginalTaskEffect(g,operation,holderProof){const saved=store.taskGrants.readTaskEffect({realm:g.realm,tenant:g.tenant,id:g.id,operationId:operation,at:Date.now()});if(!['PENDING','UNKNOWN','COMMITTED','FAILED'].includes(saved.state))fail('TASK_RESOURCE_ORIGINAL_SLOT_REQUIRED');return run('query',g,holderProof,operation,Buffer.alloc(0),true)},
   assertOriginalTaskEffectReceiptAtCommit(expected){if(retired||closed||first)fail('TASK_RESOURCE_BRIDGE_RETIRED');const original=receipts.get(expected.operationId);if(!original||!same(original.g,expected.grant)||original.original!==expected.original||expected.state!=='COMMITTED')fail('TASK_RESOURCE_ACTUAL_ORIGINAL_RECEIPT_REQUIRED');if(original.child&&method(original.child,'assertOriginalTaskEffectReceiptAtCommit')(expected)!==undefined)fail('TASK_RESOURCE_NATIVE_RECEIPT_FENCE');if(method(nativeRoot,'assertNativeObservedCurrent')()!==undefined)fail('TASK_RESOURCE_NATIVE_FENCE');},

@@ -11,33 +11,33 @@
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-native-private.h",
-      "bytes": 1706,
-      "sha256": "9c6b27d1587804ce26dcbb202f4fe8e6e5a5055bc04f6d56db05b22e6ded6821"
+      "bytes": 1783,
+      "sha256": "b5f4c48fd2e1c0c75cbc4a6aa00c1e3d67bc4dfda5c9290c9c260c69bc8d4602"
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-native-stage.cpp",
-      "bytes": 10008,
-      "sha256": "22dd1d3bcab463eeb011fe0fe989304c9f6b718365854700e4347003dccb34fc"
+      "bytes": 10392,
+      "sha256": "08dd99fb9e238817cef7108ab307f8dd918b5aa7544a7047673cb8030749a407"
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-qualification-private.hpp",
-      "bytes": 1386,
-      "sha256": "7ff9a0dd361a1f81c42fe783ca09850295db05f8499b3ba109227cbc97acee0f"
+      "bytes": 1502,
+      "sha256": "9cabdf6df3e7024f7d0ec27a830bb2fa8ae6e69acbd2d4b47ecd361bd753fbb2"
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-qualification.mm",
-      "bytes": 9420,
-      "sha256": "ad010333d9fb81fae552374eb011762a3d57ca9b61900fd46f528afe4bd46265"
+      "bytes": 10252,
+      "sha256": "70ce8ba8762c58ed131a11289a39c213b0ec81d79e125599d023ace5c0a9c69d"
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-release-private.hpp",
-      "bytes": 1506,
-      "sha256": "5b2b81f4598ae19a3732029d9d38d106120c9a45d98e6952a61863fc3e0c5ee5"
+      "bytes": 1705,
+      "sha256": "2a597f1a33ba28e4606efbc732ffb42e48f2ff2bc837ec8edccbc3d59b5ba9ba"
     },
     {
       "path": "packages/wallet-auth/native/desktop-grant-source-methods.inc",
-      "bytes": 13823,
-      "sha256": "8a9b071580e179638c668946253177d0c7a483677d477884cc9107a5420c8679"
+      "bytes": 16289,
+      "sha256": "92358994e89a167fe4bd704748d2b1bae0bfcc694980ea745db0b97a74edba43"
     },
     {
       "path": "packages/wallet-auth/native/original-ai-task-action-v6-source-contract.mjs",
@@ -376,8 +376,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-native-backend-private.mjs",
-      "bytes": 14182,
-      "sha256": "48d27e2d071917c9a203f58bfcc311fd7cf4dc3196f4a012914af0de60371404"
+      "bytes": 14303,
+      "sha256": "cc45e82d9c73bd1692d83138126475a2dc40bef02a238f519744d101bb386cbb"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-normal-inputs.mjs",
@@ -806,8 +806,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-resource-bridge.mjs",
-      "bytes": 10697,
-      "sha256": "f1338271cb089c5704a414f0f964e49ebcad76ae3695fa7a28d12b4cb774f82b"
+      "bytes": 12505,
+      "sha256": "8720bf355de7d418b4c284b63b8e95c28a65246f1fd1eac516be897d96b8bdd2"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-resource-data.mjs",
@@ -823,6 +823,21 @@
       "path": "packages/wallet-auth/src/desktop-grant-resource-transport-owner.mjs",
       "bytes": 5058,
       "sha256": "a0ddc594a7132b0ab9b0a7804430db2234a6e7f8d253a2a31a00bfd590cca02b"
+    },
+    {
+      "path": "packages/wallet-auth/src/desktop-grant-strong-continuation-transport-private.mjs",
+      "bytes": 4473,
+      "sha256": "2af99b962b8a1ac54e6c300cde786a941a7cdd70e248d01b9361d94c8c0292ba"
+    },
+    {
+      "path": "packages/wallet-auth/src/desktop-grant-strong-continuation-transport-private.d.mts",
+      "bytes": 1637,
+      "sha256": "e2fa5eb3d05daf4588fb0c237ce0d07e361ea0b5ca0b509a93d6a3604f90433b"
+    },
+    {
+      "path": "packages/wallet-auth/integration/DESKTOP_GRANT_STRONG_LINK_COHORT.json",
+      "bytes": 2550,
+      "sha256": "64fb16e3bd6660ddb47d76c1660703d7452a546a532ab1c0fba80d5929a97ce4"
     }
   ],
   "compiled": false,

@@ -21,6 +21,7 @@
 - (NSDictionary*)copyOriginalDesktopTaskReadTarget:(NSError**)error;
 - (NSDictionary*)copyOriginalDesktopTaskReadAvailability:(NSError**)error;
 - (NSString*)copyOriginalDesktopTaskReadModule:(NSError**)error;
+- (NSString*)copyOriginalDesktopTaskReadContinuationModule:(NSError**)error;
 - (BOOL)holdOriginalDesktopTaskGrantNativeAddress:(const void*)address error:(NSError**)error;
 - (BOOL)closeOriginalDesktopTaskGrantAuthority:(NSError**)error;
 @end

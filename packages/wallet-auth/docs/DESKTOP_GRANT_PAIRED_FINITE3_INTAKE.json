@@ -38,5 +38,24 @@
   "actualPrivateContinuationCarrier": false,
   "actualP08FinalClaim": false,
   "wholeAddonMatching": false,
-  "productionActivation": false
+  "productionActivation": false,
+  "strongContinuationSuccessor": {
+    "linkCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+    "soleExport": "openOriginalTaskReadContinuationTransport",
+    "normalRootGetter": "readOriginalTaskReadContinuationModulePath",
+    "nativeGetterFinalR2": "fed3e968f21709126472393a9b5abe67691e087a93baa7a3b63df1d6a875411a",
+    "independentRootFields": [
+      "task_read_continuation_module_path",
+      "task_read_continuation_code_closure"
+    ],
+    "SDKBridgeOwns": "original body generation and sole response decoder; same recognized child loan until actual carrier drain; no child.execute method invented",
+    "physicalExistingAPI": "input/query only; no fallback for execute",
+    "collectorRows": 167,
+    "LINKWholeCI": 42402839604,
+    "LINKWholeComponentPassed": true,
+    "actualRootAdmitted": false,
+    "actualP08ClaimVerified": false,
+    "wholeAuthAddonMatching": false,
+    "MainP03HotReplacement": false
+  }
 }
