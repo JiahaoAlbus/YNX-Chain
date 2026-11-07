@@ -1,4 +1,4 @@
-export type OriginalAuthRuntimeImageBindingPurposeV1='product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5';
+export type OriginalAuthRuntimeImageBindingPurposeV1='product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'wallet-native-product-source-v1';
 export interface OriginalAuthRuntimeImageFilePinV1 {readonly path:string;readonly bytes:number;readonly sha256:string}
 /** Postbuild facts only; no profile/qualification original or self hash. */
 export interface OriginalAuthRuntimeImageBindingV1 {
@@ -14,5 +14,5 @@ export interface OriginalAuthRuntimeImageBindingInspectionV1DATA {
  readonly preLoadQualified:false;readonly sameModuleInstanceVerified:false;
 }
 export const ORIGINAL_AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSES:readonly OriginalAuthRuntimeImageBindingPurposeV1[];
-export const ORIGINAL_AUTH_FIXED_LOADER_SHA256:'04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4';
+export const ORIGINAL_AUTH_FIXED_LOADER_SHA256:"3f57e2056d331fba2a15d5d1c5278b7585760881c0e70c9968938f65772844df";
 export function inspectOriginalAuthRuntimeImageBindingV1DATA(value:unknown,purpose:OriginalAuthRuntimeImageBindingPurposeV1):OriginalAuthRuntimeImageBindingInspectionV1DATA;

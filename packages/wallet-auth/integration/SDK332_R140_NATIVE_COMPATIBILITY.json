@@ -3754,5 +3754,61 @@
     "path": "apps/wallet-desktop/native/original-wallet-common-build-inputs.json",
     "bytes": 58825,
     "sha256": "9c6ec33318fb17bdd7d167ac65b0483634781152e83a6dd0cdcd2edf25d8fbd5"
+  },
+  "wprIndependentNormalBootstrap9005Successor": {
+    "purpose": "wallet-native-product-source-v1",
+    "selection": "walletNativeProductV1",
+    "fixedLoader": {
+      "bytes": 9005,
+      "sha256": "3f57e2056d331fba2a15d5d1c5278b7585760881c0e70c9968938f65772844df"
+    },
+    "normalPrivateEntry": "native/original-wpr-normal-host-private.mjs::openOriginalWPRMaterializationHostV1()",
+    "actualSourcePins": [
+      {
+        "path": "native/original-wpr-normal-host-private.mjs",
+        "bytes": 3802,
+        "sha256": "0fcf14a46866a9d6d9e45047ee2dc45b414b09c73ac36522110264d9ed5ff0f7"
+      },
+      {
+        "path": "native/original-wpr-materialization-native-entry.mjs",
+        "bytes": 547,
+        "sha256": "488688dcb4b1ba61493b425c68c25efcaea833f656c36cd92e867f06f6211f6f"
+      },
+      {
+        "path": "src/original-auth-identity-fixed-native-image.js",
+        "bytes": 9005,
+        "sha256": "3f57e2056d331fba2a15d5d1c5278b7585760881c0e70c9968938f65772844df"
+      },
+      {
+        "path": "src/original-auth-runtime-image-source-v1.js",
+        "bytes": 16923,
+        "sha256": "19397591b408aa94708a8ff2bd806288bf9906a216e6bb1a2155e6e1f7a19b26"
+      },
+      {
+        "path": "native/original-auth-runtime-image-binding-v1.mjs",
+        "bytes": 3461,
+        "sha256": "c203ce839da313387950272e35f9d23306ff3dd10b18af9312a944250fe913ca"
+      },
+      {
+        "path": "native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 96939,
+        "sha256": "249730ef669eef64b3a230a66bdc3a1cb2756c56a150c30b47c6a072fbf5795c"
+      },
+      {
+        "path": "native/original-auth-identity-source-authority.mm",
+        "bytes": 93789,
+        "sha256": "f705b75b3ca737b995b9c38ca25f7ba2ebd83809ff2b65c756ec3bf1753fee0c"
+      },
+      {
+        "path": "native/original-auth-runtime-image-private.mm",
+        "bytes": 11663,
+        "sha256": "cec36dec67f9eb9726be4957c7f46d9662dea186fe2dc97e7e89e471474f89de"
+      }
+    ],
+    "old3401ProfileQualificationInherited": false,
+    "sameVersionNativeImageSupplied": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
   }
 }

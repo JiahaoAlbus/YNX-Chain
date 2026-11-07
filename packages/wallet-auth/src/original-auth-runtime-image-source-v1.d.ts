@@ -28,3 +28,10 @@ export interface OriginalRuntimeImageAdmissionResultV1 {
 export declare function acquireOriginalAuthRuntimeImageAdmissionV1():Promise<OriginalRuntimeImageAdmissionResultV1>;
 export declare function assertOriginalAuthRuntimeImageAdmissionOwnerV1(owner:unknown):OriginalRuntimeImageAdmissionOwnerV1;
 export declare function assertOriginalAuthRuntimeImagePreLoadCurrentV1():void;
+
+// PRIVATE independent normal WPR Host. No provider/path/Root inputs.
+declare const originalWPRHostBrand:unique symbol;
+export interface OriginalWPRHostPreloadOwnerV1{readonly[originalWPRHostBrand]:never;assertCurrent():void;recheck():Promise<void>;retire():void;join():Promise<void>;close():Promise<void>;drainPartial():Promise<void>;isClosed():boolean;statusDATA():Readonly<Record<string,unknown>>}
+export declare function acquireOriginalWPRHostPreloadV1():Promise<Readonly<{owner:OriginalWPRHostPreloadOwnerV1|null;errorPresent:boolean;error:unknown}>>;
+export declare function assertOriginalWPRHostPreLoadCurrentV1():void;
+export declare function retainOriginalWPRHostPreloadChildV1():Readonly<{current():void;release():void;isReleased():boolean}>;

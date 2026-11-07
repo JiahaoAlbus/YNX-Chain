@@ -1,8 +1,26 @@
+#include "network_publisher_release_private.hpp"
+#import "network_publisher_source_private.h"
+#include "device_management_v4_release_private.hpp"
+#import "device_management_v4_source_private.h"
+#include "ai_task_client_source_release_private.hpp"
+#import "ai_task_client_source_private.h"
+#include "ai_task_client_policy_data_private.hpp"
+#include "browser_page_source_release_private.hpp"
+#import "browser_page_source_private.h"
+#include "browser_page_policy_data_private.hpp"
+#include "product_source_release_private.hpp"
+#import "WPRPublicationSourcePrivate.h"
+#import "WPRMaterializationSourcePrivate.h"
+#include "product_scope_objc_private.hpp"
+#include "product_source_permission_private.hpp"
+#include "product_source_math_completion.inc"
 #include "pay_native_permission_private.hpp"
 #include "pay_native_source_math_completion.inc"
 static void YNXOriginalWalletNativePayHiddenMarker(){}
 namespace ynx_auth_private {const void* original_wallet_pay_source_code_marker()noexcept{return (const void*)&YNXOriginalWalletNativePayHiddenMarker;}}
 #import "original-auth-identity-source-authority.h"
+#import "original-ide-contract-initiator-private.h"
+#include "original-ide-contract-initiator-pins-private.hpp"
 #include "original-product-device-v4-pending-journal.h"
 #include "original-product-device-v4-provisioning-journal.h"
 #include "original-product-device-v4-query-journal.h"
@@ -74,6 +92,20 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
  uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
  unsigned _httpV5Loans;
+ BOOL _networkPublisher;unsigned _networkPublisherLoans;const ynx::network::publisher::Release*_networkPublisherPolicy;
+ BOOL _deviceManagement,_managementEntered,_managementApprovalPinned;unsigned _managementLoans;NSData*_managementImage,*_managementDriver,*_managementRegistry;NSDictionary*_managementOriginals,*_managementProjection;const ynx::device::management::SourceRelease*_managementPolicy;
+ BOOL _aiTaskClient;unsigned _aiTaskLoans;NSError*_aiTaskCloseCause;BOOL _aiTaskClosurePinned;NSData*_aiTaskAgentOriginal,*_aiTaskKernelOriginal,*_aiTaskOwnImageOriginal,*_aiTaskNodeLoaderOriginal;const ynx::ai::client::SourceRelease*_aiTaskPolicy;
+ BOOL _browserPages;unsigned _browserPagesLoans;NSError*_browserPagesCloseCause;
+ const ynx::browser::page::BrowserPageSourceRelease*_browserPagePolicy;
+ BOOL _wprCaptureSelected,_wprCaptureEntryHeld;NSData*_wprRegistrationCapture,*_wprExpectedCaptureInput,*_wprIndependentOriginal;
+ BOOL _wprPublication,_wprPublicationRuntimeClosed;YNXWPRPublicationPeer*_wprPublicationPeer;
+ const ynx::wallet::product::publication::InstallationRelease*_wprPublicationRow;
+ std::shared_ptr<ynx::wallet::product::publication::StagedOriginals>_wprPublicationInputs;
+ BOOL _walletNativeProduct;
+ const ynx::wallet::product::ProductSourceRelease*_productPolicy;
+ std::shared_ptr<ynx_auth_private::ProductObservedState>_productObserved;
+ std::chrono::steady_clock::time_point _productCurrentMonoDeadline;
+ NSString*_productObservedIdentity;NSError*_productCloseCause;
  BOOL _walletNativePay,_ideCocoaParentSource;
  std::shared_ptr<ynx_auth_private::PayObservedState> _payObserved;
  std::chrono::steady_clock::time_point _payCurrentMonoDeadline;
@@ -88,7 +120,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
 - (BOOL)fail:(NSString *)code error:(NSError **)error {
- if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);
+ if(_walletNativeProduct)ynx_auth_private::OriginalProductSourceMathCompletion::retire(_productObserved);if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);
  _invalid=YES;if(!_firstCause)_firstCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];if(error)*error=_firstCause;return NO;
 }
 - (BOOL)closeHeldPipes {
@@ -322,7 +354,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 - (BOOL)heldCurrent:(NSError **)error {
  if(_helperClient&&![_helperClient assertTransportCurrent:error])return [self fail:@"AUTH_IDENTITY_HELPER_CLIENT_NOT_CURRENT" error:error];
  if(_helperPeer&&![_helperPeer assertCurrentMessage:error])return [self fail:@"AUTH_IDENTITY_HELPER_SOURCE_MESSAGE_CHANGED" error:error];
- if(_invalid||_retired||!_policy||![_custody assertOriginalCurrent:error])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_UNAVAILABLE" error:error];
+ if(_invalid||_retired||!_policy||(_wprPublication?(!_wprPublicationInputs||_wprPublicationInputs->current()||![_wprPublicationPeer assertCurrentMessage:error]):![_custody assertOriginalCurrent:error]))return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_UNAVAILABLE" error:error];
  for(const auto &file:_files){struct stat held{},named{};if(file.selected||fstat(file.fd,&held)||lstat(file.path.fileSystemRepresentation,&named)||!SourceSame(file.identity,held)||!SourceSame(file.identity,named))return [self fail:@"AUTH_IDENTITY_NATIVE_RELEASE_CHANGED" error:error];}
  if(_helperPeer&&![_helperPeer assertCurrentMessage:error])return [self fail:@"AUTH_IDENTITY_HELPER_SOURCE_MESSAGE_CHANGED" error:error];return YES;
 }
@@ -330,23 +362,24 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  if(!_entered||!_policy||!raw.length||raw.length>ynx_auth_private::OriginalAuthVerifierInputMax){[self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_INPUT_INVALID" error:error];return nil;}
    NSPipe *in=[NSPipe pipe],*out=[NSPipe pipe],*errors=[NSPipe pipe];
    for(NSFileHandle *handle in @[in.fileHandleForReading,in.fileHandleForWriting,out.fileHandleForReading,out.fileHandleForWriting,errors.fileHandleForReading,errors.fileHandleForWriting]){[_pipeHandles addObject:handle];[_pipeStates addObject:@0];}
-   _task=[NSTask new];_task.executableURL=[NSURL fileURLWithPath:[NSString stringWithUTF8String:_policy->nodeImagePath.c_str()]];_task.arguments=@[[NSString stringWithUTF8String:_policy->verifierImagePath.c_str()]];_task.environment=@{};_task.standardInput=in;_task.standardOutput=out;_task.standardError=errors;
+   _task=[NSTask new];_task.executableURL=[NSURL fileURLWithPath:[NSString stringWithUTF8String:_policy->nodeImagePath.c_str()]];_task.arguments=@[[NSString stringWithUTF8String:(_wprPublication&&_wprCaptureSelected?_wprPublicationRow->registration_capture_entry:_policy->verifierImagePath).c_str()]];_task.environment=@{};_task.standardInput=in;_task.standardOutput=out;_task.standardError=errors;
    NSError *launch=nil;if(![_task launchAndReturnError:&launch]){[self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_EXEC_UNAVAILABLE" error:error];return nil;}
    NSTask *owned=_task;dispatch_after(dispatch_time(DISPATCH_TIME_NOW,7*NSEC_PER_SEC),dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{if(owned.running)[owned terminate];});
    NSUInteger writer=[_pipeHandles indexOfObjectIdenticalTo:in.fileHandleForWriting];BOOL writerDone=NO;
    std::vector<unsigned char> verifiedBytes;
    try{
     verifiedBytes=ynx_auth_private::boundedVerifierIO(in.fileHandleForWriting.fileDescriptor,out.fileHandleForReading.fileDescriptor,errors.fileHandleForReading.fileDescriptor,
-     (const unsigned char *)raw.bytes,raw.length,[&](){_pipeStates[writer]=@2;NSError *writerError=nil;writerDone=[in.fileHandleForWriting closeAndReturnError:&writerError];_pipeStates[writer]=writerDone?@1:@2;return (bool)writerDone;},[&](){return (bool)_task.running;},7000,ynx_auth_private::OriginalAuthVerifierInputMax,ynx_auth_private::OriginalAuthVerifierOutputMax);
+     (const unsigned char *)raw.bytes,raw.length,[&](){_pipeStates[writer]=@2;NSError *writerError=nil;writerDone=[in.fileHandleForWriting closeAndReturnError:&writerError];_pipeStates[writer]=writerDone?@1:@2;return (bool)writerDone;},[&](){return (bool)_task.running;},7000,ynx_auth_private::OriginalAuthVerifierInputMax,(_wprPublication&&_wprCaptureSelected?33554432:ynx_auth_private::OriginalAuthVerifierOutputMax));
    }catch(const std::exception &failure){{[self fail:[NSString stringWithUTF8String:failure.what()] error:error];return nil;}}
    NSData *result=[NSData dataWithBytes:verifiedBytes.data() length:verifiedBytes.size()];
    if(!writerDone||![self closeHeldPipes]){[self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_CLOSE_UNKNOWN" error:error];return nil;}
-   if(_task.terminationStatus!=0||result.length>ynx_auth_private::OriginalAuthVerifierOutputMax){[self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_VERIFICATION_FAILED" error:error];return nil;}
+   if(_task.terminationStatus!=0||result.length>(_wprPublication&&_wprCaptureSelected?33554432:ynx_auth_private::OriginalAuthVerifierOutputMax)){[self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_VERIFICATION_FAILED" error:error];return nil;}
  return result;
 }
 #include "original-ide-auth-proof-source.inc.mm"
 #include "original-ide-contract-relay-source.inc.mm"
 #include "original-ide-contract-relay-runtime.inc.mm"
+#include "original-ide-contract-initiator-source.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
 #include "original-product-device-v4-query-source.inc.mm"
 #include "original-product-device-v4-registered-finalization-source.inc.mm"
@@ -410,6 +443,18 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
    }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query||_productDeviceV4RegisteredFinalization||_productHTTPV5)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="network-resource-current-publisher-source-v1"){if(!_networkPublisher||!_networkPublisherPolicy||_policy!=&_networkPublisherPolicy->source||_networkPublisherPolicy->uid!=getuid()||_networkPublisherPolicy->platform!="macos"||_networkPublisherPolicy->applicationId.empty())return[self fail:@"NETWORK_PUBLISHER_DEDICATED_RELEASE_REQUIRED" error:error];policy[@"applicationId"]=[NSString stringWithUTF8String:_networkPublisherPolicy->applicationId.c_str()];policy[@"productId"]=@"network";policy[@"platform"]=@"macos";}else if(_networkPublisher)return[self fail:@"NETWORK_PUBLISHER_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="product-device-management-source-v4"){if(!_deviceManagement||!_managementPolicy||_policy!=&_managementPolicy->source||_managementPolicy->uid!=getuid()||_managementPolicy->platform!="macos"||_managementPolicy->application_id.empty()||_managementPolicy->product_id.empty())return[self fail:@"DEVICE_MANAGEMENT_V4_RELEASE_POLICY_REQUIRED" error:error];policy[@"applicationId"]=[NSString stringWithUTF8String:_managementPolicy->application_id.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_managementPolicy->product_id.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_managementPolicy->platform.c_str()];}else if(_deviceManagement)return[self fail:@"DEVICE_MANAGEMENT_V4_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="ai-native-task-action-source-v6"){if(!_aiTaskClient||!_aiTaskPolicy||_policy!=&_aiTaskPolicy->source)return[self fail:@"AI_V6_CLIENT_DEDICATED_RELEASE_REQUIRED" error:error];NSDictionary*aiPolicy=YNXOriginalAITaskClientPolicyDATA(*_aiTaskPolicy);if(!aiPolicy)return[self fail:@"AI_V6_CLIENT_POLICY_REQUIRED" error:error];policy=[aiPolicy mutableCopy];}else if(_aiTaskClient)return[self fail:@"AI_V6_CLIENT_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="browser-selected-pages-source-v1"){
+    if(!_browserPages||!_browserPagePolicy||_policy!=&_browserPagePolicy->source)return [self fail:@"BROWSER_PAGE_DEDICATED_RELEASE_REQUIRED" error:error];
+    NSDictionary*browserPolicy=YNXOriginalBrowserSourcePolicyDATA(*_browserPagePolicy);if(!browserPolicy)return [self fail:@"BROWSER_PAGE_DEDICATED_POLICY_REQUIRED" error:error];policy=[browserPolicy mutableCopy];
+   }else if(_browserPages)return [self fail:@"BROWSER_PAGE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="wallet-native-product-source-v1"){
+    if(_wprPublication){if(_walletNativeProduct||!_wprPublicationInputs||!ynx::wallet::product::publication::registered(_wprPublicationRow)||_policy!=&_wprPublicationRow->product.source||_productPolicy!=&_wprPublicationRow->product||![_wprPublicationPeer assertCurrentMessage:error])return[self fail:@"WPR_PUBLICATION_DEDICATED_RELEASE_REQUIRED" error:error];}
+    else if(!_walletNativeProduct||!_productPolicy||_productPolicy->uid!=getuid()||_productPolicy->product_id!="wallet"||_productPolicy->platform!="macos"||_productPolicy->application_id.empty())return [self fail:@"PRODUCT_SOURCE_DEDICATED_RELEASE_REQUIRED" error:error];
+    policy[@"applicationId"]=[NSString stringWithUTF8String:_productPolicy->application_id.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_productPolicy->product_id.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_productPolicy->platform.c_str()];
+   }else if(_walletNativeProduct)return [self fail:@"PRODUCT_SOURCE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-native-pay-client-source-v1"){
     if(!_walletNativePay||!_payObserved||_policy->walletNativePayUID!=getuid()||_policy->walletNativePayProductId!="wallet"||_policy->walletNativePayPlatform!="macos"||_policy->walletNativePayApplicationId.empty())return [self fail:@"PAY_NATIVE_DEDICATED_RELEASE_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletNativePayApplicationId.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_policy->walletNativePayProductId.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_policy->walletNativePayPlatform.c_str()];
@@ -438,7 +483,9 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     v2[@"previous"]=@{@"sequence":@(_sequence),@"floor":@(_floor),@"head":_headDigest,@"timeFloor":@(_timeFloor),@"executionHeight":_observationHeight?:@"0"};input=v2;
    }
    NSData *raw=[NSJSONSerialization dataWithJSONObject:input options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];if(!raw||raw.length>ynx_auth_private::OriginalAuthVerifierInputMax)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CAPACITY" error:error];
+   if(_wprPublication&&_wprCaptureSelected){_wprRegistrationCapture=nil;_wprExpectedCaptureInput=[raw copy];}
    NSData *result=[self runOriginalVerifierData:raw error:error];if(!result)return NO;
+   if(_wprPublication&&_wprCaptureSelected)_wprRegistrationCapture=[result copy];
    id parsed=[NSJSONSerialization JSONObjectWithData:result options:0 error:nil];NSDictionary *projection=[parsed isKindOfClass:NSDictionary.class]?parsed[@"projection"]:nil;
    if(![projection isKindOfClass:NSDictionary.class]||![projection[@"selection"] isKindOfClass:NSDictionary.class]||![projection[@"head"] isKindOfClass:NSString.class])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_PROJECTION_INVALID" error:error];
    if(sourceV2){uint64_t height=0;
@@ -451,6 +498,14 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    id currentBody=SourceOriginalBodyHint(currentBytes);
    id nonce=[currentBody isKindOfClass:NSDictionary.class]?currentBody[@"nonce"]:nil;
    if(!currentBytes||currentBytes.length>(sourceV2?393216:32768)||![nonce isKindOfClass:NSString.class]||[nonce length]!=43)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_ORIGINAL_INVALID" error:error];
+   if(_walletNativeProduct){try{
+    auto scope=ynx::wallet::product::product_scope_from_verified_projection(projection[@"selection"][@"walletNativeProductV1"]);
+    if(scope.network_id!=std::string([SourceProofDictionary(_rootOriginal,16384)[@"networkId"]UTF8String]?:"")||scope.account!=std::string([SourceOriginalBodyHint(_profileOriginal)[@"subjectOwner"]UTF8String]?:"")||scope.account!=std::string([projection[@"selection"][@"association"][@"account"]UTF8String]?:""))return [self fail:@"PRODUCT_SOURCE_SUBJECT_BINDING" error:error];
+    uint64_t issuerEpoch=0,currentEpoch=0;if(!SourceProofU64(SourceProofDictionary(_profileOriginal,393216)[@"keyVersion"],issuerEpoch,true)||!SourceProofU64(SourceProofDictionary(currentBytes,393216)[@"keyVersion"],currentEpoch,true))return [self fail:@"PRODUCT_SOURCE_ROLE_EPOCHS_REQUIRED" error:error];
+    NSString*identity=[NSString stringWithFormat:@"%@:%@:%llu:%llu",SourceSHA(_profileOriginal),projection[@"head"],(unsigned long long)issuerEpoch,(unsigned long long)currentEpoch];
+    auto mono=std::chrono::steady_clock::now();uint64_t wall=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(wall<after||wall>=expires||!ynx_auth_private::OriginalProductSourceMathCompletion::observe(_productObserved,issuerEpoch,currentEpoch,![_productObservedIdentity isEqual:identity]))return [self fail:@"PRODUCT_SOURCE_OBSERVER_LATE_OR_RETIRED" error:error];
+    _productObservedIdentity=[identity copy];_productCurrentMonoDeadline=mono+std::chrono::milliseconds(expires-wall);
+   }catch(...){return [self fail:@"PRODUCT_SOURCE_SCOPE_INVALID" error:error];}}
    if(_walletNativePay){
     uint64_t issuerEpoch=0,currentEpoch=0;
     if(!SourceProofU64(SourceProofDictionary(_profileOriginal,393216)[@"keyVersion"],issuerEpoch,true)||!SourceProofU64(SourceProofDictionary(currentBytes,393216)[@"keyVersion"],currentEpoch,true)||![projection[@"selection"][@"walletNativePayClientV1"]isKindOfClass:NSDictionary.class])return [self fail:@"PAY_NATIVE_VERIFIED_ROLE_EPOCHS_REQUIRED" error:error];
@@ -469,7 +524,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 - (BOOL)checkOriginalRuntimeImageBinding:(NSDictionary *)binding error:(NSError **)error {
  @synchronized(self){
   if([self class]!=YNXAuthIdentitySourceAuthority.class||!_policy||
-    !((_productHTTPV5&&_policy->purpose=="product-session-device-http-binary-source-v5")||
+    !((_wprPublication&&_policy->purpose=="wallet-native-product-source-v1")||
+      (_productHTTPV5&&_policy->purpose=="product-session-device-http-binary-source-v5")||
       (_productDeviceV4RegisteredFinalization&&_policy->purpose=="product-session-device-registered-finalization-source-v4")))
    return [self fail:@"AUTH_RUNTIME_IMAGE_DEDICATED_PURPOSE_REQUIRED" error:error];
   if(![self assertAuthenticatedNativePurpose:error])return NO;
@@ -694,10 +750,16 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   @finally{_entered=NO;}
  }
 }
-- (void)retire {@synchronized(self){if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans||_runtimeImageLoans||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (void)retire {@synchronized(self){if(_walletNativeProduct)ynx_auth_private::OriginalProductSourceMathCompletion::retire(_productObserved);if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_networkPublisherLoans||_managementEntered||_managementLoans||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
+ if(_wprPublication)return[self closeOriginalWPRPublicationSource:error];
  if(_ideCocoaParentSource)return [self closeOriginalIDECocoaParentChildFirst:error];
+ if(_networkPublisher)return[self closeOriginalNetworkCurrentPublisherSource:error];
+ if(_deviceManagement)return[self closeOriginalDeviceV4ManagementSource:error];
+ if(_aiTaskClient)return[self closeOriginalAITaskActionV6ClientSource:error];
+ if(_browserPages)return [self closeOriginalBrowserSelectedPagesSource:error];
+ if(_walletNativeProduct)return [self closeOriginalWalletProductSource:error];
  if(_walletNativePay)return [self closeOriginalWalletNativePaySource:error];
  @synchronized(self){[self retire];if(_runtimeImageLoans){if(!_runtimeImageCloseCause)_runtimeImageCloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_RUNTIME_IMAGE_CHILDREN_RETAINED"}];if(error)*error=_runtimeImageCloseCause;return NO;}}
  @synchronized(self){[self retire];if(_productHTTPV5&&_httpV5Loans){if(!_httpV5CloseCause)_httpV5CloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PRODUCT_HTTP_V5_REGISTERED_CHILDREN_RETAINED"}];if(error)*error=_httpV5CloseCause;return NO;}if(_closeSelected){if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
@@ -709,6 +771,13 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
   NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
 }
+#include "browser_page_source_methods.inc.mm"
+#include "ai_task_client_source_methods.inc.mm"
+#include "device_management_v4_source_methods.inc.mm"
+#include "network_publisher_source.inc.mm"
+#include "product_source_methods.inc"
+#include "WPRPublicationSourcePrivate.inc.mm"
+#include "WPRMaterializationSourcePrivate.inc.mm"
 #include "pay_native_source_methods.inc"
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}if(![self join:error])return NO;_closeSelected=YES;

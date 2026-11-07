@@ -25,6 +25,7 @@ bool hex(const std::string&s){return s.size()==64&&s.find_first_not_of("01234567
 std::string hashFD(int fd,uint64_t bytes){CC_SHA256_CTX ctx;CC_SHA256_Init(&ctx);unsigned char buf[32768];uint64_t offset=0;while(offset<bytes){ssize_t n=pread(fd,buf,std::min<uint64_t>(sizeof buf,bytes-offset),offset);if(n<=0)refuse("AUTH_RUNTIME_IMAGE_READ_UNKNOWN");CC_SHA256_Update(&ctx,buf,(CC_LONG)n);offset+=n;}unsigned char digest[32];CC_SHA256_Final(digest,&ctx);static const char h[]="0123456789abcdef";std::string out;for(auto b:digest){out+=h[b>>4];out+=h[b&15];}return out;}
 struct Held{int fd=-1;std::string path,digest;struct stat identity{};bool directory=false,selected=false,closed=false;};
 void protectedOwner(const struct stat&s,const std::string&p){
+ (void)p;
 #ifdef YNX_AUTH_RUNTIME_IMAGE_PUBLIC_OS_FIXTURE
  // PUBLIC test build ONLY: no Root or production admission is claimed. Normal
  // build has no runtime switch and requires UID0 all the way to filesystem /.
@@ -75,11 +76,12 @@ OriginalRuntimeImageReadLeaseV1::OriginalRuntimeImageReadLeaseV1(YNXAuthIdentity
   s.view.normalPackageRoot=canonical(string(b[@"normalPackageRoot"]));
   NSString*root=b[@"normalPackageRoot"];if(![root hasSuffix:@"/packages/wallet-auth"])refuse("AUTH_RUNTIME_IMAGE_NORMAL_ROOT");
   NSArray*names=@[@"fixedLoader",@"runtimeManifest",@"implementingImage",@"privateModule"];
-  NSArray*paths=@[[root stringByAppendingString:@"/src/original-auth-identity-fixed-native-image.js"],[root stringByAppendingString:@"/native/original-ide-auth-runtime-manifest.json"],[[root stringByAppendingString:@"/../../apps/wallet-desktop/native/original-auth-identity.node"]stringByStandardizingPath],[root stringByAppendingString:@"/src/original-http-binary-v5-client-private.js"]];
+  NSString*privatePath=[root stringByAppendingString:@"/src/original-http-binary-v5-client-private.js"];if([b[@"privateModule"][@"path"]isEqual:[root stringByAppendingString:@"/native/original-wpr-materialization-native-entry.mjs"]])privatePath=[root stringByAppendingString:@"/native/original-wpr-materialization-native-entry.mjs"];
+  NSArray*paths=@[[root stringByAppendingString:@"/src/original-auth-identity-fixed-native-image.js"],[root stringByAppendingString:@"/native/original-ide-auth-runtime-manifest.json"],[[root stringByAppendingString:@"/../../apps/wallet-desktop/native/original-auth-identity.node"]stringByStandardizingPath],privatePath];
   for(NSUInteger i=0;i<names.count;i++){
    NSDictionary *pin=b[names[i]];shape(pin,i==3?@[@"path",@"bytes",@"sha256",@"uri"]:@[@"path",@"bytes",@"sha256"]);
    auto p=canonical(string(pin[@"path"]));if(p!=string(paths[i]))refuse("AUTH_RUNTIME_IMAGE_PATH_RELATION");auto digest=string(pin[@"sha256"]);auto n=size(pin[@"bytes"],i==0?16384:i==1?1048576:16777216);if(!hex(digest))refuse("AUTH_RUNTIME_IMAGE_SHA256");
-   if(i==0&&(n!=3401||digest!="04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4"))refuse("AUTH_RUNTIME_IMAGE_LOADER_CODEPIN");
+   if(i==0&&(n!=9005||digest!="3f57e2056d331fba2a15d5d1c5278b7585760881c0e70c9968938f65772844df"))refuse("AUTH_RUNTIME_IMAGE_LOADER_CODEPIN");
    s.ancestors(p);s.hold(p,false,n,digest);
    if(i==2){s.view.imagePath=p;s.view.imageSHA256=digest;s.view.imageBytes=n;auto&h=s.held.back();s.view.imageDevice=h.identity.st_dev;s.view.imageInode=h.identity.st_ino;}
    if(i==3){s.view.privateModulePath=p;s.view.privateModuleURI=string(pin[@"uri"]);if(![pin[@"uri"]isEqual:[NSURL fileURLWithPath:pin[@"path"]].absoluteString])refuse("AUTH_RUNTIME_IMAGE_MODULE_URI");}

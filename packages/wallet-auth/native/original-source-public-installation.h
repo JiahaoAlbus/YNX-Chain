@@ -17,6 +17,9 @@
 #include <sys/stat.h>
 #include <sys/acl.h>
 #include <CommonCrypto/CommonDigest.h>
+#ifdef YNX_WPR_PUBLIC_CLOSE_FAILURE
+extern "C" int ynx_wpr_PUBLIC_close_fd(int);
+#endif
 namespace ynx_auth_private {
 // Private filesystem mechanics, NOT an enrollment/permission constructor.
 // The normal Native receiver supplies only its fixed kernel-UID registry
@@ -138,6 +141,8 @@ private:
   }else file.written=expected_[n].size();
  }
 public:
+ // Read-only filesystem predicate, not Source/UID/publication authority.
+ static bool protectedOriginalDescriptorACL(int descriptor){return protectedACL(descriptor);}
  static bool protectedRootAncestors(const std::string&path){
   if(path.empty()||path[0]!='/'||path.size()>=PATH_MAX)return false;
   char canonical[PATH_MAX];if(!realpath(path.c_str(),canonical)||path!=canonical)return false;
@@ -159,12 +164,19 @@ public:
    parentLinks_=parentIdentity_.st_nlink;parentCurrent();return true;
   }catch(const std::exception&){return false;}
  }
- bool stage(const Bundle &originals){
+ bool stage(const Bundle &originals){return stageImpl(originals,nullptr);}
+ bool stageOriginalWPR(const Bundle&originals,const std::string&originalOperation){
+  try{if(originalOperation.size()!=64)fail("WPR_PUBLICATION_OPERATION_REQUIRED");for(unsigned char c:originalOperation)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))fail("WPR_PUBLICATION_OPERATION_REQUIRED");
+   const std::string name=".original-auth-identity.pending.wpr."+originalOperation;return stageImpl(originals,&name);
+  }catch(const std::exception&){return false;}
+ }
+private:
+ bool stageImpl(const Bundle &originals,const std::string*fixedName){
   try{if(first_||stageSelected_)fail("SOURCE_PROVISIONING_STAGE_REUSED");stageSelected_=true;parentCurrent();
    if(!absent(finalName_))fail("SOURCE_PROVISIONING_ALREADY_INSTALLED_NO_REPLACE");
    for(const auto &b:originals)if(b.empty()||b.size()>OriginalAuthPublicOriginalMax)fail("SOURCE_PROVISIONING_CAPACITY");expected_=originals;
-   unsigned char nonce[16];arc4random_buf(nonce,sizeof(nonce));static constexpr char h[]="0123456789abcdef";
-   name_=".original-auth-identity.pending.";for(auto b:nonce){name_.push_back(h[b>>4]);name_.push_back(h[b&15]);}
+   if(fixedName)name_=*fixedName;else{unsigned char nonce[16];arc4random_buf(nonce,sizeof(nonce));static constexpr char h[]="0123456789abcdef";
+   name_=".original-auth-identity.pending.";for(auto b:nonce){name_.push_back(h[b>>4]);name_.push_back(h[b&15]);}}
    if(mkdirat(fd(parent_),name_.c_str(),0700))fail("SOURCE_PROVISIONING_STAGE_CREATE_FAILED");owned_=true;
    directory_=adopt(openat(fd(parent_),name_.c_str(),O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC));
    if(fstat(fd(directory_),&directoryIdentity_)||!S_ISDIR(directoryIdentity_.st_mode)||directoryIdentity_.st_uid!=parentIdentity_.st_uid||directoryIdentity_.st_nlink!=2)fail("SOURCE_PROVISIONING_DIRECTORY_INVALID");
@@ -182,6 +194,7 @@ public:
    if(fsync(fd(directory_))||fsync(fd(parent_)))fail("SOURCE_PROVISIONING_DIRECTORY_SYNC_UNKNOWN");directoryCurrent();return true;
   }catch(const std::exception&){return false;}
  }
+public:
  bool publish(){
   try{if(first_||!owned_||publishSelected_)fail("SOURCE_PROVISIONING_PUBLICATION_REUSED");publishSelected_=true;
    directoryCurrent();exactInventory(fd(directory_));for(std::size_t n=0;n<4;n++)fileCurrent(files_[n],n,fd(directory_));
@@ -234,6 +247,21 @@ public:
    d.selected=true;d.complete=::close(d.fd)==0;if(d.complete)d.fd=-1;else{okay=false;if(!closeCause_)closeCause_="SOURCE_PROVISIONING_DESCRIPTOR_CLOSE_UNKNOWN";}
   }
   closed_=okay;return closed_;
+ }
+ // Dedicated WPR custody close: preserve original pending/published bytes,
+ // never auto-delete UNKNOWN, and stop before every parent on child debt.
+ bool closeRetainingOriginalWPRData(){
+  if(closeSelected_)return closed_;closeSelected_=true;
+  for(std::size_t reverse=fds_.size();reverse>0;--reverse){auto&d=fds_[reverse-1];if(d.fd<0)continue;
+   if(d.selected){if(!d.complete){if(!closeCause_)closeCause_="WPR_PUBLICATION_CHILD_CLOSE_UNKNOWN";return false;}continue;}
+   d.selected=true;
+#ifdef YNX_WPR_PUBLIC_CLOSE_FAILURE
+   d.complete=ynx_wpr_PUBLIC_close_fd(d.fd)==0;
+#else
+   d.complete=::close(d.fd)==0;
+#endif
+   if(!d.complete){if(!closeCause_)closeCause_="WPR_PUBLICATION_CHILD_CLOSE_UNKNOWN";return false;}d.fd=-1;
+  }closed_=true;return true;
  }
  const char *firstCause()const{return first_;}
  const char *closeCause()const{return closeCause_;}

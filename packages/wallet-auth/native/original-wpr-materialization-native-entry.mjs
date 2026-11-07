@@ -1,7 +1,8 @@
-// Normal publication bootstrap owning callee has not been supplied. This is
-// deliberately distinct from the installed-consumer fixed image loader.
-// The frozen Auth static hook alone does not resolve this normal Host entry.
+// Actual independent normal WPR pre-load must already be ready. Synchronous
+// zeroarg callee; not installed-consumer loader or an injected provider.
+import{acquireOriginalWPRMaterializationNativeStageV1}from'../src/original-auth-identity-fixed-native-image.js';
+const capturedAcquire=acquireOriginalWPRMaterializationNativeStageV1;
 export function acquireOriginalWPRMaterializationLoanV1(){
  if(arguments.length)throw Object.assign(Error('WPR_NATIVE_ENTRY_ZERO_ARGUMENTS'),{code:'WPR_NATIVE_ENTRY_ZERO_ARGUMENTS'});
- throw Object.assign(Error('WPR_NATIVE_MATERIALIZATION_ENTRY_NOT_WIRED'),{code:'WPR_NATIVE_MATERIALIZATION_ENTRY_NOT_WIRED'});
+ return capturedAcquire();
 }
