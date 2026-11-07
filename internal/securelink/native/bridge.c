@@ -477,4 +477,143 @@ int ynx_peer_spki_der(SSL *ssl, unsigned char *out, size_t capacity,
     *length = (size_t)needed;
     return 1;
 }
+
+int ynx_ctx_server_identity(SSL_CTX *ctx, ynx_server_identity *out,
+                            char *err, size_t err_capacity) {
+    if (out) memset(out, 0, sizeof(*out));
+    if (!ctx || !out || !err || !err_capacity) return 0;
+    const char *reason = "held fixed server context identity unavailable";
+    GENERAL_NAMES *names = NULL;
+    X509_STORE_CTX *verification = NULL;
+    int ok = 0;
+    ynx_provider *p = &pinned_provider;
+    /* No provider/context construction or mutable TLS setting occurs here.
+     * Go owns the server role and holds the original Context mutex. The
+     * private pointer comes only from the unchanged fixed constructors. */
+    if (!provider_ready || !p->provider || !p->sha256 ||
+        OpenSSL_version_num() != OPENSSL_VERSION_NUMBER ||
+        SSL_CTX_get_ssl_method(ctx) != TLS_method() ||
+        SSL_CTX_get_min_proto_version(ctx) != TLS1_3_VERSION ||
+        SSL_CTX_get_max_proto_version(ctx) != TLS1_3_VERSION ||
+        SSL_CTX_get_verify_mode(ctx) != (SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT) ||
+        SSL_CTX_get_verify_callback(ctx) != verify_chain || SSL_CTX_get_verify_depth(ctx) != 4 ||
+        SSL_CTX_get_session_cache_mode(ctx) != SSL_SESS_CACHE_OFF ||
+        SSL_CTX_get_num_tickets(ctx) != 0 || SSL_CTX_get_max_early_data(ctx) != 0 ||
+        (SSL_CTX_get_options(ctx) & (SSL_OP_NO_TICKET | SSL_OP_NO_RENEGOTIATION)) !=
+            (SSL_OP_NO_TICKET | SSL_OP_NO_RENEGOTIATION)) goto done;
+    STACK_OF(SSL_CIPHER) *ciphers = SSL_CTX_get_ciphers(ctx);
+    int tls13_ciphers = 0;
+    for (int i = 0; ciphers && i < sk_SSL_CIPHER_num(ciphers); ++i) {
+        const SSL_CIPHER *cipher = sk_SSL_CIPHER_value(ciphers, i);
+        if (!strcmp(SSL_CIPHER_get_version(cipher), "TLSv1.3")) {
+            if (strcmp(SSL_CIPHER_get_name(cipher), "TLS_AES_256_GCM_SHA384")) goto done;
+            ++tls13_ciphers;
+        }
+    }
+    if (tls13_ciphers != 1) goto done;
+    X509 *leaf = SSL_CTX_get0_certificate(ctx);
+    if (!leaf || !pq_cert(leaf) || X509_check_ca(leaf) != 0 ||
+        !explicit_eku(leaf, NID_server_auth) ||
+        EVP_PKEY_get0_provider(X509_get0_pubkey(leaf)) != p->provider) goto done;
+    STACK_OF(X509) *local_chain = NULL;
+    SSL_CTX_get0_chain_certs(ctx, &local_chain);
+    if (!local_chain) SSL_CTX_get_extra_chain_certs_only(ctx, &local_chain);
+    if (local_chain && sk_X509_num(local_chain) > 4) goto done;
+    verification = X509_STORE_CTX_new_ex(p->libctx, "provider=default");
+    if (!verification || !X509_STORE_CTX_init(verification, SSL_CTX_get_cert_store(ctx), leaf, local_chain) ||
+        !X509_VERIFY_PARAM_set1(X509_STORE_CTX_get0_param(verification), SSL_CTX_get0_param(ctx)) ||
+        !X509_STORE_CTX_set_purpose(verification, X509_PURPOSE_SSL_SERVER)) goto done;
+    X509_STORE_CTX_set_verify_cb(verification, verify_chain);
+    if (X509_verify_cert(verification) != 1) {
+        reason = "held server certificate chain verification rejected";goto done;
+    }
+    STACK_OF(X509) *verified = X509_STORE_CTX_get0_chain(verification);
+    if (!verified || sk_X509_num(verified) < 2 || sk_X509_num(verified) > 6) goto done;
+    /* All configured local certificates participate in the validity bound,
+     * even if a supplied extra was not selected by chain construction. The
+     * selected original trust-store root is checked too; no issuer is minted. */
+    int64_t beginning = INT64_MIN, ending = INT64_MAX;
+    for (int set = 0; set < 3; ++set) {
+        STACK_OF(X509) *chain = set == 1 ? local_chain : verified;
+        const int count = set == 0 ? 1 : chain ? sk_X509_num(chain) : 0;
+        for (int i = 0; i < count; ++i) {
+            X509 *cert = set == 0 ? leaf : sk_X509_value(chain, i);
+            struct tm before, after;
+            if (!cert || !pq_cert(cert) || EVP_PKEY_get0_provider(X509_get0_pubkey(cert)) != p->provider ||
+                X509_cmp_current_time(X509_get0_notBefore(cert)) >= 0 ||
+                X509_cmp_current_time(X509_get0_notAfter(cert)) <= 0 ||
+                !ASN1_TIME_to_tm(X509_get0_notBefore(cert), &before) ||
+                !ASN1_TIME_to_tm(X509_get0_notAfter(cert), &after)) {
+                reason = "held local certificate chain validity or ML-DSA policy rejected";goto done;
+            }
+            errno = 0;const time_t start = timegm(&before);
+            if (errno == EOVERFLOW) goto done;
+            errno = 0;const time_t end = timegm(&after);
+            if (errno == EOVERFLOW || start >= end) goto done;
+            if ((int64_t)start > beginning) beginning = (int64_t)start;
+            if ((int64_t)end < ending) ending = (int64_t)end;
+        }
+    }
+    names = X509_get_ext_d2i(leaf, NID_subject_alt_name, NULL, NULL);
+    if (!names) goto done;
+    for (int i = 0; i < sk_GENERAL_NAME_num(names); ++i) {
+        const GENERAL_NAME *name = sk_GENERAL_NAME_value(names, i);
+        if (name->type != GEN_DNS) continue;
+        const unsigned char *value = ASN1_STRING_get0_data(name->d.dNSName);
+        const int length = ASN1_STRING_length(name->d.dNSName);
+        if (!value || length <= 0 || length > 253 || out->dns_count >= YNX_SERVER_DNS_MAX) goto done;
+        size_t label = 0;
+        for (int at = 0; at < length; ++at) {
+            const unsigned char c = value[at];
+            if (c == '.') {
+                if (!label || label > 63 || value[at - 1] == '-') goto done;
+                label = 0;
+            } else {
+                if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') || c == '-') || (!label && c == '-')) goto done;
+                ++label;
+            }
+        }
+        if (!label || label > 63 || value[length - 1] == '-') goto done;
+        for (size_t prior = 0; prior < out->dns_count; ++prior)
+            if (strlen(out->dns_names[prior]) == (size_t)length && !memcmp(out->dns_names[prior], value, (size_t)length)) goto done;
+        memcpy(out->dns_names[out->dns_count], value, (size_t)length);
+        out->dns_names[out->dns_count++][length] = 0;
+    }
+    if (!out->dns_count) goto done;
+    X509_PUBKEY *spki = X509_get_X509_PUBKEY(leaf);
+    const int cert_length = i2d_X509(leaf, NULL), spki_length = spki ? i2d_X509_PUBKEY(spki, NULL) : 0;
+    if (cert_length <= 0 || (size_t)cert_length > YNX_SERVER_CERT_DER_MAX ||
+        spki_length <= 0 || (size_t)spki_length > YNX_SERVER_SPKI_DER_MAX) {
+        reason = "held server public DER exceeds fixed bounds";goto done;
+    }
+    unsigned char *cursor = out->certificate_der;
+    if (i2d_X509(leaf, &cursor) != cert_length || cursor != out->certificate_der + cert_length) goto done;
+    cursor = out->spki_der;
+    if (i2d_X509_PUBKEY(spki, &cursor) != spki_length || cursor != out->spki_der + spki_length) goto done;
+    out->certificate_der_length = (size_t)cert_length;out->spki_der_length = (size_t)spki_length;
+    for (int kind = 0; kind < 2; ++kind) {
+        unsigned char hash[32];unsigned int length = 0;
+        const unsigned char *data = kind ? out->spki_der : out->certificate_der;
+        const size_t bytes = kind ? out->spki_der_length : out->certificate_der_length;
+        char *hex = kind ? out->spki_sha256 : out->certificate_sha256;
+        if (!EVP_Digest(data, bytes, hash, &length, p->sha256, NULL) || length != sizeof(hash)) goto done;
+        for (size_t i = 0; i < sizeof(hash); ++i) snprintf(hex + i * 2, 3, "%02x", hash[i]);
+    }
+    out->not_before = beginning;out->not_after = ending;
+    snprintf(out->runtime_version, sizeof(out->runtime_version), "%s", OpenSSL_version(OPENSSL_VERSION));
+    snprintf(out->protocol, sizeof(out->protocol), "%s", "TLSv1.3");
+    /* Group/signature are the unchanged private constructor's fixed profile,
+     * not a fabricated negotiated peer state. OpenSSL exposes no getter for
+     * these configured lists; there is no caller setter on native.Context. */
+    snprintf(out->group, sizeof(out->group), "%s", "SecP384r1MLKEM1024");
+    snprintf(out->cipher, sizeof(out->cipher), "%s", "TLS_AES_256_GCM_SHA384");
+    snprintf(out->signature, sizeof(out->signature), "%s", "mldsa87");
+    out->server_auth = out->mutual = out->tickets_off = 1;
+    out->version = 1;out->size = (uint32_t)sizeof(*out);ok = 1;
+done:
+    GENERAL_NAMES_free(names);X509_STORE_CTX_free(verification);
+    if (!ok) {memset(out, 0, sizeof(*out));failure(err, err_capacity, reason);}
+    return ok;
+}
 const char *ynx_runtime_version(void) { return OpenSSL_version(OPENSSL_VERSION); }

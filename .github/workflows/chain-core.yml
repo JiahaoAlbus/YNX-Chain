@@ -69,7 +69,7 @@ jobs:
         with:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
-        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs cmd/ynx-secure-link/server-tls-ci.test.mjs
       - name: Check original resource-current native client and Darwin kernel peer lifecycle
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
@@ -396,6 +396,11 @@ jobs:
           YNX_LINK_IDE_FINITE_GET_TEST_ARTIFACTS: ${{ runner.temp }}/securelink-finite7-private
           YNX_LINK_IDE_FINITE_GET_CI_EVIDENCE: ${{ runner.temp }}/securelink-evidence/finite7
         run: node cmd/ynx-secure-link-caller/ide-finite-get-ci.mjs
+      - name: Compile the actual Auth server lease adapter and check empty Root cleanup
+        env:
+          YNX_LINK_SERVER_TLS_CI_PRIVATE: ${{ runner.temp }}/securelink-server-tls-private
+          YNX_LINK_SERVER_TLS_CI_EVIDENCE: ${{ runner.temp }}/securelink-evidence/server-tls
+        run: node cmd/ynx-secure-link/server-tls-ci.mjs
       - name: Upload scoped evidence and upstream notices (no test keys)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

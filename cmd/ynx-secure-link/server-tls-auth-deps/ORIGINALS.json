@@ -1,0 +1,37 @@
+{
+  "schema": "YNX-LINK-AUTH-SERVER-TLS-PUBLIC-SOURCE-SNAPSHOT/v1",
+  "state": "ACTUAL_SOURCE_SNAPSHOT_NOT_OWNER_RELEASE_OR_ROOT_ADMISSION",
+  "sources": [
+    {
+      "path": "internal/authservertls/lease.go",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/lease.go",
+      "bytes": 16311,
+      "sha256": "119e448e87e16ef2690b7dbf4c37a6778ce88a4bba4e90fc89f7eef59ba7e7a2",
+      "gitBlob": "c179ce4f8ab7929d775a6bef7b328e9c9f10ae55",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/parent_darwin.go",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/parent_darwin.go",
+      "bytes": 427,
+      "sha256": "a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26",
+      "gitBlob": "a491f1aeb4e38a64f4537b11ef78352e51ae668c",
+      "mode": "100644"
+    },
+    {
+      "path": "internal/authservertls/parent_linux.go",
+      "originalPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/listener-identity-successor/source/internal/authservertls/parent_linux.go",
+      "bytes": 429,
+      "sha256": "96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882",
+      "gitBlob": "b6858541da3160d56f2477f9ac46b72b239108d2",
+      "mode": "100644"
+    }
+  ],
+  "owner": "Original Auth internal/authservertls supplier; LINK copies exact public Go source only",
+  "copiedSourceOnly": true,
+  "modifiedSupplierSource": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "V4PrincipalAdmission": false,
+  "deployed": false
+}
