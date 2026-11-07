@@ -44,6 +44,7 @@ on:
       - 'scripts/ops/test_copy_current_native_data_once.py'
       - 'scripts/ops/build-pq-offline-migration-tools.sh'
       - 'scripts/ops/test_build_pq_offline_migration_tools.py'
+      - 'scripts/ops/test_public_bft_final_snapshot_tools.py'
       - 'scripts/ops/build-native-transition-candidate.sh'
       - 'scripts/ops/test_build_native_transition_candidate.py'
       - 'scripts/ops/remote/verify-retained-migration-preservation-once.sh'
@@ -3823,8 +3824,11 @@ jobs:
               out.write('changed=' + str(changed).lower() + '\n')
           print('Streaming exporter inputs changed:', changed)
           PY
+      - name: Verify original exporter v2 consumer and closed provenance
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+        run: python3 -B scripts/ops/test_public_bft_final_snapshot_tools.py -v
       - name: Use the qualified exporter Go toolchain
-        if: steps.scope.outputs.changed == 'true'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.26.10'
@@ -3873,7 +3877,7 @@ jobs:
           go test -v -p 1 -count=1 -timeout=180s -run '^(TestValidatedMigration|TestBlockJournalReader)' ./internal/consensus
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput|TestMigrationImportStorage|TestMigrationSchedulePreservation)' ./cmd/ynx-consensus-package
       - name: Build actual clean current-source offline tools without starting services
-        if: steps.scope.outputs.changed == 'true'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
         run: |
           bash scripts/ops/build-pq-offline-migration-tools.sh \
             --repository "$GITHUB_WORKSPACE" \
@@ -3882,7 +3886,7 @@ jobs:
             --work-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             --output-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-tools"
       - name: Upload the exact new-source clean exporter supply
-        if: steps.scope.outputs.changed == 'true'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-offline-migration-streaming-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

@@ -119,16 +119,72 @@ def source_record(path, expected, tx, commit, native_release, bft_release, nativ
             'invalid approved checkpoint block hash')
     return value, raw
 
+def tools_build_info(value, name, full_commit):
+    fields(value, ('goVersion', 'path', 'settings', 'raw'))
+    require(value['goVersion'] == 'go1.26.10' and type(value['path']) is str
+            and value['path'].endswith('/cmd/' + name) and type(value['raw']) is str
+            and 0 < len(value['raw'].encode('utf8')) <= 128 << 10,
+            'offline original Go build identity differs')
+    lines = value['raw'].splitlines()
+    require(lines and lines[0].endswith('/' + name + ': go1.26.10'),
+            'offline original Go metadata header differs')
+    settings, main_path = {}, None
+    for line in lines[1:]:
+        if line.startswith('\tbuild\t'):
+            key, equal, item = line[len('\tbuild\t'):].partition('=')
+            require(equal and key not in settings, 'duplicate or invalid original build setting')
+            if item.startswith('"'):
+                item = decode(item.encode('utf8'))
+            require(type(item) is str, 'invalid original build setting value')
+            settings[key] = item
+        elif line.startswith('\tpath\t'):
+            require(main_path is None, 'duplicate original main package')
+            main_path = line[len('\tpath\t'):]
+    require(main_path == value['path'] and type(value['settings']) is dict
+            and settings == value['settings'], 'offline BuildInfo raw/typed projection differs')
+    for key, wanted in {'-buildmode': 'exe', '-trimpath': 'true', 'CGO_ENABLED': '0',
+                        'GOOS': 'linux', 'GOARCH': 'amd64', 'vcs': 'git',
+                        'vcs.revision': full_commit, 'vcs.modified': 'false'}.items():
+        require(settings.get(key) == wanted, 'offline actual build setting differs: ' + key)
+    require('-ldflags' not in settings, 'unexpected ldflags metadata under original trimpath toolchain')
+
 def tools_record(root, full_commit, expected):
     original(root)
     names = ('ynx-chaind', 'ynx-consensus-package')
     require(root.is_dir() and {p.name for p in root.iterdir()} == set(names) | {'SOURCE.json'},
             'offline exporter bundle allowlist differs (8-ELF operator runtime is not an exporter)')
-    actual, raw, _ = read(root / 'SOURCE.json', 16384, True)
+    actual, raw, _ = read(root / 'SOURCE.json', 256 << 10, True)
     require(actual['sha256'] == pin(expected), 'offline SOURCE.json differs from original approval pin')
     value = decode(raw)
-    fields(value, ('version', 'commit', 'runId', 'platform', 'purpose', 'binaries'))
-    require(value['version'] == 'YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1' and value['commit'] == full_commit
+    common = ('version', 'commit', 'runId', 'platform', 'purpose', 'binaries')
+    require(type(value) is dict, 'offline SOURCE must be an object')
+    version = value.get('version')
+    if version == 'YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1':
+        fields(value, common)
+        require(len(raw) <= 16384, 'original v1 SOURCE bound exceeded')
+    elif version == 'YNX-PQ-OFFLINE-MIGRATION-TOOLS/v2':
+        fields(value, common + ('tree', 'runAttempt', 'controllerCI', 'sourceBefore', 'sourceAfter',
+                               'runtimeStarted', 'deploymentReady', 'authorityGranted', 'executionReady'))
+        require(type(value['tree']) is str and re.fullmatch('[0-9a-f]{40}', value['tree'])
+                and value['tree'] != '0' * 40, 'offline original source tree differs')
+        for label in ('sourceBefore', 'sourceAfter'):
+            fields(value[label], ('head', 'tree', 'status'))
+            require(value[label] == dict(head=full_commit, tree=value['tree'], status=''),
+                    'offline source was not the same clean original checkout')
+        fields(value['controllerCI'], ('commit', 'runId', 'runAttempt'))
+        controller = value['controllerCI']
+        require(type(controller['commit']) is str and re.fullmatch('[0-9a-f]{40}', controller['commit'])
+                and controller['commit'] != '0' * 40, 'offline controller identity differs')
+        for label in ('runId', 'runAttempt'):
+            require(type(value[label]) is str and re.fullmatch('[1-9][0-9]{0,19}', value[label])
+                    and int(value[label]) <= (1 << 64)-1 and controller[label] == value[label],
+                    'offline controller run/attempt differs')
+        require(all(value[label] is False for label in ('runtimeStarted', 'deploymentReady',
+                                                       'authorityGranted', 'executionReady')),
+                'offline build provenance cannot grant execution or activation')
+    else:
+        raise ValueError('unsupported offline exporter SOURCE version')
+    require(value['commit'] == full_commit
             and re.fullmatch('[0-9a-f]{40}', full_commit) and value['platform'] == 'linux/amd64'
             and value['purpose'] == 'offline copied-state validation; not installed or activated'
             and type(value['runId']) is str and re.fullmatch('[1-9][0-9]*', value['runId']),
@@ -136,11 +192,26 @@ def tools_record(root, full_commit, expected):
     fields(value['binaries'], names)
     for name in names:
         entry = value['binaries'][name]
-        fields(entry, ('bytes', 'sha256'))
+        fields(entry, ('bytes', 'sha256') + (('goInfo',) if version.endswith('/v2') else ()))
         require(type(entry['bytes']) is int and 0 < entry['bytes'] <= 128 << 20, 'invalid tool size')
         pin(entry['sha256'])
-        actual, _, _ = read(root / name, 128 << 20)
-        require(actual == entry, 'offline tool differs from pinned SOURCE: ' + name)
+        actual, _, original_identity = read(root / name, 128 << 20)
+        require(actual == {key: entry[key] for key in ('bytes', 'sha256')},
+                'offline tool differs from pinned SOURCE: ' + name)
+        if version.endswith('/v2'):
+            tools_build_info(entry['goInfo'], name, full_commit)
+            # Read only the fixed ELF identification after the complete pinned
+            # byte read. This does not execute the exporter or infer authority.
+            descriptor = os.open(root / name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+            with os.fdopen(descriptor, 'rb') as executable:
+                require(identity(os.fstat(executable.fileno())) == original_identity,
+                        'offline executable changed before ELF identification')
+                header = executable.read(20)
+                require(identity(os.fstat(executable.fileno())) == original_identity
+                        and identity((root / name).lstat()) == original_identity,
+                        'offline executable changed across ELF identification')
+            require(header[:6] == b'\x7fELF\x02\x01' and header[18:20] == b'\x3e\x00',
+                    'offline v2 executable is not Linux amd64 ELF')
     return value
 
 def check_source(value, tx, commit, release, native_identity=None):
