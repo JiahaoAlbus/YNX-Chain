@@ -158,6 +158,8 @@ class D24ControllerControls(unittest.TestCase):
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),'83bf4b2d9fdcba0b73abf264867288e70079891d674f76d364411d0a8cad0334')
         self.assertEqual(hashlib.sha256((HERE/'pq-current75-baseline-ci.py').read_bytes()).hexdigest(),'a9aef92484c840da2a2e6eca39c98573ee5850547a98257316668e0db0e4cbd2')
         runtime=workflow.split('\n  first100-d24-initialize-before-load:',1)[1]
+        # Later profiles carry different pins; restrict this assertion to D24's job.
+        runtime=re.split(r'(?m)^  [A-Za-z0-9_-]+:[ \t]*$',runtime,maxsplit=1)[0]
         refs=dict((name,ref) for ref,name in re.findall(r'(?m)^          ref: ([^\n]+)\n          path: (controller|source|tools)$',runtime))
         self.assertEqual(refs,dict(controller='${{ github.sha }}',source=entry.GO_SOURCE,tools=entry.TOOLS))
         self.assertEqual(space.fixed_profile(environment())[2:],(refs['source'],refs['tools']))
