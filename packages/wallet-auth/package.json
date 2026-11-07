@@ -890,7 +890,11 @@
     "native/product_source_permission_private.hpp",
     "native/product_source_release_private.hpp",
     "native/product_root_contract_private.hpp",
-    "docs/wpr-independent-normal-bootstrap-cohort.md"
+    "docs/wpr-independent-normal-bootstrap-cohort.md",
+    "native/original-server-tls-source-contract.mjs",
+    "native/original-server-tls-source-contract.d.mts",
+    "native/original-server-tls-source-qualification-runner.mjs",
+    "docs/server-tls-sdk-intake.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
