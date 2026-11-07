@@ -115,11 +115,12 @@ def original_node_startup(files,prefix,receipt):
     reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
     return reader.original_nodes(files,prefix,receipt.get('processes',[]))
 
-def inspect(raw,pin,controller,source,source_tree,tools):
+def public_archive(raw,pin,entry_limit=1024):
+    require(type(entry_limit) is int and 1<=entry_limit<=8192,'bounded public archive entry ceiling required')
     require(type(raw) is bytes and 0<len(raw)<=128<<20 and re.fullmatch('[0-9a-f]{64}',pin) and hashlib.sha256(raw).hexdigest()==pin,'whole original ZIP digest or bound differs')
     files={};manifest={};seen=set();total=0
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-        infos=archive.infolist();require(0<len(infos)<=1024,'bounded original ZIP entry count required')
+        infos=archive.infolist();require(0<len(infos)<=entry_limit,'bounded original ZIP entry count required')
         for entry in infos:
             name=PurePosixPath(entry.filename);mode=entry.external_attr>>16
             require(not name.is_absolute() and '..' not in name.parts and '\\' not in entry.filename and str(name)==entry.filename.rstrip('/') and entry.filename not in seen and not stat.S_ISLNK(mode),'unsafe/duplicate original ZIP entry');seen.add(entry.filename)
@@ -127,6 +128,10 @@ def inspect(raw,pin,controller,source,source_tree,tools):
             total+=entry.file_size;require(entry.file_size<=8<<20 and total<=256<<20,'bounded original public ZIP files required')
             body=archive.read(entry);require(len(body)==entry.file_size,'original ZIP entry length differs')
             files[entry.filename]=body;manifest[entry.filename]=dict(bytes=len(body),crc32=entry.CRC,sha256=hashlib.sha256(body).hexdigest())
+    return files,manifest,total
+
+def inspect(raw,pin,controller,source,source_tree,tools):
+    files,manifest,total=public_archive(raw,pin)
     matches=[name for name in files if name=='receipt.json' or name=='public/receipt.json' or name.endswith('/public/receipt.json')];require(len(matches)<=1,'one original initialization receipt required')
     if not matches:return unfinished_originals(files,manifest,pin,controller,source,source_tree,tools)
     name=matches[0];prefix=name.removesuffix('receipt.json');receipt=strict(files[name]);adapter=strict(files[prefix+'CURRENT703-BASELINE-CI.json']);request=strict(files[prefix+'requested-load.json'])

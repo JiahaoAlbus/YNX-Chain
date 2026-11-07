@@ -5,6 +5,7 @@ Normal source proof/confirmation remains authoritative; this is no new crypto
 verification and does not equate proof-consumer completion with consensus time.
 """
 import hashlib
+import argparse
 import importlib.util
 import json
 from pathlib import Path
@@ -105,3 +106,21 @@ def inspect(files, prefix=''):
                 originalOwnedStorageAccounting=receipt.get('ownedStorageAccounting'), originalResources={k:receipt.get(k) for k in ('elapsedSeconds','peakRSSBytes','peakNewBytes','resourceGuardStageElapsed')},
                 pressureAuthorized=False, physicalFaultDomains=1, stable1000TPSQualified=False,
                 runtimeBinaryBytesIndependentlyRehashed=False)
+
+
+def main(argv=None):
+    p=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
+    p.add_argument('--archive',required=True);p.add_argument('--sha256',required=True)
+    p.add_argument('--output',required=True)
+    a=p.parse_args(argv)
+    files,manifest,total=original.public_archive(Path(a.archive).read_bytes(),a.sha256,entry_limit=8192)
+    matches=[name for name in files if name=='receipt.json' or name=='public/receipt.json' or name.endswith('/public/receipt.json')]
+    require(len(matches)==1,'one original first100 receipt required; incomplete archive remains unqualified')
+    result=inspect(files,matches[0].removesuffix('receipt.json'))
+    result.update(archiveSHA256=a.sha256,verifiedFiles=len(manifest),verifiedUncompressedBytes=total,files=manifest)
+    with Path(a.output).open('x') as out:json.dump(result,out,indent=2);out.write('\n')
+    print(json.dumps(dict(originalFirstCause=result['originalFirstCause'],loadExecuted=result['loadExecuted'],observedBusiness=result['observedBusiness'])))
+    return 0
+
+
+if __name__=='__main__':raise SystemExit(main())
