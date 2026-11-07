@@ -1,0 +1,110 @@
+{
+  "schema": "YNX_SOCIAL_PRINCIPAL_PRIVATE_STDIO/v1",
+  "status": "EARLY_IMMUTABLE_SOLE_SDK_IDL_AUTH_DRAFT_ALIGNED_NOT_AUTHORITY",
+  "transport": "single original Root-selected pinned helper child stdin/stdout; one canonical Go-HTML JSON object plus LF per frame, no HTTP/port/ENV/caller executable/provider",
+  "requestExact6": [
+    "version",
+    "sequence",
+    "command",
+    "requestOriginal",
+    "replayKey",
+    "proofExpiresMS"
+  ],
+  "responseExact6": [
+    "version",
+    "sequence",
+    "original",
+    "errorPresent",
+    "error",
+    "physicalDone"
+  ],
+  "version": 1,
+  "sequence": "canonical u64 decimal STRING; unsolicited startup response sequence0; requests start1 increment exactly; no overflow/replay, one outstanding request, same child closure",
+  "commands": [
+    "read",
+    "current",
+    "qualify",
+    "retire",
+    "join",
+    "close"
+  ],
+  "requestDefaults": "except qualify, requestOriginal/replayKey must empty and proofExpiresMS0; qualify carries exact SAME Host canonical originalRequest6 rawUTF8, original proofReplayKey, independent Host proofExpiresMS positive MAXSAFE int",
+  "responseOriginal": "null or exact raw Go json.Marshal original bytes encoded as UTF8 STRING; never parse signed profile/registration inner originals or uint64 epochs; shared decodeBindingOriginal/PrincipalOriginal exactly once after adopting raw before error",
+  "errorExact2": {
+    "tag": [
+      "none",
+      "code",
+      "retained"
+    ],
+    "code": "int32 NUMBER, original0 preserved when errorPresenttrue/tagcode; errorPresentfalse requires tagnone/code0; unmappable Go error =>tagretained/code0, SAME original error remains local Go firstcause, no raw error text/stack/path; Node local original object/primitive stays original locally"
+  },
+  "physicalDone": "boolean; true only close response; observed before errorPresent so physical closure+lateerror is preserved; EOF/process exit is never equivalent to done",
+  "limits": {
+    "requestOriginalUTF8": 393216,
+    "replayKeyASCII": 512,
+    "originalJSONUTF8": 524288,
+    "profileOriginalUTF8": 65536,
+    "registrationOriginalUTF8": 65536,
+    "expectedTextUTF8": 2048,
+    "MAX_FRAME_BYTES_INCLUDING_LF": 3149824,
+    "derivation": "6*max(originalJSONUTF8,requestOriginalUTF8)+4096 strict Go-HTML JSON escaping bound",
+    "diagnosticBytes": 16384
+  },
+  "jsonCanonical": "exact listed field order; Go json.Marshal HTML escaping <>&/U2028/U2029; strict UTF8 preserve BOM then refuse, no duplicates/accessors/proxies/unknownkeys/whitespace/trailing frames",
+  "bindingOriginalExact8": [
+    "version",
+    "profileOriginal",
+    "registrationOriginal",
+    "expiresMS",
+    "expected",
+    "dataOnly",
+    "RootAdmission",
+    "V4Authentication"
+  ],
+  "principalOriginalExact9": [
+    "version",
+    "profileOriginal",
+    "registrationOriginal",
+    "requestOriginalSHA256",
+    "proofReplayKey",
+    "expiresMS",
+    "dataOnly",
+    "RootAdmission",
+    "V4Authentication"
+  ],
+  "expected17": [
+    "networkId",
+    "canonicalOwner",
+    "account",
+    "sessionBinding",
+    "productId",
+    "clientId",
+    "platform",
+    "applicationId",
+    "bundleId",
+    "packageId",
+    "origin",
+    "callback",
+    "deviceId",
+    "generation",
+    "registrationId",
+    "revision",
+    "registrationDigest"
+  ],
+  "methods": {
+    "assertSocialDeviceDirectoryPrincipalPurposeV4": "normal pinned helper acquire startup binding+same child current/liveness; no developer purpose",
+    "existingSocialDeviceDirectoryPrincipalV4": "read SAME Host opaque SocialV4 credential; compare actual expected17 with independently verified binding; qualify SAME originalRequest6 raw SHA/replayKey/expiry; retain original response before latechecks",
+    "assertOriginalSocialDeviceDirectoryPrincipalCompletionV4": "SAME local credential/result + same child binding/request/replay/window + Host nonce/current/revoke completion, not received JSON"
+  },
+  "lifecycle": "actual helper owner opens once; queued operations cancelled before foreign entry; retire stops qualify, cleanup read/retire/join/close only same original; close physicalDone required then actual child exit/fds release; UNKNOWN/partial never reacquire/newnonce/newoperation",
+  "authority": "all framing is DATA; Go owns original signed SocialSource qualification and protected FS; Node owns V4 credential/math/SQLite nonce; tokens/JSON/proofProjection never are Nodeopaqueowner/Rootgrant",
+  "changesFromAuthDraft": [
+    "lossless sequence uint64 string instead of JSON number",
+    "paired error object instead of lossy raw error string",
+    "original raw JSON string retained instead of prematurely parsed object",
+    "finite derived frame cap supports escaped exact original bytes"
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}
