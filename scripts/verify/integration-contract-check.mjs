@@ -34,6 +34,7 @@ const contract = readJSON("release/integration/chain-core-contract.json");
 const vectors = readJSON("docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json");
 const metadata = readJSON("chain-metadata/ynx-testnet.json");
 const stateSource = readFileSync("internal/consensus/state.go", "utf8");
+const invoiceScheduleSource = readFileSync("internal/consensus/pq_invoice_schedule.go", "utf8");
 const applicationSource = readFileSync("internal/consensus/application.go", "utf8");
 const ethereumTransactionSource = readFileSync("internal/consensus/ethereum_transaction.go", "utf8");
 const snapshotSource = readFileSync("internal/consensus/snapshot.go", "utf8");
@@ -75,8 +76,17 @@ requireValue(contract.networkIdentity.evmChainIdDecimal === metadata.chainId, "c
 requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain ID drift");
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
 requireValue(stateSource.includes("const CommittedStateVersion = 18"), "runtime committed-state version drift");
-requireValue(stateSource.includes('return s.calculateHashFor(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version)'), "runtime AppHash must use the validated state's own version");
-requireValue(stateSource.includes("if !supportedCommittedStateVersion(s.Version) {") && stateSource.includes("func supportedCommittedStateVersion(version int) bool { return version >= 7 && version <= 20 }"), "runtime retained AppHash version boundary drift");
+requireValue(stateSource.includes(`func (s CommittedState) calculateHash() (string, error) {
+\treturn s.calculateHashWithTimings(nil)
+}`) && stateSource.includes(`func (s CommittedState) calculateHashWithTimings(timings *commitValidationTimings) (string, error) {
+\tif !supportedCommittedStateVersion(s.Version) {
+\t\treturn "", fmt.Errorf("unsupported committed state version %d", s.Version)
+\t}
+\treturn s.calculateHashForWithTimings(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version, timings)
+}`), "runtime AppHash must use the validated state's own version through the timing delegate");
+requireValue(stateSource.includes(`func supportedCommittedStateVersion(version int) bool {
+\treturn version >= 7 && version <= PQInvoiceLedgerStateVersion
+}`) && invoiceScheduleSource.includes("const PQInvoiceLedgerStateVersion = 21"), "runtime retained AppHash version boundary drift");
 requireValue(applicationSource.includes("ApplicationVersion   = 20"), "runtime ABCI application version drift");
 for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
   requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
@@ -294,4 +304,4 @@ rejectInternalStrings(release, "release");
 rejectInternalStrings(contract, "contract");
 rejectInternalStrings(vectors, "vectors");
 
-console.log(`integration contract check passed: ${ids.size} vectors, runtime state v18/app v20 (retained hash domains v7-v20), published state v12/app v18 source ${contract.sourceCommit}`);
+console.log(`integration contract check passed: ${ids.size} vectors, runtime state v18/app v20 (retained hash domains v7-v21), published state v12/app v18 source ${contract.sourceCommit}`);
