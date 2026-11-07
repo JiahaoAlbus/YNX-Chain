@@ -33,8 +33,8 @@
     },
     {
       "path": "native/source-parent/MobileCanonicalDATA.cpp",
-      "bytes": 5235,
-      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+      "bytes": 5243,
+      "sha256": "088924c5a093d3f15ff11de2c3ce00dec5a4ed0d35fb1832508a32f1095fe556"
     },
     {
       "path": "native/source-parent/MobileCanonicalDATA.hpp",
@@ -48,8 +48,8 @@
     },
     {
       "path": "native/source-parent/SourceParentOriginalProfile.cpp",
-      "bytes": 16198,
-      "sha256": "d51d6e44a6cdadecb06d64f16b4d3514169ca88c4f39509a759c2a2c82cf8e44"
+      "bytes": 16452,
+      "sha256": "89d4f217e6deea1944a13e07604d0c56c5923b918369ba40b8c8759a3e5c4e60"
     },
     {
       "path": "native/source-parent/SourceParentOriginalProfilePrivate.hpp",
@@ -206,5 +206,21 @@
     "path": "native/source-parent/dependencies/MobileLedgerProofBackendPrivate.hpp",
     "bytes": 3942,
     "sha256": "e2f28038827ea7738e248ab42cdd2bbc3a724709f251f2f4e9efe0b6676270ce"
+  },
+  "compatibilitySuccessor": {
+    "kind": "YNX_SOURCE_PARENT_GCC_COMPAT_SUCCESSOR/v1",
+    "supplierH": {
+      "bytes": 3745,
+      "sha256": "f2b7985edb1eb8475837b507ea8fe0c873ea84f0b3a59558b61893188567ae6b"
+    },
+    "supplierRootCommit": "044bab57bc9ee1b1eba6b1a01381fee5df7ae5e4",
+    "sourceBaseCommit": "b470be2e561763a47b8f5d1f1750cb8798a7c0e2",
+    "changedCPP": [
+      "native/source-parent/MobileCanonicalDATA.cpp",
+      "native/source-parent/SourceParentOriginalProfile.cpp"
+    ],
+    "unchangedABI": true,
+    "LinuxCIQualification": "PENDING_AS_DECLARED_IN_SUPPLIER_H",
+    "oldObjectQualificationInherited": false
   }
 }
