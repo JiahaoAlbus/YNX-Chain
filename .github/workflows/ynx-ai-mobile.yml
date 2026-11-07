@@ -34,6 +34,8 @@ jobs:
           cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Read iOS normal native build inputs
+        run: pnpm run native-build-inputs --platform ios --output-dir "$RUNNER_TEMP/ynx-ai-ios-inputs"
       - name: Install CocoaPods
         run: cd ios && pod install
       - name: Select and boot an available iOS Simulator
@@ -72,6 +74,7 @@ jobs:
           path: |
             apps/ai/mobile/ios/YNXAI-simulator.zip
             apps/ai/mobile/ios/YNXAI-simulator.sha256
+            ${{ runner.temp }}/ynx-ai-ios-inputs/
           if-no-files-found: error
 
   android-preview:
@@ -97,6 +100,8 @@ jobs:
       - uses: android-actions/setup-android@v3
       - run: pnpm install --frozen-lockfile
       - run: pnpm run typecheck && pnpm test && pnpm run product-check
+      - name: Read Android normal native build inputs
+        run: pnpm run native-build-inputs --platform android --output-dir "$RUNNER_TEMP/ynx-ai-android-inputs"
       - name: Generate test-only Android signing key
         run: |
           keytool -genkeypair -v \
@@ -128,4 +133,5 @@ jobs:
             apps/ai/mobile/android/app-release-signing.txt
             apps/ai/mobile/android/app-release-badging.txt
             apps/ai/mobile/android/app-release.sha256
+            ${{ runner.temp }}/ynx-ai-android-inputs/
           if-no-files-found: error

@@ -1,0 +1,52 @@
+// Read the actual App/native dependency configuration. This does not build,
+// install, register an authority, invoke a signer, or claim Native qualification.
+import {parseArgs} from 'node:util';
+import {createRequire} from 'node:module';
+import {createHash} from 'node:crypto';
+import {dirname,resolve,join} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {readFileSync,writeFileSync,mkdirSync,existsSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+const {values}=parseArgs({options:{platform:{type:'string',default:'all'},'output-dir':{type:'string'}}});
+if(!['ios','android','all'].includes(values.platform)||!values['output-dir'])throw Error('Use --platform ios|android|all --output-dir <fresh directory>');
+const app=resolve(dirname(fileURLToPath(import.meta.url)),'..'),out=resolve(values['output-dir']);
+if(existsSync(out))throw Error('FRESH_BUILD_INPUT_DIRECTORY_REQUIRED');mkdirSync(out,{recursive:true});
+const read=p=>readFileSync(join(app,p),'utf8'),json=p=>JSON.parse(read(p));
+const pin=p=>{const b=readFileSync(join(app,p));return {path:p,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')}};
+function run(name,exe,args){const r=spawnSync(exe,args,{cwd:app,encoding:'utf8',env:{...process.env,CI:'1'},maxBuffer:8<<20});writeFileSync(join(out,name+'.stdout'),r.stdout||'');writeFileSync(join(out,name+'.stderr'),r.stderr||'');if(r.error)throw r.error;if(r.status!==0)throw Error(`${name} failed (${r.status}); see original stdout/stderr`);return r.stdout;}
+const require=createRequire(join(app,'package.json')),expoRequire=createRequire(require.resolve('expo/package.json'));
+const config=json('app.json').expo,pkg=json('package.json');
+if(config.ios.bundleIdentifier!=='com.ynxweb4.ai'||config.android.package!=='com.ynxweb4.ai'||config.scheme!=='ynxai'||config.newArchEnabled!==true)throw Error('APP_NATIVE_IDENTITY_OR_ARCHITECTURE_CHANGED');
+const commit=run('source-head','git',['rev-parse','HEAD']).trim();
+const endpoint=process.env.EXPO_PUBLIC_YNX_AI_URL;
+let api={configuredForBuild:false,releaseOrigin:'NOT_SUPPLIED',defaultDevelopmentEndpoint:'http://10.0.2.2:8096',nativeSourceOrigin:'independent original Native Source, not selected by this App variable'};
+if(endpoint){const u=new URL(endpoint);if(!['http:','https:'].includes(u.protocol)||u.username||u.password||u.search||u.hash)throw Error('INVALID_PUBLIC_APP_API_BASE');api={...api,configuredForBuild:true,releaseOrigin:u.href};}
+const selected=values.platform==='all'?['ios','android']:[values.platform];
+for(const platform of selected){
+ const autolink=JSON.parse(run(platform+'-autolink',process.execPath,[join(app,'node_modules/expo/bin/autolinking'),'react-native-config','--json','--platform',platform]));
+ const dependencies=Object.entries(autolink.dependencies||{}).map(([name,d])=>({name,root:d.root,platform:d.platforms?.[platform]||null}));
+ const expoPlatform=platform==='ios'?'apple':'android';
+ const expoModules=JSON.parse(run(platform+'-expo-modules',process.execPath,[join(app,'node_modules/expo/bin/autolinking'),'resolve','--json','--platform',expoPlatform]));
+ const requiredExpo=['expo-crypto','expo-secure-store','expo-file-system','expo-document-picker','expo-localization','expo-clipboard'];
+ if(requiredExpo.some(name=>!expoModules.modules?.some(m=>m.packageName===name)))throw Error('APP_REQUIRED_EXPO_NATIVE_MODULE_NOT_RESOLVED');
+
+ const common={kind:'YNX_AI_NORMAL_APP_NATIVE_BUILD_INPUTS/v1',sourceCommit:commit,platform,projectRoot:app,applicationId:'com.ynxweb4.ai',moduleName:'main',scheme:'ynxai',node:process.version,versions:{expo:expoRequire('./package.json').version,reactNative:require('react-native/package.json').version},newArchitecture:true,api,dependencySpecifiers:pkg.dependencies,expoModuleResolution:{platform:expoPlatform,modules:expoModules.modules,extraDependencies:expoModules.extraDependencies,coreFeatures:expoModules.coreFeatures},normalAutolink:{command:[process.execPath,'node_modules/expo/bin/autolinking','react-native-config','--json','--platform',platform],dependencies},appSources:['App.tsx','index.ts','src/taskNative.ts','src/taskSession.ts','src/taskV6.ts','src/TaskWorkspace.tsx','src/taskStorage.ts','app.json','package.json','pnpm-lock.yaml','contracts/sdk047/original-ai-task-action-v6-mobile.mjs','contracts/sdk047/original-ai-task-action-v6-mobile.d.mts'].map(pin),qualification:{inputsInspected:true,nativeBuildExecuted:false,installed:false,RootAdmission:false,SourceAdmission:false,NativeApproval:false,realToolResult:false},aiModule:{fixedName:'YNXOriginalAIMobileV6',currentSDKPrivateABI:'r3',nextMatchingNativeABI:'r4 requires sole SDK frozen r4 implementation',matchingSupplierNormalRegistration:'NOT_SUPPLIED_TO_P08',nativePackageNameOrProviderClass:null,sharedAuthCoreRuntime:'one original A-selected shared/combined image; exact matching link input remains supplier-owned',observedAutolinkNames:dependencies.map(d=>d.name),observedExpoModuleNames:expoModules.modules.map(d=>d.packageName),autolinkInventoryIsNotNativeBrandProof:true,remaining:'matching r4 SDK body + common normal registrar/HostObjects/physical producer and original shared runtime link handoff; no guessed package/library/registration class'}};
+ if(platform==='ios'){
+  const plist=JSON.parse(run('ios-plist', 'plutil',['-convert','json','-o','-','ios/YNXAI/Info.plist']));
+  const properties=json('ios/Podfile.properties.json'),delegate=read('ios/YNXAI/AppDelegate.swift'),podfile=read('ios/Podfile');
+  if(plist.NSAppTransportSecurity?.NSAllowsArbitraryLoads!==false||!plist.CFBundleURLTypes?.some(x=>x.CFBundleURLSchemes?.includes('ynxai'))||!delegate.includes('withModuleName: "main"')||!delegate.includes('ExpoReactNativeFactory')||!podfile.includes('use_native_modules!')||!podfile.includes('use_expo_modules!'))throw Error('IOS_NORMAL_LAUNCH_OR_TRANSPORT_CHANGED');
+  const engine=properties['expo.jsEngine']??'hermes';
+  const inputs={...common,engine,dependencyRegistration:'Podfile use_expo_modules! + use_native_modules!; ReactNativeDelegate RCTAppDependencyProvider',launchLifecycle:'AppDelegate -> ExpoReactNativeFactory -> main; URL/universal-link delegate forwarding retained',permissions:{transport:plist.NSAppTransportSecurity,faceIDUsageDeclared:typeof plist.NSFaceIDUsageDescription==='string'},deploymentTarget:/platform :ios,.*\|\| '([^']+)'/.exec(podfile)?.[1]||'READ_PODFILE',privacyManifest:{appFilePresent:existsSync(join(app,'ios/YNXAI/PrivacyInfo.xcprivacy')),dependencyAggregation:properties['apple.privacyManifestAggregationEnabled']!=='false'},normalCommands:{dependencies:['pod','install','--project-directory=ios'],simulatorBuild:['xcodebuild','-workspace','ios/YNXAI.xcworkspace','-scheme','YNXAI','-configuration','Release','-destination','generic/platform=iOS Simulator','CODE_SIGNING_ALLOWED=NO','build'],deviceCompile:['xcodebuild','-workspace','ios/YNXAI.xcworkspace','-scheme','YNXAI','-configuration','Release','-sdk','iphoneos','-destination','generic/platform=iOS','CODE_SIGNING_ALLOWED=NO','build']},sourceInputs:['ios/Podfile','ios/Podfile.properties.json','ios/YNXAI/Info.plist','ios/YNXAI/AppDelegate.swift','ios/YNXAI.xcodeproj/project.pbxproj'].map(pin),localGeneratedDependencyState:{workspacePresent:existsSync(join(app,'ios/YNXAI.xcworkspace')),podsPresent:existsSync(join(app,'ios/Pods')),podLockPresent:existsSync(join(app,'ios/Podfile.lock'))}};
+  writeFileSync(join(out,'ios.BUILD_INPUTS.json'),JSON.stringify(inputs,null,2)+'\n');
+ }else{
+  const manifest=await expoRequire('@expo/config-plugins').AndroidConfig.Manifest.readAndroidManifestAsync(join(app,'android/app/src/main/AndroidManifest.xml'));
+  const m=manifest.manifest,application=m.application[0],activity=application.activity.find(a=>a.$['android:name']==='.MainActivity');
+  const permissions=(m['uses-permission']||[]).map(p=>({name:p.$['android:name'],action:p.$['tools:node']||'include'}));
+  if(application.$['android:name']!=='.MainApplication'||application.$['android:allowBackup']!=='false'||!activity||activity.$['android:exported']!=='true'||!activity['intent-filter'].some(f=>f.data?.some(d=>d.$['android:scheme']==='ynxai'&&d.$['android:host']==='wallet-auth'&&d.$['android:pathPrefix']==='/callback'))||permissions.some(p=>p.action!=='remove'&&!['android.permission.INTERNET'].includes(p.name)))throw Error('ANDROID_NORMAL_LAUNCH_OR_PERMISSION_CHANGED');
+  const gradle=read('android/gradle.properties'),main=read('android/app/src/main/java/com/ynxweb4/ai/MainApplication.kt'),act=read('android/app/src/main/java/com/ynxweb4/ai/MainActivity.kt'),build=read('android/app/build.gradle');
+  if(!/^newArchEnabled=true$/m.test(gradle)||!main.includes('PackageList(this).packages')||!main.includes('ExpoReactHostFactory.getDefaultReactHost')||!main.includes('loadReactNative(this)')||!act.includes('getMainComponentName(): String = "main"')||!build.includes('autolinkLibrariesWithApp()'))throw Error('ANDROID_NORMAL_REGISTRATION_CHANGED');
+  const inputs={...common,engine:/^hermesEnabled=true$/m.test(gradle)?'hermes':'jsc',abis:/^reactNativeArchitectures=(.+)$/m.exec(gradle)?.[1].split(',')||[],dependencyRegistration:'Expo ReactHost + PackageList; settings autolinkLibrariesFromCommand + app autolinkLibrariesWithApp',launchLifecycle:'MainApplication.onCreate -> loadReactNative; MainActivity Expo ReactActivityDelegateWrapper -> main; singleTask callback',permissions,backupAllowed:false,releaseSigningClass:build.includes('signingConfig signingConfigs.debug')?'test/debug candidate; not registered production signing qualification':'read exact build configuration',normalCommands:{build:['./gradlew',':app:assembleRelease','--console=plain'],workingDirectory:'android'},sourceInputs:['android/settings.gradle','android/build.gradle','android/gradle.properties','android/gradle/wrapper/gradle-wrapper.properties','android/app/build.gradle','android/app/src/main/AndroidManifest.xml','android/app/src/main/java/com/ynxweb4/ai/MainApplication.kt','android/app/src/main/java/com/ynxweb4/ai/MainActivity.kt'].map(pin)};
+  writeFileSync(join(out,'android.BUILD_INPUTS.json'),JSON.stringify(inputs,null,2)+'\n');
+ }
+}
+console.log(JSON.stringify({platforms:selected,output:out,sourceCommit:commit,normalInputsRead:true,nativeBuilt:false,aiModuleQualified:false}));
