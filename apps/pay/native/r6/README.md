@@ -12,6 +12,37 @@ and recognizer. New DATA-only actions are:
 - `recover-archive`: productId, sourceOrder, merchant, invoiceId, nativeHash.
 - `reconcile-archive`: productId, sourceOrder, merchant, invoiceId.
 
+The normal order continuation additionally accepts `order-invoice`,
+`order-terms-review`, `order-pay-review` and `order-reconcile` with only
+`productId:shop.order` and the original `sourceOrder`. `order-refund-review`
+adds `refundId` and decimal `amountAtoms`; `order-receipt` adds `nativeHash`;
+`order-broadcast-review` adds `kind` and the original Main `originalHash`.
+The CLI exposes the same names and positional fields. These actions reject
+renderer-supplied merchant, invoice, grant or price overrides.
+
+Each operation uses the same held Source/current to read the original Shop
+11-field `NativeShopInvoiceRequestDATA` and look up the existing npi. It never
+creates an intent implicitly. The lookup's merchant, invoice, session, network,
+asset, amount and terms hashes bind the next original service read. An unsigned
+terms review requires the normal service's `awaiting_merchant_approval` phase;
+other PREPARED/UNKNOWN states remain recovery only. Main independently chooses
+and checks its current account, network and nonce. Original review, separate
+broadcast consent, journal, cancellation and UNKNOWN ownership remain there.
+Receipt/reconciliation DATA must additionally match that original session and
+terms message hash. This does not supply a price approval, Auth grant or the
+missing standalone Shop Native authenticated transport to Main.
+
+`PAY_NATIVE_WORKFLOW_SUITE=original-order-client` runs the affected binding and
+Main-result controls. `original-order` reopens the pinned retained PUBLIC Store
+in three fresh processes through the original Main wrapper and normal HTTP,
+including lost lookup, historical payment/refund proof reads and revocation.
+`original-order-review` runs the original SDK and Main typed review producer for
+terms, payer and refund via normal Pay handlers, publishing then cancelling
+each original review once. Its setup imports two preexisting PUBLIC historical
+Members/proofs; the review journey signs, approves and submits nothing. Exact
+runtime, Main module hash, source root and fixture paths must be supplied to
+the existing runner. Generic CI runs the r6 Node checks automatically.
+
 Both first reread the original product request from the held ProductSource.
 Its original qualified `readOriginalArchiveReceipt(ref,current)` or
 `readOriginalArchiveReconciliation(ref,current)` supplies the receipt. The

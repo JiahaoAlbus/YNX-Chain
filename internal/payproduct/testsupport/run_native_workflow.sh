@@ -5,6 +5,11 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-client ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/r6/original-order.test.mjs" "$source_dir/../../apps/pay/native/r6/main-result.test.mjs"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = multi-refund-fixture ]; then
  : "${PAY_GO_BINARY:?exact original Go executable required}"
  /usr/bin/python3 "$source_dir/testsupport/generate_core_workflow.py" "$composition" --multi-refund
@@ -85,6 +90,26 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-review ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
+ : "${PAY_CLIENT_MAIN_SOURCE:?exact original Main and SDK source required}"
+ : "${PAY_ORDER_REVIEW_FIXTURE:?original public typed review fixture required}"
+ export PAY_ORDER_REVIEW_DRIVER="$client_root/testsupport/original-order-review.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_order_consumer pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeOriginalOrderNormalTermsPayerRefundReview$' -count=1 -timeout=3m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
+ : "${PAY_STORE_RETAINED_SOURCE:?retained PUBLIC native Store required}"
+ : "${PAY_STORE_RETAINED_SHA256:?exact retained Store SHA256 required}"
+ export PAY_ORDER_CONSUMER_DRIVER="$client_root/testsupport/original-order-consumer.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_order_consumer pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeOriginalOrderNormalMainColdRetainedReceipt$' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = store-operator-recovery ]; then
  : "${PAY_STORE_OPERATOR_BINARY:?frozen normal Store operator required}"
  : "${PAY_STORE_OPERATOR_SHA256:?exact Store operator SHA256 required}"

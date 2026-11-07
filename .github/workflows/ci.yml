@@ -19,6 +19,8 @@ jobs:
           node-version: "24"
           cache: npm
       - run: npm ci
+      - name: Check normal Pay original-order and Source lifecycle consumers
+        run: node --test apps/pay/native/r6/*.test.mjs
       - run: make dependency-audit
       - run: make env-check
       - run: make no-placeholder-check
