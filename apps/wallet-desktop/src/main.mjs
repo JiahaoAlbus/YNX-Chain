@@ -1,3 +1,4 @@
+import {createWalletIDEIdentityPeerOwner} from './wallet-ide-identity-peer-owner.mjs';
 import {createDesktopAgentDelegationController} from './desktop-agent-delegation-controller.mjs';
 import {createDesktopAgentDelegationsService,installDesktopAgentDelegationsIPC} from './desktop-agent-delegations-ipc.mjs';
 import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
@@ -150,13 +151,13 @@ let nativePayMainEntry=null,nativePayProduct=null;
 const originalMainNamespaceStartup=createWalletMainNamespaceStartup({initialize:initializeOriginalWalletMainNamespaceV1});
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
-let originalIDEIdentityPeerLoading;
+const originalIDEIdentityPeerOwner=createWalletIDEIdentityPeerOwner({
+ load:()=>import('./wallet-ide-identity-peer.mjs'),
+ create:({createWalletIDEIdentityPeer})=>{originalIDEIdentityPeer=createWalletIDEIdentityPeer({vault:walletAuthority.vault,directory:path.join(app.getPath('userData'),'ide-identity-evidence-v1')});return originalIDEIdentityPeer;}
+});
 async function getOriginalIDEIdentityPeer(){
  if(!walletAuthority?.vault)throw Object.assign(Error('Wallet is starting.'),{code:'WALLET_STARTING'});
- // Fixed lazy product entry keeps old packages fail-closed, without selecting
- // a replacement module/provider or touching Native on status/history alone.
- originalIDEIdentityPeerLoading??=import('./wallet-ide-identity-peer.mjs').then(({createWalletIDEIdentityPeer})=>{originalIDEIdentityPeer=createWalletIDEIdentityPeer({vault:walletAuthority.vault,directory:path.join(app.getPath('userData'),'ide-identity-evidence-v1')});return originalIDEIdentityPeer;});
- return originalIDEIdentityPeerLoading;
+ return originalIDEIdentityPeerOwner.get();
 }
 // Source-owned original A receipt, never Resources self-manifest or IPC DATA.
 // Each real Host invocation receives its own single-use process owner.
@@ -414,7 +415,7 @@ async function shutdownOriginalPQWallet(){
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
   const registration=await Promise.allSettled([settle(()=>originalDeviceRegistration?.close()),settle(()=>originalDeviceFinalization?.close())]);
-  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeer?.shutdown()),settle(()=>originalProjectControl.shutdown()),settle(()=>agentDelegationsService.close())]);
+  const others=await Promise.allSettled([settle(()=>walletAuthority?.shutdownPQReviews()),settle(()=>nativePayMainEntry?.shutdown()),settle(()=>originalDeviceCreation?.close()),settle(()=>originalDeviceQuery?.close()),settle(()=>pqFinalityCollection?.join()),settle(()=>originalIDEIdentityPeerOwner.shutdown()),settle(()=>originalProjectControl.shutdown()),settle(()=>agentDelegationsService.close())]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');
   // Child owners must drain before releasing the namespace admission parent.
   if(!failed&&!retireFailed)try{
@@ -426,7 +427,7 @@ async function shutdownOriginalPQWallet(){
   }catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{agentDelegationsService.assertSafeToClose();nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{agentDelegationsService.assertSafeToClose();nativePayProduct?.assertSafeToClose();originalProductContextBridge.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeerOwner.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),

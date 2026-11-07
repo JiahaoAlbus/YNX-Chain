@@ -25,7 +25,7 @@ function fixture(failure,originalCause){
   originalDeviceManagementReview:{shutdown:invoke('management-close'),assertSafeToClose(){}},
   originalDeviceCreation:{close:invoke('creation-close')},
   originalDeviceQuery:{close:invoke('query-close')},
-  originalIDEIdentityPeer:{shutdown:invoke('peer-close')},
+  originalIDEIdentityPeerOwner:{shutdown:invoke('peer-close')},
   originalProjectControl:{shutdown:invoke('project-close')},
   agentDelegationsService:{close:invoke('agent-close'),assertSafeToClose(){}},
   nativePayProduct:{assertSafeToClose(){}},pqTransactionSubmission:null,
