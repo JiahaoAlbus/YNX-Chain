@@ -180,11 +180,19 @@ def assert_contract(raw):
             raise AssertionError("original Go failure must print evidence and exit")
     reader = step_named(raw, SPECS["reader"][0])
     commands = re.findall(r"(?m)^          if ! .*go test .+$", reader)
-    if len(commands) != 5 or sum('./internal/consensus > ' in line for line in commands) != 4:
+    if len(commands) != 6 or sum('./internal/consensus > ' in line for line in commands) != 5:
         raise AssertionError("reader qualification must reuse the original complete execution")
-    # Qualify every checkpoint, live-reader and consumer case from the existing full runs.
-    if re.search(r"go test[^\n]*-(?:run|skip)[^\n]*(?:WalletPolicy|ResourcePolicy)", raw):
-        raise AssertionError("new cases must not replace or repeat complete suites")
+    # Qualify the same nine readers from exactly one complementary bounded
+    # group; no other Wallet/ResourcePolicy filtering or second execution is allowed.
+    base_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -skip \'^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then\n'
+    proof_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n'
+    policy_commands = re.findall(r"(?m)^.*go test[^\n]*-(?:run|skip)[^\n]*(?:WalletPolicy|ResourcePolicy)[^\n]*\n", raw)
+    if policy_commands != [base_command, proof_command]:
+        raise AssertionError("only the exact complementary reader group may filter WalletPolicy")
+    merge = '          cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
+    if reader.count(merge) != 1:
+        raise AssertionError("reader original stream must join the complete qualification once")
+
 
 
 class WalletPolicyCIControls(unittest.TestCase):
@@ -205,7 +213,7 @@ class WalletPolicyCIControls(unittest.TestCase):
                        dict(Action="pass", Package=package, Test=name)]
         packages = [MODULE + p for p in COMMAND_PACKAGES] if kind == "cli" else [package]
         if kind == "reader":
-            packages *= 4  # Four original bounded processes, not one new run.
+            packages *= 5  # Five disjoint bounded processes, each original case once.
         events += [dict(Action="pass", Package=p) for p in packages]
         return events
 

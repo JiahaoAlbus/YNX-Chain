@@ -2292,13 +2292,19 @@ jobs:
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
           print('YNX_NATIVE_HISTORY_CHAIN_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
           PY
-          # Preserve the complete original test set. Production operator cases
-          # get their own bounded process so late cases do not inherit an almost
-          # expired suite clock. Host and large recovery retain their own groups.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
+          # Preserve the complete original test set in disjoint bounded groups.
+          # Proof and wallet-policy cases no longer consume the state/journal
+          # process clock. All processes retain 180s; no test deadline changes.
+          # Host and large migration recovery retain their original groups.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
             exit 1
           fi
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestProduction' ./internal/consensus > "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl"
             exit 1
@@ -2318,6 +2324,73 @@ jobs:
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
+          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+          state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
+          def qualify_state_partitions(events):
+              # These are independent executions of one source/package, not partial
+              # streams that may be combined to repair a failed or missing execution.
+              import re
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+              group_index, active, completed = -1, False, []
+              seen, terminal, top_names, skipped = set(), {}, set(), []
+              group_seen = set()
+              for event in events:
+                  if not isinstance(event, dict) or event.get('Package') != package:
+                      raise RuntimeError('state partition contains a foreign package or non-object')
+                  action, name = event.get('Action'), event.get('Test')
+                  if action not in ('start', 'run', 'pause', 'cont', 'output', 'pass', 'skip'):
+                      raise RuntimeError('state partition failure or unsupported event')
+                  if action == 'start':
+                      if active or name is not None or group_index + 1 >= len(state_partitions):
+                          raise RuntimeError('state partition start is missing, overlapping or repeated')
+                      group_index += 1
+                      active, group_seen = True, set()
+                      continue
+                  if not active:
+                      raise RuntimeError('state event outside an original package execution')
+                  if name is None:
+                      if action == 'output':
+                          continue
+                      if action != 'pass' or not group_seen or any(n not in terminal for n in group_seen):
+                          raise RuntimeError('state package did not finish every original case')
+                      completed.append(state_partitions[group_index][0])
+                      active = False
+                      continue
+                  if not isinstance(name, str) or not name.startswith('Test') or not name:
+                      raise RuntimeError('state test name is absent or malformed')
+                  top = name.split('/', 1)[0]
+                  matches = [i for i, (_, run, skip) in enumerate(state_partitions)
+                             if (not run or re.search(run, top)) and (not skip or not re.search(skip, top))]
+                  if matches != [group_index]:
+                      raise RuntimeError('state test omitted, overlapped or executed in another partition: ' + name)
+                  if action == 'run':
+                      if name in seen or (name != top and (top not in group_seen or top in terminal)):
+                          raise RuntimeError('state top or child ran more than once or without its parent: ' + name)
+                      seen.add(name)
+                      group_seen.add(name)
+                      if name == top:
+                          top_names.add(name)
+                  elif action in ('pass', 'skip'):
+                      if name not in group_seen or name in terminal:
+                          raise RuntimeError('state test terminal lacks its unique original run: ' + name)
+                      if action == 'skip':
+                          if name not in state_opt_in_skips:
+                              raise RuntimeError('required state top or child skipped: ' + name)
+                          skipped.append(name)
+                      terminal[name] = action
+                  elif name not in group_seen or name in terminal:
+                      raise RuntimeError('state output or continuation lacks an active original case: ' + name)
+              if active or completed != [g[0] for g in state_partitions] or set(terminal) != seen:
+                  raise RuntimeError('state partition stream is incomplete')
+              return dict(groups=completed, topCount=len(top_names), testCount=len(seen),
+                          optInSkipped=sorted(skipped), suitePassed=True)
+          state_partition_summary = qualify_state_partitions(events)
+          print('YNX_COMPLETE_STATE_PARTITIONS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], **state_partition_summary), sort_keys=True))
+          PY
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path

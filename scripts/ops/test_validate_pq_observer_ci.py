@@ -39,7 +39,7 @@ FORK_SELECTOR = "^(" + "|".join(name for _, name in REQUIRED["FORK"]) + ")$"
 FORK_COMMAND = ('          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '
                 + "'" + FORK_SELECTOR + "' " + NODE + " " + RPC + ' > "$RUNNER_TEMP/ynx-pq-observer-fork-tests.jsonl"; then\n')
 FULL_CLI = '          if ! go test -json -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"; then\n'
-FULL_CORE = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -skip \'^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)\' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then\n'
+FULL_CORE = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -skip \'^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then\n'
 
 
 def workflows():
@@ -89,7 +89,8 @@ def assert_contract(raws):
                       if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "observer_required" for target in node.targets)]
             if values != [REQUIRED[kind]] or FILES[kind] not in program:
                 raise AssertionError("collector required package/test identity or original stream changed")
-    if raws["resource"].count(FULL_CORE) != 1 or raws["resource"].count(FULL_CLI) != 1:
+    proof_state_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n'
+    if raws["resource"].count(FULL_CORE) != 1 or raws["resource"].count(FULL_CLI) != 1 or raws["resource"].count(proof_state_command) != 1:
         raise AssertionError("reuse complete original Core and CLI executions")
     role_step = step(raws["resource"], "Verify explicit ordinary observer fork role without starting a node")
     if "        if: " + NORMAL_IF + "\n" not in role_step or "set -euo pipefail" not in role_step:

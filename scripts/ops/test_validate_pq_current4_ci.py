@@ -40,12 +40,14 @@ COMMAND = ('          if ! YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVE
            + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '
            + "'" + SELECTOR + "' ./internal/consensus > \"$RUNNER_TEMP/" + OUTPUT + '\"; then\n')
 ORIGINAL_SKIP = "^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)"
-SKIP = ORIGINAL_SKIP[:-1] + "|" + REQUIRED[0] + "$)"
+PROOF_STATE_RUN = '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'
+SKIP = ORIGINAL_SKIP[:-1] + "|" + REQUIRED[0] + "$|" + PROOF_STATE_RUN[2:-1] + ")"
 FULL_COMMAND = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '"
                 + SKIP + "' ./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
 OLD_COMMANDS = [
     "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n",
     FULL_COMMAND,
+    '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n',
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n",
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n",
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl\"; then\n",
@@ -109,8 +111,8 @@ def assert_contract(raw):
     original = step(raw, "Verify complete state bridge and sponsor continuity")
     commands = re.findall(r"(?m)^          if ! .*go test .+\n", original)
     if commands != OLD_COMMANDS or "-tags=" in original:
-        raise AssertionError("original full union and every 180s budget must remain; only exact new Strict is moved")
-    for name in ("ynx-production-operator-state-tests.jsonl", "ynx-lab-state-tests.jsonl", "ynx-lab-large-source-tests.jsonl"):
+        raise AssertionError("original full union and every 180s budget must remain; only fixed disjoint proof/wallet cases are repartitioned")
+    for name in ("ynx-proof-wallet-state-tests.jsonl", "ynx-production-operator-state-tests.jsonl", "ynx-lab-state-tests.jsonl", "ynx-lab-large-source-tests.jsonl"):
         if original.count('          cat "$RUNNER_TEMP/' + name + '" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n') != 1:
             raise AssertionError("original state streams must remain fully merged")
     if OUTPUT in original or (">>" in body and "ynx-initial-cache-state-tests.jsonl" in body):
@@ -145,7 +147,7 @@ class Current4CIControls(unittest.TestCase):
         examples = STREAM_REQUIRED + ["TestPQCurrent4WirePUBLICStrictFramesAndOSPeerExtra", "TestPQWalletPolicyLiveOriginalNodeCommittedAndPending", "TestABCIOriginal", "TestProofHostOriginal", "TestProductionOriginal", "TestPQLabOriginal"]
         for name in examples:
             with self.subTest(name=name):
-                self.assertEqual(bool(re.search(SKIP, name)), bool(re.search(ORIGINAL_SKIP, name)) or name == REQUIRED[0])
+                self.assertEqual(bool(re.search(SKIP, name)), bool(re.search(ORIGINAL_SKIP, name)) or name == REQUIRED[0] or bool(re.search(PROOF_STATE_RUN, name)))
                 self.assertEqual(bool(re.search(SELECTOR, name)), name in STREAM_REQUIRED)
 
     def test_actual_successful_collector_emits_only_data(self):
@@ -216,6 +218,7 @@ class Current4CIControls(unittest.TestCase):
                      self.raw.replace(FULL_COMMAND, FULL_COMMAND.replace("-timeout=180s", "-timeout=240s"), 1),
                      self.raw.replace(FULL_COMMAND, FULL_COMMAND.replace("go test ", "go test -tags=ynx_public_trace_testsupport "), 1),
                      self.raw.replace(OLD_COMMANDS[2], "", 1),
+                     self.raw.replace(OLD_COMMANDS[3], "", 1),
                      self.raw.replace(CONTROL_COMMAND, "", 1),
                      self.raw.replace(CONTROL_COMMAND, CONTROL_COMMAND * 2, 1)]
         for path in (CONTROL, TRACE + "/**", "internal/consensus/pq_current4_*.go", "internal/consensus/pq_wallet_policy_live.go"):

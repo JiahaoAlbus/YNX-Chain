@@ -1329,14 +1329,78 @@ def assert_product_device_codec_workflow_contract(raw):
         raise AssertionError("new codec must reuse the original full suite once without filtering")
 
 
+STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
+def qualify_state_partitions(events):
+    # These are independent executions of one source/package, not partial
+    # streams that may be combined to repair a failed or missing execution.
+    import re
+    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+    group_index, active, completed = -1, False, []
+    seen, terminal, top_names, skipped = set(), {}, set(), []
+    group_seen = set()
+    for event in events:
+        if not isinstance(event, dict) or event.get('Package') != package:
+            raise RuntimeError('state partition contains a foreign package or non-object')
+        action, name = event.get('Action'), event.get('Test')
+        if action not in ('start', 'run', 'pause', 'cont', 'output', 'pass', 'skip'):
+            raise RuntimeError('state partition failure or unsupported event')
+        if action == 'start':
+            if active or name is not None or group_index + 1 >= len(state_partitions):
+                raise RuntimeError('state partition start is missing, overlapping or repeated')
+            group_index += 1
+            active, group_seen = True, set()
+            continue
+        if not active:
+            raise RuntimeError('state event outside an original package execution')
+        if name is None:
+            if action == 'output':
+                continue
+            if action != 'pass' or not group_seen or any(n not in terminal for n in group_seen):
+                raise RuntimeError('state package did not finish every original case')
+            completed.append(state_partitions[group_index][0])
+            active = False
+            continue
+        if not isinstance(name, str) or not name.startswith('Test') or not name:
+            raise RuntimeError('state test name is absent or malformed')
+        top = name.split('/', 1)[0]
+        matches = [i for i, (_, run, skip) in enumerate(state_partitions)
+                   if (not run or re.search(run, top)) and (not skip or not re.search(skip, top))]
+        if matches != [group_index]:
+            raise RuntimeError('state test omitted, overlapped or executed in another partition: ' + name)
+        if action == 'run':
+            if name in seen or (name != top and (top not in group_seen or top in terminal)):
+                raise RuntimeError('state top or child ran more than once or without its parent: ' + name)
+            seen.add(name)
+            group_seen.add(name)
+            if name == top:
+                top_names.add(name)
+        elif action in ('pass', 'skip'):
+            if name not in group_seen or name in terminal:
+                raise RuntimeError('state test terminal lacks its unique original run: ' + name)
+            if action == 'skip':
+                if name not in state_opt_in_skips:
+                    raise RuntimeError('required state top or child skipped: ' + name)
+                skipped.append(name)
+            terminal[name] = action
+        elif name not in group_seen or name in terminal:
+            raise RuntimeError('state output or continuation lacks an active original case: ' + name)
+    if active or completed != [g[0] for g in state_partitions] or set(terminal) != seen:
+        raise RuntimeError('state partition stream is incomplete')
+    return dict(groups=completed, topCount=len(top_names), testCount=len(seen),
+                optInSkipped=sorted(skipped), suitePassed=True)
+"""
+
+
 def assert_state_math_required_workflow_contract(step):
-    """Keep all old38 plus both actual envelope cases in the same execution."""
+    """Keep all original cases exactly once across bounded source partitions."""
     required = re.findall(r"(?m)^          required = (.+)$", step)
     if required != [repr(["TestPQHistoryMathCacheN1ScopeAndBinding"]), repr(list(STATE_MATH_REQUIRED_TESTS))]:
         raise AssertionError("exact chain1/state40 actual terminal qualification required")
     command = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' "
+               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)' "
                "./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
+    proof_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n            cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"\n            exit 1\n          fi\n          cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
     production = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
                   "-run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n")
     merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
@@ -1356,10 +1420,16 @@ def assert_state_math_required_workflow_contract(step):
             step.count(live) != 1 or step.count(live_merge) != 1 or step.count(live_required) != 1 or
             step.count(live_fallback_required) != 1 or
             step.count(large_live) != 1 or step.count(large_live_merge) != 1 or
-            step.count("./internal/consensus") != 4 or
-            step.count(terminal) != 2 or step.count("            exit 1\n") != 5 or
+            step.count("./internal/consensus") != 5 or
+            step.count(proof_command) != 1 or
+            step.count("".join("          " + line + "\n" for line in STATE_PARTITION_QUALIFIER.splitlines())) != 1 or
+            step.count("          state_partition_summary = qualify_state_partitions(events)\n") != 1 or
+            step.count(terminal) != 2 or step.count("            exit 1\n") != 6 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
+    commands = (command, proof_command, production, live, large_live)
+    if [step.index(c) for c in commands] != sorted(step.index(c) for c in commands):
+        raise AssertionError("state partition execution order changed")
 
 
 def assert_runtime_gateway_identity_workflow_contract(raw):
@@ -2047,7 +2117,7 @@ def assert_workflow_contract(raw):
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
     assert_state_math_required_workflow_contract(non_host)
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
-    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)' ./internal/consensus" in non_host)
+    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)' ./internal/consensus" in non_host)
     need("-run '^TestProduction' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
@@ -3592,7 +3662,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
             ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
-            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestABCI|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)'"),
+            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestABCI|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
             ("-run '^TestPQLab'", "-run '^TestPQLabMissing'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>'),
@@ -3957,6 +4027,130 @@ class RetainedClientPublisherWorkflowControls(unittest.TestCase):
                 # SOURCE is first: normalization/tamper must fail before any
                 # extraction, not because the later placeholder member is empty.
                 self.assertEqual({p.name for p in root.iterdir()}, {"client.zip"})
+
+
+
+class CompleteStatePartitionControls(unittest.TestCase):
+    """Only source/JSONL controls; never synthesize a successful Go receipt."""
+
+    def workflow_parts(self):
+        import textwrap
+        root = Path(__file__).resolve().parents[2]
+        raw = (root / ".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw)
+        step = next(s for s in steps if s.startswith(
+            "      - name: Verify complete state bridge and sponsor continuity\n"))
+        start = step.index("          state_partitions = ")
+        end = step.index("          state_partition_summary = ", start)
+        # Execute the actual checked-in qualification code, with no file/network
+        # input or fabricated source/authorization. JSON events below are controls.
+        scope = {}
+        exec(compile(textwrap.dedent(step[start:end]), "<original-state-qualifier>", "exec"), scope)
+        return root, raw, step, scope
+
+    def fixture(self, scope):
+        package = "github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+        groups = [
+            ["TestSnapshotJournalStuckReadbackHasBoundedWriterFailure", "TestFutureStateSafety"] + scope["state_opt_in_skips"],
+            ["TestPQLightProofActualCommitAndLightTransitions", "TestPQTransactionProofFutureSafety", "TestPQWalletPolicyLiveFutureSafety"],
+            ["TestProductionFutureSafety"], ["TestPQLabFutureSafety"],
+            ["TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult"],
+        ]
+        events = []
+        for names in groups:
+            events.append(dict(Package=package, Action="start"))
+            for name in names:
+                events.append(dict(Package=package, Test=name, Action="run"))
+                skipped = name in scope["state_opt_in_skips"]
+                if not skipped:
+                    child = name + "/independent_original_guard"
+                    events += [dict(Package=package, Test=child, Action="run"),
+                               dict(Package=package, Test=child, Action="pass")]
+                events.append(dict(Package=package, Test=name, Action="skip" if skipped else "pass"))
+            events.append(dict(Package=package, Action="pass"))
+        return events
+
+    def test_complete_state_source_partition_is_exact_and_future_cases_cannot_escape(self):
+        root, _, step, scope = self.workflow_parts()
+        assert_state_math_required_workflow_contract(step)
+        groups = scope["state_partitions"]
+        original_exclusions = re.compile(r"^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$)")
+        original = set()
+        for file in (root / "internal/consensus").glob("*_test.go"):
+            original.update(re.findall(r"(?m)^func (Test\w+)\([^)]*\*testing\.T\)", file.read_text()))
+        self.assertGreater(len(original), 100, "actual original Go source inventory required")
+        future = {"TestFutureSafety", "TestPQWalletPolicyFutureSafety", "TestPQTransactionProofFutureSafety",
+                  "TestPQLightProofFutureSafety", "TestProductionFutureSafety", "TestPQLabFutureSafety",
+                  "TestPQConsensusFutureProofPublicFixture", "TestPQConsensusLightProofPublicFixtureFuture",
+                  "TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultFuture"}
+        for name in original | future:
+            selected = [g[0] for g in groups if (not g[1] or re.search(g[1], name)) and
+                        (not g[2] or not re.search(g[2], name))]
+            with self.subTest(name=name):
+                self.assertEqual(len(selected), 0 if original_exclusions.search(name) else 1)
+        self.assertEqual(len(scope["state_opt_in_skips"]), 10)
+        self.assertEqual(len(set(scope["state_opt_in_skips"])), 10)
+        self.assertTrue(set(scope["state_opt_in_skips"]).issubset(original))
+
+    def test_complete_state_actual_qualifier_rejects_partial_duplicate_child_and_foreign_streams(self):
+        _, _, _, scope = self.workflow_parts()
+        qualify = scope["qualify_state_partitions"]
+        original = self.fixture(scope)
+        result = qualify(original)
+        self.assertEqual(result["groups"], [g[0] for g in scope["state_partitions"]])
+        self.assertEqual(result["optInSkipped"], sorted(scope["state_opt_in_skips"]))
+        self.assertEqual(result["topCount"], 18)
+        self.assertEqual(result["testCount"], 26)
+        bad = [[], original[:-1], original + original, original[1:], [None],
+               [dict(e, Package="foreign") if i == 3 else e for i, e in enumerate(original)]]
+        top = "TestFutureStateSafety"
+        child = top + "/independent_original_guard"
+        for name in (top, child):
+            for action in ("run", "pass"):
+                at = next(i for i, e in enumerate(original) if e.get("Test") == name and e["Action"] == action)
+                bad += [original[:at] + original[at + 1:], original[:at] + [original[at]] + original[at:]]
+            at = next(i for i, e in enumerate(original) if e.get("Test") == name and e["Action"] == "pass")
+            for action in ("skip", "fail", "build-fail"):
+                changed = copy.deepcopy(original);changed[at]["Action"] = action;bad.append(changed)
+        # An allowed opt-in name cannot authorize skipping one of its children.
+        allowed = scope["state_opt_in_skips"][0]
+        at = next(i for i, e in enumerate(original) if e.get("Test") == allowed and e["Action"] == "skip")
+        child_events = [dict(Package=original[0]["Package"], Test=allowed + "/child", Action=a) for a in ("run", "skip")]
+        bad.append(original[:at] + child_events + original[at:])
+        # Changing a name to another partition cannot be repaired by moving only
+        # its PASS, or by treating one successful suffix as the complete stream.
+        bad.append([dict(e, Test="TestPQLightProofMisplaced") if e.get("Test") == top else e for e in original])
+        starts = [i for i, e in enumerate(original) if e["Action"] == "start"] + [len(original)]
+        parts = [original[a:b] for a, b in zip(starts, starts[1:])]
+        bad.extend(parts)
+        bad.append(parts[1] + parts[0] + sum(parts[2:], []))
+        parent_done = next(i for i, e in enumerate(original) if e.get("Test") == top and e["Action"] == "pass")
+        late_child = [dict(Package=original[0]["Package"], Test=top + "/late-child", Action=a) for a in ("run", "pass")]
+        bad.append(original[:parent_done + 1] + late_child + original[parent_done + 1:])
+        for index, changed in enumerate(bad):
+            with self.subTest(index=index), self.assertRaises(RuntimeError):
+                qualify(changed)
+
+    def test_complete_state_contract_rejects_selection_omission_overlap_and_guard_removal(self):
+        _, _, step, scope = self.workflow_parts()
+        assert_state_math_required_workflow_contract(step)
+        base, proof = scope["state_partitions"][:2]
+        mutations = [
+            step.replace("-skip '" + base[2] + "'", "-skip '" + base[2][:-1] + "|TestFuture)'", 1),
+            step.replace("-run '" + proof[1] + "'", "-run '^TestMissing$'", 1),
+            step.replace("-run '" + proof[1] + "'", "-run '^Test'", 1),
+            step.replace("-timeout=180s -run '" + proof[1], "-timeout=181s -run '" + proof[1], 1),
+            step.replace('          cat "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl" >>', 1),
+            step.replace("          state_partition_summary = qualify_state_partitions(events)\n", "          state_partition_summary = dict(suitePassed=True)\n", 1),
+            step.replace("if name not in state_opt_in_skips:", "if False:", 1),
+            step.replace("if name in seen or (name != top and (top not in group_seen or top in terminal)):", "if False:", 1),
+            step.replace("if matches != [group_index]:", "if False:", 1),
+            step.replace("if active or completed != [g[0] for g in state_partitions] or set(terminal) != seen:", "if False:", 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, step)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_state_math_required_workflow_contract(changed)
 
 
 if __name__ == "__main__":
