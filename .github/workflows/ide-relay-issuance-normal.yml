@@ -1,0 +1,38 @@
+name: IDE relay normal issuance consumer
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs
+      - packages/wallet-auth/src/original-auth-source-issuance-v2.js
+      - packages/wallet-auth/src/original-ide-relay-issuance*
+      - packages/wallet-auth/test/relay-issuance-successor.test.mjs
+      - packages/wallet-auth/package.json
+      - scripts/ci/ide-relay-issuance-normal.mjs
+      - .github/workflows/ide-relay-issuance-normal.yml
+permissions:
+  contents: read
+jobs:
+  merged-relay-issuer-and-normal-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26.7.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/ide-relay-issuance-normal.mjs 2>&1 | tee ide-relay-issuance-normal.log
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: ide-relay-issuance-normal-source
+          if-no-files-found: error
+          path: |
+            ide-relay-issuance-normal.log
+            ide-relay-issuance-normal-controls
+            canonical-common-source-package

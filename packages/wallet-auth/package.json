@@ -906,7 +906,9 @@
     "native/desktop-grant-qualification-private.hpp",
     "native/desktop-grant-qualification.mm",
     "native/desktop-grant-native-stage.cpp",
-    "native/desktop-grant-backend-contract.d.mts"
+    "native/desktop-grant-backend-contract.d.mts",
+    "src/original-ide-relay-issuance.js",
+    "src/original-ide-relay-issuance-selection.js"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

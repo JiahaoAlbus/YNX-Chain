@@ -11,6 +11,8 @@ on:
       - .github/workflows/wpr-fixed-capture-runner.yml
 jobs:
   fixed-runner-data:
+    # This topic validates its new issuer merge in the dedicated normal job.
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/wallet-auth49-ide-relay-issuance-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
