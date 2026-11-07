@@ -28,14 +28,34 @@ type OriginalTaskResourceReadRequest struct {
 	Grant, Holder         authgrant.Proof
 	RawInput              []byte
 	AuthorizationRef      string
+	OriginalOffset        int
+	OriginalChunkBytes    int
 }
 
 type OriginalTaskResourceReadResult struct {
-	OperationID string `json:"operationId"`
-	State       string `json:"state"`
-	Original    []byte `json:"original"`
-	AuthScope   string `json:"authScope"`
+	OperationID string                         `json:"operationId"`
+	State       string                         `json:"state"`
+	Original    []byte                         `json:"original"`
+	AuthScope   string                         `json:"authScope"`
+	Chunk       *OriginalTaskResourceReadChunk `json:"chunk,omitempty"`
 }
+
+// Chunk is a bounded fragment of the SAME original receipt. It is not a
+// complete receipt/settlement result. Reassemble and check both full hashes.
+type OriginalTaskResourceReadChunk struct {
+	Offset     int              `json:"offset"`
+	NextOffset int              `json:"nextOffset"`
+	TotalBytes int              `json:"totalBytes"`
+	Binding    taskBytesBinding `json:"binding"`
+	Bytes      []byte           `json:"bytes"`
+}
+
+// Response limit is serialized body bytes, including base64 and final newline.
+// It matches the existing LINK default; never silently raise the client budget.
+const OriginalTaskReadMaxResponseBytes = 1 << 20
+const OriginalTaskReadMaxChunkBytes = 256 << 10
+
+var errTaskResourceResponseLimit = errors.New("AI_ORIGINAL_TASK_RESOURCE_RESPONSE_LIMIT")
 
 // This owner borrows the SAME Server/Store and original native Source. It never
 // closes or reconstructs either. Only per-call held Source children are owned.
@@ -184,7 +204,7 @@ func (o *OriginalTaskReadResource) begin(ctx context.Context, r OriginalTaskReso
 	if err := o.Current(ctx); err != nil {
 		return nil, err
 	}
-	if r.Version != "1" || execution && len(r.AuthorityOperationID) < 1 || !execution && r.AuthorityOperationID != "" || len(r.AuthorityOperationID) > 256 || r.ExpectedGrantRevision != r.Binding.GrantRevision || r.Binding.Tool.ID != "ai.conversation.read" || r.Binding.Tool.Operation != "ai.conversation.read" || r.Binding.Tool.Version != "1" || r.Binding.Tool.Risk != "read" || r.Binding.EgressActual != nil || len(r.RawInput) > 32<<10 {
+	if r.OriginalOffset != 0 || r.OriginalChunkBytes != 0 || r.Version != "1" || execution && len(r.AuthorityOperationID) < 1 || !execution && r.AuthorityOperationID != "" || len(r.AuthorityOperationID) > 256 || r.ExpectedGrantRevision != r.Binding.GrantRevision || r.Binding.Tool.ID != "ai.conversation.read" || r.Binding.Tool.Operation != "ai.conversation.read" || r.Binding.Tool.Version != "1" || r.Binding.Tool.Risk != "read" || r.Binding.EgressActual != nil || len(r.RawInput) > 32<<10 {
 		return nil, errToolInvalid
 	}
 	if execution && (bindTaskBytes(r.RawInput) != (taskBytesBinding{Bytes: len(r.RawInput), SHA3_512: r.Binding.Input.SHA3_512, SHA512: r.Binding.Input.SHA512}) || r.Binding.Input.Bytes != strconv.Itoa(len(r.RawInput))) {
@@ -411,6 +431,9 @@ func (o *OriginalTaskReadResource) ReadInput(ctx context.Context, request Origin
 func (o *OriginalTaskReadResource) Query(ctx context.Context, request OriginalTaskResourceReadRequest) (OriginalTaskResourceReadResult, error) {
 	r := cloneOriginalResourceRequest(request)
 	b := r.Binding
+	if r.OriginalOffset < 0 || r.OriginalOffset > 2<<20 || r.OriginalChunkBytes < 0 || r.OriginalChunkBytes > OriginalTaskReadMaxChunkBytes || r.OriginalChunkBytes == 0 && r.OriginalOffset != 0 {
+		return OriginalTaskResourceReadResult{}, errToolInvalid
+	}
 	if o == nil || o.queryCurrent == nil || o.queryMaterial == nil || ctx == nil || r.Version != "1" || r.AuthorityOperationID == "" || len(r.AuthorityOperationID) > 256 || r.ExpectedGrantRevision != b.GrantRevision || r.AuthorizationRef == "" || len(r.AuthorizationRef) > 256 {
 		return OriginalTaskResourceReadResult{}, errTaskEffectSourceUnavailable
 	}
@@ -472,10 +495,22 @@ func (o *OriginalTaskReadResource) Query(ctx context.Context, request OriginalTa
 	if err != nil {
 		return OriginalTaskResourceReadResult{}, err
 	}
+	result := OriginalTaskResourceReadResult{OperationID: r.AuthorityOperationID, State: "COMMITTED", Original: original, AuthScope: string(authgrant.EgressOnlyReadFence)}
+	if r.OriginalChunkBytes != 0 {
+		if r.OriginalOffset >= len(original) {
+			return OriginalTaskResourceReadResult{}, errToolInvalid
+		}
+		end := r.OriginalOffset + r.OriginalChunkBytes
+		if end > len(original) {
+			end = len(original)
+		}
+		result.State, result.Original = "ORIGINAL_CHUNK", nil
+		result.Chunk = &OriginalTaskResourceReadChunk{Offset: r.OriginalOffset, NextOffset: end, TotalBytes: len(original), Binding: bindTaskBytes(original), Bytes: bytes.Clone(original[r.OriginalOffset:end])}
+	}
 	if err = o.historyCurrent(ctx); err != nil {
 		return OriginalTaskResourceReadResult{}, err
 	}
-	return OriginalTaskResourceReadResult{OperationID: r.AuthorityOperationID, State: "COMMITTED", Original: original, AuthScope: string(authgrant.EgressOnlyReadFence)}, nil
+	return result, nil
 }
 
 const OriginalTaskReadResourceService = "ynx-ai-original-task-read-v1"
@@ -531,14 +566,46 @@ func (o *OriginalTaskReadResource) Handler() http.Handler {
 			}
 			err = errors.Join(err, owner.Close())
 		}
+		var response []byte
+		if err == nil {
+			response, err = marshalTaskResourceResponse(result)
+		}
 		if err == nil {
 			_, err = peer.Current(r.Context())
 		}
+		status := http.StatusOK
 		if err != nil {
-			w.WriteHeader(http.StatusConflict)
-			_ = json.NewEncoder(w).Encode(struct{ State, OriginalOperationID string }{"UNKNOWN", request.AuthorityOperationID})
-			return
+			status = http.StatusConflict
+			operation := request.AuthorityOperationID
+			if len(operation) > 256 {
+				operation = ""
+			} // untrusted DATA cannot enlarge failure egress
+			failure := struct {
+				State, OriginalOperationID string
+				Code                       string `json:"code,omitempty"`
+				RecoverOnly                bool   `json:"recoverOnly,omitempty"`
+				QueryPath                  string `json:"queryPath,omitempty"`
+				ChunkBytes                 int    `json:"chunkBytes,omitempty"`
+			}{State: "UNKNOWN", OriginalOperationID: operation}
+			if errors.Is(err, errTaskResourceResponseLimit) && operation != "" {
+				failure.Code, failure.RecoverOnly = "RESPONSE_LIMIT", true
+				failure.QueryPath, failure.ChunkBytes = OriginalTaskReadQueryPath, OriginalTaskReadMaxChunkBytes
+			}
+			response, _ = marshalTaskResourceResponse(failure) // fixed bounded metadata, no receipt fragment
 		}
-		_ = json.NewEncoder(w).Encode(result)
+		w.Header().Set("Content-Length", strconv.Itoa(len(response)))
+		w.WriteHeader(status)
+		_, _ = w.Write(response) // a failed write never triggers an effect retry
 	})
+}
+
+func marshalTaskResourceResponse(value any) ([]byte, error) {
+	body, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	if len(body) >= OriginalTaskReadMaxResponseBytes {
+		return nil, errTaskResourceResponseLimit
+	}
+	return append(body, '\n'), nil
 }

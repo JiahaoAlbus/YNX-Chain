@@ -7,6 +7,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -346,5 +348,126 @@ func TestP08TaskResourceCopiedLINKRequestDenied(t *testing.T) {
 	response, err := e.client.Call(context.Background(), "POST", OriginalTaskReadExecutePath, "application/json", raw)
 	if err != nil || response.StatusCode != http.StatusForbidden || o.store.state.AuditSequence != sequence {
 		t.Fatalf("copied request accepted: %+v %v", response, err)
+	}
+}
+
+// PUBLIC proof/history boundary, actual large encrypted result and LINK body.
+func TestP08TaskResourceResponseLimitOriginalChunkRecovery(t *testing.T) {
+	o, r, held := taskResourceFixture(t)
+	conversation := r.Binding.Resources[0].ID
+	if _, err := o.store.AddMessage(r.Binding.Account, conversation, Message{Role: "user", Content: strings.Repeat("<", 140<<10), Status: "complete"}); err != nil {
+		t.Fatal(err)
+	}
+	_, messages, err := o.store.Conversation(r.Binding.Account, conversation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, _ := json.Marshal(map[string]any{"messages": messages})
+	if len(selected) > 1<<20 {
+		t.Fatal("fixture exceeds existing resource result limit")
+	}
+	binding := bindTaskBytes(selected)
+	r.Binding.Sources[0].Binding = authgrant.Bind{Bytes: strconv.Itoa(binding.Bytes), SHA3_512: binding.SHA3_512, SHA512: binding.SHA512}
+	held.snapshot.Grant.Binding, held.snapshot.Sources = r.Binding, r.Binding.Sources
+	registration := p08CallerEndpointRegistration(t)
+	registration.service = OriginalTaskReadResourceService
+	registration.routes = []link.LocalCallerRoute{{Method: "POST", Path: OriginalTaskReadExecutePath, MaxBodyBytes: 1 << 20, Timeout: 5 * time.Second}, {Method: "POST", Path: OriginalTaskReadQueryPath, MaxBodyBytes: 1 << 20, Timeout: 5 * time.Second}}
+	e, err := openTaskCallerEndpoint(context.Background(), registration, o.Handler())
+	if err != nil {
+		t.Fatal(err)
+	}
+	p08CallerEndpointCleanup(t, e)
+	wire, _ := json.Marshal(r)
+	response, err := e.client.Call(context.Background(), "POST", OriginalTaskReadExecutePath, "application/json", wire)
+	if err != nil {
+		t.Fatalf("LINK budget was exceeded: %v", err)
+	}
+	var failure struct {
+		State, OriginalOperationID string
+		Code                       string `json:"code"`
+		RecoverOnly                bool   `json:"recoverOnly"`
+		ChunkBytes                 int    `json:"chunkBytes"`
+	}
+	if json.Unmarshal(response.Body, &failure) != nil || response.StatusCode != 409 || failure.State != "UNKNOWN" || failure.Code != "RESPONSE_LIMIT" || !failure.RecoverOnly || failure.OriginalOperationID != r.AuthorityOperationID || failure.ChunkBytes != OriginalTaskReadMaxChunkBytes || len(response.Body) > OriginalTaskReadMaxResponseBytes || bytes.Contains(response.Body, []byte(`"original"`)) {
+		t.Fatalf("unbounded/truncated success: status=%d bytes=%d metadata=%+v", response.StatusCode, len(response.Body), failure)
+	}
+	if o.store.state.Actions[r.Binding.StepID].Status != "COMPLETED" {
+		t.Fatal("oversize reply lost durable original")
+	}
+	sequence := o.store.state.AuditSequence
+	whole, err := o.Query(context.Background(), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = marshalTaskResourceResponse(whole); !errors.Is(err, errTaskResourceResponseLimit) {
+		t.Fatalf("fixture does not reproduce serialized base64 growth: %v", err)
+	}
+	response, err = e.client.Call(context.Background(), "POST", OriginalTaskReadQueryPath, "application/json", wire)
+	if err != nil || response.StatusCode != 409 || len(response.Body) > OriginalTaskReadMaxResponseBytes {
+		t.Fatalf("whole query unbounded: %d %v", response.StatusCode, err)
+	}
+	r.OriginalChunkBytes = OriginalTaskReadMaxChunkBytes
+	var assembled []byte
+	for {
+		r.OriginalOffset = len(assembled)
+		wire, _ = json.Marshal(r)
+		response, err = e.client.Call(context.Background(), "POST", OriginalTaskReadQueryPath, "application/json", wire)
+		if err != nil || response.StatusCode != 200 || len(response.Body) > OriginalTaskReadMaxResponseBytes {
+			t.Fatalf("bounded original query: %d %v", response.StatusCode, err)
+		}
+		var page OriginalTaskResourceReadResult
+		if json.Unmarshal(response.Body, &page) != nil || page.State != "ORIGINAL_CHUNK" || page.OperationID != r.AuthorityOperationID || len(page.Original) != 0 || page.Chunk == nil {
+			t.Fatal("chunk was advertised as complete receipt")
+		}
+		c := page.Chunk
+		if c.Offset != len(assembled) || c.NextOffset != c.Offset+len(c.Bytes) || len(c.Bytes) == 0 || len(c.Bytes) > r.OriginalChunkBytes || c.Binding != bindTaskBytes(whole.Original) || c.TotalBytes != len(whole.Original) {
+			t.Fatal("original pagination identity changed")
+		}
+		assembled = append(assembled, c.Bytes...)
+		if c.NextOffset == c.TotalBytes {
+			break
+		}
+	}
+	if !bytes.Equal(assembled, whole.Original) || o.store.state.AuditSequence != sequence {
+		t.Fatal("recovery truncated or reran original operation")
+	}
+	coldStore, err := NewStore(o.store.path, bytes.Repeat([]byte{83}, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cold := &OriginalTaskReadResource{store: coldStore, queryCurrent: o.queryCurrent, queryMaterial: o.queryMaterial, children: make(map[*OriginalTaskResourceReadCall]struct{})}
+	r.OriginalOffset = 0
+	first, err := cold.Query(context.Background(), r)
+	if err != nil || first.Chunk == nil || !bytes.Equal(first.Chunk.Bytes, whole.Original[:r.OriginalChunkBytes]) || first.Chunk.Binding != bindTaskBytes(whole.Original) {
+		t.Fatalf("cold original pagination lost: %v", err)
+	}
+	for _, limits := range [][2]int{{-1, 1}, {0, -1}, {0, OriginalTaskReadMaxChunkBytes + 1}, {len(whole.Original), 1}, {1, 0}} {
+		r.OriginalOffset, r.OriginalChunkBytes = limits[0], limits[1]
+		bad, err := cold.Query(context.Background(), r)
+		if err == nil || bad.Chunk != nil || len(bad.Original) != 0 {
+			t.Fatalf("invalid chunk selection disclosed: %+v", limits)
+		}
+	}
+	if cold.store.state.AuditSequence != sequence {
+		t.Fatal("cold pagination mutated state")
+	}
+	r.OriginalOffset, r.OriginalChunkBytes = 0, OriginalTaskReadMaxChunkBytes
+	r.AuthorizationRef = "foreign-original-query"
+	wire, _ = json.Marshal(r)
+	denied, err := e.client.Call(context.Background(), "POST", OriginalTaskReadQueryPath, "application/json", wire)
+	if err != nil || denied.StatusCode != 409 || bytes.Contains(denied.Body, []byte(`"chunk"`)) || bytes.Contains(denied.Body, []byte(`"original"`)) || o.store.state.AuditSequence != sequence {
+		t.Fatal("unauthorized page disclosed or changed original")
+	}
+}
+
+func TestP08TaskResourceSerializedResponseExactBoundary(t *testing.T) {
+	// JSON string quotes + newline must all count. The exact limit is accepted.
+	body, err := marshalTaskResourceResponse(strings.Repeat("a", OriginalTaskReadMaxResponseBytes-3))
+	if err != nil || len(body) != OriginalTaskReadMaxResponseBytes {
+		t.Fatalf("exact serialized bound: %d %v", len(body), err)
+	}
+	body, err = marshalTaskResourceResponse(strings.Repeat("a", OriginalTaskReadMaxResponseBytes-2))
+	if !errors.Is(err, errTaskResourceResponseLimit) || body != nil {
+		t.Fatal("one-byte overflow returned partial JSON")
 	}
 }

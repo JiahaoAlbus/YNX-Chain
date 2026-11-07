@@ -77,3 +77,44 @@ Existing runtime CI runs them through `go test -race ./internal/aiproduct`.
 No installed lifecycle, genuine approval, signing, Shop order, public deployment
 or business acceptance is claimed. The next actual dependency is the original
 Auth/Native registered resource adapter and compatible genuine Source slot.
+
+## Serialized response bound and large-original recovery
+
+The Handler limits the **final serialized response body to 1 MiB**, including
+JSON/base64 expansion and the final newline. LINK's response header budget is
+separate. No larger MaxResponseBytes is silently selected. Success is serialized
+and size-checked before writing any body bytes; Content-Length is exact.
+
+An already committed receipt that cannot fit is never truncated or deleted.
+The response is 409 with bounded metadata, retaining `State: "UNKNOWN"`,
+`OriginalOperationID`, `code: "RESPONSE_LIMIT"`, `recoverOnly: true`,
+`queryPath` and `chunkBytes: 262144`. This means the caller has not obtained a
+complete receipt. It does not undo the original resource commit. Preserve the
+original Auth operation/UNKNOWN and do not call execute again.
+
+Use the SAME query route, original operation, AuthorizationRef and exact
+original Binding/Grant/Holder, adding private request DATA:
+
+- `OriginalOffset`: byte offset, initially 0.
+- `OriginalChunkBytes`: positive, at most 262144.
+
+These selectors are query-only; input/execute refuse them. Each query independently
+checks original history/proofs/current. The returned `state: "ORIGINAL_CHUNK"`
+is **not a COMMITTED effect receipt**. `original` is null; `chunk` contains
+`offset`, `nextOffset`, `totalBytes`, `binding` (full original byte count and both
+SHA3-512/SHA-512 hashes), and `bytes` (base64 of precisely that byte range).
+Follow nextOffset until totalBytes, demanding contiguous non-empty ranges,
+identical operation/total/binding on every page, and checking the reassembled
+byte count and BOTH full hashes. Only then decode/validate the exact resource
+receipt and settle the SAME original Auth operation. Neither a chunk nor its
+public hashes are independent authorization or a settlement proof.
+
+Offset/length errors and changed proofs refuse disclosure. Reassembly failure,
+EOF, missing page, late Source/peer/cleanup failure or lost ACK retains UNKNOWN;
+recover by querying the SAME original, never reserving/executing anew. The
+original encrypted Store result/operation association survives cold restart;
+pagination creates no operation, database, cursor row or receipt rewrite.
+A default whole-receipt query still respects the same 1 MiB serialized bound
+and returns the bounded recovery hint if it cannot fit. The original Auth
+bridge must explicitly consume this private query extension; until it does,
+its existing strict bound/UNKNOWN behavior is correct.
