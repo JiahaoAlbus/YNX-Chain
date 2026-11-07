@@ -1,0 +1,2 @@
+// Only new WPR public build-DATA controls and stdlib type/ODR microtest.
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const root=new URL('../../',import.meta.url),run=args=>{const r=spawnSync(process.execPath,args,{stdio:'inherit',timeout:120000});if(r.error)throw r.error;if(r.status!==0)process.exit(r.status??1);};run(['--test',fileURLToPath(new URL('apps/wallet-desktop/test/wpr-typed-release.test.mjs',root))]);run([fileURLToPath(new URL('apps/wallet-desktop/test/wpr-typed-cpp-data.mjs',root))]);
