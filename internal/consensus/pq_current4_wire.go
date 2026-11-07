@@ -144,19 +144,9 @@ func pqCurrent4CheckEndpoint(f *os.File, expected pqCurrent4Peer) error {
 	if err != nil || kind != unix.SOCK_STREAM {
 		return errPQCurrent4Peer
 	}
-	local, err := unix.Getsockname(fd)
-	if err != nil {
-		return errPQCurrent4Peer
-	}
-	peer, err := unix.Getpeername(fd)
-	if err != nil {
-		return errPQCurrent4Peer
-	}
-	l, ok1 := local.(*unix.SockaddrUnix)
-	p, ok2 := peer.(*unix.SockaddrUnix)
 	// The fixed transport is an unnamed inherited socketpair, not a connectable
 	// pathname listener. It cannot be replaced with a same-UID public endpoint.
-	if !ok1 || !ok2 || l.Name != "" || p.Name != "" {
+	if err := pqCurrent4UnnamedEndpoint(fd); err != nil {
 		return errPQCurrent4Peer
 	}
 	actual, err := pqCurrent4OSPeer(fd)

@@ -10,6 +10,9 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
 	"testing"
 	"time"
 
@@ -37,6 +40,39 @@ func current4Socketpair(t *testing.T) (*os.File, *net.UnixConn) {
 	}
 	return left, u
 }
+
+func current4ConnectableEndpoints(t *testing.T, name string) [2]*os.File {
+	t.Helper()
+	listener, err := unix.Socket(unix.AF_UNIX, unix.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = unix.Close(listener) })
+	address := &unix.SockaddrUnix{Name: name}
+	if err = unix.Bind(listener, address); err != nil {
+		t.Fatal(err)
+	}
+	if err = unix.Listen(listener, 1); err != nil {
+		t.Fatal(err)
+	}
+	client, err := unix.Socket(unix.AF_UNIX, unix.SOCK_STREAM, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clientFile := os.NewFile(uintptr(client), "PUBLIC connectable Current4 client")
+	t.Cleanup(func() { _ = clientFile.Close() })
+	if err = unix.Connect(client, address); err != nil {
+		t.Fatal(err)
+	}
+	server, _, err := unix.Accept(listener)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverFile := os.NewFile(uintptr(server), "PUBLIC connectable Current4 server")
+	t.Cleanup(func() { _ = serverFile.Close() })
+	return [2]*os.File{serverFile, clientFile}
+}
+
 func current4Frame(op byte, seq uint64, body []byte) []byte {
 	b := make([]byte, 24+len(body))
 	copy(b, "YNC4")
@@ -108,6 +144,54 @@ func TestPQCurrent4WirePUBLICStrictFramesAndOSPeer(t *testing.T) {
 			t.Fatal("regular descriptor admitted")
 		}
 	})
+	// Keep the socket path below sockaddr_un's platform length, independently
+	// of the outer test runner's potentially long external-volume TMPDIR.
+	directory, err := os.MkdirTemp("/tmp", "ynxc4-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pathname := filepath.Join(directory, "peer.sock")
+	t.Cleanup(func() { _ = os.Remove(pathname); _ = os.Remove(directory) })
+	addresses := []struct{ label, name string }{{"pathname_peer_refused", pathname}}
+	if runtime.GOOS == "linux" {
+		addresses = append(addresses,
+			struct{ label, name string }{"linux_abstract_peer_refused", "@ynx-current4-public-" + strconv.Itoa(os.Getpid())},
+			struct{ label, name string }{"linux_empty_abstract_peer_refused", "@"})
+	}
+	for _, address := range addresses {
+		t.Run(address.label, func(t *testing.T) {
+			endpoints := current4ConnectableEndpoints(t, address.name)
+			peer := pqCurrent4Peer{uint32(os.Getuid()), int32(os.Getpid())}
+			for _, endpoint := range endpoints {
+				actual, err := pqCurrent4OSPeer(int(endpoint.Fd()))
+				if err != nil || actual != peer {
+					t.Fatal("rejection must reach a real same-UID/PID connected peer", err)
+				}
+				if !errors.Is(pqCurrent4CheckEndpoint(endpoint, peer), errPQCurrent4Peer) {
+					t.Fatal("connectable same-identity endpoint admitted")
+				}
+			}
+			if address.name == "@" {
+				unnamed, _ := current4Socketpair(t)
+				local, err := unix.Getsockname(int(unnamed.Fd()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				abstract, err := unix.Getsockname(int(endpoints[0].Fd()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				l, lok := local.(*unix.SockaddrUnix)
+				a, aok := abstract.(*unix.SockaddrUnix)
+				if !lok || !aok || l.Name != "@" || a.Name != l.Name {
+					t.Fatal("original x/sys projection must expose the ambiguous names")
+				}
+				if err = pqCurrent4CheckEndpoint(unnamed, peer); err != nil {
+					t.Fatal("unnamed socketpair rejected after abstract-name refusal", err)
+				}
+			}
+		})
+	}
 	valid := current4Frame(pqCurrent4Capture, 1, append(make([]byte, 32), []byte("0xae45b350fbc6f5e66aa18c43fe464f0c5229a7e0")...))
 	cases := map[string]func([]byte) []byte{
 		"magic":                       func(b []byte) []byte { b[0] ^= 1; return b },
