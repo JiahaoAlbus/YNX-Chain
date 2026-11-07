@@ -1,9 +1,10 @@
 /** Private same-process original operand. Not a Source/Native grant or wire type.
  * Only actual ledger.openOriginalTaskEffectContinuation returns the runtime cap;
  * JSON/recovery/readonly observations cannot restore its WeakMap recognition. */
+import type{OriginalTaskResourceCleanupDATA}from'./desktop-grant-resource-transport-owner.mjs';
 declare const originalContinuation:unique symbol;
 export interface OriginalTaskEffectContinuation{readonly [originalContinuation]:never;}
-export interface OriginalTaskEffectTransportLoan{assertCurrent():void|Promise<void>;retire():void|Promise<void>;join():void|Promise<void>;close():void|Promise<void>;}
+export interface OriginalTaskEffectTransportLoan{assertCurrent():void|Promise<void>;retire():void;join():Promise<OriginalTaskResourceCleanupDATA>;close():Promise<OriginalTaskResourceCleanupDATA>;isJoined():boolean;isClosed():boolean;}
 export interface OriginalTaskEffectReceiptDATA{readonly operationId:string;readonly state:'COMMITTED'|'FAILED';readonly original:string;}
 export interface OriginalTaskEffectRequestDATA{readonly grant:unknown;readonly step:unknown;readonly operationId:string;readonly rawInput:Uint8Array;readonly holderProof:unknown;readonly expectedGrantRevision:string;}
 export interface RegisteredOriginalTaskEffectExecutor{readonly target:unknown;executeOriginalTaskEffect(sameCaller:unknown,originalRequestDATA:OriginalTaskEffectRequestDATA,sameContinuation:OriginalTaskEffectContinuation):Promise<Readonly<{owner:OriginalTaskEffectTransportLoan|null;errorPresent:boolean;error?:unknown;result?:OriginalTaskEffectReceiptDATA}>>;}
