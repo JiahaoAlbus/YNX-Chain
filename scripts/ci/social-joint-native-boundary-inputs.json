@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "profile": "SOCIAL_JOINT_MATCHING_HEADER_PUBLIC_BOUNDARY/v1",
+  "platform": "darwin-hosted-only",
+  "originalNativeSnapshot": "78a6f579ee7ad78c18600b101a16cf4aeaf72908",
+  "files": [
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/include/social_joint_profile_issuer_private.h",
+      "bytes": 7878,
+      "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/include/social_main_committed_pair_private.h",
+      "bytes": 2153,
+      "sha256": "85088b5923f0d6c6df5ed98a3fe5ef3ed4f21f9a8c6fbc85b0c2524612bc3aa7"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/include/ynx_social_finite_joint_custodian_private_v1.h",
+      "bytes": 3660,
+      "sha256": "cb65131c497127eb83a507ed952877602537a8ce39f7e70f93a46055f70fac8f"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/native/social-joint-profile-issuer/CommittedSocial.cpp",
+      "bytes": 7518,
+      "sha256": "1392de396ed2e139b5e2b1e67875e43628e57d56ab319be78f5e387f80db695a"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/native/social-joint-profile-issuer/FiniteRole.cpp",
+      "bytes": 7636,
+      "sha256": "e602729a49d2db756db0d6f2fec8cadc4bc1fd0a20add3696c6896bec5ca9274"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/native/social-joint-profile-issuer/OriginalServices.hpp",
+      "bytes": 5805,
+      "sha256": "607b1e6da849925a83ba18cf8fb0148c11faba6686b9ebb659d5bdc3b3a19445"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/test/social-joint-committed-social.PUBLIC.cpp",
+      "bytes": 12871,
+      "sha256": "02880e1f85a302abbd0ac3d3cadcfda897d5fff8d4c1fcc6a2a73bac5d36c78c"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/test/social-joint-committed-social.mjs",
+      "bytes": 9461,
+      "sha256": "98a76ca017bb4d7bc305a51c6aebf9068b936e26004ff37f2bc41d6c1d2166bd"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/test/social-joint-finite-role.PUBLIC.cpp",
+      "bytes": 12938,
+      "sha256": "cd310c8db9748f03f408c4533bdc6e623bc3cc3cca79c5b3a60bbb490cafb3ec"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-joint-native-matching-profile/module/test/social-joint-finite-role.mjs",
+      "bytes": 8550,
+      "sha256": "afd4d2a7599b3b3ab4e5d7a08839b4003904a69b9375679bc8c3c61768ce51d4"
+    }
+  ],
+  "runs": [
+    {
+      "runner": "module/test/social-joint-finite-role.mjs",
+      "groups": 26,
+      "args": [
+        "--header",
+        "include/ynx_social_finite_joint_custodian_private_v1.h"
+      ]
+    },
+    {
+      "runner": "module/test/social-joint-committed-social.mjs",
+      "groups": 39,
+      "args": [
+        "--main-header",
+        "include/social_main_committed_pair_private.h",
+        "--auth-header",
+        "include/social_joint_profile_issuer_private.h"
+      ]
+    }
+  ],
+  "productionPackageMembersAdded": 0,
+  "GoRustArchive": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "realKeys": false,
+  "realSign": false,
+  "normalFinalNativeImage": false,
+  "runnerSuccessor": {
+    "sourceCommit": "a7451fe964c84d782f1f47c0533a96dbed0a2065",
+    "handoffBytes": 2538,
+    "handoffSHA256": "de3155b75be21df10321f96201a37d697e4358893a315c5a325ada6ce9d9b9f0",
+    "onlyHomeGateChanged": true
+  }
+}
