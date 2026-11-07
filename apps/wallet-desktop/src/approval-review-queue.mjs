@@ -10,6 +10,16 @@ export class ApprovalReviewQueue {
   get current() { return this.#inFlight ?? this.#items[0] ?? null; }
   get busy() { return this.#inFlight !== null; }
   get count() { return this.#items.length; }
+  // Read-only scoped UI count; no claim, decision or authority. Unassigned
+  // requests stay distinct from requests known to belong to another account.
+  summaryForAccount(account) {
+    let matchingCount=0,unassignedCount=0;const now=this.now();
+    const visible=this.#inFlight&&!this.#items.includes(this.#inFlight)?[...this.#items,this.#inFlight]:this.#items;
+    for(const item of visible){if(item!==this.#inFlight&&item.expiresAt<=now)continue;const r=item.review?.review??item.review,owners=[...new Set([r?.account,r?.canonicalOwner].filter(x=>typeof x==='string'&&/^0x[a-f0-9]{40}$/.test(x)))],owner=owners.length===1?owners[0]:null;
+      if(typeof owner==='string'&&/^0x[a-f0-9]{40}$/.test(owner)){if(owner===account)matchingCount++;}else unassignedCount++;
+    }
+    return Object.freeze({account,matchingCount,unassignedCount});
+  }
   enqueue(type, review) {
     if (!review || !["authorization", "proposal", "provider"].includes(type) || !["string", "number"].includes(typeof review.id)) return false;
     const key = `${type}:${review.id}`;

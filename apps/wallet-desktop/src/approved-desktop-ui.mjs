@@ -1,3 +1,4 @@
+import {createDesktopOverviewActivityUI} from './desktop-overview-activity-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
 import {createAddressResolverUI} from './receive-address-resolver-ui.mjs';
 const address=value=>typeof value==='string'&&/^ynx1[a-z0-9]{38}$/.test(value)?value:null;
@@ -9,6 +10,7 @@ export function projectDesktopPublicState(account,key){
 }
 export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openImport,openCrossChain,openNetworks,reviewPending,writeClipboard}){
  const byId=id=>doc.getElementById(id),zh=()=>doc.documentElement.lang.startsWith('zh'),t=(en,cn)=>zh()?cn:en;
+ let overviewActivity=null,keyOwner=null;
  let scope=null,entered=false,disposed=false,policyEpoch=0,policyBusy=false,pending={count:0,ai:false},networkState=null;
  const resolver=createAddressResolverUI({root:byId('desktop-resolver-root'),api,getContext:()=>({open:doc.querySelector('[data-panel="resolver"]')?.hidden===false,account:scope?.canonical??null,keyRevision:scope?.revision,networkId:'ynx_6423-1'}),writeClipboard});
  const move=(id,target)=>{const n=byId(id),parent=byId(target);if(n&&parent)parent.append(n);};
@@ -16,7 +18,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
  for(const id of ['pq-key-preparation','pq-account-initial','pq-independent-backup','pq-registered-restore','pq-migration-form','pq-revocation-form'])move(id,'desktop-pq-tools-slot');
  // Reparent the real asset DOM instead of duplicating balances or callbacks.
  const assets=byId('assets'),heading=doc.querySelector('.asset-heading'),row=doc.querySelector('.asset-row'),note=doc.querySelector('.overview-note');
- if(assets&&heading&&row){const layout=doc.createElement('div'),left=doc.createElement('section'),right=doc.createElement('aside');layout.className='desktop-assets-layout';right.className='desktop-assets-sidebar';layout.append(left,right);assets.append(layout);left.append(heading,row);if(note)right.append(note);const card=doc.createElement('section'),title=doc.createElement('h3'),body=doc.createElement('p'),button=doc.createElement('button');card.className='desktop-panel';title.textContent=t('Security and original approvals','安全与原始批准');body.textContent=t('Dual signatures require ML-DSA-87 and SLH-DSA-SHA2-256f. Local custody, registration and each protected request are checked separately.','双签要求 ML-DSA-87 与 SLH-DSA-SHA2-256f；本地密钥、登记和每次受保护请求分别核对。');button.type='button';button.textContent=t('Open security center','打开安全中心');button.addEventListener('click',()=>route('security'));card.append(title,body,button);right.append(card);}
+ if(assets&&heading&&row){const layout=doc.createElement('div'),left=doc.createElement('section'),right=doc.createElement('aside');layout.className='desktop-assets-layout';right.className='desktop-assets-sidebar';layout.append(left,right);assets.append(layout);left.append(heading,row);if(note)right.append(note);const card=doc.createElement('section'),title=doc.createElement('h3'),body=doc.createElement('p'),button=doc.createElement('button');card.className='desktop-panel';title.textContent=t('Security and original approvals','安全与原始批准');body.textContent=t('Dual signatures require ML-DSA-87 and SLH-DSA-SHA2-256f. Local custody, registration and each protected request are checked separately.','双签要求 ML-DSA-87 与 SLH-DSA-SHA2-256f；本地密钥、登记和每次受保护请求分别核对。');button.type='button';button.textContent=t('Open security center','打开安全中心');button.addEventListener('click',()=>route('security'));card.append(title,body,button);overviewActivity=createDesktopOverviewActivityUI({document:doc,parent:right,securityCard:card,getContext:()=>({account:scope?.canonical===keyOwner?scope.canonical:null,revision:scope?.revision,locked:scope?.locked!==false}),reviewPending,openHistory:()=>route('history')});}
  const missing=[];if(typeof api.exportPQBackup!=='function')missing.push(t('encrypted PQ backup','PQ 加密备份'));if(typeof api.restoreRegisteredPQ!=='function')missing.push(t('registered-key recovery','已登记密钥恢复'));if(missing.length){const unavailable=doc.createElement('p');unavailable.className='desktop-warning';unavailable.setAttribute('role','status');unavailable.textContent=t('Unavailable in this build: ','当前版本不可用：')+missing.join(' · ');byId('desktop-pq-tools-slot').before?.(unavailable);}
  function translate(){for(const node of doc.querySelectorAll('[data-desktop-en]'))node.textContent=zh()?node.dataset.desktopZh??node.dataset.desktopEn:node.dataset.desktopEn;}
  function resetPolicy(){policyEpoch++;policyBusy=false;byId('desktop-pq-a').textContent=byId('desktop-pq-b').textContent=t('Not checked','未核对');byId('desktop-pq-policy').textContent=t('Check the current original policy. Local keys and registration are separate.','请核对当前原链上授权；本地密钥与链上登记分别确认。');}
@@ -47,11 +49,12 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   }catch{if(token===policyEpoch)byId('desktop-pq-policy').textContent=t('Original authorization unavailable. No active state is inferred.','原链上授权尚无法确认；不推断已生效。');}
   finally{if(token===policyEpoch){policyBusy=false;byId('desktop-read-pq-policy').disabled=scope?.locked||!scope?.canonical;}}
  });
- function updatePending(value){pending={count:Number.isSafeInteger(value?.count)&&value.count>=0?value.count:0,ai:value?.ai===true};byId('desktop-agent-pending').textContent=pending.count? t(pending.ai?'An original AI task request awaits independent review.':'Original requests await independent review.','有原始请求待独立核对。'):t('No pending request has been supplied. Delegation activity is not inferred.','当前没有已供给的待核对请求；不推断委托活动。');byId('desktop-agent-review').disabled=!pending.count||scope?.locked!==false;}
+ function updatePending(value){overviewActivity?.updatePending(value?.overview);pending={count:Number.isSafeInteger(value?.count)&&value.count>=0?value.count:0,ai:value?.ai===true};byId('desktop-agent-pending').textContent=pending.count? t(pending.ai?'An original AI task request awaits independent review.':'Original requests await independent review.','有原始请求待独立核对。'):t('No pending request has been supplied. Delegation activity is not inferred.','当前没有已供给的待核对请求；不推断委托活动。');byId('desktop-agent-review').disabled=!pending.count||scope?.locked!==false;}
  function render(account,key){
+  keyOwner=key?.account??null;
   const next=projectDesktopPublicState(account,key),changed=!scope||next.canonical!==scope.canonical||next.revision!==scope.revision||next.locked!==scope.locked;
   if(scope?.locked===false&&next.locked)entered=false;
-  if(changed){if(next.locked||scope?.canonical!==next.canonical)pending={count:0,ai:false};resetPolicy();resolver.invalidate();byId('desktop-history-detail')?.replaceChildren();}scope=next;doc.body.dataset.walletLocked=String(next.locked);
+  if(changed){if(next.locked||scope?.canonical!==next.canonical)pending={count:0,ai:false};resetPolicy();resolver.invalidate();byId('desktop-history-detail')?.replaceChildren();}scope=next;overviewActivity?.updateContext();doc.body.dataset.walletLocked=String(next.locked);
   const welcome=byId('desktop-welcome'),lock=byId('desktop-lock-screen');
   if(!entered&&!next.initialized){welcome.hidden=false;lock.hidden=true;doc.body.dataset.walletStage='welcome';}
   else if(!entered&&next.locked&&next.initialized){welcome.hidden=true;lock.hidden=false;doc.body.dataset.walletStage='locked';}
@@ -63,12 +66,12 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   updatePending(pending);
  }
  function renderNetwork(){if(!networkState)return;const view=desktopNetworkDisplay(networkState,zh()),chip=byId('desktop-network-chip');chip.textContent=view.label;chip.title=view.detail;chip.dataset.networkState=view.known?'available':'unavailable';}
- const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
- return Object.freeze({render,viewChanged,enterWorkspace,updatePending,showHistoryRecord(record){
+ const observer=typeof MutationObserver==='function'?new MutationObserver(()=>{translate();renderNetwork();overviewActivity?.render();}):null;observer?.observe(doc.documentElement,{attributes:true,attributeFilter:['lang']});translate();updatePending(pending);
+ return Object.freeze({render,viewChanged,enterWorkspace,updatePending,updateHistory:(view,actor)=>overviewActivity?.updateHistory(view,actor),showHistoryRecord(record){
   const parent=byId('desktop-history-detail');if(!parent||record?.account!==scope?.canonical)return;parent.replaceChildren();
   const h=doc.createElement('h2'),amount=doc.createElement('p'),facts=doc.createElement('dl'),notice=doc.createElement('p');
   h.textContent=record.successful?t('Transfer observed locally','本地快照已观察到交易'):t('Execution failed','执行失败');amount.className='desktop-history-amount';amount.textContent=record.amount+' YNXT';
   for(const [en,cn,value]of [['Canonical recipient ID','接收方规范 ID',record.to],['Transaction hash','交易哈希',record.hash],['Actual fee','实际手续费',record.actualFee+' YNXT'],['Observed block','观察区块',record.blockNumber]]){const term=doc.createElement('dt'),valueNode=doc.createElement('dd');term.textContent=t(en,cn);valueNode.textContent=String(value);valueNode.dir='ltr';facts.append(term,valueNode);}
   notice.textContent=t('This is the retained verified local snapshot. Independent consensus finality is not supplied. An UNKNOWN operation must never be replayed.','这是已保留且经核对的本地快照；尚未供给独立共识最终性。结果未知的原操作不得重发。');parent.append(h,amount,facts,notice);
- },updateNetwork(value){networkState={available:value?.available===true,chainId:value?.chainId};renderNetwork();},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;policyEpoch++;resolver.destroy();observer?.disconnect();}});
+ },updateNetwork(value){networkState={available:value?.available===true,chainId:value?.chainId};renderNetwork();},invalidate:()=>resolver.invalidate(),dispose(){disposed=true;overviewActivity?.dispose();policyEpoch++;resolver.destroy();observer?.disconnect();}});
 }

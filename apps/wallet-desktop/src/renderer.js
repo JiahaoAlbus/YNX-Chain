@@ -344,7 +344,7 @@ function authorizationErrorText(result) {
 }
 
 function presentApproval() {
-  desktopUI?.updatePending({count:approvalQueue.count,ai:approvalQueue.current?.review?.method==='ynx_approveAITaskActionV6'});
+  desktopUI?.updatePending({overview:{...approvalQueue.summaryForAccount(keyState.account),revision:keyState.revision},count:approvalQueue.count,ai:approvalQueue.current?.review?.method==='ynx_approveAITaskActionV6'});
   const item = approvalQueue.current;
   const panels = { authorization, proposal: document.querySelector("#walletconnect-proposal"), provider: document.querySelector("#provider-request") };
   for (const [type, panel] of Object.entries(panels)) if (!item || type !== item.type) { if (panel.open) panel.close(); panel.hidden = true; }
@@ -463,6 +463,7 @@ function renderAccount(payload) {
   }
   accountState = status;
   desktopUI?.render(accountState,keyState);
+  presentApproval();
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
@@ -905,7 +906,7 @@ desktopHistoryUI=createDesktopTransactionHistoryUI({document,getContext:()=>({ac
 const transactionHistoryUI = createTransactionHistoryUI({
   getAccount: () => activeAccount,
   request: cursor => window.ynxWallet.transactionHistory(cursor),
-  render: view => desktopHistoryUI.render(view),
+  render: view => {desktopHistoryUI.render(view);desktopUI?.updateHistory(view,{account:activeAccount,revision:keyState.revision});},
 });
 document.querySelector("#refresh-transaction-history").addEventListener("click", () => void transactionHistoryUI.refresh());
 document.querySelector("#older-transaction-history").addEventListener("click", () => void transactionHistoryUI.older());
@@ -1375,4 +1376,5 @@ window.addEventListener('blur',()=>projectControlUI.invalidate());
 // Full approved desktop presentation consumes only existing public state and
 // delegates all protected actions to their original controls/controllers.
 desktopUI=createApprovedDesktopUI({document,api:window.ynxWallet,navigate:setView,unlock:()=>document.querySelector('#unlock-wallet').click(),openImport:()=>document.querySelector('#open-import').click(),openCrossChain:()=>{if(window.ynxWallet.crossChain)cctpOpen.click();},openNetworks:()=>document.querySelector('#open-multichain').click(),reviewPending:presentApproval,writeClipboard:writeReceivingClipboard});
+presentApproval();
 if(accountStatusObserved)desktopUI.render(accountState,keyState);

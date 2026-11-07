@@ -149,3 +149,11 @@ body[data-wallet-stage='workspace'] #desktop-welcome { display:none; }
 #native-pay-product-sheet dl { max-height:240px; overflow:auto; padding:16px 0; }
 #native-pay-product-sheet dd { margin:0; overflow-wrap:anywhere; font-family:var(--ynx-font-mono); }
 #native-pay-product-sheet>button { margin:12px 12px 0 0; }
+.desktop-overview-pending h3,.desktop-overview-recent h3 { margin:0 0 16px; font-size:.875rem; }
+.desktop-overview-pending>button { display:block; margin-left:auto; }
+.desktop-overview-activity-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px solid var(--ynx-border); }
+.desktop-overview-activity-row>div { display:grid; gap:5px; min-width:0; }
+.desktop-overview-activity-row strong { font-size:.75rem; font-weight:500; }
+.desktop-overview-activity-row>strong { font-family:var(--ynx-font-mono); overflow-wrap:anywhere; text-align:right; }
+.desktop-overview-activity-row span,.desktop-overview-caption { color:var(--ynx-text-secondary); font-size:.6875rem!important; line-height:1.6!important; }
+.desktop-overview-recent>.text-button { display:block; margin:16px auto 0; }
