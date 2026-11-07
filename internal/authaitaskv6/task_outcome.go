@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"strconv"
 	"sync"
@@ -150,43 +149,35 @@ func (o *HeldOriginalBusinessOutcome) ReadOriginalOutcomeDATA() (OriginalBusines
 		return out, e
 	}
 	out.Action = o.action
+	var original aiproduct.TaskActionOutcomeOriginalDATA
+	var e error
 	if o.receipt != nil {
-		v, e := o.receipt.View()
-		if e != nil {
-			return out, o.remember(e)
-		}
-		raw, e := json.Marshal(v)
-		if e != nil {
-			return out, e
-		}
-		body, e := o.receipt.Body()
-		if e != nil {
-			return out, o.remember(e)
-		}
-		out = OriginalBusinessOutcomeDATA{State: v.State, Action: o.action, BusinessAction: v.Action, CompletionScope: v.Scope, RequestRef: v.RequestRef, OriginalRef: v.OriginalRef, OperationID: v.OriginalOperationID, RequestDigest: v.RequestDigest, Status: v.HTTPStatus, BusinessReceiptOriginal: raw, BodyOriginal: body}
-		sum := sha256.Sum256(body)
-		out.BodyDigest, out.BodyBytes = hex.EncodeToString(sum[:]), strconv.FormatUint(uint64(len(body)), 10)
+		original, e = o.receipt.ReadOriginalOutcomeDATA()
 	} else {
-		v, e := o.lookup.View()
-		if e != nil {
-			return out, o.remember(e)
+		v, readErr := o.lookup.View()
+		if readErr != nil {
+			return out, o.remember(readErr)
 		}
-		raw, e := json.Marshal(v)
-		if e != nil {
-			return out, e
+		if v.State != "COMMITTED" {
+			// A retained pending reservation is UNKNOWN metadata only. Never
+			// marshal a synthetic successful/opaque business receipt for it.
+			out.State, out.BusinessAction = v.State, v.Action
+			out.OriginalRef, out.OperationID, out.RequestDigest = v.OriginalRef, v.OperationID, v.RequestDigest
+			out.Status, out.BodyDigest, out.BodyBytes = v.Status, v.BodyDigest, strconv.FormatUint(v.BodyBytes, 10)
+			if currentErr := o.Current(); currentErr != nil {
+				return OriginalBusinessOutcomeDATA{}, currentErr
+			}
+			return out, nil
 		}
-		out.State = v.State
-		out.BusinessAction = v.Action
-		out.OriginalRef = v.OriginalRef
-		out.OperationID = v.OperationID
-		out.RequestDigest = v.RequestDigest
-		out.Status = v.Status
-		out.BodyDigest, out.BodyBytes = v.BodyDigest, strconv.FormatUint(v.BodyBytes, 10)
-		out.BusinessReceiptOriginal = raw
-		if v.State == "COMMITTED" {
-			out.CompletionScope = "PRODUCT_LOCAL_COMMIT_ONLY"
-		}
+		original, e = o.lookup.ReadOriginalOutcomeDATA()
 	}
+	if e != nil {
+		return OriginalBusinessOutcomeDATA{}, o.remember(e)
+	}
+	v, body := original.View, original.BodyOriginal
+	out = OriginalBusinessOutcomeDATA{State: v.State, Action: o.action, BusinessAction: v.Action, CompletionScope: v.Scope, RequestRef: v.RequestRef, OriginalRef: v.OriginalRef, OperationID: v.OriginalOperationID, RequestDigest: v.RequestDigest, Status: v.HTTPStatus, BusinessReceiptOriginal: original.BusinessReceiptOriginal, BodyOriginal: body}
+	sum := sha256.Sum256(body)
+	out.BodyDigest, out.BodyBytes = hex.EncodeToString(sum[:]), strconv.FormatUint(uint64(len(body)), 10)
 	if e := o.Current(); e != nil {
 		return OriginalBusinessOutcomeDATA{}, e
 	}

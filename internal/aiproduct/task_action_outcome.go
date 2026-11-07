@@ -98,6 +98,7 @@ type TaskActionOutcomeReceipt struct {
 	released         atomic.Bool
 	view             TaskActionOutcomeView
 	body             []byte
+	receiptOriginal  []byte
 }
 
 var ErrTaskActionOutcomeUnknown = errors.New("original task action has no verified product commit; query the original operation, do not replay")
@@ -465,7 +466,10 @@ func (source *TaskStoreSource) taskActionReceiptLocked(ctx context.Context, p Ta
 		return nil, err
 	}
 	var payload taskActionStoredPayload
-	if json.Unmarshal([]byte(body), &payload) != nil {
+	var original struct {
+		View json.RawMessage `json:"view"`
+	}
+	if json.Unmarshal([]byte(body), &payload) != nil || json.Unmarshal([]byte(body), &original) != nil || len(original.View) == 0 {
 		return nil, ErrTaskActionOutcomeUnknown
 	}
 	expectedView, _ := json.Marshal(v)
@@ -474,7 +478,7 @@ func (source *TaskStoreSource) taskActionReceiptLocked(ctx context.Context, p Ta
 		return nil, ErrTaskActionOutcomeUnknown
 	}
 	_ = task // actual live ACL was checked above; receipt is historical product commit
-	receipt := &TaskActionOutcomeReceipt{source: source, ctx: ctx, key: key, fingerprint: taskOutcomeFingerprint(record), view: v, body: bytes.Clone(payload.Body)}
+	receipt := &TaskActionOutcomeReceipt{source: source, ctx: ctx, key: key, fingerprint: taskOutcomeFingerprint(record), view: v, body: bytes.Clone(payload.Body), receiptOriginal: bytes.Clone(original.View)}
 	if err := receipt.Current(); err != nil {
 		return nil, err
 	}
