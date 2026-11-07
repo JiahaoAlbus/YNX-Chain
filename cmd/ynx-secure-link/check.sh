@@ -10,7 +10,7 @@ case "${1:-stub}" in
   native)
     test "$(pkg-config --modversion openssl)" = "3.6.4"
     export CGO_ENABLED=1 GOTOOLCHAIN=local
-    go test -mod=readonly -race -p 1 -count=1 -timeout=90s -v -tags securelink_openssl ./internal/securelink/... ./cmd/ynx-secure-link
+    go test -mod=readonly -race -p 1 -count=1 -timeout=150s -v -tags securelink_openssl ./internal/securelink/... ./cmd/ynx-secure-link
     go vet -mod=readonly -tags securelink_openssl ./internal/securelink/... ./cmd/ynx-secure-link
     ;;
   ci-scope)

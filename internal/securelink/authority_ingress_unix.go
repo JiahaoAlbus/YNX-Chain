@@ -54,7 +54,13 @@ type authorityIngressRequest struct {
 }
 
 func NewAuthorityIPCIngress(cfg AuthorityIPCIngressConfig) (*AuthorityIPCIngress, error) {
-	if !localService(cfg.Service) || cfg.PeerUID == 0 || cfg.PeerPID <= 0 || len(cfg.Routes) == 0 || len(cfg.Routes) > 2 {
+	return newAuthorityIPCIngress(cfg, 2)
+}
+
+// The constructor's finite route cardinality is selected by its original
+// purpose-specific caller, never by request DATA or an exported generic flag.
+func newAuthorityIPCIngress(cfg AuthorityIPCIngressConfig, maxRoutes int) (*AuthorityIPCIngress, error) {
+	if !localService(cfg.Service) || cfg.PeerUID == 0 || cfg.PeerPID <= 0 || len(cfg.Routes) == 0 || len(cfg.Routes) > maxRoutes {
 		return nil, ErrDenied
 	}
 	if err := privateParent(cfg.SocketPath, cfg.PeerUID); err != nil {

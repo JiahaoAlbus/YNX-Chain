@@ -39,6 +39,7 @@ const servers=new WeakMap(),requests=new WeakMap(),callers=new WeakMap();
 const headersGetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').get;
 const headersSetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').set;
 const routes=new Set(['/internal/auth/task-grants/effect','/internal/auth/task-grants/effect-query']);
+const desktopTaskGrantRoutes=new Set(['issue','effect','query','effect-query','effect-reconcile','revoke','management'].map(suffix=>'/internal/auth/task-grants/'+suffix));
 const taskRoutes=new Set(['/internal/auth/ai-task-v6/effect','/internal/auth/ai-task-v6/effect-query']);
 const taskOperations=Object.freeze(['capture','capture-conversation','execute-local','observe','outcome','observe-outcome','reconcile-observe','release']);
 const taskProfile='AUTH_AI_V6_PRIVATE_RUNTIME_TRANSPORT/v1';
@@ -54,20 +55,23 @@ function exact(value,keys){
   return Object.fromEntries(keys.map(k=>[k,fields[k].value]));
 }
 function integer(value,min,max){if(!Number.isSafeInteger(value)||value<min||value>max)throw fail('bounded inbound integer required');return value;}
-function registration(input,runtime=false){
+function registration(input,runtime=false,desktopTaskGrant=false){
   const p=exact(input,['socketPath','nodeUID','bridgeUID','bridgePID','service','acceptTimeoutMs','currentTimeoutMs','maxConnections','routes']);
   if(typeof p.socketPath!=='string'||!path.isAbsolute(p.socketPath)||path.normalize(p.socketPath)!==p.socketPath||/[\0\r\n]/.test(p.socketPath)||Buffer.byteLength(p.socketPath)>=(process.platform==='darwin'?104:108))throw fail('private exact socket path required');
   if(p.nodeUID!==process.geteuid())throw fail('actual Node UID required');
   integer(p.bridgeUID,0,0xffffffff);integer(p.bridgePID,1,0x7fffffff);integer(p.acceptTimeoutMs,1,30000);integer(p.currentTimeoutMs,1,30000);integer(p.maxConnections,1,64);
   if(typeof p.service!=='string'||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(p.service))throw fail('exact registered service required');
-  if(!Array.isArray(p.routes)||types.isProxy(p.routes)||p.routes.length!==2)throw fail('two exact registered authority routes required');
+  const count=desktopTaskGrant?7:2;
+  if(!Array.isArray(p.routes)||types.isProxy(p.routes)||p.routes.length!==count)throw fail('closed exact registered authority routes required');
   const list=Object.getOwnPropertyDescriptors(p.routes);
-  if(Reflect.ownKeys(list).length!==3||!Object.hasOwn(list[0]||{},'value')||!Object.hasOwn(list[1]||{},'value'))throw fail('owned route list required');
+  if(Reflect.ownKeys(list).length!==count+1)throw fail('owned route list required');
+  const items=[];
+  for(let n=0;n<count;n++){if(!Object.hasOwn(list[n]||{},'value'))throw fail('owned route list required');items.push(list[n].value);}
   const selected=new Map();
-  for(const item of [list[0].value,list[1].value]){
+  for(const item of items){
     const r=exact(item,['method','path','maxRequestBytes','maxResponseBytes']);
-    if(r.method!=='POST'||typeof r.path!=='string'||!(runtime?taskRoutes:routes).has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
-    integer(r.maxRequestBytes,1,runtime?1835008:16<<20);integer(r.maxResponseBytes,1,runtime?2097152:16<<20);selected.set(r.path,Object.freeze(r));
+    if(r.method!=='POST'||typeof r.path!=='string'||!(desktopTaskGrant?desktopTaskGrantRoutes:runtime?taskRoutes:routes).has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
+    integer(r.maxRequestBytes,1,desktopTaskGrant?1048576:runtime?1835008:16<<20);integer(r.maxResponseBytes,1,runtime?2097152:16<<20);selected.set(r.path,Object.freeze(r));
   }
   return Object.freeze({...p,routes:selected});
 }
@@ -196,14 +200,14 @@ function listenRequest(state,req,res){
   }catch(error){state.failure??=error;if(record)endRecord(record);req.socket.destroy(error);}
 }
 
-async function openInboundServer(profile,handler,runtime){
-  const p=registration(profile,runtime);if(typeof handler!=='function')throw fail('original incoming handler required');
+async function openInboundServer(profile,handler,runtime,desktopTaskGrant=false){
+  const p=registration(profile,runtime,desktopTaskGrant);if(typeof handler!=='function')throw fail('original incoming handler required');
   const api=runtime?{listen:native.listenTaskRuntime,accept:native.acceptTaskRuntime,take:native.takeTaskRuntimeFD,retireListener:native.retireTaskRuntimeListener,retire:native.retireTaskRuntime,current:native.currentTaskRuntime}:{listen:native.listenInbound,accept:native.acceptInbound,take:native.takeInboundFD,retireListener:native.retireListener,retire:native.retireInbound,current:native.currentInbound};
   const listener=api.listen({socketPath:p.socketPath,nodeUID:p.nodeUID,bridgeUID:p.bridgeUID,bridgePID:p.bridgePID,timeoutMs:p.acceptTimeoutMs});
   const server=http.createServer({maxHeaderSize:64<<10,requestTimeout:30000,headersTimeout:5000},(req,res)=>listenRequest(state,req,res));
   server.maxRequestsPerSocket=1;
   server.on('clientError',(_error,socket)=>socket.destroy());
-  const state={profile:p,listener,server,handler,api,runtime,pid:process.pid,retired:false,connections:new Map(),handlers:new Set(),currents:new Set(),failure:null,accept:null};
+  const state={profile:p,listener,server,handler,api,runtime,pid:process.pid,retired:false,physicalJoined:false,physicalClosed:false,connections:new Map(),handlers:new Set(),currents:new Set(),failure:null,accept:null};
   const opaque=Object.freeze(Object.create(null));servers.set(opaque,state);
   state.accept=(async()=>{
     while(!state.retired){
@@ -225,6 +229,9 @@ async function openInboundServer(profile,handler,runtime){
   state.accept.catch(error=>{state.failure??=error;});return opaque;
 }
 export async function openInboundAuthorityServer(profile,handler){return openInboundServer(profile,handler,false);}
+// Separate closed desktop-TaskGrant registration. It shares the original L/C
+// transport, not Source/Grant authority, with the unchanged legacy two routes.
+export async function openInboundDesktopTaskGrantServer(profile,handler){return openInboundServer(profile,handler,false,true);}
 export async function openInboundTaskRuntimeServer(profile,handler){return openInboundServer(profile,handler,true);}
 export function acquireInboundCaller(req,registeredServer){
   const record=req&&requests.get(req);if(!record||record.server.runtime)throw fail('original authority incoming request required');
@@ -238,7 +245,7 @@ export function assertCurrentInboundCaller(req,handle,registeredServer){
   assertLocalIdentity(record,req);
 }
 export function currentInboundCaller(req,handle,registeredServer){
-  const record=handle&&callers.get(handle);if(!record||record.server.runtime||requests.get(req)!==record||record.server.pid!==process.pid)return Promise.reject(fail('same original incoming request and handle required'));
+  const record=handle&&callers.get(handle);if(!record||record.server.runtime||requests.get(req)!==record||record.server.pid!==process.pid||record.closed||record.server.retired)return Promise.reject(fail('same original incoming request and handle required'));
   if(arguments.length>=3){try{if(record.server!==serverState(registeredServer))throw fail('original registered listener instance required');}catch(error){return Promise.reject(error);}}
   const run=record.currentTail.then(async()=>{
     if(record.holds<1)throw fail('acquired original caller hold required');
@@ -260,11 +267,23 @@ async function joinServer(state){
   if(!state.retired)throw fail('retire incoming server before join');
   await state.accept;
   const results=await Promise.allSettled([...state.currents,...state.handlers,...[...state.connections.values()].map(c=>c.closed)]);
+  // This fact is independent of an earlier handler/current rejection. It is
+  // set only after all accepted work and owned descriptor close events join.
+  state.physicalJoined=true;
   if(state.failure)throw state.failure;
   const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
 }
 export async function joinInboundAuthorityServer(handle){return joinServer(serverState(handle));}
-export async function closeInboundAuthorityServer(handle){retireInboundAuthorityServer(handle);await joinInboundAuthorityServer(handle);}
+export async function closeInboundAuthorityServer(handle){
+  const state=serverState(handle);retireServer(state);
+  try{await joinServer(state);}finally{if(state.physicalJoined)state.physicalClosed=true;}
+}
+// Read-only transport facts for this exact opaque listener. Rejections remain
+// original errors; this getter neither authenticates a Source nor clears them.
+export function inboundAuthorityServerLifetime(handle){
+  const state=serverState(handle);
+  return Object.freeze({retired:state.retired,physicalJoined:state.physicalJoined,physicalClosed:state.physicalClosed});
+}
 export function retireInboundTaskRuntimeServer(handle){retireServer(serverState(handle,true));}
 export async function joinInboundTaskRuntimeServer(handle){return joinServer(serverState(handle,true));}
 export async function closeInboundTaskRuntimeServer(handle){retireInboundTaskRuntimeServer(handle);await joinInboundTaskRuntimeServer(handle);}
