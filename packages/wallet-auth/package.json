@@ -845,7 +845,11 @@
     "native/social-fresh-joint-profile-v1/go.mod",
     "native/social-fresh-joint-profile-v1/contract.d.mts",
     "native/social-fresh-joint-profile-v1/IDL.json",
-    "native/social-fresh-joint-profile-v1/testdata/public-body-vector.json"
+    "native/social-fresh-joint-profile-v1/testdata/public-body-vector.json",
+    "native/social-fresh-joint-profile-v1/cabi/bridge.go",
+    "native/social-fresh-joint-profile-v1/cabi/social_fresh_joint_profile_data.h",
+    "native/social-fresh-joint-profile-v1/cabi/normal-inputs.json",
+    "docs/SOCIAL_JOINT_PROFILE_C_DATA_BRIDGE.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
