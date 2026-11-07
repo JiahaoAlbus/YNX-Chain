@@ -26,6 +26,9 @@ def read(files):
     raw,pin=packed(files);return m.inspect(raw,pin,C,S,T,TOOLS)
 
 class InitializationArchiveControls(unittest.TestCase):
+    def test_original_startup_callee_receipt_retained_without_promoting_or_filling(self):
+        f=artifact('unfinished');r=json.loads(f['public/receipt.json']);measurement=dict(requested=True,records=[dict(name='registration-0',calleeElapsedNs=123),dict(name='activate-original',calleeElapsedNs=None)],sourceGrant=False);r['preparationStartupMeasurements']=measurement;f['public/receipt.json']=json.dumps(r).encode();v=read(f)
+        self.assertEqual(v['originalPreparationStartupMeasurements'],measurement);self.assertFalse(v['completeInitializationDataObserved']);self.assertEqual(v['originalFirstCause'],'original source first cause');self.assertIsNone(read(artifact())['originalPreparationStartupMeasurements'])
     def test_default_inert_does_not_open_archive(self):
         with mock.patch.object(m.Path,'read_bytes',side_effect=AssertionError('read')),contextlib.redirect_stdout(io.StringIO()) as out:self.assertEqual(m.main([]),0)
         self.assertFalse(json.loads(out.getvalue())['archiveRead'])

@@ -47,6 +47,8 @@ STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
 STAGED_CALLEE_TREE = initialization.LIVE_TREE
 STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-owner input still required.
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
+# ABI support only. This is neither source qualification nor window permission.
+STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c'})
 
 
 def callee_snapshot(value):
@@ -222,11 +224,13 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,commit_observation=False,sender_pool=False,consumer_source=None,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,sender_pool=False,consumer_source=None,startup_timings=False,**kwargs):
+        lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
+        self.startup_timings_enabled=startup_timings;self.preparation_startup_measurements=[]
         self.failed_callee_measurements=[];self.failed_callee_attempts=0
         self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0,sender_pool=sender_pool,source=self.consumer_source)
         verifier=self.bins/"ynx-consensus-proof-verify";self.verifier_binary_pin=lab.guard.digest(verifier)
@@ -242,11 +246,29 @@ class LoadCeremony(normal.Ceremony):
         except BaseException as error:record['measurementErrorType']=type(error).__name__
         self.failed_callee_measurements.append(record)
 
+    def wire_arguments(self,phase,index):
+        arguments=super().wire_arguments(phase,index)
+        if getattr(self,'startup_timings_enabled',False):
+            lab.require(phase in ('bootstrap','pq') and type(index) is int and 0<=index<4,'original startup lifetime required')
+            arguments=[*arguments,'--startup-timings']
+        return arguments
+
     def call(self,name,args):
-        try:return super().call(name,args)
+        measured=getattr(self,'startup_timings_enabled',False) and args[:1] in (['registration'],['activate'])
+        if measured:
+            lab.require(not any(a=='--timings' or a.startswith('--timings=') for a in args),'duplicate startup callee timing opt-in')
+            lab.require(len(self.preparation_startup_measurements)<5,'bounded original registration/activation measurements required')
+        try:reply=super().call(name,[*args,'--timings'] if measured else args)
         except BaseException:
             self.retain_failed_callee(name)
             raise # Original failure is never replaced by a telemetry failure.
+        if measured:
+            record=dict(name=name,operation=args[0],source=self.consumer_source,status='ORIGINAL_REPLY_TIMING_UNKNOWN',calleeElapsedNs=None,timings=None,intervalsOverlap=True,sourceGrant=False)
+            self.preparation_startup_measurements.append(record)
+            stages=callee_snapshot(reply.get('timings'));elapsed=reply.get('calleeElapsedNs')
+            lab.require(type(elapsed) is int and 0<=elapsed<1<<63,'original startup callee elapsed missing')
+            record.update(status='ORIGINAL_REPLY_TIMING_OBSERVED',calleeElapsedNs=elapsed,timings=copy.deepcopy(stages))
+        return reply
 
     def sender_command(self,name,owner,command):
         # Same original one-shot FD3 sender and command; opt into its existing
@@ -790,6 +812,7 @@ def run(args):
             if callable(getattr(ceremony,'readiness_report',None)):result['originalReadinessObservations']=ceremony.readiness_report()
             result["normalCalleeMeasurements"]=ceremony.measurements.report()
             result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
+            result['preparationStartupMeasurements']=dict(requested=getattr(ceremony,'startup_timings_enabled',False),expectedRegistrationReplies=4,expectedActivationReplies=1,records=copy.deepcopy(getattr(ceremony,'preparation_startup_measurements',[])),intervalsOverlap=True,sourceGrant=False)
             result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
