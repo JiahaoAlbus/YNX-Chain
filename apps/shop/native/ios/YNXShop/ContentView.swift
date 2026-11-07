@@ -157,7 +157,7 @@ struct ShopPlatformServices:View {
     let desktop:Bool
     var body:some View{VStack(alignment:.leading,spacing:16){ShopSectionTitle(title:"commerce_services");if desktop{HStack(alignment:.top,spacing:16){services}}else{VStack(spacing:12){services}}}}
     @ViewBuilder private var services:some View {
-        Button{model.signIn()}label:{ShopServiceLabel(title:"wallet_security",icon:"wallet.pass",caption:"shop_wallet_service_description")}.buttonStyle(.plain)
+        Button{model.signIn()}label:{ShopServiceLabel(title:"wallet_sign_in",icon:"wallet.pass",caption:"shop_wallet_service_description")}.buttonStyle(.plain)
         NavigationLink{OrdersView()}label:{ShopServiceLabel(title:"pay_handoff",icon:"creditcard",caption:"shop_pay_service_description")}.buttonStyle(.plain)
         Button{model.prepareComparison()}label:{ShopServiceLabel(title:"ai_compare",icon:"sparkles",caption:"agent_draft_only")}.buttonStyle(.plain)
     }

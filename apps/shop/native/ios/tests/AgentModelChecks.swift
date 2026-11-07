@@ -93,6 +93,14 @@ final class ComparisonHTTP:URLProtocol,@unchecked Sendable {
         model.authorizeComparison();let resumed=try await take("POST","ai/jobs")
         try check(try resumed.body()==prepared.requestBody,"explicit prepared recovery sends the existing frozen body and key")
         try resumed.respond(job("permission_granted",prepared,"ai_"+String(repeating:"c",count:24)));try await until{!model.agentBusy}
+        let thirdID="ai_"+String(repeating:"c",count:24)
+        model.runComparison();let completedRun=try await take("POST","ai/jobs/"+thirdID+"/run")
+        model.cancelComparison();let uncertainCancel=try await take("POST","ai/jobs/"+thirdID+"/cancel")
+        uncertainCancel.loseAcknowledgement();try await until{!model.agentBusy}
+        try completedRun.respond(job("review_required",prepared,thirdID));for _ in 0..<1000{await Task.yield()}
+        try check(model.agentPhase=="cancel_unknown","late run response leaves the original cancellation unconfirmed")
+        model.refreshComparison();let completedRead=try await take("GET","ai/jobs/"+thirdID);try completedRead.respond(job("review_required",prepared,thirdID));let completedList=try await take("GET","ai/jobs");try completedList.respond(["jobs":[job("review_required",prepared,thirdID)],"Limit":50]);try await until{!model.agentBusy}
+        try check(model.agentPhase=="review_required" && model.agentJob?.cancelled==false,"fresh original-job read recovers review after generation beat cancellation, without claiming cancellation succeeded")
         model.signOut()
         try check(!model.agentWorkspaceVisible && model.agentPresentation==nil && model.agentJob==nil,"sign-out closes the workspace and clears private presentation only")
         try check(try journal.active(account)?.jobID=="ai_"+String(repeating:"c",count:24),"sign-out retains the original durable comparison")

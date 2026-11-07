@@ -352,7 +352,7 @@ import SwiftUI
                     let lookup=try JSONDecoder().decode(ShopAgentLookupResponse.self,from:CanonicalJSON.data(value))
                     guard lookup.Actor==account,lookup.IdempotencyKey==original.key,lookup.QueryOnly else{throw ShopError.security};job=lookup.Job
                 }
-                try check();let record=try comparisonJournal.observe(original,job:job);guard generation==agentRevision else{return};publishComparison(record)
+                try check();let record=try comparisonJournal.observe(original,job:job,authoritativeRead:true);guard generation==agentRevision else{return};publishComparison(record)
             }
             let response:ShopAgentJobsResponse=try await api.request("ai/jobs");try check();guard response.Limit==50,response.jobs.count<=50 else{throw ShopError.security}
             var jobs:[ShopAgentJob]=[]

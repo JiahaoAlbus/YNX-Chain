@@ -285,13 +285,20 @@ enum BuyerTransitionRecovery {
         else{throw ShopError.security}
         current.phase=phase;current.pendingAction=phase=="decision_unknown" ? "decision:"+action!:phase;all[original.key]=current;try save(all,original.account)
     }
-    @discardableResult func observe(_ original:Record,job:ShopAgentJob)throws->Record {
+    @discardableResult func observe(_ original:Record,job:ShopAgentJob,authoritativeRead:Bool=false)throws->Record {
         var all=try records(original.account);guard var current=all[original.key],current.requestHash==original.requestHash else{throw ShopError.security}
         try job.validate(account:original.account,original:current)
         if ["applied_draft","rejected","cancelled","failed","decision_conflict","retired"].contains(current.phase){return current}
         if current.phase=="review_required" && ["permission_granted","running"].contains(job.status){return current}
         if current.phase=="running" && job.status=="permission_granted"{return current}
         current.jobID=job.jobID;current.job=job
+        // Store cancellation is legal only before review. A fresh original-job
+        // read at review proves cancellation can no longer take effect. A late
+        // generation response alone is not that reconciliation evidence.
+        if current.phase=="cancel_unknown" && job.status=="review_required" && authoritativeRead {
+            current.phase="review_required";current.pendingAction="cancel:not_applied"
+            all[original.key]=current;try save(all,original.account);return current
+        }
         if current.phase=="decision_unknown" && job.terminal {
             let expected=current.pendingAction=="decision:apply" ? "applied_draft":"rejected"
             current.phase=job.status==expected ? job.status:"decision_conflict"
