@@ -1,0 +1,6 @@
+import fs from 'node:fs';import path from 'node:path';import {execFileSync} from 'node:child_process';
+const root=path.resolve(import.meta.dirname,'../..'),pkg=path.join(root,'packages/wallet-auth'),out=path.join(root,'ide-finite-get-receiver-controls');fs.mkdirSync(out,{recursive:true});
+execFileSync(process.execPath,['--test','test/ide-finite-get-receiver-closure.test.mjs'],{cwd:pkg,stdio:'inherit',timeout:120000});
+const raw=execFileSync(process.execPath,['scripts/ide-finite-get-receiver-closure.mjs'],{cwd:pkg,maxBuffer:16<<20,timeout:120000}),x=JSON.parse(raw);
+if(x.report.entries.join()!=='native/original-ide-finite-get-receiver-originals.mjs'||!x.manifest.files.some(r=>r.path===x.report.entries[0])||!x.report.edges.some(e=>e.from===x.report.entries[0]&&e.specifier==='../src/product-session-proof-v4.js'))throw Error('RECEIVER_CLOSURE_MISSING');
+fs.writeFileSync(path.join(out,'NORMAL_RECEIVER_STATIC_CLOSURE.json'),raw);fs.writeFileSync(path.join(out,'RESULT.json'),JSON.stringify({passed:true,files:x.manifest.files.length,edges:x.report.edges.length,entry:x.report.entries[0],RootAdmission:false,SourceAdmission:false,NativeAdmission:false})+'\n');console.log(fs.readFileSync(path.join(out,'RESULT.json'),'utf8'));
