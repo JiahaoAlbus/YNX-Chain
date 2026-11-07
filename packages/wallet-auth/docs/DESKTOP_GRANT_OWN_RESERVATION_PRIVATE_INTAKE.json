@@ -17,7 +17,7 @@
     "settle": "same original reserve ticket once; claim does not burn settlement",
     "retireClose": "same opaque owner cleanup; no budget release, Source renewal or parent close"
   },
-  "normalCarrierAlreadyPreserves": "normalinputs freezes original executor array shallowly, controller does not rewrite executors, backend.readOriginalRegisteredTaskExecutors directly delegates NativeRoot; no wrapper or IPC serializer in this path",
+  "normalCarrierAlreadyPreserves": "Actual native backend obtains the Root-selected finite read target and returns an executor wrapper that forwards SAMEctx/request/cap. Resource and continuation owners are lazy on SAME store; no serializer or second client is introduced.",
   "GoPolicyFormal": "OpenOriginalReservedTaskRead / HeldOriginalTaskReservationSource / Current / ClaimAtEffect / Retire / Close from Auth frozen-policy-r1; no Go sources copied or controls rerun",
   "realStrongBoundary": "actual Native/LINK/runtime/local opaque continuation getter and resource bridge pairing SAME ledger Source/caller with genuine Go held child still belongs Auth; P08 Store.mu consumption not exercised by PUBLIC fixture",
   "sourceReady": true,
@@ -34,9 +34,10 @@
     "sha256": "183fa2418acbe46f6dfb910f2b4d2a53be4919eaeff8c4aeaa15e9c7a2a47b47",
     "sixNativeAndTwoJSExactBefore": true,
     "privateJSAdds": 4,
-    "collectorRows": 162,
+    "collectorRows": 164,
     "holderProofThirdOperandCodeSupplied": true,
     "actualFinite3ProtectedCarrier": false,
-    "wholeAddon": false
+    "wholeAddon": false,
+    "pairedFinite3R2": true
   }
 }

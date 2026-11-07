@@ -1,0 +1,42 @@
+{
+  "schema": "SDK-PAIRED-FINITE3-R2-NORMAL-INTAKE/v1",
+  "formalSuppliers": {
+    "R2": "6225a6d7fa52cc009cf837f035af7884f8242b850c194db62ad8a603e46e6276",
+    "orchestrationCleanup": "8bd7a38af6c24866bd37d3c7c697377d031a2cc6df78242060b3ae35fe12e537"
+  },
+  "selectedTransport": {
+    "module": "cmd/ynx-secure-link-caller/task-read-resource-caller.mjs",
+    "bytes": 19328,
+    "sha256": "6382f242666f23af4713f85fa1acd010568e9084ace19bb2f2dd7a5b61333d30",
+    "open": "openOriginalTaskReadResourceCaller -> {owner,errorPresent,error}",
+    "owner": [
+      "current",
+      "exchange",
+      "retire",
+      "join",
+      "close"
+    ],
+    "response": [
+      "copyDATA",
+      "release"
+    ],
+    "flat6": false,
+    "runtimeShapeFallback": false,
+    "secondClient": false
+  },
+  "SDKAdapter": "openOriginalTaskReadTransport private root-selected module/profile; actual packet adopted before post-Source-current",
+  "cleanup": {
+    "effect": "join/close -> paired physicalDone,errorPresent,error (including 0/null)",
+    "inputSource": "join/close -> undefined-only; same physical witness retained before throwing original error",
+    "SourceCurrent": "independent of terminal EOF and physical drain",
+    "parentDebt": "pending close retains same child and prevents borrowed base close; no retry or new operation"
+  },
+  "publicBoundaryTestsOnly": true,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "actualPrivateContinuationCarrier": false,
+  "actualP08FinalClaim": false,
+  "wholeAddonMatching": false,
+  "productionActivation": false
+}

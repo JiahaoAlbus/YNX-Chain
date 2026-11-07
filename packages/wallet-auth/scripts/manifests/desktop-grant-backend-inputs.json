@@ -376,8 +376,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-native-backend-private.mjs",
-      "bytes": 12963,
-      "sha256": "59a10d2e1908e6e26e7019638d7a35cb94cd57ec3e7bdee5f7993d134f474ed7"
+      "bytes": 14182,
+      "sha256": "48d27e2d071917c9a203f58bfcc311fd7cf4dc3196f4a012914af0de60371404"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-normal-inputs.mjs",
@@ -386,8 +386,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-original-orchestration.mjs",
-      "bytes": 8647,
-      "sha256": "d417ac27d3f616840493966a06e86114e0680208af3f3686be4db36be3f46809"
+      "bytes": 10432,
+      "sha256": "b9b362abf776c618faa7f5d9f7b38ceed6705f3ad0d33b6f8ed34b34eb614ba7"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-protected-originals.mjs",
@@ -396,8 +396,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-source-controller.mjs",
-      "bytes": 9273,
-      "sha256": "371383b4ad02410cb0308cea7202bb6d65070a96ced02b661bf5d19548dc3c7d"
+      "bytes": 9344,
+      "sha256": "8a49f0683ea08356eb21b7498d9ef8709f320af164e47eab9363a3075bfea8c8"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-source-owner.mjs",
@@ -796,8 +796,8 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-continuation-owner.mjs",
-      "bytes": 4447,
-      "sha256": "d2cfd767a67018b6daf9008b46fc1ad7ff2bd0dc411b6a70bd433f5bb9affef3"
+      "bytes": 4510,
+      "sha256": "4514eaf4d07408b6148504dea120ed7142cf1c6b4175fd93c0b4a039ecb2059c"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-resource-binding-data.mjs",
@@ -806,13 +806,23 @@
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-resource-bridge.mjs",
-      "bytes": 9276,
-      "sha256": "62420ea9a3506e0080f531fafc83ac533b1f9c1605fc15a2a52180856c4a3dc2"
+      "bytes": 10697,
+      "sha256": "f1338271cb089c5704a414f0f964e49ebcad76ae3695fa7a28d12b4cb774f82b"
     },
     {
       "path": "packages/wallet-auth/src/desktop-grant-resource-data.mjs",
       "bytes": 7975,
       "sha256": "201888d9615789b9f64b2a5c8708c4b53db4dfbd4136678b4b9bc53bc85929a7"
+    },
+    {
+      "path": "packages/wallet-auth/src/desktop-grant-resource-transport-owner.d.mts",
+      "bytes": 1734,
+      "sha256": "d75aa9cc11613916aeea65ae6ba42828c31777ee1bf86098196962c20d96a190"
+    },
+    {
+      "path": "packages/wallet-auth/src/desktop-grant-resource-transport-owner.mjs",
+      "bytes": 5058,
+      "sha256": "a0ddc594a7132b0ab9b0a7804430db2234a6e7f8d253a2a31a00bfd590cca02b"
     }
   ],
   "compiled": false,

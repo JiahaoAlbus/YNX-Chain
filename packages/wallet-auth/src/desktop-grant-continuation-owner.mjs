@@ -31,7 +31,7 @@ export function createOriginalTaskReadContinuationInventory(originalNativeRoot,s
     retire(){childRetired=true;},
     async join(){if(!childRetired)throw fault('TASK_CONTINUATION_RETIRE_REQUIRED');await Promise.allSettled([...pending]);if(active||pending.size)throw fault('TASK_CONTINUATION_DRAIN_PENDING')},
     async close(){owner.retire();await owner.join();closed=true;holds.delete(owner);},
-    isClosed(){return closed;},firstCause(){return Object.freeze({errorPresent:!!first,error:first?.cause})}
+    isJoined(){return childRetired&&active===0&&pending.size===0;},isClosed(){return closed;},firstCause(){return Object.freeze({errorPresent:!!first,error:first?.cause})}
    });holds.add(owner);
    try{await owner.assertCurrent();return{owner,errorPresent:false,error:null}}catch(cause){return{owner,errorPresent:true,error:cause}}
   },
