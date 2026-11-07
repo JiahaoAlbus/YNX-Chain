@@ -136,7 +136,7 @@ public:
   life={};const int32_t observed=ynx_link_resource_current_get_lifetime_v2(client_,&life);
   if(observed)return remember(observed);
   if(life.remote_unknown)return remember(YNX_LINK_RESOURCE_CURRENT_REMOTE_UNKNOWN_V2);
-  if(!life.remote_close_ack)return first_?first_:YNX_LINK_RESOURCE_CURRENT_DRAINING_V1;
+  if(life.remote_acquisition_possible&&!life.remote_close_ack)return first_?first_:YNX_LINK_RESOURCE_CURRENT_DRAINING_V1;
   // A second Close is a cached/finalization probe, never a new Close request
   // after UNKNOWN. LINK owns that exact same-session state machine.
   q=nullptr;done=0;rc=ynx_link_resource_current_close_v2(client_,&done,&q);const int32_t fa=adopt(q);lifecycleStatus(rc,"resource_current_close");
