@@ -638,7 +638,7 @@ def load_conditions(args):
     # This does NOT assert equal random keys/canonical inputs across sources.
     return dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
         seconds=args.seconds,tailSeconds=args.tail_seconds,proofTimeout=args.proof_timeout,
-        **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture')},
+        **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture','startup_timings')},
         sameHost=True,physicalFaultDomains=1,cryptoOrAuthorityChanged=False,canonicalInputPairEquality='NOT_YET_QUALIFIED')
 
 
@@ -656,6 +656,7 @@ def validate_escalation(args):
 
 def run(args):
     demand=validate_options(args)
+    lab.require(not getattr(args,'startup_timings',False) or args.commit in STARTUP_TIMING_ABI_SOURCES,'matching original startup timing ABI required; old source cannot inherit new flags')
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     expected_source=STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
@@ -710,7 +711,7 @@ def run(args):
         stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit)
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         if staged:
             result['coldBootstrapReadinessBudget']=initialization.cold_readiness_budget(w)
@@ -841,6 +842,7 @@ if __name__=="__main__":
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
     p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
+    p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))

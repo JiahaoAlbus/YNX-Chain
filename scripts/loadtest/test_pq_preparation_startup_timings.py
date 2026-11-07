@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 from unittest import mock
+from types import SimpleNamespace
 
 s=importlib.util.spec_from_file_location('preparation_startup_controls',Path(__file__).with_name('pq-independent-load.py'));m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 
@@ -46,5 +47,10 @@ class PreparationStartupControls(unittest.TestCase):
  def test_unsupported_source_refuses_before_constructing_custody(self):
   with mock.patch.object(m.normal.Ceremony,'__init__') as original,self.assertRaises(RuntimeError):m.LoadCeremony(operations=1,proof_timeout=5,consumer_source=m.STAGED_CALLEE_SOURCE,startup_timings=True)
   original.assert_not_called()
+ def test_normal_entry_flag_cannot_grant_new_source_or_modify_old_source(self):
+  for source,message in [(m.STAGED_CALLEE_SOURCE,'startup timing ABI'),('1b0ea548aca6b5260a9824d0edd3012d52e53521','exact staged normal consumer source')]:
+   args=SimpleNamespace(mode='online',rate=100,seconds=5,accounts=500,per_account=1,tail_seconds=30,proof_timeout=30,staged_publication=True,commit=source,startup_timings=True,execute=True)
+   with mock.patch.object(m.lab,'Window') as window,mock.patch.object(m.lab,'check_source') as check,self.assertRaisesRegex(RuntimeError,message):m.run(args)
+   window.assert_not_called();check.assert_not_called()
 
 if __name__=='__main__':unittest.main()

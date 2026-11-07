@@ -16,7 +16,7 @@ class EscalationConditionsControls(unittest.TestCase):
  def test_matching_measured_preceding_result_uses_original_strict_gates(self):
   a=self.args();self.check(a,self.fixture(a))
  def test_changed_tools_caps_accounts_or_observers_cannot_escalate(self):
-  for change in [lambda p:p.pop('toolIdentity'),lambda p:p['toolIdentity'].update(commit='c'*40),lambda p:p.update(caps=dict(p['caps'],cpus=4)),lambda p:p['loadConditions'].update(accounts=8),lambda p:p['loadConditions'].update(commit_observation=False)]:
+  for change in [lambda p:p.pop('toolIdentity'),lambda p:p['toolIdentity'].update(commit='c'*40),lambda p:p.update(caps=dict(p['caps'],cpus=4)),lambda p:p['loadConditions'].update(accounts=8),lambda p:p['loadConditions'].update(commit_observation=False),lambda p:p['loadConditions'].update(startup_timings=True)]:
    a=self.args();p=copy.deepcopy(self.fixture(a));change(p)
    with self.assertRaisesRegex(RuntimeError,'conditions missing or changed'):self.check(a,p)
  def test_same_conditions_never_make_partial_or_unknown_demand_successful(self):
