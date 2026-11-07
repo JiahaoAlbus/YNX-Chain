@@ -169,23 +169,51 @@ struct NativePaymentProjection:Codable {
         guard let a,let b else{return false}
         return a==b || (NativeWire.matches(a,"^0x[a-fA-F0-9]{40}$") && NativeWire.matches(b,"^0x[a-fA-F0-9]{40}$") && a.lowercased()==b.lowercased())
     }
-    func validate(_ order:Order)throws {
+    func validate(_ order:Order,requirePaid:Bool=true)throws {
         func atoms(_ text:String)throws->UInt64 {guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
+        func hex(_ text:String,_ prefix:Bool=false)->Bool{NativeWire.matches(text,prefix ? "^0x[a-f0-9]{64}$":"^[a-f0-9]{64}$")}
+        let pending=PendingOriginals ?? []
         let principal=try atoms(PrincipalAtoms),paid=try atoms(PaidAtoms),refunded=try atoms(RefundedAtoms),net=try atoms(NetPaidAtoms)
-        guard !ReconciliationRequired,InvoiceID==order.invoiceID,!SessionID.isEmpty,NativeWire.matches(TermsHash,"^[a-f0-9]{64}$"),NativeWire.matches(SettlementNativeHash,"^0x[a-f0-9]{64}$"),principal>0,paid==principal,refunded<=paid,net==paid-refunded,!Receipts.isEmpty else{throw ShopError.security}
-        var settlementCount=0
+        guard NativeWire.matches(order.payIntentID ?? "","^npi_[a-f0-9]{48}$"),InvoiceID==order.invoiceID,!InvoiceID.isEmpty,!SessionID.isEmpty,hex(TermsHash),principal>0,refunded<=paid,net==paid-refunded,(paid==0 || paid==principal),Receipts.count<=1024,pending.count<=1024,CompleteKnownOriginals==pending.isEmpty else{throw ShopError.security}
+        if requirePaid {guard !ReconciliationRequired,paid==principal else{throw ShopError.security}}
+        var seen=Set<String>(),claims=Set<String>(),refunds=Set<String>(),settlement="",genesis:String?,chain:String?
+        var observedPaid:UInt64=0,observedRefunded:UInt64=0,previous:[UInt64]?
         for receipt in Receipts {
-            guard receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,receipt.settlementNativeHash==SettlementNativeHash else{throw ShopError.security}
-            if receipt.kind=="invoice_settle" && receipt.status=="confirmed" {
-                guard receipt.nativeHash==SettlementNativeHash,Self.sameHexBuyer(receipt.payer,order.buyer),receipt.recipient==order.payPayoutAddress else{throw ShopError.security};settlementCount+=1
+            guard receipt.version=="ynx.pay.native.archive-receipt/v1",receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,hex(receipt.nativeHash,true),hex(receipt.abciHash,true),hex(receipt.archiveDigest),seen.insert(receipt.nativeHash).inserted,hex(receipt.genesis),receipt.assetId=="YNXT",receipt.unitVersion=="1",receipt.proofVerification=="original-independent-core-verifier",receipt.dataOnly,receipt.queryOnly,!receipt.canRetry,!receipt.SourceAdmission,!receipt.nativeGrant else{throw ShopError.security}
+            _ = try atoms(receipt.nativeChainId)
+            if let genesis,let chain {guard receipt.genesis==genesis,receipt.nativeChainId==chain else{throw ShopError.security}}else{genesis=receipt.genesis;chain=receipt.nativeChainId}
+            let coordinate=try [receipt.executionHeight,receipt.executionIndex,receipt.executionMember,receipt.executionEvent].map{try atoms($0)}
+            guard coordinate[0]>0,coordinate[3]==0,previous==nil || previous!.lexicographicallyPrecedes(coordinate) else{throw ShopError.security};previous=coordinate
+            let amount=try atoms(receipt.principalAtoms),claimPaid=try atoms(receipt.paidAtoms),claimRefunded=try atoms(receipt.refundedAtoms),claimNet=try atoms(receipt.netPaidAtoms)
+            guard ["invoice_settle","invoice_refund"].contains(receipt.kind) else{throw ShopError.security}
+            if receipt.status=="confirmed_failed" {
+                guard (receipt.eventClaim ?? "").isEmpty,(receipt.refundId ?? "").isEmpty,(receipt.payer ?? "").isEmpty,(receipt.recipient ?? "").isEmpty,amount==0,claimPaid==0,claimRefunded==0,claimNet==0 else{throw ShopError.security}
+                continue
+            }
+            guard receipt.status=="confirmed",Self.sameHexBuyer(receipt.payer,order.buyer),let event=receipt.eventClaim,hex(event),claims.insert(event).inserted else{throw ShopError.security}
+            if receipt.kind=="invoice_settle" {
+                guard settlement.isEmpty,receipt.nativeHash==receipt.settlementNativeHash,receipt.recipient==order.payPayoutAddress,(receipt.refundId ?? "").isEmpty,amount==principal,claimPaid==principal,claimRefunded==0,claimNet==principal else{throw ShopError.security}
+                settlement=receipt.nativeHash;observedPaid=principal
+            }else{
+                guard !settlement.isEmpty,receipt.settlementNativeHash==settlement,Self.sameHexBuyer(receipt.recipient,order.buyer),let refund=receipt.refundId,NativeWire.matches(refund,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),refunds.insert(refund).inserted,amount>0,amount<=observedPaid-observedRefunded else{throw ShopError.security}
+                observedRefunded+=amount
+                guard claimPaid==observedPaid,claimRefunded==observedRefunded,claimNet==observedPaid-observedRefunded else{throw ShopError.security}
             }
         }
-        guard settlementCount==1 else{throw ShopError.security}
+        for hash in pending {guard hex(hash,true),seen.insert(hash).inserted else{throw ShopError.security}}
+        guard settlement==SettlementNativeHash,paid==observedPaid,refunded==observedRefunded else{throw ShopError.security}
+        if order.refundStatus=="native_partial_refund"{guard refunded>0,refunded<paid else{throw ShopError.security}}
+        if order.refundStatus=="native_refunded" || order.status=="refunded"{guard refunded>0,refunded==paid else{throw ShopError.security}}
     }
 }
 struct NativePaymentClaim:Codable {
     let productId:String;let storeId:String;let sourceOrder:String;let merchant:String;let invoiceId:String;let sessionId:String;let termsHash:String
     let nativeHash:String;let settlementNativeHash:String;let kind:String;let status:String;let payer:String?;let recipient:String?
+    let version:String;let genesis:String;let nativeChainId:String;let abciHash:String;let archiveDigest:String
+    let refundId:String?;let assetId:String;let unitVersion:String;let eventClaim:String?
+    let executionHeight:String;let executionIndex:String;let executionMember:String;let executionEvent:String
+    let principalAtoms:String;let paidAtoms:String;let refundedAtoms:String;let netPaidAtoms:String
+    let proofVerification:String;let dataOnly:Bool;let queryOnly:Bool;let canRetry:Bool;let SourceAdmission:Bool;let nativeGrant:Bool
 }
 struct CartReceipt:Codable {let PreviousRevision:String;let Revision:String}
 struct SettlementReceipt:Codable {let Status:String;let InvoiceID:String;let IntentID:String;let Merchant:String;let PayoutAddress:String;let Payer:String;let Currency:String;let AmountYNXT:Int64;let BlockHeight:UInt64;let TransactionHash:String}

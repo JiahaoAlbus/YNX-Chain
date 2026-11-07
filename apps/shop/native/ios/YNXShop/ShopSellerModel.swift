@@ -135,7 +135,7 @@ import SwiftUI
             guard let product=products.first(where:{$0.ID==productID}),product.StoreID==store,product.Variants.contains(where:{$0.ID==variantID}),try integer(expected,positive:true)==product.Revision else{throw ShopError.security};_ = try integer(inventory)
             return ("inventory",productID,"/seller/inventory/batch",["StoreID":store,"Items":[["ProductID":productID,"VariantID":variantID,"ExpectedRevision":expected,"Inventory":inventory]]])
         case .ship(let id,let carrier,let tracking):
-            guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="paid" else{throw ShopError.security}
+            guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="paid",!order.PayIntentID.hasPrefix("npi_") || ["native_paid","native_partial_refund"].contains(order.paymentDisplayState) else{throw ShopError.security}
             return ("ship",id,"/seller/orders/"+id+"/transition",["Action":"shipped","Carrier":try bounded(carrier,120),"TrackingNumber":try bounded(tracking,200),"Explanation":""])
         case .returnDecision(let id,let returnID,let approve,let explanation):
             guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="return_requested",order.originalReturnID==returnID,validID(returnID) else{throw ShopError.security}

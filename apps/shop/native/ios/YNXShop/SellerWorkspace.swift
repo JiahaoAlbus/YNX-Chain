@@ -154,7 +154,7 @@ struct SellerWorkspaceView:View {
         SellerLedger{
             SellerTaskRow(title:"seller_fulfillment",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && $0.Status=="paid"}.count,symbol:"truck.box"){section = .fulfillment};Divider()
             SellerTaskRow(title:"seller_aftersales",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && ["return_requested","refund_requested","disputed"].contains($0.Status)}.count,symbol:"arrow.uturn.backward"){section = .aftersales};Divider()
-            SellerTaskRow(title:"seller_payment_unresolved",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && $0.Status=="payment_pending"}.count,symbol:"clock.arrow.circlepath"){section = .reconciliation};Divider()
+            SellerTaskRow(title:"seller_payment_unresolved",count:seller.sectionUnavailable.contains("orders") ? nil:seller.orders.filter{$0.StoreID==seller.selectedStoreID && sellerPaymentNeedsReview($0)}.count,symbol:"clock.arrow.circlepath"){section = .reconciliation};Divider()
             SellerTaskRow(title:"seller_inventory",count:zeroStockCount,symbol:"square.stack.3d.up"){section = .inventory}
         }
         if seller.sectionUnavailable.contains("orders") || seller.sectionUnavailable.contains("products"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
@@ -250,7 +250,7 @@ private struct SellerOrdersList:View {
     private var orders:[SellerOrder]{seller.orders.filter{order in
         guard order.StoreID==seller.selectedStoreID,query.isEmpty || order.ID.localizedCaseInsensitiveContains(query) || order.Buyer.localizedCaseInsensitiveContains(query) else{return false}
         let scope=mode == .fulfillment ? "fulfillment":mode == .aftersales ? "aftersales":filter
-        switch scope{case "fulfillment":return order.Status=="paid" || order.Shipment != nil;case "aftersales":return order.Resolution != nil || !order.RefundStatus.isEmpty;case "pending":return order.Status=="payment_pending";default:return true}
+        switch scope{case "fulfillment":return order.Status=="paid" || order.Shipment != nil;case "aftersales":return order.Resolution != nil || !order.RefundStatus.isEmpty;case "pending":return sellerPaymentNeedsReview(order);default:return true}
     }}
     var body:some View{SellerPage(mode.title,subtitle:"seller_order_states_note",desktop:desktop){
         TextField("shop_order_search",text:$query).textFieldStyle(.roundedBorder)
@@ -260,9 +260,9 @@ private struct SellerOrdersList:View {
         else{SellerLedger{
             if desktop{ScrollView(.horizontal){VStack(spacing:0){
                 HStack{Text("nav_orders").frame(maxWidth:.infinity,alignment:.leading);Text("seller_principal").frame(width:140,alignment:.leading);Text("seller_payment_evidence").frame(width:150,alignment:.leading);Text("seller_fulfillment").frame(width:110,alignment:.leading);Text("seller_aftersales").frame(width:150,alignment:.leading);Text("seller_actions").frame(width:90)}.shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary).padding(16).background(ShopTheme.tertiary)
-                ForEach(orders){order in Divider();HStack(alignment:.top,spacing:16){NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{VStack(alignment:.leading,spacing:8){Text(verbatim:order.ID).font(.caption.monospaced());Text(verbatim:order.Buyer).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);SellerState(status:order.Status)}}.frame(maxWidth:.infinity,alignment:.leading);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).frame(width:140,alignment:.leading).monospacedDigit();SellerState(status:order.Settlement?.Status ?? "unavailable").frame(width:150,alignment:.leading);SellerState(status:order.Shipment?.Status ?? "unavailable").frame(width:110,alignment:.leading);SellerState(status:order.Resolution?.Status ?? (order.RefundStatus.isEmpty ? "unavailable":order.RefundStatus)).frame(width:150,alignment:.leading);NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:90)}.shopFont(13).padding(16)}
+                ForEach(orders){order in Divider();HStack(alignment:.top,spacing:16){NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{VStack(alignment:.leading,spacing:8){Text(verbatim:order.ID).font(.caption.monospaced());Text(verbatim:order.Buyer).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary);SellerState(status:order.Status)}}.frame(maxWidth:.infinity,alignment:.leading);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).frame(width:140,alignment:.leading).monospacedDigit();SellerPaymentState(order:order).frame(width:150,alignment:.leading);SellerState(status:order.Shipment?.Status ?? "unavailable").frame(width:110,alignment:.leading);SellerState(status:order.Resolution?.Status ?? (order.RefundStatus.isEmpty ? "unavailable":order.RefundStatus)).frame(width:150,alignment:.leading);NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary)).frame(width:90)}.shopFont(13).padding(16)}
             }.frame(minWidth:1050)}}
-            else{ForEach(orders){order in VStack(alignment:.leading,spacing:14){HStack{Text(verbatim:order.ID).font(.caption.monospaced()).lineLimit(1);Spacer();SellerState(status:order.Status)};ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)};Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(17,.bold);SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}.padding(16);Divider()}}
+            else{ForEach(orders){order in VStack(alignment:.leading,spacing:14){HStack{Text(verbatim:order.ID).font(.caption.monospaced()).lineLimit(1);Spacer();SellerState(status:order.Status)};ForEach(order.Lines){line in Text(verbatim:line.Title+" × "+String(line.Quantity)).shopFont(14,.semibold)};Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(17,.bold);SellerPaymentState(order:order);SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));NavigationLink{SellerOrderDetail(orderID:order.ID,desktop:desktop,onAction:onAction)}label:{Text("shop_order_details")}.buttonStyle(ShopButtonStyle(kind:.secondary))}.padding(16);Divider()}}
         }}
         ShopNotice(title:"seller_unknown_warning",symbol:"clock.arrow.circlepath",warning:true)
     }}
@@ -276,12 +276,13 @@ private struct SellerOrderDetail:View {
     private var current:SellerOrder?{seller.orders.first{$0.ID==orderID && $0.StoreID==seller.selectedStoreID}}
     var body:some View{SellerPage("shop_order_details",desktop:desktop){
         if let order=current {
-            SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(28,.bold);SellerValue(title:"seller_payment_evidence",value:order.Settlement?.Status ?? String(localized:"unavailable"));SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
+            SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);Text(sellerMoney(order.TotalYNXT,currency:order.Currency,locale:locale)).shopFont(28,.bold);HStack{Text("seller_payment_evidence").shopFont(13).foregroundStyle(ShopTheme.secondary);Spacer();SellerPaymentState(order:order)};SellerValue(title:"seller_fulfillment",value:order.Shipment?.Status ?? String(localized:"unavailable"));if !order.RefundStatus.isEmpty{SellerState(status:order.RefundStatus)}}.padding(20)}
             if desktop{HStack(alignment:.top,spacing:24){terms(order).frame(maxWidth:.infinity);buyer(order).frame(width:320)}}else{terms(order);buyer(order)}
-            SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_fulfillment").shopFont(17,.semibold);if let shipment=order.Shipment{SellerValue(title:"seller_carrier",value:shipment.Carrier);SellerValue(title:"seller_tracking",value:shipment.TrackingNumber);SellerState(status:shipment.Status)};Button("seller_ship"){onAction(.ship(order.ID))}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("fulfillment.write") || order.Status != "paid" || seller.busy || seller.hasPending(order.ID));ShopNotice(title:"seller_fulfillment_boundary")}.padding(20)}
+            SellerLedger{VStack(alignment:.leading,spacing:16){Text("seller_fulfillment").shopFont(17,.semibold);if let shipment=order.Shipment{SellerValue(title:"seller_carrier",value:shipment.Carrier);SellerValue(title:"seller_tracking",value:shipment.TrackingNumber);SellerState(status:shipment.Status)};Button("seller_ship"){onAction(.ship(order.ID))}.buttonStyle(ShopButtonStyle()).disabled(!seller.can("fulfillment.write") || order.Status != "paid" || (sellerIsNativePayment(order) && (sellerPaymentNeedsReview(order) || order.paymentDisplayState=="native_refunded")) || seller.busy || seller.hasPending(order.ID));ShopNotice(title:"seller_fulfillment_boundary")}.padding(20)}
             if let resolution=order.Resolution{SellerLedger{VStack(alignment:.leading,spacing:14){Text("seller_aftersales").shopFont(17,.semibold);SellerState(status:resolution.Status);Text(verbatim:resolution.Reason).shopFont(14);Text(verbatim:resolution.Explanation).shopFont(13);if order.Status=="return_requested",order.originalReturnID != nil{HStack{Button("seller_approve_return"){onAction(.returnDecision(order.ID,true))}.buttonStyle(ShopButtonStyle());Button("seller_reject_return"){onAction(.returnDecision(order.ID,false))}.buttonStyle(ShopButtonStyle(kind:.secondary))}.disabled(!seller.can("returns.resolve") || seller.busy || seller.hasPending(order.ID))};ShopNotice(title:"seller_refund_boundary")}.padding(20)}}
-            if let settlement=order.Settlement{SellerSettlementRecord(settlement:settlement)}
-            if let refund=order.Refund{SellerLedger{VStack(alignment:.leading,spacing:12){Text("seller_refund_record").shopFont(17,.semibold);SellerState(status:refund.Status);SellerValue(title:"seller_reference",value:refund.ID);SellerValue(title:"seller_principal",value:sellerMoney(refund.AmountYNXT,currency:refund.Currency,locale:locale));SellerValue(title:"seller_transaction_hash",value:refund.TransactionHash);SellerValue(title:"seller_block",value:String(refund.BlockHeight));Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
+            if sellerIsNativePayment(order){SellerNativePaymentRecord(order:order)}
+            else if let settlement=order.Settlement{SellerSettlementRecord(settlement:settlement)}
+            if !sellerIsNativePayment(order),let refund=order.Refund{SellerLedger{VStack(alignment:.leading,spacing:12){Text("seller_refund_record").shopFont(17,.semibold);SellerState(status:refund.Status);SellerValue(title:"seller_reference",value:refund.ID);SellerValue(title:"seller_principal",value:sellerMoney(refund.AmountYNXT,currency:refund.Currency,locale:locale));SellerValue(title:"seller_transaction_hash",value:refund.TransactionHash);SellerValue(title:"seller_block",value:String(refund.BlockHeight));Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)}.padding(20)}}
             ShopSectionTitle(title:"seller_order_events")
             SellerLedger{ForEach(order.Timeline){event in VStack(alignment:.leading,spacing:8){HStack{SellerState(status:event.Status);Spacer();Text(verbatim:event.At).shopFont(12).foregroundStyle(ShopTheme.secondary)};Text(verbatim:event.Action).font(.caption.monospaced());if !event.Detail.isEmpty{Text(verbatim:event.Detail).shopFont(13)};Text(verbatim:event.ID).font(.caption.monospaced()).foregroundStyle(ShopTheme.secondary)}.padding(16);Divider()}}
         }else{SellerEmpty()}
@@ -299,14 +300,18 @@ private struct SellerState:View {
 private struct SellerReconciliationView:View {
     @EnvironmentObject var seller:ShopSellerModel
     let desktop:Bool
-    private var related:[SellerSettlement]{let ids=Set(seller.orders.filter{$0.StoreID==seller.selectedStoreID}.map(\.InvoiceID).filter{!$0.isEmpty});return seller.settlements.filter{ids.contains($0.InvoiceID)}}
-    private var unresolved:[SellerOrder]{seller.orders.filter{$0.StoreID==seller.selectedStoreID && ($0.Status=="payment_pending" || $0.Settlement==nil)}}
+    private var nativeOrders:[SellerOrder]{seller.orders.filter{$0.StoreID==seller.selectedStoreID && sellerIsNativePayment($0)}}
+    private var related:[SellerSettlement]{let ids=Set(seller.orders.filter{$0.StoreID==seller.selectedStoreID && !sellerIsNativePayment($0)}.map(\.InvoiceID).filter{!$0.isEmpty});return seller.settlements.filter{ids.contains($0.InvoiceID)}}
+    private var unresolved:[SellerOrder]{seller.orders.filter{$0.StoreID==seller.selectedStoreID && sellerPaymentNeedsReview($0)}}
     var body:some View{SellerPage("seller_reconciliation",subtitle:"seller_finance_read_only",desktop:desktop){
         ShopNotice(title:"seller_network_fee_unavailable")
         if seller.sectionUnavailable.contains("settlements") || seller.sectionUnavailable.contains("orders"){ShopNotice(title:"seller_section_unavailable",symbol:"lock",warning:true)}
         ShopSectionTitle(title:"seller_payment_unresolved")
         if unresolved.isEmpty{SellerEmpty(symbol:"checklist")}
-        else{SellerLedger{ForEach(unresolved){order in VStack(alignment:.leading,spacing:10){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerState(status:order.Status);SellerValue(title:"shop_invoice_reference",value:order.InvoiceID);SellerValue(title:"shop_original_operation",value:order.PayIntentID);Text("seller_unknown_warning").shopFont(12).foregroundStyle(ShopTheme.warning)}.padding(16);Divider()}}}
+        else{SellerLedger{ForEach(unresolved){order in VStack(alignment:.leading,spacing:10){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);SellerPaymentState(order:order);SellerValue(title:"shop_invoice_reference",value:order.InvoiceID);SellerValue(title:"shop_original_operation",value:order.PayIntentID);Text("seller_unknown_warning").shopFont(12).foregroundStyle(ShopTheme.warning)}.padding(16);Divider()}}}
+        ShopSectionTitle(title:"seller_native_receipts")
+        if nativeOrders.isEmpty{SellerEmpty(symbol:"doc.text.magnifyingglass")}
+        ForEach(nativeOrders){order in SellerNativePaymentRecord(order:order)}
         ShopSectionTitle(title:"seller_payment_evidence")
         if related.isEmpty{SellerEmpty(symbol:"list.bullet.clipboard")}
         ForEach(related){settlement in SellerSettlementRecord(settlement:settlement)}
@@ -439,7 +444,7 @@ private struct SellerShipForm:View {
         SellerField(title:"seller_carrier",text:$carrier);SellerField(title:"seller_tracking",text:$tracking)
         ShopNotice(title:"seller_fulfillment_boundary",symbol:"truck.box")
         Toggle("seller_confirm_shipment",isOn:$reviewed).shopFont(13)
-        Button("seller_ship"){submitted=true;seller.perform(.ship(orderID:order.ID,carrier:carrier,trackingNumber:tracking))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || !sellerRequiredText(carrier,120) || !sellerRequiredText(tracking,200) || order.Status != "paid" || submitted || !seller.can("fulfillment.write") || seller.busy || seller.hasPending(order.ID))
+        Button("seller_ship"){submitted=true;seller.perform(.ship(orderID:order.ID,carrier:carrier,trackingNumber:tracking))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || !sellerRequiredText(carrier,120) || !sellerRequiredText(tracking,200) || order.Status != "paid" || (sellerIsNativePayment(order) && (sellerPaymentNeedsReview(order) || order.paymentDisplayState=="native_refunded")) || submitted || !seller.can("fulfillment.write") || seller.busy || seller.hasPending(order.ID))
         SellerFormResult(submitted:submitted)
     }.disabled(seller.busy)}
 }
@@ -710,4 +715,66 @@ private struct SellerStoreProfileEditor:View {
             Text(verbatim:new.isEmpty ? "—":new).shopFont(13).textSelection(.enabled)
         }}
     }
+}
+
+
+private func sellerIsNativePayment(_ order:SellerOrder)->Bool{order.PayIntentID.hasPrefix("npi_")}
+private func sellerPaymentNeedsReview(_ order:SellerOrder)->Bool {
+    if sellerIsNativePayment(order){return !["native_paid","native_partial_refund","native_refunded"].contains(order.paymentDisplayState)}
+    return order.Status=="payment_pending" || order.Settlement==nil
+}
+private struct SellerPaymentState:View {
+    let order:SellerOrder
+    private var nativeTitle:LocalizedStringKey{switch order.paymentDisplayState{
+    case "native_unpaid":return "seller_native_unpaid"
+    case "native_paid":return "seller_native_paid"
+    case "native_partial_refund":return "seller_native_partial_refund"
+    case "native_refunded":return "seller_native_refunded"
+    case "native_reconcile_required":return "seller_native_reconcile_required"
+    default:return "seller_native_receipt_unavailable"
+    }}
+    var body:some View{Group{if sellerIsNativePayment(order){Text(nativeTitle).shopFont(12,.semibold).foregroundStyle(sellerPaymentNeedsReview(order) ? ShopTheme.warning:ShopTheme.secondary).fixedSize(horizontal:false,vertical:true)}else{SellerState(status:order.Settlement?.Status ?? "unavailable")}}}
+}
+private struct SellerNativePaymentRecord:View {
+    let order:SellerOrder
+    private var accepted:NativePaymentProjection? {
+        guard let payment=order.NativePayment else{return nil}
+        do{try payment.validate(order.paymentOrder,requirePaid:false);return payment}catch{return nil}
+    }
+    var body:some View{SellerLedger{VStack(alignment:.leading,spacing:16){
+        HStack(alignment:.top){Text(verbatim:order.ID).font(.caption.monospaced()).textSelection(.enabled);Spacer();SellerPaymentState(order:order)}
+        SellerValue(title:"shop_invoice_reference",value:order.InvoiceID)
+        SellerValue(title:"shop_original_operation",value:order.PayIntentID)
+        if let payment=accepted {
+            if order.paymentDisplayState=="native_reconcile_required"{ShopNotice(title:"seller_native_reconcile_required",warning:true)}
+            Text("native_atoms_unit").shopFont(12,.semibold).foregroundStyle(ShopTheme.secondary)
+            NativeOrderAmounts(order:order.paymentOrder)
+            SellerValue(title:"seller_native_session",value:payment.SessionID)
+            SellerValue(title:"seller_native_terms_hash",value:payment.TermsHash)
+            SellerValue(title:"seller_native_settlement_hash",value:payment.SettlementNativeHash)
+            if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{ShopNotice(title:"native_history_pending",warning:true)}
+            ForEach(Array((payment.PendingOriginals ?? []).enumerated()),id:\.offset){_,original in SellerValue(title:"shop_original_operation",value:original)}
+            ShopSectionTitle(title:"seller_native_receipts")
+            ForEach(Array(payment.Receipts.enumerated()),id:\.offset){_,claim in DisclosureGroup{
+                VStack(alignment:.leading,spacing:12){
+                    SellerValue(title:"seller_native_kind",value:claim.kind)
+                    SellerValue(title:"seller_native_claim_status",value:claim.status)
+                    if let refundID=claim.refundId{SellerValue(title:"seller_refund_record",value:refundID)}
+                    if let eventClaim=claim.eventClaim{SellerValue(title:"seller_reference",value:eventClaim)}
+                    SellerValue(title:"seller_block",value:claim.executionHeight)
+                    SellerValue(title:"seller_transaction_hash",value:claim.nativeHash)
+                    SellerValue(title:"seller_native_settlement_hash",value:claim.settlementNativeHash)
+                    SellerValue(title:"seller_store",value:claim.storeId)
+                    SellerValue(title:"shop_order_details",value:claim.sourceOrder)
+                    SellerValue(title:"seller_native_merchant",value:claim.merchant)
+                    if let payer=claim.payer{SellerValue(title:"seller_native_payer",value:payer)}
+                    if let recipient=claim.recipient{SellerValue(title:"seller_native_recipient",value:recipient)}
+                }.padding(.top,12)
+            }label:{VStack(alignment:.leading,spacing:6){Text(verbatim:claim.kind).shopFont(13,.semibold);Text(verbatim:claim.nativeHash).font(.caption.monospaced()).lineLimit(1)}}}
+        }else{
+            ShopNotice(title:order.paymentDisplayState=="native_reconcile_required" ? "seller_native_reconcile_required":"seller_native_receipt_unavailable",symbol:"clock.arrow.circlepath",warning:true)
+        }
+        Text("seller_native_amount_boundary").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        Text("seller_finance_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
+    }.padding(20)}}
 }

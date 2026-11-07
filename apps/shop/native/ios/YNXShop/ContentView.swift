@@ -499,7 +499,8 @@ struct NativeOrderAmounts:View {
         if let payment=order.nativePayment {
             if payment.ReconciliationRequired{ShopNotice(title:"native_reconcile_required",symbol:"clock.arrow.circlepath",warning:true)}
             else if validated(payment){VStack(alignment:.leading,spacing:8){HStack{Text("native_paid_atoms");Spacer();Text(payment.PaidAtoms).monospacedDigit()};HStack{Text("native_refunded_atoms");Spacer();Text(payment.RefundedAtoms).monospacedDigit()};HStack{Text("native_net_atoms");Spacer();Text(payment.NetPaidAtoms).monospacedDigit()};if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{Text("native_history_pending").foregroundStyle(ShopTheme.warning)}}.shopFont(12).padding(12).background(ShopTheme.tertiary).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}
+            else{ShopNotice(title:"seller_native_receipt_unavailable",symbol:"lock",warning:true)}
         }
     }
-    private func validated(_ payment:NativePaymentProjection)->Bool{do{try payment.validate(order);return true}catch{return false}}
+    private func validated(_ payment:NativePaymentProjection)->Bool{do{try payment.validate(order,requirePaid:false);return true}catch{return false}}
 }

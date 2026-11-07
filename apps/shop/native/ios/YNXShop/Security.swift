@@ -157,7 +157,8 @@ enum AppleBuyerReceipt {
     static func owned(_ order:Order,_ account:String)->Bool {order.buyer==account || (order.walletBuyer==account && NativeWire.matches(order.buyer ?? "","^0x[a-fA-F0-9]{40}$"))}
     static func validate(_ order:Order,account:String)throws {
         guard owned(order,account),NativeWire.matches(order.orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),order.totalYNXT>0,order.currency=="YNXT" else{throw ShopError.security}
-        if ["paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested","refunded"].contains(order.status) {
+        if let payment=order.nativePayment {try payment.validate(order,requirePaid:false)}
+        if ["paid","shipped","delivered","reviewed","return_requested","return_approved","return_rejected","refund_requested","refund_approved","refund_rejected","refunded","disputed"].contains(order.status) {
             if (order.payIntentID ?? "").hasPrefix("npi_") {
                 guard NativeWire.matches(order.payIntentID ?? "","^npi_[a-f0-9]{48}$"),let payment=order.nativePayment else{throw ShopError.security}
                 try payment.validate(order);return
