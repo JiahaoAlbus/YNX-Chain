@@ -7,6 +7,14 @@ TOP='TestPQCommittedAccountPUBLICAuthFinalR1Joint'
 REQUIRED=[TOP]+[TOP+'/'+s for s in ('OriginalClientNotReadyReadyAndReceiptMismatch','OriginalPairedZeroPartialPhysicalDrain','UnmodifiedProductionRoot0RefusesBeforeHost')]
 def qualify(events):
     if not events:raise ValueError('joint stream missing')
+    # Go linker diagnostics precede the runtime stream. Keep the original JSONL;
+    # this closed same-test-package prefix never supplies a test/package outcome.
+    prefix=0
+    for e in events:
+        if not isinstance(e,dict) or e.get('Action')!='build-output':break
+        if set(e)!={'Action','ImportPath','Output'} or e['ImportPath']!=PACKAGE+'.test' or not isinstance(e['Output'],str) or not e['Output']:raise ValueError('joint compiler diagnostic differs from original test package')
+        prefix+=1
+    events=events[prefix:]
     for e in events:
         if not isinstance(e,dict) or e.get('Package')!=PACKAGE or e.get('Action') not in ('start','run','output','pass'):raise ValueError('joint failed/skipped/foreign event')
         if 'Test' in e and e['Test'] not in REQUIRED:raise ValueError('joint foreign test')

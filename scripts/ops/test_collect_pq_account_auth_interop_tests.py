@@ -8,6 +8,36 @@ def valid():
     for name in c.REQUIRED:rows.extend([dict(Package=c.PACKAGE,Action='run',Test=name),dict(Package=c.PACKAGE,Action='pass',Test=name)])
     return rows+[dict(Package=c.PACKAGE,Action='pass')]
 class Joint(unittest.TestCase):
+    def test_same_test_package_build_output_is_only_a_prefix(self):
+        notice=dict(Action='build-output',ImportPath=c.PACKAGE+'.test',Output='original linker diagnostic\n')
+        rows=[notice]+valid()
+        original=json.dumps(rows,sort_keys=True)
+        self.assertEqual(c.qualify(rows),c.qualify(valid()))
+        self.assertEqual(json.dumps(rows,sort_keys=True),original)
+        # More than one original diagnostic line is still not an extra test.
+        self.assertEqual(c.qualify([notice,dict(notice,Output='next original diagnostic\n')]+valid()),c.qualify(valid()))
+    def test_build_output_closed_shape_origin_type_and_position_are_required(self):
+        notice=dict(Action='build-output',ImportPath=c.PACKAGE+'.test',Output='original linker diagnostic\n')
+        malformed=[dict(notice,Action='build-fail'),dict(notice,ImportPath='foreign.test'),
+                   dict(notice,ImportPath=c.PACKAGE),dict(notice,ImportPath=c.PACKAGE+'.test/other'),
+                   dict(notice,Package=c.PACKAGE),dict(notice,Test=c.TOP),dict(notice,extra=True),
+                   dict(notice,Output=''),dict(notice,Output=None),dict(notice,Output=1)]
+        malformed += [{k:v for k,v in notice.items() if k!=field} for field in notice]
+        for event in malformed:
+            with self.subTest(event=event),self.assertRaises(ValueError):c.qualify([event]+valid())
+        for index in range(1,len(valid())+1):
+            with self.subTest(position=index),self.assertRaises(ValueError):c.qualify(valid()[:index]+[notice]+valid()[index:])
+    def test_build_output_cannot_replace_or_mask_any_original_outcome(self):
+        notice=dict(Action='build-output',ImportPath=c.PACKAGE+'.test',Output='original linker diagnostic\n')
+        cases=[[],valid()[:-1],valid()+valid()[-1:]]
+        for name in c.REQUIRED:
+            for action in ('run','pass'):
+                cases.append([e for e in valid() if not(e.get('Test')==name and e['Action']==action)])
+                cases.append(valid()+[dict(Package=c.PACKAGE,Action=action,Test=name)])
+            for action in ('fail','skip','build-fail'):
+                cases.append(valid()+[dict(Package=c.PACKAGE,Action=action,Test=name)])
+        for rows in cases:
+            with self.subTest(rows=rows),self.assertRaises(ValueError):c.qualify([notice]+rows)
     def test_closed_actual_group(self):
         v=c.qualify(valid());self.assertTrue(v['jointPUBLICPassed'])
         for name in ['normalProtectedHost','RootAdmission','SourceAdmission','NativeReceipt','walletAccountAuthorized','newKeysOrSignatures','nodeStarted','mobileLibraryQualified','newArchiveBuilt']:self.assertIs(v[name],False)
