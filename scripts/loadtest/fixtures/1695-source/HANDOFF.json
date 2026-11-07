@@ -1,0 +1,1193 @@
+{
+  "version": "YNX-1695-NORMAL-CI-ORIGINAL-READBACK/v1",
+  "status": "NORMAL_SOURCE_CI_SUCCESS_PUBLIC_RAW_STREAMS_VERIFIED_NOT_DEPLOYED",
+  "createdAt": "2026-11-07T15:22:03.909471+00:00",
+  "source": {
+    "head": "1695aafd351b3cac7860d3452c555a02498e8350",
+    "tree": "9a172a0a4b07aecc6365bbd05b58726f1214806c",
+    "fork": "5a128880d14bfc73de4334cba23218859ad3473c",
+    "files": {
+      ".github/workflows/resource-market-ci.yml": {
+        "bytes": 459703,
+        "sha256": "35dbca1c7bdf0d9f0432be7ea2cd74226b701deab38cdc5c081389013f90aea2",
+        "gitBlob": "c62798e8a33d565676c485fe164c8d871b5c0cc4"
+      },
+      "scripts/ops/test_validate_pq_remote_normal_ci.py": {
+        "bytes": 389759,
+        "sha256": "eef9d663f722a6d3f0c99e46e8b5ee7aa56b8192a6f61e42c33f4faba26e09f0",
+        "gitBlob": "8d1f581cca22cabd150cbc74be42b7c099c81eb6"
+      },
+      "scripts/ops/validate-pq-remote-normal-ci.py": {
+        "bytes": 16856,
+        "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475",
+        "gitBlob": "a6f33296f0c5bd2f6167186179c17ad2e14bbb26"
+      }
+    }
+  },
+  "runs": [
+    {
+      "label": "resource",
+      "id": 42383371982,
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/42383371982"
+    },
+    {
+      "label": "chain",
+      "id": 42383371915,
+      "status": "completed",
+      "conclusion": "success",
+      "attempt": 1,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/42383371915"
+    }
+  ],
+  "jobMetadata": [
+    {
+      "workflow": "resource",
+      "runId": 42383371982,
+      "evidence": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/resource-jobs-030.json",
+        "bytes": 73958,
+        "sha256": "368a3d1269c021b554e28a919286824f609fbe1dae345cd2e30f4bd517c939df"
+      },
+      "jobs": [
+        {
+          "id": 128435510837,
+          "name": "offline-migration-streaming",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 5,
+            "skipped": 10,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510898,
+          "name": "native-compatibility",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 8,
+            "skipped": 2,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510916,
+          "name": "caddy-source",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 19,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510924,
+          "name": "artifact-release-cabi (macos-15)",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 45,
+            "skipped": 0,
+            "failure": 0
+          },
+          "keySteps": [
+            {
+              "number": 17,
+              "name": "Execute original Auth account client against the Go producer on Mac",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T14:50:12Z",
+              "completedAt": "2026-11-07T14:50:37Z"
+            },
+            {
+              "number": 18,
+              "name": "Retain only public original Auth account joint evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T14:50:37Z",
+              "completedAt": "2026-11-07T14:50:39Z"
+            }
+          ]
+        },
+        {
+          "id": 128435510927,
+          "name": "pq-identity-public-contract",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 5,
+            "skipped": 3,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510959,
+          "name": "artifact-release-cabi (ubuntu-24.04)",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 37,
+            "skipped": 7,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510977,
+          "name": "browser-verification",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 13,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510981,
+          "name": "offline-migration-tools-clean-7f",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 5,
+            "skipped": 5,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435511057,
+          "name": "focused-go",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 76,
+            "skipped": 11,
+            "failure": 0
+          },
+          "keySteps": [
+            {
+              "number": 35,
+              "name": "Verify native ledger and HTTP PQ integration",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T14:53:58Z",
+              "completedAt": "2026-11-07T14:54:38Z"
+            },
+            {
+              "number": 37,
+              "name": "Exercise original lab callee readiness and actual cold costs",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T14:55:28Z",
+              "completedAt": "2026-11-07T14:55:41Z"
+            },
+            {
+              "number": 41,
+              "name": "Verify complete state bridge and sponsor continuity",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T14:56:29Z",
+              "completedAt": "2026-11-07T15:02:36Z"
+            },
+            {
+              "number": 42,
+              "name": "Verify Current4 original registered observer wire without granting authority",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:02:36Z",
+              "completedAt": "2026-11-07T15:03:05Z"
+            },
+            {
+              "number": 70,
+              "name": "Retain exact public test streams and same-job source identity",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:08:23Z",
+              "completedAt": "2026-11-07T15:08:23Z"
+            },
+            {
+              "number": 71,
+              "name": "Upload only original focused public test streams",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:08:23Z",
+              "completedAt": "2026-11-07T15:08:24Z"
+            }
+          ]
+        },
+        {
+          "id": 128435512028,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128440157690,
+          "name": "protocol-delivery",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 47,
+            "skipped": 0,
+            "failure": 0
+          },
+          "keySteps": [
+            {
+              "number": 22,
+              "name": "Build fixed-source offline migration validation tools",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:13:04Z",
+              "completedAt": "2026-11-07T15:13:12Z"
+            },
+            {
+              "number": 23,
+              "name": "Upload public offline migration validation tools",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:13:12Z",
+              "completedAt": "2026-11-07T15:13:16Z"
+            },
+            {
+              "number": 24,
+              "name": "Build public Linux runtime candidate without starting services",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:13:16Z",
+              "completedAt": "2026-11-07T15:13:33Z"
+            },
+            {
+              "number": 35,
+              "name": "Upload only public Linux runtime candidate",
+              "status": "completed",
+              "conclusion": "success",
+              "startedAt": "2026-11-07T15:16:12Z",
+              "completedAt": "2026-11-07T15:16:22Z"
+            }
+          ]
+        },
+        {
+          "id": 128440159202,
+          "name": "pq-paired-n1",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128442300495,
+          "name": "proof-verifier-macos",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 10,
+            "skipped": 0,
+            "failure": 0
+          }
+        }
+      ]
+    },
+    {
+      "workflow": "chain",
+      "runId": 42383371915,
+      "evidence": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/chain-jobs-030.json",
+        "bytes": 22068,
+        "sha256": "cbbe866e48196569f34b9643184f150ef0fb7eb640284cee0ed70a900174e693"
+      },
+      "jobs": [
+        {
+          "id": 128435510680,
+          "name": "contract-tooling-scope",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 5,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510812,
+          "name": "Original Commit consumer named cases",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 9,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435510840,
+          "name": "Select actual LINK changed closure",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 5,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435511650,
+          "name": "Chain Core source and release gate",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435557569,
+          "name": "Fixed successor normal lossless constructor and readiness budget",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 9,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435557580,
+          "name": "Default OFF and exact original state pair controls",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 8,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435557638,
+          "name": "Original client observations and cohort readback",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 16,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435557652,
+          "name": "Distributed PQ host-local source and PUBLIC readback",
+          "status": "completed",
+          "conclusion": "success",
+          "stepConclusionCounts": {
+            "success": 9,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435558719,
+          "name": "Contract tooling dependency and compatibility",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435558782,
+          "name": "Changed native integration contract inputs",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        },
+        {
+          "id": 128435615260,
+          "name": "LINK native S3 source and isolated transport (not Chain release)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "stepConclusionCounts": {
+            "success": 0,
+            "skipped": 0,
+            "failure": 0
+          }
+        }
+      ]
+    }
+  ],
+  "originalPublicArtifact": {
+    "artifactId": 13578159436,
+    "receipt": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/ARTIFACT-GET-RECEIPT.json",
+      "bytes": 635,
+      "sha256": "7c5c59c3a08ce89b16403386633fb21bbd2e06391345f465b4b23e72a340305c"
+    },
+    "archive": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/original-public-streams.zip",
+      "bytes": 169508,
+      "sha256": "c6db205db0509fbdc89fb92e1311a9416fca0d19205e082a402478b5c9542d92"
+    },
+    "source": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/public-streams/SOURCE.json",
+      "bytes": 1483,
+      "sha256": "c13d46d02ed0898a5c537b2c05ca4612f0cd60610112f71707c963e7f22484cb"
+    },
+    "sourceReadback": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/ARTIFACT-SOURCE-READBACK.json",
+      "bytes": 3279,
+      "sha256": "0b9ea9a84c1e586a84b53b2927121ef8a472275e8f53bd18cf7f0626a072d707"
+    },
+    "apiArtifact": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/artifact-list.json",
+      "bytes": 27239,
+      "sha256": "740a1e1e83b79a68a56f60acd29726e469db3dd792839e5c0995621d6dbf66cb"
+    },
+    "crcVerified": true,
+    "exactDownloadCount": 1,
+    "noPartialMerge": true
+  },
+  "originalCollectors": {
+    "count": 6,
+    "allExit0": true,
+    "programs": [
+      {
+        "index": 0,
+        "programSHA256": "5a4a3b2b02db01ee7429ba1352ecff328ff28908735efb2efeb9e06352a32bea",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-0.stdout",
+          "bytes": 977,
+          "sha256": "471d5797459a701cc07f5f4db3c8a0ba1dc5a92df1774314adf841cb8d89c340"
+        }
+      },
+      {
+        "index": 1,
+        "programSHA256": "8f17ff6a343ce81ab463ca6a7a59fde1d80157dc2ba09a45cd86cccdccca4186",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-1.stdout",
+          "bytes": 584,
+          "sha256": "d15adec70f1bad2f33eed3c38ad957728e35f7d89fa71b3d98709b19732c15a9"
+        }
+      },
+      {
+        "index": 2,
+        "programSHA256": "e79118669385bc7aec6a16ce9fb6a8b5d365c58e722d47414cb55fa4004ac373",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-2.stdout",
+          "bytes": 1984,
+          "sha256": "3c1ef53b4c34fa0059b08c1e724d4f0dbfff12ec8feeb88299adb38fd3ac4555"
+        }
+      },
+      {
+        "index": 3,
+        "programSHA256": "158370bf16a03a2e06f43578f8f7c79da189e4d1e12d3c78ceaadcfb50e45d2e",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-3.stdout",
+          "bytes": 6619,
+          "sha256": "b2d1d1a493565f76e0c40b243890e1090c6d2576d50cb4850241a42de0ff0732"
+        }
+      },
+      {
+        "index": 4,
+        "programSHA256": "1f8f46e0555fae72655bb409c1212f52ac9d72579d8cb6621f2984f490443a93",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-4.stdout",
+          "bytes": 439,
+          "sha256": "3dc5628c9c99beea92493f7d28cdc5c70e4bb0dd312aa955a90b32ff562eac17"
+        }
+      },
+      {
+        "index": 5,
+        "programSHA256": "30226086167e0a760ea22d4b024b3e9658ae82dc3034a79229e4004bb3383972",
+        "exitCode": 0,
+        "stdout": {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/collector-5.stdout",
+          "bytes": 1809,
+          "sha256": "a80108f48feba445cb421daa47c6820192ba8126000a19c2eec7caa537778941"
+        }
+      }
+    ],
+    "receipt": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/ORIGINAL-COLLECTORS-PASS.json",
+      "bytes": 3640,
+      "sha256": "89df3096a5e4755409545fa269fec0b9beb6176e8b89741230d60f9dabe500ce"
+    },
+    "markers": {
+      "YNX_PUBLIC_OWNER_CLI_TESTS": {
+        "nativeGrant": false,
+        "networkLoadMeasured": false,
+        "publicFinality": false,
+        "requiredPassed": [
+          "TestPQLabSenderPUBLICOwnersOriginalStream",
+          "TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_LAB_CALLEE_TESTS": {
+        "networkLoadMeasured": false,
+        "publicFinality": false,
+        "requiredPassed": [
+          "TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost",
+          "TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost",
+          "TestPQLabCalleeElapsedPUBLICColdSingleBefore",
+          "TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter",
+          "TestPQLabCheckpointCacheFallbackLargeOriginal",
+          "TestPQLabCheckpointCacheFallbackOnlyExactBound",
+          "TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent",
+          "TestPQLabSenderPUBLICOwnersOriginalStream",
+          "TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_NATIVE_HISTORY_CHAIN_TESTS": {
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQHistoryMathCacheN1ScopeAndBinding"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_COMBINED_VALIDATOR_KEYS_TESTS": {
+        "nativeGrant": false,
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestCombinedDetachedValidatorKeysSameOriginalBytesAndNormalization",
+          "TestCombinedDetachedValidatorKeysFirstFailureAndNoCandidate",
+          "TestCombinedDetachedValidatorKeysKeepsNestedOwnership"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_COMPLETE_STATE_PARTITIONS": {
+        "groups": [
+          "state",
+          "proof-wallet",
+          "production",
+          "lab",
+          "large-lab"
+        ],
+        "optInSkipped": [
+          "TestABCITransferPerformance",
+          "TestCommitStorageMatchedPerformance",
+          "TestFeeHistoryCost",
+          "TestPQCheckpointAccessTwoUIDOriginalStateLayouts",
+          "TestPQCheckpointAccessUIDHelper",
+          "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
+          "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart",
+          "TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart",
+          "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality",
+          "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true,
+        "testCount": 2131,
+        "topCount": 606
+      },
+      "YNX_LIVE_COLD_OWNER_TESTS": {
+        "nativeGrant": false,
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQLabLiveColdOwnerSameOriginalFullBoundary",
+          "TestPQLabLiveColdOwnerPreservesOriginalFirstCause",
+          "TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_PUBLIC_OWNER_CORE_TESTS": {
+        "nativeGrant": false,
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth",
+          "TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources",
+          "TestPQLabPublicOwnerSessionOriginalIsolationAndWitness",
+          "TestPQLabPublicOwnerSessionProofAndOwnerRetirement"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_SENDER_PARENT_PERSISTENCE_TESTS": {
+        "nativeGrant": false,
+        "powerCutTest": false,
+        "requiredPassed": [
+          "TestPQLabSenderPUBLICOperationParentPersistenceBarrier",
+          "TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown",
+          "TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites",
+          "TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers",
+          "TestPQLabNetworkPUBLICFreshRootParentPersistence"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_INITIAL_CACHE_STATE_TESTS": {
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash",
+          "TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold",
+          "TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis",
+          "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+          "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+          "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+          "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+          "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds",
+          "TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting",
+          "TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation",
+          "TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles",
+          "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+          "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+          "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip",
+          "TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart",
+          "TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold",
+          "TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash",
+          "TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry",
+          "TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner",
+          "TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks",
+          "TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath",
+          "TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit",
+          "TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation",
+          "TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture",
+          "TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers",
+          "TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs",
+          "TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation",
+          "TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit",
+          "TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget",
+          "TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes",
+          "TestPQEngineCheckpointValidationOwnedReadAndColdAuthority",
+          "TestPQEngineCheckpointValidationResealedLedgerAndCoordinates",
+          "TestPQEngineCheckpointValidationOriginalReadbackAndClose",
+          "TestPQEngineCheckpointValidationKeepsIndependentSchedulePin",
+          "TestPQNetworkFreshSuccessorTipsWaitWithoutPayloadProbe",
+          "TestPQNetworkFreshSuccessorTipsStillRequireOriginalPayloadAndValidation",
+          "TestPQNetworkFreshSuccessorTipsKeepErrorsSourcesAndSnapshots",
+          "TestPQNetworkFreshSuccessorTipsBoundariesAndIndependentCalls",
+          "TestABCIPQEnvelopeEncodingDifferential",
+          "TestABCIPQEnvelopeEncodingRandomDifferential",
+          "TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm",
+          "TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority",
+          "TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal",
+          "TestPQLabStaticOwnerPUBLICExactInputsBoundedAndClosed",
+          "TestPQLabStaticOwnerPUBLICReplacedSourceAndForeignScopeRefused",
+          "TestPQLabStaticOwnerPUBLICFileBoundFallsBackWithoutRetention",
+          "TestPQLabStaticOwnerPUBLICLivePublishMeasuresAndRetainsOriginalState",
+          "TestPQLabStaticOwnerPUBLICPrivateReadContract",
+          "TestPQLabStaticOwnerPUBLICOverByteBoundNeverIssuesUnheldOwner",
+          "TestPQLabStaticCacheBoundCleanRefusalIsExact",
+          "TestPQLabStaticCacheBoundCleanupFailureIsNotOnlyBound",
+          "TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult",
+          "TestPQLabLiveMaterialsCacheFallbackOnlyExactBound",
+          "TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose",
+          "TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead",
+          "TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates",
+          "TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds",
+          "TestPQProofHistoryPersistentBranchesAndOwnedMaterialization",
+          "TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack",
+          "TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound",
+          "TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery",
+          "TestPQProofHistoryCurrentSourceTranscript",
+          "TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation",
+          "TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope",
+          "TestInitializeApplicationPUBLICSingleOwnedWitness",
+          "TestInitializeApplicationPUBLICDetachedCallerAfterReservation",
+          "TestInitializeApplicationPUBLICOwnedJournalColdGuards",
+          "TestBootstrapMatchesMigrationStreamReferenceCompleteBinding",
+          "TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil",
+          "TestBootstrapMatchesMigrationStreamLargeOriginalHistory",
+          "TestZstdDependencyRejectsUpstreamTwoBlockFrame",
+          "TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth",
+          "TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources",
+          "TestPQLabPublicOwnerSessionOriginalIsolationAndWitness",
+          "TestPQLabPublicOwnerSessionProofAndOwnerRetirement",
+          "TestPQLabSenderPUBLICOperationParentPersistenceBarrier",
+          "TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown",
+          "TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites",
+          "TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers",
+          "TestPQLabNetworkPUBLICFreshRootParentPersistence",
+          "TestPQLabLiveColdOwnerSameOriginalFullBoundary",
+          "TestPQLabLiveColdOwnerPreservesOriginalFirstCause",
+          "TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause",
+          "TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary",
+          "TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity",
+          "TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity",
+          "TestPQLabSenderCheckpointSourceScopeCurrentAndClose",
+          "TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown",
+          "TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness",
+          "TestPQLabCheckpointReadCrossNodeExactBytesAndClose"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "suitePassed": true
+      },
+      "YNX_WALLET_POLICY_READER_TESTS": {
+        "independentFinalityVerified": false,
+        "liveCurrentVerified": false,
+        "nativeGrant": false,
+        "requiredPassed": [
+          "TestPQWalletPolicyCheckpointRegisteredHistoryAcrossLayouts",
+          "TestPQWalletPolicyCheckpointRefusesWrongAnchorAndAuthority",
+          "TestPQWalletPolicyCheckpointHeldSourceChangeAndClose",
+          "TestPQWalletPolicyCheckpointRuntimeAndSchedulePins",
+          "TestPQWalletPolicyLiveOriginalNodeCommittedAndPending",
+          "TestPQWalletPolicyLiveCurrentCheckpointAndPersistenceFence",
+          "TestPQWalletPolicyLiveNoCallerAuthorityAndCancellation",
+          "TestPQWalletPolicyLiveNodeStopDrainsAndRetires",
+          "TestPQWalletPolicyLiveOriginalProofChildComposition"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "sourceQualified": false,
+        "suitePassed": true
+      },
+      "YNX_PQ_OBSERVER_CORE_TESTS": {
+        "independentFinalityVerified": false,
+        "liveSyncVerified": false,
+        "nativeGrant": false,
+        "nodeStarted": false,
+        "requiredPassed": [
+          [
+            "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "TestPQObserverPUBLICConstructorAllLayoutsNoValidator"
+          ],
+          [
+            "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "TestPQObserverPUBLICRejectsSignerAndUnboundState"
+          ]
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350"
+      },
+      "YNX_CURRENT4_WIRE_TESTS": {
+        "independentFinalityVerified": false,
+        "nativeGrant": false,
+        "nodeStarted": false,
+        "p09CallerConnected": false,
+        "producerCurrentClock": false,
+        "requiredPassed": [
+          "TestPQCurrent4WirePUBLICStrictFramesAndOSPeer",
+          "TestPQCurrent4WirePUBLICRegisteredObserverData",
+          "TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "sourceGrant": false,
+        "sourceQualified": false,
+        "suitePassed": true
+      },
+      "YNX_PQ_OBSERVER_ACCOUNT_TESTS": {
+        "independentFinalityVerified": false,
+        "nativeGrant": false,
+        "nodeStarted": false,
+        "p09CallerConnected": false,
+        "producerCurrentClock": false,
+        "requiredPassed": [
+          "TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold",
+          "TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation",
+          "TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain",
+          "TestPQObserverAccountHostPUBLICSameNodeDistinctScopes",
+          "TestPQObserverAccountHostPUBLICIdentityAndScopeFailures"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "sourceGrant": false,
+        "sourceQualified": false,
+        "suitePassed": true
+      },
+      "YNX_PQ_SOURCE_PARENT_TESTS": {
+        "independentFinalityVerified": false,
+        "nativeGrant": false,
+        "nodeStarted": false,
+        "p09CallerConnected": false,
+        "producerCurrentClock": false,
+        "requiredPassed": [
+          "TestSourceParentFrameBounds",
+          "TestSourceParentOriginalClockRace",
+          "TestPQSourceParentPUBLICQualifiedCleanupAndLoss",
+          "TestPQSourceParentPUBLICOriginalUnnamedSocket",
+          "TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC",
+          "TestPQProtectedSourceParentStableHostScopesPUBLIC",
+          "TestPQCommittedAccountWirePUBLICCloseDebt",
+          "TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause"
+        ],
+        "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+        "sourceGrant": false,
+        "sourceQualified": false,
+        "suitePassed": true
+      }
+    },
+    "streamSummaries": [
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/public-streams/ynx-current4-wire-tests.jsonl",
+        "bytes": 96520,
+        "sha256": "477694aa0729674e39041fffdbbff6a85308d9d9d51de94120db27a99823152a",
+        "topCount": 16,
+        "terminalTestsIncludingChildren": 97,
+        "passedTopCount": 16,
+        "skipped": [],
+        "failed": [],
+        "packageTerminal": [
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 13.27
+          }
+        ]
+      },
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/public-streams/ynx-initial-cache-state-tests.jsonl",
+        "bytes": 2210817,
+        "sha256": "fbf8045111be06d145dc32b3bd487d2e81cfd85c4e8b6aba1a67938fdd8212ea",
+        "topCount": 606,
+        "terminalTestsIncludingChildren": 2131,
+        "passedTopCount": 596,
+        "skipped": [
+          "TestFeeHistoryCost",
+          "TestABCITransferPerformance",
+          "TestCommitStorageMatchedPerformance",
+          "TestPQCheckpointAccessTwoUIDOriginalStateLayouts",
+          "TestPQCheckpointAccessUIDHelper",
+          "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality",
+          "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart",
+          "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
+          "TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart",
+          "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
+        ],
+        "failed": [],
+        "packageTerminal": [
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 123.374
+          },
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 42.981
+          },
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 3.117
+          },
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 162.755
+          },
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+            "action": "pass",
+            "elapsedSeconds": 27.883
+          }
+        ]
+      },
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/public-streams/ynx-lab-callee-tests.jsonl",
+        "bytes": 32765,
+        "sha256": "fbc921ea26dd3b09b913698722a1740b2096d0a9cf323f39880b025700f1d5cd",
+        "topCount": 9,
+        "terminalTestsIncludingChildren": 26,
+        "passedTopCount": 9,
+        "skipped": [],
+        "failed": [],
+        "packageTerminal": [
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab",
+            "action": "pass",
+            "elapsedSeconds": 11.335
+          }
+        ]
+      },
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/public-streams/ynx-native-history-chain-tests.jsonl",
+        "bytes": 65604,
+        "sha256": "3b08a92eb8edb22822ef33078691bd58092fe2fabcfd855964709fd4d9044ba7",
+        "topCount": 25,
+        "terminalTestsIncludingChildren": 64,
+        "passedTopCount": 25,
+        "skipped": [],
+        "failed": [],
+        "packageTerminal": [
+          {
+            "package": "github.com/JiahaoAlbus/YNX-Chain/internal/chain",
+            "action": "pass",
+            "elapsedSeconds": 1.033
+          }
+        ]
+      }
+    ]
+  },
+  "supplyMetadata": {
+    "evidence": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/RUNTIME-SUPPLY-METADATA.json",
+      "bytes": 2083,
+      "sha256": "2c2d9a41133ca3663d15ddcf6f9e150d0e0f701b9f98a5b207d3c18d20c1d902"
+    },
+    "catalog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/delivery-artifact-catalog.json",
+      "bytes": 34211,
+      "sha256": "540008699885474188fcbdcb35bd2c3366db24a772d8fb3aebf64c99e95c76ff"
+    },
+    "runtime": {
+      "id": 13579124145,
+      "node_id": "MDg6QXJ0aWZhY3QxMzU3OTEyNDE0NQ==",
+      "name": "ynx-pq-linux-runtime-candidate-1695aafd351b3cac7860d3452c555a02498e8350",
+      "size_in_bytes": 151551884,
+      "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13579124145",
+      "archive_download_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13579124145/zip",
+      "expired": false,
+      "digest": "sha256:1dee99e6abfa74f9b0c2f32bfd5d5cd46518c51a2e4629e62ebb81b120b789c0",
+      "created_at": "2026-11-07T15:16:21Z",
+      "updated_at": "2026-11-07T15:16:21Z",
+      "expires_at": "2026-11-14T15:16:12Z",
+      "workflow_run": {
+        "id": 42383371982,
+        "repository_id": 1285041796,
+        "head_repository_id": 1285041796,
+        "head_branch": "codex/ynx-pq-perf-integration",
+        "head_sha": "1695aafd351b3cac7860d3452c555a02498e8350"
+      }
+    },
+    "exporter": [
+      {
+        "id": 13579022732,
+        "node_id": "MDg6QXJ0aWZhY3QxMzU3OTAyMjczMg==",
+        "name": "ynx-pq-offline-migration-tools-1695aafd351b3cac7860d3452c555a02498e8350",
+        "size_in_bytes": 21488553,
+        "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13579022732",
+        "archive_download_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/13579022732/zip",
+        "expired": false,
+        "digest": "sha256:df7c446553a6ebf7508205ae17cceefd5a50a384631a1d6c2d9b6c8fe1c8d067",
+        "created_at": "2026-11-07T15:13:15Z",
+        "updated_at": "2026-11-07T15:13:15Z",
+        "expires_at": "2026-11-14T15:13:12Z",
+        "workflow_run": {
+          "id": 42383371982,
+          "repository_id": 1285041796,
+          "head_repository_id": 1285041796,
+          "head_branch": "codex/ynx-pq-perf-integration",
+          "head_sha": "1695aafd351b3cac7860d3452c555a02498e8350"
+        }
+      }
+    ],
+    "sourceJob": {
+      "id": 128440157690,
+      "name": "protocol-delivery",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "bytesNotDownloaded": true,
+    "packageContentsNotLocallyVerified": true,
+    "distinction": "Earlier offline-migration-streaming and clean-7f jobs skipped their build/upload steps. The separate normal protocol-delivery job actually built and uploaded the same-1695 offline tools and runtime; these identities are API metadata only."
+  },
+  "qualification": {
+    "fiveStateGroups": {
+      "groups": [
+        "state",
+        "proof-wallet",
+        "production",
+        "lab",
+        "large-lab"
+      ],
+      "optInSkipped": [
+        "TestABCITransferPerformance",
+        "TestCommitStorageMatchedPerformance",
+        "TestFeeHistoryCost",
+        "TestPQCheckpointAccessTwoUIDOriginalStateLayouts",
+        "TestPQCheckpointAccessUIDHelper",
+        "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
+        "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart",
+        "TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart",
+        "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality",
+        "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "suitePassed": true,
+      "testCount": 2131,
+      "topCount": 606
+    },
+    "senderParentPersistenceFive": {
+      "nativeGrant": false,
+      "powerCutTest": false,
+      "requiredPassed": [
+        "TestPQLabSenderPUBLICOperationParentPersistenceBarrier",
+        "TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown",
+        "TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites",
+        "TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers",
+        "TestPQLabNetworkPUBLICFreshRootParentPersistence"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "suitePassed": true
+    },
+    "statsAndPublicOwnerFour": {
+      "nativeGrant": false,
+      "performanceMeasured": false,
+      "requiredPassed": [
+        "TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth",
+        "TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources",
+        "TestPQLabPublicOwnerSessionOriginalIsolationAndWitness",
+        "TestPQLabPublicOwnerSessionProofAndOwnerRetirement"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "suitePassed": true
+    },
+    "publicOwnerCLITwo": {
+      "nativeGrant": false,
+      "networkLoadMeasured": false,
+      "publicFinality": false,
+      "requiredPassed": [
+        "TestPQLabSenderPUBLICOwnersOriginalStream",
+        "TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "suitePassed": true
+    },
+    "current4Three": {
+      "independentFinalityVerified": false,
+      "nativeGrant": false,
+      "nodeStarted": false,
+      "p09CallerConnected": false,
+      "producerCurrentClock": false,
+      "requiredPassed": [
+        "TestPQCurrent4WirePUBLICStrictFramesAndOSPeer",
+        "TestPQCurrent4WirePUBLICRegisteredObserverData",
+        "TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "sourceGrant": false,
+      "sourceQualified": false,
+      "suitePassed": true
+    },
+    "observerAccountFive": {
+      "independentFinalityVerified": false,
+      "nativeGrant": false,
+      "nodeStarted": false,
+      "p09CallerConnected": false,
+      "producerCurrentClock": false,
+      "requiredPassed": [
+        "TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold",
+        "TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation",
+        "TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain",
+        "TestPQObserverAccountHostPUBLICSameNodeDistinctScopes",
+        "TestPQObserverAccountHostPUBLICIdentityAndScopeFailures"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "sourceGrant": false,
+      "sourceQualified": false,
+      "suitePassed": true
+    },
+    "sourceParentEight": {
+      "independentFinalityVerified": false,
+      "nativeGrant": false,
+      "nodeStarted": false,
+      "p09CallerConnected": false,
+      "producerCurrentClock": false,
+      "requiredPassed": [
+        "TestSourceParentFrameBounds",
+        "TestSourceParentOriginalClockRace",
+        "TestPQSourceParentPUBLICQualifiedCleanupAndLoss",
+        "TestPQSourceParentPUBLICOriginalUnnamedSocket",
+        "TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC",
+        "TestPQProtectedSourceParentStableHostScopesPUBLIC",
+        "TestPQCommittedAccountWirePUBLICCloseDebt",
+        "TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause"
+      ],
+      "sourceCommit": "1695aafd351b3cac7860d3452c555a02498e8350",
+      "sourceGrant": false,
+      "sourceQualified": false,
+      "suitePassed": true
+    }
+  },
+  "scope": {
+    "primaryChanged": false,
+    "gitIndexOrRefsChanged": false,
+    "localGoOrNodeExecuted": false,
+    "newKeys": false,
+    "pressureWindowStarted": false,
+    "ssh": false,
+    "bigRuntimeOrExporterDownloaded": false,
+    "jobLogsDownloaded": false,
+    "oldPartialLogsRetried": false,
+    "workflowDispatched": false,
+    "publicDeployment": false,
+    "nativeGrant": false,
+    "ownedProcessesRemaining": 0
+  },
+  "limits": [
+    "The four JSONL files are original same-job bytes from a single successful fixed-source run. All six original workflow collectors were executed read-only against them; no partial test streams were synthesized into success.",
+    "The state stream contains 606 top names and 2131 terminals including children: 596 passed tops and only the original ten explicit opt-in skips. Every required top and child guard in the original collectors remained in force.",
+    "Mac native Auth interop, other focused phases, delivery and offline verifier are observed from their actual same-run successful job/step metadata; this receiver did not download those separate artifacts or claim their contents were locally inspected.",
+    "The proof-verifier-macos job is named for its build target and uses ubuntu-24.04 in the fixed workflow. Actual Mac native interop is the distinct artifact-release-cabi (macos-15) job; do not conflate them.",
+    "Runtime and independent exporter ids/digests are preserved solely for Root intake. Their ZIPs were not downloaded and deployment/activation is not established.",
+    "Root successor bb9f8c8b455cbe37447fa448011f35d33d3b7f76 requires its own normal source CI and artifacts; this 1695 result is not transferred to it.",
+    "Old da96/25d717 transport-timeout partial logs remain untouched. This receiver never retried those large joblogs."
+  ],
+  "evidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/RUNS-FINAL.json",
+      "bytes": 420,
+      "sha256": "11e11fe9168f7fd1558fddc94410d077014eb21d85cc072b76bcccfa50f7ffed"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/resource-run-final.json",
+      "bytes": 12418,
+      "sha256": "b9689e8ae0dffd6dc0d8a52b66328f5a030c04ef70a37a02e225c6ae117c4c13"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/chain-run-final.json",
+      "bytes": 12389,
+      "sha256": "73795d76766cb87d2b40c588fe829429588cafa60367b3e20de10dd535450464"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/METADATA-TERMINAL.json",
+      "bytes": 6604,
+      "sha256": "23738d1f9dd5b19f6284ce2ec98f949f79a65f4906f0778c5318eb4fb4e9bcab"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/FIXED-SOURCE.json",
+      "bytes": 864,
+      "sha256": "077efc0131b89b6fbd2ef1eafc695f865616b85d7cfd16ba7ddc5f50183ec054"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/ORIGINAL-STREAM-SUMMARY.json",
+      "bytes": 3425,
+      "sha256": "79d578590ed2b8d812222eb7de38a791cc477bd1242f983369a1784ea8c2be83"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/receive-focused-artifact.py",
+      "bytes": 8067,
+      "sha256": "834418d963732957ce4448d8432594d667fa8c7b9c5bfaf0c51187832691d954"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/watch-metadata.py",
+      "bytes": 2824,
+      "sha256": "74956ad1141eb87135d9cfa6c783f857728529d8d45587e3e995768a74811ac2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/watch.stdout",
+      "bytes": 43156,
+      "sha256": "6530f632f8b5c7c655421c8649672c3092b00ec211a18ec06fcc7cf4627144fe"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/1695-normal-ci-5k9en9m1/watch.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
