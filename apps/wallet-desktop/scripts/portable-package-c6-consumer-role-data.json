@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "bd9d05f2b9305fd02ef45f0e5b3045133bafd34f",
-  "sourceTree": "0677b88ea3a79205a348d82a3a27ff8097d7a65b",
+  "sourceCommit": "f8e95c3b4f0ab673f57844a93f959b05c5ef6d8b",
+  "sourceTree": "935afd318d4570d2ddd4eac709916f50b59b42ff",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -46,8 +46,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/after-pack.mjs",
-      "bytes": 6910,
-      "sha256": "587d86ff0cdbe1eb4560912623587af1cb6a727387566bbd9a93f3ecac261249"
+      "bytes": 7173,
+      "sha256": "2afa8b395f03a0e96e95c52d1ab2f38f1a1ecabb665f4300d98015d6ff3ae6f8"
     },
     {
       "relative": "apps/wallet-desktop/scripts/approved125a-helper-component-data.json",
@@ -91,13 +91,18 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/desktop-native49-c6-pack.mjs",
-      "bytes": 7001,
-      "sha256": "234f5da8762867b7a6bd631c4398825c107ada4a5eb3014a14a0b24aa5b4217a"
+      "bytes": 7059,
+      "sha256": "94688a7561295e111837fc41ca65bc8a0ffe80636bce6481e6659aba71142b69"
     },
     {
       "relative": "apps/wallet-desktop/scripts/desktop-native49-c6-selection.json",
-      "bytes": 4236,
-      "sha256": "9a428be4056180426931329b740d29fb65015e3081cb44d2f76e9ee5482acd98"
+      "bytes": 4262,
+      "sha256": "23e64efd31e9acc6e4527c66c166765099588cb19df4adff8300a552c6b6aa95"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/desktop-native49-napi-selection.json",
+      "bytes": 4500,
+      "sha256": "89a87b99a4f47c281f291629e5c13d03325e2076f3ed2b832b9bd58eb0fe02c9"
     },
     {
       "relative": "apps/wallet-desktop/scripts/native-component-source-closure.mjs",
@@ -135,24 +140,49 @@
       "sha256": "e7334a8ec417f200f3a92cc394930bc6c265bb06fe161288869d37bd11e72a52"
     },
     {
+      "relative": "apps/wallet-desktop/scripts/native49-napi-normal-component.d.mts",
+      "bytes": 2147,
+      "sha256": "338867b6c54b63cc87af3257106ae550963ccada11e9bc259130b5d967162d22"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/native49-napi-normal-component.data.json",
+      "bytes": 6177289,
+      "sha256": "105cd19f0e178e7de1b498fbbfbed8f1c070d9193ba778023ce1e19e85c25a36"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/native49-napi-normal-component.mjs",
+      "bytes": 10426,
+      "sha256": "7a27d7659b010f30c5460fb97750c4d58f7e7532e9212e555a868c79e33c90a0"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/native49-napi-plan.json",
+      "bytes": 72823,
+      "sha256": "0553a186d0a592edd79bb5dd1f9bc5a8feb8b297f047de3eb6525ea17d5b4bc3"
+    },
+    {
       "relative": "apps/wallet-desktop/scripts/normal-pay-compatible-source.mjs",
       "bytes": 4444,
       "sha256": "5e52fde9fdec681cda3e9ff0a40853969c28651eff7b56296d68e13ec10c3eb4"
     },
     {
+      "relative": "apps/wallet-desktop/scripts/original-auth-single49-napi-import-policy.mjs",
+      "bytes": 5143,
+      "sha256": "de217b18036f766eb8abf528147e610aeb3a326efd102693bdffe69224627efb"
+    },
+    {
       "relative": "apps/wallet-desktop/scripts/portable-runtime-pack.mjs",
-      "bytes": 6979,
-      "sha256": "337f0decfb54826d758076e6acb0e43655dbaa19fce8743844f6f13e2eaf7c72"
+      "bytes": 6963,
+      "sha256": "8ed61e5cbeac248e53fc0675a35c679d7f0ccf2577fefc4a2cf37dec9237d173"
     },
     {
       "relative": "apps/wallet-desktop/scripts/release-provenance.mjs",
-      "bytes": 64655,
-      "sha256": "961ef7e653300eba0c14d4626127a91051b24c3fe7c2af46fe37d6d4ab48e0ab"
+      "bytes": 64694,
+      "sha256": "2b853bc1691c776b1da49070ee6f9cb02b2c3d04d68ee3b07b78c0744bb340b5"
     },
     {
       "relative": "apps/wallet-desktop/scripts/sdk13-native-component.mjs",
-      "bytes": 13868,
-      "sha256": "f8c3505bd9272eb9028cf67b6135c7f88d9c757202f5a2bd69c7b43ef03730d7"
+      "bytes": 13955,
+      "sha256": "8b3f2a009c3dadb2fa93cb8a672d9f66c11f4497dacd32c3f42ffecd08d840d5"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/approved125a-helper-component.test.mjs",
@@ -161,8 +191,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/desktop-native49-c6-real-package.test.mjs",
-      "bytes": 9266,
-      "sha256": "ac6bf1f9a3c05847870d5d73c6fc8015081b7faf85e68c512b231de64a99aa68"
+      "bytes": 9232,
+      "sha256": "04e9c4b7460d09f3b33c598bcb7cf75efb8db0233c908b80ea96424212c4ec8a"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/fixtures/approved125a-helper/original-inputs.tar.gz",
@@ -396,8 +426,8 @@
     },
     {
       "relative": "apps/wallet-desktop/test/desktop-native49-c6-build.test.mjs",
-      "bytes": 3471,
-      "sha256": "530e155dc907bbcd8ad123524b3849e8628b2e16fcd5bff29df30b1bf4a4bc21"
+      "bytes": 4996,
+      "sha256": "3a94d1def81feec8afa5322e9d9657ae430cb59b9a95cb0d61f8fc34e99007d7"
     },
     {
       "relative": "apps/wallet-desktop/test/desktop-overview-activity-ui.test.mjs",
@@ -534,7 +564,9 @@
     "reusedCPPSourceCommit": "3c9ead1f8a5920fb2428553dfed4e6943f882968",
     "reusedCPPSourceTree": "fb0a18f131615e9cb1886ce1479f7b1fc1df879e",
     "swiftBuilderCommit": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
-    "swiftBuilderTree": "06e98e613f2f677d13bfefc99079bd05e40f8f31"
+    "swiftBuilderTree": "06e98e613f2f677d13bfefc99079bd05e40f8f31",
+    "relinkProducerCommit": "86d0d24c052843516c6cf79e2fe2ee859d43358a",
+    "relinkProducerTree": "13a2b6b5a29a7622658e423c95926990f58a66dd"
   },
   "helperSourceRoles": {
     "compileSourceCommit": "2602137a3f0382acb52c7d82ac51383153bd9f44",
@@ -544,8 +576,23 @@
   "sdkSelfPins": [
     {
       "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
-      "bytes": 17403,
-      "sha256": "c41d9192ecb122bb4e8d11e987b4d03799907f8b246af03735234704b7d0b288"
+      "bytes": 17644,
+      "sha256": "d9d891e95f93c5e4fcafac9e7df8dbf61be8a2cd73b3a43e337b196f304f3650"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/test/native49-napi-record.test.mjs",
+      "bytes": 1498,
+      "sha256": "570f64c63d9fe3133df9f3efeb52928276f34fda8ac0e866583b4ff302ff1484"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/fixtures/native49-napi/record.json",
+      "bytes": 123525,
+      "sha256": "e8597d465d4de0d4cd1b55e51de912b0791ce447c3b17665ebfd93a6c314e657"
+    },
+    {
+      "relative": ".github/workflows/wallet-native49-napi-component.yml",
+      "bytes": 994,
+      "sha256": "a101b506a72df4470f739dcc4b529ac5beae8a3e5105134d033650946990ccb8"
     }
   ]
 }

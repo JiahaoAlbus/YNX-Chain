@@ -1,0 +1,24 @@
+name: Wallet NAPI component record DATA
+on:
+  push:
+    branches: [codex/wallet-native49-napi-main-consumer-20261107]
+    paths:
+      - apps/wallet-desktop/scripts/native49-napi-*
+      - apps/wallet-desktop/scripts/original-auth-single49-napi-import-policy.mjs
+      - apps/wallet-desktop/scripts/portable-package-c6-consumer-role*
+      - apps/wallet-desktop/scripts/portable-package-consumer-role.mjs
+      - apps/wallet-desktop/scripts/test/native49-napi-record.test.mjs
+      - apps/wallet-desktop/test/fixtures/native49-napi/record.json
+      - .github/workflows/wallet-native49-napi-component.yml
+permissions:
+  contents: read
+jobs:
+  record-custody:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - run: node apps/wallet-desktop/scripts/test/native49-napi-record.test.mjs
