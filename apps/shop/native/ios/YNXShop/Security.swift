@@ -222,3 +222,95 @@ enum BuyerTransitionRecovery {
         let parts=item.path.split(separator:"/");guard parts.count==3,parts[0]=="orders",parts[2]=="transition",let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let action=body["Action"] as? String,let key=body["IdempotencyKey"] as? String,value["Actor"] as? String==session.account,value["OrderID"] as? String==String(parts[1]),value["Action"] as? String==action,value["IdempotencyKey"] as? String==key,let raw=value["Order"] as? [String:Any] else{throw ShopError.security};let order=try AppleBuyerReceipt.decode(raw,account:session.account);guard order.orderID==String(parts[1]) else{throw ShopError.security};return order
     }
 }
+
+// Original comparison creation/run references in the existing encrypted Vault.
+// Disclosure consent is not an Agent Grant, spending budget, or payment approval.
+@MainActor final class ShopComparisonJournal {
+    struct Record:Codable,Equatable {
+        let key:String;let account:String;var contextSummary:String
+        var requestBody:Data?;let requestHash:String
+        var phase:String;var jobID:String?;var job:ShopAgentJob?
+        var pendingAction:String?=nil
+        static func ==(a:Self,b:Self)->Bool{a.key==b.key && a.account==b.account && a.contextSummary==b.contextSummary && a.requestBody==b.requestBody && a.requestHash==b.requestHash && a.phase==b.phase && a.jobID==b.jobID && a.pendingAction==b.pendingAction && a.job==b.job}
+    }
+    private let read:(String)throws->Data?,write:(String,Data)throws->Void
+    init(read:@escaping (String)throws->Data?={try Vault.read($0)},write:@escaping (String,Data)throws->Void={try Vault.put($0,$1)}){self.read=read;self.write=write}
+    private func namespace(_ account:String)->String{"apple-shop-comparison-v1-"+NativeWire.hash(account)}
+    func records(_ account:String)throws->[String:Record] {
+        guard let bytes=try read(namespace(account)) else{return [:]}
+        let values=try JSONDecoder().decode([String:Record].self,from:bytes)
+        guard values.count<=256 else{throw ShopError.security}
+        for (key,record) in values {
+            guard key==record.key,record.account==account,NativeWire.matches(key,"^[A-Za-z0-9-]{8,128}$"),NativeWire.matches(record.requestHash,"^[a-f0-9]{64}$"),
+                  ["prepared","creation_unknown","permission_granted","run_unknown","running","review_required","decision_unknown","cancel_unknown","applied_draft","rejected","cancelled","failed","decision_conflict","retired"].contains(record.phase) else{throw ShopError.security}
+            if let body=record.requestBody {
+                guard let text=String(data:body,encoding:.utf8),NativeWire.hash(text)==record.requestHash,
+                      let input=try JSONSerialization.jsonObject(with:body) as? [String:Any],input.count==6,
+                      input["IdempotencyKey"] as? String==key,input["ContextSummary"] as? String==record.contextSummary,
+                      input["Workflow"] as? String=="search_comparison",input["ContextClasses"] as? [String]==["public_catalog"],
+                      input["EstimateUnits"] as? Int==1,let consent=input["PermissionGranted"] as? NSNumber,CFGetTypeID(consent)==CFBooleanGetTypeID(),consent.boolValue,
+                      try CanonicalJSON.data(input)==body else{throw ShopError.security}
+            }
+            else{guard record.phase=="retired" else{throw ShopError.security}}
+            if let id=record.jobID{guard NativeWire.matches(id,"^ai_[a-f0-9]{24}$") else{throw ShopError.security}}
+            if record.phase=="decision_unknown"{guard ["decision:apply","decision:reject"].contains(record.pendingAction) else{throw ShopError.security}}
+            if let job=record.job {try job.validate(account:account,original:record)}
+        }
+        return values
+    }
+    private func save(_ values:[String:Record],_ account:String)throws {let body=try JSONEncoder().encode(values);try write(namespace(account),body);guard try read(namespace(account))==body else{throw ShopError.security}}
+    func active(_ account:String)throws->Record? {
+        let active=try records(account).values.filter{!["applied_draft","rejected","cancelled","failed","decision_conflict","retired"].contains($0.phase)}
+        guard active.count<=1 else{throw ShopError.security};return active.first
+    }
+    func prepare(account:String,summary:String)throws->Record {
+        if let existing=try active(account){guard existing.contextSummary==summary else{throw ShopError.unresolvedMutation};return existing}
+        var all=try records(account);guard all.count<256,!summary.isEmpty,summary.utf8.count<=2000 else{throw ShopError.security}
+        let key=UUID().uuidString.lowercased()
+        let body=try CanonicalJSON.data(["Workflow":"search_comparison","ContextClasses":["public_catalog"],"ContextSummary":summary,"EstimateUnits":1,"PermissionGranted":true,"IdempotencyKey":key])
+        let record=Record(key:key,account:account,contextSummary:summary,requestBody:body,requestHash:NativeWire.hash(String(data:body,encoding:.utf8)!),phase:"prepared",jobID:nil,job:nil)
+        all[key]=record;try save(all,account);return record
+    }
+    func input(_ original:Record)throws->[String:Any] {
+        guard let current=try records(original.account)[original.key],current.requestHash==original.requestHash,let body=current.requestBody,
+              let value=try JSONSerialization.jsonObject(with:body) as? [String:Any],try CanonicalJSON.data(value)==body else{throw ShopError.security}
+        return value
+    }
+    func dispatch(_ original:Record,phase:String,action:String?=nil)throws {
+        var all=try records(original.account);guard var current=all[original.key],current.requestHash==original.requestHash else{throw ShopError.security}
+        if phase=="creation_unknown" {guard current.phase=="prepared" else{throw ShopError.unresolvedMutation}}
+        else if phase=="run_unknown" {guard current.phase=="permission_granted",current.jobID != nil else{throw ShopError.unresolvedMutation}}
+        else if phase=="decision_unknown" {guard current.phase=="review_required",action=="apply" || action=="reject" else{throw ShopError.unresolvedMutation}}
+        else if phase=="cancel_unknown" {guard current.jobID != nil,["permission_granted","running","run_unknown"].contains(current.phase) else{throw ShopError.unresolvedMutation}}
+        else{throw ShopError.security}
+        current.phase=phase;current.pendingAction=phase=="decision_unknown" ? "decision:"+action!:phase;all[original.key]=current;try save(all,original.account)
+    }
+    @discardableResult func observe(_ original:Record,job:ShopAgentJob)throws->Record {
+        var all=try records(original.account);guard var current=all[original.key],current.requestHash==original.requestHash else{throw ShopError.security}
+        try job.validate(account:original.account,original:current)
+        if ["applied_draft","rejected","cancelled","failed","decision_conflict","retired"].contains(current.phase){return current}
+        if current.phase=="review_required" && ["permission_granted","running"].contains(job.status){return current}
+        if current.phase=="running" && job.status=="permission_granted"{return current}
+        current.jobID=job.jobID;current.job=job
+        if current.phase=="decision_unknown" && job.terminal {
+            let expected=current.pendingAction=="decision:apply" ? "applied_draft":"rejected"
+            current.phase=job.status==expected ? job.status:"decision_conflict"
+            all[original.key]=current;try save(all,original.account);return current
+        }
+        // A read showing the pre-dispatch state does not prove an uncertain
+        // create/run/decision/cancel was never delivered. Never resend it.
+        if current.phase=="run_unknown" && job.status=="permission_granted" {} else if current.phase=="decision_unknown" && ["permission_granted","running","review_required"].contains(job.status) {} else if current.phase=="cancel_unknown" && ["permission_granted","running","review_required"].contains(job.status) {} else {current.phase=job.status}
+        all[original.key]=current;try save(all,original.account);return current
+    }
+    func discardPrepared(_ original:Record)throws->Record {
+        var all=try records(original.account)
+        guard var current=all[original.key],current.requestHash==original.requestHash,current.phase=="prepared",current.jobID==nil else{throw ShopError.unresolvedMutation}
+        current.phase="cancelled";all[current.key]=current;try save(all,current.account);return current
+    }
+    func redactCompleted(_ account:String)throws {
+        guard try active(account)==nil else{throw ShopError.unresolvedMutation}
+        var all=try records(account)
+        for (key,var r) in all {r.contextSummary="";r.requestBody=nil;r.job=nil;r.phase="retired";all[key]=r}
+        try save(all,account)
+    }
+}

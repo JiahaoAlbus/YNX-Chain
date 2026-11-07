@@ -141,6 +141,9 @@ func (s *Server) routes() {
 	s.handleFunc("GET /api/seller/audit", s.audit)
 	s.handleFunc("GET /api/seller/settlements", s.settlements)
 	s.handleFunc("POST /api/ai/jobs", s.createAI)
+	s.handleFunc("GET /api/ai/jobs", s.listAIJobs)
+	s.handleFunc("GET /api/ai/jobs/{id}", s.readAIJob)
+	s.handleFunc("POST /api/ai/jobs/intent-lookup", s.lookupAIJobIntent)
 	s.handleFunc("POST /api/ai/jobs/{id}/run", s.runAI)
 	s.handleFunc("POST /api/ai/jobs/{id}/decision", s.decideAI)
 	s.handleFunc("POST /api/ai/jobs/{id}/cancel", s.cancelAI)
@@ -1108,7 +1111,7 @@ func (s *Server) createAI(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 201, v)
+	s.writeAIJob(w, r, 201, v)
 }
 func (s *Server) runAI(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")
@@ -1120,7 +1123,7 @@ func (s *Server) runAI(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), fmt.Errorf("AI generation failed: %w", err))
 		return
 	}
-	write(w, 200, v)
+	s.writeAIJob(w, r, 200, v)
 }
 func (s *Server) decideAI(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")
@@ -1136,7 +1139,7 @@ func (s *Server) decideAI(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 200, v)
+	s.writeAIJob(w, r, 200, v)
 }
 func (s *Server) cancelAI(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")
@@ -1148,7 +1151,7 @@ func (s *Server) cancelAI(w http.ResponseWriter, r *http.Request) {
 		fail(w, status(err), err)
 		return
 	}
-	write(w, 200, v)
+	s.writeAIJob(w, r, 200, v)
 }
 func (s *Server) streamAI(w http.ResponseWriter, r *http.Request) {
 	sess, ok := s.auth(w, r, "buyer", "seller")

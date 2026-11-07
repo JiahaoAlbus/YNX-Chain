@@ -1,6 +1,54 @@
 import Foundation
 import CoreFoundation
 
+// Prices named *YNXT are integer legacy Shop units, not a fiat quote or
+// an inferred native-atom denomination. Preserve the protocol and every digit.
+enum ShopMoneyDisplay {
+    static let legacySymbol="YNXT" // internal/commerce/model.go NativeSymbol
+    static func legacyYNXT(_ amount:Int64,locale:Locale = .current)->String {
+        guard amount>=0 else{return String(localized:"unavailable",locale:locale)}
+        return amount.formatted(.number.locale(locale))+" "+legacySymbol
+    }
+    static func order(_ order:Order,locale:Locale = .current)->String? {
+        guard order.totalYNXT>=0,order.currency==nil || order.currency==legacySymbol else{return nil}
+        return legacyYNXT(order.totalYNXT,locale:locale)
+    }
+    static func atoms(_ text:String,locale:Locale = .current)->String? {
+        guard let amount=UInt64(text),String(amount)==text else{return nil}
+        return amount.formatted(.number.locale(locale))+" "+String(localized:"native_atoms_unit",locale:locale)
+    }
+}
+
+struct ShopAgentJob:Codable,Identifiable,Equatable {
+    let jobID:String;let actor:String;let walletActor:String?
+    let workflow:String;let status:String;let providerStatus:String
+    let contextSummary:String;let contextClasses:[String];let allowedActions:[String]
+    let estimateUnits:Int64;let permissionGranted:Bool
+    let result:String;let failure:String;let applied:Bool;let rejected:Bool;let cancelled:Bool
+    let runAttemptID:String?
+    var id:String{jobID}
+    var terminal:Bool{["applied_draft","rejected","cancelled","failed"].contains(status)}
+    enum CodingKeys:String,CodingKey {
+        case jobID="ID",actor="Actor",walletActor="WalletActor",workflow="Workflow",status="Status",providerStatus="ProviderStatus"
+        case contextSummary="ContextSummary",contextClasses="ContextClasses",allowedActions="AllowedActions",estimateUnits="EstimateUnits",permissionGranted="PermissionGranted"
+        case result="Result",failure="Failure",applied="Applied",rejected="Rejected",cancelled="Cancelled",runAttemptID="RunAttemptID"
+    }
+    func validate(account:String,original:ShopComparisonJournal.Record?=nil)throws {
+        guard actor==account || walletActor==account,NativeWire.matches(jobID,"^ai_[a-f0-9]{24}$"),workflow=="search_comparison",
+              contextClasses==["public_catalog"],allowedActions==["draft_comparison"],permissionGranted,estimateUnits==1,
+              ["permission_granted","running","failed","review_required","applied_draft","rejected","cancelled"].contains(status),
+              applied==(status=="applied_draft"),rejected==(status=="rejected"),cancelled==(status=="cancelled") else{throw ShopError.security}
+        if let original {guard original.account==account,original.jobID==nil || original.jobID==jobID,original.contextSummary==contextSummary else{throw ShopError.security}}
+    }
+}
+struct ShopAgentJobsResponse:Decodable {let jobs:[ShopAgentJob];let Limit:Int}
+struct ShopAgentLookupResponse:Decodable {let Actor:String;let IdempotencyKey:String;let QueryOnly:Bool;let Job:ShopAgentJob}
+struct AgentComparisonPresentation:Identifiable {
+    let id:String;let query:String;let contextSummary:String;let products:[Product]
+    let processingUnits:Int64=1
+    // This proposal grants no spending authority, budget or validity interval.
+}
+
 struct Product: Codable, Identifiable {
     let productID: String
     let storeID: String
@@ -52,7 +100,7 @@ struct Variant: Codable, Identifiable {
     let priceYNXT: Int64
     let inventory: Int
     var reserved: Int = 0
-    var available: Int {max(0,inventory-reserved)}
+    var available: Int {guard inventory>=0,reserved>=0,reserved<=inventory else{return 0};return inventory-reserved}
     var id: String { variantID }
 
     init(from decoder:Decoder)throws {let c=try decoder.container(keyedBy:CodingKeys.self);variantID=try c.decode(String.self,forKey:.variantID);name=try c.decode(String.self,forKey:.name);priceYNXT=try c.decode(Int64.self,forKey:.priceYNXT);inventory=try c.decode(Int.self,forKey:.inventory);reserved=try c.decodeIfPresent(Int.self,forKey:.reserved) ?? 0}

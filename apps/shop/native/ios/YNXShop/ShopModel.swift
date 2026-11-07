@@ -5,6 +5,7 @@ import SwiftUI
     @Published var products:[Product]=[]
     @Published var cart:[CartItem]=[]
     @Published var orders:[Order]=[]
+    @Published private(set) var checkoutResult:Order?
     @Published var state="loading"
     @Published var search=""
     @Published var selected:Product?
@@ -30,6 +31,16 @@ import SwiftUI
     private var originalOrderSignInDispatched=false
     let api:APIClient,queue:OfflineQueue,invoiceHandoffs:InvoiceHandoffJournal,journey:AppleBuyerJourney
     let nativeInvoices:NativeInvoicePreparationJournal
+    let comparisonJournal:ShopComparisonJournal
+    @Published var agentWorkspaceVisible=false
+    @Published var agentPresentation:AgentComparisonPresentation?
+    @Published private(set) var agentJob:ShopAgentJob?
+    @Published private(set) var agentJobs:[ShopAgentJob]=[]
+    @Published private(set) var agentPhase="proposal"
+    @Published private(set) var agentBusy=false
+    private var agentRevision=0
+    private var agentActiveKey:String?
+
     private var presentedSession:ShopSession?
     private var operationRevision=0
     private var ordersRefreshRevision=0
@@ -46,13 +57,13 @@ import SwiftUI
     private var handoffPresentationRevision=0
     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil;orderActionPresentation=nil}
     private func refreshCheckoutRecovery(){guard let current=api.currentSession,current==presentedSession else{checkoutRecoveryRequired=false;return};do{let draft=try journey.load(current.account);checkoutRecoveryRequired=draft.checkoutKey != nil || draft.checkoutPhase != nil}catch{checkoutRecoveryRequired=true}}
-    init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil,localDataInitiallyLocked:Bool?=nil){self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();localDataLocked=localDataInitiallyLocked ?? (journey==nil);if !localDataLocked{do{cart=try self.journey.guest()}catch{localDataLocked=true}};self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
-    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
+    init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil,comparisonJournal:ShopComparisonJournal?=nil,localDataInitiallyLocked:Bool?=nil){self.comparisonJournal=comparisonJournal ?? ShopComparisonJournal();self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();localDataLocked=localDataInitiallyLocked ?? (journey==nil);if !localDataLocked{do{cart=try self.journey.guest()}catch{localDataLocked=true}};self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
+    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};clearAgentPresentation();let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];checkoutResult=nil;selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
     func sceneActive(){reconcileIdentity();refreshCheckoutRecovery();Task{await resumeOriginalOrder();await resumeNativeInvoiceReferences()}}
     func setLanguage(_ value:String){appLanguage=ShopLanguage.choose(value,in:.standard,key:"app-language")}
     func setAILanguage(_ value:String){aiLanguage=ShopLanguage.choose(value,in:.standard,key:"ai-language")}
     private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
-    func signOut(){localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
+    func signOut(){clearAgentPresentation();localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];checkoutResult=nil;selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async {
         catalogRefreshRevision+=1
         let refresh=catalogRefreshRevision,operation=operationRevision,query=search
@@ -180,7 +191,7 @@ import SwiftUI
                 let now=try self.journey.load(session.account)
                 guard !now.dirty,now.cartIntent==nil,now.revision==cartRevision,now.items.count==draft.items.count,zip(now.items,draft.items).allSatisfy({$0.productID==$1.productID && $0.variantID==$1.variantID && $0.quantity==$1.quantity}) else{throw ShopError.contextChanged}
             }
-            mutationBusy=true
+            mutationBusy=true;checkoutResult=nil
             Task{
                 defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}}
                 do{
@@ -193,12 +204,12 @@ import SwiftUI
                     let result=try await api.raw("orders",json:input,beforeDispatch:{try current();try self.journey.checkoutDispatch(session.account,item:item)})
                     try check();let order=try AppleBuyerReceipt.decode(result,account:session.account)
                     try journey.checkoutConfirmed(session.account,item:item,order:order);try queue.confirmed(item)
-                    cart=try journey.load(session.account).items;await loadOrders()
+                    cart=try journey.load(session.account).items;checkoutResult=order;await loadOrders()
                 }catch{failure(error)}
             }
         }catch{failure(error)}
     }
-    func recoverCheckout(){guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,let item=try queue.load(account:account).first(where:{$0.path=="orders"}),let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let key=body["IdempotencyKey"] as? String else{throw ShopError.unresolvedMutation};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key]);try check();let order=try AppleBuyerReceipt.decode(result,account:account);try journey.checkoutConfirmed(account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(account).items;await loadOrders()}catch{failure(error)}}}
+    func recoverCheckout(){guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,let item=try queue.load(account:account).first(where:{$0.path=="orders"}),let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let key=body["IdempotencyKey"] as? String else{throw ShopError.unresolvedMutation};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key]);try check();let order=try AppleBuyerReceipt.decode(result,account:account);try journey.checkoutConfirmed(account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(account).items;checkoutResult=order;await loadOrders()}catch{failure(error)}}}
     func beginOrderAction(_ order:Order,_ action:String,title:String){
         guard signedIn,!mutationBusy,let session=api.currentSession else{return}
         do{_ = try api.capture();try AppleBuyerReceipt.validate(order,account:session.account);guard BuyerOrderActionInput.allowed(order.status,action) else{throw ShopError.invalidResponse};cancelInvoicePresentation();orderActionPresentation=OrderActionPresentation(order:order,action:action,title:title,session:session,revision:operationRevision)}catch{failure(error)}
@@ -257,6 +268,117 @@ import SwiftUI
     func loadProfile(){guard signedIn else{return};Task{do{let check=try api.capture();let value=try await api.raw("profile",method:"GET",json:[:]);try check();guard let profile=value["profile"] as? [String:Any] else{throw ShopError.invalidResponse};let address=(profile["Addresses"] as? [[String:Any]])?.first ?? [:];profileName=profile["DisplayName"] as? String ?? "";profileRecipient=address["Recipient"] as? String ?? "";profileAddress=address["Line1"] as? String ?? "";profileCity=address["City"] as? String ?? "";profileCountry=address["Country"] as? String ?? ""}catch{failure(error)}}}
     func saveProfile(){guard signedIn,!mutationBusy else{return};let input:[String:Any]=["DisplayName":profileName,"Addresses":[["Recipient":profileRecipient,"Line1":profileAddress,"City":profileCity,"Country":profileCountry]]];mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();_ = try await api.raw("profile",method:"PUT",json:input);try check();state="profile_saved"}catch{failure(error)}}}
     func exportPrivacyData(){guard signedIn else{signIn();return};Task{do{let check=try api.capture();let data=try await api.data("privacy/export");try check();let url=FileManager.default.temporaryDirectory.appendingPathComponent("ynx-shop-data-\(UUID().uuidString).json");try data.write(to:url,options:.atomic);try FileManager.default.setAttributes([.posixPermissions:0o600],ofItemAtPath:url.path);privacyExportURL=url;state="privacy_export_ready"}catch{failure(error)}}}
-    func deletePrivacyData(_ confirmation:String){guard signedIn else{signIn();return};guard confirmation=="DELETE_MY_SHOP_DATA" else{state="privacy_exact_required";return};guard !mutationBusy else{state="queued_offline";return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,try !queue.hasPending(account:account),try !invoiceHandoffs.hasPending(account:account),try nativeInvoices.records(account).isEmpty,try journey.deletionPermitted(account) else{throw ShopError.unresolvedMutation};_ = try await api.raw("privacy/delete",json:["confirmation":confirmation]);try check();try journey.deletedDraft(account);clearProfilePresentation();cart=[];orders=[];if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;privacyRevision+=1;state="privacy_deleted"}catch{if let error=error as? ShopError,error == .contextChanged || error == .signedOut{failure(error)}else{state="privacy_delete_failed"}}}}
-    func runAI(workflow:String,summary:String){guard signedIn else{signIn();return};Task{do{let check=try api.capture();let job=try await api.raw("ai/jobs",json:["Workflow":workflow,"ContextClasses":["public_catalog"],"ContextSummary":"\(summary); outputLanguage=\(aiLanguage)","EstimateUnits":1,"PermissionGranted":true,"IdempotencyKey":UUID().uuidString]);try check();guard let id=job["ID"] as? String else{throw ShopError.invalidResponse};let result=try await api.raw("ai/jobs/\(id)/run",json:[:]);try check();state=(result["Result"] as? String) ?? "unavailable"}catch{failure(error)}}}
+    func deletePrivacyData(_ confirmation:String){guard signedIn else{signIn();return};guard confirmation=="DELETE_MY_SHOP_DATA" else{state="privacy_exact_required";return};guard !mutationBusy else{state="queued_offline";return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,try !queue.hasPending(account:account),try !invoiceHandoffs.hasPending(account:account),try nativeInvoices.records(account).isEmpty,try comparisonJournal.active(account)==nil,try journey.deletionPermitted(account) else{throw ShopError.unresolvedMutation};_ = try await api.raw("privacy/delete",json:["confirmation":confirmation]);try check();try comparisonJournal.redactCompleted(account);try journey.deletedDraft(account);clearProfilePresentation();cart=[];orders=[];checkoutResult=nil;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;privacyRevision+=1;state="privacy_deleted"}catch{if let error=error as? ShopError,error == .contextChanged || error == .signedOut{failure(error)}else{state="privacy_delete_failed"}}}}
+    // An AI comparison is a disclosure proposal first. It is never a Task Grant,
+    // spending allowance, order, or payment approval.
+    func runAI(workflow:String,summary:String){guard workflow=="search_comparison" else{state="unavailable";return};prepareComparison()}
+    func prepareComparison(ids:[String]=[]) {
+        guard !agentBusy else{return}
+        // An unresolved original owns its disclosure context until reconciled.
+        // Reopening comparison must never put a new selection around an old job.
+        if let account=api.currentSession?.account {
+            do {if let original=try comparisonJournal.active(account) {
+                agentPresentation=original.phase=="prepared" ? AgentComparisonPresentation(id:original.key,query:"",contextSummary:original.contextSummary,products:[]):nil
+                publishComparison(original);agentWorkspaceVisible=true;return
+            }} catch {failure(error);return}
+        }
+        let selected=ids.isEmpty ? Array(products.prefix(3)):products.filter{ids.contains($0.productID)}
+        if selected.isEmpty && ids.isEmpty {
+            agentRevision+=1;agentActiveKey=nil;agentJob=nil
+            agentPresentation=AgentComparisonPresentation(id:UUID().uuidString,query:search,contextSummary:"",products:[])
+            agentPhase="proposal";agentWorkspaceVisible=true;return
+        }
+        guard !selected.isEmpty,selected.count<=3,Set(selected.map(\.productID)).count==selected.count,ids.isEmpty || Set(ids)==Set(selected.map(\.productID)) else{state="empty_catalog";return}
+        var context="Public catalog comparison; outputLanguage="+aiLanguage+"\n"
+        for product in selected {
+            context+="product="+product.productID+"; title="+product.name+"\n"
+            for variant in product.variants.prefix(8) {context+="sku="+variant.variantID+"; priceYNXT="+String(variant.priceYNXT)+"; available="+String(variant.available)+"\n"}
+        }
+        guard context.utf8.count<=2000 else{state="unavailable";return}
+        agentRevision+=1;agentActiveKey=nil;agentJob=nil
+        agentPresentation=AgentComparisonPresentation(id:UUID().uuidString,query:search,contextSummary:context,products:selected)
+        agentPhase="proposal";agentWorkspaceVisible=true
+    }
+    private func clearAgentPresentation(){agentWorkspaceVisible=false;agentRevision+=1;agentBusy=false;agentActiveKey=nil;agentPresentation=nil;agentJob=nil;agentJobs=[];agentPhase="proposal"}
+    private func comparisonRecord()throws->ShopComparisonJournal.Record {
+        guard let account=api.currentSession?.account else{throw ShopError.signedOut}
+        if let key=agentActiveKey,let record=try comparisonJournal.records(account)[key]{return record}
+        guard let original=try comparisonJournal.active(account) else{throw ShopError.unavailable};agentActiveKey=original.key;return original
+    }
+    private func publishComparison(_ record:ShopComparisonJournal.Record){agentActiveKey=record.key;agentJob=record.job;agentPhase=record.phase;if let job=record.job{agentJobs.removeAll{$0.jobID==job.jobID};agentJobs.insert(job,at:0)}}
+    func authorizeComparison(){
+        guard !agentBusy,let proposal=agentPresentation,signedIn,!localDataLocked else{state="wallet_sign_in";return}
+        agentBusy=true;let generation=agentRevision
+        Task{defer{if generation==agentRevision{agentBusy=false}};do{
+            let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
+            guard !proposal.contextSummary.isEmpty else{throw ShopError.security}
+            let original=try comparisonJournal.prepare(account:account,summary:proposal.contextSummary);agentActiveKey=original.key
+            guard original.phase=="prepared" else{publishComparison(original);throw ShopError.unresolvedMutation}
+            let input=try comparisonJournal.input(original)
+            let value=try await api.raw("ai/jobs",json:input,beforeDispatch:{try check();guard generation==self.agentRevision else{throw ShopError.contextChanged};try self.comparisonJournal.dispatch(original,phase:"creation_unknown")})
+            try check();let job=try JSONDecoder().decode(ShopAgentJob.self,from:CanonicalJSON.data(value));let record=try comparisonJournal.observe(original,job:job)
+            guard generation==agentRevision else{return};publishComparison(record)
+        }catch{guard generation==agentRevision else{return};if let record=try? comparisonRecord(){publishComparison(record)};failure(error)}}
+    }
+    func selectComparisonJob(_ job:ShopAgentJob){
+        do{guard let account=api.currentSession?.account else{throw ShopError.signedOut};try job.validate(account:account)
+            agentRevision+=1;agentPresentation=nil;agentJob=job
+            if let record=try comparisonJournal.records(account).values.first(where:{$0.jobID==job.jobID}){publishComparison(record)}
+            else{agentActiveKey=nil;agentPhase="history_read_only"}
+        }catch{failure(error)}
+    }
+    func discardPreparedComparison(){
+        guard !agentBusy,signedIn else{return}
+        do{let original=try comparisonRecord();let record=try comparisonJournal.discardPrepared(original);agentPresentation=nil;publishComparison(record)}catch{failure(error)}
+    }
+    func runComparison(){
+        guard !agentBusy,signedIn else{return};agentBusy=true;let generation=agentRevision
+        Task{defer{if generation==agentRevision{agentBusy=false}};do{
+            let check=try api.capture();let original=try comparisonRecord();guard original.phase=="permission_granted",let id=original.jobID else{throw ShopError.unresolvedMutation}
+            let value=try await api.raw("ai/jobs/"+id+"/run",json:[:],beforeDispatch:{try check();guard generation==self.agentRevision else{throw ShopError.contextChanged};try self.comparisonJournal.dispatch(original,phase:"run_unknown")})
+            try check();let job=try JSONDecoder().decode(ShopAgentJob.self,from:CanonicalJSON.data(value));let record=try comparisonJournal.observe(original,job:job)
+            guard generation==agentRevision else{return};publishComparison(record)
+        }catch{guard generation==agentRevision else{return};if let record=try? comparisonRecord(){publishComparison(record)};failure(error)}}
+    }
+    func refreshComparison(){
+        guard !agentBusy,signedIn else{return};agentBusy=true;let generation=agentRevision
+        Task{defer{if generation==agentRevision{agentBusy=false}};do{
+            let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
+            if let original=try comparisonJournal.active(account) {
+                let job:ShopAgentJob
+                if let id=original.jobID{job=try await api.request("ai/jobs/"+id)}
+                else {
+                    let value=try await api.raw("ai/jobs/intent-lookup",json:comparisonJournal.input(original))
+                    let lookup=try JSONDecoder().decode(ShopAgentLookupResponse.self,from:CanonicalJSON.data(value))
+                    guard lookup.Actor==account,lookup.IdempotencyKey==original.key,lookup.QueryOnly else{throw ShopError.security};job=lookup.Job
+                }
+                try check();let record=try comparisonJournal.observe(original,job:job);guard generation==agentRevision else{return};publishComparison(record)
+            }
+            let response:ShopAgentJobsResponse=try await api.request("ai/jobs");try check();guard response.Limit==50,response.jobs.count<=50 else{throw ShopError.security}
+            var jobs:[ShopAgentJob]=[]
+            for job in response.jobs where job.workflow=="search_comparison" && job.contextClasses==["public_catalog"]{try job.validate(account:account);jobs.append(job)}
+            guard generation==agentRevision else{return};agentJobs=jobs
+        }catch{guard generation==agentRevision else{return};if let record=try? comparisonRecord(){publishComparison(record)};failure(error)}}
+    }
+    func decideComparison(apply:Bool){
+        guard !agentBusy,signedIn else{return};agentBusy=true;let generation=agentRevision
+        Task{defer{if generation==agentRevision{agentBusy=false}};do{
+            let check=try api.capture();let original=try comparisonRecord();guard original.phase=="review_required",let id=original.jobID else{throw ShopError.unresolvedMutation};let choice=apply ? "apply":"reject"
+            let value=try await api.raw("ai/jobs/"+id+"/decision",json:["Decision":choice],beforeDispatch:{try check();guard generation==self.agentRevision else{throw ShopError.contextChanged};try self.comparisonJournal.dispatch(original,phase:"decision_unknown",action:choice)})
+            try check();let job=try JSONDecoder().decode(ShopAgentJob.self,from:CanonicalJSON.data(value));let record=try comparisonJournal.observe(original,job:job)
+            guard generation==agentRevision else{return};publishComparison(record)
+        }catch{guard generation==agentRevision else{return};if let record=try? comparisonRecord(){publishComparison(record)};failure(error)}}
+    }
+    func cancelComparison(){
+        guard signedIn else{return}
+        // Cancellation can race an in-flight provider call, but cannot erase its
+        // original reference or claim an already executed effect was undone.
+        agentRevision+=1;let generation=agentRevision;agentBusy=true
+        Task{defer{if generation==agentRevision{agentBusy=false}};do{
+            let check=try api.capture();let original=try comparisonRecord();guard let id=original.jobID else{throw ShopError.unresolvedMutation}
+            let value=try await api.raw("ai/jobs/"+id+"/cancel",json:[:],beforeDispatch:{try check();guard generation==self.agentRevision else{throw ShopError.contextChanged};try self.comparisonJournal.dispatch(original,phase:"cancel_unknown")})
+            try check();let job=try JSONDecoder().decode(ShopAgentJob.self,from:CanonicalJSON.data(value));let record=try comparisonJournal.observe(original,job:job)
+            guard generation==agentRevision else{return};publishComparison(record)
+        }catch{guard generation==agentRevision else{return};if let record=try? comparisonRecord(){publishComparison(record)};failure(error)}}
+    }
 }

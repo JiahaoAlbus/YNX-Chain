@@ -13,6 +13,14 @@ func buyerWalletWire(value any, verified *verifiedBusinessRequest) any {
 	if verified == nil || verified.walletAccount == "" || verified.principal.Role != "buyer" {
 		return value
 	}
+	// Only an actual typed owned job receives this response association. An AI
+	// result string or an arbitrary caller map cannot manufacture a Wallet hint.
+	if job, ok := value.(AIJob); ok && (job.Actor == verified.principal.Account || job.Actor == verified.walletAccount) {
+		value = struct {
+			AIJob
+			WalletActor string
+		}{job, verified.walletAccount}
+	}
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return value

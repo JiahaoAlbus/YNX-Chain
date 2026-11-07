@@ -369,7 +369,7 @@ func (s *Store) AIJob(actor, id string) (AIJob, error) {
 	if !ok || j.Actor != actor {
 		return AIJob{}, ErrNotFound
 	}
-	return j, nil
+	return detachedAIJob(j), nil
 }
 func (s *Store) DeleteAIJob(actor, id string) error {
 	s.mu.Lock()
