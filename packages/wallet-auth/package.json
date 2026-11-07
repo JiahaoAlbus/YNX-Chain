@@ -825,7 +825,9 @@
     "native/original-wallet-mobile-qualified-source-contract.mjs",
     "native/original-wallet-mobile-qualified-source-contract.d.mts",
     "native/wallet-mobile-qualified-source-v1.schema.json",
-    "docs/WALLET_MOBILE_QUALIFIED_SOURCE_V1.md"
+    "docs/WALLET_MOBILE_QUALIFIED_SOURCE_V1.md",
+    "native/social-f06-directory-readonly-data.mjs",
+    "native/social-f06-directory-readonly-data.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
