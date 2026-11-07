@@ -21,6 +21,8 @@ const digest=s=>text(s,/^[0-9a-f]{64}$/,64);
 const identity=s=>text(s,/^[A-Za-z][A-Za-z0-9.-]{2,131}$/,132);
 const opaque=s=>text(s,/^[A-Za-z0-9._:-]{8,128}$/,128);
 function url(s,origin=false){text(s,/^(https|app|[a-z][a-z0-9+.-]*):\/\/[^\s#?]+$/,2048);let u;try{u=new URL(s);}catch{bad();}if(['http:','file:','javascript:','data:'].includes(u.protocol)||u.username||u.password||(origin&&u.protocol==='https:'?u.origin!==s:u.toString()!==s))bad();return s;}
+// Pure existing V4 origin grammar reuse; no new wire or authority.
+export function inspectProductSessionHTTPProofV4OriginDATA(value){return url(value,true);}
 function time(s){text(s,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,24);if(!Number.isFinite(Date.parse(s))||new Date(s).toISOString()!==s)bad();return s;}
 function bytes(v,cap){if(!(v instanceof Uint8Array)||(typeof SharedArrayBuffer!=='undefined'&&v.buffer instanceof SharedArrayBuffer)||!v.length||v.length>cap)bad();return Uint8Array.from(v);}
 function b64(s,cap){text(s,/^[A-Za-z0-9_-]+$/,Math.ceil(cap*4/3));const b=decodeBase64url(s);if(!b.length||b.length>cap||encodeBase64url(b)!==s)bad();return b;}

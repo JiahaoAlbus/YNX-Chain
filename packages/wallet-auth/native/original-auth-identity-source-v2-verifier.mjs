@@ -1,3 +1,4 @@
+import{IDE_FINITE_GET_TARGET_SELECTION_KEY as IGET_KEY,assertOriginalIDEFiniteGETTargetProfileBindingDATA}from'./original-ide-finite-get-target-v1-data.mjs';
 import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
 import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'./original-network-current-publisher-source-contract.mjs';
 import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'./original-network-resource-pending-source-contract.mjs';
@@ -279,6 +280,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
  const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
  const {subjectKeyVersion,agentPublic,effectExpiresAtMs}=originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals);
+ if(Object.hasOwn(p.selection,IGET_KEY)){if(!projectAuthority)fail('IDE_GET_TARGET_DEDICATED_PURPOSE_REQUIRED');assertOriginalIDEFiniteGETTargetProfileBindingDATA(p.selection[IGET_KEY],p);}
  return Object.freeze({root,enrollment:e,profile:p,executionHeight:registrations.root.executionHeight,credentialIssuedHeights:Object.freeze({enrollment:enrollmentBinding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion,...([WM_PURPOSE,NR_PURPOSE,NPR_PURPOSE].includes(contract.purpose)?{effectExpiresAtMs}:{}),...(contract.purpose===AI_PURPOSE&&agentPublic?{agentPublic}:{}),dataOnly:true,nativeAdmission:false});
 }
 function verifyPublicationAuthority(s,p,e,root,registrations,at){

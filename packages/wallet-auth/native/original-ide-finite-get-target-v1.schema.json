@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Private Source V2 signed profile optional cap shape, runtime uint64/origin/window/coherence checks required. Not Target grant.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "parentSourceId",
+    "projectSourceId",
+    "deviceSourceId",
+    "account",
+    "deviceId",
+    "sessionBinding",
+    "registrationDigest",
+    "catalogProjectId",
+    "registeredCloudFullRef",
+    "resourceApprovalRef",
+    "targetOrigin",
+    "serverName",
+    "port",
+    "spkiSHA256",
+    "productOrigin",
+    "requiredScopes",
+    "permittedSelectors",
+    "publicCredentialRef",
+    "localSAN",
+    "peerSAN",
+    "rootCertificateSHA256",
+    "clientCertificateSHA256",
+    "notBeforeMs",
+    "expiresMs",
+    "rootEpoch",
+    "rootUntilMs",
+    "credentialEpoch",
+    "credentialUntilMs"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "parentSourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectSourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deviceSourceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "account": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deviceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sessionBinding": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "registrationDigest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "catalogProjectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "registeredCloudFullRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "realm",
+        "tenant",
+        "kind",
+        "id",
+        "rev"
+      ],
+      "properties": {
+        "realm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tenant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rev": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,19})$"
+        }
+      }
+    },
+    "resourceApprovalRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "targetOrigin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "serverName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "spkiSHA256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "productOrigin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requiredScopes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "permittedSelectors": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "deployment",
+          "logs",
+          "runtime",
+          "usage",
+          "usage.records",
+          "billing",
+          "billing.native-intent"
+        ]
+      }
+    },
+    "publicCredentialRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "localSAN": {
+      "type": "string",
+      "minLength": 1
+    },
+    "peerSAN": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rootCertificateSHA256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "clientCertificateSHA256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "notBeforeMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "expiresMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "rootEpoch": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "rootUntilMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "credentialEpoch": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]{0,19})$"
+    },
+    "credentialUntilMs": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    }
+  }
+}

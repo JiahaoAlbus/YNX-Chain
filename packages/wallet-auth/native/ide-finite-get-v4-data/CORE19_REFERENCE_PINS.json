@@ -1,0 +1,117 @@
+{
+  "sourceCommit": "e12036079d28adef2559733739a4743e258ba4e5",
+  "goVersion": "1.26.10",
+  "files": [
+    {
+      "path": "internal/ynxbatch/artifact_publication.go",
+      "bytes": 12934,
+      "sha256": "d47936adacc71c093bce15f6801553f849de728edf1af1f228d2d3a0cc85e962"
+    },
+    {
+      "path": "internal/ynxbatch/auth_source_statement_v2.go",
+      "bytes": 3268,
+      "sha256": "ae2d184860589c219a39e9bbc1ecccbb899d1a4f0c53cbd822198dc229283517"
+    },
+    {
+      "path": "internal/ynxbatch/certificate_cache.go",
+      "bytes": 3033,
+      "sha256": "b24c173e8bcac5b179e73064893832a6da561a165cf4705874057b805eb6ef90"
+    },
+    {
+      "path": "internal/ynxbatch/codec.go",
+      "bytes": 10489,
+      "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+    },
+    {
+      "path": "internal/ynxbatch/deployment_manifest_v2.go",
+      "bytes": 13808,
+      "sha256": "29f1169e6fbf4917d6ce0514c599a45cdaa12f98fa2e7121b219e3e294f2d435"
+    },
+    {
+      "path": "internal/ynxbatch/key_material.go",
+      "bytes": 6348,
+      "sha256": "8e110786013ba79d3cb0a834fe7c7faa3581af2c6bc218eb451f2e5250a756dd"
+    },
+    {
+      "path": "internal/ynxbatch/parallel_provider.go",
+      "bytes": 2970,
+      "sha256": "31ee65025f33a6dc752c9ba9d24220753928a72466e2db5c22d39c6c69b29bfe"
+    },
+    {
+      "path": "internal/ynxbatch/product_device_v4.go",
+      "bytes": 17397,
+      "sha256": "2031531734f67a1a57dd1fa59fe75ef877a3448019d213057d6b9de3f6e567c8"
+    },
+    {
+      "path": "internal/ynxbatch/product_pair_pending_original_query.go",
+      "bytes": 14700,
+      "sha256": "efc6c906258a52ab42e6047cb00004125edf9764f0dc90c43fd9a74caee7024c"
+    },
+    {
+      "path": "internal/ynxbatch/product_session_http.go",
+      "bytes": 16643,
+      "sha256": "bb407c3706238dd8137e2d0da2a1241bf10abfa8e4615256387ca4d053d68ac3"
+    },
+    {
+      "path": "internal/ynxbatch/product_session_http_v5.go",
+      "bytes": 8450,
+      "sha256": "2ea6c8aa5ff45d2eb844b0cc97cca0ed394ac31ab40ad810be47ef1d11218e7b"
+    },
+    {
+      "path": "internal/ynxbatch/project_control.go",
+      "bytes": 19332,
+      "sha256": "579e20dcff1c01db86c9b72dd254af390fff19f8832d7bf27b209831ff7c26f3"
+    },
+    {
+      "path": "internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    {
+      "path": "internal/ynxbatch/publisher_registration.go",
+      "bytes": 19245,
+      "sha256": "48b95eb168de221472c87347aff90776e7ac8f1ff0711ebbca6243c19a9c0a35"
+    },
+    {
+      "path": "internal/ynxbatch/resource_consent.go",
+      "bytes": 16037,
+      "sha256": "7fb568686d1feec2af9d20d1beb0cb68d11114625ec1149035e636eea16d8a70"
+    },
+    {
+      "path": "internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    {
+      "path": "internal/ynxbatch/tree.go",
+      "bytes": 3853,
+      "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+    },
+    {
+      "path": "internal/ynxbatch/verify.go",
+      "bytes": 10590,
+      "sha256": "677ee7da9ec73f3442b545e81b05572667aa2ff81aa7b2b0393e531bc01a4159"
+    },
+    {
+      "path": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 4913,
+      "sha256": "2892248959ac73f0aaf16197ba18c78594ad956a2e9b9617404c2ebb50818858"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 39759,
+      "sha256": "cfa98a228afc945aa54730a821b80cfc31cb1b8c0aa57aa0bd1e7cf3827d23ad"
+    },
+    {
+      "path": "third_party/cometbft/go.mod",
+      "bytes": 6552,
+      "sha256": "265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59"
+    }
+  ],
+  "meaning": "actual original Core19 production helper files, not a second SDK math/wire implementation; compiled only new Go DATA tests in isolated composition"
+}
