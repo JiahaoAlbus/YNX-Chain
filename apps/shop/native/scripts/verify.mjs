@@ -70,7 +70,7 @@ for (const key of privacyKeys) assert.match(arabic[key], /\p{Script=Arabic}/u, `
 
 const catalog = JSON.parse(await readFile(new URL('ios/YNXShop/Localizable.xcstrings', root), 'utf8'));
 const iosLanguages = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'id'];
-for (const key of [...privacyKeys,...orderActionKeys]) {
+for (const key of [...privacyKeys,...orderActionKeys,"local_data_locked","unlock_local_data"]) {
   const entry = catalog.strings[key];
   assert.ok(entry, `iOS catalog missing ${key}`);
   for (const language of iosLanguages) {

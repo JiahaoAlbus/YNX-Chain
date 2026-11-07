@@ -28,6 +28,8 @@ struct ContentView:View {
         }.padding(24).frame(minWidth:300)
     }.sheet(item:$model.invoicePresentation){presentation in VStack(alignment:.leading,spacing:18){Text("order_review").font(.title2);Text(presentation.review.original.orderID).font(.caption.monospaced());Text("\(presentation.review.original.totalYNXT.formatted()) YNXT").font(.title);Text(presentation.review.invoiceID ?? "").font(.caption.monospaced());Text("payment_boundary");Button("pay_handoff"){model.openReviewedInvoice()}.buttonStyle(.borderedProminent);Button("close"){model.cancelInvoicePresentation()}}.padding(24).frame(minWidth:300)}.onChange(of:selectedTab){model.cancelInvoicePresentation()}.onChange(of:scenePhase){if scenePhase != .active{model.cancelInvoicePresentation();if scenePhase == .background{model.suspendOriginalOrderLink()}}else{model.sceneActive()}}.font(.system(size:bodySize*textScale)).tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){VStack(spacing:0){
         HStack(spacing:10){Image("YNXLogo").resizable().scaledToFit().frame(width:45.6,height:24).accessibilityLabel("YNX");Text("app_name").font(.system(size:bodySize*textScale,weight:.semibold)).fixedSize(horizontal:false,vertical:true);Spacer(minLength:8);Menu{Link("seller_console",destination:URL(string:"https://shop.ynxweb4.com/seller/")!);Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}label:{Label("commerce_services",systemImage:"square.grid.2x2").labelStyle(.iconOnly).frame(minWidth:44,minHeight:44)}.accessibilityLabel("commerce_services")}.padding(.horizontal,16).padding(.vertical,8).background(.regularMaterial)
+        if model.nativeReturnPending{Button("restore_pending"){model.signIn()}.font(.caption).padding(6)}
+        if model.localDataLocked{HStack{Text("local_data_locked");Button("unlock_local_data"){model.unlockLocalData()}}.font(.caption).padding(6)}
         if !model.state.isEmpty{Text(LocalizedStringKey(model.state)).font(.caption).frame(maxWidth:.infinity).padding(6).background(.thinMaterial).accessibilityLabel("accessibility_status")}
     }}}
 }
@@ -59,7 +61,7 @@ struct ProductImage:View {
     private var placeholder:some View{Rectangle().fill(Color.gray.opacity(0.08)).overlay{Image(systemName:"photo").font(.largeTitle).foregroundStyle(.secondary).accessibilityHidden(true)}}
 }
 struct ProductView:View {let product:Product;@EnvironmentObject var model:ShopModel
-    var body:some View{List{ProductImage(product:product,height:280).listRowInsets(EdgeInsets());Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT");Text("\(v.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(model.checkoutRecoveryRequired || v.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==v.variantID})?.quantity ?? 0)>=20)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
+    var body:some View{List{ProductImage(product:product,height:280).listRowInsets(EdgeInsets());Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT");Text("\(v.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(model.localDataLocked || model.checkoutRecoveryRequired || v.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==v.variantID})?.quantity ?? 0)>=20)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
 }
 struct CartView:View {@EnvironmentObject var model:ShopModel
     @State var recipient=""
@@ -67,8 +69,8 @@ struct CartView:View {@EnvironmentObject var model:ShopModel
     @State var city=""
     @State var country=""
     var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){item in CartItemView(item:item,revision:model.privacyRevision)}}
-        Section{if model.checkoutRecoveryRequired{Text("cart_checkout_recovery_required").font(.caption)};Button("cart_sync_button"){model.syncCart()}.disabled(model.mutationBusy || model.checkoutRecoveryRequired);Button("cart_recover_checkout"){model.recoverCheckout()}.buttonStyle(.borderedProminent).disabled(model.mutationBusy)}
-        Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty || model.mutationBusy || model.checkoutRecoveryRequired)}}.navigationTitle("nav_cart").shopInlineTitle()}
+        Section{if model.checkoutRecoveryRequired{Text("cart_checkout_recovery_required").font(.caption)};Button("cart_sync_button"){model.syncCart()}.disabled(!model.signedIn || model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired);Button("cart_recover_checkout"){model.recoverCheckout()}.buttonStyle(.borderedProminent).disabled(!model.signedIn || model.localDataLocked || model.mutationBusy)}
+        Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(!model.signedIn || model.localDataLocked || model.cart.isEmpty || model.mutationBusy || model.checkoutRecoveryRequired)}}.navigationTitle("nav_cart").shopInlineTitle()}
 }
 struct CartItemView:View {
     let item:CartItem
@@ -76,7 +78,7 @@ struct CartItemView:View {
     @EnvironmentObject var model:ShopModel
     private var product:Product?{let matches=model.products.filter{$0.productID==item.productID};return matches.count==1 ? matches[0]:nil}
     private var variant:Variant?{let matches=product?.variants.filter{$0.variantID==item.variantID} ?? [];return matches.count==1 ? matches[0]:nil}
-    var body:some View{VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).font(.headline);Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity) × \(variant?.name ?? item.variantID)")};Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}}.disabled(model.mutationBusy || model.checkoutRecoveryRequired).padding(.vertical,6)}
+    var body:some View{VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).font(.headline);Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity) × \(variant?.name ?? item.variantID)")};Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}}.disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired).padding(.vertical,6)}
 }
 struct OrdersView:View {
     @EnvironmentObject var model:ShopModel

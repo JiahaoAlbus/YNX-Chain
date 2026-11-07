@@ -388,6 +388,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/ShopModelCatalogRefreshChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-catalog-search-checks"
           "$RUNNER_TEMP/ynx-shop-catalog-search-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-catalog-search.log"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/LocalStorageStartupChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-locked-startup-checks"
+          "$RUNNER_TEMP/ynx-shop-locked-startup-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-locked-startup.log"
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-shop-macos-candidate
@@ -397,6 +400,7 @@ jobs:
             ${{ runner.temp }}/ynx-shop-macos-sdk-manifest.json
             ${{ runner.temp }}/ynx-shop-macos-candidate.sha256
             ${{ runner.temp }}/ynx-shop-macos-catalog-search.log
+            ${{ runner.temp }}/ynx-shop-macos-locked-startup.log
 
   ios-simulator:
     needs: language-regression

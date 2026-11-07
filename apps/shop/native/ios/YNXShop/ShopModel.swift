@@ -9,6 +9,7 @@ import SwiftUI
     @Published var search=""
     @Published var selected:Product?
     @Published var signedIn=false
+    @Published private(set) var localDataLocked:Bool
     @Published var privacyRevision=0
     @Published var privacyExportURL:URL?
     @Published var appLanguage=ShopLanguage.read(.standard,key:"app-language")
@@ -20,6 +21,9 @@ import SwiftUI
     @Published private(set) var originalOrderLoading=false
     private var originalOrderRevision=0
     private var originalLinkRestoring=true
+    private var pendingNativeReturnURL:URL?
+    private var nativeReturnBusy=false
+    var nativeReturnPending:Bool{pendingNativeReturnURL != nil}
     private var pendingOriginalOrderURL:URL?
     private var pendingOriginalOrderAfterSignIn:OriginalOrderLink?
     private var originalOrderSignInSuspended=false
@@ -42,13 +46,13 @@ import SwiftUI
     private var handoffPresentationRevision=0
     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil;orderActionPresentation=nil}
     private func refreshCheckoutRecovery(){guard let current=api.currentSession,current==presentedSession else{checkoutRecoveryRequired=false;return};do{let draft=try journey.load(current.account);checkoutRecoveryRequired=draft.checkoutKey != nil || draft.checkoutPhase != nil}catch{checkoutRecoveryRequired=true}}
-    init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil){self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();cart=(try? self.journey.guest()) ?? [];self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
+    init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil,localDataInitiallyLocked:Bool?=nil){self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();localDataLocked=localDataInitiallyLocked ?? (journey==nil);if !localDataLocked{do{cart=try self.journey.guest()}catch{localDataLocked=true}};self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
     private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
     func sceneActive(){reconcileIdentity();refreshCheckoutRecovery();Task{await resumeOriginalOrder();await resumeNativeInvoiceReferences()}}
     func setLanguage(_ value:String){appLanguage=ShopLanguage.choose(value,in:.standard,key:"app-language")}
     func setAILanguage(_ value:String){aiLanguage=ShopLanguage.choose(value,in:.standard,key:"ai-language")}
     private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
-    func signOut(){closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
+    func signOut(){localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async {
         catalogRefreshRevision+=1
         let refresh=catalogRefreshRevision,operation=operationRevision,query=search
@@ -90,13 +94,32 @@ import SwiftUI
             failure(error)
         }
     }
-    private func editCart(_ items:[CartItem])throws{let current=api.currentSession;guard current==presentedSession,signedIn == (current != nil) else{throw ShopError.contextChanged};if let current{try journey.edit(current.account,items:items)}else{try journey.editGuest(items)};cart=items}
+    func unlockLocalData(){
+        do {
+            let original:[CartItem]
+            if let current=api.currentSession{original=try journey.load(current.account).items}else{original=try journey.guest()}
+            cart=original;localDataLocked=false
+        }catch{localDataLocked=true;state="security_error"}
+    }
+    private func editCart(_ items:[CartItem])throws{guard !localDataLocked else{throw ShopError.security};let current=api.currentSession;guard current==presentedSession,signedIn == (current != nil) else{throw ShopError.contextChanged};if let current{try journey.edit(current.account,items:items)}else{try journey.editGuest(items)};cart=items}
     func add(_ product:Product,_ variant:Variant){guard !mutationBusy,variant.reserved>=0,variant.inventory>variant.reserved else{return};var next=cart;if let index=next.firstIndex(where:{$0.productID==product.productID && $0.variantID==variant.variantID}){guard next[index].quantity<20 else{return};next[index].quantity+=1}else{next.append(.init(productID:product.productID,variantID:variant.variantID,quantity:1))};do{try editCart(next)}catch{failure(error)}}
     func removeCart(_ item:CartItem,revision:Int?=nil){guard !mutationBusy,revision==nil || revision==privacyRevision else{return};do{try editCart(cart.filter{$0.productID != item.productID || $0.variantID != item.variantID})}catch{failure(error)}}
     func setCartQuantity(_ item:CartItem,quantity:Int,revision:Int){guard !mutationBusy,revision==privacyRevision,(1...20).contains(quantity),let index=cart.firstIndex(where:{$0.productID==item.productID && $0.variantID==item.variantID}),cart[index].quantity==item.quantity else{return};var next=cart;next[index].quantity=quantity;do{try editCart(next)}catch{failure(error)}}
     func syncCart(){guard signedIn,!mutationBusy,!checkoutRecoveryRequired else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let remote=try await api.raw("cart",method:"GET",json:[:]);try check();try journey.reconcileCart(remote,account:account);let draft=try journey.load(account);if draft.dirty {let pending=try journey.prepareCart(account);let body:[String:Any]=["Items":pending.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"ExpectedRevision":pending.expected,"IdempotencyKey":pending.key];let saved=try await api.raw("cart",method:"PUT",json:body);try check();try journey.reconcileCart(saved,account:account)};cart=try journey.load(account).items;state=""}catch{failure(error)}}}
-    func signIn(){originalOrderSignInDispatched=pendingOriginalOrderAfterSignIn != nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;Task{do{try await WalletAuth.begin(api:api)}catch{failure(error)}}}
-    func walletCallback(_ url:URL){if AppleBuyerJourney.wakeHint(url){Task{await resumeOriginalOrder()};return};if url.scheme=="ynxshop",url.host=="orders"{do{_ = try OriginalOrderLink.parse(url.absoluteString);if originalLinkRestoring{pendingOriginalOrderURL=url;return};try openOriginalOrderLink(url)}catch{state="security_error"};return};guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback" else{return};Task{do{try await WalletAuth.complete(url,api:api);reconcileIdentity();state=signedIn ? "wallet_active":"security_error";await loadOrders();await resumeOriginalOrder()}catch{failure(error)}}}
+    func signIn(){if localDataLocked{unlockLocalData();guard !localDataLocked else{return}};
+        if let original=pendingNativeReturnURL {
+            guard !nativeReturnBusy else{return};nativeReturnBusy=true
+            Task{defer{nativeReturnBusy=false};do{try await api.resumeNativeReturnByUser(original);guard pendingNativeReturnURL==original else{throw ShopError.contextChanged};pendingNativeReturnURL=nil;reconcileIdentity();state=signedIn ? "wallet_active":"security_error";await loadOrders();await resumeOriginalOrder()}catch{failure(error)}}
+            return
+        }
+        originalOrderSignInDispatched=pendingOriginalOrderAfterSignIn != nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;Task{do{try await WalletAuth.begin(api:api)}catch{failure(error)}}}
+    func walletCallback(_ url:URL){if AppleBuyerJourney.wakeHint(url){Task{await resumeOriginalOrder()};return};if url.scheme=="ynxshop",url.host=="orders"{do{_ = try OriginalOrderLink.parse(url.absoluteString);if originalLinkRestoring{pendingOriginalOrderURL=url;return};try openOriginalOrderLink(url)}catch{state="security_error"};return};guard url.scheme=="ynxshop",url.host=="wallet-auth",url.path=="/callback" else{return};
+        guard url.absoluteString.utf8.count<=16384 else{state="security_error";return}
+        if nativeReturnPending || api.nativeAccessLocked {
+            guard pendingNativeReturnURL==nil || pendingNativeReturnURL==url else{state="security_error";return}
+            pendingNativeReturnURL=url;state="wallet_sign_in";return
+        }
+        Task{do{try await WalletAuth.complete(url,api:api);reconcileIdentity();state=signedIn ? "wallet_active":"security_error";await loadOrders();await resumeOriginalOrder()}catch{failure(error)}}}
     func suspendOriginalOrderLink(){pendingOriginalOrderURL=nil;let pending=originalOrderSignInDispatched ? pendingOriginalOrderAfterSignIn:nil;closeOriginalOrderLink();pendingOriginalOrderAfterSignIn=pending;originalOrderSignInSuspended=pending != nil;originalOrderSignInDispatched=pending != nil}
     func originalOrderSheetDismissed(){if originalOrderSignInSuspended{originalOrderSignInSuspended=false;return};if originalOrderLink==nil{closeOriginalOrderLink()}}
     func closeOriginalOrderLink(){pendingOriginalOrderAfterSignIn=nil;originalOrderSignInSuspended=false;originalOrderSignInDispatched=false;originalOrderRevision+=1;originalOrderLink=nil;linkedOriginalOrder=nil;originalOrderLoading=false}

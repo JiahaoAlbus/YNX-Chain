@@ -165,12 +165,13 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
 @MainActor final class APIClient {
     let base:URL
     private let session:URLSession
-    private let authority:AppleNativeAuthority?
+    private var authority:AppleNativeAuthority?
+    private let authorityFactory:@MainActor ()throws->AppleNativeAuthority
 	private let nativePayNavigation:AppleOriginalNativePayNavigation?
 	let nativeInvoiceMode:Bool
     private var revision=0
     var onSessionChanged:(()->Void)?
-    init(base:URL=URL(string:"https://shop-api.ynxweb4.com/api")!,session:URLSession?=nil,authority:AppleNativeAuthority?=nil,nativeInvoiceMode:Bool=true,nativePayNavigation:AppleOriginalNativePayNavigation?=nil){self.nativeInvoiceMode=nativeInvoiceMode;self.nativePayNavigation=nativePayNavigation;self.base=base;self.session=session ?? URLSession(configuration:.ephemeral,delegate:ShopRedirectPolicy(),delegateQueue:nil);self.authority=authority ?? (try? AppleNativeSessionBridge());if let bridge=self.authority as? AppleNativeSessionBridge{bridge.changed={[weak self] in self?.onSessionChanged?()}}}
+    init(base:URL=URL(string:"https://shop-api.ynxweb4.com/api")!,session:URLSession?=nil,authority:AppleNativeAuthority?=nil,nativeInvoiceMode:Bool=true,nativePayNavigation:AppleOriginalNativePayNavigation?=nil,authorityFactory:@escaping @MainActor ()throws->AppleNativeAuthority={try AppleNativeSessionBridge()}){self.nativeInvoiceMode=nativeInvoiceMode;self.nativePayNavigation=nativePayNavigation;self.base=base;self.session=session ?? URLSession(configuration:.ephemeral,delegate:ShopRedirectPolicy(),delegateQueue:nil);self.authority=authority;self.authorityFactory=authorityFactory;if let bridge=self.authority as? AppleNativeSessionBridge{bridge.changed={[weak self] in self?.onSessionChanged?()}}}
     var currentSession:ShopSession?{authority?.current}
     func reviewInvoice(_ url:URL,expected:ShopSession)async throws {let check=try capture();guard currentSession==expected,let authority else{throw ShopError.contextChanged};try await authority.openInvoice(url,expected:expected);try check()}
     func openOriginalNativePay(_ operation:String)async throws {
@@ -179,7 +180,22 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     }
     func invalidate(){revision+=1}
     func restoreNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore()}
-    func connectNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore();if authority.current==nil{try await authority.connect()}}
+    var nativeAccessLocked:Bool{authority==nil}
+    private func openAuthorityForUserAction()throws->AppleNativeAuthority {
+        if let authority{return authority}
+        let opened=try authorityFactory();authority=opened
+        if let bridge=opened as? AppleNativeSessionBridge{bridge.changed={[weak self] in self?.onSessionChanged?()}}
+        return opened
+    }
+    func connectNative()async throws{
+        // Cold restore stays locked. Only explicit sign-in may start OS UI.
+        let authority=try openAuthorityForUserAction()
+        try await authority.restore();if authority.current==nil{try await authority.connect()}
+    }
+    func resumeNativeReturnByUser(_ url:URL)async throws {
+        // Resume the retained original callback, never create another connect request.
+        let epoch=revision;let authority=try openAuthorityForUserAction();try await authority.handleReturn(url);guard revision==epoch else{throw ShopError.contextChanged}
+    }
     func returnNative(_ url:URL)async throws{guard let authority else{throw ShopError.unavailable};try await authority.handleReturn(url)}
     func disconnectNative()throws{invalidate();try authority?.disconnect()}
     func capture(requireSession:Bool=true)throws->()throws->Void{
