@@ -1,0 +1,2 @@
+// PUBLIC shape only; no original parent, selector, mapping release or Source.
+export function publicIDECloudMappingDATA(){return{version:'YNX-IDE-CLOUD-PROJECT-LOOKUP/v1',account:'PUBLIC-account',catalogProjectId:'PUBLIC-project',registeredCloudFullRef:{realm:'PUBLIC-realm',tenant:'PUBLIC-tenant',kind:'PUBLIC-cloud-kind',id:'PUBLIC-cloud-id',rev:'0'},resourceApprovalRef:'PUBLIC-approval',projectRevision:'PUBLIC-project-revision',catalogRevision:'PUBLIC-catalog-revision',currentReference:'PUBLIC-current',issuedAtMs:1,expiresAtMs:2};}
