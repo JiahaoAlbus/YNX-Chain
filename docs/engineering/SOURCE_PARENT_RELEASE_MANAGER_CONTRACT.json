@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "contract": "SOURCE_PARENT_RELEASE_MANAGER_SPLIT_DATA/v1",
+  "releaseProfile": {
+    "kind": "YNX_SOURCE_PARENT_IMAGE_BUILD_PROFILE/v1",
+    "exact": [
+      "version",
+      "kind",
+      "images",
+      "nativeInfo"
+    ],
+    "imageRoles": [
+      "parentCreator",
+      "coreChild",
+      "nativeChild"
+    ],
+    "roleEachExact": [
+      "image",
+      "sourceCommit",
+      "sourceTree",
+      "record"
+    ],
+    "pinExact": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "fixedParent": "Contents/Helpers/ynx-network-helper",
+    "fixedNative": "Contents/Helpers/YNX Network Resource Host.app/Contents/MacOS/ynx-network-resource-host",
+    "fixedNativeInfo": "Contents/Helpers/YNX Network Resource Host.app/Contents/Info.plist",
+    "CoreRole": "same actual owned observer runtime artifact; not proof verifier CLI, .node or dylib",
+    "containsManagerHomeOrOptions": false
+  },
+  "P09ActualProfile": {
+    "namespace": "ynx::network::normalnative::qualified",
+    "declaration": "Outcome readOriginalNormalHostProfile(Profile&) noexcept",
+    "ProfileField": "current4launch::IndependentImages independentlyExpectedImages",
+    "IndependentImagesFields": [
+      "std::array<uint8_t,32> parentCreator",
+      "std::array<uint8_t,32> coreChild",
+      "std::array<uint8_t,32> nativeChild"
+    ],
+    "trustedBodyOwner": "Auth; SDK does not implement this qualification"
+  },
+  "managerCapture": {
+    "owner": "P09 ownednode.Manager; Go process-local only",
+    "homeOriginal": "Manager.observerHome() = Manager.directory/data",
+    "originalInputChecks": "observerArgumentsLocked -> validateObserverRecord/observerRuntimeBinding/rootUnchanged/private dirs/observerFile identities and SHA/context",
+    "SDKAdoptionTemplate": "apps/wallet-desktop/scripts/templates/source_parent_manager_capture.go.core",
+    "SDKPrivateType": "originalSourceParentManagerCaptureDATA (unexported Go ownednode type)",
+    "capture": "SAME actual Manager.captureOriginalSourceParentManagerLockedDATA(original process ctx, original Auth independent images), caller holds Manager.mu",
+    "recheck": "same capture.recheckSameManagerLockedDATA(original process ctx, SAME Manager, fresh Auth independent images), caller holds Manager.mu",
+    "ManagerIdentity": "same Go *Manager retained inside same process; never C++/JS/FD/RPC",
+    "crossManager": "pointer identity mismatch retires DATA capture before reading other Manager config even if options bytes equal",
+    "config": "copy actual observerArgumentsLocked output; no caller JSON or release-home constant",
+    "SourceCurrent": "actual Auth trusted current pre/post; DATA matching does not authenticate Root/Source",
+    "lifecycle": "P09 process/Manager context, normal disposal and Source cancellation remain unchanged; SDK DATA template owns no Native/Source handles",
+    "compileState": "template source only; P09 original owner must integrate/compile; SDK does not change P09 tree"
+  },
+  "CoreReceiver": {
+    "privateProfile": "pqOriginalSourceProfile{images [3]string}",
+    "order": [
+      "parentCreator",
+      "coreChild",
+      "nativeChild"
+    ],
+    "consumer": "originalPQObserverSourceBuildProfile; implementation receives independently authenticated readonly image resource via original Auth/normal initializer, never incoming v3 claims",
+    "observerOptions": "comes from SAME Manager original capture at launch, never release module constants"
+  },
+  "newWireOrPurpose": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "actualAuthBodyNotImplementedHere": true,
+  "SDKPrivateImageHeader": {
+    "path": "packages/wallet-auth/native/SourceParentManagerProfileDATA.h",
+    "type": "ynx::sdk::sourceparent::IndependentImagesDATA",
+    "function": "copyOriginalProfileImagesDATA(const ActualProfile&)",
+    "maps": "actual qualified::Profile.independentlyExpectedImages fields 1:1 raw32",
+    "ManagerPointerAccepted": false
+  }
+}

@@ -1,0 +1,62 @@
+// SDK DATA-only adoption template for original P09 package ownednode.
+// P09 alone integrates this file/callsite; not compiled into SDK or Native.
+package ownednode
+
+import (
+    "context"
+    "errors"
+    "sync"
+)
+
+var errOriginalSourceParentManagerDATA = errors.New("original same Manager/profile DATA capture required")
+
+type originalSourceParentManagerCaptureDATA struct {
+    mu sync.Mutex
+    manager *Manager
+    images [3][32]byte // parentCreator, coreChild, nativeChild, independently read by Auth
+    observerArguments []string // actual same Manager original arguments, not release constants
+    retired bool
+}
+
+// The caller owns m.mu exactly as at original prepareCurrent4Launch. images
+// must come from the original Auth/Root readonly profile producer. These bytes
+// do NOT authenticate themselves; no ordinary public API calls this method.
+func (m *Manager) captureOriginalSourceParentManagerLockedDATA(ctx context.Context, images [3][32]byte) (*originalSourceParentManagerCaptureDATA, error) {
+    if m == nil || ctx == nil || m.closed || m.released { return nil, errOriginalSourceParentManagerDATA }
+    if err := ctx.Err(); err != nil { return nil, err }
+    args, err := m.observerArgumentsLocked(ctx)
+    if err != nil { return nil, err }
+    if len(args) == 0 { return nil, errOriginalSourceParentManagerDATA }
+    return &originalSourceParentManagerCaptureDATA{manager:m,images:images,observerArguments:append([]string(nil),args...)}, nil
+}
+
+// Caller holds the supplied actual Manager.mu; a different Manager is rejected
+// BEFORE reading its config. Keep original capture and Manager alive; no address
+// is exported through JS/FD/RPC. Source current and process context remain AND.
+func (c *originalSourceParentManagerCaptureDATA) recheckSameManagerLockedDATA(ctx context.Context, m *Manager, freshIndependentImages [3][32]byte) error {
+    if c == nil || ctx == nil { return errOriginalSourceParentManagerDATA }
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    if c.retired || m == nil || c.manager != m || c.images != freshIndependentImages {
+        c.retired = true
+        return errOriginalSourceParentManagerDATA
+    }
+    if m.closed || m.released { c.retired = true; return errOriginalSourceParentManagerDATA }
+    if err := ctx.Err(); err != nil { c.retired = true; return err }
+    args, err := m.observerArgumentsLocked(ctx)
+    if err != nil { c.retired = true; return err }
+    if len(args) != len(c.observerArguments) { c.retired = true; return errOriginalSourceParentManagerDATA }
+    for i := range args { if args[i] != c.observerArguments[i] { c.retired = true; return errOriginalSourceParentManagerDATA } }
+    return nil
+}
+
+func (c *originalSourceParentManagerCaptureDATA) copyObserverArgumentsDATA() []string {
+    if c == nil { return nil }
+    c.mu.Lock(); defer c.mu.Unlock()
+    return append([]string(nil), c.observerArguments...)
+}
+func (c *originalSourceParentManagerCaptureDATA) retireDATA() {
+    if c == nil { return }
+    c.mu.Lock(); defer c.mu.Unlock()
+    c.retired = true
+}
