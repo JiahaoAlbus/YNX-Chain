@@ -1,0 +1,59 @@
+{
+  "schema": "YNX_IDE_FD8_ORIGINAL_SIX_MATERIALS/v1",
+  "SDKPublicSource": "98956ed2bbac8bb5c86de83c4f1df24314e19bf0",
+  "registry": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/public-source/packages/wallet-auth/src/pq-contract-deployment-material.js",
+    "bytes": 5446,
+    "sha256": "03a3a5b1235adf03f75929abeddadab7c0fde54a5458f0d62e67f0c66d80a424"
+  },
+  "files": [
+    {
+      "name": "SampleEVMWriteCounter",
+      "kind": "source",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleEVMWriteCounter/SampleEVMWriteCounter.sol",
+      "bytes": 419,
+      "sha256": "fea1e9e1cd9f75088c97fc7c12d794cf6ac3ff124c0130e094d97dbf0d782f8f"
+    },
+    {
+      "name": "SampleEVMWriteCounter",
+      "kind": "artifact",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleEVMWriteCounter/SampleEVMWriteCounter.artifact.json",
+      "bytes": 2932,
+      "sha256": "200969375c0041a574f47adb202ee9d175f0d3ef5939ed76d918229420ba357f"
+    },
+    {
+      "name": "SampleEVMWriteCounter",
+      "kind": "buildInfo",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleEVMWriteCounter/SampleEVMWriteCounter.build-info.json",
+      "bytes": 1189,
+      "sha256": "5613cb98c7973e6292bb274707901dd7ad00ff3d9fd477c04e4eead6cdb4af50"
+    },
+    {
+      "name": "SampleYNXTCompatibleERC20",
+      "kind": "source",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleYNXTCompatibleERC20/SampleYNXTCompatibleERC20.sol",
+      "bytes": 852,
+      "sha256": "d14208fc8056140c05393f1142604ccb78d888d506fd44d8e62a06884b12a525"
+    },
+    {
+      "name": "SampleYNXTCompatibleERC20",
+      "kind": "artifact",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleYNXTCompatibleERC20/SampleYNXTCompatibleERC20.artifact.json",
+      "bytes": 8165,
+      "sha256": "b4a71c19bb810ee15fc7759be6d8c40668e705bcedf41bef68d518b1f5d07f7b"
+    },
+    {
+      "name": "SampleYNXTCompatibleERC20",
+      "kind": "buildInfo",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/materials/SampleYNXTCompatibleERC20/SampleYNXTCompatibleERC20.build-info.json",
+      "bytes": 1635,
+      "sha256": "0a6feea7841f4106c5e69a6beebd80c47ca140ff1c22595bea836ebe2e44903f"
+    }
+  ],
+  "compilerExecuted": false,
+  "compiler": "solc0.8.24 hardhat/solc-wasm preferWasm optimizer200 original fixed registry",
+  "QAProjectConfigured": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "signedSubmittedDeployed": false
+}

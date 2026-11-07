@@ -1,0 +1,43 @@
+{
+  "publicCommit": "98956ed2bbac8bb5c86de83c4f1df24314e19bf0",
+  "publicPrefix": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/public-source/packages/wallet-auth",
+  "publicRepository": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain",
+  "nativeCommit": "c6af5521c96433f44b5fa91597fb30415a47c1d6",
+  "nativeManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-single49-network-normal-builder-successor-20261102/relay-swift-visibility-repair-successor/source/apps/wallet-desktop/native/original-wallet-single49-network-build-inputs.json",
+    "bytes": 1184983,
+    "sha256": "ced0c3df494aed060f93397692f9104377f6f79df8685265dfafcba2235c30f1"
+  },
+  "productionNodeModules": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/source/packages/wallet-auth/node_modules",
+  "productionLock": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/source/packages/wallet-auth/node_modules/.package-lock.json",
+    "bytes": 51821,
+    "sha256": "4374a718b75d475e90529afcb6d36d5f5b9a02e1c2589fe3ed8334783f526d96"
+  },
+  "closedBundleProof": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/source/canonical-common-source-package/CLOSED_BUNDLE_RESULT.json",
+    "bytes": 302956,
+    "sha256": "be0872d01e96b4f9b93f642328cf1f4a63e5912a449ca8c7d654c1bbe1f27b46"
+  },
+  "productionH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/HANDOFF.json",
+    "bytes": 1962,
+    "sha256": "d5b94189a426cfd35c43c434e9b2dd2a2264253ab668ef3b60c12e83affa854e"
+  },
+  "productionFunctionResult": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/FUNCTION_RESULT.json",
+    "bytes": 5215,
+    "sha256": "b14c81c14d08aafbfd7375876f03e206cd7bf908e03cc383cdf29b34e0e7543d"
+  },
+  "productionPublishedSource": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-wallet-ide-normal-connection-published-20261101/current-normal-successor/runtime-dependencies-successor/published-successor/SOURCE_COMMIT.json",
+    "bytes": 406,
+    "sha256": "6134ea848e45c90086fafa6bcbc0ef4623b36426719c7dbd093bb233b1158a00"
+  },
+  "entries": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-current-r2-product-normal-qa-successor-20261101/runtime-v1/AUTH_ACTUAL_GRAPH.json",
+    "bytes": 73493,
+    "sha256": "d23bcedd6762521b39a6f6698a9b296b0bfc71d5c8dbb7f65bf3dfd7e3c1312e"
+  },
+  "outputRoot": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/c6-diagnostic-production"
+}

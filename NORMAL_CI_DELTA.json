@@ -1,0 +1,18 @@
+{
+  "newDistinctControls": 8,
+  "existingGreensNotRepeated": [
+    "P03 53 diagnostics",
+    "P03 42 custody",
+    "Native17 repair",
+    "c6 reader9",
+    "helper12",
+    "old13 AI model",
+    "oldHermes",
+    "solc/Core tests"
+  ],
+  "normalInputTests": "node --test normal-product.test.mjs (same qualified input host)",
+  "hostedDATAOnly": "node --test --test-name-pattern=\"^(?!actual Cocoa input plan)\" normal-product.test.mjs (7 PUBLIC DATA controls; actual Cocoa/A proof control separate)",
+  "types": "tsc --noEmit --strict --module NodeNext --target ES2022 --typeRoots EMPTY normal-product.types.mts",
+  "stage": "actual SDK+assets copy/verify receipts supplied; no image load",
+  "CIPublicationStatus": "private supplier input CODE, parent/P03 owns normal integration CI; no hosted result claimed"
+}

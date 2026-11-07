@@ -1,0 +1,82 @@
+{
+  "schema": "YNX_P03_FINITE_C6_DIAGNOSTIC_PRODUCER_DELTA/v1",
+  "module": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.mjs",
+    "bytes": 10021,
+    "sha256": "497c8c71ffb2f8c115c966b25c6294a4d2230d219cf7ba46cc7a17457516eea6"
+  },
+  "declaration": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/normal-product.d.mts",
+    "bytes": 2445,
+    "sha256": "f4db8c68e1c9279c240d2e12ca355dd371986db3a7a30a644e1f23707fd1a482"
+  },
+  "inputContract": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/NORMAL_PRODUCT_CONTRACT.json",
+    "bytes": 756145,
+    "sha256": "7cb2c777784a17347bc89fad9894847a7f23e81dcd7e216d4659d4ed2e76e4db"
+  },
+  "newVariant": "SDK49-IDE-C6-DIAGNOSTIC-PRODUCTION-SOURCE-ARCHIVE-RUNTIME/v1",
+  "binding": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/projection-current-production/identity-sdk-projection-binding.json",
+    "bytes": 442,
+    "sha256": "1f3ecbcceb9a53f6e1d90ed938e0fb840ee15971e7bba55fc05085e46859316b"
+  },
+  "codePins": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-c6-diagnostic-normal-product-successor-20261107/projection-current-production/identity-sdk-pins.json",
+    "bytes": 663960,
+    "sha256": "ee36ff61d7c8b53ae65f8ca1d9ba1759d79bd88056597145fd45ca0514a8182a"
+  },
+  "producerChanges": [
+    {
+      "file": "scripts/package-local-macos.sh",
+      "approxLine": 102,
+      "entry": "normal native input branch -> cocoa-plan.mjs::cocoaPlan(freshOwnedRoot), original P03 wrapper executes exact five commands; writes independent new Cocoa receipt; adoptDiagnosticCocoa({receipt,binary})",
+      "outputStatus": "PENDING_PRODUCT_OWNER_BUILD; no e726 shell reuse"
+    },
+    {
+      "file": "scripts/package-local-macos.sh",
+      "approxLine": 140,
+      "entry": "copyDiagnosticSDK(APP/Contents/Resources/code/apps/developer/vendor/identity-admission); stageDiagnosticAssets(APP/Contents/Resources/code/apps/developer)"
+    },
+    {
+      "file": "scripts/package-local-macos.sh",
+      "approxLine": 265,
+      "entry": "new finite source roles branch: application producer own new HEAD separate; SDK989, NativeCPP3c9, Swiftc6, helper260+9bf AND original records; never rewrite them to App Git"
+    },
+    {
+      "file": "scripts/package-local-macos.sh",
+      "approxLine": 276,
+      "entry": "seal independently pinned new projection binding in build-provenance.packagedSDKSourceProjection; preserve existing old variants unchanged"
+    },
+    {
+      "file": "scripts/package-local-macos.sh",
+      "approxLine": 359,
+      "entry": "nested MachO signing -> postNestedDiagnostic(app) -> own capture/provenance -> outer-only sign -> own verify -> codesign deep strict; drift rejects, never disable guard"
+    },
+    {
+      "file": "desktop/identity-sdk-loader.mjs",
+      "approxLine": 69,
+      "entry": "one finite new variant branch with exact binding and code-pin bytes/SHA from this JSON before SDK import; preserve static root/source indirect guard; no arbitrary variant/provider"
+    }
+  ],
+  "CocoaReceipt": {
+    "schema": "YNX_IDE_C6_PRODUCT_COCOA_EXECUTION/v1",
+    "complete": true,
+    "error": null,
+    "inputContractSHA256": "7cb2c777784a17347bc89fad9894847a7f23e81dcd7e216d4659d4ed2e76e4db",
+    "sourceRoles": "exact plan.sourceRoles",
+    "outputRoot": "exact original fresh owned Cocoa root",
+    "commands": "exact plan.commands (not a caller substitute argv)",
+    "results": "five ordered {name,status:0,signal:null}, real stdout/stderr pins retained by owner",
+    "output": "actual output path/bytes/SHA after relative dependency fix; pre-sign identity separate",
+    "ownedUndefined": "actual nm -u zero owned; SDK adoption independently checks nm again"
+  },
+  "normalConsumerNativeRole": "actual9 fixed byte pins; App producer may advance only with same9 or owning Native delta newH",
+  "publicSDKExportAdded": false,
+  "NativeBodyOrAppChangedHere": false,
+  "wholeProductReady": false,
+  "CocoaOutputs": "PENDING_PRODUCT_OWNER_BUILD",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "finite7": false
+}
