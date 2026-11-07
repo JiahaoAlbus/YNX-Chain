@@ -1,0 +1,131 @@
+{
+  "schema": "YNX_NATIVE_SOCIAL_JOINT_PRIVATE_PINS/v1",
+  "issuerABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-facts-r6-jBnlcP/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 7878,
+    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3",
+    "sourceInputVersion": 2,
+    "sourceInputSize64": 112
+  },
+  "frameH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source-frame-r1-kowBMj/HANDOFF.json",
+    "bytes": 5530,
+    "sha256": "bc34ea13e3a7f4ae6a86cbf64144e304dbbb2ba3a0cde6a3cd799d143601810a"
+  },
+  "frameSource": [
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source/internal/social/kernel/source_signing_input_data.go",
+      "target": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source-frame-r1-kowBMj/source/internal/social/kernel/source_signing_input_data.go",
+      "canonicalTarget": "source/internal/social/kernel/source_signing_input_data.go",
+      "bytes": 387,
+      "sha256": "2dca7634d20d75fbe357045d0707447868bf8e38447c82a52777a85883b4d5c6",
+      "operation": "ADD"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source/internal/social/kernel/source_signing_input_ffi.go",
+      "target": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source-frame-r1-kowBMj/source/internal/social/kernel/source_signing_input_ffi.go",
+      "canonicalTarget": "source/internal/social/kernel/source_signing_input_ffi.go",
+      "bytes": 1238,
+      "sha256": "188b6919780d60841a5a5066571e2ff683fb8f0be8cfcee53bb930a89d70e61a",
+      "operation": "ADD"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source/internal/social/kernel/social_source_frame_data_private.h",
+      "target": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/source-frame-r1-kowBMj/source/internal/social/kernel/social_source_frame_data_private.h",
+      "canonicalTarget": "source/internal/social/kernel/social_source_frame_data_private.h",
+      "bytes": 1164,
+      "sha256": "636bbe2614cd78ba73419834c4cc522f0a9cc4518e02fa3497b67307ba98e7ad",
+      "operation": "ADD"
+    }
+  ],
+  "frameWriter": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P02/main-consumer/linux-native-recipe-r1/work/source/go-source/internal/social/kernel/source_authority.go",
+    "bytes": 27746,
+    "sha256": "dbe5dac34a32e260b26ba1c9da2482efb1c38cbf65d583ebe60a080a1b3024dd",
+    "line": 211,
+    "functionSHA256": "3899eb3cdcbc85c9934367cf5187cbf0117d1327589a83b98a9205c7160e34e3"
+  },
+  "bodyMax": 32768,
+  "frameMax": 49152,
+  "outerMax": 65536,
+  "domainBytesWithNul": 27,
+  "normalOneGoRequired": true,
+  "productionFrameFixtureArchiveAllowed": false,
+  "requiredNormalFactories": [
+    "acquireCommittedSocialPair",
+    "acquireRegisteredDeviceSession"
+  ],
+  "normalFactoriesActuallySupplied": false,
+  "legacyIssuerABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/fresh-finite-issuer-r4-KMYiYX/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 5444,
+    "sha256": "f96be1474d6cc8da6f2aa067ce97944bf1c82ae133519c7feeb98d43fe3a6f45",
+    "historicalOnly": true
+  },
+  "captureBorrowH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-inventory-r5-rRCVeB/HANDOFF.json",
+    "bytes": 8773,
+    "sha256": "ec7100f056c9b50b4a3ea7272f4db5233c8633ff86e40be46c745bfb22bc89be"
+  },
+  "actualR5FrozenRefsVerified": 8,
+  "remainingActualCode": [
+    "P02 genuine committedSocialPair and registeredDEVICE/session holder adapters",
+    "Auth dedicated finite custodian actual normal service and qualification body",
+    "Same kernel normal ONEGo final link"
+  ],
+  "predecessorR5IssuerABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-inventory-r5-rRCVeB/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 6922,
+    "sha256": "0e98076295341ec4840629929e6bdfeccfef4aa68840fea50ae731206c252e73",
+    "sourceInputVersion": 2,
+    "sourceInputSize64": 112
+  },
+  "captureFactsH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-facts-r6-jBnlcP/HANDOFF.json",
+    "bytes": 10737,
+    "sha256": "63b8a80b7ddf0ab71ba6f36d9056353ec4bb2714d8933d8b80e9559b3f4f8020"
+  },
+  "actualR6FrozenRefsVerified": 7,
+  "SourceFactoryActuallyImplemented": true,
+  "finiteRoleFactoryActuallyImplemented": true,
+  "finiteCustodianInterface": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-finite-role-first-20261108-ZQqRab/include/ynx_social_finite_joint_custodian_private_v1.h",
+    "bytes": 3660,
+    "sha256": "cb65131c497127eb83a507ed952877602537a8ce39f7e70f93a46055f70fac8f",
+    "supplierState": "WIP interface snapshot; no service qualification or final-link claim"
+  },
+  "envelopeDATA": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-source-envelope-data-successor/controls-svUUrn/HANDOFF.json",
+      "bytes": 6748,
+      "sha256": "948dc27d56f2e50a20f6450c99930f32e2b8599e842a7b05f8e43d43eb96fbef"
+    },
+    "production": [
+      {
+        "canonicalTarget": "source/internal/social/kernel/source_envelope_data.go",
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-source-envelope-data-successor/controls-svUUrn/kernel/source_envelope_data.go",
+        "bytes": 1278,
+        "sha256": "f816150c1cdd8769857c595e84d3860e7e4121964a2014907087fccedc4f7795",
+        "operation": "ADD"
+      },
+      {
+        "canonicalTarget": "source/internal/social/kernel/source_envelope_data_ffi.go",
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-source-envelope-data-successor/controls-svUUrn/kernel/source_envelope_data_ffi.go",
+        "bytes": 1300,
+        "sha256": "10753387d0ed498d9f148fd8145622a6de6b5fbbb075fb518b3f8e7beda975cd",
+        "operation": "ADD"
+      },
+      {
+        "canonicalTarget": "source/internal/social/kernel/social_source_envelope_data_private.h",
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-source-envelope-data-successor/controls-svUUrn/kernel/social_source_envelope_data_private.h",
+        "bytes": 1233,
+        "sha256": "a01c4f7d894131963600b06c92d8cf56d175bdaa689052886533b998f2f550cc",
+        "operation": "ADD"
+      }
+    ],
+    "verifiedRefs": 14,
+    "requiredBy": "Auth finite custodian normal envelope assembly; Native adapter passes retained bytes only",
+    "normalOneGoRequired": true,
+    "fixtureArchiveProductionAllowed": false
+  }
+}
