@@ -164,3 +164,11 @@ body[data-wallet-stage='workspace'] #desktop-welcome { display:none; }
 .desktop-connected-session-row>.desktop-session-expiry { grid-column:1/-1; margin:0; color:var(--ynx-text-secondary); font-size:.6875rem; }
 #desktop-permission-slot>#walletconnect-detail { line-height:1.6; }
 @media(max-width:760px){.desktop-connected-session-row { grid-template-columns:minmax(0,1fr); }.desktop-connected-session-row>button { justify-self:start; }}
+.desktop-approved #provider-request:has(#provider-transfer-summary:not([hidden])) { width:min(522px,calc(100vw - 48px)); }
+.desktop-pq-review-amount { font:500 1.875rem/40px var(--ynx-font-mono); text-align:center; margin:28px 0; }
+.desktop-pq-review-facts { display:grid; grid-template-columns:minmax(100px,.7fr) minmax(0,1.3fr); gap:16px; padding:24px 0; border-top:1px solid var(--ynx-border); border-bottom:1px solid var(--ynx-border); }
+.desktop-pq-review-facts dt { color:var(--ynx-text-secondary); font-size:.75rem; }
+.desktop-pq-review-facts dd { margin:0; overflow-wrap:anywhere; text-align:right; font:.75rem/20px var(--ynx-font-mono); }
+.desktop-pq-review-suite { color:var(--ynx-brand); font-size:.75rem; }
+.desktop-pq-review-warning { color:var(--ynx-text-secondary); font-size:.75rem; line-height:1.7; }
+#provider-original-details>summary { cursor:pointer; font-size:.75rem; }

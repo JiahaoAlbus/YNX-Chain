@@ -1,8 +1,10 @@
+import {createDesktopPQTransferSummary} from './desktop-pq-transfer-summary.mjs';
 import {mountNativePayProductUI} from './native-pay-product-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
 import {createDesktopTransactionHistoryUI} from './desktop-transaction-history-ui.mjs';
 import {createApprovedDesktopUI} from './approved-desktop-ui.mjs';
 let desktopUI=null;
+let transferReviewSummaryUI=null;
 let nativePayProductUI=null;
 let desktopHistoryUI=null;
 let accountStatusObserved=false;
@@ -348,7 +350,8 @@ function presentApproval() {
   const item = approvalQueue.current;
   const panels = { authorization, proposal: document.querySelector("#walletconnect-proposal"), provider: document.querySelector("#provider-request") };
   for (const [type, panel] of Object.entries(panels)) if (!item || type !== item.type) { if (panel.open) panel.close(); panel.hidden = true; }
-  if (!item || keyState.locked) return;
+  if (!item || keyState.locked) {transferReviewSummaryUI?.clear();return;}
+  if(item.type!=='provider')transferReviewSummaryUI?.clear();
   const { type, review } = item, panel = panels[type];
   const otherDialog = document.querySelector("dialog[open]");
   if (otherDialog && otherDialog !== panel) return;
@@ -393,8 +396,11 @@ function presentApproval() {
     document.querySelector("#provider-title").textContent = review.review.title;
     document.querySelector("#provider-origin").textContent = review.origin;
     document.querySelector("#provider-detail").textContent = readableProviderReview(review);
+    const compact=transferReviewSummaryUI?.render(review)===true;
+    document.getElementById('provider-original-details').open=!compact;
     for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy && button.id !== "reject-provider";
     document.querySelector("#reject-provider").textContent = approvalQueue.busy ? "Cancel and lock Wallet" : "Reject request";
+    document.querySelector("#approve-provider").textContent=review.method==='ynx_signPQNativeTransfer'?"Sign and save only / 仅签名并保存":"Approve request";
   }
   panel.querySelector(".queue-count").textContent = approvalQueue.count > 1 ? `${approvalQueue.count - 1} more request${approvalQueue.count > 2 ? "s" : ""} waiting` : "";
   if (newlyShown) panel.showModal();
@@ -1282,7 +1288,7 @@ function renderKeyDetail() {
 function renderKeyState(state) {
   if(Number.isSafeInteger(state?.revision)&&Number.isSafeInteger(keyState.revision)&&state.revision<keyState.revision)return;
   const securityChanged=state.revision!==keyState.revision||state.locked!==keyState.locked||state.account!==keyState.account||state.authenticating!==keyState.authenticating;
-  if(securityChanged)aiTaskReviewObserver.invalidate();
+  if(securityChanged){transferReviewSummaryUI?.clear();aiTaskReviewObserver.invalidate();}
   if(securityChanged){accountSecurityIntent++;invalidateWalletConnectSessions();}
   securityViewRevision++;
   const accountChanged = state.account !== keyState.account;
@@ -1377,6 +1383,7 @@ window.addEventListener('blur',()=>projectControlUI.invalidate());
 
 // Full approved desktop presentation consumes only existing public state and
 // delegates all protected actions to their original controls/controllers.
+transferReviewSummaryUI=createDesktopPQTransferSummary({root:document.getElementById('provider-transfer-summary'),document,getContext:()=>keyState});
 desktopUI=createApprovedDesktopUI({document,api:window.ynxWallet,navigate:setView,unlock:()=>document.querySelector('#unlock-wallet').click(),openImport:()=>document.querySelector('#open-import').click(),openCrossChain:()=>{if(window.ynxWallet.crossChain)cctpOpen.click();},openNetworks:()=>document.querySelector('#open-multichain').click(),reviewPending:presentApproval,writeClipboard:writeReceivingClipboard});
 presentApproval();
 if(accountStatusObserved)desktopUI.render(accountState,keyState);
