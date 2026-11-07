@@ -1,0 +1,195 @@
+{
+  "schema": "YNX_IDE_FINITE_GET_PROOF_V4_CONTRACT_V1",
+  "state": "SDK_PRIMARY_V4_WIRE_DATA_IMPLEMENTED_AUTH_P04_ACCEPTANCE_NOT_SUPPLIED",
+  "baseSourceCommit": "0777b886b18a4e7a61ace52298ef7ca11a5ee2a9",
+  "wireVersion": "4",
+  "header": "x-ynx-product-session-proof-v4",
+  "purpose": "PRODUCT-SESSION-HTTP-PROOF",
+  "domain": "YNX-PRODUCT-SESSION-HTTP-PROOF/v4",
+  "framing": "existing E5: domain,u32(4),rawNetwork32,owner0x42,canonical complete unsigned21",
+  "unsignedExact": [
+    "version",
+    "sessionBinding",
+    "productId",
+    "clientId",
+    "applicationId",
+    "bundleId",
+    "packageId",
+    "origin",
+    "callback",
+    "account",
+    "canonicalOwner",
+    "deviceId",
+    "deviceRegistrationId",
+    "deviceRegistrationRevision",
+    "deviceRegistrationDigest",
+    "method",
+    "path",
+    "bodyDigest",
+    "nonce",
+    "issuedAt",
+    "expiresAt"
+  ],
+  "acceptedSigningRole": "Only independently registered active PRODUCT SESSION DEVICE full pair, not Account/BIRTH/Network resource or actor/Wallet assets keys; this role description is not a new wire field",
+  "math": "existing N1/index0/empty paths/MLDSA87 AND SLH-DSA-SHA2-256f; reuse sole product-session-proof-v4.js and Core19 existing typed functions",
+  "requestExact": [
+    "method",
+    "path",
+    "url",
+    "operationRequestId"
+  ],
+  "expectedDATAExact": [
+    "serviceOrigin",
+    "operationRequestId",
+    "networkId"
+  ],
+  "prefix": "/api/v1/ide/deployments/{operationRequestId}",
+  "operationRequestIdRegex": "^[A-Za-z0-9_-]{16,128}$",
+  "finiteRoutes": [
+    {
+      "selector": "deployment",
+      "suffix": ""
+    },
+    {
+      "selector": "logs",
+      "suffix": "/logs"
+    },
+    {
+      "selector": "runtime",
+      "suffix": "/runtime"
+    },
+    {
+      "selector": "usage",
+      "suffix": "/usage"
+    },
+    {
+      "selector": "usage.records",
+      "suffix": "/usage/records"
+    },
+    {
+      "selector": "billing",
+      "suffix": "/billing/{YYYY-MM-DD}"
+    },
+    {
+      "selector": "billing.native-intent",
+      "suffix": "/billing/{YYYY-MM-DD}/native-intent"
+    }
+  ],
+  "selectorMeaning": "Finite DATA labels only; no operation enum or additional field is signed in unsigned21. Original deployment operation ID comes from real retained selection; never derive it from x-request-id transport trace or proof nonce.",
+  "requestLimits": {
+    "method": "GET",
+    "body": "NONE on real HTTP; SDK exact4 rejects body field",
+    "bodyDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "query": "REJECT; no stripping",
+    "URL": "canonical HTTPS matching independent serviceOrigin/path; no userinfo/fragment/query/normalization fallback",
+    "day": "strict valid YYYY-MM-DD calendar day",
+    "headerProofBytes": 196608,
+    "totalHeadersBytes": 262144,
+    "memberBytes": 98304,
+    "messageBytes": 16384,
+    "windowMs": 30000,
+    "rawReceiver": "reject case-insensitive duplicate proof headers, mixed V2/V5, body/transfer payload, raw query and foreign finite routes before proof/auth; old P04 V2/16384 budget is incompatible"
+  },
+  "originAndTargetBinding": {
+    "unsignedOrigin": "product/client origin from original registered session, e.g. app://...; NOT target service origin",
+    "unsignedCallback": "product callback from original session/registration",
+    "targetAuthority": "serviceOrigin/TLS peer SPKI/fullRef is NOT directly signed by existing unsigned21 or E5. It MUST be separately AND-bound by genuine Native Source/Root-selected service scope + original session/registration + actual receiver service/host/trusted transport.",
+    "test": "Two distinct DATA-selected HTTPS service origins can produce identical E5 when path/unsigned21 match. This is explicitly demonstrated, not claimed as complete service authorization.",
+    "missing": "Formal finite7 source scope and actual issuer/receiver service binding producer/code are not supplied. A plain expected serviceOrigin DTO never qualifies."
+  },
+  "normalSDKReuse": {
+    "requestInspector": "inspectOriginalIDECloudGETRequestDATA(input exact4, expected serviceOrigin/opID)",
+    "existingRead": "openExistingProductSessionV4Read(exact9 {binding,storageKey,storage,device,deviceCurrent,abortContext,token,now,assertLocalCurrent})",
+    "existingVerifier": "verifyOriginalProductSessionHTTPProofV4(exact8 {headerName,header,request,expected,source,abortContext,at,consumeNonce})",
+    "existingRawHeaders": "readProductSessionV4BoundedHTTPHeaders(rawHeaders) is budget DATA; finite7 receiver must also reject V5/mixed headers and bind actual route/host",
+    "sourceExpected": "existing expected17, context12, original registration20/session4; require real current/revoke/current permission and actual device pair",
+    "once": "ProductDeviceV4Once + makeProductDeviceV4OnceFromExpectedDATA: actual same protected journal; durable key network/session/regDigest/nonce not message; UNKNOWN never signs again"
+  },
+  "Core19": {
+    "sourceCommit": "e12036079d28adef2559733739a4743e258ba4e5",
+    "fixedSigner": "YNXProductSessionHTTPProofSignV4",
+    "typedExpected": [
+      "network_id raw32",
+      "owner canonical0x42",
+      "pk_a registered DEVICE2592",
+      "pk_b registered DEVICE64"
+    ],
+    "unsignedOriginal": "exact canonical complete unsigned21 UTF8 without LF/NUL; Core builds same E5 itself",
+    "capacity": 98304,
+    "success": "result0 AND cleanup2 only; actual bounded partial bytes/length retained before errors/late-current; logical cleanup does not prove physical erasure",
+    "rootQualification": "Core performs no Root/Source/device enrollment/current/revoke/review/nonceonce/HTTP permission; caller owns all gates before and after private KDF/PKCS8 borrow",
+    "reuseGoMath": [
+      "BuildProductSessionHTTPMessage",
+      "InspectProductSessionHTTPMessage",
+      "InspectProductSessionHTTPMember"
+    ]
+  },
+  "normalNativeGetter": {
+    "state": "DRAFT_ONLY_NO_FORMAL_PRODUCER",
+    "path": "loadOriginalAuthIdentityNativeImage().acquireOriginalIDECloudGETSource(original opaque selection)",
+    "sourceMethods": [
+      "assertCurrent",
+      "recheck",
+      "captureOriginalGETRequest",
+      "retire",
+      "join",
+      "close"
+    ],
+    "childMethods": [
+      "assertCurrent",
+      "recheck",
+      "readOriginalRequestDATA",
+      "retire",
+      "join",
+      "close"
+    ],
+    "existingHeaderGetter": "getDeploymentRequestHeaders():never remains unchanged",
+    "requiredProofCallee": "Formal actual child device-context/registered device originals + explicit V4 produce/read-original-Member contract from original Auth owner; no callback signer/provider added by this DATA module",
+    "custody": "SAME retained opaque parent/project selection and SAME frozen exact4 request/AbortSignal ctx; adopt nonnull partial before status/current; child->Source real drain, preserve UNKNOWN original nonce/member/first cause"
+  },
+  "changes": {
+    "sourceNewOnly": true,
+    "oldV4V5CodecModified": false,
+    "oldNeverGetterModified": false,
+    "RootRowsAdded": false,
+    "sourceAcquisitionAdded": false,
+    "sendAdded": false,
+    "common5Modified": false
+  },
+  "remainingOwningCODE": [
+    "Auth formal fixed Native finite7 GET Source/proof child, independently selected mobile/desktop registered DEVICE pair and actual same-context producer",
+    "Auth/P04 explicit V4 receiver acceptance, canonical header/byte budgets and expected device/source/nonce consumption; old V2 route is not an alias",
+    "Auth/sole Native formal fixed Source-owned finite7 sender with actual TLS/SPKI/service FullRef enforcement; ordinary fetch callback plus header is not this production transport",
+    "Auth/P04 genuine Root-selected target serviceOrigin/fullRef/SPKI+actual receiver service binding (unsigned.product origin must not be repurposed)",
+    "P03 retains SAME genuine parent/project/Cloud selection through original request proof/HTTP result/child debt lifecycle",
+    "SDK later consumes that formal private callee and release-matching image without changing current never getter prematurely",
+    "Real Root/registered device/current/revocation/clock/once resources and actual GET send+server validation still not verified"
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "receiverAccepted": false,
+  "realGETVerified": false,
+  "sent": false,
+  "dispatch": false,
+  "actualSenderBoundary": {
+    "current": "P04 YNXCloudClient.request uses fixed JS fetch; no demonstrated Root-selected TLS peer SPKI enforcement for these finite7 GETs. V5 POST Native sender is a different path, cannot be borrowed.",
+    "expectedOriginComparison": "DATA comparison only; not actualTLS handshake verification.",
+    "requiredPrivateSenderProposal": "sendOriginalIDEFiniteGETV4(SAME original request child,SAME original proof child,SAME native context) or formally matching Auth owned API; REQUIRED_NOT_SUPPLIED, not an existing getter/export.",
+    "enforcement": "Root-selected target serviceOrigin/SPKI/FullRef must bind actual handshake/receiver in a genuine Source-owned Native transport or an already proven fixed sender. No arbitrary provider callback/URL setter/redirect. Preserve original response before late-current/error; no re-sign/replay.",
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "receiverAccepted": false,
+    "dispatch": false
+  },
+  "suggestedPackageExport": {
+    "subpath": "./original-ide-finite-get-proof-v4",
+    "types": "./src/original-ide-finite-get-proof-v4.d.ts",
+    "browser": null,
+    "node": "./src/original-ide-finite-get-proof-v4.js",
+    "default": null,
+    "applied": false,
+    "owner": "parent SDK publication; no pjson modified here"
+  }
+}
