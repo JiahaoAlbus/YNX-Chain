@@ -505,5 +505,70 @@ class BoundedSenderBackendControls(unittest.TestCase):
         self.assertFalse(capacity["normalLargeOwnerInputQualified"])
 
 
+class ReadyCheckpointOrderingControls(unittest.TestCase):
+    setUp=BoundedSenderBackendControls.setUp
+    backend=BoundedSenderBackendControls.backend
+    operation=BoundedSenderBackendControls.operation
+
+    def test_normal_entry_selects_once_after_real_ready_before_only_sign(self):
+        b=self.backend(reply={'code':'REJECTED'});row,request=self.operation();events=[]
+        def current(stop):
+            self.assertTrue(b.w.sessions[0].ready)
+            self.assertEqual(b.w.exchanges,[])
+            return {'height':9,'appHash':'b'*64}
+        b.checkpoint=mock.Mock(side_effect=current)
+        with self.assertRaises(driver.scheduler.KnownFailure):
+            b.original(row,{'ownerIndex':4},Path('/UNIT-CASE'),events.append,b.stop_event)
+        b.checkpoint.assert_called_once_with(b.stop_event)
+        self.assertEqual(len(b.w.constructor_calls),1)
+        self.assertEqual(len(b.w.exchanges),1)
+        command=b.w.exchanges[0]['command']
+        self.assertEqual(command['request'],request)
+        self.assertEqual((command['checkpointHeight'],command['checkpointAppHash']),('9','b'*64))
+        self.assertIn('sender_ready_checkpoint',[e.get('stage') for e in events])
+        self.assertNotIn('checkpoint',[e.get('stage') for e in events])
+
+    def test_refresh_has_its_own_parent_boundaries_and_same_original_identity(self):
+        b=self.backend();b.checkpoint=mock.Mock(return_value={'height':10,'appHash':'c'*64});row,request=self.operation()
+        b.sign_original(row,request,None,Path('/UNIT-CASE'),lambda e:None,b.stop_event)
+        trace=b.cold_sender_report()['records'][0]
+        keys=['normalDataReadyMonotonicNs','checkpointRequestedMonotonicNs','checkpointReturnedMonotonicNs','commandRequestedMonotonicNs','commandReturnedMonotonicNs']
+        self.assertEqual([trace[k] for k in keys],sorted(trace[k] for k in keys))
+        self.assertEqual(trace['selectedCheckpointHeight'],10)
+        self.assertEqual(trace['selectedCheckpointAppHash'],'c'*64)
+        self.assertEqual(b.w.exchanges[0]['command']['request'],request)
+
+    def test_failed_current_read_cannot_send_sign_or_fabricate_command_duration(self):
+        b=self.backend();b.checkpoint=mock.Mock(side_effect=RuntimeError('UNIT original common checkpoint unavailable'));row,request=self.operation()
+        with self.assertRaisesRegex(RuntimeError,'common checkpoint unavailable'):
+            b.sign_original(row,request,None,Path('/UNIT-CASE'),lambda e:None,b.stop_event)
+        trace=b.cold_sender_report()['records'][0]
+        self.assertIn('checkpointRequestedMonotonicNs',trace)
+        self.assertNotIn('checkpointReturnedMonotonicNs',trace)
+        self.assertNotIn('commandRequestedMonotonicNs',trace)
+        self.assertEqual(b.w.exchanges,[])
+        self.assertEqual(available_slots(b.sign_slots),2)
+
+    def test_cancellation_after_current_read_cannot_issue_sign(self):
+        b=self.backend();row,request=self.operation()
+        def current(stop):
+            stop.set();return {'height':10,'appHash':'c'*64}
+        b.checkpoint=mock.Mock(side_effect=current)
+        with mock.patch.object(bounded.os,'killpg',side_effect=b.w.killpg),self.assertRaisesRegex(RuntimeError,'canceled before sign command'):
+            b.sign_original(row,request,None,Path('/UNIT-CASE'),lambda e:None,b.stop_event)
+        self.assertEqual(b.w.exchanges,[])
+        self.assertNotIn('commandRequestedMonotonicNs',b.cold_sender_report()['records'][0])
+
+    def test_journal_failure_before_refresh_preserves_first_cause_and_no_sign(self):
+        b=self.backend();b.checkpoint=mock.Mock();row,request=self.operation()
+        def notify(event):
+            if event.get('stage')=='sender_ready_checkpoint':raise RuntimeError('UNIT original stage journal failure')
+        with self.assertRaisesRegex(RuntimeError,'stage journal failure'):
+            b.sign_original(row,request,None,Path('/UNIT-CASE'),notify,b.stop_event)
+        b.checkpoint.assert_not_called()
+        self.assertEqual(b.w.exchanges,[])
+        self.assertEqual(available_slots(b.sign_slots),2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

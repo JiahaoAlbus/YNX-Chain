@@ -92,6 +92,8 @@ jobs:
         run: python3 -B scripts/loadtest/test_pq_semantic_ci_readback.py -v
       - name: Verify full first100 cohort counts and censored latency readback
         run: python3 -B scripts/loadtest/test_pq_first100_readback.py -v
+      - name: Verify original bounded sender and post-ready checkpoint ordering
+        run: python3 -B scripts/loadtest/test_pq_bounded_sender_backend.py -v
       - run: npm ci
       - run: npm run hardhat:build
       - name: Generate original contract selectors required by ABCI execution fixtures

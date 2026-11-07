@@ -424,8 +424,12 @@ class NormalBackend:
             stop.wait(.01)
         raise RuntimeError("no current common original checkpoint before interruption")
     def original(self,row,account,case,notify,stop):
-        notify(dict(kind="normal_stage",stage="checkpoint"))
-        checkpoint=self.checkpoint(stop);owner=account["ownerIndex"]
+        if self.c.mode=='online' and getattr(self,'checkpoint_after_ready',False):
+            checkpoint=None # Bounded cold sender selects once after DATA-ready.
+        else:
+            notify(dict(kind="normal_stage",stage="checkpoint"))
+            checkpoint=self.checkpoint(stop)
+        owner=account["ownerIndex"]
         request=dict(version="YNX-PQ-LAB-SENDER-REQUEST/v1",operationId=row["operationId"],ownerIndex=owner,firstNonce=str(row["nonce"]),members=1)
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="signer"))

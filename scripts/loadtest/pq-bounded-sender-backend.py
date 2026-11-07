@@ -2,6 +2,8 @@
 
 Normal EOF releases only a process/key lease, never ledger pending/nonce.
 Final confirmation reopens that same owner and confirms the same operation.
+The normal sign entry selects its common checkpoint after DATA-ready, once,
+before sending the original sign command. Go still validates all state/identity.
 No signer, key codec, signature check, proof verifier or retry is implemented.
 """
 import os
@@ -14,6 +16,7 @@ def backend_class(Base,Session,normal,lab):
         def __init__(self,ceremony,owners,stop):
             lab.require(ceremony.mode=='online','bounded original sender pool is online-only')
             super().__init__(ceremony,owners,stop,open_persistent=False)
+            self.checkpoint_after_ready=True
             self.sign_slots=threading.BoundedSemaphore(2);self.cold_lock=threading.Lock();self.cold_sessions={};self.cold_records=[];self.cold_attempts=0;self.cold_peak=0;self.cold_cleanup_debt=[];self.initialized_owners={v['ownerIndex'] for v in owners}
             lab.require(len(self.initialized_owners)==len(owners),'original initialized owners must be distinct')
             lab.require(1+4+2+self.helper_limit<=lab.guard.CAPS['ownedProcesses'],'unchanged original PID cap cannot fit bounded sender/helper pools')
@@ -59,8 +62,7 @@ def backend_class(Base,Session,normal,lab):
                     self.cold_sessions[name]=session;self.cold_peak=max(self.cold_peak,len(self.cold_sessions))
                 session.wait_ready(stop,time.monotonic()+self.c.proof_timeout,self.w.sample)
                 trace['normalDataReadyMonotonicNs']=time.monotonic_ns()
-                trace['commandRequestedMonotonicNs']=time.monotonic_ns()
-                value=exchange(session);trace['commandReturnedMonotonicNs']=time.monotonic_ns();return value
+                value=exchange(session,trace);trace['commandReturnedMonotonicNs']=time.monotonic_ns();return value
             except BaseException as error:
                 original_error=error;trace['firstCause']=str(error);raise
             finally:
@@ -94,9 +96,27 @@ def backend_class(Base,Session,normal,lab):
                     if len(self.cold_records)<2048:self.cold_records.append(trace)
                 if original_error is None and cleanup_error is not None:raise cleanup_error
         def sign_original(self,row,request,checkpoint,case,notify,stop):
-            return self._sender(row,request,'sign',notify,stop,lambda session:session.exchange(normal.sender_command_data('sign',request,checkpoint['height'],checkpoint['appHash']),case/'original-sign-reply.json',stop))
+            def exchange(session,trace):
+                current=checkpoint
+                if current is None:
+                    # Original custody/DATA-ready may take long enough for the
+                    # four node checkpoint to advance. Select it once, AFTER
+                    # ready and before the ONLY original sign command.
+                    notify(dict(kind='normal_stage',stage='sender_ready_checkpoint'))
+                    trace['checkpointRequestedMonotonicNs']=time.monotonic_ns()
+                    current=self.checkpoint(stop)
+                    trace['checkpointReturnedMonotonicNs']=time.monotonic_ns()
+                    trace['selectedCheckpointHeight']=current['height'];trace['selectedCheckpointAppHash']=current['appHash']
+                    notify(dict(kind='normal_stage',stage='sender_checkpoint_sign'))
+                lab.require(not stop.is_set(),'normal sender canceled before sign command; preserve original, no retry')
+                trace['commandRequestedMonotonicNs']=time.monotonic_ns()
+                return session.exchange(normal.sender_command_data('sign',request,current['height'],current['appHash']),case/'original-sign-reply.json',stop)
+            return self._sender(row,request,'sign',notify,stop,exchange)
         def confirm_original(self,row,request,proof,case,notify,stop):
-            return self._sender(row,request,'confirm',notify,stop,lambda session:session.exchange(normal.sender_command_data('confirm',request,materials=proof['materials']['path'],materials_sha=proof['materials']['sha256'],proof=proof['proof']['path']),case/'original-confirm-reply.json',stop))
+            def exchange(session,trace):
+                trace['commandRequestedMonotonicNs']=time.monotonic_ns()
+                return session.exchange(normal.sender_command_data('confirm',request,materials=proof['materials']['path'],materials_sha=proof['materials']['sha256'],proof=proof['proof']['path']),case/'original-confirm-reply.json',stop)
+            return self._sender(row,request,'confirm',notify,stop,exchange)
         def cold_sender_report(self):
             with self.cold_lock:return dict(schema='YNX-PERF-BOUNDED-NORMAL-SENDER-LIFECYCLE/v1',attempted=self.cold_attempts,retained=len(self.cold_records),recordLimit=2048,omitted=max(0,self.cold_attempts-len(self.cold_records)),maxConcurrentSigners=2,maximumProofHelperSlots=self.helper_limit,observedPeakOpenSenderProcesses=self.cold_peak,cleanupDebt=[dict(v) for v in self.cold_cleanup_debt],records=[dict(v) for v in self.cold_records],accountPendingReleasedByProcessClose=False,automaticReSign=False,maximumOwnedRuntimePIDs=5+2+self.helper_limit)
         def stop(self):
