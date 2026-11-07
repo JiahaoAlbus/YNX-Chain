@@ -1,0 +1,26 @@
+{
+  "purpose": "PUBLIC transport controls only; not an Auth/P08 resource implementation or Source admission",
+  "P08OriginalHandoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P08/original-task-read-resource-20261107/HANDOFF.json",
+    "bytes": 5874,
+    "sha256": "26b285ee79df59b0ffa630e725ca51997bb014324a2904dce7987a7d5180fd48",
+    "localReadbackVerified": true,
+    "runtimeOrCIDependency": false
+  },
+  "P08Source": {
+    "commit": "96d17ee60f7139877dff039ebc3cc83dcb9f0010",
+    "resourceReceiverSHA256": "ab9702e46275e689eec6d77c7e8d032fa22170f8587b973794331292a7a9661d"
+  },
+  "service": "ynx-ai-original-task-read-v1",
+  "operations": ["input", "execute", "query"],
+  "method": "POST",
+  "prefix": "/internal/ai/original-task-read/",
+  "maxTransportBytes": 1048576,
+  "P08RawInputBytes": 32768,
+  "businessInputSchemaExecuted": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "P08StoreExecuted": false,
+  "AuthStageExecuted": false,
+  "newKeysOrNonce": false
+}

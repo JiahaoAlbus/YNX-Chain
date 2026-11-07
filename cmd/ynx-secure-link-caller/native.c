@@ -30,6 +30,11 @@ typedef struct {
     int control_fd, transfer_fd, retired;
     pid_t owner_pid, peer_pid;
     uid_t peer_uid;
+    int resource_close_selected, resource_close_errno;
+    unsigned resource_close_unknown;
+    dev_t original_socket_device;
+    ino_t original_socket_inode;
+    mode_t original_socket_mode;
 } caller;
 
 typedef struct {
@@ -41,7 +46,14 @@ typedef struct {
     int timeout_ms, error_number;
     const char *failure;
     caller *value;
+    unsigned cleanup_unknown;
+    int cleanup_number, debt_control_fd, debt_transfer_fd;
 } connecting;
+
+static void close_connecting_fds(connecting *job,int control,int transfer) {
+    if(control>=0&&close(control)){job->cleanup_unknown|=1;job->cleanup_number=errno;job->debt_control_fd=control;}
+    if(transfer>=0&&close(transfer)){job->cleanup_unknown|=2;if(!job->cleanup_number)job->cleanup_number=errno;job->debt_transfer_fd=transfer;}
+}
 
 static napi_value failure_value(napi_env env, const char *code, const char *message, int number) {
     napi_value text, error, value;
@@ -86,6 +98,9 @@ static int peer_identity(int fd, uid_t *uid, pid_t *pid) {
 }
 
 static void close_owned(caller *value) {
+    // The resource successor records each actual close once. An indeterminate
+    // close must never be replayed by a legacy retire/finalizer on a reused fd.
+    if (value->resource_close_selected) return;
     // A forked child must not shutdown the parent's shared socket description.
     // Closing only the child's inherited descriptors does not revoke the parent.
     if (!value->retired && value->owner_pid == getpid() && value->control_fd >= 0)
@@ -99,7 +114,7 @@ static void finalize(napi_env env, void *data, void *hint) {
     (void)env; (void)hint;
     caller *value = data;
     close_owned(value);
-    free(value);
+    if (!value->resource_close_unknown) free(value);
 }
 
 static caller *unwrap(napi_env env, napi_value object) {
@@ -196,32 +211,42 @@ static void execute_connect(napi_env env, void *data) {
     if (!value) { errno = ENOMEM; job->failure = "native caller allocation failed"; goto failed; }
     value->control_fd = control; value->transfer_fd = fd;
     value->owner_pid = getpid(); value->peer_uid = uid; value->peer_pid = pid;
+    struct stat original;
+    if(fstat(control,&original)||!S_ISSOCK(original.st_mode)){
+        free(value);job->failure="original Unix socket identity unavailable";goto failed;
+    }
+    value->original_socket_device=original.st_dev;value->original_socket_inode=original.st_ino;value->original_socket_mode=original.st_mode;
     job->value = value;
     return;
 failed:
     job->error_number = errno;
-    if (control >= 0) close(control);
-    if (fd >= 0) close(fd);
+    close_connecting_fds(job,control,fd);
 }
 
 static void complete_connect(napi_env env, napi_status status, void *data) {
     connecting *job = data;
     if (status != napi_ok || !job->value) {
-        if (job->value) { close_owned(job->value); free(job->value); }
-        napi_reject_deferred(env, job->deferred, failure_value(env, "UNAVAILABLE", job->failure ? job->failure : "native connect work cancelled", job->error_number));
+        if (job->value) { (void)shutdown(job->value->control_fd,SHUT_RDWR);close_connecting_fds(job,job->value->control_fd,job->value->transfer_fd);free(job->value); }
+        napi_value error=failure_value(env,"UNAVAILABLE",job->failure?job->failure:"native connect work cancelled",job->error_number);
+        if(job->cleanup_unknown){napi_value value;napi_get_boolean(env,true,&value);napi_set_named_property(env,error,"cleanupUnknown",value);napi_create_int32(env,job->cleanup_number,&value);napi_set_named_property(env,error,"cleanupErrno",value);}
+        napi_reject_deferred(env,job->deferred,error);
     } else {
         napi_value object;
         if (napi_create_object(env, &object) != napi_ok ||
             napi_type_tag_object(env, object, &caller_tag) != napi_ok ||
             napi_wrap(env, object, job->value, finalize, NULL, NULL) != napi_ok) {
-            close_owned(job->value); free(job->value);
-            napi_reject_deferred(env, job->deferred, failure_value(env, "UNAVAILABLE", "native caller branding failed", 0));
+            (void)shutdown(job->value->control_fd,SHUT_RDWR);close_connecting_fds(job,job->value->control_fd,job->value->transfer_fd);free(job->value);
+            napi_value error=failure_value(env,"UNAVAILABLE","native caller branding failed",0);
+            if(job->cleanup_unknown){napi_value value;napi_get_boolean(env,true,&value);napi_set_named_property(env,error,"cleanupUnknown",value);napi_create_int32(env,job->cleanup_number,&value);napi_set_named_property(env,error,"cleanupErrno",value);}
+            napi_reject_deferred(env,job->deferred,error);
         } else {
             napi_resolve_deferred(env, job->deferred, object);
         }
     }
     napi_delete_async_work(env, job->work);
-    free(job);
+    // A failed actual close is an owned numeric descriptor debt, not a retry
+    // instruction. Keep this private record even if no caller was published.
+    if(!job->cleanup_unknown)free(job);
 }
 
 static int number_field(napi_env env, napi_value object, const char *key, uint32_t *out, uint32_t max) {
@@ -287,6 +312,86 @@ static napi_value inspect_current(napi_env env, napi_callback_info info) {
     set_number(env, object, "peerPID", (uint32_t)value->peer_pid);
     set_number(env, object, "peerUID", (uint32_t)value->peer_uid);
     return object;
+}
+
+// Terminal HTTP framing is not a live-connection Current. P08 deliberately
+// closes its original HTTP connection after a complete response. The private
+// resource owner may call this ONLY after observing incoming.complete: it
+// verifies the same retained kernel endpoint, not HUP liveness or any Source.
+// All prewrite/in-flight gates continue to use the original strict current().
+static napi_value inspect_task_read_resource_peer(napi_env env,napi_callback_info info) {
+    caller *value=caller_argument(env,info);uid_t uid=(uid_t)-1;pid_t pid=-1;
+    const char *phase=NULL;int number=0,available=0,ended=0;struct stat original;memset(&original,0,sizeof(original));
+    if(!value)phase="original-allocation";
+    else if(value->owner_pid!=getpid())phase="original-process";
+    else if(value->retired||value->resource_close_selected)phase="original-retired";
+    else if(value->control_fd<0)phase="original-descriptor";
+    else if(fstat(value->control_fd,&original)){phase="original-socket-syscall";number=errno;}
+    else if(!S_ISSOCK(original.st_mode))phase="original-socket-type";
+    else if(original.st_dev!=value->original_socket_device)phase="original-socket-device";
+    else if(original.st_ino!=value->original_socket_inode)phase="original-socket-inode";
+    // Socket permission/read-write bits change on Darwin after orderly FIN
+    // (actual 0140666 -> 0140000). They are not object identity. Compare the
+    // socket type plus the same retained object's device/inode, not those bits.
+    else if((original.st_mode&S_IFMT)!=(value->original_socket_mode&S_IFMT))phase="original-socket-mode";
+    if(!phase&&peer_identity(value->control_fd,&uid,&pid)){
+        number=errno;phase="terminal-peer-syscall";
+        // Darwin LOCAL_PEERPID reports ENOTCONN after normal server FIN.
+        // This is not a live-peer success or a fresh identity observation.
+        // The caller's exclusive native allocation has retained this same fd
+        // since actual UID/PID capture and strict prewrite Current. It has not
+        // closed/transferred/reconnected it. Require actual EOF on that same
+        // socket plus the original fstat, and report the observation honestly.
+        if(number==ENOTCONN){
+            unsigned char byte;ssize_t n=recv(value->control_fd,&byte,1,MSG_PEEK|MSG_DONTWAIT);
+            if(n==0){ended=1;phase=NULL;uid=value->peer_uid;pid=value->peer_pid;}
+        }
+    }else if(!phase){
+        available=1;
+        if(uid!=value->peer_uid)phase="terminal-peer-uid";
+        else if(pid!=value->peer_pid)phase="terminal-peer-pid";
+    }
+    if(phase){
+        napi_value error=failure_value(env,"DENIED","same original resource endpoint required",number),part;
+        napi_create_string_utf8(env,phase,NAPI_AUTO_LENGTH,&part);napi_set_named_property(env,error,"phase",part);
+        napi_create_int32(env,(int32_t)pid,&part);napi_set_named_property(env,error,"observedPID",part);
+        if(value){char identity[192];snprintf(identity,sizeof(identity),"device=%llu inode=%llu mode=%u",(unsigned long long)value->original_socket_device,(unsigned long long)value->original_socket_inode,(unsigned)value->original_socket_mode);napi_create_string_utf8(env,identity,NAPI_AUTO_LENGTH,&part);napi_set_named_property(env,error,"expectedSocketIdentity",part);snprintf(identity,sizeof(identity),"device=%llu inode=%llu mode=%u",(unsigned long long)original.st_dev,(unsigned long long)original.st_ino,(unsigned)original.st_mode);napi_create_string_utf8(env,identity,NAPI_AUTO_LENGTH,&part);napi_set_named_property(env,error,"observedSocketIdentity",part);}
+        napi_throw(env,error);return NULL;
+    }
+    napi_value result,flag;napi_create_object(env,&result);
+    set_number(env,result,"selfPID",(uint32_t)getpid());set_number(env,result,"selfUID",(uint32_t)geteuid());
+    set_number(env,result,"peerPID",(uint32_t)pid);set_number(env,result,"peerUID",(uint32_t)uid);
+    napi_get_boolean(env,false,&flag);napi_set_named_property(env,result,"livenessProved",flag);
+    napi_get_boolean(env,available!=0,&flag);napi_set_named_property(env,result,"peerIdentityAvailable",flag);
+    napi_get_boolean(env,ended!=0,&flag);napi_set_named_property(env,result,"terminalEOFObserved",flag);
+    return result;
+}
+
+// Separate physical close observations for the finite3 resource successor.
+// Same native allocation/tag; no new authority/Source brand. Unknown numeric
+// descriptors stay in this retained allocation and are never closed again.
+static napi_value retire_task_read_resource(napi_env env,napi_callback_info info) {
+    caller *value=caller_argument(env,info);
+    if(!value||value->owner_pid!=getpid())return reject(env,"DENIED","same original resource caller required");
+    if(!value->resource_close_selected){
+        value->resource_close_selected=1;value->retired=1;
+        if(value->control_fd>=0&&shutdown(value->control_fd,SHUT_RDWR)&&errno!=ENOTCONN)
+            value->resource_close_errno=errno;
+        if(value->transfer_fd>=0){
+            if(close(value->transfer_fd)){value->resource_close_unknown|=1;if(!value->resource_close_errno)value->resource_close_errno=errno;}
+            else value->transfer_fd=-1;
+        }
+        if(value->control_fd>=0){
+            if(close(value->control_fd)){value->resource_close_unknown|=2;if(!value->resource_close_errno)value->resource_close_errno=errno;}
+            else value->control_fd=-1;
+        }
+    }
+    napi_value result,flag;napi_create_object(env,&result);
+    napi_get_boolean(env,value->resource_close_unknown==0,&flag);napi_set_named_property(env,result,"physicalDone",flag);
+    napi_get_boolean(env,value->resource_close_errno!=0||value->resource_close_unknown!=0,&flag);napi_set_named_property(env,result,"errorPresent",flag);
+    set_number(env,result,"errorNumber",(uint32_t)value->resource_close_errno);
+    set_number(env,result,"unknownCloseBits",value->resource_close_unknown);
+    return result;
 }
 
 static napi_value retire(napi_env env, napi_callback_info info) {
@@ -653,6 +758,8 @@ static napi_value initialize(napi_env env, napi_value exports) {
         {"takeInboundFD",NULL,take_inbound,NULL,NULL,NULL,napi_default,NULL},
         {"currentInbound",NULL,inbound_current,NULL,NULL,NULL,napi_default,NULL},
         {"retireInbound",NULL,retire_inbound,NULL,NULL,NULL,napi_default,NULL},
+        {"inspectOriginalTaskReadResourcePeer",NULL,inspect_task_read_resource_peer,NULL,NULL,NULL,napi_default,NULL},
+        {"retireOriginalTaskReadResource",NULL,retire_task_read_resource,NULL,NULL,NULL,napi_default,NULL},
         {"waitSocialDirectoryReadRelease",NULL,social_directory_wait,NULL,NULL,NULL,napi_default,NULL},
         {"writeSocialDirectoryClosedAck",NULL,social_directory_ack,NULL,NULL,NULL,napi_default,NULL},
         {"listenTaskRuntime",NULL,listen_runtime,NULL,NULL,NULL,napi_default,NULL},

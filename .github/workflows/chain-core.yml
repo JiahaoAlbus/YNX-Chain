@@ -126,6 +126,20 @@ jobs:
           name: social-directory-transport-darwin-${{ github.sha }}
           path: ${{ runner.temp }}/sd
           if-no-files-found: error
+      - name: Check fixed P08 resource caller and owned response drain
+        env:
+          YNX_LINK_TASK_READ_RESOURCE_CI_EVIDENCE: ${{ runner.temp }}/tr
+          GOMAXPROCS: "2"
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+        run: sh cmd/ynx-secure-link-caller/check.sh task-read-resource
+      - name: Preserve P08 Darwin transport and original first cause
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: task-read-resource-darwin-${{ github.sha }}
+          path: ${{ runner.temp }}/tr
+          if-no-files-found: error
 
   resource-current-native-linux:
     name: LINK resource-current native client and Linux kernel peer controls
@@ -180,6 +194,20 @@ jobs:
         with:
           name: social-directory-transport-linux-${{ github.sha }}
           path: ${{ runner.temp }}/sd
+          if-no-files-found: error
+      - name: Check fixed P08 resource caller and owned response drain
+        env:
+          YNX_LINK_TASK_READ_RESOURCE_CI_EVIDENCE: ${{ runner.temp }}/tr
+          GOMAXPROCS: "2"
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+        run: sh cmd/ynx-secure-link-caller/check.sh task-read-resource
+      - name: Preserve P08 Linux transport and original first cause
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: task-read-resource-linux-${{ github.sha }}
+          path: ${{ runner.temp }}/tr
           if-no-files-found: error
 
   resource-current-auth-reader-go:
