@@ -241,7 +241,11 @@ void actorAndPartialCause(const std::string &certs) {
     }
 }
 }
+#ifdef YNX_LINK_IDE_FINITE_GET_ABI_FIXTURE_ONLY
+int ynx_original_abi_controls_not_executed(int argc, char **argv) {
+#else
 int main(int argc, char **argv) {
+#endif
     (void)::signal(SIGPIPE, SIG_IGN);
     try {
         check(argc == 2 || argc == 3, "explicit owned PUBLIC certificate directory and optional exact control selector required");

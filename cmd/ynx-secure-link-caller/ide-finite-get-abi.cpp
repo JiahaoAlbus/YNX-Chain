@@ -1,4 +1,5 @@
 #include "ide_finite_get_transport_v1.h"
+#include "ide_finite_get_finish_private_v1.h"
 #include "ide-finite-get-transport.hpp"
 #include <algorithm>
 #include <array>
@@ -72,6 +73,7 @@ struct Record final {
     int32_t auth_failure = 0;
     size_t calls = 1;
     bool opening = true, close_running = false, closed = false, packet_released = false, open_unknown = false;
+    bool finish_running = false, response_observed = false, response_known = false;
     void remember(Code code, const char *message, int32_t auth = 0) {
         if (code == Code::ok || code == Code::draining) return;
         const Failure earlier = owner ? owner->first_error() : Failure{};
@@ -113,7 +115,7 @@ struct Call final {
 Code ready(const std::shared_ptr<Record> &record) {
     if (!record) return Code::denied;
     std::lock_guard<std::mutex> lock(record->mutex);
-    return record->opening || record->close_running ? Code::draining : record->closed ? Code::closed : Code::ok;
+    return record->opening || record->close_running || record->finish_running ? Code::draining : record->closed ? Code::closed : Code::ok;
 }
 std::string copy(ynx_auth_ide_get_bytes_v1 value, size_t maximum) {
     if (!value.data || !value.size || value.size > maximum) throw std::invalid_argument("original Auth field bound");
@@ -177,13 +179,13 @@ extern "C" int32_t ynx_link_ide_finite_get_open_original_v1(
     if (!out) return number(Code::denied);*out = nullptr;
     std::shared_ptr<Record> record;
     try {
-        record = std::make_shared<Record>();
+        record = std::make_shared<Record>();record->loan.ticket = ticket;
         { std::lock_guard<std::mutex> lock(inventory_mutex);
           if (inventory.size() >= maximum_clients) return number(Code::bounds);
           Identity *identity = allocate_identity_locked();if (!identity) return number(Code::bounds);
           record->handle = &identity->client;record->packet_handle = &identity->packet;
           inventory.emplace(record->handle, record); }
-        *out = record->handle;record->loan.ticket = ticket;
+        *out = record->handle;
         ynx_auth_ide_finite_get_loan_v1 *loan = nullptr;
         const int32_t claimed = ynx_auth_ide_finite_get_claim_original_v1(ticket, &loan);
         record->loan.value = loan;record->loan.remember(claimed); // nonnull partial FIRST
@@ -228,6 +230,9 @@ extern "C" int32_t ynx_link_ide_finite_get_wait_original_v1(
     const Packet *packet = nullptr;const Code code = call.record->owner->wait_response(timeout, &packet);
     if (packet) { std::lock_guard<std::mutex> lock(call.record->mutex);
         if (call.record->packet_released) return number(Code::closed);
+        call.record->response_observed = true;
+        call.record->response_known = packet->dispatch_possible && packet->response.body_complete &&
+            !packet->unknown && packet->failure.code == Code::ok;
         call.record->packet = packet;*out = call.record->packet_handle; }
     return number(code);
 }
@@ -281,17 +286,16 @@ extern "C" int32_t ynx_link_ide_finite_get_join_original_v1(
     return number(failure.code != Code::ok ? failure.code :
         call.record->open_unknown || call.record->loan.release_unknown.load() ? Code::cleanup_unknown : code);
 }
-extern "C" int32_t ynx_link_ide_finite_get_close_original_v1(
-    ynx_link_ide_finite_get_v4_client *handle, uint8_t *completed) {
-    if (!completed) return number(Code::denied);*completed = 0;Call call(handle);if (!call.record) return number(Code::denied);
-    auto &record = *call.record;
+namespace {
+int32_t close_record(const std::shared_ptr<Record> &record_ptr, uint8_t *completed, bool from_finish) {
+    auto &record = *record_ptr;
     bool already_closed = false;
     { std::lock_guard<std::mutex> lock(record.mutex);
-      if (record.opening || record.close_running || record.calls != 1) return number(Code::draining);
+      if (record.opening || record.close_running || (!from_finish && record.finish_running) || record.calls != 1) return number(Code::draining);
       if (record.closed) already_closed = true;
       else if (record.open_unknown) return number(Code::cleanup_unknown);
       else record.close_running = true; }
-    if (already_closed) { *completed = 1;return number(observed(call.record).code); }
+    if (already_closed) { *completed = 1;return number(observed(record_ptr).code); }
     Code code = Code::ok;bool done = !record.owner;
     if (record.owner) { code = record.owner->retire();if (code == Code::ok) code = record.owner->close(&done); }
     if (done && !record.loan.release_unknown.load()) {
@@ -307,10 +311,16 @@ extern "C" int32_t ynx_link_ide_finite_get_close_original_v1(
             else record.loan.freed = true;
         }
     } else if (record.loan.release_unknown.load()) done = false;
-    const Failure failure = observed(call.record);
+    const Failure failure = observed(record_ptr);
     { std::lock_guard<std::mutex> lock(record.mutex);record.close_running = false;if (done) record.closed = true; }
     *completed = done;
     return number(failure.code != Code::ok ? failure.code : done ? Code::ok : code == Code::ok ? Code::draining : code);
+}
+} // namespace
+extern "C" int32_t ynx_link_ide_finite_get_close_original_v1(
+    ynx_link_ide_finite_get_v4_client *handle, uint8_t *completed) {
+    if (!completed) return number(Code::denied);*completed = 0;Call call(handle);if (!call.record) return number(Code::denied);
+    return close_record(call.record, completed, false);
 }
 extern "C" int32_t ynx_link_ide_finite_get_free_original_v1(ynx_link_ide_finite_get_v4_client *handle) {
     std::lock_guard<std::mutex> index(inventory_mutex);const auto found = inventory.find(handle);
@@ -342,4 +352,91 @@ extern "C" int32_t ynx_link_ide_finite_get_first_error_v1(
     out->native_code = failure.native_code;out->system_errno = failure.system_errno;
     out->auth_code = call.record->auth_failure ? call.record->auth_failure : call.record->loan.first_auth.load();
     out->message = view(call.record->failure_view);return 0;
+}
+
+namespace {
+void finish_snapshot(const std::shared_ptr<Record> &record, ynx_link_ide_get_finish_status_v1 *out) {
+    const Failure first = observed(record);
+    std::lock_guard<std::mutex> lock(record->mutex);
+    out->version = 1;out->size = sizeof(*out);
+    out->first_code = number(first.code);out->native_code = first.native_code;out->system_errno = first.system_errno;
+    out->auth_code = record->auth_failure ? record->auth_failure : record->loan.first_auth.load();
+    if (record->opening || record->close_running) return;
+    out->response_known = record->response_observed && record->response_known;
+    out->response_released = record->packet_released;
+    out->auth_loan_held = record->loan.value && !record->loan.freed;
+    out->cleanup_unknown = record->open_unknown || record->loan.release_unknown.load();
+    if (record->owner) {
+        const auto life = record->owner->lifetime();out->worker_joined = life.worker_joined;
+        out->physical_complete = record->closed && life.physical_complete;
+        out->cleanup_unknown = out->cleanup_unknown || life.cleanup_unknown;
+    } else out->physical_complete = record->closed;
+}
+struct FinishScope final {
+    std::shared_ptr<Record> record;
+    ~FinishScope() { if (record) { std::lock_guard<std::mutex> lock(record->mutex);record->finish_running = false; } }
+};
+}
+extern "C" int32_t ynx_link_ide_finite_get_finish_ticket_original_v1(
+    ynx_auth_ide_finite_get_ticket_v1 *ticket, ynx_link_ide_finite_get_v4_client *handle,
+    uint32_t timeout, ynx_link_ide_get_finish_status_v1 *out) {
+    if (!out) return number(Code::denied);*out = {};out->version = 1;out->size = sizeof(*out);
+    if (!ticket || timeout > 30000) return number(Code::denied);
+    Call call(handle);if (!call.record) return number(Code::denied);const auto record = call.record;
+    Code eligibility = Code::ok;
+    {
+        std::lock_guard<std::mutex> lock(record->mutex);
+        if (record->loan.ticket != ticket) return number(Code::denied);
+        if (record->opening || record->close_running || record->finish_running || record->calls != 1) return number(Code::draining);
+        if (record->closed || record->loan.base_released || record->loan.freed) eligibility = Code::closed;
+        else if (!record->loan.value || !record->owner) eligibility = Code::denied;
+        else if (record->open_unknown || record->loan.release_unknown.load()) eligibility = Code::cleanup_unknown;
+        else if (!record->response_observed || !record->packet_released) eligibility = Code::draining;
+    }
+    if (eligibility != Code::ok) { finish_snapshot(record, out);return number(eligibility); }
+    // The client identity is process-lifetime unique. A live base claim holds
+    // this ticket against Auth free/reuse; never match a closed cached record.
+    {
+        std::lock_guard<std::mutex> index(inventory_mutex);
+        size_t matches = 0;
+        for (const auto &entry : inventory) {
+            std::lock_guard<std::mutex> lock(entry.second->mutex);
+            const auto &candidate = *entry.second;
+            // Open publishes its mutable claim/owner only when opening becomes
+            // false under this mutex. A failed second claim's cleanup-only
+            // partial is NOT another live ticket loan. During actual close,
+            // conservatively retain the live-claim slot without reading its
+            // mutable base-release/free flags while that cleanup is in flight.
+            if (!candidate.opening && candidate.loan.ticket == ticket && !candidate.closed &&
+                candidate.loan.value && candidate.owner && (candidate.close_running ||
+                (!candidate.loan.base_released && !candidate.loan.freed))) ++matches;
+        }
+        if (matches != 1) return number(Code::denied);
+    }
+    {
+        std::lock_guard<std::mutex> lock(record->mutex);
+        if (record->loan.ticket != ticket) return number(Code::denied);
+        if (record->opening || record->close_running || record->finish_running || record->calls != 1) return number(Code::draining);
+        if (record->closed || record->loan.base_released || record->loan.freed) return number(Code::closed);
+        record->finish_running = true;
+    }
+    FinishScope finish{record};
+    const auto current = [&]() {
+        const int32_t auth = ynx_auth_ide_finite_get_current_original_v1(ticket);record->loan.remember(auth);
+        if (auth) record->remember(Code::source_current, "same original Auth request finish current rejected", auth);
+        return auth;
+    };
+    (void)current();
+    const Code retired = record->owner->retire();
+    bool joined = false;
+    const Code joined_code = retired == Code::ok ? record->owner->join(timeout, &joined) : retired;
+    if (!joined) { finish_snapshot(record, out);return out->first_code ? out->first_code : number(joined_code); }
+    uint8_t closed = 0;const int32_t close_code = close_record(record, &closed, true);
+    // The actual original actor still owns its original ticket/custody. A full
+    // post-cleanup Source/context check is independent from physical cleanup.
+    if (closed) (void)current();
+    finish_snapshot(record, out);
+    out->finished = closed && out->physical_complete && out->response_known && out->response_released &&
+        out->worker_joined && !out->auth_loan_held && !out->cleanup_unknown && !out->first_code && !out->auth_code;
+    return out->first_code ? out->first_code : close_code;
 }

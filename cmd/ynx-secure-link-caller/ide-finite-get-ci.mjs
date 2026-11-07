@@ -36,6 +36,7 @@ async function recordFile(name, bytes) {
 await recordFile('finite7.tap', Buffer.from(result.stdout ?? ''));
 await recordFile('finite7.stderr', Buffer.from(result.stderr ?? ''));
 let abiResult;
+let finishResult;
 let aiResult;
 const roots = [privateRoot];
 if (!result.error && result.status === 0) {
@@ -66,6 +67,22 @@ if (!result.error && result.status === 0) {
   await recordFile('finite7-abi.tap', Buffer.from(abiResult.stdout ?? ''));
   await recordFile('finite7-abi.stderr', Buffer.from(abiResult.stderr ?? ''));
   if (!abiResult.error && abiResult.status === 0) {
+    const finishRoot = privateRoot + '-finish';
+    process.env.YNX_LINK_IDE_FINITE_GET_FINISH_TEST_ARTIFACTS = finishRoot;
+    roots.push(await ownedRoot('YNX_LINK_IDE_FINITE_GET_FINISH_TEST_ARTIFACTS'));
+    assert.deepEqual(await readdir(finishRoot), [], 'one original finish attempt requires a fresh private directory');
+    const finishEnv = {...process.env, YNX_LINK_IDE_FINITE_GET_ABI_INPUTS: path.join(evidence, 'ABI-INPUTS.json'),
+      YNX_LINK_IDE_FINITE_GET_ABI_INPUTS_BYTES: String(inputs.length),
+      YNX_LINK_IDE_FINITE_GET_ABI_INPUTS_SHA256: createHash('sha256').update(inputs).digest('hex')};
+    delete finishEnv.YNX_LINK_IDE_FINITE_GET_FINISH_CONTROL;
+    finishResult = spawnSync(process.execPath, ['--test', path.join(source, 'ide-finite-get-finish.test.mjs')], {
+      cwd: repository, env: finishEnv,
+      encoding: 'utf8', timeout: 180000, maxBuffer: 4 << 20,
+    });
+    await recordFile('finite7-finish.tap', Buffer.from(finishResult.stdout ?? ''));
+    await recordFile('finite7-finish.stderr', Buffer.from(finishResult.stderr ?? ''));
+  }
+  if (finishResult && !finishResult.error && finishResult.status === 0) {
     const aiRoot = privateRoot + '-ai';
     process.env.YNX_LINK_AI_MOBILE_V6_TEST_ARTIFACTS = aiRoot;
     roots.push(await ownedRoot('YNX_LINK_AI_MOBILE_V6_TEST_ARTIFACTS'));
@@ -82,10 +99,10 @@ if (!result.error && result.status === 0) {
   }
 }
 for (const root of roots) for (const entry of await readdir(root, {withFileTypes: true})) {
-  assert.ok(entry.isDirectory() && /^(fg|abi|ai)-[A-Za-z0-9]+$/.test(entry.name), 'unexpected private control directory');
+  assert.ok(entry.isDirectory() && /^(fg|abi|ai|finish)-[A-Za-z0-9]+$/.test(entry.name), 'unexpected private control directory');
   const directory = path.join(root, entry.name);
   for (const leaf of await readdir(directory)) {
-    if (!/^([A-Za-z0-9][A-Za-z0-9_.-]{0,150}\.(json|stdout|stderr|o|cpp)|finite7-native-controls|finite7-wire-controls|finite7-abi-controls|ai-mobile-v6-native-controls|ai-mobile-v6-wire-controls)$/.test(leaf)) continue;
+    if (!/^([A-Za-z0-9][A-Za-z0-9_.-]{0,150}\.(json|stdout|stderr|o|cpp)|finite7-native-controls|finite7-wire-controls|finite7-abi-controls|finite7-finish-controls|ai-mobile-v6-native-controls|ai-mobile-v6-wire-controls)$/.test(leaf)) continue;
     const file = path.join(directory, leaf), info = await lstat(file);
     assert.ok(info.isFile() && !info.isSymbolicLink() && info.uid === process.getuid() && info.size <= (32 << 20), 'only bounded owned regular control outputs may be published');
     await recordFile(entry.name + '-' + leaf, await readFile(file));
@@ -93,14 +110,17 @@ for (const root of roots) for (const entry of await readdir(root, {withFileTypes
 }
 const manifest = {
   schema: 'YNX-LINK-FINITE7-ORIGINAL-CI-PUBLIC-CONTROLS/v1',
-  status: result.status !== 0 ? result.status : abiResult && abiResult.status !== 0 ? abiResult.status : aiResult ? aiResult.status : 0,
-  signal: result.signal || abiResult?.signal || aiResult?.signal || null,
+  status: result.status !== 0 ? result.status : abiResult && abiResult.status !== 0 ? abiResult.status : finishResult && finishResult.status !== 0 ? finishResult.status : aiResult ? aiResult.status : 0,
+  signal: result.signal || abiResult?.signal || finishResult?.signal || aiResult?.signal || null,
   transportStatus: result.status,
   processError: result.error ? {code: result.error.code, message: result.error.message} : null,
   command: [process.execPath, '--test', path.join(source, 'ide-finite-get-transport.test.mjs')],
   abi: abiResult ? {status: abiResult.status, signal: abiResult.signal,
     processError: abiResult.error ? {code: abiResult.error.code, message: abiResult.error.message} : null,
     command: [process.execPath, '--test', path.join(source, 'ide-finite-get-abi.test.mjs')]} : null,
+  finish: finishResult ? {status: finishResult.status, signal: finishResult.signal,
+    processError: finishResult.error ? {code: finishResult.error.code, message: finishResult.error.message} : null,
+    command: [process.execPath, '--test', path.join(source, 'ide-finite-get-finish.test.mjs')]} : null,
   ai: aiResult ? {status: aiResult.status, signal: aiResult.signal,
     processError: aiResult.error ? {code: aiResult.error.code, message: aiResult.error.message} : null,
     command: [process.execPath, '--test', path.join(source, 'ai-mobile-v6-transport.test.mjs')]} : null,
@@ -116,6 +136,11 @@ if (abiResult) {
   process.stdout.write(abiResult.stdout ?? '');process.stderr.write(abiResult.stderr ?? '');
   assert.equal(abiResult.error, undefined, 'original finite7 ABI process error retained');
   assert.equal(abiResult.status, 0, 'original finite7 ABI failure retained with command logs');
+}
+if (finishResult) {
+  process.stdout.write(finishResult.stdout ?? '');process.stderr.write(finishResult.stderr ?? '');
+  assert.equal(finishResult.error, undefined, 'original finite7 finish process error retained');
+  assert.equal(finishResult.status, 0, 'original finite7 finish failure retained with command logs');
 }
 if (aiResult) {
   process.stdout.write(aiResult.stdout ?? '');process.stderr.write(aiResult.stderr ?? '');
