@@ -829,7 +829,12 @@
     "native/social-f06-directory-readonly-data.mjs",
     "native/social-f06-directory-readonly-data.d.mts",
     "native/mobile-accountproof-host-v1/MobileAccountProofHostPortPrivate.hpp",
-    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp"
+    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp",
+    "native/social-principal-stdio-v1/codec.mjs",
+    "native/social-principal-stdio-v1/codec.d.mts",
+    "native/social-principal-stdio-v1/codec.go",
+    "native/social-principal-stdio-v1/go.mod",
+    "native/social-principal-stdio-v1/IDL.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

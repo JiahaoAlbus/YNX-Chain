@@ -1,0 +1,15 @@
+# Social principal single-child stdio v1
+
+This is a shared DATA codec, not a Root/Source/Native credential. Auth owns the fixed compiled helper, protected locator/FD inventory, same-process opaque credential brand, independent Root/current validation, SQL nonce and child lifetime. Main policy and LINK registered transport remain independently owned.
+
+Use native/social-principal-stdio-v1/IDL.json as the sole wire contract. Go imports this package rather than maintaining draft request/response structs or a second JSON parser. Node imports codec.mjs; codec.d.mts supplies readonly types. There is no public provider, executable/path/ENV selector, service or package export added here.
+
+Auth helper must encode its Go Marshal original once as a UTF8 string, then EncodeResponseFrame. Node adopts the returned original before interpreting paired error/late current and uses the shared DecodeBindingOriginal/DecodeQualifiedOriginal equivalents once. Signed profile/registration originals stay opaque and byte-identical; do not parse their epochs through JS Number or re-marshal signed bytes. Sequence is a full-u64 decimal string, distinct from issuer/anchor epochs and other counters.
+
+Startup sequence 0 is one binding observation. Requests 1..u64max are strictly one outstanding per SAME child. Match response against stored sequence and command. physicalDone can be observed only on that child's outstanding close; EOF/exit/current/join are not close completion. A partial original and errorPresent:true/code:0 coexist. Unmapped Go errors retain the true local first cause and emit retained/0, never paths/messages/stacks. Original Node errors and falsy first causes stay local; wire error DATA does not claim cross-process object identity.
+
+The exchange DATA bookkeeping retains UNKNOWN and accepts only retire/join/close thereafter. It does not validate a real clock, reap a child, release a Source or create permission. Auth must keep original window/current pre/post AND, same accepted request, expected17, same credential and physical debt; cleanup remains possible after cancellation. Retire/close must never create a fresh signing attempt or nonce.
+
+Normal integration: replace the draft scanner/parser in Auth cmd/ynx-social-session-profile-source/main.go and its private Node service with this codec; retain their private real owners, fixed inventory and independent current checks. No Main-to-Node L/C transport is defined here. The three existing private Node methods remain assertSocialDeviceDirectoryPrincipalPurposeV4, existingSocialDeviceDirectoryPrincipalV4(SAMEcredential), assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(SAMEcredential,SAMEresult). Decoder output cannot satisfy their opaque-brand requirements.
+
+CI: setup Node >=24, Go 1.25.13 and normal npm dependencies, then node scripts/ci/social-principal-stdio-v1.mjs. This runs only new JS12, strict seven expected type refusals without skipLibCheck, and Go3. Source/Root/Native admission and actual helper integration remain false/unverified. A Go1.25.13 compile-only result is separate from the observed Go1.26.10 behavioral run.
