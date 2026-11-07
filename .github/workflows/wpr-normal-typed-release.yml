@@ -13,6 +13,10 @@ on:
       - apps/wallet-desktop/scripts/original-auth-wallet-product-*.mjs
       - apps/wallet-desktop/native/wpr-build/normal-inputs.json
       - apps/wallet-desktop/test/wpr-typed-*
+      - apps/wallet-desktop/scripts/wallet-product-normal-inputs*
+      - apps/wallet-desktop/test/wpr-normal-inputs*
+      - scripts/ci/wpr-normal-inputs.mjs
+      - docs/engineering/WPR_NORMAL_COMPILE_INPUT.md
       - scripts/ci/wpr-normal-typed-release.mjs
       - .github/workflows/wpr-normal-typed-release.yml
 jobs:
@@ -23,14 +27,15 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - shell: bash
         run: |
           set -euo pipefail
-          node --test apps/wallet-desktop/test/wpr-napi-plan-composition.test.mjs 2>&1 | tee wpr-typed-data.log
+          node scripts/ci/wpr-normal-inputs.mjs 2>&1 | tee wpr-typed-data.log
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: wpr-typed-data
           path: |
             wpr-typed-data.log
-            ${{ runner.temp }}/wpr-typed-cpp-data-*
+            wpr-normal-input-controls
