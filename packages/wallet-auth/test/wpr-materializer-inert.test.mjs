@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {materializeOriginalWalletProductPublicDATA as inspect} from '../src/original-wallet-product-materializer-data.js';
+let traps=0;const proxy=new Proxy({},{get(){traps++;throw Error('trap');},ownKeys(){traps++;throw Error('trap');},getPrototypeOf(){traps++;throw Error('trap');}});assert.throws(()=>inspect(proxy),/WPR_MATERIALIZER_INERT_DATA_REQUIRED/);assert.equal(traps,0);console.log('PASS proxy refused before reflection/trap');
+const getter={};Object.defineProperty(getter,'originals',{get(){traps++;throw Error('getter');},enumerable:true});assert.throws(()=>inspect(getter),/WPR_MATERIALIZER_INERT_DATA_REQUIRED/);assert.equal(traps,0);console.log('PASS getter refused without invocation');
+const source=readFileSync(new URL('../src/original-wallet-product-materializer-data.js',import.meta.url),'utf8');assert.doesNotMatch(source,/loadReleaseSelected|loadOriginalAuthSourceIssuanceService|loadOriginalAuthSourceCurrentService|importKeyMaterial|roleKeys|currentKeys|createRequire|node:fs/);assert.match(source,/const reviewedMaterializations=Object.freeze\(\[\]\)/);console.log('PASS closed normal table and no sensitive loader/import dependency');

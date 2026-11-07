@@ -7,6 +7,7 @@ on:
       - packages/wallet-auth/test/wpr-fixed-capture-runner.test.mjs
       - packages/wallet-auth/package.json
       - scripts/ci/wpr-fixed-capture-runner.mjs
+      - scripts/ci/wpr-nodehost-composition.mjs
       - .github/workflows/wpr-fixed-capture-runner.yml
 jobs:
   fixed-runner-data:
@@ -22,7 +23,9 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci/wpr-fixed-capture-runner.mjs 2>&1 | tee wpr-fixed-capture-runner.log
+      - run: node scripts/ci/wpr-nodehost-composition.mjs
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/wpr-nodehost-composition.mjs --packed
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -30,4 +33,5 @@ jobs:
           path: |
             wpr-fixed-capture-runner.log
             wpr-fixed-capture-runner-controls
+            wpr-nodehost-composition-controls
             canonical-common-source-package
