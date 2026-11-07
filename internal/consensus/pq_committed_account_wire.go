@@ -26,10 +26,14 @@ type pqAccountWirePeer struct {
 }
 
 type pqCommittedAccountWire struct {
-	app             *Application
-	source          *PQWalletPolicyLiveSource
-	owner           string
-	ctx             context.Context
+	app    *Application
+	source *PQWalletPolicyLiveSource
+	owner  string
+	ctx    context.Context
+	// Only the private protected Source clock separates productive retirement
+	// from same-reader SDK97 cleanup. Generic parent cancellation keeps its
+	// original immediate transport-close semantics.
+	protectedSource *pqProtectedSourceParent
 	cancel          context.CancelFunc
 	mu              sync.Mutex
 	conn            *net.UnixConn
@@ -61,6 +65,9 @@ func attachPQCommittedAccountWire(parent context.Context, app *Application, boun
 	}
 	ctx, cancel := context.WithCancel(parent)
 	w := &pqCommittedAccountWire{app: app, source: source, owner: boundOwner, ctx: ctx, cancel: cancel, setupDone: make(chan struct{}), done: make(chan struct{}), next: 1}
+	if p, ok := parent.(*pqProtectedSourceParent); ok && p.ownsOriginalCapture() {
+		w.protectedSource = p
+	}
 	source.mu.Lock()
 	if source.retired || source.app != app || source.view == nil || source.node == nil {
 		source.mu.Unlock()
@@ -79,6 +86,7 @@ func attachPQCommittedAccountWire(parent context.Context, app *Application, boun
 	source.mu.Unlock()
 	defer close(w.setupDone)
 	fail := func(e error) (*pqCommittedAccountWire, error) {
+		w.retainProtectedSourceCause()
 		w.record(e)
 		cancel()
 		_ = endpoint.Close()
@@ -129,6 +137,22 @@ func (w *pqCommittedAccountWire) record(e error) {
 	w.mu.Unlock()
 }
 func (w *pqCommittedAccountWire) cause() error { w.mu.Lock(); defer w.mu.Unlock(); return w.firstCause }
+
+// Preserve the original terminal Source result even when the caller goes
+// straight from OPEN to cleanup. A context error alone loses present=true,
+// code=0, and cleanup must not depend on a failed productive READ to record it.
+// This only samples the sealed private capture, never a caller context value.
+func (w *pqCommittedAccountWire) retainProtectedSourceCause() {
+	if p := w.protectedSource; p != nil {
+		if err := p.Err(); err != nil {
+			if cause := p.cause(); cause != nil {
+				w.record(cause)
+			} else {
+				w.record(err)
+			}
+		}
+	}
+}
 func (w *pqCommittedAccountWire) complete() {
 	w.source.mu.Lock()
 	close(w.done)
@@ -151,7 +175,23 @@ func (w *pqCommittedAccountWire) closeWalletPolicyAccountProofChild() error {
 
 func (w *pqCommittedAccountWire) serve() {
 	callbackDone := make(chan struct{})
-	stop := context.AfterFunc(w.ctx, func() { defer close(callbackDone); _ = w.conn.Close() })
+	stop := context.AfterFunc(w.ctx, func() {
+		defer close(callbackDone)
+		w.retainProtectedSourceCause()
+		if w.protectedSource == nil || !w.protectedSource.cleanupOnly() {
+			_ = w.conn.Close()
+		}
+	})
+	var stopProcess func() bool
+	processDone := make(chan struct{})
+	if w.protectedSource != nil {
+		stopProcess = context.AfterFunc(w.protectedSource.process, func() {
+			defer close(processDone)
+			w.retainProtectedSourceCause()
+			w.record(w.protectedSource.process.Err())
+			_ = w.conn.Close()
+		})
+	}
 	defer func() {
 		if recover() != nil {
 			w.record(errors.New("original account proof wire worker failed"))
@@ -167,11 +207,15 @@ func (w *pqCommittedAccountWire) serve() {
 		if !stop() {
 			<-callbackDone
 		}
+		if stopProcess != nil && !stopProcess() {
+			<-processDone
+		}
 		w.complete() // only now may Source remove this actual child
 	}()
 	for {
 		request, err := readPQAccountWireRequest(w.conn)
 		if err != nil {
+			w.retainProtectedSourceCause()
 			if !w.closed || !errors.Is(err, io.EOF) {
 				w.record(err)
 			}
@@ -184,14 +228,17 @@ func (w *pqCommittedAccountWire) serve() {
 		response := w.execute(request)
 		header, err := response.header()
 		if err != nil {
+			w.retainProtectedSourceCause()
 			w.record(err)
 			return
 		}
 		if err = writePQAccountWire(w.conn, header[:]); err != nil {
+			w.retainProtectedSourceCause()
 			w.record(err)
 			return
 		}
 		if err = writePQAccountWire(w.conn, response.payload); err != nil {
+			w.retainProtectedSourceCause()
 			w.record(err)
 			return
 		}
@@ -228,6 +275,7 @@ func (w *pqCommittedAccountWire) sequence(f pqAccountWireFrame) error {
 	return nil
 }
 func (w *pqCommittedAccountWire) failed(f pqAccountWireFrame, err error) pqAccountWireFrame {
+	w.retainProtectedSourceCause()
 	w.record(err)
 	w.terminal = true
 	if w.handler != nil {
@@ -243,6 +291,7 @@ func (w *pqCommittedAccountWire) failed(f pqAccountWireFrame, err error) pqAccou
 func (w *pqCommittedAccountWire) execute(f pqAccountWireFrame) pqAccountWireFrame {
 	f.status = pqAccountWireOK
 	f.reader = w.reader
+	w.retainProtectedSourceCause()
 	switch f.op {
 	case pqAccountWireOpen:
 		w.selected = true // select before any factory/capture; never resend/re-open
@@ -329,6 +378,12 @@ func (w *pqCommittedAccountWire) execute(f pqAccountWireFrame) pqAccountWireFram
 		}
 		w.closed = true
 		f.status = pqAccountWireClosed
+	}
+	// Source cancellation may have arrived during Retire/Join/Close. Sample it
+	// synchronously before publishing the cleanup result, independent of the
+	// asynchronous cancellation callback. Physical CLOSED and failure are separate.
+	w.retainProtectedSourceCause()
+	if f.op == pqAccountWireClose {
 		f.failure = w.cause() != nil
 	}
 	if f.op != pqAccountWireClose && w.cause() != nil {
