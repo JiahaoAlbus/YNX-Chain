@@ -110,3 +110,6 @@ export function verifySDK13HelperBundle(contents,helperBytes,plistBytes){
  for(const [relative,bytes,mode]of bundleRows(helperBytes,plistBytes)){const file=path.join(contents,relative),s=lstatSync(file);if((s.mode&0o777)!==mode||!regular(file).equals(bytes))fail();}
  return {bytesVerified:true,serviceRegistered:false,installed:false,executed:false,nativeQualified:false};
 }
+
+// Separate Node-only c6 artifact role. Legacy full Node+helper verification is unchanged.
+export {native49C6NormalNodeComponent} from "./native49-c6-normal-component.mjs";

@@ -1,0 +1,30 @@
+name: Wallet Native49 c6 component DATA consumer
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/scripts/native49-c6-*
+      - apps/wallet-desktop/test/native49-c6-normal-component.test.mjs
+      - scripts/ci/native49-c6-normal-component.mjs
+      - .github/workflows/wallet-native49-c6-consumer.yml
+  push:
+    branches: [codex/wallet-native49-c6-normal-consumer-20261107]
+jobs:
+  original-record-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original record plus bounded negative controls (no Native execution)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p CI_NATIVE49_C6
+          node scripts/ci/native49-c6-normal-component.mjs 2>&1 | tee CI_NATIVE49_C6/controls.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native49-c6-record-data
+          path: CI_NATIVE49_C6
