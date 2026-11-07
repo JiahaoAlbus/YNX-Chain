@@ -11,6 +11,16 @@ typedef struct {
 } ynx_tls_state;
 
 SSL_CTX *ynx_ctx_new(const char *, const char *, const char *, int, char *, size_t);
+/* Additive Native credential import. Only owned duplicate FDs are closed;
+ * original FD offsets/ownership and all private key bytes stay out of callers.
+ * A close error is UNKNOWN: preserve this DATA and the owning Source debt,
+ * never retry close on a possibly reused numeric descriptor. */
+typedef struct {
+    int32_t certificate_fd, private_key_fd;
+    uint32_t close_unknown;
+} ynx_credential_fd_cleanup;
+SSL_CTX *ynx_ctx_new_fds(int, int, const unsigned char *, size_t, const char *,
+                       int, ynx_credential_fd_cleanup *, char *, size_t);
 SSL *ynx_ssl_new(SSL_CTX *, int, int, const char *);
 int ynx_handshake(SSL *, char *, size_t);
 int ynx_read(SSL *, void *, size_t, size_t *, char *, size_t);

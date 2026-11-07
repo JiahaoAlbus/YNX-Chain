@@ -1,0 +1,26 @@
+{
+  "schema": "YNX-LINK-FINITE7-AUTH-PHYSICAL-TEST-DEPENDENCIES/v1",
+  "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/ticket-source-r5/native",
+  "normalProductionSource": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "normalFinalLink": false,
+  "originalProductionMethods": "Original TargetQualification/RequestCustody four sealed Origin current/read bodies remain original Auth owner work; PUBLIC test definitions forbidden in shipping images",
+  "sources": [
+    {
+      "path": "ide_finite_get_auth_mother_v1.h",
+      "bytes": 4247,
+      "sha256": "9d80c959d3a05937ac41487b386878330b725f67e63582dbf714b4379c1b0ec6"
+    },
+    {
+      "path": "ide_finite_get_auth_mother.cpp",
+      "bytes": 9236,
+      "sha256": "85d808fb0be19d883b279d480d5145ac9ba287e8048f15c403afd5a2b11fbfba"
+    },
+    {
+      "path": "ide_finite_get_auth_mother_internal.hpp",
+      "bytes": 1718,
+      "sha256": "aa6832e4b12ce3ee17575c12db2d59425469ca695a7bd5feecb4d1d581ef3ad4"
+    }
+  ]
+}

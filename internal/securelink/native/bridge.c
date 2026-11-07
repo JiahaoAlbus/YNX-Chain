@@ -1,5 +1,8 @@
 //go:build securelink_openssl && cgo
 
+#if defined(__linux__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
 #include "bridge.h"
 #include <openssl/err.h>
 #include <openssl/x509v3.h>
@@ -14,6 +17,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <openssl/pem.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 
 #if OPENSSL_VERSION_MAJOR != 3 || OPENSSL_VERSION_MINOR != 6 || OPENSSL_VERSION_PATCH != 4
 #error "securelink native runtime is pinned to OpenSSL 3.6.4"
@@ -130,8 +136,7 @@ static int verify_chain(int ok, X509_STORE_CTX *store) {
     return ok && pq_cert(X509_STORE_CTX_get_current_cert(store));
 }
 
-SSL_CTX *ynx_ctx_new(const char *cert, const char *key, const char *ca,
-                     int server, char *err, size_t cap) {
+static SSL_CTX *new_fixed_context(char *err, size_t cap) {
     if (OpenSSL_version_num() != OPENSSL_VERSION_NUMBER) {
         failure(err, cap, "OpenSSL runtime differs from pinned build"); return NULL;
     }
@@ -155,14 +160,14 @@ SSL_CTX *ynx_ctx_new(const char *cert, const char *key, const char *ca,
         !SSL_CTX_set1_sigalgs_list(ctx, "mldsa87") ||
         !SSL_CTX_set1_client_sigalgs_list(ctx, "mldsa87") ||
         !SSL_CTX_set_num_tickets(ctx, 0) ||
-        !SSL_CTX_set_max_early_data(ctx, 0) ||
-        !SSL_CTX_load_verify_locations(ctx, ca, NULL) ||
-        !SSL_CTX_use_certificate_chain_file(ctx, cert) ||
-        !load_service_key(ctx, key) ||
-        !SSL_CTX_check_private_key(ctx)) {
+        !SSL_CTX_set_max_early_data(ctx, 0)) {
         failure(err, cap, "fixed PQ TLS profile or service credential unavailable");
         SSL_CTX_free(ctx); return NULL;
     }
+    return ctx;
+}
+
+static int finish_fixed_context(SSL_CTX *ctx, int server, char *err, size_t cap) {
     SSL_CTX_set_options(ctx, SSL_OP_NO_TICKET | SSL_OP_NO_RENEGOTIATION);
     SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
     SSL_CTX_set_post_handshake_auth(ctx, 0);
@@ -174,7 +179,174 @@ SSL_CTX *ynx_ctx_new(const char *cert, const char *key, const char *ca,
         X509_cmp_current_time(X509_get0_notBefore(local)) >= 0 ||
         X509_cmp_current_time(X509_get0_notAfter(local)) <= 0) {
         failure(err, cap, "local service requires ML-DSA-87 certificate, explicit EKU and DNS SAN");
+        return 0;
+    }
+    return 1;
+}
+
+SSL_CTX *ynx_ctx_new(const char *cert, const char *key, const char *ca,
+                     int server, char *err, size_t cap) {
+    SSL_CTX *ctx = new_fixed_context(err, cap);
+    if (!ctx) return NULL;
+    if (!SSL_CTX_load_verify_locations(ctx, ca, NULL) ||
+        !SSL_CTX_use_certificate_chain_file(ctx, cert) ||
+        !load_service_key(ctx, key) || !SSL_CTX_check_private_key(ctx)) {
+        failure(err, cap, "fixed PQ TLS profile or service credential unavailable");
         SSL_CTX_free(ctx); return NULL;
+    }
+    if (!finish_fixed_context(ctx, server, err, cap)) { SSL_CTX_free(ctx); return NULL; }
+    return ctx;
+}
+
+/* A Native-only bounded BIO over an OWNED duplicate. pread changes only our
+ * logical cursor, never the original shared open-file-description offset.
+ * OpenSSL alone parses the key; no private byte getter or digest is exposed. */
+typedef struct {
+    int fd;
+    off_t offset, length;
+    struct stat seal;
+    ynx_credential_fd_cleanup *cleanup;
+    uint32_t bit;
+} owned_fd_reader;
+static BIO_METHOD *owned_fd_method;
+static CRYPTO_ONCE owned_fd_once = CRYPTO_ONCE_STATIC_INIT;
+
+static int same_fd_seal(const struct stat *a, const struct stat *b) {
+    if (a->st_dev != b->st_dev || a->st_ino != b->st_ino || a->st_mode != b->st_mode ||
+        a->st_uid != b->st_uid || a->st_size != b->st_size || a->st_nlink != b->st_nlink) return 0;
+#ifdef __APPLE__
+    return a->st_mtimespec.tv_sec == b->st_mtimespec.tv_sec && a->st_mtimespec.tv_nsec == b->st_mtimespec.tv_nsec &&
+           a->st_ctimespec.tv_sec == b->st_ctimespec.tv_sec && a->st_ctimespec.tv_nsec == b->st_ctimespec.tv_nsec;
+#else
+    return a->st_mtim.tv_sec == b->st_mtim.tv_sec && a->st_mtim.tv_nsec == b->st_mtim.tv_nsec &&
+           a->st_ctim.tv_sec == b->st_ctim.tv_sec && a->st_ctim.tv_nsec == b->st_ctim.tv_nsec;
+#endif
+}
+static void close_owned_reader(owned_fd_reader *r) {
+    if (r->fd < 0) return;
+    if (close(r->fd)) r->cleanup->close_unknown |= r->bit;
+    else if (r->bit == 1) r->cleanup->certificate_fd = -1;
+    else r->cleanup->private_key_fd = -1;
+    r->fd = -1; /* no close replay, including EINTR */
+}
+static int owned_fd_create(BIO *bio) { BIO_set_init(bio, 1);BIO_set_data(bio, NULL);return 1; }
+static int owned_fd_destroy(BIO *bio) {
+    owned_fd_reader *r = BIO_get_data(bio);
+    if (r) { close_owned_reader(r);OPENSSL_free(r);BIO_set_data(bio, NULL); }
+    BIO_set_init(bio, 0);return 1;
+}
+static int owned_fd_read(BIO *bio, char *out, int capacity) {
+    owned_fd_reader *r = BIO_get_data(bio);
+    if (!r || !out || capacity <= 0) return 0;
+    if (r->offset >= r->length) return 0;
+    size_t count = (size_t)(r->length - r->offset);
+    if (count > (size_t)capacity) count = (size_t)capacity;
+    ssize_t n;
+    do { n = pread(r->fd, out, count, r->offset); } while (n < 0 && errno == EINTR);
+    if (n <= 0 || n > capacity) return n < 0 ? -1 : 0;
+    r->offset += n;return (int)n;
+}
+static int owned_fd_gets(BIO *bio, char *out, int capacity) {
+    owned_fd_reader *r = BIO_get_data(bio);
+    if (!r || !out || capacity <= 1) return 0;
+    const off_t original = r->offset;
+    int n = owned_fd_read(bio, out, capacity - 1);
+    if (n <= 0) return n;
+    char *newline = memchr(out, '\n', (size_t)n);
+    if (newline) n = (int)(newline - out) + 1;
+    r->offset = original + n;out[n] = 0;return n;
+}
+static long owned_fd_ctrl(BIO *bio, int command, long number, void *pointer) {
+    (void)number;(void)pointer;owned_fd_reader *r = BIO_get_data(bio);
+    if (!r) return 0;
+    if (command == BIO_CTRL_EOF) return r->offset >= r->length;
+    if (command == BIO_CTRL_PENDING) return (long)(r->length - r->offset);
+    if (command == BIO_CTRL_FLUSH) return 1;
+    return 0;
+}
+static void owned_fd_init(void) {
+    BIO_METHOD *m = BIO_meth_new(BIO_TYPE_SOURCE_SINK | BIO_get_new_index(), "YNX bounded owned credential FD");
+    if (!m) return;
+    if (!BIO_meth_set_create(m, owned_fd_create) || !BIO_meth_set_destroy(m, owned_fd_destroy) ||
+        !BIO_meth_set_read(m, owned_fd_read) || !BIO_meth_set_gets(m, owned_fd_gets) || !BIO_meth_set_ctrl(m, owned_fd_ctrl)) {
+        BIO_meth_free(m);return;
+    }
+    owned_fd_method = m; /* method, not another crypto context/provider */
+}
+static BIO *borrow_credential_fd(int fd, int private_key, ynx_credential_fd_cleanup *cleanup) {
+    struct stat st, after;int flags = fcntl(fd, F_GETFL);
+    if (fd < 0 || flags < 0 || (flags & O_ACCMODE) != O_RDONLY || fstat(fd, &st) ||
+        !S_ISREG(st.st_mode) || st.st_uid != geteuid() || st.st_nlink < 1 ||
+        (st.st_mode & (private_key ? 0077 : 0022)) || st.st_size <= 0 || st.st_size > (1 << 20)) return NULL;
+    if (!CRYPTO_THREAD_run_once(&owned_fd_once, owned_fd_init) || !owned_fd_method) return NULL;
+    owned_fd_reader *r = OPENSSL_zalloc(sizeof(*r));
+    if (!r) return NULL;
+    r->fd = -1;r->cleanup = cleanup;r->bit = private_key ? 2U : 1U;r->seal = st;r->length = st.st_size;
+    r->fd = fcntl(fd, F_DUPFD_CLOEXEC, 0);
+    if (r->fd < 0) { OPENSSL_free(r);return NULL; }
+    if (private_key) cleanup->private_key_fd = r->fd;else cleanup->certificate_fd = r->fd;
+    if (fstat(r->fd, &after) || !same_fd_seal(&st, &after)) { close_owned_reader(r);OPENSSL_free(r);return NULL; }
+    BIO *bio = BIO_new(owned_fd_method);
+    if (!bio) { close_owned_reader(r);OPENSSL_free(r);return NULL; }
+    BIO_set_data(bio, r);return bio;
+}
+static int reader_unchanged(BIO *bio) {
+    owned_fd_reader *r = BIO_get_data(bio);struct stat st;
+    return r && !fstat(r->fd, &st) && same_fd_seal(&r->seal, &st);
+}
+static X509 *read_owned_certificate(BIO *bio, int auxiliary) {
+    X509 *cert = X509_new_ex(pinned_provider.libctx, "provider=default");
+    if (!cert) return NULL;
+    X509 *parsed = auxiliary ? PEM_read_bio_X509_AUX(bio, &cert, reject_password, NULL)
+                             : PEM_read_bio_X509(bio, &cert, reject_password, NULL);
+    if (!parsed) { X509_free(cert);return NULL; }
+    EVP_PKEY *key = X509_get0_pubkey(parsed);
+    if (!key || EVP_PKEY_get0_provider(key) != pinned_provider.provider) { X509_free(parsed);return NULL; }
+    return parsed;
+}
+static int load_fd_chain(SSL_CTX *ctx, BIO *bio) {
+    X509 *leaf = read_owned_certificate(bio, 1);
+    if (!leaf) return 0;
+    int ok = pq_cert(leaf) && SSL_CTX_use_certificate(ctx, leaf);
+    X509_free(leaf);if (!ok) return 0;
+    for (unsigned i = 0; ; ++i) {
+        X509 *extra = read_owned_certificate(bio, 0);
+        if (!extra) { ERR_clear_error();return BIO_eof(bio) && reader_unchanged(bio); }
+        if (i >= 4 || !pq_cert(extra) || !SSL_CTX_add_extra_chain_cert(ctx, extra)) { X509_free(extra);return 0; }
+    }
+}
+static int load_root_pem(SSL_CTX *ctx, const unsigned char *pem, size_t length) {
+    BIO *bio = BIO_new_mem_buf(pem, (int)length);if (!bio) return 0;
+    unsigned roots = 0;int ok = 1;
+    for (;;) {
+        X509 *root = read_owned_certificate(bio, 1);
+        if (!root) { ERR_clear_error();ok = roots > 0 && BIO_eof(bio);break; }
+        ok = ++roots <= 2 && pq_cert(root) && X509_check_ca(root) > 0 && X509_STORE_add_cert(SSL_CTX_get_cert_store(ctx), root);
+        X509_free(root);if (!ok) break;
+    }
+    BIO_free(bio);return ok;
+}
+SSL_CTX *ynx_ctx_new_fds(int certificate_fd, int private_key_fd, const unsigned char *ca_pem, size_t ca_length,
+                        const char *expected_certificate, int server, ynx_credential_fd_cleanup *cleanup,
+                        char *err, size_t cap) {
+    if (cleanup) { cleanup->certificate_fd = cleanup->private_key_fd = -1;cleanup->close_unknown = 0; }
+    if (!cleanup || certificate_fd < 0 || private_key_fd < 0 || certificate_fd == private_key_fd ||
+        !ca_pem || !ca_length || ca_length > (1U << 20) || !expected_certificate || strlen(expected_certificate) != 64 ||
+        strspn(expected_certificate, "0123456789abcdef") != 64) {
+        failure(err, cap, "bounded native FD credential unavailable");return NULL;
+    }
+    SSL_CTX *ctx = new_fixed_context(err, cap);if (!ctx) return NULL;
+    BIO *cert = borrow_credential_fd(certificate_fd, 0, cleanup);
+    BIO *key = borrow_credential_fd(private_key_fd, 1, cleanup);
+    EVP_PKEY *parsed = key ? PEM_read_bio_PrivateKey_ex(key, NULL, reject_password, NULL, pinned_provider.libctx, "provider=default") : NULL;
+    int ok = cert && key && parsed && EVP_PKEY_is_a(parsed, "ML-DSA-87") && load_root_pem(ctx, ca_pem, ca_length) &&
+        load_fd_chain(ctx, cert) && reader_unchanged(key) && SSL_CTX_use_PrivateKey(ctx, parsed) && SSL_CTX_check_private_key(ctx);
+    EVP_PKEY_free(parsed);BIO_free(cert);BIO_free(key);
+    char actual[65];
+    if (!ok || cleanup->close_unknown || !finish_fixed_context(ctx, server, err, cap) ||
+        !digest(SSL_CTX_get0_certificate(ctx), pinned_provider.sha256, actual) || strcmp(actual, expected_certificate)) {
+        failure(err, cap, cleanup->close_unknown ? "owned credential FD close unknown" : "fixed PQ FD credential or identity rejected");
+        SSL_CTX_free(ctx);return NULL;
     }
     return ctx;
 }
