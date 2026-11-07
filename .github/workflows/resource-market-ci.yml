@@ -56,6 +56,8 @@ on:
       - 'scripts/ops/test_install_pq_remote_signer.py'
       - 'scripts/ops/init-consensus-candidate-keys.sh'
       - 'scripts/verify/init-consensus-candidate-keys-check.sh'
+      - 'scripts/ops/consensus-recovery-capsule.sh'
+      - 'scripts/ops/test_consensus_recovery_capsule.py'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
       - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
@@ -173,6 +175,10 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/ops/init-consensus-candidate-keys.sh'
+      - 'scripts/verify/init-consensus-candidate-keys-check.sh'
+      - 'scripts/ops/consensus-recovery-capsule.sh'
+      - 'scripts/ops/test_consensus_recovery_capsule.py'
       - 'testdata/ethereum-native/**'
       - 'internal/api/ethereum_ethers_test.go'
       - 'internal/ynxresourceconsent/**'

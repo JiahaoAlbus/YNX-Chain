@@ -13,7 +13,7 @@ export YNX_DEPLOY_CONNECTION_ATTEMPTS=1
 # and inspection are independent operator actions, never an automatic sequence.
 phase="${CONSENSUS_CANDIDATE_KEY_PHASE:-legacy}"
 case "$phase" in
-  legacy|legacy-verify-recovery|pq-new-epoch|pq-inspect|pq-approve-first-registration) ;;
+  legacy|legacy-verify-recovery|pq-new-epoch|pq-inspect|pq-approve-first-registration|export-recovery-capsule|verify-recovery-capsule) ;;
   *) echo 'invalid CONSENSUS_CANDIDATE_KEY_PHASE' >&2; exit 64 ;;
 esac
 
@@ -69,6 +69,13 @@ except (OSError, ValueError, AssertionError):
     sys.exit(1)
 PUBLIC_PIN
   }
+  if [[ $phase == export-recovery-capsule || $phase == verify-recovery-capsule ]]; then
+    # Separate fixed recovery contract; the old CSP installation tuple is never
+    # replayed or repurposed. The helper uses the original public pin reader.
+    source scripts/ops/consensus-recovery-capsule.sh
+    pq_capsule_ceremony
+    return
+  fi
   case "$phase" in
     legacy-verify-recovery)
       binary=ynx-consensus-keycheck
@@ -213,12 +220,21 @@ REMOTE_PQ
   if [[ $phase == pq-approve-first-registration ]]; then
     # Registration wire is PUBLIC authorization, never a private key or HRS.
     ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo -u ynx /usr/bin/head -c 262145 -- '$approval/registration.wire'" >"$work/public/$role.registration.wire.partial" 2>"$work/registration.readback.stderr"
+  elif [[ $phase == pq-new-epoch ]]; then
+    # Keep both original public files. The CLI's stdout adds a newline while
+    # its original epoch record does not; neither file may be re-serialized.
+    local readback_file readback_name
+    for readback_file in validator-binding.json new-epoch-public.json; do
+      readback_name=binding; [[ $readback_file != new-epoch-public.json ]] || readback_name=epoch-public
+      printf -v command '%q ' sudo -n /usr/sbin/runuser -u ynx-pq-signer -- /usr/bin/head -c 262145 -- "$out/$readback_file"
+      ynx_ops_ssh "$role" "$user" "$host" "$key" "$command" >"$work/public/$role.$readback_name.json.partial" 2>"$work/$readback_name.readback.stderr"
+    done
   fi
   if [[ ${DEPLOY_DRY_RUN:-0} != 1 ]]; then
-    python3 -B - "$phase" "$work/public/$role.json.partial" "$out" "$state" "$input_pin" "$genesis_pin" "$work/public/$role.registration.wire.partial" "$recovery_parent" "$role" <<'PUBLIC_PQ'
+    python3 -B - "$phase" "$work/public/$role.json.partial" "$out" "$state" "$input_pin" "$genesis_pin" "$work/public/$role.registration.wire.partial" "$recovery_parent" "$role" "$work/public/$role.binding.json.partial" "$work/public/$role.epoch-public.json.partial" <<'PUBLIC_PQ'
 import hashlib, json, sys
 from pathlib import Path
-phase, filename, out, state, source_pin, genesis_pin, wire, recovery, role = sys.argv[1:]
+phase, filename, out, state, source_pin, genesis_pin, wire, recovery, role, binding, epoch_record = sys.argv[1:]
 with Path(filename).open('rb') as source: raw = source.read(262145)
 assert 0 < len(raw) <= 262144, 'bounded original public receipt required'
 v = json.loads(raw)
@@ -233,6 +249,13 @@ elif phase == 'pq-new-epoch':
     assert v['status'] == 'new_epoch_files_durable_registration_not_authorized'
     assert v['paths']['directory'] == out and v['paths']['state'] == state + '/original-sign-state.json'
     assert v['binding']['SignerStatePath'] == v['paths']['state']
+    assert v['paths']['binding'] == out + '/validator-binding.json'
+    assert v['paths']['publicRecord'] == out + '/new-epoch-public.json'
+    with Path(epoch_record).open('rb') as source: original = source.read(262145)
+    assert 0 < len(original) <= 262144 and raw == original + b'\n', 'original epoch record differs from CLI stdout'
+    with Path(binding).open('rb') as source: body = source.read(262145)
+    assert 0 < len(body) <= 262144 and hashlib.sha256(body).hexdigest() == v['fileSHA256'][v['paths']['binding']]
+    assert json.loads(body) == v['binding'], 'original public binding bytes differ'
 elif phase == 'pq-inspect':
     assert v['readOnly'] is True and v['privateMaterialOpened'] is False and v['registrationAuthorized'] is False
 else:
@@ -242,6 +265,10 @@ else:
     with Path(wire).open('rb') as source: body = source.read(262145)
     assert 0 < len(body) <= 262144 and hashlib.sha256(body).hexdigest() == v['registrationSHA256']
 PUBLIC_PQ
+    if [[ $phase == pq-new-epoch ]]; then
+      (set -o noclobber; cat "$work/public/$role.binding.json.partial" >"$work/public/$role.binding.json")
+      (set -o noclobber; cat "$work/public/$role.epoch-public.json.partial" >"$work/public/$role.epoch-public.json")
+    fi
     (set -o noclobber; cat "$work/public/$role.json.partial" >"$work/public/$role.json")
     if [[ $phase == pq-approve-first-registration ]]; then
       (set -o noclobber; cat "$work/public/$role.registration.wire.partial" >"$work/public/$role.registration.wire")

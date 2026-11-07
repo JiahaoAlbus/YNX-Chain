@@ -178,6 +178,7 @@ case "$command" in
   'chmod 0755 '*) stage=ceremony ;;
   'sudo -n /usr/bin/timeout --signal=TERM --kill-after=1 25 '*) stage=pq ;;
   'sudo -u ynx /usr/bin/head -c 262145 -- '*) stage=pq-wire ;;
+  'sudo -n /usr/sbin/runuser -u ynx-pq-signer -- /usr/bin/head -c 262145 -- '*) stage=pq-public ;;
   *) printf 'unexpected fixture transport command\n' >&2; exit 95 ;;
 esac
 if [[ $stage == preflight ]]; then
@@ -249,9 +250,16 @@ PY
       printf 'SYNTHETIC INERT HRS; NO SIGNER\n' >"$state_path/original-sign-state.json"
       printf 'PQ|new-epoch|%s|signer-uid|anonymous-fd3\n' "$role" >>"$FIXTURE_EVENTS"
       python3 - "$out" "$state_path" <<'PY'
-import json, sys
+import hashlib, json, sys
+from pathlib import Path
 out, state = sys.argv[1:]
-print(json.dumps(dict(format='YNX-CONSENSUS-PQ-CEREMONY-PUBLIC/v1', status='new_epoch_files_durable_registration_not_authorized', paths=dict(directory=out, state=state+'/original-sign-state.json'), binding=dict(SignerStatePath=state+'/original-sign-state.json'))))
+binding = dict(SignerStatePath=state+'/original-sign-state.json')
+body = json.dumps(binding, separators=(',', ':')).encode()
+path = out+'/validator-binding.json'; Path(path).write_bytes(body)
+record = dict(format='YNX-CONSENSUS-PQ-CEREMONY-PUBLIC/v1', status='new_epoch_files_durable_registration_not_authorized', paths=dict(directory=out, state=state+'/original-sign-state.json', binding=path, publicRecord=out+'/new-epoch-public.json'), binding=binding, fileSHA256={path:hashlib.sha256(body).hexdigest()})
+raw = json.dumps(record, separators=(',', ':'))
+Path(out+'/new-epoch-public.json').write_bytes(raw.encode())
+print(raw)
 PY
       # Simulate the original pipefail result after a consumer wrote a public
       # response: this MUST NOT publish a formal caller receipt or replay.
@@ -278,6 +286,10 @@ PY
 elif [[ $stage == pq-wire ]]; then
   [[ $command == "sudo -u ynx /usr/bin/head -c 262145 -- '$FIXTURE_ROOT/remote/primary/approval/registration.wire'" ]]
   cat "$FIXTURE_ROOT/remote/primary/approval/registration.wire"
+elif [[ $stage == pq-public ]]; then
+  eval "set -- $command"
+  [[ $# == 11 && ( ${11} == "$FIXTURE_ROOT/remote/primary/new-custody/validator-binding.json" || ${11} == "$FIXTURE_ROOT/remote/primary/new-custody/new-epoch-public.json" ) ]]
+  cat "${11}"
 else
   bash -c "$command"
 fi
@@ -501,7 +513,9 @@ before="$(custody_digest)"
 run_pq_caller
 [[ $(count_events 'PQ|new-epoch|primary|') == 1 && $(count_events 'PQ|approve-first|') == 0 && $(count_events 'BUILD') == 0 && $(count_events 'KEY|') == 0 ]] || fail 'PQ creation expanded to approval/legacy or local build'
 [[ -s $case_root/work/public/primary.json && -s $pq_out/validator.encrypted && -s $pq_state/original-sign-state.json && $before == "$(custody_digest)" ]] || fail 'PQ creation lost public evidence or changed original custody'
-[[ $(count_events 'SSH|primary|') == 5 && $(count_events 'SSH|singapore|') == 0 && $(count_events 'SSH|silicon-valley|') == 0 && $(count_events 'SSH|seoul|') == 0 ]] || fail 'PQ creation contacted an unselected original role'
+[[ $(count_events 'SSH|primary|') == 7 && $(count_events 'SSH|singapore|') == 0 && $(count_events 'SSH|silicon-valley|') == 0 && $(count_events 'SSH|seoul|') == 0 ]] || fail 'PQ creation contacted an unselected original role'
+cmp "$pq_out/validator-binding.json" "$case_root/work/public/primary.binding.json" >/dev/null || fail 'new epoch lost original public binding bytes'
+cmp "$pq_out/new-epoch-public.json" "$case_root/work/public/primary.epoch-public.json" >/dev/null || fail 'new epoch lost original public record bytes'
 
 new_pq_case pq-inspect-original-paths
 mkdir -m 0700 "$pq_out" "$pq_state"
@@ -522,9 +536,9 @@ run_pq_caller
 [[ $(count_events 'PQ|approve-first|primary|original-ynx-uid|regular-fd3') == 1 && $(count_events 'PQ|new-epoch|') == 0 && $(count_events 'BUILD') == 0 ]] || fail 'original approval used new key lane or built locally'
 [[ $before == "$(custody_digest)" && -s $case_root/work/public/primary.registration.wire && -s $case_root/work/public/primary.json ]] || fail 'approval changed original keys/HRS or omitted public complete wire'
 
-for failure in transport late-decrypt; do
+for failure in transport late-decrypt binding-readback; do
   new_pq_case "pq-unknown-$failure"
-  if [[ $failure == transport ]]; then remote_fail=pq:primary; else pq_late_failure=yes; fi
+  case "$failure" in transport) remote_fail=pq:primary ;; late-decrypt) pq_late_failure=yes ;; binding-readback) remote_fail=pq-public:primary ;; esac
   if run_pq_caller; then fail 'PQ UNKNOWN was accepted'; fi
   [[ $(count_events 'PQ|new-epoch|primary|') == 1 && -s $pq_out/validator.encrypted && -s $case_root/work/public/primary.json.partial && ! -e $case_root/work/public/primary.json ]] || fail 'PQ UNKNOWN was retried or falsely published'
   before="$(sha256sum "$case_root/events" "$pq_out/validator.encrypted" "$pq_state/original-sign-state.json")"
@@ -573,3 +587,5 @@ if run_pq_caller; then fail 'recovery UNKNOWN replayed'; fi
 [[ $before == "$(sha256sum "$case_root/events")" ]] || fail 'recovery lost ACK retried'
 
 printf 'INIT_CONSENSUS_CANDIDATE_KEYS_CONTROLS_DATA_ONLY: original callers and portable full runtime parser; inert ELF/public DATA with explicit remote-boundary models; no real keys, SSH, approval or deployment\n'
+python3 -B "$repo/scripts/ops/test_consensus_recovery_capsule.py" --required-controls | tee "$tmp/capsule-controls.stdout"
+test "$(grep -Fxc 'PQ_CAPSULE_OPS_REQUIRED_CONTROLS_DATA_ONLY: 16 tops; no real credential, crypto, SSH, signing or host qualification' "$tmp/capsule-controls.stdout")" -eq 1
