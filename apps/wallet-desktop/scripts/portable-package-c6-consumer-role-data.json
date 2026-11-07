@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "f8e95c3b4f0ab673f57844a93f959b05c5ef6d8b",
-  "sourceTree": "935afd318d4570d2ddd4eac709916f50b59b42ff",
+  "sourceCommit": "ef70c6bc9d8e6b6d08d7eb7ddb24386a8f50f93b",
+  "sourceTree": "9711a55bc28429d8b6ef294a474200d2f8c52f12",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -240,6 +240,11 @@
       "sha256": "656e4496e34ccf5a27973406015b8745fb47b95e6063e0e7322d07e894eaa4ec"
     },
     {
+      "relative": "apps/wallet-desktop/src/desktop-permission-store.mjs",
+      "bytes": 6207,
+      "sha256": "b9eb9f35e97c0537608efe61ef90447c6f90e69fba6e9537b35607983ec256ad"
+    },
+    {
       "relative": "apps/wallet-desktop/src/desktop-pq-transfer-summary.mjs",
       "bytes": 4171,
       "sha256": "eb7c535a77f06091dd3c4721c3741ea99ac495ae7cede067051a3ace6c39a435"
@@ -448,6 +453,11 @@
       "relative": "apps/wallet-desktop/test/fixtures/approved-receive/public-data.json",
       "bytes": 18672,
       "sha256": "108182a7b4ea95bf9d9c4a8d60865c0fc751dd77cd1ee51c71e8f6dffb4989ca"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/local-pq-file-permission-lease.test.mjs",
+      "bytes": 3078,
+      "sha256": "25483fe52e02714909523007743da09cb0de85fdf9fb31a6b0b13bcf149ff630"
     },
     {
       "relative": "apps/wallet-desktop/test/main-product-peer-pay.test.mjs",
