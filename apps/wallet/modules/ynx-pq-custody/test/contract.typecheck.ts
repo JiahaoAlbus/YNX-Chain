@@ -1,4 +1,4 @@
-import {preparePQOperation,readPQPublicStatus,type PQHeldOperation,type PQPublicOutcome} from '../index';
+import {preparePQOperation,readPQPublicStatus,initializePQNativeRuntime,assertPQNativeRuntimeCurrent,requestPQNativeAppRetire,type PQHeldOperation,type PQPublicOutcome} from '../index';
 // @ts-expect-error caller approval is not part of DATA selection
 preparePQOperation({reference:'PUBLIC',mode:'transaction',approved:true});
 // @ts-expect-error birth is not registered restoration
@@ -23,3 +23,9 @@ const status=readPQPublicStatus();
 status.canSign=true;
 // @ts-expect-error Native lifecycle binding is never a public status field
 status.runtimeBinding;
+// @ts-expect-error explicit boot has no injected account or authority
+initializePQNativeRuntime({account:'PUBLIC'});
+// @ts-expect-error current checks the original Native runtime only
+assertPQNativeRuntimeCurrent(true);
+// @ts-expect-error app retire accepts no replacement session/cleanup receipt
+requestPQNativeAppRetire({closed:true});

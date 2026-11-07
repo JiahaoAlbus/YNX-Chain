@@ -5,6 +5,7 @@
 #include "PublicStatus.h"
 #include "AndroidOS43Bind.h"
 #include "AndroidSelectedAppDirectoryBind.h"
+#include "AndroidAccountPickerBind.h"
 #include "auth-ordinary/AndroidOrdinaryBind.h"
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_ynx_wallet_pq_YNXPQCustodyModule_nativeInstall(JNIEnv* env,jobject,jlong runtime,jobject invoker,jlongArray adopted){
@@ -15,6 +16,7 @@ Java_com_ynx_wallet_pq_YNXPQCustodyModule_nativeInstall(JNIEnv* env,jobject,jlon
   if(!ynx::mobilepq::os43::bindAndroid(env))return JNI_FALSE;
   if(!ynx::auth::android_ordinary::bindAndroidOrdinary(env))return JNI_FALSE;
   if(!ynx::mobilepq::directories::bindAndroidApplicationDirectory(env))return JNI_FALSE;
+  if(!ynx::mobilepq::picker::bindAndroid(env))return JNI_FALSE;
 #else
   (void)env;
 #endif

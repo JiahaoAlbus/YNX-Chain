@@ -17,6 +17,7 @@ call(process.execPath,[join(root,'test/run-native-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-os-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-directory-controls.mjs')]);
 call(process.execPath,[join(root,'test/run-app-directory-controls.mjs')]);
+call(process.execPath,[join(root,'test/run-account-picker-controls.mjs')]);
 call(process.execPath,['--test',join(root,'test/hermes-client.PUBLIC.test.mjs')],{env:{...process.env,YNX_TYPESCRIPT_MODULE:tsRoot}});
 call('clang++',['-std=c++17','-Wall','-Wextra','-Werror','-fsyntax-only','-I',join(rn,'ReactCommon/jsi'),'-I',join(rn,'ReactCommon/callinvoker'),join(root,'native/CustodyJSI.cpp')]);
 const stage=mkdtempSync(join(tmpdir(),'ynx-mobile-pq-types-'));

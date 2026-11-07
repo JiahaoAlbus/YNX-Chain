@@ -33,7 +33,7 @@ export interface PQHeldOperation {
  close():Promise<PQPublicOutcome>;
 }
 type Mode='transaction'|'registered-restore'|'original-query';
-type NativeAPI={prepare(reference:string,mode:Mode):Promise<PQHeldOperation>};
+type NativeAPI={prepare(reference:string,mode:Mode):Promise<PQHeldOperation>;assertRuntimeCurrent?:()=>void;requestAppRetire?:()=>void};
 type NativeInstaller={install():boolean;readPublicStatus?():unknown};
 let installed:NativeAPI|null=null;
 export type PQPublicRuntime='not-installed'|'initializing'|'ready'|'retaining';
@@ -87,6 +87,24 @@ function native():NativeAPI{
  const api=(globalThis as typeof globalThis&{__ynxPQCustodyV1?:NativeAPI}).__ynxPQCustodyV1;
  if(!api||typeof api.prepare!=='function')throw Error('PQ_MOBILE_NATIVE_NOT_SUPPLIED');
  installed=api;return api;
+}
+/** Explicit application boot only. Does not select an account or establish
+ * registered/Source/review authority. Uses the SAME normal installer/cache. */
+export function initializePQNativeRuntime():PQPublicStatus{
+ if(arguments.length)throw Error('PQ_ARGUMENTS_INVALID');
+ const api=native();if(typeof api.assertRuntimeCurrent!=='function')throw Error('PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED');api.assertRuntimeCurrent();return readPQPublicStatus();
+}
+/** Native runtime lifetime check only; not account/Source current permission. */
+export function assertPQNativeRuntimeCurrent():void{
+ if(arguments.length)throw Error('PQ_ARGUMENTS_INVALID');
+ if(!installed||typeof installed.assertRuntimeCurrent!=='function')throw Error('PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED');installed.assertRuntimeCurrent();
+}
+/** APP SHUTDOWN ONLY, not project-view close. Synchronously revokes new work
+ * and account pickers; Native module teardown must still join/close actual
+ * custody and UI debts. This call is not a completed-cleanup receipt. */
+export function requestPQNativeAppRetire():void{
+ if(arguments.length)throw Error('PQ_ARGUMENTS_INVALID');
+ if(!installed||typeof installed.requestAppRetire!=='function')throw Error('PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED');installed.requestAppRetire();
 }
 export function preparePQOperation(input:Readonly<{reference:string;mode:Mode}>):Promise<PQHeldOperation>{
  if(!input||Object.keys(input).sort().join()!=='mode,reference'||typeof input.reference!=='string'||

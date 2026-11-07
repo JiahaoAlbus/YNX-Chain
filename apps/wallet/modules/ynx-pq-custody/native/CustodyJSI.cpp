@@ -1,6 +1,7 @@
 #include "CustodyJSI.h"
 #include "SerialCustodyWorker.h"
 #include "RuntimeBinding.h"
+#include "NativeAccountPicker.h"
 #include <atomic>
 #include <mutex>
 namespace ynx::mobilepq {
@@ -13,6 +14,7 @@ struct RuntimeOwner {
  std::atomic<bool> alive{true};
  std::atomic<bool> ready{false};
  uint64_t binding=0;
+ bool pickerBound=false; // adopted before any JSI installation can throw
  uint64_t nextCompletion=1; // JS-thread completion ID, never a custody ID
 };
 std::mutex bootMutex;std::shared_ptr<RuntimeOwner> boot;RuntimeBinding bindings;
@@ -112,10 +114,13 @@ bool install(jsi::Runtime& rt,std::shared_ptr<facebook::react::CallInvoker> invo
  const auto selected=bindings.acquire();if(!selected)return false;
  std::shared_ptr<RuntimeOwner> owner;try{owner=std::make_shared<RuntimeOwner>();}catch(...){bindings.release(selected);throw;}
  owner->runtime=&rt;owner->invoker=std::move(invoker);owner->binding=selected;boot=owner;*binding=selected;
+ owner->pickerBound=picker::bindRuntime(selected);
+ if(!owner->pickerBound)throw jsi::JSError(rt,"PQ_PICKER_LIFECYCLE_RETAINED");
  rt.global().setProperty(rt,"__ynxPQPendingV1",rt.global().getPropertyAsFunction(rt,"Map").callAsConstructor(rt));
  jsi::Object api(rt);
  api.setProperty(rt,"prepare",jsi::Function::createFromHostFunction(rt,jsi::PropNameID::forAscii(rt,"prepare"),2,
  [owner](jsi::Runtime& rt,const jsi::Value&,const jsi::Value* args,size_t count)->jsi::Value{
+  if(!owner->alive.load()||!owner->ready.load())throw jsi::JSError(rt,"PQ_RUNTIME_CLOSED");
   if(count!=2||!args[0].isString()||!args[1].isString())throw jsi::JSError(rt,"PQ_ARGUMENTS_INVALID");
   auto reference=args[0].asString(rt).utf8(rt),mode=args[1].asString(rt).utf8(rt);
   if(reference.empty()||reference.size()>128||(mode!="transaction"&&mode!="registered-restore"&&mode!="original-query"))throw jsi::JSError(rt,"PQ_ARGUMENTS_INVALID");
@@ -124,6 +129,14 @@ bool install(jsi::Runtime& rt,std::shared_ptr<facebook::react::CallInvoker> invo
    return [owner,session](jsi::Runtime& rt)->jsi::Value{return jsi::Object::createFromHostObject(rt,std::make_shared<Held>(owner,session));};
   });
  }));
+ api.setProperty(rt,"assertRuntimeCurrent",jsi::Function::createFromHostFunction(rt,jsi::PropNameID::forAscii(rt,"assertRuntimeCurrent"),0,
+ [owner](jsi::Runtime& rt,const jsi::Value&,const jsi::Value*,size_t n)->jsi::Value{
+  if(n)throw jsi::JSError(rt,"PQ_ARGUMENTS_INVALID");if(!owner->alive.load()||!owner->ready.load())throw jsi::JSError(rt,"PQ_RUNTIME_CLOSED");return jsi::Value::undefined();
+ }));
+ api.setProperty(rt,"requestAppRetire",jsi::Function::createFromHostFunction(rt,jsi::PropNameID::forAscii(rt,"requestAppRetire"),0,
+ [owner](jsi::Runtime& rt,const jsi::Value&,const jsi::Value*,size_t n)->jsi::Value{
+  if(n)throw jsi::JSError(rt,"PQ_ARGUMENTS_INVALID");if(!requestInvalidate(owner->binding))throw jsi::JSError(rt,"PQ_RUNTIME_CLOSED");return jsi::Value::undefined();
+ }));
  rt.global().setProperty(rt,"__ynxPQCustodyV1",std::move(api));owner->ready.store(true);return true;
 }
 bool requestInvalidate(uint64_t binding){
@@ -131,7 +144,7 @@ bool requestInvalidate(uint64_t binding){
   if(bindings.alreadyClosed(binding))return true;
   if(!bindings.selected(binding)||!boot||boot->binding!=binding)return false;
   owner=boot;owner->alive=false;}
- owner->worker->requestRetire();return true;
+ picker::retireRuntime(binding);owner->worker->requestRetire();return true;
 }
 bool invalidate(uint64_t binding){
  if(!requestInvalidate(binding))return false;
@@ -141,6 +154,7 @@ bool invalidate(uint64_t binding){
  // If cleanup fails keep boot + worker alive with all original debt. A second
  // native invalidation can drain it; a replacement JS runtime cannot steal it.
  if(!owner->worker->shutdown())return false;
+ if(owner->pickerBound&&!picker::releaseRuntime(binding))return false;
  std::lock_guard<std::mutex> lock(bootMutex);if(boot==owner){boot.reset();bindings.release(binding);}return true;
 }
 }

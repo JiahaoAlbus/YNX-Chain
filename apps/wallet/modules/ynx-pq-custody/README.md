@@ -4,8 +4,8 @@ Owned write set: this directory only. Follow
 `/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md`.
 Original Auth owns the required producer and platform encrypted-backup decoder;
 Protocol owns the maintained fixed ML-DSA-87 AND SLH-DSA-SHA2-256f implementation;
-original A owns formal Native/App builds. No package, UI, lockfile, desktop dirty
-file or production provider is changed here.
+original A owns formal Native/App builds. No parent App UI, package, lockfile,
+desktop dirty file or foreign production provider is changed here.
 
 `index.ts` selects a real native held operation by original reference DATA and
 one mode: `transaction`, `registered-restore`, or `original-query`. That string
@@ -101,6 +101,41 @@ Both platforms synchronously revoke completion/effect gates for their OWN
 binding before asynchronous drain. The worker propagates Auth's revoke-only
 gate while a credential UI is blocked. Unconfirmed cleanup retains the same
 worker and prevents replacement; no GC or runtime reset discards its debt.
+
+`initializePQNativeRuntime()` is the explicit normal App boot export. It uses
+the same registered installer and cached JSI API as `preparePQOperation`, checks
+that exact runtime is alive/ready, and returns only the passive public status.
+`assertPQNativeRuntimeCurrent()` checks that same installed runtime without
+installing one. Runtime current is not account, Source or approval current.
+`requestPQNativeAppRetire()` synchronously revokes the same runtime's new work
+and Native account pickers. It is for APP SHUTDOWN ONLY, never project-view
+close, and returns no completed-cleanup receipt. Native module invalidation must
+still drain the same worker, actual selected UI and held owners; any debt keeps
+the old runtime retained. All three exports take zero arguments, accept no
+account/path/permission/provider and expose no Native lifecycle identity.
+An old Native API missing these exact functions fails with
+`PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED`; passive ready cannot substitute.
+Per-operation `cancel`, `retire`, `join` and `close` remain methods on the SAME
+held operation. Project/account children must not globally retire the App.
+
+`NativeAccountPicker` supplies private Native UI and lifetime mechanics only.
+The genuine Native account inventory must supply finite canonical public
+account/network/original-operation rows and check its actual account/epoch and
+current before and after the selected index. The index supplies no Source,
+registration, protected resource, signing, restore or broadcast authority.
+Android uses the actual resumed Activity and `AlertDialog`; iOS uses the actual
+foreground key window and a UIKit table with full public row text. Background,
+user cancellation, deadline, account caller close and App retirement reject
+selection. Signing and sending retain separate approval, never picker consent.
+Tickets are Native only, monotonic, worker-owned and bounded at 32. Selection,
+UI dismissal, caller close and release are distinct: cancellation requests UI
+dismissal and wakes its actor, while release waits for actual UI absence/ACK.
+Runtime replacement waits for every original ticket release. A presentation
+exception or missing completion cannot manufacture a closed ACK. The platform
+adapters are in the normal CMake/pod source closure and the Android private
+class is kept through R8; there is no React account selector method/setter.
+These UI mechanics are not the missing genuine selected7/account inventory
+producer. The strong production factories remain required, not stubbed.
 
 The normal protected account/original-operation selector is not yet supplied.
 `preparePQOperation` still accepts only a lookup constraint and must never be
@@ -249,6 +284,10 @@ module CI includes them. Their files and Native parent are PUBLIC fixtures.
 `node test/run-app-directory-controls.mjs` exercises real temporary filesystem
 and lifecycle cases with a PUBLIC OS-path seam; it does not run real Android
 Context or iOS sandbox services.
+`node test/run-account-picker-controls.mjs` exercises cancellation, expiry,
+actor ownership, release debt and stale callback handling through PUBLIC UI
+callbacks only. It does not launch UI or qualify an account. Normal module CI
+includes these controls and the explicit lifecycle export/type regressions.
 Parent's ordinary CI should call `node test/ci.mjs <normal-react-native-root>`
 for this module's closed checks; it requires the actual matching RN0.86 tree.
 No parent package/CI file is modified by this owned module. Parent integration

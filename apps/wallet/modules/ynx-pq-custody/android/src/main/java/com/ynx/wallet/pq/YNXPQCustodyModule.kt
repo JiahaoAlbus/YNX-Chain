@@ -49,6 +49,7 @@ class YNXPQCustodyModule(private val context: ReactApplicationContext) : ReactCo
             runtimeBinding = adopted[0] // retains partials even if native threw
             if (runtimeBinding <= 0L) installed = false
         }
+        if (installed) NativeSelectedAccountUI.bind(context)
         return installed
     }
     override fun invalidate() {

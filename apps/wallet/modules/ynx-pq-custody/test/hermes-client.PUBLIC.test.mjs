@@ -68,3 +68,34 @@ test('reading passive status does not initialize the explicit operation path',as
  client.readPQPublicStatus();client.readPQPublicStatus();assert.equal(installs,0);assert.equal(prepares,0);
  assert.equal(await client.preparePQOperation({reference:'PUBLIC-original',mode:'original-query'}),held);assert.equal(installs,1);assert.equal(prepares,1);
 });
+test('explicit boot uses the same normal installer/cache and never prepares a selector',()=>{
+ let installs=0,currents=0,prepares=0;const client=fixture({install(){installs++;return true;},readPublicStatus:()=>rawStatus()},
+  {prepare(){prepares++;},assertRuntimeCurrent(){currents++;}});
+ const a=client.initializePQNativeRuntime(),b=client.initializePQNativeRuntime();
+ assert.equal(installs,1);assert.equal(currents,2);assert.equal(prepares,0);assert.equal(a.canSign,false);assert.equal(b.protectedSelection,'not-supplied');
+});
+test('current and app retire do not install or bypass a missing original cache',()=>{
+ let installs=0;const client=fixture({install(){installs++;return true;}},{prepare(){},assertRuntimeCurrent(){throw Error('MUST_NOT_CALL');},requestAppRetire(){throw Error('MUST_NOT_CALL');}});
+ assert.throws(()=>client.assertPQNativeRuntimeCurrent(),/PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED/);
+ assert.throws(()=>client.requestPQNativeAppRetire(),/PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED/);assert.equal(installs,0);
+});
+test('old native API cannot claim lifecycle support via prepare or passive status',()=>{
+ let prepares=0;const client=fixture({install:()=>true,readPublicStatus:()=>rawStatus()},{prepare(){prepares++;}});
+ assert.throws(()=>client.initializePQNativeRuntime(),/PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED/);
+ assert.throws(()=>client.assertPQNativeRuntimeCurrent(),/PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED/);
+ assert.throws(()=>client.requestPQNativeAppRetire(),/PQ_MOBILE_NATIVE_LIFECYCLE_NOT_SUPPLIED/);assert.equal(prepares,0);
+});
+test('app retire revokes the original runtime and is not a cleanup receipt',()=>{
+ let alive=true,installs=0,prepares=0;const current=()=>{if(!alive)throw Error('PQ_RUNTIME_CLOSED');};
+ const client=fixture({install(){installs++;return true;},readPublicStatus:()=>rawStatus({runtime:alive?'ready':'retaining'})},
+  {prepare(){prepares++;},assertRuntimeCurrent:current,requestAppRetire(){alive=false;}});
+ client.initializePQNativeRuntime();client.assertPQNativeRuntimeCurrent();assert.equal(client.requestPQNativeAppRetire(),undefined);
+ assert.throws(()=>client.assertPQNativeRuntimeCurrent(),/PQ_RUNTIME_CLOSED/);
+ assert.throws(()=>client.initializePQNativeRuntime(),/PQ_RUNTIME_CLOSED/);
+ assert.equal(client.readPQPublicStatus().runtime,'retaining');assert.equal(installs,1);assert.equal(prepares,0);
+});
+test('lifecycle exports accept no account path boolean or replacement token',()=>{
+ let calls=0;const client=fixture({install(){calls++;return true;}},{prepare(){calls++;},assertRuntimeCurrent(){calls++;},requestAppRetire(){calls++;}});
+ for(const name of ['initializePQNativeRuntime','assertPQNativeRuntimeCurrent','requestPQNativeAppRetire'])for(const arg of [true,17,{account:'PUBLIC'},{path:'/PUBLIC'},{closed:true}])assert.throws(()=>client[name](arg),/PQ_ARGUMENTS_INVALID/);
+ assert.equal(calls,0);
+});
