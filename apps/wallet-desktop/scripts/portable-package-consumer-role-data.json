@@ -41,7 +41,7 @@
     {
       "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
       "bytes": 13026,
-      "sha256": "0d80aa7dc39ed18157928c91c80be3d0621651c6b310afe09748a620120a6732"
+      "sha256": "c8a17dbe432710396fc4fbb4640db16d6795299a8e1ee8ec66102a46f3264b06"
     },
     {
       "relative": "apps/wallet-desktop/scripts/test/portable-package-consumer-role.test.mjs",
