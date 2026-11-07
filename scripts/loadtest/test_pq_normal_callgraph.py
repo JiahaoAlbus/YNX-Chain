@@ -13,7 +13,7 @@ driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
     def test_all_four_original_engine_and_app_successors_required_before_publication(self):
-        b=object.__new__(driver.NormalBackend);rounds=[]
+        b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[]
         def rpc(address,method):
             if address=='rpc0' and method=='status':rounds.append(1)
             iteration=len(rounds)
@@ -28,8 +28,9 @@ class NormalCallgraphControls(unittest.TestCase):
             result=json.loads((path/'successor-availability.json').read_text())
             self.assertEqual(len(rounds),3);self.assertFalse(result['qualifiedFinal'])
             self.assertEqual(result['minimumSuccessorHeight'],11);self.assertEqual(len(result['observations']),4)
+            timing=b.rpc_measurements.report();self.assertEqual(len(timing['groups']),8);self.assertEqual(sum(g['attempted'] for g in timing['groups']),24);self.assertTrue(all(g['returned']==3 and g['inFlight']==0 for g in timing['groups']));self.assertFalse(timing['independentFinality'])
     def test_cancelled_or_foreign_chain_readiness_cannot_publish_or_claim_finality(self):
-        b=object.__new__(driver.NormalBackend);b.c=SimpleNamespace(proof_timeout=1,plan={'chainId':'original-chain','nodes':[{'index':0,'rpcAddress':'rpc0'}]})
+        b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();b.c=SimpleNamespace(proof_timeout=1,plan={'chainId':'original-chain','nodes':[{'index':0,'rpcAddress':'rpc0'}]})
         b.w=SimpleNamespace(rpc=mock.Mock());stop=threading.Event();stop.set()
         with tempfile.TemporaryDirectory() as temp:
             with self.assertRaisesRegex(RuntimeError,r'H\+1 not observed'):b.wait_successor(10,Path(temp),stop)

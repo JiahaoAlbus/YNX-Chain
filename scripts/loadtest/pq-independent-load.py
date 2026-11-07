@@ -35,6 +35,7 @@ lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
+rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.py')
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -335,6 +336,9 @@ class NormalBackend:
         self.helper_slots=threading.BoundedSemaphore(slots)
         self.helper_limit=slots;self.helper_cleanup_debt=[]
         self.helper_timing_lock=threading.Lock();self.helper_timing_attempts=0;self.helper_timing_completed=0;self.helper_timings=[]
+        self.rpc_measurements=rpc_measurements.RPCMeasurements()
+    def observed_rpc(self,node,method,query=''):
+        return self.rpc_measurements.call(node['index'],method,lambda:self.w.rpc(node['rpcAddress'],method,query) if query else self.w.rpc(node['rpcAddress'],method))
     def prepare(self,check):
         deadline=time.monotonic()+self.c.proof_timeout
         ready=[session.wait_ready(self.stop_event,deadline,check) for session in self.sessions.values()]
@@ -477,7 +481,7 @@ class NormalBackend:
         until=time.monotonic()+self.c.proof_timeout
         while time.monotonic()<until and not stop.is_set():
             try:
-                rows=[self.w.rpc(n["rpcAddress"],"tx","?hash=0x"+expected+"&prove=true") for n in self.c.plan["nodes"]]
+                rows=[self.observed_rpc(n,"tx","?hash=0x"+expected+"&prove=true") for n in self.c.plan["nodes"]]
                 lab.require(all(normal.comet_hash(r["hash"])==expected for r in rows),"normal included transaction identity differs")
                 lab.require(len({int(r["height"]) for r in rows})==1 and all(int(r["tx_result"].get("code",0))==0 for r in rows),"normal included execution/height differs")
                 notify(dict(kind="included"))
@@ -497,8 +501,8 @@ class NormalBackend:
             try:
                 observed=[]
                 for node in self.c.plan["nodes"]:
-                    status=self.w.rpc(node["rpcAddress"],"status")
-                    info=self.w.rpc(node["rpcAddress"],"abci_info")["response"]
+                    status=self.observed_rpc(node,"status")
+                    info=self.observed_rpc(node,"abci_info")["response"]
                     lab.require(status["node_info"]["network"]==self.c.plan["chainId"],"normal successor chain identity differs")
                     observed.append(dict(node=node["index"],engineHeight=int(status["sync_info"]["latest_block_height"]),applicationHeight=int(info["last_block_height"])))
                 if all(min(o["engineHeight"],o["applicationHeight"])>=height+1 for o in observed):
@@ -759,6 +763,7 @@ def run(args):
         if backend is not None:
             backend.stop()
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
+            result['normalObservationRPCTiming']=backend.rpc_measurements.report()
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
         stages.seal();result['initializationStages']=stages.report()
         try:

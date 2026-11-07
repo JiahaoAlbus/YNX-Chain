@@ -7,6 +7,8 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_rpc_measurements.py',None,5),
+ ('test_pq_normal_callgraph.py',['NormalCallgraphControls.test_all_four_original_engine_and_app_successors_required_before_publication','NormalCallgraphControls.test_cancelled_or_foreign_chain_readiness_cannot_publish_or_claim_finality'],2),
  ('test_pq_preparation_startup_timings.py',None,7),
  ('test_pq_node_startup_measurements.py',None,11),
  ('test_pq_normal_leg_trace.py',None,6),
