@@ -326,8 +326,8 @@ def execute_account(raw, rows):
         if marker in records:
             raise AssertionError("duplicate PUBLIC DATA receipt")
         records[marker] = json.loads(data)
-    if set(records) != {current4_ci.MARKER, ACCOUNT_MARKER}:
-        raise AssertionError("only distinct original Current4 and account DATA receipts required")
+    if set(records) != {current4_ci.MARKER, ACCOUNT_MARKER, "YNX_PQ_SOURCE_PARENT_TESTS"}:
+        raise AssertionError("only distinct Current4, observer account and Source-parent DATA receipts required")
     return records
 
 
@@ -342,7 +342,8 @@ class ObserverAccountCIControls(unittest.TestCase):
                      if re.search(r"^func " + name + r"\(t \*testing.T\)", path.read_text(), re.M)]
             self.assertEqual(len(found), 1, name)
             self.assertIn("//go:build (linux || darwin) && ynx_public_trace_testsupport", found[0].read_text())
-        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 8)
+        self.assertEqual(current4_ci.STREAM_REQUIRED, current4_ci.REQUIRED + ACCOUNT_REQUIRED + current4_ci.SOURCE_PARENT_REQUIRED)
+        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 16)
 
     def test_actual_combined_collector_emits_separate_data_without_authority(self):
         records = execute_account(workflows()["resource"], current4_ci.rows())
@@ -402,8 +403,8 @@ class ObserverAccountCIControls(unittest.TestCase):
             variants.append(raw.replace(command, command.replace(before, after), 1))
         variants += [raw.replace(command, command * 2, 1),
                      raw.replace("      - '" + ACCOUNT_SOURCE + "'\n", "", 1),
-                     raw.replace("for name in stream_required:", "for name in current4_required:", 1),
-                     raw.replace("if len(runs) != 1 or outcomes != ['pass']:", "if False:", 1)]
+                     raw.replace(current4_ci.step(raw, current4_ci.STEP), current4_ci.step(raw, current4_ci.STEP).replace("for name in stream_required:", "for name in current4_required:", 1), 1),
+                     raw.replace(current4_ci.step(raw, current4_ci.STEP), current4_ci.step(raw, current4_ci.STEP).replace("if len(runs) != 1 or outcomes != ['pass']:", "if False:", 1), 1)]
         for changed in variants:
             self.assertNotEqual(changed, raw)
             with self.assertRaises(AssertionError):

@@ -64,6 +64,7 @@ on:
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'scripts/ops/test_validate_pq_source_parent_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_tests.py'
@@ -176,6 +177,7 @@ on:
       - 'scripts/loadtest/fixtures/finalize-1b-public/**'
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
+      - 'scripts/ops/test_validate_pq_source_parent_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_tests.py'
@@ -198,6 +200,8 @@ on:
       - 'scripts/verify/current4-auth-r2-interop-check.sh'
       - 'internal/consensus/testdata/current4_auth_r2/**'
       - 'internal/consensus/pq_current4_*.go'
+      - 'internal/consensus/pq_source_parent_*.go'
+      - 'internal/consensus/pq_source_identity*.go'
       - 'internal/consensus/pq_observer_account_*.go'
       - 'internal/consensus/pq_committed_account*.go'
       - 'internal/consensus/pq_wallet_policy_live.go'
@@ -1645,6 +1649,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_current4_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_source_parent_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_tests.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_handler_tests.py' -v
@@ -2481,7 +2486,7 @@ jobs:
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
-          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain|TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold|TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation|TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain|TestPQObserverAccountHostPUBLICSameNodeDistinctScopes|TestPQObserverAccountHostPUBLICIdentityAndScopeFailures)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/scripts/loadtest/fixtures/finalize-1b-public" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '^(TestPQCurrent4WirePUBLICStrictFramesAndOSPeer|TestPQCurrent4WirePUBLICRegisteredObserverData|TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain|TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold|TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation|TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain|TestPQObserverAccountHostPUBLICSameNodeDistinctScopes|TestPQObserverAccountHostPUBLICIdentityAndScopeFailures|TestSourceParentFrameBounds|TestSourceParentOriginalClockRace|TestPQSourceParentPUBLICQualifiedCleanupAndLoss|TestPQSourceParentPUBLICOriginalUnnamedSocket|TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC|TestPQProtectedSourceParentStableHostScopesPUBLIC|TestPQCommittedAccountWirePUBLICCloseDebt|TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause)$' ./internal/consensus > "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"
             exit 1
           fi
@@ -2493,7 +2498,16 @@ jobs:
           package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           current4_required = ['TestPQCurrent4WirePUBLICStrictFramesAndOSPeer', 'TestPQCurrent4WirePUBLICRegisteredObserverData', 'TestPQCurrent4WirePUBLICSingleFlightUnknownAndPartialDrain']
           observer_account_required = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
-          stream_required = current4_required + observer_account_required
+          source_parent_required = ['TestSourceParentFrameBounds', 'TestSourceParentOriginalClockRace', 'TestPQSourceParentPUBLICQualifiedCleanupAndLoss', 'TestPQSourceParentPUBLICOriginalUnnamedSocket', 'TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC', 'TestPQProtectedSourceParentStableHostScopesPUBLIC', 'TestPQCommittedAccountWirePUBLICCloseDebt', 'TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause']
+          stream_required = current4_required + observer_account_required + source_parent_required
+          # Go may emit compiler diagnostics before the test stream. They never
+          # stand in for a test/package outcome and remain in the original JSONL.
+          if any(not isinstance(event, dict) for event in events):
+              raise RuntimeError('Current4 original JSONL event is malformed')
+          build_notices = [event for event in events if event.get('Action') == 'build-output']
+          if build_notices != events[:len(build_notices)] or any(set(event) != {'Action', 'ImportPath', 'Output'} or event['ImportPath'] != package + '.test' or not isinstance(event['Output'], str) or not event['Output'] for event in build_notices):
+              raise RuntimeError('Current4 compiler diagnostic differs from the original test package')
+          events = events[len(build_notices):]
           if not events or any(not isinstance(event, dict) or event.get('Package') != package or event.get('Action') not in ('start', 'run', 'pause', 'cont', 'output', 'pass') for event in events):
               raise RuntimeError('Current4 original stream failed, skipped, malformed or used another package')
           if any('Test' in event and (not isinstance(event['Test'], str) or event['Test'].split('/')[0] not in stream_required) for event in events):
@@ -2503,11 +2517,22 @@ jobs:
               outcomes = [event['Action'] for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
               if len(runs) != 1 or outcomes != ['pass']:
                   raise RuntimeError('Current4 test did not execute and pass uniquely: ' + name)
+          # Every observed Source-parent child must actually run and finish once.
+          source_parent_names = {event['Test'] for event in events if 'Test' in event and event['Test'].split('/')[0] in source_parent_required}
+          for name in source_parent_names:
+              parts = name.split('/')
+              if any(not part for part in parts) or any('/'.join(parts[:i]) not in source_parent_names for i in range(1, len(parts))):
+                  raise RuntimeError('Source-parent child has no original parent: ' + name)
+              runs = [i for i, event in enumerate(events) if event.get('Test') == name and event.get('Action') == 'run']
+              passed = [i for i, event in enumerate(events) if event.get('Test') == name and event.get('Action') == 'pass']
+              if len(runs) != 1 or len(passed) != 1 or runs[0] >= passed[0]:
+                  raise RuntimeError('Source-parent top or child did not execute and pass uniquely: ' + name)
           outcomes = [event['Action'] for event in events if 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
           if outcomes != ['pass']:
               raise RuntimeError('Current4 original package did not pass once')
           print('YNX_CURRENT4_WIRE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=current4_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           print('YNX_PQ_OBSERVER_ACCOUNT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_account_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
+          print('YNX_PQ_SOURCE_PARENT_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=source_parent_required, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, producerCurrentClock=False, p09CallerConnected=False, nodeStarted=False), sort_keys=True))
           PY
       - name: Verify original Auth r2 cross-process Current4 DATA interoperability
         id: current4authinterop

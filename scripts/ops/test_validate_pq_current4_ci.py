@@ -34,7 +34,8 @@ REQUIRED = [
 ]
 # Same original tagged invocation; the original Current4 receipt stays three tests.
 OBSERVER_ACCOUNT_REQUIRED = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
-STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED
+SOURCE_PARENT_REQUIRED = ['TestSourceParentFrameBounds', 'TestSourceParentOriginalClockRace', 'TestPQSourceParentPUBLICQualifiedCleanupAndLoss', 'TestPQSourceParentPUBLICOriginalUnnamedSocket', 'TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC', 'TestPQProtectedSourceParentStableHostScopesPUBLIC', 'TestPQCommittedAccountWirePUBLICCloseDebt', 'TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause']
+STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED + SOURCE_PARENT_REQUIRED
 SELECTOR = "^(" + "|".join(STREAM_REQUIRED) + ")$"
 COMMAND = ('          if ! YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE
            + '" go test -tags=ynx_public_trace_testsupport -json -p 1 -count=1 -timeout=120s -run '
@@ -45,7 +46,7 @@ SKIP = ORIGINAL_SKIP[:-1] + "|" + REQUIRED[0] + "$|" + PROOF_STATE_RUN[2:-1] + "
 FULL_COMMAND = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '"
                 + SKIP + "' ./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
 OLD_COMMANDS = [
-    "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n",
+    "          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache|TestCombinedDetachedValidatorKeys)' ./internal/chain > \"$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl\"; then\n",
     FULL_COMMAND,
     '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)\' ./internal/consensus > "$RUNNER_TEMP/ynx-proof-wallet-state-tests.jsonl"; then\n',
     "          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n",
@@ -106,8 +107,8 @@ def assert_contract(raw):
         raise AssertionError("all three original Current4 tests and original package/output required")
     account_assignments = [ast.literal_eval(node.value) for node in ast.parse(program).body
                            if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "observer_account_required" for target in node.targets)]
-    if account_assignments != [OBSERVER_ACCOUNT_REQUIRED] or "stream_required = current4_required + observer_account_required" not in program:
-        raise AssertionError("only the five fixed observer account cases may join the original Current4 stream")
+    if account_assignments != [OBSERVER_ACCOUNT_REQUIRED] or "stream_required = current4_required + observer_account_required + source_parent_required" not in program:
+        raise AssertionError("the five fixed observer account cases must remain in the original Current4 stream")
     original = step(raw, "Verify complete state bridge and sponsor continuity")
     commands = re.findall(r"(?m)^          if ! .*go test .+\n", original)
     if commands != OLD_COMMANDS or "-tags=" in original:
