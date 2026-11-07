@@ -10,7 +10,7 @@ export function createOriginalShopPayNavigation({entry,current}){
   active=true;
   try{
    current();const status=await entry.status();current();
-   if(status?.available!==true||status?.normalMainEntry!==true||status?.paymentAuthorized!==false){
+   if((status?.available!==true&&status?.canRequest!==true)||status?.normalMainEntry!==true||status?.paymentAuthorized!==false){
     const reason=typeof status?.reason==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(status.reason)?Object.assign(Error(status.reason),{code:status.reason}):undefined;
     fail('SHOP_NATIVE_PAY_MAIN_UNAVAILABLE',reason);
    }
@@ -55,4 +55,23 @@ export function createOriginalShopPayNavigation({entry,current}){
    return orderAction('order-refund-review',sourceOrder,{refundId,amountAtoms});
   }
  });
+}
+
+// Consume only the existing normal Main preload methods. This is JS response
+// adaptation, not a standalone Native transport, caller registration or grant.
+export function createOriginalShopPayNavigationFromMainIPC({api,current}){
+ if(typeof api?.nativePayStatus!=='function'||typeof api?.nativePayInvoke!=='function'||typeof current!=='function')fail('SHOP_NATIVE_PAY_MAIN_UNAVAILABLE');
+ const status=api.nativePayStatus.bind(api),invoke=api.nativePayInvoke.bind(api);
+ async function unwrap(call){
+  current();const reply=await call();current();
+  if(reply?.ok!==true){
+   const code=reply?.error?.code;
+   if(typeof code==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(code))fail(code);
+   const cause=Number.isSafeInteger(code)?Object.assign(Error('Original Main IPC refusal'),{code}):undefined;
+   fail('SHOP_NATIVE_PAY_MAIN_UNAVAILABLE',cause);
+  }
+  if(!reply.value||typeof reply.value!=='object')fail('SHOP_NATIVE_PAY_MAIN_UNAVAILABLE');
+  return reply.value;
+ }
+ return createOriginalShopPayNavigation({entry:Object.freeze({status:()=>unwrap(status),invoke:request=>unwrap(()=>invoke(request))}),current});
 }

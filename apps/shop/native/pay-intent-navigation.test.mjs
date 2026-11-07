@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOriginalShopPayNavigation} from './pay-intent-navigation.mjs';
+import {createOriginalShopPayNavigation,createOriginalShopPayNavigationFromMainIPC} from './pay-intent-navigation.mjs';
 const operation='npi_'+'ab'.repeat(24);
 test('PUBLIC Main port contract: only original typed intent/read recovery, never approval or send',async()=>{
  const calls=[];let available=true;
@@ -80,4 +80,31 @@ test('normal Main invokeResult refusal preserves its precise code without recove
  const f=originalEntry({async invoke(){return {ok:false,code:'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED'};}});
  await assert.rejects(f.nav.recoverOriginalOrder(sourceOrder),{code:'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED'});
  await assert.rejects(f.nav.reviewOriginalOrderTerms(sourceOrder),{code:'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED'});
+});
+
+test('normal per-request Main readiness can acquire its own Source once; readiness itself grants no payment',async()=>{
+ const f=originalEntry({status(){return {available:false,canRequest:true,reason:'NATIVE_PAY_PRODUCT_SOURCE_REQUIRES_CURRENT_REQUEST',normalMainEntry:true,paymentAuthorized:false};}});
+ assert.equal((await f.nav.openOriginalOrder(sourceOrder)).paymentAuthorized,false);assert.equal(f.calls.length,1);
+ const cause=Object.assign(Error('actual protected Source absent'),{code:'AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED'});f.entry.invoke=async()=>{throw cause;};
+ await assert.rejects(f.nav.recoverOriginalOrder(sourceOrder),error=>error===cause);assert.equal(f.calls.length,1);
+});
+test('actual normal Main IPC envelope maps original methods and pending review without token or new transport',async()=>{
+ const f=originalEntry(),calls=[];
+ const api={async nativePayStatus(){calls.push('status');return {ok:true,value:{available:false,canRequest:true,normalMainEntry:true,paymentAuthorized:false}};},async nativePayInvoke(request){calls.push({...request});return {ok:true,value:await f.entry.invoke(request)};}};
+ const nav=createOriginalShopPayNavigationFromMainIPC({api,current(){}});
+ assert.equal((await nav.recoverOriginalOrder(sourceOrder)).queryOnly,true);
+ assert.equal((await nav.reviewOriginalOrderPayment(sourceOrder)).reviewPending,true);
+ assert.deepEqual(calls,['status',{action:'order-invoice',productId:'shop.order',sourceOrder},'status',{action:'order-pay-review',productId:'shop.order',sourceOrder}]);
+ api.nativePayInvoke=()=>{throw Error('changed mutable export must not replace captured original')};
+ assert.equal((await nav.openOriginalOrder(sourceOrder)).queryOnly,true);
+});
+test('Main IPC error/current withdrawal never turns into available status or a replacement dispatch',async()=>{
+ let calls=0,retired=false;
+ const api={async nativePayStatus(){return {ok:true,value:{available:false,canRequest:true,normalMainEntry:true,paymentAuthorized:false}};},async nativePayInvoke(){calls++;return {ok:false,error:{code:'AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED',message:'private message is not adopted'}};}};
+ const nav=createOriginalShopPayNavigationFromMainIPC({api,current(){if(retired)throw Error('actual original context retired');}});
+ await assert.rejects(nav.openOriginalOrder(sourceOrder),{code:'AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED'});assert.equal(calls,1);
+ const late=createOriginalShopPayNavigationFromMainIPC({api:{...api,async nativePayStatus(){retired=true;return {ok:true,value:{available:true,normalMainEntry:true,paymentAuthorized:false}};}},current(){if(retired)throw Error('actual original context retired');}});
+ await assert.rejects(late.recoverOriginalOrder(sourceOrder),/actual original context retired/);assert.equal(calls,1);
+ const numeric=createOriginalShopPayNavigationFromMainIPC({api:{nativePayStatus:async()=>({ok:false,error:{code:4100}}),nativePayInvoke:()=>{calls++;}},current(){}});
+ await assert.rejects(numeric.openOriginalOrder(sourceOrder),error=>error.code==='SHOP_NATIVE_PAY_MAIN_UNAVAILABLE'&&error.cause?.code===4100);assert.equal(calls,1);
 });
