@@ -1,0 +1,143 @@
+package commerce
+
+// P06 overlay in an immutable original P07 checkout. Only the original Store,
+// Seller/checkout handlers, price producer and HTTPS Pay client run here.
+// Business authority is the existing explicitly PUBLIC fixture, never Root.
+import (
+	"bufio"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestP06NativePriceOriginalShopDriver(t *testing.T) {
+	if os.Getenv("P06_PUBLIC_PRICE_DRIVER") != "1" {
+		t.Skip("explicit PUBLIC joint driver only")
+	}
+	s, owner, buyer, st, p, _ := nativePriceOrderFixture(t)
+	seller := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: owner, role: "seller"}})
+	publishCount := 0
+	publish := func(amount, key string) {
+		publishCount++
+		in := nativeListingInputFor(s.s.Products[p.ID])
+		in.IdempotencyKey = key
+		in.Variants[0].NativePrice = &NativePriceDATA{Genesis: strings.Repeat("ab", 32), NativeChainID: "6423", AssetID: "YNXT", UnitVersion: "1", AmountAtoms: amount}
+		raw, _ := json.Marshal(in)
+		proof := "a"
+		if publishCount > 1 {
+			proof = "e"
+		}
+		w := businessHTTPRequest(seller, "POST", "/api/seller/products/"+p.ID+"/native-listing", strings.Repeat(proof, 43), string(raw))
+		if w.Code != 200 {
+			t.Fatal(w.Code, w.Body.String())
+		}
+	}
+	publish("9", "p06-normal-seller-native-nine")
+	profile := s.s.Stores[st.ID]
+	input := NativeStoreProfileInput{Expected: profile, Update: StoreUpdate{Name: profile.Name, Description: profile.Description, Policy: profile.Policy, TrustURL: profile.TrustURL, SettlementAccount: owner, NativeCharges: &NativeChargesDATA{Genesis: strings.Repeat("ab", 32), NativeChainID: "6423", AssetID: "YNXT", UnitVersion: "1", ShippingAtoms: "0", TaxAtoms: "0"}}, IdempotencyKey: "p06-normal-profile-native-zero"}
+	raw, _ := json.Marshal(input)
+	if w := businessHTTPRequest(seller, "POST", "/api/seller/stores/"+st.ID+"/native-profile", strings.Repeat("b", 43), string(raw)); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	checkout := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}})
+	orderInput := orderInput(st, s.s.Products[p.ID], "p06-normal-checkout-original")
+	raw, _ = json.Marshal(orderInput)
+	w := businessHTTPRequest(checkout, "POST", "/api/orders", strings.Repeat("c", 43), string(raw))
+	var order Order
+	if w.Code != 201 || json.Unmarshal(w.Body.Bytes(), &order) != nil {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	bill, _ := nativeInvoiceBillDATA(order)
+	price, err := s.ReadOriginalShopInvoiceDATA(context.Background(), ShopNativeInvoiceSelectionDATA{order, buyer, bill})
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := nativeInvoiceRequestDATA(order, price)
+	if err != nil || original.AmountAtoms != "9" || order.TotalYNXT != 25 {
+		t.Fatal("native/legacy price mixed", err)
+	}
+	emit := func(value any) {
+		if e := json.NewEncoder(os.Stdout).Encode(value); e != nil {
+			t.Fatal(e)
+		}
+	}
+	emit(map[string]any{"type": "ready", "original": original, "buyer": buyer, "legacyTotal": order.TotalYNXT, "nativeAtoms": price.AmountAtoms})
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Buffer(make([]byte, 4096), 2<<20)
+	var created bool
+	for scanner.Scan() {
+		var message struct{ Type, Origin, Certificate string }
+		if err = json.Unmarshal(scanner.Bytes(), &message); err != nil {
+			t.Fatal(err)
+		}
+		switch message.Type {
+		case "create":
+			if created {
+				t.Fatal("second create forbidden")
+			}
+			created = true
+			roots := x509.NewCertPool()
+			if !roots.AppendCertsFromPEM([]byte(message.Certificate)) {
+				t.Fatal("exact original test TLS cert required")
+			}
+			transport := &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots, MinVersion: tls.VersionTLS13}, DisableKeepAlives: true}
+			defer transport.CloseIdleConnections()
+			pay, e := NewOriginalNativeShopPayClient(message.Origin, &http.Client{Transport: transport, Timeout: 10 * time.Second})
+			if e != nil {
+				t.Fatal(e)
+			}
+			server := NewServer(s, ServerConfig{NativeInvoiceOnly: true, NativePay: pay, NativeInvoiceDATA: s, businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}})
+			response := businessHTTPRequest(server, "POST", "/api/orders/"+order.ID+"/native-pay-intent", strings.Repeat("d", 43), `{"IdempotencyKey":"p06-normal-first-native-invoice"}`)
+			if response.Code != 200 && response.Code != 201 {
+				t.Fatal(response.Code, response.Body.String())
+			}
+			saved, e := s.ReadOriginalShopNativeInvoiceRequestDATA(buyer, "buyer", order.ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			a, _ := json.Marshal(saved)
+			b, _ := json.Marshal(original)
+			if string(a) != string(b) {
+				t.Fatal("normal first dispatch changed frozen original")
+			}
+			emit(map[string]any{"type": "created", "original": saved, "nativeAtoms": price.AmountAtoms, "legacyTotal": order.TotalYNXT})
+		case "read":
+			if !created {
+				t.Fatal("read before original create")
+			}
+			value, e := s.ReadOriginalShopNativeInvoiceRequestDATA(buyer, "buyer", order.ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			emit(map[string]any{"type": "read", "original": value})
+		case "reprice-cold":
+			publish("999", "p06-later-seller-price-must-not-reprice-original")
+			s, err = Open(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			value, e := s.ReadOriginalShopNativeInvoiceRequestDATA(buyer, "buyer", order.ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			current, e := s.ReadOriginalShopInvoiceDATA(context.Background(), ShopNativeInvoiceSelectionDATA{order, buyer, bill})
+			if e != nil || current != price {
+				t.Fatal("cold original repriced", e)
+			}
+			emit(map[string]any{"type": "cold", "original": value, "nativeAtoms": current.AmountAtoms, "todayUnitAtoms": "999", "legacyTotal": order.TotalYNXT})
+		case "done":
+			emit(map[string]any{"type": "done", "originalStoreRetained": true, "SourceAdmission": false})
+			return
+		default:
+			t.Fatal("unexpected joint command", fmt.Sprintf("%q", message.Type))
+		}
+	}
+	t.Fatal("joint driver closed before done", scanner.Err())
+}

@@ -18,7 +18,9 @@ assert output.is_absolute() and '/owners/P06/client-consumer-work/' in str(outpu
 actual = subprocess.check_output(['git', '-C', repository, 'rev-parse', commit + '^{commit}'], text=True).strip()
 assert actual == commit
 paths = ['go.mod', 'go.sum', 'internal', 'packages/auth-grant-policy/go',
-         'packages/auth-grant-runtime/go', 'packages/auth-grant-history-client/go', 'packages/open-protocol/go']
+         'packages/auth-grant-runtime/go', 'packages/auth-grant-history-client/go', 'packages/open-protocol/go',
+         # The original securelink cgo holder includes this normal C ABI.
+         'cmd/ynx-secure-link-caller']
 archive = subprocess.check_output(['git', '-C', repository, 'archive', commit, *paths])
 source = output / 'source'
 files = []

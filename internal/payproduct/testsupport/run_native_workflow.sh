@@ -90,6 +90,16 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-price-joint ]; then
+ : "${PAY_NODE_BINARY:?exact installed Main runtime required}"
+ : "${PAY_CLIENT_MAIN_SOURCE:?exact installed Main/SDK source root required}"
+ : "${PAY_PRICE_SHOP_BINARY:?frozen original Shop price driver required}"
+ : "${PAY_PRICE_SHOP_SHA256:?exact original Shop driver SHA256 required}"
+ : "${PAY_PRICE_SOURCE_HANDOFF:?complete original Pay source manifest required}"
+ export PAY_PRICE_MAIN_DRIVER="$client_root/testsupport/native-price-main-consumer.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_native_price_joint pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePriceOriginalSellerHTTPSFirstInvoiceAndInstalledMain$' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-review ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
