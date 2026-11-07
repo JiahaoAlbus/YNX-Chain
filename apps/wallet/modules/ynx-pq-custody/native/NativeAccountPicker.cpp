@@ -63,6 +63,11 @@ int32_t wait(uint64_t id,uint32_t*out)noexcept{
   if(!t->responded)return pending;if(t->result)return t->result;if(t->index>=t->count)return invalid;*out=t->index;return 0;
  }catch(...){return unavailable;}
 }
+bool requestCancel(uint64_t id)noexcept{
+ try{bool done;{std::lock_guard<std::mutex>lock(mutex);auto t=get(id);if(!t)return false;cancel(*t,cancelled);done=t->uiClosed;}
+  if(!done)platformDismiss(id);return true;
+ }catch(...){return false;}
+}
 int32_t close(uint64_t id)noexcept{
  try{bool done=false;{std::lock_guard<std::mutex>lock(mutex);auto t=get(id);if(!t)return invalid;if(t->actor!=std::this_thread::get_id())return wrongThread;cancel(*t,cancelled);done=t->uiClosed;}if(!done)platformDismiss(id);return done?0:pending;}catch(...){return unavailable;}
 }

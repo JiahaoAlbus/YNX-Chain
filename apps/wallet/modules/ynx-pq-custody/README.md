@@ -135,7 +135,12 @@ Tickets are Native only, monotonic, worker-owned and bounded at 32. Selection,
 UI dismissal, caller close and release are distinct: cancellation requests UI
 dismissal and wakes its actor, while release waits for actual UI absence/ACK.
 Runtime replacement waits for every original ticket release. A presentation
-exception or missing completion cannot manufacture a closed ACK. The platform
+exception or missing completion cannot manufacture a closed ACK. The Native
+account/proof owner may call private `requestCancel(ticket)` from any thread
+when that SAME account or proof loses current. This wakes only that selection's
+actor and requests dismissal; it does not retire the App or sibling selections.
+Its true return acknowledges revocation only, never UI closure or release. The
+actor still closes/releases after an actual platform closed ACK. The platform
 adapters are in the normal CMake/pod source closure and the Android private
 class is kept through R8; there is no React account selector method/setter.
 These UI mechanics are not the missing genuine selected7/account inventory

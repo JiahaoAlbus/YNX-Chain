@@ -18,6 +18,10 @@ int32_t open(uint64_t,const std::vector<AccountChoice>&,uint32_t timeoutMS,uint6
  * JS/native ID supplied by their caller. No install or account lookup here. */
 int32_t openForCurrentRuntime(const std::vector<AccountChoice>&,uint32_t timeoutMS,uint64_t*outTicket)noexcept;
 int32_t wait(uint64_t,uint32_t*outIndex)noexcept; // dedicated worker only
+/* Any-thread revoke of this SAME selection only, for actual account/proof
+ * lifetime loss. Wakes its actor and requests dismissal, never closes/releases
+ * the ticket or retires the App/siblings. True is not a UI closed ACK. */
+bool requestCancel(uint64_t)noexcept;
 int32_t close(uint64_t)noexcept;
 int32_t releaseClosed(uint64_t)noexcept;
 /* Platform main-thread callbacks; late/foreign/stale tokens are rejected. */
