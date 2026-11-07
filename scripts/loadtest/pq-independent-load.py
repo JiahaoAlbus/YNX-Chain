@@ -39,6 +39,7 @@ rpc_measurements=module('original_parent_rpc_measurements','pq-rpc-measurements.
 preload_initialization=module('original_preload_initialization','pq-preload-initialization.py')
 first_trial_source=module('original_first_trial_source','pq-first-trial-source.py')
 first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-readback.py')
+held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -106,6 +107,10 @@ class CalleeMeasurements:
             lab.require(type(cache) is dict and cache.get("scope")=="YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1" and type(cache.get("closed")) is bool,"original static cache scope differs")
             for field,limit in (("entries",1),("heldFiles",16),("originalBytes",32<<20),("hits",(1<<64)-1),("misses",(1<<64)-1),("bypasses",(1<<64)-1)):
                 lab.require(type(cache.get(field)) is int and 0<=cache[field]<=limit,"original static cache bound differs")
+        footprint=None
+        if 'sourceInputs' in reply:
+            lab.require(type(owner) is int and 0<=owner<=999,'original source-input owner identity required')
+            footprint=held_input_footprint.inspect(reply['sourceInputs'],cache)
         outcome=reply.get("code",reply.get("outcome",reply.get("Outcome",reply.get("status","observed"))));lab.require(type(outcome) is str and len(outcome)<=128,"invalid original callee outcome")
         with self.lock:
             lab.require(kind in self.denominators,"unknown callee measurement group")
@@ -115,6 +120,7 @@ class CalleeMeasurements:
             g["outcomes"][outcome]=g["outcomes"].get(outcome,0)+1
             for name,stage in metrics["stages"].items():g["stages"].setdefault(name,[]).append(dict(stage))
             if cache is not None:g["cacheByOwner"][str(owner)]=dict(cache)
+            if footprint is not None:g.setdefault('sourceInputsByOwner',{})[str(owner)]=footprint
     def report(self):
         def spans(values,n):
             values=sorted(values)
@@ -127,6 +133,8 @@ class CalleeMeasurements:
                 received=len(self.received[kind]);observed=len(g['elapsed'])
                 coverage=dict(completedReplyObservations=received,timingRecordFailures=self.record_failures[kind],missingTimingForCompletedReplies=received-observed,notReachedOrReplyNotSupplied=n-received,completedRepliesHaveTiming=received==observed and self.record_failures[kind]==0 if received else None,fullDemandTimingComplete=received==observed==n and self.record_failures[kind]==0)
                 result[kind]=dict(calleeElapsed=spans(g["elapsed"],n),replyTimingCoverage=coverage,outcomes=dict(g["outcomes"]),stages={name:dict(spans([v["elapsedNs"] for v in values],n),calls=sum(v["calls"] for v in values)) for name,values in g["stages"].items()},lastCumulativeCacheSnapshotByOwner=dict(g["cacheByOwner"]))
+                if g.get('sourceInputsByOwner'):
+                    result[kind]['lastHeldInputFootprintByOwner']=copy.deepcopy(g['sourceInputsByOwner'])
         return dict(schema="YNX-PERF-ORIGINAL-CALLEE-MEASUREMENTS/v1",source=self.source,groups=result,intervalsOverlap=True,startupSeparate=True,startupEchoInFirstCommandNotAdded=True,cacheSnapshotsCumulativeNeverSummed=True,meaning="original monotonic elapsed wall spans; nested stages and concurrent processes are not additive; no authority or business/finality qualification")
 
 

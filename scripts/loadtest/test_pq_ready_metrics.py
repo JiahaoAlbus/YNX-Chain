@@ -91,9 +91,10 @@ class ReadyMetricsAdapterControls(unittest.TestCase):
         self.assertIsNone(report['live_result']['calleeElapsed']['fullDemandPercentilesMs']['p95'])
     def test_old_source_cannot_silently_use_new_ready_contract(self):
         args=SimpleNamespace(mode='online',rate=100,accounts=8,per_account=63,seconds=5,tail_seconds=30,proof_timeout=30,source='/not-used',commit='7593d691bafa6e7e5bb40511464aed27a41b416d')
-        with mock.patch.object(d.lab,'check_source') as checked:
-            with self.assertRaisesRegex(RuntimeError,'old75'):d.run(args)
+        with mock.patch.object(d.lab,'check_source') as checked,mock.patch.object(d.lab,'Window') as window:
+            with self.assertRaisesRegex(RuntimeError,'exact c06 Commit consumer source required'):d.run(args)
             checked.assert_not_called()
+            window.assert_not_called()
 
 # Exact public metrics from run41279814189 owner4 ORIGINAL_SAVED reply.
 # Log SHA256 fc1a17fae0b677ce71ebeaa553c2a5f2ecb528d52970292d3fef8f252bcf1723
