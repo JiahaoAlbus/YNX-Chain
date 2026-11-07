@@ -23,6 +23,10 @@ if [ "${1:-outbound}" = task-grant ]; then
   node cmd/ynx-secure-link-caller/task-grant-transport-ci.mjs
   exit 0
 fi
+if [ "${1:-outbound}" = social-directory ]; then
+  node cmd/ynx-secure-link-caller/social-directory-transport-ci.mjs
+  exit 0
+fi
 node cmd/ynx-secure-link-caller/build.mjs
 if [ "${1:-outbound}" = inbound ]; then
   node --test --test-timeout=15000 cmd/ynx-secure-link-caller/inbound-caller.test.mjs cmd/ynx-secure-link-caller/local-fence.test.mjs cmd/ynx-secure-link-caller/task-runtime.test.mjs
@@ -33,7 +37,7 @@ if [ "${1:-outbound}" = runtime ]; then
   exit 0
 fi
 if [ "${1:-outbound}" != outbound ]; then
-  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|task-grant|private-client|private-client-startup|combined-archive]' >&2
+  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime|task-grant|social-directory|private-client|private-client-startup|combined-archive]' >&2
   exit 2
 fi
 node cmd/ynx-secure-link-caller/build.mjs --fork-test

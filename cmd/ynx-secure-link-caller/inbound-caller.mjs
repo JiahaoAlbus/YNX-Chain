@@ -33,6 +33,7 @@ import path from 'node:path';
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 import {closeSync} from 'node:fs';
+import {SOCIAL_DIRECTORY_PATHS,SOCIAL_DIRECTORY_PROOF_HEADER,SOCIAL_DIRECTORY_MAX_PROOF_BYTES,SOCIAL_DIRECTORY_MAX_HEADER_BYTES,SOCIAL_DIRECTORY_MAX_CONTROL_BYTES,socialDirectoryMaterial} from './social-directory-transport-private.mjs';
 
 const native=createRequire(import.meta.url)('./build/caller.node');
 const servers=new WeakMap(),requests=new WeakMap(),callers=new WeakMap();
@@ -40,6 +41,7 @@ const headersGetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototy
 const headersSetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').set;
 const routes=new Set(['/internal/auth/task-grants/effect','/internal/auth/task-grants/effect-query']);
 const desktopTaskGrantRoutes=new Set(['issue','effect','query','effect-query','effect-reconcile','revoke','management'].map(suffix=>'/internal/auth/task-grants/'+suffix));
+const socialDirectoryRoutes=new Set(SOCIAL_DIRECTORY_PATHS);
 const taskRoutes=new Set(['/internal/auth/ai-task-v6/effect','/internal/auth/ai-task-v6/effect-query']);
 const taskOperations=Object.freeze(['capture','capture-conversation','execute-local','observe','outcome','observe-outcome','reconcile-observe','release']);
 const taskProfile='AUTH_AI_V6_PRIVATE_RUNTIME_TRANSPORT/v1';
@@ -55,7 +57,7 @@ function exact(value,keys){
   return Object.fromEntries(keys.map(k=>[k,fields[k].value]));
 }
 function integer(value,min,max){if(!Number.isSafeInteger(value)||value<min||value>max)throw fail('bounded inbound integer required');return value;}
-function registration(input,runtime=false,desktopTaskGrant=false){
+function registration(input,runtime=false,desktopTaskGrant=false,socialDirectory=false){
   const p=exact(input,['socketPath','nodeUID','bridgeUID','bridgePID','service','acceptTimeoutMs','currentTimeoutMs','maxConnections','routes']);
   if(typeof p.socketPath!=='string'||!path.isAbsolute(p.socketPath)||path.normalize(p.socketPath)!==p.socketPath||/[\0\r\n]/.test(p.socketPath)||Buffer.byteLength(p.socketPath)>=(process.platform==='darwin'?104:108))throw fail('private exact socket path required');
   if(p.nodeUID!==process.geteuid())throw fail('actual Node UID required');
@@ -70,21 +72,29 @@ function registration(input,runtime=false,desktopTaskGrant=false){
   const selected=new Map();
   for(const item of items){
     const r=exact(item,['method','path','maxRequestBytes','maxResponseBytes']);
-    if(r.method!=='POST'||typeof r.path!=='string'||!(desktopTaskGrant?desktopTaskGrantRoutes:runtime?taskRoutes:routes).has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
-    integer(r.maxRequestBytes,1,desktopTaskGrant?1048576:runtime?1835008:16<<20);integer(r.maxResponseBytes,1,runtime?2097152:16<<20);selected.set(r.path,Object.freeze(r));
+    if(r.method!==(socialDirectory?'GET':'POST')||typeof r.path!=='string'||!(socialDirectory?socialDirectoryRoutes:desktopTaskGrant?desktopTaskGrantRoutes:runtime?taskRoutes:routes).has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
+    if(socialDirectory){if(r.maxRequestBytes!==0)throw fail('empty original Social GET required');}
+    else integer(r.maxRequestBytes,1,desktopTaskGrant?1048576:runtime?1835008:16<<20);
+    integer(r.maxResponseBytes,1,socialDirectory?524288:runtime?2097152:16<<20);selected.set(r.path,Object.freeze(r));
   }
-  return Object.freeze({...p,routes:selected});
+  return Object.freeze({...p,socialDirectory,routes:selected});
 }
 function valueOf(req,key){const d=Object.getOwnPropertyDescriptor(req,key);if(!d||!Object.hasOwn(d,'value'))throw fail('original request field required');return d.value;}
 function rawHeaderPairs(raw){if(!Array.isArray(raw)||raw.length>256||raw.some(v=>typeof v!=='string'))throw fail('bounded original headers required');return [...raw];}
 function identity(req,socket,profile){
   const method=valueOf(req,'method'),url=valueOf(req,'url'),raw=valueOf(req,'rawHeaders');
-  if(valueOf(req,'socket')!==socket||method!=='POST'||!profile.routes.has(url)||req.httpVersion!=='1.1')throw fail('original exact incoming route required');
+  if(valueOf(req,'socket')!==socket||method!==(profile.socialDirectory?'GET':'POST')||!profile.routes.has(url)||req.httpVersion!=='1.1')throw fail('original exact incoming route required');
   if(Object.hasOwn(req,'headers'))throw fail('original headers accessor required');
   const headers=headersGetter.call(req),pairs=rawHeaderPairs(raw);
   const counts=new Map();
   for(let n=0;n<pairs.length;n+=2){const k=pairs[n].toLowerCase();counts.set(k,(counts.get(k)||0)+1);if(k==='forwarded'||k.startsWith('x-forwarded-')||k.startsWith('x-ynx-peer-')||k.startsWith('x-ynx-service-')||k.startsWith('x-ssl-')||k.startsWith('x-tls-'))throw fail('proxy identity headers refused');}
-  if(counts.get('host')!==1||headers.host!==profile.service||counts.get('content-type')!==1||headers['content-type']!=='application/json'||headers.upgrade)throw fail('registered incoming Host/content type required');
+  if(counts.get('host')!==1||headers.host!==profile.service||headers.upgrade)throw fail('registered incoming Host required');
+  if(profile.socialDirectory){
+    const proof=headers[SOCIAL_DIRECTORY_PROOF_HEADER];
+    if(counts.get(SOCIAL_DIRECTORY_PROOF_HEADER)!==1||typeof proof!=='string'||Buffer.byteLength(proof)<1||Buffer.byteLength(proof)>SOCIAL_DIRECTORY_MAX_PROOF_BYTES||/[\0\r\n]/.test(proof)||counts.has('content-type')||counts.has('content-encoding')||headers['transfer-encoding']!==undefined||counts.has('trailer')||headers.expect||((counts.get('content-length')??0)!==0&&(counts.get('content-length')!==1||headers['content-length']!=='0')))throw fail('exact original Social proof and empty GET required');
+    return {method,url,raw,headers,pairs,length:0,socket};
+  }
+  if(counts.get('content-type')!==1||headers['content-type']!=='application/json')throw fail('registered incoming content type required');
   const declared=headers['content-length'];
   if(typeof declared!=='string'||counts.get('content-length')!==1||headers['transfer-encoding']!==undefined||!/^(0|[1-9][0-9]*)$/.test(declared)||BigInt(declared)>BigInt(profile.routes.get(url).maxRequestBytes))throw fail('bounded explicit original Content-Length required');
   const length=Number(declared);
@@ -191,7 +201,8 @@ function listenRequest(state,req,res){
     const original=identity(req,req.socket,state.profile),handle=Object.freeze(Object.create(null));
     record={server:state,req,socket:req.socket,native:connection.native,identity:original,localIdentity:localIdentitySnapshot(req,original),route:state.profile.routes.get(original.url),handle,closed:false,holds:0,currentTail:Promise.resolve()};
     requests.set(req,record);callers.set(handle,record);connection.record=record;
-    res.once('finish',()=>endRecord(record));res.once('close',()=>endRecord(record));req.once('aborted',()=>endRecord(record));
+    res.once('finish',()=>{if(state.profile.socialDirectory)record.socialResponseFinished=true;else endRecord(record);});
+    res.once('close',()=>{if(!state.profile.socialDirectory||!res.writableFinished)endRecord(record);});req.once('aborted',()=>endRecord(record));
     guardResponse(record,res);
     const work=Promise.resolve().then(()=>{if(record.closed)throw fail('incoming response closed before handler');return state.handler(req,res);});
     state.handlers.add(work);work.catch(error=>{state.failure??=error;endRecord(record);res.destroy(error);}).finally(()=>state.handlers.delete(work));
@@ -200,12 +211,13 @@ function listenRequest(state,req,res){
   }catch(error){state.failure??=error;if(record)endRecord(record);req.socket.destroy(error);}
 }
 
-async function openInboundServer(profile,handler,runtime,desktopTaskGrant=false){
-  const p=registration(profile,runtime,desktopTaskGrant);if(typeof handler!=='function')throw fail('original incoming handler required');
+async function openInboundServer(profile,handler,runtime,desktopTaskGrant=false,socialDirectory=false){
+  const p=registration(profile,runtime,desktopTaskGrant,socialDirectory);if(typeof handler!=='function')throw fail('original incoming handler required');
   const api=runtime?{listen:native.listenTaskRuntime,accept:native.acceptTaskRuntime,take:native.takeTaskRuntimeFD,retireListener:native.retireTaskRuntimeListener,retire:native.retireTaskRuntime,current:native.currentTaskRuntime}:{listen:native.listenInbound,accept:native.acceptInbound,take:native.takeInboundFD,retireListener:native.retireListener,retire:native.retireInbound,current:native.currentInbound};
   const listener=api.listen({socketPath:p.socketPath,nodeUID:p.nodeUID,bridgeUID:p.bridgeUID,bridgePID:p.bridgePID,timeoutMs:p.acceptTimeoutMs});
-  const server=http.createServer({maxHeaderSize:64<<10,requestTimeout:30000,headersTimeout:5000},(req,res)=>listenRequest(state,req,res));
-  server.maxRequestsPerSocket=1;
+  const server=http.createServer({maxHeaderSize:socialDirectory?SOCIAL_DIRECTORY_MAX_HEADER_BYTES:64<<10,requestTimeout:30000,headersTimeout:5000},(req,res)=>listenRequest(state,req,res));
+  server.maxRequestsPerSocket=socialDirectory?0:1;
+  if(socialDirectory){server.keepAliveTimeout=0;server.headersTimeout=5000;}
   server.on('clientError',(_error,socket)=>socket.destroy());
   const state={profile:p,listener,server,handler,api,runtime,pid:process.pid,retired:false,physicalJoined:false,physicalClosed:false,connections:new Map(),handlers:new Set(),currents:new Set(),failure:null,accept:null};
   const opaque=Object.freeze(Object.create(null));servers.set(opaque,state);
@@ -232,6 +244,7 @@ export async function openInboundAuthorityServer(profile,handler){return openInb
 // Separate closed desktop-TaskGrant registration. It shares the original L/C
 // transport, not Source/Grant authority, with the unchanged legacy two routes.
 export async function openInboundDesktopTaskGrantServer(profile,handler){return openInboundServer(profile,handler,false,true);}
+export async function openInboundSocialDirectoryServer(profile,handler){return openInboundServer(profile,handler,false,false,true);}
 export async function openInboundTaskRuntimeServer(profile,handler){return openInboundServer(profile,handler,true);}
 export function acquireInboundCaller(req,registeredServer){
   const record=req&&requests.get(req);if(!record||record.server.runtime)throw fail('original authority incoming request required');
@@ -241,17 +254,17 @@ export function acquireInboundCaller(req,registeredServer){
 export function releaseInboundCaller(handle){const record=handle&&callers.get(handle);if(!record||record.server.runtime)throw fail('authority inbound handle required');if(record.holds>0)record.holds--;}
 export function assertCurrentInboundCaller(req,handle,registeredServer){
   const record=handle&&callers.get(handle),registered=registeredServer&&servers.get(registeredServer);
-  if(arguments.length!==3||!record||record.server.runtime||!registered||record.server!==registered||record.req!==req||requests.get(req)!==record||record.server.pid!==process.pid||record.holds<1||record.closed||record.server.retired)throw fail('same acquired original caller and registered listener required');
+  if(arguments.length!==3||!record||record.server.runtime||!registered||record.server!==registered||record.req!==req||requests.get(req)!==record||record.server.pid!==process.pid||record.holds<1||record.closed||record.server.retired||record.socialWaitStarted)throw fail('same acquired original caller and registered listener required');
   assertLocalIdentity(record,req);
 }
 export function currentInboundCaller(req,handle,registeredServer){
-  const record=handle&&callers.get(handle);if(!record||record.server.runtime||requests.get(req)!==record||record.server.pid!==process.pid||record.closed||record.server.retired)return Promise.reject(fail('same original incoming request and handle required'));
+  const record=handle&&callers.get(handle);if(!record||record.server.runtime||requests.get(req)!==record||record.server.pid!==process.pid||record.closed||record.server.retired||record.socialWaitStarted)return Promise.reject(fail('same original incoming request and handle required'));
   if(arguments.length>=3){try{if(record.server!==serverState(registeredServer))throw fail('original registered listener instance required');}catch(error){return Promise.reject(error);}}
   const run=record.currentTail.then(async()=>{
     if(record.holds<1)throw fail('acquired original caller hold required');
     assertRequest(record,req);
-    const frame=await native.currentInbound(record.native,{timeoutMs:record.server.profile.currentTimeoutMs,maxFrameBytes:record.route.maxRequestBytes+65536});
-    assertRequest(record,req);return material(record,frame);
+    const frame=await native.currentInbound(record.native,{timeoutMs:record.server.profile.currentTimeoutMs,maxFrameBytes:record.server.profile.socialDirectory?SOCIAL_DIRECTORY_MAX_CONTROL_BYTES:record.route.maxRequestBytes+65536});
+    assertRequest(record,req);return record.server.profile.socialDirectory?socialDirectoryMaterial(record,frame):material(record,frame);
   }).catch(error=>{endRecord(record);record.socket.destroy();throw error;});
   record.currentTail=run.catch(()=>{});record.server.currents.add(run);run.finally(()=>record.server.currents.delete(run)).catch(()=>{});return run;
 }
@@ -283,6 +296,44 @@ export async function closeInboundAuthorityServer(handle){
 export function inboundAuthorityServerLifetime(handle){
   const state=serverState(handle);
   return Object.freeze({retired:state.retired,physicalJoined:state.physicalJoined,physicalClosed:state.physicalClosed});
+}
+export function retireInboundSocialDirectoryServer(handle){
+  const state=serverState(handle);if(!state.profile.socialDirectory)throw fail('original Social listener required');
+  if(state.retired)return;state.retired=true;state.api.retireListener(state.listener);
+  // Existing response/control capabilities must remain until the fixed W/A
+  // release, actual Source loan close and Main's physical transport finish.
+}
+export async function joinInboundSocialDirectoryServer(handle){
+  const state=serverState(handle);if(!state.profile.socialDirectory)throw fail('original Social listener required');return joinServer(state);
+}
+export async function closeInboundSocialDirectoryServer(handle){
+  const state=serverState(handle);if(!state.profile.socialDirectory)throw fail('original Social listener required');retireInboundSocialDirectoryServer(handle);
+  try{await joinServer(state);}finally{if(state.physicalJoined)state.physicalClosed=true;}
+}
+function socialDirectoryRecord(req,handle,registeredServer){
+  const state=serverState(registeredServer),record=handle&&callers.get(handle);
+  if(!state.profile.socialDirectory||!record||record.server!==state||record.req!==req||requests.get(req)!==record||record.closed||record.holds<1)throw fail('same held original Social request required');
+  return record;
+}
+export function waitInboundSocialDirectoryReadRelease(req,handle,registeredServer){
+  let record;try{record=socialDirectoryRecord(req,handle,registeredServer);if(!record.socialResponseFinished||record.socialWaitStarted)throw fail('one completed original Social response required');record.socialWaitStarted=true;}catch(error){return Promise.reject(error);}
+  const run=record.currentTail.then(async()=>{
+    const frame=await native.waitSocialDirectoryReadRelease(record.native,{timeoutMs:record.server.profile.currentTimeoutMs});
+    socialDirectoryRecord(req,handle,registeredServer);
+    record.socialReadRelease=Buffer.from(frame);return Buffer.from(frame);
+  }).catch(error=>{record.socialFailure??=error;throw error;});
+  return trackTask(record,run);
+}
+export function writeInboundSocialDirectoryClosedAck(req,handle,registeredServer,ownedACK){
+  let record,frame;try{record=socialDirectoryRecord(req,handle,registeredServer);if(!record.socialReadRelease||record.socialAckStarted||!Buffer.isBuffer(ownedACK)||ownedACK.length!==81)throw fail('one original Social closure ACK required');frame=Buffer.from(ownedACK);record.socialAckStarted=true;}catch(error){return Promise.reject(error);}
+  const run=record.currentTail.then(async()=>{
+    socialDirectoryRecord(req,handle,registeredServer);
+    await native.writeSocialDirectoryClosedAck(record.native,frame,{timeoutMs:record.server.profile.currentTimeoutMs});
+    record.socialAckWritten=true;
+    // Do not close the socket here: Main must validate the complete A while
+    // this same actual Node endpoint is still present, then close its own fds.
+  }).catch(error=>{record.socialFailure??=error;throw error;});
+  return trackTask(record,run);
 }
 export function retireInboundTaskRuntimeServer(handle){retireServer(serverState(handle,true));}
 export async function joinInboundTaskRuntimeServer(handle){return joinServer(serverState(handle,true));}

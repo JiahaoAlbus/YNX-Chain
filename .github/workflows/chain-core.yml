@@ -112,6 +112,20 @@ jobs:
           name: task-grant-transport-darwin-${{ github.sha }}
           path: ${{ runner.temp }}/tg
           if-no-files-found: error
+      - name: Check local Social directory original caller and W/A response drain
+        env:
+          YNX_LINK_SOCIAL_DIRECTORY_CI_EVIDENCE: ${{ runner.temp }}/sd
+          GOMAXPROCS: "2"
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+        run: sh cmd/ynx-secure-link-caller/check.sh social-directory
+      - name: Preserve Social directory Darwin transport and first cause
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: social-directory-transport-darwin-${{ github.sha }}
+          path: ${{ runner.temp }}/sd
+          if-no-files-found: error
 
   resource-current-native-linux:
     name: LINK resource-current native client and Linux kernel peer controls
@@ -152,6 +166,20 @@ jobs:
         with:
           name: task-grant-transport-linux-${{ github.sha }}
           path: ${{ runner.temp }}/tg
+          if-no-files-found: error
+      - name: Check local Social directory original caller and W/A response drain
+        env:
+          YNX_LINK_SOCIAL_DIRECTORY_CI_EVIDENCE: ${{ runner.temp }}/sd
+          GOMAXPROCS: "2"
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+        run: sh cmd/ynx-secure-link-caller/check.sh social-directory
+      - name: Preserve Social directory Linux transport and first cause
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: social-directory-transport-linux-${{ github.sha }}
+          path: ${{ runner.temp }}/sd
           if-no-files-found: error
 
   resource-current-auth-reader-go:

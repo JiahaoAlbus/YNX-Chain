@@ -1,0 +1,24 @@
+{
+  "schema": "LINK-PUBLIC-TEST-SDK-DATA-MIRROR/v1",
+  "refs": [
+    {
+      "original": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-social-directory-registered-lc-contract-successor-20261107/ack-contract-successor/source/packages/wallet-auth/native/social-directory-lc-v1/codec.mjs",
+      "mirror": "codec.mjs",
+      "bytes": 6823,
+      "sha256": "2f9ee5c0dac8ee45dddca89f17676a8c8332244e05bdca8d43672d170af7c0b8",
+      "copiedByteForByte": true
+    },
+    {
+      "original": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-social-directory-registered-lc-contract-successor-20261107/ack-contract-successor/EARLY_ACK_CONTRACT_R2.json",
+      "mirror": "IDL.json",
+      "bytes": 3985,
+      "sha256": "fa7f268391e1a2a776df015aca8fb31a6c348106fb619918cf31e26ce24291bd",
+      "copiedByteForByte": true
+    }
+  ],
+  "testImportOnly": true,
+  "productionExport": false,
+  "secondCodecImplementation": false,
+  "RootAdmission": false,
+  "SourceAdmission": false
+}

@@ -1,0 +1,292 @@
+// PUBLIC test peer. Real AF_UNIX/SCM_RIGHTS and HTTP/control IO, no Auth Source,
+// Root, Principal, SDK business decoder, signing, nonce or permission approval.
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"os"
+	"sync"
+	"sync/atomic"
+	"syscall"
+	"time"
+)
+
+type config struct {
+	Socket, Method, Path, Proof, Mode, Padding, Operation        string
+	RequestOriginal, SourceBindingOriginal, SourceWindowOriginal []byte
+	RequestBody                                                  []byte
+}
+type ackResult struct {
+	raw []byte
+	err error
+}
+
+var stdoutMu sync.Mutex
+
+func event(value any) {
+	stdoutMu.Lock()
+	defer stdoutMu.Unlock()
+	_ = json.NewEncoder(os.Stdout).Encode(value)
+}
+
+func main() {
+	raw, err := os.ReadFile(os.Args[1])
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error()})
+		return
+	}
+	var c config
+	if err = json.Unmarshal(raw, &c); err != nil {
+		event(map[string]any{"event": "result", "error": err.Error()})
+		return
+	}
+	commands := make(chan string, 16)
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			commands <- scanner.Text()
+		}
+		close(commands)
+	}()
+	if <-commands != "go" {
+		return
+	}
+	conn, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: c.Socket, Net: "unix"})
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	defer conn.Close()
+	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
+	pair, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_STREAM, 0)
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	left, right := os.NewFile(uintptr(pair[0]), "PUBLIC-control"), os.NewFile(uintptr(pair[1]), "PUBLIC-passed")
+	control, err := net.FileConn(left)
+	_ = left.Close()
+	if err != nil {
+		_ = right.Close()
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	defer control.Close()
+	_ = control.SetDeadline(time.Now().Add(10 * time.Second))
+	_, _, err = conn.WriteMsgUnix([]byte{'L'}, syscall.UnixRights(int(right.Fd())), nil)
+	_ = right.Close()
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	var queries atomic.Int32
+	var writes sync.Mutex
+	acknowledged := make(chan ackResult, 1)
+	go func() {
+		for n := 0; n < 64; n++ {
+			var tag [1]byte
+			if _, e := io.ReadFull(control, tag[:]); e != nil {
+				acknowledged <- ackResult{err: e}
+				return
+			}
+			if tag[0] == 'A' {
+				frame := make([]byte, 81)
+				frame[0] = 'A'
+				_, e := io.ReadFull(control, frame[1:])
+				acknowledged <- ackResult{raw: frame, err: e}
+				return
+			}
+			if tag[0] != 'C' {
+				acknowledged <- ackResult{err: errors.New("PUBLIC unexpected command")}
+				return
+			}
+			q := queries.Add(1)
+			event(map[string]any{"event": "query", "n": q})
+			if c.Mode == "hold-current" && q == 1 {
+				if <-commands != "reply" {
+					return
+				}
+			}
+			if c.Mode == "deny-current" || (c.Mode == "deny-second" && q == 2) {
+				writes.Lock()
+				_, _ = control.Write([]byte{0, 0, 0, 0})
+				writes.Unlock()
+				return
+			}
+			meta := map[string]any{"transportKind": "localOSpeer", "Service": "social-directory-test", "Operation": c.Operation, "Method": c.Method, "Path": c.Path, "Host": "PUBLIC-original-host", "ContentLength": 0, "RequestOriginalBytes": len(c.RequestOriginal), "SourceBindingOriginalBytes": len(c.SourceBindingOriginal), "SourceWindowOriginalBytes": len(c.SourceWindowOriginal)}
+			if c.Mode == "wrong-metadata" {
+				meta["Path"] = "/v4/devices/directory-other"
+			}
+			m, _ := json.Marshal(meta)
+			body := bytes.Join([][]byte{c.RequestOriginal, c.SourceBindingOriginal, c.SourceWindowOriginal}, nil)
+			payload := make([]byte, 4+len(m)+len(body))
+			binary.BigEndian.PutUint32(payload, uint32(len(m)))
+			copy(payload[4:], m)
+			copy(payload[4+len(m):], body)
+			prefix := make([]byte, 4)
+			binary.BigEndian.PutUint32(prefix, uint32(len(payload)))
+			writes.Lock()
+			_, e := control.Write(prefix)
+			if e == nil {
+				_, e = control.Write(payload)
+			}
+			writes.Unlock()
+			if e != nil {
+				acknowledged <- ackResult{err: e}
+				return
+			}
+		}
+		acknowledged <- ackResult{err: errors.New("PUBLIC command budget exhausted")}
+	}()
+	var requestBody io.Reader
+	if len(c.RequestBody) > 0 {
+		requestBody = bytes.NewReader(c.RequestBody)
+	}
+	req, err := http.NewRequest(c.Method, "http://social-directory-test"+c.Path, requestBody)
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	req.Header.Set("X-Ynx-Product-Session-Proof-V4", c.Proof)
+	if c.Padding != "" {
+		req.Header.Set("X-Public-Padding", c.Padding)
+	}
+	// HTTP framing completion and data-FD closure are separate. Do not request
+	// Connection:close or mistake EOF for the actual complete read witness.
+	req.Close = false
+	if err = req.Write(conn); err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "dialCount": 1})
+		return
+	}
+	response, err := http.ReadResponse(bufio.NewReader(conn), req)
+	if err != nil {
+		event(map[string]any{"event": "result", "error": err.Error(), "queries": queries.Load(), "dialCount": 1, "wSent": false, "unknown": true})
+		return
+	}
+	var responseBody []byte
+	var readErr error
+	buffer := make([]byte, 16384)
+	progress := false
+	for {
+		n, e := response.Body.Read(buffer)
+		if n > 0 {
+			responseBody = append(responseBody, buffer[:n]...)
+			if !progress {
+				progress = true
+				event(map[string]any{"event": "body-progress", "bytes": len(responseBody)})
+			}
+		}
+		if e != nil {
+			if e != io.EOF {
+				readErr = e
+			}
+			break
+		}
+		if len(responseBody) > 524288 {
+			break
+		}
+	}
+	_ = response.Body.Close()
+	event(map[string]any{"event": "read", "status": response.StatusCode, "body": base64.StdEncoding.EncodeToString(responseBody), "complete": readErr == nil && len(responseBody) <= 524288})
+	if readErr != nil || len(responseBody) > 524288 {
+		event(map[string]any{"event": "result", "error": fmt.Sprint(readErr), "queries": queries.Load(), "dialCount": 1, "wSent": false, "unknown": true})
+		return
+	}
+	if c.Mode == "wait-before-W" {
+		if <-commands != "send-W" {
+			event(map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": false, "unknown": true})
+			return
+		}
+	}
+	if c.Mode == "no-W" || c.Mode == "early-EOF" {
+		_ = control.Close()
+		_ = conn.Close()
+		event(map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": false, "unknown": true})
+		return
+	}
+	requestDigest, responseDigest := sha256.Sum256(c.RequestOriginal), sha256.Sum256(responseBody)
+	w := make([]byte, 74)
+	w[0] = 'W'
+	binary.BigEndian.PutUint32(w[1:], 69)
+	w[9] = 1
+	copy(w[10:], requestDigest[:])
+	copy(w[42:], responseDigest[:])
+	if c.Mode == "foreign-W" {
+		w[10] ^= 1
+	}
+	if c.Mode == "bad-W-length" {
+		binary.BigEndian.PutUint32(w[1:], 70)
+	}
+	send := w
+	if c.Mode == "partial-W" {
+		send = w[:37]
+	}
+	writes.Lock()
+	_, err = control.Write(send)
+	writes.Unlock()
+	event(map[string]any{"event": "W", "bytes": len(send)})
+	if c.Mode == "partial-W" && err == nil {
+		// Keep the real identity/data FD alive while publishing an actual control
+		// write-half EOF. The receiver can therefore observe all 37 prefix bytes
+		// before its own failure cleanup; a prior data-FD close could correctly
+		// deny at the initial liveness fence without reading any control bytes.
+		if half, ok := control.(interface{ CloseWrite() error }); ok {
+			_ = half.CloseWrite()
+		}
+		if <-commands != "finish" {
+			return
+		}
+		_ = control.Close()
+		_ = conn.Close()
+		event(map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": true, "unknown": true})
+		return
+	}
+	if err != nil || c.Mode == "bad-W-length" {
+		_ = control.Close()
+		_ = conn.Close()
+		event(map[string]any{"event": "result", "error": fmt.Sprint(err), "queries": queries.Load(), "dialCount": 1, "wSent": true, "unknown": true})
+		return
+	}
+	if c.Mode == "close-before-A" {
+		if <-commands != "close-peer" {
+			return
+		}
+		_ = control.Close()
+		_ = conn.Close()
+		event(map[string]any{"event": "peer-closed"})
+		event(map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": true, "unknown": true})
+		return
+	}
+	if c.Mode == "hold-after-W" || c.Mode == "foreign-W" {
+		if <-commands != "finish" {
+			return
+		}
+		_ = control.Close()
+		_ = conn.Close()
+		event(map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": true, "unknown": true})
+		return
+	}
+	a := <-acknowledged
+	valid := a.err == nil && len(a.raw) == 81 && a.raw[0] == 'A' && binary.BigEndian.Uint32(a.raw[1:]) == 76 && binary.BigEndian.Uint32(a.raw[5:]) == 0 && a.raw[9] == 1 && bytes.Equal(a.raw[10:42], requestDigest[:]) && bytes.Equal(a.raw[42:74], responseDigest[:]) && a.raw[74] <= 1 && a.raw[75] <= 1 && a.raw[76] <= 2
+	if valid {
+		present, kind, code := a.raw[75], a.raw[76], int32(binary.BigEndian.Uint32(a.raw[77:]))
+		valid = present == 0 && kind == 0 && code == 0 || present == 1 && (kind == 1 || kind == 2 && code == 0)
+	}
+	closeControl, closeData := control.Close(), conn.Close()
+	complete := valid && a.raw[74] == 1 && a.raw[75] == 0 && closeControl == nil && closeData == nil
+	result := map[string]any{"event": "result", "queries": queries.Load(), "dialCount": 1, "wSent": true, "ackValid": valid, "ack": base64.StdEncoding.EncodeToString(a.raw), "physicalClosed": closeControl == nil && closeData == nil, "complete": complete, "unknown": !complete}
+	if a.err != nil {
+		result["error"] = a.err.Error()
+	}
+	event(result)
+}

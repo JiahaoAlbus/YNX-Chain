@@ -314,6 +314,10 @@ typedef struct {
 typedef struct {
     caller data;
     int channel_fd, timeout_ms, max_frame, queries, runtime, runtime_terminal;
+    int social_wait_selected, social_waited, social_ack_selected, social_ack_done;
+    unsigned social_cleanup_unknown;
+    int social_debt_data_fd, social_debt_control_fd;
+    unsigned char social_pair[64];
     atomic_int retired, busy;
 } inbound_peer;
 typedef struct {
@@ -346,7 +350,7 @@ static void stop_inbound(inbound_peer *value) {
     close_owned(&value->data);
 }
 static void finalize_listener(napi_env env,void *data,void *hint){(void)env;(void)hint;inbound_listener *v=data;stop_listener(v);free(v);}
-static void finalize_inbound(napi_env env,void *data,void *hint){(void)env;(void)hint;inbound_peer *v=data;stop_inbound(v);free(v);}
+static void finalize_inbound(napi_env env,void *data,void *hint){(void)env;(void)hint;inbound_peer *v=data;stop_inbound(v);if(!v->social_cleanup_unknown)free(v);}
 static int flagged(int fd){return fcntl(fd,F_SETFD,FD_CLOEXEC)||fcntl(fd,F_SETFL,O_NONBLOCK);}
 static int wait_fd(int fd,short events,int wake,int64_t end) {
     for(;;){
@@ -504,7 +508,7 @@ static napi_value inbound_current_profile(napi_env env,napi_callback_info info,i
     size_t count=2;napi_value args[2],promise,resource;uint32_t timeout,budget;
     if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=2)return reject(env,"DENIED","inbound and current budget required");
     inbound_peer *value=tagged(env,args[0],runtime?&runtime_peer_tag:&inbound_tag);int idle=0;
-    if(!value||value->data.owner_pid!=getpid()||atomic_load(&value->retired)||(runtime&&value->runtime_terminal)||value->queries>=64||current(&value->data)||number_field(env,args[1],"timeoutMs",&timeout,30000)||!timeout||number_field(env,args[1],"maxFrameBytes",&budget,(16<<20)+65536)||budget<4||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","live bounded inbound current required");
+    if(!value||value->data.owner_pid!=getpid()||atomic_load(&value->retired)||(runtime&&value->runtime_terminal)||(!runtime&&value->social_wait_selected)||value->queries>=64||current(&value->data)||number_field(env,args[1],"timeoutMs",&timeout,30000)||!timeout||number_field(env,args[1],"maxFrameBytes",&budget,(16<<20)+65536)||budget<4||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","live bounded inbound current required");
     value->queries++;value->max_frame=(int)budget;inbound_job *job=calloc(1,sizeof(*job));if(!job){atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","current allocation failed");}
     job->peer=value;job->timeout=(int)timeout;job->fd=fcntl(value->data.control_fd,F_DUPFD_CLOEXEC,0);job->auxiliary=fcntl(value->channel_fd,F_DUPFD_CLOEXEC,0);
     if(job->fd<0||job->auxiliary<0){if(job->fd>=0)close(job->fd);if(job->auxiliary>=0)close(job->auxiliary);free(job);atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","current descriptor duplication failed");}
@@ -514,6 +518,8 @@ static napi_value inbound_current_profile(napi_env env,napi_callback_info info,i
 }
 static napi_value inbound_current(napi_env env,napi_callback_info info){return inbound_current_profile(env,info,0);}
 static napi_value runtime_current(napi_env env,napi_callback_info info){return inbound_current_profile(env,info,1);}
+
+#include "social-directory-transport-native.inc.c"
 
 typedef struct {
     napi_async_work work;
@@ -647,6 +653,8 @@ static napi_value initialize(napi_env env, napi_value exports) {
         {"takeInboundFD",NULL,take_inbound,NULL,NULL,NULL,napi_default,NULL},
         {"currentInbound",NULL,inbound_current,NULL,NULL,NULL,napi_default,NULL},
         {"retireInbound",NULL,retire_inbound,NULL,NULL,NULL,napi_default,NULL},
+        {"waitSocialDirectoryReadRelease",NULL,social_directory_wait,NULL,NULL,NULL,napi_default,NULL},
+        {"writeSocialDirectoryClosedAck",NULL,social_directory_ack,NULL,NULL,NULL,napi_default,NULL},
         {"listenTaskRuntime",NULL,listen_runtime,NULL,NULL,NULL,napi_default,NULL},
         {"acceptTaskRuntime",NULL,accept_runtime,NULL,NULL,NULL,napi_default,NULL},
         {"retireTaskRuntimeListener",NULL,retire_runtime_listener,NULL,NULL,NULL,napi_default,NULL},
