@@ -40,7 +40,13 @@ export class FilePermissionStore {
     this.epoch=epochs.get(this.filePath);
     if(beforeRevoke!==null)this.epoch.addBeforeRevoke(beforeRevoke);
   }
-  authorizationLease(originInput){return this.epoch.lease(origin(originInput))}
+  authorizationLease(originInput){
+    // Main's local PQ reviews need the same revocation epoch, not a website
+    // account grant. Keep this one fixed cancellation domain separate from
+    // the HTTPS-only origins accepted by every persisted permission operation.
+    const key=originInput==='ynx-wallet:local-pq'?originInput:origin(originInput);
+    return this.epoch.lease(key);
+  }
   async grantAccount(originInput,accountInput,approvedAt,guard){
     const key=origin(originInput),selected=account(accountInput),time=approvalTime(approvedAt);
     return serialize(this.filePath,async()=>{guard?.assert();const state=await this.#read();guard?.assert();state.origins[key]={parentCapability:"eth_accounts",accounts:[selected],approvedAt:time};await this.#write(state,guard)});
