@@ -829,7 +829,10 @@
     "native/social-f06-directory-readonly-data.mjs",
     "native/social-f06-directory-readonly-data.d.mts",
     "native/mobile-accountproof-host-v1/MobileAccountProofHostPortPrivate.hpp",
-    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp"
+    "native/mobile-accountproof-host-v1/MobileAccountProofWireDATA.hpp",
+    "native/original-wallet-product-registration-capture.mjs",
+    "native/original-wallet-product-registration-capture.d.mts",
+    "native/original-auth-source-v2-dispatch.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
