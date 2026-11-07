@@ -63,6 +63,9 @@ func run(args []string, out io.Writer) error {
 	if args[0] == "sender" {
 		return runPQLabSender(args[1:], out)
 	}
+	if args[0] == "sender-owners" {
+		return runPQLabPublicOwners(args[1:], out)
+	}
 	if args[0] == "presigned" {
 		return runPQLabPreSigned(args[1:], out)
 	}

@@ -225,14 +225,15 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) (resultE
 			return errors.New("unsupported sender operation")
 		}
 		response := struct {
-			Version          string                           `json:"version"`
-			Code             string                           `json:"code"`
-			Result           any                              `json:"result"`
-			Timings          *consensus.PQLabMetricsSnapshot  `json:"timings,omitempty"`
-			CalleeElapsedNS  int64                            `json:"calleeElapsedNs,omitempty"`
-			StaticCache      *consensus.PQLabStaticCacheStats `json:"staticCache,omitempty"`
-			StartupElapsedNS int64                            `json:"startupElapsedNs,omitempty"`
-			StartupTimings   *consensus.PQLabMetricsSnapshot  `json:"startupTimings,omitempty"`
+			Version          string                            `json:"version"`
+			Code             string                            `json:"code"`
+			Result           any                               `json:"result"`
+			Timings          *consensus.PQLabMetricsSnapshot   `json:"timings,omitempty"`
+			CalleeElapsedNS  int64                             `json:"calleeElapsedNs,omitempty"`
+			StaticCache      *consensus.PQLabStaticCacheStats  `json:"staticCache,omitempty"`
+			SourceInputs     *consensus.PQLabSenderSourceStats `json:"sourceInputs,omitempty"`
+			StartupElapsedNS int64                             `json:"startupElapsedNs,omitempty"`
+			StartupTimings   *consensus.PQLabMetricsSnapshot   `json:"startupTimings,omitempty"`
 		}{Version: "YNX-PQ-LAB-SENDER-REPLY/v1", Code: "ORIGINAL_SAVED", Result: result}
 		if err != nil {
 			response.Result = nil
@@ -256,6 +257,8 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) (resultE
 			response.CalleeElapsedNS = time.Since(commandStarted).Nanoseconds()
 			stats := checkpoints.stats()
 			response.StaticCache = &stats
+			sourceInputs := checkpoints.source.SourceStats()
+			response.SourceInputs = &sourceInputs
 		}
 		if err = json.NewEncoder(out).Encode(response); err != nil {
 			return err
