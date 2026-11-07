@@ -224,8 +224,8 @@
   },
   "approvedNormalPay": {
     "kind": "YNX_NORMAL_PAY_FINITE_CONSUMER/v1",
-    "baselineCommit": "020b91a36daf2f2a41cfc14d8c6bbff64cb2b792",
-    "sourceCommit": "020b91a36daf2f2a41cfc14d8c6bbff64cb2b792",
+    "baselineCommit": "b216bc7b504953fc512819ee28c0eb2a81b0ee6c",
+    "sourceCommit": "b216bc7b504953fc512819ee28c0eb2a81b0ee6c",
     "files": [
       {
         "relative": "apps/wallet-desktop/src/approved-desktop-ui.mjs",
@@ -289,8 +289,8 @@
       },
       {
         "relative": "apps/wallet-desktop/src/native-pay-product-ui.mjs",
-        "bytes": 19643,
-        "sha256": "69dae1f42917701f472692900790323c17391e84eb4cdb94b7dd85545727aaeb"
+        "bytes": 20460,
+        "sha256": "37376e2cd871d9b9dc7ec2b3ffb0783ef9dbb8f301083dafd430a3a3a7434855"
       },
       {
         "relative": "apps/wallet-desktop/src/original-policy-supplier/product-native-context.mjs",
@@ -344,8 +344,8 @@
       },
       {
         "relative": "apps/wallet-desktop/test/native-pay-product-ui.test.mjs",
-        "bytes": 12472,
-        "sha256": "f70d79257ad5eb06e2a1afe5be606a76909dca8e0a6a16999406069d33084aaf"
+        "bytes": 14126,
+        "sha256": "a093d292375bbfcc51a064de4800cbf849ed73ff070bb1f9f59f016d0c28bc26"
       },
       {
         "relative": "apps/wallet-desktop/test/native-pay-result.test.mjs",
@@ -382,7 +382,7 @@
       {
         "relative": "apps/wallet-desktop/scripts/normal-pay-compatible-source.mjs",
         "bytes": 4444,
-        "sha256": "9c364a9f3efd4046cf61a7686f45e3f5bfa9d3edaec53ade2e84107cb180c1a4"
+        "sha256": "5e52fde9fdec681cda3e9ff0a40853969c28651eff7b56296d68e13ec10c3eb4"
       },
       {
         "relative": "apps/wallet-desktop/test/normal-pay-finite-source.test.mjs",

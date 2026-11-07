@@ -1,7 +1,7 @@
 // Finite source/package PLAN only; original P01 owns normal pack execution.
 import fs from'node:fs';import path from'node:path';import{fileURLToPath}from'node:url';import{execFileSync}from'node:child_process';import{createHash}from'node:crypto';
 import approved from'./portable-package-consumer-role-data.json'with{type:'json'};
-const BASE='020b91a36daf2f2a41cfc14d8c6bbff64cb2b792',RECORD='apps/wallet-desktop/native/original-auth-identity-build.json',RECORD_SHA='125a0fd40168ca7a9842644bb24e70c669bf4596d9eb36e8c4f1daa62dc43485';
+const BASE='b216bc7b504953fc512819ee28c0eb2a81b0ee6c',RECORD='apps/wallet-desktop/native/original-auth-identity-build.json',RECORD_SHA='125a0fd40168ca7a9842644bb24e70c669bf4596d9eb36e8c4f1daa62dc43485';
 const fail=code=>{throw Object.assign(Error(code),{code})},sha=b=>createHash('sha256').update(b).digest('hex');
 export function assertNormalPayFiniteDeltaDATA(names,allowed,compileNames){if(!Array.isArray(names)||new Set(names).size!==names.length)fail('NORMAL_PAY_DELTA_SHAPE');const set=new Set(allowed);for(const name of names){if(compileNames.has(name))fail('NORMAL_PAY_COMPILE_INPUT_CHANGED:'+name);if(!set.has(name))fail('NORMAL_PAY_UNAPPROVED_SOURCE_DELTA:'+name);}return true;}
 export function planNormalPayCompatibleSource({root,commit}){
