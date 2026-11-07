@@ -391,7 +391,7 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/LocalStorageStartupChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-locked-startup-checks"
           "$RUNNER_TEMP/ynx-shop-locked-startup-checks" | tee "$RUNNER_TEMP/ynx-shop-macos-locked-startup.log"
-          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks SellerSetupChecks SellerInvitationChecks; do
+          for CHECK in AgentComparisonChecks AgentModelChecks SellerConsumerChecks SellerModelChecks SellerSetupChecks SellerInvitationChecks SellerStoreProfileChecks; do
             xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" "tests/$CHECK.swift" -o "$RUNNER_TEMP/ynx-shop-$CHECK"
             "$RUNNER_TEMP/ynx-shop-$CHECK" | tee "$RUNNER_TEMP/ynx-shop-$CHECK.log"
           done
@@ -417,6 +417,7 @@ jobs:
             ${{ runner.temp }}/ynx-shop-SellerModelChecks.log
             ${{ runner.temp }}/ynx-shop-SellerSetupChecks.log
             ${{ runner.temp }}/ynx-shop-SellerInvitationChecks.log
+            ${{ runner.temp }}/ynx-shop-SellerStoreProfileChecks.log
             ${{ runner.temp }}/ynx-shop-native-buyer-engine.log
             ${{ runner.temp }}/ynx-shop-native-seller-engine.log
 

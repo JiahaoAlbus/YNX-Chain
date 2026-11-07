@@ -54,6 +54,21 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	var original any
 	decode := func(out any) bool { return decodeBusinessBody([]byte(in.OriginalBody), out) == nil }
 	switch {
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && strings.HasSuffix(in.Path, "/native-profile"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 5 || !invoiceRecoveryID.MatchString(parts[3]) {
+			return nil, "", ErrConflict
+		}
+		var input NativeStoreProfileInput
+		if !decode(&input) || input.Update.IdempotencyKey != "" || input.Expected.ID != parts[3] {
+			return nil, "", ErrConflict
+		}
+		storeID, target, key, original = parts[3], parts[3], input.IdempotencyKey, input
+		if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+			return nil, "", err
+		}
+		route = "store.profile.native." + storeID
+		kind = "native-store-profile"
 	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/stores/") && (strings.HasSuffix(in.Path, "/native-accept") || strings.HasSuffix(in.Path, "/native-cancel")):
 		parts := strings.Split(in.Path, "/")
 		if len(parts) != 7 || parts[4] != "invitations" || !invoiceRecoveryID.MatchString(parts[3]) || !invoiceRecoveryID.MatchString(parts[5]) {
@@ -245,8 +260,11 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 			route, key, original = "return.restock."+target, input.IdempotencyKey, input
 			permission = permissionInventoryWrite
 		}
-	case in.Method == "POST" && strings.HasPrefix(in.Path, "/orders/") && strings.HasSuffix(in.Path, "/transition"):
+	case in.Method == "POST" && (strings.HasPrefix(in.Path, "/orders/") || strings.HasPrefix(in.Path, "/seller/orders/")) && strings.HasSuffix(in.Path, "/transition"):
 		parts := strings.Split(in.Path, "/")
+		if len(parts) == 5 && parts[1] == "seller" {
+			parts = parts[1:]
+		}
 		if len(parts) != 4 {
 			return nil, "", ErrConflict
 		}
@@ -329,6 +347,12 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		return nil, "", ErrConflict
 	}
 	switch kind {
+	case "native-store-profile":
+		value, ok := s.s.Stores[rec.ObjectID]
+		if !ok || value.ID != storeID || value.Owner != original.(NativeStoreProfileInput).Expected.Owner {
+			return nil, "", ErrConflict
+		}
+		return detached(NativeStoreProfileResult{Store: value, Applied: original.(NativeStoreProfileInput).Update, OriginalApplied: true, QueryOnly: true})
 	case "native-invitation-accept", "native-invitation-cancel":
 		value, ok := s.s.SellerInvitations[rec.ObjectID]
 		input := original.(NativeInvitationDecisionInput)

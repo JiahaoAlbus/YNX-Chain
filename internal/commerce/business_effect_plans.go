@@ -255,7 +255,7 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 		} else {
 			plan, err = s.settlementEffect(target, body, verified.proof)
 		}
-	case "POST /api/orders/{id}/transition":
+	case "POST /api/orders/{id}/transition", "POST /api/seller/orders/{id}/transition":
 		var in orderTransitionInput
 		if err := decodeBusinessBody(body, &in); err != nil {
 			failBusiness(w, err)

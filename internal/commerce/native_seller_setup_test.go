@@ -225,3 +225,103 @@ func TestNativeSellerSetupInvitationDecisionNormalProofFence(t *testing.T) {
 		t.Fatal("owner accepted on behalf of target", w.Code, w.Body.String())
 	}
 }
+
+func TestNativeSellerSetupProfileCASOriginalRecoveryAndRollback(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "store.json")
+	s, _ := Open(path)
+	_, owner := actor(t, 126)
+	_, target := actor(t, 127)
+	st, e := s.CreateStore(owner, CreateStoreInput{Name: "Original", Policy: "Original policy", SettlementAccount: owner, IdempotencyKey: "native-profile-store"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	in := NativeStoreProfileInput{Expected: st, Update: StoreUpdate{Name: "Reviewed replacement", Description: "Actual replacement", Policy: "Reviewed policy", TrustURL: "https://example.com/evidence", SettlementAccount: target}, IdempotencyKey: "original-profile-change"}
+	// Same timestamp does not permit changed unseen fields to be overwritten.
+	changed := st
+	changed.Policy = "Concurrent policy"
+	s.s.Stores[st.ID] = changed
+	before, _ := json.Marshal(s.s)
+	if _, e = s.UpdateOriginalStoreProfile(owner, st.ID, in); !errors.Is(e, ErrConflict) {
+		t.Fatal("stale policy overwritten", e)
+	}
+	after, _ := json.Marshal(s.s)
+	if !bytes.Equal(before, after) {
+		t.Fatal("rejected CAS mutated Store")
+	}
+	s.s.Stores[st.ID] = st
+	// A failed atomic persistence also retains the entire original and no key.
+	blocker := filepath.Join(t.TempDir(), "not-dir")
+	if e = os.WriteFile(blocker, []byte("block"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	s.path = filepath.Join(blocker, "store.json")
+	before, _ = json.Marshal(s.s)
+	if _, e = s.UpdateOriginalStoreProfile(owner, st.ID, in); e == nil {
+		t.Fatal("failed persistence reported applied")
+	}
+	after, _ = json.Marshal(s.s)
+	if !bytes.Equal(before, after) {
+		t.Fatal("failed persistence changed profile, key or audit")
+	}
+	s.path = path
+	out, e := s.UpdateOriginalStoreProfile(owner, st.ID, in)
+	if e != nil || !out.OriginalApplied || out.Store.Name != in.Update.Name || out.Applied != in.Update {
+		t.Fatal(out, e)
+	}
+	// A newer legitimate update may exist before original recovery; return both
+	// the original applied fields and current Store without replaying the former.
+	newer := StoreUpdate{Name: "Newer current", Policy: "Newer terms", SettlementAccount: owner, IdempotencyKey: "newer-independent-profile"}
+	if _, e = s.UpdateStore(owner, st.ID, newer); e != nil {
+		t.Fatal(e)
+	}
+	cold, e := Open(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	before, _ = os.ReadFile(path)
+	raw, _ := json.Marshal(in)
+	result, _, e := cold.lookupSellerMutation(owner, sellerMutationLookupInput{"POST", "/seller/stores/" + st.ID + "/native-profile", string(raw)})
+	if e != nil {
+		t.Fatal(e)
+	}
+	b, _ := json.Marshal(result)
+	var recovered NativeStoreProfileResult
+	if e = json.Unmarshal(b, &recovered); e != nil {
+		t.Fatal(e)
+	}
+	if !recovered.QueryOnly || !recovered.OriginalApplied || recovered.Store.Name != newer.Name || recovered.Applied != in.Update {
+		t.Fatal(recovered)
+	}
+	after, _ = os.ReadFile(path)
+	if !bytes.Equal(before, after) {
+		t.Fatal("lookup replayed old profile")
+	}
+	modified := in
+	modified.Update.Name = "Changed under same key"
+	if _, e = cold.UpdateOriginalStoreProfile(owner, st.ID, modified); !errors.Is(e, ErrConflict) {
+		t.Fatal("original key replaced", e)
+	}
+	if _, _, e = cold.lookupSellerMutation(target, sellerMutationLookupInput{"POST", "/seller/stores/" + st.ID + "/native-profile", string(raw)}); e == nil {
+		t.Fatal("foreign profile lookup admitted")
+	}
+}
+func TestNativeSellerSetupProfileNormalV2ProofAndOwner(t *testing.T) {
+	s, _ := Open("")
+	_, owner := actor(t, 128)
+	_, target := actor(t, 129)
+	st, _ := s.CreateStore(owner, CreateStoreInput{Name: "Original", Policy: "Owner terms", IdempotencyKey: "http-profile-store"})
+	in := NativeStoreProfileInput{Expected: st, Update: StoreUpdate{Name: "Reviewed", Policy: "Reviewed terms"}, IdempotencyKey: "http-profile-original"}
+	raw, _ := json.Marshal(in)
+	route := "/api/seller/stores/" + st.ID + "/native-profile"
+	server := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: owner, role: "seller"}})
+	if w := businessHTTPRequest(server, "POST", route, "", string(raw)); w.Code != 401 {
+		t.Fatal("missing proof admitted", w.Code)
+	}
+	if w := businessHTTPRequest(server, "POST", route, strings.Repeat("a", 43), string(raw)); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	server = NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: target, role: "seller"}})
+	if w := businessHTTPRequest(server, "POST", route, strings.Repeat("b", 43), string(raw)); w.Code != 403 {
+		t.Fatal("foreign actor edited", w.Code, w.Body.String())
+	}
+}

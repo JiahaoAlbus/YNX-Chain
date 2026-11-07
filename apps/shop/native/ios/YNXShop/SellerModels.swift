@@ -18,6 +18,7 @@ struct SellerAudit:Codable,Identifiable {let ID,Actor,Role,Action,ObjectType,Obj
 struct SellerVariantDraft:Codable,Identifiable {var ID,Name,SKU,PriceYNXT,Inventory:String;var id:String{self.ID};init(ID:String="",Name:String="",SKU:String="",PriceYNXT:String="",Inventory:String=""){self.ID=ID;self.Name=Name;self.SKU=SKU;self.PriceYNXT=PriceYNXT;self.Inventory=Inventory}}
 struct SellerListingDraft:Codable {var productID,expectedRevision,title,description,category:String;var variants:[SellerVariantDraft];init(productID:String,expectedRevision:String,title:String,description:String,category:String,variants:[SellerVariantDraft]){self.productID=productID;self.expectedRevision=expectedRevision;self.title=title;self.description=description;self.category=category;self.variants=variants};init(_ product:SellerProduct){self.init(productID:product.ID,expectedRevision:String(product.Revision),title:product.Title,description:product.Description,category:product.Category,variants:product.Variants.map{SellerVariantDraft(ID:$0.ID,Name:$0.Name,SKU:$0.SKU,PriceYNXT:String($0.PriceYNXT),Inventory:String($0.Inventory))})}}
 enum SellerCommand {
+    case updateStore(SellerStore,name:String,description:String,policy:String,trustURL:String,settlementAccount:String)
     case createStore(name:String,description:String,policy:String,trustURL:String,settlementAccount:String)
     case createProduct(SellerListingDraft)
     case activateStore(expectedUpdatedAt:String,expectedPolicy:String,expectedSettlementAccount:String)

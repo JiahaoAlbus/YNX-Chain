@@ -28632,6 +28632,622 @@
           }
         }
       }
+    },
+    "seller_edit_store_profile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit store profile and policy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编辑店铺资料与政策"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編輯店鋪資料與政策"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "店舗情報・ポリシーを編集"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상점 정보 및 정책 편집"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar perfil y política de la tienda"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifier le profil et la politique de la boutique"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop-Profil und Richtlinien bearbeiten"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar perfil e política da loja"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить профиль и правила магазина"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعديل ملف المتجر وسياسته"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit profil dan kebijakan toko"
+          }
+        }
+      }
+    },
+    "seller_review_profile_changes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review profile changes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "审核资料变更"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "審閱資料變更"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "情報の変更を確認"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "정보 변경 검토"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar cambios del perfil"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifier les modifications du profil"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profiländerungen prüfen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisar alterações do perfil"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить изменения профиля"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مراجعة تغييرات الملف"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tinjau perubahan profil"
+          }
+        }
+      }
+    },
+    "seller_original_value": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Original value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原值"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の値"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원래 값"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valeur d’origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ursprünglicher Wert"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor original"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходное значение"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "القيمة الأصلية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nilai asli"
+          }
+        }
+      }
+    },
+    "seller_proposed_value": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Proposed value"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拟提交值"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "擬提交值"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更後の値"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제안한 값"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor propuesto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valeur proposée"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorgeschlagener Wert"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor proposto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предлагаемое значение"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "القيمة المقترحة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nilai yang diusulkan"
+          }
+        }
+      }
+    },
+    "seller_submit_store_profile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Submit reviewed changes"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交已审核的变更"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提交已審閱的變更"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認した変更を送信"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검토한 변경 제출"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar cambios revisados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer les modifications vérifiées"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geprüfte Änderungen senden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar alterações revisadas"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить проверенные изменения"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إرسال التغييرات بعد مراجعتها"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim perubahan yang ditinjau"
+          }
+        }
+      }
+    },
+    "seller_confirm_store_profile": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I have reviewed the proposed profile, policy and payout account changes."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已审核拟提交的店铺资料、政策与收款账户变更。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我已審閱擬提交的店鋪資料、政策與收款帳戶變更。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "店舗情報、ポリシー、受取アカウントの変更内容を確認しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "제안한 상점 정보, 정책 및 수취 계정 변경을 검토했습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "He revisado los cambios propuestos del perfil, la política y la cuenta de cobro."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "J’ai vérifié les modifications proposées du profil, de la politique et du compte de versement."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich habe die vorgeschlagenen Änderungen an Profil, Richtlinien und Auszahlungskonto geprüft."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisei as alterações propostas no perfil, na política e na conta de recebimento."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Я проверил предлагаемые изменения профиля, правил и счёта получения."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "راجعت التغييرات المقترحة على الملف والسياسة وحساب الاستلام."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saya telah meninjau usulan perubahan profil, kebijakan, dan akun penerimaan."
+          }
+        }
+      }
+    },
+    "seller_store_profile_edit_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only the store owner can submit profile and policy changes. Review the original and proposed values. This does not approve a Wallet payment or confirm a transfer."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅店主可提交资料与政策变更。请核对原值和拟提交值；此操作不代表 Wallet 付款批准或转账确认。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅店主可提交資料與政策變更。請核對原值和擬提交值；此操作不代表 Wallet 付款批准或轉帳確認。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "店舗所有者のみが情報やポリシーの変更を送信できます。元の値と変更後の値を確認してください。Walletでの支払い承認や送金確認を行うものではありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상점 소유자만 정보와 정책 변경을 제출할 수 있습니다. 원래 값과 제안한 값을 검토하세요. 이 동작은 Wallet 결제를 승인하거나 이체를 확인하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo el propietario puede enviar cambios del perfil y la política. Revisa los valores originales y propuestos. Esto no aprueba pagos en Wallet ni confirma transferencias."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seul le propriétaire peut envoyer des modifications du profil et de la politique. Vérifiez les valeurs d’origine et proposées. Cette action n’approuve aucun paiement Wallet et ne confirme aucun transfert."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur der Shop-Eigentümer kann Profil- und Richtlinienänderungen senden. Prüfen Sie die ursprünglichen und vorgeschlagenen Werte. Dies genehmigt keine Wallet-Zahlung und bestätigt keinen Transfer."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Somente o proprietário pode enviar alterações de perfil e política. Revise os valores originais e propostos. Isto não aprova pagamentos no Wallet nem confirma transferências."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только владелец магазина может отправлять изменения профиля и правил. Проверьте исходные и предлагаемые значения. Это не подтверждает платёж в Wallet или перевод средств."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يمكن لمالك المتجر فقط إرسال تغييرات الملف والسياسة. راجع القيم الأصلية والمقترحة. لا يوافق هذا الإجراء على دفع عبر Wallet ولا يؤكد تحويلاً."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hanya pemilik toko yang dapat mengirim perubahan profil dan kebijakan. Tinjau nilai asli dan yang diusulkan. Ini tidak menyetujui pembayaran Wallet atau mengonfirmasi transfer."
+          }
+        }
+      }
+    },
+    "seller_store_profile_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current store record no longer matches this snapshot or is unavailable. Close this form, refresh and review the current profile before submitting again. Your input has not been replaced."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前店铺记录与原快照不一致或暂不可用。请关闭表单、刷新并核对当前资料后再提交；输入内容未被自动替换。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前店鋪記錄與原快照不一致或暫無法使用。請關閉表單、重新整理並核對目前資料後再提交；輸入內容未被自動取代。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の店舗記録が元のスナップショットと一致しないか、取得できません。フォームを閉じて更新し、現在の情報を確認してから再送信してください。入力内容は自動変更していません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 상점 기록이 원래 스냅샷과 일치하지 않거나 사용할 수 없습니다. 양식을 닫고 새로고침한 뒤 현재 정보를 검토하고 다시 제출하세요. 입력 내용은 자동으로 바뀌지 않았습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El registro actual no coincide con esta instantánea o no está disponible. Cierra el formulario, actualiza y revisa el perfil actual antes de volver a enviar. Tu contenido no se ha reemplazado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’enregistrement actuel ne correspond plus à cet instantané ou est indisponible. Fermez le formulaire, actualisez et vérifiez le profil actuel avant de renvoyer. Votre saisie n’a pas été remplacée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der aktuelle Shop-Datensatz stimmt nicht mehr mit diesem Stand überein oder ist nicht verfügbar. Schließen Sie das Formular, aktualisieren Sie und prüfen Sie das aktuelle Profil vor dem erneuten Senden. Ihre Eingaben wurden nicht ersetzt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O registro atual não corresponde mais a esta versão ou está indisponível. Feche o formulário, atualize e revise o perfil atual antes de reenviar. Suas entradas não foram substituídas."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущая запись магазина не совпадает с исходным снимком или недоступна. Закройте форму, обновите данные и проверьте профиль перед повторной отправкой. Введённые данные не заменялись."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يعد سجل المتجر الحالي يطابق هذه اللقطة أو أنه غير متاح. أغلق النموذج وحدّث البيانات وراجع الملف الحالي قبل الإرسال مجدداً. لم يتم استبدال إدخالك."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catatan toko saat ini tidak lagi cocok dengan snapshot ini atau tidak tersedia. Tutup formulir, segarkan, dan tinjau profil saat ini sebelum mengirim lagi. Masukan Anda tidak diganti."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

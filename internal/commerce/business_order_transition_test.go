@@ -149,3 +149,37 @@ func TestBusinessCancelFailureAndActorFencePreserveInventoryAndNonce(t *testing.
 		})
 	}
 }
+
+func TestBusinessTransitionsNativeSellerAliasPreservesOriginalFenceAndRecovery(t *testing.T) {
+	s, buyer, order, evidence := settlementFixture(t)
+	_, owner := actor(t, 1)
+	if _, err := s.ConfirmSettlement(order.ID, evidence); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: owner, role: "seller"}})
+	if w := businessHTTPRequest(server, "GET", "/api/seller/orders", strings.Repeat("a", 43), ""); w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(order.ID)) {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	if w := businessHTTPRequest(server, "GET", "/api/seller/orders/"+order.ID, strings.Repeat("b", 43), ""); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	route := "/api/seller/orders/" + order.ID + "/transition"
+	body := `{"Action":"shipped","Carrier":"Original carrier","TrackingNumber":"Original tracking","IdempotencyKey":"native-alias-original-shipment"}`
+	if w := businessHTTPRequest(server, "POST", route, strings.Repeat("c", 43), body); w.Code != 200 {
+		t.Fatal(w.Code, w.Body.String())
+	}
+	before := transitionDomainSnapshot(t, s)
+	if _, _, err := s.lookupSellerMutation(owner, sellerMutationLookupInput{"POST", strings.TrimPrefix(route, "/api"), body}); err != nil {
+		t.Fatal(err)
+	}
+	after := transitionDomainSnapshot(t, s)
+	if !bytes.Equal(before, after) {
+		t.Fatal("alias recovery replayed shipment")
+	}
+	for _, r := range []string{"/api/seller/orders", "/api/seller/orders/" + order.ID} {
+		b := NewServer(s, ServerConfig{businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}})
+		if w := businessHTTPRequest(b, "GET", r, strings.Repeat("d", 43), ""); w.Code != 403 {
+			t.Fatal("Buyer grant admitted on Seller-only path", w.Code, w.Body.String())
+		}
+	}
+}

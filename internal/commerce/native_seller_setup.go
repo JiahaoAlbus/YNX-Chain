@@ -3,6 +3,7 @@ package commerce
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -222,4 +223,85 @@ func (s *Server) nativeDecideSellerInvitation(w http.ResponseWriter, r *http.Req
 		return
 	}
 	write(w, http.StatusOK, value)
+}
+
+// Expected is the exact profile the owner reviewed. The original outer key
+// covers both that snapshot and the replacement fields; no nested key is used.
+type NativeStoreProfileInput struct {
+	Expected       StoreProfile
+	Update         StoreUpdate
+	IdempotencyKey string
+}
+type NativeStoreProfileResult struct {
+	Store                      StoreProfile
+	Applied                    StoreUpdate
+	OriginalApplied, QueryOnly bool
+}
+
+func sameNativeStoreProfile(a, b StoreProfile) bool {
+	return a.ID == b.ID && a.Owner == b.Owner && a.Name == b.Name && a.Description == b.Description && a.Policy == b.Policy && a.TrustURL == b.TrustURL && a.SettlementAccount == b.SettlementAccount && a.Status == b.Status && a.CreatedAt.Equal(b.CreatedAt) && a.UpdatedAt.Equal(b.UpdatedAt)
+}
+func (s *Store) UpdateOriginalStoreProfile(actor, storeID string, in NativeStoreProfileInput) (NativeStoreProfileResult, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.requireSellerLocked(storeID, actor, SellerRoleOwner); err != nil {
+		return NativeStoreProfileResult{}, err
+	}
+	value, ok := s.s.Stores[storeID]
+	if !ok {
+		return NativeStoreProfileResult{}, ErrNotFound
+	}
+	if len(in.IdempotencyKey) < 8 || len(in.IdempotencyKey) > 128 || in.Update.IdempotencyKey != "" || strings.TrimSpace(in.Update.Policy) == "" || in.Expected.ID != storeID || in.Expected.Owner != value.Owner {
+		return NativeStoreProfileResult{}, ErrInvalidState
+	}
+	if err := validateStoreFields(in.Update.Name, in.Update.Description, in.Update.Policy, in.Update.TrustURL, in.Update.SettlementAccount); err != nil {
+		return NativeStoreProfileResult{}, err
+	}
+	route := "store.profile.native." + storeID
+	id, found, err := s.idempotencyLocked(actor, route, in.IdempotencyKey, in)
+	if err != nil {
+		return NativeStoreProfileResult{}, err
+	}
+	if found {
+		if id != storeID {
+			return NativeStoreProfileResult{}, ErrConflict
+		}
+		return NativeStoreProfileResult{Store: value, Applied: in.Update, OriginalApplied: true}, nil
+	}
+	if !sameNativeStoreProfile(value, in.Expected) {
+		return NativeStoreProfileResult{}, ErrConflict
+	}
+	staged, err := cloneSnapshot(s.s)
+	if err != nil {
+		return NativeStoreProfileResult{}, err
+	}
+	tx := &Store{s: staged, now: s.now}
+	value, err = tx.UpdateStore(actor, storeID, in.Update)
+	if err != nil {
+		return NativeStoreProfileResult{}, err
+	}
+	tx.recordIdempotencyLocked(actor, route, in.IdempotencyKey, requestHash(in), storeID)
+	before := s.s
+	s.s = tx.s
+	if err = s.persistLocked(); err != nil {
+		s.s = before
+		return NativeStoreProfileResult{}, err
+	}
+	return NativeStoreProfileResult{Store: value, Applied: in.Update, OriginalApplied: true}, nil
+}
+func (s *Server) nativeUpdateStoreProfile(w http.ResponseWriter, r *http.Request) {
+	actor, ok := s.auth(w, r, "seller")
+	if !ok {
+		return
+	}
+	var in NativeStoreProfileInput
+	if !decode(w, r, &in) {
+		return
+	}
+	result, err := s.store.UpdateOriginalStoreProfile(actor.Account, r.PathValue("id"), in)
+	if err != nil {
+		fail(w, status(err), err)
+		return
+	}
+	write(w, http.StatusOK, result)
 }

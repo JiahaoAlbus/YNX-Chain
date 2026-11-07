@@ -71,7 +71,7 @@ import SwiftUI
         for section in ["products","orders","members","audit","settlements"] {
             do{
                 let path:String
-                switch section{case "products":path="seller/products";case "orders":path="orders";case "members":path="seller/stores/"+store+"/roles";case "audit":path="seller/audit";default:path="seller/settlements"}
+                switch section{case "products":path="seller/products";case "orders":path="seller/orders";case "members":path="seller/stores/"+store+"/roles";case "audit":path="seller/audit";default:path="seller/settlements"}
                 let value=try await api.raw(path,method:"GET",json:[:]);try check();guard at==epoch,view==selection,selectedStoreID==store else{return}
                 switch section {
                 case "products":let all:[SellerProduct]=try rows("products",value,as:SellerProduct.self);let items=all.filter{$0.StoreID==store};guard Set(items.map(\.ID)).count==items.count,items.allSatisfy({validID($0.ID) && $0.Revision>0 && !$0.Variants.isEmpty && Set($0.Variants.map(\.ID)).count==$0.Variants.count}) else{throw ShopError.security};products=items
@@ -101,6 +101,14 @@ import SwiftUI
             if accept {guard receivedInvitations.contains(where:{$0.ID==row.ID && $0.UpdatedAt==row.UpdatedAt && $0.Role==row.Role && $0.StoreID==row.StoreID && $0.Account==row.Account}),row.Account==api.currentSession?.account,reason.isEmpty else{throw ShopError.security}}
             else {guard canManageMembers,invitations.contains(where:{$0.ID==row.ID && $0.UpdatedAt==row.UpdatedAt && $0.Role==row.Role && $0.Account==row.Account}),reason.utf8.count>=8,!reason.contains("\n"),!reason.contains("\r") else{throw ShopError.security};_ = try bounded(reason,240)}
             return (accept ? "accept-invitation":"cancel-invitation",row.ID,"/seller/stores/"+store+"/invitations/"+row.ID+(accept ? "/native-accept":"/native-cancel"),["ExpectedUpdatedAt":row.UpdatedAt,"ExpectedRole":row.Role,"ExpectedAccount":row.Account,"Reason":reason])
+        case .updateStore(let snapshot,let name,let description,let policy,let trustURL,let settlementAccount):
+            guard canManageMembers,snapshot.ID==store,let current=stores.first(where:{$0.ID==store}),snapshot.CreatedAt != nil,snapshot.UpdatedAt != nil else{throw ShopError.security}
+            let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+            guard try encoder.encode(current)==encoder.encode(snapshot) else{throw ShopError.contextChanged}
+            if !trustURL.isEmpty {guard let u=URLComponents(string:trustURL),u.scheme=="https",u.host?.isEmpty==false,u.user==nil,u.password==nil else{throw ShopError.security}}
+            guard settlementAccount.isEmpty || NativeWire.matches(settlementAccount,"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$") else{throw ShopError.security}
+            let expected=try JSONSerialization.jsonObject(with:encoder.encode(snapshot))
+            return ("update-store",store,"/seller/stores/"+store+"/native-profile",["Expected":expected,"Update":["Name":try bounded(name,100),"Description":try bounded(description,3000,required:false),"Policy":try bounded(policy,5000),"TrustURL":try bounded(trustURL,500,required:false),"SettlementAccount":settlementAccount,"IdempotencyKey":""]])
         case .createStore(let name,let description,let policy,let trustURL,let settlementAccount):
             guard !hasPending("create-store") else{throw ShopError.unresolvedMutation}
             if !trustURL.isEmpty {guard let u=URLComponents(string:trustURL),u.scheme=="https",u.host?.isEmpty==false,u.user==nil,u.password==nil else{throw ShopError.security}}
@@ -128,10 +136,10 @@ import SwiftUI
             return ("inventory",productID,"/seller/inventory/batch",["StoreID":store,"Items":[["ProductID":productID,"VariantID":variantID,"ExpectedRevision":expected,"Inventory":inventory]]])
         case .ship(let id,let carrier,let tracking):
             guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="paid" else{throw ShopError.security}
-            return ("ship",id,"/orders/"+id+"/transition",["Action":"shipped","Carrier":try bounded(carrier,120),"TrackingNumber":try bounded(tracking,200),"Explanation":""])
+            return ("ship",id,"/seller/orders/"+id+"/transition",["Action":"shipped","Carrier":try bounded(carrier,120),"TrackingNumber":try bounded(tracking,200),"Explanation":""])
         case .returnDecision(let id,let returnID,let approve,let explanation):
             guard let order=orders.first(where:{$0.ID==id}),order.StoreID==store,order.Status=="return_requested",order.originalReturnID==returnID,validID(returnID) else{throw ShopError.security}
-            return ("return",id,"/orders/"+id+"/transition",["Action":approve ? "return_approved":"return_rejected","OriginalReturnID":returnID,"Explanation":try bounded(explanation,5000,required:!approve)])
+            return ("return",id,"/seller/orders/"+id+"/transition",["Action":approve ? "return_approved":"return_rejected","OriginalReturnID":returnID,"Explanation":try bounded(explanation,5000,required:!approve)])
         case .revoke(let account,let reason):
             guard canManageMembers,reason.utf8.count>=8,!reason.contains("\n"),!reason.contains("\r"),validID(account),members.contains(where:{$0.Account==account}) else{throw ShopError.security}
             return ("revoke",account,"/seller/stores/"+store+"/roles/"+account+"/native-revoke",["Reason":try bounded(reason,240)])
@@ -182,6 +190,10 @@ import SwiftUI
             guard row.ID==original.target,row.StoreID==original.storeID,row.Account==input["ExpectedAccount"] as? String,row.Role==input["ExpectedRole"] as? String,row.Status==(original.kind=="accept-invitation" ? "accepted":"cancelled") else{throw ShopError.security}
             if original.kind=="accept-invitation"{guard row.Account==original.account,!row.AcceptedAt.isEmpty,!row.AcceptedAt.hasPrefix("0001-") else{throw ShopError.security}}
             else{guard row.Reason==(input["Reason"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),!row.CancelledAt.isEmpty,!row.CancelledAt.hasPrefix("0001-") else{throw ShopError.security}}
+        case "update-store":
+            guard response["OriginalApplied"] as? Bool==true,(!recovery || response["QueryOnly"] as? Bool==true),let raw=response["Store"] as? [String:Any],let applied=response["Applied"] as? [String:Any],let expected=input["Expected"] as? [String:Any],let update=input["Update"] as? [String:Any],try CanonicalJSON.data(applied)==CanonicalJSON.data(update) else{throw ShopError.security}
+            let store=try JSONDecoder().decode(SellerStore.self,from:CanonicalJSON.data(raw));guard store.ID==original.storeID,store.Owner==expected["Owner"] as? String else{throw ShopError.security}
+            if !recovery {guard store.Name==update["Name"] as? String,store.Description==update["Description"] as? String,store.Policy==update["Policy"] as? String,store.TrustURL==update["TrustURL"] as? String,store.SettlementAccount==update["SettlementAccount"] as? String else{throw ShopError.security}}
         case "create-store":
             let store=try JSONDecoder().decode(SellerStore.self,from:CanonicalJSON.data(response))
             guard validID(store.ID),!store.Owner.isEmpty,store.Name==(input["Name"] as? String)?.trimmingCharacters(in:.whitespacesAndNewlines),store.Policy==input["Policy"] as? String,store.SettlementAccount==input["SettlementAccount"] as? String,(recovery || store.Status=="onboarding") else{throw ShopError.security}

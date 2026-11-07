@@ -41,7 +41,7 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 		// Seller handler. Its own protected identity/current/action verification
 		// remains mandatory. Never retry a denial through Buyer or legacy auth.
 		nativeListing := len(parts) == 6 && parts[1] == "api" && parts[2] == "seller" && parts[3] == "products" && parts[4] != "" && parts[5] == "native-listing"
-		sellerInventory := r.Method == http.MethodPost && (nativeListing || p == "/api/seller/listing/read" || p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup" || warehouseMutation || warehouseRead)
+		sellerInventory := originalNativeSellerRoute(r.Method, p, parts) || (r.Method == http.MethodPost && (nativeListing || warehouseMutation || warehouseRead))
 		if sellerInventory {
 			if seller != nil {
 				seller.ServeHTTP(w, r)
@@ -64,4 +64,37 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 		}
 		http.NotFound(w, r)
 	})
+}
+
+// This is dispatch only, never authorization. Role-separated paths preserve the
+// exact signed method/path and borrow the original complete Seller verifier.
+func originalNativeSellerRoute(method, p string, parts []string) bool {
+	if method == http.MethodGet {
+		switch p {
+		case "/api/seller/stores", "/api/seller/products", "/api/seller/audit", "/api/seller/settlements", "/api/seller/invitations", "/api/seller/orders":
+			return true
+		}
+		return (len(parts) == 6 && parts[1] == "api" && parts[2] == "seller" && parts[3] == "stores" && parts[4] != "" && parts[5] == "roles") || (len(parts) == 5 && parts[1] == "api" && parts[2] == "seller" && parts[3] == "orders" && parts[4] != "")
+	}
+	if method != http.MethodPost {
+		return false
+	}
+	switch p {
+	case "/api/seller/stores", "/api/seller/products", "/api/seller/mutations/lookup", "/api/seller/listing/read", "/api/seller/inventory/batch", "/api/seller/inventory/read":
+		return true
+	}
+	if len(parts) < 6 || parts[1] != "api" || parts[2] != "seller" || parts[4] == "" {
+		return false
+	}
+	if len(parts) == 6 {
+		switch parts[3] {
+		case "stores":
+			return parts[5] == "native-activate" || parts[5] == "native-invitations" || parts[5] == "native-profile"
+		case "products":
+			return parts[5] == "native-listing" || parts[5] == "listing" || parts[5] == "unpublish"
+		case "orders":
+			return parts[5] == "transition" || parts[5] == "warehouse"
+		}
+	}
+	return len(parts) == 8 && parts[3] == "stores" && parts[6] != "" && ((parts[5] == "roles" && parts[7] == "native-revoke") || (parts[5] == "invitations" && (parts[7] == "native-accept" || parts[7] == "native-cancel")))
 }

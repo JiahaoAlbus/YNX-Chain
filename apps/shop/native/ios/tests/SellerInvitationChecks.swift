@@ -34,7 +34,7 @@ final class InvitationHTTP:URLProtocol,@unchecked Sendable {
    case "/api/seller/invitations":try! r.respond(["invitations":inbox])
    case "/api/seller/stores":try! r.respond(["stores":stores,"access":stores.isEmpty ? [:]:[storeID:["role":"support","permissions":["seller.read","team.read"]]]])
    case "/api/seller/products":try! r.respond(["products":[]])
-   case "/api/orders":try! r.respond(["orders":[]])
+   case "/api/seller/orders":try! r.respond(["orders":[]])
    case "/api/seller/stores/"+storeID+"/roles":try! r.respond(["roles":[auth.account:"support"],"revocations":[],"invitations":[]])
    case "/api/seller/audit":try! r.respond(["events":[]])
    case "/api/seller/settlements":try! r.respond(["settlements":[]])

@@ -80,8 +80,8 @@ private func sellerCanonicalInteger(_ value:String,positive:Bool=false)->Int64? 
 private func sellerRequiredText(_ value:String,_ maximum:Int)->Bool{!value.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty && value.utf8.count<=maximum}
 
 private enum SellerSheet:Identifiable {
-    case listing(String),inventory(String,String),ship(String),returnDecision(String,Bool),revoke(String),createStore,createProduct,activateStore,invite
-    var id:String{switch self{case .listing(let id):return "listing:"+id;case .inventory(let product,let variant):return "inventory:"+product+":"+variant;case .ship(let id):return "ship:"+id;case .returnDecision(let id,let approve):return "return:"+id+String(approve);case .revoke(let account):return "revoke:"+account;case .createStore:return "create-store";case .createProduct:return "create-product";case .activateStore:return "activate-store";case .invite:return "invite"}}
+    case listing(String),inventory(String,String),ship(String),returnDecision(String,Bool),revoke(String),createStore,createProduct,activateStore,invite,editStore(SellerStore)
+    var id:String{switch self{case .listing(let id):return "listing:"+id;case .inventory(let product,let variant):return "inventory:"+product+":"+variant;case .ship(let id):return "ship:"+id;case .returnDecision(let id,let approve):return "return:"+id+String(approve);case .revoke(let account):return "revoke:"+account;case .createStore:return "create-store";case .createProduct:return "create-product";case .activateStore:return "activate-store";case .invite:return "invite";case .editStore(let snapshot):return "edit-store:"+snapshot.ID}}
 }
 struct SellerWorkspaceView:View {
     @EnvironmentObject var seller:ShopSellerModel
@@ -183,6 +183,7 @@ struct SellerWorkspaceView:View {
     case .createProduct:SellerCreateProductForm()
     case .activateStore:if let store=seller.stores.first(where:{$0.ID==seller.selectedStoreID}){SellerActivateStoreForm(store:store)}else{SellerEmpty()}
     case .invite:SellerInviteForm()
+    case .editStore(let snapshot):SellerStoreProfileEditor(snapshot:snapshot)
     }}
 }
 
@@ -333,7 +334,8 @@ private struct SellerMembersView:View {
     let onAction:(SellerSheet)->Void
     private var store:SellerStore?{seller.stores.first{$0.ID==seller.selectedStoreID}}
     var body:some View{SellerPage("seller_members",desktop:desktop){
-        if let store{SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:store.Name).shopFont(22,.bold);SellerValue(title:"seller_store",value:store.ID);SellerValue(title:"seller_role",value:seller.storeRole);SellerState(status:store.Status);Text(verbatim:store.Description).shopFont(14);Divider();SellerValue(title:"seller_payout_address",value:store.SettlementAccount);SellerValue(title:"seller_store_policy",value:store.Policy);SellerValue(title:"seller_trust_reference",value:store.TrustURL);Text("seller_store_profile_read_only").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        if let store{SellerLedger{VStack(alignment:.leading,spacing:16){Text(verbatim:store.Name).shopFont(22,.bold);SellerValue(title:"seller_store",value:store.ID);SellerValue(title:"seller_role",value:seller.storeRole);SellerState(status:store.Status);Text(verbatim:store.Description).shopFont(14);Divider();SellerValue(title:"seller_payout_address",value:store.SettlementAccount);SellerValue(title:"seller_store_policy",value:store.Policy);SellerValue(title:"seller_trust_reference",value:store.TrustURL);Text("seller_store_profile_edit_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
+            Button("seller_edit_store_profile"){onAction(.editStore(store))}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!seller.canManageMembers || seller.busy || seller.hasPending(store.ID))
             if store.Status != "active"{Button("seller_activate_store"){onAction(.activateStore)}.buttonStyle(ShopButtonStyle()).disabled(!seller.canManageMembers || seller.busy || seller.hasPending(store.ID) || store.UpdatedAt==nil)}
             if store.Status != "active" && store.UpdatedAt==nil{Text("seller_activation_snapshot_missing").shopFont(12).foregroundStyle(ShopTheme.warning)}
             if store.Status != "active" && store.Policy.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty{Text("seller_activation_policy_required").shopFont(12).foregroundStyle(ShopTheme.warning)}}.padding(20)}}
@@ -632,4 +634,80 @@ private struct SellerInvitationDecisionForm:View {
         Button(accept ? "seller_accept_invitation":"seller_cancel_invitation"){submitted=true;seller.perform(.invitationDecision(invitation,accept:accept,reason:reason))}.buttonStyle(ShopButtonStyle()).disabled(!reviewed || submitted || seller.busy || seller.invitationPending(invitation) || (!accept && (reason.utf8.count<8 || reason.utf8.count>240 || reason.contains("\n") || reason.contains("\r"))))
         SellerFormResult(submitted:submitted)
     }.onChange(of:reason){reviewed=false}.frame(minWidth:320,minHeight:450)}
+}
+
+private func sellerValidStoreProfile(name:String,description:String,policy:String,trustURL:String,settlementAccount:String)->Bool {
+    guard sellerRequiredText(name,100),description.utf8.count<=3000,sellerRequiredText(policy,5000),trustURL.utf8.count<=500 else{return false}
+    if !trustURL.isEmpty {
+        guard let url=URLComponents(string:trustURL),url.scheme=="https",let host=url.host,!host.isEmpty,url.user==nil,url.password==nil else{return false}
+    }
+    return settlementAccount.isEmpty || settlementAccount.range(of:"^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$",options:.regularExpression) != nil
+}
+
+private struct SellerStoreProfileEditor:View {
+    @EnvironmentObject var seller:ShopSellerModel
+    // SellerSheet holds this complete value snapshot. A refresh may update the
+    // current projection, but never replaces the snapshot or edited fields.
+    let snapshot:SellerStore
+    @State private var name:String
+    @State private var description:String
+    @State private var policy:String
+    @State private var trustURL:String
+    @State private var settlementAccount:String
+    @State private var reviewed=false
+    @State private var submitted=false
+    init(snapshot:SellerStore){
+        self.snapshot=snapshot
+        _name=State(initialValue:snapshot.Name)
+        _description=State(initialValue:snapshot.Description)
+        _policy=State(initialValue:snapshot.Policy)
+        _trustURL=State(initialValue:snapshot.TrustURL)
+        _settlementAccount=State(initialValue:snapshot.SettlementAccount)
+    }
+    private var reviewContent:[String]{[name,description,policy,trustURL,settlementAccount]}
+    private var originalContent:[String]{[snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount]}
+    private var changed:Bool{reviewContent != originalContent}
+    private var snapshotMatches:Bool{
+        guard let current=seller.stores.first(where:{$0.ID==snapshot.ID}) else{return false}
+        return [current.ID,current.Owner,current.Name,current.Description,current.Policy,current.TrustURL,current.SettlementAccount,current.Status]==[snapshot.ID,snapshot.Owner,snapshot.Name,snapshot.Description,snapshot.Policy,snapshot.TrustURL,snapshot.SettlementAccount,snapshot.Status] && current.CreatedAt==snapshot.CreatedAt && current.UpdatedAt==snapshot.UpdatedAt
+    }
+    private var valid:Bool{sellerValidStoreProfile(name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount)}
+    var body:some View{SellerOperationSheet("seller_edit_store_profile"){
+        SellerValue(title:"seller_store",value:snapshot.ID)
+        SellerValue(title:"seller_recorded_at",value:snapshot.UpdatedAt ?? String(localized:"unavailable"))
+        SellerState(status:snapshot.Status)
+        ShopNotice(title:"seller_store_profile_edit_note")
+        SellerField(title:"seller_store_name",text:$name)
+        SellerField(title:"seller_description",text:$description,multiline:true)
+        SellerField(title:"seller_store_policy",text:$policy,multiline:true)
+        SellerField(title:"seller_trust_reference",text:$trustURL)
+        SellerField(title:"seller_payout_address",text:$settlementAccount)
+        Text("seller_store_input_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
+        if !submitted && !snapshotMatches{ShopNotice(title:"seller_store_profile_changed",warning:true)}
+        if changed {
+            ShopSectionTitle(title:"seller_review_profile_changes")
+            SellerLedger{VStack(alignment:.leading,spacing:18){
+                change("seller_store_name",old:snapshot.Name,new:name)
+                change("seller_description",old:snapshot.Description,new:description)
+                change("seller_store_policy",old:snapshot.Policy,new:policy)
+                change("seller_trust_reference",old:snapshot.TrustURL,new:trustURL)
+                change("seller_payout_address",old:snapshot.SettlementAccount,new:settlementAccount)
+            }.padding(16)}
+        }
+        Toggle("seller_confirm_store_profile",isOn:$reviewed).shopFont(13)
+        Button("seller_submit_store_profile"){
+            submitted=true
+            seller.perform(.updateStore(snapshot,name:name,description:description,policy:policy,trustURL:trustURL,settlementAccount:settlementAccount))
+        }.buttonStyle(ShopButtonStyle()).disabled(!valid || !changed || !reviewed || !snapshotMatches || submitted || !seller.canManageMembers || seller.busy || seller.hasPending(snapshot.ID))
+        SellerFormResult(submitted:submitted)
+    }.onChange(of:reviewContent){reviewed=false}.disabled(seller.busy)}
+    @ViewBuilder private func change(_ title:LocalizedStringKey,old:String,new:String)->some View {
+        if old != new {VStack(alignment:.leading,spacing:8){
+            Text(title).shopFont(14,.semibold)
+            Text("seller_original_value").shopFont(12).foregroundStyle(ShopTheme.secondary)
+            Text(verbatim:old.isEmpty ? "—":old).shopFont(13).foregroundStyle(ShopTheme.secondary).textSelection(.enabled)
+            Text("seller_proposed_value").shopFont(12).foregroundStyle(ShopTheme.primary)
+            Text(verbatim:new.isEmpty ? "—":new).shopFont(13).textSelection(.enabled)
+        }}
+    }
 }

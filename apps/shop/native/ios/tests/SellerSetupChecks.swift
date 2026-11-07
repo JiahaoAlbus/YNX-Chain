@@ -31,7 +31,7 @@ final class SetupHTTP:URLProtocol,@unchecked Sendable {
             switch path {
             case "/api/seller/stores":try! r.respond(["stores":store.isEmpty ? []:[store],"access":store.isEmpty ? [:]:[storeID:["role":"owner","permissions":["seller.read","catalog.write","inventory.write","team.read"]]]])
             case "/api/seller/products":try! r.respond(["products":products])
-            case "/api/orders":try! r.respond(["orders":[]])
+            case "/api/seller/orders":try! r.respond(["orders":[]])
             case "/api/seller/stores/"+storeID+"/roles":try! r.respond(["roles":[authority.account:"owner"],"revocations":[],"invitations":invitations])
             case "/api/seller/audit":try! r.respond(["events":[]])
             case "/api/seller/settlements":try! r.respond(["settlements":[]])

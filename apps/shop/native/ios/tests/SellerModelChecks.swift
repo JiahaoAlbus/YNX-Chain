@@ -35,7 +35,7 @@ final class SellerFixtureHTTP:URLProtocol,@unchecked Sendable {
             switch path {
             case "/api/seller/stores":try! request.respond(["stores":[["ID":store,"Owner":account,"Name":"Original store","Description":"","Policy":"","TrustURL":"","SettlementAccount":"","Status":"active"]],"access":[store:["role":"owner","permissions":["seller.read","catalog.write","inventory.write","fulfillment.write","returns.resolve","team.read","audit.read","finance.read"]]]])
             case "/api/seller/products":try! request.respond(["products":[product("p1"),product("p2")]])
-            case "/api/orders":try! request.respond(["orders":[]])
+            case "/api/seller/orders":try! request.respond(["orders":[]])
             case "/api/seller/stores/"+store+"/roles":try! request.respond(["roles":[account:"owner"],"revocations":[],"invitations":[]])
             case "/api/seller/audit":try! request.respond(["events":[]])
             case "/api/seller/settlements":try! request.respond(["settlements":[]])
