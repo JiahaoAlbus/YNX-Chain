@@ -44,29 +44,33 @@ class NormalCallgraphControls(unittest.TestCase):
         temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
         root=Path(temporary.name);(root/'public/load-operations').mkdir(parents=True)
         b=object.__new__(driver.NormalBackend);b.w=SimpleNamespace(work=root);b.c=SimpleNamespace(mode='online');order=[];notifications=[]
-        row={'index':0,'id':'logical-control','operationId':'operation-control','nonce':2};account={'ownerIndex':4}
+        row={'index':0,'id':'logical-control','operationId':'operation-control','nonce':2,'ownerIndex':4};account={'ownerIndex':4}
         tx={'abciHash':'a'*64,'nativeHash':'b'*64,'members':'1'}
         request={'version':'YNX-PQ-LAB-SENDER-REQUEST/v1','operationId':row['operationId'],'ownerIndex':4,'firstNonce':'2','members':1}
         def original(*args):order.append('original');return tx,root/'original.abci',b'CONTROL_ONLY',request
+        def broadcast(*args):order.append('one-post')
         def include(*args):order.append('included-H');return 10
         def successor(height,*args):self.assertEqual(height,10);order.append('observed-H+1')
         proof={'materials':{'path':str(root/'materials.json'),'sha256':'c'*64},'proof':{'path':str(root/'proof.json')}}
         verified={'code':'CONTROL_ONLY','result':{'executionSuccessful':False,'executionCode':'99','transactionType':'CONTROL_ONLY','nativeGrant':False}}
-        def live(*args):order.append('live-callee');return proof,verified
+        public_closure={'CONTROL_ONLY':'not-a-public-proof'}
+        def live(*args):order.append('live-callee');return proof,verified,public_closure
         def confirm(command,path,stop):
             order.append('confirm');self.assertEqual(command,driver.normal.sender_command_data('confirm',request,materials=proof['materials']['path'],materials_sha='c'*64,proof=proof['proof']['path']))
             return {'code':reply_code,'result':{'result':verified['result']}}
-        b.original=original;b.broadcast_and_include=include;b.wait_successor=successor;b.live_proof=live;b.sessions={4:SimpleNamespace(exchange=confirm)}
-        with mock.patch.object(driver.normal,'require_verified') as intercepted:
+        b.original=original;b.broadcast_once=broadcast;b.observe_inclusion=include;b.wait_successor=successor;b.live_proof=live;b.sessions={4:SimpleNamespace(exchange=confirm)}
+        with mock.patch.object(driver.normal,'require_verified') as intercepted,mock.patch.object(driver.proof_readback,'finalize_portable_catalog') as portable:
             if reply_code=='PROOF_CONFIRMED_DATA':
                 b.perform(row,account,notifications.append,threading.Event());self.assertEqual(intercepted.call_count,1)
                 # An adapter fixture cannot qualify as business evidence.
                 final=notifications[-1];self.assertEqual(final['normalVerifierCode'],'CONTROL_ONLY');self.assertFalse(final['executionSuccessful'])
+                portable.assert_called_once_with(root/'public',root/'public/load-operations/00000',public_closure,row)
             else:
                 with self.assertRaisesRegex(RuntimeError,'not confirmed'):b.perform(row,account,notifications.append,threading.Event())
                 self.assertFalse((root/'public/load-operations/00000/qualified-receipt.json').exists())
                 self.assertNotIn('qualified',[n['kind'] for n in notifications])
-        self.assertEqual(order,['original','included-H','observed-H+1','live-callee','confirm'])
+                portable.assert_not_called()
+        self.assertEqual(order,['original','one-post','included-H','observed-H+1','live-callee','confirm'])
         self.assertIn('successor_availability',[n.get('stage') for n in notifications])
     def test_complete_adapter_order_and_original_confirm_arguments(self):self.perform_control('PROOF_CONFIRMED_DATA')
     def test_rejected_original_confirm_never_emits_qualified(self):self.perform_control('REJECTED')
