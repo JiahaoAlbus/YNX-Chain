@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ func startupOwnerConfig(t *testing.T) (LocalCallerClientConfig, [5]NativeLocalCa
 	if err != nil {
 		t.Fatal(err)
 	}
+	ready := localTestServeReady(s)
 	done := make(chan error, 1)
 	go func() { done <- s.Serve(l) }()
 	t.Cleanup(func() {
@@ -37,6 +39,7 @@ func startupOwnerConfig(t *testing.T) (LocalCallerClientConfig, [5]NativeLocalCa
 		_ = s.Close()
 		<-done
 	})
+	localTestAwaitServe(t, ready, done)
 	return LocalCallerClientConfig{Service: "startup-owner", SocketPath: path, PeerUID: localTestUID(t), PeerPID: os.Getpid(), Routes: []LocalCallerRoute{route}}, bindings, calls
 }
 func startupOwnerDrain(t *testing.T, o *NativeLocalCallerStartupOwner) {
@@ -49,6 +52,17 @@ func startupOwnerDrain(t *testing.T, o *NativeLocalCallerStartupOwner) {
 	}
 	if err := o.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func localTestAwaitNativeStartupRetire(t *testing.T, o *NativeLocalCallerStartupOwner) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	select {
+	case <-o.retireDone:
+	case <-ctx.Done():
+		t.Fatal("original native registration retirement did not complete")
 	}
 }
 
@@ -117,19 +131,45 @@ func TestNativeLocalCallerStartupInflightCancelAndNoReplay(t *testing.T) {
 	}
 	entered := make(chan unsafe.Pointer, 1)
 	resume := make(chan struct{})
+	var resumeOnce sync.Once
 	done := make(chan error, 1)
+	finished := make(chan struct{})
 	go func() {
+		defer close(finished)
 		_, err := o.TransferBorrowToNativeSource(func(p unsafe.Pointer) (unsafe.Pointer, error) { entered <- p; <-resume; return nil, context.Canceled })
 		done <- err
 	}()
+	t.Cleanup(func() {
+		resumeOnce.Do(func() { close(resume) })
+		_ = o.Retire()
+		ctx, end := context.WithTimeout(context.Background(), time.Second)
+		defer end()
+		select {
+		case <-finished:
+		case <-ctx.Done():
+			t.Error("original constructor did not return during cleanup")
+		}
+		if err := o.Join(ctx); err != nil {
+			t.Error("original startup did not drain", err)
+		} else if err := o.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	borrow := <-entered
 	cancel() // original normal startup context; never WithoutCancel
 	if err := o.Retire(); err != nil {
 		t.Fatal(err)
 	}
-	if o.ctx.Err() == nil {
+	o.mu.Lock()
+	retired := o.retired
+	o.mu.Unlock()
+	if !retired || o.ctx.Err() == nil {
 		t.Fatal("retirement did not promptly cancel original child")
 	}
+	// cancel schedules an AfterFunc Retire concurrently. A second Retire can
+	// observe its retired flag before that first call finishes lowering native
+	// registration state. Observe the existing completion fence before C current.
+	localTestAwaitNativeStartupRetire(t, o)
 	if err := nativeLocalCallerStartupBorrowCurrent(borrow); !errors.Is(err, ErrDenied) || !strings.Contains(err.Error(), "(7)") {
 		t.Fatal("native rejection code lost", err)
 	}
@@ -142,7 +182,7 @@ func TestNativeLocalCallerStartupInflightCancelAndNoReplay(t *testing.T) {
 	if !errors.Is(o.Close(), ErrLocalCallerDraining) {
 		t.Fatal("inflight constructor parent released")
 	}
-	close(resume)
+	resumeOnce.Do(func() { close(resume) })
 	if err := <-done; !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}
@@ -152,6 +192,105 @@ func TestNativeLocalCallerStartupInflightCancelAndNoReplay(t *testing.T) {
 	}
 	if _, err := o.TransferBorrowToNativeSource(func(unsafe.Pointer) (unsafe.Pointer, error) { t.Error("retired constructor replay"); return nil, nil }); !errors.Is(err, ErrDenied) {
 		t.Fatal(err)
+	}
+}
+
+func TestNativeLocalCallerStartupConcurrentCancelRetireCompletion(t *testing.T) {
+	cfg, bindings, calls := startupOwnerConfig(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	o, err := OpenNativeLocalCallerStartup(ctx, cfg, bindings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, resume := make(chan unsafe.Pointer, 1), make(chan struct{})
+	done, finished := make(chan error, 1), make(chan struct{})
+	var resumeOnce sync.Once
+	var constructors atomic.Int32
+	go func() {
+		defer close(finished)
+		_, err := o.TransferBorrowToNativeSource(func(p unsafe.Pointer) (unsafe.Pointer, error) {
+			constructors.Add(1)
+			entered <- p
+			<-resume
+			return nil, context.Canceled
+		})
+		done <- err
+	}()
+	var releaseRetire = func() {}
+	t.Cleanup(func() {
+		releaseRetire()
+		resumeOnce.Do(func() { close(resume) })
+		_ = o.Retire()
+		wait, end := context.WithTimeout(context.Background(), time.Second)
+		defer end()
+		select {
+		case <-finished:
+		case <-wait.Done():
+			t.Error("original constructor did not finish")
+		}
+		if err := o.Join(wait); err != nil {
+			t.Error("original startup did not drain", err)
+		} else if err := o.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	borrow := <-entered
+	retireEntered, permitNativeRetire := make(chan struct{}), make(chan struct{})
+	originalCancel := o.cancel
+	// Test-only scheduling of the ORIGINAL cancel, never a Source/current hook.
+	// Hold the real registration lock so neither cancellation AfterFunc can
+	// lower its native flag until the test has observed the first owner Retire.
+	o.registration.mu.Lock()
+	var retireOnce sync.Once
+	releaseRetire = func() {
+		retireOnce.Do(func() {
+			o.registration.mu.Unlock()
+			close(permitNativeRetire)
+		})
+	}
+	o.cancel = func() {
+		close(retireEntered)
+		<-permitNativeRetire
+		originalCancel()
+	}
+	cancel()
+	wait, end := context.WithTimeout(context.Background(), time.Second)
+	defer end()
+	select {
+	case <-retireEntered:
+	case <-wait.Done():
+		t.Fatal("cancellation did not enter the original owner Retire")
+	}
+	if err := o.Retire(); err != nil || o.ctx.Err() == nil {
+		t.Fatal("concurrent Retire did not preserve immediate cancellation", err)
+	}
+	select {
+	case <-o.retireDone:
+		t.Fatal("native retirement completed through a held original registration lock")
+	default:
+	}
+	if err := nativeLocalCallerStartupBorrowCurrent(borrow); err != nil {
+		t.Fatal("native flag changed before the scheduled original retirement", err)
+	}
+	if _, err := o.TransferBorrowToNativeSource(func(unsafe.Pointer) (unsafe.Pointer, error) {
+		t.Error("retired owner replayed its original constructor")
+		return nil, nil
+	}); !errors.Is(err, ErrDenied) {
+		t.Fatal("retired owner admitted a new handoff before native completion", err)
+	}
+	releaseRetire()
+	localTestAwaitNativeStartupRetire(t, o)
+	if err := nativeLocalCallerStartupBorrowCurrent(borrow); !errors.Is(err, ErrDenied) || !strings.Contains(err.Error(), "(7)") {
+		t.Fatal("completed native retirement lost original rejection code", err)
+	}
+	resumeOnce.Do(func() { close(resume) })
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatal("original constructor cancellation changed", err)
+	}
+	startupOwnerDrain(t, o)
+	if constructors.Load() != 1 || calls.Load() != 0 {
+		t.Fatal("cancelled startup replayed a constructor or dispatched HTTP", constructors.Load(), calls.Load())
 	}
 }
 

@@ -124,7 +124,7 @@ func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopIn
 	if err = a.current(ctx); err != nil {
 		return s, err
 	}
-	s.link, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes, Handler: http.HandlerFunc(s.serveHTTP)})
+	s.link, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes, Handler: http.HandlerFunc(s.serveHTTP), MaxHeaderBytes: 64 << 10})
 	if err != nil {
 		return s, err
 	}

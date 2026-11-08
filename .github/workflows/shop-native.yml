@@ -50,6 +50,7 @@ jobs:
       native-client-only: ${{ steps.scope.outputs.native-client-only }}
       apple-view-only: ${{ steps.scope.outputs.apple-view-only }}
       session-inventory-only: ${{ steps.scope.outputs.session-inventory-only }}
+      link-proof-intake: ${{ steps.scope.outputs.link-proof-intake }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
       receipt-test-delta: ${{ steps.scope.outputs.receipt-test-delta }}
       fulfillment-only: ${{ steps.scope.outputs.fulfillment-only }}
@@ -89,7 +90,7 @@ jobs:
           def receipt_path(path):
               return path in receipt_files or path.startswith("internal/commerce/native_payment_")
           read_path = lambda p: source_path(p) or native_client_path(p) or receipt_path(p)
-          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml", "go.mod"}
+          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", "internal/commerce/SHOP_SESSION_PRODUCER.md", ".github/workflows/shop-native.yml", "go.mod"}
           navigation_files = {"apps/shop/native/pay-intent-navigation.mjs", "apps/shop/native/pay-intent-navigation.test.mjs", "apps/shop/native/scripts/prepare-pay-operation-test-source.mjs", "apps/shop/native/testdata/pay-original-operation-source.json"}
           navigation_only = bool(changed) and any(p in navigation_files for p in changed) and all(p in navigation_files or p == ".github/workflows/shop-native.yml" for p in changed)
           apple_view_files = {"apps/shop/native/ios/YNXShop/ContentView.swift", ".github/workflows/shop-native.yml"}
@@ -122,6 +123,7 @@ jobs:
           return_files = {"apps/seller-console/native/return-decision-cli.mjs", "apps/seller-console/native/check-return-decision-cli.mjs", "apps/seller-console/native/RETURN_DECISIONS.md", "apps/seller-console/test/return-decision-cli.test.mjs", "apps/seller-console/test/return-decision-http.mjs", "internal/commerce/original_return_decision_test.go", "internal/commerce/business_order_transition.go", "internal/commerce/service.go", "internal/commerce/server.go", "internal/commerce/seller_mutation_lookup.go"}
           return_decision_only = bool(changed) and any(p in return_files for p in changed) and all(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
           return_decision_checks = not native_client_only and not notification_only and not listing_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
+          link_proof_intake = "internal/securelink/local_caller_product_session_proof.go" in changed
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -154,6 +156,7 @@ jobs:
               output.write("fulfillment-only=" + str(fulfillment_only).lower() + "\n")
               output.write("fulfillment-checks=" + str(fulfillment_checks).lower() + "\n")
               output.write("receipt-test-delta=" + str(receipt_test_delta).lower() + "\n")
+              output.write("link-proof-intake=" + str(link_proof_intake).lower() + "\n")
               output.write("session-inventory-only=" + str(session_inventory_only).lower() + "\n")
               output.write("apple-view-only=" + str(apple_view_only).lower() + "\n")
               output.write("native-client-only=" + str(native_client_only).lower() + "\n")
@@ -199,6 +202,20 @@ jobs:
       - name: Check the original Auth-owned shared Go consumer intake
         if: needs.change-scope.outputs.session-inventory-only == 'true'
         run: go test -mod=readonly -race ./internal/productsessionv2 -count=1 -v
+      - name: Verify actual consumption of original LINK fixed proof carrier
+        if: needs.change-scope.outputs.link-proof-intake == 'true'
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -race ./internal/securelink -run '^TestOriginalLocalCallerShopProofV2' -count=1 -v | tee "$RUNNER_TEMP/shop-link-proof-intake.log"
+          python3 - "$RUNNER_TEMP/shop-link-proof-intake.log" <<'PY'
+          import pathlib, re, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          required = ["Carrier", "OwnedWire", "Preflight", "RequestCurrent", "IncomingRejection"]
+          for suffix in required:
+              name = "TestOriginalLocalCallerShopProofV2" + suffix
+              if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:
+                  raise SystemExit("required original LINK case absent/skipped: " + name)
+          PY
       - name: Verify affected Source and Native Pay reads on original transports
         if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         env:

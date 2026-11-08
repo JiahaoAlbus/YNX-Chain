@@ -127,4 +127,8 @@ type LocalCallerResponse struct {
 	StatusCode          int
 	Header              http.Header
 	Body                []byte
+	// BodyComplete records a bounded response body that finished reading. A
+	// later cancellation or Source failure still denies use of that DATA; this
+	// flag is neither operation success nor authorization.
+	BodyComplete bool
 }

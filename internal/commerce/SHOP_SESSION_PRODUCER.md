@@ -81,3 +81,10 @@ normal backend Revalidator and HTTP action payload3 successor is also consumed
 exactly from that same owner; Shop does not widen versions, copy crypto or
 ignore accountAuthorization. Controlled/PUBLIC tests are not genuine Root,
 ShopSession commissioning, installation, payment or product release evidence.
+
+The original LINK complete source closure at `85fdcec58` is consumed exactly,
+including the sole fixed proof carrier and immutable request snapshot. Its
+normal CI is `42445390661`; no binary archive is hot-swapped. The private Shop
+server explicitly selects a 64 KiB total header budget so the sole 16 KiB proof
+carrier fits with the existing fixed LINK metadata. Root admission and actual
+protected native holder commissioning remain separate from this source intake.
