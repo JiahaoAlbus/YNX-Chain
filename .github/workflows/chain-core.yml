@@ -6,6 +6,7 @@ on:
       - codex/final-chain-core
       - codex/ynx-pq-perf-integration
       - codex/v5-link-native-ci
+      - codex/ynx-pq-wire-live-7c25-qualification-20261108
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
@@ -33,6 +34,7 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/verify/wire-live-7c25-qualification-ci.py"
       - "scripts/ops/test_validate_pq_observer_ci.py"
       - "third_party/cometbft/node/**"
       - "third_party/cometbft/rpc/core/**"
@@ -67,6 +69,7 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
       - "scripts/verify/wire-live-matching-source-ci.py"
       - "scripts/verify/test_wire_live_matching_source_ci.py"
+      - "scripts/verify/wire-live-7c25-qualification-ci.py"
       - "scripts/ops/test_validate_pq_observer_ci.py"
       - "third_party/cometbft/node/**"
       - "third_party/cometbft/rpc/core/**"
@@ -81,7 +84,7 @@ concurrency:
 
 jobs:
   contract-tooling-scope:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
@@ -97,9 +100,14 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
+          QUALIFICATION_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
           [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$QUALIFICATION_REF" == "refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108" ]]; then
+            printf 'changed=false\nclient_changed=true\nintegration_changed=false\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ "$BEFORE" == 0000000000000000000000000000000000000000 ]]; then
             printf 'changed=true\n' >> "$GITHUB_OUTPUT"
             printf 'client_changed=true\n' >> "$GITHUB_OUTPUT"
@@ -211,7 +219,8 @@ jobs:
     if: >-
       (github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration') &&
       !(github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-link-native-ci') &&
-      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
+      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration') &&
+      github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -282,8 +291,13 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 1
+          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 2 || 1 }}
           persist-credentials: false
+      - name: Verify exact 7c25 CI-only source and route
+        if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
+        run: |
+          python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --self-test
+          python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --source-ledger
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version-file: go.mod
@@ -470,6 +484,9 @@ jobs:
           PY
       - name: Verify exact optional live getter composition without enabling a carrier
         run: python3 -B scripts/verify/wire-live-matching-source-ci.py
+      - name: Bind actual tagged evidence to the unchanged 7c25 Go roots
+        if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
+        run: python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --seal-evidence
       - name: Preserve only public optional live source evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -486,11 +503,29 @@ jobs:
             ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Preserve exact 7c25 qualification with original tagged streams
+        if: always() && github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: normal-live-wire-7c25-qualification-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/wire-live-7c25-controller.json
+            ${{ runner.temp }}/wire-live-7c25-qualification.json
+            ${{ runner.temp }}/wire-live-source-*/SOURCE.json
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.result.json
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json
+            ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
+          if-no-files-found: error
+          retention-days: 14
 
   lossless-default-source:
     name: Default OFF and exact original state pair controls
     needs: contract-tooling-scope
-    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
@@ -539,7 +574,7 @@ jobs:
   distributed-pq-source:
     name: Distributed PQ host-local source and PUBLIC readback
     needs: contract-tooling-scope
-    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
@@ -653,7 +688,7 @@ jobs:
   lossless-matching-source:
     name: Fixed successor normal lossless constructor and readiness budget
     needs: contract-tooling-scope
-    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
@@ -839,6 +874,7 @@ jobs:
 
   link-scope:
     name: Select actual LINK changed closure
+    if: github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
