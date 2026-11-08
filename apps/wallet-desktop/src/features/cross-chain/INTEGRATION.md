@@ -167,6 +167,29 @@ Persisted `history` and completed `check` results are original DATA, not a fresh
 on-chain observation. Packaging, installation, user approval and real settlement
 remain separate original-owner gates; YNX/YNXT remains unavailable.
 
+## Canonical original receipt recovery successor to Main 4b60d468
+
+`CctpEVMAdapter.reconcile` now binds receipt and transaction indices to the exact
+position of the original hash in the canonical block, preserving the existing
+exactly-once hash check. Successful receipt logs must all retain the original
+transaction/block identity and transaction index, with unique block-wide log
+indices across all contracts and event types. Nonzero transaction positions and
+nonconsecutive log indices are valid; missing metadata is not reconstructed.
+The public reader enforces the same receipt-wide log identity/uniqueness rule
+before accepting source proofs or destination evidence.
+
+The existing Main `checkCctpStep` remains the only original journal lookup. An
+invalid receipt is retained as UNKNOWN by that callee, so a cold flow cannot
+advance an unresolved approval to `burn-ready`. Only a later consistent query of
+the same record/hash can advance it. The original raw bytes, nonce, first error,
+account and intent binding are preserved; no approval or send permission is
+created. Main's cancellation observation contract is unchanged.
+
+Tests use the existing public deterministic fixture key for synthetic original
+bytes, controlled RPC transport and real temporary Main journals/flow stores.
+No real Wallet custody, account, signature, transaction or phone is accessed.
+The existing normal aggregate already imports both changed test modules.
+
 Main integration also checks duplicate original burn hashes on this final
 canonical-block read. The existing Main UI/Pay lightweight CI now runs these
 affected controls through the unchanged normal cross-chain aggregate entry.

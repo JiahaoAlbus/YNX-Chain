@@ -54,4 +54,4 @@ jobs:
       # Ethers and its locked dependencies are already tracked in this normal
       # source image and materialized by checkout. No install or scripts run.
       - name: Original source proof readback and Main canonical identity controls
-        run: node --test --test-name-pattern 'source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
+        run: node --test --test-name-pattern 'canonical .*recovery|canonical reader|source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs

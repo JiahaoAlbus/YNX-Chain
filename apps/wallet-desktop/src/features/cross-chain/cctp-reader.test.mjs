@@ -166,6 +166,12 @@ test('source proof stable recheck follows Circle and destination height using on
   assert.equal(f.requests.length, 1);
 });
 
+for (const side of ['source', 'target']) test(`canonical reader rejects duplicate log index across ${side} event contracts`, async () => {
+  const f = fixture(), receipt = side === 'source' ? f.state.sourceReceipt : f.state.targetReceipt;
+  receipt.logs[1].logIndex = receipt.logs[0].logIndex;
+  await assert.rejects(side === 'source' ? f.reader.attestation(sourceInput) : f.reader.destination(targetInput(f.raw)), {code: 'CCTP_EVENT_MISMATCH'});
+});
+
 test('source receipt mismatch, removed message, duplicate deposit or wrong source calldata is rejected', async () => {
   const f = fixture();
   f.state.sourceReceipt.blockHash = hash('fe'); await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});

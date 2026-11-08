@@ -179,6 +179,20 @@ export class CctpReader {
       quantity(receipt.transactionIndex) > BigInt(Number.MAX_SAFE_INTEGER) || quantity(tx.transactionIndex) !== quantity(receipt.transactionIndex) ||
       lower(block.transactions[Number(quantity(receipt.transactionIndex))]) !== hash || !Array.isArray(receipt.logs) || receipt.logs.length > 2000 || quantity(receipt.status) > 1n)
       fail('CCTP_RECEIPT_MISMATCH', 'The receipt is not bound to the original transaction in a canonical RPC block.');
+    // logIndex is block-wide, so uniqueness must span the entire receipt,
+    // including different token/messenger contracts and different event types.
+    const indices = new Set();
+    for (const log of receipt.logs) {
+      let index;
+      try {
+        index = quantity(log.logIndex).toString();
+        if (log.removed !== false || lower(log.transactionHash) !== hash || lower(log.blockHash) !== lower(receipt.blockHash) ||
+          quantity(log.blockNumber) !== quantity(receipt.blockNumber) || quantity(log.transactionIndex) !== quantity(receipt.transactionIndex))
+          fail('CCTP_EVENT_MISMATCH', 'Receipt logs must belong to the original transaction and block.');
+      } catch { fail('CCTP_EVENT_MISMATCH', 'Receipt logs must retain their exact original index and identity.'); }
+      if (indices.has(index)) fail('CCTP_EVENT_MISMATCH', 'Receipt logs must have unique block-wide indices.');
+      indices.add(index);
+    }
     return receipt;
   }
 
