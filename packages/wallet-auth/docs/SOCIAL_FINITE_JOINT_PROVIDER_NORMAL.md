@@ -1,0 +1,15 @@
+# Social finite joint provider — normal source intake
+
+The normal build-time entry is `node packages/wallet-auth/scripts/social-finite-joint-provider-inputs.mjs --plan`. It verifies all Auth R1 production sources followed by R2 exact journal replacements, the exact private CABI11 header and the existing Source3 R8 cohort. No service starts; no setter, Source constructor, signing entry or runtime provider is introduced.
+
+The package includes 26 unchanged supplier production source leaves (Rust/C++/Go/header/Cargo), a fixed profile and the existing exact SourceInput v2 header7878. Tests/tools and supplier `.a` artifacts are not production members. R1/R2 Darwin artifacts were read and hashed externally only; they do not qualify a Linux image or this SDK package.
+
+A normal final producer compiles the three listed C++ translation units once and the sole Rust crate with `native-custody`. The relative libsignal dependency is unchanged at `../../keeper-r4/original/native-source/native/rust/protocol`; this external keeper/protection/records/library closure must be materialized by the original Native/A owner. This SDK packet does not create an alternate crate or path fallback. The source-only plan deliberately remains finalLinkReady=false.
+
+The two `delta/go-source/internal/social/kernel/source_joint_provider_{ffi,original}.go` leaves belong to the existing SAME kernel and ONE normal Go aggregate, with `cgo,ynx_source_native_collector`; they import the original `github.com/JiahaoAlbus/YNX-Chain/sdk/socialfreshjointprofile` module. Use the already supplied sole body/frame/capture module and original private headers in that aggregate. Do not compile the two leaves as a new main/module/archive or add PUBLIC test definitions. Received raw4 and frame are constraints until the genuine independent Source/policy/current/peer checks pass. The C++ composition owns actual Source/Binding/Main/DEVICE debt; a Go seal number is not its lifetime owner.
+
+The original zero-argument Source3 R8 Node getter and retained helper/stdio/Host remain unchanged. This intake supplies the finite role body's source and normal recipe, not a fabricated helper executable or Root locator. Actual Native17, qualified helper, keeper/device/Main constructors, registered peers and Root rows remain independent.
+
+The newly supplied registered Main-pair client is a different `ynx-social-ordinary-role-provider` crate. Its lib.rs935 and wire.rs9540 before pins do not match this finite crate lib.rs433/wire.rs9618. In particular, its `registry::selected(id,role,family)` call does not match the finite crate's one-argument selected(id). No old registry or second Rust archive is copied. The Main-client supplier is pinned separately with an exact required matching-crate adapter card; source availability is distinct from final same-image linkage.
+
+R2 query retains same-operation public partial originals before late errors; it never retries signature or replaces operation. Physical_done, error_present (including first0) and UNKNOWN remain independent. Root/Source/Native admission, real key access/signature, service start, whole Linux and business success are false.

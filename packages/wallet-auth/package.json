@@ -850,7 +850,9 @@
     "native/original-social-joint-profile-source-service-private.d.mts",
     "native/social-source3-fresh-v1/normal-inputs.json",
     "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
-    "docs/SOCIAL_SOURCE3_FRESH_NODE_NORMAL.md"
+    "docs/SOCIAL_SOURCE3_FRESH_NODE_NORMAL.md",
+    "native/social-joint-finite-provider-v1",
+    "docs/SOCIAL_FINITE_JOINT_PROVIDER_NORMAL.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
