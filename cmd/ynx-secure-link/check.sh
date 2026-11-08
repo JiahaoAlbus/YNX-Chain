@@ -34,6 +34,22 @@ def paths(base, head):
 def owned(p):
     return p == b'.github/workflows/chain-core.yml' or p.startswith((b'cmd/ynx-secure-link/', b'internal/securelink/', b'cmd/ynx-secure-link-caller/ide-finite-get-', b'cmd/ynx-secure-link-caller/ide_finite_get_', b'cmd/ynx-secure-link-caller/ai-mobile-v6-'))
 
+def native_dependency(p):
+    # Actual Node dependencies of the native TLS ingress/continuation tests.
+    # This only selects required S3 validation; it does not widen the exclusive
+    # source lease or permit omitting the original Core gate.
+    return p in (
+        b'cmd/ynx-secure-link-caller/build.mjs',
+        b'cmd/ynx-secure-link-caller/native.c',
+        b'cmd/ynx-secure-link-caller/social-directory-transport-native.inc.c',
+        b'cmd/ynx-secure-link-caller/inbound-caller.mjs',
+        b'cmd/ynx-secure-link-caller/task-grant-transport.mjs',
+        b'cmd/ynx-secure-link-caller/task-grant-transport-private.mjs',
+        b'cmd/ynx-secure-link-caller/task-read-resource-caller.mjs',
+        b'cmd/ynx-secure-link-caller/task-read-resource-continuation.mjs',
+        b'cmd/ynx-secure-link-caller/task-read-continuation-tls-peer.mjs',
+    )
+
 event, ref, target = (os.environ.get(k, '') for k in ('LINK_EVENT', 'LINK_REF', 'LINK_BASE_REF'))
 head = commit(os.environ.get('LINK_HEAD', ''))
 exclusive = (event == 'push' and ref == 'refs/heads/codex/v5-link-native-ci') or (event == 'pull_request' and target == 'codex/ynx-pq-perf-integration')
@@ -51,14 +67,14 @@ elif event == 'pull_request':
     base = commit(os.environ.get('LINK_BASE', ''))
     common = commit(git('merge-base', base, head).decode().strip())
     changes = paths(common, head)
-    changed = any(owned(p) or p in (b'go.mod', b'go.sum', b'scripts/verify/github-actions-pins-check.mjs') for p in changes)
+    changed = any(owned(p) or native_dependency(p) or p in (b'go.mod', b'go.sum', b'scripts/verify/github-actions-pins-check.mjs') for p in changes)
 elif event == 'push':
     before = os.environ.get('LINK_BEFORE', '')
     if before == '0' * 40:
         changed = True
     else:
         changes = paths(commit(before), head)
-        changed = any(owned(p) or p in (b'go.mod', b'go.sum', b'scripts/verify/github-actions-pins-check.mjs') for p in changes)
+        changed = any(owned(p) or native_dependency(p) or p in (b'go.mod', b'go.sum', b'scripts/verify/github-actions-pins-check.mjs') for p in changes)
 else:
     raise SystemExit('unsupported workflow event')
 print('changed=' + str(changed).lower())
