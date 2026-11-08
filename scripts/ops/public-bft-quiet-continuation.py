@@ -8,6 +8,7 @@ import argparse
 import base64
 import datetime
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -145,8 +146,14 @@ def selected_plan(path, digest):
 
 def approval(root):
     value, raw = load(root / 'approval.json', limit=1 << 20)
-    need(value.get('approved') is True and value.get('custodyProfile') == 'single-app-gateway/v1' and
+    need(value.get('approved') is True and value.get('custodyProfile') in ('single-app-gateway/v1', 'single-app-same-owner-inplace/v1') and
          value.get('authoritativeCommit') and value.get('operatorPreparationPlanSha256'), 'original full native approval required')
+    if value.get('custodyProfile') == 'single-app-same-owner-inplace/v1':
+        helper = Path(__file__).resolve().parent / 'remote' / 'public-bft-capture-snapshot-source.py'
+        spec = importlib.util.spec_from_file_location('same_owner_retained_projection', helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.same_owner_preparation(value, root.name, preparation_only=False)
     # The shell invokes both original approval validators. This additional check
     # preserves the expiry while subsequent normal driver phases run.
     until = datetime.datetime.fromisoformat(value['expiresAt'].replace('Z', '+00:00'))

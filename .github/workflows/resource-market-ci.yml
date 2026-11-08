@@ -122,6 +122,8 @@ on:
       - 'scripts/verify/pq-checkpoint-dual-uid-check.sh'
       - 'scripts/verify/test_public_bft_capture_snapshot_source.py'
       - 'scripts/verify/lib/public-bft-native-source.mjs'
+      - 'scripts/verify/lib/public-bft-same-owner.mjs'
+      - 'scripts/verify/public-bft-same-owner-check.mjs'
       - 'scripts/verify/validate-public-bft-production-rehearsal.mjs'
       - 'scripts/verify/validate-public-bft-production-recovery.mjs'
       - 'scripts/ops/public-bft-validator-registration.sh'
@@ -182,6 +184,8 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/verify/lib/public-bft-same-owner.mjs'
+      - 'scripts/verify/public-bft-same-owner-check.mjs'
       - 'scripts/ops/init-consensus-candidate-keys.sh'
       - 'scripts/verify/init-consensus-candidate-keys-check.sh'
       - 'scripts/ops/consensus-recovery-capsule.sh'
@@ -4900,6 +4904,7 @@ jobs:
           bash scripts/verify/public-bft-native-identity-check.sh
           timeout 90s python3 -B scripts/verify/test_public_bft_capture_snapshot_source.py -v
           bash scripts/verify/owner-handover-check.sh
+          timeout 90s node scripts/verify/public-bft-same-owner-check.mjs
           bash scripts/verify/production-service-signer-ceremony-check.sh
           bash scripts/verify/production-custody-review-check.sh
           bash scripts/verify/public-bft-production-candidate-check.sh

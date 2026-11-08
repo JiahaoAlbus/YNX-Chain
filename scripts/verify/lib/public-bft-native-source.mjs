@@ -3,7 +3,7 @@
 export function caddySourceIdentity(approval) {
   if (!Object.hasOwn(approval, "caddySource")) return {};
   const source = approval.caddySource;
-  if (approval.custodyProfile !== "single-app-gateway/v1" || !source || typeof source !== "object" || Array.isArray(source) || Object.keys(source).sort().join() !== "manifestPath,manifestSha256") throw new Error("closed single-App Caddy source identity is required");
+  if (!["single-app-gateway/v1", "single-app-same-owner-inplace/v1"].includes(approval.custodyProfile) || !source || typeof source !== "object" || Array.isArray(source) || Object.keys(source).sort().join() !== "manifestPath,manifestSha256") throw new Error("closed single-App Caddy source identity is required");
   const file = source.manifestPath;
   if (typeof file !== "string" || file.length > 4096 || !/^\/[A-Za-z0-9._/-]+$/.test(file) || file.includes("//") || file.endsWith("/") || file.split("/").some(part => part === "." || part === "..")) throw new Error("canonical absolute Caddy source manifest path is required");
   if (typeof source.manifestSha256 !== "string" || !/^[0-9a-f]{64}$/.test(source.manifestSha256) || /^0{64}$/.test(source.manifestSha256)) throw new Error("independent nonzero Caddy source manifest SHA256 is required");
@@ -72,7 +72,7 @@ export function operatorPreparationPin(approval, preparation = false) {
   const present = Object.hasOwn(approval, "operatorPreparationPlanSha256");
   if (!preparation && !present) return "";
   const pin = approval.operatorPreparationPlanSha256;
-  if (!authoritativeIdentity(approval).authoritativeCommit || approval.custodyProfile !== "single-app-gateway/v1" || typeof pin !== "string" || !/^[0-9a-f]{64}$/.test(pin) || /^0{64}$/.test(pin)) throw new Error("explicit native single-App preparation requires an independent preparation operator plan SHA256");
+  if (!authoritativeIdentity(approval).authoritativeCommit || !["single-app-gateway/v1", "single-app-same-owner-inplace/v1"].includes(approval.custodyProfile) || typeof pin !== "string" || !/^[0-9a-f]{64}$/.test(pin) || /^0{64}$/.test(pin)) throw new Error("explicit native single-App preparation requires an independent preparation operator plan SHA256");
   if (preparation && ["snapshotSourceSha256", "operatorPlanSha256", "candidateGenesisTime"].some(name => Object.hasOwn(approval, name))) throw new Error("preparation cannot contain future snapshot, final operator plan or genesis time authority");
   return pin;
 }

@@ -21,6 +21,13 @@ try {
 } catch (error) {
   fail(`approval evidence is not valid JSON: ${error.message}`);
 }
+if (approval.custodyProfile === "single-app-same-owner-inplace/v1") {
+  const {validateSameOwnerProjection, readSameOwnerJSON} = await import("./lib/public-bft-same-owner.mjs");
+  approval = readSameOwnerJSON(approvalPath);
+  const normalized = validateSameOwnerProjection(approval, expectedCommit, expectedRelease, preparation, {current: false});
+  process.stdout.write(JSON.stringify({...normalized, validated: true}) + "\n");
+  process.exit(0);
+}
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);

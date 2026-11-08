@@ -124,7 +124,60 @@ def native_tool(expected):
     return namespace
 
 
+def same_owner_preparation(value, tx, preparation_only=True):
+    # Only the original normalized operator record reaches this remote reader.
+    # The local normal validator checked original recovery and ownership files;
+    # this reader preserves their exact digest and does not mint authority.
+    names = set(('custodyProfile schemaVersion action approved approvalId transactionId '
+        'custodyEvidence sameOwnerEvidence operationAuthorizationEvidence commit release '
+        'authoritativeCommit authoritativeRelease authoritativeBinarySha256 authoritativeSource authoritativeRoles '
+        'publicCutoverAuthorized automaticRollbackRequired validatorManifestSha256 '
+        'operatorPreparationPlanSha256 runtimeManifestSha256 exporterManifestSha256 expiresAt').split())
+    names |= {'preparationOnly'} if preparation_only else {'operatorPlanSha256','snapshotSourceSha256','candidateGenesisTime'}
+    optional = {'authoritativeSystemd', 'validated'} | (set() if preparation_only else {'caddySource'})
+    require(type(value) is dict and names <= set(value) and set(value) <= names | optional,
+            'CLOSED_SAME_OWNER_PREPARATION_REQUIRED')
+    require(value['custodyProfile'] == 'single-app-same-owner-inplace/v1' and type(value['schemaVersion']) is int and
+            value['schemaVersion'] == 1 and value['action'] == 'ynx-public-bft-cutover' and value['transactionId'] == tx and
+            all(value[k] is True for k in ('approved', 'publicCutoverAuthorized', 'automaticRollbackRequired')) and
+            (value.get('preparationOnly') is True if preparation_only else 'preparationOnly' not in value) and
+            value.get('validated', True) is True, 'SAME_OWNER_PREPARATION_SCOPE_MISMATCH')
+    require(type(value['commit']) is str and re.fullmatch('[0-9a-f]{12}', value['commit']) and
+            value['release'] == 'ynx-bft-gateway-' + value['commit'] and
+            type(value['approvalId']) is str and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._-]{7,127}', value['approvalId']) and
+            re.fullmatch('[A-Za-z0-9][A-Za-z0-9._-]{7,127}', tx), 'SAME_OWNER_OPERATION_MISMATCH')
+    e = value['sameOwnerEvidence']
+    fields = set(('version reviewSHA256 sourceCommit originalValidatorManifestSHA256 validatorManifestSHA256 '
+        'operatorPreparationPlanSHA256 runtimeManifestSHA256 exporterManifestSHA256 operationAuthorizationEvidenceSHA256 '
+        'operationsSourceSHA256 roleEvidenceSHA256 handover recovery hrsHistoryVerified pqRecoveryVerified').split())
+    require(type(e) is dict and set(e) == fields and e['version'] == 'YNX-SAME-OWNER-INPLACE-CHECK/v1' and
+            type(e['sourceCommit']) is str and re.fullmatch('[0-9a-f]{40}', e['sourceCommit']) and
+            e['sourceCommit'][:12] == value['commit'], 'SAME_OWNER_ORIGINAL_EVIDENCE_REQUIRED')
+    for key in fields:
+        if key.endswith('SHA256'):
+            pin(e[key])
+    require(e['handover'] == 'not-applicable-same-owner-verified' and e['recovery'] == 'original-legacy-isolated-same-host' and
+            e['hrsHistoryVerified'] is False and e['pqRecoveryVerified'] is False, 'SAME_OWNER_FALSE_HISTORY_OR_HANDOVER')
+    require(value['custodyEvidence'] == 'sha256:' + e['reviewSHA256'] and
+            value['operationAuthorizationEvidence'] == 'sha256:' + e['operationAuthorizationEvidenceSHA256'], 'SAME_OWNER_EVIDENCE_PIN_MISMATCH')
+    for outer, inner in (('validatorManifestSha256','validatorManifestSHA256'), ('operatorPreparationPlanSha256','operatorPreparationPlanSHA256'),
+                         ('runtimeManifestSha256','runtimeManifestSHA256'), ('exporterManifestSha256','exporterManifestSHA256')):
+        require(value[outer] == e[inner], 'SAME_OWNER_PREPARATION_PIN_MISMATCH')
+    require(type(value['authoritativeRoles']) is dict and set(value['authoritativeRoles']) == {'primary','singapore','silicon-valley','seoul'},
+            'SAME_OWNER_ALL_ORIGINAL_ROLES_REQUIRED')
+    pin(value['authoritativeBinarySha256'])
+    if not preparation_only:
+        pin(value['operatorPlanSha256']); pin(value['snapshotSourceSha256'])
+        require(type(value['candidateGenesisTime']) is str and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value['candidateGenesisTime']), 'INVALID_FINAL_GENESIS_TIME')
+        require(value['candidateGenesisTime'] <= value['expiresAt'], 'FINAL_GENESIS_AFTER_EXPIRY')
+    require(type(value['expiresAt']) is str and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value['expiresAt']), 'INVALID_PREPARATION_EXPIRY')
+    expiry = datetime.strptime(value['expiresAt'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc).timestamp()
+    require(0 < expiry - time.time() <= 24 * 60 * 60, 'PREPARATION_EXPIRED_OR_TOO_DISTANT')
+
+
 def preparation(value, tx):
+    if type(value) is dict and value.get('custodyProfile') == 'single-app-same-owner-inplace/v1':
+        return same_owner_preparation(value, tx)
     # Consume the original normalized prepare-native record, not a new grant
     # schema. Future checkpoint/final-plan fields are expressly disallowed.
     names = set(('custodyProfile schemaVersion action approved approvalId approver custodyReviewer '

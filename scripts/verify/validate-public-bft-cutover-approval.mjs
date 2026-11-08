@@ -32,6 +32,12 @@ try {
 } catch (error) {
   fail("approval file is not valid JSON: " + error.message);
 }
+if (approval.custodyProfile === "single-app-same-owner-inplace/v1") {
+  const {validateSameOwnerApproval, readSameOwnerJSON} = await import("./lib/public-bft-same-owner.mjs");
+  approval = readSameOwnerJSON(approvalPath);
+  process.stdout.write(JSON.stringify(validateSameOwnerApproval(approval, custodyReviewPath, expectedCommit, expectedRelease, preparation)) + "\n");
+  process.exit(0);
+}
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true) {
   fail("schema, action, or approved flag is invalid");
 }

@@ -24,6 +24,11 @@ try {
 } catch (error) {
   fail(`failed to read custody review: ${error.message}`);
 }
+if (review.custodyProfile === "single-app-same-owner-inplace/v1") {
+  const {validateSameOwnerReview} = await import("./lib/public-bft-same-owner.mjs");
+  process.stdout.write(JSON.stringify(validateSameOwnerReview(reviewPath, expectedCommit, expectedManifestSha256)) + "\n");
+  process.exit(0);
+}
 if (review.schemaVersion !== 1 || review.action !== "ynx-production-custody-review" || review.reviewed !== true) fail("custody review is not affirmatively completed");
 const singleApp = isSingleAppCustody(review);
 const allowedKeys = new Set([

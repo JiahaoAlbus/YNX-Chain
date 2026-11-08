@@ -7,6 +7,13 @@ import { fileURLToPath } from "node:url";
 import { readRestricted as readOwnerRestricted, validateInventory, isSingleAppCustody, singleAppCustodyProfile, validatorRoles, validatorManifestRecordsByRole, assertNoSecretFields } from "../verify/lib/owner-handover.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+if (process.argv[2] === "--same-owner") {
+  if (process.argv.length !== 6) throw new Error("usage: write-production-custody-review-packet.mjs --same-owner <public-input.json> <independent-sha256> <exclusive-output>");
+  const {publishSameOwnerReview} = await import("../verify/lib/public-bft-same-owner.mjs");
+  process.stdout.write(JSON.stringify(publishSameOwnerReview(process.argv[3], process.argv[4], process.argv[5])) + "\n");
+  process.exit(0);
+}
+if (process.argv.length !== 2) throw new Error("unexpected custody packet arguments");
 const ownerInventoryPath = path.resolve(process.env.YNX_OWNER_HANDOVER_INVENTORY || "");
 const ownerReceiptPath = path.resolve(process.env.YNX_OWNER_HANDOVER_RECEIPT || "");
 if (!process.env.YNX_OWNER_HANDOVER_INVENTORY || !process.env.YNX_OWNER_HANDOVER_RECEIPT) {

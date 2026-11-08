@@ -236,6 +236,25 @@ try {
     const x=nativeFixture('bad-'+name),p=path.join(x.transaction,'final-snapshot/remote-evidence.json'),v=JSON.parse(fs.readFileSync(p));change(v);write(p,v);
     const saved=originals(x);run(x,'prepare',{},1);assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
   }
+  // New same-owner admission reaches this existing normal caller as a retained
+  // projection. Raw custody/recovery admission has its own normal CLI controls;
+  // this fixture proves routing only, not real authorization or key recovery.
+  function sameOwnerFixture(name) {
+    const x=nativeFixture(name),a=x.approval;
+    for(const k of ['approver','custodyReviewer','owner','ownerHandoverReviewer','ownerHandoverInventoryDigest','ownerHandoverInventoryEvidence','ownerHandoverReceiptEvidence','validatorKeyRecoveryVerified','ownerHandoverVerified','rotationProcedureVerified','serviceSignerRecoveryVerified','serviceSignerManifestSha256'])delete a[k];
+    Object.assign(a,{custodyProfile:'single-app-same-owner-inplace/v1',transactionId:path.basename(x.transaction),operatorPreparationPlanSha256:'6'.repeat(64),operationAuthorizationEvidence:'sha256:'+'7'.repeat(64),authoritativeRoles:Object.fromEntries(roles.map(r=>[r,structuredClone(nativeIdentity)]))});
+    a.sameOwnerEvidence={version:'YNX-SAME-OWNER-INPLACE-CHECK/v1',reviewSHA256:'1'.repeat(64),sourceCommit:fullCommit,originalValidatorManifestSHA256:a.validatorManifestSha256,validatorManifestSHA256:a.validatorManifestSha256,operatorPreparationPlanSHA256:a.operatorPreparationPlanSha256,runtimeManifestSHA256:a.runtimeManifestSha256,exporterManifestSHA256:a.exporterManifestSha256,operationAuthorizationEvidenceSHA256:'7'.repeat(64),operationsSourceSHA256:'8'.repeat(64),roleEvidenceSHA256:'9'.repeat(64),handover:'not-applicable-same-owner-verified',recovery:'original-legacy-isolated-same-host',hrsHistoryVerified:false,pqRecoveryVerified:false};
+    write(path.join(x.transaction,'approval.json'),a);return x;
+  }
+  const sameOwner=sameOwnerFixture('same-owner-normal-caller'),sameOwnerBefore=originals(sameOwner);run(sameOwner);
+  const sameOwnerBinding=JSON.parse(fs.readFileSync(path.join(sameOwner.transaction,'candidate/binding.json')));
+  assert.equal(sameOwnerBinding.custodyProfile,'single-app-same-owner-inplace/v1');
+  assert.equal(sameOwnerBinding.operatorPlanSha256,sameOwner.approval.operatorPlanSha256);
+  assert.deepEqual(sameOwnerBinding.authoritativeRoles,sameOwner.approval.authoritativeRoles);unchanged(sameOwnerBefore);
+  for(const [name,change]of [['handover',a=>a.ownerHandoverVerified=true],['fake-history',a=>a.sameOwnerEvidence.hrsHistoryVerified=true],['fake-PQ-recovery',a=>a.sameOwnerEvidence.pqRecoveryVerified=true],['missing-native-role',a=>delete a.authoritativeRoles.seoul],['source',a=>a.sameOwnerEvidence.sourceCommit='f'.repeat(40)],['expired',a=>a.expiresAt='2000-01-01T00:00:00Z']]){
+    const x=sameOwnerFixture('same-owner-refused-'+name);change(x.approval);write(path.join(x.transaction,'approval.json'),x.approval);const saved=originals(x);run(x,'prepare',{},1);assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
+  }
+  console.log('SAME_OWNER_NORMAL_CANDIDATE_CALLER_PASS: retained DATA profile keeps source/roles/pins; invalid handover/history/source/expiry refused before package or transport; no authority');
   const scoped=fixture('single-app-custody');
   scoped.approval.custodyProfile='single-app-gateway/v1';delete scoped.approval.serviceSignerRecoveryVerified;delete scoped.approval.serviceSignerManifestSha256;
   write(path.join(scoped.transaction,'approval.json'),scoped.approval);const scopedBefore=originals(scoped);run(scoped);

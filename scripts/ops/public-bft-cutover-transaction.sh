@@ -71,6 +71,7 @@ if [[ "$mode" == continue-pq-native ]]; then
   # again. Original approval/expiry and the independent transition inputs are
   # revalidated before reserving the exclusive continuation attempt.
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
+  printf '%s\n' "$approval_evidence" | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));if(a.custodyProfile==="single-app-same-owner-inplace/v1"&&a.transactionId!==process.argv[1])throw Error("same-owner original transaction mismatch")' "$transaction_id"
   printf '%s\n' "$approval_evidence" | cmp - "$transaction_dir/approval.json" >/dev/null || { echo "PQ continuation changed original full authorization or expiry" >&2; exit 1; }
   node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/approval.json" "$commit" "$release" >/dev/null
   [[ "${PUBLIC_BFT_PQ_CONTINUATION_INPUT:-}" == /* && "${PUBLIC_BFT_PQ_CONTINUATION_INPUT_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] || { echo "independent exact PQ continuation public inputs are required" >&2; exit 1; }
@@ -106,6 +107,7 @@ assert.equal(rows.length,expected.length,'incomplete or changed original prepara
 rows.forEach((row,index)=>{assert.deepEqual(Object.keys(row).sort(),['at','phase','status']);assert.deepEqual([row.phase,row.status],expected[index]);assert.match(row.at,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);});
 NODE
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
+  printf '%s\n' "$approval_evidence" | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));if(a.custodyProfile==="single-app-same-owner-inplace/v1"&&a.transactionId!==process.argv[1])throw Error("same-owner original transaction mismatch")' "$transaction_id"
   # Revalidate the original preparation projection and compare every stable
   # approved stable field, including original expiry. The final source, plan
   # and genesis time require the full independent authorization; original
@@ -147,6 +149,7 @@ else
     approval_input="${transaction_dir}/preparation-approval.original.json"
   fi
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" ${approval_mode[@]+"${approval_mode[@]}"})"
+  printf '%s\n' "$approval_evidence" | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));if(a.custodyProfile==="single-app-same-owner-inplace/v1"&&a.transactionId!==process.argv[1])throw Error("same-owner original transaction mismatch")' "$transaction_id"
   if [[ "$mode" == prepare-native ]]; then
     (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/preparation-approval.json")
     preparation_plan_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).operatorPreparationPlanSha256)' "$transaction_dir/preparation-approval.json")"

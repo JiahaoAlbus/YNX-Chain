@@ -124,7 +124,7 @@ if (rawArgs[0] === "--migration-public-summary") {
 function gatewayBinding(file) {
   requireRestrictedFile(file, "candidate binding");
   const b = readJSON(file, "candidate binding");
-  isSingleAppCustody(b);
+  if (b.custodyProfile !== "single-app-same-owner-inplace/v1") isSingleAppCustody(b);
   caddySourceIdentity(b);
   if (b.schemaVersion !== 2 || b.operatorProfile !== operatorVersion || !hash(b.operatorPlanSha256) || !hash(b.runtimeManifestSha256) || ![b.packageGenesisHash,b.packageMigrationStateHash,b.originalGenesisHash].every(hash) || !/^[0-9a-f]{40}$/.test(b.runtimeCommit || "") || b.runtimeCommit.slice(0, 12) !== b.commit || b.bftRelease !== `ynx-bft-gateway-${b.commit}` || !Number.isSafeInteger(b.finalSnapshotHeight) || b.finalSnapshotHeight < 1 || b.finalSnapshotHeight >= Number.MAX_SAFE_INTEGER) fail("gateway binding is invalid");
   return b;
@@ -529,7 +529,13 @@ const approval = readJSON(approvalPath, "transaction approval");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);
 const caddySource = caddySourceIdentity(approval);
-const singleApp = isSingleAppCustody(approval);
+const sameOwner = approval.custodyProfile === "single-app-same-owner-inplace/v1";
+const singleApp = sameOwner || isSingleAppCustody(approval);
+if (sameOwner) {
+  const {validateSameOwnerProjection, readSameOwnerJSON} = await import("./lib/public-bft-same-owner.mjs");
+  validateSameOwnerProjection(readSameOwnerJSON(approvalPath), expectedCommit, expectedRelease);
+}
+else {
 if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval cannot assert unrelated service custody");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("transaction approval identity mismatch");
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "") || typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("transaction approval attribution is invalid");
@@ -541,6 +547,7 @@ if (!/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverInventoryDigest || "") |
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("transaction approval does not authorize cutover with automatic rollback");
 if (approval.validatorKeyRecoveryVerified !== true || (!singleApp && approval.serviceSignerRecoveryVerified !== true) || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("transaction approval custody recovery is incomplete");
 if (!singleApp && !/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("transaction approval service signer manifest checksum is invalid");
+}
 if (approval.candidateGenesisTime !== genesisTime) fail("candidate genesis time differs from approval");
 const validatorManifestSha256 = sha256(validatorManifestPath);
 if (approval.validatorManifestSha256 !== validatorManifestSha256) fail("validator manifest checksum differs from approval");
@@ -602,7 +609,7 @@ if (!/^[0-9a-f]{64}$/.test(packageManifest.genesisHash || "") || !/^[0-9a-f]{64}
 if (packageManifest.genesisHash !== operatorPlan.consensusGenesisSHA256 || packageManifest.migrationStateHash !== operatorPlan.migrationStateHash) fail("candidate package differs from independent genesis/bound migration pins");
 
 process.stdout.write(`${JSON.stringify({
-  ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
+  ...(singleApp ? { custodyProfile: approval.custodyProfile } : {}),
   schemaVersion: 2,
   transactionId,
   commit: expectedCommit,

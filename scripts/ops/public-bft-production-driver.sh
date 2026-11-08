@@ -217,7 +217,7 @@ public_bft_preflight_services() {
   approved="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "ynx-bft-gateway-$commit" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" ${approval_mode[@]+"${approval_mode[@]}"})" || return $?
   printf '%s\n' "$approved" | cmp - "${native_approval_path:-$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/approval.json}" >/dev/null || { echo "preflight profile differs from the original protected approval projection" >&2; return 1; }
   profile="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).custodyProfile || "legacy-full"))')" || return $?
-  if [[ "$profile" == single-app-gateway/v1 ]]; then
+  if [[ "$profile" == single-app-gateway/v1 || "$profile" == single-app-same-owner-inplace/v1 ]]; then
     printf '%s' ynx-chaind
   elif [[ "$profile" == legacy-full ]]; then
     ynx_ops_services_for_kind "$kind"
