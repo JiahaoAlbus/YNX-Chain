@@ -11,7 +11,7 @@ import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,sig
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {preparePQProductSessionApprovalV4,verifyProductSessionApprovalV4Data} from '@ynx-chain/wallet-auth/product-session-pq-v4-codec';
-import {readOriginalDeviceRegistrationAccountReview,submitOriginalDeviceRegistrationPair,submitOriginalDeviceRegistrationCompletion,closeOriginalDeviceRegistrationClient,readOriginalDeviceRegistrationCleanupDATA,captureOriginalDeviceRegistrationApproval,retainOriginalDeviceRegistrationFailure,recordOriginalDeviceCompletionFailure} from './original-device-registration-controller.mjs';
+import {readOriginalDeviceRegistrationAccountReview,captureOriginalDeviceRegistrationPolicySnapshot,submitOriginalDeviceRegistrationPair,submitOriginalDeviceRegistrationCompletion,closeOriginalDeviceRegistrationClient,readOriginalDeviceRegistrationCleanupDATA,captureOriginalDeviceRegistrationApproval,retainOriginalDeviceRegistrationFailure,recordOriginalDeviceCompletionFailure} from './original-device-registration-controller.mjs';
 import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest,encodePQRegistrationIntent,decodePQAccountInitialRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {readPQTransferOriginal,preparePQMigrationOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {assertPQMigrationRequestPolicy} from '@ynx-chain/wallet-auth/pq-wallet-policy';
@@ -464,6 +464,12 @@ export class DesktopWalletAuthority {
       if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();owner.assert();
       const at=this.clock(),policy=readProductSessionAccountPolicy(observation,originalAccount,at);
       if(policy.algorithmVersion!=='YNX-BATCH/v0.1')throw providerError(4100,'ACCOUNT_PQ_POLICY_REQUIRED','Register the original dual-PQ account before approving a YNX product session.');
+      // SDK's exact-nine-field parsed view preserves canonical resource bytes.
+      // Keep only public DATA and the SAME live observation's current fence;
+      // never serialize policyRef, a C pointer or a new authority descriptor.
+      if(registration)captureOriginalDeviceRegistrationPolicySnapshot(registration,{policyOriginal:canonicalJSON(policy),assertCurrent:()=>{
+        assertView();owner.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
+      }});
       if(saved){
         if(completion){
           // Reverify the same saved approval against this fresh account policy.

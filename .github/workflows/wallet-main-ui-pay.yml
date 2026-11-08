@@ -47,3 +47,5 @@ jobs:
           node --test test/native-pay-product-ui.test.mjs test/main-standalone-pay-navigation.test.mjs test/wallet-main-shutdown-sync-failure.test.mjs test/wallet-locale.test.mjs test/empty-account-guidance-mounted.test.mjs test/wallet-pq-account-initial-ui.test.mjs test/wallet-pq-key-ui.test.mjs test/qa-profile-selection.test.mjs
       - name: Normal mounted resolver heading locale control
         run: node --test --test-name-pattern 'resolver page title uses normal locale' test/approved-desktop-ui.test.mjs
+      - name: Same original approved public policy custody controls
+        run: node --test --test-name-pattern 'approved public' test/original-device-registration-controller.test.mjs

@@ -21,8 +21,32 @@ export function readOriginalDeviceRegistrationAccountReview(port){
    operationId:r.view.scope.pendingId,registrationOriginal:r.view.scope.registrationOriginal,
    ...(r.kind==='completion'?{approvalOriginal:r.originals.approvalOriginal,approvalDigest:r.originals.approvalDigest,challengeOriginal:r.originals.challengeOriginal}: {})});
 }
+/** Main-only public bytes from the SAME held committed-policy observation.
+ * This grants no Source or cross-process authority. The fixed receiver/SDK must
+ * independently reverify request, policy, signature and current admission. */
+export function captureOriginalDeviceRegistrationPolicySnapshot(port,{policyOriginal,assertCurrent}){
+ const r=state(port);r.current();
+ if(!r.decided||r.phase!=='approving-account'||r.policyCaptureSelected)fail('DEVICE_REGISTRATION_POLICY_CAPTURE_REFUSED');
+ r.policyCaptureSelected=true;
+ if(typeof policyOriginal!=='string'||!policyOriginal||Buffer.byteLength(policyOriginal,'utf8')>196608||typeof assertCurrent!=='function')fail('DEVICE_REGISTRATION_POLICY_ORIGINAL_REQUIRED');
+ if(assertCurrent()!==undefined)fail('DEVICE_REGISTRATION_POLICY_CURRENT_REFUSED');
+ r.policyOriginal=policyOriginal;r.approvedPublicCurrent=assertCurrent;
+ r.current();if(assertCurrent()!==undefined)fail('DEVICE_REGISTRATION_POLICY_CURRENT_REFUSED');
+}
+export function readOriginalDeviceRegistrationApprovedPublicDATA(port){
+ const r=state(port);r.current();
+ if(r.clientClosed||typeof r.approvedPublicCurrent!=='function'||typeof r.policyOriginal!=='string')fail('DEVICE_REGISTRATION_APPROVED_PUBLIC_NOT_CURRENT');
+ if(r.approvedPublicCurrent()!==undefined)fail('DEVICE_REGISTRATION_POLICY_CURRENT_REFUSED');
+ const approvalOriginal=r.kind==='completion'?r.originals?.approvalOriginal:r.approvalOriginal;
+ if(typeof approvalOriginal!=='string'||!approvalOriginal)fail('DEVICE_REGISTRATION_APPROVAL_ORIGINAL_REQUIRED');
+ const result=Object.freeze({version:'YNX-WALLET-DEVICE-V4-APPROVED-PUBLIC/v1',policyOriginal:r.policyOriginal,approvalOriginal,
+  requestOriginal:canonicalJSON(r.view.request),requestDigest:r.view.requestDigest,operationId:r.view.scope.pendingId,
+  registrationOriginal:r.view.scope.registrationOriginal,account:r.security.account});
+ r.current();if(r.approvedPublicCurrent()!==undefined)fail('DEVICE_REGISTRATION_POLICY_CURRENT_REFUSED');return result;
+}
 export async function closeOriginalDeviceRegistrationClient(port){
  const r=state(port);if(r.closePass)return r.closePass;
+ r.approvedPublicCurrent=null;
  r.closePass=(async()=>{try{
   const owner=r.client??r.partial;
   if(!r.abort.signal.aborted)r.abort.abort(Error('DEVICE_REGISTRATION_PHASE_FINISHED'));

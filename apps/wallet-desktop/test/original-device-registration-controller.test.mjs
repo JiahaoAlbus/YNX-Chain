@@ -16,7 +16,7 @@ registerHooks({resolve(specifier,context,next){
  return next(specifier,context);
 }});
 const {DesktopWalletAuthority,MemoryPermissionStore}=await import(authorityURL);
-const {createOriginalDeviceRegistrationController}=await import(controllerURL);
+const {createOriginalDeviceRegistrationController,readOriginalDeviceRegistrationApprovedPublicDATA}=await import(controllerURL);
 const account='0x'+'12'.repeat(20),networkId='a'.repeat(64);
 async function setup(t,mode='normal'){
  const dir=await fs.mkdtemp(path.join(tmpdir(),'ynx-v4-registration-controller-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
@@ -27,10 +27,13 @@ async function setup(t,mode='normal'){
  const view=Object.freeze({version:'YNX-PRODUCT-SESSION-ACCOUNT-POLICY/v1',networkId,canonicalOwner:account,
   checkpoint:Object.freeze({kind:'trusted-node-committed/v1',height:'100',blockHash:'22'.repeat(32)}),policyVersion:'YNX-ACCOUNT-POLICY/v1',algorithmVersion:'YNX-BATCH/v0.1',
   activeRecord:Object.freeze({revision:'1',registeredAt:'10',activeFrom:'20',pkA:'11'.repeat(2592),pkB:'22'.repeat(64)}),observedAt:f.at.toISOString(),expiresAt:new Date(+f.at+60000).toISOString()});
- const recognized=new WeakSet();const source=()=>{let retired=false;f.sourceRetired=false;const r={readOriginal:()=>view,assertCurrent(){if(retired||f.sourceRevoked)throw Error('PUBLIC source retired');},async recheck(){},retire(){retired=true;f.sourceRetired=true;},async join(){},async close(){f.counts.accountClose++;}};recognized.add(r);return r;};
+ f.policyView=view;
+ const recognized=new WeakSet();const source=()=>{let retired=false;f.sourceRetired=false;const r={readOriginal:()=>view,assertCurrent(){if(f.sourceFailurePresent)throw f.sourceFailure;if(retired||f.sourceRevoked)throw Error('PUBLIC source retired');},async recheck(){},retire(){retired=true;f.sourceRetired=true;},async join(){},async close(){f.counts.accountClose++;}};recognized.add(r);return r;};
  const vault={authorization:lifecycle,async status(){return {initialized:true,account};},async withPQKeys(_binding,action,permission){permission.assert();const result=action(Object.freeze({PUBLICHandle:true}));if(mode==='sign-late-lock')lifecycle.lock();permission.assert();return result;}};
  const authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqNetworkId:networkId,
   pqSessionSource:async()=>{f.counts.accountAcquire++;if(mode==='no-account-source')throw Object.assign(Error('PUBLIC missing'),{code:'PUBLIC_SOURCE_MISSING'});return source();},pqSessionRecognized:r=>recognized.has(r)});
+ const originalApprove=authority.approveOriginalDeviceRegistration.bind(authority);
+ authority.approveOriginalDeviceRegistration=(port,permission)=>{f.originalPort=port;f.onAccountEntry?.();return originalApprove(port,permission);};
  const controller=createOriginalDeviceRegistrationController({vault,networkId,authority});
  f.vault=vault;f.authority=authority;f.controller=controller;f.run=op=>lifecycle.run(op);f.event=createPUBLICRegistrationEvent(new URL('../src/index.html',import.meta.url).href);
  f.prepare=()=>f.run(()=>controller.prepareReview(f.selection));return f;
@@ -202,21 +205,27 @@ async function canonicalCompletionDATA(f,c,member){
  const {canonicalJSON}=await import('@ynx-chain/wallet-auth'),d=completionDATA(f,c,member);d.originalBody=canonicalJSON({operationId:d.operationId,request:f.pairRow.request,registrationOriginal:d.registrationOriginal,
   approval:JSON.parse(c.o.approvalOriginal),completion:{challenge:JSON.parse(c.o.challengeOriginal),deviceMember:member.toString('base64url')}});return d;
 }
-test('completion capacity reserves maximum original Member and escaped response without duplicating body bytes',async t=>{
+test('completion capacity reserves maximum original Member and escaped response within the current journal budget',async t=>{
  const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.alloc(98304,0x37);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);
  const d=await canonicalCompletionDATA(f,c,member);assert.equal((await f.store.beginSessionCompletionSubmission(c.token,d,()=>{})).created,true);
  assert.equal((await f.store.beginSessionCompletionSubmission(c.token,d,()=>{})).created,false);
  const {canonicalJSON,productSessionRequestDigest}=await import('@ynx-chain/wallet-auth');
+ const {TRANSACTION_JOURNAL_MAX_BYTES}=await import('../src/bounded-private-file-read.mjs');
+ const {sessionV4ReservedBytes,SESSION_V4_RESPONSE_RESERVE_BYTES}=await import('../src/wallet-session-original.mjs');
+ // The journal now has its own 8 MiB budget; Vault/backup remain at 1 MiB.
+ // Two small legacy fillers fit, while the live original response stays reserved.
  // Legacy/public retained DATA fills the same actual bounded file. It is not
  // cryptographic authority and does not cause a signer, Source or HTTP call.
  for(let i=0;i<2;i++){
   const request={...f.pairRow.request,nonce:('PUBLIC-extra-'+i).padEnd(43,'n')},createdAt=f.pairRow.createdAt,digest=productSessionRequestDigest(f.registry,request,new Date(createdAt));
   const old={version:1,account,requestId:'PUBLIC-filler-'+i,requestDigest:digest,request,createdAt,approval:null,deliveryAttempted:false,cleanupComplete:false,firstCause:null,storageCause:null,cleanupCause:null};
   const token=await f.store.reserveSessionOriginal(old,()=>{});f.store.captureSessionOriginal(token,{version:'2',result:'approved',requestDigest:digest,account:f.selection.identityBinding.account,padding:'x'.repeat(240000)});
-  if(i===0)await f.store.saveSessionOriginal(token);else await assert.rejects(f.store.saveSessionOriginal(token));
+  await f.store.saveSessionOriginal(token);
+  const retained=await f.readDisk();assert.equal(sessionV4ReservedBytes(retained),SESSION_V4_RESPONSE_RESERVE_BYTES);
+  assert.ok(Buffer.byteLength(JSON.stringify(retained)+'\n')+sessionV4ReservedBytes(retained)<=TRANSACTION_JOURNAL_MAX_BYTES);
  }
  const raw='"'.repeat(196608);f.store.captureSessionCompletionResponse(c.token,raw);await f.store.saveSessionCompletionResponse(c.token);await f.store.recordSessionCompletionFailure(c.token,{cleanupComplete:true});
- const row=(await f.readDisk()).sessionOriginals[0];assert.equal(row.completionSubmission.responseOriginal,raw);assert.equal(row.completionSubmission.memberOriginal,null);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.ok((await fs.stat(f.filePath)).size<=1048576);
+ const row=(await f.readDisk()).sessionOriginals[0];assert.equal(row.completionSubmission.responseOriginal,raw);assert.equal(row.completionSubmission.memberOriginal,null);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.ok((await fs.stat(f.filePath)).size<=TRANSACTION_JOURNAL_MAX_BYTES);
  assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
 });
 test('completion entry write before replacement can only flush the same held body and never restore an HTTP capability',async t=>{
@@ -359,4 +368,41 @@ test('storage recovery explicitly retires a ready warm effect selection even whe
  await assert.rejects(f.store.saveSessionCompletionOriginal(c.token));assert.throws(()=>f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));
  fail=false;await f.store.saveSessionCompletionOriginal(c.token);assert.throws(()=>f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));assert.equal((await f.readDisk()).sessionOriginals[0].completionSubmission.entered,false);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
  const other=await pairThenCold(t),phase=await reserveCompletionDATA(other);await other.store.recordSessionCompletionFailure(phase.token,{firstPresent:true,first:false,cleanupComplete:true});await other.store.saveSessionCompletionOriginal(phase.token);assert.throws(()=>other.store.captureSessionCompletionMember(phase.token,Buffer.from([1])));
+});
+
+test('approved public policy snapshot is exact nine-field DATA from same live original and expires with owner',async t=>{
+ const f=await setup(t);let observed;
+ f.onAccountEntry=()=>assert.throws(()=>readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort),{code:'DEVICE_REGISTRATION_APPROVED_PUBLIC_NOT_CURRENT'});
+ f.onPrepare=()=>{observed=readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort);
+  assert.equal(Object.isFrozen(observed),true);assert.deepEqual(JSON.parse(observed.policyOriginal),f.policyView);
+  assert.equal(Object.keys(JSON.parse(observed.policyOriginal)).length,9);assert.equal(observed.approvalOriginal,f.approvalOriginal);
+  assert.equal(observed.requestDigest,f.view.requestDigest);assert.equal(observed.operationId,f.view.scope.pendingId);
+  assert.equal(observed.registrationOriginal,f.view.scope.registrationOriginal);assert.equal(observed.account,account);
+  assert.equal(Object.hasOwn(observed,'policyRef'),false);assert.equal(Object.hasOwn(observed,'assertCurrent'),false);
+  assert.deepEqual(readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort),observed);
+ };
+ const p=await f.prepare();await f.run(()=>f.controller.approveOriginal(f.event,p.id));
+ assert.ok(observed);assert.equal(f.counts.accountAcquire,1);assert.equal(f.counts.sign,1);assert.equal(f.counts.submit,1);
+ assert.throws(()=>readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort));
+ assert.throws(()=>readOriginalDeviceRegistrationApprovedPublicDATA(Object.freeze({approvalOriginal:f.approvalOriginal,policyOriginal:observed.policyOriginal})),{code:'DEVICE_REGISTRATION_ORIGINAL_REVIEW_REQUIRED'});
+ await f.controller.close();
+});
+for(const failure of [0,false,null])test('approved public snapshot preserves live original falsy refusal '+String(failure),async t=>{
+ const f=await setup(t);f.onPrepare=()=>{f.sourceFailurePresent=true;f.sourceFailure=failure;
+  try{readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort);assert.fail('expected original current refusal');}catch(e){assert.equal(e,failure);throw e;}
+ };
+ const p=await f.prepare();try{await f.run(()=>f.controller.approveOriginal(f.event,p.id));assert.fail('expected refusal');}catch(e){assert.equal(e,failure)}
+ assert.equal(f.counts.sign,1);assert.equal(f.counts.accountAcquire,1);assert.equal(f.counts.submit,0);
+ const row=(await f.readDisk()).sessionOriginals[0];assert.equal(row.approval.original,f.approvalOriginal);
+ await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)));await f.controller.close();
+});
+
+test('approved public completion snapshot uses fresh held policy and original approval without signing again',async t=>{
+ const f=await pairThenCold(t);let observed;
+ f.onCompletionPrepare=()=>{observed=readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort);
+  assert.deepEqual(JSON.parse(observed.policyOriginal),f.policyView);assert.equal(observed.approvalOriginal,f.pairRow.approval.original);
+  assert.equal(observed.operationId,'PUBLIC-completion-original');assert.equal(f.counts.sign,1);assert.equal(f.counts.accountAcquire,2);
+ };
+ const p=await f.complete();await approveCompletion(f,p);assert.ok(observed);assert.equal(f.counts.sign,1);assert.equal(f.counts.accountAcquire,2);
+ assert.throws(()=>readOriginalDeviceRegistrationApprovedPublicDATA(f.originalPort));await f.controller.close();
 });

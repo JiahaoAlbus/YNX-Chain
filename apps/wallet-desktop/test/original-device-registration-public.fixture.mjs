@@ -43,12 +43,13 @@ export async function openOriginalProductDeviceV4RegistrationClient(...args){
     challengeOriginal:f.challengeOriginal,approvalDigest:productSessionApprovalDigest(JSON.parse(f.approvalOriginal))}),challenge:JSON.parse(f.challengeOriginal)});
    f.view=original;return original;
   },
-  async prepareOriginalPairSubmission(input){f.counts.prepare++;assert.equal(f.sourceRetired,false,'original account policy is alive during SDK prepare');
+  async prepareOriginalPairSubmission(input){f.counts.prepare++;if(f.onPrepare)await f.onPrepare(input);assert.equal(f.sourceRetired,false,'original account policy is alive during SDK prepare');
    assert.equal(input.approvalOriginal,f.approvalOriginal);assert.ok(input.policyRef);ctx=input.abortContext;assert.equal(Object.isFrozen(ctx),true);
    if(f.mode==='prepare-false')throw false;
    if(f.mode==='source-revoked-after-prepare')f.sourceRevoked=true;
    packet=Object.freeze({PUBLIC:true});return packet;},
   async prepareOriginalCompletionSubmission(input){
+   if(f.onCompletionPrepare)await f.onCompletionPrepare(input);
    f.counts.completionPrepare=(f.counts.completionPrepare??0)+1;assert.equal(f.sourceRetired,false);assert.equal(input.approvalOriginal,f.approvalOriginal);ctx=input.abortContext;
    const stored=await f.readDisk();assert.equal(stored.sessionOriginals[0].version,3);assert.equal(stored.sessionOriginals[0].completionSubmission.entered,false);
    f.counts.nativeProof=(f.counts.nativeProof??0)+1;
