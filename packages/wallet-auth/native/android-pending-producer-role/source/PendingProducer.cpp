@@ -16,7 +16,7 @@ namespace life=ynx::auth::android_device_provisioning;
 namespace {
 using F=ynx_auth_android_provision_failure_v1;using D=ynx_auth_android_provision_drain_v1;using B=ynx_auth_android_provision_bytes_v1;using V=ynx_auth_android_pending_review_data_v1;
 constexpr uint32_t Origin=0x504f5056;constexpr int Missing=-84201,Malformed=-84202,Actor=-84203,Retired=-84204,Pending=-84205,Once=-84206,Expired=-84207,Internal=-84208;
-F error(int code){return {1,code,Origin,0};}bool bad(F f){return f.present!=0;}F checked(F f){return f.present>1||(!f.present&&f.code)?error(Malformed):f;}
+F error(int code){return {1,code,Origin,0};}bool bad(F f){return f.present!=0||f.code!=0||f.origin!=0||f.platform_code!=0;}F checked(F f){return f.present>1||(!f.present&&(f.code||f.origin||f.platform_code))?error(Malformed):f;}
 void keep(F&first,F f){f=checked(f);if(!first.present&&f.present)first=f;}
 struct Source;struct Proof;
 std::mutex inventoryMutex;std::unordered_map<void*,std::unique_ptr<Source>>sources;std::unordered_map<void*,std::unique_ptr<Proof>>proofs;

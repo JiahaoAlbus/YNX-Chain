@@ -14,7 +14,7 @@ permissions:
   contents: read
 jobs:
   host-new-journal-controls:
-    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-journal-ci-20261108'
+    if: github.event_name != 'pull_request' || (github.head_ref != 'codex/android-pending-journal-ci-20261108' && github.head_ref != 'codex/android-pending-f24-ci-20261108')
     runs-on: macos-15
     timeout-minutes: 12
     steps:
@@ -33,7 +33,7 @@ jobs:
           name: android-pending-journal-host
           path: ${{ runner.temp }}/android-pending-journal-host
   android-normal-two-tu:
-    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-journal-ci-20261108'
+    if: github.event_name != 'pull_request' || (github.head_ref != 'codex/android-pending-journal-ci-20261108' && github.head_ref != 'codex/android-pending-f24-ci-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
