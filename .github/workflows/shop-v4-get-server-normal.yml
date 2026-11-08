@@ -29,7 +29,9 @@ jobs:
           set -euo pipefail
           node --test packages/wallet-auth/test/wpr-capture-source-graph-delta.test.mjs 2>&1 | tee wpr-graph-delta.log
           node scripts/ci/wpr-fixed-capture-runner.mjs --graph-only
+          node scripts/ci/wpr-nodehost-composition.mjs
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/wpr-nodehost-composition.mjs --packed
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -39,5 +41,6 @@ jobs:
             shop-v4-normal.log
             wpr-graph-delta.log
             wpr-fixed-capture-runner-controls
+            wpr-nodehost-composition-controls
             ${{ runner.temp }}/shop-v4-normal-*
             canonical-common-source-package
