@@ -99,3 +99,5 @@ input[type="password"]{unicode-bidi:plaintext}
 #multichain-content dd,#multichain-review-facts dd,.multichain-record p { margin:0; overflow-wrap:anywhere; }
 .multichain-record { padding:14px; border-bottom:1px solid var(--border,#dce3f1); }
 .toolbar { flex-wrap:wrap; }
+
+#pq-key-public-proposal-data{display:block;box-sizing:border-box;width:100%;max-width:100%;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--soft);color:var(--ink);font:12px/1.6 ui-monospace,SFMono-Regular,monospace;resize:vertical}
