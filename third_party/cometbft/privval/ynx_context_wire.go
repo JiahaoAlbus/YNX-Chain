@@ -163,20 +163,38 @@ func (c *contextConnection) write(wire []byte) error {
 	return nil
 }
 func (c *contextConnection) read() ([]byte, error) {
+	wire, _, err := c.readFrame()
+	return wire, err
+}
+
+// The boundary belongs to the original read, not to an error-string guess.
+// In particular a valid prefix followed by EOF has already started a frame.
+type contextReadBoundary uint8
+
+const (
+	contextReadSetup contextReadBoundary = iota
+	contextReadIdle
+	contextReadStarted
+)
+
+func (c *contextConnection) readFrame() ([]byte, contextReadBoundary, error) {
 	if err := c.conn.SetReadDeadline(time.Now().Add(c.timeout)); err != nil {
-		return nil, err
+		return nil, contextReadSetup, err
 	}
 	var prefix [4]byte
-	if _, err := io.ReadFull(c.conn, prefix[:]); err != nil {
-		return nil, err
+	if n, err := io.ReadFull(c.conn, prefix[:]); err != nil {
+		if n == 0 {
+			return nil, contextReadIdle, err
+		}
+		return nil, contextReadStarted, err
 	}
 	n := binary.BigEndian.Uint32(prefix[:])
 	if n == 0 || uint64(n) > uint64(maxRemoteSignerMsgSize) {
-		return nil, errors.New("remote consensus declared frame exceeds bound")
+		return nil, contextReadStarted, errors.New("remote consensus declared frame exceeds bound")
 	}
 	wire := make([]byte, int(n))
 	_, err := io.ReadFull(c.conn, wire)
-	return wire, err
+	return wire, contextReadStarted, err
 }
 func encodeContextRequest(kind uint32, payload []byte) []byte {
 	return contextFields([]byte(contextRequestDomain), contextU32(1), contextU32(kind), payload)

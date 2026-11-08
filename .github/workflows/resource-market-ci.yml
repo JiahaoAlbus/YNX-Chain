@@ -1935,7 +1935,61 @@ jobs:
           go test -p 1 -count=1 -timeout=90s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus
       - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemote.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
+        run: |
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^(TestYNXRemote.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval > "$RUNNER_TEMP/ynx-remote-terminal-fork-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-remote-terminal-fork-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          def qualify_remote_terminal(rows):
+              package = 'github.com/cometbft/cometbft/privval'
+              top = 'TestYNXRemoteSessionTerminalReadBoundaries'
+              required = {top} | {top + '/' + child for child in ('idle-eof', 'partial-prefix', 'body-eof', 'partial-body', 'idle-timeout', 'deadline-setup-closed', 'complete-frame')}
+              started = ended = False
+              active, ran, passed = set(), set(), set()
+              for row in rows:
+                  if not isinstance(row, dict):
+                      raise RuntimeError('remote terminal event is not an object')
+                  if not started and set(row) == {'Action', 'ImportPath', 'Output'} and row['Action'] == 'build-output' and row['ImportPath'] == package + '.test' and isinstance(row['Output'], str) and row['Output']:
+                      continue
+                  if row.get('Package') != package or ended:
+                      raise RuntimeError('remote terminal foreign/trailing package')
+                  action, test = row.get('Action'), row.get('Test')
+                  if action == 'start':
+                      if started or test is not None:
+                          raise RuntimeError('remote terminal duplicate start')
+                      started = True
+                      continue
+                  if not started or action not in ('run', 'pause', 'cont', 'output', 'pass'):
+                      raise RuntimeError('remote terminal failure/skip or missing package start')
+                  if test is None:
+                      if action == 'output':
+                          continue
+                      if action != 'pass' or active or not ran or ran != passed or not required <= passed:
+                          raise RuntimeError('remote terminal package or required case incomplete')
+                      ended = True
+                  elif not isinstance(test, str) or not test.startswith('Test'):
+                      raise RuntimeError('remote terminal malformed test name')
+                  elif action == 'run':
+                      if test in ran or ('/' in test and test.split('/', 1)[0] not in active):
+                          raise RuntimeError('remote terminal missing parent or duplicate run')
+                      active.add(test); ran.add(test)
+                  elif action == 'pass':
+                      if test not in active or any(child.startswith(test + '/') for child in active):
+                          raise RuntimeError('remote terminal incomplete test return')
+                      active.remove(test); passed.add(test)
+                  elif test not in active:
+                      raise RuntimeError('remote terminal output without active test')
+              if not started or not ended or active or not required <= passed:
+                  raise RuntimeError('remote terminal truncated/zero-hit stream')
+              return sorted(required)
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-remote-terminal-fork-tests.jsonl').read_text().splitlines()]
+          required = qualify_remote_terminal(rows)
+          print('YNX_REMOTE_TERMINAL_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, nodeStarted=False, consensusSigned=False), sort_keys=True))
+          PY
       - name: Verify actual engine signing caller uses committed height key and round context
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXActualSignVoteConsumesHeightKeyAndRoundContext|TestYNXActualRemoteCallerPassesCheckpointBeforeHeightKeyAndSign)$' github.com/cometbft/cometbft/consensus
@@ -2599,6 +2653,7 @@ jobs:
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
+          required += ['TestPQRemoteRuntimeTerminalCleanEOFAndOwnerCancel', 'TestPQRemoteRuntimeTerminalPreservesIncompleteAndLostResponse', 'TestPQRemoteRuntimeTerminalCloseJoinsPhysicalAttempt', 'TestPQRemoteRuntimeTerminalListenerOwnerCancel']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']

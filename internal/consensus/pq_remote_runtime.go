@@ -12,6 +12,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/cometbft/cometbft/crypto"
@@ -107,8 +109,7 @@ func AuthenticatePQRemoteConnection(ctx context.Context, conn net.Conn, config P
 	}
 	key, pin, err := loadPQRemoteTransport(config)
 	if err != nil {
-		_ = conn.Close()
-		return nil, nil, err
+		return nil, nil, errors.Join(err, conn.Close())
 	}
 	defer clear(key.Bytes())
 	return authenticatePQRemoteConnection(ctx, conn, config.Timeout, key, pin)
@@ -116,16 +117,18 @@ func AuthenticatePQRemoteConnection(ctx context.Context, conn net.Conn, config P
 
 // The original operator material is captured before Dial/Accept and is not
 // reloaded after a connection arrives. Peer data cannot change either pin.
-func authenticatePQRemoteConnection(ctx context.Context, conn net.Conn, timeout time.Duration, key crypto.PrivKey, pin crypto.PubKey) (*p2pconn.SecretConnection, crypto.PubKey, error) {
+func authenticatePQRemoteConnection(ctx context.Context, conn net.Conn, timeout time.Duration, key crypto.PrivKey, pin crypto.PubKey) (_ *p2pconn.SecretConnection, _ crypto.PubKey, result error) {
+	if ctx == nil {
+		return nil, nil, errors.Join(errors.New("missing original connection context"), conn.Close())
+	}
+	owner := newPQRemoteCloseOwner(ctx, conn.Close)
 	success := false
 	defer func() {
+		owner.joinCancellation()
 		if !success {
-			_ = conn.Close()
+			result = errors.Join(result, owner.close())
 		}
 	}()
-	if ctx == nil {
-		return nil, nil, errors.New("missing original connection context")
-	}
 	deadline := time.Now().Add(timeout)
 	if d, ok := ctx.Deadline(); ok && d.Before(deadline) {
 		deadline = d
@@ -133,8 +136,6 @@ func authenticatePQRemoteConnection(ctx context.Context, conn net.Conn, timeout 
 	if err := conn.SetDeadline(deadline); err != nil {
 		return nil, nil, err
 	}
-	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
-	defer stop()
 	if err := ctx.Err(); err != nil {
 		return nil, nil, err
 	}
@@ -151,8 +152,52 @@ func authenticatePQRemoteConnection(ctx context.Context, conn net.Conn, timeout 
 	if err = secret.SetDeadline(time.Time{}); err != nil {
 		return nil, nil, err
 	}
+	// Do not transfer a transport while its previous cancellation callback is
+	// still running. The session installs its own owner on the same socket.
+	owner.joinCancellation()
+	if err = ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	success = true
 	return secret, pin, nil
+}
+
+// Each physical resource has one close attempt shared by normal completion and
+// cancellation. A stopped AfterFunc is not a join; if it ran, await its return
+// before releasing ownership and retain its actual Close error.
+type pqRemoteCloseOwner struct {
+	once     sync.Once
+	closeFn  func() error
+	closeErr error
+	canceled atomic.Bool
+	done     chan struct{}
+	stop     func() bool
+	joinOnce sync.Once
+}
+
+func newPQRemoteCloseOwner(ctx context.Context, closeFn func() error) *pqRemoteCloseOwner {
+	o := &pqRemoteCloseOwner{closeFn: closeFn, done: make(chan struct{})}
+	o.stop = context.AfterFunc(ctx, func() {
+		o.canceled.Store(true)
+		_ = o.close()
+		close(o.done)
+	})
+	return o
+}
+func (o *pqRemoteCloseOwner) close() error {
+	o.once.Do(func() { o.closeErr = o.closeFn() })
+	return o.closeErr
+}
+func (o *pqRemoteCloseOwner) joinCancellation() {
+	o.joinOnce.Do(func() {
+		if !o.stop() {
+			<-o.done
+		}
+	})
+}
+func (o *pqRemoteCloseOwner) finish() error {
+	o.joinCancellation()
+	return o.close()
 }
 func DialPQRemoteConnection(ctx context.Context, config PQRemoteTransport) (*p2pconn.SecretConnection, crypto.PubKey, error) {
 	if ctx == nil {
@@ -189,18 +234,28 @@ func ServePQRemoteConnection(ctx context.Context, conn net.Conn, config PQRemote
 	return servePQRemoteConnection(ctx, secret, pin, config.Timeout, chainID, source, pv)
 }
 
-func servePQRemoteConnection(ctx context.Context, secret *p2pconn.SecretConnection, pin crypto.PubKey, timeout time.Duration, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator) error {
-	defer secret.Close()
-	stop := context.AfterFunc(ctx, func() { _ = secret.Close() })
-	defer stop()
+func servePQRemoteConnection(ctx context.Context, secret *p2pconn.SecretConnection, pin crypto.PubKey, timeout time.Duration, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator) (result error) {
+	owner := newPQRemoteCloseOwner(ctx, secret.Close)
+	defer func() { result = errors.Join(result, owner.finish()) }()
 	server, err := privval.NewContextSignerServer(secret, pin, timeout, chainID, source, pv)
 	if err != nil {
 		return err
 	}
 	for {
+		// There is no in-flight request at this boundary. A deadline is not an
+		// operator stop and remains a failure.
+		if err = ctx.Err(); err != nil {
+			if err == context.Canceled {
+				return nil
+			}
+			return err
+		}
 		if err = server.ServeNext(); err != nil {
-			if ctx.Err() != nil {
-				return ctx.Err()
+			if privval.IsContextSignerIdleEOF(err) {
+				return nil
+			}
+			if ctx.Err() == context.Canceled && owner.canceled.Load() && privval.IsContextSignerIdleReadClosed(err) {
+				return nil
 			}
 			return err
 		}
@@ -224,7 +279,7 @@ func ListenPQRemoteSignerReady(ctx context.Context, config PQRemoteTransport, ch
 	return listenPQRemoteSigner(ctx, config, chainID, source, pv, startup, ready)
 }
 
-func listenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator, acceptTimeout time.Duration, ready func() error) error {
+func listenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator, acceptTimeout time.Duration, ready func() error) (result error) {
 	if ctx == nil || source == nil || pv == nil || chainID == "" {
 		return errors.New("remote listener requires context and original signing authority")
 	}
@@ -244,9 +299,8 @@ func listenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID
 	if err != nil {
 		return err
 	}
-	defer listener.Close()
-	stop := context.AfterFunc(ctx, func() { _ = listener.Close() })
-	defer stop()
+	owner := newPQRemoteCloseOwner(ctx, listener.Close)
+	defer func() { result = errors.Join(result, owner.finish()) }()
 	tcp, ok := listener.(*net.TCPListener)
 	if !ok {
 		return errors.New("unexpected remote listener type")
@@ -261,9 +315,14 @@ func listenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID
 	}
 	conn, err := listener.Accept()
 	if err != nil {
+		if ctx.Err() == context.Canceled && owner.canceled.Load() && errors.Is(err, net.ErrClosed) {
+			return nil
+		}
 		return err
 	}
-	_ = listener.Close()
+	if err = owner.finish(); err != nil {
+		return errors.Join(err, conn.Close())
+	}
 	secret, pin, err := authenticatePQRemoteConnection(ctx, conn, config.Timeout, key, pin)
 	if err != nil {
 		return err

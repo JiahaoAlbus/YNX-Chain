@@ -3,6 +3,8 @@ package privval
 import (
 	"bytes"
 	"errors"
+	"io"
+	"net"
 	"sync"
 	"time"
 
@@ -46,15 +48,40 @@ func NewContextSignerServer(conn *p2pconn.SecretConnection, enginePin crypto.Pub
 }
 func (s *ContextSignerServer) Close() error { return s.transport.conn.Close() }
 
+type contextSignerReadError struct {
+	cause    error
+	boundary contextReadBoundary
+}
+
+func (e *contextSignerReadError) Error() string { return e.cause.Error() }
+func (e *contextSignerReadError) Unwrap() error { return e.cause }
+
+// IsContextSignerIdleEOF recognizes only the authenticated server's next-frame
+// read with zero prefix bytes and exact EOF. Body/partial EOF and response write
+// errors must remain failures, including when their cause is also io.EOF.
+func IsContextSignerIdleEOF(err error) bool {
+	e, ok := err.(*contextSignerReadError)
+	return ok && e.boundary == contextReadIdle && e.cause == io.EOF
+}
+
+// IsContextSignerIdleReadClosed is only phase evidence. Its caller must also
+// prove its own cancellation closed this same transport and join that close.
+// It does not normalize deadlines, authentication, partial frames or writes.
+func IsContextSignerIdleReadClosed(err error) bool {
+	e, ok := err.(*contextSignerReadError)
+	return ok && (e.boundary == contextReadIdle || e.boundary == contextReadSetup) &&
+		(errors.Is(e.cause, net.ErrClosed) || errors.Is(e.cause, io.ErrClosedPipe))
+}
+
 // ServeNext processes exactly one bounded request. The caller owns service
 // lifecycle. Write failure never re-executes a signing request.
 func (s *ContextSignerServer) ServeNext() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	request, err := s.transport.read()
+	request, boundary, err := s.transport.readFrame()
 	if err != nil {
 		s.current = nil
-		return err
+		return &contextSignerReadError{cause: err, boundary: boundary}
 	}
 	payload, code, operationErr := s.handle(request)
 	description := ""
