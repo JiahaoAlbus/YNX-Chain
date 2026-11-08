@@ -60,17 +60,17 @@ func NewPrivateBusinessRevalidator(client *Client, backendClientID, keyID string
 	return &Revalidator{client: client, keyID: keyID, key: append(ed25519.PrivateKey(nil), key...), backendClientID: backendClientID, business: true}, nil
 }
 
-func (r *Revalidator) Revalidate(ctx context.Context, original Session, requiredScopes []string) (Session, error) {
+func (r *Revalidator) Revalidate(ctx context.Context, original Session, requiredScopes []string) (result Session, resultErr error) {
 	var zero Session
-	c := r.client
-	encoded, err := json.Marshal(original)
-	if err != nil {
-		return zero, fail("INVALID_SESSION", 403)
+	if err := revalidationContext(ctx); err != nil {
+		return zero, err
 	}
-	var fields map[string]any
-	d := json.NewDecoder(bytes.NewReader(encoded))
-	d.UseNumber()
-	if d.Decode(&fields) != nil || !validSessionFields(fields) || !c.matchesPolicy(fields) || original.Platform != c.policy.Platform || (!r.business && original.Platform != "web") || original.Version != "2" || original.ChainID != "ynx_6423-1" || !validFiniteConsent(original) {
+	if r == nil || r.client == nil {
+		return zero, fail("INVALID_ROUTE_POLICY", 500)
+	}
+	c := r.client
+	fields, err := c.originalSessionFields(original)
+	if err != nil || (!r.business && original.Platform != "web") {
 		return zero, fail("SESSION_BINDING_MISMATCH", 403)
 	}
 	if len(requiredScopes) == 0 || !validScopes(requiredScopes) {
@@ -83,7 +83,8 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	}
 	issued, e1 := protocolTime(original.IssuedAt)
 	expires, e2 := protocolTime(original.ExpiresAt)
-	if e1 != nil || e2 != nil || issued.After(c.clock()) || !expires.After(c.clock()) {
+	beforeClock := c.clock().UTC()
+	if e1 != nil || e2 != nil || issued.After(beforeClock) || !expires.After(beforeClock) {
 		return zero, fail("SESSION_EXPIRED", 401)
 	}
 	clientID := r.backendClientID
@@ -97,7 +98,7 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	if _, err = rand.Read(nonce); err != nil {
 		return zero, fail("AUTHORITY_UNAVAILABLE", 503)
 	}
-	proof := map[string]any{"version": 1, "issuer": c.endpoint, "audience": c.endpoint + "/v2/browser-sessions", "clientId": clientID, "keyId": r.keyID, "method": "POST", "path": revalidationPath, "bodySha256": hex.EncodeToString(sum[:]), "issuedAt": c.clock().UTC().Format("2006-01-02T15:04:05.000Z"), "nonce": base64.RawURLEncoding.EncodeToString(nonce)}
+	proof := map[string]any{"version": 1, "issuer": c.endpoint, "audience": c.endpoint + "/v2/browser-sessions", "clientId": clientID, "keyId": r.keyID, "method": "POST", "path": revalidationPath, "bodySha256": hex.EncodeToString(sum[:]), "issuedAt": beforeClock.Format("2006-01-02T15:04:05.000Z"), "nonce": base64.RawURLEncoding.EncodeToString(nonce)}
 	signed, _ := canonical(proof)
 	proof["signature"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(r.key, signed))
 	proofRaw, _ := canonical(proof)
@@ -114,7 +115,27 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	if err != nil {
 		return zero, fail("AUTHORITY_UNAVAILABLE", 503)
 	}
-	defer response.Body.Close()
+	closed := false
+	finish := func() error {
+		if closed {
+			return nil
+		}
+		closed = true
+		return response.Body.Close()
+	}
+	defer func() {
+		closeErr := finish()
+		if resultErr == nil {
+			if closeErr != nil {
+				result, resultErr = zero, fail("AUTHORITY_UNAVAILABLE", 503)
+			} else if e := revalidationContext(ctx); e != nil {
+				result, resultErr = zero, e
+			}
+		}
+	}()
+	if err := revalidationContext(ctx); err != nil {
+		return zero, err
+	}
 	media, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	if err != nil || media != "application/json" || !noStore(response.Header.Get("Cache-Control")) {
 		return zero, fail("INVALID_AUTHORITY_RESPONSE", 503)
@@ -122,6 +143,9 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxResponseBytes+1))
 	if err != nil || len(data) > maxResponseBytes {
 		return zero, fail("INVALID_AUTHORITY_RESPONSE", 503)
+	}
+	if err := revalidationContext(ctx); err != nil {
+		return zero, err
 	}
 	payload, err := canonicalObject(data)
 	if err != nil {
@@ -162,12 +186,25 @@ func (r *Revalidator) Revalidate(ctx context.Context, original Session, required
 	if !bytes.Equal(before, after) {
 		return zero, fail("SESSION_BINDING_MISMATCH", 403)
 	}
-	if !expires.After(c.clock()) {
-		return zero, fail("SESSION_EXPIRED", 401)
+	if err := finish(); err != nil {
+		return zero, fail("AUTHORITY_UNAVAILABLE", 503)
+	}
+	if err := revalidationContext(ctx); err != nil {
+		return zero, err
 	}
 	var verified Session
 	if json.Unmarshal(after, &verified) != nil {
 		return zero, fail("INVALID_AUTHORITY_RESPONSE", 503)
+	}
+	afterClock := c.clock().UTC()
+	if afterClock.Before(beforeClock) {
+		return zero, fail("CLOCK_UNAVAILABLE", 503)
+	}
+	if issued.After(afterClock) || !expires.After(afterClock) {
+		return zero, fail("SESSION_EXPIRED", 401)
+	}
+	if err := revalidationContext(ctx); err != nil {
+		return zero, err
 	}
 	return verified, nil
 }
@@ -192,11 +229,8 @@ func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, b
 		return zero, BrowserGrant{}, fail("SSO_GRANT_INVALID", 401)
 	}
 	c := r.client
-	encoded, err := json.Marshal(original)
-	var fields map[string]any
-	d := json.NewDecoder(bytes.NewReader(encoded))
-	d.UseNumber()
-	if err != nil || d.Decode(&fields) != nil || !validSessionFields(fields) || !c.matchesPolicy(fields) || original.Platform != c.policy.Platform || original.Version != "2" || original.ChainID != "ynx_6423-1" || !validFiniteConsent(original) {
+	fields, err := c.originalSessionFields(original)
+	if err != nil {
 		return zero, BrowserGrant{}, fail("SESSION_BINDING_MISMATCH", 403)
 	}
 	if len(scopes) == 0 || !validScopes(scopes) {
@@ -209,30 +243,25 @@ func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, b
 	}
 	issued, e1 := protocolTime(original.IssuedAt)
 	expires, e2 := protocolTime(original.ExpiresAt)
-	if e1 != nil || e2 != nil || issued.After(c.clock()) || !expires.After(c.clock()) {
+	beforeClock := c.clock().UTC()
+	if e1 != nil || e2 != nil || issued.After(beforeClock) || !expires.After(beforeClock) {
 		return zero, BrowserGrant{}, fail("SESSION_EXPIRED", 401)
 	}
 	stamp := func(t time.Time) string { return t.UTC().Format("2006-01-02T15:04:05.000Z") }
 	browserFields := map[string]any{"clientId": browser.clientID, "origin": browser.origin, "grant": map[string]any{"grantToken": grant.GrantToken, "csrf": grant.CSRF, "identity": map[string]any{"subject": grant.Identity.Subject, "account": grant.Identity.Account, "generation": grant.Identity.Generation, "expiresAt": stamp(grant.Identity.ExpiresAt)}, "audience": grant.Audience, "scopes": grant.Scopes, "expiresAt": stamp(grant.ExpiresAt)}}
 	body := map[string]any{"clientId": r.backendClientID, "session": fields, "requiredScopes": scopes, "browser": browserFields}
-	payload, err := r.combinedRead(ctx, body)
+	_, err = r.combinedRead(ctx, body, beforeClock)
 	if err != nil {
 		return zero, BrowserGrant{}, err
 	}
 	if err := revalidationContext(ctx); err != nil {
 		return zero, BrowserGrant{}, err
 	}
-	if !exactKeys(payload, []string{"active", "session", "browser"}) || payload["active"] != true {
-		return zero, BrowserGrant{}, fail("INVALID_AUTHORITY_RESPONSE", 503)
+	afterClock := c.clock().UTC()
+	if afterClock.Before(beforeClock) {
+		return zero, BrowserGrant{}, fail("CLOCK_UNAVAILABLE", 503)
 	}
-	for name, before := range map[string]any{"session": fields, "browser": browserFields} {
-		rawBefore, _ := canonical(before)
-		rawAfter, err := canonical(payload[name])
-		if err != nil || !bytes.Equal(rawBefore, rawAfter) {
-			return zero, BrowserGrant{}, fail("SESSION_BINDING_MISMATCH", 403)
-		}
-	}
-	if !expires.After(c.clock()) || !browser.valid(grant) {
+	if issued.After(afterClock) || !expires.After(afterClock) || !browser.valid(grant) {
 		return zero, BrowserGrant{}, fail("SESSION_EXPIRED", 401)
 	}
 	if err := revalidationContext(ctx); err != nil {
@@ -241,7 +270,7 @@ func (r *Revalidator) RevalidateBrowser(ctx context.Context, original Session, b
 	return original, grant, nil
 }
 
-func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (result map[string]any, resultErr error) {
+func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any, beforeClock time.Time) (result map[string]any, resultErr error) {
 	if err := revalidationContext(ctx); err != nil {
 		return nil, err
 	}
@@ -255,7 +284,7 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (re
 		return nil, fail("AUTHORITY_UNAVAILABLE", 503)
 	}
 	c := r.client
-	proof := map[string]any{"version": 1, "issuer": c.endpoint, "audience": c.endpoint + "/v2/browser-sessions", "clientId": r.backendClientID, "keyId": r.keyID, "method": "POST", "path": combinedRevalidationPath, "bodySha256": hex.EncodeToString(sum[:]), "issuedAt": c.clock().UTC().Format("2006-01-02T15:04:05.000Z"), "nonce": base64.RawURLEncoding.EncodeToString(nonce)}
+	proof := map[string]any{"version": 1, "issuer": c.endpoint, "audience": c.endpoint + "/v2/browser-sessions", "clientId": r.backendClientID, "keyId": r.keyID, "method": "POST", "path": combinedRevalidationPath, "bodySha256": hex.EncodeToString(sum[:]), "issuedAt": beforeClock.UTC().Format("2006-01-02T15:04:05.000Z"), "nonce": base64.RawURLEncoding.EncodeToString(nonce)}
 	signed, _ := canonical(proof)
 	proof["signature"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(r.key, signed))
 	proofRaw, _ := canonical(proof)
@@ -273,11 +302,14 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (re
 		return nil, fail("AUTHORITY_UNAVAILABLE", 503)
 	}
 	defer func() {
-		response.Body.Close()
+		closeErr := response.Body.Close()
 		// This defer runs before our local cancel(). Include body Close in the
 		// HTTP child deadline without mistaking that local cancel for a caller
 		// cancellation, and never return a successful result after Close aborts.
-		if err := revalidationContext(ctx); err != nil {
+		if resultErr == nil && closeErr != nil {
+			result, resultErr = nil, fail("AUTHORITY_UNAVAILABLE", 503)
+		}
+		if err := revalidationContext(ctx); err != nil && resultErr == nil {
 			result, resultErr = nil, err
 		}
 	}()
@@ -303,6 +335,18 @@ func (r *Revalidator) combinedRead(ctx context.Context, body map[string]any) (re
 		return nil, err
 	}
 	if response.StatusCode == 200 {
+		// Validate all three original fields before physical response Close.
+		// A later cleanup failure must not erase an already-observed mismatch.
+		if !exactKeys(payload, []string{"active", "session", "browser"}) || payload["active"] != true {
+			return nil, fail("INVALID_AUTHORITY_RESPONSE", 503)
+		}
+		for _, name := range []string{"session", "browser"} {
+			before, beforeErr := canonical(body[name])
+			after, afterErr := canonical(payload[name])
+			if beforeErr != nil || afterErr != nil || !bytes.Equal(before, after) {
+				return nil, fail("SESSION_BINDING_MISMATCH", 403)
+			}
+		}
 		return payload, nil
 	}
 	if !exactKeys(payload, []string{"error", "ok"}) || payload["ok"] != false {

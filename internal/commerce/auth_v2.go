@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"reflect"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -91,7 +92,10 @@ func commerceV2Error(err error) error {
 }
 
 func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route businessRoutePolicy) (*verifiedBusinessRequest, error) {
-	values := r.Header.Values(v2.ProofHeader)
+	requestStarted := time.Now()
+	authRequest := r.Clone(r.Context())
+	authRequest.Header = r.Header.Clone()
+	values := authRequest.Header.Values(v2.ProofHeader)
 	if len(values) != 1 || len(values[0]) > 16384 {
 		return nil, &businessHTTPError{"PROOF_REQUIRED", 401}
 	}
@@ -106,6 +110,8 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		Origin        string `json:"origin"`
 		Callback      string `json:"callback"`
 		BodyDigest    string `json:"bodyDigest"`
+		IssuedAt      string `json:"issuedAt"`
+		ExpiresAt     string `json:"expiresAt"`
 	}
 	if json.Unmarshal(raw, &hint) != nil {
 		return nil, &businessHTTPError{"INVALID_PROOF", 401}
@@ -124,6 +130,10 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	}
 	// A hint can select only among router-fixed commitments. Shared Authorize
 	// still verifies canonical proof, exact policy, signature and live authority.
+	privateRead := route.mode == "original-shop-session-read"
+	if privateRead && consumer.policy.Platform == "web" {
+		return nil, ErrUnauthorized
+	}
 	browserForConsumer := consumer.policy.Platform == "web" && g.browser != nil
 	assertConsumerCurrent := func(ctx context.Context) error {
 		if g.currentPolicy == nil {
@@ -167,7 +177,7 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 			}
 		}
 	}
-	original, err := consumer.client.Authorize(r.Context(), r, scopes)
+	original, err := consumer.client.Authorize(r.Context(), authRequest, scopes)
 	if err != nil {
 		return nil, commerceV2Error(err)
 	}
@@ -182,13 +192,23 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	if addressError != nil || !exactScopes(original.Scopes, expected) {
 		return nil, &businessHTTPError{"CAPABILITY_BINDING_MISMATCH", 403}
 	}
-	actions := r.Header.Values(v2.ActionProofHeader)
-	if len(actions) != 1 {
-		return nil, &businessHTTPError{"ACTION_PROOF_REQUIRED", 403}
-	}
-	action, err := consumer.client.VerifyHTTPAction(actions[0], original, r.Method, r.URL.Path, body, scopes, time.Now())
-	if err != nil {
-		return nil, commerceV2Error(err)
+	var action v2.ActionAuthorization
+	if !privateRead {
+		actions := r.Header.Values(v2.ActionProofHeader)
+		if len(actions) != 1 {
+			return nil, &businessHTTPError{"ACTION_PROOF_REQUIRED", 403}
+		}
+		action, err = consumer.client.VerifyHTTPAction(actions[0], original, r.Method, r.URL.Path, body, scopes, time.Now())
+		if err != nil {
+			return nil, commerceV2Error(err)
+		}
+	} else {
+		// Existing introspection proof authenticates identity. The independent Source
+		// and same-socket LINK authorize only this fixed empty-body read, no action.
+		if r.Method != "GET" || len(body) != 0 || r.URL == nil || !strings.HasPrefix(r.URL.Path, OriginalShopInvoiceReadPath) || r.URL.RawQuery != "" || r.URL.ForceQuery {
+			return nil, ErrUnauthorized
+		}
+		action.SessionBinding = original.SessionBinding
 	}
 	expires, err := time.Parse(time.RFC3339Nano, original.ExpiresAt)
 	if err != nil {
@@ -215,13 +235,21 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		digest := sha256.Sum256(raw)
 		browserDigest = hex.EncodeToString(digest[:])
 	}
-	validUntil := expires
+	proofUntil, proofTimeError := time.Parse(time.RFC3339Nano, hint.ExpiresAt)
+	if proofTimeError != nil || !time.Now().Before(proofUntil) {
+		return nil, ErrUnauthorized
+	}
+	validUntil := requestStarted.Add(expires.Sub(requestStarted))
+	proofDeadline := requestStarted.Add(proofUntil.Sub(requestStarted))
+	if proofDeadline.Before(validUntil) {
+		validUntil = proofDeadline
+	}
 	if browserForConsumer {
 		if browserGrant.ExpiresAt.Before(validUntil) {
-			validUntil = browserGrant.ExpiresAt
+			validUntil = requestStarted.Add(browserGrant.ExpiresAt.Sub(requestStarted))
 		}
 		if browserGrant.Identity.ExpiresAt.Before(validUntil) {
-			validUntil = browserGrant.Identity.ExpiresAt
+			validUntil = requestStarted.Add(browserGrant.Identity.ExpiresAt.Sub(requestStarted))
 		}
 	}
 	originalFence := fence
@@ -231,7 +259,12 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		}
 		return originalFence()
 	}
-	return &verifiedBusinessRequest{browserBindingDigest: browserDigest, walletAccount: original.Account, principal: Principal{Account: canonicalAccount, Role: role, ProductClientID: original.ClientID, BundleID: ShopBundleID, SessionBinding: original.SessionBinding, Scopes: slices.Clone(original.Scopes), ExpiresAt: expires}, proof: businessActionAuthorization{action.SessionBinding, action.Nonce, action.ExpiresAt}, fence: fence, revalidate: func(ctx context.Context) error {
+	sessionBytes, marshalError := json.Marshal(original)
+	if marshalError != nil {
+		return nil, ErrUnauthorized
+	}
+	issuer := &verifiedShopSessionIssuer{digest: effectDigest("original-auth-product-session", string(sessionBytes))}
+	return &verifiedBusinessRequest{shopSessionIssuer: issuer, shopSessionCaptureUntil: validUntil, browserBindingDigest: browserDigest, walletAccount: original.Account, principal: Principal{Account: canonicalAccount, Role: role, ProductClientID: original.ClientID, BundleID: ShopBundleID, SessionBinding: original.SessionBinding, Scopes: slices.Clone(original.Scopes), ExpiresAt: expires}, proof: businessActionAuthorization{action.SessionBinding, action.Nonce, action.ExpiresAt}, fence: fence, revalidate: func(ctx context.Context) error {
 		if err := assertConsumerCurrent(ctx); err != nil {
 			return err
 		}
@@ -251,4 +284,32 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		}
 		return assertConsumerCurrent(ctx)
 	}}, nil
+}
+
+// Private fixed read: no public router sets this mode, and no effect/action
+// path receives its empty action nonce. It reuses the original Auth verifier.
+func (g *commerceV2Verifier) verifyOriginalShopSessionRead(r *http.Request, role string) (*verifiedBusinessRequest, error) {
+	required := ShopScopes
+	if role == "seller" {
+		required = SellerScopes
+	} else if role != "buyer" {
+		return nil, ErrUnauthorized
+	}
+	eligible := false
+	for _, c := range g.consumers {
+		if c.policy.Platform == "web" {
+			continue
+		}
+		all := true
+		for _, scope := range required {
+			if !slices.Contains(c.policy.AllowedScopes, scope) {
+				all = false
+			}
+		}
+		eligible = eligible || all
+	}
+	if !eligible {
+		return nil, ErrUnauthorized
+	}
+	return g.verify(r, nil, businessRoutePolicy{mode: "original-shop-session-read", scopes: map[string][]string{role: slices.Clone(required)}})
 }

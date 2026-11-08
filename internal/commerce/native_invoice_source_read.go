@@ -61,10 +61,15 @@ func OpenOriginalShopInvoiceReadService(ctx context.Context, open func() (*Store
 	if err != nil {
 		return &OriginalShopInvoiceReadService{authority: a}, err
 	}
-	return prepareOriginalShopInvoiceReadService(ctx, a, open)
+	s, err := prepareOriginalShopInvoiceReadService(ctx, a, open)
+	if err == nil {
+		s.sessionDomain, err = s.store.bindOriginalShopSessionDomain(a, s.profile)
+	}
+	return s, err
 }
 
 type OriginalShopInvoiceReadService struct {
+	sessionDomain     *originalShopSessionDomain
 	authority         originalShopInvoiceReadAuthority
 	profile           originalShopInvoiceReadProfile
 	store             *Store
@@ -152,6 +157,9 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		return s.finalCloseError()
 	}
 	s.retired.Store(true)
+	if s.store != nil {
+		s.store.retireOriginalShopSessionDomain(s.sessionDomain)
+	}
 	remember := func(err error) {
 		if err != nil && s.closeFirst == nil {
 			s.closeFirst = err
@@ -187,6 +195,13 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		delete(s.children, id)
 		s.stateMu.Unlock()
 	}
+	if s.store != nil {
+		err, done := s.store.closeOriginalShopSessionDomain(s.sessionDomain)
+		remember(err)
+		if !done {
+			return s.finalCloseError()
+		}
+	}
 	if s.authority != nil {
 		if err := s.authority.close(); err != nil {
 			remember(err)
@@ -194,6 +209,9 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		}
 	}
 	s.closed = true
+	if s.store != nil {
+		s.store.releaseOriginalShopSessionDomain(s.sessionDomain)
+	}
 	return s.finalCloseError()
 }
 
@@ -321,12 +339,36 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		deny(errShopInvoiceReadDenied)
 		return
 	}
+	var session *OriginalShopSession
+	if s.sessionDomain != nil {
+		session, err = s.store.captureOriginalShopSessionForRead(r.Context(), r, scope)
+		if session != nil {
+			defer session.Close()
+		}
+		if err != nil {
+			deny(err)
+			return
+		}
+		if session == nil {
+			deny(ErrUnauthorized)
+			return
+		}
+		if err = session.CurrentOrder(r.Context(), product, order); err != nil {
+			deny(err)
+			return
+		}
+	}
 	fence := func() error {
 		if s.retired.Load() {
 			return errShopInvoiceReadDenied
 		}
 		if err := r.Context().Err(); err != nil {
 			return err
+		}
+		if session != nil {
+			if err := session.CurrentLocal(); err != nil {
+				return err
+			}
 		}
 		return held.current(r.Context())
 	}
@@ -358,6 +400,12 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		deny(err)
 		return
 	}
+	if session != nil {
+		if err = session.CurrentOrder(r.Context(), product, order); err != nil {
+			deny(err)
+			return
+		}
+	}
 	if err = fence(); err != nil {
 		deny(errShopInvoiceReadDenied)
 		return
@@ -384,6 +432,29 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		deny(errShopInvoiceReadDenied)
 		return
 	}
+	// Keep the Session borrower alive through every Source/caller close/current
+	// await. A revoke during those awaits must still invalidate the response.
+	if session != nil {
+		if session.CurrentLocal() != nil || session.verified.current(r.Context()) != nil {
+			deny(errShopInvoiceReadDenied)
+			return
+		}
+		if err = session.Close(); err != nil || !session.PhysicalClosed() {
+			deny(errShopInvoiceReadDenied)
+			return
+		}
+	}
 	// Existing NativeInvoiceProductIntent DATA only. This is NOT Source proof.
 	_, _ = w.Write(encoded)
+}
+
+// A sticky first failure is not a physical ownership receipt. Callers retain
+// the original service until the real drain/children/Source close completed.
+func (s *OriginalShopInvoiceReadService) PhysicalClosed() bool {
+	if s == nil {
+		return true
+	}
+	s.closeMu.Lock()
+	defer s.closeMu.Unlock()
+	return s.closed
 }

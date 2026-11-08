@@ -429,6 +429,7 @@ func (s *Store) DeleteBuyerDataRequest(actor, requestID string, intents []Retire
 			s.s.RetiredBusinessEffects[id] = struct{}{}
 		}
 	}
+	s.revokeShopSessionActorLocked(actor)
 	s.auditLocked("privacy-service", "system", "buyer_data_deleted", "privacy_receipt", receipt.ReceiptID, "completed", fmt.Sprintf("profile=%t cart=%t orders=%d aiJobs=%d", receipt.ProfileDeleted, receipt.CartDeleted, receipt.OrdersPseudonymized, receipt.AIJobsDeleted))
 	if requestKey != "" {
 		s.s.BuyerDeletions[requestKey] = BuyerDeletionRecord{RequestDigest: requestDigest, Receipt: receipt}

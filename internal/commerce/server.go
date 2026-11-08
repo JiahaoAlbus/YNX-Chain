@@ -56,6 +56,9 @@ func NewServer(store *Store, cfg ServerConfig) *Server {
 	cfg.NativePayNotificationReceivers = cloneNativePayReceivers(cfg.NativePayNotificationReceivers)
 	s := &Server{store: store, cfg: cfg, mux: http.NewServeMux(), metrics: newServerMetrics()}
 	s.routes()
+	if verifier, ok := cfg.businessV2.(originalShopSessionReadVerifier); ok {
+		store.registerOriginalShopSessionVerifier(verifier)
+	}
 	return s
 }
 func (s *Server) Handler() http.Handler { return s.observe(s.security(s.mux)) }

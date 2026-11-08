@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 18
+	CurrentPersistenceSchemaVersion = 19
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -47,11 +47,14 @@ type PersistenceRollbackReport struct {
 }
 
 type Store struct {
-	mu           sync.Mutex
-	path         string
-	integrityKey []byte
-	now          func() time.Time
-	s            Snapshot
+	shopSessionVerifiers []originalShopSessionReadVerifier
+	shopSessionDomain    *originalShopSessionDomain
+	shopSessionHolds     map[*OriginalShopSession]struct{}
+	mu                   sync.Mutex
+	path                 string
+	integrityKey         []byte
+	now                  func() time.Time
+	s                    Snapshot
 }
 
 func Open(path string) (*Store, error) {
@@ -156,6 +159,12 @@ func (s *Store) normalize() (bool, error) {
 	}
 	if version < 18 && len(s.s.NativePayNotifications) > 0 {
 		return false, fmt.Errorf("%w: Native notification inbox requires Snapshot v18", ErrPersistenceVersion)
+	}
+	if version < 19 && (len(s.s.ShopSessions) > 0 || s.s.ShopSessionGeneration != 0) {
+		return false, ErrPersistenceVersion
+	}
+	if err := validateShopSessionInventory(s.s); err != nil {
+		return false, err
 	}
 	migrated := version != CurrentPersistenceSchemaVersion
 	s.s.Version = CurrentPersistenceSchemaVersion
@@ -277,7 +286,15 @@ func (s *Store) normalize() (bool, error) {
 	return migrated, nil
 }
 
-func (s *Store) persistLocked() error {
+func (s *Store) persistLocked() (err error) {
+	previousSessions := s.prepareShopSessionInvalidationsLocked()
+	defer func() {
+		if err != nil {
+			s.s.ShopSessions = previousSessions
+		} else {
+			s.retireInvalidShopSessionHoldsLocked()
+		}
+	}()
 	if s.path == "" {
 		return nil
 	}
@@ -394,7 +411,7 @@ func (s *Store) rollbackSnapshotLocked(targetVersion int) (map[string]json.RawMe
 		return nil, err
 	}
 	fields["Version"] = version
-	fields = omitRawFields(fields, "BusinessNonces", "BusinessBrowserBindings", "BusinessActorNamespaces", "BusinessEffects", "RetiredBusinessEffects")
+	fields = omitRawFields(fields, "ShopSessions", "ShopSessionGeneration", "BusinessNonces", "BusinessBrowserBindings", "BusinessActorNamespaces", "BusinessEffects", "RetiredBusinessEffects")
 	if targetVersion < 8 {
 		fields = omitRawFields(fields, "RetiredIdempotency", "BuyerDeletions", "PrivacyDeletionBoundary")
 	}
@@ -562,6 +579,14 @@ func containsRetiredIntents(candidate, current Snapshot) bool {
 			return false
 		}
 	}
+	if candidate.ShopSessionGeneration < current.ShopSessionGeneration {
+		return false
+	}
+	for id, record := range current.ShopSessions {
+		if previous, ok := candidate.ShopSessions[id]; !ok || previous != record {
+			return false
+		}
+	}
 	for id, record := range current.BusinessEffects {
 		previous, ok := candidate.BusinessEffects[id]
 		if !ok || requestHash(previous) != requestHash(record) {
@@ -615,7 +640,7 @@ func hasBusinessProtection(snapshot Snapshot) bool {
 			return true
 		}
 	}
-	return len(snapshot.BusinessBrowserBindings) > 0 || len(snapshot.BusinessNonces) > 0 || len(snapshot.BusinessActorNamespaces) > 0 || len(snapshot.BusinessEffects) > 0 || len(snapshot.RetiredBusinessEffects) > 0
+	return len(snapshot.ShopSessions) > 0 || snapshot.ShopSessionGeneration > 0 || len(snapshot.BusinessBrowserBindings) > 0 || len(snapshot.BusinessNonces) > 0 || len(snapshot.BusinessActorNamespaces) > 0 || len(snapshot.BusinessEffects) > 0 || len(snapshot.RetiredBusinessEffects) > 0
 }
 
 func verifyRetiredIntentsRestore(path string, key []byte, candidate Snapshot) error {

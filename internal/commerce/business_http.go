@@ -22,12 +22,14 @@ type businessVerifier interface {
 	verify(*http.Request, []byte, businessRoutePolicy) (*verifiedBusinessRequest, error)
 }
 type verifiedBusinessRequest struct {
-	walletAccount        string
-	browserBindingDigest string
-	principal            Principal
-	proof                businessActionAuthorization
-	revalidate           func(context.Context) error
-	fence                func() error
+	shopSessionCaptureUntil time.Time
+	shopSessionIssuer       *verifiedShopSessionIssuer
+	walletAccount           string
+	browserBindingDigest    string
+	principal               Principal
+	proof                   businessActionAuthorization
+	revalidate              func(context.Context) error
+	fence                   func() error
 }
 type businessRequestContextKey struct{}
 
@@ -155,6 +157,10 @@ func (s *Server) handleFunc(pattern string, handler http.HandlerFunc) {
 			return
 		}
 		if err := verified.current(r.Context()); err != nil {
+			failBusiness(w, err)
+			return
+		}
+		if err := s.store.observeOriginalShopSession(r.Context(), verified); err != nil {
 			failBusiness(w, err)
 			return
 		}
