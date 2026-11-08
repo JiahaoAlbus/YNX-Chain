@@ -176,6 +176,24 @@ held HTTP recipient; optional pinned `PAY_MAIN_PRODUCT_MODULE` selects the
 original installed outer wrapper for bounded acceptance. It supplies no session,
 Root, invoice receipt or funds authority.
 
+The `shop-session-link-joint` suite now joins the existing signed V2 proof,
+owned same-socket LINK GET, normal Shop verifier/backend current, durable session
+inventory/order ACL and this original Main consumer in one execution. It reads
+the same retained eleven-field request after a cold reopen, rejects missing
+proof/cross-tenant/revoked-session reads, and confirms the original order,
+financial DATA and business nonces remain exact. The PUBLIC Root/native actor
+seams and an explicit stop before Pay dispatch remain visible. The original
+installed Main wrapper runs as a Node consumer; no new App or GUI is installed.
+
+This suite explicitly accepts only existing session versions 2/3 (the current
+fixture actually emits 2). It does not qualify a new DEVICE/session4. Session4
+requires the original V4 exact GET PQ proof, matching carrier and original
+registration/history/current/replay verifier. Its proof cannot be converted to
+the V2 POST-introspection header, or accepted by increasing a header budget.
+`testsupport/prepare_shop_session_joint.py` freezes the original Shop commit and
+adds build-tagged PUBLIC observers only in the owned composition; it never edits
+an owner checkout, installs Root rows, or adds a normal LINK export.
+
 Refund receipt details now retain the original Core effect's `refundId`,
 `payer`, `recipient`, `assetId` and `unitVersion`, plus independently verified
 `executionHeight`, `executionIndex`, `executionMember` and `executionEvent`.

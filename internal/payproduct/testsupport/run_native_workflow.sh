@@ -5,6 +5,20 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-session-link-joint ]; then
+ : "${PAY_GO_BINARY:?original Go executable required}"
+ : "${PAY_NODE_BINARY:?original Main runtime required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?pinned original Main wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?original wrapper SHA256 required}"
+ : "${PAY_SHOP_SOURCE_ROOT:?owned frozen original Shop composition required}"
+ : "${PAY_SHOP_SESSION_RESULT:?new retained PUBLIC joint result directory required}"
+ : "${YNX_QA_CENTRAL_SOURCE:?frozen sole SDK source required}"
+ : "${SHOP_SOURCE_READ_SOCKET_ROOT:?short owned Unix socket root required}"
+ export PAY_SHOP_SESSION_DRIVER="$source_dir/../../apps/pay/native/testsupport/shop-session-link-joint.mjs"
+ cd "$PAY_SHOP_SOURCE_ROOT"
+ "$PAY_GO_BINARY" test -mod=readonly -race -p 1 -tags 'commerce_v2 p06_shop_proof_joint' ./internal/commerce -run '^TestP06LegacyV2ShopProofOwnedLINKNormalConsumerColdRevoke$' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-source-cancel ]; then
  : "${PAY_NODE_BINARY:?exact original Main Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"

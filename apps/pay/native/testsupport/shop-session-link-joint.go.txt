@@ -1,0 +1,334 @@
+//go:build commerce_v2 && p06_shop_proof_joint
+
+package commerce
+
+import (
+	"bufio"
+	"bytes"
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
+	"encoding/pem"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	v2 "github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
+)
+
+// Only Root/Source and native actor qualification are PUBLIC seams. The
+// original SDK proof, normal Go verifier/backend revalidation, Store session
+// inventory/ACL, owned Unix exchange and P06/Main consumer actually execute.
+func TestP06LegacyV2ShopProofOwnedLINKNormalConsumerColdRevoke(t *testing.T) {
+	node, driver, output := os.Getenv("PAY_NODE_BINARY"), os.Getenv("PAY_SHOP_SESSION_DRIVER"), os.Getenv("PAY_SHOP_SESSION_RESULT")
+	for _, p := range []string{node, driver, output, os.Getenv("YNX_QA_CENTRAL_SOURCE"), os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT")} {
+		if !filepath.IsAbs(p) {
+			t.Fatal("explicit original source/runtime/output required")
+		}
+	}
+	if err := os.MkdirAll(output, 0700); err != nil {
+		t.Fatal(err)
+	}
+	pub, key, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, _ := x509.MarshalPKIXPublicKey(pub)
+	issuer := exec.CommandContext(t.Context(), node, "testdata/native-buyer-business-node.mjs")
+	issuer.Env = append(os.Environ(), "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})), "YNX_QA_STATE_PATH="+filepath.Join(output, "PUBLIC-authority"))
+	var issuerErrors bytes.Buffer
+	issuer.Stderr = &issuerErrors
+	issuerOut, _ := issuer.StdoutPipe()
+	issuerIn, _ := issuer.StdinPipe()
+	if err = issuer.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = issuerIn.Close(); _ = issuer.Process.Kill(); _ = issuer.Wait() }()
+	scan := bufio.NewScanner(issuerOut)
+	scan.Buffer(make([]byte, 4096), 1<<20)
+	var ready struct {
+		URL     string
+		Session v2.Session
+	}
+	if !scan.Scan() || json.Unmarshal(scan.Bytes(), &ready) != nil {
+		t.Fatal("original SDK issuer", issuerErrors.String())
+	}
+	if ready.Session.Version != "2" && ready.Session.Version != "3" {
+		t.Fatal("legacy joint cannot qualify new session4")
+	}
+	endpoint, _ := url.Parse(ready.URL)
+	var privateReads atomic.Int32
+	transport := commerceV2RoundTrip(func(r *http.Request) (*http.Response, error) {
+		if r.URL.Path == "/v2/browser-sessions/product-revalidate" {
+			privateReads.Add(1)
+		}
+		q := r.Clone(r.Context())
+		u := *r.URL
+		q.URL = &u
+		q.URL.Scheme = endpoint.Scheme
+		q.URL.Host = endpoint.Host
+		return http.DefaultTransport.RoundTrip(q)
+	})
+	path := filepath.Join(output, "PUBLIC-commerce.json")
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Use the actual SDK account and existing checked namespace resolver. Never
+	// rewrite an order's Buyer or a signed session to fit a pre-existing fixture.
+	buyer, err := store.resolveBusinessActor(ready.Session.Account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, seller := actor(t, 9)
+	st, p := setupCatalog(t, store, seller, 5)
+	order, err := store.CreateOrder(buyer, orderInput(st, p, "P06-proof-order-original"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := nativeInvoiceRequestDATA(order, publicNativePriceDATA())
+	if err != nil {
+		t.Fatal(err)
+	}
+	frozenInput, _ := json.Marshal(nativeInvoiceInput{Order: cloneOrder(order), Origin: "https://public.invalid", Request: original})
+	effectID := effectDigest(buyer, "buyer", "pay.native-create", order.ID, "PUBLIC-P06-retained-original")
+	store.s.BusinessEffects[effectID] = BusinessEffect{ID: effectID, Actor: buyer, Role: "buyer", Kind: "pay.native-create", Target: order.ID, RequestHash: strings.Repeat("a", 64), Phase: "admitted", Admission: strings.Repeat("b", 64), Input: frozenInput, CreatedAt: store.now(), UpdatedAt: store.now()}
+	if err = store.persistLocked(); err != nil {
+		t.Fatal(err)
+	}
+	tenant, err := accountaddress.Normalize(st.Owner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	proof := func() string {
+		t.Helper()
+		command, _ := json.Marshal(map[string]any{"method": "GET", "path": OriginalShopInvoiceReadPath + order.ID, "body": "", "scopes": ShopScopes})
+		if _, e := issuerIn.Write(append(command, '\n')); e != nil {
+			t.Fatal(e)
+		}
+		var value struct{ Introspection string }
+		if !scan.Scan() || json.Unmarshal(scan.Bytes(), &value) != nil || value.Introspection == "" {
+			t.Fatal("original fresh proof", issuerErrors.String())
+		}
+		return value.Introspection // never logged or persisted as a receipt
+	}
+	var actorCurrent atomic.Bool
+	actorCurrent.Store(true)
+	var svc *OriginalShopInvoiceReadService
+	var a *publicInvoiceReadAuthority
+	var client *securelink.LocalCallerClient
+	var served chan error
+	boot := func() {
+		t.Helper()
+		_, e := NewCommerceNativeBuyerV2Server(store, ServerConfig{}, "android", "qa", key, transport, func(_ context.Context, s v2.Session) (func() error, error) {
+			if s.SessionBinding != ready.Session.SessionBinding || s.Account != ready.Session.Account {
+				return nil, ErrUnauthorized
+			}
+			return func() error {
+				if !actorCurrent.Load() {
+					return ErrUnauthorized
+				}
+				return nil
+			}, nil
+		})
+		if e != nil {
+			t.Fatal(e)
+		}
+		dir, e := os.MkdirTemp(os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT"), "pj-")
+		if e != nil {
+			t.Fatal(e)
+		}
+		t.Cleanup(func() { _ = os.RemoveAll(dir) })
+		if e = os.Chmod(dir, 0700); e != nil {
+			t.Fatal(e)
+		}
+		a = &publicInvoiceReadAuthority{p: originalShopInvoiceReadProfile{realm: ChainName, tenant: tenant, purpose: "PUBLIC-P06-original-read", epoch: 7, socket: filepath.Join(dir, "s"), service: "shop-source-public-joint", orders: []string{order.ID}, uid: uint32(os.Geteuid()), pid: os.Getpid()}, selected: originalShopInvoiceReadScope{realm: ChainName, tenant: tenant, purpose: "PUBLIC-P06-original-read", epoch: 7, actor: buyer, role: "buyer", storeID: order.StoreID, productID: "shop.order", sourceOrder: order.ID}}
+		a.hold = &publicInvoiceReadHold{owner: a}
+		svc, e = prepareOriginalShopInvoiceReadService(t.Context(), a, func() (*Store, error) { return store, nil })
+		if e != nil {
+			t.Fatal(e)
+		}
+		svc.sessionDomain, e = store.bindOriginalShopSessionDomain(a, a.p)
+		if e != nil || svc.sessionDomain == nil {
+			t.Fatal("actual session branch not bound", e)
+		}
+		served = make(chan error, 1)
+		go func(s *OriginalShopInvoiceReadService) { served <- s.Serve() }(svc)
+		client, e = securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: a.p.socket, Service: a.p.service, PeerUID: a.p.uid, PeerPID: a.p.pid, Routes: []securelink.LocalCallerRoute{{Method: "GET", Path: OriginalShopInvoiceReadPath + order.ID, MaxBodyBytes: 0, Timeout: 5 * time.Second}}, Timeout: 5 * time.Second, MaxResponseBytes: 1 << 20})
+		if e != nil {
+			t.Fatal(e)
+		}
+	}
+	stop := func() {
+		t.Helper()
+		if svc == nil {
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if e := svc.Close(ctx); e != nil || !svc.PhysicalClosed() {
+			t.Fatal("original service physicalclose", e)
+		}
+		select {
+		case <-served:
+		case <-ctx.Done():
+			t.Fatal("original service still serving")
+		}
+		svc = nil
+	}
+	defer stop()
+	expected := securelink.P06PublicExpectedProcessForJoint(t) // selected before any connection; PUBLIC fixture, not a Root row
+	calls, closedExchanges := 0, 0
+	call := func(withProof bool, wanted int) securelink.LocalCallerResponse {
+		t.Helper()
+		calls++
+		var x *securelink.OriginalLocalCallerExchange
+		var raw securelink.LocalCallerResponse
+		var e error
+		if withProof {
+			x, raw, e = client.CallOriginalShopGETOwned(t.Context(), OriginalShopInvoiceReadPath+order.ID, securelink.ProductSessionProofV2DATA{HeaderValue: proof()}, expected)
+		} else {
+			x, raw, e = client.CallOriginalOwned(t.Context(), "GET", OriginalShopInvoiceReadPath+order.ID, "", nil, expected)
+		}
+		// Retain every nonnull exchange before error/status. DATA is used only after
+		// the same owner's physical witness; no retry or replacement GET is made.
+		if x == nil {
+			t.Fatal("missing owned exchange", e)
+		}
+		currentErr := x.Current(t.Context())
+		_ = x.Retire()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		joinErr := x.Join(ctx)
+		closeErr := x.Close()
+		physicalErr := x.AssertOriginalClosed()
+		if e != nil || currentErr != nil || joinErr != nil || closeErr != nil || physicalErr != nil {
+			t.Fatal("owned original exchange", e, currentErr, joinErr, closeErr, physicalErr)
+		}
+		closedExchanges++
+		if raw.StatusCode != wanted {
+			t.Fatalf("actual private GET status=%d want=%d body=%s", raw.StatusCode, wanted, raw.Body)
+		}
+		return raw
+	}
+	financial := func() []byte {
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		b, _ := json.Marshal([]any{store.s.Orders, store.s.BusinessEffects, store.s.Products, store.s.BusinessNonces})
+		return b
+	}
+	before := financial()
+	var consumerRecords []json.RawMessage
+	consume := func() {
+		t.Helper()
+		process := exec.CommandContext(t.Context(), node, driver)
+		process.Env = os.Environ()
+		var stderr bytes.Buffer
+		process.Stderr = &stderr
+		outputPipe, _ := process.StdoutPipe()
+		inputPipe, _ := process.StdinPipe()
+		if e := process.Start(); e != nil {
+			t.Fatal(e)
+		}
+		defer func() {
+			_ = inputPipe.Close()
+			if process.ProcessState == nil {
+				_ = process.Process.Kill()
+				_ = process.Wait()
+			}
+		}()
+		initial := map[string]any{"account": func() string { v, _ := accountaddress.Normalize(ready.Session.Account); return v }(), "expected": original}
+		if e := json.NewEncoder(inputPipe).Encode(initial); e != nil {
+			t.Fatal(e)
+		}
+		scanner := bufio.NewScanner(outputPipe)
+		scanner.Buffer(make([]byte, 4096), 2<<20)
+		if !scanner.Scan() {
+			t.Fatal("normal consumer startup", stderr.String())
+		}
+		var read struct{ Type, Order string }
+		if json.Unmarshal(scanner.Bytes(), &read) != nil || read.Type != "original-read" || read.Order != order.ID {
+			t.Fatal("normal source selector", scanner.Text())
+		}
+		raw := call(true, 200)
+		if e := json.NewEncoder(inputPipe).Encode(map[string]any{"status": raw.StatusCode, "body": base64.StdEncoding.EncodeToString(raw.Body), "physicallyClosed": true}); e != nil {
+			t.Fatal(e)
+		}
+		if !scanner.Scan() {
+			t.Fatal("normal consumer result", stderr.String())
+		}
+		consumerRecords = append(consumerRecords, append(json.RawMessage(nil), scanner.Bytes()...))
+		var done struct{ Type string }
+		if json.Unmarshal(scanner.Bytes(), &done) != nil || done.Type != "done" {
+			t.Fatal(scanner.Text(), stderr.String())
+		}
+		_ = inputPipe.Close()
+		if e := process.Wait(); e != nil {
+			t.Fatal(e, stderr.String())
+		}
+	}
+	boot()
+	consume()
+	if store.s.ShopSessionGeneration != 1 || len(store.s.ShopSessions) != 1 || privateReads.Load() == 0 {
+		t.Fatal("normal proof did not enter actual inventory/backend")
+	}
+	stop()
+	store, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	boot()
+	consume()
+	if !bytes.Equal(before, financial()) || store.s.ShopSessionGeneration != 1 {
+		t.Fatal("cold original read changed order/input/money/nonce or session generation")
+	}
+	call(false, 400) // existing verifier reports PROOF_REQUIRED; no guard is relaxed
+	a.selected.tenant = "PUBLIC-wrong-tenant"
+	call(true, 403)
+	a.selected.tenant = tenant
+	req := httptest.NewRequest("GET", OriginalShopInvoiceReadPath+order.ID, nil)
+	req.Header.Set(v2.ProofHeader, proof())
+	hold, e := store.captureOriginalShopSessionForRead(t.Context(), req, a.selected)
+	if hold != nil {
+		defer hold.Close()
+	}
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = hold.Revoke(t.Context()); e != nil {
+		t.Fatal(e)
+	}
+	if e = hold.Close(); e != nil {
+		t.Fatal(e)
+	}
+	call(true, 403)
+	stop()
+	store, err = Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	boot()
+	call(true, 403)
+	if !bytes.Equal(before, financial()) || store.s.ShopSessionGeneration != 1 {
+		t.Fatal("revocation/restart changed original financial state or resurrected session")
+	}
+	stop()
+	result := map[string]any{"sessionFamily": "existing2/3-only-not-new-session4", "actualSDKProof": true, "actualSessionVersion": ready.Session.Version, "actualOwnedUnixGETs": calls, "sameExchangePhysicalClosed": closedExchanges, "normalMainConsumers": consumerRecords, "producerColdBoots": 3, "sessionGeneration": 1, "missingProofDenied": true, "wrongTenantDenied": true, "ownSessionRevokedAcrossCold": true, "financialAndNonceExactlyRetained": true, "RootAdmission": false, "SourceAdmission": false, "genuineNativeHolder": false, "payOrMoneyDispatched": 0}
+	encoded, _ := json.MarshalIndent(result, "", "  ")
+	if e = os.WriteFile(filepath.Join(output, "RESULT.json"), append(encoded, '\n'), 0600); e != nil {
+		t.Fatal(e)
+	}
+	t.Log("Actual SDK signed proof -> same owned LINK socket -> normal Shop verifier/inventory/order DATA -> P06/Main cold consumer; PUBLIC Root seam, no funds")
+}
