@@ -475,8 +475,6 @@ jobs:
       GOMAXPROCS: "2"
       CGO_ENABLED: "1"
       OPENSSL_VERSION: "3.6.4"
-      YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE: ${{ runner.temp }}/securelink-evidence/owned-client
-      YNX_LINK_OWNED_LOCAL_CLIENT_TEST_SOCKET_ROOT: /tmp/ynx-oc-${{ github.run_id }}-${{ github.run_attempt }}
       # Tarball digest from the official openssl/openssl release asset metadata.
       OPENSSL_SOURCE_SHA256: "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
     steps:
@@ -570,6 +568,9 @@ jobs:
           printf 'PKG_CONFIG_PATH=%s\n' "$OPENSSL_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
           printf 'LD_LIBRARY_PATH=%s\n' "$OPENSSL_PREFIX/lib" >> "$GITHUB_ENV"
       - name: Read back runtime provenance and test actual PQ positive and negative paths
+        env:
+          YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE: ${{ runner.temp }}/securelink-evidence/owned-client
+          YNX_LINK_OWNED_LOCAL_CLIENT_TEST_SOCKET_ROOT: /tmp/ynx-oc-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           test "$(pkg-config --modversion openssl)" = "$OPENSSL_VERSION"
