@@ -123,7 +123,13 @@ def node_startup(readback):
     for node in (readback.get('originalNodeStartup') or {}).get('nodes', []):
         name = node['name']
         require(name not in nodes, 'duplicate startup node; no node pooling')
-        stages = node['originalStages']
+        stages = node.get('originalStages')
+        if stages is None:
+            nodes[name] = dict(pid=node.get('pid'),processIdentityBound=node.get('processIdentityBound'),
+                status=node.get('status','NOT_SUPPLIED'),parentElapsedNs=node.get('elapsedNs'),
+                originalMissingObservation=copy.deepcopy(node),originalLogSHA256=None,
+                errors=[],records=[],stages={})
+            continue
         groups = collections.defaultdict(list)
         for row in stages['records']:
             # A begin event's elapsed0 is never a completed observation.

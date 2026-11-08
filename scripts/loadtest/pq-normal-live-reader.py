@@ -14,6 +14,10 @@ import subprocess
 import sys
 import time
 
+_native_spec=importlib.util.spec_from_file_location('original_current7c_native_source',Path(__file__).with_name('pq-7c25-native-source-dependencies.py'))
+native_source_dependencies=importlib.util.module_from_spec(_native_spec)
+_native_spec.loader.exec_module(native_source_dependencies)
+
 VERSION = 'YNX-OPERATOR-LIVE-WIRE/v1'
 BUILD_TAG = 'ynx_live_wire_observation'
 NORMAL_LIVE_SOURCE_QUALIFICATION = {'commit': '9081f14654a48f4fe14e57696ec33527869da353', 'tree': '8c12ec07479bf6664cf279adb6395c704ead33e1', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '86e7ad98116af984eeb145c3bcf7b48d7a96da8ad897b3603cdd984527bf7f17', 'sourceCI': {'run': 41323073659, 'job': 124897263752, 'artifact': 13089839088}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
@@ -88,11 +92,14 @@ def prepare_matching_source(source, destination):
         require((build_source/name).read_bytes()==(source/name).read_bytes(),'original module descriptor changed')
     require(not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],
             'original source changed during composition')
-    return dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
+    result=dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
                 optionalForkCommit=selection['selectedOptionalForkCommit'],optionalForkTree=selection['selectedOptionalForkTree'],
                 compositionScriptSHA256=q['compositionScriptSHA256'],ciEvidenceSHA256=q['ciEvidenceSHA256'],
                 buildTag=BUILD_TAG,buildSource=str(build_source),originalSourceUnchanged=True,
                 originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)
+    if identity['commit']==native_source_dependencies.SOURCE:
+        result['originalNativeSourceDependencies']=native_source_dependencies.materialize(source,build_source,destination/'SOURCE-NATIVE-DEPENDENCIES.json')
+    return result
 
 
 def prepare_lossless_matching_source(source,destination):

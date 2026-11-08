@@ -838,6 +838,14 @@ def run(args):
             lab.require(hashlib.sha256(raw_selection).hexdigest()==selection['receiptSHA256']
                         and len(raw_selection)==selection['receiptBytes'],'original live source selection pin differs')
             with (work/'public/normal-live-source-selection.json').open('xb') as output:output.write(raw_selection)
+            dependencies=composition['originalNativeSourceDependencies']
+            raw_dependencies=lab.guard.bounded(Path(dependencies['receiptPath']),64<<10)
+            lab.require(len(raw_dependencies)==dependencies['receiptBytes']
+                        and hashlib.sha256(raw_dependencies).hexdigest()==dependencies['receiptSHA256']
+                        and json.loads(raw_dependencies)==dependencies['sourceDependencies'],
+                        'original native supporting source receipt differs')
+            with (work/'public/normal-live-source-dependencies.json').open('xb') as output:output.write(raw_dependencies)
+            result['normalLiveSourceDependencies']=dependencies
             result['normalLiveBuildSource']=composition
             w.source=composed/'source'
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
@@ -849,7 +857,7 @@ def run(args):
                 w.wait(w.launch('buildinfo-'+name,['go','version','-m',str(bins/name)]))
                 info=work/'public'/('buildinfo-'+name+'.log');build=next(row for row in w.children if row['name']=='build-'+name)
                 result['normalLiveBuildProvenance'][name]=dict(binarySHA256=pin,buildArgv=build['command'],buildCwd=str(w.source),
-                    sourceSelectionSHA256=selection['receiptSHA256'],buildInfoFile=info.name,buildInfoSHA256=lab.guard.digest(info),
+                    sourceSelectionSHA256=selection['receiptSHA256'],sourceDependenciesReceiptSHA256=dependencies['receiptSHA256'],buildInfoFile=info.name,buildInfoSHA256=lab.guard.digest(info),
                     originalSource=identity,selectedOptionalForkTree=composition['optionalForkTree'])
         root=work/".private/network"
         def create_original():

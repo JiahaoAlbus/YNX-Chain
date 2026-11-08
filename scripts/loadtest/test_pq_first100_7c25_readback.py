@@ -31,6 +31,24 @@ class CurrentBusinessReadback(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,'archive size differs'):
             r.read_archive(raw[:-1],hashlib.sha256(raw).hexdigest(),len(raw),controller='a'*40)
 
+    def test_actual_once01_build_failure_keeps_full_unreleased_demand_unmeasured(self):
+        raw=(Path(__file__).with_name('fixtures')/'7c25-first100-once01/ORIGINAL.zip').read_bytes()
+        result=r.read_archive(raw,'cbee78ef929a46cbf674ebf0b38b0e2c37511de0c0a44b2522c277d9739515cf',21098,
+            controller='34a796ecf1f62cd660bdd06347d48b9da3230b39')
+        self.assertFalse(result['loadExecuted']);self.assertIsNone(result['observedBusiness'])
+        self.assertEqual(result['businessObservationStatus'],'BUSINESS_WINDOW_NOT_RELEASED')
+        accounting=result['originalPreparationOnlyDemandAccounting']
+        self.assertTrue(all(accounting[k]==500 for k in ('configuredDemand','notReleased','notSubmitted','notQualified')))
+        self.assertEqual(result['originalReportedBusinessMeasurements']['stableFinalTPS'],'UNMEASURED')
+        self.assertEqual(result['normalNodeCleanExit']['observedNodes'],0)
+        self.assertFalse(result['normalNodeCleanExit']['allEightExitZero'])
+        nodes=result['measuredStages']['nodeStartup']['nodes'];self.assertEqual(len(nodes),8)
+        self.assertTrue(all(n['status']=='PROCESS_IDENTITY_NOT_SUPPLIED' and not n['stages'] for n in nodes.values()))
+        observed=result['measuredStages']['initialization']['records']
+        self.assertEqual([(row['stage'],row['elapsedNs']) for row in observed],
+            [('prepare_normal_live_source',9975520251),('build',7851825375)])
+        self.assertIn('build-ynx-consensus-pq-lab',result['originalFirstCause'])
+        self.assertTrue(result['cleanupComplete']);self.assertFalse(result['stable1000TPSQualified'])
     def inclusion_control(self):
         tx=b'controlled transaction bytes';digest=hashlib.sha256(tx).hexdigest()
         row=dict(index=0,id='control-only',operationId='control-op',ownerIndex=0,nonce=1,hash=digest,includedNs=8)

@@ -65,10 +65,12 @@ class CurrentSourceSelection(unittest.TestCase):
                 refs={'HEAD':q['commit'],'HEAD^{tree}':q['tree'],'HEAD:third_party/cometbft':q['forkTree'],q['optionalForkCommit']+':third_party/cometbft':q['optionalForkTree']}
                 self.assertEqual(args[0],'rev-parse');return refs[args[1]].encode()
             fake=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
-            with mock.patch.object(m,'qualify',return_value=q),mock.patch.object(m.subprocess,'check_output',side_effect=git),mock.patch.object(m.importlib.util,'spec_from_file_location',return_value=fake),mock.patch.object(m.importlib.util,'module_from_spec',return_value=core):
+            with mock.patch.object(m.native_source_dependencies,'materialize',return_value={'sourceOnlyControl':True}) as native_copy,mock.patch.object(m,'qualify',return_value=q),mock.patch.object(m.subprocess,'check_output',side_effect=git),mock.patch.object(m.importlib.util,'spec_from_file_location',return_value=fake),mock.patch.object(m.importlib.util,'module_from_spec',return_value=core):
                 result=m.prepare_matching_source(source,destination)
             self.assertEqual((result['optionalForkCommit'],result['optionalForkTree']),(q['optionalForkCommit'],q['optionalForkTree']))
             self.assertTrue(result['originalSourceUnchanged']);self.assertFalse(result['actualNetworkWindow'])
+            native_copy.assert_called_once_with(source,destination/'source',destination/'SOURCE-NATIVE-DEPENDENCIES.json')
+            self.assertEqual(result['originalNativeSourceDependencies'],{'sourceOnlyControl':True})
 
 class CurrentOriginalStream(unittest.TestCase):
     def setUp(self):

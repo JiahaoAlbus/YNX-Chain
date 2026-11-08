@@ -156,6 +156,8 @@ def inspect(files, prefix='', *, controller):
                 originalLoadSummary={k:v for k,v in load.items() if k!='rows'} if load is not None else None,
                 businessObservationStatus=('ORIGINAL_FULL_COHORT_READ' if measured is not None else
                     'RELEASE_OBSERVED_RESULT_NOT_SUPPLIED' if receipt['loadExecuted'] else 'BUSINESS_WINDOW_NOT_RELEASED'),
+                originalPreparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
+                originalReportedBusinessMeasurements={k:receipt.get(k) for k in ('stableFinalTPS','P95FinalConfirmation','actualHopBytesPerTx','firstSaturatedChainStage')},
                 observedBusiness=measured, normalNodeCleanExit=receipt.get('normalNodeCleanExit'), cleanupComplete=receipt.get('cleanupComplete'),
                 initializationJournals=original.journals(files,prefix,receipt),
                 originalCommitCopies=original.commit_original_copies(files,prefix,receipt),
