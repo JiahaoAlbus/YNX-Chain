@@ -19,7 +19,7 @@ if (!["arm64", "x64", "universal"].includes(arch)) throw new Error("Choose arm64
 const root = fileURLToPath(new URL("..", import.meta.url));
 // Narrow normal-entry overrides for an already pinned local distribution.
 // Never silently drop flags or pass arbitrary builder configuration through.
-const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false,qaOutput=null;
+const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false,qaOutput=null,qaReuseExistingProfile=false;
 const {c6Input,controlMatchedInput,remaining}=parseMacNativeComponentSelection(arch,extra);
 for(const option of remaining){
   if(option.startsWith('--config.electronDist=')&&electronDist===null){
@@ -30,11 +30,13 @@ for(const option of remaining){
     if(arch!=='arm64'||!path.isAbsolute(proofVerifierStage)||path.normalize(proofVerifierStage)!==proofVerifierStage||proofVerifierStage.includes('\0'))throw Error('PQ_VERIFIER_BUILD_STAGE_INVALID');
   }else if(option==='--config.npmRebuild=false'&&!noRebuild)noRebuild=true;
   else if(option==='--qa-physical-layout'&&!physicalQA)physicalQA=true;
+  else if(option==='--qa-reuse-existing-profile'&&!qaReuseExistingProfile)qaReuseExistingProfile=true;
   else if(option.startsWith('--qa-output=')&&qaOutput===null){qaOutput=option.slice('--qa-output='.length);if(!path.isAbsolute(qaOutput)||path.normalize(qaOutput)!==qaOutput||qaOutput.includes('\0'))throw Error('LOCAL_QA_OUTPUT_ABSOLUTE_REQUIRED');builderOptions.push('--config.directories.output='+qaOutput);}
   else throw Error('UNSUPPORTED_MAC_BUILD_OPTION');
 }
 if((electronDist!==null)!==noRebuild)throw Error('LOCAL_ELECTRON_DIST_AND_NO_REBUILD_REQUIRED');
 if(qaOutput!==null&&!physicalQA)throw Error('LOCAL_QA_OUTPUT_REQUIRES_PHYSICAL_QA');
+if(qaReuseExistingProfile&&!physicalQA)throw Error('LOCAL_QA_PROFILE_REUSE_REQUIRES_PHYSICAL_QA');
 if(physicalQA){if(arch!=='arm64'||!path.isAbsolute(process.env.YNX_WALLET_QA_PROFILE_PATH??''))throw Error('LOCAL_PHYSICAL_QA_PROFILE_REQUIRED');builderOptions.push('--config.afterPack=scripts/qa-physical-after-pack.mjs');}
 if(arch==='arm64'&&proofVerifierStage===null)throw Error('PQ_VERIFIER_BUILD_STAGE_REQUIRED');
 const matchedSDK=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/package.json',import.meta.url),'utf8'));
@@ -59,7 +61,7 @@ if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version
 if(c6Input!==null){stageDesktopNative49C6Input(root,c6Input);builderOptions.unshift('--config='+fileURLToPath(new URL('./desktop-native49-c6-builder-config.mjs',import.meta.url)));}
 if(controlMatchedInput!==null){stageDesktopWalletControlMatchedInput(root,controlMatchedInput);builderOptions.unshift('--config='+fileURLToPath(new URL('./desktop-wallet-control-matched-builder-config.mjs',import.meta.url)));}
 const buildEnvironment={...process.env,YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:proofVerifierStage??''};
-if(physicalQA){buildEnvironment.CSC_IDENTITY_AUTO_DISCOVERY='false';for(const key of ['CSC_LINK','CSC_KEY_PASSWORD','CSC_NAME','CSC_IDENTITY_NAME'])delete buildEnvironment[key];}
+if(physicalQA){buildEnvironment.YNX_WALLET_QA_REUSE_EXISTING_PROFILE=qaReuseExistingProfile?'1':'0';buildEnvironment.CSC_IDENTITY_AUTO_DISCOVERY='false';for(const key of ['CSC_LINK','CSC_KEY_PASSWORD','CSC_NAME','CSC_IDENTITY_NAME'])delete buildEnvironment[key];}
 const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modules/electron-builder/cli.js", import.meta.url)), "--mac", "--dir", `--${arch}`, "--publish", "never", ...builderOptions], {
   stdio: "inherit", cwd: root, env: buildEnvironment
 });
