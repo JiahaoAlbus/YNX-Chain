@@ -1,0 +1,152 @@
+{
+  "schema": "LINK_RECEIVER_PORTABLE_TEST_ORIGINALS/v1",
+  "testOnly": true,
+  "sdkCommit": "d269e8798fdcdc55379760a90fa1813550177591",
+  "sdkSourceH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/HANDOFF.json",
+    "bytes": 6450,
+    "sha256": "d883e5c6801ed356d726b8b1b7882daf92decd3f4fbebe2e0ebd77d03bbe2bd5"
+  },
+  "sdkPublishedH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/hosted-final/HANDOFF.json",
+    "bytes": 6222,
+    "sha256": "c195b7a620a10240ade88a5b7533804412e4f383613558b2520025d789cce88b"
+  },
+  "authH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/HANDOFF.json",
+    "bytes": 9222,
+    "sha256": "57b55b4ca7eb3c3cb133977231e1f5596281293b7c6ffaceba65a122dbbf1e2b"
+  },
+  "originalSupplierPrepare": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/reproduction/prepare-public-runtime.mjs",
+    "bytes": 1971,
+    "sha256": "7bf2784195cedb42cb59805d3fb0727537bfb165913d9d5f5fa95c419fcd676d"
+  },
+  "authRunner": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/native/original-task-read-receiver-qualification-runner.mjs",
+    "bytes": 3983,
+    "sha256": "6daec82a7bc430f000bb4c59f44c9691728f4e17cf5138d7206ec61fef3d3dcd"
+  },
+  "sdkRequired": [
+    {
+      "relativePath": "native/original-auth-identity-source-verifier.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 23508,
+      "sha256": "d7ab5cafe687e3d2da55f90b8bbaf1663293a506bb71954ae182ac9cbe412e65"
+    },
+    {
+      "relativePath": "native/original-auth-identity-source-v2-verifier.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 117297,
+      "sha256": "dcf484151caa78ad109373baf68d1a60f4b7a2cc48978332a521ad78255292ab"
+    },
+    {
+      "relativePath": "native/original-auth-source-v2-dispatch.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
+      "bytes": 13542,
+      "sha256": "a234d2b1f5dbb23225fb212eef86c86f5fdea8d5764c7589897fdbb6cd5a3d5f"
+    },
+    {
+      "relativePath": "native/original-task-read-receiver-source-contract.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-task-read-receiver-source-contract.mjs",
+      "bytes": 8071,
+      "sha256": "760783f9a9169e0d204719f0549a0d3992783346850614b2e17f63d10967ebf3"
+    },
+    {
+      "relativePath": "native/original-task-read-receiver-permission-collector.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-task-read-receiver-permission-collector.mjs",
+      "bytes": 3781,
+      "sha256": "269ee629488f4320f6150d10d3bc05ed2a8a94c5793bb56bf6a75687c78da324"
+    },
+    {
+      "relativePath": "native/original-ide-auth-proof-dispatch.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/native/original-ide-auth-proof-dispatch.mjs",
+      "bytes": 6242,
+      "sha256": "d7ee4ced232432c41010217d83c63bbf124c4b11178eade3f7c0118571f42177"
+    },
+    {
+      "relativePath": "src/pq-wallet-policy.js",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/src/pq-wallet-policy.js",
+      "bytes": 17327,
+      "sha256": "2c53afaf378dc2490118bd52850df327db5d2658915e611f1f30b6aa05a8d2a2"
+    },
+    {
+      "relativePath": "src/pq-registered-member.js",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/src/pq-registered-member.js",
+      "bytes": 4541,
+      "sha256": "8798907990f3b551df382108b197288de59738ed76e1b71fe7ae868f6be88b92"
+    },
+    {
+      "relativePath": "package.json",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/package.json",
+      "bytes": 53932,
+      "sha256": "7e29d1ef38ad9bae253385b487ac08f08356fda77aba06f496dad8ab3fc79d15"
+    }
+  ],
+  "sdkFixtures": [
+    {
+      "relativePath": "task-read-receiver-source.fixture.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/test/fixtures/task-read-receiver-source.fixture.mjs",
+      "bytes": 6302,
+      "sha256": "e62a74ae58e945b9e0145a1f32097018b37e598cb3312ba51bb82a5b251e898d",
+      "testOnlyMirror": "sdk-fixtures/task-read-receiver-source.fixture.mjs"
+    },
+    {
+      "relativePath": "source-v2-public.fixture.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/source/packages/wallet-auth/test/fixtures/source-v2-public.fixture.mjs",
+      "bytes": 9460,
+      "sha256": "b71c267334722e4de2cac1e89ad76e693628d5dbf5bcdf7ca4426d46e57e330a",
+      "testOnlyMirror": "sdk-fixtures/source-v2-public.fixture.mjs"
+    }
+  ],
+  "canonicalPackage": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/hosted-final/download/canonical-common-source-package/ynx-chain-wallet-auth-1.3.0-pq.3.32-auth.49.tgz",
+    "bytes": 9560015,
+    "sha256": "83d5a1e90285c07f573f2f059d354a08c4556719b6f67b5c9f53174a6a56913f"
+  },
+  "bundleOrigins": [
+    {
+      "name": "@ynx/batch-v01-candidate",
+      "bytes": 21185,
+      "sha256": "4ca90de383f74c347d2b218a7f6162381f504d521f6c9f251b2bfe82b674c33e",
+      "integrity": "sha512-wSnz8R8jagKzf7qDw3BZBAz7n4GEDTy2VkvDZfh2qlKer8rwIvO3tQfiKj9PXN+WRrjx/wDMKDgN8Zeu87Q+Ww==",
+      "members": 16
+    },
+    {
+      "name": "@ynx-chain/open-protocol",
+      "bytes": 52065,
+      "sha256": "bce32fba92e8d0da88ef3776e7c0b22b69b0241b0790c7b2723c85787bc0f082",
+      "integrity": "sha512-PPOJbF6vZYbChfTXLHJkLBWzMyuvTI4UOKM6/MgRCKxhWniPr5GpSokyOYt7JtJKLO8siXRVtODqDJ2XNoQ1cg==",
+      "members": 43
+    },
+    {
+      "name": "@noble/hashes",
+      "bytes": 180002,
+      "sha256": "018b38bd7af36645fa0ece8f89eba21c828f3e4d219da5aacadd78bd0e654606",
+      "integrity": "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==",
+      "members": 98
+    },
+    {
+      "name": "@noble/curves",
+      "bytes": 436285,
+      "sha256": "6daf47e557e070b0657eda25549466bae3d07df555de4f702363355e8fb92ec8",
+      "integrity": "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==",
+      "members": 113
+    },
+    {
+      "name": "@noble/ciphers",
+      "bytes": 163727,
+      "sha256": "4a030353f7de42e977cad54cf1d7ecedfe0558add24c5742e4a2e55159614ffa",
+      "integrity": "sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==",
+      "members": 53
+    },
+    {
+      "name": "@noble/post-quantum",
+      "bytes": 200021,
+      "sha256": "85055986784e61ccd95ff10a7ea5b7ebb4bc298f1db3ceeb27bf91068c30431b",
+      "integrity": "sha512-+pormrDZwjRw05U8ADK4JpHejo87+gBd+muRBB/ozztH5yhDLMDF4jHQWN3NQQAsu1zBNPWTG0ZwVI0CR29H0A==",
+      "members": 43
+    }
+  ],
+  "doesNotAuthenticateArbitrarySDKOrMintPermission": true
+}

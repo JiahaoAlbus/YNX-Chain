@@ -1,0 +1,131 @@
+{
+  "schema": "P08_ORIGINAL_LINK_PORTABLE_RECEIVER_R2_CI_INTAKE_V1",
+  "supplierH": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/HANDOFF.json",
+    "bytes": 9436,
+    "sha256": "f4e8f5aba978173582aefb8eb798a6b6ec88ad4e135ba557aca3c6965aae7d38"
+  },
+  "verifiedSupplierFileRefs": 23,
+  "imports": [
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/CI-CONTRACT.md",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/CI-CONTRACT.md",
+        "bytes": 7104,
+        "sha256": "7c6ff6ed4a1ed3e47401193c948567ac3c5a02222cf0c903724102e823bb2123"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/ORIGINALS.json",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/ORIGINALS.json",
+        "bytes": 8479,
+        "sha256": "f2cbd67e4db8a0b9b56425f4f7c2bbdf727347c7582aceeeae9722692316073e"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "internal/aiproduct/link_qualified_receiver_candidate_test.go",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/go/internal/aiproduct/link_qualified_receiver_candidate_test.go",
+        "bytes": 6637,
+        "sha256": "57d85b45bc439ecaec06eae64b4d1c55b9918950cf77bd48aa581d4fc34699eb"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "internal/authtasklocal/public_qualified_receiver_candidate.go",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/go/internal/authtasklocal/public_qualified_receiver_candidate.go",
+        "bytes": 447,
+        "sha256": "ac75b6299e3617f946c06b60d7f28b0f33e1a9875fe86b47dd8d317d2be0a7cc"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/public_qualified_receiver_candidate.go",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/go/packages/auth-grant-runtime/go/public_qualified_receiver_candidate.go",
+        "bytes": 8272,
+        "sha256": "4a7b6b26aa4f2708e178f9ad68650992acf99901054f3b24f1bbb8129b3a82ec"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/go/packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
+        "bytes": 4559,
+        "sha256": "fce1439768e076a75f7ecda7015cc1c1281e3fabc4cdf0246f322eb46e41b71d"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/portable-metadata.test.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/portable-metadata.test.mjs",
+        "bytes": 4959,
+        "sha256": "e6e029a9685ab6bfd401a8fcdec41167556ece8dddf15223d03af2cf3c944364"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/prepare-public-runtime.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/prepare-public-runtime.mjs",
+        "bytes": 4871,
+        "sha256": "9f65c0ecf7821a69daf5ca06a2d53a4d75fb5438e6e677c0d8ce9b96c248092b"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/public-fixture.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/public-fixture.mjs",
+        "bytes": 4288,
+        "sha256": "41d1d7f50a11be51c7307776686e2696a547494a454e25868e141cf983991e5c"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/public-preload.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/public-preload.mjs",
+        "bytes": 1614,
+        "sha256": "a07ae8cde9071dd6ea9f5ab97be0080668547575bc2a809c25e4b3dd83eca062"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/sdk-fixtures/source-v2-public.fixture.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/sdk-fixtures/source-v2-public.fixture.mjs",
+        "bytes": 9460,
+        "sha256": "b71c267334722e4de2cac1e89ad76e693628d5dbf5bcdf7ca4426d46e57e330a"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "apps/ai/scripts/receiver-interop-r2/sdk-fixtures/task-read-receiver-source.fixture.mjs",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/portable-test-r2-uXanG0/sdk-fixtures/task-read-receiver-source.fixture.mjs",
+        "bytes": 6302,
+        "sha256": "e62a74ae58e945b9e0145a1f32097018b37e598cb3312ba51bb82a5b251e898d"
+      },
+      "byteExact": true
+    }
+  ],
+  "actualProductionSupplier": "Auth H9222/57b55b6 rows already byte-exact consumed at408ae",
+  "selector": "^TestLINKP08QualifiedReceiverPurposeCandidate$",
+  "tags": [
+    "link_registered_receiver_interop",
+    "link_receiver_purpose_candidate"
+  ],
+  "normalCI": ".github/workflows/ynx-ai-runtime.yml: qualified-receiver Ubuntu job",
+  "CIOnlyBranchPrefix": "codex/ai-receiver-ci/",
+  "knownChecks": "Local prepare-only exact SDK TGZ + nine required leaves + two fixtures + Auth runner + six providers stage and clean succeeded. Go/crypto run for new tuple must be read back separately; old49.08s not borrowed.",
+  "testOnly": true,
+  "RootSourceNativeBusinessAdmission": false,
+  "noProductionSupplierChanges": true
+}

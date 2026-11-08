@@ -38,7 +38,7 @@ func PUBLICOriginalReceiverGrantForP08Test(dir string, s policy.Snapshot, op str
 		g.Binding.Sources = append(g.Binding.Sources, open.GrantSourceV1{Ref: ref(v.Resource), Fields: append([]string(nil), v.Fields...), Label: v.Label, Binding: bind(v.Binding)})
 	}
 	s.Effect = policy.EffectState{State: "NEW", Slot: b.Slot()}
-	p := authorityProjection{Version: "AUTH-ORIGINAL-GRANT-PROJECTION/private-v1", ChainID: bytes.Repeat([]byte{7}, 32), Height: 1, Snapshot: s, AuthorizationRef: "PUBLIC_QUERY_REF"}
+	p := authorityProjection{Version: "AUTH-ORIGINAL-GRANT-PROJECTION/private-v1", ChainID: bytes.Repeat([]byte{0xaa}, 32), Height: 1, Snapshot: s, AuthorizationRef: "PUBLIC_QUERY_REF"}
 	ik, ip, e := core.KeyGen()
 	if e != nil {
 		return nil, g, gp, hp, "", e
