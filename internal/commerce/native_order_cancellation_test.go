@@ -188,3 +188,36 @@ func TestNativeOrderCancellationExpiredUnknownRecoversOnlyOriginalBinding(t *tes
 		t.Fatal("recovered original locally cancelled")
 	}
 }
+
+// Preserve old late/cancel/privacy counterexamples as explicit PUBLIC legacy
+// snapshots. Normal new cancellation is first proved to refuse without changing
+// any durable field. This helper never operates on a real service/account DB.
+func nativeLegacyCancelledSnapshotForTest(t *testing.T, s *Store, buyer, orderID, key string) {
+	t.Helper()
+	s.mu.Lock()
+	before, _ := json.Marshal(s.s)
+	s.mu.Unlock()
+	if _, e := s.transition(buyer, "buyer", orderID, "cancelled", nil, nil, nil, key); e == nil {
+		t.Fatal("new bound native cancellation was accepted")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	after, _ := json.Marshal(s.s)
+	if !bytes.Equal(before, after) {
+		t.Fatal("refused cancellation changed original snapshot")
+	}
+	o := s.s.Orders[orderID]
+	if !s.nativeInvoiceCancellationBlockedLocked(o) || o.Buyer != buyer || o.Status != "payment_pending" {
+		t.Fatal("invalid PUBLIC legacy cancellation setup")
+	}
+	if e := s.applyReservationLocked(o, false); e != nil {
+		t.Fatal(e)
+	}
+	o.Status = "cancelled"
+	o.UpdatedAt = s.now()
+	s.orderEventLocked(&o, buyer, "buyer", "order_transition", "cancelled", "PUBLIC historical cancellation snapshot; no normal new native cancellation permitted")
+	s.s.Orders[orderID] = o
+	if e := s.persistLocked(); e != nil {
+		t.Fatal(e)
+	}
+}

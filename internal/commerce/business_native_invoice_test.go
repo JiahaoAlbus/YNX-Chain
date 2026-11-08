@@ -144,9 +144,7 @@ func TestNativeInvoiceCreateAndLookupBindOnlyExactOriginalBill(t *testing.T) {
 					request.AmountAtoms = "1"
 				}
 				if mode == "late-cancel" {
-					if _, e := s.transition(buyer, "buyer", order.ID, "cancelled", nil, nil, nil); e != nil {
-						t.Fatal(e)
-					}
+					nativeLegacyCancelledSnapshotForTest(t, s, buyer, order.ID, "PUBLIC-legacy-inflight-cancel")
 				}
 				reply := publicNativeInvoiceResponse(request)
 				if mode == "wrong-terms" {
@@ -224,8 +222,12 @@ func TestNativeInvoicePrivacyDeletionRetainsCancelledOriginalAndUnknown(t *testi
 					t.Fatal(w.Code, w.Body.String())
 				}
 			}
-			if _, err := s.transition(buyer, "buyer", order.ID, "cancelled", nil, nil, nil, "privacy-native-cancel"); err != nil {
-				t.Fatal(err)
+			if mode == "unattempted" {
+				if _, err := s.transition(buyer, "buyer", order.ID, "cancelled", nil, nil, nil, "privacy-native-cancel"); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				nativeLegacyCancelledSnapshotForTest(t, s, buyer, order.ID, "privacy-native-cancel")
 			}
 			before, err := os.ReadFile(s.path)
 			if err != nil {

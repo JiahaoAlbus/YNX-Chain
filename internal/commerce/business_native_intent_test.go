@@ -85,9 +85,7 @@ func TestBusinessNativeIntentColdRecoveryUsesOriginalOrderAndNeverSettles(t *tes
 	}
 	// Recovery after cancellation still uses the retained operation and does not
 	// restore an expired reservation or construct a current-price invoice.
-	if _, err := reopened.transition(buyer, "buyer", order.ID, "cancelled", nil, nil, nil); err != nil {
-		t.Fatal(err)
-	}
+	nativeLegacyCancelledSnapshotForTest(t, reopened, buyer, order.ID, "PUBLIC-legacy-intent-cancel")
 	w = businessHTTPRequest(NewServer(reopened, cfg), "GET", path, strings.Repeat("b", 43), "")
 	if w.Code != 200 || calls != 2 || reopened.s.Orders[order.ID].Status != "cancelled" || reopened.s.Orders[order.ID].Settlement != nil {
 		t.Fatal(w.Code, w.Body.String(), calls)
