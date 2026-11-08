@@ -1,3 +1,4 @@
+import{projectVerifiedDeviceSourceCapturedDATA}from'./original-device-source-v2-typed-projection.mjs';
 // Private offline collector DATA. Auth alone captures these values under its
 // opaque SAME actor/Root/release/App/UID owner. No JS input establishes origin.
 // This reuses the sole complete Source-v2 schema and registered N1 verifier;
@@ -46,5 +47,6 @@ export function collectOriginalDeviceSourceV2CapturedDATA(captureOriginal){
  const projection=verifyOriginalAuthSourceCurrentV2(i.rootRaw,i.enrollmentRaw,i.profileRaw,c.currentRaw,i.policy,before,c.nonce,previous,c.currentAtMs);
  for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('DEVICE_SOURCE_CAPTURE_HEIGHT_CHANGED');}
  if(c.afterAtMs<projection.timeFloor||c.afterAtMs>=projection.expiresAtMs||projection.status!=='active'||projection.dataOnly!==true||projection.nativeAdmission!==false)fail('DEVICE_SOURCE_CAPTURE_POST_CURRENT_EXPIRED');
- return Object.freeze({projection,currentRaw:c.currentRaw,captureSHA256:sha(captureOriginal),dataOnly:true,RootAdmission:false,SourceAdmission:false,nativeAdmission:false,platformRuntimeVerified:false});
+ const typedProjection=projectVerifiedDeviceSourceCapturedDATA(projection,enrollment,profile,hint(c.currentRaw),c.afterAtMs);
+ return Object.freeze({projection,currentRaw:c.currentRaw,captureSHA256:sha(captureOriginal),typedProjection,dataOnly:true,RootAdmission:false,SourceAdmission:false,nativeAdmission:false,platformRuntimeVerified:false});
 }

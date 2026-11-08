@@ -1,6 +1,7 @@
+import{utf8ToBytes}from'@noble/hashes/utils.js';
 // Dedicated read-only cold query DATA. No creation terms, device key access,
 // PoP, registration, recovery or slot creation. Stable codec is SOLE SDK-owned.
-import * as deviceIdentityCodec from '../src/original-device-create-intent.js';
+import * as deviceIdentityCodec from '../src/original-device-create-intent-data-core.js';
 import {canonicalJSON} from '../src/canonical.js';
 import {exactPQRecord} from '../src/pq-wallet-contract.js';
 export const PRODUCT_DEVICE_V4_QUERY_PURPOSE='product-session-device-query-source-v4';
@@ -12,12 +13,12 @@ export function inspectOriginalProductDeviceV4QueryScopeDATA(scope,association,n
  exactPQRecord(scope,['version','stableDeviceIdentity','identityBinding']);
  exactPQRecord(scope.identityBinding,IDENTITY_FIELDS);
  exactPQRecord(association,['account','clientId','productId','platform','applicationId','deviceId']);
- if(scope.version!=='4'||typeof scope.stableDeviceIdentity!=='string'||!scope.stableDeviceIdentity.length||Buffer.byteLength(scope.stableDeviceIdentity)>1024)fail('AUTH_SOURCE_V2_DEVICE_QUERY_SCOPE');
+ if(scope.version!=='4'||typeof scope.stableDeviceIdentity!=='string'||!scope.stableDeviceIdentity.length||utf8ToBytes(scope.stableDeviceIdentity).length>1024)fail('AUTH_SOURCE_V2_DEVICE_QUERY_SCOPE');
  // This export is supplied only by the original SDK. Absence is unavailable,
  // never a locally invented parser/encoder or a fallback through creation DATA.
  if(typeof deviceIdentityCodec.inspectOriginalDeviceIdentityDATA!=='function')fail('AUTH_SOURCE_V2_DEVICE_QUERY_SDK_STABLE_CODEC_NOT_SUPPLIED');
  const application=Object.fromEntries(APPLICATION_FIELDS.map(k=>[k,scope.identityBinding[k]]));
- const view=deviceIdentityCodec.inspectOriginalDeviceIdentityDATA(Buffer.from(scope.stableDeviceIdentity,'utf8'),application);
+ const view=deviceIdentityCodec.inspectOriginalDeviceIdentityDATA(utf8ToBytes(scope.stableDeviceIdentity),application);
  const binding=scope.identityBinding;
  if(view.stableDeviceIdentity!==scope.stableDeviceIdentity||canonicalJSON(view.applicationBinding)!==canonicalJSON(application)||binding.networkId!==networkId||binding.canonicalOwner!==subjectOwner)fail('AUTH_SOURCE_V2_DEVICE_QUERY_IDENTITY');
  for(const key of ['networkId','canonicalOwner','account','productId','clientId','deviceId'])if(view.identity[key]!==binding[key])fail('AUTH_SOURCE_V2_DEVICE_QUERY_IDENTITY');

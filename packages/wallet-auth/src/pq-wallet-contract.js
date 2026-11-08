@@ -1,3 +1,4 @@
+import{encodeBase64url,decodeBase64url}from'./base64url.js';
 // Public data validation only. These DTOs never establish chain registration,
 // current-account authorization, a signing capability, or migration completion.
 export const PQ_PROTOCOL_VERSION = 'YNX-BATCH/v0.1';
@@ -15,18 +16,15 @@ export function exactPQRecord(value, fields, code = 'PQ_SCHEMA_INVALID') {
 }
 export function pqBase64url(bytes) {
   if (!(bytes instanceof Uint8Array) || (typeof SharedArrayBuffer !== 'undefined' && bytes.buffer instanceof SharedArrayBuffer)) throw pqError('PQ_BYTES_REQUIRED');
-  let text = '';
-  for (let i = 0; i < bytes.length; i += 4096) text += String.fromCharCode(...bytes.subarray(i, i + 4096));
-  return btoa(text).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  return encodeBase64url(bytes);
 }
 export function pqDecodeBase64url(text, {exact, max = 65536} = {}) {
   if (typeof text !== 'string' || !/^[A-Za-z0-9_-]+$/.test(text) || text.length > Math.ceil(max * 4 / 3)) throw pqError('PQ_ENCODING_INVALID');
-  let data;
-  try { data = Uint8Array.from(atob(text.replaceAll('-', '+').replaceAll('_', '/') + '='.repeat((4 - text.length % 4) % 4)), c => c.charCodeAt(0)); }
-  catch { throw pqError('PQ_ENCODING_INVALID'); }
+  let data;try{data=decodeBase64url(text);}catch{throw pqError('PQ_ENCODING_INVALID');}
   if (data.length > max || (exact !== undefined && data.length !== exact) || pqBase64url(data) !== text) throw pqError('PQ_ENCODING_INVALID');
   return data;
 }
+
 export function validatePQPublicBinding(value) {
   exactPQRecord(value, PQ_BINDING_FIELDS);
   if (value.protocolVersion !== PQ_PROTOCOL_VERSION || value.suite !== PQ_SUITE ||
