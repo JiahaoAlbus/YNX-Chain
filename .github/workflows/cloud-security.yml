@@ -2,7 +2,7 @@ name: Cloud security and recovery gates
 
 on:
   push:
-    branches: [codex/final-cloud, 'codex/cloud-oci-runtime-*']
+    branches: [codex/final-cloud, 'codex/cloud-oci-runtime-*', 'codex/cloud-file-session-*']
     paths:
       - 'apps/cloud/**'
       - 'apps/docs/**'
@@ -108,6 +108,49 @@ jobs:
           path: ${{ runner.temp }}/oci-evidence
           if-no-files-found: error
           retention-days: 30
+  file-session-current-source:
+    name: Cloud file session currentness and protocol routing
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/cloud-file-session-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify and extract the exact own source delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' df4b21255dfa74c99328f755d3349e15a92790d893fb511f4ddb3b2ce9693d43 apps/cloud/tests/file-session-v2-source.tar.gz | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/file-source" "$RUNNER_TEMP/file-evidence"
+          tar -xzf apps/cloud/tests/file-session-v2-source.tar.gz -C "$RUNNER_TEMP/file-source"
+          python3 - <<'PYCLOUD'
+          import os,json,hashlib
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'file-source'
+          for row in json.loads((root/'SOURCE.json').read_text())['files']:
+            assert hashlib.sha256((root/row['relative']).read_bytes()).hexdigest()==row['sha256'],row['relative']
+          PYCLOUD
+      - name: Run only the new current and no-fallback controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/file-source"
+          node --check apps/cloud/client/file-session-v2-client.mjs
+          node --check apps/cloud/client/file-session-v2-server.mjs
+          GOMAXPROCS=2 go test -race -mod=readonly -count=1 -timeout=90s -json -run '^TestP04(WalletSessionPostVerifyCurrent|FileSessionV2(RejectsBearerAndUnregistered|UnavailableIsNotRevocation))$' ./internal/cloud | tee "$RUNNER_TEMP/file-evidence/current-routing.jsonl"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p04-file-session-current-${{ github.sha }}
+          path: ${{ runner.temp }}/file-evidence
+          if-no-files-found: error
+          retention-days: 30
   ide-consumer-source:
     name: Cloud object workflow and IDE consumer source integration
     if: >-
@@ -132,10 +175,11 @@ jobs:
           git diff --name-only -z "$baseline" HEAD > "$RUNNER_TEMP/ide-consumer-paths"
           while IFS= read -r -d '' file; do
             case "$file" in
-              internal/cloud/ide_deployment*.go|internal/cloud/server.go) ;;
+              internal/cloud/ide_deployment*.go|internal/cloud/server.go|internal/cloud/file_session_v2*.go|internal/cloud/wallet_session_current_test.go) ;;
               internal/cloud/private_host*.go) ;;
               internal/cloud/service.go|internal/cloud/types.go|internal/cloud/store.go|internal/cloud/adapters.go|internal/cloud/lifecycle.go) ;;
               internal/cloud/object_versions*.go|internal/cloud/object_commit_fence*.go|internal/cloud/object_durability_test.go|internal/cloud/object_operations.go|internal/cloud/object_workflow_test.go) ;;
+              internal/cloud/object_download_original_test.go) ;;
               apps/cloud/client/*.mjs|apps/cloud/client/README.md) ;;
               apps/cloud/client/package.json|apps/cloud/client/package-lock.json|apps/cloud/client/deployment-v2-supplier.json|apps/cloud/client/vendor/ynx-chain-open-protocol-0.0.0-dev.4.tgz) ;;
               internal/developerauthority/*.go|internal/developerauthority/schema.sql) ;;
@@ -145,7 +189,17 @@ jobs:
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
               apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json|apps/cloud/IDE_USAGE_BILL_PROVENANCE.md|apps/cloud/ORIGINAL_PRIVATE_HOST.md|apps/cloud/OCI_RESOURCE_PREFLIGHT.md) ;;
-              apps/cloud/scripts/compose-native-pay.mjs|apps/cloud/scripts/compose-deployment-v2-auth.mjs|apps/cloud/tests/native-pay-composition.integration.go.txt) ;;
+              apps/cloud/scripts/compose-native-pay.mjs|apps/cloud/scripts/compose-deployment-v2-auth.mjs|apps/cloud/scripts/normal-auth-source-composition.mjs|apps/cloud/tests/native-pay-composition.integration.go.txt) ;;
+              apps/cloud/AUTH_NORMAL_SOURCE_COMPOSITION.md) ;;
+              apps/cloud/V2_ORIGINAL_DEPLOYMENT_RECEIPTS.md) ;;
+              apps/cloud/scripts/compose-current-cloud-sdk.mjs|apps/cloud/client/profiles/cloud-sdk795-production-lock.json|apps/cloud/CURRENT_SDK_PRODUCTION_COMPOSITION.md) ;;
+              apps/cloud/scripts/cloud-current-sdk-role-probe.mjs) ;;
+              apps/cloud/scripts/package-current-cloud-client.mjs) ;;
+              apps/cloud/client/profiles/cloud-sdk-d8-production-lock.json) ;;
+              apps/cloud/client/profiles/cloud-sdk-typed390-production-lock.json) ;;
+              apps/cloud/client/profiles/cloud-sdk-receiver405-production-lock.json) ;;
+              apps/cloud/client/profiles/cloud-sdk-tls-wpr420-production-lock.json) ;;
+              apps/cloud/IDE_DEPLOYMENT_GET_WIRE.md) ;;
               apps/cloud/tests/private-host-normal-consumer.go.txt) ;;
               infra/docker/ynx-cloudd.Dockerfile|infra/docker/ynx-cloudd.Dockerfile.dockerignore) ;;
               .github/workflows/cloud-security.yml|.github/workflows/ci.yml|.github/workflows/cloud-docs-ios-simulator.yml) ;;
@@ -204,16 +258,35 @@ jobs:
         run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl" "$RUNNER_TEMP/ide-source-normal.jsonl"
       - name: Original SDK transport and observation integration
         run: node --test apps/cloud/tests/ide-deployment*.test.mjs
+      - name: Original finite-read response and cancellation fences
+        run: go test -race -count=1 -timeout=90s -run '^TestIDEDeploymentReadFence' ./internal/cloud
       - name: Independent object, deployment and usage-billing lifecycle
         run: |
           node --test apps/cloud/client/*.test.mjs
           go test -race -count=1 -timeout=90s -run '^TestP04(Object|Blob|Deployment|Billing|OriginalBillProvenance|PrivateHost(Normal|ReadCold|Retain|Partial)|OCIReadiness|UsageDocker28Frame)' ./internal/cloud
           go test -race -count=1 -timeout=120s -run '^TestP04PrivateHostActualCLITwoTenantsVersionsRevocationCold$' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04PrivateHostSessionCLIOriginalCredentialColdAndLostRevoke$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04SessionStatusRetainsUnknownCommitInsteadOfRevocation401$' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04OriginalVersion' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04OriginalDownloadCLIRecoversPinnedVersionAfterRestartAndRevoke$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestIDEDeploymentRuntime(LateResponseFence|RejectedResponseBodyIsClosed|FencePreservesPOSTWithEmptyLog)$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04(OCIOriginalObservation|ObservationSnapshot|UsageOriginalArtifact)' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04OriginalUsageRecordsColdIntegrity$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04(WalletSessionPostVerifyCurrent|FileSessionV2(RejectsBearerAndUnregistered|UnavailableIsNotRevocation))$' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04OriginalAccess' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04OriginalLink' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04OriginalTrash' ./internal/cloud
+          go test -race -count=1 -timeout=300s -run '^TestP04Folder' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04V2NormalReadbackOriginalLogsUsageBillColdAndRevoke$' ./internal/cloud
+          go test -race -count=1 -timeout=180s -run '^TestP04V2DurableReceiptNormalBillingColdAndRevoke$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04OriginalNativeIntent' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04V2NativeIntentNormalClientColdAndRevoke$' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestIDEV2DATANormalStartupActualConstructorPreservesSource$' ./apps/cloud/cmd/ynx-cloudd
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.
   # Their skipped status must not be represented as full Cloud acceptance.
   security-recovery:
     if: >-
-      ${{ !startsWith(github.ref, 'refs/heads/codex/cloud-oci-runtime-') && !(github.event_name == 'pull_request' &&
+      ${{ !startsWith(github.ref, 'refs/heads/codex/cloud-file-session-') && !startsWith(github.ref, 'refs/heads/codex/cloud-oci-runtime-') && !(github.event_name == 'pull_request' &&
             github.event.pull_request.head.repo.full_name == github.repository &&
             github.head_ref == 'codex/cloud-key-recovery-rotation') }}
     runs-on: ubuntu-latest
