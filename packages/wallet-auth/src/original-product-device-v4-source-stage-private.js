@@ -1,3 +1,4 @@
+import {types} from 'node:util';
 import {PQ_SUITE} from './pq-wallet-contract.js';
 import {acquireOriginalProductSessionDeviceV4SourceStage as acquireNative} from './original-auth-identity-fixed-native-image.js';
 const originalReadDevices = new WeakMap();
@@ -44,6 +45,12 @@ export function acquireOriginalProductSessionDeviceV4ReadLeaseStage(...args){
  let unavailable=false;
  const origin=Object.freeze({deviceCurrent,
   readContext(){return native.readContext();},
+  readNativeDeviceSource(){if(arguments.length)throw new Error('ORIGINAL_NATIVE_SOURCE_ZERO_ARGUMENTS');return native;},
+  readSourceReferenceDATA(){
+   const d=Object.getOwnPropertyDescriptor(native,'readOriginalSourceReferenceDATA');
+   if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function'||types.isProxy(d.value))throw new Error('PRODUCT_DEVICE_V4_SOURCE_REFERENCE_NOT_SUPPLIED');
+   return Reflect.apply(d.value,native,[]);
+  },
   assertCurrent(){if(unavailable)throw new Error('PRODUCT_DEVICE_V4_ORIGINAL_RETIRED');const state=native.status();if(state.retired||state.closed)throw new Error('PRODUCT_DEVICE_V4_ORIGINAL_RETIRED');const result=native.assertCurrent();if(result!==undefined)throw result;}
  });
  originalReadDevices.set(device,origin);

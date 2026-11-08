@@ -50,8 +50,8 @@ export async function createProductWalletBusinessReadClient(config){
   if(config.device.version!=='4'||config.device.algorithm!=='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal device reads require dual-PQ; use explicit legacy data readers for history');
   const inapplicable=()=>{throw new WalletAuthError('BUSINESS_READ_ONLY','Read client cannot discover or reconnect Wallet');};
   const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
-  const originalDevice=config.device,originalCurrent=config.deviceCurrent,originalContext=config.abortContext;
-  const client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage:config.storage,gateway,device:originalDevice,deviceCurrent:originalCurrent,abortContext:originalContext,tokenFactory:secureToken,clock:authorityClockRequired});
+  const originalDevice=config.device,originalCurrent=config.deviceCurrent,originalContext=config.abortContext,originalProductId=config.productId;
+  const client=new RecoverableProductSessionClient({registry:config.registry,productId:originalProductId,platform:config.platform,storage:config.storage,gateway,device:originalDevice,deviceCurrent:originalCurrent,abortContext:originalContext,tokenFactory:secureToken,clock:authorityClockRequired});
   const child=await client.openExistingBusinessRead();
   let retired=false,closed=false,closing=null,refs=0,wake=null,firstPresent=false,firstCause;
   const current=()=>{if(firstPresent)throw firstCause;if(retired||closed||originalContext.signal.aborted)throw new WalletAuthError('ORIGINAL_BUSINESS_READ_RETIRED','Original read is no longer live');};
@@ -67,7 +67,7 @@ export async function createProductWalletBusinessReadClient(config){
     }
   });
   const held=Object.freeze({
-    device:originalDevice,deviceCurrent:originalCurrent,
+    device:originalDevice,deviceCurrent:originalCurrent,productId:originalProductId,
     assertCurrent:current,
     retain(){current();refs++;let released=false;const loanCurrent=()=>{if(released)throw new WalletAuthError('ORIGINAL_BUSINESS_READ_RELEASED','Original child reference is released');current();};return Object.freeze({
       assertCurrent:loanCurrent,

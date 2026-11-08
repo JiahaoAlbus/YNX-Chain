@@ -7,6 +7,8 @@ export const WALLET_NATIVE_PRODUCT_OPERATIONS:readonly WalletProductSourceOperat
 export interface WalletProductReferenceV1 {readonly productId:'shop.order'|'cloud.ide-usage';readonly sourceOrder:string;}
 export interface WalletProductSourceScopeV1 {readonly version:1;readonly networkId:string;readonly account:string;readonly protectedResourceRef:string;readonly operations:readonly WalletProductSourceOperationV1[];readonly products:readonly WalletProductReferenceV1[];}
 export interface WalletProductSourceDATAOnly {readonly dataOnly:true;readonly authorized:false;readonly SourceAdmission:false;readonly NativeAdmission:false;readonly registered:false;readonly approval:false;}
+/** Shape/identity DATA only: no window, expiry or Source permission. */
+export function inspectOriginalWalletProductScopeShapeV1DATA(value:WalletProductSourceScopeV1,networkId:string,subjectOwner:string):Readonly<WalletProductSourceDATAOnly&{scopeOriginal:string;scope:WalletProductSourceScopeV1}>;
 export function inspectOriginalWalletProductScopeV1DATA(value:WalletProductSourceScopeV1,networkId:string,subjectOwner:string,issuedAtMs:number,expiresAtMs:number,atMs:number):Readonly<WalletProductSourceDATAOnly&{scopeOriginal:string;scope:WalletProductSourceScopeV1;effectExpiresAtMs:number}>;
 
 export interface OriginalWalletProductSourceV1Policy {readonly rootDigest:string;readonly enrollmentDigest:string;readonly endpoint:'https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current';readonly spki:string;readonly applicationId:string;readonly productId:'wallet';readonly platform:'linux'|'macos'|'windows';readonly signatureContract:Readonly<{purpose:typeof WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE;enrollmentFrame:string;profileFrame:string;currentFrame:string}>;}
