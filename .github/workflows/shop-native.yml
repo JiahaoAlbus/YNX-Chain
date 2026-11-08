@@ -100,7 +100,27 @@ jobs:
           apple_view_only = bool(changed) and "apps/shop/native/ios/YNXShop/ContentView.swift" in changed and all(p in apple_view_files for p in changed)
           native_client_only = bool(changed) and any(p.startswith("apps/shop/native/") for p in changed) and all(p.startswith("apps/shop/native/") or p == ".github/workflows/shop-native.yml" for p in changed)
           session_inventory_files = {"internal/commerce/accounts.go", "internal/commerce/auth_v2.go", "internal/commerce/business_http.go", "internal/commerce/model.go", "internal/commerce/native_invoice_source_read.go", "internal/commerce/server.go", "internal/commerce/store.go", "internal/commerce/shop_session.go", "internal/commerce/shop_session_test.go", "internal/commerce/shop_session_v2_test.go", "internal/commerce/shop_session_v4.go", "internal/commerce/shop_session_v4_test.go", "internal/commerce/native_invoice_source_close.go", "internal/commerce/native_invoice_source_product.go", "internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/SHOP_SESSION_PRODUCER.md", "internal/productsessionv2/client.go", "internal/productsessionv2/session_account_authorization.go", "internal/productsessionv2/client_current_test.go", "internal/productsessionv2/testdata/original_sdk_session_authorization_vectors.json", "internal/productsessionv2/revalidation.go", "internal/productsessionv2/business_proof.go", "internal/productsessionv2/consumer_current_test.go", "internal/productsessionv2/session_original_validation.go", "internal/productsessionv2/revalidation_current_test.go", ".github/workflows/shop-native.yml"}
-          session_inventory_only = bool(changed) and any(p in changed for p in {"internal/commerce/shop_session.go", "internal/commerce/shop_session_test.go", "internal/commerce/shop_session_v2_test.go"}) and all(p in session_inventory_files or p.startswith("internal/commerce/third_party/productreadsource/") for p in changed)
+          # A change confined to this original Auth consumer CI driver must
+          # execute that consumer and Source checks, without rebuilding clients.
+          # Changes elsewhere in the workflow retain the conservative full gate.
+          v4_consumer_ci_delta = False
+          if changed == [".github/workflows/shop-native.yml"]:
+              try:
+                  previous_workflow = subprocess.check_output(["git", "show", base + ":.github/workflows/shop-native.yml"]).decode()
+                  current_workflow = open(".github/workflows/shop-native.yml").read()
+                  def consumer_step(workflow):
+                      start = workflow.index("      - name: Check original Auth V4 Go bridge and physical closure consumption\n")
+                      end = workflow.index("      - name:", start + 1)
+                      return workflow[start:end]
+                  def outside_scope_and_consumer(workflow):
+                      start = workflow.index("  change-scope:\n")
+                      end = workflow.index("  native-pay-navigation:\n", start)
+                      workflow = workflow[:start] + workflow[end:]
+                      return workflow.replace(consumer_step(workflow), "", 1)
+                  v4_consumer_ci_delta = consumer_step(previous_workflow) != consumer_step(current_workflow) and outside_scope_and_consumer(previous_workflow) == outside_scope_and_consumer(current_workflow)
+              except (ValueError, subprocess.SubprocessError, UnicodeError):
+                  v4_consumer_ci_delta = False
+          session_inventory_only = bool(changed) and any(p in changed for p in {"internal/commerce/shop_session.go", "internal/commerce/shop_session_test.go", "internal/commerce/shop_session_v2_test.go"}) and all(p in session_inventory_files or p.startswith("internal/commerce/third_party/productreadsource/") for p in changed) or v4_consumer_ci_delta
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           lifecycle_fixture_files = {"internal/commerce/business_native_intent_test.go", "internal/commerce/business_native_invoice_test.go", "internal/commerce/native_order_cancellation_test.go"}
           lifecycle_fixture_only = bool(changed) and any(p in lifecycle_fixture_files for p in changed) and all(p in lifecycle_fixture_files or p == ".github/workflows/shop-native.yml" for p in changed)
@@ -131,7 +151,7 @@ jobs:
           return_files = {"apps/seller-console/native/return-decision-cli.mjs", "apps/seller-console/native/check-return-decision-cli.mjs", "apps/seller-console/native/RETURN_DECISIONS.md", "apps/seller-console/test/return-decision-cli.test.mjs", "apps/seller-console/test/return-decision-http.mjs", "internal/commerce/original_return_decision_test.go", "internal/commerce/business_order_transition.go", "internal/commerce/service.go", "internal/commerce/server.go", "internal/commerce/seller_mutation_lookup.go"}
           return_decision_only = bool(changed) and any(p in return_files for p in changed) and all(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
           return_decision_checks = not native_client_only and not notification_only and not listing_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
-          v4_supplier_intake = any(p.startswith("internal/commerce/third_party/productreadsource/") for p in changed)
+          v4_supplier_intake = any(p.startswith("internal/commerce/third_party/productreadsource/") for p in changed) or v4_consumer_ci_delta
           link_proof_intake = "internal/securelink/local_caller_product_session_proof.go" in changed
           tests = []
           if not source_only or any(map(source_path, changed)):
@@ -252,7 +272,19 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -d "$HOME/.codex" ]; then mkdir -m 700 "$HOME/.codex"; fi
-          go test -mod=readonly -race -p 1 github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource -count=1 -v
+          go test -mod=readonly -race -p 1 github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource -count=1 -v | tee "$RUNNER_TEMP/shop-auth-v4-consumer.log"
+          python3 - "$RUNNER_TEMP/shop-auth-v4-consumer.log" <<'PY'
+          import pathlib, re, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          package = pathlib.Path("internal/commerce/third_party/productreadsource")
+          files = ["shop_v4_test.go", "shop_v4_closed_witness_test.go", "authority_closed_witness_test.go"]
+          required = [name for file in files for name in re.findall(r"^func (TestShopV4[A-Za-z0-9_]+)\(t \*testing\.T\)", (package / file).read_text(), re.M)]
+          if len(required) != 19:
+              raise SystemExit("original supplier V4 normal test inventory differs")
+          for name in required:
+              if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:
+                  raise SystemExit("required V4 supplier control absent/failed/skipped: " + name)
+          PY
       - name: Verify actual consumption of original LINK fixed proof carrier
         if: needs.change-scope.outputs.link-proof-intake == 'true'
         run: |
