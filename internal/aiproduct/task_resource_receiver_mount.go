@@ -37,6 +37,17 @@ type OriginalTaskReadReceiver struct {
 // A nonnil partial always remains owned, even when registration is unavailable.
 func OpenOriginalTaskReadReceiver(ctx context.Context, server *Server) (*OriginalTaskReadReceiver, error) {
 	o := &OriginalTaskReadReceiver{done: make(chan struct{})}
+	if server != nil {
+		if effects, ok := server.toolEffects.(*originalRuntimeToolEffects); ok {
+			effects.receiverMu.Lock()
+			if effects.receiver != nil {
+				effects.receiverMu.Unlock()
+				return o, errToolConflict // never replace a borrower/its cleanup debt
+			}
+			effects.receiver = o
+			effects.receiverMu.Unlock()
+		}
+	}
 	resource, err := OpenOriginalTaskReadResource(ctx, server)
 	o.resource = resource
 	if err != nil {
@@ -61,6 +72,41 @@ func OpenOriginalTaskReadReceiver(ctx context.Context, server *Server) (*Origina
 		return o, errTaskEffectSourceUnavailable
 	}
 	return openOriginalTaskReadReceiver(ctx, o, source)
+}
+
+func (o *OriginalTaskReadReceiver) currentForExecution(ctx context.Context, store *Store, source originalTaskReadReceiverRegistration) error {
+	if ctx == nil || ctx.Err() != nil {
+		if ctx != nil {
+			return ctx.Err()
+		}
+		return errTaskEffectSourceUnavailable
+	}
+	o.mu.Lock()
+	if !o.started || o.retired {
+		o.mu.Unlock()
+		return errTaskEffectSourceUnavailable
+	}
+	// All remaining fields were initialized before started was published.
+	resource, registration := o.resource, o.registration
+	unavailable := o.newEffectsUnavailable
+	valid := o.server != nil && o.listener != nil && resource != nil && resource.store == store && registration == source
+	o.mu.Unlock()
+	if !valid || unavailable != nil {
+		return errors.Join(errTaskEffectSourceUnavailable, unavailable)
+	}
+	if err := registration.AssertOriginalTaskReadReceiverCurrent(ctx); err != nil {
+		return err
+	}
+	if err := resource.Current(ctx); err != nil {
+		return err
+	}
+	o.mu.Lock()
+	retired := o.retired
+	o.mu.Unlock()
+	if retired {
+		return errTaskEffectSourceUnavailable
+	}
+	return ctx.Err()
 }
 
 // Unexported implementation permits PUBLIC transport/lifetime controls. It is

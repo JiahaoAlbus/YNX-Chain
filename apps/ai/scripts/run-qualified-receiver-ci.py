@@ -74,7 +74,10 @@ try:
         "internal/authtasklocal/public_qualified_receiver_candidate.go",
         "packages/auth-grant-runtime/go/public_qualified_receiver_candidate.go",
         "packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
-        "internal/aiproduct/task_resource_receiver.go", "internal/aiproduct/task_resource_receiver_mount.go"]
+        "internal/aiproduct/task_resource_receiver.go", "internal/aiproduct/task_resource_receiver_mount.go",
+        "internal/aiproduct/task_authority_broker.go", "internal/aiproduct/task_runtime_composition.go",
+        "internal/aiproduct/task_conversation_broker.go", "internal/aiproduct/task_dispatch.go",
+        "internal/aiproduct/task_receiver_dispatch_gate_interop_test.go"]
     source_paths = sorted({*(repo / item["target"] for item in intake["imports"]),
         *(repo / name for name in consumer_paths), pathlib.Path(__file__).resolve(), *package.rglob("*")})
     def snapshot():

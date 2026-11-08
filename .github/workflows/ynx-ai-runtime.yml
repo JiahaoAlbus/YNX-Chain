@@ -199,6 +199,11 @@ jobs:
           PY
       - name: Run exact portable original receiver consumer
         run: python3 apps/ai/scripts/run-qualified-receiver-ci.py --sdk-tgz "$RUNNER_TEMP/receiver-input/sdk.tgz" --evidence "$RUNNER_TEMP/receiver-evidence"
+      - name: Verify receiver-only refusal before task operation reservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -race -p 1 -tags=link_registered_receiver_interop ./internal/aiproduct -run '^TestP08NativeReceiverDispatchReadiness$' -count=1 -timeout=60s -json | tee "$RUNNER_TEMP/receiver-evidence/dispatch-readiness.jsonl"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

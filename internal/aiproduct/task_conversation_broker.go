@@ -27,6 +27,9 @@ func (b *originalTaskAuthorityBroker) dispatchConversation(ctx context.Context, 
 	if err = b.effectCurrent(ctx); err != nil {
 		return taskReadReceipt{}, err
 	}
+	if err = e.originalReceiverCurrent(ctx); err != nil {
+		return taskReadReceipt{}, err
+	}
 	result, effectErr := b.client.AuthorizeAtEffect(ctx, originalclient.TaskAuthorityCall{Grant: auth.Grant, Holder: auth.Holder, RawInput: bytes.Clone(request.Input), GrantRef: open.LegacyGrantRefV1{Realm: grant.Realm, Tenant: grant.Tenant, Kind: "grant", ID: grant.ID, Rev: grant.Rev}})
 	// Preserve original-op metadata before any late error; it is never a receipt.
 	retainErr := retainOriginalBrokerReference(e.store, request, result)

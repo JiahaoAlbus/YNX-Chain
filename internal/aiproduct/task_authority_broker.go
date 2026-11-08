@@ -83,6 +83,11 @@ func (e *originalRuntimeToolEffects) taskToolAvailable(ctx context.Context, tool
 		if toolID != shopOrderToolID && toolID != "ai.conversation.read" {
 			return errTaskEffectSourceUnavailable
 		}
+		if toolID == "ai.conversation.read" {
+			if err := e.originalReceiverCurrent(ctx); err != nil {
+				return err
+			}
+		}
 		return e.runtime.broker.effectCurrent(ctx)
 	}
 	// A native signature/read gate alone must never activate production
@@ -94,6 +99,25 @@ func (e *originalRuntimeToolEffects) taskToolAvailable(ctx context.Context, tool
 		return nil
 	}
 	return errTaskEffectSourceUnavailable
+}
+
+// Only the normal native composition requires its actual mounted borrower.
+// Readiness is not an effect claim. Original reconciliation never calls this.
+func (e *originalRuntimeToolEffects) originalReceiverCurrent(ctx context.Context) error {
+	authority, native := e.runtime.authority.(*nativeTaskRuntimeAuthority)
+	if !native {
+		return nil // explicit PUBLIC/non-native composition has its own Source
+	}
+	e.receiverMu.Lock()
+	receiver := e.receiver
+	e.receiverMu.Unlock()
+	if authority.localOwner == nil || receiver == nil {
+		return errTaskEffectSourceUnavailable
+	}
+	if err := receiver.currentForExecution(ctx, e.store, authority.localOwner); err != nil {
+		return errors.Join(errTaskEffectSourceUnavailable, err)
+	}
+	return nil
 }
 
 func originalBrokerShopProfile(binding policy.TaskEffectBinding) (OriginalShopOrderProfile, error) {

@@ -107,6 +107,15 @@ then uses its existing registered consumer controls. Supplier real-math/current
 and lifetime controls are reused. Root rows remain empty: importing the CODE
 does not create a registered peer, Source selection or listener permission.
 
+The normal native conversation executor now borrows that same mounted receiver.
+Before persisting a NEW product operation, it checks actual started/not-retired
+state, exact Store/original Owner identity, resource Source current and dedicated
+receiver permission current. It rechecks before calling original Auth NEW.
+Missing/unstarted/retired receivers refuse with no task/step/audit mutation and
+no Auth NEW call. This receiver-specific fence does not gate Shop/model readiness
+or historical original-operation queries. A second normal constructor cannot
+replace the first borrower or discard its cleanup debt. Main remains its owner.
+
 Normal service shutdown runs original V6 cleanup, original receiver/LINK drain
 and resource closure, then the borrowed task runtime parent in one guarded
 sequence. Any child cleanup error stops before its parents. The original

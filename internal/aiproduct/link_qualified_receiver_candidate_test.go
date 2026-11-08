@@ -102,6 +102,12 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 		t.Fatalf("normal P08 receiver-purpose candidate: %v %+v", openErr, original)
 	}
 	t.Logf("phase=normal-listener-started elapsed=%s", time.Since(started))
+	if server.toolEffects.(*originalRuntimeToolEffects).receiver != original {
+		t.Fatal("normal executor did not borrow the same original receiver")
+	}
+	if e = original.currentForExecution(ctx, resource.store, owner); e != nil {
+		t.Fatal("mounted same-owner receiver unavailable before execution", e)
+	}
 	socket := original.listener.Addr().String()
 	info, e := os.Lstat(socket)
 	if e != nil || info.Mode()&os.ModeSocket == 0 {
@@ -128,6 +134,9 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	}
 	if e = original.Retire(); e != nil {
 		t.Fatal(e)
+	}
+	if e = original.currentForExecution(ctx, resource.store, owner); !errors.Is(e, errTaskEffectSourceUnavailable) {
+		t.Fatal("retired receiver still admitted a new execution", e)
 	}
 	drain, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

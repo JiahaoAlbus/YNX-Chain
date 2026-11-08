@@ -33,8 +33,9 @@
         "sha256": "57d85b45bc439ecaec06eae64b4d1c55b9918950cf77bd48aa581d4fc34699eb"
       },
       "byteExact": false,
-      "consumerSHA256": "1a4051b4d3bbfe09ad112856532552a5a7f78cfc089b36eacc05d93fb176b837",
-      "adaptation": "PUBLIC input assembly only: fixed initial180s Source/Grant/profile sample before first signing, never refreshed; lifecycle test150s plus stage timing. Original7s producer per-call bound, SDK crypto/current/revoke and production6CAS/runner unchanged."
+      "consumerSHA256": "8ec7a8b03c7701270754d06671fa4f3481660101ecc60a980cfa45c8577f9d9e",
+      "adaptation": "PUBLIC input assembly only: fixed initial180s Source/Grant/profile sample before first signing, never refreshed; lifecycle test150s plus stage timing. Original7s producer per-call bound, SDK crypto/current/revoke and production6CAS/runner unchanged.",
+      "productionConsumerFollowup": "Existing controlled positive now also checks executor borrowed exact receiver, current admission and retired refusal; normal readiness negative run separately."
     },
     {
       "target": "internal/authtasklocal/public_qualified_receiver_candidate.go",

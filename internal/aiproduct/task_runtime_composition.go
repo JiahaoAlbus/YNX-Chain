@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway"
 	authgrant "ynx.local/authgrantpolicy"
@@ -190,8 +191,10 @@ func (p *PreparedOriginalTaskRuntime) install(s *Server) error {
 }
 
 type originalRuntimeToolEffects struct {
-	runtime *PreparedOriginalTaskRuntime
-	store   *Store
+	runtime    *PreparedOriginalTaskRuntime
+	store      *Store
+	receiverMu sync.Mutex
+	receiver   *OriginalTaskReadReceiver // borrowed; normal main owns shutdown
 }
 
 func (e *originalRuntimeToolEffects) resolve(ctx context.Context, call taskEffectCall, ref string, query ...bool) (OriginalTaskGrantAuthorization, error) {
