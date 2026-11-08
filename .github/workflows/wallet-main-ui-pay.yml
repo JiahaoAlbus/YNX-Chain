@@ -1,0 +1,49 @@
+name: Wallet Main UI and Pay
+
+on:
+  pull_request:
+    paths:
+      - apps/wallet-desktop/src/**
+      - apps/wallet-desktop/test/**
+      - .github/workflows/wallet-main-ui-pay.yml
+  push:
+    branches:
+      - codex/wallet-main-*
+      - codex/wallet-control-matched-main-*
+    paths:
+      - apps/wallet-desktop/src/**
+      - apps/wallet-desktop/test/**
+      - .github/workflows/wallet-main-ui-pay.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wallet-main-ui-pay-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  public-ui-pay-controls:
+    name: Main UI and Pay controls (Node 24)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: apps/wallet-desktop
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+      # Bounded local JS/Node controls: signing-only dynamic SDK imports are not
+      # entered. No dependency install, Native compile, Electron, profiles, keys,
+      # network writes, signing or publication is part of this job.
+      - name: Pay, navigation, shutdown and locale controls
+        run: |
+          node --version
+          node --test test/native-pay-product-ui.test.mjs test/main-standalone-pay-navigation.test.mjs test/wallet-main-shutdown-sync-failure.test.mjs test/wallet-locale.test.mjs test/empty-account-guidance-mounted.test.mjs
+      - name: Normal mounted resolver heading locale control
+        run: node --test --test-name-pattern 'resolver page title uses normal locale' test/approved-desktop-ui.test.mjs
