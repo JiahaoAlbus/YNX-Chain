@@ -15,11 +15,12 @@ final class StartupPublicHTTP:URLProtocol,@unchecked Sendable {
     override class func canInit(with request:URLRequest)->Bool{true}
     override class func canonicalRequest(for request:URLRequest)->URLRequest{request}
     override func startLoading(){Task{@MainActor in
-        precondition(request.url?.path=="/api/products")
+        precondition(["/api/products","/api/products/p"].contains(request.url?.path ?? ""))
         precondition(request.value(forHTTPHeaderField:"X-YNX-Product-Session-Proof-V2")==nil)
         Self.reads+=1
         client?.urlProtocol(self,didReceive:HTTPURLResponse(url:request.url!,statusCode:200,httpVersion:nil,headerFields:nil)!,cacheStoragePolicy:.notAllowed)
-        client?.urlProtocol(self,didLoad:Data("{\"products\":[]}".utf8));client?.urlProtocolDidFinishLoading(self)
+        let body=request.url?.path=="/api/products" ? "{\"products\":[]}" : "{\"ID\":\"p\",\"StoreID\":\"s\",\"Title\":\"Original\",\"Variants\":[{\"ID\":\"v\",\"Name\":\"Original\",\"PriceYNXT\":1,\"Inventory\":20}]}"
+        client?.urlProtocol(self,didLoad:Data(body.utf8));client?.urlProtocolDidFinishLoading(self)
     }}
     override func stopLoading(){}
 }
@@ -51,12 +52,13 @@ final class StartupPublicHTTP:URLProtocol,@unchecked Sendable {
         allowRead=true;model.unlockLocalData()
         try check(!model.localDataLocked && model.cart.first?.quantity==3 && writes==0,"explicit permitted unlock restores the original cart without a write")
         try check(api.currentSession==nil && factories==0,"local data unlock grants no Native or Wallet authority")
+        await model.refreshProduct("p")
         model.add(product,product.variants[0])
         try check(model.cart.first?.quantity==4 && writes==1 && saved["original-UNKNOWN"]==preserved["original-UNKNOWN"],"subsequent user edit starts from restored original quantity and retains UNKNOWN")
         do{try await api.connectNative();throw NSError(domain:"unexpected approval",code:1)}catch ShopError.unavailable{}
         try check(factories==1 && authority.restores==1 && authority.connections==1 && api.currentSession==nil,"only explicit sign-in opens the original authority and refusal grants no session")
         do{let _:OrdersResponse=try await api.request("orders");throw NSError(domain:"unexpected private read",code:1)}catch ShopError.signedOut{}
-        try check(StartupPublicHTTP.reads==1,"refused sign-in cannot dispatch a protected order read")
+        try check(StartupPublicHTTP.reads==2,"refused sign-in cannot dispatch a protected order read")
         try api.disconnectNative()
         try check(authority.disconnects==1 && saved["original-UNKNOWN"]==preserved["original-UNKNOWN"],"normal disconnect retains original recovery records")
         var returnFactories=0

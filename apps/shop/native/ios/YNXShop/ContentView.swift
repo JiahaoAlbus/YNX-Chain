@@ -1,4 +1,9 @@
 import SwiftUI
+#if canImport(AppKit)
+import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 
 let supportedLanguages=ShopLanguage.supported
 
@@ -97,11 +102,15 @@ struct CatalogView:View {
     @State private var inStock=false
     @State private var comparisonIDs=Set<String>()
     private var categories:[String]{Array(Set(model.products.compactMap(\.category).filter{!$0.isEmpty})).sorted()}
+    private var filtered:[Product]{model.products.filter{p in (category==nil || p.category==category) && (!inStock || p.variants.contains{$0.available>0})}}
+    private var comparablePrices:[String:UInt64]?{ShopNativeCatalogOrdering.prices(filtered)}
     private var displayed:[Product]{
-        let filtered=model.products.filter{p in (category==nil || p.category==category) && (!inStock || p.variants.contains{$0.available>0})}
-        if sort=="price_low"{return filtered.sorted{($0.variants.map(\.priceYNXT).min() ?? .max)<($1.variants.map(\.priceYNXT).min() ?? .max)}}
-        if sort=="price_high"{return filtered.sorted{($0.variants.map(\.priceYNXT).min() ?? .min)>($1.variants.map(\.priceYNXT).min() ?? .min)}}
-        return filtered
+        guard sort != "default",let prices=comparablePrices else{return filtered}
+        return filtered.sorted{left,right in
+            guard let a=prices[left.productID],let b=prices[right.productID] else{return false}
+            if a==b{return left.productID<right.productID}
+            return sort=="price_low" ? a<b:a>b
+        }
     }
     var body:some View{GeometryReader{geometry in
         let desktop=geometry.size.width>=900
@@ -110,10 +119,15 @@ struct CatalogView:View {
             if !searchOnly{ShopEditorialHero(desktop:desktop)}
             if !categories.isEmpty{ScrollView(.horizontal,showsIndicators:false){HStack(spacing:12){categoryButton(nil);ForEach(categories,id:\.self){categoryButton($0)}}}}
             HStack(alignment:.firstTextBaseline){ShopSectionTitle(title:searchOnly ? "search":"catalog_heading");Spacer();Button("ai_compare"){model.prepareComparison(ids:Array(comparisonIDs).sorted())}.buttonStyle(ShopButtonStyle(kind:.secondary))}
-            HStack(spacing:16){Text("\(displayed.count)").monospacedDigit();Text("shop_visible_results").foregroundStyle(ShopTheme.secondary);Spacer();Toggle("shop_in_stock",isOn:$inStock).toggleStyle(.switch).controlSize(.mini);Picker("shop_sort",selection:$sort){Text("shop_sort_default").tag("default");Text("shop_sort_low").tag("price_low");Text("shop_sort_high").tag("price_high")}.pickerStyle(.menu).fixedSize()}.shopFont(12)
+            HStack(spacing:16){Text("\(displayed.count)").monospacedDigit();Text("shop_visible_results").foregroundStyle(ShopTheme.secondary);Spacer();Toggle("shop_in_stock",isOn:$inStock).toggleStyle(.switch).controlSize(.mini);Picker("shop_sort",selection:$sort){Text("shop_sort_default").tag("default");Text("shop_sort_low").tag("price_low").disabled(comparablePrices==nil);Text("shop_sort_high").tag("price_high").disabled(comparablePrices==nil)}.pickerStyle(.menu).fixedSize()}.shopFont(12)
+            if comparablePrices==nil && !filtered.isEmpty{ShopNotice(title:"shop_sort_incomparable")}
+            if model.catalogIsStale && !model.products.isEmpty{ShopNotice(title:model.catalogPhase=="offline" ? "shop_catalog_offline_stale":"shop_catalog_stale",symbol:"clock.arrow.circlepath",warning:true)}
+            if model.catalogIsStale,let source=model.catalogLoadedQuery{BuyerDetailValue(title:"shop_catalog_source_query",value:source.isEmpty ? String(localized:"shop_all_categories"):source)}
+            if model.catalogPhase=="loading" && !model.products.isEmpty{ProgressView("shop_catalog_loading").shopFont(12)}
             if displayed.isEmpty {
-                if model.state=="loading"{ProgressView().frame(maxWidth:.infinity,minHeight:180)}
-                else{ContentUnavailableView("empty_catalog",systemImage:"magnifyingglass",description:Text("no_fake_records")).frame(maxWidth:.infinity,minHeight:220);Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
+                if model.catalogPhase=="loading" || model.catalogPhase=="idle"{ProgressView().frame(maxWidth:.infinity,minHeight:180)}
+                else if model.catalogPhase=="failed" || model.catalogPhase=="offline"{ContentUnavailableView(model.catalogPhase=="offline" ? "shop_catalog_offline":"shop_catalog_failed",systemImage:"wifi.exclamationmark",description:Text("shop_catalog_retry_note"));Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
+                else{ContentUnavailableView(model.products.isEmpty ? "empty_catalog":"shop_no_filter_matches",systemImage:"magnifyingglass",description:Text("no_fake_records")).frame(maxWidth:.infinity,minHeight:220);Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
             } else {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:desktop ? 220:150,maximum:desktop ? 320:260),spacing:20)],alignment:.leading,spacing:20){ForEach(displayed){product in
                     ShopProductCard(product:product,selected:comparisonIDs.contains(product.productID)){if comparisonIDs.contains(product.productID){comparisonIDs.remove(product.productID)}else if comparisonIDs.count<3{comparisonIDs.insert(product.productID)}}
@@ -123,6 +137,7 @@ struct CatalogView:View {
             ShopMarketplaceFooter()
         }.padding(desktop ? ShopTheme.desktopPadding:ShopTheme.mobilePadding).frame(maxWidth:ShopTheme.maximumPageWidth+80).frame(maxWidth:.infinity,alignment:.center)}
         .background(ShopTheme.background).navigationTitle(searchOnly ? "search":"app_name").shopInlineTitle().refreshable{await model.loadCatalog()}
+        .onChange(of:comparablePrices==nil){if comparablePrices==nil{sort="default"}}
         .onChange(of:model.products.map(\.productID)){comparisonIDs.formIntersection(Set(model.products.map(\.productID)));if let category,!categories.contains(category){self.category=nil}}
     }}
     private func categoryButton(_ value:String?)->some View{Button{category=value}label:{Text(value ?? String(localized:"shop_all_categories")).shopFont(13,.semibold).padding(.horizontal,18).padding(.vertical,12).foregroundStyle(category==value ? ShopTheme.primary:ShopTheme.text).background(category==value ? ShopTheme.subtle:ShopTheme.surface).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radiusSmall))}.buttonStyle(.plain)}
@@ -137,11 +152,11 @@ struct ShopProductCard:View {
     let selected:Bool
     let toggleComparison:()->Void
     var body:some View{VStack(alignment:.leading,spacing:0){
-        NavigationLink{ProductView(product:product)}label:{ProductImage(product:product,height:190)}.buttonStyle(.plain)
+        ProductImage(product:product,height:190)
         VStack(alignment:.leading,spacing:9){
             NavigationLink{ProductView(product:product)}label:{Text(product.name).shopFont(15,.semibold).foregroundStyle(ShopTheme.text).lineLimit(2).frame(maxWidth:.infinity,alignment:.leading)}.buttonStyle(.plain)
             if let category=product.category{Text(category).shopFont(12).foregroundStyle(ShopTheme.secondary)}
-            if let price=product.variants.map(\.priceYNXT).min(){Text(ShopMoneyDisplay.legacyYNXT(price,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold).foregroundStyle(ShopTheme.text)}
+            ShopCatalogProductPrice(product:product).shopFont(17,.bold).foregroundStyle(ShopTheme.text)
             HStack{Text(String(format:String(localized:"catalog_variant_count",locale:Locale(identifier:model.appLanguage)),locale:Locale(identifier:model.appLanguage),Int64(product.variants.count))).foregroundStyle(ShopTheme.secondary);Spacer();Button(action:toggleComparison){Image(systemName:selected ? "checkmark.circle.fill":"plus.circle").foregroundStyle(selected ? ShopTheme.primary:ShopTheme.secondary)}.buttonStyle(.plain).accessibilityLabel("ai_compare")}.shopFont(12)
         }.padding(16)
     }.background(ShopTheme.surface).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radius)).overlay(RoundedRectangle(cornerRadius:ShopTheme.radius).stroke(selected ? ShopTheme.primary:ShopTheme.border,lineWidth:1))}
@@ -150,8 +165,52 @@ struct ProductImage:View {
     let product:Product
     let height:CGFloat
     private var media:ProductMedia?{product.media.first(where:{$0.imageURL != nil})}
-    var body:some View{Group{if let url=media?.imageURL{AsyncImage(url:url){phase in if let image=phase.image{image.resizable().scaledToFit()}else{placeholder.overlay{if phase.error==nil{ProgressView()}}}}}else{placeholder}}.frame(maxWidth:.infinity).frame(height:height).background(ShopTheme.background).clipped().accessibilityLabel(media?.altText ?? product.name)}
-    private var placeholder:some View{Rectangle().fill(ShopTheme.tertiary).overlay{Image(systemName:"photo").font(.largeTitle).foregroundStyle(ShopTheme.muted).accessibilityHidden(true)}}
+    var body:some View{ShopRemoteProductImage(url:media?.imageURL,alt:media?.altText ?? product.name,height:height)}
+}
+private struct ShopRemoteProductImage:View {
+    let url:URL?
+    let alt:String
+    let height:CGFloat
+    var compact=false
+    @State private var retryGeneration=0
+    @State private var loadedImage:Image?
+    @State private var loadPhase="loading"
+    private var requestKey:String{(url?.absoluteString ?? "missing")+":"+String(retryGeneration)}
+    var body:some View{Group{
+        if let loadedImage{loadedImage.resizable().scaledToFit().accessibilityLabel(alt)}
+        else if url==nil{state("shop_image_missing",symbol:"photo",loading:false,retry:false)}
+        else if loadPhase=="failed"{state("shop_image_failed",symbol:"exclamationmark.triangle",loading:false,retry:!compact)}
+        else{state("shop_image_loading",symbol:"photo",loading:true,retry:false)}
+    }.frame(maxWidth:.infinity).frame(height:height).background(ShopTheme.tertiary).clipped().task(id:requestKey){await loadOriginalImage()}}
+    @MainActor private func loadOriginalImage()async {
+        loadedImage=nil
+        guard let url else{loadPhase="missing";return}
+        loadPhase="loading"
+        let configuration=URLSessionConfiguration.ephemeral
+        configuration.httpShouldSetCookies=false
+        let session=URLSession(configuration:configuration,delegate:ShopRedirectPolicy(),delegateQueue:nil)
+        defer{session.invalidateAndCancel()}
+        var request=URLRequest(url:url,cachePolicy:.reloadIgnoringLocalCacheData,timeoutInterval:15)
+        request.httpShouldHandleCookies=false
+        do{
+            let(data,response)=try await session.data(for:request)
+            guard !Task.isCancelled else{return}
+            guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode),response.url==url,!data.isEmpty,data.count<=16_777_216 else{loadPhase="failed";return}
+#if canImport(AppKit)
+            guard let native=NSImage(data:data) else{loadPhase="failed";return}
+            loadedImage=Image(nsImage:native)
+#elseif canImport(UIKit)
+            guard let native=UIImage(data:data) else{loadPhase="failed";return}
+            loadedImage=Image(uiImage:native)
+#endif
+            loadPhase="loaded"
+        }catch{if !Task.isCancelled{loadPhase="failed"}}
+    }
+    private func state(_ title:LocalizedStringKey,symbol:String,loading:Bool,retry:Bool)->some View{VStack(spacing:8){
+        if loading{ProgressView().controlSize(.small)}else{Image(systemName:symbol).foregroundStyle(ShopTheme.muted)}
+        if !compact{Text(title).shopFont(12).foregroundStyle(ShopTheme.secondary).multilineTextAlignment(.center)}
+        if retry{Button("shop_retry_image"){retryGeneration+=1}.buttonStyle(.plain).shopFont(12).foregroundStyle(ShopTheme.primary)}
+    }.padding(compact ? 4:12).frame(maxWidth:.infinity,maxHeight:.infinity).accessibilityElement(children:.contain).accessibilityLabel(title)}
 }
 struct ShopPlatformServices:View {
     @EnvironmentObject var model:ShopModel
@@ -172,21 +231,25 @@ struct ShopServiceLabel:View {
 struct ShopMarketplaceFooter:View {var body:some View{VStack(alignment:.leading,spacing:14){ShopTheme.border.frame(height:1);HStack{Text("YNX Shop");Spacer();Text("shop_testnet_label");Text(OriginalOrderLink.chainID)}}.shopFont(12).foregroundStyle(ShopTheme.secondary).padding(.top,8)}}
 
 struct ProductView:View {
-    let product:Product
+    let initialProduct:Product
+    init(product:Product){self.initialProduct=product}
+    private var product:Product{model.cachedProduct(initialProduct.productID) ?? initialProduct}
     @EnvironmentObject var model:ShopModel
     var body:some View{GeometryReader{geometry in
         let desktop=geometry.size.width>=900
         ScrollView{VStack(alignment:.leading,spacing:24){
+            ShopProductLoadStatus(productID:initialProduct.productID)
+
             HStack{Text("nav_catalog");Text("/");if let category=product.category{Text(category);Text("/")};Text(product.name).lineLimit(1)}.shopFont(12).foregroundStyle(ShopTheme.secondary)
             if desktop{HStack(alignment:.top,spacing:40){ProductGallery(product:product).frame(maxWidth:560);productInformation}}else{VStack(alignment:.leading,spacing:24){ProductGallery(product:product);productInformation}}
             ShopPanel{VStack(alignment:.leading,spacing:18){ShopSectionTitle(title:"shop_product_details");Text(product.description ?? String(localized:"unavailable")).shopFont(14).textSelection(.enabled);Divider();Text("trust_evidence").shopFont(17,.semibold);Text("trust_boundary").shopFont(13).foregroundStyle(ShopTheme.secondary)}}
         }.padding(desktop ? 40:16).frame(maxWidth:1440).frame(maxWidth:.infinity)}.background(ShopTheme.background).navigationTitle(product.name).shopInlineTitle()
-    }}
+    }.task(id:initialProduct.productID){await model.refreshProduct(initialProduct.productID)}.refreshable{await model.refreshProduct(initialProduct.productID)}}
     private var productInformation:some View{VStack(alignment:.leading,spacing:20){
         Text(product.category ?? String(localized:"nav_catalog")).shopFont(13,.semibold).foregroundStyle(ShopTheme.primary)
         Text(product.name).shopFont(28,.bold,relativeTo:.title).fixedSize(horizontal:false,vertical:true)
         Text(product.description ?? "").shopFont(14).foregroundStyle(ShopTheme.secondary)
-        if let price=product.variants.map(\.priceYNXT).min(){Text(ShopMoneyDisplay.legacyYNXT(price,locale:Locale(identifier:model.appLanguage))).shopFont(28,.bold).padding(.vertical,6)}
+        ShopCatalogProductPrice(product:product).shopFont(28,.bold).padding(.vertical,6)
         Divider()
         Text("shop_choose_variant").shopFont(15,.semibold)
         ForEach(product.variants){variant in ProductVariantRow(product:product,variant:variant)}
@@ -196,20 +259,21 @@ struct ProductView:View {
 }
 struct ProductGallery:View {
     let product:Product
-    @State private var selected=0
+    @State private var selectedURL:String?
     private var media:[ProductMedia]{product.media.filter{$0.imageURL != nil}}
+    private var current:ProductMedia?{media.first(where:{$0.url==selectedURL}) ?? media.first}
     var body:some View{VStack(spacing:12){
-        if media.indices.contains(selected),let url=media[selected].imageURL {
-            AsyncImage(url:url){phase in if let image=phase.image{image.resizable().scaledToFit()}else if phase.error==nil{ProgressView()}else{Image(systemName:"photo").font(.largeTitle).foregroundStyle(ShopTheme.muted)}}.frame(maxWidth:.infinity).frame(height:360).background(ShopTheme.surface).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radius)).accessibilityLabel(media[selected].altText ?? product.name)
-        }else{ProductImage(product:product,height:360).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radius))}
-        if media.count>1{ScrollView(.horizontal){HStack(spacing:10){ForEach(Array(media.enumerated()),id:\.offset){index,image in Button{selected=index}label:{AsyncImage(url:image.imageURL){phase in if let item=phase.image{item.resizable().scaledToFit()}else{Image(systemName:"photo")}}.frame(width:76,height:76).background(ShopTheme.surface).clipShape(RoundedRectangle(cornerRadius:6)).overlay(RoundedRectangle(cornerRadius:6).stroke(selected==index ? ShopTheme.primary:ShopTheme.border,lineWidth:1))}.buttonStyle(.plain).accessibilityLabel(image.altText ?? product.name)}}}}
-    }}
+        ShopRemoteProductImage(url:current?.imageURL,alt:current?.altText ?? product.name,height:360).clipShape(RoundedRectangle(cornerRadius:ShopTheme.radius))
+        if media.count>1{ScrollView(.horizontal){HStack(spacing:10){ForEach(Array(media.enumerated()),id:\.offset){_,item in Button{selectedURL=item.url}label:{
+            ShopRemoteProductImage(url:item.imageURL,alt:item.altText ?? product.name,height:76,compact:true).frame(width:76).clipShape(RoundedRectangle(cornerRadius:6)).overlay(RoundedRectangle(cornerRadius:6).stroke(current?.url==item.url ? ShopTheme.primary:ShopTheme.border,lineWidth:1))
+        }.buttonStyle(.plain).accessibilityLabel(item.altText ?? product.name).accessibilityAddTraits(current?.url==item.url ? .isSelected:[])}}}}
+    }.onChange(of:media.map(\.url)){if let selectedURL,!media.contains(where:{$0.url==selectedURL}){self.selectedURL=nil}}}
 }
 struct ProductVariantRow:View {
     @EnvironmentObject var model:ShopModel
     let product:Product
     let variant:Variant
-    var body:some View{ShopPanel(padding:16){HStack(alignment:.center,spacing:16){VStack(alignment:.leading,spacing:7){Text(variant.name).shopFont(15,.semibold);Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold);NativeCatalogUnitAmount(price:variant.nativePrice);Text("\(variant.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").shopFont(12).foregroundStyle(variant.available>0 ? ShopTheme.secondary:ShopTheme.danger)};Spacer();Button("add_cart"){model.add(product,variant)}.buttonStyle(ShopButtonStyle()).disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired || variant.priceYNXT<1 || variant.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==variant.variantID})?.quantity ?? 0)>=20)}}}
+    var body:some View{ShopPanel(padding:16){HStack(alignment:.center,spacing:16){VStack(alignment:.leading,spacing:7){Text(variant.name).shopFont(15,.semibold);ShopCatalogVariantPrice(variant:variant).shopFont(17,.bold);Text("\(variant.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").shopFont(12).foregroundStyle(variant.available>0 ? ShopTheme.secondary:ShopTheme.danger)};Spacer();Button("add_cart"){model.add(product,variant)}.buttonStyle(ShopButtonStyle()).disabled(!model.canAdd(product,variant))}}}
 }
 
 struct CartView:View {
@@ -223,39 +287,48 @@ struct CartView:View {
             else{cartLines;CartSummary(showCheckout:true)}
             if model.checkoutRecoveryRequired{ShopNotice(title:"cart_checkout_recovery_required",symbol:"clock.arrow.circlepath",warning:true)}
             HStack(spacing:12){Button("cart_sync_button"){model.syncCart()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired);Button("cart_recover_checkout"){model.recoverCheckout()}.buttonStyle(ShopButtonStyle(kind:.secondary)).disabled(!model.signedIn || model.localDataLocked || model.mutationBusy)}
+            Button("shop_refresh_cart_products"){Task{await model.refreshCartProducts()}}.buttonStyle(ShopButtonStyle(kind:.secondary))
             ShopMarketplaceFooter()
         }.padding(desktop ? 40:16).frame(maxWidth:1440).frame(maxWidth:.infinity)}.background(ShopTheme.background).navigationTitle("nav_cart").shopInlineTitle()
-    }}
+    }.task{await model.refreshCartProducts()}.refreshable{await model.refreshCartProducts()}}
     private var cartLines:some View{VStack(spacing:16){ForEach(model.cart){item in CartItemView(item:item,revision:model.privacyRevision)}}.frame(maxWidth:.infinity,alignment:.topLeading)}
 }
 struct CartItemView:View {
     let item:CartItem
     let revision:Int
     @EnvironmentObject var model:ShopModel
-    private var product:Product?{let matches=model.products.filter{$0.productID==item.productID};return matches.count==1 ? matches[0]:nil}
+    private var product:Product?{model.cachedProduct(item.productID)}
     private var variant:Variant?{let matches=product?.variants.filter{$0.variantID==item.variantID} ?? [];return matches.count==1 ? matches[0]:nil}
-    var body:some View{ShopPanel{HStack(alignment:.top,spacing:16){if let product{ProductImage(product:product,height:96).frame(width:96).clipShape(RoundedRectangle(cornerRadius:6))};VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).shopFont(15,.semibold);Text(variant?.name ?? item.variantID).shopFont(12).foregroundStyle(ShopTheme.secondary);if let variant{Text(ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:Locale(identifier:model.appLanguage))).shopFont(17,.bold);NativeCatalogUnitAmount(price:variant.nativePrice)};Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity)").monospacedDigit()}.fixedSize();Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}.buttonStyle(.plain).shopFont(12).foregroundStyle(ShopTheme.secondary)};Spacer(minLength:0)}}.disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired)}
+    var body:some View{ShopPanel{VStack(alignment:.leading,spacing:14){
+        HStack(alignment:.top,spacing:16){
+            if let product{ProductImage(product:product,height:96).frame(width:96).clipShape(RoundedRectangle(cornerRadius:6))}
+            VStack(alignment:.leading,spacing:10){
+                if let product{NavigationLink{ProductView(product:product)}label:{Text(product.name).shopFont(15,.semibold)}}else{Text(verbatim:item.productID).shopFont(15,.semibold)}
+                Text(verbatim:variant?.name ?? item.variantID).shopFont(12).foregroundStyle(ShopTheme.secondary)
+                if let variant{ShopCatalogVariantPrice(variant:variant).shopFont(17,.bold)}
+                HStack(spacing:16){
+                    Button{model.setCartQuantity(item,quantity:item.quantity-1,revision:revision)}label:{Image(systemName:"minus.circle")}.disabled(item.quantity<=1).accessibilityLabel("shop_decrease_quantity")
+                    Text(String(item.quantity)).monospacedDigit()
+                    Button{model.setCartQuantity(item,quantity:item.quantity+1,revision:revision)}label:{Image(systemName:"plus.circle")}.disabled(model.maximumCartQuantity(item).map{item.quantity >= $0} ?? true).accessibilityLabel("shop_increase_quantity")
+                }.buttonStyle(.plain)
+                Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}.buttonStyle(.plain).shopFont(12).foregroundStyle(ShopTheme.secondary)
+            };Spacer(minLength:0)
+        }
+        ShopProductLoadStatus(productID:item.productID)
+        if product != nil && variant==nil && model.productPhase(item.productID)=="loaded"{ShopNotice(title:"shop_cart_variant_missing",warning:true)}
+        if let maximum=model.maximumCartQuantity(item),item.quantity>maximum{ShopNotice(title:"shop_cart_quantity_exceeds_stock",warning:true)}
+    }}.disabled(model.localDataLocked || model.mutationBusy || model.checkoutRecoveryRequired)}
 }
 struct CartSummary:View {
     @EnvironmentObject var model:ShopModel
     let showCheckout:Bool
-    private var estimate:Int64?{
-        var total:Int64=0
-        for item in model.cart {
-            let products=model.products.filter{$0.productID==item.productID}
-            guard products.count==1 else{return nil}
-            let variants=products[0].variants.filter{$0.variantID==item.variantID}
-            guard variants.count==1,(1...20).contains(item.quantity),variants[0].priceYNXT>=0 else{return nil}
-            let line=variants[0].priceYNXT.multipliedReportingOverflow(by:Int64(item.quantity));guard !line.overflow else{return nil}
-            let sum=total.addingReportingOverflow(line.partialValue);guard !sum.overflow else{return nil};total=sum.partialValue
-        }
-        return total
-    }
     private var itemCount:String{var total=0;for item in model.cart{guard item.quantity>=0 else{return String(localized:"unavailable")};let sum=total.addingReportingOverflow(item.quantity);guard !sum.overflow else{return String(localized:"unavailable")};total=sum.partialValue};return String(total)}
     var body:some View{ShopPanel{VStack(alignment:.leading,spacing:18){
         Text("order_review").shopFont(17,.semibold);Divider()
         HStack{Text("shop_cart_items");Spacer();Text(itemCount).monospacedDigit()}.shopFont(13)
-        HStack(alignment:.firstTextBaseline){Text("shop_estimated_total");Spacer();if let estimate{Text(ShopMoneyDisplay.legacyYNXT(estimate,locale:Locale(identifier:model.appLanguage))).shopFont(22,.bold).multilineTextAlignment(.trailing)}else{Text("unavailable").foregroundStyle(ShopTheme.secondary)}}
+        HStack(alignment:.firstTextBaseline){Text("shop_merchandise_subtotal");Spacer();if let native=model.cartNativeSubtotal{Text(ShopMoneyDisplay.atoms(String(native.atoms),locale:Locale(identifier:model.appLanguage)) ?? String(localized:"unavailable")).shopFont(22,.bold).multilineTextAlignment(.trailing)}else if let legacy=model.cartLegacySubtotal{Text(ShopMoneyDisplay.legacyYNXT(legacy,locale:Locale(identifier:model.appLanguage))).shopFont(22,.bold).multilineTextAlignment(.trailing)}else{Text("unavailable").foregroundStyle(ShopTheme.secondary)}}
+        if let issue=model.cartCatalogIssue{ShopNotice(title:LocalizedStringKey(issue),warning:true)}
+        Text("shop_subtotal_estimate_note").shopFont(12).foregroundStyle(ShopTheme.secondary)
         Text("shop_checkout_verifies_terms").shopFont(12).foregroundStyle(ShopTheme.secondary)
         Divider();Text("tax_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary);Text("logistics_unavailable").shopFont(12).foregroundStyle(ShopTheme.secondary)
         if showCheckout{NavigationLink{CheckoutView().id(model.privacyRevision)}label:{Text("order_review").frame(maxWidth:.infinity)}.buttonStyle(ShopButtonStyle()).disabled(model.localDataLocked || model.cart.isEmpty || model.mutationBusy || model.checkoutRecoveryRequired);if !model.signedIn{Button("wallet_sign_in"){model.signIn()}.buttonStyle(ShopButtonStyle(kind:.secondary))}}
@@ -605,7 +678,7 @@ struct AgentWorkspaceView:View {
 struct AgentProductSummary:View {
     @EnvironmentObject var model:ShopModel
     let product:Product
-    var body:some View{HStack(alignment:.top,spacing:12){ProductImage(product:product,height:64).frame(width:64).clipShape(RoundedRectangle(cornerRadius:6));VStack(alignment:.leading,spacing:6){Text(product.name).shopFont(14,.semibold);if let price=product.variants.map(\.priceYNXT).min(){Text(ShopMoneyDisplay.legacyYNXT(price,locale:Locale(identifier:model.appLanguage))).shopFont(15,.bold)};Text(String(format:String(localized:"catalog_variant_count",locale:Locale(identifier:model.appLanguage)),locale:Locale(identifier:model.appLanguage),Int64(product.variants.count))).shopFont(12).foregroundStyle(ShopTheme.secondary)}}.frame(maxWidth:.infinity,alignment:.leading)}
+    var body:some View{HStack(alignment:.top,spacing:12){ProductImage(product:product,height:64).frame(width:64).clipShape(RoundedRectangle(cornerRadius:6));VStack(alignment:.leading,spacing:6){Text(product.name).shopFont(14,.semibold);ShopCatalogProductPrice(product:product).shopFont(15,.bold);Text(String(format:String(localized:"catalog_variant_count",locale:Locale(identifier:model.appLanguage)),locale:Locale(identifier:model.appLanguage),Int64(product.variants.count))).shopFont(12).foregroundStyle(ShopTheme.secondary)}}.frame(maxWidth:.infinity,alignment:.leading)}
 }
 struct AgentPhaseLabel:View {
     let phase:String
@@ -645,7 +718,56 @@ struct NativeOrderAmounts:View {
     private func validated(_ payment:NativePaymentProjection)->Bool{do{try payment.validate(order,requirePaid:false);return true}catch{return false}}
 }
 
-private struct NativeCatalogUnitAmount:View {
-    let price:SellerNativePriceDATA?
-    var body:some View{if let price,price.AssetID=="YNXT",price.UnitVersion=="1",price.Genesis.utf8.count==64,NativeWire.matches(price.Genesis,"^[a-f0-9]{64}$"),let chain=UInt64(price.NativeChainID),chain>0,String(chain)==price.NativeChainID,let amount=UInt64(price.AmountAtoms),amount>0,String(amount)==price.AmountAtoms {Text(price.AmountAtoms+" "+String(localized:"native_atoms_unit")).shopFont(12).foregroundStyle(ShopTheme.secondary)}}
+
+
+private enum ShopNativeCatalogOrdering {
+    static func prices(_ products:[Product])->[String:UInt64]? {
+        guard !products.isEmpty else{return nil}
+        var domain:CatalogNativeDomain?,result:[String:UInt64]=[:]
+        for product in products {
+            guard result[product.productID]==nil,let range=CatalogPricing.nativeRange(product) else{return nil}
+            if let domain,domain != range.domain{return nil};domain=range.domain
+            result[product.productID]=range.minimum
+        }
+        return result
+    }
+}
+private struct ShopProductLoadStatus:View {
+    @EnvironmentObject var model:ShopModel
+    let productID:String
+    var body:some View{let phase=model.productPhase(productID)
+        VStack(alignment:.leading,spacing:10){
+            if phase=="loading"{ProgressView("shop_product_loading").shopFont(12)}
+            if phase=="failed" || phase=="offline" || phase=="not_found" || (phase=="idle" && model.cachedProduct(productID)==nil){
+                ShopNotice(title:phase=="not_found" ? "shop_product_not_found":phase=="offline" ? "shop_product_offline":model.cachedProduct(productID)==nil ? "shop_product_load_failed":"shop_product_stale",symbol:"clock.arrow.circlepath",warning:true)
+                Button("shop_refresh_product"){Task{await model.refreshProduct(productID)}}.buttonStyle(ShopButtonStyle(kind:.secondary))
+            }
+        }
+    }
+}
+
+private struct ShopCatalogProductPrice:View {
+    @Environment(\.locale) private var locale
+    let product:Product
+    private var text:String {
+        if let range=CatalogPricing.nativeRange(product) {
+            let low=ShopMoneyDisplay.atoms(String(range.minimum),locale:locale) ?? String(localized:"unavailable")
+            if range.minimum==range.maximum{return low}
+            return low+" – "+(ShopMoneyDisplay.atoms(String(range.maximum),locale:locale) ?? String(localized:"unavailable"))
+        }
+        if CatalogPricing.isLegacy(product),let minimum=product.variants.map(\.priceYNXT).min(){return ShopMoneyDisplay.legacyYNXT(minimum,locale:locale)}
+        return String(localized:"unavailable",locale:locale)
+    }
+    var body:some View{Text(verbatim:text).fixedSize(horizontal:false,vertical:true)}
+}
+
+private struct ShopCatalogVariantPrice:View {
+    @Environment(\.locale) private var locale
+    let variant:Variant
+    private var text:String {
+        if let unit=CatalogPricing.nativeUnit(variant){return ShopMoneyDisplay.atoms(String(unit.atoms),locale:locale) ?? String(localized:"unavailable",locale:locale)}
+        if variant.nativePrice==nil{return ShopMoneyDisplay.legacyYNXT(variant.priceYNXT,locale:locale)}
+        return String(localized:"unavailable",locale:locale)
+    }
+    var body:some View{Text(verbatim:text).fixedSize(horizontal:false,vertical:true)}
 }

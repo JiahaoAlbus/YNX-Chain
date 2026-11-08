@@ -57,6 +57,7 @@ struct Product: Codable, Identifiable {
     let category: String?
     let variants: [Variant]
     let media: [ProductMedia]
+    let revision:Int64?
     var id: String { productID }
 
     init(from decoder:Decoder)throws {
@@ -65,6 +66,7 @@ struct Product: Codable, Identifiable {
         storeID=try c.decode(String.self,forKey:.storeID)
         name=try c.decode(String.self,forKey:.name)
         description=try c.decodeIfPresent(String.self,forKey:.description)
+        revision=try c.decodeIfPresent(Int64.self,forKey:.revision)
         category=try c.decodeIfPresent(String.self,forKey:.category)
         variants=try c.decode([Variant].self,forKey:.variants)
         // Optional presentation metadata cannot make an original listing vanish.
@@ -79,6 +81,7 @@ struct Product: Codable, Identifiable {
         case category = "Category"
         case variants = "Variants"
         case media = "Media"
+        case revision = "Revision"
     }
 }
 
@@ -114,6 +117,24 @@ struct Variant: Codable, Identifiable {
         case nativePrice="NativePrice"
     }
 }
+
+struct CatalogNativeDomain:Equatable {let genesis,nativeChainID,assetID,unitVersion:String}
+struct CatalogNativeAmount {let domain:CatalogNativeDomain;let atoms:UInt64}
+enum CatalogPricing {
+    static func nativeUnit(_ variant:Variant)->CatalogNativeAmount? {
+        guard let p=variant.nativePrice,NativeWire.matches(p.Genesis,"^[a-f0-9]{64}$"),
+              let chain=UInt64(p.NativeChainID),chain>0,String(chain)==p.NativeChainID,
+              p.AssetID=="YNXT",p.UnitVersion=="1",let atoms=UInt64(p.AmountAtoms),atoms>0,String(atoms)==p.AmountAtoms else{return nil}
+        return .init(domain:.init(genesis:p.Genesis,nativeChainID:p.NativeChainID,assetID:p.AssetID,unitVersion:p.UnitVersion),atoms:atoms)
+    }
+    static func nativeRange(_ product:Product)->(minimum:UInt64,maximum:UInt64,domain:CatalogNativeDomain)? {
+        let prices=product.variants.compactMap{nativeUnit($0)}
+        guard !prices.isEmpty,prices.count==product.variants.count,let first=prices.first,prices.allSatisfy({$0.domain==first.domain}) else{return nil}
+        return (prices.map(\.atoms).min()!,prices.map(\.atoms).max()!,first.domain)
+    }
+    static func isLegacy(_ product:Product)->Bool{!product.variants.isEmpty && product.variants.allSatisfy{$0.nativePrice==nil && $0.priceYNXT>0}}
+}
+struct ShopHTTPRefusal:Error {let status:Int}
 
 struct CartItem: Codable, Identifiable {
     let productID: String
@@ -426,7 +447,7 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
         var req=URLRequest(url:url);req.httpMethod=method;req.httpBody=method=="GET" ? nil:wire;req.timeoutInterval=12;req.setValue("application/json",forHTTPHeaderField:"Content-Type");req.setValue("application/json",forHTTPHeaderField:"Accept")
         if !publicRead {guard url.query==nil,url.path==base.path+"/"+path,let active,let authority else{throw ShopError.security};let proof=try await authority.proof(method:method,path:url.path,body:text,expected:active);try assertCurrent();guard proof["body"] as? String==text,let identity=proof["identityHeader"] as? String,let action=proof["actionHeader"] as? String,NativeWire.matches(identity,"^[A-Za-z0-9_-]{32,32768}$"),NativeWire.matches(action,"^[A-Za-z0-9_-]{32,32768}$") else{throw ShopError.security};req.setValue(identity,forHTTPHeaderField:"X-YNX-Product-Session-Proof-V2");req.setValue(action,forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2")}
         try assertCurrent();try beforeDispatch?();try assertCurrent()
-        do{let(data,response)=try await session.data(for:req);try assertCurrent();guard let http=response as? HTTPURLResponse,data.count<=1_048_576 else{throw ShopError.invalidResponse};if http.statusCode==401{if !publicRead{try authority?.disconnect();onSessionChanged?()};throw ShopError.signedOut};guard (200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse};return data}catch{try assertCurrent();throw error}
+        do{let(data,response)=try await session.data(for:req);try assertCurrent();guard let http=response as? HTTPURLResponse,data.count<=1_048_576 else{throw ShopError.invalidResponse};if publicRead && !(200..<300).contains(http.statusCode){throw ShopHTTPRefusal(status:http.statusCode)};if http.statusCode==401{if !publicRead{try authority?.disconnect();onSessionChanged?()};throw ShopError.signedOut};guard (200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse};return data}catch{try assertCurrent();throw error}
     }
     func request<T:Decodable>(_ path:String,method:String="GET",body:Data?=nil)async throws->T{let data=try await transmit(path,method:method,body:body);return try JSONDecoder().decode(T.self,from:data)}
     // Resolve the whole original cart independently of the current catalog filter.

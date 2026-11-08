@@ -3,6 +3,14 @@ import SwiftUI
 
 @MainActor final class ShopModel:ObservableObject {
     @Published var products:[Product]=[]
+    @Published private(set) var catalogPhase="idle"
+    @Published private(set) var catalogLoadedQuery:String?
+    @Published private var productCache:[String:Product]=[:]
+    @Published private var productPhases:[String:String]=[:]
+    private var productReadTicket=0
+    private var productTickets:[String:Int]=[:]
+    private var productReads:[String:(ticket:Int,task:Task<Void,Never>)]=[:]
+    var catalogIsStale:Bool{catalogPhase != "loaded" || catalogLoadedQuery != search}
     @Published var cart:[CartItem]=[]
     @Published var orders:[Order]=[]
     @Published private(set) var checkoutResult:Order?
@@ -62,16 +70,17 @@ import SwiftUI
     func cancelInvoicePresentation(){handoffPresentationRevision+=1;invoicePresentation=nil;orderActionPresentation=nil}
     private func refreshCheckoutRecovery(){guard let current=api.currentSession,current==presentedSession else{checkoutRecoveryRequired=false;return};do{let draft=try journey.load(current.account);checkoutRecoveryRequired=draft.checkoutKey != nil || draft.checkoutPhase != nil}catch{checkoutRecoveryRequired=true}}
     init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil,nativeInvoices:NativeInvoicePreparationJournal?=nil,comparisonJournal:ShopComparisonJournal?=nil,localDataInitiallyLocked:Bool?=nil){self.comparisonJournal=comparisonJournal ?? ShopComparisonJournal();self.nativeInvoices=nativeInvoices ?? NativeInvoicePreparationJournal();self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();localDataLocked=localDataInitiallyLocked ?? (journey==nil);if !localDataLocked{do{cart=try self.journey.guest()}catch{localDataLocked=true}};self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();let pending=self.pendingOriginalOrderURL;self.pendingOriginalOrderURL=nil;self.originalLinkRestoring=false;self.reconcileIdentity();if let pending{self.walletCallback(pending)}};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
-    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};clearAgentPresentation();attemptedReconciliations=[:];let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
+    private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};clearAgentPresentation();attemptedReconciliations=[:];let pendingLink=pendingOriginalOrderAfterSignIn;closeOriginalOrderLink();cancelInvoicePresentation();operationRevision+=1;invalidateProductReads();mutationBusy=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder();if api.nativeInvoiceMode{await resumeNativeInvoiceReferences()}}}catch{state="security_error"}};refreshCheckoutRecovery();if let pendingLink,let current{if current.account==pendingLink.account,current.nativeGeneration != nil{originalOrderLink=pendingLink;Task{await refreshOriginalOrderLink()}}else{state="security_error"}}}
     func sceneActive(){reconcileIdentity();refreshCheckoutRecovery();Task{await resumeOriginalOrder();await resumeNativeInvoiceReferences()}}
     func setLanguage(_ value:String){appLanguage=ShopLanguage.choose(value,in:.standard,key:"app-language")}
     func setAILanguage(_ value:String){aiLanguage=ShopLanguage.choose(value,in:.standard,key:"ai-language")}
     private func failure(_ error:Error){if let refusal=error as? OriginalMainPayRefusal{state=refusal.presentationState;return};if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
-    func signOut(){clearAgentPresentation();attemptedReconciliations=[:];localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
+    func signOut(){clearAgentPresentation();attemptedReconciliations=[:];localDataLocked=true;pendingNativeReturnURL=nil;closeOriginalOrderLink();pendingOriginalOrderURL=nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;invalidateProductReads();mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];checkoutResult=nil;orderRecoveryStates=[:];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async {
         catalogRefreshRevision+=1
         let refresh=catalogRefreshRevision,operation=operationRevision,query=search
-        state="loading"
+        state="loading";catalogPhase="loading"
+        productReadTicket+=1;let ticket=productReadTicket
         var authorization:(()throws->Void)?
         do {
             let check=try api.capture(requireSession:false);authorization=check
@@ -80,14 +89,93 @@ import SwiftUI
             // Go's query decoder treats a literal + as a form-encoded space.
             guard let encoded=components.percentEncodedQuery?.replacingOccurrences(of:"+",with:"%2B") else{throw ShopError.invalidResponse}
             let response:CatalogResponse=try await api.request("products?\(encoded)")
-            guard refresh==catalogRefreshRevision,operation==operationRevision,query==search else{return}
+            guard refresh==catalogRefreshRevision,operation==operationRevision else{return}
+            guard query==search else{catalogPhase="idle";return}
             try check()
-            products=response.products;state=products.isEmpty ? "empty_catalog":""
+            guard Set(response.products.map(\.productID)).count==response.products.count else{throw ShopError.invalidResponse}
+            for product in response.products{try validateCatalogProduct(product)}
+            for product in response.products{ingestProduct(product,ticket:ticket)}
+            products=response.products.map{productCache[$0.productID] ?? $0};catalogLoadedQuery=query;catalogPhase="loaded";state=products.isEmpty ? "empty_catalog":""
         } catch {
-            guard refresh==catalogRefreshRevision,operation==operationRevision,query==search else{return}
-            if let authorization {do{try authorization()}catch{return}}
-            failure(error)
+            guard refresh==catalogRefreshRevision,operation==operationRevision else{return}
+            guard query==search else{catalogPhase="idle";return}
+            if let authorization {do{try authorization()}catch{catalogPhase="idle";return}}
+            catalogPhase=publicReadFailure(error);state="unavailable"
         }
+    }
+    private func publicReadFailure(_ error:Error)->String {
+        if let error=error as? URLError,[.notConnectedToInternet,.networkConnectionLost,.cannotConnectToHost,.cannotFindHost,.dnsLookupFailed,.timedOut].contains(error.code){return "offline"}
+        return "failed"
+    }
+    private func invalidateProductReads(){
+        for read in productReads.values{read.task.cancel()};productReads=[:]
+        productPhases=productPhases.mapValues{$0=="loading" ? "idle":$0}
+        if catalogPhase=="loading"{catalogPhase="idle"}
+    }
+    private func validateCatalogProduct(_ product:Product)throws {
+        guard NativeWire.matches(product.productID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),NativeWire.matches(product.storeID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),Set(product.variants.map(\.variantID)).count==product.variants.count,product.variants.allSatisfy({NativeWire.matches($0.variantID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")}) else{throw ShopError.invalidResponse}
+    }
+    private func ingestProduct(_ product:Product,ticket:Int){
+        guard ticket >= (productTickets[product.productID] ?? 0) else{return}
+        if let old=productCache[product.productID]?.revision,product.revision==nil || product.revision!<old{return}
+        productTickets[product.productID]=ticket;productCache[product.productID]=product;productPhases[product.productID]="loaded"
+    }
+    func cachedProduct(_ id:String)->Product?{productCache[id]}
+    func productPhase(_ id:String)->String{productPhases[id] ?? "idle"}
+    func refreshProduct(_ id:String)async {
+        if let read=productReads[id]{await read.task.value;return}
+        guard NativeWire.matches(id,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{productPhases[id]="failed";return}
+        productReadTicket+=1;let ticket=productReadTicket,operation=operationRevision
+        productTickets[id]=ticket;productPhases[id]="loading"
+        let task=Task{@MainActor in
+            defer{if self.productReads[id]?.ticket==ticket{self.productReads[id]=nil}}
+            var authorization:(()throws->Void)?
+            do{
+                let check=try self.api.capture(requireSession:false);authorization=check
+                let product:Product=try await self.api.request("products/"+id)
+                try check();guard operation==self.operationRevision,self.productTickets[id]==ticket else{return}
+                guard product.productID==id else{throw ShopError.invalidResponse};try self.validateCatalogProduct(product)
+                if let old=self.productCache[id]?.revision,product.revision==nil || product.revision!<old{throw ShopError.invalidResponse}
+                self.ingestProduct(product,ticket:ticket)
+            }catch{
+                guard operation==self.operationRevision,self.productTickets[id]==ticket else{return}
+                if let authorization{do{try authorization()}catch{self.productPhases[id]="idle";return}}
+                self.productPhases[id]=(error as? ShopHTTPRefusal)?.status==404 ? "not_found":self.publicReadFailure(error)
+            }
+        }
+        productReads[id]=(ticket,task);await task.value
+    }
+    func refreshCartProducts()async{for id in Set(cart.map(\.productID)).sorted(){await refreshProduct(id)}}
+    func maximumCartQuantity(_ item:CartItem)->Int? {
+        guard productPhase(item.productID)=="loaded",let p=productCache[item.productID],let v=p.variants.first(where:{$0.variantID==item.variantID}) else{return nil}
+        guard v.nativePrice==nil ? v.priceYNXT>0 : CatalogPricing.nativeUnit(v) != nil else{return nil}
+        return min(20,v.available)
+    }
+    private func nativePriceFields(_ variant:Variant)->[String]?{variant.nativePrice.map{[$0.Genesis,$0.NativeChainID,$0.AssetID,$0.UnitVersion,$0.AmountAtoms]}}
+    func canAdd(_ product:Product,_ variant:Variant)->Bool {
+        guard !localDataLocked,!mutationBusy,!checkoutRecoveryRequired,productPhase(product.productID)=="loaded",let current=productCache[product.productID],let v=current.variants.first(where:{$0.variantID==variant.variantID}),v.priceYNXT==variant.priceYNXT,
+              nativePriceFields(v)==nativePriceFields(variant),v.nativePrice==nil ? v.priceYNXT>0 : CatalogPricing.nativeUnit(v) != nil else{return false}
+        let quantity=cart.first(where:{$0.productID==product.productID && $0.variantID==variant.variantID})?.quantity ?? 0
+        return quantity<min(20,v.available)
+    }
+    private var resolvedCart:[(CartItem,Product,Variant)]? {
+        guard !cart.isEmpty else{return nil};var result:[(CartItem,Product,Variant)]=[]
+        for item in cart{guard productPhase(item.productID)=="loaded",let p=productCache[item.productID],let v=p.variants.first(where:{$0.variantID==item.variantID}),(1...20).contains(item.quantity),v.available>=item.quantity else{return nil};result.append((item,p,v))};return result
+    }
+    var cartNativeSubtotal:CatalogNativeAmount? {
+        guard let rows=resolvedCart,Set(rows.map{$0.1.storeID}).count==1 else{return nil};var domain:CatalogNativeDomain?;var sum:UInt64=0
+        for (item,_,v) in rows{guard let price=CatalogPricing.nativeUnit(v),domain==nil || domain==price.domain else{return nil};domain=price.domain;let amount=price.atoms.multipliedReportingOverflow(by:UInt64(item.quantity));let total=sum.addingReportingOverflow(amount.partialValue);guard !amount.overflow,!total.overflow else{return nil};sum=total.partialValue}
+        guard let domain else{return nil};return .init(domain:domain,atoms:sum)
+    }
+    var cartLegacySubtotal:Int64? {
+        guard let rows=resolvedCart,Set(rows.map{$0.1.storeID}).count==1 else{return nil};var sum:Int64=0
+        for (item,_,v) in rows{guard v.nativePrice==nil,v.priceYNXT>0 else{return nil};let amount=v.priceYNXT.multipliedReportingOverflow(by:Int64(item.quantity));let total=sum.addingReportingOverflow(amount.partialValue);guard !amount.overflow,!total.overflow else{return nil};sum=total.partialValue};return sum
+    }
+    var cartCatalogIssue:String? {
+        guard !cart.isEmpty else{return nil}
+        for item in cart{guard productPhase(item.productID)=="loaded",let p=productCache[item.productID],let v=p.variants.first(where:{$0.variantID==item.variantID}) else{return "shop_cart_catalog_unavailable"};if item.quantity<1 || item.quantity>min(20,v.available){return "shop_cart_quantity_exceeds_stock"}}
+        if Set(cart.compactMap{productCache[$0.productID]?.storeID}).count>1{return "shop_cart_multiple_stores"}
+        return cartNativeSubtotal==nil && cartLegacySubtotal==nil ? "shop_cart_price_unavailable":nil
     }
     func loadOrders()async{_ = await readOrders()}
     private func readOrders()async->Bool {
@@ -118,9 +206,9 @@ import SwiftUI
         }catch{localDataLocked=true;state="security_error"}
     }
     private func editCart(_ items:[CartItem])throws{guard !localDataLocked else{throw ShopError.security};let current=api.currentSession;guard current==presentedSession,signedIn == (current != nil) else{throw ShopError.contextChanged};if let current{try journey.edit(current.account,items:items)}else{try journey.editGuest(items)};cart=items}
-    func add(_ product:Product,_ variant:Variant){guard !mutationBusy,variant.reserved>=0,variant.inventory>variant.reserved else{return};var next=cart;if let index=next.firstIndex(where:{$0.productID==product.productID && $0.variantID==variant.variantID}){guard next[index].quantity<20 else{return};next[index].quantity+=1}else{next.append(.init(productID:product.productID,variantID:variant.variantID,quantity:1))};do{try editCart(next)}catch{failure(error)}}
+    func add(_ product:Product,_ variant:Variant){guard canAdd(product,variant) else{return};var next=cart;if let index=next.firstIndex(where:{$0.productID==product.productID && $0.variantID==variant.variantID}){guard next[index].quantity<20 else{return};next[index].quantity+=1}else{next.append(.init(productID:product.productID,variantID:variant.variantID,quantity:1))};do{try editCart(next)}catch{failure(error)}}
     func removeCart(_ item:CartItem,revision:Int?=nil){guard !mutationBusy,revision==nil || revision==privacyRevision else{return};do{try editCart(cart.filter{$0.productID != item.productID || $0.variantID != item.variantID})}catch{failure(error)}}
-    func setCartQuantity(_ item:CartItem,quantity:Int,revision:Int){guard !mutationBusy,revision==privacyRevision,(1...20).contains(quantity),let index=cart.firstIndex(where:{$0.productID==item.productID && $0.variantID==item.variantID}),cart[index].quantity==item.quantity else{return};var next=cart;next[index].quantity=quantity;do{try editCart(next)}catch{failure(error)}}
+    func setCartQuantity(_ item:CartItem,quantity:Int,revision:Int){guard !mutationBusy,revision==privacyRevision,(1...20).contains(quantity),let index=cart.firstIndex(where:{$0.productID==item.productID && $0.variantID==item.variantID}),cart[index].quantity==item.quantity,quantity<=item.quantity || (quantity <= (maximumCartQuantity(item) ?? 0) && !checkoutRecoveryRequired) else{return};var next=cart;next[index].quantity=quantity;do{try editCart(next)}catch{failure(error)}}
     func syncCart(){guard signedIn,!mutationBusy,!checkoutRecoveryRequired else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery();refreshOrderRecoveries()}};do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut};let remote=try await api.raw("cart",method:"GET",json:[:]);try check();try journey.reconcileCart(remote,account:account);let draft=try journey.load(account);if draft.dirty {let pending=try journey.prepareCart(account);let body:[String:Any]=["Items":pending.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"ExpectedRevision":pending.expected,"IdempotencyKey":pending.key];let saved=try await api.raw("cart",method:"PUT",json:body);try check();try journey.reconcileCart(saved,account:account)};cart=try journey.load(account).items;state=""}catch{failure(error)}}}
     func signIn(){if localDataLocked{unlockLocalData();guard !localDataLocked else{return}};
         if let original=pendingNativeReturnURL {
@@ -128,7 +216,7 @@ import SwiftUI
             Task{defer{nativeReturnBusy=false};do{try await api.resumeNativeReturnByUser(original);guard pendingNativeReturnURL==original else{throw ShopError.contextChanged};pendingNativeReturnURL=nil;reconcileIdentity();state=signedIn ? "wallet_active":"security_error";await loadOrders();await resumeOriginalOrder()}catch{failure(error)}}
             return
         }
-        originalOrderSignInDispatched=pendingOriginalOrderAfterSignIn != nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;Task{do{try await WalletAuth.begin(api:api)}catch{failure(error)}}}
+        originalOrderSignInDispatched=pendingOriginalOrderAfterSignIn != nil;cancelInvoicePresentation();api.invalidate();operationRevision+=1;invalidateProductReads();mutationBusy=false;Task{do{try await WalletAuth.begin(api:api)}catch{failure(error)}}}
     func resumeAuthorizationReturnByUser(_ url:URL){
         guard pendingNativeReturnURL==nil || pendingNativeReturnURL==url else{state="security_error";return}
         walletCallback(url)

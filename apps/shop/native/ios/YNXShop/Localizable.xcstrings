@@ -35176,6 +35176,2239 @@
           }
         }
       }
+    },
+    "shop_image_loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading image"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载图片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在載入圖片"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を読み込み中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지 불러오는 중"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chargement de l’image"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild wird geladen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carregando imagem"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загрузка изображения"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحميل الصورة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memuat gambar"
+          }
+        }
+      }
+    },
+    "shop_image_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image could not be loaded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片加载失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "圖片載入失敗"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を読み込めませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지를 불러올 수 없습니다"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar la imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger l’image"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild konnte nicht geladen werden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar a imagem"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить изображение"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر تحميل الصورة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gambar tidak dapat dimuat"
+          }
+        }
+      }
+    },
+    "shop_image_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No product image supplied"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未提供商品图片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未提供商品圖片"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品画像はありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 이미지가 제공되지 않았습니다"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se proporcionó imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune image de produit fournie"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Produktbild vorhanden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhuma imagem de produto fornecida"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изображение товара не предоставлено"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يتم توفير صورة للمنتج"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gambar produk belum disediakan"
+          }
+        }
+      }
+    },
+    "shop_retry_image": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry image"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试图片"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重試圖片"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像を再読み込み"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미지 다시 시도"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reintentar imagen"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer l’image"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bild erneut laden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar imagem novamente"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторить загрузку изображения"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة محاولة الصورة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coba gambar lagi"
+          }
+        }
+      }
+    },
+    "shop_catalog_loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing catalog"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在刷新目录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在重新整理目錄"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カタログを更新中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카탈로그 새로고침 중"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizando catálogo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualisation du catalogue"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katalog wird aktualisiert"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizando catálogo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление каталога"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحديث الكتالوج"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyegarkan katalog"
+          }
+        }
+      }
+    },
+    "shop_catalog_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catalog could not be loaded"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录加载失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目錄載入失敗"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カタログを読み込めませんでした"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카탈로그를 불러올 수 없습니다"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el catálogo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le catalogue"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katalog konnte nicht geladen werden"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o catálogo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить каталог"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر تحميل الكتالوج"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katalog tidak dapat dimuat"
+          }
+        }
+      }
+    },
+    "shop_catalog_retry_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the connection and retry. A failed request does not mean the catalog is empty."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查连接并重试。请求失败不代表目录为空。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請檢查連線並重試。請求失敗不代表目錄為空。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続を確認して再試行してください。読み込みの失敗は空のカタログを意味しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결을 확인하고 다시 시도하세요. 요청 실패는 빈 카탈로그를 의미하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comprueba la conexión y reintenta. Un error no significa que el catálogo esté vacío."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vérifiez la connexion et réessayez. Un échec ne signifie pas que le catalogue est vide."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prüfen Sie die Verbindung und versuchen Sie es erneut. Ein Fehler bedeutet keinen leeren Katalog."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifique a conexão e tente novamente. Uma falha não significa que o catálogo está vazio."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте соединение и повторите. Ошибка запроса не означает пустой каталог."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحقق من الاتصال وأعد المحاولة. فشل الطلب لا يعني أن الكتالوج فارغ."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Periksa koneksi dan coba lagi. Kegagalan permintaan tidak berarti katalog kosong."
+          }
+        }
+      }
+    },
+    "shop_catalog_stale": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catalog refresh failed. Previously loaded products are shown and may be out of date."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录刷新失败，正在显示先前加载的商品，信息可能已过时。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目錄重新整理失敗，正在顯示先前載入的商品，資訊可能已過時。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新に失敗しました。以前読み込んだ商品を表示しており、情報が古い可能性があります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카탈로그 새로고침에 실패했습니다. 이전에 불러온 상품이 표시되며 정보가 오래되었을 수 있습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La actualización falló. Se muestran productos anteriores que pueden estar desactualizados."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’actualisation a échoué. Les produits précédemment chargés peuvent être obsolètes."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Katalogaktualisierung ist fehlgeschlagen. Frühere Produkte werden angezeigt und können veraltet sein."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A atualização falhou. Produtos carregados anteriormente podem estar desatualizados."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление не удалось. Показаны ранее загруженные товары, данные могут устареть."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل تحديث الكتالوج. تظهر منتجات محملة سابقاً وقد تكون بياناتها قديمة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penyegaran katalog gagal. Produk yang dimuat sebelumnya ditampilkan dan mungkin kedaluwarsa."
+          }
+        }
+      }
+    },
+    "shop_sort_incomparable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Price sorting requires valid native prices on the same network and in the same unit for every shown variant. Catalog order is kept otherwise."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "价格排序要求所有显示规格均有同网络、同单位的有效原生价格，否则保留目录顺序。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "價格排序要求所有顯示規格均有同網路、同單位的有效原生價格，否則保留目錄順序。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "価格順には表示する全バリエーションで同一ネットワーク・単位の有効なネイティブ価格が必要です。それ以外はカタログ順を保ちます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "가격 정렬에는 표시된 모든 옵션의 동일 네트워크 및 단위에 대한 유효한 네이티브 가격이 필요합니다. 그렇지 않으면 카탈로그 순서를 유지합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordenar por precio requiere precios nativos válidos de la misma red y unidad en todas las variantes mostradas. De lo contrario se mantiene el orden del catálogo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le tri par prix nécessite des prix natifs valides sur le même réseau et dans la même unité pour toutes les variantes affichées. Sinon, l’ordre du catalogue est conservé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preissortierung erfordert gültige native Preise desselben Netzwerks und derselben Einheit für alle angezeigten Varianten. Andernfalls bleibt die Katalogreihenfolge erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordenar por preço exige preços nativos válidos na mesma rede e unidade para todas as variantes exibidas. Caso contrário, a ordem do catálogo é mantida."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для сортировки нужны действительные нативные цены одной сети и единицы для всех вариантов. Иначе сохраняется порядок каталога."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتطلب الترتيب بالسعر أسعاراً أصلية صالحة على الشبكة والوحدة نفسيهما لكل الخيارات المعروضة. وإلا يُحفظ ترتيب الكتالوج."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengurutan harga memerlukan harga native valid pada jaringan dan satuan sama untuk semua varian. Jika tidak, urutan katalog dipertahankan."
+          }
+        }
+      }
+    },
+    "shop_product_loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refreshing product"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在刷新商品"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在重新整理商品"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品を更新中"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 새로고침 중"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizando producto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualisation du produit"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Produkt wird aktualisiert"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizando produto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление товара"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ تحديث المنتج"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menyegarkan produk"
+          }
+        }
+      }
+    },
+    "shop_product_load_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Product information could not be loaded. Retry to check current availability."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载商品信息，请重试以核对当前库存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法載入商品資訊，請重試以核對目前庫存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品情報を取得できません。再試行して現在の在庫を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 정보를 불러올 수 없습니다. 다시 시도하여 현재 재고를 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo cargar el producto. Reintenta para comprobar la disponibilidad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de charger le produit. Réessayez pour vérifier la disponibilité."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Produktinformationen konnten nicht geladen werden. Versuchen Sie es erneut, um die Verfügbarkeit zu prüfen."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não foi possível carregar o produto. Tente novamente para verificar a disponibilidade."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить сведения о товаре. Повторите для проверки наличия."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعذر تحميل معلومات المنتج. أعد المحاولة للتحقق من التوفر الحالي."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informasi produk tidak dapat dimuat. Coba lagi untuk memeriksa ketersediaan."
+          }
+        }
+      }
+    },
+    "shop_product_not_found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This product is no longer available from the catalog. The cart line is kept until you remove it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录中已无法取得此商品，购物车条目会保留至你自行移除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目錄中已無法取得此商品，購物車項目會保留至你自行移除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カタログからこの商品を取得できなくなりました。カートの項目は削除するまで保持します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카탈로그에서 이 상품을 더 이상 찾을 수 없습니다. 장바구니 항목은 직접 삭제할 때까지 유지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este producto ya no está disponible en el catálogo. La línea del carrito se conserva hasta que la elimines."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce produit n’est plus disponible dans le catalogue. L’article du panier est conservé jusqu’à sa suppression."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Produkt ist im Katalog nicht mehr verfügbar. Die Warenkorbposition bleibt bis zum Entfernen erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este produto não está mais disponível no catálogo. O item do carrinho permanece até ser removido."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Товар больше недоступен в каталоге. Позиция корзины сохраняется до удаления."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم يعد هذا المنتج متاحاً في الكتالوج. يبقى بند السلة حتى تزيله."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Produk ini tidak lagi tersedia di katalog. Item keranjang dipertahankan hingga dihapus."
+          }
+        }
+      }
+    },
+    "shop_product_stale": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Product refresh failed. The last loaded details may be out of date; refresh before increasing the quantity."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品刷新失败，先前详情可能已过时；增加数量前请先刷新。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品重新整理失敗，先前詳情可能已過時；增加數量前請先重新整理。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品の更新に失敗しました。以前の情報は古い可能性があります。数量を増やす前に更新してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 새로고침에 실패했습니다. 이전 정보가 오래되었을 수 있습니다. 수량을 늘리기 전에 새로고침하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La actualización del producto falló. Los datos anteriores pueden estar desactualizados; actualiza antes de aumentar la cantidad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L’actualisation du produit a échoué. Les anciennes données peuvent être obsolètes ; actualisez avant d’augmenter la quantité."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Produktaktualisierung ist fehlgeschlagen. Frühere Angaben können veraltet sein; aktualisieren Sie vor einer Mengenerhöhung."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A atualização do produto falhou. Os dados anteriores podem estar desatualizados; atualize antes de aumentar a quantidade."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновление товара не удалось. Предыдущие сведения могли устареть; обновите перед увеличением количества."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فشل تحديث المنتج. قد تكون التفاصيل السابقة قديمة؛ حدّثها قبل زيادة الكمية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penyegaran produk gagal. Detail sebelumnya mungkin kedaluwarsa; segarkan sebelum menambah jumlah."
+          }
+        }
+      }
+    },
+    "shop_refresh_product": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh product information"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新商品信息"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新整理商品資訊"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品情報を更新"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 정보 새로고침"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar información del producto"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiser le produit"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Produktinformationen aktualisieren"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar informações do produto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить сведения о товаре"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديث معلومات المنتج"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segarkan informasi produk"
+          }
+        }
+      }
+    },
+    "shop_decrease_quantity": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decrease quantity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "减少数量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "減少數量"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数量を減らす"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수량 줄이기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reducir cantidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diminuer la quantité"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menge verringern"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diminuir quantidade"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уменьшить количество"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تقليل الكمية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurangi jumlah"
+          }
+        }
+      }
+    },
+    "shop_increase_quantity": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Increase quantity"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增加数量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "增加數量"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "数量を増やす"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "수량 늘리기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aumentar cantidad"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Augmenter la quantité"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menge erhöhen"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aumentar quantidade"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увеличить количество"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "زيادة الكمية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tambah jumlah"
+          }
+        }
+      }
+    },
+    "shop_cart_quantity_exceeds_stock": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cart quantity exceeds current availability. Reduce it or remove this item before checkout."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "购物车数量超过当前可售库存，请减少数量或移除此项后再结账。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購物車數量超過目前可售庫存，請減少數量或移除此項後再結帳。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カートの数量が現在の在庫を超えています。数量を減らすか項目を削除してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장바구니 수량이 현재 재고를 초과합니다. 결제 전에 수량을 줄이거나 항목을 삭제하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La cantidad supera las existencias actuales. Redúcela o elimina el artículo antes de pagar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La quantité dépasse le stock actuel. Réduisez-la ou supprimez l’article avant de commander."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Menge übersteigt die aktuelle Verfügbarkeit. Verringern oder entfernen Sie die Position vor dem Bestellen."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quantidade supera o estoque atual. Reduza ou remova o item antes de finalizar."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Количество в корзине превышает наличие. Уменьшите его или удалите товар перед оформлением."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كمية السلة تتجاوز المتاح حالياً. قللها أو أزل المنتج قبل إتمام الطلب."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jumlah keranjang melebihi ketersediaan saat ini. Kurangi atau hapus item sebelum checkout."
+          }
+        }
+      }
+    },
+    "shop_catalog_offline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Catalog is offline"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录处于离线状态"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目錄處於離線狀態"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カタログはオフラインです"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "카탈로그가 오프라인입니다"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El catálogo está sin conexión"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le catalogue est hors ligne"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katalog ist offline"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O catálogo está offline"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каталог недоступен офлайн"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الكتالوج غير متصل"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Katalog sedang offline"
+          }
+        }
+      }
+    },
+    "shop_catalog_offline_stale": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: previously loaded products are shown. Refresh when connected to verify current prices and stock."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前离线，正在显示先前加载的商品；连接恢复后请刷新核对当前价格与库存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前離線，正在顯示先前載入的商品；連線恢復後請重新整理核對目前價格與庫存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインのため以前の商品を表示しています。接続後に更新して現在の価格と在庫を確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오프라인으로 이전 상품을 표시합니다. 연결 후 새로고침하여 현재 가격과 재고를 확인하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin conexión: se muestran productos anteriores. Actualiza al conectarte para verificar precios y existencias."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hors ligne : les produits précédemment chargés sont affichés. Actualisez une fois connecté pour vérifier prix et stock."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: Frühere Produkte werden angezeigt. Aktualisieren Sie nach dem Verbinden, um Preise und Bestand zu prüfen."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: produtos carregados anteriormente são exibidos. Atualize ao conectar para verificar preços e estoque."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Офлайн: показаны ранее загруженные товары. После подключения обновите цены и наличие."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دون اتصال: تظهر المنتجات المحملة سابقاً. حدّثها بعد الاتصال للتحقق من الأسعار والمخزون."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: produk yang dimuat sebelumnya ditampilkan. Segarkan saat terhubung untuk memeriksa harga dan stok."
+          }
+        }
+      }
+    },
+    "shop_catalog_source_query": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Query used for these cached results"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些缓存结果的来源查询"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這些快取結果的來源查詢"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キャッシュ結果の検索条件"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "캐시 결과에 사용된 검색어"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta de estos resultados guardados"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recherche à l’origine de ces résultats en cache"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suchanfrage dieser zwischengespeicherten Ergebnisse"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta destes resultados em cache"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрос для сохранённых результатов"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الاستعلام المستخدم للنتائج المخزنة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kueri untuk hasil cache ini"
+          }
+        }
+      }
+    },
+    "shop_no_filter_matches": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No products match these filters"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有商品符合当前筛选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有商品符合目前篩選"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "条件に一致する商品はありません"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "필터에 맞는 상품이 없습니다"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ningún producto coincide con los filtros"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun produit ne correspond aux filtres"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Produkte entsprechen diesen Filtern"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nenhum produto corresponde aos filtros"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет товаров по выбранным фильтрам"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لا توجد منتجات تطابق عوامل التصفية"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tidak ada produk yang cocok dengan filter"
+          }
+        }
+      }
+    },
+    "shop_product_offline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: current product availability cannot be checked. Cached details are read only; quantity can still be reduced or the cart item removed."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前离线，无法核对商品库存。缓存详情仅供查看；仍可减少数量或移除购物车条目。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前離線，無法核對商品庫存。快取詳情僅供檢視；仍可減少數量或移除購物車項目。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインで現在の在庫を確認できません。キャッシュ情報は閲覧のみですが、数量の削減やカートからの削除は可能です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오프라인으로 현재 재고를 확인할 수 없습니다. 캐시 정보는 읽기 전용이며 수량 감소와 장바구니 삭제는 가능합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin conexión: no se puede comprobar la disponibilidad. Los datos guardados son de solo lectura; puedes reducir la cantidad o eliminar el artículo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hors ligne : la disponibilité actuelle est invérifiable. Les données en cache sont en lecture seule ; vous pouvez réduire la quantité ou supprimer l’article."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: Aktuelle Verfügbarkeit nicht prüfbar. Cache-Daten sind schreibgeschützt; Menge verringern oder Warenkorbposition entfernen bleibt möglich."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: não é possível verificar o estoque. Dados em cache são somente para leitura; é possível reduzir a quantidade ou remover o item."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Офлайн: текущее наличие проверить нельзя. Кеш доступен только для чтения; можно уменьшить количество или удалить товар."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "دون اتصال: لا يمكن التحقق من التوفر الحالي. التفاصيل المخزنة للقراءة فقط؛ يمكن تقليل الكمية أو إزالة بند السلة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline: ketersediaan tidak dapat diperiksa. Detail cache hanya baca; jumlah masih dapat dikurangi atau item dihapus."
+          }
+        }
+      }
+    },
+    "shop_merchandise_subtotal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Merchandise subtotal"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品小计"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品小計"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品小計"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "상품 소계"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtotal de productos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sous-total des produits"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warensumme"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtotal dos produtos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сумма товаров"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجموع الفرعي للمنتجات"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtotal barang"
+          }
+        }
+      }
+    },
+    "shop_subtotal_estimate_note": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non-binding estimate of merchandise only. Shipping and tax are excluded. Checkout checks current server prices, stock and original order terms."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅商品的非约束估计，不含运费和税费。结账时会核对服务器当前价格、库存及原订单条款。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅商品的非約束估計，不含運費和稅費。結帳時會核對伺服器目前價格、庫存及原訂單條款。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "商品のみの拘束力のない概算で、送料・税額は含みません。注文時にサーバーの現在価格、在庫、元の注文条件を確認します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "배송비와 세금을 제외한 상품만의 비구속적 추정치입니다. 주문 시 서버의 현재 가격, 재고 및 원래 조건을 확인합니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estimación no vinculante solo de productos. Excluye envío e impuestos. Al finalizar se verifican precios, stock y condiciones originales en el servidor."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estimation non contraignante des produits uniquement, hors livraison et taxes. La commande vérifie les prix, le stock et les conditions d’origine du serveur."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unverbindliche Schätzung nur für Waren, ohne Versand und Steuern. Beim Bestellen werden aktuelle Serverpreise, Bestand und ursprüngliche Bedingungen geprüft."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estimativa não vinculante apenas dos produtos, sem frete e impostos. A finalização verifica preços, estoque e condições originais no servidor."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Необязательная оценка только товаров без доставки и налога. При оформлении проверяются цены, наличие и исходные условия сервера."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تقدير غير ملزم للمنتجات فقط دون الشحن والضريبة. يتحقق إتمام الطلب من أسعار الخادم الحالية والمخزون والشروط الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perkiraan tidak mengikat hanya untuk barang, tanpa pengiriman dan pajak. Checkout memeriksa harga server, stok, dan ketentuan asli."
+          }
+        }
+      }
+    },
+    "shop_refresh_cart_products": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh cart product information"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新购物车商品信息"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新整理購物車商品資訊"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カートの商品情報を更新"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장바구니 상품 정보 새로고침"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar productos del carrito"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiser les produits du panier"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Produktinformationen im Warenkorb aktualisieren"
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualizar produtos do carrinho"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить товары корзины"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحديث معلومات منتجات السلة"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Segarkan informasi produk keranjang"
+          }
+        }
+      }
+    },
+    "shop_cart_variant_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original variant is no longer in this product. It has not been replaced. Remove this cart line or review the product before selecting another variant."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此商品中已无原规格，系统未替换规格。请移除此购物车条目，或查看商品后另行选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此商品中已無原規格，系統未替換規格。請移除此購物車項目，或檢視商品後另行選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のバリエーションがこの商品にありません。代わりの選択肢には置き換えていません。カートから削除するか商品を確認し、別途選択してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 상품에 원래 옵션이 더 이상 없습니다. 다른 옵션으로 대체되지 않았습니다. 장바구니 항목을 삭제하거나 상품을 확인하고 다시 선택하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La variante original ya no está en este producto y no se ha sustituido. Elimina la línea o revisa el producto antes de elegir otra variante."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La variante d’origine n’existe plus pour ce produit et n’a pas été remplacée. Supprimez l’article ou vérifiez le produit avant de choisir une autre variante."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ursprüngliche Variante gehört nicht mehr zu diesem Produkt und wurde nicht ersetzt. Entfernen Sie die Position oder prüfen Sie das Produkt vor einer anderen Auswahl."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A variante original não está mais neste produto e não foi substituída. Remova o item ou reveja o produto antes de escolher outra variante."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходного варианта больше нет в товаре. Он не заменён. Удалите позицию или проверьте товар перед выбором другого варианта."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الخيار الأصلي لم يعد موجوداً في هذا المنتج ولم يتم استبداله. أزل بند السلة أو راجع المنتج قبل اختيار خيار آخر."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Varian asli tidak lagi ada dalam produk ini dan tidak diganti. Hapus item keranjang atau tinjau produk sebelum memilih varian lain."
+          }
+        }
+      }
+    },
+    "shop_cart_catalog_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current cart product data is unavailable. Refresh product information; the original cart is preserved."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前购物车商品数据不可用，请刷新商品信息；原购物车保持保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前購物車商品資料無法使用，請重新整理商品資訊；原購物車保持保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のカート商品データを取得できません。商品情報を更新してください。元のカートは保持します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "현재 장바구니 상품 데이터를 사용할 수 없습니다. 상품 정보를 새로고침하세요. 원래 장바구니는 유지됩니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los datos actuales del carrito no están disponibles. Actualiza los productos; se conserva el carrito original."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les données actuelles des produits du panier sont indisponibles. Actualisez les produits ; le panier d’origine est conservé."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Produktdaten des Warenkorbs sind nicht verfügbar. Aktualisieren Sie die Produkte; der ursprüngliche Warenkorb bleibt erhalten."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Os dados atuais dos produtos do carrinho estão indisponíveis. Atualize os produtos; o carrinho original é preservado."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текущие данные товаров корзины недоступны. Обновите сведения; исходная корзина сохраняется."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "بيانات منتجات السلة الحالية غير متاحة. حدّث معلومات المنتجات؛ يتم الاحتفاظ بالسلة الأصلية."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Data produk keranjang saat ini tidak tersedia. Segarkan produk; keranjang asli dipertahankan."
+          }
+        }
+      }
+    },
+    "shop_cart_multiple_stores": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This cart contains products from multiple stores. Review the store selection before checkout; no combined subtotal is shown."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "购物车包含多家店铺商品，请在结账前核对店铺选择；此处不合并小计。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購物車包含多家店鋪商品，請在結帳前核對店鋪選擇；此處不合併小計。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複数店舗の商品がカートにあります。注文前に店舗の選択を確認してください。合算小計は表示しません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "장바구니에 여러 상점의 상품이 있습니다. 주문 전에 상점 선택을 확인하세요. 합산 소계는 표시하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El carrito contiene productos de varias tiendas. Revisa la tienda antes de finalizar; no se muestra un subtotal combinado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le panier contient des produits de plusieurs boutiques. Vérifiez la boutique avant de commander ; aucun sous-total combiné n’est affiché."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Warenkorb enthält Produkte mehrerer Shops. Prüfen Sie die Shop-Auswahl vor dem Bestellen; es wird keine gemeinsame Summe angezeigt."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O carrinho contém produtos de várias lojas. Revise a loja antes de finalizar; nenhum subtotal combinado é exibido."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В корзине товары нескольких магазинов. Проверьте выбор магазина перед оформлением; общая сумма не показывается."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحتوي السلة على منتجات من متاجر متعددة. راجع اختيار المتجر قبل الإتمام؛ لا يظهر مجموع فرعي مشترك."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keranjang berisi produk dari beberapa toko. Tinjau pilihan toko sebelum checkout; subtotal gabungan tidak ditampilkan."
+          }
+        }
+      }
+    },
+    "shop_cart_price_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A comparable cart subtotal is unavailable. Products need valid prices in one network and unit; no conversion or mixed-price total is inferred."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法取得可比商品小计。商品须有同网络、同单位的有效价格；系统不换算或混合凑总额。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法取得可比商品小計。商品須有同網路、同單位的有效價格；系統不換算或混合湊總額。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "比較可能なカート小計を取得できません。同一ネットワーク・単位の有効な価格が必要です。換算や異なる価格の合算は行いません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "비교 가능한 소계가 없습니다. 동일 네트워크와 단위의 유효한 가격이 필요하며 환산하거나 혼합 합계를 추정하지 않습니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay un subtotal comparable. Se requieren precios válidos de una sola red y unidad; no se convierten ni mezclan precios."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun sous-total comparable n’est disponible. Les prix doivent être valides sur un même réseau et dans une même unité ; aucune conversion ni somme mixte n’est déduite."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine vergleichbare Warensumme ist nicht verfügbar. Gültige Preise desselben Netzwerks und derselben Einheit sind erforderlich; es erfolgt keine Umrechnung oder gemischte Summe."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não há subtotal comparável. São necessários preços válidos na mesma rede e unidade; não há conversão ou total de preços mistos."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сопоставимая сумма корзины недоступна. Нужны действительные цены одной сети и единицы; конвертация и смешанное суммирование не выполняются."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "المجموع الفرعي القابل للمقارنة غير متاح. يجب وجود أسعار صالحة على شبكة ووحدة واحدة؛ لا يتم التحويل أو جمع أسعار مختلطة."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subtotal yang sebanding tidak tersedia. Harga valid dalam jaringan dan satuan yang sama diperlukan; tidak ada konversi atau total harga campuran."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
