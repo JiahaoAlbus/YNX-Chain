@@ -77,3 +77,10 @@ The latest LINK a9d7163 two-leaf JS successor and its qualified CI handoff are
 explicitly selected only for subsequent normal consumer inputs; existing Go
 production remains eb311. No installed/in-flight image is hot-swapped. Do not
 promote HTTP DATA to a capability or claim installed/business/Root acceptance.
+
+Normal service shutdown runs original V6 cleanup, original receiver/LINK drain
+and resource closure, then the borrowed task runtime parent in one guarded
+sequence. Any child cleanup error stops before its parents. The original
+closures/owners and first error stay held; repeated cleanup cannot replay a
+physical close or cross that debt. Failed startup runtime partials use the same
+retention guard. This is cleanup custody, never evidence of Source admission.

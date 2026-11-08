@@ -98,14 +98,17 @@ func run() (runErr error) {
 			Window:       envDuration("YNX_AI_GATEWAY_RATE_LIMIT_WINDOW", time.Minute), MaxRequests: int(envInt64("YNX_AI_GATEWAY_RATE_LIMIT_MAX", 30)),
 		})
 	}
+	cleanup := &originalTaskServiceCleanup{}
+	defer func() { runErr = errors.Join(runErr, cleanup.close()) }()
 	if taskErr != nil {
 		if taskRuntime != nil {
-			taskErr = errors.Join(taskErr, taskRuntime.Close())
+			partial := &originalTaskServiceCleanup{runtime: taskRuntime.Close}
+			taskErr = errors.Join(taskErr, partial.close())
 		}
 		taskRuntime = nil
 		log.Printf("YNX AI task runtime unavailable: %v", taskErr)
 	} else if taskRuntime != nil {
-		defer func() { runErr = errors.Join(runErr, taskRuntime.Close()) }()
+		cleanup.runtime = taskRuntime.Close
 		if cause := taskRuntime.NewEffectsUnavailable(); cause != nil {
 			log.Printf("YNX AI task runtime holds original recovery only; new effects unavailable: %v", cause)
 		}
@@ -120,7 +123,7 @@ func run() (runErr error) {
 		// even an unavailable partial and drain it before borrowed task Sources.
 		resource, resourceErr := aiproduct.OpenOriginalTaskReadReceiver(context.Background(), server)
 		if resource != nil {
-			defer func() { runErr = errors.Join(runErr, closeOriginalTaskReadReceiver(resource, shutdownTimeout)) }()
+			cleanup.receiver = func() error { return closeOriginalTaskReadReceiver(resource, shutdownTimeout) }
 		}
 		if resourceErr != nil {
 			log.Printf("YNX AI original task read receiver unavailable: %v", resourceErr)
@@ -137,7 +140,7 @@ func run() (runErr error) {
 	if v6Err != nil {
 		log.Printf("YNX AI V6 runtime unavailable: %v", v6Err)
 	}
-	defer func() { runErr = errors.Join(runErr, closeOriginalTaskV6(v6, shutdownTimeout)) }()
+	cleanup.v6 = func() error { return closeOriginalTaskV6(v6, shutdownTimeout) }
 	srv := &http.Server{Addr: *httpAddr, Handler: v6.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX AI client listening on http://%s; provider responses remain Gateway-backed only", *httpAddr)
 	return httpdrain.ListenAndServe(srv, shutdownTimeout)
