@@ -44,14 +44,35 @@ export async function openNativePayProductSource({acquireOriginalProductSource,i
   if(callerSignal!==undefined&&!(callerSignal instanceof AbortSignal))fail('NATIVE_PAY_PRODUCT_CALLER_SIGNAL_INVALID');
   current();if(callerCurrent()!==undefined)fail('NATIVE_PAY_PRODUCT_CALLER_CURRENT_RESULT');
   const abort=new AbortController(),cancelled=()=>abort.abort();
-  if(callerSignal?.aborted)abort.abort();else callerSignal?.addEventListener('abort',cancelled,{once:true});
+  let listenerSelected=false,operationFailed=false,operationCause;
   active++;requests.add(abort);
   try{
+   if(callerSignal?.aborted)abort.abort();
+   else if(callerSignal){
+    // Registration may install the listener and then throw. Adopt that debt
+    // before entering the caller so cleanup cannot disappear on partial work.
+    listenerSelected=true;callerSignal.addEventListener('abort',cancelled,{once:true});
+   }
    const fence=()=>{current();if(abort.signal.aborted)fail('NATIVE_PAY_PRODUCT_REQUEST_CANCELLED');if(callerCurrent()!==undefined)fail('NATIVE_PAY_PRODUCT_CALLER_CURRENT_RESULT');};
    Object.defineProperty(fence,'signal',{value:abort.signal});
    fence();const value=await work(fence);fence();return value;
-  }finally{callerSignal?.removeEventListener('abort',cancelled);requests.delete(abort);active--;if(!active){for(const resolve of waiters)resolve();waiters.clear();}}
+  }catch(cause){operationFailed=true;operationCause=cause;throw cause;}
+  finally{
+   let detachFailed=false,detachCause;
+   try{if(listenerSelected)callerSignal.removeEventListener('abort',cancelled);}
+   catch(cause){
+    detachFailed=true;detachCause=cause;rememberCleanup(cause);
+    remember(operationFailed?operationCause:cause);
+   }finally{
+    requests.delete(abort);active--;
+    if(!active){for(const resolve of waiters)resolve();waiters.clear();}
+   }
+   // Cleanup must not replace a preceding read/add failure, including falsy
+   // causes. Failed detach still prevents any later read or safe-close claim.
+   if(detachFailed&&!operationFailed)throw detachCause;
+  }
  }
+
  const pay={};
  for(const [name,count]of Object.entries(productPayMethods))pay[name]=(...args)=>{
   if(args.length<count||args.length>count+1)fail('NATIVE_PAY_PRODUCT_PAY_ARGUMENTS');

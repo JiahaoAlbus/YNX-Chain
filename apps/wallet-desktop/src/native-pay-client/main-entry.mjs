@@ -53,18 +53,20 @@ function input(value){
  * signer, approval, HTTP credential, transaction journal or Source lifetime. */
 export function createNativePayMainEntry({getMain,getContext}){
  if(typeof getMain!=='function'||typeof getContext!=='function')fail('NATIVE_PAY_MAIN_ENTRY_UNAVAILABLE');
- let source=null,epoch=0,active=false,client=null;const pending=createOriginalPayReviewTracker();
+ let source=null,epoch=0,active=false,client=null,activeAbort=null;const pending=createOriginalPayReviewTracker();
  const context=()=>{
   const c=getContext(),e=epoch;
   if(!c||c.locked||c.changing||!c.focused||typeof c.account!=='string'||!/^0x[0-9a-f]{40}$/.test(c.account))fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');
   return ()=>{const now=getContext();if(epoch!==e||!now||now.account!==c.account||now.revision!==c.revision||now.locked||now.changing||!now.focused)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');};
  };
- function cancel(){epoch++;client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
+ function cancel(){epoch++;activeAbort?.abort();client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
  async function invoke(raw,onFailure){
    const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
    const assertContext=context(),originalSource=source,main=getMain();
    const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
-   current();active=true;let operationClient=null;
+   const operationAbort=new AbortController();
+   Object.defineProperty(current,'signal',{value:operationAbort.signal});
+   current();active=true;activeAbort=operationAbort;let operationClient=null;
    try{
     const runtime={main,pay:originalSource.pay,current,
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
@@ -104,7 +106,7 @@ export function createNativePayMainEntry({getMain,getContext}){
     // current. invoke itself preserves the exact original thrown cause.
     if(onFailure&&operationClient)try{current();onFailure(operationClient.snapshot(),current);}catch{}
     throw error;
-   }finally{active=false;}
+   }finally{if(activeAbort===operationAbort)activeAbort=null;active=false;}
   }
  return Object.freeze({
   compose(originalSource){
