@@ -253,6 +253,23 @@ try{
   // stubbed. The normal approval reader and offline preparation remain real.
   const body=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-production-driver.sh'),'utf8').match(/^final_snapshot_phase\(\) \{\n[\s\S]*?^\}/m)?.[0];
   assert.ok(body,'normal final snapshot caller missing');
+  // Execute the exact production preparation line under this actual Bash.
+  // The callee below only records argv; no exporter or transport is invoked.
+  const prepareLine=body.split('\n').find(line=>line.startsWith('  bash scripts/ops/remote/public-bft-final-snapshot.sh --prepare '));
+  assert.ok(prepareLine,'normal preparation call missing');
+  const argumentNames=['source_input','exporter_bundle','full_commit','source_pin','exporter_pin','transaction_id','commit','release','bft_release','local_root'];
+  const argumentValues=argumentNames.map((name,index)=>'PUBLIC '+index+' '+name);
+  const requiredArguments=argumentNames.map((name,index)=>name+'='+q(argumentValues[index])).join('\n');
+  for(const native of [[],['PUBLIC native commit','PUBLIC binary pin','{"path":"/original/public path"}','{"systemd":"PUBLIC only"}']]){
+    const declarations=requiredArguments+'\nnative_args=('+native.map(q).join(' ')+')';
+    const record='bash(){ '+q(process.execPath)+' -e '+q('process.stdout.write(JSON.stringify(process.argv.slice(1)))')+' \"$@\"; }';
+    const actual=await execute('bash',['-c','set -Eeuo pipefail\n'+declarations+'\n'+record+'\n'+prepareLine]);
+    assert.deepEqual(JSON.parse(actual.stdout),['scripts/ops/remote/public-bft-final-snapshot.sh','--prepare',...argumentValues,...native]);
+    await assert.rejects(execute('bash',['-c','set -Eeuo pipefail\n'+declarations+'\nunset source_input\n'+record+'\n'+prepareLine]),error=>{
+      assert.match(error.stderr,/source_input.*unbound variable/);assert.equal(error.stdout,'');return true;
+    });
+  }
+  console.log('PUBLIC_BFT_SNAPSHOT_NATIVE_ARGV_PASS: exact production line preserves zero/four optional argv and all required nounset guards');
   async function caller(name,change){
     const f=fixture('caller-'+name),dir=path.join(f.root,f.tx),log=path.join(f.root,'transport.log');
     const approval={schemaVersion:1,action:'ynx-public-bft-cutover',approved:true,approvalId:'fixture-approval',approver:'approver',custodyReviewer:'custodian',custodyEvidence:'sha256:'+'1'.repeat(64),owner:'source owner',ownerHandoverReviewer:'handover reviewer',ownerHandoverInventoryDigest:'sha256:'+'2'.repeat(64),ownerHandoverInventoryEvidence:'sha256:'+'3'.repeat(64),ownerHandoverReceiptEvidence:'sha256:'+'4'.repeat(64),commit,release,publicCutoverAuthorized:true,automaticRollbackRequired:true,validatorKeyRecoveryVerified:true,serviceSignerRecoveryVerified:true,ownerHandoverVerified:true,rotationProcedureVerified:true,serviceSignerManifestSha256:'5'.repeat(64),validatorManifestSha256:'6'.repeat(64),operatorPlanSha256:'7'.repeat(64),runtimeManifestSha256:'8'.repeat(64),snapshotSourceSha256:f.args[12],exporterManifestSha256:f.args[13],candidateGenesisTime:'2026-10-18T00:00:00Z',expiresAt:'2026-10-19T00:00:00Z'};
@@ -260,10 +277,18 @@ try{
     write(path.join(dir,'approval.json'),approval);
     write(path.join(dir,'roles/primary-pause-authoritative.txt'),`transactionId=${f.tx}\ncommit=${commit}\nbftRelease=${release}\nproductionStateVerified=true\n`);
     const script=path.join(f.root,'caller.sh');
-    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\nsource scripts/ops/public-bft-linux-public-tools.sh\ngit(){ printf '%s\\n' ${q(full)}; }\nynx_ops_ssh(){ printf '%s\\n' "$*" >> ${q(log)}; printf 'DRY RUN %s\\n' "$*"; }\ncommit=${q(commit)}\nrelease=${q('ynx-chain-'+commit)}\n${body}\nfinal_snapshot_phase\n`,0o700);
+    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\nsource scripts/ops/public-bft-linux-public-tools.sh\nuname(){ case \"\$1\" in -s) printf '%s\\n' \"\${SNAPSHOT_CONTROL_PLATFORM:-Linux}\" ;; -m) printf 'x86_64\\n' ;; *) return 91 ;; esac; }\ngit(){ printf '%s\\n' ${q(full)}; }\nynx_ops_ssh(){ printf '%s\\n' "$*" >> ${q(log)}; printf 'DRY RUN %s\\n' "$*"; }\ncommit=${q(commit)}\nrelease=${q('ynx-chain-'+commit)}\n${body}\nfinal_snapshot_phase\n`,0o700);
     const env={...process.env,DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:'yes',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,PUBLIC_BFT_PRODUCTION_SNAPSHOT_SOURCE:f.input,PUBLIC_BFT_PRODUCTION_EXPORTER_BUNDLE:f.tools,PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS:'1',PRIMARY_NODE_USER:'test',PRIMARY_NODE_HOST:'not-a-real-host',PRIMARY_NODE_SSH_KEY:'/unused/test-key'};
     return {f,dir,log,script,env};
   }
+  // Only this existing synthetic offline-tool caller supplies its OS boundary.
+  // The production Linux-only guard remains real, including Darwin refusal.
+  const unsupported=await caller('unsupported-platform');
+  await assert.rejects(execute('bash',[unsupported.script],{env:{...unsupported.env,SNAPSHOT_CONTROL_PLATFORM:'Darwin'}}),error=>{
+    assert.match(error.stderr,/final export requires the approved Linux amd64 offline tools/);return true;
+  });
+  assert.equal(fs.existsSync(unsupported.log),false,'unsupported platform reached transport');
+  assert.equal(fs.existsSync(path.join(unsupported.dir,'final-snapshot')),false,'unsupported platform reserved an attempt');
   const c=await caller('approved');await execute('bash',[c.script],{env:c.env});
   const transport=fs.readFileSync(c.log,'utf8');
   assert.ok(fs.existsSync(path.join(c.dir,'final-snapshot/dry-run.txt')));
@@ -407,7 +432,8 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
 mkdir -p "$repo/scripts/ops/remote" "$repo/scripts/deploy" "$repo/scripts/verify"
-cp scripts/ops/public-bft-production-driver.sh scripts/ops/lib.sh "$repo/scripts/ops/"
+cp scripts/ops/public-bft-production-driver.sh scripts/ops/lib.sh scripts/ops/public-bft-linux-public-tools.sh "$repo/scripts/ops/"
+cmp scripts/ops/public-bft-linux-public-tools.sh "$repo/scripts/ops/public-bft-linux-public-tools.sh"
 cp scripts/ops/remote/public-bft-scoped-backup.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-mutation-freeze.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-authoritative-pause.sh "$repo/scripts/ops/remote/"
@@ -526,11 +552,19 @@ for role in primary singapore silicon-valley seoul; do
   grep -Fq freeze "$transaction/roles/${role}-freeze.txt"
   grep -Fq unfreeze "$transaction/roles/${role}-unfreeze.txt"
 done
-grep -Fq '127.0.0.1:6432' "$transaction/roles/primary-freeze.txt"
-if grep -Fq '127.0.0.1:6432' "$transaction/roles/singapore-freeze.txt"; then
-  echo "validator-only freeze probe unexpectedly includes primary services" >&2
-  exit 1
-fi
+# The normal caller probes the authorized Chain endpoint only. A later verified
+# ingress can add the new gateway on primary unfreeze; this fixture has none.
+node --input-type=module - "$transaction" <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const root=process.argv[2];
+for(const role of ['primary','singapore','silicon-valley','seoul'])for(const phase of ['freeze','unfreeze']){
+  const raw=fs.readFileSync(`${root}/roles/${role}-${phase}.txt`,'utf8');
+  const urls=[...new Set(raw.match(/http:\/\/127\.0\.0\.1:[0-9]+/g)??[])];
+  assert.deepEqual(urls,['http://127.0.0.1:6420'],`${role}/${phase} changed the authorized probe set`);
+}
+console.log('PUBLIC_BFT_CHAIN_MUTATION_PROBE_SCOPE_PASS: all four roles and both phases retain exactly the Chain endpoint before ingress');
+NODE
 if run_freeze_dry_run freeze_mutations no >/dev/null 2>&1; then
   echo "mutation freeze unexpectedly passed without explicit approval" >&2
   exit 1
@@ -603,8 +637,8 @@ done
 printf 'fixture\n' >"$tmp/freeze-archive/etc/ynx/config"
 tar -C "$tmp/freeze-archive" -czf "$freeze_evidence/primary.tar.gz" etc/ynx
 freeze_backup_sha="$(sha256sum "$freeze_evidence/primary.tar.gz" | awk '{print $1}')"
-printf '{"transactionId":"%s","role":"primary","commit":"%s","bftRelease":"%s","sha256":"%s","validated":true}\n' \
-  "$(basename "$transaction")" "$commit" "$release" "$freeze_backup_sha" >"$freeze_evidence/primary.json"
+printf '{"transactionId":"%s","role":"primary","commit":"%s","authoritativeRelease":"ynx-chain-%s","bftRelease":"%s","sha256":"%s","validated":true}\n' \
+  "$(basename "$transaction")" "$commit" "$commit" "$release" "$freeze_backup_sha" >"$freeze_evidence/primary.json"
 cat >"$tmp/probe-server.mjs" <<'EOF'
 import fs from "node:fs";
 import http from "node:http";
@@ -655,6 +689,19 @@ if "$freeze_helper" freeze "$(basename "$transaction")" primary "$commit" "ynx-c
   exit 1
 fi
 printf 'YNX_MUTATION_FREEZE_FILE=%s\n' "$marker" >"$freeze_config/etc/ynx/ynx-chaind.env"
+# Keep the production native-release guard exercised, rather than merely
+# filling a field which the old incomplete fixture never supplied.
+cp "$freeze_evidence/primary.json" "$freeze_evidence/primary.json.valid"
+node - "$freeze_evidence/primary.json" <<'NODE'
+const fs=require('fs'),p=process.argv[2],v=JSON.parse(fs.readFileSync(p));delete v.authoritativeRelease;fs.writeFileSync(p,JSON.stringify(v)+'\n');
+NODE
+if "$freeze_helper" freeze "$(basename "$transaction")" primary "$commit" "ynx-chain-${commit}" "$release" "$marker" "$freeze_evidence" "$probe_url" "$probe_url" "$freeze_config" >"$tmp/missing-native-release.log" 2>&1; then
+  echo "mutation freeze unexpectedly accepted a backup without its native release" >&2
+  exit 1
+fi
+grep -Fxq 'backup native release mismatch' "$tmp/missing-native-release.log"
+test ! -e "$marker"
+mv "$freeze_evidence/primary.json.valid" "$freeze_evidence/primary.json"
 freeze_first="$($freeze_helper freeze "$(basename "$transaction")" primary "$commit" "ynx-chain-${commit}" "$release" "$marker" "$freeze_evidence" "$probe_url" "$probe_url" "$freeze_config")"
 grep -Fq 'mutationStateVerified=true' <<<"$freeze_first"
 grep -Fq 'reused=false' <<<"$freeze_first"

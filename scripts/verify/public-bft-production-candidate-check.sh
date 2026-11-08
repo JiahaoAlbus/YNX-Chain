@@ -27,6 +27,7 @@ const root = process.cwd(), tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tm
 const digest = b => crypto.createHash('sha256').update(b).digest('hex');
 const bindingSource=fs.readFileSync('scripts/verify/public-bft-candidate-binding.mjs','utf8');
 const driver = fs.readFileSync('scripts/ops/public-bft-production-driver.sh', 'utf8');
+assert.match(driver,/^source scripts\/ops\/public-bft-linux-public-tools\.sh$/m,'normal driver must retain the real public-tools dependency');
 const extract = name => {
   const match = driver.match(new RegExp(`^${name}\\(\\) \\{\\n[\\s\\S]*?^\\}`, 'm'));
   assert.ok(match, `actual ${name} function missing`);
@@ -124,7 +125,7 @@ if(a.length!==12||value('-operator-plan')!==process.env.PUBLIC_BFT_PRODUCTION_OP
 const out=value('-output');fs.mkdirSync(out);fs.writeFileSync(out+'/package-manifest.json',JSON.stringify({operatorProfile:'YNX-PRODUCTION-OPERATOR/v1',operatorPlanHash:process.env.EXPECTED_PLAN_PIN,genesisTime:value('-genesis-time'),chainId:'ynx_6423-1',roles:['primary','singapore','silicon-valley','seoul'],genesisHash:'a'.repeat(64),migrationStateHash:'c'.repeat(64)})+'\n');
 for(const role of ['primary','singapore','silicon-valley','seoul'])for(const file of ['scripts/start-operator.sh','scripts/backup-candidate.sh','role-manifest.json','systemd/ynx-consensus-operator-candidate.service','config/bound-migration.json','config/genesis.json']){const p=out+'/roles/'+role+'/'+file;fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,'caller-only fixture\n')}
 `,0o700);
-  const env={...process.env,PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:transaction,PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED:'yes',PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST:validator,PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME:genesis,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:planPath,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:planPin,CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:path.join(dir,'original-runtime'),CONSENSUS_CANDIDATE_RUNTIME_COMMIT:fullCommit,CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:manifestPin,EXPECTED_PLAN_PIN:planPin,CALL_LOG:log,BOUNDARY_TOOL:tool,FAIL_TRANSPORT:'no'};
+  const env={...process.env,PUBLIC_BFT_LINUX_TOOL_ROLE:'',PUBLIC_BFT_LINUX_TOOL_DATA_ROOT:'',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:transaction,PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED:'yes',PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST:validator,PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME:genesis,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:planPath,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:planPin,CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:path.join(dir,'original-runtime'),CONSENSUS_CANDIDATE_RUNTIME_COMMIT:fullCommit,CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:manifestPin,EXPECTED_PLAN_PIN:planPin,CALL_LOG:log,BOUNDARY_TOOL:tool,FAIL_TRANSPORT:'no'};
   fs.mkdirSync(env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE);
   write(path.join(env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE,'original-marker'),'original 0644 bytes',0o644);
   const metadataRuntime=path.join(dir,'metadata-runtime');fs.mkdirSync(metadataRuntime,{mode:0o700});
@@ -134,7 +135,9 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
   return {dir,transaction,planPath,plan,planPin,validator,genesis,approval,env,log};
 }
 const harness=path.join(tmp,'caller.sh');
-write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
+// Load the same sourceable DATA adapter as the real driver. Never replace its
+// data-root, package grammar or source guards with successful fixture stubs.
+write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\nsource scripts/ops/public-bft-linux-public-tools.sh\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
   ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','quiet_bootstrap_mode','quiet_forward_gate','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_ingress_result','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
 PRIMARY_NODE_USER=u
 PRIMARY_NODE_HOST=host
@@ -165,7 +168,7 @@ bash(){
     *) echo 'unexpected bash boundary' >&2; return 97 ;;
   esac
 }
-case "$1" in prepare) prepare_candidate_package ;; initialize) initialize_candidate_phase ;; deploy) deploy_candidate_phase ;; start) start_candidate_phase ;; verify) verify_candidate_phase ;; rollback) rollback_candidate_phase ;; gateway) start_dependencies_phase ;; continuity) verify_continuity_phase ;; rollback-gateway) rollback_dependencies_phase ;; ingress) switch_ingress_phase ;; rollback-ingress) rollback_ingress_phase ;; public) verify_public_phase ;; recovery) recovery_phase ;; resume) authoritative_production_phase resume ;; unfreeze) mutation_freeze_phase unfreeze ;; *) exit 94 ;; esac
+case "$1" in data-root) public_bft_public_data_root "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" ;; prepare) prepare_candidate_package ;; initialize) initialize_candidate_phase ;; deploy) deploy_candidate_phase ;; start) start_candidate_phase ;; verify) verify_candidate_phase ;; rollback) rollback_candidate_phase ;; gateway) start_dependencies_phase ;; continuity) verify_continuity_phase ;; rollback-gateway) rollback_dependencies_phase ;; ingress) switch_ingress_phase ;; rollback-ingress) rollback_ingress_phase ;; public) verify_public_phase ;; recovery) recovery_phase ;; resume) authoritative_production_phase resume ;; unfreeze) mutation_freeze_phase unfreeze ;; *) exit 94 ;; esac
 `,0o700);
 function run(f,action='prepare',change={},expected=0){
   const p=spawnSync('bash',[harness,action],{cwd:root,env:{...f.env,ROLLBACK_FIXTURE_SCRIPT:path.join(rollbackRoot,'scripts/ops/rollback-consensus-candidate.sh'),...change},encoding:'utf8',maxBuffer:4<<20});
@@ -205,6 +208,36 @@ function runtimeSourceInventoryControls(){
 }
 const unchanged=before=>before.forEach(([p,b])=>assert.deepEqual(fs.readFileSync(p),b,`original changed: ${p}`));
 try {
+  {
+  // The adapter is the original implementation. These real filesystem controls
+  // stop before runtime preparation, transport or any package-tool boundary.
+  const localRoot=fixture('public-data-root-local');
+  assert.equal(run(localRoot,'data-root').stdout,localRoot.transaction+'\n');
+  assert.equal(fs.existsSync(path.join(localRoot.transaction,'linux-public-data-root.json')),false);
+  for(const kind of ['missing','mode','alias']){
+    const x=fixture('public-data-root-refuse-'+kind),saved=originals(x),parent=path.join(x.dir,'public-parent');
+    fs.mkdirSync(parent,{mode:kind==='mode'?0o755:0o700});
+    let chosen=parent;
+    if(kind==='missing')chosen='';
+    if(kind==='alias'){chosen=path.join(x.dir,'public-alias');fs.symlinkSync(parent,chosen);}
+    const rejected=run(x,'prepare',{PUBLIC_BFT_LINUX_TOOL_ROLE:'primary',PUBLIC_BFT_LINUX_TOOL_DATA_ROOT:chosen},1);
+    assert.match(rejected.stderr,kind==='missing'?/explicit canonical local public data root required/:kind==='mode'?/local public data parent must be original owned 0700/:/symlink|noncanonical/);
+    for(const name of [x.log,x.log+'.runtime',x.log+'.transport',path.join(x.transaction,'candidate'),path.join(x.transaction,'linux-public-data-root.json')])assert.equal(fs.existsSync(name),false,'invalid public root reached a later boundary');
+    assert.deepEqual(fs.readdirSync(parent),[]);unchanged(saved);
+  }
+  const rooted=fixture('public-data-root-bound'),parent=path.join(rooted.dir,'public-parent');fs.mkdirSync(parent,{mode:0o700});
+  const selected={PUBLIC_BFT_LINUX_TOOL_ROLE:'primary',PUBLIC_BFT_LINUX_TOOL_DATA_ROOT:parent},expected=path.join(parent,path.basename(rooted.transaction));
+  assert.equal(run(rooted,'data-root',selected).stdout,expected+'\n');
+  const marker=path.join(rooted.transaction,'linux-public-data-root.json'),markerRaw=fs.readFileSync(marker),record=JSON.parse(markerRaw);
+  assert.equal(record.transaction,rooted.transaction);assert.equal(record.parent,parent);assert.equal(record.dataRoot,expected);
+  assert.equal(fs.statSync(expected).mode&0o777,0o700);
+  assert.equal(run(rooted,'data-root',selected).stdout,expected+'\n');assert.deepEqual(fs.readFileSync(marker),markerRaw);
+  const other=path.join(rooted.dir,'other-parent');fs.mkdirSync(other,{mode:0o700});
+  assert.match(run(rooted,'data-root',{...selected,PUBLIC_BFT_LINUX_TOOL_DATA_ROOT:other},1).stderr,/no retarget/);
+  assert.deepEqual(fs.readFileSync(marker),markerRaw);assert.deepEqual(fs.readdirSync(other),[]);
+  assert.equal(fs.existsSync(rooted.log),false);assert.equal(fs.existsSync(rooted.log+'.transport'),false);
+  console.log('PUBLIC_BFT_ORIGINAL_DATA_ROOT_CALLER_PASS: actual helper local/rooted reads; missing/mode/alias/retarget refused before runtime or transport; no ELF or authority');
+  }
   runtimeSourceInventoryControls();
   const nativeIdentity={authoritativeCommit:'65efa82e06158f9616172144c3c9efdd8088f227',authoritativeRelease:'ynx-network-surgical-65efa82e0615',authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
   function nativeFixture(name){
@@ -422,6 +455,10 @@ try {
   const ingressTransport=fs.readFileSync(f.log+'.transport');run(f,'ingress',phaseEnv,1);assert.deepEqual(fs.readFileSync(f.log+'.transport'),ingressTransport);assert.deepEqual(fs.readFileSync(ingressPath),ingressRaw);
   run(f,'public',phaseEnv);const publicResult=JSON.parse(fs.readFileSync(path.join(f.transaction,'ingress/public-result.json')));assert.equal(publicResult.verified,false);assert.equal(publicResult.publicIngressChanged,false);assert.equal(publicResult.ecosystemContinuityVerified,false);assert.equal(publicResult.pqIdentityObserved,false);assert.equal(publicResult.pqIdentitySHA256,null);const endpoints=fs.readFileSync(path.join(f.transaction,'ingress/public-continuity/endpoints.txt'),'utf8');assert.ok(endpoints.includes('rpc.ynxweb4.com'));assert.ok(!/ai\.ynx|pay\.ynx|trust\.ynx|explorer\.ynx/.test(endpoints));
   run(f,'recovery',phaseEnv);const recovery=JSON.parse(fs.readFileSync(path.join(f.transaction,'recovery-gateway/result.json')));assert.equal(recovery.nativeProducerResumed,false);assert.equal(recovery.verified,false);run(f,'resume',phaseEnv,1);
+  const publicResultPath=path.join(f.transaction,'ingress/public-result.json'),publicResultRaw=fs.readFileSync(publicResultPath),beforeUnfreezeTransport=fs.readFileSync(f.log+'.transport');
+  fs.unlinkSync(publicResultPath);run(f,'unfreeze',phaseEnv,1);assert.deepEqual(fs.readFileSync(f.log+'.transport'),beforeUnfreezeTransport,'missing original public result reached unfreeze transport');
+  write(publicResultPath,{...publicResult,runtimeSOURCEsha256:'9'.repeat(64)});run(f,'unfreeze',phaseEnv,1);assert.deepEqual(fs.readFileSync(f.log+'.transport'),beforeUnfreezeTransport,'foreign public result reached unfreeze transport');
+  fs.writeFileSync(publicResultPath,publicResultRaw,{mode:0o600});
   run(f,'unfreeze',phaseEnv);const unfreezeTransport=fs.readFileSync(f.log+'.transport','utf8');assert.ok(unfreezeTransport.includes('http://127.0.0.1:6420,http://127.0.0.1:27620'));assert.ok(!/:642[89]|:643[0-2]/.test(unfreezeTransport));
   run(f,'rollback-ingress',phaseEnv);assert.equal(JSON.parse(fs.readFileSync(path.join(f.transaction,'ingress/rollback-result.json'))).ingress,'authoritative');run(f,'rollback-ingress',phaseEnv,1);
   run(f,'rollback-gateway',phaseEnv);const rollbackGateway=JSON.parse(fs.readFileSync(path.join(f.transaction,'dependencies/rollback-result.json')));assert.equal(rollbackGateway.originalMaterialRetained,true);assert.equal(rollbackGateway.gatewayStopped,false);run(f,'rollback-gateway',phaseEnv,1);unchanged(before);
