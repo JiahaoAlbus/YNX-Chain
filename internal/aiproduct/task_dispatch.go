@@ -169,7 +169,13 @@ func (s *Server) reconcileStep(ctx context.Context, session ProductSession, task
 	if err == nil && call.OriginalStep.Status == "COMPLETED" {
 		receipt, readErr := s.store.taskFeedbackReceiptLocked(call.OriginalStep)
 		if readErr == nil || !errors.Is(readErr, errTaskEffectUnresolved) {
+			if readErr == nil {
+				readErr = s.store.finishCancelledTaskReconciliationLocked(session.Account, taskID)
+			}
 			s.store.mu.Unlock()
+			if readErr != nil {
+				return taskReadReceipt{}, readErr
+			}
 			return receipt, readErr
 		} // a local commit without original Auth receipt still queries Auth
 
@@ -197,6 +203,9 @@ func (s *Server) reconcileStep(ctx context.Context, session ProductSession, task
 	stored, err := s.store.taskFeedbackReceiptLocked(s.store.state.Actions[stepID])
 	if err != nil || receipt.EffectRef != call.OriginalOperationID || receipt.State != "COMMITTED" || receipt.Binding != stored.Binding {
 		return taskReadReceipt{}, errTaskEffectUnresolved
+	}
+	if err := s.store.finishCancelledTaskReconciliationLocked(session.Account, taskID); err != nil {
+		return taskReadReceipt{}, err
 	}
 	return stored, nil
 }

@@ -74,6 +74,15 @@ read its settled receipt. It cannot dispatch again or resume the cancelled
 model. The cancellation record does not claim a remote rollback or rewrite the
 resource-local completion fact.
 
+Once an explicit original reconciliation has verified every outstanding tool
+result, it closes the cancelled task's RECONCILING marker as CANCELLED in a
+revisioned Store save. Another UNKNOWN or missing/corrupt completed receipt
+keeps the marker pending. Save failure rolls back task/events/audit while
+retaining the already settled original receipt; cold retry uses that receipt
+without a Source query, executor/model call or duplicate audit. Cancelled runs,
+their original model UNKNOWN and first causes are never rewritten by this
+task-marker settlement, nor does it claim physical Source closure.
+
 The normal Go service consumes LINK eb311's real continuation inventory, the
 original Auth strict decoder/reservation adapter, and the original owner's real
 receiver registration/current methods. The byte-exact receiver intake is pinned

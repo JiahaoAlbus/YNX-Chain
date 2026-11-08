@@ -81,6 +81,33 @@ func (s *Store) cancelTaskLocked(account, id string, expectedRev, expectedGen ui
 	return task, nil
 }
 
+// This closes only a cancelled task's outstanding tool reconciliation marker.
+// Original operation receipts, cancelled runs and first causes remain intact;
+// CANCELLED never claims remote rollback or physical Source closure.
+func (s *Store) finishCancelledTaskReconciliationLocked(account, id string) error {
+	task, err := s.ownedTaskLocked(account, id)
+	if err != nil {
+		return err
+	}
+	if task.CancelledAt.IsZero() || task.Status != "RECONCILING" || s.taskHasUnresolvedEffectLocked(id) {
+		return nil
+	}
+	for _, record := range s.state.Actions {
+		if record.Account == account && record.ToolStep != nil && record.ToolStep.TaskID == id && record.Status == "COMPLETED" {
+			if _, err := s.taskFeedbackReceiptLocked(record); err != nil {
+				return nil // another original result is missing/corrupt, not settled
+			}
+		}
+	}
+	if task.Revision == ^uint64(0) {
+		return ErrTaskConflict
+	}
+	task.Status = "CANCELLED"
+	task.Revision++
+	task.UpdatedAt = s.now().UTC()
+	return s.saveTaskLocked(task, "task_cancelled_original_effects_reconciled")
+}
+
 func (s *Server) handleTaskCancel(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	var input struct {
 		Revision   uint64 `json:"revision"`

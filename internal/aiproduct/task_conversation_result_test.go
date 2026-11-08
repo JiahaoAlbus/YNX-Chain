@@ -198,6 +198,10 @@ func TestP08ConversationCancelPreservesAuthUnknownColdOriginalQuery(t *testing.T
 	if _, err = resumed.reconcileStep(context.Background(), f.session, task.ID, id, request.AuthorizationRef); err != nil {
 		t.Fatal("cancel blocked original recovery", err)
 	}
+	finished := cold.state.Tasks[task.ID]
+	if finished.Status != "CANCELLED" || finished.Revision != cancelled.Revision+1 || finished.CancelledAt != cancelled.CancelledAt {
+		t.Fatalf("settled cancelled task stuck in reconciliation: %+v", finished)
+	}
 	w = conversationResultRead(resumed, f.session, task.ID, id)
 	if w.Code != http.StatusOK || !bytes.Equal(w.Body.Bytes(), []byte(c.last.Original)) {
 		t.Fatal("original recovered receipt unavailable after cancel")
