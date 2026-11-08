@@ -1,0 +1,3 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+for(const args of[['--test','test/task-read-receiver-source.test.mjs','test/task-read-receiver-stdin.test.mjs'],['node_modules/typescript/bin/tsc','--strict','--noEmit','--target','es2022','--module','nodenext','--moduleResolution','nodenext','test/types/task-read-receiver-source.mts']]){const r=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('TASK_READ_RECEIVER_SOURCE_DELTA_FAILED:'+r.status)}

@@ -1,3 +1,4 @@
+import{TASK_READ_RECEIVER_SOURCE_PURPOSE as RCV_PURPOSE,TASK_READ_RECEIVER_SOURCE_SELECTION_KEY as RCV_KEY,TASK_READ_RECEIVER_SOURCE_OPERATIONS as RCV_OPS,inspectOriginalTaskReadReceiverScopeV1DATA}from'./original-task-read-receiver-source-contract.mjs';
 import{SERVER_TLS_SOURCE_PURPOSE as TLS_PURPOSE,SERVER_TLS_SOURCE_SELECTION_KEY as TLS_KEY,SERVER_TLS_SOURCE_OPERATIONS as TLS_OPS,inspectOriginalServerTLSIdentityScopeV1DATA}from'./original-server-tls-source-contract.mjs';
 import{DESKTOP_GRANT_SOURCE_PURPOSE as DGA_PURPOSE,DESKTOP_GRANT_SOURCE_SELECTION_KEY as DGA_KEY,DESKTOP_GRANT_SOURCE_OPERATIONS as DGA_OPS,inspectOriginalDesktopGrantAuthorityScopeV1DATA}from'./original-desktop-task-grant-source-contract.mjs';
 import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
@@ -111,7 +112,7 @@ function sourcePolicy(policy){
  const pqCatalog=policy?.signatureContract?.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const ai=policy?.signatureContract?.purpose===AI_PURPOSE;
  const mobile=policy?.signatureContract?.purpose===WM_PURPOSE;
- const device=deviceFamily(policy?.signatureContract?.purpose),pay=[DGA_PURPOSE,TLS_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
+ const device=deviceFamily(policy?.signatureContract?.purpose),pay=[RCV_PURPOSE,DGA_PURPOSE,TLS_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
  exact(policy,mobile?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId',...(policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&Object.hasOwn(policy,'platform')?['platform']:[])]:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
  if(device&&Object.hasOwn(policy,'platform')&&policy.platform!=='linux')fail('AUTH_SOURCE_V2_DEVICE_PLATFORM');
  if(mobile&&(policy.productId!=='wallet'||!['ios','android'].includes(policy.platform)||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)))fail('MOBILE_SOURCE_POLICY');
@@ -199,6 +200,7 @@ export function inspectOriginalServerTLSSourceIssuanceBodyV1DATA(role,rootRaw,en
 
 function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
  if(policy.signatureContract.purpose===TLS_PURPOSE)return serverTLSEnrollmentBodyDATA(root,e,policy,registrations,atMs);
+ if(policy.signatureContract.purpose===RCV_PURPOSE)return taskReceiverEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===DGA_PURPOSE)return desktopGrantEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===WM_PURPOSE)return mobileEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===NCP_PURPOSE)return publisherEnrollmentBodyDATA(root,e,policy,registrations,atMs);
@@ -219,6 +221,8 @@ function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
 function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals){
  if(policy.signatureContract.purpose===TLS_PURPOSE)return serverTLSProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
  if(Object.hasOwn(p.selection??{},TLS_KEY))fail("SERVER_TLS_DEDICATED_PURPOSE_REQUIRED");
+ if(policy.signatureContract.purpose===RCV_PURPOSE)return taskReceiverProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
+ if(Object.hasOwn(p.selection??{},RCV_KEY))fail('TASK_RECEIVER_DEDICATED_PURPOSE_REQUIRED');
  if(policy.signatureContract.purpose===DGA_PURPOSE)return desktopGrantProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
  if(Object.hasOwn(p.selection??{},DGA_KEY))fail("DESKTOP_GRANT_DEDICATED_PURPOSE_REQUIRED");
  if(policy.signatureContract.purpose===WM_PURPOSE)return mobileProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
@@ -402,6 +406,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
  if(contract.purpose===AI_PURPOSE){const data=inspectOriginalAITaskActionV6SourceScopeDATA(p.selection[AI_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(canonical(p.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('AI_TASK_SOURCE_CURRENT_WINDOW');}
  if(contract.purpose===TLS_PURPOSE){const data=inspectOriginalServerTLSIdentityScopeV1DATA(p.selection[TLS_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==data.scopeHead||c.expiresAtMs>data.effectExpiresAtMs)fail('SERVER_TLS_SOURCE_CURRENT_HEAD_OR_WINDOW');}
+ if(contract.purpose===RCV_PURPOSE){const data=inspectOriginalTaskReadReceiverScopeV1DATA(p.selection[RCV_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==data.scopeHead||c.expiresAtMs>data.effectExpiresAtMs)fail('TASK_RECEIVER_SOURCE_CURRENT_HEAD_OR_WINDOW');}
  if(contract.purpose===DGA_PURPOSE){const data=inspectOriginalDesktopGrantAuthorityScopeV1DATA(p.selection[DGA_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==data.scopeHead||c.expiresAtMs>data.effectExpiresAtMs)fail('DESKTOP_GRANT_SOURCE_CURRENT_HEAD_OR_WINDOW');}
  if(contract.purpose===WPR_PURPOSE){const data=inspectOriginalWalletProductScopeV1DATA(p.selection[WPR_KEY],verified.root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('WALLET_PRODUCT_SOURCE_CURRENT_WINDOW');}
  if(contract.purpose===BROWSER_PURPOSE){const data=inspectOriginalBrowserSelectedPagesScopeV1DATA(p.selection[BROWSER_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_WINDOW');}
@@ -416,7 +421,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(contract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');
  if(contract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');
  if(!historical&&c.status!=='active')fail('AUTH_SOURCE_V2_REVOKED');
- return seal({...(Object.hasOwn(p.selection,'runtimeImageBindingV1')?{runtimeImageBindingV1DATA:inspectOriginalAuthRuntimeImageBindingV1DATA(p.selection.runtimeImageBindingV1,p.purpose).runtimeImageBindingV1}:{}),...(contract.purpose===AI_PURPOSE&&verified.agentPublic?{agentPublic:verified.agentPublic}:{}),selection:p.selection,principalId:contract.purpose===WM_PURPOSE?p.selection[WM_KEY].context.account:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
+ return seal({...(contract.purpose===RCV_PURPOSE?{rootIdentityDATA:{rootId:verified.root.rootId,rootOwner:verified.root.rootOwner,networkId:verified.root.networkId}}:{}),...(Object.hasOwn(p.selection,'runtimeImageBindingV1')?{runtimeImageBindingV1DATA:inspectOriginalAuthRuntimeImageBindingV1DATA(p.selection.runtimeImageBindingV1,p.purpose).runtimeImageBindingV1}:{}),...(contract.purpose===AI_PURPOSE&&verified.agentPublic?{agentPublic:verified.agentPublic}:{}),selection:p.selection,principalId:contract.purpose===WM_PURPOSE?p.selection[WM_KEY].context.account:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
 }
 
 /** Fresh nonce/current admission DATA. Historical heads never satisfy this API. */
@@ -616,6 +621,37 @@ export function inspectOriginalDesktopGrantAuthorityIssuanceBodyV1DATA(role,root
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==DGA_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
  const body=parse(bodyRaw,65536);let effectExpiresAtMs=body.expiresAtMs;
  if(role==='enrollment')desktopGrantEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const{enrollment}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);effectExpiresAtMs=desktopGrantProfileBodyDATA(root,enrollment,body,enrollmentRaw,policy,registrations,atMs).effectExpiresAtMs;}
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
+
+
+// Independent receiver-purpose body semantics; same sole envelope/Root/N1 path.
+function taskReceiverEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
+ if(e.version!==2||e.purpose!==RCV_PURPOSE||root.purpose!==RCV_PURPOSE||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==RCV_PURPOSE||e.productId!==policy.productId||e.platform!==policy.platform||e.applicationId!==policy.applicationId||!['linux','macos'].includes(e.platform)||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||!absolute(e.currentStatePath)||canonical(e.operations)!==canonical(RCV_OPS))fail('TASK_RECEIVER_SOURCE_ENROLLMENT');
+ window(e,atMs,86400000);const height=registrations.root.executionHeight,records=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
+ for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+}
+
+function taskReceiverProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs){
+ exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
+ if(p.version!==2||p.purpose!==RCV_PURPOSE||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('TASK_RECEIVER_SOURCE_PROFILE');
+ window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+ const s=p.selection;exact(s,['association','expectedRequest',RCV_KEY]);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
+ if(a.account!==p.subjectOwner||a.productId!==policy.productId||a.platform!==policy.platform||a.applicationId!==policy.applicationId)fail('TASK_RECEIVER_SOURCE_ASSOCIATION');
+ const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
+ if(r.service!==RCV_PURPOSE||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(RCV_OPS)||r.instanceId!==p.instanceId)fail('TASK_RECEIVER_SOURCE_REQUEST');
+ const data=inspectOriginalTaskReadReceiverScopeV1DATA(s[RCV_KEY],a,root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
+ const records=[[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]].map(([snapshot,id])=>active(snapshot,root.networkId,id,height));
+ for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+ return Object.freeze({subjectKeyVersion:selectOriginalAuthSourceAlgorithm(registrations.subject,2).keyVersion,effectExpiresAtMs:data.effectExpiresAtMs});
+}
+
+export function inspectOriginalTaskReadReceiverIssuanceBodyV1DATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(contract.purpose!==RCV_PURPOSE||!['enrollment','profile'].includes(role))fail('TASK_RECEIVER_SOURCE_ISSUANCE_ROLE');exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==RCV_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);let effectExpiresAtMs=body.expiresAtMs;
+ if(role==='enrollment')taskReceiverEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const{enrollment}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);effectExpiresAtMs=taskReceiverProfileBodyDATA(root,enrollment,body,enrollmentRaw,policy,registrations,atMs).effectExpiresAtMs;}
  return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
 }
 
