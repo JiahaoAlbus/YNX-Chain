@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "a8957cd87c4cc55458a7a0d1b1cddcf47e62d797",
-  "sourceTree": "7adf4860ebc0a3e4091147de377f5be98715c2ba",
+  "sourceCommit": "7b7939ad56142bd33499c413182f0e820e709f9b",
+  "sourceTree": "b7ae0166b304bcc300a20a153a85848c847cf25e",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -36,8 +36,8 @@
     },
     {
       "relative": ".github/workflows/wallet-main-ui-pay.yml",
-      "bytes": 1863,
-      "sha256": "67e20d8160eb976b0707f2b120066adce32323457ad9f8f0dd39552a78b60bf0"
+      "bytes": 1898,
+      "sha256": "6993659fdc1c1058ea998f94409c7a1bc07b27fe552d057e90231ee5ac1ecaba"
     },
     {
       "relative": ".github/workflows/wallet-native49-c6-consumer.yml",
@@ -71,8 +71,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/build-mac.mjs",
-      "bytes": 7843,
-      "sha256": "8ae8ec5c1d79526fcf673bb1745c61c994f928367cb4ce18d8d71dbd785e7647"
+      "bytes": 8159,
+      "sha256": "f2433659c6ebce74ffeae236203771f01bdb5537db6d2a02d368f37d872d4ada"
     },
     {
       "relative": "apps/wallet-desktop/scripts/canonical-native-portable-qa-profile.mjs",
@@ -203,6 +203,16 @@
       "relative": "apps/wallet-desktop/scripts/portable-runtime-pack.mjs",
       "bytes": 7508,
       "sha256": "07931dbd7c4a4afd744f16e846aa2f382cf9d950b039cd7e9918b4ee165ab5ae"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/qa-physical-after-pack.mjs",
+      "bytes": 2202,
+      "sha256": "1da3ba15a97126b03319359a5ff3f05cc4b4449ccf8bcebc7e3c9be750726152"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/qa-profile-selection.mjs",
+      "bytes": 1402,
+      "sha256": "b1b1fc38f4b3a21b32c749856996d73ea71f20b479c328ca036c85af74be9cea"
     },
     {
       "relative": "apps/wallet-desktop/scripts/release-provenance.mjs",
@@ -693,6 +703,11 @@
       "relative": "apps/wallet-desktop/test/product-native-main-composition.test.mjs",
       "bytes": 3772,
       "sha256": "968ad3c9cecfa8945ef824ab8604419f2dae275f90cc319fad0a80a2070834c8"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/qa-profile-selection.test.mjs",
+      "bytes": 3377,
+      "sha256": "dcd3c0308688df7dea16aba178084ae0a40b4999a5a140f63d212f4e073510bb"
     },
     {
       "relative": "apps/wallet-desktop/test/receive-approved-design.test.mjs",
