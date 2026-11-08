@@ -1,0 +1,69 @@
+{
+  "schema": "ANDROID_COMPLETION_PRODUCER_NORMAL_INTAKE/v1",
+  "baseSource": "1880329025de852dbc67ded2d2d01400ccba9a76",
+  "production": [
+    {
+      "path": "src/product-pair-session-v4-store.js",
+      "bytes": 23563,
+      "sha256": "8259fb54e4e53b8fb468d6c598254f87387d3a92c965f1c028865e3e30115401"
+    },
+    {
+      "path": "src/product-pair-session-v4-source.js",
+      "bytes": 18775,
+      "sha256": "ac83f7ab913aca750207017b4fb6b08d7e6f56237f73028cb928cf97d0e7ee9a"
+    },
+    {
+      "path": "src/product-device-pending-completion-candidate.mjs",
+      "bytes": 3849,
+      "sha256": "a9a6a80f526ef1d4ab2b6f312f161808c035661f0678a5918ae4dc98005e4433"
+    },
+    {
+      "path": "src/product-pair-session-v4-source.d.ts",
+      "bytes": 3928,
+      "sha256": "47fc2dfe4464e4e4853c7c566c74c04218ece45f67efc1054e7793331c26bd72"
+    }
+  ],
+  "protected188": [
+    {
+      "path": "native/android-pending-producer-role/include/AndroidDeviceRegistrationPrivate.h",
+      "bytes": 5151,
+      "sha256": "9c2e219941b312f863dc62a9a1fe665d5ba336f1d19c434125587cf5569d712c"
+    },
+    {
+      "path": "native/android-pending-producer-role/include/AndroidDeviceRegistrationPortsPrivate.h",
+      "bytes": 6008,
+      "sha256": "2a2b1fc71313b44169f380ba00117a15a42999ca2742b774dd20a7ef2c1cf266"
+    },
+    {
+      "path": "native/android-pending-producer-role/include/AndroidDeviceProvisioningPrivate.h",
+      "bytes": 9267,
+      "sha256": "862e4bb53d3b23c5584d9bcba45bdd84ebbd9ee06a1393ebc227f3b9bc7a7a96"
+    },
+    {
+      "path": "native/android-pending-producer-role/include/AndroidDevicePendingJournalPrivate.h",
+      "bytes": 858,
+      "sha256": "f89beaf6387fbfef0400173e46a286b79167a7bf6e2c36cbd61b1689358f1e6d"
+    },
+    {
+      "path": "native/android-pending-producer-role/F24_SUCCESSOR.json",
+      "bytes": 909,
+      "sha256": "c0fa980726cb85ebe5750d17d65b7476b241f8f0e8d5de4fbd46a09d4b3144d0"
+    }
+  ],
+  "candidateSupplierH": {
+    "bytes": 2817,
+    "sha256": "600bb98c03e8893ea342c64ac5d44585b0783bee033bf4c23cc8c6144f56a7b4"
+  },
+  "operationSupplierH": {
+    "bytes": 5257,
+    "sha256": "e7bc3ae877f616ce8dd09941d549c88b208cbee0f1a75d4aaea2493f3d58db1e"
+  },
+  "supplier13And8": "REUSED_NOT_RERUN",
+  "candidateOnly": true,
+  "normalMethod": "readOriginalCompletionCandidateDATA({profileBodyOriginal,queryOriginal,originalPairPost,completionOperationId})",
+  "operationIdentity": "completionOperationId supplied independently, canonical64lowerhex and not PAIR; candidate sets scope.pendingId=new and pairOperationId=old; no allocation",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "actualNativeSource": false,
+  "realSigning": false
+}
