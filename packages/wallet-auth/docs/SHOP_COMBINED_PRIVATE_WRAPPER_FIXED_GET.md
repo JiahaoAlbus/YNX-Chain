@@ -1,0 +1,7 @@
+# Single-package private Shop wrapper and fixed GET layer
+
+This source is based on the normal 6c9109e matched cohort, preserving its original public Shop export, fixed loader and five private production modules. The 226e original client/read-stage inventory and a482 fixed GET final source are composed by exact before pins; only the workflow needs a semantic union. Package metadata and dependencies are unchanged. The single resulting tgz carries both the original public wrapper and the private fixed GET callee. Separate predecessor tgz files are not presented as this combined delivery.
+
+Only six new same-package integration controls run here: normal import and same-root reachability, zeroarg public acquire guard, fake private loan and second-comparison refusal, no private export leakage, package subpath closure and browser refusal. Original 15 fixed-GET and 13 wrapper controls retain their separate predecessor CI evidence. There is no Native/Root acquisition, signature, business request, joint policy or image test in these controls.
+
+The actual two-argument Auth Source comparison, SAME associatedProductSource borrowed child and matching Native V4 slot remain NOT_SUPPLIED. Namespace-six readonly DATA is not same-parent permission. The private legal one-argument V4 GET holder is not a substitute, and silently ignored comparison arguments are refused. V4 time originals are unchanged exact6 from the sole original header. This single package does not enable Root/Source/Shop business admission or installation.

@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {pathToFileURL,fileURLToPath} from 'node:url';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+const packageJSON=new URL('../../packages/wallet-auth/package.json',import.meta.url),require=createRequire(packageJSON);
+const publicPath=require.resolve('@ynx-chain/wallet-auth/original-shop-private-client');
+const fixedPath=fileURLToPath(new URL('../../packages/wallet-auth/src/original-shop-registered-client-holder-private.js',import.meta.url));
+const original=await import(pathToFileURL(publicPath));const fixed=await import(pathToFileURL(fixedPath));
+test('wrapper and private fixed GET load from one actual package root',()=>{assert.equal(path.dirname(publicPath),path.dirname(fixedPath));assert.equal(typeof original.acquireOriginalShopPrivateClient,'function');assert.equal(typeof original.isOriginalShopPrivateClient,'function');assert.equal(typeof fixed.createOriginalRegisteredClientGETProof,'function');assert.equal(typeof fixed.captureOriginalRegisteredClientReadHolder,'function');});
+test('same package original public fixed acquire still refuses arguments before Native',()=>{assert.throws(()=>original.acquireOriginalShopPrivateClient({}),e=>e.code==='SHOP_NATIVE_ZERO_ARGUMENTS');assert.equal(original.isOriginalShopPrivateClient({}),false);});
+test('combined private helper still refuses fake loan and ignored Source comparison',async()=>{await assert.rejects(fixed.createOriginalRegisteredClientGETProof({},'/v5/shop/source/shop.order/invoice-intents/PUBLIC-order'));assert.throws(()=>fixed.captureOriginalRegisteredClientReadHolder({},{}),e=>e.message==='ORIGINAL_READ_CAPTURE_COMPARISON_NOT_SUPPLIED');});
+test('private GET inventory is not added to normal public product surface',async()=>{const entry=await import(pathToFileURL(require.resolve('@ynx-chain/wallet-auth/product-wallet-connection')));for(const key of ['readOriginalProductWalletBusinessReadHolder','createOriginalRegisteredClientGETProof','captureOriginalRegisteredClientReadHolder'])assert.equal(key in entry,false);});
+test('private module remains outside public package subpath exports',()=>{assert.throws(()=>require.resolve('@ynx-chain/wallet-auth/original-shop-registered-client-holder-private'),e=>e.code==='ERR_PACKAGE_PATH_NOT_EXPORTED');});
+test('same package original Shop public export remains browser refusal',()=>{const code=`try{await import('@ynx-chain/wallet-auth/original-shop-private-client');process.exit(2);}catch(e){if(e.code!=='ERR_PACKAGE_PATH_NOT_EXPORTED')throw e;console.log('BROWSER_SHOP_REFUSAL_PASS');}`;const p=spawnSync(process.execPath,['--conditions=browser','--input-type=module','-e',code],{cwd:path.dirname(fileURLToPath(packageJSON)),encoding:'utf8'});assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/BROWSER_SHOP_REFUSAL_PASS/);});
