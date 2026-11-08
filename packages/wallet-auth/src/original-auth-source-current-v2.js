@@ -54,7 +54,7 @@ function originalSourceEffectExpiry(body,purpose){
  if([NR_PURPOSE,NPR_PURPOSE].includes(purpose)){const s=body.selection[purpose===NPR_PURPOSE?NPR_KEY:NR_KEY];return Math.min(Date.parse(parsed(s.resourceScope.manifestOriginal,16384).expiresAt),Date.parse(parsed(s.resourceScope.consentOriginal,16384).expiresAt),body.expiresAtMs);}
  if(purpose===TLS_PURPOSE)return Math.min(body.expiresAtMs,body.selection[TLS_KEY].expiresAtMs);
  if(purpose===RCV_PURPOSE)return Math.min(body.expiresAtMs,Number(body.selection[RCV_KEY].expiresMS));
- if(purpose===DGA_PURPOSE)return Math.min(body.expiresAtMs,body.selection[DGA_KEY].expiresAtMs);
+ if(purpose===DGA_PURPOSE){const s=body.selection[DGA_KEY];return inspectOriginalDesktopGrantAuthorityScopeV1DATA(s,body.selection.association,s.networkId,body.subjectOwner,body.sourceId,body.instanceId,body.issuedAtMs,body.expiresAtMs,body.issuedAtMs).effectExpiresAtMs;}
  if(purpose===WPR_PURPOSE)return body.expiresAtMs;
  if(purpose===BROWSER_PURPOSE)return Math.min(body.expiresAtMs,body.selection[BROWSER_KEY].untilMs);
  if(purpose===WPC_PURPOSE)return body.selection?Math.min(body.expiresAtMs,...body.selection[WPC_KEY].bindings.map(b=>b.untilMs)):body.expiresAtMs;
