@@ -16,7 +16,7 @@ permissions:
 jobs:
   host-public-lifecycle:
     if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-code-image-root-ci-20261108'
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -41,7 +41,9 @@ jobs:
         with:
           node-version: '24'
       - run: node --test packages/wallet-auth/test/android-code-image-root-ci.test.mjs
-      - run: sdkmanager --install 'ndk;27.1.12297006'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'ndk;27.1.12297006'
       - run: node scripts/ci/android-code-image-root.mjs android "$RUNNER_TEMP/android-code-image-arm64-api24"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
