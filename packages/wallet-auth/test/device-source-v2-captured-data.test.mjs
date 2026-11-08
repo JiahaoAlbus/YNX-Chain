@@ -1,0 +1,15 @@
+import assert from'node:assert/strict';import fs from'node:fs';import{pathToFileURL}from'node:url';
+const p=process.env.YNX_CAPTURE_CONTROL_OUTPUT,s=(await import('node:url')).fileURLToPath(new URL('..',import.meta.url)).replace(/\/$/,''),m=await import(pathToFileURL(s+'/native/original-device-source-v2-captured-data.mjs')),f=await import(pathToFileURL(s+'/test/fixtures/device-platform-public.fixture.mjs'));
+const ctx=f.createScopeFixtureContext(),results=[];try{
+ const x=ctx.fixture('primary').credentials(),raws=['root','profile','current','subject'].map(k=>ctx.canonical(x.registrations[k])),input={operation:'auth-source-v2-native-node/v1',node:{origin:'https://PUBLIC.invalid',spki:'a'.repeat(64),nativeChainId:'6423'},rootRaw:x.rootRaw,enrollmentRaw:x.enrollmentRaw,profileRaw:x.profileRaw,headRaw:x.currentRaw,policy:x.policy,previous:x.previous},capture={input,beforeRaw4:raws,afterRaw4:[...raws],currentRaw:x.currentRaw,nonce:x.nonce,baselineAtMs:x.at,currentAtMs:x.at,afterAtMs:x.at},wire=ctx.canonical(capture),out=m.collectOriginalDeviceSourceV2CapturedDATA(wire);
+ assert.equal(out.projection.sourceId,x.e.sourceId);assert.equal(out.dataOnly,true);for(const k of ['RootAdmission','SourceAdmission','nativeAdmission','platformRuntimeVerified'])assert.equal(out[k],false);assert.ok(Object.isFrozen(out));results.push({name:'complete sole four-originals plus independent raw4 reparse',pass:true});
+ const reject=(name,mutate,re)=>{const c=structuredClone(capture);mutate(c);assert.throws(()=>m.collectOriginalDeviceSourceV2CapturedDATA(ctx.canonical(c)),re);results.push({name,pass:true})};
+ reject('same capture nonce required',c=>c.nonce=Buffer.alloc(32,3).toString('base64url'),/NONCE|CURRENT/);
+ reject('before-after registered full-pair drift',c=>{const v=JSON.parse(c.afterRaw4[0]);v.records[0].pkB='b'.repeat(128);c.afterRaw4[0]=ctx.canonical(v)},/PQ_POLICY_CHANGED/);
+ reject('captured current expired at postcheck',c=>c.afterAtMs=120000,/POST_CURRENT_EXPIRED/);
+ reject('previous floor rollback not renewed',c=>c.input.previous.sequence=2,/AUTH_SOURCE_V2_CURRENT/);
+ reject('Android not silently upgraded to valid source',c=>c.input.policy.platform='android',/SOURCE_POLICY|SCHEMA|PLATFORM|INVALID/);
+ reject('Root independent pin not claimed by capture',c=>c.input.policy.rootDigest='0'.repeat(64),/NOT_PINNED/);
+ let traps=0;const v=new Proxy({}, {get(){traps++;throw Error('trap')},getPrototypeOf(){traps++;throw Error('trap')},ownKeys(){traps++;throw Error('trap')}});assert.throws(()=>m.collectOriginalDeviceSourceV2CapturedDATA(v),/CAPACITY/);assert.equal(traps,0);assert.throws(()=>m.collectOriginalDeviceSourceV2CapturedDATA(' '.repeat(2097153)),/CAPACITY/);results.push({name:'primitive-only and original2MiB budget before reflection',pass:true});
+ if(p)fs.writeFileSync(p+'/CAPTURED_COLLECTOR_NEW_CONTROLS.json',JSON.stringify({results,passed:results.length,keys:'PUBLIC ephemeral memory only; destroyed',actualAndroidRuntimeExecuted:false,CoreBridgeInvoked:false,RootAdmission:false,SourceAdmission:false},null,2)+'\n');console.log('PASS '+results.length+' new capture composition controls');
+}finally{ctx.close()}
