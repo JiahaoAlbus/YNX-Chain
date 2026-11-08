@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"golang.org/x/sys/unix"
 	"io"
 	"os"
@@ -14,36 +15,50 @@ import (
 )
 
 type originalFile struct {
-	file   *os.File
-	path   string
-	id     os.FileInfo
-	digest string
-	limit  int64
-	raw    []byte
-	closed bool
-	first  error
-	uid    uint32
-	mode   uint32
-	nlink  uint64
-	ctime  unix.Timespec
-	gid    uint32
+	file          *os.File
+	path          string
+	id            os.FileInfo
+	digest        string
+	limit         int64
+	raw           []byte
+	closed        bool
+	closeCalled   bool
+	closeReturned bool
+	closeDone     bool
+	closeUnknown  bool
+	first         error
+	uid           uint32
+	mode          uint32
+	nlink         uint64
+	ctime         unix.Timespec
+	gid           uint32
 }
 type originalFiles struct {
-	files []*originalFile
-	dirs  []*originalDirectory
-	uid   uint32
-	first error
+	files         []*originalFile
+	dirs          []*originalDirectory
+	uid           uint32
+	first         error
+	closeSelected bool
+	closeReturned bool
 }
 type originalDirectory struct {
-	file   *os.File
-	path   string
-	id     os.FileInfo
-	closed bool
-	uid    uint32
-	mode   uint32
+	file          *os.File
+	path          string
+	id            os.FileInfo
+	closed        bool
+	closeCalled   bool
+	closeReturned bool
+	closeDone     bool
+	closeUnknown  bool
+	first         error
+	uid           uint32
+	mode          uint32
 }
 
 func (f *originalFiles) directory(parent *originalDirectory, name, path string) (*originalDirectory, error) {
+	if f == nil || f.closeSelected {
+		return nil, ErrRetired
+	}
 	for _, d := range f.dirs {
 		if d.path == path {
 			if e := d.current(); e != nil {
@@ -99,6 +114,9 @@ func same(a, b os.FileInfo) bool {
 	return a != nil && b != nil && os.SameFile(a, b) && a.Size() == b.Size() && a.Mode() == b.Mode() && a.ModTime() == b.ModTime()
 }
 func (f *originalFiles) hold(path, digest string, limit int64) ([]byte, error) {
+	if f == nil || f.closeSelected {
+		return nil, ErrRetired
+	}
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path || !network.MatchString(digest) || limit < 1 || limit > 256<<20 {
 		return nil, ErrDenied
 	}
@@ -218,25 +236,136 @@ func (f *originalFiles) close() error {
 	if f == nil {
 		return nil
 	}
+	if f.closeSelected {
+		return f.first
+	}
+	f.closeSelected = true
 	for i := len(f.files) - 1; i >= 0; i-- {
 		h := f.files[i]
-		if h.closed {
-			continue
-		}
-		h.closed = true
-		if e := h.file.Close(); e != nil && f.first == nil {
+		if e := h.closeOriginal(); e != nil && f.first == nil {
 			f.first = e
 		}
 	}
 	for i := len(f.dirs) - 1; i >= 0; i-- {
 		d := f.dirs[i]
-		if d.closed {
-			continue
-		}
-		d.closed = true
-		if e := d.file.Close(); e != nil && f.first == nil {
+		if e := d.closeOriginal(); e != nil && f.first == nil {
 			f.first = e
 		}
 	}
+	f.closeReturned = true
 	return f.first
+}
+
+// Only the original owned os.File is eligible, and a previously identified
+// numeric FD must still name the SAME object before the sole close call.
+func closeIdentityCurrent(file *os.File, original os.FileInfo) error {
+	if file == nil {
+		return ErrUnknown
+	}
+	if original != nil {
+		now, e := file.Stat()
+		if e != nil {
+			return e
+		}
+		if !os.SameFile(now, original) {
+			return ErrDenied
+		}
+	}
+	return nil
+}
+func (h *originalFile) closeOriginal() error {
+	if h == nil {
+		return ErrUnknown
+	}
+	if h.closed {
+		return h.first
+	}
+	h.closed = true
+	if e := closeIdentityCurrent(h.file, h.id); e != nil {
+		h.closeUnknown = true
+		if h.first == nil {
+			h.first = errors.Join(ErrUnknown, e)
+		}
+		return h.first
+	}
+	h.closeCalled = true
+	e := closeOriginalOwnedFD(h.file)
+	h.closeReturned = true
+	if e != nil {
+		h.closeUnknown = true
+		if h.first == nil {
+			h.first = e
+		}
+	} else {
+		h.closeDone = true
+	}
+	return h.first
+}
+func (d *originalDirectory) closeOriginal() error {
+	if d == nil {
+		return ErrUnknown
+	}
+	if d.closed {
+		return d.first
+	}
+	d.closed = true
+	if e := closeIdentityCurrent(d.file, d.id); e != nil {
+		d.closeUnknown = true
+		if d.first == nil {
+			d.first = errors.Join(ErrUnknown, e)
+		}
+		return d.first
+	}
+	d.closeCalled = true
+	e := closeOriginalOwnedFD(d.file)
+	d.closeReturned = true
+	if e != nil {
+		d.closeUnknown = true
+		if d.first == nil {
+			d.first = e
+		}
+	} else {
+		d.closeDone = true
+	}
+	return d.first
+}
+func originalFDClosed(selected, called, returned, done, unknown bool) error {
+	if unknown {
+		return ErrUnknown
+	}
+	if !selected || !called || !returned {
+		return ErrPending
+	}
+	if !done {
+		return ErrUnknown
+	}
+	return nil
+}
+
+// Pure mechanical observations only. The owning Authority mutex protects
+// these fields; no filesystem/current call or close is performed here.
+func (f *originalFiles) assertOriginalClosed() error {
+	if f == nil {
+		return ErrDenied
+	}
+	if !f.closeSelected || !f.closeReturned {
+		return ErrPending
+	}
+	for _, h := range f.files {
+		if h == nil {
+			return ErrUnknown
+		}
+		if e := originalFDClosed(h.closed, h.closeCalled, h.closeReturned, h.closeDone, h.closeUnknown); e != nil {
+			return e
+		}
+	}
+	for _, d := range f.dirs {
+		if d == nil {
+			return ErrUnknown
+		}
+		if e := originalFDClosed(d.closed, d.closeCalled, d.closeReturned, d.closeDone, d.closeUnknown); e != nil {
+			return e
+		}
+	}
+	return nil
 }

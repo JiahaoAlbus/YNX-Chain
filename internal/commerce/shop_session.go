@@ -601,24 +601,30 @@ func (s *Store) captureOriginalShopSessionForRead(ctx context.Context, r *http.R
 			}
 			continue
 		}
-		if v == nil || v.shopSessionIssuer == nil || !sameBusinessAccount(v.walletAccount, scope.actor) {
-			return nil, ErrUnauthorized
-		}
-		if err = v.revalidate(ctx); err != nil {
-			return nil, err
-		}
-		if err = s.observeOriginalShopSession(ctx, v); err != nil {
-			return nil, err
-		}
-		h, err := s.CaptureOriginalShopSession(context.WithValue(ctx, businessRequestContextKey{}, v))
-		if h != nil && (h.data.Actor != scope.actor || h.data.Role != scope.role || h.data.Realm != scope.realm || h.data.Tenant != scope.tenant) {
-			h.Retire()
-			return h, ErrUnauthorized
-		}
-		return h, err
+		return s.captureVerifiedOriginalShopSession(ctx, scope, v)
 	}
 	if first == nil {
 		first = ErrShopInvoiceReadSourceNotSupplied
 	}
 	return nil, first
+}
+
+// Both original verifier families enter the same real inventory/ACL path.
+// This is private and accepts only the existing private verified request.
+func (s *Store) captureVerifiedOriginalShopSession(ctx context.Context, scope originalShopInvoiceReadScope, v *verifiedBusinessRequest) (*OriginalShopSession, error) {
+	if v == nil || v.shopSessionIssuer == nil || !sameBusinessAccount(v.walletAccount, scope.actor) || v.principal.Role != scope.role {
+		return nil, ErrUnauthorized
+	}
+	if err := v.revalidate(ctx); err != nil {
+		return nil, err
+	}
+	if err := s.observeOriginalShopSession(ctx, v); err != nil {
+		return nil, err
+	}
+	h, err := s.CaptureOriginalShopSession(context.WithValue(ctx, businessRequestContextKey{}, v))
+	if h != nil && (h.data.Actor != scope.actor || h.data.Role != scope.role || h.data.Realm != scope.realm || h.data.Tenant != scope.tenant) {
+		h.Retire()
+		return h, ErrUnauthorized
+	}
+	return h, err
 }

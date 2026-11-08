@@ -88,3 +88,26 @@ normal CI is `42445390661`; no binary archive is hot-swapped. The private Shop
 server explicitly selects a 64 KiB total header budget so the sole 16 KiB proof
 carrier fits with the existing fixed LINK metadata. Root admission and actual
 protected native holder commissioning remain separate from this source intake.
+
+## Auth V4 Go consumer successor
+
+The original Auth-owned r2/r3/r4 supplier is consumed exactly. Its normal
+`Hold.VerifyOriginalShopGET(ctx)` owns the original request, context, Source and
+caller. The V4 header selects this concrete held producer, never the legacy
+introspection verifier. Mixed/duplicate header families reject without fallback.
+Both original families enter the same durable Store inventory, namespace and
+OwnOrder checks. V4 session identity uses the supplier's stable original session
+digest; issuer/session expiry and the finite proof loan remain separate.
+
+Full current/history calls preserve Auth's original context; cancellation of a
+Store operation retires only its request child. Parent/permission/read-hold
+closures preserve the first error and independently consult the original
+physical witness. Completed originals leave the pending map without another
+close call; pending/UNKNOWN originals retain their actual debt.
+
+This is source integration, not V4 HTTP qualification. The consumed LINK release
+still enforces its original 64 KiB request cap and V2 carrier. The failed attempt
+to select the SDK's 256 KiB V4 budget returned the original ErrBounds and is
+preserved. Matching closed V4 carrier, immutable-header binding and dedicated
+server budget must arrive from LINK before a coherent V4 wire is verified.
+No production Root, real protected session, installation or deployment is claimed.

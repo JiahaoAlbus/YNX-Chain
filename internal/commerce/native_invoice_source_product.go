@@ -238,9 +238,9 @@ func (h *originalShopProductReadHold) close() error {
 	}
 	// The actual permission owns close-once/uncertain outcome. Service retains
 	// this original child if cleanup fails; never replace it with a fresh loan.
-	if err := h.permission.close(); err != nil {
-		return err
+	err := h.permission.close()
+	if originalShopCloseComplete(h.permission, err) {
+		h.closed.Store(true)
 	}
-	h.closed.Store(true)
-	return nil
+	return err
 }

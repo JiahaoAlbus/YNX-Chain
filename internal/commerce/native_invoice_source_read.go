@@ -67,8 +67,7 @@ func OpenOriginalShopInvoiceReadService(ctx context.Context, open func() (*Store
 // The normal factory's session binding is part of construction, independently
 // of the original Source-only fixture preparer. Partials remain owned.
 func prepareOriginalShopSessionReadService(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error)) (*OriginalShopInvoiceReadService, error) {
-	s, err := prepareOriginalShopInvoiceReadService(ctx, a, open)
-	s.sessionRequired = true
+	s, err := prepareOriginalShopInvoiceReadServiceMode(ctx, a, open, true)
 	if err == nil {
 		s.sessionDomain, err = s.store.bindOriginalShopSessionDomain(a, s.profile)
 	}
@@ -94,8 +93,12 @@ type OriginalShopInvoiceReadService struct {
 	closed            bool
 }
 
-func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error)) (s *OriginalShopInvoiceReadService, err error) {
-	s = &OriginalShopInvoiceReadService{authority: a}
+func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error)) (*OriginalShopInvoiceReadService, error) {
+	return prepareOriginalShopInvoiceReadServiceMode(ctx, a, open, false)
+}
+
+func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error), sessionRequired bool) (s *OriginalShopInvoiceReadService, err error) {
+	s = &OriginalShopInvoiceReadService{authority: a, sessionRequired: sessionRequired}
 	if ctx == nil || a == nil || open == nil {
 		return s, ErrShopInvoiceReadSourceNotSupplied
 	}
@@ -134,7 +137,11 @@ func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopIn
 	if err = a.current(ctx); err != nil {
 		return s, err
 	}
-	s.link, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes, Handler: http.HandlerFunc(s.serveHTTP), MaxHeaderBytes: 64 << 10})
+	// The consumed LINK release admits only its existing 64 KiB request bound.
+	// A qualified closed V4 carrier must arrive before its larger PQ budget can
+	// be selected; merely enlarging this config would break normal construction.
+	headerBudget := 64 << 10
+	s.link, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes, Handler: http.HandlerFunc(s.serveHTTP), MaxHeaderBytes: headerBudget})
 	if err != nil {
 		return s, err
 	}
@@ -197,9 +204,15 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 	}
 	s.stateMu.Unlock()
 	for id, held := range pending {
-		if err := held.close(); err != nil {
+		// A previously pending original may finish asynchronously. Observe its
+		// genuine witness before selecting another close attempt.
+		witness, hasWitness := held.(originalShopClosedWitness)
+		if !hasWitness || witness.assertOriginalClosed() != nil {
+			err := held.close()
 			remember(err)
-			return s.finalCloseError()
+			if !originalShopCloseComplete(held, err) {
+				return s.finalCloseError()
+			}
 		}
 		s.stateMu.Lock()
 		delete(s.children, id)
@@ -213,9 +226,13 @@ func (s *OriginalShopInvoiceReadService) Close(ctx context.Context) error {
 		}
 	}
 	if s.authority != nil {
-		if err := s.authority.close(); err != nil {
+		witness, hasWitness := s.authority.(originalShopClosedWitness)
+		if !hasWitness || witness.assertOriginalClosed() != nil {
+			err := s.authority.close()
 			remember(err)
-			return s.finalCloseError()
+			if !originalShopCloseComplete(s.authority, err) {
+				return s.finalCloseError()
+			}
 		}
 	}
 	s.closed = true
@@ -251,14 +268,16 @@ func (s *OriginalShopInvoiceReadService) release(id uint64, held originalShopInv
 		return nil
 	}
 	err := held.close()
+	complete := originalShopCloseComplete(held, err)
 	s.stateMu.Lock()
-	if err == nil {
+	if complete {
 		delete(s.children, id)
-	} else if s.first == nil {
+	}
+	if err != nil && s.first == nil {
 		s.first = err
 	}
 	s.stateMu.Unlock()
-	if err != nil {
+	if err != nil && !complete {
 		s.retired.Store(true)
 		if s.link != nil {
 			_ = s.link.Retire()
@@ -351,7 +370,7 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	}
 	var session *OriginalShopSession
 	if s.sessionDomain != nil {
-		session, err = s.store.captureOriginalShopSessionForRead(r.Context(), r, scope)
+		session, err = s.store.captureOriginalShopSessionForSourceRead(r.Context(), r, scope, held)
 		if session != nil {
 			defer session.Close()
 		}

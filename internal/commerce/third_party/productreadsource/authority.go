@@ -33,14 +33,17 @@ type Authority struct {
 	first    error
 }
 type Hold struct {
-	parent  *Authority
-	epoch   *epoch
-	ctx     context.Context
-	request *http.Request
-	caller  *securelink.LocalCaller
-	scope   ReadScopeDATA
-	closed  atomic.Bool
-	first   atomic.Pointer[holdError]
+	parent      *Authority
+	epoch       *epoch
+	ctx         context.Context
+	request     *http.Request
+	caller      *securelink.LocalCaller
+	scope       ReadScopeDATA
+	closed      atomic.Bool
+	released    atomic.Bool
+	releaseDone atomic.Bool
+	v4          atomic.Pointer[VerifiedShopGET]
+	first       atomic.Pointer[holdError]
 }
 type holdError struct{ err error }
 
@@ -262,15 +265,50 @@ func (h *Hold) Close() error {
 	if h == nil {
 		return nil
 	}
-	if h.closed.CompareAndSwap(false, true) {
+	if h.parent == nil || h.ctx == nil {
+		return ErrDenied
+	}
+	h.closed.Store(true)
+	if v := h.v4.Load(); v != nil {
+		err := v.originalError()
+		if v.AssertOriginalClosed() != nil {
+			err = v.Close()
+		}
+		if physical := v.AssertOriginalClosed(); physical != nil {
+			if err != nil {
+				return err
+			}
+			return physical
+		}
+		if err != nil {
+			h.first.CompareAndSwap(nil, &holdError{err})
+		}
+	}
+	if h.released.CompareAndSwap(false, true) {
 		h.parent.children.Add(-1)
 		select {
 		case h.parent.changed <- struct{}{}:
 		default:
 		}
+		h.releaseDone.Store(true)
 	}
 	if p := h.first.Load(); p != nil {
 		return p.err
+	}
+	return nil
+}
+
+// SAME original Hold's physical release only, not parent Authority shutdown.
+// A retained first error does not block this witness after actual completion.
+func (h *Hold) AssertOriginalClosed() error {
+	if h == nil || h.parent == nil || h.ctx == nil {
+		return ErrDenied
+	}
+	if !h.closed.Load() || !h.releaseDone.Load() {
+		return ErrPending
+	}
+	if v := h.v4.Load(); v != nil {
+		return v.AssertOriginalClosed()
 	}
 	return nil
 }
@@ -301,6 +339,9 @@ func (a *Authority) Close() error {
 	if a == nil {
 		return nil
 	}
+	if a.parent == nil || a.changed == nil {
+		return ErrDenied
+	}
 	a.Retire()
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -315,4 +356,18 @@ func (a *Authority) Close() error {
 		a.first = errors.Join(ErrUnknown, e)
 	}
 	return a.first
+}
+
+// No-I/O witness of THIS Authority's actual child drain and original FD close
+// observations. Retained first failure and physical completion are separate.
+func (a *Authority) AssertOriginalClosed() error {
+	if a == nil || a.parent == nil || a.changed == nil {
+		return ErrDenied
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.closed || a.children.Load() != 0 {
+		return ErrPending
+	}
+	return a.files.assertOriginalClosed()
 }
