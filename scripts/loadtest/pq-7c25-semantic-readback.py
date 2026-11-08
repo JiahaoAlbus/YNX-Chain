@@ -22,6 +22,10 @@ AFTER = '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 BEFORE = 'd6ff40c8e2603d2ef4086fcca6bafc276fd710b1'
 BASE = 'f27e07df6dd96114135aceace20a9413bba94649'
 TRACE_SHA = '11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6'
+BEFORE_EXECUTION_TREE = '0397f75ec55db6a89b46e2e6d051ce960c36827d'
+AFTER_EXECUTION_TREE = '96d91aed6a015f7243bb18b5d7a375bddf51483a'
+EVIDENCE_OVERLAY = [{'path': 'internal/consensus/pq_lab_finalize_trace.go', 'mode': '100644', 'bytes': 39737, 'sha256': '0aa9b4e00a6c9f249ddc57063a3e9e37b4325f41a6014f0da3e571efb2eed61e', 'gitBlob': '72e4d368a9fc225a621e24f65ab9a281d9282645'}, {'path': 'internal/consensus/pq_lab_finalize_trace_test.go', 'mode': '100644', 'bytes': 23962, 'sha256': 'ff8908b58ee3a77900429bd3ca5d417564e3bbfcd87f969c8bcddf5f1f0923b5', 'gitBlob': 'a71ec1d82e1bb9bda22544dad4fa247b62ae80b3'}]
+
 ROOTS = ('go.mod', 'go.sum', 'cmd', 'internal', 'third_party/cometbft')
 COMMANDS = ('go-version', 'fetch-original-source-objects', 'prepare-fixed-two-source-trees',
             'before-build', 'before-buildinfo', 'before-replay', 'after-build', 'after-buildinfo', 'after-replay')
@@ -68,9 +72,8 @@ def read_zip(path, expected_bytes, expected_sha):
 def git_inventory(repo, revision):
     def git(*args, **kw):
         return subprocess.run(['git', '-C', str(repo), *args], check=True, stdout=subprocess.PIPE, **kw).stdout
-    expected_tree = BEFORE if revision == BEFORE else '8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
-    require(revision in (BEFORE, AFTER), 'unselected source revision')
-    require(git('rev-parse', revision + '^{tree}').strip().decode() == expected_tree, 'selected Git tree differs')
+    require(revision in (BEFORE_EXECUTION_TREE, AFTER_EXECUTION_TREE), 'unselected evidence execution tree')
+    require(git('rev-parse', revision + '^{tree}').strip().decode() == revision, 'selected execution Git tree differs')
     entries = []
     for entry in git('ls-tree', '-rz', revision, '--', *ROOTS).split(b'\0'):
         if not entry:
@@ -88,7 +91,10 @@ def git_inventory(repo, revision):
         require(actual == blob and kind == b'blob' and int(size) <= 16 << 20, 'Git blob binding differs')
         body = stream.read(int(size))
         require(len(body) == int(size) and stream.read(1) == b'\n', 'truncated Git blob')
-        rows.append(dict(path=name, bytes=len(body), sha256=sha(body)))
+        row = dict(path=name, bytes=len(body), sha256=sha(body))
+        overlay = next((r for r in EVIDENCE_OVERLAY if r['path'] == name), None)
+        require(overlay is None or (row['bytes'],row['sha256']) == (overlay['bytes'],overlay['sha256']), 'exact evidence overlay source bytes differ')
+        rows.append(row)
     require(not stream.read(), 'extra Git blob data')
     return inventory(rows)
 
@@ -133,6 +139,9 @@ def inspect(files, source_before, source_after, fixture, controller, artifact_sh
     source = trace.io.strict(files['SOURCE.json'])
     require(source['beforeTree'] == BEFORE and source['afterCommit'] == AFTER and source['afterTree'] == '8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a', 'source selection differs')
     require(source['beforeForkTree'] == result['beforeForkTree'] and source['afterForkTree'] == result['afterForkTree'], 'original source/fork receipts differ')
+    require(source['executionTrees'] == dict(before=BEFORE_EXECUTION_TREE, after=AFTER_EXECUTION_TREE)
+            and source['commonEvidenceOverlay'] == EVIDENCE_OVERLAY
+            and source['evidenceOverlayControllerCommit'] == controller, 'actual common evidence source binding differs')
     require(source['sameFourTraceBlobs'] is True and source['sameFiveCallerBlobs'] is False and source['afterMainOverwritten'] is False, 'caller overlay scope differs')
     require(files['go-version.log'].strip() == b'go version go1.26.10 linux/amd64', 'actual toolchain differs')
     original = trace.read_bundle(Path(fixture), TRACE_SHA, 'trace')
@@ -177,7 +186,8 @@ def inspect(files, source_before, source_after, fixture, controller, artifact_sh
     height_report = height_reader.compare_height_states(*arms, rows)
     return dict(schema='YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1', runID=run_id, jobID=job_id,
                 artifactSHA256=artifact_sha, controllerCommit=controller, afterCommit=AFTER, toolsCommit=result['toolsCommit'], toolsTree=result['toolsTree'], beforeForkTree=result['beforeForkTree'], afterForkTree=result['afterForkTree'],
-                afterTree=AFTER_TREE, perHeightEvidence=height_report, completePerHeightTxResultsEqual=True,
+                afterTree=AFTER_TREE, beforeExecutionTree=BEFORE_EXECUTION_TREE, afterExecutionTree=AFTER_EXECUTION_TREE,
+                commonEvidenceOverlay=EVIDENCE_OVERLAY, perHeightEvidence=height_report, completePerHeightTxResultsEqual=True,
                 completePerHeightBalanceNonceStateEqual=True, completePerHeightAppHashEqual=True,
                 equalityMeaning='Full original responses and complete canonical state length/SHA/AppHash reconstructed by each normal Go replay; reader compares all record bytes, not independent per-height state snapshots.',
                 limitedOriginalTrajectoryQualified=True, heights=original['retainedHeights'],
@@ -245,7 +255,7 @@ def main():
     if a.read_failure:
         report = inspect_failure(files, a.controller_commit, a.artifact_sha256, a.run_id, a.job_id)
     else:
-        report = inspect(files, git_inventory(a.source_repo, BEFORE), git_inventory(a.source_repo, AFTER), a.trace,
+        report = inspect(files, git_inventory(a.source_repo, BEFORE_EXECUTION_TREE), git_inventory(a.source_repo, AFTER_EXECUTION_TREE), a.trace,
                          a.controller_commit, a.artifact_sha256, a.run_id, a.job_id)
     with Path(a.output).open('x') as out:
         json.dump(report, out, sort_keys=True, indent=2)

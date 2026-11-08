@@ -5,6 +5,7 @@ Go must emit every raw state and its actual normal-loader cold observation.
 """
 import hashlib
 import json
+import re
 
 
 def require(ok, reason):
@@ -29,7 +30,9 @@ def compare_height_states(before, after, trace_rows):
     heights = [row['height'] for row in trace_rows]
     require(heights == list(map(str, range(4, 13))), 'all nine original heights required')
     required = {'height-states/' + h + '.json' for h in heights}
-    pins = {}
+    pins = {}; timings = {}
+    fields = frozenset(('height','stateBytes','stateSHA256','appHash','coldStateBytes','coldStateSHA256',
+                        'coldAppHash','bytesEqual','coldLoadNs','coldEncodeNs','coldCompareNs'))
     for arm, files in [('before', before), ('after', after)]:
         require({name for name in files if name.startswith('height-states/')} == required,
                 'complete exact per-height raw states required: ' + arm)
@@ -37,7 +40,16 @@ def compare_height_states(before, after, trace_rows):
         require(0 < len(raw) <= 1 << 20 and raw.endswith(b'\n'), 'bounded complete cold records required')
         cold = [strict(line) for line in raw.splitlines()]
         require([row['height'] for row in cold] == heights, 'all ordered cold height observations required')
+        timings[arm] = []
         for reference, observed in zip(trace_rows, cold):
+            require(set(observed) == fields, 'closed actual cold observation fields required')
+            phase = dict(height=observed['height'])
+            for key in ('coldLoadNs','coldEncodeNs','coldCompareNs'):
+                value = observed[key]
+                require(type(value) is str and re.fullmatch(r'0|[1-9][0-9]*', value) is not None
+                        and int(value) < 1 << 63, 'original monotonic cold phase duration required: ' + key)
+                phase[key] = value
+            timings[arm].append(phase)
             h = reference['height']; state = files['height-states/' + h + '.json']
             require(0 < len(state) <= 8 << 20, 'bounded complete state required')
             digest = hashlib.sha256(state).hexdigest()
@@ -57,4 +69,6 @@ def compare_height_states(before, after, trace_rows):
     return dict(heights=heights, completePerHeightRawStateBytesEqual=True,
                 completePerHeightBalanceNonceStateEqual=True, completePerHeightAppHashEqual=True,
                 coldReconstructionProducerRecordsVerified=True,
-                coldReconstructionIndependentlyExecutedByReader=False, statePins=pins)
+                coldReconstructionIndependentlyExecutedByReader=False, statePins=pins,
+                coldStageObservedNanoseconds=timings,
+                timingMeaning='Original Go monotonic load/encode/compare observations; no missing interval filled; not business latency or source performance improvement.')

@@ -27,7 +27,6 @@ OPERATION_DIRECTORY = 'pq-finalize-7c25-semantic'
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 REF = 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
 WORKFLOW = REPOSITORY + '/.github/workflows/pq-source-compare.yml@' + REF
-CONTROLLER_BASE = '454cad4a0edca86eeb3183da7b9edd542755a267'
 AFTER = '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 AFTER_TREE = '8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
 TOOLS_COMMIT = '478bf2ee60c19dcbdb67872184f9e1f500511746'
@@ -38,6 +37,10 @@ BEFORE_BASE = 'f27e07df6dd96114135aceace20a9413bba94649'
 CALLER = '6cc85996524896c68aa9877b209c777fbcc25ae0'
 BEFORE_TREE = 'd6ff40c8e2603d2ef4086fcca6bafc276fd710b1'
 BEFORE_ORIGINAL_COMMIT = 'fa67017923834a6414e73e31d742e41e83d55a1e'
+BEFORE_EXECUTION_TREE = '0397f75ec55db6a89b46e2e6d051ce960c36827d'
+AFTER_EXECUTION_TREE = '96d91aed6a015f7243bb18b5d7a375bddf51483a'
+EVIDENCE_OVERLAY = [{'path': 'internal/consensus/pq_lab_finalize_trace.go', 'mode': '100644', 'bytes': 39737, 'sha256': '0aa9b4e00a6c9f249ddc57063a3e9e37b4325f41a6014f0da3e571efb2eed61e', 'gitBlob': '72e4d368a9fc225a621e24f65ab9a281d9282645'}, {'path': 'internal/consensus/pq_lab_finalize_trace_test.go', 'mode': '100644', 'bytes': 23962, 'sha256': 'ff8908b58ee3a77900429bd3ca5d417564e3bbfcd87f969c8bcddf5f1f0923b5', 'gitBlob': 'a71ec1d82e1bb9bda22544dad4fa247b62ae80b3'}]
+
 ROOTS = ('go.mod', 'go.sum', 'cmd', 'internal', 'third_party/cometbft')
 OVERLAY = ('internal/consensus/pq_lab_finalize_trace.go', 'internal/consensus/pq_lab_finalize_trace_test.go',
            'cmd/ynx-consensus-pq-lab/finalize_trace.go', 'cmd/ynx-consensus-pq-lab/finalize_trace_test.go', 'cmd/ynx-consensus-pq-lab/main.go')
@@ -203,7 +206,7 @@ def validate_forks(repo, before_tree):
     require(git(repo, 'rev-parse', before_tree + ':third_party/cometbft').decode() == BEFORE_FORK_TREE and git(repo, 'rev-parse', AFTER + ':third_party/cometbft').decode() == AFTER_FORK_TREE, 'fixed original before/after fork tree differs')
 
 
-def prepare_sources(repo, work):
+def prepare_sources(repo, work, controller=None):
     """Child inside Window: isolated index only, no branch/ref/commit created."""
     require(git(repo, 'rev-parse', 'HEAD').decode() == AFTER and git(repo, 'rev-parse', 'HEAD^{tree}').decode() == AFTER_TREE, 'exact after source required')
     index = work / '.private/before-index'
@@ -223,10 +226,35 @@ def prepare_sources(repo, work):
     for revision in (tree, AFTER):
         main = git(repo, 'show', revision + ':' + OVERLAY[-1])
         require(main.count(DISPATCH) == 1, 'original exact finalize-trace dispatch missing')
+    require(controller is not None, 'actual normal controller overlay checkout required')
+    evidence = []
+    for leaf in EVIDENCE_OVERLAY:
+        path = leaf['path']; expected = dict(bytes=leaf['bytes'], sha256=leaf['sha256'])
+        require(pin(controller / path) == expected, 'exact common Go evidence source bytes differ')
+        require(git(controller, 'rev-parse', 'HEAD:' + path).decode() == leaf['gitBlob'], 'common Go evidence controller Git blob differs')
+        raw = (controller / path).read_bytes()
+        written = subprocess.check_output(['git', '-C', str(repo), 'hash-object', '-w', '--stdin'], input=raw, timeout=45).strip().decode()
+        require(written == leaf['gitBlob'], 'actual common evidence Git blob differs')
+        evidence.append(dict(leaf))
+    execution_trees = {}
+    for arm, base, expected in [('before', tree, BEFORE_EXECUTION_TREE), ('after', AFTER, AFTER_EXECUTION_TREE)]:
+        private_index = work / '.private' / (arm + '-evidence-index')
+        require(not private_index.exists() and not private_index.is_symlink(), 'fresh evidence source index required')
+        arm_env = os.environ.copy(); arm_env['GIT_INDEX_FILE'] = str(private_index)
+        git(repo, 'read-tree', base, env=arm_env)
+        for leaf in evidence:
+            git(repo, 'update-index', '--add', '--cacheinfo', leaf['mode'], leaf['gitBlob'], leaf['path'], env=arm_env)
+        actual_tree = git(repo, 'write-tree', env=arm_env).decode()
+        require(actual_tree == expected, 'actual common-evidence composed source tree differs: ' + arm)
+        require(git(repo, 'rev-parse', actual_tree + ':cmd/ynx-consensus-pq-lab/main.go').decode() == MAIN_BLOBS[arm == 'after'], 'common evidence overwrote original arm dispatch')
+        require(git(repo, 'rev-parse', actual_tree + ':third_party/cometbft').decode() == (BEFORE_FORK_TREE if arm == 'before' else AFTER_FORK_TREE), 'common evidence changed consensus fork')
+        execution_trees[arm] = actual_tree
     output = dict(beforeProductionBase=BEFORE_BASE, beforeOriginalLocalCommit=BEFORE_ORIGINAL_COMMIT,
                   beforeTree=tree, afterCommit=AFTER, afterTree=AFTER_TREE, beforeForkTree=BEFORE_FORK_TREE, afterForkTree=AFTER_FORK_TREE, caller=caller,
-                  sameFourTraceBlobs=True, sameFiveCallerBlobs=False, afterMainOverwritten=False, arms={})
-    for arm, revision in [('before', tree), ('after', AFTER)]:
+                  sameFourTraceBlobs=True, sameFiveCallerBlobs=False, afterMainOverwritten=False, arms={},
+                  executionTrees=execution_trees, commonEvidenceOverlay=evidence,
+                  evidenceOverlayControllerCommit=git(controller, 'rev-parse', 'HEAD').decode())
+    for arm, revision in execution_trees.items():
         archive = work / '.private' / (arm + '.tar')
         require(not archive.exists(), 'fresh source archive required')
         git(repo, 'archive', '--format=tar', '--output=' + str(archive), revision, '--', *ROOTS)
@@ -462,7 +490,7 @@ def main(argv=None):
     if argv[:1] == ['_prepare']:
         require(len(argv) == 3, 'fixed private preparation arguments required')
         validate_identity(PROFILE, os.environ, sys.platform)
-        prepare_sources(canonical(argv[1]), canonical(argv[2]))
+        prepare_sources(canonical(argv[1]), canonical(argv[2]), Path(__file__).resolve().parents[2])
         prepare_private_fixture(Path(__file__).resolve().parent / 'fixtures/finalize-1b-public', canonical(argv[2]))
         return 0
     flags = [arg.split('=', 1)[0] for arg in argv if arg.startswith('--')]

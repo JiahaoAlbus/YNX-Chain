@@ -73,16 +73,22 @@ class SemanticOriginalControls(unittest.TestCase):
             files['height-states/'+height+'.json']=raw
             rows.append(dict(height=height,stateBytes=str(len(raw)),stateSHA256=digest,appHash='a'*64))
             cold.append(dict(height=height,stateBytes=str(len(raw)),stateSHA256=digest,appHash='a'*64,
-                             coldStateBytes=str(len(raw)),coldStateSHA256=digest,coldAppHash='a'*64,bytesEqual=True))
+                             coldStateBytes=str(len(raw)),coldStateSHA256=digest,coldAppHash='a'*64,bytesEqual=True,
+                             coldLoadNs='11',coldEncodeNs='12',coldCompareNs='13'))
         files['cold-reconstruction.jsonl']=b''.join(json.dumps(r).encode()+b'\n' for r in cold)
         report=h.compare_height_states(files,files,rows)
         self.assertTrue(report['completePerHeightRawStateBytesEqual'])
         self.assertFalse(report['coldReconstructionIndependentlyExecutedByReader'])
+        self.assertEqual(report['coldStageObservedNanoseconds']['before'][0]['coldLoadNs'],'11')
         for name in ['height-states/4.json','height-states/11.json','cold-reconstruction.jsonl']:
             wrong=dict(files);wrong[name]=wrong[name]+b' '
             with self.subTest(name=name),self.assertRaises(RuntimeError):h.compare_height_states(files,wrong,rows)
         wrong=dict(files);del wrong['height-states/4.json']
         with self.assertRaises(RuntimeError):h.compare_height_states(files,wrong,rows)
+        for delta in [dict(coldLoadNs=11),dict(coldLoadNs='01'),dict(coldLoadNs='-1'),dict(coldEncodeNs=None),dict(extra='not closed')]:
+            altered=[dict(row) for row in cold];altered[0].update(delta);wrong=dict(files)
+            wrong['cold-reconstruction.jsonl']=b''.join(json.dumps(r).encode()+b'\n' for r in altered)
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):h.compare_height_states(files,wrong,rows)
         wrong=dict(files);cold[0]['bytesEqual']=False
         wrong['cold-reconstruction.jsonl']=b''.join(json.dumps(r).encode()+b'\n' for r in cold)
         with self.assertRaises(RuntimeError):h.compare_height_states(files,wrong,rows)

@@ -63,7 +63,7 @@ def assert_workflow(raw):
     for job in ('intake-controls', 'b8-original-replay', 'multi-original-before', 'multi-a-replay', 'multi-b-replay'):
         if '  ' + job + ':\n' + legacy not in raw:
             raise AssertionError('old job must remain isolated from new profile')
-    block = raw.split('  finalize-7c25-semantic:\n', 1)[1].split('\n  finalize-1b-semantic:', 1)[0]
+    block = re.split(r'\n  [A-Za-z0-9_-]+:\n', raw.split('  finalize-7c25-semantic:\n', 1)[1], maxsplit=1)[0]
     guard = "    if: github.event_name == 'workflow_dispatch' && inputs.profile == 'finalize-7c25-vs-f27' && github.run_attempt == 1 && github.ref == '" + m.REF + "'\n"
     if not block.startswith(guard):
         raise AssertionError('fixed first attempt original ref required')
