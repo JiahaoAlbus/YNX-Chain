@@ -1,0 +1,7 @@
+# Shop proof matching CI role
+
+This test-only role vendors 154 immutable source inputs: Auth/source 36, LINK85fd 116, original runner and process collector 2. The frozen runner creates two rebased matching.mod/sum inputs, for exactly 156 observed inputs. Original Auth go.mod/sum remain unchanged; only the derived module replaces the fixed LINK checkout. One pinned x/sys v0.48.0 download prepares a separate cache before the offline 90-second runner. No production archive is built.
+
+Normal entry: `node scripts/ci/shop-proof-consumer-matching.mjs --plan`; hosted execution uses the same entry without arguments, exact Go1.26.10 and private CI directories. The frozen runner builds the actual Go/Cgo package with race, then selects only `^TestShopProofConsumerMatching$` (one top-level test, seven subcases). Existing package tests are compiled but not executed. PUBLIC Main8 test functions only model missing protected producer ports. Actual Main, SDK signer, V4 proof consumer, Source and Root admission remain false. This capsule is excluded from npm files; source presence does not qualify a production runtime.
+
+Process groups, bounded execution, unknown cleanup debt, first failure and per-source before/after pins are retained by the original runner. CI uploads logs even on failure. No local Go/Cgo test repetition is required for this intake.
