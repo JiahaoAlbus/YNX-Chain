@@ -12,6 +12,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -28,6 +29,12 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	projection.snapshot.Grant.Binding = request.Binding
 	projection.snapshot.Effect.Slot = request.Binding.Slot()
 	projection.snapshot.Budget.Slot = request.Binding.Slot()
+	// This full PUBLIC crypto/listener lifecycle took >60s on Ubuntu. Establish
+	// one fresh immutable fixture window before signing, longer than the 90s
+	// test deadline; never refresh a live permission or change production limits.
+	expires := strconv.FormatInt(time.Now().Add(2*time.Minute).UnixMilli(), 10)
+	projection.snapshot.Expires = expires
+	projection.snapshot.Grant.Expires = expires
 	resource.store.mu.Lock()
 	record := resource.store.state.Actions[request.Binding.StepID]
 	step := *record.ToolStep

@@ -32,7 +32,9 @@
         "bytes": 6637,
         "sha256": "57d85b45bc439ecaec06eae64b4d1c55b9918950cf77bd48aa581d4fc34699eb"
       },
-      "byteExact": true
+      "byteExact": false,
+      "consumerSHA256": "f75de56b16efc500d42991fecab5f754408f4a75e6a92a98b96e686fd9944fd6",
+      "adaptation": "PUBLIC sample only: initialize one immutable Source/Grant expiry 120s before first signing to fit90s full crypto/listener test. First Ubuntu run62.44s outlived generic60s fixture; production guards/current/revoke/limits unchanged."
     },
     {
       "target": "internal/authtasklocal/public_qualified_receiver_candidate.go",
@@ -127,5 +129,13 @@
   "knownChecks": "Local prepare-only exact SDK TGZ + nine required leaves + two fixtures + Auth runner + six providers stage and clean succeeded. Go/crypto run for new tuple must be read back separately; old49.08s not borrowed.",
   "testOnly": true,
   "RootSourceNativeBusinessAdmission": false,
-  "noProductionSupplierChanges": true
+  "noProductionSupplierChanges": true,
+  "firstActualCI": {
+    "run": 42445655540,
+    "job": 128623914538,
+    "conclusion": "failure",
+    "reason": "62.44s controlled lifecycle exceeded original60s fixture; first error retained",
+    "newCaseGoDidRun": true,
+    "oldPassBorrowed": false
+  }
 }
