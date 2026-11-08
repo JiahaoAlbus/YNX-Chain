@@ -908,7 +908,13 @@
     "native/desktop-grant-native-stage.cpp",
     "native/desktop-grant-backend-contract.d.mts",
     "src/original-ide-relay-issuance.js",
-    "src/original-ide-relay-issuance-selection.js"
+    "src/original-ide-relay-issuance-selection.js",
+    "native/original-task-read-receiver-source-contract.mjs",
+    "native/original-task-read-receiver-source-contract.d.mts",
+    "native/original-task-read-receiver-permission-collector.mjs",
+    "native/original-task-read-receiver-permission-collector.d.mts",
+    "native/task-read-receiver-source-v1.schema.json",
+    "docs/task-read-receiver-source-contract.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
