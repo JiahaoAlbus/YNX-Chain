@@ -13,9 +13,11 @@ def module(name,file):
     value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
 
 ADAPTER_SHA256='eaa69c355949e1663a86bf381ce8e9e4be2f23d79f813637053e24b093ed3b3f'
-if hashlib.sha256(Path(__file__).with_name('pq-first100-7c25-ci.py').read_bytes()).hexdigest()!=ADAPTER_SHA256:
-    raise RuntimeError('exact current7c adapter bytes required for readback')
-entry=module('current7c_fixed_adapter','pq-first100-7c25-ci.py')
+adapter_path=Path(__file__).with_name('fixtures')/'7c25-first100-once01/ADAPTER-C1.py'
+if hashlib.sha256(adapter_path.read_bytes()).hexdigest()!=ADAPTER_SHA256:
+    raise RuntimeError('exact original C1 adapter bytes required for readback')
+_adapter_spec=importlib.util.spec_from_file_location('current7c_fixed_original_adapter',adapter_path)
+entry=importlib.util.module_from_spec(_adapter_spec);_adapter_spec.loader.exec_module(entry)
 legacy_path=Path(__file__).with_name('pq-first100-1695-public-readback.py')
 entry.pinned_bytes(legacy_path,'b4863ef5835faec8e33afa00410d806098bde42459d678b2fbbd66d71be601b8')
 legacy=module('current7c_shared_pure_reducers',legacy_path.name)

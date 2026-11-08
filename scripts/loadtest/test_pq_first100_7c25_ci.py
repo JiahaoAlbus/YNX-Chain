@@ -21,7 +21,7 @@ def assert_workflow(raw):
     marker='\n  '+profile+':\n'
     if marker not in raw:raise AssertionError('normal fixed profile job missing')
     block=re.split(r'\n  [A-Za-z0-9_-]+:\n',raw.split(marker,1)[1],maxsplit=1)[0]
-    for literal in ("github.event_name == 'workflow_dispatch'","github.run_attempt == 1", "inputs.load_profile == '"+profile+"'", "inputs.signing_mode == 'online'",entry.GO_SOURCE,entry.TOOLS,'/scripts/verify/wire-live-matching-source-ci.py','--check-tools-ci','pq-first100-7c25-ci.py','--source','--tools','--execute'):
+    for literal in ("github.event_name == 'workflow_dispatch'","github.run_attempt == 1", "inputs.load_profile == '"+profile+"'", "inputs.signing_mode == 'online'",entry.GO_SOURCE,entry.TOOLS,'/scripts/verify/wire-live-matching-source-ci.py','/packages/wallet-auth/go/sourceparentprofile','/packages/wallet-auth/native/source-parent','--check-tools-ci','pq-first100-7c25-ci.py','--source','--tools','--execute'):
         if literal not in block:raise AssertionError('normal profile source/control missing: '+literal)
     if block.index('--check-tools-ci')>block.rindex('--execute'):raise AssertionError('actual source/tools qualification must precede execution')
 
@@ -60,6 +60,7 @@ class Fixed7c25(unittest.TestCase):
     def test_same_original_full_cohort_and_resource_caps_with_new_observer(self):
         self.assertEqual(entry.PROFILES,{'first100-7c25-public-owner':'public-owner'})
         self.assertIn('scripts/verify/wire-live-matching-source-ci.py',entry.SOURCE_PINS)
+        self.assertEqual(len(entry.SOURCE_PINS),24)
         options=entry.fixed_options(Path('/source'));self.assertEqual(self.driver.validate_options(options),500)
         self.assertEqual((options.first_trial_profile,options.sender_backend),('7c25','public-owner'))
         self.assertEqual((options.rate,options.seconds,options.accounts,options.per_account,options.tail_seconds,options.proof_timeout),(100,5,500,1,30,30))
