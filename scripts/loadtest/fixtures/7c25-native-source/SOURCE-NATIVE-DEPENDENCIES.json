@@ -1,0 +1,135 @@
+{
+  "authorityGranted": false,
+  "binaryBuilt": false,
+  "buildSource": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/PERF/7c25-composed-native-source-69otlnrj/composition/source",
+  "cgoDisabled": false,
+  "compilerOrSecurityFlagsChanged": false,
+  "elapsedNs": 238317208,
+  "fileCount": 11,
+  "files": [
+    {
+      "bytes": 62,
+      "gitBlob": "b5bdced61b6754b088980d736bc9ca027592a9b7",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/MobileCanonicalDATA.cpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/go/sourceparentprofile/canonical.cpp",
+      "sha256": "6b0ae48f4eb5aa62b9e9845e96df1beaeadec2a66fc0f83736a2c584062ee49c"
+    },
+    {
+      "bytes": 63,
+      "gitBlob": "1d8c740c86fd674b63690c3374a934f9a430a4d4",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/SourceParentProfileC.cpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/go/sourceparentprofile/inventory.cpp",
+      "sha256": "0d2c369e9e4787adff266eefafec296b80c80fdbf3ac4fcc80ebaa97b86de6f2"
+    },
+    {
+      "bytes": 70,
+      "gitBlob": "5a10c546a74e7f12869cc375905696756c838157",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/SourceParentOriginalProfile.cpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/go/sourceparentprofile/original.cpp",
+      "sha256": "423e51d2791e5857c8311c20c8fcee9355526b2c063cbdf146214f9877afb62d"
+    },
+    {
+      "bytes": 4298,
+      "gitBlob": "5902a504122432d458adc4477816f37becd0e95e",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/SourceParentProfileCPrivate.h"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/go/sourceparentprofile/profile.go",
+      "sha256": "30231b0651967201e21fa55eefe7779661514d8c61d8367e2b90244b62d34788"
+    },
+    {
+      "bytes": 5243,
+      "gitBlob": "7c1fcd72773e3d4649690d95a03acada474c7048",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/MobileCanonicalDATA.hpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/MobileCanonicalDATA.cpp",
+      "sha256": "088924c5a093d3f15ff11de2c3ce00dec5a4ed0d35fb1832508a32f1095fe556"
+    },
+    {
+      "bytes": 1495,
+      "gitBlob": "f5792d496fa797f482be91368dbc8bb14be1c34e",
+      "includes": [],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/MobileCanonicalDATA.hpp",
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "bytes": 16452,
+      "gitBlob": "11cd50bc5c2ce2c40820688cfa5f3e5b6052dcf7",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/SourceParentOriginalProfilePrivate.hpp",
+        "packages/wallet-auth/native/source-parent/SourceParentReviewedProfilePrivate.hpp",
+        "packages/wallet-auth/native/source-parent/MobileCanonicalDATA.hpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/SourceParentOriginalProfile.cpp",
+      "sha256": "89d4f217e6deea1944a13e07604d0c56c5923b918369ba40b8c8759a3e5c4e60"
+    },
+    {
+      "bytes": 1711,
+      "gitBlob": "1677d6979f303dfca384f668136459b44b68ff92",
+      "includes": [],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/SourceParentOriginalProfilePrivate.hpp",
+      "sha256": "390eb2da9217acdedff8200c8b2c477b277e2d9bbee7652d9e8148883179ef9b"
+    },
+    {
+      "bytes": 3876,
+      "gitBlob": "4238c5fc327ea46ae2b2f6891c61127e5a1e460b",
+      "includes": [
+        "packages/wallet-auth/native/source-parent/SourceParentProfileCPrivate.h",
+        "packages/wallet-auth/native/source-parent/SourceParentOriginalProfilePrivate.hpp"
+      ],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/SourceParentProfileC.cpp",
+      "sha256": "44a14f3ef40d2f474d1fc544389cca18688625d4dee5b19f4dc5efd6e073f04a"
+    },
+    {
+      "bytes": 1608,
+      "gitBlob": "3b4e23fa6fc2583e5f38c5f45b7eb7cb0e36f987",
+      "includes": [],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/SourceParentProfileCPrivate.h",
+      "sha256": "f631d68d5abae5c1814f0a213599c437aa5428354b417c21e969ff7248775c63"
+    },
+    {
+      "bytes": 773,
+      "gitBlob": "48593e779ee56e3c8a6f4535f05534e9235aebcf",
+      "includes": [],
+      "mode": "100644",
+      "path": "packages/wallet-auth/native/source-parent/SourceParentReviewedProfilePrivate.hpp",
+      "sha256": "e9ff75c819a1d1b948018d1b3e866ac7f60447e53fdcf5e3c555eef7eda276fe"
+    }
+  ],
+  "goModReadonlyPreserved": true,
+  "intervalsOverlap": true,
+  "moduleDescriptorSHA256": {
+    "go.mod": "07b303f8099eebb861f8ce1671089939e45069efbb1f71884b892548af47f803",
+    "go.sum": "87d7280001b2b5e12b687d45e921d5e3500d53b79d3885acf7ab2b9a17cc575c",
+    "third_party/cometbft/go.mod": "265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59",
+    "third_party/cometbft/go.sum": "daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd"
+  },
+  "nodeStarted": false,
+  "originalCheckoutWritten": false,
+  "originalSixRootComposerReused": true,
+  "originalSixRootReceiptIncludesTheseFiles": false,
+  "pressureAuthorized": false,
+  "schema": "YNX-PERF-ORIGINAL-CGO-SOURCE-DEPENDENCIES/v1",
+  "source": "7c25cbcc7d31b10743e26ae1ddca745085ee1b0b",
+  "sourceBytes": 35651,
+  "sourceBytesChanged": false,
+  "sourceOnly": true,
+  "sourceTree": "8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a"
+}
