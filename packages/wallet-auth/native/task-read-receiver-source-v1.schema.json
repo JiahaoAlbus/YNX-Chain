@@ -1,0 +1,119 @@
+{
+  "schema": "SDK_TASK_READ_RECEIVER_SOURCE_CANONICAL_CONTRACT/v1",
+  "purpose": "task-read-receiver-source-v1",
+  "selectionKey": "taskReadReceiverV1",
+  "operations": [
+    "task-read.receiver.listen"
+  ],
+  "scopeExact21": [
+    "version",
+    "networkId",
+    "subjectOwner",
+    "sourceId",
+    "instanceId",
+    "authority",
+    "realm",
+    "tenant",
+    "sourceVersion",
+    "sourceProjection",
+    "receiverResource",
+    "namespace",
+    "service",
+    "local",
+    "peer",
+    "socketParent",
+    "socketLeaf",
+    "routes",
+    "httpLimits",
+    "issuedMS",
+    "expiresMS"
+  ],
+  "signature": {
+    "protocol": "existing SourceOriginalV2",
+    "domain": "YNX/AUTH/SOURCE-ORIGINAL/V2",
+    "framing": "E8 BE32(8) then eight length-prefixed fields",
+    "roles": [
+      "enrollment",
+      "profile",
+      "current"
+    ],
+    "certificatePurposes": [
+      "AUTH-SOURCE-ENROLLMENT",
+      "AUTH-SOURCE-PROFILE",
+      "AUTH-SOURCE-CURRENT"
+    ],
+    "frames": "independent protected Root policy.signatureContract enrollmentFrame/profileFrame/currentFrame, never defaults",
+    "math": "sole registered N1 dual-AND ML-DSA-87 and SLH-DSA-SHA2-256f"
+  },
+  "normalSource": {
+    "root4": true,
+    "current17": true,
+    "expectedNonceAndPreviousIndependent": true,
+    "currentHead": "SHA256(sole canonical scope)",
+    "scopeNotGrant": true
+  },
+  "sourceVersion": {
+    "exact": [
+      "authority",
+      "revision",
+      "policyRevision"
+    ],
+    "u64DecimalStrings": [
+      "revision",
+      "policyRevision"
+    ],
+    "notAliasesOf": [
+      "generic17 generation",
+      "generic17 floor",
+      "keyVersion",
+      "Root role revision"
+    ]
+  },
+  "process": {
+    "exact": [
+      "pid",
+      "uid",
+      "gid",
+      "start",
+      "image"
+    ],
+    "image": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "start": "actual opaque kernel linux:ticks or darwin:seconds:micros, no fabricated epoch",
+    "permission": "sameRoot selected image plus actual kernel incarnation AND, supplied by Auth"
+  },
+  "endpoint": {
+    "parent": [
+      "path",
+      "device",
+      "inode",
+      "uid",
+      "gid",
+      "mode"
+    ],
+    "deviceInode": "lossless u64decimal strings",
+    "mode": 448,
+    "maxUnixPathBytes": 103
+  },
+  "finite": {
+    "service": "ynx-ai-original-task-read-v1",
+    "paths": [
+      "/internal/ai/original-task-read/input",
+      "/internal/ai/original-task-read/execute",
+      "/internal/ai/original-task-read/query"
+    ],
+    "method": "POST",
+    "maxBodyBytes": 1048576,
+    "maxTimeoutMS": 60000,
+    "maxHeaderBytes": 65536
+  },
+  "collector": "native/original-task-read-receiver-permission-collector.mjs::collectOriginalTaskReadReceiverPermissionV1DATA",
+  "strongBorrow": "Auth owning: SAME independently accepted Root and source capture/current/registered context, adopt partial first, hold until actual LINK listener/children drain; no body supplied by SDK",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "listenCapability": false
+}

@@ -1,3 +1,4 @@
+import{TASK_READ_RECEIVER_SOURCE_PURPOSE as RCV_PURPOSE,TASK_READ_RECEIVER_SOURCE_SELECTION_KEY as RCV_KEY,TASK_READ_RECEIVER_SOURCE_OPERATIONS as RCV_OPS,inspectOriginalTaskReadReceiverScopeV1DATA}from'./original-task-read-receiver-source-contract.mjs';
 import{SERVER_TLS_SOURCE_PURPOSE as TLS_PURPOSE,SERVER_TLS_SOURCE_SELECTION_KEY as TLS_KEY,SERVER_TLS_SOURCE_OPERATIONS as TLS_OPS,inspectOriginalServerTLSIdentityScopeV1DATA}from'./original-server-tls-source-contract.mjs';
 import{DESKTOP_GRANT_SOURCE_PURPOSE as DGA_PURPOSE,DESKTOP_GRANT_SOURCE_SELECTION_KEY as DGA_KEY,DESKTOP_GRANT_SOURCE_OPERATIONS as DGA_OPS,inspectOriginalDesktopGrantAuthorityScopeV1DATA}from'./original-desktop-task-grant-source-contract.mjs';
 import{snapshotWPRJSONDATA,captureWPRBatchDATA,sealWPRRegistrationCaptureDATA}from'./original-wallet-product-registration-capture.mjs';
@@ -67,7 +68,7 @@ async function runOriginalSourceV2(input,get,getCurrent,networkOriginals,capture
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[DGA_PURPOSE,TLS_PURPOSE,WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[RCV_PURPOSE,DGA_PURPOSE,TLS_PURPOSE,WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId',...(input.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&Object.hasOwn(input.policy,'platform')?['platform']:[])]:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
