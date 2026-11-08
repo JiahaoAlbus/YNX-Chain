@@ -1,3 +1,4 @@
+import{assertOriginalSocialDirectoryResponseLoanSourceV4,retainOriginalSocialDirectoryResponseLoanV4}from'./original-auth-identity-source-current.js';
 import {withOriginalPendingQueryHTTPHeaderBudget} from './original-pending-query-http-header-budget-private.js';
 import{acquireOriginalBinaryV5AccountPolicyRunner,assertOriginalBinaryV5AccountPolicyOwner}from'./original-binary-http-account-policy-v5.js';
 import {assertProductSessionControlSessionAllowed,productSessionControlClockFloor} from './product-session-control-intent.js';
@@ -29,7 +30,7 @@ import {createCentralBrowserSessionRegistry} from './central-browser-session-reg
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
-import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource} from './original-auth-identity-source-current.js';
+import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource,handleOriginalSocialDeviceDirectoryPrincipalCurrentV4,assertOriginalSocialDeviceDirectoryPrincipalSourceV4} from './original-auth-identity-source-current.js';
 import {openOriginalAuthSourceCurrentRequest} from './original-auth-source-current-request.js';
 import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
 import {httpBodyDigest} from './session-proof.js';
@@ -40,9 +41,15 @@ export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // No structural callback/DTO can enter this inventory.
 const originalRuntimeHostSources = new WeakMap();
 const originalDeveloperHTTPCredentials = new WeakMap();
+const originalSocialDirectoryHTTPCredentials = new WeakMap();
 const originalDeveloperPrincipalResults = new WeakMap();
+const originalSocialDirectoryPrincipalResults = new WeakMap();
+const originalSocialDirectoryPrincipalRequests = new WeakMap();
 // Only the actual original Host below creates this opaque reference. There is
 // no public registration callback, JSON restore or caller-supplied capability.
+// V4 authentication only: not a Social joint-binding, Source6 or directory grant.
+export async function readOriginalSocialDirectoryHTTPCredential(credential){const c=originalSocialDirectoryHTTPCredentials.get(credential);if(!c)fail('SOCIAL_V4_HTTP_CREDENTIAL_REQUIRED','Original Social V4 credential required');await c.recheck();return c.view;}
+export function assertOriginalSocialDirectoryHTTPCredentialCompletion(credential){const c=originalSocialDirectoryHTTPCredentials.get(credential);if(!c)fail('SOCIAL_V4_HTTP_CREDENTIAL_REQUIRED','Original Social V4 credential required');c.complete();return c.view;}
 export async function readOriginalDeveloperHTTPCredential(credential){
   const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
   await c.recheck();return c.view;
@@ -289,13 +296,22 @@ export class ProductSessionGatewayNodeHost {
   async revalidateOriginalDeveloperHTTPRequestV4(input){
     return this.#originalDeveloperV4(input,true);
   }
-  async #originalDeveloperV4(input,alreadyConsumed){
+  async authenticateOriginalSocialDirectoryHTTPRequestV4(input){return this.#originalSocialDirectoryV4(input,false);}
+  async revalidateOriginalSocialDirectoryHTTPRequestV4(input){return this.#originalSocialDirectoryV4(input,true);}
+  async #originalSocialDirectoryV4(input,alreadyConsumed){
+    const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
+    if(v.method!=='GET'||!['/v4/devices/directory','/m1qa/v4/devices/directory'].includes(v.path)||v.body!=='')fail('SOCIAL_DIRECTORY_EXACT_REQUEST_REQUIRED','Original exact Social directory GET required');
+    v.expected=Object.freeze(privateData(v.expected,PRODUCT_SESSION_DEVICE_V4_EXPECTED_FIELDS));
+    return this.#originalProductV4(Object.freeze(v),alreadyConsumed,'social',originalSocialDirectoryHTTPCredentials);
+  }
+  async #originalDeveloperV4(input,alreadyConsumed){return this.#originalProductV4(input,alreadyConsumed,'developer',originalDeveloperHTTPCredentials);}
+  async #originalProductV4(input,alreadyConsumed,productId,credentialInventory){
     const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
     if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original v4 request invalid');
     if(this.#deviceCurrent===null)fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original v4 device current source required');
     if(this.#accountPolicy===null)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original registered account current is independently required');
     this.#assertStateIdentity();const p=decodeProductSessionProofHeaderV4(v.proofHeader),session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===p.sessionBinding);
-    if(!session||session.version!=='4'||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original v4 developer session required');
+    if(!session||session.version!=='4'||session.productId!==productId)fail('CROSS_PRODUCT_SESSION','Original v4 product session required');
     const controller=new AbortController(),abortContext=Object.freeze({signal:controller.signal}),key=productSessionHTTPProofV4ReplayKey(v.proofHeader);
     const verify=async(existing,requiredScopes)=>{
       const before=snapshotDigest(this.#handler.snapshot());let selectedContext=null;
@@ -315,10 +331,10 @@ export class ProductSessionGatewayNodeHost {
     };
     try{await verify(alreadyConsumed,session.scopes);}
     catch(error){controller.abort();throw error;}
-    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
+    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires,...(productId==='social'?{originalRequest:Object.freeze(v),proofReplayKey:key}:{})});let completed=null,last=Date.parse(p.issuedAt);
     const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 credential no longer current');last=at;};
     const recheck=async()=>{completed=null;await verify(true,session.scopes);completed=snapshotDigest(this.#handler.snapshot());complete();};
-    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
+    credentialInventory.set(credential,{view,recheck,complete});await recheck();return credential;
   }
 
 
@@ -448,6 +464,45 @@ export class ProductSessionGatewayNodeHost {
   }
   // Actual V5 opaque credential -> the existing registered Root project
   // Source. No session DTO, restored credential or caller Source is accepted.
+  // Separate fixed Social GET principal dispatch. The independent Social Source
+  // must exist BEFORE the same Host SQL nonce/opaque V4 credential is consumed.
+  async currentExistingSocialDeviceDirectoryPrincipalV4(input){
+    assertOriginalSocialDeviceDirectoryPrincipalSourceV4(this.#authSourceCurrent);
+    return this.#originalSocialDirectoryPrincipalResultV4(await this.authenticateOriginalSocialDirectoryHTTPRequestV4(input),input);
+  }
+  async recheckExistingSocialDeviceDirectoryPrincipalV4(input){
+    assertOriginalSocialDeviceDirectoryPrincipalSourceV4(this.#authSourceCurrent);
+    return this.#originalSocialDirectoryPrincipalResultV4(await this.revalidateOriginalSocialDirectoryHTTPRequestV4(input),input);
+  }
+  async #originalSocialDirectoryPrincipalResultV4(credential,input){
+    originalSocialDirectoryPrincipalRequests.set(input,{host:this,credential});
+    // Only originalSocialDirectoryHTTPCredentials recognizes this same-process
+    // credential. No JSON projection restores or exports its opaque identity.
+    const result=await handleOriginalSocialDeviceDirectoryPrincipalCurrentV4(this.#authSourceCurrent,credential);
+    originalSocialDirectoryPrincipalResults.set(result,{host:this,credential,request:input}); // retain original BEFORE late state/current
+    this.assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result);return result;
+  }
+  assertOriginalSocialDirectoryResponseLoanPortV4(){assertOriginalSocialDirectoryResponseLoanSourceV4(this.#authSourceCurrent);}
+  async retainOriginalSocialDirectoryResponseLoanV4(result,sameRequest){
+    const request=originalSocialDirectoryPrincipalRequests.get(sameRequest),retained=result===null?null:originalSocialDirectoryPrincipalResults.get(result);
+    if(!request||request.host!==this||result!==null&&(!retained||retained.host!==this||retained.request!==sameRequest||retained.credential!==request.credential))fail('SOCIAL_DIRECTORY_RESPONSE_ORIGINAL_REQUIRED','Same original Host/result/request required');
+    // Do not pre-reject a late current here: Auth must first adopt its retained
+    // partial response hold, then return paired error/physical cleanup debt.
+    const outcome=await retainOriginalSocialDirectoryResponseLoanV4(this.#authSourceCurrent,request.credential,result);
+    // Actual loan adopted before interpreting paired error; SDK wrapper adds
+    // only the already captured request bytes, never a credential projection.
+    if(!outcome||types.isProxy(outcome))fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_OUTCOME','Original paired response required');
+    const ds=Object.getOwnPropertyDescriptors(outcome);if(!ds.owner||!Object.hasOwn(ds.owner,'value')||!ds.errorPresent||!Object.hasOwn(ds.errorPresent,'value')||typeof ds.errorPresent.value!=='boolean')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_OUTCOME','Original paired response required');
+    const owner=ds.owner.value;let wrapped=null;if(owner!==null){if(!owner||types.isProxy(owner))fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_OUTCOME','Original owner required');const methods=Object.fromEntries(['current','copyOriginal','copyRequestOriginal','retire','join','close','isClosed'].map(n=>{const fn=owner[n];if(typeof fn!=='function')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_ABI','Actual response loan method required');return[n,(...args)=>Reflect.apply(fn,owner,args)];}));wrapped=Object.freeze(methods);}
+    return Object.freeze({owner:wrapped,errorPresent:ds.errorPresent.value,...(ds.errorPresent.value?{error:ds.error&&Object.hasOwn(ds.error,'value')?ds.error.value:undefined}:{})});
+  }
+  assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result){
+    const retained=originalSocialDirectoryPrincipalResults.get(result);
+    if(!retained||retained.host!==this)fail('SOCIAL_DIRECTORY_PRINCIPAL_ORIGINAL_REQUIRED','Original Social principal result required');
+    this.#assertStateIdentity();
+    this.#authSourceCurrent.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(retained.credential,result);
+    assertOriginalSocialDirectoryHTTPCredentialCompletion(retained.credential);
+  }
   async currentExistingDeveloperPrincipalV5(input){
     assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
     return this.#originalPrincipalResultV5(await this.authenticateOriginalDeveloperHTTPRequestV5(input));
@@ -800,3 +855,7 @@ function ownedByProcess(stat) { return typeof process.getuid !== "function" || s
 async function boundedBody(request,limit=1_048_576) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return new TextDecoder('utf8',{fatal:true}).decode(Buffer.concat(chunks)); }
 function hostError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway host failed closed" }; const status = error.code === "CLOCK_UNAVAILABLE" ? 503 : error.code === "ORIGIN_NOT_ALLOWED" ? 403 : error.code === "ROUTE_NOT_FOUND" ? 404 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "BODY_TOO_LARGE" ? 413 : error.code.startsWith("STATE_") ? 500 : 400; return { status, code: error.code, message: error.message }; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
+
+// Fixed private bridge: private class fields and WeakMaps, never a DTO/provider.
+export function assertOriginalSocialDirectoryResponseLoanPortV4(actualHost){return Reflect.apply(ProductSessionGatewayNodeHost.prototype.assertOriginalSocialDirectoryResponseLoanPortV4,actualHost,[]);}
+export async function retainOriginalSocialDeviceDirectoryRootResponseV4(actualHost,sameResult,sameRequest){return await Reflect.apply(ProductSessionGatewayNodeHost.prototype.retainOriginalSocialDirectoryResponseLoanV4,actualHost,[sameResult,sameRequest]);}

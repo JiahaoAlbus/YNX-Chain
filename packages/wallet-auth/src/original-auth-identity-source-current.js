@@ -182,3 +182,49 @@ export async function loadOriginalPublicationApprovalIssuer(){
  // approved namespace is missing. A separate protected capture owns writes.
  const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216),true),service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
 }
+
+// Separate Social V4 family. Do not borrow the developer purpose/project profile
+// or reconstruct a Host credential from a response DTO. Only the existing
+// release-selected service inventory may dispatch to its owned protected body.
+export function assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service){
+ if(!services.has(service)||typeof service.assertSocialDeviceDirectoryPrincipalPurposeV4!=='function'||typeof service.existingSocialDeviceDirectoryPrincipalV4!=='function'||typeof service.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4!=='function')fail('SOCIAL_DIRECTORY_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ service.assertSocialDeviceDirectoryPrincipalPurposeV4();
+}
+export async function handleOriginalSocialDeviceDirectoryPrincipalCurrentV4(service,credential){
+ assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service);
+ // Host adopts the raw original result before its synchronous delivery fence.
+ // The body retains its own partial as usual if it throws before returning.
+ return await service.existingSocialDeviceDirectoryPrincipalV4(credential);
+}
+
+// Private response hold stays inside the same release-selected service inventory.
+export function assertOriginalSocialDirectoryResponseLoanSourceV4(service){assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service);if(typeof service.retainOriginalSocialDeviceDirectoryPrincipalResponseV4!=='function')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_SOURCE_NOT_SUPPLIED');}
+export async function retainOriginalSocialDirectoryResponseLoanV4(service,credential,sameResult){assertOriginalSocialDirectoryResponseLoanSourceV4(service);return await service.retainOriginalSocialDeviceDirectoryPrincipalResponseV4(credential,sameResult);}
+
+// Dedicated Social Source3 normal acquisition. This inventory is identity and
+// cleanup custody only: every Host operation still calls the real Source live
+// fence. A returned partial/packet is never readiness or Root qualification.
+import * as originalSocialSource3Factory from '../native/original-social-joint-profile-source-service-private.mjs';
+const originalSocialSource3Owners=new WeakSet(),originalSocialSource3TrustedOwners=new WeakSet();
+let originalSocialSource3Attempt=null;
+export async function acquireOriginalSocialDeviceDirectoryPrincipalSourceV4(){
+ if(arguments.length!==0)fail('SOCIAL_SOURCE_HELPER_ZERO_ARGUMENTS');
+ if(typeof originalSocialSource3Factory.isOriginalSocialJointSourceService!=='function')fail('SOCIAL_SOURCE_TRUSTED_METHOD_BINDING_NOT_SUPPLIED');
+ if(originalSocialSource3Attempt!==null)fail('SOCIAL_SOURCE_ORIGINAL_OWNER_DRAIN_PENDING');
+ const attempt={owner:null};originalSocialSource3Attempt=attempt; // reserve before async acquisition
+ const packet=await originalSocialSource3Factory.acquireOriginalSocialJointSourceService();
+ const owner=packet.owner;attempt.owner=owner; // adopt SAME owner before examining errorPresent
+ sourceServiceDebt.add(owner);originalSocialSource3Owners.add(owner);
+ // Trusted producer must establish immutable original method slots BEFORE
+ // publishing any owner. SDK never seals an already-poisoned prototype.
+ try{const proto=Object.getPrototypeOf(owner);if(originalSocialSource3Factory.isOriginalSocialJointSourceService(owner)!==true||!Object.isFrozen(owner)||!Object.isFrozen(proto)||!Object.isFrozen(proto.constructor))fail('SOCIAL_SOURCE_TRUSTED_METHOD_BINDING_NOT_SUPPLIED');}
+ catch(error){return Object.freeze({owner,errorPresent:true,error:packet.errorPresent===true?packet.error:error});}
+ originalSocialSource3TrustedOwners.add(owner);services.add(owner);
+ return packet; // preserves actual errorPresent and original falsy error
+}
+export async function drainOriginalSocialDeviceDirectoryPrincipalSourceV4(owner){
+ if(arguments.length!==1||!originalSocialSource3Owners.has(owner))fail('SOCIAL_SOURCE_ORIGINAL_CLEANUP_OWNER_REQUIRED');
+ if(!originalSocialSource3TrustedOwners.has(owner))fail('SOCIAL_SOURCE_TRUSTED_METHOD_BINDING_NOT_SUPPLIED');
+ try{owner.retire();await owner.join();await owner.close();}
+ finally{if(owner.isClosed()===true){sourceServiceDebt.delete(owner);if(originalSocialSource3Attempt?.owner===owner)originalSocialSource3Attempt=null;}}
+}

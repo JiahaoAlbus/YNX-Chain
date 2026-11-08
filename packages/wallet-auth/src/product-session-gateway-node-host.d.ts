@@ -46,6 +46,10 @@ export declare class ProductSessionGatewayNodeHost {
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  /** Separate Social Source/principal capability; no developer permission reuse. */
+  currentExistingSocialDeviceDirectoryPrincipalV4(input:import('./original-social-device-directory-principal-dispatch-private.js').SocialDeviceDirectoryAcceptedRequestV4DATA):Promise<import('./original-social-device-directory-principal-dispatch-private.js').OriginalSocialDirectoryRootResponse>;
+  recheckExistingSocialDeviceDirectoryPrincipalV4(input:import('./original-social-device-directory-principal-dispatch-private.js').SocialDeviceDirectoryAcceptedRequestV4DATA):Promise<import('./original-social-device-directory-principal-dispatch-private.js').OriginalSocialDirectoryRootResponse>;
+  assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result:import('./original-social-device-directory-principal-dispatch-private.js').OriginalSocialDirectoryRootResponse):void;
   currentExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   recheckExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
@@ -73,3 +77,7 @@ export declare class ProductSessionGatewayNodeHost {
 export interface OriginalDeveloperHTTPCredentialView {readonly session:ProductSession;readonly method:string;readonly path:string;readonly bodyDigest:string;readonly proofExpiresMS:number;readonly contentType?:string;readonly bodyBinding?:import('./product-session-proof-v5.js').ProductSessionHTTPBodyV5Binding}
 export function readOriginalDeveloperHTTPCredential(credential:OriginalDeveloperHTTPCredential):Promise<Readonly<OriginalDeveloperHTTPCredentialView>>;
 export function assertOriginalDeveloperHTTPCredentialCompletion(credential:OriginalDeveloperHTTPCredential):Readonly<OriginalDeveloperHTTPCredentialView>;
+
+/** Private registered L/C bridge only. Class/Source inventory still supplies authority. */
+export declare function assertOriginalSocialDirectoryResponseLoanPortV4(actualHost:ProductSessionGatewayNodeHost):void;
+export declare function retainOriginalSocialDeviceDirectoryRootResponseV4(actualHost:ProductSessionGatewayNodeHost,sameResult:unknown|null,sameAcceptedRequest:unknown):Promise<import('./original-social-directory-response-loan-private.js').AuthSocialResponseCaptureOutcome>;

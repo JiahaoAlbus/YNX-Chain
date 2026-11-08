@@ -1,0 +1,362 @@
+{
+  "schema": "YNX_SOCIAL_MATCHED_NORMAL_COHORT/v1",
+  "baseSDK": "fb4e56056654f4a4dfe2e732355f31c6cf6df968",
+  "socialSDK": "72a43167efedc507b33af8e9e7ac6a67153e7bb6",
+  "files": [
+    {
+      "path": "native/DeviceV4AccountNamespacePrivate.h",
+      "bytes": 750,
+      "sha256": "f0010056aa357f8d3575f73c9b7bc9b6beda5c03d263ec15c6a4659a8b352663"
+    },
+    {
+      "path": "native/DeviceV4LinuxReviewedPrivate.hpp",
+      "bytes": 899,
+      "sha256": "738326fba450178e394477ac8cc0ab22f338c3dffa380920bb37b94afa91ca5a"
+    },
+    {
+      "path": "native/DeviceV4SourceBackendPrivate.hpp",
+      "bytes": 1866,
+      "sha256": "3259affdedc3db84f026738925f57cb52760c959f748c6ba7cc2ba7e7a468079"
+    },
+    {
+      "path": "native/DeviceV4SourceBorrow.cpp",
+      "bytes": 9569,
+      "sha256": "ae6c42cc0efce1d945535e60a0fafeba45639f2f181fe83ded804d9b4b56998f"
+    },
+    {
+      "path": "native/DeviceV4SourceBorrowPrivate.h",
+      "bytes": 3343,
+      "sha256": "644f4ecac6c3fa44ec7351c4e4c876100728f204e85ab0f28df3fc9bd89d6768"
+    },
+    {
+      "path": "native/DeviceV4SourceClock.cpp",
+      "bytes": 418,
+      "sha256": "11b12d5b840a3086a473f4c3ba5594f1cc0306072cba8f93a72924f4b2cc0f67"
+    },
+    {
+      "path": "native/DeviceV4SourceDarwin.mm",
+      "bytes": 6727,
+      "sha256": "b3e0eae541a850866ae707f831d8cf91c4bced0ee5240b74c21a71bb3cb35ef9"
+    },
+    {
+      "path": "native/DeviceV4SourceDarwinPrivate.hpp",
+      "bytes": 1052,
+      "sha256": "126d5b6779358e806f94b41c7d072915be5d5da30abdfb349ee34284bdc9e908"
+    },
+    {
+      "path": "native/DeviceV4SourceLinux.cpp",
+      "bytes": 20336,
+      "sha256": "9118ca25940da9ad6a94b9c4d75f2c0cf2ff2d2507c2c6fd0b20ed20c716bb16"
+    },
+    {
+      "path": "native/device_v4_source_borrow_methods.inc.mm",
+      "bytes": 4382,
+      "sha256": "ac89a5de3d99614da2c1377c82195f8a9ec04379732fd93459dbc941e2bc6634"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/CMakeLists.txt",
+      "bytes": 2585,
+      "sha256": "611e6e398fc72a2f2a64fbe16d152c0f4cfae9a866a1b1f848deec3b15872235"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/CaptureLoan.cpp",
+      "bytes": 3206,
+      "sha256": "2a83111d9cf8da8824ab2441d48d522ab68c0407ee1b9cf23c5fc9be2c5710f5"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/CaptureLoan.hpp",
+      "bytes": 872,
+      "sha256": "7a52a04ca0cb4f2c380702f9e5f88bf4fba843a2742b800fd995281dd12626b3"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/CapturedSource.cpp",
+      "bytes": 8199,
+      "sha256": "907d78c472bc52003c4d38b7b6ce84f3803936d98a34d161bcc75e3b6d3ca0c8"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/CommittedSocial.cpp",
+      "bytes": 9406,
+      "sha256": "a86f6c19ae56a2d870f3b0a27d70b72c47a04c9a41bfa491b41b2d6f4fd88f29"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/DeviceNamespace.cpp",
+      "bytes": 1116,
+      "sha256": "6b94bee6da775e452a0f9b303d9b4a21cf5d304458abd7af873721756e85911a"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/DeviceNamespace.hpp",
+      "bytes": 415,
+      "sha256": "877bc7bfd42d966d3c442b79ff8bb39cfd4bfa58c54006a3e5653a120671e900"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/FiniteRole.cpp",
+      "bytes": 7636,
+      "sha256": "e602729a49d2db756db0d6f2fec8cadc4bc1fd0a20add3696c6896bec5ca9274"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/INTEGRATION.md",
+      "bytes": 10596,
+      "sha256": "f7ce3c4d4329b698875c06940fd99862c97c52488dc0b68bdfb18756e9710716"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/MainPairRoute.cpp",
+      "bytes": 995,
+      "sha256": "b099661de6e50e13351f00dc72252feca2da04ba57e2e05d2c1770acc1999f1a"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/OriginalServices.hpp",
+      "bytes": 6821,
+      "sha256": "020757e7ad1997419077830d1ba7380843f48efc2bfce5f981b03b3f02ea243b"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/PRIVATE_PINS.json",
+      "bytes": 22261,
+      "sha256": "161f9da8195f7494a52afb0eaeb7cab656779bfb0577de6501bfe0e5bc7adc7f"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/RegisteredDeviceSession.cpp",
+      "bytes": 9785,
+      "sha256": "b80939b1bab0f75690b9b4e1a5d84d27a04c69b7ca25bd529dc87ac342a8354a"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/RegisteredMainPair.cpp",
+      "bytes": 9779,
+      "sha256": "a70358f531f2bf905a033073787e431f800eb25392f49060b723070fe39d9b4c"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/SocialJointIssuer.cpp",
+      "bytes": 23935,
+      "sha256": "6aa212f979d1a4d2430285f06ea34af66622def438cd58c42d4062b22988ad62"
+    },
+    {
+      "path": "native/social-joint-native-c13-v1/SourceFrame.cpp",
+      "bytes": 816,
+      "sha256": "dff58322019951fdf59aa170866175764938abd9bc9ce492ca86c0a6ba61fc4e"
+    },
+    {
+      "path": "native/source-parent/MobileCanonicalDATA.cpp",
+      "bytes": 5235,
+      "sha256": "82c56181bcf16b1c00e4193f358fa428875c0eea9fe4a2917cc165e199e6df1e"
+    },
+    {
+      "path": "native/source-parent/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "path": "native/social-fresh-joint-profile-v1/cabi/bridge.go",
+      "bytes": 9310,
+      "sha256": "919b4a8b4a60683a97543744888908081eb4066f15968b1cb2407400958655c4"
+    },
+    {
+      "path": "native/social-fresh-joint-profile-v1/cabi/social_fresh_joint_profile_data.h",
+      "bytes": 4253,
+      "sha256": "dfee3a19b5069fec5cf9c5b834dd843441004cadc4fff2047cc2ac4d1bc9c4d4"
+    },
+    {
+      "path": "native/social-fresh-joint-profile-v1/cabi/normal-inputs.json",
+      "bytes": 1086,
+      "sha256": "db65144dacb3e4515391a1836bf2ce04ea7bec410a5cedd4d18b15b6cf097b15"
+    },
+    {
+      "path": "scripts/social-joint-profile-c-data-inputs.mjs",
+      "bytes": 1622,
+      "sha256": "10d3ee82c5f291d7fd38827095216cd7ec53d4ab4c273aa392b3cab99ff91aab"
+    },
+    {
+      "path": "docs/SOCIAL_JOINT_PROFILE_C_DATA_BRIDGE.md",
+      "bytes": 2593,
+      "sha256": "bcdca979b39bb24565c2aaf7d8393c06de081bf618bfb48712acc85e6f553973"
+    },
+    {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_data.go",
+      "bytes": 387,
+      "sha256": "2dca7634d20d75fbe357045d0707447868bf8e38447c82a52777a85883b4d5c6"
+    },
+    {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_ffi.go",
+      "bytes": 1238,
+      "sha256": "188b6919780d60841a5a5066571e2ff683fb8f0be8cfcee53bb930a89d70e61a"
+    },
+    {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/social_source_frame_data_private.h",
+      "bytes": 1164,
+      "sha256": "636bbe2614cd78ba73419834c4cc522f0a9cc4518e02fa3497b67307ba98e7ad"
+    },
+    {
+      "path": "native/social-source-frame-v1/original/source_authority.go",
+      "bytes": 27746,
+      "sha256": "dbe5dac34a32e260b26ba1c9da2482efb1c38cbf65d583ebe60a080a1b3024dd"
+    },
+    {
+      "path": "native/social-source-frame-v1/normal-inputs.json",
+      "bytes": 1902,
+      "sha256": "88161321d6387b7271712ee582b229d581cad2e892ce4373e02d89de7ab33755"
+    },
+    {
+      "path": "native/original-auth-identity-joint-owner.h",
+      "bytes": 2331,
+      "sha256": "262eb4f725df736ab422d1ceed9dd5de608cad73cef89fb43eeaf0b33078323f"
+    },
+    {
+      "path": "native/original-auth-identity-joint-owner.mm",
+      "bytes": 27353,
+      "sha256": "db89cd0a7c6411ea215a24905fff35eca067239dc7c197da773c7997fa93b993"
+    }
+  ],
+  "preservedRuntime": [
+    {
+      "path": "native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 117847,
+      "sha256": "1084534974f76ca799f7f4249c4e3e5a997d4d4bce9a0f1a7a6ab2b9ee667c85"
+    },
+    {
+      "path": "native/original-auth-source-v2-dispatch.mjs",
+      "bytes": 13542,
+      "sha256": "a234d2b1f5dbb23225fb212eef86c86f5fdea8d5764c7589897fdbb6cd5a3d5f"
+    },
+    {
+      "path": "src/original-auth-source-current-v2.js",
+      "bytes": 53018,
+      "sha256": "12c7f19fb80b67ef46e2ba0f416a49048baf004be6028e98de34b06e899e96ec"
+    },
+    {
+      "path": "src/desktop-grant-native-backend-private.mjs",
+      "bytes": 14303,
+      "sha256": "cc45e82d9c73bd1692d83138126475a2dc40bef02a238f519744d101bb386cbb"
+    },
+    {
+      "path": "src/desktop-grant-continuation-owner.mjs",
+      "bytes": 4510,
+      "sha256": "4514eaf4d07408b6148504dea120ed7142cf1c6b4175fd93c0b4a039ecb2059c"
+    },
+    {
+      "path": "src/desktop-grant-strong-continuation-transport-private.mjs",
+      "bytes": 5027,
+      "sha256": "ac24d5aeb517a1edc069a2a58bb1b15dcd17a2abd415d3d033535c08ce5d0c44"
+    }
+  ],
+  "sourceAuthority": {
+    "path": "native/original-auth-identity-source-authority.mm",
+    "bytes": 96875,
+    "sha256": "67b29a03c1fa450fcfd80c123241a67767473b87d2ddf83251aeb87cc004b9d4"
+  },
+  "sourceAuthorityNamespaceCASApplied": true,
+  "nativeTranslationUnits": [
+    "native/social-joint-native-c13-v1/CaptureLoan.cpp",
+    "native/social-joint-native-c13-v1/CapturedSource.cpp",
+    "native/social-joint-native-c13-v1/CommittedSocial.cpp",
+    "native/social-joint-native-c13-v1/DeviceNamespace.cpp",
+    "native/social-joint-native-c13-v1/FiniteRole.cpp",
+    "native/social-joint-native-c13-v1/MainPairRoute.cpp",
+    "native/social-joint-native-c13-v1/RegisteredDeviceSession.cpp",
+    "native/social-joint-native-c13-v1/RegisteredMainPair.cpp",
+    "native/social-joint-native-c13-v1/SocialJointIssuer.cpp",
+    "native/social-joint-native-c13-v1/SourceFrame.cpp"
+  ],
+  "platformSelection": {
+    "darwin": [
+      "native/DeviceV4SourceBorrow.cpp",
+      "native/DeviceV4SourceClock.cpp",
+      "native/DeviceV4SourceDarwin.mm"
+    ],
+    "linux": [
+      "native/DeviceV4SourceBorrow.cpp",
+      "native/DeviceV4SourceClock.cpp",
+      "native/DeviceV4SourceLinux.cpp",
+      "native/source-parent/MobileCanonicalDATA.cpp"
+    ]
+  },
+  "includeDirectories": [
+    "native",
+    "native/source-parent",
+    "native/social-source3-fresh-v1",
+    "native/social-joint-finite-provider-v1/include",
+    "native/social-source-frame-v1/delta/internal/social/kernel",
+    "native/social-fresh-joint-profile-v1/cabi"
+  ],
+  "compileDefinitions": [
+    "YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE=1"
+  ],
+  "sameGoAggregate": true,
+  "oneFiniteRustCrate": true,
+  "noPublicDefinitions": true,
+  "qualification": {
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "actualMainDEVICE": false,
+    "wholeLinux": false,
+    "wholeImage": false,
+    "signing": false
+  },
+  "macOSControlledEvidence": {
+    "commit": "fd276559f0d28bf49f182a14cb12a45a1f721a6d",
+    "run": 42441869377,
+    "artifact": 13600954715,
+    "cases": 28,
+    "newConfigurationCases": 6,
+    "compileNM": 7,
+    "onlyPublicOriginalSourceGetter": true
+  },
+  "body2Frame3": {
+    "schema": "SOCIAL_BODY2_FRAME3_SAME_KERNEL_AGGREGATION/v1",
+    "bodyExports": [
+      "YNXSocialFreshJointProfilePrepareBodyDATA",
+      "YNXSocialFreshJointProfileInspectBodyDATA"
+    ],
+    "bodyFragment": "native/social-fresh-joint-profile-v1/cabi/bridge.go",
+    "bodyHeader": "native/social-fresh-joint-profile-v1/cabi/social_fresh_joint_profile_data.h",
+    "soleAggregateMain": "COPY_EXACT_BRIDGE_ONCE_TO_EXISTING_PACKAGE_MAIN_NO_NEW_MAIN_OR_RUNTIME",
+    "moduleImport": "github.com/JiahaoAlbus/YNX-Chain/sdk/socialfreshjointprofile",
+    "buildOnlyReplace": "native/social-fresh-joint-profile-v1",
+    "frameSymbol": "ynx_auth_social_source_frame_prepare_v1",
+    "frameKernelADD": [
+      {
+        "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_data.go",
+        "bytes": 387,
+        "sha256": "2dca7634d20d75fbe357045d0707447868bf8e38447c82a52777a85883b4d5c6"
+      },
+      {
+        "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_ffi.go",
+        "bytes": 1238,
+        "sha256": "188b6919780d60841a5a5066571e2ff683fb8f0be8cfcee53bb930a89d70e61a"
+      }
+    ],
+    "framePrivateHeader": {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/social_source_frame_data_private.h",
+      "bytes": 1164,
+      "sha256": "636bbe2614cd78ba73419834c4cc522f0a9cc4518e02fa3497b67307ba98e7ad"
+    },
+    "frameOriginalVerifyOnly": {
+      "path": "native/social-source-frame-v1/original/source_authority.go",
+      "bytes": 27746,
+      "sha256": "dbe5dac34a32e260b26ba1c9da2482efb1c38cbf65d583ebe60a080a1b3024dd"
+    },
+    "frameOriginalAction": "VERIFY_EXISTING_SAME_KERNEL_SOURCE_EXACT_NO_SECOND_FRAME_WRITER",
+    "frameFunction": "PrepareOriginalSourceSigningInputDATA -> original sourceSigningInput",
+    "productionGoArchives": 1,
+    "PUBLICArchiveForbidden": true,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
+  },
+  "matchedJointFactoryRestoration": [
+    {
+      "path": "native/original-auth-identity-joint-owner.h",
+      "bytes": 2331,
+      "sha256": "262eb4f725df736ab422d1ceed9dd5de608cad73cef89fb43eeaf0b33078323f"
+    },
+    {
+      "path": "native/original-auth-identity-joint-owner.mm",
+      "bytes": 27353,
+      "sha256": "db89cd0a7c6411ea215a24905fff35eca067239dc7c197da773c7997fa93b993"
+    }
+  ],
+  "nativeModuleHistoricalPinsAreEvidenceOnly": true,
+  "activeSourceInputHeader": {
+    "path": "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
+    "bytes": 8302,
+    "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49"
+  }
+}

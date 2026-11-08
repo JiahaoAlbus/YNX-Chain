@@ -3,6 +3,7 @@
 // Private Auth implementation ABI, not a public approval/profile schema.
 // Raw custody and current reads alone NEVER qualify an executor or Root.
 @interface YNXAuthIdentityCurrentOwner : NSObject
++ (instancetype)acquireOriginalWalletProductProfile:(NSError**)error;
 + (instancetype)acquireOriginalWalletNativePayClientProfile:(NSError**)error;
 + (instancetype)acquireOriginalAdministrationProfile:(NSError **)error;
 // Actual inherited Node entry only; no path/ENV/caller constructor.

@@ -1,0 +1,79 @@
+{
+  "schema": "PUBLIC_SOCIAL_STDIO_INTEROP_V1_NO_AUTHORITY",
+  "bindingOriginal": "{\"version\":\"YNX-SOCIAL-JOINT-PROFILE-ORIGINAL/v1\",\"profileOriginal\":\"PUBLIC_NOT_ROOT \\u003c\\u003e\\u0026\\u2028\\u2029 {\\\"issuerEpoch\\\":18446744073709551615,\\\"anchorEpoch\\\":9007199254740993}\",\"registrationOriginal\":\"PUBLIC_REGISTRATION_NOT_ROOT\",\"expiresMS\":9007199254740991,\"expected\":{\"networkId\":\"PUBLIC_networkId\",\"canonicalOwner\":\"PUBLIC_canonicalOwner\",\"account\":\"PUBLIC_account\",\"sessionBinding\":\"PUBLIC_sessionBinding\",\"productId\":\"social\",\"clientId\":\"PUBLIC_clientId\",\"platform\":\"PUBLIC_platform\",\"applicationId\":\"PUBLIC_applicationId\",\"bundleId\":null,\"packageId\":null,\"origin\":\"PUBLIC_origin\",\"callback\":\"PUBLIC_callback\",\"deviceId\":\"PUBLIC_deviceId\",\"generation\":\"9007199254740993\",\"registrationId\":\"PUBLIC_registrationId\",\"revision\":\"7\",\"registrationDigest\":\"PUBLIC_registrationDigest\"},\"dataOnly\":true,\"RootAdmission\":false,\"V4Authentication\":false}",
+  "vectors": [
+    {
+      "command": "close",
+      "request": {
+        "version": 1,
+        "sequence": "1",
+        "command": "qualify",
+        "requestOriginal": "PUBLIC SAME RAW <>& ",
+        "replayKey": "PUBLIC_SAME_REPLAY",
+        "proofExpiresMS": 9007199254740991
+      },
+      "response": {
+        "version": 1,
+        "sequence": "1",
+        "original": "PUBLIC_PARTIAL_ORIGINAL",
+        "errorPresent": true,
+        "error": {
+          "tag": "code",
+          "code": 0
+        },
+        "physicalDone": true
+      },
+      "requestFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjEiLCJjb21tYW5kIjoicXVhbGlmeSIsInJlcXVlc3RPcmlnaW5hbCI6IlBVQkxJQyBTQU1FIFJBVyBcdTAwM2NcdTAwM2VcdTAwMjZcdTIwMjgiLCJyZXBsYXlLZXkiOiJQVUJMSUNfU0FNRV9SRVBMQVkiLCJwcm9vZkV4cGlyZXNNUyI6OTAwNzE5OTI1NDc0MDk5MX0K",
+      "responseFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjEiLCJvcmlnaW5hbCI6IlBVQkxJQ19QQVJUSUFMX09SSUdJTkFMIiwiZXJyb3JQcmVzZW50Ijp0cnVlLCJlcnJvciI6eyJ0YWciOiJjb2RlIiwiY29kZSI6MH0sInBoeXNpY2FsRG9uZSI6dHJ1ZX0K"
+    },
+    {
+      "command": "close",
+      "request": {
+        "version": 1,
+        "sequence": "9007199254740993",
+        "command": "qualify",
+        "requestOriginal": "PUBLIC SAME RAW <>& ",
+        "replayKey": "PUBLIC_SAME_REPLAY",
+        "proofExpiresMS": 9007199254740991
+      },
+      "response": {
+        "version": 1,
+        "sequence": "9007199254740993",
+        "original": "PUBLIC_PARTIAL_ORIGINAL",
+        "errorPresent": true,
+        "error": {
+          "tag": "code",
+          "code": 0
+        },
+        "physicalDone": true
+      },
+      "requestFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjkwMDcxOTkyNTQ3NDA5OTMiLCJjb21tYW5kIjoicXVhbGlmeSIsInJlcXVlc3RPcmlnaW5hbCI6IlBVQkxJQyBTQU1FIFJBVyBcdTAwM2NcdTAwM2VcdTAwMjZcdTIwMjgiLCJyZXBsYXlLZXkiOiJQVUJMSUNfU0FNRV9SRVBMQVkiLCJwcm9vZkV4cGlyZXNNUyI6OTAwNzE5OTI1NDc0MDk5MX0K",
+      "responseFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjkwMDcxOTkyNTQ3NDA5OTMiLCJvcmlnaW5hbCI6IlBVQkxJQ19QQVJUSUFMX09SSUdJTkFMIiwiZXJyb3JQcmVzZW50Ijp0cnVlLCJlcnJvciI6eyJ0YWciOiJjb2RlIiwiY29kZSI6MH0sInBoeXNpY2FsRG9uZSI6dHJ1ZX0K"
+    },
+    {
+      "command": "close",
+      "request": {
+        "version": 1,
+        "sequence": "18446744073709551615",
+        "command": "qualify",
+        "requestOriginal": "PUBLIC SAME RAW <>& ",
+        "replayKey": "PUBLIC_SAME_REPLAY",
+        "proofExpiresMS": 9007199254740991
+      },
+      "response": {
+        "version": 1,
+        "sequence": "18446744073709551615",
+        "original": "PUBLIC_PARTIAL_ORIGINAL",
+        "errorPresent": true,
+        "error": {
+          "tag": "code",
+          "code": 0
+        },
+        "physicalDone": true
+      },
+      "requestFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjE4NDQ2NzQ0MDczNzA5NTUxNjE1IiwiY29tbWFuZCI6InF1YWxpZnkiLCJyZXF1ZXN0T3JpZ2luYWwiOiJQVUJMSUMgU0FNRSBSQVcgXHUwMDNjXHUwMDNlXHUwMDI2XHUyMDI4IiwicmVwbGF5S2V5IjoiUFVCTElDX1NBTUVfUkVQTEFZIiwicHJvb2ZFeHBpcmVzTVMiOjkwMDcxOTkyNTQ3NDA5OTF9Cg==",
+      "responseFrameB64": "eyJ2ZXJzaW9uIjoxLCJzZXF1ZW5jZSI6IjE4NDQ2NzQ0MDczNzA5NTUxNjE1Iiwib3JpZ2luYWwiOiJQVUJMSUNfUEFSVElBTF9PUklHSU5BTCIsImVycm9yUHJlc2VudCI6dHJ1ZSwiZXJyb3IiOnsidGFnIjoiY29kZSIsImNvZGUiOjB9LCJwaHlzaWNhbERvbmUiOnRydWV9Cg=="
+    }
+  ],
+  "RootAdmission": false
+}
