@@ -1,0 +1,52 @@
+name: Shop proof consumer matching PUBLIC boundary
+on:
+  push:
+    branches: [codex/wallet-auth49-shop-proof-matching-ci-20261108]
+  pull_request:
+    branches: [codex/wallet-auth49-shop-fixed-private-client-20261108]
+    paths:
+      - packages/wallet-auth/native/shop-proof-consumer-role/**
+      - scripts/ci/shop-proof-consumer-matching.mjs
+      - .github/workflows/shop-proof-consumer-matching.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shop-proof-consumer-matching:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Exact source role and sole matching selector
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/shop-matching"
+          mkdir -m 700 "$out" "$out/evidence" "$out/cache" "$out/modules"
+          socket_parent=$(mktemp -d /tmp/shop-ci-XXXXXX)
+          export SHOP_MATCHING_CI_OUTPUT="$out"
+          export LINK_SHOP_PROOF_MATCHING_GO=$(realpath "$(command -v go)")
+          export LINK_SHOP_PROOF_MATCHING_EVIDENCE="$out/evidence"
+          export LINK_SHOP_PROOF_MATCHING_SOCKET_PARENT="$socket_parent"
+          export GOCACHE="$out/cache" GOMODCACHE="$out/modules"
+          node scripts/ci/shop-proof-consumer-matching.mjs 2>&1 | tee "$out/CI.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shop-proof-consumer-matching
+          path: |
+            ${{ runner.temp }}/shop-matching
+            !${{ runner.temp }}/shop-matching/cache
+            !${{ runner.temp }}/shop-matching/modules
+            !${{ runner.temp }}/shop-matching/evidence/**/tmp
+            !${{ runner.temp }}/shop-matching/evidence/**/consumer.test
+          if-no-files-found: error
+          retention-days: 14
