@@ -42,7 +42,7 @@ try{
   // registration is under HOME; all executable bytes and logs stay RUNNER_TEMP.
   registration=fs.mkdtempSync(path.join(os.homedir(),'.ynx-code-profile-PUBLIC-'));fs.chmodSync(registration,0o700);
   const runtime=path.join(out,'runtime');fs.mkdirSync(runtime,{mode:0o700});
-  const image=path.join(runtime,'image.dylib'),defaultImage=path.join(runtime,'default.dylib'),record=path.join(runtime,'build-record.json'),profile=path.join(registration,'selected-profile.json'),driver=path.join(out,'PUBLIC-driver');
+  const image=path.join(runtime,'image.dylib'),defaultImage=path.join(runtime,'default.dylib'),record=path.join(runtime,'build-record.json'),profile=path.join(registration,'selected-profile.json'),driver=path.join(out,'android-code-image-root.PUBLIC');
   const sanitize=['-fsanitize=address,undefined','-fno-omit-frame-pointer'];
   const reviewed='-DYNX_REVIEWED_ANDROID_CODE_IMAGE_LOCATORS={"'+registration+'","selected-profile.json","android-code-image-root.PUBLIC"}';
   const flags=[...common,...sanitize,'-mmacosx-version-min=13.0','-DYNX_ANDROID_CODE_IMAGE_PUBLIC_CONTROLS'];
