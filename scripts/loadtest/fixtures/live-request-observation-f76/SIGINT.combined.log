@@ -1,0 +1,2 @@
+{"version":"YNX-PQ-LAB-LIVE-REQUEST-OBSERVATION/v1","sequence":1,"event":"BEGIN","stage":"REQUEST","span":1,"elapsedNs":0,"reason":"","authorityGranted":false}
+{"version":"YNX-PQ-LAB-LIVE-REQUEST-OBSERVATION/v1","sequence":2,"event":"CANCEL","stage":"REQUEST","span":1,"elapsedNs":866000,"reason":"SIGINT","authorityGranted":false}
