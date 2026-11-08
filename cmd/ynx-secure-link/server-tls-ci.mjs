@@ -11,8 +11,8 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
 const authDependencyDirectory = path.join(directory, 'server-tls-auth-deps');
 const moduleName = 'github.com/JiahaoAlbus/YNX-Chain';
-const tags = 'securelink_openssl,securelink_reviewed_server_tls';
-export const SERVER_TLS_REQUIRED_TESTS = Object.freeze(['TestOriginalServerTLSOriginalFactoryEmptyRootCleanup']);
+const tags = 'securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test';
+export const SERVER_TLS_REQUIRED_TESTS = Object.freeze(['TestOriginalServerTLSOriginalFactoryEmptyRootCleanup', 'TestOriginalServerTLSPUBLICConsumerFixture']);
 export const AUTH_SERVER_TLS_SNAPSHOT = Object.freeze([
   Object.freeze({path: 'internal/authservertls/lease.go', bytes: 16311, sha256: '119e448e87e16ef2690b7dbf4c37a6778ce88a4bba4e90fc89f7eef59ba7e7a2', gitBlob: 'c179ce4f8ab7929d775a6bef7b328e9c9f10ae55'}),
   Object.freeze({path: 'internal/authservertls/parent_darwin.go', bytes: 427, sha256: 'a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26', gitBlob: 'a491f1aeb4e38a64f4537b11ef78352e51ae668c'}),
@@ -119,18 +119,27 @@ export function verifyCompositeUnchanged(composite) {
 }
 export function qualifyServerTLSTestEvents(raw, exit, signal, error) {
   requireValue(exit === 0 && signal === null && error === null, 'actual selected Go test command must exit0 without timeout/signal');
-  const passed = [], skipped = [], failed = [];
+  const passed = [], ran = [], skipped = [], failed = [];
+  const expectedPackage = moduleName + '/internal/securelink'; let packagePasses = 0;
   for (const line of raw.split('\n').filter(Boolean)) {
     let row; try {row = JSON.parse(line);} catch {throw Error('Server TLS source CI: malformed Go test JSON');}
+    requireValue(row.Package === expectedPackage, 'only the actual securelink package event stream is accepted');
     requireValue(row.Action !== 'fail', 'Go package/subtest failure must not be hidden by a top-level pass');
-    if (!row.Test || row.Test.includes('/')) continue;
-    if (row.Action === 'pass') passed.push(row.Test);
+    if (!row.Test) {
+      if (row.Action === 'pass') {exact(passed, SERVER_TLS_REQUIRED_TESTS, 'completed controls before package PASS'); packagePasses++;}
+      continue;
+    }
+    if (row.Test.includes('/')) continue;
+    if (row.Action === 'run') ran.push(row.Test);
+    if (row.Action === 'pass') {requireValue(ran.filter(name => name === row.Test).length === 1, 'test PASS requires its one actual RUN'); passed.push(row.Test);}
     if (row.Action === 'skip') skipped.push(row.Test);
     if (row.Action === 'fail') failed.push(row.Test);
   }
   requireValue(skipped.length === 0 && failed.length === 0, 'selected test must not skip or fail');
-  exact(passed, SERVER_TLS_REQUIRED_TESTS, 'new transport/native/concrete Auth empty-Root controls');
-  return {pass: passed.length, skip: 0, fail: 0, actualSelectedTests: passed.sort(), actualAuthEmptyRootRefused: true, physicalAndIdentityReexecuted: false,
+  requireValue(packagePasses === 1, 'one actual package PASS required');
+  exact(ran, SERVER_TLS_REQUIRED_TESTS, 'one actual RUN per selected control');
+  exact(passed, SERVER_TLS_REQUIRED_TESTS, 'concrete Auth empty-Root and external PUBLIC consumer controls');
+  return {pass: passed.length, skip: 0, fail: 0, actualSelectedTests: passed.sort(), actualAuthEmptyRootRefused: true, actualPUBLICConsumerFixture: true, physicalAndIdentityReexecuted: true,
     RootAdmission: false, SourceAdmission: false, V4PrincipalAdmission: false};
 }
 
@@ -178,7 +187,7 @@ export function runServerTLSCI(env = process.env) {
     const go = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'CGO_ENABLED', 'GOCACHE', 'GOWORK', 'GOFLAGS'], 'go-environment', path.join(privateRoot, 'source'), testEnv, 30000).stdout);
     requireValue(go.GOVERSION === 'go1.26.10' && go.CGO_ENABLED === '1' && go.GOCACHE === cache && go.GOWORK === 'off' && go.GOFLAGS === '', 'original S3 Go1.26.10/cache/cgo context required');
     const result = run('go', ['test', '-mod=readonly', '-race', '-p', '1', '-count=1', '-timeout=90s', '-json', '-tags=' + tags,
-      '-run', '^TestOriginalServerTLSOriginalFactoryEmptyRootCleanup$', './internal/securelink'], 'server-tls-tests', path.join(privateRoot, 'source'), testEnv, 150000);
+      '-run', '^TestOriginalServerTLS(OriginalFactoryEmptyRootCleanup|PUBLICConsumerFixture)$', './internal/securelink'], 'server-tls-tests', path.join(privateRoot, 'source'), testEnv, 150000);
     qualification = qualifyServerTLSTestEvents(result.stdout, result.command.exit, result.command.signal, result.command.error);
     verifyCompositeUnchanged(composite); json('SOURCE-AFTER.json', {unchanged: true, compositeSHA256: composite.compositeSHA256, sources: composite.sources});
   } catch (error) {failure = error;}

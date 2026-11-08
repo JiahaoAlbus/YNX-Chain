@@ -29,7 +29,9 @@ function copyDependencies(root) {
   const dest = path.join(root, 'deps'); fs.cpSync(dependencies, dest, {recursive: true}); return dest;
 }
 function goEvents(names = SERVER_TLS_REQUIRED_TESTS) {
-  return [...names.map(Test => JSON.stringify({Action: 'pass', Test})), JSON.stringify({Action: 'pass', Package: 'PUBLIC'})].join('\n');
+  const Package = 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink';
+  return [...names.flatMap(Test => [JSON.stringify({Action: 'run', Package, Test}), JSON.stringify({Action: 'pass', Package, Test})]),
+    JSON.stringify({Action: 'pass', Package})].join('\n');
 }
 
 test('server TLS driver snapshots exact actual3 Auth public source without owner release or Root', () => {
@@ -83,14 +85,18 @@ test('server TLS driver requires fresh owned disjoint evidence/private roots and
   assert.throws(() => ownedEmptyRoot(path.join(alias, 'new'))); assert.equal(fs.existsSync(path.join(evidence, 'new')), false);
 });
 
-test('server TLS driver requires the one actual normal factory top-level test pass without skip zero-hit or opaque false green', () => {
+test('server TLS driver requires actual normal empty-Root and PUBLIC consumer tests without skip zero-hit or opaque false green', () => {
   const qualified = qualifyServerTLSTestEvents(goEvents(), 0, null, null);
-  assert.equal(qualified.pass, 1); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.RootAdmission, false);
+  assert.equal(qualified.pass, 2); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.actualPUBLICConsumerFixture, true); assert.equal(qualified.RootAdmission, false);
   for (const [text, exit, signal, error] of [
     [goEvents().replace('"pass"', '"skip"'), 0, null, null], [goEvents(SERVER_TLS_REQUIRED_TESTS.slice(1)), 0, null, null],
     [goEvents([...SERVER_TLS_REQUIRED_TESTS, SERVER_TLS_REQUIRED_TESTS[0]]), 0, null, null], ['', 0, null, null],
     [goEvents() + '\n' + JSON.stringify({Action: 'fail', Package: 'PUBLIC'}), 0, null, null],
     [goEvents(), 1, null, null], [goEvents(), null, 'SIGTERM', null], [goEvents(), 0, null, {code: 'ETIMEDOUT'}], ['not-json', 0, null, null],
+    [goEvents().split('\n').filter(line => JSON.parse(line).Action !== 'run').join('\n'), 0, null, null],
+    [goEvents().split('\n').filter(line => JSON.parse(line).Test).join('\n'), 0, null, null],
+    [goEvents().replaceAll('github.com/JiahaoAlbus/YNX-Chain/internal/securelink', 'PUBLIC/wrong-package'), 0, null, null],
+    [goEvents() + '\n' + JSON.stringify({Action: 'run', Test: SERVER_TLS_REQUIRED_TESTS[0], Package: 'github.com/JiahaoAlbus/YNX-Chain/internal/securelink'}), 0, null, null],
   ]) assert.throws(() => qualifyServerTLSTestEvents(text, exit, signal, error));
 });
 
