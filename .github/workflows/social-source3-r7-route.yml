@@ -1,0 +1,42 @@
+name: Social Source3 R7 immutable Main route normal intake
+on:
+  push:
+    branches: [codex/wallet-auth49-social-source3-r7-route-20261108]
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/social-joint-finite-provider-v1/**
+      - packages/wallet-auth/native/social-source3-fresh-v1/**
+      - packages/wallet-auth/scripts/social-source3-fresh-node-inputs.mjs
+      - packages/wallet-auth/scripts/social-finite-joint-provider-inputs.*
+      - packages/wallet-auth/test/social-source3-r7-route.test.mjs
+      - packages/wallet-auth/test/social-source3-r7-route-abi.c
+      - packages/wallet-auth/test/types/social-source3-r7-route.mts
+      - scripts/ci/social-source3-r7-route.mjs
+      - scripts/ci/social-finite-provider-package-readback.mjs
+      - .github/workflows/social-source3-r7-route.yml
+  workflow_dispatch:
+jobs:
+  source-intake-only:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/wallet-auth49-social-source3-r7-route-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/social-source3-r7-route.mjs 2>&1 | tee social-finite-provider-intake.log
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/social-finite-provider-package-readback.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: social-source3-r7-route-normal
+          path: |
+            social-finite-provider-intake.log
+            ${{ runner.temp }}/social-finite-provider-intake-*/**
+            canonical-common-source-package

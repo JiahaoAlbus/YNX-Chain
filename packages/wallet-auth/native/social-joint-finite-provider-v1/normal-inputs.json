@@ -3,6 +3,11 @@
   "variant": "SOCIAL_FINITE_JOINT_PROVIDER_R1_R2_MAIN_READ_MATCHED_NORMAL_SOURCE_ONLY/v1",
   "files": [
     {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+      "bytes": 5929,
+      "sha256": "aa496cad13707f2579b762877f0e8b2e996600b60f9be1da5c4bb8377d5e83c1"
+    },
+    {
       "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
       "bytes": 13311,
       "sha256": "9caaefe4fe2b2e08bca02f9f30f7dbb7be47205e8233a5762ff6b831232fb8f7"
@@ -11,6 +16,16 @@
       "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go",
       "bytes": 3787,
       "sha256": "33bd33339da4da35fdab51a896aca32c4702edefa722485281b2cf61e5f718b4"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route.go",
+      "bytes": 2124,
+      "sha256": "7ac1488c26bad953b1ee685413048e3274a12d5afd40397cd7f21ddcbd4b739b"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route_ffi.go",
+      "bytes": 769,
+      "sha256": "264f55dc8a708cd90d79e2a7b23d143e71cc4d9b6550166e6bcc62172426a8a4"
     },
     {
       "path": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h",
@@ -171,8 +186,8 @@
   "source3Collector": "scripts/social-source3-fresh-node-inputs.mjs",
   "source3Header": {
     "path": "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
-    "bytes": 7878,
-    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3"
+    "bytes": 8302,
+    "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49"
   },
   "CABIHeader": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_custodian_private_v1.h",
   "requestBytes": 208,
@@ -211,7 +226,9 @@
     "runtimeCount": 1,
     "kernelADD": [
       "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
-      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go"
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go",
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route.go",
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route_ffi.go"
     ],
     "buildTags": [
       "cgo",
@@ -220,7 +237,17 @@
     "privatePackage": "internal/social/kernel",
     "bodyModule": "github.com/JiahaoAlbus/YNX-Chain/sdk/socialfreshjointprofile",
     "bodyModuleReplace": "native/social-fresh-joint-profile-v1",
-    "frameAndR6Capture": "MUST_BE_SAME_KERNEL_NOT_A_SECOND_GO_ARCHIVE"
+    "frameAndR6Capture": "MUST_BE_SAME_KERNEL_NOT_A_SECOND_GO_ARCHIVE",
+    "kernelMOD": [
+      {
+        "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+        "supplierBefore": {
+          "bytes": 5832,
+          "sha256": "f979a9f1e8c11fa8fca4f563b8809e0a10a300312ecd86c50b3a286206d0b921"
+        },
+        "normalSourceADDMapsToOriginalKernelMOD": true
+      }
+    ]
   },
   "missingFinalLink": [
     "genuine Native Source/Binding + actual qualified remote registered Main holder + Linux registered DEVICE constructors in matching target",
@@ -267,5 +294,24 @@
     "independentReadRows": 0,
     "signingRowsGrantRead": false,
     "mainPrivateHeader": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h"
+  },
+  "mainPairRoute": {
+    "sourceVersion": "Auth R7 route-r1",
+    "sourceH": {
+      "bytes": 7098,
+      "sha256": "2b7c15ee553e273eb8b8cb40728cae8156acb76f838d6ed65214f409eddb0b5f"
+    },
+    "strongGetter": "ynx_auth_social_joint_capture_borrow_main_pair_route_v1",
+    "signature": "realLocalLoan,uint32Out,status24",
+    "unknown": 0,
+    "normalMainActorLocal": 1,
+    "fixedRoleProviderRegistered": 2,
+    "immutableFactoryOnly": true,
+    "routingDATAOnly": true,
+    "RootReadPurposeStillIndependent": true,
+    "callerModeSetter": false,
+    "fallbackOnLocalFailure": false,
+    "sameKernelOneGoRuntime": true,
+    "binaryLinkedHere": false
   }
 }
