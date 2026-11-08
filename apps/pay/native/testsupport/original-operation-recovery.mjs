@@ -33,7 +33,15 @@ const source=await composeNativePayProductSource(entry,{acquireOriginalProductSo
 const service=createWalletNativePayProduct({entry:{...entry,invoke:entry.invokeResult},getMain:()=>main,getGuard:()=>({account:original.merchant,assert(){}}),publishReview:forbidden});
 const ref={productId:original.productId,sourceOrder:original.sourceOrder};
 try{
- if(mode==='revoked'){
+ if(mode==='pending-terms'){
+  const result=await service.invoke({action:'order-invoice',...ref});
+  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.intent.state,'PREPARED');assert.equal(result.intent.phase,'unknown');assert.equal(result.reference.nativeHash,nativeHash);assert.equal(result.reference.kind,'invoice_terms');assert.equal(result.queryOnly,true);assert.equal(result.recoveryOnly,true);assert.equal(result.outcomeUnknown,true);assert.equal(result.canRetry,false);
+  assert.equal(result.bill.paidAtoms,'0');assert.equal(result.bill.refundedAtoms,'0');assert.equal(result.bill.netPaidAtoms,'0');assert.deepEqual(result.pendingOriginals,[nativeHash]);assert.equal(result.operations[0].kind,'invoice_terms');assert.equal(result.operations[0].status,'unknown');assert.deepEqual(result.recoveryActions,[{action:'lookup-intent',...ref}]);assert.equal(calls.length,2);assert.equal(result.walletRequest,undefined);
+  const recovered=await service.invoke(result.recoveryActions[0]);assert.equal(recovered.ok,true,JSON.stringify(recovered));assert.equal(recovered.outcomeUnknown,true);assert.equal(recovered.recoveryOnly,true);assert.equal(recovered.bill.paidAtoms,'0');assert.equal(recovered.reference.nativeHash,nativeHash);assert.deepEqual(recovered.pendingOriginals,[nativeHash]);assert.equal(calls.length,3);assert.equal(calls.filter(c=>c.path.endsWith('/reconcile')).length,0);
+ }else if(mode==='terms-cold'){
+  const result=await service.invoke({action:'order-invoice',...ref});
+  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.intent.state,'ISSUED');assert.equal(result.bill.paidAtoms,'0');assert.equal(result.bill.netPaidAtoms,'0');assert.deepEqual(result.pendingOriginals,[]);assert.equal(result.outcomeUnknown,false);assert.equal(result.operations[0].nativeHash,nativeHash);assert.equal(result.operations[0].status,'confirmed');assert.equal(calls.filter(c=>c.path.endsWith('/reconcile')).length,0);assert.equal(result.walletRequest,undefined);
+ }else if(mode==='revoked'){
   const denied=await service.invoke({action:'order-reconcile-operation',...ref,nativeHash});
   assert.equal(denied.ok,false);assert.equal(denied.httpStatus,503);assert.equal(calls.length,1);assert.equal(denied.canRetry,false);
  }else if(mode==='readonly'){

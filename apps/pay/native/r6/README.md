@@ -46,6 +46,15 @@ terms review requires the normal service's `awaiting_merchant_approval` phase;
 other PREPARED/UNKNOWN states remain recovery only. Main independently chooses
 and checks its current account, network and nonce. Original review, separate
 broadcast consent, journal, cancellation and UNKNOWN ownership remain there.
+For PREPARED terms already holding an original native/ABCI hash pair, the
+normal order query also reads the same original invoice and exposes its pending
+operation. It never labels those terms paid: paid, refunded and net-paid must
+remain zero until a fresh issued lookup. The terms operation must match the
+original native hash, ABCI hash, kind and merchant. Unsigned terms do not invent
+a hash or read a nonexistent invoice. UNKNOWN remains visible even when only
+the intent can be read. Terms recovery offers the existing same-order
+`lookup-intent`, without redirecting into payment/refund archives or automatic
+reconciliation. A retained terms hash cannot request a new unsigned review.
 Receipt/reconciliation DATA must additionally match that original session and
 terms message hash. This does not supply a price approval, Auth grant or the
 missing standalone Shop Native authenticated transport to Main.
@@ -67,6 +76,11 @@ reply after durable proof archival, cold read-only receipt/reconciliation and
 retirement. It also checks Source retirement immediately before intent crash
 repair writes. The original installed Main wrapper and its exact hash are
 required. This is controlled integration evidence, not genuine merchant payment.
+`pending-terms-query` reuses the original PUBLIC terms Member/proof and normal
+HTTP/Main wrapper for the narrow pending-display delta: lost original ACK,
+temporarily unavailable independent proof, original hash query, explicit
+reconciliation and cold confirmed-terms read with zero paid atoms. It does not
+rerun the already verified full payment/refund workflow.
 
 Both first reread the original product request from the held ProductSource.
 Its original qualified `readOriginalArchiveReceipt(ref,current)` or

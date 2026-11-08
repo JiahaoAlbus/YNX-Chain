@@ -66,7 +66,7 @@ test('PREPARED and UNKNOWN stay query-only; they cannot enter payer or refund re
   const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'})});const r=await f.entry.invokeResult({action,...ref,...(action==='order-refund-review'?{refundId:'refund-original',amountAtoms:'30'}:{})});
   assert.equal(r.ok,false);assert.equal(r.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');assert.equal(f.calls.length,2);assert.equal(r.canRetry,false);
  }
- const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval'})});const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,true);assert.equal(r.bill,undefined);assert.equal(r.queryOnly,true);assert.equal(f.calls.length,2);
+ const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval',termsNativeHash:'',termsAbciHash:''})});const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,true);assert.equal(r.bill,undefined);assert.equal(r.queryOnly,true);assert.equal(f.calls.length,2);
 });
 
 function noSigningMain(){
@@ -82,8 +82,8 @@ test('payment, refund and retained broadcast recheck original bill before any Ma
  }
 });
 test('merchant review or original-Member read cannot splice a changed lookup generation',async()=>{
- for(const action of ['order-terms-review','order-broadcast-review'])for(const change of [v=>v.terms.sessionId='other-session',v=>v.signingMessageHash='c'.repeat(64),v=>{v.state='ISSUED';v.phase='confirmed';}]){
-  const m=noSigningMain(),prepared=()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval'});
+ for(const action of ['order-terms-review','order-broadcast-review'])for(const change of [v=>v.terms.sessionId='other-session',v=>v.signingMessageHash='c'.repeat(64),v=>{v.state='ISSUED';v.phase='confirmed';v.termsNativeHash=termsHash;v.termsAbciHash=view().termsAbciHash;}]){
+  const m=noSigningMain(),prepared=()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval',termsNativeHash:'',termsAbciHash:''});
   const f=boot({main:m.main,lookup:prepared,review:()=>{const v=prepared();change(v);return action==='order-terms-review'?{intent:v}:v;}});
   const r=await f.entry.invokeResult({action,...ref,...(action==='order-broadcast-review'?{kind:'invoice_terms',originalHash:'0x'+'8'.repeat(64)}:{})});
   assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(m.touched(),0);assert.equal(f.calls.length,3);
@@ -136,7 +136,7 @@ test('post-reconcile current revocation cannot publish old bill/receipt or retry
  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash});assert.equal(r.ok,false);assert.equal(r.reference,null);assert.equal(r.archiveReceipt,undefined);assert.equal(f.calls.length,4);
 });
 test('terms recovery accepts PREPARED original terms and cannot select payment before issuance',async()=>{
- const op={...originalOperation(),nativeHash:termsHash,kind:'invoice_terms',owner:merchant};
+ const op={...originalOperation(),nativeHash:termsHash,abciHash:view().termsAbciHash,kind:'invoice_terms',owner:merchant};
  const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),operations:{[termsHash]:op}}),operation:()=>op});
  const r=await f.entry.invokeResult({action:'order-reconcile-operation',...ref,nativeHash:termsHash});assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.reconciledOriginal.kind,'invoice_terms');assert.equal(r.archiveReceipt,undefined);
  const pending=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),operations:{[nativeHash]:originalOperation()}})});
@@ -167,4 +167,44 @@ test('fresh original query may precede another explicit same-hash proof reconcil
  const queried=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(queried.ok,true);assert.equal(queried.canRetry,false);assert.deepEqual(queried.pendingOriginals,[nativeHash]);assert.equal(queried.operations[0].status,'unknown');assert.equal(posts,1);
  // A second explicit invocation, never dispatched by the failure/query path.
  const next=await f.entry.invokeResult(action);assert.equal(next.ok,true,JSON.stringify(next));assert.equal(next.canRetry,false);assert.equal(next.reconciledOriginal.nativeHash,nativeHash);assert.equal(next.reconciledOriginal.status,'confirmed');assert.equal(posts,2);
+});
+
+const pendingTermsOperation=()=>({...originalOperation(),nativeHash:termsHash,abciHash:'0x'+'5'.repeat(64),kind:'invoice_terms',owner:merchant});
+test('pending merchant terms query exposes only the retained original operation and original lookup recovery',async()=>{
+ const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>({...bill(),status:'awaiting_terms_finality',operations:{[termsHash]:pendingTermsOperation()}})});
+ const r=await f.entry.invokeResult({action:'order-invoice',...ref});
+ assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.queryOnly,true);assert.equal(r.recoveryOnly,true);assert.equal(r.approvalRequired,false);assert.equal(r.outcomeUnknown,true);assert.equal(r.bill.paidAtoms,'0');assert.deepEqual(r.pendingOriginals,[termsHash]);assert.equal(r.reference.nativeHash,termsHash);assert.equal(r.operations[0].abciHash,view().termsAbciHash);assert.equal(r.canRetry,false);
+ assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);assert.equal(f.calls.length,3);assert.equal(f.calls.filter(c=>c.path?.endsWith('/reconcile')).length,0);assert.equal(r.walletRequest,undefined);
+});
+test('unsigned or retained pre-send terms never invent an operation or read an absent invoice',async()=>{
+ for(const phase of ['awaiting_merchant_approval','signed_not_submitted','unknown']){
+  const f=boot({lookup:()=>({...view(),state:'PREPARED',phase,termsNativeHash:'',termsAbciHash:''})});
+  const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,true);assert.equal(r.bill,undefined);assert.equal(r.pendingOriginals,undefined);assert.equal(r.reference.nativeHash,undefined);assert.equal(r.recoveryOnly,phase!=='awaiting_merchant_approval');assert.equal(r.outcomeUnknown===true,phase==='unknown');assert.equal(f.calls.length,2);assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);
+ }
+});
+test('pending terms cannot display another operation, ABCI identity, or premature money projection',async()=>{
+ for(const edit of [b=>b.operations[termsHash].kind='invoice_settle',b=>b.operations[termsHash].owner=payer,b=>b.operations[termsHash].abciHash='0x'+'8'.repeat(64),b=>b.paidAtoms='100',b=>b.refundedAtoms='1',b=>b.netPaidAtoms='1',b=>b.sourceOrder='foreign-order']){
+  const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>{const b={...bill(),operations:{[termsHash]:pendingTermsOperation()}};edit(b);return b;}});
+  const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,false);assert.equal(r.bill,undefined);assert.equal(r.operations,undefined);assert.equal(f.calls.length,3);assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);
+ }
+});
+test('lost pending terms bill read retains only original query recovery and does not reconcile or sign',async()=>{
+ const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown'}),read:()=>{throw Object.assign(Error(),{code:'PUBLIC_PENDING_READ_LOST'});}});
+ const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,false);assert.equal(r.code,'PUBLIC_PENDING_READ_LOST');assert.equal(r.reference.nativeHash,termsHash);assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);assert.equal(r.canRetry,false);assert.equal(f.calls.length,3);
+});
+test('prepared terms require a complete native/ABCI pair before invoice reads or new review',async()=>{
+ for(const fields of [{termsNativeHash:'',termsAbciHash:view().termsAbciHash},{termsNativeHash:termsHash,termsAbciHash:''},{termsNativeHash:termsHash,termsAbciHash:'invalid'}]){
+  const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown',...fields})});const r=await f.entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,false);assert.equal(r.code,'NATIVE_PAY_ORIGINAL_PRODUCT_INTENT_INVALID');assert.equal(f.calls.length,2);
+ }
+ const m=noSigningMain(),f=boot({main:m.main,lookup:()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval'})});
+ const r=await f.entry.invokeResult({action:'order-terms-review',...ref});assert.equal(r.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');assert.equal(m.touched(),0);assert.equal(f.calls.length,2);
+});
+test('original lookup recovery keeps pending terms visible and checks its embedded original bill',async()=>{
+ for(const paid of ['0','100']){
+  const f=boot({lookup:()=>({...view(),state:'PREPARED',phase:'unknown',invoice:{...bill(),paidAtoms:paid,operations:{[termsHash]:pendingTermsOperation()}}})});
+  const r=await f.entry.invokeResult({action:'lookup-intent',...ref});assert.equal(f.calls.length,2);assert.equal(r.canRetry,false);
+  if(paid==='0'){assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.recoveryOnly,true);assert.equal(r.outcomeUnknown,true);assert.deepEqual(r.pendingOriginals,[termsHash]);assert.equal(r.reference.nativeHash,termsHash);}
+  else{assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(r.bill,undefined);}
+  assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);
+ }
 });

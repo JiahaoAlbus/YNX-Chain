@@ -96,13 +96,17 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-source-close ]; then
  go test -modfile="$PAY_NATIVE_HOST_MODFILE" -mod=readonly -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/nativehost -run '^TestNormalRuntimeOriginalSourceCloseFactPreservesConstructionCause$|^TestProductsOriginalSourceCloseFactReleasesParentsWithoutErasingRefusal$' -count=1 -timeout=1m -v
  exit
 fi
-if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-operation-recovery ]; then
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-operation-recovery ] || [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = pending-terms-query ]; then
  : "${PAY_NODE_BINARY:?exact original Main Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
  : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
  export PAY_ORDER_OPERATION_DRIVER="$client_root/testsupport/original-operation-recovery.mjs"
  "$PAY_NODE_BINARY" --test "$client_root/r6/original-order.test.mjs"
- go test -race -p 1 -tags 'pay_pq pay_order_operation_recovery pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery$|^TestNativeInvoiceIntentCrashRepairFencesBeforeDurableMutation$' -count=1 -timeout=2m -v
+ operation_test='^TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery$|^TestNativeInvoiceIntentCrashRepairFencesBeforeDurableMutation$'
+ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = pending-terms-query ]; then
+  operation_test='^TestNativePendingTermsNormalOrderQueryAndColdRecovery$'
+ fi
+ go test -race -p 1 -tags 'pay_pq pay_order_operation_recovery pay_securelink securelink_openssl' ./internal/payproduct -run "$operation_test" -count=1 -timeout=2m -v
  exit
 fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-price-joint ]; then

@@ -32,6 +32,29 @@ import (
 // recreates an invoice, signs, or executes consensus. Actual normal r6/Main
 // consumers reconcile those same identities using the original H/H+1 proofs.
 func TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery(t *testing.T) {
+	runNativeOriginalOrderOperationRecovery(t, false)
+}
+
+func TestNativePendingTermsNormalOrderQueryAndColdRecovery(t *testing.T) {
+	runNativeOriginalOrderOperationRecovery(t, true)
+}
+
+// A PUBLIC availability control around the original independent verifier,
+// without mutating its trust/rows or fabricating an archived effect.
+type originalOrderRecoveryProofGate struct {
+	source      *nativeWorkflowProofSource
+	unavailable atomic.Bool
+}
+
+func (g *originalOrderRecoveryProofGate) Trust(ctx context.Context, original NativePayOriginal) (consensus.PQLightProofTrust, consensus.PQTransactionProofExpectation, error) {
+	if g.unavailable.Load() {
+		return consensus.PQLightProofTrust{}, consensus.PQTransactionProofExpectation{}, ErrNativePayUnavailable
+	}
+	return g.source.Trust(ctx, original)
+}
+
+func runNativeOriginalOrderOperationRecovery(t *testing.T, pendingTermsOnly bool) {
+	t.Helper()
 	dir, node, driver := os.Getenv("PAY_CORE_WORKFLOW_DIR"), os.Getenv("PAY_NODE_BINARY"), os.Getenv("PAY_ORDER_OPERATION_DRIVER")
 	for _, p := range []string{dir, node, driver} {
 		if !filepath.IsAbs(p) {
@@ -63,6 +86,7 @@ func TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery(t *testing.T)
 		t.Fatal(err)
 	}
 	proofs := &nativeWorkflowProofSource{rows: f.Rows, trust: consensus.PQLightProofTrust{Snapshot: snapshot, TrustedLightBlock: &trusted, TrustingPeriod: time.Hour, MaxClockDrift: time.Second, TrustLevel: cmtmath.Fraction{Numerator: 1, Denominator: 3}, Now: f.Now}}
+	proofGate := &originalOrderRecoveryProofGate{source: proofs}
 	var selected, corePosts, reconciles, lostReplies atomic.Int32
 	var loseReply atomic.Bool
 	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +133,7 @@ func TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg := NativePayConfig{Genesis: f.Network, NativeChainID: f.NativeChainID, HTTP: caller, Authority: source, ProofSource: proofs}
+	cfg := NativePayConfig{Genesis: f.Network, NativeChainID: f.NativeChainID, HTTP: caller, Authority: source, ProofSource: proofGate}
 	service, err := NewNativePayService(parent, cfg)
 	if err != nil {
 		t.Fatal(err)
@@ -202,6 +226,15 @@ func TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery(t *testing.T)
 		}
 		before := state.Operations[hash].NativePayOriginal
 		cold()
+		if pendingTermsOnly {
+			proofGate.unavailable.Store(true)
+			run(i, "pending-terms")
+			state, e = service.Read(ctx, f.Merchant, f.Terms.InvoiceID)
+			if e != nil || state.Operations[hash].Status != "unknown" || corePosts.Load() != 1 || reconciles.Load() != 0 {
+				t.Fatal("pending view invented finality or dispatched", e)
+			}
+			proofGate.unavailable.Store(false)
+		}
 		mode := "recover"
 		if i == 1 {
 			mode = "lost"
@@ -212,6 +245,21 @@ func TestNativeOriginalOrderOperationNormalMainUnknownColdRecovery(t *testing.T)
 		after := state.Operations[hash]
 		if e != nil || after.Status != "confirmed" || hashJSON(before) != hashJSON(after.NativePayOriginal) || corePosts.Load() != int32(i+1) {
 			t.Fatal("same original identity/Member/nonce changed during recovery", i, e)
+		}
+		if pendingTermsOnly {
+			cold()
+			core.Close()
+			diskBefore, e := os.ReadFile(parent.store.path)
+			if e != nil {
+				t.Fatal(e)
+			}
+			run(i, "terms-cold")
+			diskAfter, e := os.ReadFile(parent.store.path)
+			if e != nil || !bytes.Equal(diskBefore, diskAfter) || corePosts.Load() != 1 || reconciles.Load() != 1 {
+				t.Fatal("cold terms recovery changed original or replayed", e)
+			}
+			t.Log("PENDING_TERMS_NORMAL_ENTRY lostOriginalACK=1 unavailableIndependentProofRemainsUnknown=true originalPendingHashVisible=true explicitOriginalReconcile=1 coldStoreReopens=2 coldConfirmedTermsPaid0=true originalMemberNonceExact=true readonlyDiskExact=true signing=0 moneyPOST=0 PUBLICSourceOnly=true")
+			return
 		}
 		if i > 0 {
 			if _, e = client.ReadOriginalArchiveReceipt(ctx, original, f.Terms.InvoiceID, hash, proofs, func() error { return nil }); e != nil {
