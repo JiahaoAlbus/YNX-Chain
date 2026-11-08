@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 from types import SimpleNamespace
 
 spec=importlib.util.spec_from_file_location('helper_driver',Path(__file__).with_name('pq-independent-load.py'))
@@ -37,6 +38,55 @@ class ChildWindow:
         for log in self.logs:log.close()
 
 class HelperLifecycleControls(unittest.TestCase):
+    def test_original_helper_separates_real_go_fixture_bytes_without_changing_tail(self):
+        fixture=Path(__file__).with_name('fixtures')/'live-request-observation-f76/component.combined.log'
+        with tempfile.TemporaryDirectory() as temp:
+            b=self.backend(Path(temp))
+            reply=b.helper('observed',[sys.executable,'-I','-c',
+                'import pathlib,sys;sys.stdout.buffer.write(pathlib.Path(sys.argv[1]).read_bytes())',str(fixture)],observe_request=True)
+            self.assertFalse(reply['requestExecuted'])
+            row=b.helper_timing_report()['records'][0]
+            self.assertEqual(row['requestProcessReturnCode'],0)
+            self.assertEqual(row['requestProcessID'],b.w.children[0]['process'].pid)
+            self.assertEqual(row['requestStageObservation']['ordinaryOutputBytes'],135)
+            self.assertFalse(row['requestStageObservation']['businessQualified'])
+            self.assertIn('waitReturnedMonotonicNs',row)
+            row['requestStageObservation']['status']='mutated-copy'
+            self.assertEqual(b.helper_timing_report()['records'][0]['requestStageObservation']['status'],'INTERVALS_RETURNED')
+
+    def test_diagnostic_capture_failure_does_not_replace_original_wait_failure(self):
+        with tempfile.TemporaryDirectory() as temp:
+            b=self.backend(Path(temp),True)
+            original=OriginalWaitFailure('original resource sample failure')
+            b.w.wait=mock.Mock(side_effect=original)
+            with mock.patch.object(driver.request_observation_readback,'split_original',side_effect=ValueError('unqualified trace')):
+                with self.assertRaisesRegex(OriginalWaitFailure,'original resource sample failure') as context:
+                    b.helper('failed-observed',[sys.executable,'-I','-c','import time;time.sleep(60)'],observe_request=True)
+            self.assertIs(context.exception,original)
+            row=b.helper_timing_report()['records'][0]
+            self.assertEqual(row['errorType'],'OriginalWaitFailure')
+            self.assertEqual(row['requestObservationCaptureStatus'],'UNQUALIFIED_ORIGINAL_LOG')
+            self.assertIsNotNone(row['requestProcessReturnCode'])
+            self.assertNotIn('waitReturnedMonotonicNs',row)
+            self.assertEqual(b.helper_cleanup_debt,[])
+
+    def test_request_argv_selects_splitter_and_other_modes_cannot_inherit_flag(self):
+        with tempfile.TemporaryDirectory() as temp:
+            b=self.backend(Path(temp));b.c.bins=Path('/original/bin')
+            b.c.measurements=SimpleNamespace(record=mock.Mock())
+            original=dict(original='returned')
+            with mock.patch.object(b,'helper',return_value=original) as helper:
+                self.assertIs(b.call('request',['live-materials','request','--observe-stages']),original)
+                self.assertTrue(helper.call_args.kwargs['observe_request'])
+                self.assertEqual(helper.call_args.args[1].count('--timings'),1)
+                self.assertEqual(helper.call_args.args[1].count('--observe-stages'),1)
+                b.call('plain',['live-materials','request'])
+                self.assertNotIn('observe_request',helper.call_args.kwargs)
+                for args in [['live-materials','result','--observe-stages'],['live-materials','request','--observe-stages','--observe-stages']]:
+                    before=helper.call_count
+                    with self.assertRaises(RuntimeError):b.call('invalid',args)
+                    self.assertEqual(helper.call_count,before)
+
     def backend(self,root,fail_wait=False):
         (root/'public').mkdir()
         ceremony=SimpleNamespace(w=ChildWindow(root,fail_wait),live=[{} for _ in range(4)],mode='pre-signed',workload={'transactions':[]})

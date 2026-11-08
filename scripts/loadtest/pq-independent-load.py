@@ -41,6 +41,7 @@ first_trial_source=module('original_first_trial_source','pq-first-trial-source.p
 first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-readback.py')
 first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-source-qualification.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
+request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -359,12 +360,13 @@ class NormalBackend:
         return self.pool_ready
     def helper_timing_report(self):
         with self.helper_timing_lock:
-            return dict(schema="YNX-PERF-PARENT-HELPER-BOUNDARIES/v1",clock="parent_monotonic_ns",attempted=self.helper_timing_attempts,completed=self.helper_timing_completed,inFlight=self.helper_timing_attempts-self.helper_timing_completed,retained=len(self.helper_timings),omittedCompleted=self.helper_timing_completed-len(self.helper_timings),recordLimit=2048,records=[dict(row) for row in self.helper_timings],meaning="observed parent boundaries only; launch includes Window lock and resource guard; wait includes resource guard and exit observation, not exact child exit; source callee timing is separate; missing boundaries are not zero or qualification")
-    def helper(self,name,command,stdin=None):
+            return dict(schema="YNX-PERF-PARENT-HELPER-BOUNDARIES/v1",clock="parent_monotonic_ns",attempted=self.helper_timing_attempts,completed=self.helper_timing_completed,inFlight=self.helper_timing_attempts-self.helper_timing_completed,retained=len(self.helper_timings),omittedCompleted=self.helper_timing_completed-len(self.helper_timings),recordLimit=2048,records=copy.deepcopy(self.helper_timings),meaning="observed parent boundaries only; launch includes Window lock and resource guard; wait includes resource guard and exit observation, not exact child exit; source callee timing is separate; missing boundaries are not zero or qualification")
+    def helper(self,name,command,stdin=None,*,observe_request=False):
         trace=dict(name=name,requestedMonotonicNs=time.monotonic_ns())
+        if observe_request:trace['requestObservationRequested']=True
         with self.helper_timing_lock:self.helper_timing_attempts+=1
         try:
-            return self._helper(name,command,stdin,trace)
+            return self._helper(name,command,stdin,trace,observe_request=observe_request)
         except BaseException as error:
             trace["errorType"]=type(error).__name__
             raise
@@ -373,8 +375,29 @@ class NormalBackend:
             with self.helper_timing_lock:
                 self.helper_timing_completed+=1
                 if len(self.helper_timings)<2048:self.helper_timings.append(trace)
-    def _helper(self,name,command,stdin,trace):
-        acquired=False;proc=None;released=False
+    def capture_request_observation(self,name,proc,released,trace):
+        # Called only after the original wait/cleanup, including its failure
+        # path. Diagnostic errors must not replace that original exception.
+        if proc is None:
+            trace['requestObservationCaptureStatus']='NOT_LAUNCHED'
+            return None
+        trace['requestProcessID']=proc.pid
+        trace['requestProcessReturnCode']=proc.poll()
+        if not released:
+            trace['requestObservationCaptureStatus']='ORIGINAL_PROCESS_UNREAPED'
+            return None
+        try:
+            raw=lab.guard.bounded(self.w.work/'public'/(name+'.log'),lab.CAPS['logBytes'])
+            report,ordinary=request_observation_readback.split_original(raw,hashlib.sha256(raw).hexdigest())
+            trace['requestStageObservation']=report
+            trace['requestObservationCaptureStatus']='ORIGINAL_BYTES_READ'
+            return ordinary
+        except Exception as error:
+            trace['requestObservationCaptureStatus']='UNQUALIFIED_ORIGINAL_LOG'
+            trace['requestObservationErrorType']=type(error).__name__
+            return None
+    def _helper(self,name,command,stdin,trace,*,observe_request=False):
+        acquired=False;proc=None;released=False;ordinary=None
         while not self.stop_event.is_set():
             if self.helper_slots.acquire(timeout=.02):acquired=True;break
         if acquired:trace["slotAcquiredMonotonicNs"]=time.monotonic_ns()
@@ -414,11 +437,22 @@ class NormalBackend:
                 if released:self.helper_slots.release()
                 else:self.stop_event.set()
                 trace["cleanupFinishedMonotonicNs"]=time.monotonic_ns()
+                if observe_request:
+                    ordinary=self.capture_request_observation(name,proc,released,trace)
         lab.require(released and not any(d["name"]==name for d in self.helper_cleanup_debt),"normal helper cleanup unresolved; preserve UNKNOWN")
+        if observe_request:
+            lab.require(ordinary is not None,'original request log cannot be separated safely; retain original UNKNOWN, no retry')
+            return json.loads(ordinary)
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
     def call(self,name,args,stdin=None):
         measured=args[:2] in (["live-materials","request"],["live-materials","result"])
-        reply=self.helper(name,[str(self.c.bins/"ynx-consensus-pq-lab"),*args,*( ["--timings"] if measured else [])],stdin)
+        observed='--observe-stages' in args
+        lab.require(not observed or (args[:2]==['live-materials','request'] and args.count('--observe-stages')==1),
+                    'stage observation belongs only to the explicit original request command')
+        command=[str(self.c.bins/"ynx-consensus-pq-lab"),*args,*( ["--timings"] if measured else [])]
+        # The caller must supply the opt-in argv from a qualified future source.
+        # No flag is added here, and the old source/window gates remain intact.
+        reply=self.helper(name,command,stdin,observe_request=True) if observed else self.helper(name,command,stdin)
         if measured:self.c.measurements.record("live_publish" if args[1]=="request" else "live_result",name,reply)
         return reply
     def checkpoint(self,stop):
