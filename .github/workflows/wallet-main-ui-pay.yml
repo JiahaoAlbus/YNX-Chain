@@ -44,6 +44,6 @@ jobs:
       - name: Pay, navigation, shutdown and locale controls
         run: |
           node --version
-          node --test test/native-pay-product-ui.test.mjs test/main-standalone-pay-navigation.test.mjs test/wallet-main-shutdown-sync-failure.test.mjs test/wallet-locale.test.mjs test/empty-account-guidance-mounted.test.mjs
+          node --test test/native-pay-product-ui.test.mjs test/main-standalone-pay-navigation.test.mjs test/wallet-main-shutdown-sync-failure.test.mjs test/wallet-locale.test.mjs test/empty-account-guidance-mounted.test.mjs test/wallet-pq-account-initial-ui.test.mjs
       - name: Normal mounted resolver heading locale control
         run: node --test --test-name-pattern 'resolver page title uses normal locale' test/approved-desktop-ui.test.mjs

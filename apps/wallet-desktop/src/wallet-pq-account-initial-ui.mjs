@@ -1,6 +1,7 @@
 // Public preview only. No Genesis, policy, permission, wire or signer is chosen
 // by this UI. Confirmation remains the original normal provider review dialog.
-const message='登记预览已打开；未签名、未提交，Native 许可尚未就绪。 / Registration preview opened; not signed or submitted. Native permission is not ready.';
+const signPreviewMessage='登记签名审核已打开；此步骤尚未签名或提交。签名与提交需要分别批准，原生条件会在原批准入口核验。 / Registration signing review opened; not signed or submitted by this step. Signing and submission require separate approvals; Native conditions are checked at the original approval entry.';
+const broadcastPreviewMessage='原签名登记已保留，提交审核已打开；此步骤尚未提交。原批准仅可提交同一原件，不会重新签名。 / Original signed registration retained; submission review opened, nothing submitted by this step. Original approval may submit this Member only; no re-signing.';
 export function createPQAccountInitialUI({api,getKeyState,document:doc=document}){
  const panel=doc.createElement('section'),title=doc.createElement('h3'),help=doc.createElement('p'),label=doc.createElement('label'),height=doc.createElement('input'),open=doc.createElement('button'),result=doc.createElement('p');
  panel.id='pq-account-initial';title.textContent='新账户登记预览（不是迁移） / Initial account registration preview (not migration)';
@@ -12,7 +13,7 @@ export function createPQAccountInitialUI({api,getKeyState,document:doc=document}
  open.addEventListener('click',async()=>{
   const state={...getKeyState()},token=generation;if(busy||!same(state)||!state.account)return;
   busy=true;render();
-  try{const response=await api.preparePQAccountInitial({activateAt:height.value});if(token!==generation||!same(state))return;const v=response?.value;result.textContent=response?.ok===true&&v?.account===state.account&&v.effectReady===false&&v.signed===false&&v.submitted===false?message:'登记预览不可用；请检查高度及原本地公钥。没有签名或发送，不自动重试。 / Preview unavailable; check height and original protected public keys. No signing, send or automatic retry.';}
+  try{const response=await api.preparePQAccountInitial({activateAt:height.value});if(token!==generation||!same(state))return;const v=response?.value;result.textContent=response?.ok===true&&v?.account===state.account&&v.action==='sign'&&v.effectReady===false&&v.signed===false&&v.submitted===false?signPreviewMessage:'登记预览不可用；请检查高度及原本地公钥。没有签名或发送，不自动重试。 / Preview unavailable; check height and original protected public keys. No signing, send or automatic retry.';}
   catch{if(token===generation&&same(state))result.textContent='登记预览未打开；没有签名、发送或自动重试。 / Preview did not open; no signing, send or automatic retry.';}
   finally{busy=false;render();}
  });
@@ -24,7 +25,7 @@ export function appendPQAccountInitialReviewAction({row,record,api,getKeyState,i
  button.addEventListener('click',async()=>{
   const before={...getKeyState()},live=()=>{const s=getKeyState();return isCurrent()&&!s.locked&&!s.authenticating&&s.account===record.account&&s.account===before.account&&s.revision===before.revision;};
   if(busy||!live())return;busy=true;button.disabled=true;
-  try{const response=await api.preparePQAccountInitialBroadcast(record.hash);if(!live())return;const v=response?.value;onResult(response?.ok===true&&v?.account===record.account&&v.action==='broadcast'&&v.effectReady===false&&v.signed===false&&v.submitted===false?message:'原登记提交预览未确认；保留同一原件，不签名、不发送、不自动重试。 / Original submission preview unconfirmed; retain the same Member without signing, sending or retrying.');}
+  try{const response=await api.preparePQAccountInitialBroadcast(record.hash);if(!live())return;const v=response?.value;onResult(response?.ok===true&&v?.account===record.account&&v.action==='broadcast'&&v.effectReady===false&&v.signed===false&&v.submitted===false?broadcastPreviewMessage:'原登记提交预览未确认；保留同一原件，不签名、不发送、不自动重试。 / Original submission preview unconfirmed; retain the same Member without signing, sending or retrying.');}
   catch{if(live())onResult('原登记预览不可用；原件保留，不重签或重发。 / Original preview unavailable; retained without re-signing or sending.');}
   finally{busy=false;if(isCurrent())button.disabled=getKeyState().locked;}
  });row.append(button);
