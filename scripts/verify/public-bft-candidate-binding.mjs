@@ -81,16 +81,24 @@ function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
   requireRuntimeProofSources(source);
   const wanted = source.binaries?.["ynx-consensus-package"];
   if (!wanted || Object.keys(wanted).sort().join() !== "bytes,sha256" || !Number.isSafeInteger(wanted.bytes) || wanted.bytes <= 1 << 20 || wanted.bytes > 128 << 20 || !hash(wanted.sha256)) fail("normal migration verifier binary pin is incomplete");
-  const executable = hashOriginalFile(binary, 128 << 20, true);
-  if (executable.sha256 !== wanted.sha256 || executable.bytes !== String(wanted.bytes) || (executable.identity.mode & 0o111n) === 0n) fail("normal migration verifier differs from independent runtime bytes");
-  const descriptor = fs.openSync(binary, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  const remotePublic = process.env.PUBLIC_BFT_LINUX_TOOL_ROLE;
+  if (remotePublic && (!["primary","singapore","silicon-valley","seoul"].includes(remotePublic) || process.env.CONSENSUS_CANDIDATE_RUNTIME_COMMIT !== runtimeCommit || process.env.CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256 !== runtimeManifestSHA256)) fail("original remote public runtime identity differs");
+  const executable = remotePublic ? null : hashOriginalFile(binary, 128 << 20, true);
+  if (!remotePublic && (executable.sha256 !== wanted.sha256 || executable.bytes !== String(wanted.bytes) || (executable.identity.mode & 0o111n) === 0n)) fail("normal migration verifier differs from independent runtime bytes");
+  const descriptor = remotePublic ? null : fs.openSync(binary, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
   try {
+    if (!remotePublic) {
     const head=Buffer.alloc(64), n=fs.readSync(descriptor,head,0,head.length,0);
     if (n!==64 || !head.subarray(0,7).equals(Buffer.from([127,69,76,70,2,1,1])) || ![2,3].includes(head.readUInt16LE(16)) || head.readUInt16LE(18)!==62 || head.readUInt32LE(20)!==1 || !sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true}))) fail("normal migration verifier is not its original amd64 ELF");
+    }
     const input = hashOriginalFile(file, 1 << 30, true);
-    const result = spawnSync(binary, ["-verify-migration-state",file,"-migration-public-summary","json"], {
+    // The remote branch invokes only the normal fixed public-math bridge; its
+    // full original eight-ELF validator and selected binary checks run on the
+    // original Linux role. A shell shim never substitutes for an ELF pin.
+    const bridge = path.resolve("scripts/ops/public-bft-linux-public-tools.sh");
+    const result = spawnSync(remotePublic ? "/bin/bash" : binary, [...(remotePublic ? [bridge] : []),"-verify-migration-state",file,"-migration-public-summary","json"], {
       shell:false, encoding:"utf8", timeout:120000, maxBuffer:8192, stdio:["ignore","pipe","pipe"],
-      env:{PATH:"/usr/bin:/bin",LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"}
+      env:remotePublic ? {...process.env, LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"} : {PATH:"/usr/bin:/bin",LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"}
     });
     if (result.error || result.status !== 0 || result.signal || result.stderr) fail(`normal migration verifier failed: ${result.error?.message || ""} exit=${result.status} signal=${result.signal || ""} ${String(result.stderr || "").slice(0,4096)}`);
     if (typeof result.stdout!=="string" || Buffer.byteLength(result.stdout)>4096) fail("normal migration verifier exceeded its bounded public summary");
@@ -98,9 +106,9 @@ function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
     try { summary=JSON.parse(result.stdout); } catch { fail("normal migration verifier did not return public summary JSON"); }
     const keys=["version","classification","sourceSHA256","sourceBytes","height","lastBlockHash","stateHash","firstCanonicalAccount"];
     if (!summary || Array.isArray(summary) || Object.keys(summary).sort().join()!==keys.sort().join() || Object.values(summary).some(v=>typeof v!=="string") || result.stdout!==JSON.stringify(summary)+"\n" || summary.version!=="YNX-MIGRATION-PUBLIC-SUMMARY/v1" || summary.classification!=="data" || summary.sourceSHA256!==input.sha256 || summary.sourceBytes!==input.bytes || !/^[1-9][0-9]*$/.test(summary.height) || BigInt(summary.height)>=9223372036854775807n || !/^(0x)?[0-9a-fA-F]{64}$/.test(summary.lastBlockHash) || !hash(summary.stateHash) || (summary.firstCanonicalAccount!=="" && !/^0x[0-9a-f]{40}$/.test(summary.firstCanonicalAccount))) fail("normal migration public summary differs from the complete original input");
-    if (!sameOriginalFile(input.identity,fs.lstatSync(file,{bigint:true})) || !sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true})) || !sameOriginalFile(executable.identity,fs.lstatSync(binary,{bigint:true})) || !sameOriginalFile(sourcePin.identity,fs.lstatSync(sourcePath,{bigint:true}))) fail("normal migration verifier or source changed during complete validation");
+    if (!sameOriginalFile(input.identity,fs.lstatSync(file,{bigint:true})) || (!remotePublic && (!sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true})) || !sameOriginalFile(executable.identity,fs.lstatSync(binary,{bigint:true})))) || !sameOriginalFile(sourcePin.identity,fs.lstatSync(sourcePath,{bigint:true}))) fail("normal migration verifier or source changed during complete validation");
     return summary;
-  } finally { fs.closeSync(descriptor); }
+  } finally { if (descriptor !== null) fs.closeSync(descriptor); }
 }
 
 function canonicalSecond(value, label) {
@@ -508,7 +516,14 @@ const transactionDir = path.resolve(transactionDirValue);
 const transactionId = path.basename(transactionDir);
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(transactionId)) fail("transaction id is invalid");
 const approvalPath = path.join(transactionDir, "approval.json");
-const snapshotPath = path.join(transactionDir, "final-snapshot", "migration.json");
+let publicDataRoot = transactionDir;
+if (process.env.PUBLIC_BFT_LINUX_TOOL_ROLE) {
+  const located = spawnSync("python3",["-B","scripts/ops/public-bft-linux-public-tools.py","data-root",transactionDir],{encoding:"utf8",shell:false,maxBuffer:16384});
+  if (located.error || located.status !== 0 || located.stderr || !located.stdout.endsWith("\n") || located.stdout.slice(0,-1).includes("\n")) fail("original local public data root is unavailable");
+  publicDataRoot = located.stdout.slice(0,-1);
+  if (!path.isAbsolute(publicDataRoot) || fs.realpathSync(publicDataRoot)!==publicDataRoot) fail("original local public data root aliases another location");
+}
+const snapshotPath = path.join(publicDataRoot, "final-snapshot", "migration.json");
 const snapshotEvidencePath = path.join(transactionDir, "final-snapshot", "remote-evidence.json");
 const validatorManifestPath = path.resolve(validatorManifestValue);
 const packageRoot = inputsOnly ? "" : path.resolve(packageRootValue);

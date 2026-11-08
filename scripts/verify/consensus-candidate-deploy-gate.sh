@@ -5,25 +5,34 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=../ops/lib.sh
 source scripts/ops/lib.sh
 ynx_ops_init
+source scripts/ops/public-bft-linux-public-tools.sh
 
 package_root="${CONSENSUS_CANDIDATE_PACKAGE:-}"
 [[ -d "$package_root" ]] || { echo "CONSENSUS_CANDIDATE_PACKAGE is required" >&2; exit 1; }
-[[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]] || { echo "candidate deploy gate requires the pinned Linux amd64 runtime; no native rebuild fallback is allowed" >&2; exit 1; }
+public_bft_linux_tools_enabled || [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]] || { echo "candidate deploy gate requires the pinned Linux amd64 runtime; no native rebuild fallback is allowed" >&2; exit 1; }
 # Sourcing defines the exact runtime parser only; it never starts deployment.
 source scripts/deploy/deploy-consensus-candidate.sh
 runtime_bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}"
 runtime_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
 runtime_manifest_sha="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}"
-validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha"
+if ! public_bft_linux_tools_enabled; then validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha"; fi
 [[ "$(git rev-parse HEAD)" == "$runtime_commit" ]] || { echo "candidate deploy gate source differs from pinned runtime commit" >&2; exit 1; }
 verifier_bundle="$runtime_bundle"
-if [[ ! -x "$verifier_bundle/ynx-consensus-package" ]]; then
+if public_bft_linux_tools_enabled; then
+  verifier_bundle="$(mktemp -d "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:?}/public-gate.XXXXXXXX")/runtime"
+  public_bft_linux_tool inventory "$verifier_bundle"
+elif [[ ! -x "$verifier_bundle/ynx-consensus-package" ]]; then
   verifier_bundle="${CONSENSUS_CANDIDATE_GATE_RUNTIME_DESTINATION:-}"
   [[ -n "$verifier_bundle" ]] || { echo "artifact mode requires an explicit fresh retained CONSENSUS_CANDIDATE_GATE_RUNTIME_DESTINATION; source mode is never changed" >&2; exit 1; }
   prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$verifier_bundle"
 fi
 verify_candidate_package "$verifier_bundle/ynx-consensus-package" "$package_root" >/dev/null
-[[ "$(git branch --show-current)" == "main" ]] || { echo "candidate deploy gate requires main branch" >&2; exit 1; }
+if [[ "$(git branch --show-current)" != main ]]; then
+  # The transaction and its deploy gate use one original source-eligibility
+  # callee. Projection JSON or an environment boolean cannot approve a ref.
+  case "${PUBLIC_BFT_CUTOVER_MODE:-}" in execute|continue-native|continue-pq-native) ;; *) echo 'full original transaction phase required at deploy gate' >&2; exit 1;; esac
+  node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:?original raw approval required}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:?original raw review required}" "$PUBLIC_BFT_CUTOVER_MODE"
+fi
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "candidate deploy gate requires no tracked worktree changes" >&2; exit 1; }
 
 preflight_candidate_role() {

@@ -2,12 +2,13 @@
 set -euo pipefail
 
 consensus_candidate_verify() {
+  source scripts/ops/public-bft-linux-public-tools.sh
   package_root="${CONSENSUS_CANDIDATE_PACKAGE:-}"
   [[ -n "$package_root" && -d "$package_root" ]] || { echo "CONSENSUS_CANDIDATE_PACKAGE must reference a generated candidate package" >&2; return 1; }
   runtime_bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}"
   runtime_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
   runtime_manifest_sha="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}"
-  validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" || return $?
+  if ! public_bft_linux_tools_enabled; then validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" || return $?; fi
   [[ "$(git rev-parse HEAD)" == "$runtime_commit" ]] || { echo "candidate verifier source differs from independently pinned runtime commit" >&2; return 1; }
 
   evidence_root="${CONSENSUS_CANDIDATE_EVIDENCE_DIR:-tmp/consensus-candidate-evidence}"
@@ -30,7 +31,11 @@ consensus_candidate_verify() {
   # Keep exact downloaded bytes, including 0644 artifacts. Revalidate a new
   # exclusive retained copy before setting only its executable bits. A failure
   # leaves the evidence root and any partial copy untouched for reconciliation.
-  prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$evidence_root/runtime" || return $?
+  if public_bft_linux_tools_enabled; then
+    public_bft_linux_tool inventory "$evidence_root/runtime" || return $?
+  else
+    prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$evidence_root/runtime" || return $?
+  fi
   verify_candidate_package "$evidence_root/runtime/ynx-consensus-package" "$package_root" || return $?
 
   # No environment initialization or remote operation occurs until both the

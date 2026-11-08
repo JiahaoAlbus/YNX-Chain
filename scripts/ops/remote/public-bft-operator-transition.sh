@@ -4,9 +4,13 @@ set -Eeuo pipefail
 # Existing single-App profile transition. This is NOT the native fresh-import
 # path. All artifacts and failed attempts remain; there is no rollback/retry.
 operator_transition_fail() { echo "operator transition refused: $*" >&2; return 1; }
-operator_transition_sha() { sha256sum "$1" | awk '{print $1}'; }
+operator_transition_sha() { if command -v sha256sum >/dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | awk '{print $1}'; }
 operator_transition_file() {
-  test -f "$1" && test ! -L "$1" && test "$(realpath -e "$1")" = "$1" && test "$(stat -c %h "$1")" = 1
+  python3 -B - "$1" <<'PYFILE'
+import pathlib,stat,sys
+p=pathlib.Path(sys.argv[1]);s=p.lstat()
+assert p.is_absolute() and str(p.resolve(strict=True))==str(p) and stat.S_ISREG(s.st_mode) and s.st_nlink==1
+PYFILE
 }
 
 # The package verifier authenticates all original plan bytes before this
@@ -531,4 +535,163 @@ PY
   cat "$attempt/result.json"
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then operator_transition_remote "$@"; fi
+
+# Post-activation, single-role proof capture. The original three-phase
+# bootstrap transition above is unchanged; this cannot initialize or install.
+operator_light_inspect() {
+  local output="$1" args
+  args=(inspect-operator-checkpoint --consensus-genesis "$(operator_transition_value sourcePlan.genesisFile)"
+    --migration-state "$(operator_transition_value sourcePlan.migrationFile)" --abci-state "$state"
+    --abci-state-layout "$(operator_transition_value sourcePlan.stateLayout)" --comet-data-dir "$home/data"
+    --signing-state "$signing_state" --signing-lock-kind pq-signer
+    --consensus-genesis-sha256 "$(operator_transition_value sourcePlan.consensusGenesisSHA256)"
+    --original-genesis-hash "$(operator_transition_value sourcePlan.originalGenesisHash)"
+    --bound-migration-state-hash "$(operator_transition_value sourcePlan.migrationStateHash)"
+    --pq-engine-schedule "$(operator_transition_value sourcePlan.scheduleFile)"
+    --pq-engine-schedule-hash "$(operator_transition_value sourcePlan.scheduleHash)")
+  if [[ -n "$(operator_transition_value sourcePlan.runtimePlanHash)" ]]; then
+    args+=(--runtime-upgrade-plan "$(operator_transition_value sourcePlan.runtimePlanFile)" --runtime-upgrade-plan-hash "$(operator_transition_value sourcePlan.runtimePlanHash)")
+  fi
+  (set -o noclobber; "$stage/bin/ynx-comet" "${args[@]}" >"$output" 2>"$output.error")
+  python3 -B - "$stage/quiet.py" "$binding" "$output" <<'PY'
+import importlib.util,json,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
+q.check_capture_checkpoint(json.load(open(sys.argv[2])),sys.argv[3])
+PY
+}
+
+operator_light_signer_identity() {
+  python3 -B - "$stage/quiet.py" "$binding" "$1" <<'PY'
+import importlib.util,json,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
+print(json.dumps(q.capture_signer_identity(json.load(open(sys.argv[2])),sys.argv[3]=='running'),separators=(',',':'),sort_keys=True))
+PY
+}
+
+operator_light_recheck_phase() {
+  python3 -B - "$stage/quiet.py" "$binding" "$stage" "$root/start-attempt/result.json" <<'PYRECHECK'
+import importlib.util,pathlib,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q);p=pathlib.Path(sys.argv[3])
+q.remote_capture_inputs(sys.argv[2],p/'approval.json',p/'SOURCE.json',p/'current-package',p/'source-plan.json',sys.argv[4],p/'cutover-approval.json')
+PYRECHECK
+}
+
+operator_light_capture_remote() {
+  [[ "$#" == 9 && "$(id -u)" == 0 && "$(uname -s)" == Linux ]] || return 64
+  local phase="$1" tx="$2" role="$3" stage="$4" binding_pin="$5" helper_pin="$6" quiet_pin="$7" manifest="$8" archive_pin="$9"
+  [[ "$phase" == capture || "$phase" == resume ]] && [[ "$role" =~ ^(primary|singapore|silicon-valley|seoul)$ && "$tx" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]]
+  [[ "$stage" == "/opt/ynx-chain/operator-transitions/$tx/$role/$phase/source" && "$(realpath -e "$stage")" == "$stage" && "$(stat -c %u:%a "$stage")" == 0:700 ]]
+  local p; for p in "$binding_pin" "$helper_pin" "$quiet_pin" "$manifest" "$archive_pin"; do [[ "$p" =~ ^[0-9a-f]{64}$ && "$p" != "$(printf '0%.0s' {1..64})" ]]; done
+  printf '%s  %s\n' "$binding_pin" "$stage/binding.json" "$helper_pin" "$stage/helper.sh" "$quiet_pin" "$stage/quiet.py" "$manifest" "$stage/SOURCE.json" | sha256sum --strict -c - >/dev/null
+  local root="/var/lib/ynx-chain/operator-transitions/$tx/$role" attempt binding="$stage/binding.json"
+  attempt="$root/$phase-attempt"
+  local candidate=/var/lib/ynx-chain/consensus-candidate unit=ynx-consensus-operator-candidate.service
+  local unit_path="/etc/systemd/system/$unit" old_package="$stage/current-package" new_package="$stage/current-package"
+  local home state signing_state comet_pin signer_unit=ynx-consensus-pq-remote-signer.service
+  home="$(operator_transition_value originalRole.home)"; state="$(operator_transition_value originalRole.abciState)"
+  signing_state="$(operator_transition_value sourcePlan.signingStatePath)"; comet_pin="$(operator_transition_value binarySHA256.ynx-comet)"
+  [[ "$(operator_transition_value phase)" == "$phase" && "$(operator_transition_value transitionId)" == "$tx" && "$(operator_transition_value role)" == "$role" ]]
+  printf '%s  %s\n' "$comet_pin" "$stage/bin/ynx-comet" "$(operator_transition_value binarySHA256.ynx-consensus-package)" "$stage/bin/ynx-consensus-package" "$(operator_transition_value binarySHA256.ynx-consensus-keycheck)" "$stage/bin/ynx-consensus-keycheck" | sha256sum --strict -c - >/dev/null
+  "$stage/bin/ynx-consensus-package" -verify-package "$old_package" -operator-plan-hash "$(operator_transition_value operatorPlanSHA256)" >/dev/null
+  python3 -B - "$stage/quiet.py" "$binding" "$stage" "$root/start-attempt/result.json" <<'PY'
+import importlib.util,pathlib,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q);p=pathlib.Path(sys.argv[3])
+q.remote_capture_inputs(sys.argv[2],p/'approval.json',p/'SOURCE.json',p/'current-package',p/'source-plan.json',sys.argv[4],p/'cutover-approval.json')
+PY
+  [[ "$(realpath -e "$root")" == "$root" && "$(stat -c %u:%a "$root")" == 0:700 ]]
+  local lock=/var/lib/ynx-chain/operator-transitions/.operator-switch.lock
+  operator_transition_file "$lock"; [[ "$(stat -c %u:%a "$lock")" == 0:600 ]]
+  exec 9<>"$lock"; [[ "$(stat -Lc %d:%i /proc/$$/fd/9)" == "$(stat -c %d:%i "$lock")" ]]; flock -n 9
+  umask 077; mkdir -m 0700 "$attempt" || operator_transition_fail 'capture/resume already attempted/UNKNOWN; reconcile original, never resend'
+  dd if="$binding" of="$attempt/binding.json" conv=excl,fsync status=none
+  dd if="$stage/source-plan.json" of="$attempt/source-plan.json" conv=excl,fsync status=none
+  binding="$attempt/binding.json"; sync -f "$attempt"; sync -f "$root"
+  operator_transition_installed "$old_package" "$comet_pin" "$(operator_transition_value binarySHA256.ynx-consensus-keycheck)"
+  operator_transition_markers
+  ! systemctl is-active --quiet ynx-consensus-abci-candidate.service
+  ! systemctl is-active --quiet ynx-consensus-comet-candidate.service
+  if [[ "$phase" == capture ]]; then
+    operator_transition_running "$comet_pin" >"$attempt/original-process.json"
+    operator_light_signer_identity running >"$attempt/signer-before.json"
+    # Reuse original same-uid publisher and bounded natural-exit wait. Only
+    # this selected role is requested; no systemctl stop of the operator.
+    python3 -B - "$binding" "$attempt/halt-binding.json" <<'PY'
+import json,sys
+b=json.load(open(sys.argv[1]));b.update(phase='quiesce',quiesceMode='height-halt',futureTargetHeight=b['sourcePlan']['engineHeight'],oldOperatorPlanSHA256=b['operatorPlanSHA256'],chainId=b['sourcePlan']['chainId'],consensusGenesisSHA256=b['sourcePlan']['consensusGenesisSHA256'])
+with open(sys.argv[2],'x') as f:json.dump(b,f,separators=(',',':'),sort_keys=True)
+PY
+    operator_light_recheck_phase
+    local capture_binding="$binding"; binding="$attempt/halt-binding.json"
+    operator_transition_request_height_halt
+    operator_transition_wait_height_halt
+    binding="$capture_binding"
+    operator_transition_stopped
+    # Clean EOF can naturally retire the original one-session signer before
+    # this check. Only that same invocation's real exit zero qualifies; a
+    # failed/partial/timeout path is never reset or treated as successful.
+    [[ "$(systemctl show --property ExecMainPID --value "$signer_unit")" == "$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["mainPid"])' "$attempt/signer-before.json")" && "$(systemctl show --property ExecMainStartTimestampMonotonic --value "$signer_unit")" == "$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["execMainStartTimestampMonotonic"])' "$attempt/signer-before.json")" ]]
+    if [[ "$(systemctl show --property ActiveState --value "$signer_unit")" == active ]]; then
+      operator_light_signer_identity running >"$attempt/signer-before-stop.json"
+      cmp "$attempt/signer-before.json" "$attempt/signer-before-stop.json" >/dev/null
+      operator_light_recheck_phase
+      timeout --signal=TERM --kill-after=5 30 systemctl stop "$signer_unit"
+    fi
+    local saved_unit="$unit"; unit="$signer_unit"; operator_transition_stopped; unit="$saved_unit"
+    [[ "$(systemctl show --property Result --value "$signer_unit")" == success && "$(systemctl show --property ExecMainCode --value "$signer_unit")" == 1 && "$(systemctl show --property ExecMainStatus --value "$signer_unit")" == 0 ]]
+    operator_light_signer_identity stopped >"$attempt/signer-stopped.json"
+    python3 -B - "$stage/quiet.py" "$signing_state" "$attempt/signing-metadata.json" <<'PY'
+import importlib.util,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q);q.publish(sys.argv[3],q.signing_metadata(sys.argv[2]))
+PY
+    operator_light_inspect "$attempt/checkpoint.json"
+    local output parent; output="$(operator_transition_value output)"; parent="$(dirname "$output")"
+    mkdir -m 0700 "$parent"; [[ "$(realpath -e "$parent")" == "$parent" && "$(stat -c %u:%a "$parent")" == 0:700 ]]; sync -f "$(dirname "$parent")"
+    # One real normal producer. Exit failure/lost acknowledgement preserves
+    # all attempts/output; no transport-side reconstruction or second export.
+    operator_light_recheck_phase
+    local export_status=0
+    (set -o noclobber; "$stage/bin/ynx-comet" export-light-source --source-plan "$attempt/source-plan.json" --source-plan-sha256 "$(operator_transition_value sourcePlanSHA256)" --output "$output" >"$attempt/export-receipt.json" 2>"$attempt/export-error.txt") || export_status="$?"
+    printf '%s\n' "$export_status" >"$attempt/export-exit.txt"; sync -f "$attempt/export-exit.txt"; sync -f "$attempt"
+    [[ "$export_status" == 0 ]] || return "$export_status"
+    operator_light_inspect "$attempt/checkpoint-after.json"
+    operator_transition_stopped
+    operator_light_signer_identity stopped >"$attempt/signer-after.json"; cmp "$attempt/signer-stopped.json" "$attempt/signer-after.json" >/dev/null
+    python3 -B - "$stage/quiet.py" "$binding" "$attempt" <<'PY'
+import importlib.util,json,pathlib,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
+q.publish(pathlib.Path(sys.argv[3])/'result.json',q.finish_capture(json.load(open(sys.argv[2])),sys.argv[3]))
+PY
+  else
+    operator_transition_stopped
+    local saved_unit="$unit"; unit="$signer_unit"; operator_transition_stopped; unit="$saved_unit"
+    operator_light_signer_identity stopped >"$attempt/signer-before.json"
+    cmp "$root/capture-attempt/signer-stopped.json" "$attempt/signer-before.json" >/dev/null
+    operator_light_inspect "$attempt/checkpoint.json"
+    operator_light_recheck_phase
+    python3 -B - "$stage/quiet.py" "$binding" "$root/capture-attempt" "$attempt" <<'PY'
+import importlib.util,json,pathlib,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
+b=json.load(open(sys.argv[2]));cap=pathlib.Path(sys.argv[3]);attempt=pathlib.Path(sys.argv[4]);r,raw=q.load(cap/'result.json',b['captureSHA256'],1<<20)
+q.need(r==q.finish_capture(json.load(open(cap/'binding.json')),cap),'completed original capture changed')
+retained=q.retain_consumed_halt(b,r,attempt/'checkpoint.json');q.publish(attempt/'retained-request.json',dict(path=retained,sha256=r['haltRequestSHA256']))
+PY
+    # New explicit resume action, not replay of the old transition start.
+    operator_light_recheck_phase
+    timeout --signal=TERM --kill-after=5 30 systemctl start "$signer_unit"
+    operator_light_signer_identity running >"$attempt/signer-process.json"
+    operator_light_recheck_phase
+    timeout --signal=TERM --kill-after=5 30 systemctl start "$unit"
+    operator_transition_running "$comet_pin" >"$attempt/process.json"
+    python3 -B - "$stage/quiet.py" "$binding" "$attempt" <<'PY'
+import importlib.util,json,pathlib,sys
+s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
+b=json.load(open(sys.argv[2]));p=pathlib.Path(sys.argv[3]);c,_=q.load(pathlib.Path(b['captureRoot'])/'result.json',b['captureSHA256'],1<<20)
+r=dict(c,phase='resume',status='resumed_activation_unproven',resumeApprovalSHA256=b['approvalSHA256'],captureSHA256=b['captureSHA256'],currentProcess=q.load(p/'process.json')[0],signerProcess=q.load(p/'signer-process.json')[0]);q.publish(p/'result.json',r)
+PY
+  fi
+  sync -f "$attempt/result.json"; sync -f "$attempt"; cat "$attempt/result.json"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  if [[ "${1:-}" == light-capture ]]; then shift; operator_light_capture_remote "$@"; else operator_transition_remote "$@"; fi
+fi

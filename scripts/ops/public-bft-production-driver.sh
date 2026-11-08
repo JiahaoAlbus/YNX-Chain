@@ -8,8 +8,10 @@ ynx_ops_init
 # Source only the already reviewed runtime verifier/copy helpers. Sourcing this
 # file does not initialize deployment or execute any build or remote command.
 source scripts/deploy/deploy-consensus-candidate.sh
+source scripts/ops/public-bft-linux-public-tools.sh
 
 action="${1:-rehearse}"
+export PUBLIC_BFT_LINUX_TOOL_PHASE="$action"
 if [[ "$action" == prepare_testnet_assets ]]; then
   # The explicit asset phase is handled below; it is never inserted into the
   # original automatic cutover/rehearsal sequence.
@@ -175,17 +177,21 @@ public_bft_runtime_prepare() {
   local bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}"
   local full_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
   local manifest_pin="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}"
-  [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "public candidate verifier requires the pinned Linux amd64 runtime; no rebuild fallback" >&2; return 1; }
+  public_bft_linux_tools_enabled || [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "public candidate verifier requires the pinned Linux amd64 runtime; no rebuild fallback" >&2; return 1; }
   [[ "$full_commit" =~ ^[0-9a-f]{40}$ && "$manifest_pin" =~ ^[0-9a-f]{64}$ && "$(git rev-parse HEAD)" == "$full_commit" ]] || { echo "public candidate requires the independent current full runtime commit and SOURCE.json SHA256" >&2; return 1; }
-  validate_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" || return $?
+  if ! public_bft_linux_tools_enabled; then validate_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" || return $?; fi
   [[ -d "$parent" && ! -L "$parent" ]] || { echo "original transaction directory is required" >&2; return 1; }
   parent="$(cd "$parent" && pwd -P)" || return $?
   # Retain every verifier copy, including a failed/UNKNOWN preparation. Artifact
   # files may be 0644; only the verified exclusive copy becomes executable.
   retained="$(umask 077; mktemp -d "$parent/runtime-verifier.XXXXXXXX")" || return $?
-  prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$retained/runtime" || return $?
+  if public_bft_linux_tools_enabled; then
+    public_bft_linux_tool inventory "$retained/runtime" || return $?
+  else
+    prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$retained/runtime" || return $?
+  fi
   public_package_verifier="$retained/runtime/ynx-consensus-package"
-  [[ -x "$public_package_verifier" ]] || { echo "verified package verifier is unavailable" >&2; return 1; }
+  public_bft_linux_tools_enabled || [[ -x "$public_package_verifier" ]] || { echo "verified package verifier is unavailable" >&2; return 1; }
   # Selected only after the original runtime's independent commit/SOURCE pins
   # and all eight ELF bytes have passed the existing normal verifier.
   export PUBLIC_BFT_MIGRATION_VERIFIER="$public_package_verifier"
@@ -202,6 +208,7 @@ public_bft_operator_inputs() {
   # Pass the identical external pins into the normal deployment and readback
   # callers. A package's own operatorPlanHash can never select this value.
   export CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256="$candidate_operator_pin"
+  export PUBLIC_BFT_LINUX_TOOL_OPERATOR_PLAN="$candidate_operator_plan"
 }
 
 public_bft_preflight_services() {
@@ -248,6 +255,7 @@ final_snapshot_phase() {
   }
   local transaction_id evidence_dir pause_evidence observation remote_root remote_helper
   local source_input exporter_bundle full_commit source_pin exporter_pin pins local_root remote_stage helper_sha name
+  local public_data_root migration_file
   local native_remote_args=""
   local -a native_args=()
   transaction_id="$(basename "$transaction_dir")"
@@ -274,11 +282,22 @@ final_snapshot_phase() {
   pins="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/approval.json" "$commit" "$bft_release")"
   source_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).snapshotSourceSha256))')"
   exporter_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).exporterManifestSha256))')"
-  [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "final export requires the approved Linux amd64 offline tools; no installed-binary fallback" >&2; exit 1; }
+  public_bft_linux_tools_enabled || [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "final export requires the approved Linux amd64 offline tools; no installed-binary fallback" >&2; exit 1; }
   for name in "$transaction_dir" "$remote_root"; do
     [[ "$name" =~ ^/[A-Za-z0-9._/-]+$ && "$name" != *..* ]] || { echo "invalid final snapshot staging path" >&2; exit 1; }
   done
+  if public_bft_linux_tools_enabled; then
+    local exporter_retained
+    exporter_retained="$(mktemp -d "$transaction_dir/public-exporter.XXXXXXXX")"
+    public_bft_linux_tool_for_role "${PUBLIC_BFT_PRODUCTION_EXPORTER_ROLE:-singapore}" exporter-files "$exporter_bundle" "$exporter_pin" "$exporter_retained/bundle" || return
+    exporter_bundle="$exporter_retained/bundle"
+  fi
   local_root="$transaction_dir/final-snapshot"
+  public_data_root="$(public_bft_public_data_root "$transaction_dir")" || return
+  migration_file="$public_data_root/final-snapshot/migration.json"
+  if [[ "$public_data_root" != "$transaction_dir" ]]; then
+    (umask 077; mkdir -m 0700 "$public_data_root/final-snapshot") || { echo "original public snapshot destination exists/UNKNOWN" >&2; return 1; }
+  fi
   if [[ -n "${native_full_commit:-}" ]]; then
     public_bft_native_qualify primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$evidence_dir/primary-export-native-identity.json"
     native_args=("$native_full_commit" "$native_binary_pin" "$native_source_json")
@@ -293,7 +312,7 @@ final_snapshot_phase() {
   bash scripts/ops/remote/public-bft-final-snapshot.sh --prepare "$source_input" "$exporter_bundle" "$full_commit" "$source_pin" "$exporter_pin" "$transaction_id" "$commit" "$release" "$bft_release" "$local_root" "${native_args[@]}"
   remote_stage="/tmp/ynx-public-bft-final-snapshot-${transaction_id}"
   remote_helper="$remote_stage/export.sh"
-  helper_sha="$(sha256sum scripts/ops/remote/public-bft-final-snapshot.sh | awk '{print $1}')"
+  helper_sha="$(shasum -a 256 scripts/ops/remote/public-bft-final-snapshot.sh | awk '{print $1}')"
   # Atomic fresh directory + noclobber copies: no scp/cat overwrite of an old
   # request or executable, and no EXIT cleanup of uncertain remote effects.
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "umask 077; mkdir -m 0700 '$remote_stage' && mkdir -m 0700 '$remote_stage/tools'"
@@ -308,14 +327,25 @@ final_snapshot_phase() {
     echo "production BFT final snapshot dry-run passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
     return
   fi
-  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" >"$local_root/migration.json")
   (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.evidence.json'" >"$local_root/remote-evidence.json")
-  chmod 0600 "$transaction_dir/final-snapshot/migration.json" "$transaction_dir/final-snapshot/remote-evidence.json"
+  if public_bft_linux_tools_enabled; then
+    local migration_pin
+    migration_pin="$(sed -n 's/^sha256=\([0-9a-f]\{64\}\)$/\1/p' "$evidence_dir/primary-export-final-snapshot.txt")"
+    [[ "$migration_pin" =~ ^[0-9a-f]{64}$ ]] || { echo 'original final snapshot pin is missing' >&2; return 1; }
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" | python3 -B scripts/ops/public-bft-linux-public-tools.py retain-migration "$transaction_dir" "$migration_pin" "$full_commit"
+  else
+    (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" >"$migration_file")
+  fi
+  chmod 0600 "$migration_file" "$transaction_dir/final-snapshot/remote-evidence.json"
   local expected_sha actual_sha
   expected_sha="$(sed -n 's/^sha256=\([0-9a-f]\{64\}\)$/\1/p' "$evidence_dir/primary-export-final-snapshot.txt")"
-  actual_sha="$(shasum -a 256 "$transaction_dir/final-snapshot/migration.json" | awk '{print $1}')"
+  actual_sha="$(shasum -a 256 "$migration_file" | awk '{print $1}')"
   [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
-  (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$local_root/migration.json" >"$local_root/local-validation.txt")
+  if public_bft_linux_tools_enabled; then
+    (set -C; public_bft_package_call "$local_root/tools/ynx-consensus-package" -verify-migration-state "$migration_file" >"$local_root/local-validation.txt")
+  else
+    (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$migration_file" >"$local_root/local-validation.txt")
+  fi
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
 }
 
@@ -480,7 +510,12 @@ candidate_context() {
   candidate_transaction_id="$(basename "$candidate_transaction_dir")"
   [[ "$candidate_transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid candidate transaction id" >&2; exit 1; }
   candidate_root="$candidate_transaction_dir/candidate"
-  candidate_package="$candidate_root/package"
+  candidate_public_data_root="$(public_bft_public_data_root "$candidate_transaction_dir")" || return
+  if [[ "$candidate_public_data_root" != "$candidate_transaction_dir" && ! -e "$candidate_public_data_root/candidate" ]]; then
+    (umask 077; mkdir -m 0700 "$candidate_public_data_root/candidate") || return
+  fi
+  candidate_package="$candidate_public_data_root/candidate/package"
+  candidate_migration="$candidate_public_data_root/final-snapshot/migration.json"
   candidate_binding="$candidate_root/binding.json"
   candidate_approval="$candidate_transaction_dir/approval.json"
   candidate_release="ynx-consensus-candidate-${commit}"
@@ -501,19 +536,28 @@ prepare_candidate_package() {
   mkdir -p "$candidate_root"
   chmod 0700 "$candidate_root"
   if [[ -e "$candidate_package" || -L "$candidate_package" || -e "$candidate_binding" || -L "$candidate_binding" ]]; then
+    if public_bft_linux_tools_enabled && [[ -d "$candidate_package" && ! -L "$candidate_package" && ! -e "$candidate_binding" && ! -L "$candidate_binding" ]]; then
+      # The bridge accepts this only with its same-request PUBLISHED receipt;
+      # incomplete/foreign directories stay UNKNOWN, with no math reexecution.
+      public_bft_package_call "$public_package_verifier" -migration-state "$candidate_migration" -validator-manifest "$validator_manifest" -genesis-time "$genesis_time" -operator-plan "$candidate_operator_plan" -operator-plan-hash "$candidate_operator_pin" -output "$candidate_package" >/dev/null || return
+      public_bft_package_call "$public_package_verifier" -verify-package "$candidate_package" -operator-plan-hash "$candidate_operator_pin" >/dev/null || return
+      (set -C; node scripts/verify/public-bft-candidate-binding.mjs "${binding_args[@]}" "$candidate_package" >"$candidate_binding") || return
+      chmod 0600 "$candidate_binding"
+      return
+    fi
     [[ -d "$candidate_package" && ! -L "$candidate_package" && -s "$candidate_binding" && ! -L "$candidate_binding" ]] || { echo "partial candidate package state exists" >&2; exit 1; }
-    "$public_package_verifier" -verify-package "$candidate_package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
+    public_bft_package_call "$public_package_verifier" -verify-package "$candidate_package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
     node scripts/verify/public-bft-candidate-binding.mjs "${binding_args[@]}" "$candidate_package" | cmp "$candidate_binding" - >/dev/null || { echo "existing candidate binding mismatch; original package/binding retained" >&2; exit 1; }
     return
   fi
-  "$public_package_verifier" \
-    -migration-state "$candidate_transaction_dir/final-snapshot/migration.json" \
+  public_bft_package_call "$public_package_verifier" \
+    -migration-state "$candidate_migration" \
     -validator-manifest "$validator_manifest" \
     -genesis-time "$genesis_time" \
     -operator-plan "$candidate_operator_plan" \
     -operator-plan-hash "$candidate_operator_pin" \
     -output "$candidate_package" >/dev/null
-  "$public_package_verifier" -verify-package "$candidate_package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
+  public_bft_package_call "$public_package_verifier" -verify-package "$candidate_package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
   local partial_binding="$candidate_binding.partial"
   (set -o noclobber; node scripts/verify/public-bft-candidate-binding.mjs "${binding_args[@]}" "$candidate_package" >"$partial_binding")
   chmod 0600 "$partial_binding"
@@ -600,7 +644,7 @@ initialize_candidate_phase() {
     destination_guard="$(node scripts/verify/public-bft-candidate-binding.mjs --initialization-destination "$candidate_operator_plan" "$candidate_operator_pin" "$role" "$remote_stage")"
     command="$(node scripts/verify/public-bft-candidate-binding.mjs --initialization-command "$candidate_operator_plan" "$candidate_operator_pin" "$role" "$remote_stage")"
     mkdir -m 0700 "$stage"
-    cp "$(dirname "$public_package_verifier")/ynx-comet" "$public_package_verifier" "$stage/"
+    if ! public_bft_linux_tools_enabled; then cp "$(dirname "$public_package_verifier")/ynx-comet" "$public_package_verifier" "$stage/"; fi
     cp "$candidate_package/roles/$role/config/genesis.json" "$candidate_package/roles/$role/config/bound-migration.json" "$stage/"
     cp "$candidate_operator_plan" "$stage/operator-plan.json"
     tar -czf "$archive" -C "$stage" .
@@ -619,6 +663,7 @@ done
 sudo mkdir -m 0700 '$remote_stage'
 (umask 077; set -o noclobber; : > '$remote_archive')" >"$evidence/reservation.txt" 2>"$evidence/reservation-error.txt"
     ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
+    if public_bft_linux_tools_enabled; then public_bft_linux_stage "$role" initialize >"$evidence/public-tools.json"; fi
     local execution="set -euo pipefail
 test -f '$remote_archive'; test ! -L '$remote_archive'
 printf '%s  %s\\n' '$expected' '$remote_archive' | sha256sum --strict -c - >/dev/null
@@ -627,6 +672,12 @@ sudo tar --no-same-owner -xzf '$remote_archive' -C '$remote_stage'"
       expected="$(shasum -a 256 "$file" | awk '{print $1}')"
       execution+=$'\n'"printf '%s  %s\\n' '$expected' '$remote_stage/$(basename "$file")' | sudo sha256sum --strict -c - >/dev/null"
     done
+    if public_bft_linux_tools_enabled; then
+      for file in ynx-comet ynx-consensus-package; do
+        expected="$(public_bft_runtime_binary_sha "$(dirname "$public_package_verifier")" "$file")"
+        execution+=$'\n'"printf '%s  %s\\n' '$expected' '$remote_stage/$file' | sudo sha256sum --strict -c - >/dev/null"
+      done
+    fi
     execution+=$'\n'"sudo chown -R ynx:ynx '$remote_stage'
 $(candidate_original_guard_command "$role")
 $command"
@@ -688,7 +739,7 @@ $(cat "$evidence/custody-command.sh")
 ! systemctl is-active --quiet ynx-consensus-operator-candidate.service"
     # Compare installed bytes directly to independently verified local package
     # and runtime bytes, not to a second mutable remote staging tree.
-    for file in "$candidate_package/roles/$role/scripts/start-operator.sh" "$candidate_package/roles/$role/role-manifest.json" "$candidate_package/roles/$role/systemd/ynx-consensus-operator-candidate.service" "$candidate_package/roles/$role/config/"* "$(dirname "$public_package_verifier")/ynx-comet" "$(dirname "$public_package_verifier")/ynx-consensus-keycheck"; do
+    for file in "$candidate_package/roles/$role/scripts/start-operator.sh" "$candidate_package/roles/$role/role-manifest.json" "$candidate_package/roles/$role/systemd/ynx-consensus-operator-candidate.service" "$candidate_package/roles/$role/config/"*; do
       [[ -f "$file" && ! -L "$file" ]] || { echo "missing verified operator input: $file" >&2; return 1; }
       case "$file" in
         */scripts/start-operator.sh) destination="$installed/scripts/start-operator.sh" ;;
@@ -698,6 +749,11 @@ $(cat "$evidence/custody-command.sh")
         *) destination="$installed/bin/$(basename "$file")" ;;
       esac
       expected="$(shasum -a 256 "$file" | awk '{print $1}')"
+      command+=$'\n'"sudo test -f '$destination'; sudo test ! -L '$destination'; printf '%s  %s\\n' '$expected' '$destination' | sudo sha256sum --strict -c - >/dev/null"
+    done
+    for file in ynx-comet ynx-consensus-keycheck; do
+      if public_bft_linux_tools_enabled; then expected="$(public_bft_runtime_binary_sha "$(dirname "$public_package_verifier")" "$file")"; else expected="$(shasum -a 256 "$(dirname "$public_package_verifier")/$file" | awk '{print $1}')"; fi
+      destination="$installed/bin/$file"
       command+=$'\n'"sudo test -f '$destination'; sudo test ! -L '$destination'; printf '%s  %s\\n' '$expected' '$destination' | sudo sha256sum --strict -c - >/dev/null"
     done
     if [[ "$dry" != 1 ]]; then
@@ -772,7 +828,7 @@ PY
   # runtime. A different build needs a separately approved cutover source; no
   # SOURCE rewrite or environment-selected binary substitutes for these pins.
   [[ "$current_commit" == "$CONSENSUS_CANDIDATE_RUNTIME_COMMIT" && "$current_source" == "$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256" ]] || { echo "current PQ runtime differs from original cutover source" >&2; return 1; }
-  (set -C; "$public_package_verifier" -verify-package "$current_package" -operator-plan-hash "$current_pin" >"$attempt/current-package-verification.txt")
+  (set -C; public_bft_package_call "$public_package_verifier" -verify-package "$current_package" -operator-plan-hash "$current_pin" >"$attempt/current-package-verification.txt")
   local quiet_observation_evidence="$attempt/evidence" quiet_observation_package="$current_package"
   (umask 077; mkdir -m 0700 "$quiet_observation_evidence") || { echo "original PQ qualification exists/UNKNOWN; do not repeat" >&2; return 1; }
   local role values context context_pin request request_pin proof_verifier="$(dirname "$public_package_verifier")/ynx-consensus-proof-verify"
@@ -790,12 +846,31 @@ PYDATA
     (set -C; operator_transition_binding start "$candidate_transaction_id" "$role" "$transition_approval" "$transition_approval_pin" "$candidate_package" "$candidate_operator_pin" "$(dirname "$public_package_verifier")/SOURCE.json" "$current_commit" "$current_source" "$current_package" "$current_pin" "$(dirname "$public_package_verifier")/SOURCE.json" "$current_commit" "$current_source" >"$quiet_observation_evidence/$role.binding.json")
     cmp "$quiet_observation_evidence/$role.binding.json" "$transition_root/start-attempt/$role.binding.json" >/dev/null || { echo "original transition binding changed" >&2; return 1; }
   done
-  values="$(python3 -B scripts/ops/public-bft-quiet-continuation.py proof-args --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence")" || return $?
-  { IFS= read -r context; IFS= read -r context_pin; IFS= read -r request; IFS= read -r request_pin; } <<<"$values"
-  # The one independently pinned canonical light proof verifies every present
-  # signature. Four role readiness observations do not require four math runs.
-  # Exit zero alone is insufficient: verify-results checks the full result.
-  (set -C; /usr/bin/timeout --signal=TERM --kill-after=5 60 "$proof_verifier" --trust-context "$context" --trust-context-sha256 "$context_pin" <"$request" >"$quiet_observation_evidence/light.proof-result.json" 2>"$quiet_observation_evidence/light.proof-error.txt")
+  if public_bft_linux_tools_enabled; then
+    # This phase never stops a running node. The original explicit normal
+    # capture/resume phases must already have completed under their independent
+    # protected approval and same transaction. No old start is replayed.
+    local export_values export_role source_plan source_plan_pin export_output capture_root capture_result capture_pin delivery_case delivery_destination
+    export_values="$(python3 -B scripts/ops/public-bft-quiet-continuation.py export-args --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}")" || return $?
+    { IFS= read -r export_role; IFS= read -r source_plan; IFS= read -r source_plan_pin; IFS= read -r export_output; } <<<"$export_values"
+    case "$export_role" in primary|singapore|silicon-valley|seoul) ;; *) return 1;; esac
+    capture_root="/var/lib/ynx-chain/operator-transitions/$candidate_transaction_id/$export_role/capture-attempt"
+    capture_result="$transition_root/capture-attempt/$export_role.result.json"
+    [[ -f "$capture_result" && ! -L "$capture_result" && -f "$transition_root/resume-attempt/$export_role.result.json" && ! -L "$transition_root/resume-attempt/$export_role.result.json" ]] || { echo 'original explicit capture and resume receipts are required; no implicit stop or restart' >&2; return 1; }
+    capture_pin="$(shasum -a 256 "$capture_result" | awk '{print $1}')" || return
+    delivery_destination="$candidate_public_data_root/pq-continuation-public-metadata"
+    (set -C; public_bft_linux_tool_for_role "$export_role" light-metadata "$capture_root" "$capture_pin" "$source_plan_pin" "$delivery_destination" >"$quiet_observation_evidence/light.export-receipt.json") || return
+    delivery_case="$(python3 -B scripts/ops/public-bft-linux-public-tools.py publication-case "$candidate_transaction_dir" "$delivery_destination" "$current_commit" "$current_source")" || return
+    values="$(python3 -B scripts/ops/public-bft-quiet-continuation.py proof-args --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence" --export-receipt-dir "$delivery_case")" || return $?
+    { IFS= read -r context; IFS= read -r context_pin; IFS= read -r request; IFS= read -r request_pin; } <<<"$values"
+    # Exactly one original Go verifier, on the role that actually holds the
+    # captured PUBLIC files. No 683MB round trip, changed context or new clock.
+    (set -C; public_bft_linux_tool_for_role "$export_role" proof-capture "$capture_root" "$capture_pin" "$source_plan_pin" >"$quiet_observation_evidence/light.proof-result.json" 2>"$quiet_observation_evidence/light.proof-error.txt")
+  else
+    values="$(python3 -B scripts/ops/public-bft-quiet-continuation.py proof-args --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence")" || return $?
+    { IFS= read -r context; IFS= read -r context_pin; IFS= read -r request; IFS= read -r request_pin; } <<<"$values"
+    (set -C; /usr/bin/timeout --signal=TERM --kill-after=5 60 "$proof_verifier" --trust-context "$context" --trust-context-sha256 "$context_pin" <"$request" >"$quiet_observation_evidence/light.proof-result.json" 2>"$quiet_observation_evidence/light.proof-error.txt")
+  fi
   ynx_ops_each_node collect_quiet_role_observation
   python3 -B scripts/ops/public-bft-quiet-continuation.py verify-results --transaction "$candidate_transaction_dir" --plan "$candidate_operator_plan" --plan-sha256 "$candidate_operator_pin" "${quiet_observation_inputs[@]}" --evidence "$quiet_observation_evidence"
 }
@@ -870,8 +945,13 @@ validated_candidate_result() {
 gateway_runtime_pins() {
   local bin
   bin="$(dirname "$public_package_verifier")"
-  gateway_binary_sha="$(shasum -a 256 "$bin/ynx-bft-gatewayd" | awk '{print $1}')"
-  gateway_verifier_sha="$(shasum -a 256 "$public_package_verifier" | awk '{print $1}')"
+  if public_bft_linux_tools_enabled; then
+    gateway_binary_sha="$(public_bft_runtime_binary_sha "$bin" ynx-bft-gatewayd)"
+    gateway_verifier_sha="$(public_bft_runtime_binary_sha "$bin" ynx-consensus-package)"
+  else
+    gateway_binary_sha="$(shasum -a 256 "$bin/ynx-bft-gatewayd" | awk '{print $1}')"
+    gateway_verifier_sha="$(shasum -a 256 "$public_package_verifier" | awk '{print $1}')"
+  fi
   if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
     dependency_backup_sha=unobserved-dry-run
   else
@@ -920,12 +1000,15 @@ start_dependencies_phase() {
   bin="$(dirname "$public_package_verifier")"
   mkdir -m 0700 "$stage"
   cp "$bin/SOURCE.json" "$stage/runtime-SOURCE.json"
-  cp "$bin/ynx-bft-gatewayd" "$stage/ynx-bft-gatewayd"
-  cp "$public_package_verifier" "$stage/ynx-consensus-package"
+  if ! public_bft_linux_tools_enabled; then
+    cp "$bin/ynx-bft-gatewayd" "$stage/ynx-bft-gatewayd"
+    cp "$public_package_verifier" "$stage/ynx-consensus-package"
+  fi
   cp scripts/ops/remote/public-bft-dependencies.sh "$stage/public-bft-dependencies.sh"
   cp -R "$candidate_package" "$stage/package"
-  chmod 0700 "$stage/ynx-bft-gatewayd" "$stage/ynx-consensus-package" "$stage/public-bft-dependencies.sh"
-  "$stage/ynx-consensus-package" -verify-package "$stage/package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
+  chmod 0700 "$stage/public-bft-dependencies.sh"
+  if ! public_bft_linux_tools_enabled; then chmod 0700 "$stage/ynx-bft-gatewayd" "$stage/ynx-consensus-package"; fi
+  public_bft_package_call "$stage/ynx-consensus-package" -verify-package "$stage/package" -operator-plan-hash "$candidate_operator_pin" >/dev/null
   tar -czf "$archive" -C "$stage" .
   chmod 0600 "$archive"
   archive_sha="$(shasum -a 256 "$archive" | awk '{print $1}')"
@@ -935,6 +1018,10 @@ start_dependencies_phase() {
   # of an existing/partial archive, helper, package, unit, or uncertain result.
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; sudo test -d '$dependency_remote_root'; sudo test ! -L '$dependency_remote_root'; sudo mkdir -m 0700 '$dependency_stage'; umask 077; mkdir -m 0700 '$upload'" >"$attempt/reserve.txt"
   ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$archive" "$upload/runtime.tar.gz"
+  if public_bft_linux_tools_enabled; then
+    [[ "$dependency_remote_root" == "/var/backups/ynx-chain/public-bft-cutover/$candidate_transaction_id" ]] || { echo "public tool bridge requires the original fixed gateway stage" >&2; return 1; }
+    public_bft_linux_stage primary gateway >"$attempt/public-tools.json"
+  fi
   guard="$(candidate_original_guard_command primary)"
   command="set -euo pipefail
 $guard
@@ -1097,7 +1184,7 @@ NODE
     curl --disable --noproxy '*' --request GET --connect-timeout 5 --max-time 10 --max-redirs 0 --max-filesize 16777216 -fsS "$rpc/node/pq-identity" >"$evidence/gateway-pq-identity.json"
     node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" "$evidence/gateway-pq-identity.json" public >"$evidence/observation.json"
     curl --noproxy '*' --max-time 10 -fsS -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$evm" >"$evidence/evm-chain-id.json"
-    node scripts/verify/public-bft-candidate-binding.mjs --public-read-targets "$candidate_binding" "$candidate_transaction_dir/final-snapshot/migration.json" "$evidence/gateway-status.json" >"$evidence/read-targets.txt"
+    node scripts/verify/public-bft-candidate-binding.mjs --public-read-targets "$candidate_binding" "$candidate_migration" "$evidence/gateway-status.json" >"$evidence/read-targets.txt"
     local account height
     read -r account height <"$evidence/read-targets.txt"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/accounts/$account" >"$evidence/account.json"
@@ -1389,7 +1476,11 @@ trap cleanup_failed EXIT
 public_bft_operator_inputs
 public_bft_runtime_prepare "$root"
 runtime_bin="$(dirname "$public_package_verifier")"
+if public_bft_linux_tools_enabled; then
+  for name in ynx-abci ynx-comet ynx-bft-gatewayd ynx-consensus-keycheck; do printf '%s  %s/%s\n' "$(public_bft_runtime_binary_sha "$runtime_bin" "$name")" "$CONSENSUS_CANDIDATE_RUNTIME_BUNDLE" "$name"; done >"$root/prebuilt.sha256"
+else
 shasum -a 256 "$runtime_bin/ynx-abci" "$runtime_bin/ynx-comet" "$runtime_bin/ynx-bft-gatewayd" "$runtime_bin/ynx-consensus-keycheck" >"$root/prebuilt.sha256"
+fi
 
 collect_role() {
   local role="$1" user="$2" host="$3" key="$4" kind="$5"

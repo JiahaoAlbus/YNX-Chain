@@ -260,7 +260,7 @@ try{
     write(path.join(dir,'approval.json'),approval);
     write(path.join(dir,'roles/primary-pause-authoritative.txt'),`transactionId=${f.tx}\ncommit=${commit}\nbftRelease=${release}\nproductionStateVerified=true\n`);
     const script=path.join(f.root,'caller.sh');
-    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\ngit(){ printf '%s\\n' ${q(full)}; }\nynx_ops_ssh(){ printf '%s\\n' "$*" >> ${q(log)}; printf 'DRY RUN %s\\n' "$*"; }\ncommit=${q(commit)}\nrelease=${q('ynx-chain-'+commit)}\n${body}\nfinal_snapshot_phase\n`,0o700);
+    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\nsource scripts/ops/public-bft-linux-public-tools.sh\ngit(){ printf '%s\\n' ${q(full)}; }\nynx_ops_ssh(){ printf '%s\\n' "$*" >> ${q(log)}; printf 'DRY RUN %s\\n' "$*"; }\ncommit=${q(commit)}\nrelease=${q('ynx-chain-'+commit)}\n${body}\nfinal_snapshot_phase\n`,0o700);
     const env={...process.env,DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:'yes',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,PUBLIC_BFT_PRODUCTION_SNAPSHOT_SOURCE:f.input,PUBLIC_BFT_PRODUCTION_EXPORTER_BUNDLE:f.tools,PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS:'1',PRIMARY_NODE_USER:'test',PRIMARY_NODE_HOST:'not-a-real-host',PRIMARY_NODE_SSH_KEY:'/unused/test-key'};
     return {f,dir,log,script,env};
   }

@@ -111,6 +111,10 @@ on:
       - 'scripts/ops/public-bft-cutover-transaction.sh'
       - 'scripts/ops/public-bft-quiet-continuation.py'
       - 'scripts/ops/test_public_bft_quiet_continuation.py'
+      - 'scripts/ops/public-bft-linux-public-tools.py'
+      - 'scripts/ops/public-bft-linux-public-tools.sh'
+      - 'scripts/ops/test_public_bft_linux_public_tools.py'
+      - 'scripts/ops/test_public_bft_linux_release_gate.mjs'
       - 'scripts/ops/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-final-snapshot.sh'
@@ -185,6 +189,15 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/ops/public-bft-linux-public-tools.py'
+      - 'scripts/ops/public-bft-linux-public-tools.sh'
+      - 'scripts/ops/test_public_bft_linux_public_tools.py'
+      - 'scripts/ops/test_public_bft_linux_release_gate.mjs'
+      - 'scripts/ops/public-bft-production-driver.sh'
+      - 'scripts/verify/public-bft-candidate-binding.mjs'
+      - 'scripts/deploy/deploy-consensus-candidate.sh'
+      - 'scripts/verify/consensus-candidate-deploy-gate.sh'
+      - 'scripts/verify/verify-consensus-candidate.sh'
       - 'scripts/verify/lib/public-bft-same-owner.mjs'
       - 'scripts/verify/public-bft-same-owner-check.mjs'
       - 'scripts/verify/public-bft-release-source.mjs'
@@ -2017,6 +2030,13 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
+      - name: Verify original Linux public tools transport without execution
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 1
+        run: |
+          set -euo pipefail
+          timeout 25s python3 -B scripts/ops/test_public_bft_linux_public_tools.py -v
+          timeout 25s node scripts/ops/test_public_bft_linux_release_gate.mjs
       - name: Verify failed candidate deployment preserves services and signing history
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs
@@ -5066,6 +5086,50 @@ jobs:
               target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
           print('YNX_PQ_PROOF_CLI_INTEROP ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify original Linux public math bridge with the same built tools
+        id: pqpublicbridge
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          umask 077
+          case="$RUNNER_TEMP/ynx-linux-public-tools-smoke-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          # Only this new PUBLIC synthetic evidence copy becomes runner-owned
+          # for upload, including failures. Original runtime/fixtures are untouched.
+          finish_public_bridge() {
+            local result=$?
+            trap - EXIT
+            if [[ -d "$case" && ! -L "$case" ]]; then
+              sudo -n chown -R "$(id -u):$(id -g)" "$case" || { [[ "$result" != 0 ]] || result=1; }
+            fi
+            exit "$result"
+          }
+          trap finish_public_bridge EXIT
+          sudo -n env GITHUB_SHA="$GITHUB_SHA" python3 -B scripts/ops/test_public_bft_linux_public_tools.py --actual-smoke \
+            --runtime "$RUNNER_TEMP/ynx-pq-linux-runtime-candidate" \
+            --exporter "$RUNNER_TEMP/ynx-pq-offline-migration-tools" \
+            --original-case "$RUNNER_TEMP/ynx-pq-proof-cli-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --fixture "$RUNNER_TEMP/ynx-pq-consensus-light-proof-public.json" \
+            --operator-case "$RUNNER_TEMP/ynx-operator-cli-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --operator-fixture "$RUNNER_TEMP/ynx-consensus-operator-public-inputs" \
+            --output "$case"
+      - name: Retain original Linux public math bridge evidence
+        if: ${{ !cancelled() && steps.pqpublicbridge.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-linux-public-tools-bridge-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/SMOKE.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/PROOF-CLOCK-PREFLIGHT.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/request.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/command.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/SPACE.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/RESULT.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/COMPLETE.json
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/stdout
+            ${{ runner.temp }}/ynx-linux-public-tools-smoke-*/*/stderr
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify normal transaction proof CLI with exact public two-header fixture
         id: pqtransactionproofcli
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}

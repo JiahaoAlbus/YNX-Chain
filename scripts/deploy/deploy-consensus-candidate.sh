@@ -410,6 +410,11 @@ PY
 verify_candidate_package() {
   local binary="$1" package_root="$2"
   local operator_pin="${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}"
+  if [[ -n "${PUBLIC_BFT_LINUX_TOOL_ROLE:-}" ]]; then
+    source scripts/ops/public-bft-linux-public-tools.sh
+    public_bft_package_call "$binary" -verify-package "$package_root" -operator-plan-hash "$operator_pin"
+    return
+  fi
   if [[ -n "$operator_pin" ]]; then
     [[ "$operator_pin" =~ ^[0-9a-f]{64}$ ]] || { echo "CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256 must be an independent lowercase SHA256 pin" >&2; return 1; }
     "$binary" -verify-package "$package_root" -operator-plan-hash "$operator_pin"
@@ -428,14 +433,15 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=../ops/lib.sh
 source scripts/ops/lib.sh
 ynx_ops_init
+source scripts/ops/public-bft-linux-public-tools.sh
 
 package_root="${CONSENSUS_CANDIDATE_PACKAGE:-}"
 [[ -n "$package_root" && -d "$package_root" ]] || { echo "CONSENSUS_CANDIDATE_PACKAGE must reference a generated candidate package" >&2; exit 1; }
-[[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]] || { echo "pinned runtime deployment verification requires a Linux amd64 operator host; no native rebuild fallback is allowed" >&2; exit 1; }
+public_bft_linux_tools_enabled || [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]] || { echo "pinned runtime deployment verification requires a Linux amd64 operator host; no native rebuild fallback is allowed" >&2; exit 1; }
 runtime_bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}"
 runtime_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
 runtime_manifest_sha="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}"
-validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha"
+if ! public_bft_linux_tools_enabled; then validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha"; fi
 [[ "$(git rev-parse HEAD)" == "$runtime_commit" ]] || { echo "deployment source must match the independently pinned runtime commit" >&2; exit 1; }
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
   [[ "${CONSENSUS_CANDIDATE_APPROVED:-}" == "yes" ]] || { echo "CONSENSUS_CANDIDATE_APPROVED=yes is required" >&2; exit 1; }
@@ -452,14 +458,19 @@ fi
 mkdir -p "$work/bin" "$work/roles"
 
 echo "verifying pinned production candidate runtime for linux/amd64"
-prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$(cd "$work" && pwd -P)/runtime"
+if public_bft_linux_tools_enabled; then
+  [[ -n "${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}" ]] || { echo 'remote public tools require the original single-App operator profile' >&2; exit 1; }
+  public_bft_linux_tool inventory "$(cd "$work" && pwd -P)/runtime"
+else
+  prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$(cd "$work" && pwd -P)/runtime"
+fi
 cp "$work/runtime/SOURCE.json" "$work/runtime-SOURCE.json"
 verify_candidate_package "$work/runtime/ynx-consensus-package" "$package_root"
 operator_package=0
 if [[ -n "${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}" ]]; then
   # The normal verifier above has authenticated this precise operator mode.
   operator_package=1
-  cp "$work/runtime/ynx-comet" "$work/runtime/ynx-consensus-keycheck" "$work/bin/"
+  if ! public_bft_linux_tools_enabled; then cp "$work/runtime/ynx-comet" "$work/runtime/ynx-consensus-keycheck" "$work/bin/"; fi
 else
   for binary in ynx-abci ynx-bft-gatewayd ynx-consensus-keycheck; do
     cp "$work/runtime/$binary" "$work/bin/$binary"
@@ -469,8 +480,12 @@ else
 fi
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
-  CONSENSUS_CANDIDATE_RUNTIME_BUNDLE="$(cd "$work/runtime" && pwd -P)" \
+  if public_bft_linux_tools_enabled; then
     bash scripts/verify/consensus-candidate-deploy-gate.sh
+  else
+    CONSENSUS_CANDIDATE_RUNTIME_BUNDLE="$(cd "$work/runtime" && pwd -P)" \
+      bash scripts/verify/consensus-candidate-deploy-gate.sh
+  fi
 fi
 
 candidate_mutation_started=0
@@ -503,7 +518,7 @@ deploy_candidate_role() {
   (umask 077; set -o noclobber; : > "$archive")
   mkdir -p "$stage/bin" "$stage/role"
   if [[ "$operator_package" == 1 ]]; then
-    cp "$work/bin/ynx-comet" "$work/bin/ynx-consensus-keycheck" "$stage/bin/"
+    if ! public_bft_linux_tools_enabled; then cp "$work/bin/ynx-comet" "$work/bin/ynx-consensus-keycheck" "$stage/bin/"; fi
   else
     cp "$work/bin/ynx-abci" "$work/bin/ynx-consensus-keycheck" "$work/bin/cometbft" "$stage/bin/"
   fi
@@ -531,6 +546,7 @@ sudo mkdir -m 0700 '$remote_dir'
 (umask 077; set -o noclobber; : > '$remote_archive')"
   ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; test -f '$remote_archive'; test ! -L '$remote_archive'; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; sudo test -d '$remote_dir'; if sudo test -L '$remote_dir'; then exit 1; fi; sudo tar -xzf '$remote_archive' -C '$remote_dir'"
+  if public_bft_linux_tools_enabled; then public_bft_linux_stage "$role" deploy >"$stage/public-tools-result.json"; fi
   if [[ "$operator_package" == 0 ]]; then
     ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo '$remote_dir/bin/ynx-consensus-keycheck' -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
     ynx_ops_ssh "$role" "$user" "$host" "$key" "if sudo test -d /var/lib/ynx-chain/consensus-candidate; then sudo bash '$remote_dir/role/scripts/backup-candidate.sh' '/var/backups/ynx-chain/consensus-candidate-before-${release}-${role}.tar.gz'; fi"

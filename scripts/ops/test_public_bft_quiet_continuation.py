@@ -7,6 +7,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -235,6 +236,78 @@ class QuietContinuationTests(unittest.TestCase):
         p=self.f.evidence/'seoul.json';v=json.loads(p.read_bytes());v['abciInfo']['response']['last_block_height']='101';write(p,v)
         with self.assertRaises(ValueError):q.ready(str(self.f.root),str(self.f.plan_path),self.f.plan_pin,str(self.f.package),str(self.f.evidence))
         self.assertFalse((self.f.root/'candidate/verify-result.json').exists())
+    def test_metadata_only_inventory_keeps_original_remote_checks(self):
+        # The Linux bridge returns public SOURCE/operator files, not a local
+        # executable. Observation construction must still measure the actual
+        # installed remote files and process, without opening an ELF on Mac.
+        source_raw=(self.f.runtime/'SOURCE.json').read_bytes()
+        self.f.transition()
+        for package in (self.f.package,self.f.current_package):
+            for role in q.ROLES:
+                role_root=package/'roles'/role
+                for name in ('scripts/start-operator.sh','systemd/ynx-consensus-operator-candidate.service','config/genesis.json'):
+                    write(role_root/name,dict(syntheticPublicOnly=True,role=role,name=name))
+        for packet in (False,True):
+            package=self.f.current_package if packet else self.f.package
+            for role in q.ROLES:
+                with self.subTest(phase='pq' if packet else 'quiet',role=role):
+                    command=q.observation_command(str(self.f.root),str(package),str(self.f.runtime),str(self.f.plan_path),self.f.plan_pin,role,
+                        str(self.f.packet_path) if packet else None,self.f.packet_pin if packet else None)
+                    argv=shlex.split(command)
+                    self.assertEqual(argv[:10],['sudo','-n','/usr/bin/timeout','--signal=TERM','--kill-after=5','60','/usr/bin/env','-i','PATH=/usr/bin:/bin','/usr/bin/python3'])
+                    self.assertEqual(argv[10:12],['-B','-c']);self.assertEqual(argv[12],q.REMOTE_OBSERVE)
+                    value=q.decode(base64.b64decode(argv[13],validate=True))
+                    self.assertEqual(value['role'],role)
+                    self.assertEqual(value['headerHeight'],'116' if packet else None)
+                    self.assertEqual(value['blockHash'],'6'*64 if packet else None)
+                    self.assertEqual(value['cometSHA256'],self.f.source['binaries']['ynx-comet']['sha256'])
+                    for binary in ('ynx-comet','ynx-consensus-keycheck'):
+                        self.assertFalse((self.f.runtime/binary).exists())
+                        self.assertEqual(value['files']['/var/lib/ynx-chain/consensus-candidate/bin/'+binary],self.f.source['binaries'][binary]['sha256'])
+                    self.assertEqual(value['files']['/var/lib/ynx-chain/consensus-candidate/config/genesis.json'],q.sha((package/'roles'/role/'config/genesis.json').read_bytes()))
+                    self.assertEqual(value['freezeSHA256'],self.f.freeze[role])
+                    self.assertEqual(value['pauseSHA256'],self.f.pause_pin)
+        self.assertEqual((self.f.runtime/'SOURCE.json').read_bytes(),source_raw)
+        # The original checks are sent intact, not executed by this pure test.
+        self.assertIn('check_files(); before=process()',q.REMOTE_OBSERVE)
+        self.assertIn('check_files();after=process();assert before==after',q.REMOTE_OBSERVE)
+    def proof_args(self,evidence):
+        return subprocess.run([sys.executable,'-B',str(HERE/'public-bft-quiet-continuation.py'),'proof-args',
+            '--transaction',str(self.f.root),'--plan',str(self.f.plan_path),'--plan-sha256',self.f.plan_pin,
+            '--input',str(self.f.packet_path),'--input-sha256',self.f.packet_pin,'--evidence',str(evidence)],
+            capture_output=True,timeout=10)
+    def test_proof_arguments_keep_exact_public_originals_without_local_math(self):
+        self.f.transition()
+        proof=self.f.packet['proof'];context=Path(proof['trustContext']);request=Path(proof['request'])
+        original_context=context.read_bytes();original_request=request.read_bytes()
+        evidence=self.f.root/'public-proof-args';evidence.mkdir(mode=0o700)
+        result=self.proof_args(evidence)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertEqual(result.stderr,b'')
+        retained=evidence/'light.proof-request.json'
+        self.assertEqual(result.stdout.decode().splitlines(),[str(context),proof['trustContextSHA256'],str(retained),proof['requestSHA256']])
+        self.assertEqual(retained.read_bytes(),original_request);self.assertEqual(retained.stat().st_mode&0o777,0o600)
+        self.assertEqual(context.read_bytes(),original_context);self.assertEqual(request.read_bytes(),original_request)
+        self.assertFalse((self.f.runtime/'ynx-consensus-proof-verify').exists())
+        self.assertEqual({p.name for p in evidence.iterdir()},{'light.proof-request.json'})
+        # A retained input is not a VERIFIED_DATA result. No proof math, new
+        # clock, activation claim or continuation publication occurred here.
+        self.assertFalse((self.f.root/'pq-continuation-attempt').exists())
+        again=self.proof_args(evidence)
+        self.assertNotEqual(again.returncode,0);self.assertEqual(again.stdout,b'')
+        self.assertEqual(retained.read_bytes(),original_request)
+    def test_proof_arguments_unknown_and_changed_original_refuse(self):
+        self.f.transition()
+        evidence=self.f.root/'public-proof-args';evidence.mkdir(mode=0o700)
+        retained=evidence/'light.proof-request.json';retained.write_bytes(b'original partial UNKNOWN')
+        failed=self.proof_args(evidence)
+        self.assertNotEqual(failed.returncode,0);self.assertEqual(failed.stdout,b'')
+        self.assertEqual(retained.read_bytes(),b'original partial UNKNOWN')
+        clean=self.f.root/'other-public-proof-args';clean.mkdir(mode=0o700)
+        request=Path(self.f.packet['proof']['request']);original=request.read_bytes();request.write_bytes(original+b' ')
+        failed=self.proof_args(clean)
+        self.assertNotEqual(failed.returncode,0);self.assertEqual(failed.stdout,b'')
+        self.assertEqual(request.read_bytes(),original+b' ');self.assertEqual(list(clean.iterdir()),[])
+        self.assertEqual(retained.read_bytes(),b'original partial UNKNOWN')
     def test_normal_transaction_tail_is_not_initialization_replay(self):
         src=(HERE/'public-bft-cutover-transaction.sh').read_text()
         self.assertIn('continue-pq-native',src)
@@ -288,6 +361,355 @@ def normal_caller_fixture(action, root_path, plan_path):
             evidence=f.verified_control(existing_attempt=True)
             q.verify_results(*f.args(),str(evidence))
         else:raise ValueError('unknown isolated driver action')
+
+
+class OriginalLightCaptureTests(unittest.TestCase):
+    """Synthetic public control objects only; never exporter/math/service success."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.parent=Path(self.temp.name).resolve();self.f=Fixture(self.parent);self.f.transition()
+        f=self.f
+        f.source['platform']='linux/amd64'
+        f.source['binaries'].update({k:dict(sha256='e'*64) for k in ('ynx-consensus-package','ynx-consensus-pq-remote-signer')})
+        f.source_pin=write(f.runtime/'SOURCE.json',f.source)
+        f.current['heightHaltSessionId']='9'*64
+        for r in f.current['roles']:
+            r['heightHaltControlPath']=str(Path(r['abciState']).parent/('operator-height-halt-'+'9'*64+'.json'))
+            r['hostBinding']=dict(SignerStatePath='/custody/'+r['role']+'/pq-hrs.json',Policy=dict(ChainID=f.current['chainId']))
+            r['remoteSigner']='tcp://127.0.0.1:27900'
+        planpin=write(f.current_package/'common/operator-plan.json',f.current)
+        approval=json.loads(Path(f.packet['transitionApproval']).read_bytes())
+        approval.update(nextOperatorPlanSHA256=planpin,runtimeManifestSHA256=f.source_pin,oldRuntimeManifestSHA256=f.source_pin)
+        apin=write(Path(f.packet['transitionApproval']),approval)
+        f.packet.update(currentOperatorPlanSHA256=planpin,runtimeManifestSHA256=f.source_pin,transitionApprovalSHA256=apin)
+        for role in q.ROLES:
+            for phase in ('quiesce','install','start'):
+                p=f.transition_root/(phase+'-attempt')/(role+'.result.json');r=json.loads(p.read_bytes())
+                r.update(nextOperatorPlanSHA256=planpin,runtimeManifestSHA256=f.source_pin,approvalSHA256=apin)
+                write(p,r)
+                if phase=='start':
+                    binding={k:v for k,v in r.items() if k not in ('status','process')};binding.update(version='YNX-OPERATOR-TRANSITION-BINDING/v1',checkpoint=approval['checkpoint'])
+                    write(f.transition_root/'start-attempt'/(role+'.binding.json'),binding)
+        migration=b'{"syntheticPublicControl":true}\n'
+        write(f.current_package/'roles/primary/config/bound-migration.json',dict(syntheticPublicControl=True))
+        migration=(f.current_package/'roles/primary/config/bound-migration.json').read_bytes()
+        r=f.current['roles'][0];config='/var/lib/ynx-chain/consensus-candidate/config/'
+        self.source=dict(version='YNX-PQ-LIGHT-SOURCE-PLAN/v1',chainId=f.current['chainId'],headerHeight='116',
+            migrationFile=config+'bound-migration.json',migrationSHA256=q.sha(migration),genesisFile=config+'genesis.json',
+            consensusGenesisSHA256=f.current['consensusGenesisSHA256'],originalGenesisHash=f.current['originalGenesisHash'],migrationStateHash=f.current['migrationStateHash'],
+            stateFile=r['abciState'],stateLayout=f.current['stateLayout'],cometDataDirectory=r['home']+'/data',
+            signingStatePath=r['hostBinding']['SignerStatePath'],signingLockKind='pq-signer',scheduleFile=config+'pq-engine-schedule.json',
+            scheduleHash=f.current['pqScheduleHash'],scheduleSHA256=q.sha(f.schedule_raw),runtimePlanFile='',runtimePlanHash='',runtimePlanSHA256='',
+            engineHeight='116',engineAppHash='7'*64,trustedHeight='114',trustedBlockHash='8'*64,trustingPeriodNanoseconds='3600000000000',
+            maxClockDriftNanoseconds='5000000000',trustLevelNumerator='1',trustLevelDenominator='3')
+        self.source_path=self.parent/'source-plan.json';sourcepin=write(self.source_path,self.source)
+        f.packet['proof']=dict(version=q.SOURCE_PROFILE,role='primary',sourcePlan=str(self.source_path),sourcePlanSHA256=sourcepin,
+                              output='/var/tmp/ynx-public-light-'+f.root.name+'-primary/delivery')
+        f.packet_pin=write(f.packet_path,f.packet)
+        self.approval=dict(version='YNX-OPERATOR-LIGHT-CAPTURE-APPROVAL/v1',phase='capture',approved=True,transitionId=f.root.name,
+            cutoverTransactionId=f.root.name,role='primary',operatorPlanSHA256=planpin,runtimeCommit=f.packet['runtimeCommit'],
+            runtimeManifestSHA256=f.source_pin,inputSHA256=f.packet_pin,sourcePlanSHA256=sourcepin,output=f.packet['proof']['output'],
+            expiresAt=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=1)).isoformat(),captureSHA256=None)
+        self.approval_path=self.parent/'capture-approval.json';self.approval_pin=write(self.approval_path,self.approval)
+    def tearDown(self):self.temp.cleanup()
+    def binding(self,phase='capture'):
+        return q.capture_binding(*self.f.args(),str(self.approval_path),self.approval_pin,phase,str(self.f.runtime))
+    def test_normal_source_plan_and_explicit_capture_binding(self):
+        data=q.continuation(*self.f.args());self.assertEqual(data['stateHeight'],'115')
+        b=self.binding();self.assertEqual(b['originalRole']['hostBinding']['SignerStatePath'],self.source['signingStatePath'])
+        self.assertEqual(b['originalStartSHA256'],q.sha((self.f.transition_root/'start-attempt/primary.result.json').read_bytes()))
+        command=[sys.executable,'-B',str(HERE/'public-bft-quiet-continuation.py'),'export-args','--transaction',str(self.f.root),
+                 '--plan',str(self.f.plan_path),'--plan-sha256',self.f.plan_pin,'--input',str(self.f.packet_path),'--input-sha256',self.f.packet_pin]
+        result=subprocess.run(command,capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stdout.splitlines(),[self.f.packet['proof'][k] for k in ('role','sourcePlan','sourcePlanSHA256','output')])
+        self.assertFalse((self.f.transition_root/'capture-attempt').exists())
+    def test_capture_source_scope_height_signer_and_expiry_refuse(self):
+        original=copy.deepcopy(self.source)
+        for key,value in [('headerHeight','114'),('engineHeight','115'),('signingStatePath','/original/primary/hrs'),
+                          ('stateFile','/peer/private/app'),('scheduleSHA256','f'*64),('runtimePlanFile','/private/not-public')]:
+            with self.subTest(key=key):
+                self.source=copy.deepcopy(original);self.source[key]=value
+                self.f.packet['proof']['sourcePlanSHA256']=write(self.source_path,self.source);self.f.packet_pin=write(self.f.packet_path,self.f.packet)
+                with self.assertRaises(ValueError):q.continuation(*self.f.args())
+        self.source=original;self.f.packet['proof']['sourcePlanSHA256']=write(self.source_path,self.source);self.f.packet_pin=write(self.f.packet_path,self.f.packet)
+        for key,value in [('role','seoul'),('inputSHA256','f'*64),('runtimeCommit','f'*40),('approved',False),('expiresAt','2000-01-01T00:00:00Z')]:
+            with self.subTest(key=key):
+                a=copy.deepcopy(self.approval);a[key]=value;self.approval_pin=write(self.approval_path,a)
+                with self.assertRaises(ValueError):self.binding()
+    def test_source_profile_cannot_use_arbitrary_context_or_missing_capture(self):
+        data=q.continuation(*self.f.args())
+        private=self.parent/'private-key.json';private.write_text('NO_REAL_KEY');private.chmod(0o600)
+        with self.assertRaises((ValueError,OSError)):q.received_source_proof(self.f.root,data,str(self.parent))
+        self.assertEqual(private.read_text(),'NO_REAL_KEY')
+        with self.assertRaises(ValueError):self.binding('resume')
+    def public_capture(self):
+        spec=importlib.util.spec_from_file_location('bridge_test',HERE/'public-bft-linux-public-tools.py')
+        bridge=importlib.util.module_from_spec(spec);spec.loader.exec_module(bridge);self.bridge=bridge
+        f=self.f;d=q.continuation(*f.args());remote=f.packet['proof']['output']
+        parent=self.parent/'external';parent.mkdir(mode=0o700);data_root=parent/f.root.name;data_root.mkdir(mode=0o700)
+        work=data_root/'linux-public-tools';work.mkdir(mode=0o700);public=data_root/'public';public.mkdir(mode=0o700)
+        delivery=public/'delivery';delivery.mkdir(mode=0o700)
+        st=parent.stat();write(f.root/'linux-public-data-root.json',dict(version='YNX-PUBLIC-LINUX-DATA-ROOT/v1',transaction=str(f.root),parent=str(parent),parentDevice=str(st.st_dev),parentInode=str(st.st_ino),dataRoot=str(data_root)))
+        context={k:'' for k in q.CONTEXT_FIELDS}
+        context.update(version='YNX-CONSENSUS-PROOF-TRUST/v1',chainId=f.current['chainId'],scheduleHash=f.current['pqScheduleHash'],
+            consensusGenesisSHA256=f.current['consensusGenesisSHA256'],originalGenesisHash=f.current['originalGenesisHash'],migrationStateHash=f.current['migrationStateHash'],
+            engineHeight='116',engineAppHash='7'*64,expectedHeaderHeight='116',expectedBlockHash='6'*64,expectedStateHeight='115',expectedStateAppHash='7'*64,
+            trustingPeriodNanoseconds=self.source['trustingPeriodNanoseconds'],maxClockDriftNanoseconds=self.source['maxClockDriftNanoseconds'],trustLevelNumerator='1',trustLevelDenominator='3')
+        for role,name,field in bridge.LIGHT_NAMES:
+            if role=='runtime':continue
+            if field:context[field]=remote+'/'+name
+            if role not in ('context','request'):write(delivery/name,dict(syntheticPublicControlOnly=True,role=role))
+        context['trustedLightBlockSHA256']=q.sha((delivery/'trusted-light-block.json').read_bytes())
+        verification=dict(version='YNX-PQ-LIGHT-PROOF/v1',classification='data',chainId=f.current['chainId'],genesisSha256=f.current['consensusGenesisSHA256'],
+            authorityThroughHeight='116',trustedHeight='114',trustedBlockHash='8'*64,headerHeight='116',blockHash='6'*64,stateHeight='115',stateAppHash='7'*64,
+            validatorsHash='9'*64,nextValidatorsHash='a'*64,consensusHash='b'*64,commitVerified=True,lightTransitionVerified=True)
+        contextpin=write(delivery/'trust-context.json',context)
+        requestpin=write(delivery/'request.json',dict(version='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1',expected=dict(chainId=f.current['chainId'],headerHeight='116',blockHash='6'*64,stateHeight='115',stateAppHash='7'*64),proof=dict(syntheticControlOnly=True)))
+        entries=[dict(role=r,name=n,bytes=str((delivery/n).stat().st_size),sha256=q.sha((delivery/n).read_bytes())) for r,n,_ in bridge.LIGHT_NAMES if r!='runtime']
+        deliverypin=write(delivery/'delivery.json',dict(version='YNX-PQ-LIGHT-SOURCE-DELIVERY/v1',planSHA256=f.packet['proof']['sourcePlanSHA256'],engineHeight='116',engineAppHash='7'*64,verification=verification,files=entries,publicDataOnly=True))
+        export=dict(version='YNX-PQ-LIGHT-SOURCE-EXPORT/v1',planSHA256=f.packet['proof']['sourcePlanSHA256'],manifestPath=remote+'/delivery.json',manifestSHA256=deliverypin,
+            contextPath=remote+'/trust-context.json',contextSHA256=contextpin,requestPath=remote+'/request.json',requestSHA256=requestpin,engineHeight='116',engineAppHash='7'*64,
+            verification=verification,publicDataOnly=True,sourceReadOnly=True,nativeRootAuthorized=False,deploymentVerified=False)
+        exportpin=write(public/'export-receipt.json',export);(public/'source-plan.json').write_bytes(self.source_path.read_bytes());(public/'source-plan.json').chmod(0o600)
+        cap=dict(version='YNX-OPERATOR-LIGHT-CAPTURE-RESULT/v1',phase='capture',status='stopped_exported',transitionId=f.root.name,cutoverTransactionId=f.root.name,
+            role='primary',runtimeCommit=f.packet['runtimeCommit'],runtimeManifestSHA256=f.source_pin,operatorPlanSHA256=f.packet['currentOperatorPlanSHA256'],
+            inputSHA256=f.packet_pin,sourcePlanSHA256=f.packet['proof']['sourcePlanSHA256'],captureApprovalSHA256=self.approval_pin,engineHeight='116',engineAppHash='7'*64,
+            headerHeight='116',stateHeight='115',captureRoot='/var/lib/ynx-chain/operator-transitions/'+f.root.name+'/primary/capture-attempt',output=remote,
+            checkpointSHA256='c'*64,haltRequestSHA256='d'*64,signingStateIdentity={k:'1' for k in ('device','inode','mode','uid','gid','bytes','mtimeNs','ctimeNs')},
+            exportReceiptSHA256=exportpin,deliverySHA256=deliverypin,originalMaterialRetained=True,sourceReadOnly=True,nativeRootAuthorized=False,deploymentVerified=False)
+        cappin=write(f.transition_root/'capture-attempt/primary.result.json',cap);write(public/'capture-receipt.json',cap)
+        resume=dict(cap,phase='resume',status='resumed_activation_unproven',captureSHA256=cappin,resumeApprovalSHA256='f'*64,currentProcess=dict(mainPid='200',startTicks='300'),signerProcess=dict(mainPid='201',startTicks='301'))
+        write(f.transition_root/'resume-attempt/primary.result.json',resume)
+        request=dict(version=bridge.VERSION,transaction=f.root.name,role='primary',runtime='/var/tmp/ynx-pq-runtime-original-primary-actual/verified',commit=f.packet['runtimeCommit'],sourceSHA256=f.source_pin,
+            operation='light-files',arguments=dict(captureRoot=cap['captureRoot'],captureReceiptSHA256=cappin,sourcePlanSHA256=cap['sourcePlanSHA256']),inputs=[],phase='verify_pq_continuation',
+            transportSources={n:dict(bytes=1,sha256='f'*64) for n in ('controller.py','runtime-validator.sh','exporter-validator.sh')},destination=str(public))
+        reqraw=bridge.encode(request);reqsha=q.sha(reqraw);case=work/reqsha;case.mkdir(mode=0o700)
+        (case/'request.json').write_bytes(reqraw);(case/'request.json').chmod(0o600)
+        import shutil
+        received=case/'received';received.mkdir(mode=0o700);shutil.copytree(public,received/'outputs')
+        result=dict(version=bridge.VERSION,requestSHA256=reqsha,role='primary',commit=f.packet['runtimeCommit'],sourceSHA256=f.source_pin,operation='light-files',exitCode=0,
+            outputs=bridge.catalog(received/'outputs'),sourceGrant=False,deployment=False,runtimeStarted=False,mathStartedUnixNanoseconds=None,mathFinishedUnixNanoseconds=None)
+        # Match the final source helper clock schema, never drop unexpected stdout.
+        resultpin=write(received/'RESULT.json',result)
+        write(case/'PUBLISHED.json',dict(requestSHA256=reqsha,resultSHA256=resultpin,received='received',destination=str(public),exitCode=0,reconciled=False,mathReexecuted=False))
+        return d,case,public,cap
+    def test_actual_publication_contract_keeps_exact_bytes_and_explicit_resume(self):
+        d,case,public,cap=self.public_capture()
+        got=q.received_source_proof(self.f.root,d,str(case));self.assertEqual(got['context']['expectedHeaderHeight'],'116')
+        self.assertEqual(got['proof']['requestSHA256'],q.sha((public/'delivery/request.json').read_bytes()))
+        self.assertEqual(got['exportSelection']['directory'],str(case))
+        self.assertFalse((self.f.root/'pq-continuation-attempt').exists())
+        resume=self.f.transition_root/'resume-attempt/primary.result.json';old=resume.read_bytes();resume.unlink()
+        with self.assertRaises(OSError):q.received_source_proof(self.f.root,d,str(case))
+        resume.write_bytes(old);resume.chmod(0o600)
+        (case/'PUBLISHED.json').unlink()
+        with self.assertRaises(ValueError):q.received_source_proof(self.f.root,d,str(case))
+    def test_capture_transport_source_role_or_public_bytes_change_refuses(self):
+        d,case,public,cap=self.public_capture()
+        material=public/'delivery/migration.json';before=material.read_bytes();material.write_bytes(b'changed')
+        with self.assertRaises(ValueError):q.received_source_proof(self.f.root,d,str(case))
+        material.write_bytes(before)
+        capfile=self.f.transition_root/'capture-attempt/primary.result.json';cap['role']='seoul';write(capfile,cap)
+        with self.assertRaises(ValueError):q.received_source_proof(self.f.root,d,str(case))
+    def test_resume_requires_exact_cold_checkpoint_and_retains_unknown(self):
+        b=self.binding();p=self.parent/'halt.json';p.write_bytes(b'ORIGINAL_PUBLIC_REQUEST');p.chmod(0o600)
+        b['phase']='resume';b['heightHaltControlPath']=str(p)
+        target=p.with_name(p.name+'.consumed-'+b['transitionId']);target.write_bytes(b'PRIOR_UNKNOWN')
+        before=p.read_bytes()
+        with self.assertRaises(ValueError):q.retain_consumed_halt(b,{},str(self.parent/'missing-checkpoint'))
+        self.assertEqual(p.read_bytes(),before);self.assertEqual(target.read_bytes(),b'PRIOR_UNKNOWN')
+    def test_normal_remote_scope_is_one_role_and_no_old_start_replay(self):
+        script=(HERE/'remote/public-bft-operator-transition.sh').read_text();capture=script.split('operator_light_capture_remote() {',1)[1]
+        self.assertEqual(capture.count('"$stage/bin/ynx-comet" export-light-source'),1)
+        self.assertIn('operator_transition_wait_height_halt',capture)
+        self.assertIn("q.retain_consumed_halt",capture)
+        self.assertNotIn('operator_transition_publish',capture)
+        self.assertNotIn('systemctl reset-failed',capture)
+        self.assertNotIn('systemctl stop "$unit"',capture)
+        self.assertIn('ExecMainStatus --value "$signer_unit")" == 0',capture)
+        local=(HERE/'public-bft-operator-transition.sh').read_text().split('operator_light_capture_driver() {',1)[1]
+        self.assertIn('[[ "$selected" == "$role" ]] || return 0',local)
+        self.assertIn('public_bft_package_call',local);self.assertIn('public_bft_linux_stage "$role" "transition-$phase"',local)
+
+    def test_normal_bridge_refuses_private_24field_context_before_any_material_read(self):
+        from unittest import mock
+        (self.parent/'legacy').mkdir(mode=0o700);f=Fixture(self.parent/'legacy');f.transition()
+        proof=f.packet['proof'];context=json.loads(Path(proof['trustContext']).read_bytes())
+        private=self.parent/'priv_validator_key.json';private.write_bytes(b'NO_REAL_PRIVATE_KEY');private.chmod(0o600)
+        context['scheduleFile']=str(private);proof['trustContextSHA256']=write(Path(proof['trustContext']),context)
+        f.packet_pin=write(f.packet_path,f.packet)
+        reads=[];original=q.original
+        def watched(path,*args,**kwargs):
+            reads.append(str(path));return original(path,*args,**kwargs)
+        with mock.patch.dict(os.environ,{'PUBLIC_BFT_LINUX_TOOL_ROLE':'primary'}),mock.patch.object(q,'original',side_effect=watched):
+            with self.assertRaisesRegex(ValueError,'before material reads'):q.continuation(*f.args())
+        self.assertNotIn(str(private),reads)
+        self.assertEqual(private.read_bytes(),b'NO_REAL_PRIVATE_KEY')
+    def cold_control(self):
+        b=self.binding();attempt=self.parent/'capture';attempt.mkdir(mode=0o700)
+        hrs=self.parent/'synthetic-HRS';hrs.write_bytes(b'NO_REAL_HRS');hrs.chmod(0o600)
+        halt=self.parent/'halt-request.json';halt.write_bytes(b'ORIGINAL_PUBLIC_HALT');halt.chmod(0o600)
+        (attempt/'halt-request.json').write_bytes(halt.read_bytes());(attempt/'halt-request.json').chmod(0o600)
+        b['sourcePlan']['signingStatePath']=str(hrs);b['heightHaltControlPath']=str(halt)
+        output=self.parent/'export';output.mkdir(mode=0o700);b['output']=str(output)
+        s=b['sourcePlan'];cp=dict(version='YNX-OPERATOR-CHECKPOINT/v1',height='116',appHash='7'*64,
+            committedScheduleHash=s['scheduleHash'],nextScheduleHash=None,readOnly=True,sourceReadOnly=True,
+            writerExcluded=True,signingWriterExcluded=True,engineCheckpointVerified=True,pqActivationVerified=False,
+            **{k:s[k] for k in ('chainId','consensusGenesisSHA256','originalGenesisHash','migrationStateHash','stateLayout')})
+        write(attempt/'checkpoint.json',cp);write(attempt/'checkpoint-after.json',cp)
+        write(attempt/'signing-metadata.json',q.signing_metadata(str(hrs)))
+        v=dict(classification='data',commitVerified=True,lightTransitionVerified=True,headerHeight='116',stateHeight='115')
+        r=dict(version='YNX-PQ-LIGHT-SOURCE-EXPORT/v1',planSHA256=b['sourcePlanSHA256'],engineHeight='116',engineAppHash='7'*64,
+               verification=v,publicDataOnly=True,sourceReadOnly=True,nativeRootAuthorized=False,deploymentVerified=False)
+        for kind,name in (('manifest','delivery.json'),('context','trust-context.json'),('request','request.json')):
+            r[kind+'Path']=str(output/name);r[kind+'SHA256']=write(output/name,dict(syntheticPublicControlOnly=True,name=name))
+        write(attempt/'export-receipt.json',r)
+        return b,attempt,hrs,halt
+    def test_capture_uses_actual_original_checkpoint_and_signing_metadata(self):
+        b,attempt,hrs,halt=self.cold_control();r=q.finish_capture(b,attempt)
+        self.assertEqual(r['signingStateIdentity'],q.signing_metadata(str(hrs)))
+        self.assertEqual(r['exportReceiptSHA256'],q.sha((attempt/'export-receipt.json').read_bytes()))
+        self.assertFalse(r['nativeRootAuthorized']);self.assertFalse(r['deploymentVerified'])
+        before=hrs.read_bytes();hrs.write_bytes(before+b'CHANGED')
+        with self.assertRaisesRegex(ValueError,'signing metadata changed'):q.finish_capture(b,attempt)
+        self.assertEqual(halt.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
+    def test_cold_resume_preserves_request_on_changed_state_and_uses_noreplace(self):
+        b,attempt,hrs,halt=self.cold_control();capture=q.finish_capture(b,attempt);b['phase']='resume'
+        checkpoint=attempt/'checkpoint-after.json';cp=json.loads(checkpoint.read_bytes());cp['appHash']='f'*64;write(checkpoint,cp)
+        with self.assertRaises(ValueError):q.retain_consumed_halt(b,capture,str(checkpoint))
+        self.assertEqual(halt.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
+        checkpoint.write_bytes((attempt/'checkpoint.json').read_bytes())
+        if sys.platform.startswith('linux'):
+            target=Path(q.retain_consumed_halt(b,capture,str(checkpoint)))
+            self.assertFalse(halt.exists());self.assertEqual(target.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
+            with self.assertRaises(ValueError):q.retain_consumed_halt(b,capture,str(checkpoint))
+            self.assertEqual(target.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
+        else:
+            with self.assertRaisesRegex(ValueError,'Linux NOREPLACE'):q.retain_consumed_halt(b,capture,str(checkpoint))
+            self.assertEqual(halt.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
+
+    def republish_control(self,case,public,cap,operation='light-files'):
+        # Re-pin only synthetic public DATA so the path negative reaches the
+        # real closed-path validator, not an earlier incidental hash failure.
+        import shutil
+        bridge=self.bridge;req=json.loads((case/'request.json').read_bytes())
+        cappin=write(self.f.transition_root/'capture-attempt/primary.result.json',cap);write(public/'capture-receipt.json',cap)
+        rp=self.f.transition_root/'resume-attempt/primary.result.json';resume=json.loads(rp.read_bytes())
+        resume.update({k:v for k,v in cap.items() if k not in ('phase','status')});resume['captureSHA256']=cappin;write(rp,resume)
+        req['operation']=operation;req['arguments']['captureReceiptSHA256']=cappin
+        reqraw=bridge.encode(req);reqsha=q.sha(reqraw);new=case.with_name(reqsha)
+        if new!=case:case.rename(new)
+        case=new;(case/'request.json').write_bytes(reqraw)
+        shutil.rmtree(case/'received/outputs');shutil.copytree(public,case/'received/outputs')
+        result=json.loads((case/'received/RESULT.json').read_bytes());result.update(requestSHA256=reqsha,operation=operation,outputs=bridge.catalog(case/'received/outputs'))
+        resultpin=write(case/'received/RESULT.json',result)
+        published=json.loads((case/'PUBLISHED.json').read_bytes());published.update(requestSHA256=reqsha,resultSHA256=resultpin);write(case/'PUBLISHED.json',published)
+        return case
+    def test_metadata_capture_is_closed_without_moving_large_state(self):
+        d,case,public,cap=self.public_capture()
+        for name in ('migration.json','genesis.json','committed-state.json','schedule.json'):(public/'delivery'/name).unlink()
+        case=self.republish_control(case,public,cap,'light-metadata')
+        got=q.received_source_proof(self.f.root,d,str(case))
+        self.assertEqual(got['stateHeight'],'115');self.assertFalse((public/'delivery/committed-state.json').exists())
+        self.assertEqual(got['proof']['trustContextSHA256'],q.sha((public/'delivery/trust-context.json').read_bytes()))
+    def test_recomputed_complete_metadata_private_context_rejected_before_read(self):
+        from unittest import mock
+        d,case,public,cap=self.public_capture();delivery=public/'delivery'
+        private=self.parent/'private-key-not-proof.json';private.write_bytes(b'NO_REAL_KEY');private.chmod(0o600)
+        context=json.loads((delivery/'trust-context.json').read_bytes());context['migrationFile']=str(private)
+        contextpin=write(delivery/'trust-context.json',context)
+        manifest=json.loads((delivery/'delivery.json').read_bytes())
+        for item in manifest['files']:
+            if item['name']=='trust-context.json':item.update(bytes=str((delivery/'trust-context.json').stat().st_size),sha256=contextpin)
+        cap['deliverySHA256']=write(delivery/'delivery.json',manifest)
+        export=json.loads((public/'export-receipt.json').read_bytes());export.update(manifestSHA256=cap['deliverySHA256'],contextSHA256=contextpin)
+        cap['exportReceiptSHA256']=write(public/'export-receipt.json',export)
+        case=self.republish_control(case,public,cap)
+        original_open=os.open;seen=[]
+        def guarded(path,*args,**kwargs):
+            if str(path)==str(private):seen.append(path);raise AssertionError('private body was opened before closure')
+            return original_open(path,*args,**kwargs)
+        with mock.patch.object(os,'open',side_effect=guarded):
+            with self.assertRaisesRegex(ValueError,'outside the actual original PUBLIC export'):q.received_source_proof(self.f.root,d,str(case))
+        self.assertEqual(seen,[])
+
+    def test_normal_cli_receives_only_completed_metadata_and_retains_request(self):
+        d,case,public,cap=self.public_capture()
+        for name in ('migration.json','genesis.json','committed-state.json','schedule.json'):(public/'delivery'/name).unlink()
+        case=self.republish_control(case,public,cap,'light-metadata')
+        attempt=self.f.root/'pq-continuation-attempt';attempt.mkdir(mode=0o700)
+        evidence=attempt/'evidence';evidence.mkdir(mode=0o700)
+        command=[sys.executable,'-B',str(HERE/'public-bft-quiet-continuation.py'),'proof-args','--transaction',str(self.f.root),
+                 '--plan',str(self.f.plan_path),'--plan-sha256',self.f.plan_pin,'--input',str(self.f.packet_path),'--input-sha256',self.f.packet_pin,
+                 '--export-receipt-dir',str(case),'--evidence',str(evidence)]
+        env=dict(os.environ,PUBLIC_BFT_LINUX_TOOL_ROLE='primary')
+        child=subprocess.run(command,capture_output=True,text=True,env=env,timeout=10)
+        self.assertEqual(child.returncode,0,child.stderr);values=child.stdout.splitlines();self.assertEqual(len(values),4)
+        self.assertEqual(Path(values[2]).read_bytes(),(public/'delivery/request.json').read_bytes())
+        self.assertEqual(values[3],q.sha(Path(values[2]).read_bytes()))
+        self.assertEqual(json.loads((attempt/'export-selection.json').read_bytes())['directory'],str(case))
+        for role in q.ROLES:
+            block=dict(block=dict(header=dict(height='116')),block_id=dict(hash='6'*64))
+            write(evidence/(role+'.json'),self.f.observation(role,height=116,block=block))
+            (evidence/(role+'.binding.json')).write_bytes((self.f.transition_root/'start-attempt'/(role+'.binding.json')).read_bytes())
+        exported=json.loads((public/'export-receipt.json').read_bytes())
+        write(evidence/'light.proof-result.json',dict(version='YNX-CONSENSUS-PROOF-VERIFY-RESULT/v1',code='VERIFIED_DATA',result=exported['verification']))
+        result=q.verify_results(*self.f.args(),str(evidence))
+        self.assertEqual(result['stateHeight'],'115');self.assertFalse(result['authorityGranted'])
+        saved=(evidence/'light.proof-request.json').read_bytes()
+        child=subprocess.run(command,capture_output=True,text=True,env=env,timeout=10)
+        self.assertNotEqual(child.returncode,0);self.assertEqual((evidence/'light.proof-request.json').read_bytes(),saved)
+
+    def test_lost_ack_same_original_result_is_retained_without_reexecution(self):
+        d,case,public,cap=self.public_capture();b=self.binding()
+        binding=self.parent/'binding.json';write(binding,b)
+        received=self.parent/'received.raw';received.write_bytes(raw(cap));received.chmod(0o600)
+        target=self.parent/'completed.json'
+        q.retain_capture_result(str(binding),str(received),str(target))
+        st=target.stat();self.assertEqual(target.read_bytes(),received.read_bytes());self.assertEqual(st.st_mode&0o777,0o600)
+        q.retain_capture_result(str(binding),str(received),str(target))
+        self.assertEqual(target.stat().st_ino,st.st_ino)
+        self.assertEqual(target.read_bytes(),received.read_bytes())
+        different=dict(cap,checkpointSHA256='e'*64);write(received,different)
+        with self.assertRaisesRegex(ValueError,'preserve UNKNOWN'):q.retain_capture_result(str(binding),str(received),str(target))
+        self.assertEqual(target.read_bytes(),raw(cap))
+        changed=dict(cap,runtimeCommit='f'*40);write(received,changed)
+        with self.assertRaisesRegex(ValueError,'correlation changed'):q.retain_capture_result(str(binding),str(received),str(self.parent/'wrong-source.json'))
+        self.assertFalse((self.parent/'wrong-source.json').exists())
+        received.write_bytes(raw(cap)[:-3])
+        with self.assertRaises(ValueError):q.retain_capture_result(str(binding),str(received),str(self.parent/'partial.json'))
+        self.assertFalse((self.parent/'partial.json').exists());self.assertEqual(target.read_bytes(),raw(cap))
+    def test_actual_remote_phase_projection_rechecks_approval_source_and_start(self):
+        b=self.binding();binding=self.parent/'binding.json';write(binding,b)
+        args=[str(binding),str(self.approval_path),str(self.f.runtime/'SOURCE.json'),str(self.f.current_package),
+              str(self.source_path),str(self.f.transition_root/'start-attempt/primary.result.json'),str(self.f.root/'approval.json')]
+        self.assertEqual(q.remote_capture_inputs(*args),b)
+        before=Path(args[-2]).read_bytes();v=json.loads(before);v['role']='seoul';write(Path(args[-2]),v)
+        with self.assertRaises(ValueError):q.remote_capture_inputs(*args)
+        Path(args[-2]).write_bytes(before)
+        old=self.source_path.read_bytes();self.source_path.write_bytes(old+b' ')
+        with self.assertRaises(ValueError):q.remote_capture_inputs(*args)
+        self.source_path.write_bytes(old)
+        a=dict(self.approval,expiresAt='2000-01-01T00:00:00Z');b['expiresAt']=a['expiresAt'];b['approvalSHA256']=write(self.approval_path,a);write(binding,b)
+        with self.assertRaisesRegex(ValueError,'expired'):q.remote_capture_inputs(*args)
+        self.approval_pin=write(self.approval_path,self.approval);b['approvalSHA256']=self.approval_pin;b['expiresAt']=self.approval['expiresAt']
+        cutover=dict(self.f.a,expiresAt='2000-01-01T00:00:00Z');b['cutoverApprovalSHA256']=write(self.f.root/'approval.json',cutover);b['cutoverExpiresAt']=cutover['expiresAt'];write(binding,b)
+        with self.assertRaisesRegex(ValueError,'original cutover approval expired'):q.remote_capture_inputs(*args)
+    def test_portable_local_fsync_and_readonly_reconcile_never_dispatch_math(self):
+        file=self.parent/'durable.raw';file.write_bytes(b'ORIGINAL PUBLIC BYTES');file.chmod(0o600)
+        env=dict(os.environ);env['PATH']=str(Path(sys.executable).parent)+os.pathsep+env['PATH']
+        script=HERE/'public-bft-operator-transition.sh'
+        result=subprocess.run(['bash','-c','source "$1"; operator_transition_sync "$2" "$3"','test',str(script),str(file),str(self.parent)],env=env,capture_output=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertEqual(file.read_bytes(),b'ORIGINAL PUBLIC BYTES')
+        link=self.parent/'alias';link.symlink_to(file)
+        result=subprocess.run(['bash','-c','source "$1"; operator_transition_sync "$2"','test',str(script),str(link)],env=env,capture_output=True,timeout=10)
+        self.assertNotEqual(result.returncode,0);self.assertEqual(file.read_bytes(),b'ORIGINAL PUBLIC BYTES')
+        text=script.read_text();self.assertNotIn('sync -f',text)
+        reconcile=text.split('operator_light_reconcile_driver() {',1)[1].split('if [[ "${BASH_SOURCE[0]}" == "$0" ]]',1)[0]
+        for forbidden in ('systemctl','export-light-source','public_bft_package_call','public_bft_linux_tool','operator_light_capture_remote'):
+            self.assertNotIn(forbidden,reconcile)
+        self.assertIn('q.retain_capture_result',reconcile);self.assertIn('os.O_NOFOLLOW',reconcile)
+        self.assertIn('phase-attempt/result.json',reconcile)
 
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--fixture':

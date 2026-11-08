@@ -26,6 +26,11 @@ CONTEXT_FIELDS = set(('version chainId migrationFile genesisFile stateFile sched
     'originalGenesisHash migrationStateHash runtimePlanFile runtimePlanHash engineHeight engineAppHash expectedHeaderHeight '
     'expectedBlockHash expectedStateHeight expectedStateAppHash trustedLightBlockFile trustedLightBlockSHA256 '
     'trustingPeriodNanoseconds maxClockDriftNanoseconds trustLevelNumerator trustLevelDenominator').split())
+SOURCE_PROFILE = 'YNX-QUIET-PQ-PROOF-SOURCE/v1'
+SOURCE_PLAN_FIELDS = set(('version chainId headerHeight migrationFile migrationSHA256 genesisFile consensusGenesisSHA256 '
+    'originalGenesisHash migrationStateHash stateFile stateLayout cometDataDirectory signingStatePath signingLockKind '
+    'scheduleFile scheduleHash scheduleSHA256 runtimePlanFile runtimePlanHash runtimePlanSHA256 engineHeight engineAppHash '
+    'trustedHeight trustedBlockHash trustingPeriodNanoseconds maxClockDriftNanoseconds trustLevelNumerator trustLevelDenominator').split())
 
 def need(ok, message):
     if not ok:
@@ -204,6 +209,61 @@ def paused(root, plan_pin):
     need(sha(ready) == p['readySHA256'], 'original quiet ready changed')
     return p
 
+def source_proof_selection(root, packet, plan, schedule, proof):
+    """Bind the existing stopped exporter inputs; never export or grant here."""
+    need(set(proof) == {'version', 'role', 'sourcePlan', 'sourcePlanSHA256', 'output'} and
+         proof['version'] == SOURCE_PROFILE and proof['role'] in ROLES,
+         'closed original normal light source selection required')
+    need(all(type(v) is str for v in proof.values()), 'normal light source scalars required')
+    role = proof['role']
+    need(proof['output'] == '/var/tmp/ynx-public-light-' + root.name + '-' + role + '/delivery',
+         'fixed same-operation role public output required')
+    source, _ = load(proof['sourcePlan'], proof['sourcePlanSHA256'], 32 << 10)
+    need(type(source) is dict and set(source) == SOURCE_PLAN_FIELDS and all(type(v) is str for v in source.values()) and
+         source['version'] == 'YNX-PQ-LIGHT-SOURCE-PLAN/v1', 'complete original light source plan required')
+    for key in ('chainId', 'consensusGenesisSHA256', 'originalGenesisHash', 'migrationStateHash',
+                'stateLayout', 'runtimePlanHash'):
+        need(source[key] == plan[key], 'light source differs from approved target: ' + key)
+    need(source['scheduleHash'] == plan['pqScheduleHash'] and
+         source['scheduleSHA256'] == sha(base64.b64decode(plan['pqSchedule'], validate=True)),
+         'light source schedule differs from approved exact bytes')
+    selected = next(v for v in plan['roles'] if v['role'] == role)
+    config = '/var/lib/ynx-chain/consensus-candidate/config/'
+    need(source['stateFile'] == selected['abciState'] and
+         source['cometDataDirectory'] == selected['home'] + '/data' and
+         source['migrationFile'] == config + 'bound-migration.json' and
+         source['genesisFile'] in (config + 'genesis.json', selected['home'] + '/config/genesis.json') and
+         source['scheduleFile'] == config + 'pq-engine-schedule.json',
+         'light source paths differ from the selected original role')
+    # The original package was separately verified by the normal driver. Bind
+    # its whole public migration bytes, not an incoming summary or a new root.
+    migration = Path(packet['currentPackage']) / 'roles' / role / 'config/bound-migration.json'
+    need(source['migrationSHA256'] == digest_original(migration, 1 << 30),
+         'light source differs from complete approved package migration')
+    runtime = base64.b64decode(plan['runtimePlan'], validate=True) if plan['runtimePlan'] else b''
+    need((source['runtimePlanFile'], source['runtimePlanSHA256']) ==
+         ((config + 'runtime-plan.json', sha(runtime)) if runtime else ('', '')),
+         'light source runtime differs from approved exact bytes')
+    signing = source['signingStatePath']
+    need(signing.startswith('/') and str(Path(signing)) == signing and '..' not in Path(signing).parts and
+         not any(ord(ch) < 32 for ch in signing) and source['signingLockKind'] == 'pq-signer' and
+         signing not in {selected[k] for k in ('abciState', 'legacyKeyPath', 'legacyStatePath', 'nodeKeyPath')} and
+         signing != selected.get('transportKeyPath'), 'original separate PQ signing lock identity required')
+    for key in ('engineHeight', 'headerHeight', 'trustedHeight', 'trustingPeriodNanoseconds',
+                'trustLevelNumerator', 'trustLevelDenominator'):
+        need(decimal(source[key]), 'canonical bounded light source coordinate required: ' + key)
+    drift = source['maxClockDriftNanoseconds']
+    need(drift == '0' or decimal(drift), 'canonical light clock drift required')
+    for key in ('engineAppHash', 'trustedBlockHash', 'migrationSHA256', 'consensusGenesisSHA256',
+                'originalGenesisHash', 'migrationStateHash', 'scheduleHash', 'scheduleSHA256'):
+        need(pin(source[key]), 'complete independent light source pin required: ' + key)
+    height = int(source['headerHeight'])
+    need(int(source['trustedHeight']) < height <= int(source['engineHeight']) and height > schedule['activationHeight'],
+         'source target must include the committed active PQ state')
+    # Fraction semantics, registry, store locks, all signatures and the real
+    # verification clock stay in the original Go exporter and verifier.
+    return {'proofSource': proof, 'sourcePlan': source, 'headerHeight': str(height), 'stateHeight': str(height - 1)}
+
 def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_pin):
     root = private_root(root_path)
     old = selected_plan(bootstrap_path, bootstrap_pin)
@@ -275,7 +335,12 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
              binding.get('checkpoint') == cp, 'original start binding differs')
         evidence[role] = {'transition': entries, 'bindingSHA256': sha(binding_raw)}
     proof = c['proof']
+    if type(proof) is dict and proof.get('version') == SOURCE_PROFILE:
+        selected = source_proof_selection(root, c, new, schedule, proof)
+        return {'input': c, 'inputSHA256': sha(raw), 'pause': stopped, 'plan': new, 'schedule': schedule,
+                'roles': evidence, **selected}
     need(type(proof) is dict and set(proof) == {'trustContext', 'trustContextSHA256', 'request', 'requestSHA256'}, 'closed proof selection required')
+    need(not os.environ.get('PUBLIC_BFT_LINUX_TOOL_ROLE'), 'remote public proof requires original normal capture provenance before material reads')
     context, _ = load(proof['trustContext'], proof['trustContextSHA256'], 32 << 10)
     need(set(context) == CONTEXT_FIELDS and all(type(v) is str for v in context.values()) and context['version'] == 'YNX-CONSENSUS-PROOF-TRUST/v1', 'original light trust context required')
     for key in ('chainId', 'consensusGenesisSHA256', 'originalGenesisHash', 'migrationStateHash', 'runtimePlanHash'):
@@ -292,6 +357,372 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
          request['expected'] == dict(chainId=new['chainId'], headerHeight=target[0], blockHash=target[1], stateHeight=target[2], stateAppHash=target[3]), 'original proof target differs')
     return {'input': c, 'inputSHA256': sha(raw), 'pause': stopped, 'plan': new, 'schedule': schedule, 'roles': evidence,
             'proof': proof, 'context': context, 'headerHeight': target[0], 'blockHash': target[1], 'stateHeight': target[2], 'stateAppHash': target[3]}
+
+def capture_binding(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_pin,
+                    approval_path, approval_pin, phase, runtime):
+    """Select one actual normal operator action under the retained approval."""
+    need(phase in ('capture', 'resume'), 'explicit capture or resume phase required')
+    data = continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_pin)
+    need('proofSource' in data, 'source-plan profile required for cold capture')
+    root = private_root(root_path)
+    cutover,cutover_raw=approval(root)
+    packet, plan, source = data['input'], data['plan'], data['sourcePlan']
+    proof = data['proofSource']; role = proof['role']
+    selected = next(v for v in plan['roles'] if v['role'] == role)
+    session = plan.get('heightHaltSessionId', '')
+    control = str(Path(selected['abciState']).parent / ('operator-height-halt-' + session + '.json'))
+    need(pin(session) and selected.get('heightHaltControlPath') == control,
+         'capture requires the independently preconfigured current height-halt session')
+    host = selected.get('hostBinding')
+    need(type(host) is dict and host.get('SignerStatePath') == source['signingStatePath'] and
+         host.get('Policy', {}).get('ChainID') == plan['chainId'], 'source signer must be the original current host binding')
+    a, _ = load(approval_path, approval_pin, 1 << 20)
+    fields = {'version', 'phase', 'approved', 'transitionId', 'cutoverTransactionId', 'role',
+              'operatorPlanSHA256', 'runtimeCommit', 'runtimeManifestSHA256', 'inputSHA256',
+              'sourcePlanSHA256', 'output', 'expiresAt', 'captureSHA256'}
+    need(type(a) is dict and set(a) == fields and a['version'] == 'YNX-OPERATOR-LIGHT-CAPTURE-APPROVAL/v1' and
+         a['phase'] == phase and a['approved'] is True, 'complete independently pinned phase approval required')
+    expected = dict(transitionId=packet['transitionId'], cutoverTransactionId=root.name, role=role,
+                    operatorPlanSHA256=packet['currentOperatorPlanSHA256'], runtimeCommit=packet['runtimeCommit'],
+                    runtimeManifestSHA256=packet['runtimeManifestSHA256'], inputSHA256=packet_pin,
+                    sourcePlanSHA256=proof['sourcePlanSHA256'], output=proof['output'])
+    need(all(a[k] == v for k, v in expected.items()), 'capture approval differs from the original operation/source/role')
+    expires = datetime.datetime.fromisoformat(a['expiresAt'].replace('Z', '+00:00'))
+    need(expires.tzinfo is not None and expires > datetime.datetime.now(datetime.timezone.utc), 'capture phase approval expired')
+    need(a['captureSHA256'] is None if phase == 'capture' else pin(a['captureSHA256']), 'resume must pin the completed original capture')
+    src, _ = load(Path(runtime) / 'SOURCE.json', packet['runtimeManifestSHA256'], 1 << 20)
+    need(src['commit'] == packet['runtimeCommit'] and src.get('platform') == 'linux/amd64', 'normal exact Linux runtime required')
+    binaries = {k: src['binaries'][k]['sha256'] for k in
+                ('ynx-comet', 'ynx-consensus-package', 'ynx-consensus-keycheck', 'ynx-consensus-pq-remote-signer')}
+    need(all(pin(v) for v in binaries.values()), 'complete actual runtime binary pins required')
+    capture_root = '/var/lib/ynx-chain/operator-transitions/' + root.name + '/' + role + '/capture-attempt'
+    binding = dict(version='YNX-OPERATOR-LIGHT-CAPTURE-BINDING/v1', phase=phase, **expected,
+                   approvalSHA256=approval_pin, expiresAt=a['expiresAt'], captureSHA256=a['captureSHA256'],
+                   cutoverApprovalSHA256=sha(cutover_raw),cutoverExpiresAt=cutover['expiresAt'],
+                   captureRoot=capture_root, originalRole=selected, sourcePlan=source, binarySHA256=binaries,
+                   originalStartSHA256=data['roles'][role]['transition']['start']['sha256'],
+                   originalStartBindingSHA256=data['roles'][role]['bindingSHA256'],
+                   heightHaltSessionId=session, heightHaltControlPath=control,
+                   freezeSHA256=data['roles'][role]['transition']['start']['value']['freezeSHA256'],
+                   nativePauseSHA256=data['roles'][role]['transition']['start']['value']['nativePauseSHA256'])
+    if phase == 'resume':
+        receipt, receipt_raw = load(Path(packet['transitionRoot']) / 'capture-attempt' / (role + '.result.json'),
+                                    a['captureSHA256'], 1 << 20)
+        validate_capture_receipt(data, receipt, receipt_raw)
+    return binding
+
+CAPTURE_FIELDS = set(('version phase status transitionId cutoverTransactionId role runtimeCommit runtimeManifestSHA256 '
+    'operatorPlanSHA256 inputSHA256 sourcePlanSHA256 captureApprovalSHA256 engineHeight engineAppHash headerHeight '
+    'stateHeight captureRoot output checkpointSHA256 haltRequestSHA256 signingStateIdentity exportReceiptSHA256 '
+    'deliverySHA256 originalMaterialRetained sourceReadOnly nativeRootAuthorized deploymentVerified').split())
+
+def validate_capture_receipt(data, receipt, raw):
+    proof, packet, source = data['proofSource'], data['input'], data['sourcePlan']
+    need(type(receipt) is dict and set(receipt) == CAPTURE_FIELDS and
+         receipt['version'] == 'YNX-OPERATOR-LIGHT-CAPTURE-RESULT/v1' and receipt['phase'] == 'capture' and
+         receipt['status'] == 'stopped_exported', 'complete original cold capture result required')
+    expected = dict(transitionId=packet['transitionId'], cutoverTransactionId=packet['transactionId'], role=proof['role'],
+                    runtimeCommit=packet['runtimeCommit'], runtimeManifestSHA256=packet['runtimeManifestSHA256'],
+                    operatorPlanSHA256=packet['currentOperatorPlanSHA256'], inputSHA256=data['inputSHA256'],
+                    sourcePlanSHA256=proof['sourcePlanSHA256'], output=proof['output'],
+                    engineHeight=source['engineHeight'], engineAppHash=source['engineAppHash'],
+                    headerHeight=source['headerHeight'], stateHeight=str(int(source['headerHeight'])-1),
+                    captureRoot='/var/lib/ynx-chain/operator-transitions/' + packet['transitionId'] + '/' + proof['role'] + '/capture-attempt')
+    need(all(receipt[k] == v for k, v in expected.items()), 'capture receipt source/role/operation/target mismatch')
+    need(receipt['originalMaterialRetained'] is True and receipt['sourceReadOnly'] is True and
+         receipt['nativeRootAuthorized'] is False and receipt['deploymentVerified'] is False, 'capture DATA boundary changed')
+    for key in ('captureApprovalSHA256', 'checkpointSHA256', 'haltRequestSHA256', 'exportReceiptSHA256', 'deliverySHA256'):
+        need(pin(receipt[key]), 'capture original pin missing: ' + key)
+    need(type(receipt['signingStateIdentity']) is dict and set(receipt['signingStateIdentity']) ==
+         {'device','inode','mode','uid','gid','bytes','mtimeNs','ctimeNs'} and
+         all(type(v) is str and re.fullmatch('[0-9]+', v) for v in receipt['signingStateIdentity'].values()),
+         'original signing metadata identity required; never a private HRS body')
+    return receipt
+
+def validate_capture_transition_result(b, r):
+    extra={'resumeApprovalSHA256','captureSHA256','currentProcess','signerProcess'} if b['phase']=='resume' else set()
+    need(type(r) is dict and set(r)==CAPTURE_FIELDS|extra and r['version']=='YNX-OPERATOR-LIGHT-CAPTURE-RESULT/v1' and
+         r['phase']==b['phase'] and r['status']==('stopped_exported' if b['phase']=='capture' else 'resumed_activation_unproven'),
+         'complete original capture phase result required')
+    for key in ('transitionId','cutoverTransactionId','role','runtimeCommit','runtimeManifestSHA256','operatorPlanSHA256',
+                'inputSHA256','sourcePlanSHA256','captureRoot','output'):
+        need(r[key]==b[key],'original capture phase correlation changed: '+key)
+    for key in ('engineHeight','engineAppHash','headerHeight'):
+        need(r[key]==b['sourcePlan'][key],'original capture coordinate changed')
+    need(r['stateHeight']==str(int(b['sourcePlan']['headerHeight'])-1) and r['originalMaterialRetained'] is True and
+         r['sourceReadOnly'] is True and r['nativeRootAuthorized'] is False and r['deploymentVerified'] is False,
+         'original capture DATA boundary changed')
+    for key in ('captureApprovalSHA256','checkpointSHA256','haltRequestSHA256','exportReceiptSHA256','deliverySHA256'):
+        need(pin(r[key]),'missing original capture pin')
+    need(type(r['signingStateIdentity']) is dict and set(r['signingStateIdentity']) ==
+         {'device','inode','mode','uid','gid','bytes','mtimeNs','ctimeNs'} and
+         all(type(v) is str and re.fullmatch('[0-9]+',v) for v in r['signingStateIdentity'].values()),
+         'original signing metadata only; no private HRS body')
+    if b['phase']=='capture':need(r['captureApprovalSHA256']==b['approvalSHA256'],'capture approval changed')
+    else:
+        need(r['captureSHA256']==b['captureSHA256'] and r['resumeApprovalSHA256']==b['approvalSHA256'], 'original resume approval/capture changed')
+        for process in (r['currentProcess'],r['signerProcess']):
+            need(type(process) is dict and decimal(process.get('mainPid')) and decimal(process.get('startTicks')), 'original resumed physical process required')
+    return r
+
+
+def retain_capture_result(binding_path, raw_path, target_path):
+    b,_=load(binding_path,limit=1<<20);r,raw=load(raw_path,limit=1<<20);validate_capture_transition_result(b,r)
+    target=Path(target_path)
+    if os.path.lexists(target):
+        need(original(str(target),1<<20)==raw,'existing original result differs; preserve UNKNOWN')
+        return
+    fd=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+    try:
+        with os.fdopen(fd,'wb',closefd=False) as f:f.write(raw);f.flush()
+        os.fsync(fd)
+    finally:os.close(fd)
+    fsync_dir(target.parent)
+
+def capture_signer_identity(binding, running):
+    import subprocess
+    unit='ynx-consensus-pq-remote-signer.service'
+    config='/etc/ynx/consensus-pq-remote-signer.conf'
+    launcher='/usr/local/libexec/ynx-consensus-pq-remote-signer-launch'
+    binary='/usr/local/libexec/ynx-consensus-pq-remote-signer'
+    unit_file='/etc/systemd/system/'+unit
+    def show(key):
+        return subprocess.check_output(['/usr/bin/systemctl','show','--property',key,'--value',unit],timeout=5,text=True).strip()
+    for fixed in (config,launcher,binary,unit_file):
+        f=Path(fixed);st=f.lstat()
+        need(str(f.resolve(strict=True))==fixed and stat.S_ISREG(st.st_mode) and st.st_nlink==1 and st.st_uid==0 and not st.st_mode&0o022,
+             'original root-owned signer public installation required')
+    need(show('FragmentPath')==unit_file and show('DropInPaths')=='' and
+         'path='+launcher+' ;' in show('ExecStart') and show('User')=='ynx-pq-signer', 'original signer service identity differs')
+    c, confraw=load(config,limit=16<<10)
+    role=binding['originalRole'];source=binding['sourcePlan']
+    expected=dict(schema='ynx-pq-remote-service-v1',binary=binary,binarySHA256=binding['binarySHA256']['ynx-consensus-pq-remote-signer'],
+                  abciState=role['abciState'],legacyKey=role['legacyKeyPath'],legacyState=role['legacyStatePath'],
+                  pqState=source['signingStatePath'],listen=role['remoteSigner'],scheduleHash=source['scheduleHash'],
+                  cometGenesisSHA256=source['consensusGenesisSHA256'],originalGenesisHash=source['originalGenesisHash'],
+                  migrationStateHash=source['migrationStateHash'],runtimePlanHash=source['runtimePlanHash'])
+    need(all(c.get(k)==v for k,v in expected.items()), 'original signer/current operator configuration differs')
+    need(digest_original(binary,128<<20)==expected['binarySHA256'],'installed signer binary differs from exact SOURCE')
+    result=dict(configSHA256=sha(confraw),unitSHA256=digest_original(unit_file,1<<20),
+                launcherSHA256=digest_original(launcher,1<<20),binarySHA256=expected['binarySHA256'])
+    if running:
+        pid=show('MainPID');need(show('ActiveState')=='active' and decimal(pid),'original signer is not running')
+        proc=Path('/proc')/pid
+        def ticks():return (proc/'stat').read_text().rsplit(')',1)[1].split()[19]
+        start=ticks();need(os.readlink(proc/'exe')==binary,'signer executable identity differs')
+        # /proc/exe is intentionally kernel-selected; never treat it as an
+        # arbitrary proof material path or put argv/credential data in output.
+        with (proc/'exe').open('rb') as f:
+            h=hashlib.file_digest(f,'sha256').hexdigest()
+        need(h==expected['binarySHA256'],'actual signer executable differs')
+        args=(proc/'cmdline').read_bytes().split(b'\0');need(args[-1]==b'' and args[0]==binary.encode(),'original signer argv required')
+        words=[v.decode('utf-8') for v in args[:-1]]
+        for flag,value in [('--abci-state',role['abciState']),('--legacy-state',role['legacyStatePath']),
+                           ('--pq-engine-schedule-hash',source['scheduleHash']),('--pq-host-key-binding',c['binding']),
+                           ('--listen',role['remoteSigner']),('--recovery-fd','3')]:
+            need(words.count(flag)==1 and words[words.index(flag)+1]==value,'original signer argument differs: '+flag)
+        group=show('ControlGroup');need(group.startswith('/') and '..' not in Path(group).parts,'original signer cgroup required')
+        need(pid in (Path('/sys/fs/cgroup'+group)/'cgroup.procs').read_text().splitlines() and ticks()==start and show('MainPID')==pid,
+             'signer changed during observation')
+        need(show('ExecMainPID')==pid and decimal(show('ExecMainStartTimestampMonotonic')), 'original signer invocation coordinates required')
+        result.update(mainPid=pid,startTicks=start,invocationId=show('InvocationID'),execMainStartTimestampMonotonic=show('ExecMainStartTimestampMonotonic'))
+    else:
+        need(show('ActiveState')=='inactive' and show('MainPID')=='0','original signer has not stopped')
+    return result
+
+def remote_capture_inputs(binding_path, approval_path, source_path, package_path, plan_path, start_path, cutover_path):
+    """Recheck the staged public bindings against original installed-operation records."""
+    b, _ = load(binding_path, limit=1 << 20)
+    need(b['version'] == 'YNX-OPERATOR-LIGHT-CAPTURE-BINDING/v1' and b['phase'] in ('capture', 'resume'), 'fixed capture binding required')
+    a, _ = load(approval_path, b['approvalSHA256'], 1 << 20)
+    need(a['version'] == 'YNX-OPERATOR-LIGHT-CAPTURE-APPROVAL/v1' and a['approved'] is True and
+         a['phase'] == b['phase'] and all(a[k] == b[k] for k in a if k not in ('version','approved')), 'original explicit phase approval changed')
+    expires = datetime.datetime.fromisoformat(b['expiresAt'].replace('Z', '+00:00'))
+    need(expires.tzinfo is not None and expires > datetime.datetime.now(datetime.timezone.utc), 'phase approval expired')
+    original_cutover,_=load(cutover_path,b['cutoverApprovalSHA256'],1<<20)
+    need(original_cutover['expiresAt']==b['cutoverExpiresAt'] and original_cutover['approved'] is True,'original cutover approval changed')
+    cutoff=datetime.datetime.fromisoformat(b['cutoverExpiresAt'].replace('Z','+00:00'))
+    need(cutoff.tzinfo is not None and cutoff>datetime.datetime.now(datetime.timezone.utc),'original cutover approval expired; preserve UNKNOWN')
+    src, _ = load(source_path, b['runtimeManifestSHA256'], 1 << 20)
+    need(src['commit'] == b['runtimeCommit'] and src['platform'] == 'linux/amd64' and
+         all(src['binaries'][k]['sha256'] == v for k,v in b['binarySHA256'].items()), 'actual runtime differs')
+    p, _ = load(Path(package_path)/'common/operator-plan.json', b['operatorPlanSHA256'])
+    s, _ = load(plan_path, b['sourcePlanSHA256'], 32 << 10)
+    need(s == b['sourcePlan'] and set(s) == SOURCE_PLAN_FIELDS, 'original source plan changed')
+    roles = {r['role']:r for r in p['roles']}
+    need(len(p['roles']) == 4 and set(roles) == set(ROLES) and roles[b['role']] == b['originalRole'], 'original role changed')
+    need(not p.get('bootstrapRegistrationMode') and p['heightHaltSessionId'] == b['heightHaltSessionId'] and
+         roles[b['role']]['heightHaltControlPath'] == b['heightHaltControlPath'], 'current normal profile changed')
+    need(s['signingStatePath'] == b['originalRole']['hostBinding']['SignerStatePath'], 'original signer binding changed')
+    old, _ = load(start_path, b['originalStartSHA256'], 1 << 20)
+    need(old['status'] == 'started_activation_unproven' and old['phase'] == 'start' and
+         old['nextOperatorPlanSHA256'] == b['operatorPlanSHA256'] and old['runtimeCommit'] == b['runtimeCommit'] and
+         old['runtimeManifestSHA256'] == b['runtimeManifestSHA256'] and old['role'] == b['role'] and
+         old['transitionId'] == b['transitionId'], 'actual original transition start required')
+    need(b['transitionId'] == b['cutoverTransactionId'] and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._-]{7,127}', b['transitionId']), 'same original operation required')
+    need(b['captureRoot'] == '/var/lib/ynx-chain/operator-transitions/'+b['transitionId']+'/'+b['role']+'/capture-attempt' and
+         b['output'] == '/var/tmp/ynx-public-light-'+b['transitionId']+'-'+b['role']+'/delivery', 'fixed original output required')
+    return b
+
+
+def signing_metadata(path):
+    p = Path(path); st = p.lstat()
+    need(str(p.resolve(strict=True)) == str(p) and stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode) == 0o600 and
+         st.st_nlink == 1 and st.st_size > 0, 'original single-link private signing state required')
+    return dict(zip(('device','inode','mode','uid','gid','bytes','mtimeNs','ctimeNs'),
+                    map(str,(st.st_dev,st.st_ino,st.st_mode,st.st_uid,st.st_gid,st.st_size,st.st_mtime_ns,st.st_ctime_ns))))
+
+
+def check_capture_checkpoint(binding, path):
+    c, raw = load(path, limit=1 << 20); s = binding['sourcePlan']
+    need(c['version'] == 'YNX-OPERATOR-CHECKPOINT/v1' and all(c[k] is True for k in
+         ('readOnly','sourceReadOnly','writerExcluded','signingWriterExcluded','engineCheckpointVerified')) and
+         c['pqActivationVerified'] is False, 'actual full stopped checkpoint required')
+    for key in ('chainId','consensusGenesisSHA256','originalGenesisHash','migrationStateHash','stateLayout'):
+        need(c[key] == s[key], 'actual checkpoint source differs: '+key)
+    need(str(c['height']) == s['engineHeight'] and c['appHash'] == s['engineAppHash'] and
+         c['committedScheduleHash'] == s['scheduleHash'] and c['nextScheduleHash'] is None,
+         'actual stopped committed schedule/H/AppHash differs')
+    return c, raw
+
+
+def finish_capture(binding, attempt):
+    p = Path(attempt); s = binding['sourcePlan']
+    _, cp = check_capture_checkpoint(binding, p/'checkpoint.json')
+    _, after = check_capture_checkpoint(binding, p/'checkpoint-after.json')
+    need(cp == after, 'original checkpoint changed during export')
+    before, _ = load(p/'signing-metadata.json', limit=4096)
+    need(before == signing_metadata(s['signingStatePath']), 'original signing metadata changed during export')
+    r, raw = load(p/'export-receipt.json', limit=1 << 20)
+    fields = {'version','planSHA256','manifestPath','manifestSHA256','contextPath','contextSHA256','requestPath','requestSHA256',
+              'engineHeight','engineAppHash','verification','publicDataOnly','sourceReadOnly','nativeRootAuthorized','deploymentVerified'}
+    need(set(r) == fields and r['version'] == 'YNX-PQ-LIGHT-SOURCE-EXPORT/v1' and r['planSHA256'] == binding['sourcePlanSHA256'],
+         'original successful Go export receipt required')
+    need(r['publicDataOnly'] is True and r['sourceReadOnly'] is True and r['nativeRootAuthorized'] is False and r['deploymentVerified'] is False,
+         'normal exporter DATA scope changed')
+    output = binding['output']
+    for key,name in (('manifest','delivery.json'),('context','trust-context.json'),('request','request.json')):
+        need(r[key+'Path'] == output+'/'+name and digest_original(Path(output)/name,16<<20) == r[key+'SHA256'], 'actual export output changed')
+    need(str(r['engineHeight']) == s['engineHeight'] and r['engineAppHash'] == s['engineAppHash'], 'actual export checkpoint changed')
+    v = r['verification']
+    need(v['classification'] == 'data' and v['commitVerified'] is True and v['lightTransitionVerified'] is True and
+         str(v['headerHeight']) == s['headerHeight'] and str(v['stateHeight']) == str(int(s['headerHeight'])-1), 'actual full AND light verification required')
+    request_raw = original(binding['heightHaltControlPath'], 4096)
+    need(request_raw == original(str(p/'halt-request.json'),4096), 'original consumed halt request changed')
+    return dict(version='YNX-OPERATOR-LIGHT-CAPTURE-RESULT/v1',phase='capture',status='stopped_exported',
+        **{k:binding[k] for k in ('transitionId','cutoverTransactionId','role','runtimeCommit','runtimeManifestSHA256','operatorPlanSHA256',
+                                 'inputSHA256','sourcePlanSHA256','captureRoot','output')},
+        captureApprovalSHA256=binding['approvalSHA256'],engineHeight=s['engineHeight'],engineAppHash=s['engineAppHash'],
+        headerHeight=s['headerHeight'],stateHeight=str(int(s['headerHeight'])-1),checkpointSHA256=sha(cp),haltRequestSHA256=sha(request_raw),
+        signingStateIdentity=before,exportReceiptSHA256=sha(raw),deliverySHA256=r['manifestSHA256'],originalMaterialRetained=True,
+        sourceReadOnly=True,nativeRootAuthorized=False,deploymentVerified=False)
+
+
+def retain_consumed_halt(binding, capture, current_checkpoint):
+    """Explicit resume only: retain the exact consumed inode with Linux NOREPLACE."""
+    import ctypes
+    need(binding['phase'] == 'resume', 'explicit independently pinned resume required')
+    p = Path(binding['heightHaltControlPath'])
+    target = p.with_name(p.name+'.consumed-'+binding['transitionId'])
+    need(not os.path.lexists(target), 'existing retained request/UNKNOWN; no retry')
+    _, cp = check_capture_checkpoint(binding, current_checkpoint)
+    need(sha(cp) == capture['checkpointSHA256'] and signing_metadata(binding['sourcePlan']['signingStatePath']) == capture['signingStateIdentity'],
+         'cold checkpoint/signing identity changed before resume')
+    fd = os.open(p,os.O_RDONLY|os.O_NOFOLLOW)
+    try:
+        st = os.fstat(fd)
+        need(stat.S_ISREG(st.st_mode) and st.st_nlink==1 and stat.S_IMODE(st.st_mode)==0o600 and 0<st.st_size<=4096,
+             'private original halt request required')
+        raw=os.read(fd,4097)
+        need(len(raw)==st.st_size and sha(raw)==capture['haltRequestSHA256'] and identity(st)==identity(p.lstat())==identity(os.fstat(fd)),
+             'consumed halt request changed')
+        need(sys.platform.startswith('linux'), 'normal Linux NOREPLACE rename required')
+        libc=ctypes.CDLL(None,use_errno=True); rename=libc.renameat2
+        rename.argtypes=[ctypes.c_int,ctypes.c_char_p,ctypes.c_int,ctypes.c_char_p,ctypes.c_uint];rename.restype=ctypes.c_int
+        if rename(-100,os.fsencode(p),-100,os.fsencode(target),1) != 0:
+            code=ctypes.get_errno();raise OSError(code,os.strerror(code))
+        fsync_dir(p.parent)
+        after=target.lstat();held=os.fstat(fd)
+        stable=lambda v:(v.st_dev,v.st_ino,v.st_mode,v.st_uid,v.st_gid,v.st_nlink,v.st_size,v.st_mtime_ns)
+        need(stable(st)==stable(after)==stable(held) and original(str(target),4096)==raw and not os.path.lexists(p),
+             'retained consumed request changed; preserve UNKNOWN')
+    finally:
+        os.close(fd)
+    return str(target)
+
+def received_source_proof(root, data, directory=None):
+    """Read only an original normal capture and its completed transport."""
+    if 'proofSource' not in data:
+        need(directory is None, 'legacy local proof cannot adopt remote public transport')
+        return data
+    packet, selection = data['input'], data['proofSource']; role = selection['role']
+    capture_path = Path(packet['transitionRoot'])/'capture-attempt'/(role+'.result.json')
+    capture, capture_raw = load(capture_path, limit=1<<20)
+    validate_capture_receipt(data,capture,capture_raw)
+    resume, _ = load(Path(packet['transitionRoot'])/'resume-attempt'/(role+'.result.json'),limit=1<<20)
+    need(set(resume) == CAPTURE_FIELDS | {'resumeApprovalSHA256','captureSHA256','currentProcess','signerProcess'} and
+         resume['phase']=='resume' and resume['status']=='resumed_activation_unproven' and
+         resume['captureSHA256']==sha(capture_raw) and pin(resume['resumeApprovalSHA256']) and
+         all(resume[k]==v for k,v in capture.items() if k not in ('phase','status')), 'completed original explicit resume required')
+    for process in (resume['currentProcess'],resume['signerProcess']):
+        need(type(process) is dict and decimal(process.get('mainPid')) and decimal(process.get('startTicks')), 'actual resumed process identity required')
+    marker_path = root/'pq-continuation-attempt/export-selection.json'
+    if directory is None:
+        selected, _ = load(marker_path,limit=16<<10)
+        need(set(selected)=={'inputSHA256','captureSHA256','directory'} and selected['inputSHA256']==data['inputSHA256'] and
+             selected['captureSHA256']==sha(capture_raw), 'retained original capture selection required')
+        directory=selected['directory']
+    requested=private_root(directory)
+    marker,_=load(root/'linux-public-data-root.json',limit=16<<10)
+    need(set(marker)=={'version','transaction','parent','parentDevice','parentInode','dataRoot'} and
+         marker['version']=='YNX-PUBLIC-LINUX-DATA-ROOT/v1' and marker['transaction']==str(root), 'original external public data root required')
+    parent=private_root(marker['parent']);st=parent.stat()
+    need(marker['parentDevice']==str(st.st_dev) and marker['parentInode']==str(st.st_ino) and
+         marker['dataRoot']==str(parent/root.name),'external original public data parent identity changed')
+    work=private_root(marker['dataRoot'])/'linux-public-tools'
+    need(work.is_dir() and not work.is_symlink() and str(work.resolve(strict=True))==str(work),'original transport workspace required')
+    spec=importlib.util.spec_from_file_location('quiet_original_linux_tools',Path(__file__).with_name('public-bft-linux-public-tools.py'))
+    bridge=importlib.util.module_from_spec(spec);spec.loader.exec_module(bridge)
+    public=requested
+    if requested.parent==work and re.fullmatch('[0-9a-f]{64}',requested.name):
+        case_request=bridge.validate_request(load(requested/'request.json',limit=2<<20)[0])
+        need(sha(bridge.encode(case_request))==requested.name,'original publication case changed')
+        public=private_root(case_request['destination'])
+    entries=list(work.iterdir());need(len(entries)<=128,'bounded original request inventory')
+    matched=[]
+    for entry in entries:
+        if not re.fullmatch('[0-9a-f]{64}',entry.name) or not (entry/'PUBLISHED.json').is_file():continue
+        private_root(str(entry))
+        request=bridge.validate_request(load(entry/'request.json',limit=2<<20)[0])
+        need(sha(bridge.encode(request))==entry.name,'original request path changed')
+        if request['destination']!=str(public):continue
+        need(request['operation'] in ('light-files','light-metadata') and request['role']==role and request['transaction']==root.name and
+             request['commit']==packet['runtimeCommit'] and request['sourceSHA256']==packet['runtimeManifestSHA256'] and
+             request['arguments']==dict(captureRoot=capture['captureRoot'],captureReceiptSHA256=sha(capture_raw),sourcePlanSHA256=selection['sourcePlanSHA256']),
+             'transport is not the same original capture/source/role/operation')
+        _,status=bridge.retained_result(entry,request)
+        need(status==0,'original capture transport failed')
+        matched.append((entry,request))
+    need(len(matched)==1,'one completed original capture transport required; partial streams cannot be joined')
+    need(original(str(public/'capture-receipt.json'),1<<20)==capture_raw,'actual SSH receipt and published receipt differ')
+    need(sha(original(str(public/'source-plan.json'),32<<10))==selection['sourcePlanSHA256'],'original source plan changed in transport')
+    export_raw=original(str(public/'export-receipt.json'),1<<20)
+    need(sha(export_raw)==capture['exportReceiptSHA256'],'actual Go stdout changed in transport')
+    receipt,context,_=bridge.light_delivery(public/'delivery',selection['output'],export_raw,capture['deliverySHA256'],selection['sourcePlanSHA256'],
+                                          metadata_only=matched[0][1]['operation']=='light-metadata')
+    need(set(context)==CONTEXT_FIELDS and all(type(v) is str for v in context.values()),'full original light context required')
+    for key in ('chainId','consensusGenesisSHA256','originalGenesisHash','migrationStateHash','runtimePlanHash'):
+        need(context[key]==data['plan'][key],'original exported context source differs')
+    s=data['sourcePlan']
+    need(context['engineHeight']==s['engineHeight'] and context['engineAppHash']==s['engineAppHash'] and
+         context['expectedHeaderHeight']==s['headerHeight'] and context['expectedStateHeight']==str(int(s['headerHeight'])-1) and
+         context['scheduleHash']==s['scheduleHash'],'original exported active-state coordinates differ')
+    validate_proof_result(receipt['verification'],context)
+    proof=dict(trustContext=str(public/'delivery/trust-context.json'),trustContextSHA256=receipt['contextSHA256'],
+               request=str(public/'delivery/request.json'),requestSHA256=receipt['requestSHA256'])
+    return {**data,'proof':proof,'context':context,'headerHeight':context['expectedHeaderHeight'],'blockHash':context['expectedBlockHash'],
+            'stateHeight':context['expectedStateHeight'],'stateAppHash':context['expectedStateAppHash'],
+            'exportSelection':dict(inputSHA256=data['inputSHA256'],captureSHA256=sha(capture_raw),directory=str(requested))}
 
 def resume_check(root_path, plan_path, plan_pin, packet_path, packet_pin):
     root = private_root(root_path)
@@ -378,7 +809,7 @@ def observation_command(root_path, package, runtime, plan_path, plan_pin, role, 
         pause_pin = sha(original(str(root / 'candidate/start-attempt/primary/pause-marker.json'), 1 << 20))
         height, block_hash = None, None
     else:
-        info = continuation(root_path, plan_path, plan_pin, packet_path, packet_pin)
+        info = received_source_proof(root, continuation(root_path, plan_path, plan_pin, packet_path, packet_pin))
         need(str(Path(package)) == info['input']['currentPackage'], 'observation package differs from new independent target')
         plan = info['plan']
         freeze = info['roles'][role]['transition']['start']['value']['freezeSHA256']
@@ -479,7 +910,7 @@ def validate_proof_result(r, context):
 
 def verify_results(root_path, plan_path, plan_pin, packet_path, packet_pin, evidence):
     root = private_root(root_path)
-    data = continuation(root_path, plan_path, plan_pin, packet_path, packet_pin)
+    data = received_source_proof(root, continuation(root_path, plan_path, plan_pin, packet_path, packet_pin))
     records, _ = role_observations(root, data['input']['currentPackage'], evidence, int(data['headerHeight']), data['blockHash'])
     result, raw = load(Path(evidence) / 'light.proof-result.json', limit=64 << 10)
     need(set(result) == {'version', 'code', 'result'} and result['version'] == 'YNX-CONSENSUS-PROOF-VERIFY-RESULT/v1' and
@@ -523,7 +954,7 @@ def forward_gate(root_path, plan_path, plan_pin, phase=None):
                 pairs(TAIL[:TAIL.index(phase)]) + [(phase, 'started')])
     intent, _ = load(root / 'pq-continuation-attempt/intent.json', limit=1 << 20)
     packet_path = str(root / 'pq-continuation-attempt/input.json')
-    data = continuation(root_path, plan_path, plan_pin, packet_path, intent['inputSHA256'])
+    data = received_source_proof(root, continuation(root_path, plan_path, plan_pin, packet_path, intent['inputSHA256']))
     v, _ = load(root / 'pq-continuation-attempt/verified.json', limit=1 << 20)
     need(v.get('version') == 'YNX-QUIET-PQ-CONTINUATION-VERIFIED/v1' and v.get('transactionId') == root.name and
          v.get('inputSHA256') == intent['inputSHA256'] and v.get('pqCommitVerified') is True and
@@ -535,7 +966,7 @@ def forward_gate(root_path, plan_path, plan_pin, phase=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('action', choices=('mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'target-package'))
+    p.add_argument('action', choices=('mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'export-args', 'capture-binding', 'target-package'))
     p.add_argument('--transaction')
     p.add_argument('--plan', required=True)
     p.add_argument('--plan-sha256', required=True)
@@ -545,7 +976,10 @@ def main():
     p.add_argument('--runtime')
     p.add_argument('--role', choices=ROLES)
     p.add_argument('--evidence')
-    p.add_argument('--phase', choices=TAIL[1:])
+    p.add_argument('--phase', choices=TAIL[1:]+['capture','resume'])
+    p.add_argument('--approval')
+    p.add_argument('--approval-sha256')
+    p.add_argument('--export-receipt-dir')
     a = p.parse_args()
     if a.action == 'mode':
         print(selected_plan(a.plan, a.plan_sha256).get('bootstrapRegistrationMode', ''))
@@ -553,6 +987,8 @@ def main():
         print(json.dumps(pause(a.transaction, a.plan, a.plan_sha256)))
     elif a.action == 'resume-check':
         print(json.dumps(resume_check(a.transaction, a.plan, a.plan_sha256, a.input, a.input_sha256)))
+    elif a.action == 'capture-binding':
+        print(json.dumps(capture_binding(a.transaction,a.plan,a.plan_sha256,a.input,a.input_sha256,a.approval,a.approval_sha256,a.phase,a.runtime),separators=(',',':'),sort_keys=True))
     elif a.action == 'observe-command':
         print(observation_command(a.transaction, a.package, a.runtime, a.plan, a.plan_sha256, a.role, a.input, a.input_sha256))
     elif a.action == 'ready':
@@ -568,7 +1004,22 @@ def main():
             print(data['input']['currentOperatorPlanSHA256'])
             print(data['input']['runtimeCommit'])
             print(data['input']['runtimeManifestSHA256'])
+        elif a.action == 'export-args':
+            need('proofSource' in data, 'normal source profile required; legacy context cannot select remote export')
+            for key in ('role', 'sourcePlan', 'sourcePlanSHA256', 'output'):
+                value = data['proofSource'][key]
+                need('\n' not in value and '\r' not in value, 'source scalar contains controls')
+                print(value)
         else:
+            if 'proofSource' in data:
+                data = received_source_proof(private_root(a.transaction), data, a.export_receipt_dir)
+                marker = Path(a.transaction)/'pq-continuation-attempt/export-selection.json'
+                if marker.exists():
+                    need(load(marker,limit=16<<10)[0]==data['exportSelection'],'original capture selection changed')
+                else:
+                    publish(marker,data['exportSelection'])
+            else:
+                need(a.export_receipt_dir is None,'legacy local context cannot adopt remote transport')
             proof = data['proof']
             if a.evidence:
                 # Hold and copy exact public request once before the child;
