@@ -166,6 +166,12 @@ test('source proof stable recheck follows Circle and destination height using on
   assert.equal(f.requests.length, 1);
 });
 
+for (const side of ['source', 'target']) test(`canonical reader rejects duplicate log index across ${side} event contracts`, async () => {
+  const f = fixture(), receipt = side === 'source' ? f.state.sourceReceipt : f.state.targetReceipt;
+  receipt.logs[1].logIndex = receipt.logs[0].logIndex;
+  await assert.rejects(side === 'source' ? f.reader.attestation(sourceInput) : f.reader.destination(targetInput(f.raw)), {code: 'CCTP_EVENT_MISMATCH'});
+});
+
 test('source receipt mismatch, removed message, duplicate deposit or wrong source calldata is rejected', async () => {
   const f = fixture();
   f.state.sourceReceipt.blockHash = hash('fe'); await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
@@ -266,4 +272,22 @@ test('desktop canonical transaction identity rejects a duplicate original mint h
   await assert.rejects(f.reader.destination(targetInput(f.raw)), {code: 'CCTP_RECEIPT_MISMATCH'});
   assert.equal(canonicalReads, 2);
   assert.equal(f.calls.some(call => call.method === 'eth_getBlockByNumber' && call.params[0] === 'finalized'), true);
+});
+
+// Main integration delta: retain its canonical duplicate-hash guard during the
+// new final source read as well as the original pre-Iris read. PUBLIC data only.
+test('source proof final reread retains Main duplicate original burn hash rejection after Iris', async () => {
+  let receiptReads = 0, duplicateRead = false;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (source && method === 'eth_getTransactionReceipt') receiptReads++;
+    if (source && method === 'eth_getBlockByNumber' && params[0] === '0x64' && receiptReads === 2) {
+      duplicateRead = true;
+      return {hash: sourceBlock, number: '0x64', transactions: [sourceHash, sourceHash]};
+    }
+  }});
+  await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(f.requests.length, 1, 'only original Iris GET; no refresh/retry/send');
+  assert.equal(receiptReads, 2);
+  assert.equal(duplicateRead, true);
+  assert.ok(f.calls.filter(call => call.method === 'eth_getTransactionReceipt' || call.method === 'eth_getTransactionByHash').every(call => call.params[0] === sourceHash));
 });

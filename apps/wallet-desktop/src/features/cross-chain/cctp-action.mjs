@@ -86,14 +86,25 @@ export class CctpEVMAdapter extends EVMAdapter {
     const receipt=await this.call(network,'eth_getTransactionReceipt',[record.hash]);
     if(receipt===null)return {state:'unknown',receipt:null};
     const tx=await this.call(network,'eth_getTransactionByHash',[record.hash]),block=await this.call(network,'eth_getBlockByNumber',[receipt.blockNumber,false]),expected=record.transaction;
-    if(!hash(receipt.transactionHash)||lower(receipt.transactionHash)!==record.hash||!hash(receipt.blockHash)||lower(block?.hash)!==lower(receipt.blockHash)||quantity(block.number)!==quantity(receipt.blockNumber)||!Array.isArray(block.transactions)||block.transactions.filter(h=>lower(h)===record.hash).length!==1||lower(tx?.hash)!==record.hash||lower(tx.from)!==record.account||lower(tx.to)!==expected.to||lower(tx.input)!==expected.data||quantity(tx.nonce)!==BigInt(expected.nonce)||quantity(tx.value)!==0n||quantity(tx.gas)!==BigInt(expected.gasLimit)||quantity(tx.gasPrice)!==BigInt(expected.gasPrice)||quantity(tx.chainId)!==BigInt(expected.chainId)||lower(tx.blockHash)!==lower(receipt.blockHash)||quantity(tx.blockNumber)!==quantity(receipt.blockNumber)||lower(receipt.from)!==record.account||lower(receipt.to)!==expected.to)fail('RECEIPT_MISMATCH','The original CCTP receipt, transaction and block do not match.');
+    if(!hash(receipt.transactionHash)||lower(receipt.transactionHash)!==record.hash||!hash(receipt.blockHash)||lower(block?.hash)!==lower(receipt.blockHash)||quantity(block.number)!==quantity(receipt.blockNumber)||!Array.isArray(block.transactions)||block.transactions.filter(h=>lower(h)===record.hash).length!==1||lower(tx?.hash)!==record.hash||lower(tx.from)!==record.account||lower(tx.to)!==expected.to||lower(tx.input)!==expected.data||quantity(tx.nonce)!==BigInt(expected.nonce)||quantity(tx.value)!==0n||quantity(tx.gas)!==BigInt(expected.gasLimit)||quantity(tx.gasPrice)!==BigInt(expected.gasPrice)||quantity(tx.chainId)!==BigInt(expected.chainId)||lower(tx.blockHash)!==lower(receipt.blockHash)||quantity(tx.blockNumber)!==quantity(receipt.blockNumber)||lower(receipt.from)!==record.account||lower(receipt.to)!==expected.to||quantity(receipt.transactionIndex)>=BigInt(block.transactions.length)||quantity(tx.transactionIndex)!==quantity(receipt.transactionIndex)||lower(block.transactions[Number(quantity(receipt.transactionIndex))])!==record.hash)fail('RECEIPT_MISMATCH','The original CCTP receipt, transaction and block do not match.');
     const status=quantity(receipt.status);if(status>1n)fail('RECEIPT_MISMATCH','Invalid receipt status.');
     if(status===1n)this.#events(record,receipt);
     return {state:status===1n?'included':'reverted',receipt:{hash:record.hash,blockHash:lower(receipt.blockHash),blockNumber:quantity(receipt.blockNumber).toString(),status:Number(status),confirmationScope:'rpc-block-inclusion'}};
   }
   #events(record,receipt){
     const binding=record.cctp.binding;
-    const events=(contract,abi,name)=>(receipt.logs??[]).filter(l=>lower(l.address)===lower(contract)&&lower(l.transactionHash)===record.hash&&lower(l.blockHash)===lower(receipt.blockHash)&&l.blockNumber===receipt.blockNumber&&l.removed===false).flatMap(l=>{try{const e=abi.parseLog(l);return e?.name===name?[e]:[]}catch{return []}});
+    if(!Array.isArray(receipt.logs)||receipt.logs.length>2000)fail('EVENT_MISMATCH','A bounded original receipt log list is required.');
+    const indices=new Set();
+    for(const log of receipt.logs){
+      let index;
+      try{
+        index=quantity(log.logIndex).toString();
+        if(log.removed!==false||lower(log.transactionHash)!==record.hash||lower(log.blockHash)!==lower(receipt.blockHash)||quantity(log.blockNumber)!==quantity(receipt.blockNumber)||quantity(log.transactionIndex)!==quantity(receipt.transactionIndex))fail('EVENT_MISMATCH','Receipt logs must belong to the original transaction and block.');
+      }catch{fail('EVENT_MISMATCH','Receipt logs must retain their exact original index and identity.');}
+      if(indices.has(index))fail('EVENT_MISMATCH','Receipt logs must have unique block-wide indices.');
+      indices.add(index);
+    }
+    const events=(contract,abi,name)=>receipt.logs.filter(l=>lower(l.address)===lower(contract)).flatMap(l=>{try{const e=abi.parseLog(l);return e?.name===name?[e]:[]}catch{return []}});
     const one=(list,test)=>{if(list.filter(test).length!==1)fail('EVENT_MISMATCH','The exact CCTP event was not found once in its original receipt.');};
     if(record.cctp.step==='approve')one(events(ROUTE.source.usdc,erc20,'Approval'),e=>lower(e.args.owner)===record.account&&lower(e.args.spender)===lower(ROUTE.source.tokenMessenger)&&e.args.value===BigInt(binding.amountUnits));
     if(record.cctp.step==='burn'){
