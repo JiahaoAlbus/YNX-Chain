@@ -2,6 +2,14 @@ import SwiftUI
 import AppKit
 
 enum PayBridge {
+    static var supportsOriginalOrder: Bool {
+        guard let url = Bundle.main.url(forResource: "SOURCE", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let source = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
+        // This selects the bundled UI only. Connection/permission still comes
+        // from the original Main status and its current Source on every call.
+        return source["nativeClientGeneration"] as? String == "r6"
+    }
     static func invoke(_ request: [String: String]) -> String {
         guard let resources = Bundle.main.resourceURL else { return "{\"phase\":\"unavailable\",\"code\":\"PAY_BUNDLE_UNAVAILABLE\"}" }
         let client = resources.appendingPathComponent("client")
@@ -34,6 +42,7 @@ enum PayBridge {
     @Published var nativeHash = ""
     @Published var refund = ""
     @Published var amount = ""
+    @Published var sourceOrder = ""
     @Published var kind = "invoice_settle"
     @Published var result = ""
     @Published var busy = false
@@ -45,6 +54,14 @@ enum PayBridge {
         guard !busy else { return }
         var request = ["action": action]
         switch action {
+        case "order-invoice", "order-terms-review", "order-pay-review", "order-reconcile", "lookup-intent":
+            request.merge(["productId": "shop.order", "sourceOrder": sourceOrder]) { _, new in new }
+        case "order-refund-review":
+            request.merge(["productId": "shop.order", "sourceOrder": sourceOrder, "refundId": refund, "amountAtoms": amount]) { _, new in new }
+        case "order-receipt", "order-reconcile-operation":
+            request.merge(["productId": "shop.order", "sourceOrder": sourceOrder, "nativeHash": nativeHash]) { _, new in new }
+        case "order-broadcast-review":
+            request.merge(["productId": "shop.order", "sourceOrder": sourceOrder, "kind": kind, "originalHash": originalHash]) { _, new in new }
         case "invoice", "pay-review", "events": request.merge(["merchant": merchant, "invoiceId": invoice]) { _, new in new }
         case "intent", "terms-review", "recover-intent": request["intentId"] = intent
         case "refund-review": request.merge(["merchant": merchant, "invoiceId": invoice, "refundId": refund, "amountAtoms": amount]) { _, new in new }
@@ -99,6 +116,36 @@ struct PayHome: View {
                     .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             TabView {
+                if PayBridge.supportsOriginalOrder {
+                    ScrollView { Form {
+                        TextField("Original Shop order", text: $model.sourceOrder)
+                        HStack {
+                            Button("Read original invoice") { model.perform("order-invoice") }
+                            Button("Find original intent") { model.perform("lookup-intent") }
+                            Button("Refresh original status") { model.perform("order-reconcile") }
+                        }
+                        HStack {
+                            Button("Review invoice in Wallet") { model.perform("order-terms-review") }
+                            Button("Review payment in Wallet") { model.perform("order-pay-review") }
+                        }
+                        TextField("Original refund reference", text: $model.refund)
+                        TextField("Refund amount (atoms)", text: $model.amount)
+                        Button("Review refund in Wallet") { model.perform("order-refund-review") }
+                        TextField("Original Native transaction hash", text: $model.nativeHash)
+                        HStack {
+                            Button("Read original receipt") { model.perform("order-receipt") }
+                            Button("Reconcile original transaction") { model.perform("order-reconcile-operation") }
+                        }
+                        Picker("Original action", selection: $model.kind) {
+                            Text("Merchant invoice").tag("invoice_terms")
+                            Text("Payment").tag("invoice_settle")
+                            Text("Refund").tag("invoice_refund")
+                        }
+                        TextField("Original Main transaction hash", text: $model.originalHash)
+                        Button("Review separate submission in Wallet") { model.perform("order-broadcast-review") }
+                        Text("Use the original Shop order to view its invoice and request Wallet reviews.").foregroundStyle(.secondary)
+                    }.padding() }.disabled(!model.sourceReady).tabItem { Label("Shop order", systemImage: "bag") }
+                }
                 Form {
                     TextField("Merchant account", text: $model.merchant)
                     TextField("Invoice ID", text: $model.invoice)

@@ -5,6 +5,18 @@ already supplied to Main and its frozen packaging inputs remain unchanged.
 Original Main may select this whole successor later; never replace selected
 leaves inside its active r5 snapshot.
 
+The existing packager now accepts `--r6` to deliver all nine modules together:
+`node apps/pay/native/scripts/build-qa.mjs --r6 /absolute/new-output` (add
+`--mac-app` for the existing SwiftUI client). The r5 default and prior packages
+remain unchanged. A new output directory is mandatory. In an r6 App, the Shop
+order tab uses the original order reference for invoice, payment/refund reviews,
+receipt queries and explicit same-transaction reconciliation. It enters the
+same original Main bridge; absent qualified Main/Source still refuses. No
+intent creation, signature or submission is triggered by opening the tab.
+The installer checks the complete signed App file inventory before and after
+copy, including the nine runtime modules, original bridge and resources. An
+unchanged executable or source-head label alone cannot pass a changed runtime.
+
 Normal Main boot still imports `createNativePayMainEntry` and
 `composeNativePayProductSource` with the original admitted namespace's factory
 and recognizer. New DATA-only actions are:

@@ -8,7 +8,9 @@
     "start": "node cli.mjs",
     "test": "node --test merchant-invoice-approval.test.mjs pay-business-client.test.mjs notification-inbox.test.mjs main-entry.test.mjs invoice-product-intent.test.mjs r6/*.test.mjs",
     "build:qa": "node scripts/build-qa.mjs",
-    "build:qa:mac": "node scripts/build-qa.mjs --mac-app"
+    "build:qa:mac": "node scripts/build-qa.mjs --mac-app",
+    "build:qa:r6": "node scripts/build-qa.mjs --r6",
+    "build:qa:mac:r6": "node scripts/build-qa.mjs --r6 --mac-app"
   },
   "engines": {"node": ">=26.7.0"}
 }

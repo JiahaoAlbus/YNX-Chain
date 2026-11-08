@@ -40,7 +40,10 @@ export async function runNativePayCLI(args,{write=value=>process.stdout.write(va
   try{const state=await client[methods[command]](...values);write(JSON.stringify(nativePaySummary(state)));return 0;}catch(error){const state=client.snapshot();write(JSON.stringify({...nativePaySummary(state),code:nativePayFailureCode(error)}));return 2;}
  }finally{if(typeof runtime?.close==='function')await runtime.close();}
 }
-if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){
+// Node canonicalizes module URLs through symlinks (including macOS /var).
+// argv retains the invoked path, so comparing those strings can silently
+// skip the packaged CLI. Imported modules must still have no entry effects.
+if(import.meta.main){
  try{process.exitCode=await runNativePayCLI(process.argv.slice(2));}
  catch(error){process.stderr.write(JSON.stringify({phase:'unavailable',code:nativePayFailureCode(error),recoveryOnly:false})+'\n');process.exitCode=2;}
 }

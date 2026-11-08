@@ -3,15 +3,19 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
+import {runtimeModules,snapshotApplication} from './package-integrity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),args=process.argv.slice(2),macApp=args.includes('--mac-app');
+const generation=args.includes('--r6')?'r6':'r5',moduleRoot=generation==='r6'?path.join(root,'r6'):root;
 const manifestAt=args.indexOf('--main-runtime-manifest'),runtimeManifest=manifestAt>=0?args[manifestAt+1]:null;
 if(manifestAt>=0&&!runtimeManifest)throw Error('Original owner bridge manifest path required.');
-const output=args.find((a,i)=>a!=='--mac-app'&&a!=='--main-runtime-manifest'&&(manifestAt<0||i!==manifestAt+1));
+const output=args.find((a,i)=>a!=='--mac-app'&&a!=='--r6'&&a!=='--main-runtime-manifest'&&(manifestAt<0||i!==manifestAt+1));
 if(!output||!path.isAbsolute(output))throw Error('Explicit absolute QA output required.');
+await fs.mkdir(path.dirname(output),{recursive:true});
+await fs.mkdir(output); // A successor never overlays an existing r5/r6 cut.
 await fs.mkdir(path.join(output,'bin'),{recursive:true});await fs.mkdir(path.join(output,'lib'),{recursive:true});
 const head=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
 const files=[];
-for(const name of ['cli.mjs','pay-business-client.mjs','merchant-invoice-approval.mjs','invoice-product-intent.mjs','notification-inbox.mjs','main-entry.mjs','desktop-entry.mjs','product-source.mjs']){const raw=await fs.readFile(path.join(root,name));await fs.writeFile(path.join(output,'lib',name),raw);files.push({path:'lib/'+name,sha256:createHash('sha256').update(raw).digest('hex')});}
+for(const name of runtimeModules[generation]){const raw=await fs.readFile(path.join(moduleRoot,name));await fs.writeFile(path.join(output,'lib',name),raw);files.push({path:'lib/'+name,sha256:createHash('sha256').update(raw).digest('hex')});}
 let runtimeConfig={runtime:null,reason:'NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED'};
 if(runtimeManifest){
  if(!path.isAbsolute(runtimeManifest))throw Error('Explicit absolute original owner bridge manifest required.');
@@ -42,6 +46,7 @@ await fs.copyFile(originalNode,path.join(output,'bin','node'));await fs.chmod(pa
 const nodeRaw=await fs.readFile(path.join(output,'bin','node'));files.push({path:'bin/node',sha256:createHash('sha256').update(nodeRaw).digest('hex')});
 await fs.writeFile(path.join(output,'ynx-pay-native'),'#!/bin/sh\nset -eu\nclient_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$client_dir/bin/node" "$client_dir/lib/cli.mjs" "$@"\n',{mode:0o755});
 await fs.copyFile(path.join(root,'README.md'),path.join(output,'README.md'));
+let appFiles=null;
 if(macApp){
  if(process.platform!=='darwin'||process.arch!=='arm64')throw Error('The current QA app build supports darwin-arm64 only.');
  if(!process.env.TMPDIR||!process.env.CLANG_MODULE_CACHE_PATH||!process.env.SWIFT_MODULECACHE_PATH)throw Error('Explicit TMPDIR/CLANG_MODULE_CACHE_PATH/SWIFT_MODULECACHE_PATH required.');
@@ -60,11 +65,13 @@ if(macApp){
   execFileSync('/usr/bin/xcrun',['swiftc','-parse-as-library','-swift-version','5','-target','arm64-apple-macos13.0','-sdk',sdk,'-O','-module-cache-path',process.env.SWIFT_MODULECACHE_PATH,'-framework','SwiftUI','-framework','AppKit',path.join(root,'macos/PayApp.swift'),'-o',path.join(contents,'MacOS/YNXPay')],{env:{...process.env,TMPDIR:swiftTemp},stdio:'inherit'});
  }finally{await fs.rm(swiftTemp,{recursive:true,force:true});}
  await fs.copyFile(path.join(root,'scripts/install-mac-qa.mjs'),path.join(output,'install-mac-qa.mjs'));
- await fs.writeFile(path.join(resources,'SOURCE.json'),JSON.stringify({head,kind:'local QA',originalMainRuntimeSupplied:!!runtimeConfig.runtime,originalOwnerInputs:runtimeConfig.originalOwnerInputs??null,originalSDKNativeImageSupplied:false,actualMainApproval:false,installed:false,productionFunds:false},null,2)+'\n');
+ await fs.copyFile(path.join(root,'scripts/package-integrity.mjs'),path.join(output,'package-integrity.mjs'));
+ await fs.writeFile(path.join(resources,'SOURCE.json'),JSON.stringify({head,kind:'local QA',nativeClientGeneration:generation,runtimeModules:runtimeModules[generation],originalMainRuntimeSupplied:!!runtimeConfig.runtime,originalOwnerInputs:runtimeConfig.originalOwnerInputs??null,originalSDKNativeImageSupplied:false,actualMainApproval:false,installed:false,productionFunds:false},null,2)+'\n');
  // Resource metadata is finalized before the final signature.
  execFileSync('/usr/bin/codesign',['--force','--deep','--sign','-',app],{stdio:'inherit'});
  execFileSync('/usr/bin/codesign',['--verify','--deep','--strict',app],{stdio:'inherit'});
  files.push({path:'YNX Pay QA.app/Contents/MacOS/YNXPay',sha256:createHash('sha256').update(await fs.readFile(path.join(contents,'MacOS/YNXPay'))).digest('hex')});
+ appFiles=await snapshotApplication(app);
 }
-await fs.writeFile(path.join(output,'BUILD.json'),JSON.stringify({head,builtAt:new Date().toISOString(),node:process.version,platform:process.platform,arch:process.arch,entry:'ynx-pay-native',files,kind:macApp?'macOS SwiftUI QA client and original native-service business module/CLI':'standalone native-service business QA module/CLI; not a mobile GUI installer',macApp:macApp?'YNX Pay QA.app':null,signature:macApp?'local ad-hoc QA only':null,sourceRuntimeBundled:!!runtimeConfig.runtime,normalRuntime:runtimeConfig,mainOrSDKImageBundled:false,privateKeys:false,productionFunds:false,installed:false,deployed:false},null,2)+'\n');
+await fs.writeFile(path.join(output,'BUILD.json'),JSON.stringify({head,builtAt:new Date().toISOString(),node:process.version,platform:process.platform,arch:process.arch,entry:'ynx-pay-native',nativeClientGeneration:generation,runtimeModules:runtimeModules[generation],files,appFiles,kind:macApp?'macOS SwiftUI QA client and original native-service business module/CLI':'standalone native-service business QA module/CLI; not a mobile GUI installer',macApp:macApp?'YNX Pay QA.app':null,signature:macApp?'local ad-hoc QA only':null,sourceRuntimeBundled:!!runtimeConfig.runtime,normalRuntime:runtimeConfig,mainOrSDKImageBundled:false,privateKeys:false,productionFunds:false,installed:false,deployed:false},null,2)+'\n');
 console.log(JSON.stringify({output,head,entry:path.join(output,'ynx-pay-native')}));
