@@ -20,6 +20,14 @@ const originalStage = execFileSync('git', ['show', '6a2b54bd653b841cb21bc605c48e
 const originalRuntimePreparation = execFileSync('git', ['show', `c979d1c42e775dcac69555f6cd7b76f304c5917e:${relative}`], { cwd: root, encoding: 'utf8' });
 assert.equal(Buffer.byteLength(originalRuntimePreparation), 18927);
 assert.equal(createHash('sha256').update(originalRuntimePreparation).digest('hex'), 'f10700ed58cc9accb45c488b795a49e65520497918288dcfb356bed23ec4f176');
+// Historical reconstruction must start from immutable published bytes. The
+// current caller may gain independent transport branches, while this oracle
+// must still reconstruct the exact original late-witness bug below.
+// Retain the complete public Git blob 27b26a96190c68e2a92d0a444e411329bdbfc754
+// in the test closure so a shallow/filtered checkout needs no new lazy fetch.
+const originalToolReconstructionBase = readFileSync(join(root, 'scripts/deploy/testdata/deploy-consensus-candidate-999.public.txt'), 'utf8');
+assert.equal(Buffer.byteLength(originalToolReconstructionBase), 34550);
+assert.equal(createHash('sha256').update(originalToolReconstructionBase).digest('hex'), '8663283104669ad9d8adb54c9cb430e675d1bae305adc6f667952011ebde61ae');
 const operations = readFileSync(join(root, 'scripts/ops/lib.sh'), 'utf8');
 
 function actualFunction(source, name) {
@@ -608,7 +616,7 @@ function originalLateSnapshotSource() {
   // Rebuild the complete previously frozen production source, not a mock of
   // the missing check. Reverse the later closed-version dispatch separately,
   // preserving the exact historical bytes/hash rather than changing its oracle.
-  let unnormalized = applyOwnedDirectoryPortability(current, true);
+  let unnormalized = applyOwnedDirectoryPortability(originalToolReconstructionBase, true);
   const versionProfiles = [
     '    # Preserve the qualified v2 artifact and give the additional portable',
     '    # importer provenance its own closed manifest version. Neither version',

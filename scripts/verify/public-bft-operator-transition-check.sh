@@ -6,6 +6,7 @@ set -Eeuo pipefail
 repo="$(cd "$(dirname "$0")/../.." && pwd -P)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 helper="$repo/scripts/ops/remote/public-bft-operator-transition.sh"
+real_dd="$(command -v dd)"
 fail() { echo "operator transition control failed: $*" >&2; exit 1; }
 sha() { sha256sum "$1" | awk '{print $1}'; }
 mkdir -m 0700 "$tmp/meta"
@@ -254,7 +255,7 @@ SH
 #!/usr/bin/env bash
 set -Eeuo pipefail
 if [[ "${FIX_FAIL_NEW_COMET:-0}" == 1 && "$*" == *'/stage/bin/ynx-comet'* ]]; then echo 'source control retained copy failure' >&2; exit 74; fi
-exec /usr/bin/dd "$@"
+exec "$FIX_REAL_DD" "$@"
 SH
   chmod 0755 "$p/bin/"*
   (cd "$p/original" && sha256sum *) >"$p/original.sha256"
@@ -262,7 +263,7 @@ SH
   gateway_inode="$(stat -c %d:%i "$p/candidate/bin/ynx-bft-gatewayd")"; gateway_hash="$(sha "$p/candidate/bin/ynx-bft-gatewayd")"
 }
 publish() {
-  PATH="$p/bin:$PATH" FIX_LOG="$p/log" bash -c 'set -Eeuo pipefail; source "$1"; root="$2"; candidate="$root/candidate"; unit=ynx-consensus-operator-candidate.service; unit_path="$root/systemd/$unit"; tx=source-control-transition; role=primary; stage="$root/stage"; old_package="$root/old"; new_package="$root/new"; attempt="$root/attempt"; operator_transition_publish' -- "$helper" "$p"
+  PATH="$p/bin:$PATH" FIX_LOG="$p/log" FIX_REAL_DD="$real_dd" bash -c 'set -Eeuo pipefail; source "$1"; root="$2"; candidate="$root/candidate"; unit=ynx-consensus-operator-candidate.service; unit_path="$root/systemd/$unit"; tx=source-control-transition; role=primary; stage="$root/stage"; old_package="$root/old"; new_package="$root/new"; attempt="$root/attempt"; operator_transition_publish' -- "$helper" "$p"
 }
 assert_originals() {
   (cd "$p/original" && sha256sum -c "$p/original.sha256" >/dev/null)
@@ -284,6 +285,10 @@ printf 'substituted keycheck must fail before start\n' >"$p/candidate/bin/ynx-co
 if installed_control >"$p/keycheck.stdout" 2>"$p/keycheck.error"; then fail 'installed keycheck differed from independent runtime pin'; fi
 cp "$p/stage/bin/ynx-consensus-keycheck" "$p/candidate/bin/ynx-consensus-keycheck"
 installed_control >"$p/restored.stdout" 2>"$p/restored.error"
+printf 'unapproved installed config entry\n' >"$p/candidate/config/foreign.json"
+if installed_control >"$p/foreign.stdout" 2>"$p/foreign.error"; then fail 'extra installed config entry accepted'; fi
+grep -Fq 'installed config entries differ' "$p/foreign.error"
+rm "$p/candidate/config/foreign.json"
 if publish >"$p/retry.stdout" 2>"$p/retry.error"; then fail 'existing retained/UNKNOWN profile was overwritten'; fi
 assert_originals
 new_publish_fixture partial
@@ -467,9 +472,14 @@ grep -Fxq 'original uncertain effect' "$tmp/completion/complete-attempt/UNKNOWN"
 # The real caller invokes the normal publisher once as the original App uid.
 # Here only the executable/runuser/chown/id are explicit source fixtures; the
 # actual atomic rename/no-replace implementation has its own normal Go tests.
-for outcome in success failure wrong-height; do
+for outcome in success failure wrong-height missing-original replaced-incarnation; do
   h="$tmp/halt-publish-$outcome"; mkdir -m 0700 "$h" "$h/app" "$h/attempt" "$h/bin" "$h/stage" "$h/stage/bin"
   printf 'original App retained' >"$h/app/state"; chmod 0600 "$h/app/state"
+  # Reuse the actual running() receipt and synthetic proc/systemd from above;
+  # request_height_halt must record that incarnation before any publication.
+  # These controls never read the host /proc or call its systemd.
+  if [[ "$outcome" != missing-original ]]; then cp "$q/positive.json" "$h/attempt/original-process.json"; fi
+  terminal_pid=4321; if [[ "$outcome" == replaced-incarnation ]]; then terminal_pid=5432; fi
   python3 -B - "$tmp/halt.binding" "$h" <<'PY'
 import json,pathlib,sys
 p=pathlib.Path(sys.argv[2]); b=json.load(open(sys.argv[1])); b['originalRole']['abciState']=str(p/'app/state'); b['originalRole']['heightHaltControlPath']=str(p/'app'/('operator-height-halt-'+b['heightHaltSessionId']+'.json')); (p/'binding.json').write_text(json.dumps(b))
@@ -512,12 +522,27 @@ set -Eeuo pipefail
 SH
   chmod 0755 "$h/bin/"* "$h/stage/bin/ynx-comet"
   publish_halt() {
-    PATH="$h/bin:$PATH" FIX_PUBLISH_LOG="$h/once" FIX_PUBLISH_OUTCOME="$outcome" bash -c 'set -Eeuo pipefail; umask 077; source "$1"; binding="$2/binding.json"; state="$2/app/state"; attempt="$2/attempt"; stage="$2/stage"; comet_pin="$(operator_transition_sha "$stage/bin/ynx-comet")"; operator_transition_request_height_halt' -- "$helper" "$h"
+    PATH="$h/bin:$q/bin:$PATH" FIX_TERMINAL_PID="$terminal_pid" FIX_PUBLISH_LOG="$h/once" FIX_PUBLISH_OUTCOME="$outcome" bash -c 'set -Eeuo pipefail; umask 077; source "$1"; unit=ynx-consensus-operator-candidate.service; binding="$2/binding.json"; state="$2/app/state"; attempt="$2/attempt"; stage="$2/stage"; comet_pin="$(operator_transition_sha "$stage/bin/ynx-comet")"; operator_transition_request_height_halt' -- "$q/helper.sh" "$h"
   }
   state_sha="$(sha "$h/app/state")"
   if publish_halt >"$h/out" 2>"$h/err"; then code=0; else code="$?"; fi
-  if [[ "$outcome" == success ]]; then [[ "$code" == 0 ]]; else [[ "$code" != 0 ]]; fi
-  if [[ "$outcome" == failure ]]; then [[ "$code" == 73 ]]; grep -Fq 'fixture retained UNKNOWN' "$h/app/"*.partial; fi
+  if [[ "$outcome" == success ]]; then
+    if [[ "$code" != 0 ]]; then cat "$h/err" >&2; fail "normal halt publisher success fixture returned $code"; fi
+  else
+    [[ "$code" != 0 ]] || fail "halt publisher $outcome was accepted"
+  fi
+  if [[ "$outcome" == missing-original || "$outcome" == replaced-incarnation ]]; then
+    [[ "$(sha "$h/app/state")" == "$state_sha" && ! -e "$h/once" && ! -e "$h/attempt/halt-request.json" && ! -e "$h/attempt/halt-incarnation.json" ]] || fail 'identity refusal reached publication or changed original state'
+    [[ -z "$(find "$h/app" -name '*publication-input' -print)" ]] || fail 'identity refusal created publisher input'
+    if [[ "$outcome" == missing-original ]]; then grep -Fq original-process.json "$h/err"; else grep -Fq 'original live halt incarnation changed' "$h/err"; fi
+    continue
+  fi
+  python3 -B - "$h/attempt/original-process.json" "$h/attempt/halt-incarnation.json" <<'PYIDENTITY'
+import hashlib,json,pathlib,sys
+p=pathlib.Path(sys.argv[1]);original=json.loads(p.read_bytes());record=json.loads(pathlib.Path(sys.argv[2]).read_bytes())
+assert record==dict(version='YNX-OPERATOR-HALT-INCARNATION/v1',mainPid=original['mainPid'],startTicks=original['startTicks'],invocationId='1'*32,execMainStartTimestampMonotonic='9870000',originalProcessSHA256=hashlib.sha256(p.read_bytes()).hexdigest())
+PYIDENTITY
+  if [[ "$outcome" == failure ]]; then [[ "$code" == 73 ]] || { cat "$h/err" >&2; fail 'halt publisher first cause changed'; }; grep -Fq 'fixture retained UNKNOWN' "$h/app/"*.partial; fi
   [[ "$(sha "$h/app/state")" == "$state_sha" && "$(wc -l <"$h/once" | tr -d ' ')" == 1 ]]
   original_request="$(sha "$h/attempt/halt-request.json")"
   if publish_halt >"$h/retry.out" 2>"$h/retry.err"; then fail 'halt publisher was resent'; fi

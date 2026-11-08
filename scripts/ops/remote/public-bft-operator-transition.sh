@@ -129,7 +129,12 @@ operator_transition_installed() {
   [[ "$(systemctl show --property ExecStart --value "$unit")" == *"path=$candidate/scripts/start-operator.sh ;"* ]]
   for file in role-manifest.json scripts/start-operator.sh; do operator_transition_file "$candidate/$file"; cmp "$candidate/$file" "$expected/$file" >/dev/null; done
   for file in "$expected"/config/*; do operator_transition_file "$candidate/config/$(basename "$file")"; cmp "$file" "$candidate/config/$(basename "$file")" >/dev/null; done
-  diff <(find "$expected/config" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort) <(find "$candidate/config" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort) >/dev/null
+  # Check the complete names directly: subprocess-listing errors must not
+  # compare as two empty lists, including on a non-GNU control-test host.
+  python3 -B - "$expected/config" "$candidate/config" <<'PYCONFIG' || return $?
+import pathlib,sys
+assert {p.name for p in pathlib.Path(sys.argv[1]).iterdir()} == {p.name for p in pathlib.Path(sys.argv[2]).iterdir()}, 'installed config entries differ'
+PYCONFIG
   operator_transition_file "$candidate/bin/ynx-comet"
   operator_transition_file "$candidate/bin/ynx-consensus-keycheck"
   [[ "$(operator_transition_sha "$candidate/bin/ynx-comet")" == "$wanted" && "$(operator_transition_sha "$candidate/bin/ynx-consensus-keycheck")" == "$wanted_keycheck" ]]
