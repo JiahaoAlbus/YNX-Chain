@@ -81,8 +81,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-device-kernel.mjs",
-      "bytes": 16225,
-      "sha256": "18b993dee5456771a8e492bd4892f67378e6b242bf15171114a7c005902c7a0a"
+      "bytes": 16395,
+      "sha256": "d017b61428980e795c5893aa863ea9d7507a1ece69323f5b36b424284b42353c"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-device-node.mjs",
@@ -566,8 +566,8 @@
     },
     {
       "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
-      "bytes": 52842,
-      "sha256": "244d8b5357e3f27a043bc5e19a8e0be32d3b29fbf2bc010fc2bca72f5c2c0f34"
+      "bytes": 53018,
+      "sha256": "12c7f19fb80b67ef46e2ba0f416a49048baf004be6028e98de34b06e899e96ec"
     },
     {
       "path": "packages/wallet-auth/src/original-auth-source-issuance-approval-data.js",
@@ -776,8 +776,8 @@
     },
     {
       "path": "packages/wallet-auth/src/product-session-gateway-client.js",
-      "bytes": 26253,
-      "sha256": "7f1a1b49f0daae9cbf2068b405fec6a867d3965f99cc08547d30c67c216a8e72"
+      "bytes": 28766,
+      "sha256": "a07b58635894e845364850722f5b88b79aa4f5effd6ea7a0b91c6bb355d79a6b"
     },
     {
       "path": "packages/wallet-auth/src/product-session-gateway-http.js",

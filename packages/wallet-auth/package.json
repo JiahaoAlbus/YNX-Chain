@@ -939,7 +939,8 @@
     "native/original-source-private-utf8.mjs",
     "native/original-source-private-utf8-inject.mjs",
     "scripts/build-original-source-finite-product-registry.mjs",
-    "scripts/build-original-device-source-private-bundle.mjs"
+    "scripts/build-original-device-source-private-bundle.mjs",
+    "native/original-source-current-dirfd-node.cpp"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

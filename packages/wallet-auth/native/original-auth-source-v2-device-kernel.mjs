@@ -20,11 +20,12 @@ export function createDeviceSourceKernelFromFixedParts(parts){
  const {scopeRegistry,verifyMath}=parts;
  const deviceFamily=p=>scopeRegistry.has(p),deviceOperations=p=>scopeRegistry.entry(p).operations,deviceField=p=>scopeRegistry.entry(p).field;
  const inspectOriginalAuthRuntimeImageBindingV1DATA=(value,purpose)=>scopeRegistry.inspectRuntimeBinding(value,purpose);
- const devicePolicyPlatform=policy=>policy.signatureContract.purpose===PRIMARY&&Object.hasOwn(policy,'platform')?policy.platform:'macos';
+ const privateAndroid=scopeRegistry.platformRole==='android-source-private-v1';
+ const devicePolicyPlatform=policy=>privateAndroid?policy.platform:policy.signatureContract.purpose===PRIMARY&&Object.hasOwn(policy,'platform')?policy.platform:'macos';
  function sourcePolicy(policy){
   if(!deviceFamily(policy?.signatureContract?.purpose))fail('AUTH_SOURCE_V2_DEVICE_DEDICATED_PURPOSE_REQUIRED');
-  exact(policy,['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId',...(policy.signatureContract.purpose===PRIMARY&&Object.hasOwn(policy,'platform')?['platform']:[])]);
-  if(Object.hasOwn(policy,'platform')&&policy.platform!=='linux')fail('AUTH_SOURCE_V2_DEVICE_PLATFORM');
+  exact(policy,['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId',...(privateAndroid||policy.signatureContract.purpose===PRIMARY&&Object.hasOwn(policy,'platform')?['platform']:[])]);
+  if(privateAndroid?policy.platform!=='android':Object.hasOwn(policy,'platform')&&policy.platform!=='linux')fail('AUTH_SOURCE_V2_DEVICE_PLATFORM');
   if(typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)||typeof policy.productId!=='string'||!/^[a-z][a-z0-9-]{1,31}$/.test(policy.productId))fail('AUTH_SOURCE_V2_DEVICE_APPLICATION');
   const c=policy.signatureContract;exact(c,['purpose','enrollmentFrame','profileFrame','currentFrame']);
   if(!hex(policy.rootDigest)||!hex(policy.enrollmentDigest)||!hex(policy.spki)||policy.endpoint!=='https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current')fail('AUTH_SOURCE_V2_POLICY');

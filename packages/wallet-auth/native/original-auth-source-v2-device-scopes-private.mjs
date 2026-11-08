@@ -12,4 +12,4 @@ const entries=Object.freeze({[PRIMARY]:Object.freeze({field:'productSessionDevic
 // Existing image-binding policy permits only finalization/http/WPR, none of
 // this compiled3. Preserve that ORIGINAL purpose rejection before body access.
 function inspectRuntimeBinding(_value,purpose){if(Object.hasOwn(entries,purpose))throw Object.assign(Error('AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSE'),{code:'AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSE'});throw Object.assign(Error('SOURCE_DEVICE_FAMILY_NOT_REGISTERED'),{code:'SOURCE_DEVICE_FAMILY_NOT_REGISTERED'});}
-export const deviceScopeRegistry=Object.freeze({has:purpose=>Object.hasOwn(entries,purpose),entry:purpose=>entries[purpose],inspectRuntimeBinding});
+export const deviceScopeRegistry=Object.freeze({platformRole:'android-source-private-v1',has:purpose=>Object.hasOwn(entries,purpose),entry:purpose=>entries[purpose],inspectRuntimeBinding});
