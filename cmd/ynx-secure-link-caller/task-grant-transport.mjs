@@ -98,9 +98,15 @@ export async function openTaskGrantInboundTransportForOriginalBootstrap(profile,
         recordOf(s, caller);
         return material; // Original opaque body/transport DATA, no Auth parsing.
       })().catch(error => {
-        rememberCaller(r, error);
-        if (material !== undefined) throw Object.assign(fault('TASK_GRANT_TRANSPORT_LATE_CALLER_FAILURE', error), {transportData: material});
-        throw error;
+        const failure = material === undefined ? error
+          : Object.assign(fault('TASK_GRANT_TRANSPORT_LATE_CALLER_FAILURE', error), {transportData: material});
+        rememberCaller(r, failure);
+        // Legacy L removes settled currents before Join takes its snapshot.
+        // An operation rejected during retirement must therefore retain its
+        // own original failure here. Active-listener refusals remain local to
+        // their caller; neither case makes known physical drain UNKNOWN.
+        if (s.retired) remember(s, failure);
+        throw failure;
       });
       return track(s, r, run);
     },

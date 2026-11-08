@@ -177,8 +177,12 @@ test('TaskGrant native Current retirement preserves rejected operation after act
   const acquisition=deferred(),handlerExit=deferred();let captured;
   const f=await fixture(t,async(req,_res,f)=>{captured=await f.acquire(req);acquisition.resolve();await handlerExit.promise;},{mode:'hold-first'});
   f.unblocks.push(()=>handlerExit.resolve());await f.query(1);f.owner.retire();assert.throws(()=>f.owner.registeredServer());assert.equal(f.owner.lifetime().retired,true);
-  const reason=Error('cancel only this join');const cancel=new AbortController();const joining=f.owner.join({signal:cancel.signal});cancel.abort(reason);await assert.rejects(joining,e=>e===reason);assert.equal(f.owner.lifetime().closed,false);
   f.reply();await acquisition.promise;assert.equal(captured.errorPresent,true);assert.ok(captured.caller);assert.equal(f.owner.firstCallerCause(captured.caller),captured.error);assert.throws(()=>f.owner.assertOriginalInboundAtCommit(captured.caller));
+  // Let the actual native Current reject before starting the first Join.
+  // Legacy L removes settled currents from its inventory; the TaskGrant owner
+  // must retain this rejection itself, independently of Join's snapshot order.
+  await json('retired-current-before-first-join.json',{callerFirstMatches:f.owner.firstCallerCause(captured.caller)===captured.error,ownerFirstMatches:f.owner.firstCause()===captured.error,lifetime:f.owner.lifetime(),errorCode:captured.error?.code});
+  const reason=Error('cancel only this join');const cancel=new AbortController();const joining=f.owner.join({signal:cancel.signal});cancel.abort(reason);await assert.rejects(joining,e=>e===reason);assert.equal(f.owner.lifetime().closed,false);
   await f.release(captured.caller);handlerExit.resolve();await f.handled;await assert.rejects(f.owner.join(),e=>e===captured.error);assert.equal(f.owner.firstCause(),captured.error);assert.equal(f.owner.lifetime().firstCausePresent,true);assert.equal(f.owner.lifetime().cleanupUnknown,false);assert.equal(f.owner.lifetime().joined,true);assert.equal(f.owner.lifetime().closed,false);await assert.rejects(f.owner.close(),e=>e===captured.error);assert.equal(f.owner.lifetime().closed,true);await assert.rejects(f.owner.close(),e=>e===captured.error);assert.equal(f.owner.firstCause(),captured.error);assert.ok((await f.done).error);
 });
 
