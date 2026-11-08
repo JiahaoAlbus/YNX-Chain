@@ -1,5 +1,6 @@
 #pragma once
 #include "AndroidDeviceRegistrationPrivate.h"
+#include "AndroidDevicePendingJournalPrivate.h"
 #include "product_device_registration_v4.h"
 #ifdef __cplusplus
 extern "C" {
@@ -12,6 +13,7 @@ typedef struct ynx_original_android_pending_root_v1 ynx_original_android_pending
 void ynx_original_android_pending_root_open_v1(ynx_original_android_pending_root_v1**,ynx_auth_android_provision_failure_v1*);
 void ynx_original_android_pending_root_current_v1(ynx_original_android_pending_root_v1*,ynx_auth_android_provision_failure_v1*);
 void ynx_original_android_pending_root_copy_v1(ynx_original_android_pending_root_v1*,uint8_t*,size_t,ynx_auth_android_pending_review_data_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_pending_root_copy_journal_constraints_v1(ynx_original_android_pending_root_v1*,ynx_auth_android_pending_journal_constraints_v1*,ynx_auth_android_provision_failure_v1*);
 void ynx_original_android_pending_root_retire_v1(ynx_original_android_pending_root_v1*);
 void ynx_original_android_pending_root_join_v1(ynx_original_android_pending_root_v1*,ynx_auth_android_provision_drain_v1*);
 void ynx_original_android_pending_root_close_v1(ynx_original_android_pending_root_v1**,ynx_auth_android_provision_drain_v1*);

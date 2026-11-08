@@ -16,6 +16,7 @@
 #ifdef YNX_AUTH_ANDROID_PENDING_REGISTRATION_SOURCE_STAGE
 #include "AndroidDeviceRegistrationPortsPrivate.h"
 #include "AndroidDevicePendingProjectionPrivate.h"
+#include "PendingJournalConstraints.hpp"
 #endif
 #include <dlfcn.h>
 #include <fstream>
@@ -149,6 +150,7 @@ ROOT_LIFE(ynx_original_android_device_query,ynx_original_android_device_query_v1
 #ifdef YNX_AUTH_ANDROID_PENDING_REGISTRATION_SOURCE_STAGE
 extern "C" void ynx_original_android_pending_root_open_v1(ynx_original_android_pending_root_v1**out,F*f){boundary(f,[&]{if(!out)throw 2;*out=nullptr;void*p=nullptr;open(4,nullptr,&p,f);*out=reinterpret_cast<ynx_original_android_pending_root_v1*>(p);});}
 extern "C" void ynx_original_android_pending_root_current_v1(ynx_original_android_pending_root_v1*p,F*f){boundary(f,[&]{*f=current(find(p),4);});}
+extern "C" void ynx_original_android_pending_root_copy_journal_constraints_v1(ynx_original_android_pending_root_v1*p,ynx_auth_android_pending_journal_constraints_v1*out,F*f){if(out)*out={};boundary(f,[&]{auto*c=find(p);if(!c||c->kind!=4||!c->qualified||!out)throw 2;Borrow loan(*c);physical(*c);ynx_auth_android_pending_journal_constraints_v1 value{};if(int e=ac::copy_pending_journal_constraints(*c->row,value))throw e;physical(*c);*out=value;});}
 extern "C" void ynx_original_android_pending_root_copy_v1(ynx_original_android_pending_root_v1*p,uint8_t*b,size_t cap,ynx_auth_android_pending_review_data_v1*out,F*f){boundary(f,[&]{auto*c=find(p);if(!c||c->kind!=4||!c->qualified||!out||!b)throw 2;physical(*c);auto value=c->pending;Pack w{b,cap};for(auto*span:pendingFields(value)){if(!span->bytes&&!span->length){*span={};continue;}*span=w.put(copied(*span,c->pending_storage,true));}*out=value;physical(*c);});}
 extern "C" void ynx_original_android_pending_root_retire_v1(ynx_original_android_pending_root_v1*p){if(auto*c=find(p);c&&c->kind==4)c->retired=true;}
 extern "C" void ynx_original_android_pending_root_join_v1(ynx_original_android_pending_root_v1*p,D*d){if(!d)return;auto*c=find(p);*d=c&&c->kind==4?drain(c,false):D{error(2),0,0};}

@@ -19,6 +19,11 @@ struct SelectedPolicy{
  const char*root_digest;const char*enrollment_digest;SelectedSignatureContract signature_contract;
  const char*platform;
 };
+// Independent protected selection, never populated from an App path or an
+// observed FD. Parent is the actual OS-derived no-backup directory; directory
+// is its fixed ynx-product-device-v4 child. Missing selection stays missing.
+struct PendingJournalDirectory{std::uint64_t device,inode;std::uint32_t uid,gid,mode;};
+struct PendingJournalSelection{PendingJournalDirectory parent,directory;};
 struct Resource{
  std::array<std::uint8_t,32> resource,registered_resource,query_resource;
  std::uint32_t kind,application_uid,application_gid;
@@ -34,6 +39,7 @@ struct Resource{
  // Original Source-current challenge lifetime, never DEVICE op/nonce/time.
  std::int64_t maximum_capture_ms;
  const SelectedPolicy*selected_policy=nullptr;
+ const PendingJournalSelection*pending_journal=nullptr;
 };
 // Source-owned reviewed release table. A row is not Source/approval. The
 // actual Android compatible purpose policy must separately be supplied to

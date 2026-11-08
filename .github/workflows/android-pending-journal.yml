@@ -1,0 +1,55 @@
+name: Auth same pending Source journal constraints
+on:
+  push:
+    branches: [codex/android-pending-journal-ci-20261108]
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/android-pending-producer-role/**
+      - packages/wallet-auth/test/fixtures/android-pending-journal-ci/**
+      - packages/wallet-auth/test/android-pending-journal-ci.test.mjs
+      - scripts/ci/android-pending-journal*.mjs
+      - .github/workflows/android-pending-journal.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-new-journal-controls:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-journal-ci-20261108'
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 16
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-pending-journal-ci.test.mjs
+      - run: brew list libsodium || brew install libsodium
+      - run: node scripts/ci/android-pending-journal.mjs host "$RUNNER_TEMP/android-pending-journal-host"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-pending-journal-host
+          path: ${{ runner.temp }}/android-pending-journal-host
+  android-normal-two-tu:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-journal-ci-20261108'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 16
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-pending-journal-ci.test.mjs
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'ndk;27.1.12297006'
+      - run: node scripts/ci/android-pending-journal.mjs android "$RUNNER_TEMP/android-pending-journal-api24"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-pending-journal-api24
+          path: ${{ runner.temp }}/android-pending-journal-api24
