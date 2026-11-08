@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "kind": "Actual original Auth qualified receiver-purpose R2 normal factory intake",
+  "supplierH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/HANDOFF.json",
+    "bytes": 9222,
+    "sha256": "57b55b4ca7eb3c3cb133977231e1f5596281293b7c6ffaceba65a122dbbf1e2b"
+  },
+  "CAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/CAS.json",
+    "bytes": 7182,
+    "sha256": "de634c4cf679a23ffdd7c2c09b644a36dc8de680da6ef3638650cfa18a39f383"
+  },
+  "sourcefiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/SOURCEFILES.json",
+    "bytes": 46159,
+    "sha256": "bcf372dfb954ed47a714318ea8b06673c26198882d66dd866019a1406878749d"
+  },
+  "verifiedDirectHRefs": 15,
+  "verifiedUniqueManifestReferences": 327,
+  "imports": [
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver.go",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/before/runtime/task_read_receiver.go",
+        "bytes": 16243,
+        "sha256": "a344a9064df688a84a8f2934d9410746565bb862daf771b532adc7a52a55d003",
+        "blob": "5498ada5e65a7d707667255e634a7fa8b404827b"
+      },
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/runtime/source/task_read_receiver.go",
+        "bytes": 17195,
+        "sha256": "297b83f2f891c6a35dd90ece680ad6c85bebe4ac5c9aecf7662c79ea1fb40a0d",
+        "blob": "543e1fe2b76fe77dda482da61cb4f07121b7cf0b"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_files.go",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/before/runtime/task_read_receiver_files.go",
+        "bytes": 10202,
+        "sha256": "b8378f3aa8dbe9efdc586656595acab602ff900d654cfa661e5fea32b6e4d0de",
+        "blob": "ddbbf63282caa44c75eebef7dae03eb72bd3a266"
+      },
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/runtime/source/task_read_receiver_files.go",
+        "bytes": 10573,
+        "sha256": "1c6047d895a4c6b338944816370b7228df9158d07a391700b40e88c5d54925e1",
+        "blob": "3593c341d26e5f0ac52b5eff1b85366f4f1a9f3f"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_permission.go",
+      "operation": "ADD",
+      "before": null,
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/runtime/source/task_read_receiver_permission.go",
+        "bytes": 22193,
+        "sha256": "a0c6d49426d3eb5966e2eee7b348bc63ad6eca44194760d0b0f22d9170155782",
+        "blob": "dfe86800046a7e945b29d9b54d6fa8d330860131"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_u64.go",
+      "operation": "ADD",
+      "before": null,
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/runtime/source/task_read_receiver_u64.go",
+        "bytes": 1869,
+        "sha256": "d6c9c7fca0a376525af958dde43e81547c6c00eab340d66ff4f03c13e49ac0cd",
+        "blob": "24e10d209bea20539da8c1f069492b759416d218"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "internal/authtasklocal/task_read_receiver.go",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/before/local/task_read_receiver.go",
+        "bytes": 3680,
+        "sha256": "5df9a0f324321d3c971759f5232c335dd400048796b619807be4e1d1df249699",
+        "blob": "4c5a5f1e0d82c049d219e42bbcb787cd92e9b8fe"
+      },
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/local/source/task_read_receiver.go",
+        "bytes": 3772,
+        "sha256": "d6b289f9c06f1f1ecfe12368f2cdb3f4d23e38f7bd38a03c1a2155942f848ff2",
+        "blob": "bc7979b82b6553ca6019888b55655f9944de86d0"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "packages/wallet-auth/native/original-task-read-receiver-qualification-runner.mjs",
+      "operation": "ADD",
+      "before": null,
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/qualified-source-r2/frozen-r2-zUASUg/native/original-task-read-receiver-qualification-runner.mjs",
+        "bytes": 3983,
+        "sha256": "6daec82a7bc430f000bb4c59f44c9691728f4e17cf5138d7206ec61fef3d3dcd",
+        "blob": "ad6877982d8c9aae8eeb43dee16ac47b4fdf84ad"
+      },
+      "byteExact": true
+    }
+  ],
+  "formalSDK": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-read-receiver-source-contract-successor-20261108/hosted-final/HANDOFF.json",
+    "bytes": 6222,
+    "sha256": "c195b7a620a10240ade88a5b7533804412e4f383613558b2520025d789cce88b",
+    "blob": "6c9498d277163e372e62875647155c4131ff5c3e"
+  },
+  "officialSDKSource": "d269e8798fdcdc55379760a90fa1813550177591",
+  "officialSDKTGZSHA256": "83d5a1e90285c07f573f2f059d354a08c4556719b6f67b5c9f53174a6a56913f",
+  "runnerReleaseBinding": "Auth fixed runner is placed at original canonical package leaf. Actual normal row independently pins protected Node/Runner/complete SDK runtime closure from formal d269 package; no repo-relative fallback or added JS runtime is used. Original A composes final image and protected release inventory; Root[]0 unchanged.",
+  "unchangedP08Consumer": [
+    "OpenOriginalTaskReadReceiver(ctx, sameServer)",
+    "Owner.ReadOriginalTaskReadReceiverRegistration(ctx)",
+    "Owner.AssertOriginalTaskReadReceiverCurrent(ctx)"
+  ],
+  "previousGenericBodyGapsResolved": true,
+  "realRootRows": 0,
+  "listenerAdmitted": false,
+  "supplierTestsReusedNotCopied": true,
+  "noNamespace61eOrDGA456": true
+}

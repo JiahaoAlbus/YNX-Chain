@@ -70,9 +70,15 @@ func (o *Owner) receiverError(ctx context.Context, e error) error {
 	return out
 }
 func (o *Owner) scopeReceiver(ctx context.Context, r receiverRuntime) error {
+	if o.runtime == nil {
+		return native.ErrUnavailable
+	}
 	actual, ok := o.runtime.(*native.Runtime)
 	qualified, normal := r.(*native.TaskReadReceiverRuntime)
-	if ok && actual != nil && normal && qualified != nil {
+	if ok {
+		if actual == nil || !normal || qualified == nil {
+			return native.ErrProof
+		}
 		return actual.AssertOriginalTaskReadReceiverScope(ctx, qualified)
 	}
 	return nil

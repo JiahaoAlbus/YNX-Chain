@@ -3,6 +3,7 @@
 package grantruntime
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -26,13 +27,15 @@ var taskReadPaths = [3]string{"/internal/ai/original-task-read/input", "/interna
 // Private Root-owned configuration selection, NOT a Source signature format,
 // grant, effect capability or public registration API. A release supplier must
 // supply the independent accepted receiver-purpose Source before any such row
-// can be admitted. No such Source-purpose binding/real row is supplied here.
+// can be admitted. The purpose-specific producer below is real CODE; the
+// independently approved release rows and actual Root resources remain empty.
 type taskReadReceiverRelease struct {
 	Source                                        releaseSelection
 	SourceVersion                                 policy.SourceVersion
 	Authority, Realm, Tenant, Namespace, Resource string
 	RegistrationParent                            receiverDirectory
 	RegistrationLeaf                              string
+	Permission                                    receiverAuthorityRelease
 }
 
 var originalTaskReadReceiverReleases = [...]taskReadReceiverRelease{}
@@ -67,6 +70,7 @@ type TaskReadReceiverRuntime struct {
 	images                  []*receiverFile
 	socketDirectory         *receiverFile
 	proofDrain, sourceDrain *receiverDocumentDrain
+	permission              *receiverPermission
 	selection               taskReadReceiverRelease
 	record                  taskReadReceiverRegistration
 	socket                  string
@@ -112,7 +116,9 @@ func openTaskReadReceiverRuntime(ctx context.Context, s taskReadReceiverRelease,
 	if p.Snapshot.Version != s.SourceVersion {
 		return r, ErrCurrent
 	}
-	if p.Snapshot.Issuer.Status!="active"||p.Snapshot.Issuer.Ref!=p.Issuer.Principal||p.Snapshot.Issuer.Epoch!=p.Issuer.Epoch||p.Snapshot.Holder.Status!="active"||p.Snapshot.Holder.Ref!=p.Holder.Principal||p.Snapshot.Holder.Epoch!=p.Holder.Epoch{return r,ErrCurrent}
+	if p.Snapshot.Issuer.Status != "active" || p.Snapshot.Issuer.Ref != p.Issuer.Principal || p.Snapshot.Issuer.Epoch != p.Issuer.Epoch || p.Snapshot.Holder.Status != "active" || p.Snapshot.Holder.Ref != p.Holder.Principal || p.Snapshot.Holder.Epoch != p.Holder.Epoch {
+		return r, ErrCurrent
+	}
 	// Reuse the original E21/E3/Core dual-AND path ONLY to authenticate SAME
 	// Source provenance. No Policy.OpenCheck, NEW test/reserve/claim or grant
 	// effect authorization is used as receiver registration/approval.
@@ -138,6 +144,10 @@ func openTaskReadReceiverRuntime(ctx context.Context, s taskReadReceiverRelease,
 		return r, err
 	}
 	if err = r.validateRecord(); err != nil {
+		return r, err
+	}
+	r.permission, err = acquireReceiverPermission(ctx, r, rootUID) // adopt genuine partial BEFORE status
+	if err != nil {
 		return r, err
 	}
 	for _, p := range []receiverProcess{r.record.Local, r.record.Peer} {
@@ -277,6 +287,12 @@ func (r *TaskReadReceiverRuntime) latch(ctx context.Context, e error) error {
 	return first
 }
 func (r *TaskReadReceiverRuntime) currentOriginal(ctx context.Context) error {
+	if r.permission == nil || r.permission.owner != r {
+		return ErrTaskReadReceiverNotSupplied
+	}
+	if e := r.permission.current(ctx); e != nil {
+		return e
+	}
 	if e := r.source.Current(ctx); e != nil {
 		return e
 	}
@@ -392,6 +408,9 @@ func (r *TaskReadReceiverRuntime) Retire() error {
 	r.mu.Lock()
 	r.retired = true
 	r.mu.Unlock()
+	if r.permission != nil {
+		r.permission.retire()
+	}
 	return nil
 }
 func (r *TaskReadReceiverRuntime) Join() error {
@@ -436,6 +455,9 @@ func (r *TaskReadReceiverRuntime) Close() error {
 		}
 	}
 	if e == nil {
+		e = r.permission.close()
+	}
+	if e == nil {
 		e = r.registration.close()
 	}
 	if e == nil && r.proof != nil {
@@ -477,10 +499,16 @@ func (r *Runtime) AssertOriginalTaskReadReceiverScope(ctx context.Context, recei
 	r.mu.Lock()
 	s := r.selection
 	r.mu.Unlock()
-	if s.Authority != receiver.selection.Authority || s.Realm != receiver.selection.Realm || s.Tenant != receiver.selection.Tenant {
+	if e := r.Current(ctx); e != nil {
+		return e
+	}
+	if s != receiver.selection.Source || s.Authority != receiver.selection.Authority || s.Realm != receiver.selection.Realm || s.Tenant != receiver.selection.Tenant || r.projection.Snapshot.Version != receiver.selection.SourceVersion || receiver.proof == nil || receiver.proof.held == nil || r.held == nil || !bytes.Equal(r.held.raw, receiver.proof.held.raw) {
 		return ErrProof
 	}
-	return receiver.Current(ctx)
+	if e := receiver.Current(ctx); e != nil {
+		return e
+	}
+	return r.Current(ctx)
 }
 func mustReceiverRegistrationBytes(p taskReadReceiverRegistration) []byte {
 	b, e := json.Marshal(p)

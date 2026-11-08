@@ -13,12 +13,14 @@ on:
       - "cmd/ynx-ai-task/**"
       - "cmd/ynx-ai-gatewayd/**"
       - "apps/ai/*.go"
+      - "apps/ai/ORIGINAL_AUTH_QUALIFIED_RECEIVER_INTAKE.json"
       - "apps/ai/scripts/webdav-interop-*"
       - "packages/auth-grant-policy/go/**"
       - "packages/auth-grant-runtime/go/**"
       - "packages/auth-grant-history-client/go/**"
       - "packages/open-protocol/go/**"
       - "packages/wallet-auth/go/taskactionv6/**"
+      - "packages/wallet-auth/native/original-task-read-receiver-qualification-runner.mjs"
       - "internal/ynxbatch/**"
       - "internal/accountaddress/**"
       - "internal/securelink/**"
@@ -48,6 +50,20 @@ jobs:
           cache: true
       - name: Verify normal task, model and startup packages
         run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./internal/authaitaskv6 ./cmd/ynx-ai-task ./cmd/ynx-ai-gatewayd ./apps/ai
+      - name: Verify exact original qualified receiver producer cohort
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          intake = json.loads(pathlib.Path("apps/ai/ORIGINAL_AUTH_QUALIFIED_RECEIVER_INTAKE.json").read_text())
+          for item in intake["imports"]:
+              body = pathlib.Path(item["target"]).read_bytes()
+              assert len(body) == item["source"]["bytes"], item["target"]
+              assert hashlib.sha256(body).hexdigest() == item["source"]["sha256"], item["target"]
+          assert len(intake["imports"]) == 6
+          PY
+          node --check packages/wallet-auth/native/original-task-read-receiver-qualification-runner.mjs
       - name: Verify original registered receiver consumer refusal and Source debt
         shell: bash
         run: |

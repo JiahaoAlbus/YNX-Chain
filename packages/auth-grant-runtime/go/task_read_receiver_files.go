@@ -14,10 +14,11 @@ import (
 // Physical Root configuration only. This is not a Source/proof parser. Normal
 // capture fixes uid=0; the private uid parameter is used only by PUBLIC tests.
 type receiverDirectory struct {
-	Path          string
-	Device, Inode uint64
-	UID, GID      uint32
-	Mode          uint32
+	Path                  string
+	Device, Inode         uint64
+	UID, GID              uint32
+	Mode                  uint32
+	deviceJSON, inodeJSON string // preserve held lossless legacy/private metadata spelling
 }
 type receiverImage struct {
 	Path   string
@@ -97,7 +98,13 @@ func openReceiverFile(ref protectedRef, uid uint32, max int64, image bool) (h *r
 	return h, h.current()
 }
 func holdReceiverRegistration(d receiverDirectory, leaf string, uid uint32) (h *receiverFile, err error) {
+	return holdReceiverLocatedFile(d, leaf, uid, 65536)
+}
+func holdReceiverLocatedFile(d receiverDirectory, leaf string, uid uint32, maximum int64) (h *receiverFile, err error) {
 	h = &receiverFile{uid: uid}
+	if maximum < 1 || maximum > 393216 {
+		return h, ErrUnavailable
+	}
 	if d.UID != uid || d.Mode&0022 != 0 || leaf == "" || leaf == "." || leaf == ".." || filepath.Base(leaf) != leaf || !filepath.IsAbs(d.Path) || filepath.Clean(d.Path) != d.Path {
 		return h, ErrUnavailable
 	}
@@ -147,7 +154,7 @@ func holdReceiverRegistration(d receiverDirectory, leaf string, uid uint32) (h *
 		return h, ErrCurrent
 	}
 	before, e := os.Lstat(p)
-	if e != nil || !receiverSafe(before, false, uid) || before.Size() < 1 || before.Size() > 65536 {
+	if e != nil || !receiverSafe(before, false, uid) || before.Size() < 1 || before.Size() > maximum {
 		return h, ErrCurrent
 	}
 	fd, e := syscall.Open(p, syscall.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_CLOEXEC|syscall.O_NONBLOCK, 0)
@@ -162,7 +169,7 @@ func holdReceiverRegistration(d receiverDirectory, leaf string, uid uint32) (h *
 	if e != nil || !os.SameFile(before, after) || !receiverSafe(after, false, uid) {
 		return h, ErrCurrent
 	}
-	h.raw, e = io.ReadAll(io.LimitReader(f, 65537))
+	h.raw, e = io.ReadAll(io.LimitReader(f, maximum+1))
 	if e != nil {
 		return h, e
 	}

@@ -86,14 +86,26 @@ task-marker settlement, nor does it claim physical Source closure.
 The normal Go service consumes LINK eb311's real continuation inventory, the
 original Auth strict decoder/reservation adapter, and the original owner's real
 receiver registration/current methods. The byte-exact receiver intake is pinned
-in ORIGINAL_AUTH_RECEIVER_CONSUMER_INTAKE.json. Its receiver-purpose Source
-permission/current contract remains NOT_SUPPLIED; real Root registration and
-provider qualification are separate gates. Missing receiver selection returns
+in ORIGINAL_AUTH_RECEIVER_CONSUMER_INTAKE.json. Its qualified R2 successor is
+now consumed byte-exact in ORIGINAL_AUTH_QUALIFIED_RECEIVER_INTAKE.json: actual
+protected same-Root permission capture, sole Source-v2/scope21 qualification,
+current/revocation checks and permission child custody are implemented. Real
+Root registration, protected release resources and provider qualification remain
+separate gates. Missing receiver selection returns
 no config, opens no listener and preserves the original grant Source first cause.
 The latest LINK a9d7163 two-leaf JS successor and its qualified CI handoff are
 explicitly selected only for subsequent normal consumer inputs; existing Go
 production remains eb311. No installed/in-flight image is hot-swapped. Do not
 promote HTTP DATA to a capability or claim installed/business/Root acceptance.
+
+Qualified R2 binds the official d269 SDK receiver package and original Auth
+fixed runner, independently released protected Node and complete SDK closure.
+The P08 normal Owner methods and consumer are unchanged. No ENV/path/provider
+can select these originals; no repo-relative fallback or second Go runtime is
+added. Normal CI checks the six exact producer files and fixed runner syntax,
+then uses its existing registered consumer controls. Supplier real-math/current
+and lifetime controls are reused. Root rows remain empty: importing the CODE
+does not create a registered peer, Source selection or listener permission.
 
 Normal service shutdown runs original V6 cleanup, original receiver/LINK drain
 and resource closure, then the borrowed task runtime parent in one guarded
