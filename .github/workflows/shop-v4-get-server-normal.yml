@@ -23,6 +23,12 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/ci/shop-v4-get-server-normal.mjs 2>&1 | tee shop-v4-normal.log
+      - name: Only affected WPR graph and finite dispatch delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test packages/wallet-auth/test/wpr-capture-source-graph-delta.test.mjs 2>&1 | tee wpr-graph-delta.log
+          node scripts/ci/wpr-fixed-capture-runner.mjs --graph-only
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
@@ -31,5 +37,7 @@ jobs:
           if-no-files-found: error
           path: |
             shop-v4-normal.log
+            wpr-graph-delta.log
+            wpr-fixed-capture-runner-controls
             ${{ runner.temp }}/shop-v4-normal-*
             canonical-common-source-package
