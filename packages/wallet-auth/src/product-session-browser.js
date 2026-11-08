@@ -5,10 +5,10 @@ import { productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSession } from "./product-session-v2.js";
 import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { createProductSessionProofV2With } from "./product-session-proof-v2.js";
-import { encodeProductSessionGatewayProofHeaderV2, productSessionGatewayAuthority } from "./product-session-gateway-client.js";
+import { encodeProductSessionGatewayProofHeaderV2, productSessionGatewayAuthority, borrowRetainedProductSessionReferenceReadTarget } from "./product-session-gateway-client.js";
 import { httpBodyDigest } from "./session-proof.js";
 import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches, createRevocationCompletion, parseRevocationCompletion, readRevocationCompletions, appendRevocationCompletion } from "./product-session-revocation-intent.js";
-import { parseCompletionRecord,inspectCompletionRecord } from "./product-session-completion-record.js";
+import { parseCompletionRecord,inspectCompletionRecord,deriveCompletionTarget } from "./product-session-completion-record.js";
 
 export const BROWSER_PRODUCT_SESSION_SECURITY_LEVEL = "webcrypto-nonextractable";
 const DATABASE = "ynx-product-session-web-v2";
@@ -17,7 +17,28 @@ const DEVICE_STORE = "devices", STATE_STORE = "state";
 // The browser protects key export, not access by scripts executing in this origin.
 export async function createBrowserProductSessionClient(config) {
   const { registry, productId, scopes, purpose, gateway, finiteServiceSeconds, environment = globalThis, clock = () => new Date() } = config ?? {};
-  if (!config || Object.keys(config).some(key => !["registry", "productId", "scopes", "purpose", "gateway", "environment", "clock", "finiteServiceSeconds"].includes(key))) fail("INVALID_DEVICE", "Browser Product Session configuration is invalid");
+  if (!config || Object.keys(config).some(key => !["registry", "productId", "scopes", "purpose", "gateway", "environment", "clock", "finiteServiceSeconds", "accountPolicy"].includes(key))) fail("INVALID_DEVICE", "Browser Product Session configuration is invalid");
+  // Capture the existing Main policy ports before any DB/key side effect or await.
+  // This forwards original opaque verification; it creates no Source or fallback.
+  const hasAccountPolicy = Object.hasOwn(config, "accountPolicy");
+  let accountPolicy, completionProofOriginal = null, completionClockFloor = 0, referenceProofOriginal = null;
+  const releaseReferenceProof = () => { const original=referenceProofOriginal;referenceProofOriginal=null;original?.loan.close(); };
+  if (hasAccountPolicy) {
+    const ports = config.accountPolicy;
+    exactFields(ports, ["acquire", "verifyCompletion"], "Main account policy ports");
+    const acquire = ports.acquire, verifyCompletion = ports.verifyCompletion;
+    if (typeof acquire !== "function" || typeof verifyCompletion !== "function") fail("ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED", "Wallet approval verification is unavailable");
+    accountPolicy = Object.freeze({ acquire, verifyCompletion(...args) {
+      completionProofOriginal = null;
+      const verified = verifyCompletion(...args);
+      // Only the existing opaque completion verifier can open this read-only
+      // reconciliation path. A DTO or accountVerified:false inspection cannot.
+      deriveCompletionTarget(registry, args[1], args[3], verified.verification);
+      completionClockFloor = args[3].getTime();
+      completionProofOriginal = Object.freeze({ raw: args[1], verification: verified.verification });
+      return verified;
+    } });
+  }
   const binding = productPlatformBinding(registry, productId, "web");
   const authority = productSessionGatewayAuthority(gateway);
   if (environment?.isSecureContext !== true || environment.location?.origin !== binding.origin) fail("ORIGIN_NOT_ALLOWED", "Browser Product Sessions require the registered product HTTPS origin");
@@ -36,7 +57,7 @@ export async function createBrowserProductSessionClient(config) {
   const randomToken = () => encodeBase64url(crypto.getRandomValues(new Uint8Array(32)));
   const db = await openDatabase(environment.indexedDB);
   let closed = false, revocationAttempted = false;
-  const close = () => { closed = true; db.close(); };
+  const close = () => { closed = true; completionProofOriginal = null; releaseReferenceProof(); db.close(); };
   db.onversionchange = close;
   try {
     let record = await transact(db, "readonly", namespace, ({ device, state }) => {
@@ -142,7 +163,7 @@ export async function createBrowserProductSessionClient(config) {
         revocationAttempted = false;
       },
     });
-    const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock, ...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds}:{}) });
+    const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock, ...(hasAccountPolicy ? { accountPolicy } : {}), ...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds}:{}) });
     const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, durableRevocationCompletion: true, origin: binding.origin, productId, scopes: approvedScopes });
     return Object.freeze({ client, device, storage, capabilities, createIntrospectionProof, createSocialAudienceProof: input => client.createSocialAudienceProof(input), createBusinessProof: input => client.createBusinessProof(input),
     createBusinessProofCommitment: input => client.createBusinessProofCommitment(input), close });
@@ -166,6 +187,8 @@ export async function createBrowserProductSessionClient(config) {
       return transact(db, mode, namespace, context => {
         assertRecord(context.device, context.state, namespace, allowedKeys, authority);
         if (context.device.deviceId !== record.deviceId || context.device.deviceKey !== record.deviceKey) fail("DEVICE_CHANGED", "Persisted browser device changed; start a new explicit connection");
+        if (completionProofOriginal && context.state.values[`${storageKey}:completion`] !== completionProofOriginal.raw) completionProofOriginal = null;
+        if (referenceProofOriginal && context.state.values[`${storageKey}:completion`] !== referenceProofOriginal.raw) releaseReferenceProof();
         return callback(context);
       });
     }
@@ -184,23 +207,46 @@ export async function createBrowserProductSessionClient(config) {
       const active = await signingRecord(subject, input.purpose);
       let signature;
       try {
-        signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, active.privateKey, payload));
-        if (!await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, active.publicKey, signature, payload)) fail("DEVICE_CHANGED", "Browser device key pair no longer matches");
+        signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, active.device.privateKey, payload));
+        if (!await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, active.device.publicKey, signature, payload)) fail("DEVICE_CHANGED", "Browser device key pair no longer matches");
       } catch (error) { if (error instanceof WalletAuthError) throw error; fail("DEVICE_SIGNING_FAILED", "Browser device signing failed"); }
-      await signingRecord(subject, input.purpose); // Recheck persisted sign-out and target after signing.
+      await signingRecord(subject, input.purpose, active.completion); // Recheck persisted sign-out and target after signing.
       return encodeBase64url(p1363ToDER(signature));
     }
-    function signingRecord(subject, purpose) {
+    function signingRecord(subject, purpose, expectedCompletion) {
       return stateOperation("readonly", ({ device: current, state }) => {
+        let selectedCompletion = null;
         const pending = readIntent(state);
         if (pending || revocationAttempted || signals.pending()) {
           const target = pending?.session;
           if (purpose !== "http-proof" || subject.path !== "/v2/product-sessions/revoke" || subject.method !== "POST" || subject.bodyDigest !== httpBodyDigest("{}") || !target || subject.sessionBinding !== target.sessionBinding || subject.account !== target.account) fail("REVOCATION_PENDING", "Pending sign-out permits only the exact target revocation proof");
         } else if (purpose === "http-proof") {
           const raw = state.values[storageKey], session = raw ? parseProductSession(JSON.parse(raw)) : null;
-          if (!session || subject.sessionBinding !== session.sessionBinding || subject.account !== session.account) fail("SESSION_INACTIVE", "Stored Product Session changed before signing");
+          if (!session || subject.sessionBinding !== session.sessionBinding || subject.account !== session.account) {
+            if (session || purpose !== "http-proof" || subject.method !== "POST" || subject.path !== "/v2/product-sessions/introspect") fail("SESSION_INACTIVE", "Stored Product Session changed before signing");
+            let target;
+            if (completionProofOriginal) {
+              const original = completionProofOriginal;
+              if (state.values[`${storageKey}:completion`] !== original.raw) { completionProofOriginal=null;fail("SESSION_INACTIVE", "Original completion changed before reconciliation"); }
+              try {
+                const at = clock();
+                if (!(at instanceof Date) || !Number.isFinite(at.getTime()) || at.getTime() < completionClockFloor) fail("CLOCK_ROLLBACK", "Original completion reconciliation clock moved backwards");
+                completionClockFloor = at.getTime();
+                target = deriveCompletionTarget(registry, original.raw, at, original.verification);
+              } catch (error) { completionProofOriginal = null; throw error; }
+              selectedCompletion = original;
+            } else {
+              try {
+                const raw=state.values[`${storageKey}:completion`];
+                if(!referenceProofOriginal)referenceProofOriginal=Object.freeze({raw,loan:borrowRetainedProductSessionReferenceReadTarget(gateway,registry,raw,clock())});
+                target=referenceProofOriginal.loan.read(clock());selectedCompletion=referenceProofOriginal;
+              } catch(error) { releaseReferenceProof();throw error; }
+            }
+            if (subject.sessionBinding !== target.sessionBinding || subject.account !== target.account || subject.bodyDigest !== httpBodyDigest(canonicalJSON({requiredScopes: target.scopes}))) fail("SESSION_INACTIVE", "Original completion target changed before reconciliation");
+          }
         }
-        return current;
+        if (expectedCompletion !== undefined && selectedCompletion !== expectedCompletion) fail("SESSION_INACTIVE", "Original completion loan changed during signing");
+        return Object.freeze({device: current, completion: selectedCompletion});
       });
     }
     async function assertAPIActive(expected) {
