@@ -40,6 +40,7 @@ preload_initialization=module('original_preload_initialization','pq-preload-init
 first_trial_source=module('original_first_trial_source','pq-first-trial-source.py')
 first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-readback.py')
 first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-source-qualification.py')
+first_trial_7c25_source=module('original_first_trial_7c25_source','pq-7c25-source-qualification.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
 
@@ -56,7 +57,9 @@ STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-own
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
+STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
+PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE))
 
 
 def callee_snapshot(value):
@@ -575,7 +578,7 @@ class NormalBackend:
             lab.require(not lane["retired"],"normal original live lane retired")
             lane["sequence"]+=1;seq=lane["sequence"];prefix="load-%05d"%row["index"]
             notify(dict(kind="normal_stage",stage="live_publish"))
-            self.call(prefix+"-live-publish",["live-materials","request","--synthetic","--policy",str(lane["policy"]),"--policy-sha256",lane["pin"],"--sequence",str(seq),"--transaction",str(path),"--transaction-sha256",normal.comet_hash(tx["abciHash"]),"--native-wire-hash",normal.comet_hash(tx["nativeHash"])])
+            self.call(prefix+"-live-publish",["live-materials","request","--synthetic","--policy",str(lane["policy"]),"--policy-sha256",lane["pin"],"--sequence",str(seq),"--transaction",str(path),"--transaction-sha256",normal.comet_hash(tx["abciHash"]),"--native-wire-hash",normal.comet_hash(tx["nativeHash"]),*(['--observe-stages'] if getattr(self.c,'request_stage_observation',False) else [])])
             output=lane["policy"].parent/("operation-%06d"%seq);until=time.monotonic()+self.c.proof_timeout
             notify(dict(kind="normal_stage",stage="live_capture"))
             while not (output/"result.json").exists() and not stop.is_set() and time.monotonic()<until:
@@ -654,7 +657,10 @@ class NormalBackend:
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
-    lab.require(profile in ('own1b','d24','1695') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'d24/1695 requires explicit same-window first100 profile')
+    lab.require(profile in ('own1b','d24','1695','7c25') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
+    if profile=='7c25':
+        lab.require(args.commit==first_trial_7c25_source.SOURCE and getattr(args,'sender_backend','auto')=='public-owner',
+                    '7c25 requires its exact source and explicit public-owner backend')
     lab.require(args.mode in ("online","pre-signed") and args.rate in (100,500,1000) and 1<=args.accounts<=996 and 1<=args.per_account<=1024 and 1<=args.seconds<=60 and 1<=args.tail_seconds<=120 and 1<=args.proof_timeout<=120,"bounded explicit original load configuration required")
     if getattr(args,'initialization_only',False):
         lab.require(getattr(args,'staged_publication',False) and (args.mode,args.rate,args.seconds,args.accounts,args.per_account)==('online',100,5,500,1),'initialization-only requires exact original staged online500 plus4 reserved owners; no reduced-account qualification')
@@ -696,7 +702,10 @@ def sender_backend_kind(args):
     if selected=='auto':return 'bounded-cold' if staged else 'per-account'
     lab.require(staged and args.mode=='online','selected sender backend requires original staged online demand')
     if selected=='public-owner':
-        lab.require(args.commit==PUBLIC_OWNER_ABI_SOURCE,'exact1695 public owner ABI required; source qualification is separate')
+        lab.require(args.commit in PUBLIC_OWNER_ABI_SOURCES,'exact public owner ABI required; source qualification is separate')
+        if args.commit==first_trial_7c25_source.SOURCE:
+            lab.require(getattr(args,'first_trial_profile','own1b')=='7c25' and getattr(args,'initialize_before_load',False),
+                        'future public owner requires its separately qualified 7c25 profile')
     return selected
 
 
@@ -705,7 +714,7 @@ def make_sender_backend(ceremony,owners,stop,kind):
     if kind=='bounded-cold':
         pool=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
         return pool.backend_class(NormalBackend,SenderSession,normal,lab)(ceremony,owners,stop)
-    lab.require(kind=='public-owner' and ceremony.consumer_source==PUBLIC_OWNER_ABI_SOURCE,
+    lab.require(kind=='public-owner' and ceremony.consumer_source in PUBLIC_OWNER_ABI_SOURCES,
                 'exact normal public-owner source required; no backend fallback')
     transport=module('normal_public_owner_transport','pq-public-owner-transport.py')
     pool=module('normal_public_owner_backend','pq-public-owner-backend.py')
@@ -717,12 +726,15 @@ def load_conditions(args):
     # Rate increases are intentional. All other workload/observer settings
     # must remain fixed across a source's 100 -> 500 -> 1000 progression.
     # This does NOT assert equal random keys/canonical inputs across sources.
-    return dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
+    result=dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
         senderBackend=sender_backend_kind(args),
         firstTrialProfile=getattr(args,'first_trial_profile','own1b'),
         seconds=args.seconds,tailSeconds=args.tail_seconds,proofTimeout=args.proof_timeout,
         **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture','startup_timings','initialize_before_load')},
         sameHost=True,physicalFaultDomains=1,cryptoOrAuthorityChanged=False,canonicalInputPairEquality='NOT_YET_QUALIFIED')
+    if getattr(args,'first_trial_profile','own1b')=='7c25':
+        result['requestStageObservation']=True
+    return result
 
 
 def validate_escalation(args):
@@ -744,7 +756,7 @@ def run(args):
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     first_trial=getattr(args,'initialize_before_load',False)
     profile=getattr(args,'first_trial_profile','own1b')
-    trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source}[profile]
+    trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
     trial_qualification=(trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None
@@ -805,6 +817,9 @@ def run(args):
         staged=getattr(args,'staged_publication',False)
         ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit,startup_timings=getattr(args,'startup_timings',False))
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
+        # This assignment is reached only after the matching source CI AND
+        # per-height semantic evidence have passed the selected source gate.
+        ceremony.request_stage_observation=profile=='7c25'
         if staged:
             result['coldBootstrapReadinessBudget']=initialization.cold_readiness_budget(w)
             ceremony.initial_quiet_timeout=result['coldBootstrapReadinessBudget']['grantedColdPhaseSeconds']
@@ -942,7 +957,7 @@ if __name__=="__main__":
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
-    p.add_argument('--first-trial-profile',choices=('own1b','d24','1695'),default='own1b',help='explicit fixed source selection for same-window first100 only; 1695 additionally consumes its actual independent nine-height semantic original; no pressure grant')
+    p.add_argument('--first-trial-profile',choices=('own1b','d24','1695','7c25'),default='own1b',help='explicit fixed source selection for same-window first100 only; each source keeps its independent CI/semantic gates; no pressure grant')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))

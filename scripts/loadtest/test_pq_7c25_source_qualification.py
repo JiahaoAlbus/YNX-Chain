@@ -1,0 +1,99 @@
+"""Future profile controls are synthetic metadata, never source/chain evidence."""
+import copy
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+import unittest
+from unittest import mock
+
+
+def module(name,file):
+    spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(file))
+    value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
+
+
+m=module('future7c25_controls','pq-7c25-source-qualification.py')
+d=module('future7c25_driver','pq-independent-load.py')
+
+
+def options(**changes):
+    args=dict(commit=m.SOURCE,source='/NOT-READ',mode='online',rate=100,seconds=5,accounts=500,
+              per_account=1,tail_seconds=30,proof_timeout=30,execute=True,staged_publication=True,
+              initialize_before_load=True,initialization_only=False,first_trial_profile='7c25',
+              sender_backend='public-owner',startup_timings=True,wire_observation=True,
+              commit_observation=True,network_accounting=True,owned_storage_accounting=True,header_hop_capture=False)
+    args.update(changes);return SimpleNamespace(**args)
+
+
+class FutureSourceControls(unittest.TestCase):
+    def test_missing_exact_source_or_semantic_pins_blocks_before_source_window_or_process(self):
+        with mock.patch.object(d.lab,'check_source') as source,mock.patch.object(d.lab,'Window') as window,\
+             mock.patch.object(d.subprocess,'Popen') as process:
+            with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):d.run(options())
+        source.assert_not_called();window.assert_not_called();process.assert_not_called()
+        self.assertIsNone(m.NORMAL_RECEIPT_SHA256);self.assertIsNone(m.SEMANTIC_RECEIPT_SHA256)
+
+    def test_future_requires_own_profile_source_backend_and_same_demand(self):
+        self.assertEqual(d.validate_options(options()),500)
+        self.assertEqual(d.sender_backend_kind(options()),'public-owner')
+        for change in [dict(commit=d.PUBLIC_OWNER_ABI_SOURCE),dict(sender_backend='auto'),
+                       dict(initialize_before_load=False),dict(rate=500),dict(accounts=499)]:
+            with self.subTest(change=change),self.assertRaises(RuntimeError):d.validate_options(options(**change))
+        with self.assertRaises(RuntimeError):d.sender_backend_kind(options(first_trial_profile='1695'))
+
+    def test_old_conditions_do_not_inherit_observation(self):
+        old=options(commit=d.PUBLIC_OWNER_ABI_SOURCE,first_trial_profile='1695')
+        self.assertNotIn('requestStageObservation',d.load_conditions(old))
+        self.assertTrue(d.load_conditions(options())['requestStageObservation'])
+        self.assertEqual(d.PUBLIC_OWNER_ABI_SOURCE,'1695aafd351b3cac7860d3452c555a02498e8350')
+
+    def test_complete_original_cli_tops_and_children_required(self):
+        package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
+        rows=[dict(Action='start',Package=package)]
+        for name in sorted(m.CLI_REQUIRED):
+            for test,action in [(name,'run'),(name+'/closed','run'),(name+'/closed','pass'),(name,'pass')]:
+                rows.append(dict(Action=action,Package=package,Test=test))
+        rows.append(dict(Action='pass',Package=package))
+        def raw(events):return b'\n'.join(json.dumps(e).encode() for e in events)
+        result=m.original_go_frames(raw(rows),package,m.CLI_REQUIRED)
+        self.assertEqual((result['topCases'],result['childCases']),(14,14))
+        for bad in [rows[:-1],rows+rows,rows[:3]+rows[4:]]:
+            with self.assertRaises(RuntimeError):m.original_go_frames(raw(bad),package,m.CLI_REQUIRED)
+        for action in ['skip','fail','build-fail']:
+            changed=copy.deepcopy(rows);changed[3]['Action']=action
+            with self.assertRaises(RuntimeError):m.original_go_frames(raw(changed),package,m.CLI_REQUIRED)
+
+    def test_source_ci_cannot_borrow_integration_release_or_inflight_green(self):
+        # A matching-looking in-flight record still cannot qualify this source.
+        run=dict(id=m.CI_RUN,head_sha=m.SOURCE,head_branch=m.CI_REF,event='push',run_attempt=1,
+                 path='.github/workflows/resource-market-ci.yml',status='in_progress',conclusion=None)
+        with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):m.identity(run,{}, {})
+        for branch in ['codex/ynx-pq-perf-integration','codex/final-chain-core']:
+            with self.assertRaises(RuntimeError):m.identity(dict(run,head_branch=branch,status='completed',conclusion='success'),{}, {})
+
+    def test_v2_source_snapshot_requires_actual_ref_and_four_completed_steps(self):
+        repo=dict(full_name=m.REPOSITORY,fork=False)
+        run=dict(id=m.CI_RUN,head_sha=m.SOURCE,head_branch=m.CI_REF,event='push',run_attempt=1,
+                 path='.github/workflows/resource-market-ci.yml',status='completed',conclusion='success',
+                 repository=repo,head_repository=dict(repo))
+        names=['Exercise original lab callee readiness and actual cold costs',
+               'Verify complete state bridge and sponsor continuity',
+               'Retain exact public test streams and same-job source identity',
+               'Upload only original focused public test streams']
+        job=dict(id=m.CI_JOB,run_id=m.CI_RUN,head_sha=m.SOURCE,name='focused-go',status='completed',
+                 conclusion='success',steps=[dict(name=n,status='completed',conclusion='success') for n in names])
+        source=dict(version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2',commit=m.SOURCE,sourceTree=m.TREE,
+                    cometForkTree=m.FORK,runId=str(m.CI_RUN),runAttempt='1',job='focused-go',
+                    repository=m.REPOSITORY,captureComplete=True,errors=[],testQualification='not-evaluated',
+                    nativeGrant=False,nodeStartAuthorized=False,publicDeployment=False)
+        m.identity(run,job,source) # Synthetic metadata only; qualification() still has no sealed originals.
+        for key,value in [('version','YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1'),('commit',d.PUBLIC_OWNER_ABI_SOURCE),
+                          ('captureComplete',False),('nativeGrant',True)]:
+            with self.subTest(key=key),self.assertRaises(RuntimeError):m.identity(run,job,dict(source,**{key:value}))
+        changed=copy.deepcopy(job);changed['steps'][0]['conclusion']='skipped'
+        with self.assertRaises(RuntimeError):m.identity(run,changed,source)
+        with self.assertRaises(RuntimeError):m.qualification()
+
+
+if __name__=='__main__':unittest.main(verbosity=2)
