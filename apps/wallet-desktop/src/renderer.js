@@ -509,7 +509,6 @@ function renderAccount(payload) {
     createAccount.hidden = false;
     addAccount.hidden = true;
     accountList.replaceChildren();
-    copyUI(accountDetail,status?.passwordConfigured ? "Unlock with your local password, then create or import an account." : "Set a local password to encrypt your Wallet before creating or importing an account.");
     return;
   }
   copyUI(accountTitle,"Your account");
@@ -1279,6 +1278,9 @@ document.addEventListener("keydown", event => {
 function renderKeyDetail() {
   if(typeof mnemonicBackupButton!=="undefined"){mnemonicBackupButton.hidden=!accountState?.initialized;mnemonicBackupButton.disabled=keyState.locked||keyState.authenticating;}
   const detail = document.querySelector("#key-security-detail"), state = keyState;
+  // Display follows the same account/key status on both normal status reads and
+  // unlock/relock events; no account refresh, key operation or policy change.
+  if(accountState&&!accountState.initialized)copyUI(accountDetail,!accountState.passwordConfigured ? "Set a local password to encrypt your Wallet before creating or importing an account." : state.locked!==false ? "Unlock with your local password, then create or import an account." : "Wallet is unlocked. Create or import an account.");
   const lockReason=document.querySelector("#wallet-lock-reason");
   if(lockReason){lockReason.hidden=!state.locked||!Number.isSafeInteger(state.lockedAt);if(!lockReason.hidden)copyUI(lockReason,"Wallet locked: {reason} · {time}",{reason:state.lockReason,time:new Date(state.lockedAt).toLocaleTimeString()});else lockReason.textContent="";}
   const send = document.querySelector("#open-send");

@@ -11,7 +11,7 @@ class Element{
  constructor(tag,doc){this.tagName=tag.toUpperCase();this.ownerDocument=doc;this.children=[];this.dataset={};this.attributes={};this.handlers={};this.className='';this.textContent='';this.value='';this.disabled=false;this.hidden=false;this.classList={add:(...names)=>{this.className=[...new Set([...this.className.split(' '),...names])].join(' ');},remove:name=>{this.className=this.className.split(' ').filter(v=>v!==name).join(' ');},toggle:(name,on)=>on?this.classList.add(name):this.classList.remove(name)};}
  append(...nodes){for(const n of nodes){if(n.parentElement)n.parentElement.children=n.parentElement.children.filter(c=>c!==n);n.parentElement=this;this.children.push(n);}}
  replaceChildren(...nodes){this.children=[];this.append(...nodes);}setAttribute(k,v){this.attributes[k]=String(v);if(k==='id')this.id=v;if(k==='class')this.className=v;if(k==='value')this.value=v;if(k.startsWith('data-'))this.dataset[camel(k.slice(5))]=v;}
- removeAttribute(k){delete this.attributes[k];}
+ getAttribute(k){return this.attributes[k]??null;}removeAttribute(k){delete this.attributes[k];}
  addEventListener(type,fn){(this.handlers[type]??=[]).push(fn);}async emit(type){for(const fn of this.handlers[type]??[])await fn({target:this});}click(){if(!this.disabled)return this.emit('click');}scrollIntoView(){}
 }
 function mounted(){
@@ -84,4 +84,12 @@ test('DApp and permissions routes keep the same actual session controls and orig
  let clicks=0;const button=f.document.createElement('button');button.addEventListener('click',()=>clicks++);sessions.append(button);detail.textContent='Original disconnect acknowledgement UNKNOWN';
  for(const route of ['connections','permissions','connections']){f.ui.viewChanged(route);const target=route==='connections'?'desktop-connection-sessions-slot':'desktop-permission-slot';assert.equal(sessions.parentElement.id,target);assert.equal(detail.parentElement.id,target);assert.equal(f.id('walletconnect-sessions'),sessions);assert.equal(detail.textContent,'Original disconnect acknowledgement UNKNOWN');}
  button.click();assert.equal(clicks,1);assert.equal(f.document.querySelectorAll('[id="walletconnect-sessions"]').length,1);
+});
+test('resolver page title uses normal locale enrollment and language changes preserve PUBLIC input/result without requery',async()=>{
+ const {initWalletLocale}=await import('../src/wallet-locale.mjs');let queries=0;const f=fixture({resolveReceivingAddress(){queries++;throw Error('language change must not query');}}),locale=initWalletLocale({document:f.document,systemLanguages:['en']});
+ f.ui.viewChanged('resolver');const title=f.id('page-title'),input=f.id('receive-resolver-input'),target=f.document.querySelector('.resolver-result').children[1].children[1];
+ // PUBLIC view state only; no actual address binding or lookup is asserted.
+ input.value='ynx1-PUBLIC-original-input';target.textContent='PUBLIC retained target';assert.equal(title.textContent,'Address Resolver');
+ for(const [language,label]of [['zh-Hans','地址格式转换'],['zh-Hant','地址格式轉換'],['en','Address Resolver']]){locale.select(language);assert.equal(title.textContent,label);assert.equal(input.value,'ynx1-PUBLIC-original-input');assert.equal(target.textContent,'PUBLIC retained target');}
+ assert.equal(queries,0);
 });

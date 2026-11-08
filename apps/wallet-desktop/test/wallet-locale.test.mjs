@@ -115,3 +115,10 @@ test("R14 PUBLIC actual multichain Refresh switches locale without changing raw 
     await f.refresh.emit("click");assert.deepEqual(f.calls,["snapshot","snapshot"]);assert.equal(f.refresh.textContent,r14Refresh.id);
   }finally{f.ui.dispose()}
 });
+test('normal resolver shell heading enrolls in locale updates without touching address input or resolved target',async()=>{
+ const {readFileSync}=await import('node:fs'),{runInNewContext}=await import('node:vm');const ui=mounted(null),heading={ownerDocument:ui.document,textContent:''},input={value:'ynx1-PUBLIC-original-input'},target={textContent:'0x-PUBLIC-original-target'};let queries=0;
+ const query=ui.document.querySelector.bind(ui.document);ui.document.querySelector=selector=>selector==='#page-title'?heading:selector==='#receive-resolver-input'?input:query(selector);ui.document.querySelectorAll=()=>[];
+ const source=readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8'),from=source.indexOf('function setView(name) {'),to=source.indexOf('\nfor (const button',from);assert(from>=0&&to>from);
+ const scope={document:ui.document,activeAccount:'0x'+'1'.repeat(40),copyUI:setWalletCopy,desktopUI:{viewChanged(){}},window:{scrollTo(){}},refreshWalletConnectConnectionView(){queries++;},transactionHistoryUI:{refresh(){queries++;}}};runInNewContext(source.slice(from,to)+'\nglobalThis.selectView=setView;',scope);
+ scope.selectView('resolver');assert.equal(heading.textContent,'Address Resolver');ui.controller.select('zh-Hans');assert.equal(heading.textContent,'地址格式转换');ui.controller.select('zh-Hant');assert.equal(heading.textContent,'地址格式轉換');ui.controller.select('en');assert.equal(heading.textContent,'Address Resolver');assert.equal(input.value,'ynx1-PUBLIC-original-input');assert.equal(target.textContent,'0x-PUBLIC-original-target');assert.equal(queries,0);
+});
