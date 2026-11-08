@@ -14,6 +14,8 @@ permissions:
   contents: read
 jobs:
   merged-relay-issuer-and-normal-package:
+    # Only this supplier topic uses its dedicated integration/type/normal-pack job.
+    if: github.head_ref != 'codex/wallet-auth49-linux-device-source-v2-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
