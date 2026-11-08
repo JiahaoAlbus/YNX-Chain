@@ -138,6 +138,14 @@ func (s *Server) dispatchApprovedStep(ctx context.Context, session ProductSessio
 	if effectErr == nil {
 		stored, readErr := s.store.taskFeedbackReceiptLocked(current)
 		if readErr == nil && receipt.EffectRef == call.OriginalOperationID && receipt.State == "COMMITTED" && receipt.Scope == stored.Scope && receipt.Binding == stored.Binding {
+			// Cancellation may have committed while the original Auth reply was
+			// returning. Its verified receipt now settles this debt just as an
+			// original-query reply does; other unresolved work still blocks it.
+			// A marker save failure must keep the already durable receipt intact
+			// for a cold query-only retry, not downgrade or redispatch the effect.
+			if err := s.store.finishCancelledTaskReconciliationLocked(session.Account, taskID); err != nil {
+				return taskReadReceipt{}, err
+			}
 			return stored, nil
 		}
 	}
