@@ -95,3 +95,27 @@ test('pending terms signed_not_submitted preserves original phase and invents no
 test('pending terms late lock suppresses actual normal Main response and never auto-runs recovery',async()=>{
  let release;const gate=new Promise(r=>release=r),main=pendingTermsConsumer({pauseRead:gate}),f=fixture(main.api);await f.ui.open();await send(f,'order-invoice',main.ref);assert.deepEqual(main.calls,['product','lookup','bill']);f.set({locked:true,keyRevision:2});await f.ui.invalidate();const before=text(f.ui.element);release();await new Promise(r=>setImmediate(r));assert.equal(text(f.ui.element),before);assert(!text(f.ui.element).includes(main.hash));assert.equal(main.calls.length,3);assert.equal(f.reviews(),0);
 });
+
+// PUBLIC controlled Source seam only. Exercise the mounted UI and actual IPC /
+// Wallet wrapper / original Main entry; this does not qualify a Native Source.
+for(const trigger of ['cancel button','blur','close'])test('mounted cancel abort: '+trigger+' reaches the same original pending read',async()=>{
+ let signal,reads=0,aborts=0,cancels=0;const forbidden=()=>assert.fail('cancel must not request payment, review or signing');
+ const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account,revision:1,focused:true,locked:false})});
+ entry.compose({current(){},pay:{lookupInvoiceIntent:forbidden,readInvoice:forbidden},readOriginalInvoiceIntent(ref,current){
+  current();assert.deepEqual(ref,{productId:'shop.order',sourceOrder:'PUBLIC-order'});reads++;signal=current.signal;
+  if(!(signal instanceof AbortSignal))throw Object.assign(Error('missing original signal'),{code:'PUBLIC_SIGNAL_MISSING'});
+  return new Promise((resolve,reject)=>{signal.addEventListener('abort',()=>{aborts++;reject(Object.assign(Error('original read aborted'),{code:'PUBLIC_READ_ABORTED'}));},{once:true});});
+ }});
+ const product=createWalletNativePayProduct({entry:{status:()=>({...entry.status(),canRequest:true}),invoke:r=>entry.invokeResult(r),cancel:()=>entry.cancel()},getMain:()=>({pendingRequests:()=>[]}),getGuard:()=>({account,assert(){}}),publishReview:forbidden});
+ const handlers=new Map(),ipc=async fn=>{try{return ok(await fn());}catch(error){return {ok:false,error:{code:error.code}};}};
+ installWalletNativePayProductIPC({handleWalletIPC:(name,fn)=>handlers.set(name,fn),safeIPC:ipc,sensitiveIPC:ipc,service:product});
+ const f=fixture({nativePayStatus:()=>handlers.get('wallet:native-pay-status')(),nativePayInvoke:input=>handlers.get('wallet:native-pay-invoke')({},input),nativePayCancel:()=>{cancels++;return handlers.get('wallet:native-pay-cancel')();}});
+ await f.ui.open();await send(f,'order-invoice',{productId:'shop.order',sourceOrder:'PUBLIC-order'});
+ assert.equal(reads,1);assert(signal instanceof AbortSignal);assert.equal(signal.aborted,false);
+ if(trigger==='cancel button')await all(f.ui.element,n=>n.tagName==='button'&&n.textContent.startsWith('Cancel held'))[0].fire('click');
+ else if(trigger==='blur')await f.win.fire('blur');else await f.ui.close();
+ await new Promise(r=>setImmediate(r));assert.equal(signal.aborted,true);assert.equal(aborts,1);assert.equal(cancels,1);
+ assert.equal(f.reviews(),0);assert.doesNotThrow(()=>product.assertSafeToClose());
+ assert.doesNotMatch(text(f.ui.element),/PUBLIC_READ_ABORTED|Original Pay query completed/);
+ if(trigger==='close')assert.equal(f.ui.element.open,false);
+});
