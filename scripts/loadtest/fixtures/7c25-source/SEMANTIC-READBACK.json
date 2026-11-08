@@ -1,0 +1,318 @@
+{
+  "afterCommit": "7c25cbcc7d31b10743e26ae1ddca745085ee1b0b",
+  "afterExecutionTree": "96d91aed6a015f7243bb18b5d7a375bddf51483a",
+  "afterForkTree": "5a128880d14bfc73de4334cba23218859ad3473c",
+  "afterSourceGoHeightTests": {
+    "childCases": 15,
+    "failed": 0,
+    "nodeStarted": false,
+    "originalStreamBytes": 17253,
+    "originalStreamSHA256": "1d032f624df967f42455c19f99963cbdbc42c02bace300de905623abd8491956",
+    "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+    "packagePassed": true,
+    "passed": [
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/invalid-normal-state",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/live-hash",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/no-overwrite",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/output-failure",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/wrong-apphash",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals/wrong-height",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/10",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/11",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/12",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/4",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/5",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/6",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/7",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/8",
+      "TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold/9"
+    ],
+    "semanticPairQualified": false,
+    "skipped": 0,
+    "topCases": 2
+  },
+  "afterTree": "8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a",
+  "artifactSHA256": "6c20cb8df95cc835d144744b259a9e9be9bd4a03fce64edc6d107489ca4693b8",
+  "beforeExecutionTree": "0397f75ec55db6a89b46e2e6d051ce960c36827d",
+  "beforeForkTree": "54e88e6aba735eaceeb2d00bb40731248c673bd7",
+  "beforeOriginalCallerTree": "d6ff40c8e2603d2ef4086fcca6bafc276fd710b1",
+  "beforeProductionBase": "f27e07df6dd96114135aceace20a9413bba94649",
+  "binaryBytesIndependentlyRehashed": false,
+  "binaryHashesProducerReported": {
+    "after": {
+      "bytes": 40612160,
+      "sha256": "ef9c4415f9509fd19258a448239c388d90445a4707c940a051a1735799f20f6a"
+    },
+    "before": {
+      "bytes": 40249346,
+      "sha256": "4c398fb275c3a3eee71f9db3a2248f564efd2407082f0ec03421f44b734e1f7b"
+    }
+  },
+  "cleanupComplete": true,
+  "coldReconstructionProducerRecordsVerified": true,
+  "commonEvidenceOverlay": [
+    {
+      "bytes": 39737,
+      "gitBlob": "72e4d368a9fc225a621e24f65ab9a281d9282645",
+      "mode": "100644",
+      "path": "internal/consensus/pq_lab_finalize_trace.go",
+      "sha256": "0aa9b4e00a6c9f249ddc57063a3e9e37b4325f41a6014f0da3e571efb2eed61e"
+    },
+    {
+      "bytes": 23962,
+      "gitBlob": "a71ec1d82e1bb9bda22544dad4fa247b62ae80b3",
+      "mode": "100644",
+      "path": "internal/consensus/pq_lab_finalize_trace_test.go",
+      "sha256": "ff8908b58ee3a77900429bd3ca5d417564e3bbfcd87f969c8bcddf5f1f0923b5"
+    }
+  ],
+  "completePerHeightAppHashEqual": true,
+  "completePerHeightBalanceNonceStateEqual": true,
+  "completePerHeightRawStateBytesEqual": true,
+  "completePerHeightTxResultsEqual": true,
+  "controllerCommit": "87e4983dd668050a185bcd90e93fe377e549be26",
+  "effectiveBusinessTPS": null,
+  "equalityMeaning": "Full responses and all per-height raw canonical state bytes compared against fixed original length/SHA/AppHash and between arms; Go executes cold reconstruction, reader does not execute loader.",
+  "finalConfirmationLatency": null,
+  "heights": 9,
+  "inclusionLatency": null,
+  "intermediateFullStateBytesIndependentlyReconstructed": false,
+  "jobID": 128624390998,
+  "limitedOriginalTrajectoryQualified": true,
+  "liveNetworkPairQualified": false,
+  "originalElapsedSeconds": 168.111605901,
+  "peakNewBytes": 2673549312,
+  "peakRSSBytes": 1146929152,
+  "perHeightEvidence": {
+    "coldReconstructionIndependentlyExecutedByReader": false,
+    "coldReconstructionProducerRecordsVerified": true,
+    "coldStageObservedNanoseconds": {
+      "after": [
+        {
+          "coldCompareNs": "390",
+          "coldEncodeNs": "28993",
+          "coldLoadNs": "3539035",
+          "height": "4"
+        },
+        {
+          "coldCompareNs": "9824",
+          "coldEncodeNs": "1933945",
+          "coldLoadNs": "10051115",
+          "height": "5"
+        },
+        {
+          "coldCompareNs": "9614",
+          "coldEncodeNs": "977408",
+          "coldLoadNs": "10801952",
+          "height": "6"
+        },
+        {
+          "coldCompareNs": "10205",
+          "coldEncodeNs": "925770",
+          "coldLoadNs": "11240572",
+          "height": "7"
+        },
+        {
+          "coldCompareNs": "19269",
+          "coldEncodeNs": "1143798",
+          "coldLoadNs": "10813459",
+          "height": "8"
+        },
+        {
+          "coldCompareNs": "10145",
+          "coldEncodeNs": "1159481",
+          "coldLoadNs": "12844770",
+          "height": "9"
+        },
+        {
+          "coldCompareNs": "14512",
+          "coldEncodeNs": "1175486",
+          "coldLoadNs": "14818214",
+          "height": "10"
+        },
+        {
+          "coldCompareNs": "15484",
+          "coldEncodeNs": "1516878",
+          "coldLoadNs": "15752487",
+          "height": "11"
+        },
+        {
+          "coldCompareNs": "17056",
+          "coldEncodeNs": "1841916",
+          "coldLoadNs": "15655381",
+          "height": "12"
+        }
+      ],
+      "before": [
+        {
+          "coldCompareNs": "411",
+          "coldEncodeNs": "29594",
+          "coldLoadNs": "3710141",
+          "height": "4"
+        },
+        {
+          "coldCompareNs": "10906",
+          "coldEncodeNs": "1521444",
+          "coldLoadNs": "10516753",
+          "height": "5"
+        },
+        {
+          "coldCompareNs": "9364",
+          "coldEncodeNs": "984829",
+          "coldLoadNs": "11177094",
+          "height": "6"
+        },
+        {
+          "coldCompareNs": "10365",
+          "coldEncodeNs": "943597",
+          "coldLoadNs": "11546438",
+          "height": "7"
+        },
+        {
+          "coldCompareNs": "14883",
+          "coldEncodeNs": "2040454",
+          "coldLoadNs": "12698389",
+          "height": "8"
+        },
+        {
+          "coldCompareNs": "11087",
+          "coldEncodeNs": "1125891",
+          "coldLoadNs": "11881753",
+          "height": "9"
+        },
+        {
+          "coldCompareNs": "14422",
+          "coldEncodeNs": "1419813",
+          "coldLoadNs": "14966635",
+          "height": "10"
+        },
+        {
+          "coldCompareNs": "16084",
+          "coldEncodeNs": "1520483",
+          "coldLoadNs": "15652074",
+          "height": "11"
+        },
+        {
+          "coldCompareNs": "23676",
+          "coldEncodeNs": "1845511",
+          "coldLoadNs": "15895711",
+          "height": "12"
+        }
+      ]
+    },
+    "completePerHeightAppHashEqual": true,
+    "completePerHeightBalanceNonceStateEqual": true,
+    "completePerHeightRawStateBytesEqual": true,
+    "heights": [
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "11",
+      "12"
+    ],
+    "statePins": {
+      "after/10": {
+        "bytes": 400648,
+        "sha256": "0241060baabdc5804f01052e9a5f5182623400d68c1fb44dcf0d33c221356bf9"
+      },
+      "after/11": {
+        "bytes": 517890,
+        "sha256": "e7533cd1ee522e2409d41cc066bfcb1d9fbb4aedca20575f8cd7532b7cc6210f"
+      },
+      "after/12": {
+        "bytes": 517890,
+        "sha256": "38d32aa3bddfc5e7c21b4343095283eb3c3e1b8da514c9b267fd222aca0ba2fa"
+      },
+      "after/4": {
+        "bytes": 8138,
+        "sha256": "2c8f8e27c45b86818a6f418c10f594df068e51e87cfaddf4ef6a261499377577"
+      },
+      "after/5": {
+        "bytes": 318267,
+        "sha256": "5d3a0738d600e668177c9db112f7ac97c023291ed38bccf3ad186d09131cf277"
+      },
+      "after/6": {
+        "bytes": 318864,
+        "sha256": "413961baa39ac1f6af2be350ec4e75ebf6402057e0f539a012b2d978c5d67906"
+      },
+      "after/7": {
+        "bytes": 318864,
+        "sha256": "7a76cfb874621cf5e57aa67a28385de8edf22ac4f6dd10982f9e99d3cfa15317"
+      },
+      "after/8": {
+        "bytes": 318864,
+        "sha256": "8d173ed887276fc7125d7f6958a871a997317ce8fd1fd2a820e6a3085ef2fe2e"
+      },
+      "after/9": {
+        "bytes": 318864,
+        "sha256": "fbec1e2fe14b879b819101c40252dfd1edc289a05f5159cee3c1037f1c2db46c"
+      },
+      "before/10": {
+        "bytes": 400648,
+        "sha256": "0241060baabdc5804f01052e9a5f5182623400d68c1fb44dcf0d33c221356bf9"
+      },
+      "before/11": {
+        "bytes": 517890,
+        "sha256": "e7533cd1ee522e2409d41cc066bfcb1d9fbb4aedca20575f8cd7532b7cc6210f"
+      },
+      "before/12": {
+        "bytes": 517890,
+        "sha256": "38d32aa3bddfc5e7c21b4343095283eb3c3e1b8da514c9b267fd222aca0ba2fa"
+      },
+      "before/4": {
+        "bytes": 8138,
+        "sha256": "2c8f8e27c45b86818a6f418c10f594df068e51e87cfaddf4ef6a261499377577"
+      },
+      "before/5": {
+        "bytes": 318267,
+        "sha256": "5d3a0738d600e668177c9db112f7ac97c023291ed38bccf3ad186d09131cf277"
+      },
+      "before/6": {
+        "bytes": 318864,
+        "sha256": "413961baa39ac1f6af2be350ec4e75ebf6402057e0f539a012b2d978c5d67906"
+      },
+      "before/7": {
+        "bytes": 318864,
+        "sha256": "7a76cfb874621cf5e57aa67a28385de8edf22ac4f6dd10982f9e99d3cfa15317"
+      },
+      "before/8": {
+        "bytes": 318864,
+        "sha256": "8d173ed887276fc7125d7f6958a871a997317ce8fd1fd2a820e6a3085ef2fe2e"
+      },
+      "before/9": {
+        "bytes": 318864,
+        "sha256": "fbec1e2fe14b879b819101c40252dfd1edc289a05f5159cee3c1037f1c2db46c"
+      }
+    },
+    "timingMeaning": "Original Go monotonic load/encode/compare observations; no missing interval filled; not business latency or source performance improvement."
+  },
+  "runID": 42445815447,
+  "runtimePressureAuthorized": false,
+  "schema": "YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1",
+  "sourceInventoryFiles": {
+    "after": 3265,
+    "before": 3077
+  },
+  "stageParentWallSeconds": {
+    "after-build": 11.005214652,
+    "after-buildinfo": 0.213480326,
+    "after-height-evidence-tests": 81.861421653,
+    "after-replay": 0.637111258,
+    "before-build": 62.20892026,
+    "before-buildinfo": 0.213603723,
+    "before-replay": 0.804414304,
+    "fetch-original-source-objects": 0.422417476,
+    "go-version": 0.214951665,
+    "prepare-fixed-two-source-trees": 9.065259374
+  },
+  "timingMeaning": "Parent observed launch-to-exit wall time; sequential builds share cache. Not paired performance improvement or business latency.",
+  "toolsCommit": "478bf2ee60c19dcbdb67872184f9e1f500511746",
+  "toolsTree": "3f6457276cdea84467917e763e6e3fb8b42701db",
+  "traceSHA256": "11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6"
+}

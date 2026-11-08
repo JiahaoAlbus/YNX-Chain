@@ -29,11 +29,11 @@ def options(**changes):
 class FutureSourceControls(unittest.TestCase):
     def test_missing_exact_source_or_semantic_pins_blocks_before_source_window_or_process(self):
         with mock.patch.object(d.lab,'check_source') as source,mock.patch.object(d.lab,'Window') as window,\
-             mock.patch.object(d.subprocess,'Popen') as process:
+             mock.patch.object(d.subprocess,'Popen') as process,\
+             mock.patch.object(d.first_trial_7c25_source,'SEMANTIC_RECEIPT_SHA256',None):
             with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):d.run(options())
         source.assert_not_called();window.assert_not_called();process.assert_not_called()
         self.assertEqual(m.NORMAL_RECEIPT_SHA256,'c4cb8cfcf87b6ff4f6de2f91af656f93cd7c663487c02e733e7448554a45fab9')
-        self.assertIsNone(m.SEMANTIC_RECEIPT_SHA256)
 
     def test_semantic_receipt_cannot_omit_raw_cold_or_use_old_execution_trees(self):
         fake=dict(schema='YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1',afterCommit=m.SOURCE,afterTree=m.TREE,
@@ -50,6 +50,16 @@ class FutureSourceControls(unittest.TestCase):
         for delta in [dict(heights=8),dict(completePerHeightRawStateBytesEqual=False),dict(coldReconstructionProducerRecordsVerified=False),
                       dict(afterExecutionTree=m.TREE),dict(schema='old'),dict(perHeightEvidence={}),dict(afterSourceGoHeightTests={})]:
             with self.subTest(delta=delta),self.assertRaises(RuntimeError):m.require_semantic(dict(fake,**delta))
+
+    def test_actual_sealed_normal_and_same_window_semantic_data_qualify_source_only(self):
+        q=m.qualification()
+        self.assertEqual((q['source'],q['sourceTree'],q['heights']),(m.SOURCE,m.TREE,9))
+        self.assertTrue(q['semanticPairConsumed'])
+        self.assertFalse(q['runtimePermissionGranted'])
+        self.assertFalse(q['pressureAuthorized'])
+        self.assertFalse(q['actual500InitializedOwnersQualified'])
+        self.assertIsNone(q['businessTPS'])
+        self.assertIsNone(q['finalityLatency'])
 
     def test_future_requires_own_profile_source_backend_and_same_demand(self):
         self.assertEqual(d.validate_options(options()),500)
@@ -116,13 +126,13 @@ class FutureSourceControls(unittest.TestCase):
                     cometForkTree=m.FORK,runId=str(m.CI_RUN),runAttempt='1',job='focused-go',
                     repository=m.REPOSITORY,captureComplete=True,errors=[],testQualification='not-evaluated',
                     nativeGrant=False,nodeStartAuthorized=False,publicDeployment=False)
-        m.identity(run,job,source) # Synthetic metadata only; qualification() still has no sealed originals.
+        m.identity(run,job,source) # Synthetic identity metadata grants no sealed evidence or runtime authority.
         for key,value in [('version','YNX-FOCUSED-PUBLIC-TEST-STREAMS/v1'),('commit',d.PUBLIC_OWNER_ABI_SOURCE),
                           ('captureComplete',False),('nativeGrant',True)]:
             with self.subTest(key=key),self.assertRaises(RuntimeError):m.identity(run,job,dict(source,**{key:value}))
         changed=copy.deepcopy(job);changed['steps'][0]['conclusion']='skipped'
         with self.assertRaises(RuntimeError):m.identity(run,changed,source)
-        with self.assertRaises(RuntimeError):m.qualification()
+        with mock.patch.object(m,'SEMANTIC_RECEIPT_SHA256',None),self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):m.qualification()
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
