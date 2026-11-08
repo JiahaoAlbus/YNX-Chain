@@ -1,0 +1,83 @@
+{
+  "schema": "AUTH_SHARED_GO_NORMAL_REVALIDATION_CURRENT/v2",
+  "state": "SOURCE_FOCUSED_TEST_VET_VERIFIED_NOT_RUNTIME_ADMISSION",
+  "branch": "codex/auth-productsessionv2-current-20261108",
+  "reviewedSource": {
+    "implementationCommit": "8dccbde89360af1c8f564d9e3be1602920cda860",
+    "implementationTree": "a5e904829d96bc3790683849c122767a293402e1",
+    "testedCheckpoint": "4c6ff5aed0177a76fcc20ec2f0f41f459c623a0e",
+    "testedTree": "bdac4325b17feb379d47c52895d0a4ceda1ce9e0"
+  },
+  "parentHandoff": "internal/productsessionv2/evidence-current-20261108/HANDOFF.json",
+  "files": [
+    {
+      "path": "internal/productsessionv2/business_proof.go",
+      "bytes": 7136,
+      "sha256": "85772faa7e4165aff91997d0b584abbbc97b4afe3711e3d17e428eb3c4139917",
+      "gitBlob": "73526ce80d17f2317068aa61954c8333e7dfb86f"
+    },
+    {
+      "path": "internal/productsessionv2/revalidation.go",
+      "bytes": 17500,
+      "sha256": "ec919e3796464fa5e53eb3c0af8c409d729f47676ec0e60959e94e7ab96457c8",
+      "gitBlob": "762d407a9b1302efd3897317fd3c3a84d917978d"
+    },
+    {
+      "path": "internal/productsessionv2/session_original_validation.go",
+      "bytes": 1635,
+      "sha256": "35ae206f89e36f610cb7800a637b11594a00d5df9cf377885bbb1ec00a33ca6e",
+      "gitBlob": "9921a73fe6443acd3db4e48c9b59a3fb17229e97"
+    },
+    {
+      "path": "internal/productsessionv2/revalidation_current_test.go",
+      "bytes": 16561,
+      "sha256": "1dcb860731ebca5faf1dbd27840c98b5e40c42319cd01a83e2d29ba797955dc2",
+      "gitBlob": "ccad671cee3555ccb9562c79ebe22d65ede4dce4"
+    },
+    {
+      "path": "internal/productsessionv2/evidence-revalidation-current-20261108/focused.stdout.jsonl",
+      "bytes": 41649,
+      "sha256": "6592e6d51af0c396dc89b6cf0cd21acf48839d4d1a55b5de40fac8dbb0ec9994",
+      "gitBlob": "559da5be47d3df490733a5eedcdcab31e67f22de"
+    }
+  ],
+  "changes": [
+    "Shared originalSessionFields validates v2 or full exact9 account-authorized v3 before existing action proof/revalidation; original P256 proof/signature and HTTP routes remain unchanged",
+    "Revalidate and RevalidateBrowser preserve original fixed binding, ALL scopes, same session and browser originals; current checked after body and Close",
+    "Clock rollback classified CLOCK_UNAVAILABLE/503, not SESSION_EXPIRED/401; exact expiry remains 401",
+    "Read/close/cancel failures preserve first cause and close once; nonnil current cannot revive wrong original authority"
+  ],
+  "validation": {
+    "command": "GOTOOLCHAIN=local GOPROXY=off GOMAXPROCS=2 <existing-go1.26.10> test -p 1 -count=1 -json ./internal/productsessionv2 -run ^TestRevalidationCurrent",
+    "exit": 0,
+    "top": 10,
+    "subcases": 32,
+    "fail": 0,
+    "skip": 0,
+    "vet": {
+      "command": "go vet -p 1 ./internal/productsessionv2",
+      "exit": 0
+    },
+    "scope": "Affected delta only; prior Authorize8/63 evidence reused, no unrelated old groups rerun",
+    "race": "Prior supplier delta race passed; final post-classification snapshot focused non-race pass, no new whole/race run during Wallet heavy",
+    "fixtures": "PUBLIC HTTP/P256 fixtures only, not real registered account or gateway"
+  },
+  "CI": {
+    "existing": ".github/workflows/ci.yml -> make test -> go test ./cmd/... ./internal/...",
+    "included": true,
+    "workflowChanged": false,
+    "hostedRun": false
+  },
+  "integration": "P07 normal original Authorize -> VerifyHTTPAction / fixed Source read -> Revalidate / RevalidateBrowser. Consume matching complete Go checkpoint, one archive/runtime; actual session Store ACL and authority remain independent. P04 existing sole Node authorizer not rewritten.",
+  "truth": {
+    "Root": false,
+    "SourceAdmission": false,
+    "gateway": false,
+    "realAccount": false,
+    "realApproval": false,
+    "privateKeys": false,
+    "serviceDeployed": false,
+    "installed": false,
+    "FinanceResumed": false
+  }
+}
