@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "variant": "SOCIAL_FINITE_JOINT_PROVIDER_R1_R2_NORMAL_SOURCE_ONLY/v1",
+  "variant": "SOCIAL_FINITE_JOINT_PROVIDER_R1_R2_MAIN_READ_MATCHED_NORMAL_SOURCE_ONLY/v1",
   "files": [
     {
       "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
@@ -11,6 +11,16 @@
       "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go",
       "bytes": 3787,
       "sha256": "33bd33339da4da35fdab51a896aca32c4702edefa722485281b2cf61e5f718b4"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h",
+      "bytes": 2153,
+      "sha256": "85088b5923f0d6c6df5ed98a3fe5ef3ed4f21f9a8c6fbc85b0c2524612bc3aa7"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/ynx_auth_registered_main_pair_read_private_v1.h",
+      "bytes": 4543,
+      "sha256": "ca65bb5eb9174573467860a553f41c5d4420c79810ed4ea4f86291e719330840"
     },
     {
       "path": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_custodian_private_v1.h",
@@ -54,13 +64,38 @@
     },
     {
       "path": "native/social-joint-finite-provider-v1/producer/src/lib.rs",
-      "bytes": 433,
-      "sha256": "2a5a7a43cfb92f8b29cbc96ff5307dc546656ccc08c9220cc7b48c4d666c2651"
+      "bytes": 453,
+      "sha256": "e87d8aa16bc45c586a16b69320e1816c397324fb1dcaf3c6aeaa8451ee36c30a"
     },
     {
       "path": "native/social-joint-finite-provider-v1/producer/src/loaded_pair.rs",
       "bytes": 11781,
       "sha256": "5bc013b3d62a3f39597b63af601ae6a504cc1402c0c578a0e9f494c82fc85a86"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read.rs",
+      "bytes": 16617,
+      "sha256": "f4fa3d90a9e47c14380b2d370147875b933f9d5947d74591885ca2ed100acc6b"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_admission.rs",
+      "bytes": 14483,
+      "sha256": "0e54e071daf72993786ab0a57a6d76bedb1b33363464457fc620d9d6bc366cf6"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_data.rs",
+      "bytes": 4967,
+      "sha256": "fd8d86a97ffb85f5ac60a897870c3daa56b6b5655b71f3037d181a503c296b44"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_ffi.rs",
+      "bytes": 17032,
+      "sha256": "6859a14fc5e51254476277f8b018eba50e8b4cc138d4f8beeb5424e426f79db3"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_resource.rs",
+      "bytes": 6929,
+      "sha256": "9029b48542e2991630bd1cab9f4a4914926b1b3419495e4b704ac7684769a852"
     },
     {
       "path": "native/social-joint-finite-provider-v1/producer/src/peer.rs",
@@ -99,8 +134,8 @@
     },
     {
       "path": "native/social-joint-finite-provider-v1/producer/src/wire.rs",
-      "bytes": 9618,
-      "sha256": "a5f81e88df1c0b4cd7e78fdc456062f4d621624bc9cbc7cb2542c560d7020278"
+      "bytes": 10013,
+      "sha256": "ae0205717b9ece3f8153b85564b0bfba3322239eb56815e74e8502b16571ca86"
     },
     {
       "path": "native/social-joint-finite-provider-v1/src/composition.cpp",
@@ -188,7 +223,7 @@
     "frameAndR6Capture": "MUST_BE_SAME_KERNEL_NOT_A_SECOND_GO_ARCHIVE"
   },
   "missingFinalLink": [
-    "genuine Native Source/Binding + remote registered Main holder + Linux registered DEVICE constructors in matching target",
+    "genuine Native Source/Binding + actual qualified remote registered Main holder + Linux registered DEVICE constructors in matching target",
     "original keeper-r4 protection/wrapping/records/selected crypto C libraries",
     "ONE normal Go archive containing actual Source/sole body/frame/envelope/provider bridge"
   ],
@@ -196,5 +231,41 @@
   "SourceAdmission": false,
   "NativeAdmission": false,
   "serviceStarted": false,
-  "finalLinuxLink": false
+  "finalLinuxLink": false,
+  "mainPairClient": {
+    "sourceSupplied": true,
+    "finiteCrateMatched": true,
+    "blocker": null,
+    "header": "native/social-joint-finite-provider-v1/include/ynx_auth_registered_main_pair_read_private_v1.h",
+    "strongSymbols": [
+      "ynx_auth_registered_main_pair_open_v1",
+      "ynx_auth_registered_main_pair_current_v1",
+      "ynx_auth_registered_main_pair_view_open_v1",
+      "ynx_auth_registered_main_pair_view_copy_v1",
+      "ynx_auth_registered_main_pair_view_current_v1",
+      "ynx_auth_registered_main_pair_view_release_v1",
+      "ynx_auth_registered_main_pair_close_v1",
+      "ynx_auth_registered_main_pair_server_open_v1",
+      "ynx_auth_registered_main_pair_server_current_v1",
+      "ynx_auth_registered_main_pair_peer_open_v1",
+      "ynx_auth_registered_main_pair_peer_current_v1",
+      "ynx_auth_registered_main_pair_peer_close_v1",
+      "ynx_auth_registered_main_pair_server_close_v1"
+    ],
+    "sourceBytes": 112,
+    "statusBytes": 24,
+    "viewBytes": 192,
+    "storageBytes": 8192,
+    "commandNumbers": [
+      31,
+      32,
+      33,
+      34,
+      35
+    ],
+    "sameFiniteCrate": true,
+    "independentReadRows": 0,
+    "signingRowsGrantRead": false,
+    "mainPrivateHeader": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h"
+  }
 }

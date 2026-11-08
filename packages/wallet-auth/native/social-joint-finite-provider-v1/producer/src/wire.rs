@@ -30,6 +30,11 @@ pub(crate) enum Command {
     ResultQueryClose = 19,
     ResultQueryCurrent = 20,
     FiniteJointAcquire = 21,
+    MainPairReadOpen = 31,
+    MainPairReadCurrent = 32,
+    MainPairReadViewOpen = 33,
+    MainPairReadViewRelease = 34,
+    MainPairReadClose = 35,
 }
 impl TryFrom<u16> for Command {
     type Error = i32;
@@ -56,6 +61,11 @@ impl TryFrom<u16> for Command {
             19 => Ok(Self::ResultQueryClose),
             20 => Ok(Self::ResultQueryCurrent),
             21 => Ok(Self::FiniteJointAcquire),
+            31 => Ok(Self::MainPairReadOpen),
+            32 => Ok(Self::MainPairReadCurrent),
+            33 => Ok(Self::MainPairReadViewOpen),
+            34 => Ok(Self::MainPairReadViewRelease),
+            35 => Ok(Self::MainPairReadClose),
             _ => Err(2),
         }
     }
