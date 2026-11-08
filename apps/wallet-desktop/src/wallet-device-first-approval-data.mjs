@@ -11,7 +11,7 @@ function publicHex(v,n){if(types.isProxy(v)||!types.isUint8Array(v))fail('DEVICE
 function originalJSON(raw){if(typeof raw!=='string'||!raw.length||!raw.isWellFormed()||Buffer.byteLength(raw)>16384)fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');let v;try{v=JSON.parse(raw);}catch{fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');}if(canonicalJSON(v)!==raw)fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');return v;}
 export function inspectOriginalDeviceAccountApprovalDATA(selection,originals,{networkId,account,at}){
  const s=data(selection,['identityBinding','generation','publicPair']),i=data(s.identityBinding,['networkId','canonicalOwner','account','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId']),pair=data(s.publicPair,['pkA','pkB']),o=data(originals,['operationId','requestOriginal','registrationOriginal']);
- if(typeof o.operationId!=='string'||!/^[A-Za-z0-9._:-]{1,128}$/.test(o.operationId))fail('DEVICE_ACCOUNT_ORIGINAL_OPERATION_REQUIRED');
+ if(typeof o.operationId!=='string'||!/^[0-9a-f]{64}$/.test(o.operationId))fail('DEVICE_ACCOUNT_ORIGINAL_OPERATION_REQUIRED');
  if(i.networkId!==networkId||i.canonicalOwner!==account||evmAddressFromYNX(i.account)!==account)fail('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED');
  if(typeof o.registrationOriginal!=='string'||!o.registrationOriginal.length||!o.registrationOriginal.isWellFormed()||Buffer.byteLength(o.registrationOriginal)>16384)fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');
  const inspected=inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(o.registrationOriginal??'', 'utf8')),record=inspected.record;
@@ -21,7 +21,7 @@ export function inspectOriginalDeviceAccountApprovalDATA(selection,originals,{ne
  for(const key of ['networkId','canonicalOwner','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId'])if(record[key]!==i[key])fail('DEVICE_ACCOUNT_PUBLIC_SELECTION_CHANGED');
  if(record.generation!==s.generation||record.pkA!==publicHex(pair.pkA,2592)||record.pkB!==publicHex(pair.pkB,64))fail('DEVICE_ACCOUNT_PUBLIC_PAIR_CHANGED');
  const request=parseProductSessionRequest(PRODUCT_SESSION_REGISTRY,originalJSON(o.requestOriginal),at);
- if(request.version!=='4'||request.issuedAt>at.toISOString()||canonicalJSON(request)!==o.requestOriginal||record.revokedAt!==null||record.registeredAt>at.toISOString()||record.expiresAt<=at.toISOString())fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');
+ if(request.version!=='4'||request.issuedAt<record.registeredAt||request.expiresAt>record.expiresAt||request.issuedAt>at.toISOString()||canonicalJSON(request)!==o.requestOriginal||record.revokedAt!==null||record.registeredAt>at.toISOString()||record.expiresAt<=at.toISOString())fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_INVALID');
  for(const key of ['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId'])if(request[key]!==record[key])fail('DEVICE_ACCOUNT_PUBLIC_SELECTION_CHANGED');
  if(request.deviceRegistrationId!==record.registrationId||request.deviceRegistrationRevision!==record.revision||request.deviceRegistrationDigest!==inspected.registrationDigest)fail('DEVICE_ACCOUNT_PUBLIC_REQUEST_CHANGED');
  const expiresAt=request.expiresAt<record.expiresAt?request.expiresAt:record.expiresAt;
