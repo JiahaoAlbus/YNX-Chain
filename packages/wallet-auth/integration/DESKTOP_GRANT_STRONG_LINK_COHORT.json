@@ -1,6 +1,6 @@
 {
   "schema": "SDK-DESKTOP-GRANT-STRONG-LINK-SOURCE-COHORT/v1",
-  "linkSourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "linkSourceCommit": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
   "sourceInputs": [
     {
       "commit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
@@ -61,5 +61,36 @@
   "secondHTTPClient": false,
   "RootReviewOrAdmission": false,
   "wholeAuthAddonMatching": false,
-  "MainOrP03HotReplacement": false
+  "MainOrP03HotReplacement": false,
+  "unchangedResourceContinuationSourceCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "wrapperSourceInputs": [
+    {
+      "commit": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
+      "path": "cmd/ynx-secure-link-caller/task-grant-transport.mjs",
+      "bytes": 10852,
+      "sha256": "270b922f9ba246e7f984914fd1838f2ec3e58cae1195b7674e7580756804bfe7"
+    },
+    {
+      "commit": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
+      "path": "cmd/ynx-secure-link-caller/inbound-caller.mjs",
+      "bytes": 34405,
+      "sha256": "d3de632ddbd78898f057af9e41b28bf349c494dac15d73e1ce6d39fa4f02d8f3"
+    },
+    {
+      "commit": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
+      "path": "cmd/ynx-secure-link-caller/task-grant-transport-private.mjs",
+      "bytes": 1947,
+      "sha256": "d83c1e0b0e2429941b39f642f5b4e6a5a1e841fb9fb21e4b0d1bedd8e0aa59d8"
+    },
+    {
+      "commit": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
+      "path": "cmd/ynx-secure-link-caller/social-directory-transport-private.mjs",
+      "bytes": 5466,
+      "sha256": "8ee57a8deb6ff3a6f7f611255f7faf9d63a99fc4b31f16be43cc1287ea8e3592"
+    }
+  ],
+  "normalBootstrapModule": "cmd/ynx-secure-link-caller/task-grant-transport.mjs",
+  "normalBootstrapExport": "openTaskGrantInboundTransportForOriginalBootstrap",
+  "normalSourceCollector": "scripts/native/desktop-grant-link-normal-inputs.mjs",
+  "sixDReadyCleanupAndPairedFirstCauseRetained": true
 }
