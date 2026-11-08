@@ -47,3 +47,7 @@ jobs:
           node --test test/native-pay-product-ui.test.mjs test/main-standalone-pay-navigation.test.mjs test/wallet-main-shutdown-sync-failure.test.mjs test/wallet-locale.test.mjs test/empty-account-guidance-mounted.test.mjs test/wallet-pq-account-initial-ui.test.mjs test/wallet-pq-key-ui.test.mjs test/qa-profile-selection.test.mjs
       - name: Normal mounted resolver heading locale control
         run: node --test --test-name-pattern 'resolver page title uses normal locale' test/approved-desktop-ui.test.mjs
+      # Ethers and its locked dependencies are already tracked in this normal
+      # source image and materialized by checkout. No install or scripts run.
+      - name: Original source proof readback and Main canonical identity controls
+        run: node --test --test-name-pattern 'source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
