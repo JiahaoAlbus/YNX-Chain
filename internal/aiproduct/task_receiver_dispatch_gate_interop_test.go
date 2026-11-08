@@ -98,6 +98,9 @@ func TestP08NativeReceiverDispatchReadiness(t *testing.T) {
 			if !errors.Is(err, errTaskEffectSourceUnavailable) {
 				t.Fatal("receiver-only start did not refuse before reservation", err)
 			}
+			if stage != "not-mounted" && !errors.Is(err, native.ErrTaskReadReceiverNotSupplied) {
+				t.Fatal("original receiver acquisition cause was discarded", err)
+			}
 			after, _ := json.Marshal(resource.store.state)
 			diskAfter, err := os.ReadFile(resource.store.path)
 			if err != nil || !bytes.Equal(before, after) || !bytes.Equal(disk, diskAfter) || client.effects != 0 {

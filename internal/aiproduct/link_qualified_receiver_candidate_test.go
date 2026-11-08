@@ -132,6 +132,19 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	if e != nil || !bytes.Equal(input, request.RawInput) {
 		t.Fatal("actual P08 original input", e)
 	}
+	// Losing ingress independently must close NEW readiness even while the
+	// dedicated permission and borrowed ordinary Grant remain current.
+	if e = original.listener.Close(); e != nil {
+		t.Fatal(e)
+	}
+	select {
+	case <-original.done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stopped listener did not report completion")
+	}
+	if e = original.currentForExecution(ctx, resource.store, owner); !errors.Is(e, errTaskEffectSourceUnavailable) {
+		t.Fatal("completed listener still advertised NEW execution readiness", e)
+	}
 	if e = original.Retire(); e != nil {
 		t.Fatal(e)
 	}

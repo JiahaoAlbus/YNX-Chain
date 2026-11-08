@@ -29,14 +29,20 @@ type OriginalTaskReadReceiver struct {
 	done                  chan struct{}
 	newEffectsUnavailable error
 	serveError            error
+	acquireError          error
 	retireOnce            sync.Once
 	retireError           error
 }
 
 // Normal app entry: no caller path/UID/PID/profile/provider/handler argument.
 // A nonnil partial always remains owned, even when registration is unavailable.
-func OpenOriginalTaskReadReceiver(ctx context.Context, server *Server) (*OriginalTaskReadReceiver, error) {
+func OpenOriginalTaskReadReceiver(ctx context.Context, server *Server) (result *OriginalTaskReadReceiver, resultErr error) {
 	o := &OriginalTaskReadReceiver{done: make(chan struct{})}
+	defer func() {
+		o.mu.Lock()
+		o.acquireError = resultErr
+		o.mu.Unlock()
+	}()
 	if server != nil {
 		if effects, ok := server.toolEffects.(*originalRuntimeToolEffects); ok {
 			effects.receiverMu.Lock()
@@ -83,8 +89,16 @@ func (o *OriginalTaskReadReceiver) currentForExecution(ctx context.Context, stor
 	}
 	o.mu.Lock()
 	if !o.started || o.retired {
+		cause := o.acquireError
 		o.mu.Unlock()
-		return errTaskEffectSourceUnavailable
+		return errors.Join(errTaskEffectSourceUnavailable, cause)
+	}
+	select {
+	case <-o.done:
+		cause := o.serveError
+		o.mu.Unlock()
+		return errors.Join(errTaskEffectSourceUnavailable, cause)
+	default:
 	}
 	// All remaining fields were initialized before started was published.
 	resource, registration := o.resource, o.registration
@@ -102,6 +116,11 @@ func (o *OriginalTaskReadReceiver) currentForExecution(ctx context.Context, stor
 	}
 	o.mu.Lock()
 	retired := o.retired
+	select {
+	case <-o.done:
+		retired = true
+	default:
+	}
 	o.mu.Unlock()
 	if retired {
 		return errTaskEffectSourceUnavailable
