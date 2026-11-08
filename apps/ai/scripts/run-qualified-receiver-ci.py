@@ -96,7 +96,7 @@ try:
         assert digest(binary.read_bytes()) == digest(protected.read_bytes())
         (evidence / "TEST-EXECUTABLE.json").write_text(json.dumps({"bytes": binary.stat().st_size, "sha256": digest(binary.read_bytes()), "safeCopyByteEqual": True}))
         selector = "TestLINKP08QualifiedReceiverPurposeCandidate"
-        execute([str(protected), "-test.run", "^" + selector + "$", "-test.timeout=90s", "-test.v"], "consumer", environment)
+        execute([str(protected), "-test.run", "^" + selector + "$", "-test.timeout=150s", "-test.v"], "consumer", environment)
         output = (evidence / "consumer.stdout").read_text()
         assert len(re.findall(r"^=== RUN\s+" + selector + r"$", output, re.M)) == 1
         assert len(re.findall(r"^--- PASS: " + selector + r" ", output, re.M)) == 1

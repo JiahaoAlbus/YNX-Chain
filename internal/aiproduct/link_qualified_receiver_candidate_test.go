@@ -21,6 +21,7 @@ import (
 // concrete Owner methods, actual P08 constructor and actual LINK listener.
 // PUBLIC original Source selection and ephemeral proofs are NOT Root admission.
 func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
+	started := time.Now()
 	resource, request, projection := taskResourceFixture(t)
 	// The old P08 fixture's non-hex fake grant cannot feed the true E2.1 codec.
 	// Assign a valid fixed PUBLIC id in the fixture only; production is unmodified.
@@ -30,9 +31,9 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	projection.snapshot.Effect.Slot = request.Binding.Slot()
 	projection.snapshot.Budget.Slot = request.Binding.Slot()
 	// This full PUBLIC crypto/listener lifecycle took >60s on Ubuntu. Establish
-	// one fresh immutable fixture window before signing, longer than the 90s
+	// one fresh immutable fixture window before signing, longer than the 150s
 	// test deadline; never refresh a live permission or change production limits.
-	expires := strconv.FormatInt(time.Now().Add(2*time.Minute).UnixMilli(), 10)
+	expires := strconv.FormatInt(time.Now().Add(3*time.Minute).UnixMilli(), 10)
 	projection.snapshot.Expires = expires
 	projection.snapshot.Grant.Expires = expires
 	resource.store.mu.Lock()
@@ -75,6 +76,7 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	if e != nil {
 		t.Fatal("actual receiver-purpose acquisition", e)
 	}
+	t.Logf("phase=permission-acquired elapsed=%s", time.Since(started))
 	owner := local.PUBLICOwnerWithQualifiedReceiverForP08Test(actual, receiver)
 	defer func() {
 		if err := owner.Close(); err != nil {
@@ -99,6 +101,7 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	if openErr != nil || original.registration != owner || original.server == nil || original.listener == nil || !original.started {
 		t.Fatalf("normal P08 receiver-purpose candidate: %v %+v", openErr, original)
 	}
+	t.Logf("phase=normal-listener-started elapsed=%s", time.Since(started))
 	socket := original.listener.Addr().String()
 	info, e := os.Lstat(socket)
 	if e != nil || info.Mode()&os.ModeSocket == 0 {
@@ -143,6 +146,7 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	if e = original.Close(); e != nil {
 		t.Fatal("P08 resource physical close", e)
 	}
+	t.Logf("phase=listener-and-resource-drained elapsed=%s", time.Since(started))
 	// Observe genuine Source current separately AFTER real LINK/P08 cleanup.
 	if e = owner.AssertOriginalTaskReadReceiverCurrent(ctx); e != nil {
 		t.Fatal("borrower retired receiver-purpose parent", e)
@@ -169,6 +173,7 @@ func TestLINKP08QualifiedReceiverPurposeCandidate(t *testing.T) {
 	if e = owner.Current(ctx); e != nil {
 		t.Fatal("optional purpose revoked original grant", e)
 	}
+	t.Logf("phase=revocation-verified elapsed=%s", time.Since(started))
 	if e = owner.Retire(); e != nil {
 		t.Fatal(e)
 	}

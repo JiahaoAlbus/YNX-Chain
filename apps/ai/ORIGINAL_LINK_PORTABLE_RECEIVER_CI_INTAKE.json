@@ -33,8 +33,8 @@
         "sha256": "57d85b45bc439ecaec06eae64b4d1c55b9918950cf77bd48aa581d4fc34699eb"
       },
       "byteExact": false,
-      "consumerSHA256": "f75de56b16efc500d42991fecab5f754408f4a75e6a92a98b96e686fd9944fd6",
-      "adaptation": "PUBLIC sample only: initialize one immutable Source/Grant expiry 120s before first signing to fit90s full crypto/listener test. First Ubuntu run62.44s outlived generic60s fixture; production guards/current/revoke/limits unchanged."
+      "consumerSHA256": "1a4051b4d3bbfe09ad112856532552a5a7f78cfc089b36eacc05d93fb176b837",
+      "adaptation": "PUBLIC input assembly only: fixed initial180s Source/Grant/profile sample before first signing, never refreshed; lifecycle test150s plus stage timing. Original7s producer per-call bound, SDK crypto/current/revoke and production6CAS/runner unchanged."
     },
     {
       "target": "internal/authtasklocal/public_qualified_receiver_candidate.go",
@@ -88,7 +88,9 @@
         "bytes": 4288,
         "sha256": "41d1d7f50a11be51c7307776686e2696a547494a454e25868e141cf983991e5c"
       },
-      "byteExact": true
+      "byteExact": false,
+      "consumerSHA256": "162e26bc34f5e029cfb7b11f7e81daee6389d52158486651ea8fd8cb5a8e8ab3",
+      "adaptation": "PUBLIC input assembly only: fixed initial180s Source/Grant/profile sample before first signing, never refreshed; lifecycle test150s plus stage timing. Original7s producer per-call bound, SDK crypto/current/revoke and production6CAS/runner unchanged."
     },
     {
       "target": "apps/ai/scripts/receiver-interop-r2/public-preload.mjs",
@@ -137,5 +139,10 @@
     "reason": "62.44s controlled lifecycle exceeded original60s fixture; first error retained",
     "newCaseGoDidRun": true,
     "oldPassBorrowed": false
+  },
+  "secondActualCI": {
+    "run": 42446124616,
+    "conclusion": "failure",
+    "reason": "90s whole-case alarm at normal owner Current after real listener/resource drain; fixed producer7s per-call bound unchanged; exact goroutine stack preserved"
   }
 }
