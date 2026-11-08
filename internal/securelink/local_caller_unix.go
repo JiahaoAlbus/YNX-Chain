@@ -133,6 +133,7 @@ type localCallerState struct {
 	conn         *localCallerConn
 	server       *LocalCallerServer
 	material     LocalCallerMaterial
+	proofV2      localCallerProductSessionProofV2
 	handle       *LocalCaller
 	active       atomic.Bool
 	continuation *taskReadContinuationState
@@ -150,7 +151,7 @@ func (s *localCallerState) currentOriginalCaller(r *http.Request) error {
 	if s.ctx.Value(localCallerKey{}) != s.handle {
 		return ErrDenied
 	}
-	if r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) {
+	if r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) || !s.proofV2.matches(r.Header) {
 		return ErrDenied
 	}
 	// Preserve the original cancellation/deadline cause rather than replacing
@@ -175,7 +176,7 @@ func (s *localCallerState) current(ctx context.Context) (LocalCallerMaterial, er
 		return LocalCallerMaterial{}, err
 	}
 	r := s.request
-	if r.Context() != s.ctx || r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) {
+	if r.Context() != s.ctx || r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) || !s.proofV2.matches(r.Header) {
 		return LocalCallerMaterial{}, ErrDenied
 	}
 	if err := localPeer(s.conn.UnixConn, s.material.PeerUID, s.material.PeerPID); err != nil {
@@ -385,9 +386,14 @@ func (s *LocalCallerServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "request too large", http.StatusRequestEntityTooLarge)
 		return
 	}
+	proofV2, err := captureLocalCallerProductSessionProofV2(r.Header)
+	if err != nil {
+		http.Error(w, "invalid local request proof carrier", http.StatusBadRequest)
+		return
+	}
 	ctx, cancel := context.WithTimeout(r.Context(), route.Timeout)
 	defer cancel()
-	state := &localCallerState{conn: c, server: s, material: LocalCallerMaterial{Service: s.cfg.Service, Method: route.Method, Path: route.Path, PeerUID: s.cfg.PeerUID, PeerPID: s.cfg.PeerPID, ContentType: r.Header.Get("Content-Type"), ContentLength: r.ContentLength}}
+	state := &localCallerState{conn: c, server: s, proofV2: proofV2, material: LocalCallerMaterial{Service: s.cfg.Service, Method: route.Method, Path: route.Path, PeerUID: s.cfg.PeerUID, PeerPID: s.cfg.PeerPID, ContentType: r.Header.Get("Content-Type"), ContentLength: r.ContentLength}}
 	s.mu.Lock()
 	if s.closed.Load() {
 		s.mu.Unlock()

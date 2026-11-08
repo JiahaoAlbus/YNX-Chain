@@ -107,7 +107,7 @@ jobs:
           fs.writeFileSync(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE+'/SOURCE-BEFORE.json',JSON.stringify(pins,null,2)+'\n',{flag:'wx'});
           NODE
           set +e
-          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer)' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
+          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer|ShopProofV2)' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
           export YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS=$?
           set -e
           node --input-type=module <<'NODE'
@@ -121,7 +121,8 @@ jobs:
           const rows=fs.readFileSync(root+'/go.jsonl','utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
           const names=['ExchangeCompleteFINAndDebt','ExchangePreflightNoSocket','ExchangePartialAndBounds',
             'ExchangeCancellationJoinsCallback','ExchangeConcurrentCurrentAndCleanup','ExchangeCloseUnknownRetainsOriginal',
-            'PeerSameConnectedIdentity','PeerRejectsWrongExpectedIdentity','PeerCloseUnknownRetainedOnce','PeerActualExecChange']
+            'PeerSameConnectedIdentity','PeerRejectsWrongExpectedIdentity','PeerCloseUnknownRetainedOnce','PeerActualExecChange',
+            'ShopProofV2Carrier','ShopProofV2OwnedWire','ShopProofV2Preflight','ShopProofV2RequestCurrent','ShopProofV2IncomingRejection']
             .map(n=>'TestOriginalLocalCaller'+n);
           const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
             run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
@@ -585,7 +586,7 @@ jobs:
           test "$(grep -c '^--- PASS: TestDesktopTaskGrantNativeTLSSevenRoutesToActualNode ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           test "$(grep -c '^--- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           test "$(grep -c '^    --- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath/' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 2
-          for owned_test in ExchangeCompleteFINAndDebt ExchangePreflightNoSocket ExchangePartialAndBounds ExchangeCancellationJoinsCallback ExchangeConcurrentCurrentAndCleanup ExchangeCloseUnknownRetainsOriginal PeerSameConnectedIdentity PeerRejectsWrongExpectedIdentity PeerCloseUnknownRetainedOnce PeerActualExecChange; do
+          for owned_test in ExchangeCompleteFINAndDebt ExchangePreflightNoSocket ExchangePartialAndBounds ExchangeCancellationJoinsCallback ExchangeConcurrentCurrentAndCleanup ExchangeCloseUnknownRetainsOriginal PeerSameConnectedIdentity PeerRejectsWrongExpectedIdentity PeerCloseUnknownRetainedOnce PeerActualExecChange ShopProofV2Carrier ShopProofV2OwnedWire ShopProofV2Preflight ShopProofV2RequestCurrent ShopProofV2IncomingRejection; do
             test "$(grep -c "^--- PASS: TestOriginalLocalCaller$owned_test " "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           done
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"

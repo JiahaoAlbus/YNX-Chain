@@ -9,6 +9,9 @@ type originalLocalCallerExchangeState struct{}
 func (*LocalCallerClient) CallOriginalOwned(context.Context, string, string, string, []byte, LocalCallerExpectedProcess) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
 	return nil, LocalCallerResponse{}, ErrUnavailable
 }
+func (*LocalCallerClient) CallOriginalShopGETOwned(context.Context, string, ProductSessionProofV2DATA, LocalCallerExpectedProcess) (*OriginalLocalCallerExchange, LocalCallerResponse, error) {
+	return nil, LocalCallerResponse{}, ErrUnavailable
+}
 func (*originalLocalCallerExchangeState) current(context.Context) error { return ErrUnavailable }
 func (*originalLocalCallerExchangeState) retire() error                 { return ErrUnavailable }
 func (*originalLocalCallerExchangeState) join(context.Context) error    { return ErrUnavailable }

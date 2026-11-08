@@ -74,9 +74,10 @@ not probe a different connection before its real GET. The existing fixed
 no-query rule, selected order, actor/role/Store map and 1 MiB aggregate response
 bound remain the consumer's normal contract.
 
-The original client-side Root record currently supplies server UID/PID but
-does not supply the required server start/image expectations. That is original
-Auth/Root owning code and registration work. Empty original client rows remain
+The original client-side Root record must supply the independent server
+UID/PID/start/image expectations. That is original Auth/Root registration work;
+the Auth owned-exchange consumer now accepts the required expected DATA.
+Empty original client rows remain
 closed until those independent bindings and the original Source permission
 exist. The service resource's peer is its allowed caller and cannot be reused
 as this client's server identity. No TaskGrant purpose grants Shop access.
@@ -84,3 +85,49 @@ as this client's server identity. No TaskGrant purpose grants Shop access.
 The old P09 held transport's four-ACK protocol and its original Source brand
 are not used by this exchange. No new remote endpoint, handshake or second Go
 runtime/archive is introduced.
+
+## Sole Shop V2 proof-header carrier
+
+`(*LocalCallerClient).CallOriginalShopGETOwned(ctx, path,
+ProductSessionProofV2DATA{HeaderValue: originalValue}, expected)` uses the same
+owned exchange and returns the same three results. It fixes the method to GET,
+the body to empty, and the request MIME to absent. The path must already be in
+that client's exact registered GET map. No header map, URL, destination,
+provider, proof parser or Source callback is accepted.
+
+The only added field is `X-YNX-Product-Session-Proof-V2`. Its original value is
+cloned and carried unchanged, with an encoded limit of 16384 ASCII bytes and
+the SDK transport alphabet `[A-Za-z0-9_-]` (minimum two characters). LINK does
+not decode base64url, JSON or proof fields, add padding, trim, sign, qualify an
+issuer/session, or infer permissions from the value. SDK/Auth retain the sole
+codec and the genuine session/Source checks before and after the call.
+
+The complete empty-GET request header bytes, including request line, Host,
+fixed transport fields and terminating CRLF, are bounded to 64 KiB before
+process/image inspection or socket creation. This serialized owned byte
+sequence is written once on the original socket. The client's existing
+`MaxHeaderBytes` still bounds **response** headers. The original server
+registration must separately accommodate its accepted request-header budget;
+neither default server limits nor existing APIs are silently enlarged.
+
+The actual receiver privately captures the field's absence or unique original
+value. Both `Current` and `CurrentOriginalCaller` reject a later addition,
+change, deletion, multiple values or differently cased duplicate keys on the
+same request. This does not expose proof bytes in `LocalCallerMaterial` or
+diagnostic records and does not replace Auth's proof verification. Original
+requests without the field remain supported; adding it after capture fails.
+
+`Call` and `CallOriginalOwned` keep their original wire and signatures. The new
+method has no new C ABI, second connection, retry or runtime archive. Late
+response prefixes, first cause, process/image checks, terminal FIN semantics,
+Source-loan retention and physical-close witnesses follow the existing owned
+exchange contract unchanged. Other platforms expose the method as unavailable.
+
+Focused new cases are `TestOriginalLocalCallerShopProofV2Carrier`,
+`TestOriginalLocalCallerShopProofV2OwnedWire`,
+`TestOriginalLocalCallerShopProofV2Preflight`,
+`TestOriginalLocalCallerShopProofV2RequestCurrent`, and
+`TestOriginalLocalCallerShopProofV2IncomingRejection`. Their proof strings and
+expected processes are PUBLIC transport DATA, not valid issued session proofs
+or normal Root registration. The first matching Darwin/Linux CI runs qualify
+the implementation; source-only preparation is not a test result.
