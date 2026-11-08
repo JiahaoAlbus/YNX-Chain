@@ -54,6 +54,9 @@ keys.push(...sizeKeys);for(const locale of WALLET_LOCALES)rows[locale]+="|"+size
 const zoomKey="System text size and browser zoom still apply.";
 const zoomRows={en:zoomKey,"zh-Hans":"仍遵循系统文字大小和浏览器缩放。","zh-Hant":"仍遵循系統文字大小和瀏覽器縮放。",ja:"システムの文字サイズとブラウザーの拡大率も適用されます。",ko:"시스템 글자 크기와 브라우저 확대 설정도 적용됩니다.",es:"También se aplican el tamaño del texto del sistema y el zoom del navegador.",fr:"La taille du texte du système et le zoom du navigateur restent appliqués.",de:"Systemtextgröße und Browserzoom gelten weiterhin.",pt:"O tamanho do texto do sistema e o zoom do navegador continuam sendo aplicados.",ru:"Размер текста системы и масштаб браузера также применяются.",ar:"يظل حجم نص النظام وتكبير المتصفح ساريين.",id:"Ukuran teks sistem dan zoom browser tetap berlaku."};
 keys.push(zoomKey);for(const locale of WALLET_LOCALES)rows[locale]+="|"+zoomRows[locale];
+const resolverTitle='Address Resolver';
+const resolverTitleRows={en:resolverTitle,'zh-Hans':'地址格式转换','zh-Hant':'地址格式轉換',ja:'アドレス形式変換',ko:'주소 형식 변환',es:'Conversor de formato de direcciones',fr:'Conversion du format des adresses',de:'Adressformat-Konvertierung',pt:'Conversor de formato de endereços',ru:'Преобразование формата адреса',ar:'تحويل تنسيق العنوان',id:'Konversi format alamat'};
+keys.push(resolverTitle);for(const locale of WALLET_LOCALES)rows[locale]+='|'+resolverTitleRows[locale];
 export const WALLET_COPY = Object.freeze(Object.fromEntries(WALLET_LOCALES.map(locale=>{
   const values=rows[locale].split("|");
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete Wallet copy: ${locale}`);

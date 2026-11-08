@@ -1,3 +1,4 @@
+import {setWalletCopy} from './wallet-locale.mjs';
 import {mountDesktopAgentDelegations} from './desktop-agent-delegations-ui.mjs';
 import {createDesktopOverviewActivityUI} from './desktop-overview-activity-ui.mjs';
 import {desktopNetworkDisplay} from './desktop-network-display.mjs';
@@ -28,7 +29,7 @@ export function createApprovedDesktopUI({document:doc,api,navigate,unlock,openIm
   if(name==='connections'||name==='permissions'){const target=name==='connections'?'desktop-connection-sessions-slot':'desktop-permission-slot';move('walletconnect-detail',target);move('walletconnect-sessions',target);}
   const titles={overview:['Assets','资产'],history:['Transactions','交易'],connections:['DApp','DApp'],security:['Security center','安全中心'],agents:['AI Agent','AI Agent'],permissions:['Permissions','授权管理'],accounts:['Accounts & backup','账户与备份'],resolver:['Address Resolver','地址格式转换'],settings:['Settings','设置']};
   if(name==='agents')void agentDelegations.refresh();
-  if(titles[name])byId('page-title').textContent=t(...titles[name]);resolver.invalidate();
+  if(name==='resolver')setWalletCopy(byId('page-title'),'Address Resolver');else if(titles[name])byId('page-title').textContent=t(...titles[name]);resolver.invalidate();
  }
  function enterWorkspace(){entered=true;byId('desktop-welcome').hidden=true;byId('desktop-lock-screen').hidden=true;doc.body.dataset.walletStage='workspace';}
  function route(name){enterWorkspace();navigate(name);}
