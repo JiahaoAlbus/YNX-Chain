@@ -22,7 +22,7 @@ if(process.platform!=='darwin')throw Error('MACOS_CONTROL_LANE_REQUIRED; Linux n
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const pin=p=>{const b=fs.readFileSync(p);return{path:p,bytes:b.length,sha256:sha(b)};};
 const main=options['--main-header']??matching.mainCommittedSocialPair.frozenSource.find(p=>p.path.endsWith('social_main_committed_pair_private.h')).path;
-const auth=options['--auth-header']??matching.issuerABI.path;
+const auth=options['--auth-header']??(matching.namespaceMatchingAuthABI??matching.issuerABI).path;
 for(const[p,bytes,digest]of[[main,2153,'85088b5923f0d6c6df5ed98a3fe5ef3ed4f21f9a8c6fbc85b0c2524612bc3aa7'],[auth,7878,'e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3']]){
  const actual=pin(p);if(actual.bytes!==bytes||actual.sha256!==digest)throw Error('MATCHING_HEADER_DRIFT:'+p);
 }

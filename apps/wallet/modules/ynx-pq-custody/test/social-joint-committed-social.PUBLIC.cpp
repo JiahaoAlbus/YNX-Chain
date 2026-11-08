@@ -56,6 +56,13 @@ void run(const std::string&mode){heldCfg=std::make_shared<Fixture>();auto cfg=he
 }
 namespace ynx::social::joint::original {
 Result borrowCapturedSourceLoan(Source&s,std::uint64_t&out)noexcept{auto*source=dynamic_cast<S*>(&s);assert(source&&source->cfg==heldCfg);++heldCfg->borrows;out=heldCfg->mode=="borrow-zero"?0:sourceLoan;return heldCfg->mode=="borrow-failed0"?failed():Result{};}
+#ifndef YNX_SOCIAL_TEST_REAL_ROUTE
+// PUBLIC local-only compatibility seam. New registered-route controls link the
+// actual MainPairRoute/RegisteredMainPair bodies instead of these three helpers.
+void selectOriginalMainPairRoute(Source&s,std::uint32_t&route,std::uint64_t&loan,Result&r)noexcept{route=0;loan=0;r=borrowCapturedSourceLoan(s,loan);if(r.ok()&&loan)route=1;else if(r.ok())r=failed(90);}
+void acquireRegisteredMainPair(Source&,const Resource&,std::shared_ptr<SocialHolder>&out,Result&r)noexcept{out.reset();r=failed(90);}
+bool copyRegisteredMainPairAccountNamespace(SocialHolder&,AccountNamespace&,Result&)noexcept{return false;}
+#endif
 }
 extern "C" {
 void ynx_social_main_committed_pair_open_v1(std::uint64_t loan,unsigned char*locator,std::size_t n,std::uint64_t*out,ynx_social_joint_status_v1*s){identity();auto cfg=heldCfg;++cfg->opens;assert(loan==sourceLoan&&n==32&&!std::memcmp(locator,cfg->f06.data(),32)&&*out==0);locator[0]^=1;assert(cfg->f06[0]==0x44);*out=cfg->mode=="owner0-untouched"||cfg->mode=="owner0-known-absence"?0:ownerID;if(cfg->mode=="reentrant-open"){denied((*cfg->holderSlot)->close());denied((*cfg->holderSlot)->current());assert(cfg->closes==0&&cfg->currents==0);}if(cfg->mode=="open-untouched"||cfg->mode=="owner0-untouched")return;if(cfg->mode=="open-partial0"||cfg->mode=="open-unknown")zero(s,cfg->mode=="open-unknown");else success(s);}

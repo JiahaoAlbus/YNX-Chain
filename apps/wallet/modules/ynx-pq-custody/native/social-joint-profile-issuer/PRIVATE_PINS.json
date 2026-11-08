@@ -1,9 +1,9 @@
 {
   "schema": "YNX_NATIVE_SOCIAL_JOINT_PRIVATE_PINS/v1",
   "issuerABI": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-facts-r6-jBnlcP/source/internal/social/kernel/social_joint_profile_issuer_private.h",
-    "bytes": 7878,
-    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3",
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 8302,
+    "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49",
     "sourceInputVersion": 2,
     "sourceInputSize64": 112
   },
@@ -68,10 +68,9 @@
   },
   "actualR5FrozenRefsVerified": 8,
   "remainingActualCode": [
-    "Auth registered Main read client plus source-owned explicit route selector and Native typed remote adapter",
-    "Auth independent Linux DEVICE/session producer and Native adapter",
+    "Original Linux DEVICE matcher/API intake and Native thin adapter",
     "Original history/query authority for expired signing Source",
-    "Auth finite service actual composition, registered placements and SAME ONEGo final link"
+    "Normal P02/Auth/Native/finite composition, registered placements and SAME ONEGo Linux final link"
   ],
   "predecessorR5IssuerABI": {
     "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-inventory-r5-rRCVeB/source/internal/social/kernel/social_joint_profile_issuer_private.h",
@@ -231,15 +230,74 @@
     "DeviceGrant": false
   },
   "registeredMainReadMatching": {
-    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/include/ynx_auth_registered_main_pair_read_private_v1.h",
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/contract-prebound-main-listen-r2/previous/ynx_auth_registered_main_pair_read_private_v1.h",
     "bytes": 4147,
     "sha256": "0bd3a4610c19cd4eec41ed42d8efbdb8816630cf0d3bc297bd0c16af954e5e0e",
-    "status": "Matching contract only; actual client/route selector not yet supplied"
+    "status": "Concrete Native CPP adapter plus Auth actual Rust/C client body supplied; no actual Root/channel or whole-Linux qualification",
+    "actualCppThinAdapter": true,
+    "actualRegisteredClientImplementation": true,
+    "clientH": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/supplier/frozen-r1-af9ZZr/HANDOFF.json",
+      "bytes": 11273,
+      "sha256": "6228fd84dfef1fc00e1f80d1ef47c2362614d0de9b76e7275b23f6e1dffee631"
+    },
+    "refsVerified": 20
   },
   "macOSBoundaryCIHomeGate": {
     "usesRuntimeHome": true,
     "homeFloorBytes": 536870912,
     "onlyMacOSQualified": true,
     "LinuxQualified": false
+  },
+  "namespaceMatchingAuthABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-facts-r6-jBnlcP/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 7878,
+    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3",
+    "sourceInputVersion": 2,
+    "sourceInputSize64": 112
+  },
+  "predecessorR6IssuerABI": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/same-capture-facts-r6-jBnlcP/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+    "bytes": 7878,
+    "sha256": "e0134fc4c08933a4f195f4526375272635f4b4579f0a7d8fe74d03ee58b4afc3",
+    "sourceInputVersion": 2,
+    "sourceInputSize64": 112
+  },
+  "mainPairRoute": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/HANDOFF.json",
+      "bytes": 7098,
+      "sha256": "2b7c15ee553e273eb8b8cb40728cae8156acb76f838d6ed65214f409eddb0b5f"
+    },
+    "after": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/source_main_pair_route.go",
+        "bytes": 2124,
+        "sha256": "7ac1488c26bad953b1ee685413048e3274a12d5afd40397cd7f21ddcbd4b739b"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/source_main_pair_route_ffi.go",
+        "bytes": 769,
+        "sha256": "264f55dc8a708cd90d79e2a7b23d143e71cc4d9b6550166e6bcc62172426a8a4"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+        "bytes": 5929,
+        "sha256": "aa496cad13707f2579b762877f0e8b2e996600b60f9be1da5c4bb8377d5e83c1"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/social_joint_profile_issuer_private.h",
+        "bytes": 8302,
+        "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/registered-main-pair-read-successor/route-r1-60gdKb/source/internal/social/kernel/source_joint_provider_ffi.go",
+        "bytes": 13311,
+        "sha256": "9caaefe4fe2b2e08bca02f9f30f7dbb7be47205e8233a5762ff6b831232fb8f7"
+      }
+    ],
+    "actualNativeSelector": true,
+    "callerModeSwitch": false,
+    "localFailureRemoteFallback": false
   }
 }

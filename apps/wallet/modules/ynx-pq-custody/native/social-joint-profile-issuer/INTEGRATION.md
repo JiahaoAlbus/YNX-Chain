@@ -120,11 +120,15 @@ no tests provision them.
 Main's directory getter also needs its actual normal admitted directory in
 each selected process. The standalone role process does not acquire that
 authority merely by linking the five exports or receiving public pair bytes.
-The selected remote route uses Auth's distinct registered original-owner read
-purpose and retained channel. Its adapter must select that route from actual
-source-owned composition before acquisition; failed local lookup never selects
-a remote fallback. The matching read header is a contract until its actual
-client/route-selector bodies and normal integration are supplied.
+`MainPairRoute.cpp` now selects the immutable local/registered route from Auth's
+actual capture inventory before acquisition. `RegisteredMainPair.cpp` calls
+Auth's seven private client operations and keeps the role's Source current
+before and after projections. Raw4/F06 are constraints and the Go reference is
+zeroed at this boundary. Remote views retain opaque owners, copied public and
+private namespace DATA, and uncertain physical debt. Failed local acquisition
+never selects a remote fallback. The concrete Auth Rust/C client and source
+route bodies are now supplied separately; normal combined Linux integration
+and actual registered Root/channel placements remain unverified.
 
 ## Verification boundaries
 

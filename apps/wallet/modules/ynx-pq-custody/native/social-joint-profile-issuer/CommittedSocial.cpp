@@ -185,7 +185,10 @@ void acquireCommittedSocialPair(Source&source,const Resource&resource,
  std::shared_ptr<SocialHolder>&out,Result&r)noexcept {
  out.reset();r={};
  try {
-  std::uint64_t loan=0;r=borrowCapturedSourceLoan(source,loan);if(!r.ok())return;
+  std::uint64_t loan=0;std::uint32_t route=0;
+  selectOriginalMainPairRoute(source,route,loan,r);if(!r.ok())return;
+  if(route==2){acquireRegisteredMainPair(source,resource,out,r);return;}
+  if(route!=1){r=failure(Invalid);return;}
   if(!loan){r=failure(Missing);return;}
   auto held=std::make_shared<CommittedSocial>();out=held;held->open(loan,resource,r);
   if(r.ok())r=source.current();held->observe(r);
@@ -195,7 +198,7 @@ void copyOriginalCommittedPairAccountNamespace(SocialHolder&holder,
  AccountNamespace&out,Result&r)noexcept {
  out.issuer.clear();out.subject.clear();
  auto*actual=dynamic_cast<CommittedSocial*>(&holder);
- if(!actual){r=failure(Invalid);return;}
+ if(!actual){if(!copyRegisteredMainPairAccountNamespace(holder,out,r))r=failure(Invalid);return;}
  actual->copyAccount(out,r);
 }
 } // namespace ynx::social::joint::original

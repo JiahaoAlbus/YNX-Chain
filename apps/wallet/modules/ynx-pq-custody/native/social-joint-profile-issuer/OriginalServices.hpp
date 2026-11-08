@@ -103,6 +103,11 @@ void acquireRegisteredSource(const SourceInput&,std::shared_ptr<Source>&,Result&
 // Two independent original holders; their combination is implemented here in
 // Native binding, never returned as an expected17/public-DTO authority token.
 void acquireCommittedSocialPair(Source&,const Resource&,std::shared_ptr<SocialHolder>&,Result&) noexcept;
+// Route is composition DATA from the actual capture inventory. Only success
+// permits dispatch; local failure never selects registered remote authority.
+void selectOriginalMainPairRoute(Source&,std::uint32_t&,std::uint64_t&,Result&) noexcept;
+void acquireRegisteredMainPair(Source&,const Resource&,std::shared_ptr<SocialHolder>&,Result&) noexcept;
+bool copyRegisteredMainPairAccountNamespace(SocialHolder&,AccountNamespace&,Result&) noexcept;
 void acquireRegisteredDeviceSession(Source&,SocialHolder&,const Resource&,std::shared_ptr<DeviceHolder>&,Result&) noexcept;
 void copyOriginalCommittedPairAccountNamespace(SocialHolder&,AccountNamespace&,Result&) noexcept;
 // Finite registered custodian operation. Must select the SAME role resource,
