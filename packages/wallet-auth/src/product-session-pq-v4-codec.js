@@ -1,3 +1,5 @@
+import{originalV4RegistrationForRequestDATA as recordFor,encodeOriginalProductSessionV4E5DATA,encodeProductSessionDeviceChallengeV4Message as originalChallengeMessageDATA,encodeProductSessionDeviceRegistrationV4Message as originalRegistrationMessageDATA,PRODUCT_SESSION_APPROVAL_DOMAIN_V4,PRODUCT_SESSION_DEVICE_CHALLENGE_DOMAIN_V4,PRODUCT_SESSION_DEVICE_REGISTRATION_DOMAIN_V4}from'./product-session-pq-v4-message-data.js';
+export{PRODUCT_SESSION_APPROVAL_DOMAIN_V4,PRODUCT_SESSION_DEVICE_CHALLENGE_DOMAIN_V4,PRODUCT_SESSION_DEVICE_REGISTRATION_DOMAIN_V4};
 import{types as storedIssueTypes}from'node:util';
 import{productPlatformBinding as storedIssueProductBinding}from'./product-session-registry.js';
 import{parseSessionAccountAuthorization as storedIssueAccountAuthorization}from'./product-session-account-private.js';
@@ -10,15 +12,10 @@ import {parseProductSessionRequest,parseProductSessionChallenge,productSessionRe
 import {readAccountPolicyObservation,accountAuthorizationFromView,registerVerifiedPQSessionApproval} from './product-session-account-private.js';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-session-device-registration-v4.js';import {evmAddressFromYNX} from './crypto.js';
 import{registerPQProductSessionV4SigningPlan}from'./product-session-pq-v4-signing-private.js';
-export const PRODUCT_SESSION_APPROVAL_DOMAIN_V4='YNX-PRODUCT-SESSION-APPROVAL/v4';
-export const PRODUCT_SESSION_DEVICE_CHALLENGE_DOMAIN_V4='YNX-PRODUCT-SESSION-DEVICE-CHALLENGE/v4';
+
+
 const fail=code=>{throw new WalletAuthError(code,code);};
-function recordFor(request,original,account,at){
- const view=inspectProductSessionDeviceRegistrationOriginalV4Data(original),r=view.record;
- if(request.version!=='4'||r.canonicalOwner!==evmAddressFromYNX(account)||r.registrationId!==request.deviceRegistrationId||r.revision!==request.deviceRegistrationRevision||view.registrationDigest!==request.deviceRegistrationDigest||r.revokedAt!==null||r.registeredAt>at.toISOString()||r.expiresAt<=at.toISOString())fail('PQ_PAIRING_ORIGINAL_MISMATCH');
- for(const k of ['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId'])if(r[k]!==request[k])fail('PQ_PAIRING_ORIGINAL_MISMATCH');return r;
-}
-function E5(domain,networkId,owner,body){const raw=encodeFields([domain,u32(4),Buffer.from(networkId,'hex'),owner,canonicalJSON(body)]);if(raw.length>16384)fail('PQ_SESSION_MESSAGE_TOO_LARGE');return raw;}
+function E5(domain,networkId,owner,body){return Buffer.from(encodeOriginalProductSessionV4E5DATA(domain,networkId,owner,body));}
 function verifyMember(wire,networkId,owner,purpose,message,pkA,pkB){
  if(!(wire instanceof Uint8Array)||wire.buffer instanceof SharedArrayBuffer||!wire.length||wire.length>98304)fail('PQ_SESSION_MEMBER_INVALID');const b=Buffer.from(wire),m=decodeMember(b),c=m.certificate;
  if(c.N!==1||m.index!==0||m.pathA.length||m.pathB.length||c.owner!==owner||c.purpose!==purpose||!c.chainId.equals(Buffer.from(networkId,'hex'))||!c.pkA.equals(Buffer.from(pkA,'hex'))||!c.pkB.equals(Buffer.from(pkB,'hex'))||!m.message.equals(message))fail('PQ_SESSION_MEMBER_BINDING_MISMATCH');
@@ -47,10 +44,7 @@ export function preparePQProductSessionApprovalV4(registry,request,input,policyR
  const data=prepareProductSessionApprovalV4Data(registry,request,input,policyRef,registrationOriginal,at);
  return registerPQProductSessionV4SigningPlan(Object.freeze({policyRef,unsigned:data.unsigned,message:Buffer.from(data.message),purpose:data.purpose}));
 }
-export function encodeProductSessionDeviceChallengeV4Message(challenge,registrationOriginal){
- const c=parseProductSessionChallenge(challenge),r=recordFor(c,registrationOriginal,c.account,new Date(c.issuedAt));if(c.version!=='4'||c.expiresAt>r.expiresAt||c.sessionExpiresAt>r.expiresAt||c.accountAuthorization.networkId!==r.networkId)fail('PQ_PAIRING_ORIGINAL_MISMATCH');
- return E5(PRODUCT_SESSION_DEVICE_CHALLENGE_DOMAIN_V4,r.networkId,r.canonicalOwner,{challenge:c,registration:r});
-}
+export function encodeProductSessionDeviceChallengeV4Message(challenge,registrationOriginal){return Buffer.from(originalChallengeMessageDATA(challenge,registrationOriginal));}
 export function verifyProductSessionDeviceChallengeV4Data(challenge,registrationOriginal,member,at=new Date()){
  const c=parseProductSessionChallenge(challenge),r=recordFor(c,registrationOriginal,c.account,at);if(c.version!=='4'||c.issuedAt>at.toISOString()||c.expiresAt<=at.toISOString())fail('SESSION_EXPIRED');
  verifyMember(member,r.networkId,r.canonicalOwner,'PRODUCT-SESSION-DEVICE-CHALLENGE',encodeProductSessionDeviceChallengeV4Message(c,registrationOriginal),r.pkA,r.pkB);
@@ -61,8 +55,8 @@ export function verifyProductSessionV4CompletionData(registry,request,approval,c
  if(canonicalJSON(expected)!==canonicalJSON(c))fail('SESSION_BINDING_MISMATCH');verifyProductSessionDeviceChallengeV4Data(c,registrationOriginal,pqDecodeBase64url(completion.deviceMember,{max:98304}),at);
  return deriveProductSessionV4TargetData(registry,request,verified.approval,c);
 }
-export const PRODUCT_SESSION_DEVICE_REGISTRATION_DOMAIN_V4='YNX-PRODUCT-SESSION-DEVICE-REGISTRATION/v4';
-export function encodeProductSessionDeviceRegistrationV4Message(registrationOriginal){const r=inspectProductSessionDeviceRegistrationOriginalV4Data(registrationOriginal).record;return E5(PRODUCT_SESSION_DEVICE_REGISTRATION_DOMAIN_V4,r.networkId,r.canonicalOwner,r);}
+
+export function encodeProductSessionDeviceRegistrationV4Message(registrationOriginal){return Buffer.from(originalRegistrationMessageDATA(registrationOriginal));}
 export function verifyProductSessionDeviceRegistrationProofV4Data(registrationOriginal,member,at=new Date()){const r=inspectProductSessionDeviceRegistrationOriginalV4Data(registrationOriginal).record;if(r.revokedAt!==null||r.registeredAt>at.toISOString()||r.expiresAt<=at.toISOString())fail('PQ_DEVICE_REGISTRATION_INACTIVE');verifyMember(member,r.networkId,r.canonicalOwner,'PRODUCT-SESSION-DEVICE-REGISTRATION',encodeProductSessionDeviceRegistrationV4Message(registrationOriginal),r.pkA,r.pkB);return Object.freeze({signatureVerified:true,dataOnly:true,registered:false,current:false,NativeAdmission:false,SourceAdmission:false});}
 
 // Historical stored-issuance DATA only. No policy observation/callback/current

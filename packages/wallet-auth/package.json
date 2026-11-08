@@ -940,7 +940,18 @@
     "native/original-source-private-utf8-inject.mjs",
     "scripts/build-original-source-finite-product-registry.mjs",
     "scripts/build-original-device-source-private-bundle.mjs",
-    "native/original-source-current-dirfd-node.cpp"
+    "native/original-source-current-dirfd-node.cpp",
+    "native/original-product-device-v4-pending-scope-data-core.mjs",
+    "native/original-product-device-v4-pending-scope-data-core.d.mts",
+    "native/original-auth-source-v2-device-scopes-pending-private.mjs",
+    "native/original-auth-source-v2-pending-private.mjs",
+    "native/original-auth-source-v2-pending-private.d.mts",
+    "native/original-device-source-v2-captured-pipeline.mjs",
+    "native/original-device-pending-source-v2-typed-projection.mjs",
+    "native/original-device-pending-source-v2-typed-projection.d.mts",
+    "native/original-device-pending-source-v2-private-factory.mjs",
+    "native/original-device-pending-source-v2-private-factory.d.mts",
+    "scripts/build-original-device-pending-source-private-bundle.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
