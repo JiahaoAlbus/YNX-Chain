@@ -60,7 +60,9 @@ export function createWalletNativePayProductStartup({captureFactories,getMain,ge
      // no methods on the underlying unknown Native loan are guessed here.
      if(!composing)row.runtime=null;
      try{await drain(row);}catch(error){if(!failed){failed=true;cause=error;}}
-     if(failed||!result?.walletRequest){try{entry.cancel();entries.delete(entry);}catch(error){entryFailures.set(entry,error);if(!failed){failed=true;cause=error;}}}
+     // An earlier cancellation may remove an entry before its Main review returns.
+     // Re-adopt that SAME late entry and its first cleanup cause together.
+     if(failed||!result?.walletRequest){try{entry.cancel();entries.delete(entry);}catch(error){entries.add(entry);if(!entryFailures.has(entry))entryFailures.set(entry,error);if(!failed){failed=true;cause=error;}}}
     }
     if(failed)throw cause;return result;
    })();tasks.add(task);void task.then(()=>tasks.delete(task),()=>tasks.delete(task));return task;

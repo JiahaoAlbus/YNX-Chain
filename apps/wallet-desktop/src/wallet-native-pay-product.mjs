@@ -6,7 +6,7 @@ export function createWalletNativePayProduct({entry,getMain,getGuard,publishRevi
   return Object.freeze({
     status:()=>entry.status(),
     cancel:()=>entry.cancel(),
-    assertSafeToClose(){closing=true;if(active.size)fail('NATIVE_PAY_MAIN_OPERATION_PENDING');},
+    assertSafeToClose(){closing=true;if(active.size)fail('NATIVE_PAY_MAIN_OPERATION_PENDING');entry.assertSafeToClose?.();},
     async invoke(input){
       if(closing)fail('NATIVE_PAY_MAIN_CLOSING');
       const guard=getGuard(),main=getMain();guard.assert();let pending;const ticket={};active.add(ticket);

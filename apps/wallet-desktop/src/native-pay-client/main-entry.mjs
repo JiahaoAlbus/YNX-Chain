@@ -29,11 +29,19 @@ export function createOriginalPayReviewTracker(){
    if(isPending(owner,id))fail('NATIVE_PAY_MAIN_REVIEW_STILL_PENDING');
    pending.delete(id);return {settled:true,originalRetained:true};
   },
+  cleanupFailed(id,owner,cause){
+   const row=pending.get(id);
+   if(!row||row.owner!==owner)fail('NATIVE_PAY_MAIN_REVIEW_OWNER_CHANGED');
+   if(!row.failed){row.failed=true;row.cause=cause;}
+  },
+  assertReviewAvailable(){for(const row of pending.values())if(row.failed)throw row.cause;},
+  assertSafeToClose(){if(pending.size)fail('NATIVE_PAY_MAIN_REVIEWS_RETAINED');},
   cancel(){
    let failed=false,cause;
    for(const [id,row]of pending)try{
     if(row.failed)throw row.cause;
     if(isPending(row.owner,id))rejectNativePayPending(row.owner,id);
+    if(isPending(row.owner,id))fail('NATIVE_PAY_MAIN_REVIEW_STILL_PENDING');
     pending.delete(id);
    }catch(error){if(!row.failed){row.failed=true;row.cause=error;}if(!failed){failed=true;cause=row.cause;}}
    if(failed)throw cause;return {cancelled:true,originalRetained:true};
@@ -53,20 +61,24 @@ function input(value){
  * signer, approval, HTTP credential, transaction journal or Source lifetime. */
 export function createNativePayMainEntry({getMain,getContext}){
  if(typeof getMain!=='function'||typeof getContext!=='function')fail('NATIVE_PAY_MAIN_ENTRY_UNAVAILABLE');
- let source=null,epoch=0,active=false,client=null;const pending=createOriginalPayReviewTracker();
+ let source=null,epoch=0,active=false,client=null,activeAbort=null;const pending=createOriginalPayReviewTracker();
  const context=()=>{
   const c=getContext(),e=epoch;
   if(!c||c.locked||c.changing||!c.focused||typeof c.account!=='string'||!/^0x[0-9a-f]{40}$/.test(c.account))fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');
   return ()=>{const now=getContext();if(epoch!==e||!now||now.account!==c.account||now.revision!==c.revision||now.locked||now.changing||!now.focused)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');};
  };
- function cancel(){epoch++;client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
+ function cancel(){epoch++;activeAbort?.abort();client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
  async function invoke(raw,onFailure){
    const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
+   if(request.action.endsWith('-review'))pending.assertReviewAvailable();
    const assertContext=context(),originalSource=source,main=getMain();
    const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
-   current();active=true;let operationClient=null;
+   const operationAbort=new AbortController();
+   Object.defineProperty(current,'signal',{value:operationAbort.signal});
+   current();active=true;activeAbort=operationAbort;let operationClient=null;
    try{
     const runtime={main,pay:originalSource.pay,current,
+     reviewCustody:Object.freeze({remember:id=>pending.remember(id,main),settled:id=>pending.settled(id,main),cleanupFailed:(id,cause)=>pending.cleanupFailed(id,main,cause)}),
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
      ...(typeof originalSource.readOriginalArchiveReceipt==='function'?{readOriginalArchiveReceipt:(...args)=>originalSource.readOriginalArchiveReceipt(...args)}:{}),
@@ -104,7 +116,7 @@ export function createNativePayMainEntry({getMain,getContext}){
     // current. invoke itself preserves the exact original thrown cause.
     if(onFailure&&operationClient)try{current();onFailure(operationClient.snapshot(),current);}catch{}
     throw error;
-   }finally{active=false;}
+   }finally{if(activeAbort===operationAbort)activeAbort=null;active=false;}
   }
  return Object.freeze({
   compose(originalSource){
@@ -116,6 +128,7 @@ export function createNativePayMainEntry({getMain,getContext}){
    if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=nativePayFailureCode(error,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}
    return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
   cancel,
+  assertSafeToClose(){if(active)fail('NATIVE_PAY_MAIN_OPERATION_PENDING');pending.assertSafeToClose();},
   // Main-only completion notification; never install as an IPC action. Main
   // calls it only after the original review/cleanup actually settles.
   settleOriginalReview:(id,owner)=>pending.settled(id,owner),

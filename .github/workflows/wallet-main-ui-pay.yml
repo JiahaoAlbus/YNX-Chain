@@ -49,3 +49,5 @@ jobs:
         run: node --test --test-name-pattern 'resolver page title uses normal locale' test/approved-desktop-ui.test.mjs
       - name: Same original approved public policy custody controls
         run: node --test --test-name-pattern 'approved public' test/original-device-registration-controller.test.mjs
+      - name: Normal Pay late-review custody through Main startup and close
+        run: node --test test/wallet-native-pay-late-review-close.test.mjs test/wallet-native-pay-product.test.mjs test/wallet-native-pay-product-startup.test.mjs

@@ -1,9 +1,9 @@
 {
   "owner": "P06 original; P01 exact whole9 consumer projection",
-  "sourceCommit": "e59c5787fd20d15974d4e12cb5d425b65a1c9eed",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/pending-terms-normal-consumer-20261108/normal-source-r1/HANDOFF.json",
-  "handoffBytes": 9864,
-  "handoffSha256": "1d4c845f4fe007376b6c9eb86345d4741673a33e4fbda2386cd37fd7eb1c7f64",
+  "sourceCommit": "742ac893b0b117c4849de3bab2801fbf67861d8e",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/normal-main-late-review-custody-20261108/normal-source-r1/HANDOFF.json",
+  "handoffBytes": 10840,
+  "handoffSha256": "ec25bb046f041452c7a4c7175b5faf5d31011f154be124944c3cbaf54c7c8dba",
   "productionModules": 9,
   "productionDocumentsPreservedFromR5": true,
   "files": [
@@ -14,13 +14,18 @@
     },
     {
       "path": "cli.mjs",
-      "bytes": 4818,
-      "sha256": "7f58d24b699226249158f4eb431f58a1a55292a064192382ca4b2eabebb2443d"
+      "bytes": 4976,
+      "sha256": "9565ec97aff02da661dffeba155f9babdea1076d0184f01385c1b4af738acb8f"
     },
     {
-      "path": "desktop-entry.mjs",
-      "bytes": 2227,
-      "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
+      "path": "pay-business-client.mjs",
+      "bytes": 29631,
+      "sha256": "2ed1f91a575444767e81b174e60c3925c1c43d308ec83414aa4564665e0f537d"
+    },
+    {
+      "path": "merchant-invoice-approval.mjs",
+      "bytes": 24728,
+      "sha256": "9b659b49b50715aedd3634afec791984c94824922d799a436d0d35192b929bea"
     },
     {
       "path": "invoice-product-intent.mjs",
@@ -28,29 +33,24 @@
       "sha256": "22f231b705ccf58416c6df65d44a0714483e0e44b7a128f6ca9af071f060ed0b"
     },
     {
-      "path": "main-entry.mjs",
-      "bytes": 10678,
-      "sha256": "a70f04c83563b580722f4d9f93d237b9059e247ffe35e6e31901503a145a507f"
-    },
-    {
-      "path": "merchant-invoice-approval.mjs",
-      "bytes": 24151,
-      "sha256": "fa12f4d608c449fae5a1ca3f1ff1a156317feaf9b0f00360f88cfa0bdb30469b"
-    },
-    {
       "path": "notification-inbox.mjs",
       "bytes": 6267,
       "sha256": "f49d99f8079142f84c11836d1e0134df67c8a6d714685ab6dc1e2edb258546aa"
     },
     {
-      "path": "pay-business-client.mjs",
-      "bytes": 29458,
-      "sha256": "74ee1d45110452f3d5bad9dc8a204e01fe67560f551860280de8305740867d53"
+      "path": "main-entry.mjs",
+      "bytes": 11717,
+      "sha256": "e1919c4751806397bddcfe3779cbaabadf43d7ceed99c2982aea2613cafba835"
+    },
+    {
+      "path": "desktop-entry.mjs",
+      "bytes": 2227,
+      "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
     },
     {
       "path": "product-source.mjs",
-      "bytes": 11994,
-      "sha256": "b01157ea9fcde317f9d1b00283844a32618a22dd7d1e4b283becad852c167fa0"
+      "bytes": 12785,
+      "sha256": "9e2dc62bad80ddf65148d8ee7fbd403a9f5e12a3740de08002c944fff96c1372"
     }
   ]
 }
