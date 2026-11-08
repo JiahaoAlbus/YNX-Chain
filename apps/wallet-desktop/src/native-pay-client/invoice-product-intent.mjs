@@ -56,6 +56,7 @@ export function nativeInvoiceOrderBindingDATA(value,original){
  const td=descriptors(get('terms')),keys=['invoiceId','sessionId','recipient','payer','assetId','unitVersion','feeRule','keyEpoch','revision','amountAtoms','maxFeeAtoms','expiresAtHeight'];
  if(Reflect.ownKeys(td).length!==keys.length||keys.some(k=>typeof td[k]?.value!=='string'))fail();
  const terms=Object.freeze(Object.fromEntries(keys.map(k=>[k,td[k].value]))),id=v=>/^[a-z0-9][a-z0-9._:-]{0,63}$/.test(v),hash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
+ const termsNativeHash=get('termsNativeHash')??'',termsAbciHash=get('termsAbciHash')??'';
  if(JSON.stringify(saved)!==JSON.stringify(request)||request.productId!=='shop.order'||!request.storeId||
   !/^npi_[0-9a-f]{48}$/.test(get('intentId')??'')||get('originalOperation')!==get('intentId')||get('merchant')!==request.merchant||
   !['PREPARED','ISSUED'].includes(get('state'))||typeof get('phase')!=='string'||!/^[a-z_]{1,96}$/.test(get('phase'))||
@@ -63,9 +64,10 @@ export function nativeInvoiceOrderBindingDATA(value,original){
   !id(terms.invoiceId)||!id(terms.sessionId)||terms.recipient!==request.recipient||
   terms.payer!==''&&!/^0x[0-9a-f]{40}$/.test(terms.payer)||terms.assetId!==request.assetId||terms.unitVersion!==request.unitVersion||terms.amountAtoms!==request.amountAtoms||
   terms.feeRule!=='native-transfer-fee-one/v1'||terms.maxFeeAtoms!=='1'||!['keyEpoch','revision','expiresAtHeight'].every(k=>uint(terms[k]))||
-  get('state')==='ISSUED'&&(!hash(get('termsNativeHash'))||!hash(get('termsAbciHash'))))fail();
+  !(termsNativeHash===''&&termsAbciHash===''||hash(termsNativeHash)&&hash(termsAbciHash))||
+  get('state')==='ISSUED'&&!hash(termsNativeHash))fail();
  return Object.freeze({original:request,intentId:get('intentId'),originalOperation:get('originalOperation'),merchant:request.merchant,
-  state:get('state'),phase:get('phase'),signingMessageHash:get('signingMessageHash'),termsNativeHash:get('termsNativeHash')??'',termsAbciHash:get('termsAbciHash')??'',terms});
+  state:get('state'),phase:get('phase'),signingMessageHash:get('signingMessageHash'),termsNativeHash,termsAbciHash,terms});
 }
 export function assertNativeInvoiceOrderIntentDATA(value,expected){
  const observed=nativeInvoiceOrderBindingDATA(value,expected.original);
@@ -79,7 +81,8 @@ export function assertNativeInvoiceOrderBillDATA(value,expected,allowPendingTerm
   genesis:original.genesis,nativeChainId:original.nativeChainId,assetId:original.assetId,unitVersion:original.unitVersion,
   principalAtoms:original.amountAtoms,feeRule:terms.feeRule,maxFeeAtoms:terms.maxFeeAtoms,expiresAtHeight:terms.expiresAtHeight,termsNativeHash:expected.termsNativeHash,termsHash:expected.signingMessageHash};
  const pending=allowPendingTerms&&expected.state==='PREPARED'&&/^0x[0-9a-f]{64}$/.test(expected.termsNativeHash);
- if(expected.state!=='ISSUED'&&!pending||Object.entries(selected).some(([key,v])=>d[key]?.value!==v))
+ if(expected.state!=='ISSUED'&&!pending||Object.entries(selected).some(([key,v])=>d[key]?.value!==v)||
+  pending&&['paidAtoms','refundedAtoms','netPaidAtoms'].some(k=>d[k]?.value!=='0'))
   throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
  return value;
 }
@@ -94,7 +97,7 @@ export function nativeInvoiceOrderOperationDATA(value,expected,nativeHash){
  if(out.nativeHash!==nativeHash||out.merchant!==expected.merchant||out.invoiceId!==expected.terms.invoiceId||
   !/^0x[0-9a-f]{64}$/.test(out.abciHash??'')||!['invoice_terms','invoice_settle','invoice_refund'].includes(out.kind)||
   !['unknown','submitted','confirmed','confirmed_failed'].includes(out.status)||!/^0x[0-9a-f]{40}$/.test(out.owner??'')||
-  out.kind==='invoice_terms'&&(nativeHash!==expected.termsNativeHash||out.owner!==expected.merchant)||
+  out.kind==='invoice_terms'&&(nativeHash!==expected.termsNativeHash||out.owner!==expected.merchant||out.abciHash!==expected.termsAbciHash)||
   out.kind==='invoice_refund'&&out.owner!==expected.merchant||
   out.kind==='invoice_settle'&&(out.owner===expected.merchant||expected.terms.payer!==''&&out.owner!==expected.terms.payer)||
   out.kind!=='invoice_terms'&&expected.state!=='ISSUED')

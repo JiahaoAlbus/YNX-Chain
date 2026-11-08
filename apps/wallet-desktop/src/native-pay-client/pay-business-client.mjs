@@ -27,6 +27,7 @@ function readReference(value){
 export function nativePayRecoveryActions(reference){
  const r=readReference(reference);if(!r)return [];
  const id=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v),merchant=/^0x[0-9a-f]{40}$/.test(r.merchant??''),hash=/^0x[0-9a-f]{64}$/.test(r.nativeHash??'');
+ if(r.kind==='invoice_terms'&&id(r.productId)&&id(r.sourceOrder))return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
  if(id(r.productId)&&id(r.sourceOrder)){
   if(merchant&&id(r.invoiceId))return [{action:hash?'recover-archive':'reconcile-archive',productId:r.productId,sourceOrder:r.sourceOrder,merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];
   return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
@@ -83,15 +84,24 @@ export class NativePayBusinessClient {
   const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
   const binding=nativeInvoiceOrderBindingDATA(intent,original);
   Object.assign(reference,{merchant:binding.merchant,invoiceId:binding.terms.invoiceId,intentId:binding.intentId});
+  if(binding.state==='PREPARED')reference.kind='invoice_terms';
   return {intent,binding};
  }
  #orderReviewReady(binding,kind){
-  if(kind==='invoice_terms'?binding.state!=='PREPARED'||binding.phase!=='awaiting_merchant_approval':binding.state!=='ISSUED')
+  if(kind==='invoice_terms'?binding.state!=='PREPARED'||binding.phase!=='awaiting_merchant_approval'||binding.termsNativeHash!==''||binding.termsAbciHash!=='':binding.state!=='ISSUED')
    throw failure('NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
  }
  async openOriginalOrderInvoice(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'reading',async current=>{
   const {intent,binding}=await this.#originalOrder(reference,current);
-  if(binding.state==='PREPARED')return {intent,bill:null,queryOnly:true,recoveryOnly:binding.phase!=='awaiting_merchant_approval',clientIndependentFinality:false};
+  if(binding.state==='PREPARED'){
+   if(binding.termsNativeHash==='')return {intent,bill:null,queryOnly:true,recoveryOnly:binding.phase!=='awaiting_merchant_approval',clientIndependentFinality:false};
+   if(!/^0x[0-9a-f]{64}$/.test(binding.termsNativeHash)||!/^0x[0-9a-f]{64}$/.test(binding.termsAbciHash))throw failure('NATIVE_PAY_ORIGINAL_ORDER_BINDING');
+   reference.nativeHash=binding.termsNativeHash;
+   const bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
+   const operation=nativeInvoiceOrderOperationDATA(bill,binding,binding.termsNativeHash);
+   if(operation.kind!=='invoice_terms')throw failure('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');
+   return {intent,bill,queryOnly:true,recoveryOnly:true,clientIndependentFinality:false};
+  }
   const bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
   assertNativeInvoiceOrderBillDATA(bill,binding);return {intent,bill,queryOnly:true,clientIndependentFinality:false};
  });}
@@ -138,6 +148,7 @@ export class NativePayBusinessClient {
   if(typeof this.#pay.reconcileOperation!=='function')throw failure('NATIVE_PAY_ORIGINAL_RECONCILER_UNAVAILABLE');
   const before=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
   const original=nativeInvoiceOrderOperationDATA(before,binding,nativeHash);
+  if(original.kind==='invoice_terms')reference.kind='invoice_terms';
   // Existing original-operation reconciliation reads independent Core proof.
   // It never submits a Member, chooses another nonce or recreates an intent.
   const result=await this.#pay.reconcileOperation(binding.merchant,binding.terms.invoiceId,nativeHash,current);current();
@@ -162,10 +173,19 @@ export class NativePayBusinessClient {
   const intent=await this.#pay.createInvoiceIntent(original,current);current();
   return {intent,bill:intent.invoice??null,clientIndependentFinality:false};
  });}
- async lookupOriginalInvoiceIntent(productId,sourceOrder){return this.#run({productId,sourceOrder},'recovering',async current=>{
+ async lookupOriginalInvoiceIntent(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'recovering',async current=>{
   if(typeof this.#pay.lookupInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
   const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
   const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
+  if(original.productId==='shop.order'&&intent.state==='PREPARED'){
+   const binding=nativeInvoiceOrderBindingDATA(intent,original);
+   Object.assign(reference,{merchant:binding.merchant,invoiceId:binding.terms.invoiceId,intentId:binding.intentId,kind:'invoice_terms'});
+   if(binding.termsNativeHash!==''){
+    reference.nativeHash=binding.termsNativeHash;
+    nativeInvoiceOrderOperationDATA(intent.invoice,binding,binding.termsNativeHash);
+   }
+   return {intent,bill:binding.termsNativeHash?intent.invoice:null,queryOnly:true,recoveryOnly:binding.termsNativeHash!==''||binding.phase!=='awaiting_merchant_approval',clientIndependentFinality:false};
+  }
   return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};
  });}
  async openInvoice(merchant,invoiceId){return this.#run({merchant,invoiceId},'reading',async current=>{const bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();return {bill,clientIndependentFinality:false};});}
@@ -272,6 +292,7 @@ export function nativePaySummary(state){
  if(bill?.operations)summary.operations=Object.values(bill.operations).map(op=>({nativeHash:op.nativeHash,abciHash:op.abciHash,kind:op.kind,status:op.status,failure:op.failure??null}));
  if(summary.operations){summary.pendingOriginals=summary.operations.filter(op=>['unknown','submitted'].includes(op.status)).map(op=>op.nativeHash);summary.outcomeUnknown=summary.pendingOriginals.length>0||bill.status==='unknown'||bill.refundStatus==='unknown';}
  if(state.intent)summary.intent={intentId:state.intent.intentId,originalOperation:state.intent.originalOperation,state:state.intent.state,phase:state.intent.phase,termsNativeHash:state.intent.termsNativeHash};
+ if(['unknown','submitted'].includes(state.intent?.phase))summary.outcomeUnknown=true;
  if(state.walletRequest)summary.walletRequest={id:state.walletRequest.id,method:state.walletRequest.method,review:state.walletRequest.review.invoice??{title:state.walletRequest.review.title},approvalRequired:true};
  if(state.recovery)summary.recovery=state.recovery;
  if(state.notifications)summary.notifications=state.notifications;
