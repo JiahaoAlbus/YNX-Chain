@@ -18,6 +18,9 @@ TREE = '9a172a0a4b07aecc6365bbd05b58726f1214806c'
 TOOLS = '8b2a6db0e2b1e8ea25e73486acfa4eae9ba736cc'
 CONTROLLER = 'f460d8f506ab9de70e5ca842f6920891c6484119'
 TOOLS_TREE = '90760b360421b688c05ebc0778bb3157c1575713'
+failure_spec = importlib.util.spec_from_file_location('original_owner_failure', Path(__file__).with_name('pq-public-owner-failure-readback.py'))
+failure_module = importlib.util.module_from_spec(failure_spec)
+failure_spec.loader.exec_module(failure_module)
 
 
 def source_qualification():
@@ -89,12 +92,13 @@ def original_sign_replies(files, prefix, load):
         code = reply['code']
         require(code in ('ORIGINAL_SAVED', 'REJECTED', 'UNKNOWN'), 'unexpected original sign reply code')
         counts[code] = counts.get(code, 0) + 1
+        failure = failure_module.readback(reply, 'sign')
         cache, inputs = reply.get('staticCache'), reply.get('sourceInputs')
         records.append(dict(index=index, ownerIndex=reply['ownerIndex'], operationId=reply['operationId'],
                             code=code, originalPath=name, originalBytes=len(files[name]),
                             originalSHA256=hashlib.sha256(files[name]).hexdigest(),
                             calleeElapsedNs=reply.get('calleeElapsedNs'), resultSupplied=reply.get('result') is not None,
-                            errorReasonStatus='NOT_EMITTED_BY_FROZEN_CLI' if code != 'ORIGINAL_SAVED' else 'NOT_APPLICABLE',
+                            errorReasonStatus=failure['status'], failureDiagnostic=failure,
                             staticCache=cache, sourceInputs=inputs))
     return dict(schema='YNX-PERF-1695-ORIGINAL-SIGN-REPLIES/v1', records=records, replyCounts=counts,
                 configuredDemand=None if load is None else load['configuredDemand'],

@@ -25,6 +25,25 @@ def records():
 
 
 class Public1695Controls(unittest.TestCase):
+    def test_optional_safe_failure_never_grants_source_or_replay(self):
+        value=dict(version='YNX-PQ-LAB-PUBLIC-OWNER-FAILURE/v1',errorClass='CHECKPOINT_REJECTED',
+                   failurePhase='SIGN',firstCausePresent=True)
+        reply=dict(code='REJECTED',result=None,failure=value)
+        out=m.failure_module.readback(reply,'sign')
+        self.assertEqual(out['diagnostic'],value)
+        self.assertFalse(out['retryAllowed']);self.assertFalse(out['authorityGranted'])
+        self.assertFalse(out['upstreamFirstCauseReconstructed'])
+        for changed in [dict(value,rawError='/private/secret'),dict(value,errorClass='arbitrary text'),
+                        dict(value,failurePhase='CONFIRM'),dict(value,firstCausePresent=False),
+                        dict(value,version='future/v2'),dict(value,errorClass='ORIGINAL_UNKNOWN')]:
+            with self.subTest(changed=changed),self.assertRaises(RuntimeError):
+                m.failure_module.readback(dict(reply,failure=changed),'sign')
+        for changed in [dict(reply,code='ORIGINAL_SAVED'),dict(reply,result={}),dict(reply,failure=None)]:
+            with self.assertRaises(RuntimeError):m.failure_module.readback(changed,'sign')
+        value['errorClass']='ORIGINAL_UNKNOWN'
+        self.assertEqual(m.failure_module.readback(dict(reply,code='UNKNOWN'),'sign')['diagnostic'],value)
+        self.assertEqual(m.SOURCE,'1695aafd351b3cac7860d3452c555a02498e8350')
+
     def test_original_replies_preserve_cache_bypass_and_missing_reasons(self):
         row=dict(index=0,ownerIndex=4,operationId='a'*64)
         load=dict(configuredDemand=500,rows=[row,dict(index=1,ownerIndex=5,operationId='b'*64)])
