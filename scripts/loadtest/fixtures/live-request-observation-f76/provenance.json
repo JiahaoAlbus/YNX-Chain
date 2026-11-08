@@ -1,0 +1,45 @@
+{
+  "schema": "YNX-PERF-LIVE-OBSERVATION-GO-FIXTURE-PROVENANCE/v1",
+  "originalHandoffSHA256": "146b4c49432aed304be898216551cc0f3120b2ac6e41b327a37e100a7fe94bc3",
+  "originalManifestSHA256": "3842ea7d61593c407eedac2785e90681379bf3c8919e16e0074021a2089b2667",
+  "sourceParentHandoffSHA256": "8fb08be08e37eedfb410e4d54b2bbb5ec4081248608f449693afa14446765eef",
+  "producer": "Actual unchanged Go observer and signal tap; test-only emitter",
+  "platform": "darwin/arm64",
+  "requestExecuted": false,
+  "normalFullRequestSucceeded": false,
+  "newSourceAdmitted": false,
+  "files": [
+    {
+      "mode": "component",
+      "name": "component.combined.log",
+      "bytes": 458,
+      "sha256": "0dce8a9de58df90fed7b63446b8b2582fca637ad6bdad21862ac32a838817c87",
+      "ordinaryOutputBytes": 135,
+      "ordinaryOutputSHA256": "c8daea7a689f046e30645111816b381f12ce479a39ed05bdf0b13378fff8804e",
+      "observationRecords": 2
+    },
+    {
+      "mode": "SIGINT",
+      "name": "SIGINT.combined.log",
+      "bytes": 332,
+      "sha256": "950d700b05a18e8d0f27873f8085996461e97cb6db420045ef4259bc477e268f",
+      "ordinaryOutputBytes": 0,
+      "ordinaryOutputSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observationRecords": 2
+    },
+    {
+      "mode": "SIGTERM",
+      "name": "SIGTERM.combined.log",
+      "bytes": 334,
+      "sha256": "46fa181d708bf582665f361b0111439ccbf3006793b4b9dfd4e01e575a77090f",
+      "ordinaryOutputBytes": 0,
+      "ordinaryOutputSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observationRecords": 2
+    }
+  ],
+  "childReceipts": {
+    "name": "CHILD-RECEIPTS.json",
+    "bytes": 600,
+    "sha256": "fe1ea69ecf432caeea58e855ef307efaebe999d655c9e0c73fe71d096d654a43"
+  }
+}

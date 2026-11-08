@@ -1,0 +1,32 @@
+[
+  {
+    "mode": "component",
+    "pid": 61031,
+    "exitCode": 0,
+    "waitStatus": 0,
+    "signaled": false,
+    "signal": "component",
+    "requestExecuted": false,
+    "authorityGranted": false
+  },
+  {
+    "mode": "SIGINT",
+    "pid": 61045,
+    "exitCode": -1,
+    "waitStatus": 2,
+    "signaled": true,
+    "signal": "SIGINT",
+    "requestExecuted": false,
+    "authorityGranted": false
+  },
+  {
+    "mode": "SIGTERM",
+    "pid": 61046,
+    "exitCode": -1,
+    "waitStatus": 15,
+    "signaled": true,
+    "signal": "SIGTERM",
+    "requestExecuted": false,
+    "authorityGranted": false
+  }
+]

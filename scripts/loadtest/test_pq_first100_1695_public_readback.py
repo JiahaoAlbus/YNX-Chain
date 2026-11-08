@@ -27,6 +27,33 @@ def records():
 
 
 class Public1695Controls(unittest.TestCase):
+    def test_actual_go_component_and_signal_bytes_preserve_original_remainder(self):
+        root=Path(__file__).with_name('fixtures')/'live-request-observation-f76'
+        manifest=json.loads((root/'provenance.json').read_bytes())
+        self.assertEqual(manifest['originalHandoffSHA256'],'146b4c49432aed304be898216551cc0f3120b2ac6e41b327a37e100a7fe94bc3')
+        self.assertFalse(manifest['requestExecuted']);self.assertFalse(manifest['normalFullRequestSucceeded'])
+        child_ref=manifest['childReceipts'];raw=(root/child_ref['name']).read_bytes()
+        self.assertEqual(len(raw),child_ref['bytes']);self.assertEqual(hashlib.sha256(raw).hexdigest(),child_ref['sha256'])
+        children={row['mode']:row for row in json.loads(raw)}
+        for fixture in manifest['files']:
+            with self.subTest(mode=fixture['mode']):
+                raw=(root/fixture['name']).read_bytes();self.assertEqual(len(raw),fixture['bytes'])
+                report,other=observation.split_original(raw,fixture['sha256'])
+                self.assertEqual(len(other),fixture['ordinaryOutputBytes'])
+                self.assertEqual(hashlib.sha256(other).hexdigest(),fixture['ordinaryOutputSHA256'])
+                self.assertEqual(len(report['records']),fixture['observationRecords'])
+                self.assertFalse(report['businessQualified']);self.assertFalse(report['cleanupCompleteInferred'])
+                child=children[fixture['mode']];self.assertFalse(child['requestExecuted'])
+                if fixture['mode']=='component':
+                    self.assertFalse(json.loads(other)['requestExecuted'])
+                    self.assertEqual(report['status'],'INTERVALS_RETURNED');self.assertEqual(child['waitStatus'],0)
+                else:
+                    self.assertTrue(report['canceledSignalObserved']);self.assertEqual(other,b'')
+                    self.assertEqual(report['completedSpans'],[])
+                    self.assertTrue(all(v['elapsedNs'] is None for v in report['unresolvedSpans']))
+                    self.assertFalse(report['signalExitStatusInferred'])
+                    self.assertEqual(child['waitStatus'],{'SIGINT':2,'SIGTERM':15}[fixture['mode']])
+
     def observation_line(self, sequence, event, stage='REQUEST', span=1, elapsed=0, reason='', **extra):
         return json.dumps(dict(version=observation.VERSION,sequence=sequence,event=event,stage=stage,
                                span=span,elapsedNs=elapsed,reason=reason,authorityGranted=False,**extra)).encode()+b'\n'
