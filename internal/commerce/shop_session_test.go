@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
 	"os"
 	"path/filepath"
 	"strings"
@@ -372,5 +373,119 @@ func TestShopSessionInventoryActualNamespaceBoundaries(t *testing.T) {
 	}
 	if h, e := s.CaptureOriginalShopSession(ctx); h != nil || e == nil {
 		t.Fatal("unmapped domain captured", e)
+	}
+}
+
+// PUBLIC qualification controls call the exact private normal-construction
+// engine. They supply no genuine Root row, signature or production authority.
+func TestShopSessionInventoryFailedNormalBindingCannotServe(t *testing.T) {
+	root := os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT")
+	if root == "" {
+		t.Skip("explicit owned short Unix socket root required")
+	}
+	for _, mode := range []string{"unmapped", "domain-conflict"} {
+		t.Run(mode, func(t *testing.T) {
+			s, buyer, order, _ := publicSourceInvoiceRecord(t)
+			dir, e := os.MkdirTemp(root, "ps-")
+			if e != nil {
+				t.Fatal(e)
+			}
+			t.Cleanup(func() { _ = os.RemoveAll(dir) })
+			realm, tenant, ok := s.shopStoreNamespaceLocked(order.StoreID)
+			if !ok {
+				t.Fatal("actual Store namespace unavailable")
+			}
+			var original *originalShopSessionDomain
+			if mode == "unmapped" {
+				tenant = "PUBLIC-unmapped-tenant"
+			} else {
+				original = &originalShopSessionDomain{realm: realm, tenant: tenant, current: func(context.Context) error { return nil }}
+				s.shopSessionDomain = original
+			}
+			a := &publicInvoiceReadAuthority{p: originalShopInvoiceReadProfile{realm: realm, tenant: tenant, purpose: "PUBLIC-original-purpose", epoch: 7, socket: filepath.Join(dir, "s"), service: "PUBLIC-shop-session-constructor", orders: []string{order.ID}, uid: uint32(os.Geteuid()), pid: os.Getpid()}}
+			a.selected = originalShopInvoiceReadScope{realm: realm, tenant: tenant, purpose: a.p.purpose, epoch: 7, actor: buyer, role: "buyer", storeID: order.StoreID, productID: "shop.order", sourceOrder: order.ID}
+			a.hold = &publicInvoiceReadHold{owner: a}
+			service, acquireErr := prepareOriginalShopSessionReadService(t.Context(), a, func() (*Store, error) { return s, nil })
+			if service == nil || acquireErr == nil {
+				t.Fatal("normal failed binding did not return owned partial", acquireErr)
+			}
+			done := make(chan error, 1)
+			go func() { done <- service.Serve() }()
+			select {
+			case e = <-done:
+				if e == nil {
+					t.Error("failed normal binding served successfully")
+				}
+			case <-time.After(time.Second):
+				t.Error("failed normal binding started the Source-only listener")
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			if e = service.Close(ctx); e != nil || !service.PhysicalClosed() {
+				t.Fatal("partial close did not release original resources", e)
+			}
+			if a.closed.Load() != 1 {
+				t.Fatal("Source parent not closed exactly once")
+			}
+			if original != nil && (original.retired.Load() || s.shopSessionDomain != original) {
+				t.Fatal("failed partial retired a different service domain")
+			}
+		})
+	}
+}
+
+func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) {
+	root := os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT")
+	if root == "" {
+		t.Skip("explicit owned short Unix socket root required")
+	}
+	s, buyer, order, _ := publicSourceInvoiceRecord(t)
+	dir, e := os.MkdirTemp(root, "pm-")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	realm, tenant, ok := s.shopStoreNamespaceLocked(order.StoreID)
+	if !ok {
+		t.Fatal("actual Store namespace unavailable")
+	}
+	a := &publicInvoiceReadAuthority{p: originalShopInvoiceReadProfile{realm: realm, tenant: tenant, purpose: "PUBLIC-original-purpose", epoch: 7, socket: filepath.Join(dir, "s"), service: "PUBLIC-mapped-shop-session", orders: []string{order.ID}, uid: uint32(os.Geteuid()), pid: os.Getpid()}}
+	a.selected = originalShopInvoiceReadScope{realm: realm, tenant: tenant, purpose: a.p.purpose, epoch: 7, actor: buyer, role: "buyer", storeID: order.StoreID, productID: "shop.order", sourceOrder: order.ID}
+	a.hold = &publicInvoiceReadHold{owner: a}
+	service, e := prepareOriginalShopSessionReadService(t.Context(), a, func() (*Store, error) { return s, nil })
+	if service == nil {
+		t.Fatal("normal constructor lost its owned result", e)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		_ = service.Close(ctx)
+	})
+	if e != nil || !service.sessionRequired || service.sessionDomain == nil || service.sessionDomain != s.shopSessionDomain {
+		t.Fatal("mapped normal service did not bind", e)
+	}
+	done := make(chan error, 1)
+	go func() { done <- service.Serve() }()
+	path := OriginalShopInvoiceReadPath + order.ID
+	client, e := securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: a.p.socket, Service: a.p.service, PeerUID: a.p.uid, PeerPID: a.p.pid, Routes: []securelink.LocalCallerRoute{{Method: "GET", Path: path, MaxBodyBytes: 0, Timeout: time.Second}}, Timeout: time.Second})
+	if e != nil {
+		t.Fatal(e)
+	}
+	response, e := client.Call(t.Context(), "GET", path, "", nil)
+	if e != nil || response.StatusCode != 503 || len(s.s.ShopSessions) != 0 {
+		t.Fatal("Source qualification became Auth session authority", e, response.StatusCode)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if e = service.Close(ctx); e != nil || !service.PhysicalClosed() {
+		t.Fatal("normal service did not close", e)
+	}
+	select {
+	case <-done:
+	case <-ctx.Done():
+		t.Fatal("normal service listener did not drain")
+	}
+	if a.closed.Load() != 1 || s.shopSessionDomain != nil {
+		t.Fatal("normal session domain lifecycle not released")
 	}
 }

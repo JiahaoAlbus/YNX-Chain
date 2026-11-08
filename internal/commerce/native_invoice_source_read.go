@@ -59,9 +59,16 @@ type originalShopInvoiceReadHold interface {
 func OpenOriginalShopInvoiceReadService(ctx context.Context, open func() (*Store, error)) (*OriginalShopInvoiceReadService, error) {
 	a, err := openOriginalShopInvoiceReadAuthority(ctx)
 	if err != nil {
-		return &OriginalShopInvoiceReadService{authority: a}, err
+		return &OriginalShopInvoiceReadService{authority: a, sessionRequired: true}, err
 	}
+	return prepareOriginalShopSessionReadService(ctx, a, open)
+}
+
+// The normal factory's session binding is part of construction, independently
+// of the original Source-only fixture preparer. Partials remain owned.
+func prepareOriginalShopSessionReadService(ctx context.Context, a originalShopInvoiceReadAuthority, open func() (*Store, error)) (*OriginalShopInvoiceReadService, error) {
 	s, err := prepareOriginalShopInvoiceReadService(ctx, a, open)
+	s.sessionRequired = true
 	if err == nil {
 		s.sessionDomain, err = s.store.bindOriginalShopSessionDomain(a, s.profile)
 	}
@@ -69,6 +76,9 @@ func OpenOriginalShopInvoiceReadService(ctx context.Context, open func() (*Store
 }
 
 type OriginalShopInvoiceReadService struct {
+	// Set only by the normal constructor, including all returned partials.
+	// A live listener is a cleanup obligation, not a successful Session bind.
+	sessionRequired   bool
 	sessionDomain     *originalShopSessionDomain
 	authority         originalShopInvoiceReadAuthority
 	profile           originalShopInvoiceReadProfile
@@ -139,7 +149,7 @@ func prepareOriginalShopInvoiceReadService(ctx context.Context, a originalShopIn
 }
 
 func (s *OriginalShopInvoiceReadService) Serve() error {
-	if s == nil || s.retired.Load() || s.link == nil || s.listener == nil {
+	if s == nil || s.retired.Load() || s.link == nil || s.listener == nil || s.sessionRequired && (s.sessionDomain == nil || s.sessionDomain.retired.Load()) {
 		return ErrShopInvoiceReadSourceNotSupplied
 	}
 	return s.link.Serve(s.listener)
@@ -283,7 +293,7 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		deny(errShopInvoiceReadDenied)
 		return
 	}
-	if s == nil || s.retired.Load() || s.authority == nil || s.store == nil {
+	if s == nil || s.retired.Load() || s.authority == nil || s.store == nil || s.sessionRequired && (s.sessionDomain == nil || s.sessionDomain.retired.Load()) {
 		deny(ErrShopInvoiceReadSourceNotSupplied)
 		return
 	}
