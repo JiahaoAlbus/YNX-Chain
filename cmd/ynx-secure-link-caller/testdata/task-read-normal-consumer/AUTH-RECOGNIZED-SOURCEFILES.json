@@ -1,0 +1,141 @@
+{
+  "production": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-continuation-owner.mjs",
+      "bytes": 4510,
+      "sha256": "4514eaf4d07408b6148504dea120ed7142cf1c6b4175fd93c0b4a039ecb2059c",
+      "blob": "d03003643bd3e2d2ab56e7cdf6afe6edb76df2f2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-native-backend-private.mjs",
+      "bytes": 14182,
+      "sha256": "48d27e2d071917c9a203f58bfcc311fd7cf4dc3196f4a012914af0de60371404",
+      "blob": "1d7a12fb9ca75668765a3b86a7848eee87671348"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-resource-bridge.mjs",
+      "bytes": 10697,
+      "sha256": "f1338271cb089c5704a414f0f964e49ebcad76ae3695fa7a28d12b4cb774f82b",
+      "blob": "462c905dfd0366d0015e4028e31e214da875cf59"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-resource-transport-owner.d.mts",
+      "bytes": 1734,
+      "sha256": "d75aa9cc11613916aeea65ae6ba42828c31777ee1bf86098196962c20d96a190",
+      "blob": "649fd784bd540d6c50fd7ab19c063184b61048e2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-resource-transport-owner.mjs",
+      "bytes": 5058,
+      "sha256": "a0ddc594a7132b0ab9b0a7804430db2234a6e7f8d253a2a31a00bfd590cca02b",
+      "blob": "1b2b6d5f719ef3f5b5ecb0bc16f66c5fea5fd28c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/source/desktop-grant-source-controller.mjs",
+      "bytes": 9344,
+      "sha256": "8a49f0683ea08356eb21b7498d9ef8709f320af164e47eab9363a3075bfea8c8",
+      "blob": "960285e94dc5b08444cb44d179bab0adc2720fd1"
+    }
+  ],
+  "before": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/before/desktop-grant-continuation-owner.mjs",
+      "bytes": 4447,
+      "sha256": "d2cfd767a67018b6daf9008b46fc1ad7ff2bd0dc411b6a70bd433f5bb9affef3",
+      "blob": "4a0ca4c14818794a6eea8a9af753089f228074b8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/before/desktop-grant-native-backend-private.mjs",
+      "bytes": 12963,
+      "sha256": "59a10d2e1908e6e26e7019638d7a35cb94cd57ec3e7bdee5f7993d134f474ed7",
+      "blob": "c3f4a3789aa79ac7390c8214637e9d9efcb103ec"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/before/desktop-grant-resource-bridge.mjs",
+      "bytes": 9276,
+      "sha256": "62420ea9a3506e0080f531fafc83ac533b1f9c1605fc15a2a52180856c4a3dc2",
+      "blob": "2208e6890a93ecb11cf682eed215511e0372c0d7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/before/desktop-grant-source-controller.mjs",
+      "bytes": 9273,
+      "sha256": "371383b4ad02410cb0308cea7202bb6d65070a96ced02b661bf5d19548dc3c7d",
+      "blob": "84a4a6287336bc970ca068a43e7246b13d1a7e3e"
+    }
+  ],
+  "reproduction": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/PUBLIC-late-null.cjs",
+      "bytes": 61,
+      "sha256": "a5b02491c29dde85b3a2fd53c62e26e057831033ea6ed4d1a22a29e63c7b79d6",
+      "blob": "aa160f6d580b1389acbf3ae96f941667980c7eaa"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/PUBLIC-late0.cjs",
+      "bytes": 58,
+      "sha256": "829b13b8df3427df86ed97788a4218a7ed65fa52a0b179bf3178c66485f1876b",
+      "blob": "8540579b7e7a07cbec5b013df71b8764a0a4e456"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/PUBLIC-lifecycle-base.cjs",
+      "bytes": 1226,
+      "sha256": "9ae93318ea6acf87f53bae7662ecd52e243442fad4bdffebb4e4bcdafb3107c4",
+      "blob": "3a50c9f61a780790b525b6ef031c2075aad2df05"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/PUBLIC-pending-dto.cjs",
+      "bytes": 108,
+      "sha256": "d7d35d62ee654f0b22ae0340f15fe2cc716827ab4df3544126fdc3faf85e2083",
+      "blob": "98cefb8e9c04aa074f3c9049b98a46750d725eb5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/PUBLIC-pending.cjs",
+      "bytes": 63,
+      "sha256": "16d6fe656ef303f3c915bd95222e8dcd5fe64c140b2df1a336b9f6c23c346907",
+      "blob": "79384622c26574744788544c21f8641f73397c16"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/freeze.mjs",
+      "bytes": 6242,
+      "sha256": "fe9b8297b3cbe330ded50f9da509890b4a2553872dd08687c1bc500973f146a2",
+      "blob": "87a0579be17dc7b35701c9c77400a9a73586ff8d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/normal-import.mjs",
+      "bytes": 1273,
+      "sha256": "52650a673d6e564b524a155bf322ccc13911a04c432483b70ac9885fcfdb2f3e",
+      "blob": "40f9f80e1864709e173afa09673c559d36fdf1e4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/prepare.mjs",
+      "bytes": 9150,
+      "sha256": "88dff28a47ca37cd34abd2579e2725081f36133c6980208d4066f1c28e53d76c",
+      "blob": "cc821c062d5aa1977ea6e272a85c1741b02df166"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/run.mjs",
+      "bytes": 3028,
+      "sha256": "a041f896a85fd36cfff5e055d7cea40afb1168d238aee9dbf9079fed7416a1f2",
+      "blob": "0ef3a2cb97473153b25195f86b42e2fb8fc8e1ad"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/transport-controls.mjs",
+      "bytes": 15594,
+      "sha256": "991ca85f7e033f8a5cb41eb9a377668628d1d0df19338fb42e75bf15b1cb4ab5",
+      "blob": "2324dfbe0acca5250fea007f2a5abd1735bec743"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/transport-owner.mjs",
+      "bytes": 5058,
+      "sha256": "a0ddc594a7132b0ab9b0a7804430db2234a6e7f8d253a2a31a00bfd590cca02b",
+      "blob": "1b2b6d5f719ef3f5b5ecb0bc16f66c5fea5fd28c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/reproduction/types-check.mjs",
+      "bytes": 897,
+      "sha256": "290895ce1acb185f1890e3787ff7cde07ce92b2dd76b0602b7d6baff4f311feb",
+      "blob": "e996237b3c6b8246d5ae0dd56ca006848dadf240"
+    }
+  ],
+  "testedProductionExact": true
+}

@@ -1,0 +1,49 @@
+{
+  "schema": "YNX-LINK-TASK-READ-NORMAL-CONSUMER-IMMUTABLE-INPUTS/v1",
+  "supplierPins": [
+    {
+      "file": "AUTH-NATIVE-HANDOFF.json",
+      "original": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/HANDOFF.json",
+      "bytes": 12809,
+      "sha256": "fed3e968f21709126472393a9b5abe67691e087a93baa7a3b63df1d6a875411a"
+    },
+    {
+      "file": "AUTH-RECOGNIZED-HANDOFF.json",
+      "original": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/HANDOFF.json",
+      "bytes": 21754,
+      "sha256": "6225a6d7fa52cc009cf837f035af7884f8242b850c194db62ad8a603e46e6276"
+    },
+    {
+      "file": "AUTH-RECOGNIZED-SOURCEFILES.json",
+      "original": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/finite3-owner-successor-r2/frozen-r2-4waeTP/SOURCEFILES.json",
+      "bytes": 9280,
+      "sha256": "670472928ffcf5d9b3f4bb566f7e66e9bf44f93f4bdb15944c7376c880a44e4f"
+    },
+    {
+      "file": "SDK-HANDOFF.json",
+      "original": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/HANDOFF.json",
+      "bytes": 18167,
+      "sha256": "5c144b90844671a53c48163def48f46bcde4d0f0fd9cfd162ddf4e869d6a82c4"
+    },
+    {
+      "file": "SDK-SOURCEFILES.json",
+      "original": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCEFILES.json",
+      "bytes": 6627,
+      "sha256": "d3bfd5dad719800b05feb9cbdcac5b749640b6b2ab8af63e425d61accc0b898d"
+    }
+  ],
+  "SDKCommit": "2ac465fcbc21e04af9794634b318c394a2cc6b3f",
+  "SDKTree": "bb7de27d3a7fe3337a2893d436dde727e1fa46ca",
+  "LINKProductionCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "originalGoFixture": {
+    "file": "cmd/ynx-secure-link-caller/go-task-read-continuation-fixture/main.go",
+    "bytes": 8745,
+    "sha256": "ebd7be419be52a9c0efea1f35b9d9f3673a1d9c028704c9108d8a4e6766ec301"
+  },
+  "platform": "Darwin Objective-C Foundation + Node24 N-API",
+  "purpose": "Test-only exact supplier metadata, immutable SDK checkout source and PUBLIC Source/holdPublic/ledger/caller boundaries; no production authority/Root rows/Source constructor",
+  "wholeAuthAddonLinked": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "P08StoreExecuted": false
+}

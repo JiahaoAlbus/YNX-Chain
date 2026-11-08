@@ -1,0 +1,198 @@
+{
+  "schema": "AUTH_TASK_READ_CONTINUATION_FIXED_NATIVE_ENTRY/v2",
+  "state": "ACTUAL_NATIVE_GETTER_CLOSURE_IMPLEMENTED_THREE_WHOLE_TUS_AND_ELEVEN_NEW_METHOD_CASES_PASS",
+  "source": [
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-native-private.h",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-native-private.h",
+        "bytes": 1706,
+        "sha256": "9c6b27d1587804ce26dcbb202f4fe8e6e5a5055bc04f6d56db05b22e6ded6821"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-native-private.h",
+        "bytes": 1783,
+        "sha256": "b5f4c48fd2e1c0c75cbc4a6aa00c1e3d67bc4dfda5c9290c9c260c69bc8d4602"
+      }
+    },
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-native-stage.cpp",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-native-stage.cpp",
+        "bytes": 10008,
+        "sha256": "22dd1d3bcab463eeb011fe0fe989304c9f6b718365854700e4347003dccb34fc"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-native-stage.cpp",
+        "bytes": 10392,
+        "sha256": "08dd99fb9e238817cef7108ab307f8dd918b5aa7544a7047673cb8030749a407"
+      }
+    },
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-qualification-private.hpp",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-qualification-private.hpp",
+        "bytes": 1386,
+        "sha256": "7ff9a0dd361a1f81c42fe783ca09850295db05f8499b3ba109227cbc97acee0f"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-qualification-private.hpp",
+        "bytes": 1502,
+        "sha256": "9cabdf6df3e7024f7d0ec27a830bb2fa8ae6e69acbd2d4b47ecd361bd753fbb2"
+      }
+    },
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-qualification.mm",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-qualification.mm",
+        "bytes": 9420,
+        "sha256": "ad010333d9fb81fae552374eb011762a3d57ca9b61900fd46f528afe4bd46265"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-qualification.mm",
+        "bytes": 10252,
+        "sha256": "70ce8ba8762c58ed131a11289a39c213b0ec81d79e125599d023ace5c0a9c69d"
+      }
+    },
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-release-private.hpp",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-release-private.hpp",
+        "bytes": 1506,
+        "sha256": "5b2b81f4598ae19a3732029d9d38d106120c9a45d98e6952a61863fc3e0c5ee5"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-release-private.hpp",
+        "bytes": 1705,
+        "sha256": "2a597f1a33ba28e4606efbc732ffb42e48f2ff2bc837ec8edccbc3d59b5ba9ba"
+      }
+    },
+    {
+      "canonicalTarget": "source/packages/wallet-auth/native/desktop-grant-source-methods.inc",
+      "operation": "MOD",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/../frozen-resource-9funXl/source/native/desktop-grant-source-methods.inc",
+        "bytes": 13823,
+        "sha256": "8a9b071580e179638c668946253177d0c7a483677d477884cc9107a5420c8679"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/source/native/desktop-grant-source-methods.inc",
+        "bytes": 16289,
+        "sha256": "92358994e89a167fe4bd704748d2b1bae0bfcc694980ea745db0b97a74edba43"
+      }
+    }
+  ],
+  "CAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/CAS.json",
+    "bytes": 5704,
+    "sha256": "e3a4723724badda762a684a1973c7448ea58a612798936382881fe4665d39be0"
+  },
+  "priorAppliedCAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/PRIOR_R1_CAS.json",
+    "bytes": 2228,
+    "sha256": "0db91c31321e144208aad2086eaad9b6b622e04671fbef364ce859401fc3d931"
+  },
+  "diff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/MINIMAL.diff",
+    "bytes": 15692,
+    "sha256": "f20d62559d2f4bd9ebff4b3232d9ee4377e84701416e66efd18881acd0b241f2"
+  },
+  "evidence": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/RESULT.json",
+    "bytes": 14108,
+    "sha256": "afbd75f44a3b71be82c696cff30f69432b1f104c0ef2932cf3314aa12d98a784"
+  },
+  "logs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/desktop-grant-qualification.mm.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/desktop-grant-qualification.mm.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/desktop-grant-native-stage.cpp.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/desktop-grant-native-stage.cpp.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/original-auth-identity-source-authority.mm.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/original-auth-identity-source-authority.mm.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/actual-method-link.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/actual-method-link.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/actual-method-cases.stdout",
+      "bytes": 41,
+      "sha256": "6bf179085366f294bee21261bf8b9b64dd32cbba1ba473d4c13acfcd9a2673e5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/controls-FOhLId/actual-method-cases.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "LINKCommit": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+  "callee": "genuine NAPI root.readOriginalTaskReadContinuationModulePath() -> qualification_task_read_continuation_module -> actual Source.copyOriginalDesktopTaskReadContinuationModule -> independent Root-selected exact continuation path/code closure; pre/post Source/heldCurrent",
+  "rootFieldsAdded": [
+    "task_read_continuation_module_path",
+    "task_read_continuation_code_closure"
+  ],
+  "closure": [
+    "optional missing capability returns NOT_SUPPLIED without retiring otherwise valid management Source",
+    "configured integrity failures retain original fail-closed Source semantics",
+    "nonempty, separate from existing physical module path",
+    "exact selected carrier + existing exact physical module + caller.node all held",
+    "every ref bounded/bytes/SHA via original protected holdPublic/current",
+    "duplicate path rejected, total64MiB/count256/member16MiB",
+    "no dirname/sibling inference, caller path/provider, re-export assumption or old ABI fallback"
+  ],
+  "SDKOwnedIntegration": [
+    "add actualRoot passthrough readOriginalTaskReadContinuationModulePath to fixed backend private compositor",
+    "SDK only writer for Node bridge/private transport: same original DATA chain, new LINK carrier; Auth parent did not modify that Node bridge",
+    "preserve every transport/response partial and packet release + LINK physical drain before retiring/closing SAME Auth continuation child",
+    "source-only Root fields remain empty, no default row or grant added"
+  ],
+  "fixtures": {
+    "actualExtractedMethodSHA256": "726ffc7ce801cff890ecd9584b5d58d8ee5783d49c953ed69e3b3b9901f4e463",
+    "actualMethodCases": 11,
+    "wholeNativeTUs": 3,
+    "PUBLICSourceAndHoldPublicSeam": true
+  },
+  "notClaimed": {
+    "RootAdmission": false,
+    "protectedResourcePlacement": false,
+    "realTaskEffect": false,
+    "wholeAddonLinked": false,
+    "SDKConsumed": false,
+    "LinuxNative": false,
+    "deployed": false
+  }
+}

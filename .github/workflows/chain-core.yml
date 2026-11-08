@@ -140,6 +140,30 @@ jobs:
           name: task-read-resource-darwin-${{ github.sha }}
           path: ${{ runner.temp }}/tr
           if-no-files-found: error
+      - name: Read the immutable original SDK continuation consumer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: 2ac465fcbc21e04af9794634b318c394a2cc6b3f
+          path: original-sdk-task-read-normal
+          persist-credentials: false
+      - name: Install only original locked SDK runtime dependencies
+        working-directory: original-sdk-task-read-normal/packages/wallet-auth
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Check actual Auth NAPI getter and original SDK continuation consumer
+        env:
+          YNX_LINK_TASK_READ_NORMAL_SDK_SOURCE: ${{ github.workspace }}/original-sdk-task-read-normal
+          YNX_LINK_TASK_READ_NORMAL_EVIDENCE: ${{ runner.temp }}/tn
+          YNX_LINK_TASK_READ_NORMAL_SOCKET_ROOT: /private/tmp/ynx-ln-${{ github.run_id }}-${{ github.run_attempt }}
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+        run: node cmd/ynx-secure-link-caller/task-read-resource-normal-consumer-ci.mjs
+      - name: Preserve actual supplier closure and six new consumer results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: task-read-normal-consumer-darwin-${{ github.sha }}
+          path: ${{ runner.temp }}/tn
+          if-no-files-found: error
 
   resource-current-native-linux:
     name: LINK resource-current native client and Linux kernel peer controls
@@ -428,7 +452,7 @@ jobs:
           go version | tee "$RUNNER_TEMP/securelink-evidence/go-version.txt"
           test "$(go env GOVERSION)" = go1.26.10
           cc --version > "$RUNNER_TEMP/securelink-evidence/compiler.txt"
-      - name: Build the actual Node caller for the seven-route native PQ TLS chain
+      - name: Build the actual Node caller for original ingress and continuation PQ TLS
         run: |
           set -euo pipefail
           node cmd/ynx-secure-link-caller/build.mjs 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/task-grant-caller-build.log"
@@ -444,6 +468,12 @@ jobs:
             'internal/securelink/authority_ingress.go','internal/securelink/authority_ingress_unix.go',
             'internal/securelink/task_grant_transport_unix.go',
             'internal/securelink/task_grant_transport_openssl_test.go',
+            'cmd/ynx-secure-link-caller/task-read-resource-caller.mjs',
+            'cmd/ynx-secure-link-caller/task-read-resource-continuation.mjs',
+            'cmd/ynx-secure-link-caller/task-read-continuation-tls-peer.mjs',
+            'internal/securelink/task_read_continuation.go',
+            'internal/securelink/task_read_continuation_unix.go',
+            'internal/securelink/task_read_continuation_openssl_test.go',
             'cmd/ynx-secure-link-caller/build/caller.node'];
           const inputs = leaves.map(file => {const bytes=fs.readFileSync(file);return {file,bytes:bytes.length,
             sha256:createHash('sha256').update(bytes).digest('hex')};});
@@ -498,6 +528,8 @@ jobs:
           sha256sum "$OPENSSL_PREFIX/ssl/openssl.cnf" > "$RUNNER_TEMP/securelink-evidence/openssl-config.sha256"
           sh cmd/ynx-secure-link/check.sh native 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/native-check.log"
           test "$(grep -c '^--- PASS: TestDesktopTaskGrantNativeTLSSevenRoutesToActualNode ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
+          test "$(grep -c '^--- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
+          test "$(grep -c '^    --- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath/' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 2
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
       - name: Exercise the normal command through private IPC and actual PQ TLS
         run: |

@@ -1,0 +1,343 @@
+{
+  "schema": "SDK-STRONG-CONTINUATION-NORMAL-PUBLISHED-HANDOFF/v1",
+  "state": "normal source, targeted PUBLIC composition, strict types, closed package, production-only consumer and actual hosted readback verified; real Root/whole Auth-addon/P08 qualification remains unverified",
+  "source": {
+    "root": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/source",
+    "commit": "2ac465fcbc21e04af9794634b318c394a2cc6b3f",
+    "tree": "bb7de27d3a7fe3337a2893d436dde727e1fa46ca",
+    "base": "790bd266f8eaa0dd24ea964007384c28fdacfad1",
+    "deltaLeaves": 17,
+    "allRegularGitLeaves": 2945,
+    "allPhysicalGitBytesAndExecModesMatch": true,
+    "branch": "codex/wallet-auth49-strong-continuation-20261108",
+    "remoteExact": true,
+    "draftPR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/441",
+    "bundlePrerequisite": "790bd266f8eaa0dd24ea964007384c28fdacfad1"
+  },
+  "owningCode": {
+    "SDK": "sole desktop-grant-resource-bridge.mjs and private strong adapter; existing inventory and sole request/receipt DATA codecs reused",
+    "Auth": "final R2 six Native getter leaves exact before9fun, R1->R2 two-leaf sequence preserved",
+    "LINK": "only eb311 newcarrier17700/78fac4... +physical23696/8ba3... +native59559/606dc... plus exact Go source inventory; no second transport or old ABI fallback",
+    "noSourcePermissionFromDATA": "D/HTTP/EOF/physicalDone cannot create a recognized continuation or pass the independent original claim fence"
+  },
+  "actualNormalAPI": {
+    "RootGetter": "readOriginalTaskReadContinuationModulePath",
+    "RootFields": [
+      "task_read_continuation_module_path",
+      "task_read_continuation_code_closure"
+    ],
+    "carrier": "openOriginalTaskReadContinuationTransport(profile,exactOriginalEntity,SAMEheldChild,options)",
+    "child": "assertCurrent/readOriginalRequestDATA/claimAtOriginalResourceFence; never invent child.execute method",
+    "DATAChain": "actualGrant -> originalMaterial -> originalProofsDATA -> requestDATA execute; held original body bytes AND; sole decodeResponseDATA execute",
+    "ownership": "partial child and response first; packet release and LINK physical drain before Auth child retire/join/close; pending keeps debt and same operation",
+    "RootOptionalR2": "missing effect capability does not retire management Source",
+    "collectorRows": 167
+  },
+  "validation": {
+    "run": 42405040624,
+    "job": 128500800183,
+    "head": "2ac465fcbc21e04af9794634b318c394a2cc6b3f",
+    "conclusion": "success",
+    "newCases": 7,
+    "strictTypeRefusals": 5,
+    "skip": 0,
+    "skipLibCheck": false,
+    "node": "26.7.0",
+    "localProductionOnlyInstall": {
+      "archive": {
+        "file": "ynx-chain-wallet-auth-1.3.0-pq.3.32-auth.49.tgz",
+        "bytes": 9534514,
+        "sha256": "3e90c0922e59caf3bc5a163b68351c74d2f9a89baaf9aca128eabda4a0e100b9"
+      },
+      "packages": 110,
+      "omitDev": true,
+      "ignoreScripts": true,
+      "borrowedSharedNodeModules": false,
+      "normalImportsAndTypes": true,
+      "Root0Refused": true,
+      "NativeLINKAcquisitionCalled": false
+    },
+    "LINKWholeComponentCI": {
+      "run": 42402839604,
+      "head": "eb311202d8d0227a2a968b19d8fd751f58eade25",
+      "conclusion": "success",
+      "suppliedLinuxDarwinNode24AndGoEvidenceReused": true,
+      "NativeGoSuitesRerunBySDK": false,
+      "innerLINKZIPDownloadedBySDK": false
+    },
+    "AuthNativeThreeTUAndElevenCases": "formal R2 evidence reused, not rerun",
+    "actualPackage": {
+      "members": 1292,
+      "ordinaryGitSourceModes": 926,
+      "bundleMembersSixLockedArchivesSHA512BytesModes": 366,
+      "allMembersVerified": true,
+      "sameContentAsProductionInstalledLocalPackage": true
+    },
+    "PRDuplicateSkipNotEvidence": 42405047241
+  },
+  "actualArtifact": {
+    "artifact": 13587196336,
+    "zip": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/hosted-final/artifact-verified.zip",
+      "bytes": 10721652,
+      "sha256": "9654ae1c499b0b976c1f80b68dc4957818e4113570bce38f23d4796f88a892e1"
+    },
+    "tgz": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/hosted-final/download/canonical-common-source-package/ynx-chain-wallet-auth-1.3.0-pq.3.32-auth.49.tgz",
+      "bytes": 9550475,
+      "sha256": "ccf2b9208f173ace9fcca1fff3523c07b6541c41f20adc998c4d810d3a0d10c5"
+    },
+    "origins": [
+      {
+        "name": "@ynx/batch-v01-candidate",
+        "bytes": 21185,
+        "sha256": "4ca90de383f74c347d2b218a7f6162381f504d521f6c9f251b2bfe82b674c33e",
+        "integrity": "sha512-wSnz8R8jagKzf7qDw3BZBAz7n4GEDTy2VkvDZfh2qlKer8rwIvO3tQfiKj9PXN+WRrjx/wDMKDgN8Zeu87Q+Ww==",
+        "members": 16
+      },
+      {
+        "name": "@ynx-chain/open-protocol",
+        "bytes": 52065,
+        "sha256": "bce32fba92e8d0da88ef3776e7c0b22b69b0241b0790c7b2723c85787bc0f082",
+        "integrity": "sha512-PPOJbF6vZYbChfTXLHJkLBWzMyuvTI4UOKM6/MgRCKxhWniPr5GpSokyOYt7JtJKLO8siXRVtODqDJ2XNoQ1cg==",
+        "members": 43
+      },
+      {
+        "name": "@noble/hashes",
+        "bytes": 180002,
+        "sha256": "018b38bd7af36645fa0ece8f89eba21c828f3e4d219da5aacadd78bd0e654606",
+        "integrity": "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==",
+        "members": 98
+      },
+      {
+        "name": "@noble/curves",
+        "bytes": 436285,
+        "sha256": "6daf47e557e070b0657eda25549466bae3d07df555de4f702363355e8fb92ec8",
+        "integrity": "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==",
+        "members": 113
+      },
+      {
+        "name": "@noble/ciphers",
+        "bytes": 163727,
+        "sha256": "4a030353f7de42e977cad54cf1d7ecedfe0558add24c5742e4a2e55159614ffa",
+        "integrity": "sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA==",
+        "members": 53
+      },
+      {
+        "name": "@noble/post-quantum",
+        "bytes": 200021,
+        "sha256": "85055986784e61ccd95ff10a7ea5b7ebb4bc298f1db3ceeb27bf91068c30431b",
+        "integrity": "sha512-+pormrDZwjRw05U8ADK4JpHejo87+gBd+muRBB/ozztH5yhDLMDF4jHQWN3NQQAsu1zBNPWTG0ZwVI0CR29H0A==",
+        "members": 43
+      }
+    ]
+  },
+  "qualificationLayers": {
+    "LINKCarrierComponentCODE": true,
+    "AuthGetterCODE": true,
+    "SDKNormalSourceCODE": true,
+    "wholeAuthAddonMatching": false,
+    "currentMainOrP03Replaced": false,
+    "actualRootOrRegisteredResources": false,
+    "actualP08QualifiedFinalClaimOrBusiness": false,
+    "NativeBuiltBySDK": false,
+    "GoBuiltBySDK": false,
+    "realSigning": false,
+    "deployed": false
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "wholeAuthAddonMatching": false,
+  "actualP08QualifiedClaimOrBusiness": false,
+  "MainOrP03HotReplaced": false,
+  "realSigning": false,
+  "deployed": false,
+  "preserved": {
+    "RootRowsEmpty": true,
+    "originalUNKNOWNOpResponseDebtFirstCause": true,
+    "oldPR438AndPriorFrozenHUnchanged": true,
+    "sharedHEADIndexBranchTwoTrackedDirtyUnchanged": true,
+    "noPublicExportVersionDependencyChange": true,
+    "noWireAlgorithmOrSigningDomainChange": true
+  },
+  "writeLeaseReleased": true,
+  "inFlightProcesses": null,
+  "refs": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCE_COMMIT",
+      "bytes": 41,
+      "sha256": "10b9bafe553f1b68498c456d98964162e84c899deb7c99f060ff61eab8820e7e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCE_TREE",
+      "bytes": 41,
+      "sha256": "1e35c0296700beedb930805baa815835ad1d2d1f3103bc13947d82916ce5c8e8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCEFILES.json",
+      "bytes": 6627,
+      "sha256": "d3bfd5dad719800b05feb9cbdcac5b749640b6b2ab8af63e425d61accc0b898d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCE_MANIFEST.json",
+      "bytes": 657422,
+      "sha256": "d05d1f8f4b77faed32663fbd80779d01e07aed87578a02f95fef388deefa2781"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/SOURCE.bundle",
+      "bytes": 14552,
+      "sha256": "18a9306b95b5676177f09ba311d49f5985f7a23f012cffc61cefe52cdbf8fdfe"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/REMOTE_READBACK.json",
+      "bytes": 145,
+      "sha256": "5421e4317b14721a5e1818f7598f99779a9b7e813ae732a679d3dadd9acde08f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/PR.json",
+      "bytes": 273,
+      "sha256": "80282d3a79b51a5b3a72200f5c7308058ed3ddee5417a3bcb1e3b7e892180cd1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/CI_STATUS.json",
+      "bytes": 46980,
+      "sha256": "c7086c8c7e99a5ccbd22cb11a0f1563b424d2dbdf3e56bcb75144bd5c865ea43"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/CI_LOG.txt",
+      "bytes": 40970,
+      "sha256": "d3637ec432b73c0997bc0e97428427251577305367605a1868cc891d2f92d37d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/ARTIFACT_METADATA.json",
+      "bytes": 789,
+      "sha256": "e6354a6851f9458e68ec88982e69ade1a8b670ec13b7cab10a1487c984e7640b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/DOWNLOAD_RESULT.json",
+      "bytes": 433,
+      "sha256": "773e05df397a30383af1b74f8a3d080be35b72d3d3b6200164370c250b6ad6d8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/HOSTED_CONTROL_SUMMARY.json",
+      "bytes": 1260,
+      "sha256": "30fbc23321af246b7054e4c9658cb2a624c017869a9739ed79ae7fa98484bf6d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/COMMON_INVARIANT_READBACK.json",
+      "bytes": 721,
+      "sha256": "91c7413ea7f957544ccbe3cb16aba365e3c52963443da1f51b937495d1c743e4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/FORMAL_SUPPLIER_PINS.json",
+      "bytes": 1142,
+      "sha256": "2739afe2e0b1f052efc91991e2b029e241f08a77011fb8d90971d407329e3a98"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/FUNCTION_RESULT.json",
+      "bytes": 4986,
+      "sha256": "2c8514aaf965b953408c4f52515739d26005a520cee84637e20fb677ace1ab95"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/LOCAL_HOSTED_MEMBER_EQUIVALENCE.json",
+      "bytes": 581,
+      "sha256": "0a93bc812d22a96c019d96849e295d61b18c02badfe8e1960d52844b9cc0a7cb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/hosted-final/PACKED_READBACK.json",
+      "bytes": 2813,
+      "sha256": "b4c9665e1bcefe7e0c682e4f3884784f05d22b8ced046dbccc0f5a9d9d2e879a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/AUTH_GETTER_R1_EXACT_CAS.json",
+      "bytes": 6072,
+      "sha256": "b0b4a298d55f9fe9c35e955adad4d0f45015d82dbe0d455397e8538eb9e5f81f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/AUTH_GETTER_R2_EXACT_CAS.json",
+      "bytes": 8560,
+      "sha256": "4b6b909299946e0ae4c70a1032d502b7acc2d7411660fdc3be925dabee6c1454"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/LINK_EXACT_GIT_SOURCE.json",
+      "bytes": 1633,
+      "sha256": "b262e724c7e17fd78ef9fc6263bdca63ef98b4294ef35315f1d586949b2404ce"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/LINK_FORMAL_WHOLE_CI_PIN.json",
+      "bytes": 443,
+      "sha256": "458131028689796d70883102352d58249c1620d5a53ae140110f4776b2af06bb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/LINK_WHOLE_CI_READBACK.json",
+      "bytes": 20558,
+      "sha256": "295fe29e7bf1b6953daf649c3fcafda5e06ab88862d28341de10b400416fea04"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/NEW_STRONG_COMPOSITION_FIRST.txt",
+      "bytes": 777,
+      "sha256": "7440b33804ec015c7989b9d807287ee7fc616b7040d1815f1c6541de71a16508"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/NEW_SOURCE_CLOSURE_ROOT0_ONE.txt",
+      "bytes": 234,
+      "sha256": "16ad9f39d34ab09d56e012cb0202e94512465e562afad9f7d20d702d076b3de9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/STRICT_TYPES_FIVE_FIRST.json",
+      "bytes": 426,
+      "sha256": "1eb8ec5af1e62545f69c5be56e39ea32425ee0f63eb322616449f5e6c7d97c0f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/NORMAL_PACKAGE_FIRST.txt",
+      "bytes": 1477,
+      "sha256": "45b4b3f05c1a6023c430cde39d4a94aafac2462d696e8e8e3d6235baf81e968f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/PRODUCTION_INSTALL.txt",
+      "bytes": 38,
+      "sha256": "f96623d723a232013272d1e42c73816cf6895e6f98d83aa6b82b6614ead74369"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/INSTALLED_IMPORT_ROOT0.txt",
+      "bytes": 237,
+      "sha256": "eeac75eef2540a1fb3c48a891a69e63e1ad2cf4ca1ff79304f269c4f372a7727"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/evidence/BUNDLE_VERIFY.txt",
+      "bytes": 408,
+      "sha256": "d6d4e840f708d1b67b108ba336dd71ef561b33445dbab583f40a6d279c5805d0"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-continuation-next/GO-CODE-HANDOFF-R1.json",
+      "bytes": 7000,
+      "sha256": "d57c2812d086c72b71915c01e92b5f1a9529cfea81895281a99b82a53bfdf8f7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-continuation-next/CODE-RESULT.json",
+      "bytes": 11869,
+      "sha256": "d298eec0bb8030d92ec51a893c1800b935b50ec70eb4c1f9eaca8bac7bc402b5"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-continuation-next/ci-42402839604/CI-READBACK-HANDOFF.json",
+      "bytes": 9056,
+      "sha256": "d8cbbad4945d6a270db71fbc3ab4516d061a170a61383b589edcd605bd138523"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/desktop-agent-grant-management-successor/normal-source-successor/resource-bridge-successor/continuation-native-path-successor/frozen-qmPcwm/HANDOFF.json",
+      "bytes": 12809,
+      "sha256": "fed3e968f21709126472393a9b5abe67691e087a93baa7a3b63df1d6a875411a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/hosted-final/download/canonical-common-source-package/ynx-chain-wallet-auth-1.3.0-pq.3.32-auth.49.tgz",
+      "bytes": 9550475,
+      "sha256": "ccf2b9208f173ace9fcca1fff3523c07b6541c41f20adc998c4d810d3a0d10c5"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/hosted-final/artifact-verified.zip",
+      "bytes": 10721652,
+      "sha256": "9654ae1c499b0b976c1f80b68dc4957818e4113570bce38f23d4796f88a892e1"
+    }
+  ]
+}
