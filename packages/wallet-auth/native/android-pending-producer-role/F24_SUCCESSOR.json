@@ -1,0 +1,26 @@
+{
+  "schema": "AUTH_PENDING_F24_ONE_MOD_INTAKE/v1",
+  "beforeCommit": "f8cf3f88f42cf171adf8d024436606cacd914179",
+  "logical": "source/PendingProducer.cpp",
+  "path": "packages/wallet-auth/native/android-pending-producer-role/source/PendingProducer.cpp",
+  "before": {
+    "bytes": 22582,
+    "sha256": "0416eb771da7f17903967113e503a3cff8595875c27937a2a1b58ae0204c9a64"
+  },
+  "after": {
+    "bytes": 22655,
+    "sha256": "536c6a21d4450ac0c654a128a9f27693ea67d05ddf708d6f5f9bce60012052a6"
+  },
+  "controls": {
+    "path": "packages/wallet-auth/test/fixtures/android-pending-f24-ci/journal_constraints_controls.cpp",
+    "bytes": 5960,
+    "sha256": "144d0f94c4bc0ec281171d967d780ea5a711205f0790a88156658d31d39f0c6b"
+  },
+  "supplierH": {
+    "bytes": 4589,
+    "sha256": "1bee7b982c0d4ac9794785305c803e9cb2d3c4001b3154be2942dcb8ea39dadc"
+  },
+  "productionMOD": 1,
+  "RootRows": 0,
+  "RootAdmission": false
+}
