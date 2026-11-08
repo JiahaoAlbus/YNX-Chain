@@ -69,6 +69,14 @@ class HelperLifecycleControls(unittest.TestCase):
             self.assertIsNotNone(row['requestProcessReturnCode'])
             self.assertNotIn('waitReturnedMonotonicNs',row)
             self.assertEqual(b.helper_cleanup_debt,[])
+            trace={}
+            metadata_failure=SimpleNamespace(pid=1,poll=mock.Mock(side_effect=OSError('original process metadata unavailable')))
+            self.assertIsNone(b.capture_request_observation('failed-observed',metadata_failure,True,trace))
+            self.assertEqual(trace['requestObservationErrorType'],'OSError')
+            metadata_failure.poll.reset_mock();trace={}
+            self.assertIsNone(b.capture_request_observation('failed-observed',metadata_failure,False,trace))
+            metadata_failure.poll.assert_not_called()
+            self.assertEqual(trace['requestObservationCaptureStatus'],'ORIGINAL_PROCESS_UNREAPED')
 
     def test_request_argv_selects_splitter_and_other_modes_cannot_inherit_flag(self):
         with tempfile.TemporaryDirectory() as temp:

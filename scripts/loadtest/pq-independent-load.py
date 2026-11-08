@@ -378,15 +378,15 @@ class NormalBackend:
     def capture_request_observation(self,name,proc,released,trace):
         # Called only after the original wait/cleanup, including its failure
         # path. Diagnostic errors must not replace that original exception.
-        if proc is None:
-            trace['requestObservationCaptureStatus']='NOT_LAUNCHED'
-            return None
-        trace['requestProcessID']=proc.pid
-        trace['requestProcessReturnCode']=proc.poll()
-        if not released:
-            trace['requestObservationCaptureStatus']='ORIGINAL_PROCESS_UNREAPED'
-            return None
         try:
+            if proc is None:
+                trace['requestObservationCaptureStatus']='NOT_LAUNCHED'
+                return None
+            trace['requestProcessID']=proc.pid
+            if not released:
+                trace['requestObservationCaptureStatus']='ORIGINAL_PROCESS_UNREAPED'
+                return None
+            trace['requestProcessReturnCode']=proc.poll()
             raw=lab.guard.bounded(self.w.work/'public'/(name+'.log'),lab.CAPS['logBytes'])
             report,ordinary=request_observation_readback.split_original(raw,hashlib.sha256(raw).hexdigest())
             trace['requestStageObservation']=report
