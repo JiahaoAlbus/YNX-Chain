@@ -1,0 +1,56 @@
+name: Native pending ten ports current Auth cohort
+on:
+  push:
+    branches: [codex/android-pending-native10-ci-20261108]
+  pull_request:
+    paths:
+      - packages/wallet-auth/native/android-pending-producer-role/NATIVE10_INTAKE.json
+      - apps/wallet/modules/ynx-pq-custody/native/android-pending-device/**
+      - apps/wallet/modules/ynx-pq-custody/test/android-pending-*
+      - packages/wallet-auth/test/fixtures/android-pending-native10-ci/**
+      - packages/wallet-auth/test/android-pending-native10-ci.test.mjs
+      - scripts/ci/android-pending-native10*.mjs
+      - .github/workflows/android-pending-native10.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-normal-and-public:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-native10-ci-20261108'
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 16
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-pending-native10-ci.test.mjs
+      - run: node scripts/ci/android-pending-native10.mjs host "$RUNNER_TEMP/android-pending-native10-host"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-pending-native10-host
+          path: ${{ runner.temp }}/android-pending-native10-host
+  android-normal-ten:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-pending-native10-ci-20261108'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 16
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-pending-native10-ci.test.mjs
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'ndk;27.1.12297006'
+      - run: node scripts/ci/android-pending-native10.mjs android "$RUNNER_TEMP/android-pending-native10-api24"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-pending-native10-api24
+          path: ${{ runner.temp }}/android-pending-native10-api24

@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "base": "1880329025de852dbc67ded2d2d01400ccba9a76",
+  "nativeSource": "731de250320b82f3a97985165ddb084a5e8787f7",
+  "nativeLeaves": 14,
+  "pins": [
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/CMakeLists.txt",
+      "bytes": 2157,
+      "sha256": "d62f1ba19429961f9ede628a9be3a64ad932b0ea8916449e0930d60e6c7b45e4"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/INTEGRATION.md",
+      "bytes": 4971,
+      "sha256": "2ae17706f9e193e602a91cb727bef65b3c28194009897e4851838c4481634aed"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/MainPendingAppDirectoryRequiredPrivate.h",
+      "bytes": 362,
+      "sha256": "68d6614e9aaf48a1fea152553881fecceb99ce4c5744bcf6f4babc7b23ec4442"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PRIVATE_PINS.json",
+      "bytes": 4611,
+      "sha256": "4d445effcd5975d1addd8eaf6136d2d01b6ed45cb033cfd52cb004bdec518cb8"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PendingAbort.cpp",
+      "bytes": 924,
+      "sha256": "a18bf255aedd946d512e573db87b5891275b25e33b75f618a646da8e96896966"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PendingDevicePair.cpp",
+      "bytes": 8376,
+      "sha256": "d3c07a5878274573d9e6c94a9c161891f0d5eb93477a3bb6b613c22892051362"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PendingDirectory.cpp",
+      "bytes": 11302,
+      "sha256": "11c8e36516b9035e799bda329be82e637656b4e90f2290cd091f7794a5c15f60"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PendingReviewOwner.cpp",
+      "bytes": 7698,
+      "sha256": "a72e83a198c502fd332aad57b42ce72c3acb6a1048d744204b14e0f7241d2065"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-pending-device/PendingReviewOwner.h",
+      "bytes": 1864,
+      "sha256": "a1aa7f2548e9c4b46d0bff84eed1d79ac98f5fa7624a036bd1ab1b8abf9b19f2"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-pending-directory.PUBLIC.cpp",
+      "bytes": 13849,
+      "sha256": "6c375503a9d6fd841ae3b8a76a916665592c745bba220b5473ea9bde918f2b88"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-pending-directory.mjs",
+      "bytes": 12882,
+      "sha256": "414ac5b899fba68f089135434435f47f5683f4efa18f6cd5372e2dcc529b7d52"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-pending-pair-abort.PUBLIC.cpp",
+      "bytes": 11964,
+      "sha256": "baa418da014e1c70f233a7886c4e13a8debfb6f1db11fa7b7c617c137b4c5741"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-pending-source-fixture.PUBLIC.h",
+      "bytes": 3016,
+      "sha256": "cbe8a28012487d696aebad30883334c600fc93882ef0e869e90c7ce2549e60e5"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-pending-pair-abort.mjs",
+      "bytes": 14084,
+      "sha256": "7feb0963fcb064f32f3914bf499f5a76ba6d0265dc9195a4a1d1bbb25daeb2b4"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/android-pending-native10-ci/PendingMainCalleePrivate.h",
+      "bytes": 4395,
+      "sha256": "c635d03f75669529ef2f4e64c7b7c201c0dc600ccf2f33a1bacaaa6ca43b03ae"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDevicePendingJournalPrivate.h",
+      "bytes": 858,
+      "sha256": "f89beaf6387fbfef0400173e46a286b79167a7bf6e2c36cbd61b1689358f1e6d"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDevicePendingProjectionPrivate.h",
+      "bytes": 926,
+      "sha256": "173c4a1ad68574ef086553c26597c5f2498e91fbe123bac8ae8fddd88d60976f"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceProvisioningPrivate.h",
+      "bytes": 9267,
+      "sha256": "862e4bb53d3b23c5584d9bcba45bdd84ebbd9ee06a1393ebc227f3b9bc7a7a96"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceRegistrationPortsPrivate.h",
+      "bytes": 6008,
+      "sha256": "2a2b1fc71313b44169f380ba00117a15a42999ca2742b774dd20a7ef2c1cf266"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceRegistrationPrivate.h",
+      "bytes": 5151,
+      "sha256": "9c2e219941b312f863dc62a9a1fe665d5ba336f1d19c434125587cf5569d712c"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/product_device_challenge_v4.h",
+      "bytes": 2673,
+      "sha256": "fc4e2d792f52fe259744bfd1920713ee69a58f30bd3f0b7ceeecba09d78b4ef9"
+    },
+    {
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/product_device_registration_v4.h",
+      "bytes": 5814,
+      "sha256": "aa630561ec84d70892e06020bb377dd9c603ce3bc3f7a769fd14fff497010c70"
+    }
+  ],
+  "cases": {
+    "directory": [
+      "positive",
+      "source-pre0",
+      "approval0",
+      "root-late0",
+      "main-partial0",
+      "source-switch",
+      "root-reentry",
+      "retire-late0",
+      "root-parent-mismatch",
+      "root-child-mismatch",
+      "bad-version",
+      "bad-mode",
+      "reserved",
+      "leaf-tail",
+      "root-alias",
+      "physical-after-revoke",
+      "revoke-before-borrow",
+      "named-replacement",
+      "main-current0",
+      "current-reentry",
+      "actor",
+      "reused-fd",
+      "unknown-leaf",
+      "unknown-main",
+      "null-no-done",
+      "untouched-drain",
+      "late-close0",
+      "main-pending",
+      "leaf-reentry",
+      "main-reentry",
+      "lookup-race",
+      "capacity"
+    ],
+    "pair-abort": [
+      "metadata-positive",
+      "source0",
+      "approval0",
+      "capture0",
+      "capture-source-switch",
+      "current0",
+      "wrong-source",
+      "retire-anythread",
+      "actor",
+      "capacity",
+      "borrow-raw0",
+      "borrow-malformed",
+      "retire-borrow",
+      "retire-raw0",
+      "borrow-reentry",
+      "borrow-throw-raw0",
+      "borrow-throw-success",
+      "revoke-before-borrow",
+      "sentinel-publication",
+      "sentinel-postsource-refusal",
+      "lookup-race",
+      "close-unknown",
+      "close-noack",
+      "close-untouched",
+      "close-late0",
+      "close-pending",
+      "close-reentry",
+      "abort-success",
+      "abort-raw0",
+      "abort-invalid-context",
+      "abort-null",
+      "abort-nonbool",
+      "abort-absent-code",
+      "abort-absent-origin",
+      "abort-absent-platform",
+      "abort-throw-raw0",
+      "abort-throw-success",
+      "abort-throw-untouched"
+    ]
+  },
+  "actualMainRustLinked": false,
+  "RootAdmission": false
+}
