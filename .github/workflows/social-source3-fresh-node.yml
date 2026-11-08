@@ -15,7 +15,7 @@ on:
       - .github/workflows/social-source3-fresh-node.yml
 jobs:
   new-r8-sdk-integration-types-package:
-    if: github.event_name != 'pull_request' || github.head_ref != 'codex/wallet-auth49-social-finite-provider-20261108'
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/wallet-auth49-social-finite-provider-20261108' && github.head_ref != 'codex/wallet-auth49-social-finite-main-read-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
