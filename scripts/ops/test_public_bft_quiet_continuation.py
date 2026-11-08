@@ -711,6 +711,104 @@ class OriginalLightCaptureTests(unittest.TestCase):
         self.assertIn('q.retain_capture_result',reconcile);self.assertIn('os.O_NOFOLLOW',reconcile)
         self.assertIn('phase-attempt/result.json',reconcile)
 
+class TerminalIncarnationTests(unittest.TestCase):
+    """Actual shell functions; synthetic systemd/proc only, never a service."""
+    def run_control(self,case,helper=None,conditional=False):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        root=Path(self.temp.name).resolve();root.chmod(0o700)
+        process=root/'original-process.json';write(process,dict(mainPid='100',startTicks='200',runningExecutableSHA256='e'*64))
+        script=r'''
+set -Eeuo pipefail
+source "$1"
+attempt="$2";unit=ynx-consensus-operator-candidate.service;control="$3";conditional="${4:-0}";phase=running
+systemctl() {
+  [[ "$#" == 5 && "$1" == show && "$2" == --property && "$4" == --value && "$5" == "$unit" ]] || { printf 'unexpected systemctl action\n' >&2;return 90; }
+  printf '%s\n' "$3" >>"$attempt/observed-properties"
+  case "$3" in
+    ActiveState) if [[ "$phase" == terminal && "$control" == failed-state ]];then echo failed;else [[ "$phase" == running ]] && echo active || echo inactive;fi ;;
+    MainPID) [[ "$phase" == running ]] && echo 100 || echo 0 ;;
+    ControlGroup) printf '\n' ;;
+    ExecMainPID) if [[ "$phase" == terminal && "$control" == wrong-pid ]];then echo 300;else echo 100;fi ;;
+    InvocationID) if [[ "$phase" == terminal && "$control" == wrong-invocation ]];then printf '22222222222222222222222222222222\n';elif [[ "$phase" == terminal && "$control" == empty-invocation ]];then printf '\n';else printf '11111111111111111111111111111111\n';fi ;;
+    ExecMainStartTimestampMonotonic) if [[ "$phase" == terminal && "$control" == wrong-start ]];then echo 2010000;else echo 2000000;fi ;;
+    Result) echo success ;;
+    ExecMainCode) echo 1 ;;
+    ExecMainStatus) [[ "$control" == failed-exit ]] && echo 1 || echo 0 ;;
+    *) return 91 ;;
+  esac
+}
+cat() {
+  if [[ "$#" == 1 && "$1" == /proc/100/stat ]];then
+    printf '100 (ynx-comet) S';for n in {1..18};do printf ' 0';done
+    if [[ "$control" == wrong-live-ticks ]];then printf ' 201\n';else printf ' 200\n';fi
+  else command cat "$@";fi
+}
+if [[ "$control" == preexisting ]];then printf 'PRIOR UNKNOWN\n' >"$attempt/halt-incarnation.json";fi
+if declare -F operator_transition_record_halt_identity >/dev/null;then operator_transition_record_halt_identity;fi
+phase=terminal
+case "$control" in
+ missing) rm "$attempt/halt-incarnation.json" ;;
+ partial) printf '{"version":' >"$attempt/halt-incarnation.json" ;;
+ changed-original) printf '{"mainPid":"100","startTicks":"201","runningExecutableSHA256":"changed"}' >"$attempt/original-process.json" ;;
+esac
+if [[ "$control" == stopped-initial-failure || "$control" == stopped-final-failure ]];then
+  # Deliberate return-path fault injection only: no claimed real cgroup state.
+  stopped_calls=0
+  operator_transition_stopped() {
+    stopped_calls=$((stopped_calls+1))
+    if [[ "$control" == stopped-initial-failure && "$stopped_calls" == 1 ]] || [[ "$control" == stopped-final-failure && "$stopped_calls" == 2 ]];then
+      printf 'SYNTHETIC_STOPPED_HELPER_FAILURE\n' >&2;return 73
+    fi
+    return 0
+  }
+fi
+if [[ "$conditional" == 1 ]];then
+  if operator_transition_wait_height_halt;then :;else status="$?";exit "$status";fi
+else
+  operator_transition_wait_height_halt
+fi
+printf 'ORIGINAL_TERMINAL_ACCEPTED\n'
+'''
+        env=dict(os.environ);env['PATH']=str(Path(sys.executable).parent)+os.pathsep+env['PATH']
+        result=subprocess.run(['bash','-c',script,'terminal-control',str(helper or HERE/'remote/public-bft-operator-transition.sh'),str(root),case,'1' if conditional else '0'],env=env,capture_output=True,text=True,timeout=10)
+        return result,root
+    def test_original_incarnation_success_has_durable_prepublication_binding(self):
+        r,root=self.run_control('same');self.assertEqual(r.returncode,0,r.stderr)
+        self.assertEqual(r.stdout,'ORIGINAL_TERMINAL_ACCEPTED\n')
+        v=json.loads((root/'halt-incarnation.json').read_bytes())
+        self.assertEqual(set(v),{'version','mainPid','startTicks','invocationId','execMainStartTimestampMonotonic','originalProcessSHA256'})
+        self.assertEqual(v['mainPid'],'100');self.assertEqual(v['startTicks'],'200')
+        self.assertEqual(v['invocationId'],'1'*32);self.assertEqual(v['execMainStartTimestampMonotonic'],'2000000')
+        self.assertEqual(v['originalProcessSHA256'],q.sha((root/'original-process.json').read_bytes()))
+        self.assertEqual((root/'halt-incarnation.json').stat().st_mode&0o777,0o600)
+        text=(HERE/'remote/public-bft-operator-transition.sh').read_text().split('operator_transition_request_height_halt() {',1)[1].split('operator_transition_wait_height_halt() {',1)[0]
+        self.assertLess(text.index('operator_transition_record_halt_identity'),text.index('request-height-halt \\\n'))
+    def test_other_terminal_and_partial_original_remain_unknown(self):
+        for case in ('wrong-pid','wrong-start','wrong-invocation','empty-invocation','failed-exit','missing','partial','changed-original'):
+            with self.subTest(case=case):
+                r,root=self.run_control(case);self.assertNotEqual(r.returncode,0,r.stdout)
+                self.assertNotIn('ORIGINAL_TERMINAL_ACCEPTED',r.stdout)
+                if case in ('wrong-pid','wrong-start','wrong-invocation','empty-invocation'):self.assertIn('terminal incarnation differs',r.stderr)
+                self.assertTrue((root/'original-process.json').exists())
+                self.assertFalse((root/'result.json').exists())
+    def test_prepublication_reused_pid_or_existing_attempt_never_rebinds(self):
+        r,root=self.run_control('wrong-live-ticks');self.assertNotEqual(r.returncode,0)
+        self.assertFalse((root/'halt-incarnation.json').exists());self.assertNotIn('ORIGINAL_TERMINAL_ACCEPTED',r.stdout)
+        r,root=self.run_control('preexisting');self.assertNotEqual(r.returncode,0)
+        self.assertEqual((root/'halt-incarnation.json').read_bytes(),b'PRIOR UNKNOWN\n')
+        self.assertNotIn('ORIGINAL_TERMINAL_ACCEPTED',r.stdout)
+
+    def test_conditional_wait_propagates_both_stopped_failures_and_terminal_guards(self):
+        for case in ('stopped-initial-failure','stopped-final-failure','wrong-pid','wrong-invocation','wrong-start','failed-state','failed-exit'):
+            with self.subTest(case=case):
+                r,root=self.run_control(case,conditional=True)
+                self.assertEqual(r.returncode,73 if case.startswith('stopped-') else 1,r.stdout+r.stderr)
+                self.assertNotIn('ORIGINAL_TERMINAL_ACCEPTED',r.stdout)
+                self.assertTrue((root/'halt-incarnation.json').exists());self.assertFalse((root/'result.json').exists())
+                if case.startswith('stopped-'):self.assertIn('SYNTHETIC_STOPPED_HELPER_FAILURE',r.stderr)
+        r,root=self.run_control('same',conditional=True);self.assertEqual(r.returncode,0,r.stderr)
+        self.assertEqual(r.stdout,'ORIGINAL_TERMINAL_ACCEPTED\n')
+
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--fixture':
         normal_caller_fixture(sys.argv[2],sys.argv[3],sys.argv[4])

@@ -359,6 +359,9 @@ ControlGroup) echo /source-test ;;
 Result) echo "${FIX_EXIT_RESULT:-success}" ;;
 ExecMainCode) echo 1 ;;
 ExecMainStatus) echo "${FIX_EXIT_STATUS:-0}" ;;
+ExecMainPID) echo "${FIX_TERMINAL_PID:-4321}" ;;
+InvocationID) echo "${FIX_INVOCATION:-11111111111111111111111111111111}" ;;
+ExecMainStartTimestampMonotonic) echo "${FIX_STARTED:-9870000}" ;;
 *) exit 90 ;;
 esac
 SH
@@ -388,6 +391,7 @@ if process_control stopped >"$q/active.log" 2>&1; then fail 'active original wri
 # by the stub, so success cannot come from forcing the operator down.
 mkdir -m 0700 "$q/attempt"
 cp "$q/positive.json" "$q/attempt/original-process.json"
+PATH="$q/bin:$PATH" bash -c 'set -Eeuo pipefail; source "$1"; unit=ynx-consensus-operator-candidate.service; attempt="$2/attempt"; operator_transition_record_halt_identity' -- "$q/helper.sh" "$q"
 cat >"$q/bin/sleep" <<'SH'
 #!/usr/bin/env bash
 set -Eeuo pipefail
@@ -400,6 +404,13 @@ halt_wait() {
 }
 export FIX_PROCESS_STOPPED=1
 halt_wait >"$q/halt-stopped.out" 2>"$q/halt-stopped.err"
+for fault in FIX_TERMINAL_PID FIX_INVOCATION FIX_STARTED; do
+  case "$fault" in FIX_TERMINAL_PID) value=5432 ;; FIX_INVOCATION) value=22222222222222222222222222222222 ;; FIX_STARTED) value=9870001 ;; esac
+  export "$fault=$value"
+  if halt_wait >"$q/halt-$fault.out" 2>"$q/halt-$fault.err"; then fail 'different terminal incarnation accepted'; fi
+  grep -Fq 'terminal incarnation differs' "$q/halt-$fault.err"
+  unset "$fault"
+done
 export FIX_EXIT_STATUS=1
 if halt_wait >"$q/halt-failed.out" 2>"$q/halt-failed.err"; then fail 'nonzero normal caller exit was accepted as halt'; fi
 unset FIX_EXIT_STATUS

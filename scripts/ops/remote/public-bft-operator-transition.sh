@@ -206,10 +206,10 @@ operator_transition_stopped() {
   local pass group state
   for pass in 1 2; do
     state="$(systemctl show --property ActiveState --value "$unit")"
-    [[ "$state" == inactive && "$(systemctl show --property MainPID --value "$unit")" == 0 ]]
+    [[ "$state" == inactive && "$(systemctl show --property MainPID --value "$unit")" == 0 ]] || return 1
     group="$(systemctl show --property ControlGroup --value "$unit")"
-    [[ -z "$group" || ( "$group" == /* && "$group" != *..* ) ]]
-    if [[ -n "$group" && -e "/sys/fs/cgroup$group/cgroup.procs" ]]; then [[ -z "$(cat "/sys/fs/cgroup$group/cgroup.procs")" ]]; fi
+    [[ -z "$group" || ( "$group" == /* && "$group" != *..* ) ]] || return 1
+    if [[ -n "$group" && -e "/sys/fs/cgroup$group/cgroup.procs" ]]; then [[ -z "$(cat "/sys/fs/cgroup$group/cgroup.procs")" ]] || return 1; fi
   done
 }
 
@@ -219,6 +219,38 @@ import json,sys
 b=json.load(open(sys.argv[1])); assert b['phase']=='quiesce' and b['quiesceMode']=='height-halt'
 print(json.dumps(dict(version='YNX-OPERATOR-HEIGHT-HALT/v1',targetHeight=b['futureTargetHeight'],chainId=b['chainId'],genesisSHA256=b['consensusGenesisSHA256'],operatorPlanSHA256=b['oldOperatorPlanSHA256'],sessionId=b['heightHaltSessionId']),separators=(',',':')))
 PY
+}
+
+operator_transition_record_halt_identity() {
+  # Bind the future terminal observation to the already qualified process
+  # before publishing its one-shot request. A replacement unit is UNKNOWN.
+  local expected_pid expected_ticks invocation started ticks
+  expected_pid="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["mainPid"])' "$attempt/original-process.json")" || return $?
+  expected_ticks="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["startTicks"])' "$attempt/original-process.json")" || return $?
+  [[ "$expected_pid" =~ ^[1-9][0-9]*$ && "$expected_ticks" =~ ^[1-9][0-9]*$ ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  [[ "$(systemctl show --property ActiveState --value "$unit")" == active && "$(systemctl show --property MainPID --value "$unit")" == "$expected_pid" && "$(systemctl show --property ExecMainPID --value "$unit")" == "$expected_pid" ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  ticks="$(cat "/proc/$expected_pid/stat")" || return $?
+  [[ "$(printf '%s\n' "$ticks" | sed 's/^.*) //' | awk '{print $20}')" == "$expected_ticks" ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  invocation="$(systemctl show --property InvocationID --value "$unit")" || return $?
+  started="$(systemctl show --property ExecMainStartTimestampMonotonic --value "$unit")" || return $?
+  [[ "$invocation" =~ ^[0-9a-f]{32}$ && "$invocation" != 00000000000000000000000000000000 && "$started" =~ ^[1-9][0-9]*$ ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  [[ "$(systemctl show --property InvocationID --value "$unit")" == "$invocation" && "$(systemctl show --property ExecMainStartTimestampMonotonic --value "$unit")" == "$started" && "$(systemctl show --property ExecMainPID --value "$unit")" == "$expected_pid" && "$(systemctl show --property MainPID --value "$unit")" == "$expected_pid" && "$(systemctl show --property ActiveState --value "$unit")" == active ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  ticks="$(cat "/proc/$expected_pid/stat")" || return $?
+  [[ "$(printf '%s\n' "$ticks" | sed 's/^.*) //' | awk '{print $20}')" == "$expected_ticks" ]] || { operator_transition_fail 'original live halt incarnation changed; retained UNKNOWN'; return 1; }
+  python3 -B - "$attempt/original-process.json" "$attempt/halt-incarnation.json" "$expected_pid" "$expected_ticks" "$invocation" "$started" <<'PYHALT'
+import hashlib,json,os,pathlib,sys
+p=pathlib.Path(sys.argv[1]);raw=p.read_bytes();v=json.loads(raw)
+assert set(v)=={'mainPid','startTicks','runningExecutableSHA256'} and v['mainPid']==sys.argv[3] and v['startTicks']==sys.argv[4]
+r=dict(version='YNX-OPERATOR-HALT-INCARNATION/v1',mainPid=sys.argv[3],startTicks=sys.argv[4],invocationId=sys.argv[5],execMainStartTimestampMonotonic=sys.argv[6],originalProcessSHA256=hashlib.sha256(raw).hexdigest())
+fd=os.open(sys.argv[2],os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+try:
+ with os.fdopen(fd,'wb',closefd=False) as f:f.write(json.dumps(r,separators=(',',':')).encode()+b'\n');f.flush()
+ os.fsync(fd)
+finally:os.close(fd)
+fd=os.open(p.parent,os.O_RDONLY|os.O_DIRECTORY)
+try:os.fsync(fd)
+finally:os.close(fd)
+PYHALT
 }
 
 operator_transition_request_height_halt() {
@@ -231,6 +263,7 @@ operator_transition_request_height_halt() {
   # not a new approval or a source checkpoint. Keep them on every failure.
   [[ "$(realpath -e "$parent")" == "$parent" && "$(stat -c %a "$parent")" == 700 && "$(stat -c %u "$parent")" == "$(id -u ynx)" ]]
   operator_transition_file "$state"; [[ "$(stat -c %u "$state")" == "$(id -u ynx)" && "$(stat -c %a "$state")" == 600 ]]
+  operator_transition_record_halt_identity || return $?
   mkdir -m 0700 "$input"
   request="$input/request.json"
   (set -o noclobber; operator_transition_halt_request >"$attempt/halt-request.json")
@@ -265,24 +298,43 @@ PY
 }
 
 operator_transition_wait_height_halt() {
-  local expected_pid expected_ticks observation active pid ticks status
-  expected_pid="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["mainPid"])' "$attempt/original-process.json")"
-  expected_ticks="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["startTicks"])' "$attempt/original-process.json")"
+  local expected_pid expected_ticks expected_invocation expected_started original_identity observation active pid ticks status terminal_pass
+  original_identity="$(python3 -B - "$attempt/original-process.json" "$attempt/halt-incarnation.json" <<'PYHALT'
+import hashlib,json,pathlib,re,sys
+raw=pathlib.Path(sys.argv[1]).read_bytes();p=json.loads(raw)
+def unique(pairs):
+ d={}
+ for k,v in pairs:
+  assert k not in d;d[k]=v
+ return d
+r=json.loads(pathlib.Path(sys.argv[2]).read_bytes(),object_pairs_hook=unique)
+assert set(r)=={'version','mainPid','startTicks','invocationId','execMainStartTimestampMonotonic','originalProcessSHA256'} and r['version']=='YNX-OPERATOR-HALT-INCARNATION/v1'
+assert r['originalProcessSHA256']==hashlib.sha256(raw).hexdigest() and r['mainPid']==p['mainPid'] and r['startTicks']==p['startTicks']
+assert all(type(r[k]) is str and re.fullmatch('[1-9][0-9]*',r[k]) for k in ('mainPid','startTicks','execMainStartTimestampMonotonic'))
+assert type(r['invocationId']) is str and re.fullmatch('[0-9a-f]{32}',r['invocationId']) and r['invocationId']!='0'*32
+print(r['mainPid'],r['startTicks'],r['invocationId'],r['execMainStartTimestampMonotonic'])
+PYHALT
+)" || return $?
+  read -r expected_pid expected_ticks expected_invocation expected_started <<<"$original_identity"
   # At most 60 observations. Timeout only returns UNKNOWN: never stop/kill a
   # live operator, remove the request, or dispatch it a second time.
   for observation in {1..60}; do
     active="$(systemctl show --property ActiveState --value "$unit")"
     pid="$(systemctl show --property MainPID --value "$unit")"
     if [[ "$active" == inactive && "$pid" == 0 ]]; then
-      operator_transition_stopped
-      [[ "$(systemctl show --property Result --value "$unit")" == success && "$(systemctl show --property ExecMainCode --value "$unit")" == 1 && "$(systemctl show --property ExecMainStatus --value "$unit")" == 0 ]] || operator_transition_fail 'operator did not exit normally after the request; retained UNKNOWN'
+      operator_transition_stopped || return $?
+      for terminal_pass in 1 2; do
+        [[ "$(systemctl show --property ExecMainPID --value "$unit")" == "$expected_pid" && "$(systemctl show --property InvocationID --value "$unit")" == "$expected_invocation" && "$(systemctl show --property ExecMainStartTimestampMonotonic --value "$unit")" == "$expected_started" ]] || { operator_transition_fail 'operator terminal incarnation differs from the original requested process; retained UNKNOWN'; return 1; }
+        [[ "$(systemctl show --property Result --value "$unit")" == success && "$(systemctl show --property ExecMainCode --value "$unit")" == 1 && "$(systemctl show --property ExecMainStatus --value "$unit")" == 0 ]] || { operator_transition_fail 'operator did not exit normally after the request; retained UNKNOWN'; return 1; }
+        operator_transition_stopped || return $?
+      done
       return
     fi
-    [[ "$active" == active || "$active" == deactivating ]] || operator_transition_fail 'operator failed while waiting for height halt; retained UNKNOWN'
+    [[ "$active" == active || "$active" == deactivating ]] || { operator_transition_fail 'operator failed while waiting for height halt; retained UNKNOWN'; return 1; }
     if [[ "$pid" != 0 ]]; then
-      [[ "$pid" == "$expected_pid" ]] || operator_transition_fail 'operator PID changed after publication; retained UNKNOWN'
+      [[ "$pid" == "$expected_pid" ]] || { operator_transition_fail 'operator PID changed after publication; retained UNKNOWN'; return 1; }
       if ticks="$(cat "/proc/$pid/stat")"; then
-        [[ "$(printf '%s\n' "$ticks" | sed 's/^.*) //' | awk '{print $20}')" == "$expected_ticks" ]] || operator_transition_fail 'operator process identity changed after publication; retained UNKNOWN'
+        [[ "$(printf '%s\n' "$ticks" | sed 's/^.*) //' | awk '{print $20}')" == "$expected_ticks" ]] || { operator_transition_fail 'operator process identity changed after publication; retained UNKNOWN'; return 1; }
       else
         status="$?"
         # A normal exit may race this read. Only observed terminal systemd
@@ -293,6 +345,7 @@ operator_transition_wait_height_halt() {
     if [[ "$observation" != 60 ]]; then sleep 1; fi
   done
   operator_transition_fail 'HEIGHT_HALT_OUTCOME_UNKNOWN: bounded normal-exit wait expired; retain request, freeze, pause and all attempts'
+  return 1
 }
 
 operator_transition_markers() {
