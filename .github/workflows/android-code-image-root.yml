@@ -1,0 +1,52 @@
+name: Native Android CODE image Root C9
+on:
+  push:
+    branches: [codex/android-code-image-root-ci-20261108]
+  pull_request:
+    paths:
+      - apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/**
+      - apps/wallet/modules/ynx-pq-custody/test/android-code-image-root.*
+      - packages/wallet-auth/test/fixtures/android-code-image-root-ci/**
+      - packages/wallet-auth/test/android-code-image-root-ci.test.mjs
+      - scripts/ci/android-code-image-root*.mjs
+      - .github/workflows/android-code-image-root.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  host-public-lifecycle:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-code-image-root-ci-20261108'
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-code-image-root-ci.test.mjs
+      - run: brew list libsodium || brew install libsodium
+      - run: node scripts/ci/android-code-image-root.mjs host "$RUNNER_TEMP/android-code-image-host"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-code-image-host-public
+          path: ${{ runner.temp }}/android-code-image-host
+  android-normal-object:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/android-code-image-root-ci-20261108'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test packages/wallet-auth/test/android-code-image-root-ci.test.mjs
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'ndk;27.1.12297006'
+      - run: node scripts/ci/android-code-image-root.mjs android "$RUNNER_TEMP/android-code-image-arm64-api24"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: android-code-image-api24-normal-object
+          path: ${{ runner.temp }}/android-code-image-arm64-api24
