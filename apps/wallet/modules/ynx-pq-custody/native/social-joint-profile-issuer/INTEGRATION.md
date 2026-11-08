@@ -98,22 +98,27 @@ whole-image link.
 
 The remaining concrete holder definition is:
 
-- `acquireRegisteredDeviceSession`: original legal DEVICE/session provisioning
-  and same-source current holder. Social classic33/PQ2592 are not its E5 pair.
-  Postaccepted facts must not create a first-device registration cycle.
+- `acquireRegisteredDeviceSession`: now implemented in
+  `RegisteredDeviceSession.cpp`, calling the original held Device source and
+  retaining partial owners before any status/fence. Social classic33/PQ2592 are
+  not its E5 pair. Postaccepted facts do not construct a first-device registration.
 
-The dedicated finite role service is still being completed by original Auth.
-The Native adapter is implemented; this is a separate normal service-body and
-link requirement. Existing Source families 1..4, InitialPrekeys and QA
+The dedicated finite role service body is supplied by original Auth as R1 plus
+mandatory R2 and its matching registered-read successor in the SAME crate. SDK
+f38e952 also supplies that matching normal consumer. This does not establish a
+normal combined service link. Existing Source families 1..4, InitialPrekeys and QA
 ApprovedSourceFrame are not this permission. Only legal lower storage/math
 primitives may be reused. The service independently checks Root/Source4,
 binding/current, peer and role policies. Its response must be the retained
 actual original envelope using Auth's sole SAME-kernel Go DATA writer, not a
 digest or another C++/Rust envelope codec.
 
-These are missing normal CODE dependencies, not merely absent live keys. The
-Native/Source, Main and original service owners must complete the actual
-adapters before calling the normal combined target supplied. Genuine Root
+Remaining normal CODE intake is specific: SDK must adopt Auth's R7 capture
+route/header/provider into its Source3 profile, and the private Device namespace
+projection must be merged minimally into the actual current SourceAuthority and
+sole verifier. Never replace a whole shared mother or hot-mix a sealed candidate.
+The combined Linux target and its ONE Go aggregate still require actual linkage.
+Genuine Root
 profiles, registrations, keys, approvals and placement are separately absent;
 no tests provision them.
 
@@ -129,6 +134,29 @@ private namespace DATA, and uncertain physical debt. Failed local acquisition
 never selects a remote fallback. The concrete Auth Rust/C client and source
 route bodies are now supplied separately; normal combined Linux integration
 and actual registered Root/channel placements remain unverified.
+
+`DeviceNamespace.cpp` now calls the actual additive private C matcher
+`ynx_auth_device_v4_view_match_account_namespace_v1`. Its issuer/subject tuple
+comes only from the independently current genuine Main holder; it is comparison
+DATA. Auth compares private facts derived after the full verified primary
+DEVICE enrollment/profile/current chain on the SAME held view and deadline.
+The Native adapter does not parse Root JSON or derive an issuer from app origin.
+An absent paired failure must be all-zero and `matched` must be exactly 0 or 1;
+presence with code0 is still failure. The full original failure, including
+origin/platform code, is retained before a later view/parent fence.
+
+The normal object target now has ten C++ units and requires
+`YNX_SOCIAL_JOINT_DEVICE_INCLUDE_DIR` with the matching C12 and namespace headers.
+Its original-services dependency must supply actual Auth Borrow/Clock plus
+exactly one Darwin or Linux backend and the matching sole verifier. Fixture
+definitions, a second archive/runtime and a caller-selected provider are forbidden.
+All modules using the private `Result` header belong to the same rebuilt cohort.
+
+Device cleanup keeps the original owner/view debt. A pending original join
+before physical close selection may progress on the SAME owner. Once physical
+C close or release-closed has been selected with UNKNOWN, it is never dispatched
+again. This permits cleanup progress, not acquisition/signing/operation replay.
+The full current/matcher calls perform actor I/O and cannot run under Store locks.
 
 ## Verification boundaries
 

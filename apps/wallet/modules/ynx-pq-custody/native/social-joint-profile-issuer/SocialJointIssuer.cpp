@@ -330,7 +330,9 @@ extern "C" void ynx_social_joint_binding_close_v1(ynx_social_joint_binding_v1**p
  b->retired=true;if(b->roles||b->views){status(st,error(ChildDebt));return;}
  if(b->close_selected){status(st,error(PhysicalUnknown,true));return;}
  b->close_selected=true;
- if(b->device){b->device_close=true;auto r=b->device->close();b->remember(r);if(r.physical_done)b->device.reset();}
+ if(b->device){b->device_close=true;auto r=b->device->close();b->remember(r);
+  if(r.physical_done)b->device.reset();
+  else if(r.original_drain_pending){b->device_close=false;b->close_selected=false;}}
  if(b->device){status(st,b->first.ok()?error(PhysicalUnknown,true):b->first);return;}
  if(b->social){b->social_close=true;auto r=b->social->close();b->remember(r);if(r.physical_done)b->social.reset();}
  if(b->social){status(st,b->first.ok()?error(PhysicalUnknown,true):b->first);return;}

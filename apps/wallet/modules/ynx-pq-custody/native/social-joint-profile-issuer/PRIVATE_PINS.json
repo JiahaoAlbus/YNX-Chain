@@ -54,7 +54,7 @@
   "requiredNormalFactories": [
     "acquireRegisteredDeviceSession"
   ],
-  "normalFactoriesActuallySupplied": false,
+  "normalFactoriesActuallySupplied": true,
   "legacyIssuerABI": {
     "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/social-v4-device-session-principal-successor/fresh-finite-issuer-r4-KMYiYX/source/internal/social/kernel/social_joint_profile_issuer_private.h",
     "bytes": 5444,
@@ -68,7 +68,7 @@
   },
   "actualR5FrozenRefsVerified": 8,
   "remainingActualCode": [
-    "Original Linux DEVICE matcher/API intake and Native thin adapter",
+    "Matching additive common SourceAuthority and sole-verifier namespace projection normal intake by original Auth/SDK",
     "Original history/query authority for expired signing Source",
     "Normal P02/Auth/Native/finite composition, registered placements and SAME ONEGo Linux final link"
   ],
@@ -88,10 +88,10 @@
   "SourceFactoryActuallyImplemented": true,
   "finiteRoleFactoryActuallyImplemented": true,
   "finiteCustodianInterface": {
-    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-finite-role-first-20261108-ZQqRab/include/ynx_social_finite_joint_custodian_private_v1.h",
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/normal-service-r1-n6JJTw/source/include/ynx_social_finite_joint_custodian_private_v1.h",
     "bytes": 3660,
     "sha256": "cb65131c497127eb83a507ed952877602537a8ce39f7e70f93a46055f70fac8f",
-    "supplierState": "WIP interface snapshot; no service qualification or final-link claim"
+    "supplierState": "Actual original finite-service Rust implementation supplied; R1 + mandatory R2 + matching same-crate read successor required together; no installed service or Linux/Root qualification"
   },
   "envelopeDATA": {
     "handoff": {
@@ -219,7 +219,30 @@
     "consumedBy": "Auth original finite service, not Native client factory or a new archive",
     "normalOneGoRequired": true,
     "standaloneRegisteredDirectoryOrHeldOwnerChannelStillRequired": true,
-    "wholeNormalLink": false
+    "wholeNormalLink": false,
+    "normalMatchingService": {
+      "requiredH": [
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/normal-service-r1-n6JJTw/HANDOFF.json",
+          "bytes": 52284,
+          "sha256": "fb8bed9afe737a8c45bb76534865283448b58da23f93e6b0105d86c5cbf3e31c"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/normal-service-r2-Eh5JGj/HANDOFF.json",
+          "bytes": 7998,
+          "sha256": "96b8d63af80bae3483af6ee9861c3b567539c79054119e31f8b3dcf43835f043"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sealed-role-loader-successor/finite-joint-role-successor/normal-main-pair-matching-successor/frozen-matching-8ByALJ/HANDOFF.json",
+          "bytes": 12361,
+          "sha256": "7fb1d93128e7912b26bcf2d3acce40d26b33c6fe5e28f8ce3a0acb29592ec66e"
+        }
+      ],
+      "matchingHRefsVerified": 29,
+      "singleFiniteCrate": true,
+      "publicFixtureArchiveAllowed": false,
+      "normalExecutionVerified": false
+    }
   },
   "coldQueryCoverage": "Same current Source with genuine partial Role; not independent recovery after signing Source/window expiry",
   "privateAccountNamespacePort": {
@@ -299,5 +322,107 @@
     "actualNativeSelector": true,
     "callerModeSwitch": false,
     "localFailureRemoteFallback": false
-  }
+  },
+  "finiteCustodianInterfacePredecessor": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-finite-role-first-20261108-ZQqRab/include/ynx_social_finite_joint_custodian_private_v1.h",
+    "bytes": 3660,
+    "sha256": "cb65131c497127eb83a507ed952877602537a8ce39f7e70f93a46055f70fac8f",
+    "supplierState": "WIP interface snapshot; no service qualification or final-link claim"
+  },
+  "deviceSessionPrivateAdapter": {
+    "privateABI": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/linux-reader-final-r1-OxmQaN/source/DeviceV4SourceBorrowPrivate.h",
+      "bytes": 3343,
+      "sha256": "644f4ecac6c3fa44ec7351c4e4c876100728f204e85ab0f28df3fc9bd89d6768"
+    },
+    "supplierH": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/linux-reader-final-r1-OxmQaN/HANDOFF.json",
+      "bytes": 6276,
+      "sha256": "172ff34d36297ba1f8cb6d028c1dc0f56a0995c3d33f94644b34ba5f20ca76b8"
+    },
+    "cppAdapterImplemented": true,
+    "actualNamespaceMatcherSupplied": true,
+    "controlledCoverage": {
+      "predecessorDevice57Binding2H": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-device-final-20261108-Z3ozAm/HANDOFF.json",
+        "bytes": 50594,
+        "sha256": "71d291352d1be3fdcd6ec6884635a33b11888dc77e34d8235e5d3d057c0840e3"
+      },
+      "currentActualC13CompositionH": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-device-namespace-final-20261108-DYxKN6/HANDOFF.json",
+        "bytes": 42863,
+        "sha256": "fed79a65a909f764b52633d6092123f3fd5734198e090e08205374a45d057048"
+      },
+      "newThinC13Groups": 11,
+      "affectedDeviceFullPaths": 5,
+      "newActualAuthCBodyGroups": 12,
+      "newConfigurationGroups": 6,
+      "parentAllUniqueRefsVerified": 129,
+      "old57NotRerun": true,
+      "originalObjCSourceGetterStillPUBLIC": true
+    },
+    "normalBuildIncluded": true,
+    "namespaceSemantics": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-main-account-namespace-contract-20261108/NAMESPACE_SEMANTICS_AND_MATCHER_CONTRACT.json",
+      "bytes": 5800,
+      "sha256": "acb12fd3754982f8c2856a22dc5bec9e9ce7b969864eed52879a2731f457c634"
+    },
+    "actualNamespaceSupplier": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/final-r1-tekTqu/HANDOFF.json",
+      "bytes": 6097,
+      "sha256": "34d73d438091f93337cfc6bcb3d5ca76f8ab270db1496394c9018bdea111d97e"
+    },
+    "namespacePrivateABI": {
+      "relative": "source/DeviceV4AccountNamespacePrivate.h",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/final-r1-tekTqu/source/DeviceV4AccountNamespacePrivate.h",
+      "bytes": 750,
+      "sha256": "f0010056aa357f8d3575f73c9b7bc9b6beda5c03d263ec15c6a4659a8b352663"
+    },
+    "actualNamespaceThinWrapper": "DeviceNamespace.cpp",
+    "sourceRefsVerified": 27,
+    "normalQualified": false,
+    "actualRootPositive": false,
+    "currentCommonMinimalCAS": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/current-common-successor/frozen-current-sdR3hJ/HANDOFF.json",
+      "bytes": 3364,
+      "sha256": "377635a8246583ad3650c68f0461a4c7178b0b063fbf2e23788f838de4cff6f6"
+    }
+  },
+  "normalSDKCompositionSuccessors": {
+    "linuxPrimaryDeviceSourceV2": {
+      "H": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-linux-device-v4-source-v2-normal-successor-20261108/HANDOFF.json",
+        "bytes": 13754,
+        "sha256": "22658e93b4b92b345f673cf9d78db427ab0f7a7ccee72b6fcba5a92960670c8d"
+      },
+      "normalInputs": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-linux-device-v4-source-v2-normal-successor-20261108/LINUX_NORMAL_NATIVE_INPUTS.json",
+        "bytes": 4861,
+        "sha256": "f019ae779ae88622a048d91ab62711bce09646e0e71db86f6b85ad32dc7475cd"
+      },
+      "refsVerified": 32,
+      "actualLinuxTargetVerified": false,
+      "actualNamespaceMatcherSupplied": false
+    },
+    "finiteMainReadSameCrate": {
+      "H": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-social-finite-main-read-matching-normal-intake-20261108/HANDOFF.json",
+        "bytes": 12877,
+        "sha256": "a4026e089ac50bb206420c7bb0e45eef88d311fbf276c4999ad37234bbefa2b5"
+      },
+      "compositionCard": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-social-finite-main-read-matching-normal-intake-20261108/NORMAL_COMPOSITION_CARD.json",
+        "bytes": 3089,
+        "sha256": "129cbd1955b02bb990aac21dd062e86de47e19d5217c59bcb17adbf6699504a1"
+      },
+      "sourceCommit": "f38e95245698881ed45353c5813b2a74e2ecd641",
+      "refsVerified": 37,
+      "finiteCrateMatched": true,
+      "normalWholeImageLinked": false
+    },
+    "actualParentIntake": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/evidence/social-joint-sdk-linux-matching-intake-20261108-z8w2upbp/RESULT.json",
+    "secondRuntimeOrFixtureAllowed": false,
+    "RootSourceNativeAdmission": false
+  },
+  "normalObjectTranslationUnits": 10
 }

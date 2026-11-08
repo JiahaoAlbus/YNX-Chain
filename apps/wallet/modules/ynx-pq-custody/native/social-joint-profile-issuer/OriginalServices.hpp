@@ -17,6 +17,9 @@ struct Result {
  std::int32_t first=0;
  bool unknown=false;
  bool physical_done=false;
+ // Internal cleanup progress only: SAME owner join has not reached physical
+ // close selection. Never permits another acquire, nonce, intent or sign.
+ bool original_drain_pending=false;
  bool ok() const noexcept { return !error_present&&!unknown&&first==0; }
 };
 struct SourceInput {
