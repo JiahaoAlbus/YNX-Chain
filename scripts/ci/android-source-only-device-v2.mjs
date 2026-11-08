@@ -1,0 +1,10 @@
+// Only the NEW SOURCE-only extraction/model/type/bundle controls. No old8/7,
+// Native build, Core execution, App/GUI, protected resources or Root operations.
+import fs from'node:fs';import os from'node:os';import path from'node:path';import{fileURLToPath}from'node:url';import{spawnSync}from'node:child_process';
+const root=fileURLToPath(new URL('../..',import.meta.url)),pkg=path.join(root,'packages/wallet-auth'),out=process.env.YNX_SOURCE_TEST_OUT??fs.mkdtempSync(path.join(os.tmpdir(),'ynx-source-only-public-')),env={...process.env,YNX_SOURCE_TEST_OUT:out,YNX_SOURCE_CONTROL_BUNDLE:path.join(out,'SOURCE_ONLY_COLLECTOR.bundle.js')};fs.mkdirSync(out,{recursive:true});
+function run(args){const r=spawnSync(process.execPath,args,{cwd:root,env,stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)process.exit(r.status??1);}
+const data=pkg+'/native/original-source-finite-product-registry-data.json',before=fs.readFileSync(data);run([pkg+'/scripts/build-original-source-finite-product-registry.mjs']);if(!before.equals(fs.readFileSync(data)))throw Error('SOURCE_FINITE_REGISTRY_STALE');
+run([pkg+'/scripts/build-original-device-source-private-bundle.mjs','--out='+out]);
+for(const name of ['source-only-utf8-e8.test.mjs','source-only-dual-core-gates.test.mjs','source-only-node-guard-finite-role.test.mjs','source-only-private-bundle-boot.test.mjs','source-only-private-bundle-composition.test.mjs','source-only-node-legacy-compatibility.test.mjs'])run([pkg+'/test/'+name]);
+run([pkg+'/node_modules/typescript/bin/tsc','--noEmit','--strict','--skipLibCheck','false','--exactOptionalPropertyTypes','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022',pkg+'/test/types/source-only-private.mts']);
+fs.writeFileSync(out+'/PUBLIC_CI_RESULT.json',JSON.stringify({newControlsOnly:true,sourceBundleProduced:true,isolatedNodeVMModelOnly:true,CoreExecuted:false,HermesExecuted:false,NativeCompiled:false,RootAdmission:false,SourceAdmission:false,actualRootKeygenSign:false},null,2)+'\n');console.log('SOURCE-only public evidence: '+out);

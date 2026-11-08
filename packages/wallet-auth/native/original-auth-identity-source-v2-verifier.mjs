@@ -1,3 +1,6 @@
+import{originalDeviceSourceV2NodeKernel}from'./original-auth-source-v2-device-node.mjs';
+import{encodeOriginalAuthSourceStatementV2}from'./original-auth-source-v2-public-codec.mjs';
+export{encodeOriginalAuthSourceStatementV2}from'./original-auth-source-v2-public-codec.mjs';
 import{TASK_READ_RECEIVER_SOURCE_PURPOSE as RCV_PURPOSE,TASK_READ_RECEIVER_SOURCE_SELECTION_KEY as RCV_KEY,TASK_READ_RECEIVER_SOURCE_OPERATIONS as RCV_OPS,inspectOriginalTaskReadReceiverScopeV1DATA}from'./original-task-read-receiver-source-contract.mjs';
 import{SERVER_TLS_SOURCE_PURPOSE as TLS_PURPOSE,SERVER_TLS_SOURCE_SELECTION_KEY as TLS_KEY,SERVER_TLS_SOURCE_OPERATIONS as TLS_OPS,inspectOriginalServerTLSIdentityScopeV1DATA}from'./original-server-tls-source-contract.mjs';
 import{DESKTOP_GRANT_SOURCE_PURPOSE as DGA_PURPOSE,DESKTOP_GRANT_SOURCE_SELECTION_KEY as DGA_KEY,DESKTOP_GRANT_SOURCE_OPERATIONS as DGA_OPS,inspectOriginalDesktopGrantAuthorityScopeV1DATA}from'./original-desktop-task-grant-source-contract.mjs';
@@ -74,11 +77,7 @@ function context(v){
  exact(v,['networkId','owner','keyVersion','executionHeight']);
  if(!hex(v.networkId)||!owner(v.owner))fail('AUTH_SOURCE_V2_CONTEXT');decimal(v.keyVersion,true);decimal(v.executionHeight);return v;
 }
-export function encodeOriginalAuthSourceStatementV2(role,frame,binding,bodyRaw){
- if(!Object.hasOwn(purposes,role)||typeof frame!=='string'||!frame.length||Buffer.byteLength(frame)>512||frame.includes('\0'))fail('AUTH_SOURCE_V2_FRAME');
- context(binding);parse(bodyRaw,65536);
- return new Uint8Array(encodeFields([AUTH_SOURCE_DOMAIN_V2,role,frame,binding.networkId,binding.owner,binding.keyVersion,binding.executionHeight,bodyRaw]));
-}
+
 export function canonicalOriginalAuthSourceEnvelopeV2(role,binding,bodyRaw,memberWire){
  context(binding);encodeOriginalAuthSourceStatementV2(role,'DATA-ONLY-ENCODING',binding,bodyRaw);
  const member=pqBase64url(memberWire);
@@ -109,6 +108,7 @@ function envelope(raw,role,frame,snapshot,networkId,expectedOwner,historicalCurr
 // grant a Source or migrate any other device-purpose family.
 function devicePolicyPlatform(policy){return policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&Object.hasOwn(policy,'platform')?policy.platform:'macos';}
 function sourcePolicy(policy){
+ if(deviceFamily(policy?.signatureContract?.purpose))return originalDeviceSourceV2NodeKernel.sourcePolicy(policy);
  const pqCatalog=policy?.signatureContract?.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const ai=policy?.signatureContract?.purpose===AI_PURPOSE;
  const mobile=policy?.signatureContract?.purpose===WM_PURPOSE;
@@ -143,26 +143,9 @@ export function selectOriginalAuthSourceAlgorithm(subjectSnapshot,credentialVers
 }
 // Same device body checks are used BEFORE protected role-key access/signing
 // and AFTER registered envelope verification. DATA is not a Root/role grant.
-function deviceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
- exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
- if(e.version!==2||e.purpose!==policy.signatureContract.purpose||!deviceFamily(e.purpose)||root.purpose!==e.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==e.purpose||e.productId!==policy.productId||e.platform!==devicePolicyPlatform(policy)||e.applicationId!==policy.applicationId||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||!absolute(e.currentStatePath)||canonical(e.operations)!==canonical(deviceOperations(e.purpose)))fail('AUTH_SOURCE_V2_DEVICE_ENROLLMENT_BODY');
- window(e,atMs,86400000);const height=registrations.root.executionHeight,records=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
- for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
-}
-function deviceProfileBodyDATA(root,e,p,policy,registrations,atMs){
- exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
- if(p.version!==2||p.purpose!==policy.signatureContract.purpose||!deviceFamily(p.purpose)||p.sourceId!==e.sourceId||p.enrollmentDigest!==policy.enrollmentDigest||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('AUTH_SOURCE_V2_PROFILE');
- window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
- const field=deviceField(p.purpose),s=p.selection,hasRuntimeImageBinding=Object.hasOwn(s,'runtimeImageBindingV1');exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',field,...(p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?['originalProvisioningJournal']:p.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE?['originalPendingDeviceJournal']:[]),...(hasRuntimeImageBinding?['runtimeImageBindingV1']:[])]);if(hasRuntimeImageBinding)inspectOriginalAuthRuntimeImageBindingV1DATA(s.runtimeImageBindingV1,p.purpose);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
- if([PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE].includes(p.purpose)){const j=p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?s.originalProvisioningJournal:s.originalPendingDeviceJournal;exact(j,['parent','directory']);for(const t of [j.parent,j.directory]){exact(t,['device','inode','uid','gid','mode']);if(!/^(0|[1-9][0-9]{0,19})$/.test(t.device)||typeof t.device!=='string'||typeof t.inode!=='string'||!/^[1-9][0-9]{0,19}$/.test(t.inode)||!integer(t.uid)||!integer(t.gid)||t.mode!==448)fail('AUTH_SOURCE_V2_PENDING_JOURNAL_IDENTITY');}}
- if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
- const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
- if(r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(deviceOperations(p.purpose))||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
- const data=p.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE?inspectOriginalProductDeviceV4RegisteredFinalizationScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs):p.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE?inspectOriginalProductSessionHTTPProofV5SourceScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs):p.purpose===PRODUCT_DEVICE_V4_QUERY_PURPOSE?inspectOriginalProductDeviceV4QueryScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs):p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?inspectOriginalProductDeviceV4ProvisioningScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs):p.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE?inspectOriginalProductDeviceV4PendingScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs):inspectOriginalProductDeviceV4SourceScopeDATA(s[field],a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
- for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,height);if(data.devicePublic&&(record.pkA===data.devicePublic.pkA||record.pkB===data.devicePublic.pkB))fail('AUTH_SOURCE_V2_DEVICE_KEY_ROLE_COLLISION');}
- const accountRecord=active(registrations.subject,root.networkId,p.subjectOwner,height);if(data.accountAuthorization)for(const k of ['pkA','pkB','revision','registeredAt','activeFrom'])if(accountRecord[k]!==data.accountAuthorization[k])fail('AUTH_SOURCE_V2_DEVICE_ACCOUNT_CURRENT_CHANGED');
- return data;
-}
+const deviceEnrollmentBodyDATA=(...args)=>originalDeviceSourceV2NodeKernel.deviceEnrollmentBodyDATA(...args);
+const deviceProfileBodyDATA=(...args)=>originalDeviceSourceV2NodeKernel.deviceProfileBodyDATA(...args);
+
 export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);if(!deviceFamily(contract.purpose)||!['enrollment','profile'].includes(role))fail('AUTH_SOURCE_V2_DEVICE_ISSUANCE_ROLE_REQUIRED');exact(registrations,['root','profile','current','subject']);
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==contract.purpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
@@ -319,6 +302,7 @@ export function inspectOriginalIDEDeploymentV2IssuanceBodyDATA(role,rootRaw,enro
  return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
 }
 export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs){
+ if(deviceFamily(policy?.signatureContract?.purpose))return originalDeviceSourceV2NodeKernel.verifyEnrollment(rootRaw,enrollmentRaw,policy,registrations,atMs);
  const contract=sourcePolicy(policy);
  const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
  const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
@@ -333,6 +317,7 @@ export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,polic
  return seal({root,enrollment:e,enrollmentBinding:enrollment.binding,executionHeight:registrations.root.executionHeight,dataOnly:true,nativeAdmission:false});
 }
 export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs,networkOriginals){
+ if(deviceFamily(policy?.signatureContract?.purpose))return originalDeviceSourceV2NodeKernel.verifyProfile(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs);
  const contract=sourcePolicy(policy),pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
  const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
  const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
@@ -389,6 +374,7 @@ function verifyProjectAuthority(s,profile,enrollment,root,registrations,at){
  for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,enrollment.profileOwner],[registrations.current,enrollment.currentOwner],[registrations.subject,profile.subjectOwner]]){const other=active(snapshot,root.networkId,id,registrations.root.executionHeight);if(pkA===other.pkA||pkB===other.pkB||(snapshot!==registrations.subject&&(record.pkA===other.pkA||record.pkB===other.pkB)))fail('AUTH_SOURCE_V2_PROJECT_PUBLISHER_ROLE_COLLISION');}
 }
 function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs,historical,networkOriginals){
+ if(deviceFamily(policy?.signatureContract?.purpose))return originalDeviceSourceV2NodeKernel.verifyCurrent(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs,historical);
  const verified=verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs,networkOriginals),contract=sourcePolicy(policy);
  exact(previous,['sequence','floor','head','timeFloor','executionHeight']);
  if(decimal(previous.executionHeight)>decimal(verified.executionHeight))fail('AUTH_SOURCE_V2_OBSERVATION_ROLLBACK');
