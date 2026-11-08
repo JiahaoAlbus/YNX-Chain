@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
-          printf '%s  %s\n' 98119bc96e58dd8788254fc3b6f555b759592bc414412a97a488183f75c51b72 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' d9ef336190d9c35e06ec78feb75f49dfe887a05374546025d9436d4281599f55 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
           tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
           docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
           df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
@@ -86,13 +86,13 @@ jobs:
           printf 'YNX_ACTUAL_OCI_IMAGE=%s\n' "$image_id" >> "$GITHUB_ENV"
           printf 'YNX_ACTUAL_OCI_BINARY=%s\n' "$(command -v docker)" >> "$GITHUB_ENV"
           printf 'YNX_ACTUAL_OCI_SOCKET=/var/run/docker.sock\n' >> "$GITHUB_ENV"
-      - name: Run the sole new actual-container case
+      - name: Run the actual artifact and stored-usage delta
         shell: bash
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/oci-source"
           node --check apps/cloud/client/deployment-observation-cli.fixture.mjs
-          GOMAXPROCS=1 go test -mod=readonly -tags cloud_oci_recovery -count=1 -timeout=180s -json -run '^TestP04ActualOCIOriginalRuntimeReadbackAndMissingInstance$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
+          GOMAXPROCS=1 go test -mod=readonly -tags cloud_oci_recovery -count=1 -timeout=180s -json -run '^TestP04ActualOCIArtifactAndStoredUsageIntegrity$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
       - name: Preserve actual results and scoped cleanup
         if: always()
         shell: bash
