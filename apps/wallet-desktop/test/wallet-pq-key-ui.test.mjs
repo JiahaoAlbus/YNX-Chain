@@ -8,13 +8,13 @@ class Element{
  showModal(){this.open=true;}close(){this.open=false;}
  click(){this.listeners.click?.();}
 }
-function fixture(){
+function fixture(account='TEST-A'){
  const panel=new Element(),doc={querySelector:()=>panel,createElement:()=>new Element()};
- let state={account:'TEST-A',revision:1,locked:false,authenticating:false},generates=0,reads=0,reconciles=0;
+ let state={account,revision:1,locked:false,authenticating:false},generates=0,reads=0,reconciles=0;
  const api={generatePQKeys:async()=>{generates++;return {ok:true,value:{persisted:true,phase:'saved'}};},recoverPQKeys:async()=>{reads++;reconciles++;return {ok:true,value:{persisted:true,phase:'saved'}};}};
  const ui=createPQKeyPreparationUI({api,getKeyState:()=>state,document:doc});ui.render();
  const [title,help,prepare,check,result,dialog]=panel.children[0].children,[notice,confirm,cancel]=dialog.children;
- return {ui,api,prepare,check,result,dialog,confirm,cancel,policyCheck:panel.children[0].children[6],policyResult:panel.children[0].children[7],lock:()=>state={...state,revision:2,locked:true},counts:()=>({generates,reads,reconciles})};
+ return {ui,api,prepare,check,result,dialog,confirm,cancel,policyCheck:panel.children[0].children[6],policyResult:panel.children[0].children[7],publicRead:panel.children[0].children[8],publicResult:panel.children[0].children[9],publicDetails:panel.children[0].children[10],get publicJSON(){return panel.children[0].children[10]?.children[1];},lock:()=>state={...state,revision:2,locked:true},counts:()=>({generates,reads,reconciles})};
 }
 const settled=()=>new Promise(resolve=>setImmediate(resolve));
 test('PQ preparation UI requires modal confirmation; cancel does not generate',async()=>{
@@ -44,4 +44,19 @@ test('normal policy UI retains unavailable instead of displaying legacy or accep
  for(const response of [{ok:false,error:{code:'AUTH_POLICY_SOURCE_UNAVAILABLE'}},{ok:true,value:{...policyValue(),account:'TEST-B'}},{ok:true,value:{...policyValue(),signingAuthorized:true}}]){
   const f=fixture();f.api.pqAccountAuthorization=async()=>response;f.ui.render();f.policyCheck.click();await settled();assert.match(f.policyResult.textContent,/account state not inferred/);assert.equal(f.counts().generates,0);
  }
+});
+
+const publicOwner='0x'+'11'.repeat(20);
+const publicPacket=()=>({kind:'YNX_WALLET_PQ_PUBLIC_PROPOSAL/v1',protocolVersion:'YNX-BATCH/v0.1',suite:'ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',networkId:'ab'.repeat(32),nativeChainId:'6423',owner:publicOwner,pkA:'cd'.repeat(2592),pkB:'ef'.repeat(64),publicBindingSHA256:'12'.repeat(32),chainRegistrationVerified:false,SourceAdmission:false,signed:false,broadcast:false,privateMaterialIncluded:false});
+test('public proposal: normal button reads only existing public tuple and does not prepare keys',async()=>{
+ const f=fixture(publicOwner);let calls=0,args;f.api.readPQPublicProposal=async(...a)=>{calls++;args=a;return {ok:true,value:publicPacket()};};f.ui.render();assert(f.publicRead);f.publicRead.click();await settled();assert.equal(calls,1);assert.deepEqual(args,[]);assert.deepEqual(JSON.parse(f.publicJSON.value),publicPacket());assert.equal(f.publicDetails.hidden,false);assert.match(f.publicResult.textContent,/registration not verified/);assert.deepEqual(f.counts(),{generates:0,reads:0,reconciles:0});assert.equal(f.dialog.open,false);
+});
+test('public proposal: extra private fields and authority claims never reach displayed JSON',async()=>{
+ for(const delta of [{credential:'PUBLIC-sensitive-must-not-render'},{wire:'PUBLIC-sensitive-must-not-render'},{SourceAdmission:true},{owner:'0x'+'22'.repeat(20)},{pkA:'ff'}]){const f=fixture(publicOwner);f.api.readPQPublicProposal=async()=>({ok:true,value:{...publicPacket(),...delta}});f.ui.render();assert(f.publicRead);f.publicRead.click();await settled();assert.equal(f.publicJSON.value,'');assert.equal(f.publicDetails.hidden,true);assert.doesNotMatch(f.publicResult.textContent,/PUBLIC-sensitive/);assert.deepEqual(f.counts(),{generates:0,reads:0,reconciles:0});}
+});
+test('public proposal: pending read is single-flight and lock discards its late public result',async()=>{
+ const f=fixture(publicOwner);let release,calls=0;f.api.readPQPublicProposal=()=>{calls++;return new Promise(r=>release=r);};f.ui.render();assert(f.publicRead);f.publicRead.click();f.publicRead.click();assert.equal(calls,1);f.lock();f.ui.invalidate();release({ok:true,value:publicPacket()});await settled();assert.equal(f.publicJSON.value,'');assert.equal(f.publicResult.textContent,'');assert.equal(f.publicDetails.hidden,true);assert.equal(f.publicRead.disabled,true);
+});
+test('public proposal: rendering a new locked generation clears an already shown tuple',async()=>{
+ const f=fixture(publicOwner);f.api.readPQPublicProposal=async()=>({ok:true,value:publicPacket()});f.ui.render();assert(f.publicRead);f.publicRead.click();await settled();assert(f.publicJSON.value);f.lock();f.ui.render();assert.equal(f.publicJSON.value,'');assert.equal(f.publicDetails.hidden,true);assert.equal(f.publicRead.disabled,true);
 });
