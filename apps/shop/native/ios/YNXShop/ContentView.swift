@@ -13,6 +13,8 @@ struct ContentView:View {
     @EnvironmentObject var model:ShopModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab=0
+    @State private var desktopPath=NavigationPath()
+    private var desktopSelection:Binding<Int>{Binding(get:{selectedTab},set:{value in desktopPath=NavigationPath();selectedTab=value})}
     @AppStorage("shop-text-size") private var textSize="standard"
     @AppStorage("shop-color-scheme") private var themeChoice="system"
     private var textScale:CGFloat{textSize=="compact" ? 0.925:textSize=="larger" ? 1.15:1}
@@ -21,8 +23,8 @@ struct ContentView:View {
             let desktop=geometry.size.width>=900
             Group {
                 if desktop {
-                    NavigationStack{page(desktop:true).id(selectedTab)}
-                        .safeAreaInset(edge:.top,spacing:0){DesktopShopHeader(selectedTab:$selectedTab)}
+                    NavigationStack(path:$desktopPath){page(desktop:true).id(selectedTab)}
+                        .safeAreaInset(edge:.top,spacing:0){DesktopShopHeader(selectedTab:desktopSelection)}
                 } else {
                     TabView(selection:$selectedTab){
                         NavigationStack{CatalogView(searchOnly:false)}.tabItem{Label("nav_catalog",systemImage:"house")}.tag(0)
@@ -72,7 +74,7 @@ struct DesktopShopHeader:View {
             if spacious{Button("nav_catalog"){selectedTab=0}.buttonStyle(ShopButtonStyle(kind:selectedTab==0 ? .quiet:.secondary));Button("nav_orders"){selectedTab=3}.buttonStyle(ShopButtonStyle(kind:.quiet))}
             Spacer(minLength:8)
             ShopSearchField{selectedTab=1;Task{await model.loadCatalog()}}.frame(maxWidth:spacious ? 400:300)
-            Button{selectedTab=2}label:{Label{if spacious{Text("nav_cart")};if !model.cart.isEmpty{Text("\(model.cart.count)")}}icon:{Image(systemName:"cart")}}.buttonStyle(.plain)
+            Button{selectedTab=2}label:{Label{if spacious{Text("nav_cart")};if !model.cart.isEmpty{Text("\(model.cart.count)")}}icon:{Image(systemName:"cart")}}.buttonStyle(.plain).accessibilityLabel("nav_cart")
             Button(model.signedIn ? "wallet_active":"wallet_sign_in"){if model.signedIn{selectedTab=4}else{model.signIn()}}.buttonStyle(ShopButtonStyle(kind:.secondary))
             Button{selectedTab=4}label:{Image(systemName:"person.crop.circle").font(.title2)}.buttonStyle(.plain).accessibilityLabel("nav_account")
             Menu{Button("nav_catalog"){selectedTab=0};Button("nav_orders"){selectedTab=3};Button("nav_account"){selectedTab=4};Divider();Button("seller_console"){seller.workspaceVisible=true};Link("merchant_invoices",destination:URL(string:"https://pay.ynxweb4.com/merchant/")!)}label:{Image(systemName:"square.grid.2x2")}.menuStyle(.automatic).fixedSize().accessibilityLabel("commerce_services")
@@ -127,7 +129,7 @@ struct CatalogView:View {
             if displayed.isEmpty {
                 if model.catalogPhase=="loading" || model.catalogPhase=="idle"{ProgressView().frame(maxWidth:.infinity,minHeight:180)}
                 else if model.catalogPhase=="failed" || model.catalogPhase=="offline"{ContentUnavailableView(model.catalogPhase=="offline" ? "shop_catalog_offline":"shop_catalog_failed",systemImage:"wifi.exclamationmark",description:Text("shop_catalog_retry_note"));Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
-                else{ContentUnavailableView(model.products.isEmpty ? "empty_catalog":"shop_no_filter_matches",systemImage:"magnifyingglass",description:Text("no_fake_records")).frame(maxWidth:.infinity,minHeight:220);Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
+                else{ContentUnavailableView(model.products.isEmpty && (model.catalogLoadedQuery ?? "").trimmingCharacters(in:.whitespacesAndNewlines).isEmpty ? "empty_catalog":"shop_no_filter_matches",systemImage:"magnifyingglass",description:Text("no_fake_records")).frame(maxWidth:.infinity,minHeight:220);Button("retry"){Task{await model.loadCatalog()}}.buttonStyle(ShopButtonStyle(kind:.secondary))}
             } else {
                 LazyVGrid(columns:[GridItem(.adaptive(minimum:desktop ? 220:150,maximum:desktop ? 320:260),spacing:20)],alignment:.leading,spacing:20){ForEach(displayed){product in
                     ShopProductCard(product:product,selected:comparisonIDs.contains(product.productID)){if comparisonIDs.contains(product.productID){comparisonIDs.remove(product.productID)}else if comparisonIDs.count<3{comparisonIDs.insert(product.productID)}}
@@ -281,8 +283,9 @@ struct CartView:View {
     var body:some View{GeometryReader{geometry in
         let desktop=geometry.size.width>=1000
         ScrollView{VStack(alignment:.leading,spacing:24){
-            HStack{ShopSectionTitle(title:"nav_cart");Text("\(model.cart.count)").foregroundStyle(ShopTheme.secondary).monospacedDigit()}
-            if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart").frame(maxWidth:.infinity,minHeight:260)}
+            HStack{ShopSectionTitle(title:"nav_cart");if !model.localDataLocked{Text("\(model.cart.count)").foregroundStyle(ShopTheme.secondary).monospacedDigit()}}
+            if model.localDataLocked{ContentUnavailableView("unlock_local_data",systemImage:"lock",description:Text("local_data_locked")).frame(maxWidth:.infinity,minHeight:260)}
+            else if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart").frame(maxWidth:.infinity,minHeight:260)}
             else if desktop{HStack(alignment:.top,spacing:32){cartLines;CartSummary(showCheckout:true).frame(width:360)}}
             else{cartLines;CartSummary(showCheckout:true)}
             if model.checkoutRecoveryRequired{ShopNotice(title:"cart_checkout_recovery_required",symbol:"clock.arrow.circlepath",warning:true)}

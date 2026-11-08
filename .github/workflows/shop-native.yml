@@ -48,6 +48,7 @@ jobs:
       source-only: ${{ steps.scope.outputs.source-only }}
       lifecycle-fixture-only: ${{ steps.scope.outputs.lifecycle-fixture-only }}
       native-client-only: ${{ steps.scope.outputs.native-client-only }}
+      apple-view-only: ${{ steps.scope.outputs.apple-view-only }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
       receipt-test-delta: ${{ steps.scope.outputs.receipt-test-delta }}
       fulfillment-only: ${{ steps.scope.outputs.fulfillment-only }}
@@ -90,6 +91,8 @@ jobs:
           allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml", "go.mod"}
           navigation_files = {"apps/shop/native/pay-intent-navigation.mjs", "apps/shop/native/pay-intent-navigation.test.mjs", "apps/shop/native/scripts/prepare-pay-operation-test-source.mjs", "apps/shop/native/testdata/pay-original-operation-source.json"}
           navigation_only = bool(changed) and any(p in navigation_files for p in changed) and all(p in navigation_files or p == ".github/workflows/shop-native.yml" for p in changed)
+          apple_view_files = {"apps/shop/native/ios/YNXShop/ContentView.swift", ".github/workflows/shop-native.yml"}
+          apple_view_only = bool(changed) and "apps/shop/native/ios/YNXShop/ContentView.swift" in changed and all(p in apple_view_files for p in changed)
           native_client_only = bool(changed) and any(p.startswith("apps/shop/native/") for p in changed) and all(p.startswith("apps/shop/native/") or p == ".github/workflows/shop-native.yml" for p in changed)
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           lifecycle_fixture_files = {"internal/commerce/business_native_intent_test.go", "internal/commerce/business_native_invoice_test.go", "internal/commerce/native_order_cancellation_test.go"}
@@ -144,6 +147,7 @@ jobs:
               output.write("fulfillment-only=" + str(fulfillment_only).lower() + "\n")
               output.write("fulfillment-checks=" + str(fulfillment_checks).lower() + "\n")
               output.write("receipt-test-delta=" + str(receipt_test_delta).lower() + "\n")
+              output.write("apple-view-only=" + str(apple_view_only).lower() + "\n")
               output.write("native-client-only=" + str(native_client_only).lower() + "\n")
               output.write("source-only=" + str(source_only).lower() + "\n")
               output.write("lifecycle-fixture-only=" + str(lifecycle_fixture_only).lower() + "\n")
@@ -169,7 +173,7 @@ jobs:
         run: node --test apps/shop/native/pay-intent-navigation.test.mjs
   order-recovery:
     needs: change-scope
-    if: needs.change-scope.outputs.navigation-only != 'true'
+    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.apple-view-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -311,7 +315,7 @@ jobs:
 
   android-app-candidate:
     needs: change-scope
-    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
+    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true' && needs.change-scope.outputs.apple-view-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -362,7 +366,7 @@ jobs:
             apps/shop/native/ios/YNXShop/ContentView.swift
 
   macos-candidate:
-    needs: language-regression
+    needs: [change-scope, language-regression]
     runs-on: macos-15
     timeout-minutes: 15
     defaults:
@@ -407,11 +411,13 @@ jobs:
         with:
           go-version-file: go.mod
       - name: Produce the actual normal Seller and checkout native-price fixture
+        if: needs.change-scope.outputs.apple-view-only != 'true'
         working-directory: .
         env:
           P07_PUBLIC_NATIVE_PRICE_ORDER_FIXTURE: ${{ runner.temp }}/ynx-shop-public-native-price-order.json
         run: go test -mod=readonly -tags commerce_v2 ./internal/commerce -run '^TestNativePriceNormalSellerHTTPOrderDATA$' -count=1
       - name: Check literal searches and late catalog responses with the actual model
+        if: needs.change-scope.outputs.apple-view-only != 'true'
         env:
           YNX_SHOP_NATIVE_PRICE_FIXTURE: ${{ runner.temp }}/ynx-shop-public-native-price-order.json
         run: |
@@ -470,7 +476,7 @@ jobs:
             ${{ runner.temp }}/ynx-shop-native-seller-engine.log
 
   ios-simulator:
-    needs: language-regression
+    needs: [change-scope, language-regression]
     runs-on: macos-15
     timeout-minutes: 15
     defaults:
@@ -507,6 +513,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build | tee "$RUNNER_TEMP/ynx-shop-ios-build.log"
       - name: Check invoice preview context using the actual generated Native pin
+        if: needs.change-scope.outputs.apple-view-only != 'true'
         run: |
           set -euo pipefail
           SDK_PIN="$(find "$RUNNER_TEMP/YNXShopDerivedData" -path '*/commerce-native-r9/NativeSDKPin.swift' -print -quit)"
