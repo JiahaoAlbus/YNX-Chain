@@ -433,7 +433,7 @@ export class DesktopWalletAuthority {
     let effectEntered=false;
     const assertView=()=>{permission?.assert();if(effectEntered)guard.assertEffectCurrent();else guard.assert();};
     const registrationReview=registration?readOriginalDeviceRegistrationAccountReview(registration):null;
-    const completion=registrationReview?.kind==='completion';
+    const completion=registrationReview?.kind==='completion',approvalOnly=registrationReview?.kind==='account-approval-only';
     if(registrationReview&&(request.version!=='4'||typeof guard.submit!=='function'||typeof guard.assertEffectCurrent!=='function'))throw providerError(4100,'DEVICE_REGISTRATION_EFFECT_GUARD_REQUIRED','Original V4 approval requires the same effect guard.');
     if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Review the selected original account.');
     if(!this.#pqNetworkId||!this.#pqSessionRecognized)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','The fixed committed policy source is required.');
@@ -499,7 +499,7 @@ export class DesktopWalletAuthority {
       if(savePass)await savePass;
       }
       assertView();if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');assertView();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
-      if(registration){
+      if(registration&&!approvalOnly){
         const current=()=>{assertView();owner.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());};
         result=await (completion?submitOriginalDeviceRegistrationCompletion:submitOriginalDeviceRegistrationPair)(registration,{store,token,approvalOriginal:result.approvalOriginal,policyRef:observation,assertCurrent:current,
           submit:action=>{current();effectEntered=true;return guard.submit(action);}});
@@ -519,7 +519,7 @@ export class DesktopWalletAuthority {
     if(failed)throw cause;
     try{assertView();productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock());}
     catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}if(completion)try{await recordOriginalDeviceCompletionFailure(registration,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
-    if(registration)return Object.freeze({...result,retained:true,originalRequestId,registered:false,newSession:false});
+    if(registration)return Object.freeze({...result,retained:true,originalRequestId,...(approvalOnly?{phase:'account-approval-retained',operationId:registrationReview.operationId,requestDigest:registrationReview.requestDigest,pairSubmitted:false,connected:false,SourceAdmission:false,NativeAdmission:false}:{}),registered:false,newSession:false});
     if(result.approval.version==='3'&&this.#sessionReturnClient){
       const original=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
       try{result=Object.freeze({...result,callbackUrl:await prepareSessionPublicationReturn({store,client:this.#sessionReturnClient,original,guard:()=>guard.assert(),clock:this.clock})});}

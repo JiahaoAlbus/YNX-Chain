@@ -1,5 +1,6 @@
 // Main-only, fixed SDK registration caller. No caller-supplied Source, signer,
 // client, endpoint or registration-success DTO is accepted by this factory.
+import {inspectOriginalDeviceAccountApprovalDATA} from './wallet-device-first-approval-data.mjs';
 import {randomUUID} from 'node:crypto';
 import {types} from 'node:util';
 import {evmAddressFromYNX,canonicalJSON} from '@ynx-chain/wallet-auth';
@@ -193,7 +194,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
  let active=null,closed=false;
  const localStorage=r=>r?.kind==='completion'&&r?.completionToken?r.store.readSessionCompletionStorageDATA(r.completionToken):null;
  const status=r=>Object.freeze({requestId:r?.request?.id??null,account:r?.security.account??null,phase:r?.phase??'idle',
-   phaseKind:r?.kind??'pair',
+   phaseKind:r?.kind??'pair',...(r?.kind==='account-approval-only'?{accountApprovalOnly:true,pairSubmitted:false}:{}),
    operationId:r?.view?.scope.pendingId??null,requestDigest:r?.view?.requestDigest??null,
    originalResponseRetained:r?.responseCaptured??false,responseSaved:r?.responseSaved??false,
    accountApprovalOriginalRetained:r?.approvalReturned??false,accountApprovalSaved:r?.approvalSaved??false,
@@ -248,6 +249,28 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   }catch(e){remember(r,e);if(r.phase!=='query-only')r.phase='failed-before-account';try{await closeOriginalDeviceRegistrationClient(r.port);}catch{}finishLocal(r);throw e;}})();
   r.inFlight=pass;try{return await pass;}finally{r.inFlight=null;}
  }
+ // Main-only public DATA intake, not an IPC argument or Source factory. The
+ // fixed original product/OS DEVICE request producer remains a separate owner.
+ async function prepareAccountApprovalReview(selection,originals){
+  if(arguments.length!==2)fail('DEVICE_ACCOUNT_PUBLIC_ORIGINAL_REQUIRED');
+  if(closed||active&&(!active.clientClosed||active.decided||active.inFlight))fail('DEVICE_REGISTRATION_ORIGINAL_UNRESOLVED');
+  const guard=vault.authorization.current();guard.assert();const security=vault.authorization.status();
+  const view=inspectOriginalDeviceAccountApprovalDATA(selection,originals,{networkId,account:security.account,at:new Date()});guard.assert();
+  const r={security,kind:'account-approval-only',view,phase:'preparing-account-review',abort:new AbortController(),firstPresent:false,clientClosed:false,clockFloor:Date.now()};
+  r.context=Object.freeze({signal:r.abort.signal});r.current=()=>current(r);r.port=Object.freeze(Object.create(null));ports.set(r.port,r);active=r;
+  r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==security.account||s.revision!==security.revision)retire(r,Error('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED'));});
+  const task=(async()=>{try{
+   const store=authority.transactionSender?.submissions?.intentStore;if(!store)fail('SESSION_ORIGINAL_STORE_REQUIRED');
+   const saved=await store.readSessionOriginal(security.account,view.requestDigest,()=>current(r));current(r);
+   if(saved){r.phase='query-only';fail('DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY');}
+   const request=view.request;
+   r.request=Object.freeze({id:randomUUID(),origin:request.origin,method:'ynx_approveProductDeviceV4Account',params:Object.freeze([]),createdAt:request.issuedAt,
+    review:Object.freeze({title:'Approve account for the original app device / 独立批准原应用设备',account:security.account,productId:request.productId,clientId:request.clientId,platform:request.platform,applicationId:request.applicationId,origin:request.origin,callback:request.callback,deviceId:request.deviceId,networkId,operationId:view.scope.pendingId,requestDigest:view.requestDigest,deviceRegistrationId:request.deviceRegistrationId,deviceRegistrationRevision:request.deviceRegistrationRevision,deviceRegistrationDigest:request.deviceRegistrationDigest,scopes:request.scopes,expiresAt:view.originalWindow.expiresAt,devicePublicKeys:Object.freeze({pkA:view.record.pkA,pkB:view.record.pkB}),
+     warning:'Only retain this independently approved account signature for the original request. No device registration, pair submission, issuer HTTP, session or cross-OS authority is granted. / 仅保管本次独立账户批准原件，不登记设备、不配对、不发起 HTTP、不创建会话。'})});
+   r.phase='review';return r.request;
+  }catch(e){remember(r,e);if(r.phase!=='query-only')r.phase='failed-before-account';try{await closeOriginalDeviceRegistrationClient(r.port);}catch{}finishLocal(r);throw e;}})();
+  r.inFlight=task;try{return await task;}finally{r.inFlight=null;}
+ }
  async function prepareCompletionReview(digest){
   if(arguments.length!==1||typeof digest!=='string'||!/^[0-9a-f]{64}$/.test(digest))fail('DEVICE_COMPLETION_ORIGINAL_DIGEST_REQUIRED');
   if(closed||active&&(!active.clientClosed||active.inFlight))fail('DEVICE_REGISTRATION_ORIGINAL_UNRESOLVED');
@@ -293,7 +316,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   sender.on('destroyed',r.peer.revoke);sender.on('did-start-navigation',r.peer.revoke);
   r.decided=true;r.phase='approving-account';const permission=Object.freeze({assert:()=>current(r)});
   const pass=(async()=>{let failed=false,cause;
-   try{await authority.approveOriginalDeviceRegistration(r.port,permission);}
+   try{await authority.approveOriginalDeviceRegistration(r.port,permission);if(r.kind==='account-approval-only')r.phase='account-approval-retained';}
    catch(e){failed=true;cause=e;remember(r,e);if(!['original-pair-unknown','original-completion-unknown'].includes(r.phase))r.phase=r.kind==='completion'?'original-completion-unknown':'original-approval-unknown';}
    finally{
     try{await closeOriginalDeviceRegistrationClient(r.port);}
@@ -306,7 +329,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   return status(r); // Cleanup AND this phase's in-flight state have settled.
  }
  async function rejectOriginal(id){const r=selected(id);retire(r,Error('DEVICE_REGISTRATION_USER_REJECTED'));if(r.inFlight)try{await r.inFlight;}catch{}
-  await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);r.phase=r.decided?'original-pair-unknown':'cancelled-before-account';return status(r);}
+  await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);r.phase=r.decided?(r.kind==='account-approval-only'?(r.approvalSaved?'account-approval-retained':'original-approval-unknown'):'original-pair-unknown'):'cancelled-before-account';return status(r);}
  async function close(){closed=true;const r=active;if(!r)return;retire(r,Error('DEVICE_REGISTRATION_CLOSING'));if(r.inFlight)try{await r.inFlight;}catch{}
   await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);
   if(r.store&&(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved||r.nativeMemberCaptured&&!r.nativeMemberSaved)){
@@ -341,6 +364,6 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   r.nativeMemberSaved=r.nativeMemberCaptured===true;r.completionEntrySaved=r.completionEntrySelected===true;r.responseSaved=r.responseCaptured===true;
   return saved;
  }
- return Object.freeze({prepareReview,prepareCompletionReview,approveOriginal,rejectOriginal,readOriginalPairOutcome,readOriginalCompletionOutcome,saveOriginalCompletionOutcome,close,readStatusDATA:()=>status(active),
+ return Object.freeze({prepareReview,prepareAccountApprovalReview,prepareCompletionReview,approveOriginal,rejectOriginal,readOriginalPairOutcome,readOriginalCompletionOutcome,saveOriginalCompletionOutcome,close,readStatusDATA:()=>status(active),
   isPendingReview:id=>active?.request?.id===id&&active.phase==='review'&&!active.retired&&!closed});
 }
