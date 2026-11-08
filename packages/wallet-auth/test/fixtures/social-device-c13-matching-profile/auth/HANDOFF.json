@@ -1,0 +1,99 @@
+{
+  "schema": "AUTH_PRIMARY_DEVICE_ACCOUNT_NAMESPACE_MATCHER/v1",
+  "state": "IMPLEMENTED_FOCUSED_VERIFIED_NOT_DEPLOYED",
+  "sourceRoot": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/final-r1-tekTqu",
+  "git": null,
+  "sourcePins": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/final-r1-tekTqu/SOURCEPINS.json",
+    "bytes": 10036,
+    "sha256": "f8fc8f2583081a78a7cff8fb9c44d5663a630e4ba10298c0dd8fd469b6c6c643"
+  },
+  "CAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/namespace-matcher-successor/final-r1-tekTqu/CAS.json",
+    "bytes": 2363,
+    "sha256": "3a9fd78b9eaf2cc0ab4e264c6e765bd13983030072821e29f6e598fad4d2521c"
+  },
+  "semanticContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-main-account-namespace-contract-20261108/NAMESPACE_SEMANTICS_AND_MATCHER_CONTRACT.json",
+    "bytes": 5800,
+    "sha256": "acb12fd3754982f8c2856a22dc5bec9e9ce7b969864eed52879a2731f457c634"
+  },
+  "inherited": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/darwin-policy-final-r1-q4Quo7/HANDOFF.json",
+      "bytes": 3743,
+      "sha256": "e8cfc82cd3277640e1a2b94e02bc31fff59455380b854d44dc613029775ad379"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-native-source-borrow-successor/linux-reader-final-r1-OxmQaN/HANDOFF.json",
+      "bytes": 6276,
+      "sha256": "172ff34d36297ba1f8cb6d028c1dc0f56a0995c3d33f94644b34ba5f20ca76b8"
+    }
+  ],
+  "privateAPI": {
+    "header": "source/DeviceV4AccountNamespacePrivate.h",
+    "strong": "ynx_auth_device_v4_view_match_account_namespace_v1(SAMEview,issuerSpan,subjectSpan)",
+    "return": "{pairedFailure,matched}; numeric code0 presence preserved; matched0 not grant",
+    "Main": "Input tuple only from independent current genuine Main pair; Native still checks Main/current and all existing AND gates",
+    "scope": "Only fresh current primary product-session-device-source-v4. No public expected17/context12 change, no new signed fields/domains, no second Root issuer mapping"
+  },
+  "actualProductionPath": {
+    "math": "SAME full Source-v2 Root/N1/enrollment/profile/current+registered subject/device/session chain -> private productDeviceAccountNamespaceDATA6",
+    "typedProjection": [
+      "purpose",
+      "sourceId",
+      "instanceId",
+      "generation",
+      "accountIssuer",
+      "accountSubject"
+    ],
+    "derivation": "issuer from verified.enrollment.gatewayOrigin and subject from verified.profile.selection.association.account only in existing closed Wallet Auth account namespace; not generic URL equality",
+    "Darwin": "same SourceAuthority verifier completion caches typed DATA -> actual token-scoped getter -> concrete Backend Snapshot -> same C view",
+    "Linux": "same pinned original verifier private pipe projection -> concrete Backend Snapshot -> same C view; no additional Root JSON parser",
+    "matcher": "recognize original inventory/actor -> full same view current -> exact bytes -> full same view current/local original wall+mono fence",
+    "compatibility": "absent typed projection only matcher NOT_SUPPLIED; old v1 reads remain allowed if independently qualified, wrong comparison does not poison valid Source"
+  },
+  "ownership": "SAME sourceId/instance/generation stored privately on held view and compared on every snapshot; original Source and deadline held, no refresh/re-capture/Root or permission mint. Current is full actor I/O, no Store/write lock. Old C view ABI untouched.",
+  "normalBuild": {
+    "ADD": "source/DeviceV4AccountNamespacePrivate.h",
+    "changedPrivate": [
+      "DeviceV4SourceBackendPrivate.hpp",
+      "DeviceV4SourceBorrow.cpp",
+      "DeviceV4SourceDarwinPrivate.hpp",
+      "DeviceV4SourceDarwin.mm",
+      "DeviceV4SourceLinux.cpp",
+      "device_v4_source_borrow_methods.inc.mm"
+    ],
+    "sourceTU": "common-cas/after/... same guarded append only; keep existing other Root/IDE/Product/Browser/AI patches",
+    "guard": "YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE",
+    "Registrar": "no new public JS export, old fixed NAPI borrow stays same; new private C matcher is strong in Borrow.cpp",
+    "alternatives": "Darwin and Linux Backend implementations compile separately, never both linked in same normal image",
+    "SDK": "sole owner consumes verifier exact CAS after earlier primary-Linux policy2leaf supplier; update fullclosure pins normally, no hot deployment"
+  },
+  "verification": {
+    "actualObjectCompile4": "objects-HkXYMc/RESULT.json",
+    "C11": "existing failure size24/matched offset24 -Wall/-Wextra/-Werror0",
+    "NativePUBLICBoundary8": "native-8FgnAv/RESULT.json",
+    "NativeTailAndSameSource3": "native-ylwqUP/RESULT.json",
+    "actualFullN1PrivateProjection1": "math-RMj8gm/RESULT.json",
+    "firstRED": "math-7Ni0M5/RESULT.json: test incorrectly expected Linux HTTP5 fixture to pass old Mac-only family. Corrected expectation to reject; no production guard relaxed.",
+    "oldDevice12Linux8AndObjects5": "reused, not rerun",
+    "target": "Darwin native PUBLIC boundary; mathematical Node26.7/OpenSSL3.6.4 PUBLIC role keys only, not target24/native Root admission",
+    "LinuxNewNamespace": "compile only; existing Linux reader evidence reused, no fresh actual Linux qualification"
+  },
+  "claims": {
+    "RootRowsAdded": 0,
+    "newRootMapping": false,
+    "newVerifier": false,
+    "newSigningDomain": false,
+    "SourceAdmission": false,
+    "actualMainDeviceMatch": false,
+    "actualRegisteredMaterials": false,
+    "actualSourceInstance": false,
+    "signing": false,
+    "services": false,
+    "installed": false,
+    "wholeNative": false
+  },
+  "handoff": "parent sole composes minimal SourceAuthority/verifier CAS and Native sole uses private matcher with genuine Main tuple/current. New helper DATA or source claims alone never admit Root."
+}
