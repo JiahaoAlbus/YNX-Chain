@@ -17,6 +17,59 @@ operator_transition_quiesce_all() {
   done
 }
 
+operator_transition_capacity_role() {
+  local role="$1" user="$2" host="$3" key="$4"
+  local local_root="$phase_root/capacity/$role" small upload remote_stage small_archive small_pin request_pin small_size
+  mkdir -m 0700 "$local_root" || return $?
+  small="$local_root/source"; small_archive="$local_root/source.tar.gz"
+  mkdir -m 0700 "$small" "$small/old-package" "$small/old-package/common" "$small/old-role" "$small/old-role/scripts" "$small/old-role/systemd" || return $?
+  cp scripts/ops/remote/public-bft-operator-transition.sh "$small/helper.sh" || return $?
+  cp "$approval" "$small/approval.json" || return $?
+  cp "$old_bundle/SOURCE.json" "$small/old-SOURCE.json" || return $?
+  cp "$bundle/SOURCE.json" "$small/SOURCE.json" || return $?
+  cp "$old_package/common/operator-plan.json" "$small/old-package/common/operator-plan.json" || return $?
+  cp "$old_package/package-manifest.json" "$small/old-package/package-manifest.json" || return $?
+  cp "$old_package/roles/$role/role-manifest.json" "$small/old-role/role-manifest.json" || return $?
+  cp "$old_package/roles/$role/scripts/start-operator.sh" "$small/old-role/scripts/start-operator.sh" || return $?
+  cp "$old_package/roles/$role/systemd/ynx-consensus-operator-candidate.service" "$small/old-role/systemd/ynx-consensus-operator-candidate.service" || return $?
+  python3 -B "$payload_helper" capacity-request --catalog "$payload_plan" --binding "$phase_root/$role.binding.json" --bridge "$bridge" --output "$small/request.json" || return $?
+  small_size="$(python3 -B "$payload_helper" capacity-size --directory "$small")" || return $?
+  (set -o noclobber; tar -czf - -C "$small" . >"$small_archive") || return $?
+  small_pin="$(operator_transition_sha "$small_archive")" || return $?
+  request_pin="$(operator_transition_sha "$small/request.json")" || return $?
+  remote_stage="/opt/ynx-chain/operator-transitions/$tx/$role/capacity"
+  upload="/opt/ynx-chain/operator-transitions/$tx/$role/capacity-source.tar.gz"
+  # Exclusive read-only preflight staging is retained even if later capacity
+  # fails. It is never a freeze, service mutation, alternate package or retry.
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; parent='/opt/ynx-chain/operator-transitions/$tx/$role'; sudo mkdir -p \"\$parent\"; sudo test \"\$(realpath -e \"\$parent\")\" = \"\$parent\"; free=\$(df -PB1 \"\$parent\" | awk 'NR==2 {print \$4}'); test \"\$free\" -gt '$((small_size * 2 + 1073741824))'; sudo mkdir -m 0700 '$remote_stage'; sudo bash -c 'set -o noclobber; : > \"\$1\"' _ '$upload'; sudo chown \"\$(id -un)\" '$upload'" >"$local_root/reserve.txt" || return $?
+  ynx_ops_copy "$role" "$user" "$host" "$key" "$small_archive" "$upload" || return $?
+  (set -o noclobber; printf '%s\n' "$request_pin" >"$local_root/dispatched") || return $?
+  operator_transition_sync "$local_root/dispatched" "$local_root" || return $?
+  (set -o noclobber; ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$small_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo tar --no-same-owner -xzf '$upload' -C '$remote_stage'; printf '%s  %s\\n' '$helper_pin' '$remote_stage/helper.sh' '$request_pin' '$remote_stage/request.json' | sudo sha256sum --strict -c - >/dev/null; sudo bash '$remote_stage/helper.sh' capacity '$tx' '$role' '$remote_stage' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$commit' '$manifest' '$helper_pin' '$request_pin'" >"$local_root/receipt.partial" 2>"$local_root/error.txt") || return $?
+  python3 -B "$payload_helper" capacity-accept --request "$small/request.json" --receipt "$local_root/receipt.partial" --binding "$phase_root/$role.binding.json" || return $?
+  # Copy the original stdout without reserialization; each remains single-link.
+  (set -o noclobber; cat "$local_root/receipt.partial" >"$local_root/receipt.json") || return $?
+  operator_transition_sync "$local_root/receipt.json" "$local_root" || return $?
+}
+
+operator_transition_capacity_all() {
+  mkdir -m 0700 "$phase_root/capacity" || return $?
+  # Probe all four independent original hosts without a freeze. Explicit
+  # status retention prevents Bash conditional/last-callback masking.
+  local first_failure=0 code
+  if operator_transition_capacity_role primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY"; then :; else code=$?; first_failure="$code"; fi
+  if operator_transition_capacity_role singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY"; then :; else code=$?; [[ "$first_failure" != 0 ]] || first_failure="$code"; fi
+  if operator_transition_capacity_role silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY"; then :; else code=$?; [[ "$first_failure" != 0 ]] || first_failure="$code"; fi
+  if operator_transition_capacity_role seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY"; then :; else code=$?; [[ "$first_failure" != 0 ]] || first_failure="$code"; fi
+  [[ "$first_failure" == 0 ]] || return "$first_failure"
+  mkdir -m 0700 "$payload/capacity-receipts" || return $?
+  local role
+  for role in primary singapore silicon-valley seoul; do
+    cp "$phase_root/capacity/$role/receipt.json" "$payload/capacity-receipts/$role.json" || return $?
+  done
+  python3 -B "$payload_helper" capacity-set --directory "$phase_root/capacity" --bindings "$phase_root" --output "$payload/capacity-receipts/manifest.json" || return $?
+}
+
 operator_transition_driver() {
   [[ "$#" == 1 && ( "$1" == quiesce || "$1" == install || "$1" == start ) ]] || return 64
   local phase="$1" repo tx work approval approval_pin old_package old_pin next_package next_pin
@@ -44,8 +97,8 @@ p=pathlib.Path(sys.argv[1]);s=p.lstat();assert p.is_absolute() and str(p.resolve
 PYMODE
   for file in "$approval" "$old_package/common/operator-plan.json"; do [[ "$file" == /* ]]; operator_transition_file "$file"; done
   [[ "$commit" =~ ^[0-9a-f]{40}$ && "$(git rev-parse HEAD)" == "$commit" ]] || operator_transition_fail 'caller source differs from independently pinned tool runtime commit'
-  git ls-files --error-unmatch scripts/ops/public-bft-operator-transition.sh scripts/ops/remote/public-bft-operator-transition.sh >/dev/null
-  git diff --quiet HEAD -- scripts/ops/public-bft-operator-transition.sh scripts/ops/remote/public-bft-operator-transition.sh || operator_transition_fail 'uncommitted transition code is not an approved deployment caller'
+  git ls-files --error-unmatch scripts/ops/public-bft-operator-transition.sh scripts/ops/remote/public-bft-operator-transition.sh scripts/ops/public-bft-transition-payload.py scripts/ops/public-bft-linux-public-tools.py >/dev/null
+  git diff --quiet HEAD -- scripts/ops/public-bft-operator-transition.sh scripts/ops/remote/public-bft-operator-transition.sh scripts/ops/public-bft-transition-payload.py scripts/ops/public-bft-linux-public-tools.py || operator_transition_fail 'uncommitted transition code is not an approved deployment caller'
   if [[ "$bridge" == 0 ]]; then
     validate_runtime_bundle "$old_bundle" "$old_commit" "$old_manifest"
     validate_runtime_bundle "$bundle" "$commit" "$manifest"
@@ -113,10 +166,22 @@ PY
   fi
   cp "$old_bundle/SOURCE.json" "$payload/old-SOURCE.json"; cp "$bundle/SOURCE.json" "$payload/SOURCE.json"
   if [[ "$bridge" == 0 ]]; then cp "$phase_root/runtime/ynx-comet" "$phase_root/runtime/ynx-consensus-package" "$phase_root/runtime/ynx-consensus-keycheck" "$payload/bin/"; fi
-  cp -R "$old_package" "$payload/old-package"
-  if [[ "$phase" != quiesce ]]; then cp -R "$next_package" "$payload/new-package"; fi
-  (set -o noclobber; tar -czf - -C "$payload" . >"$archive")
-  archive_pin="$(operator_transition_sha "$archive")"; size="$(du -sk "$payload" | awk '{printf "%.0f\n", $1*1024}')"
+  # Retain complete public catalogs, but stream the already verified five
+  # original single-link migrations directly. No duplicate local cp-R tree.
+  local payload_helper=scripts/ops/public-bft-transition-payload.py
+  local payload_plan="$phase_root/payload-plan.json" payload_catalog="$phase_root/payload-catalog.json"
+  python3 -B "$payload_helper" inspect --payload "$payload" --old-package "$old_package" --old-pin "$old_pin" --new-package "$next_package" --new-pin "$next_pin" --phase "$phase" --catalog "$payload_plan" || return $?
+  if [[ "$phase" == quiesce ]]; then
+    # Every role must pass the complete cumulative original-source capacity
+    # check before the first freeze/phase dispatch on any role.
+    operator_transition_capacity_all || return $?
+  else
+    python3 -B "$payload_helper" phase-budget --catalog "$payload_plan" --capacity "$root/quiesce-attempt/capacity" --bindings "$phase_root" --phase "$phase" --bridge "$bridge" || return $?
+  fi
+  python3 -B "$payload_helper" inspect --payload "$payload" --old-package "$old_package" --old-pin "$old_pin" --new-package "$next_package" --new-pin "$next_pin" --phase "$phase" --catalog "$payload_catalog" || return $?
+  python3 -B "$payload_helper" pack --payload "$payload" --old-package "$old_package" --old-pin "$old_pin" --new-package "$next_package" --new-pin "$next_pin" --phase "$phase" --catalog "$payload_catalog" --archive "$archive" || return $?
+  archive_pin="$(operator_transition_sha "$archive")"
+  size="$(python3 -B -c 'import json,sys;print(json.load(open(sys.argv[1]))["stageBytesBound"])' "$payload_catalog")"
   local transition_action=run
   # Normal transport and original host-key verification remain in lib.sh.
   # Every remote destination is reserved before cat-based copy can write it.

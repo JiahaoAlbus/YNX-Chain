@@ -115,6 +115,9 @@ on:
       - 'scripts/ops/public-bft-linux-public-tools.py'
       - 'scripts/ops/public-bft-linux-public-tools.sh'
       - 'scripts/ops/test_public_bft_linux_public_tools.py'
+      - 'scripts/ops/public-bft-transition-payload.py'
+      - 'scripts/ops/test_public_bft_transition_payload.py'
+      - 'scripts/ops/test_public_bft_transition_capacity.py'
       - 'scripts/ops/test_public_bft_linux_release_gate.mjs'
       - 'scripts/ops/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-operator-transition.sh'
@@ -193,6 +196,11 @@ on:
       - 'scripts/ops/public-bft-linux-public-tools.py'
       - 'scripts/ops/public-bft-linux-public-tools.sh'
       - 'scripts/ops/test_public_bft_linux_public_tools.py'
+      - 'scripts/ops/public-bft-operator-transition.sh'
+      - 'scripts/ops/remote/public-bft-operator-transition.sh'
+      - 'scripts/ops/public-bft-transition-payload.py'
+      - 'scripts/ops/test_public_bft_transition_payload.py'
+      - 'scripts/ops/test_public_bft_transition_capacity.py'
       - 'scripts/ops/test_public_bft_linux_release_gate.mjs'
       - 'scripts/ops/public-bft-production-driver.sh'
       - 'scripts/verify/public-bft-candidate-binding.mjs'
@@ -2048,6 +2056,7 @@ jobs:
         timeout-minutes: 3
         run: |
           bash scripts/verify/public-bft-operator-transition-check.sh
+          timeout 45s python3 -B scripts/ops/test_public_bft_transition_payload.py -v
           python3 -B scripts/ops/test_validate_bootstrap_registration_ci.py -v
           python3 -B scripts/ops/test_collect_pq_light_source_tests.py -v
           python3 -B scripts/ops/test_validate_pq_light_source_ci.py -v

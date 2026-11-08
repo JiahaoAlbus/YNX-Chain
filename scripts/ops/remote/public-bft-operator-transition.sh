@@ -447,6 +447,315 @@ operator_transition_begin_completion() {
   sync -f "$attempt/complete-attempt"; sync -f "$attempt"
 }
 
+# A read-only numeric observation for an ALREADY INSTALLED bootstrap operator.
+# It is neither a first-native-import budget nor a reservation/growth guarantee.
+operator_transition_capacity_measure() {
+  python3 -B - "$@" <<'PYCAPACITY'
+import contextlib,hashlib,json,os,pathlib,pwd,re,stat,sys,time
+P=pathlib.Path
+MiB=1<<20; GiB=1<<30; LIMIT=(1<<63)-1
+CANDIDATE=P('/var/lib/ynx-chain/consensus-candidate')
+UNIT=P('/etc/systemd/system/ynx-consensus-operator-candidate.service')
+CAPBASE=P('/opt/ynx-chain/operator-transitions')
+BACKUPBASE=P('/var/lib/ynx-chain')
+BRIDGEBASE=P('/var/tmp')
+ROLES=('primary','singapore','silicon-valley','seoul')
+IDENTITY=('transitionId','role','approvalSHA256','oldOperatorPlanSHA256','oldRuntimeCommit','oldRuntimeManifestSHA256','runtimeCommit','runtimeManifestSHA256')
+NUMBERS=('quiesceStageBytesBound','futureStageBytesBound','oldPackageBytes','currentMigrationBytes')
+def need(ok,message):
+    if not ok: raise ValueError(message)
+def unique(pairs):
+    out={}
+    for k,v in pairs:need(k not in out,'duplicate public field');out[k]=v
+    return out
+def decode(raw):return json.loads(raw,object_pairs_hook=unique,parse_constant=lambda _:need(False,'invalid number'))
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def integer(v):
+    need(type(v) is str and re.fullmatch('[1-9][0-9]*',v) and int(v)<=LIMIT,'invalid positive byte bound')
+    return int(v)
+def pin(v):return type(v) is str and re.fullmatch('[0-9a-f]{64}',v) and v!='0'*64
+def identity(s):return (s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid,s.st_nlink,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+# Ordinary ancestors are held for path identity, not an inventory of their
+# unrelated children. Creating a sibling changes nlink/size/mtime/ctime.
+# Targets and enumerated source directories retain the full identity above.
+def ancestor_identity(s):return (s.st_dev,s.st_ino,s.st_mode,s.st_uid,s.st_gid)
+def canonical(path):
+    p=P(path);need(p.is_absolute() and str(p)==str(path) and '..' not in p.parts and len(os.fsencode(p))<=4096,'noncanonical source')
+    return p
+@contextlib.contextmanager
+def held(path,directory=False):
+    # Open each ancestor relative to its held parent. No resolve/open race and
+    # no private regular file is opened by the metadata walker below.
+    p=canonical(path);fds=[];links=[]
+    try:
+        fd=os.open('/',os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW);fds.append(fd)
+        for name in p.parts[1:-1]:
+            before=os.stat(name,dir_fd=fd,follow_symlinks=False)
+            child=os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=fd)
+            fds.append(child)
+            need(ancestor_identity(before)==ancestor_identity(os.fstat(child)),'ancestor changed')
+            links.append((fd,name,child,before));fd=child
+        name=p.name;before=os.stat(name,dir_fd=fd,follow_symlinks=False)
+        need(stat.S_ISDIR(before.st_mode) if directory else stat.S_ISREG(before.st_mode),'wrong source kind')
+        child=os.open(name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK|(os.O_DIRECTORY if directory else 0),dir_fd=fd)
+        fds.append(child)
+        need(identity(before)==identity(os.fstat(child)),'original changed at open')
+        yield child,before
+        need(identity(before)==identity(os.fstat(child))==identity(os.stat(name,dir_fd=fd,follow_symlinks=False)),'original changed while held')
+        for parent,n,child,s in reversed(links):
+            # Ancestor directory *contents* may change elsewhere; its actual
+            # inode/type/owner must remain the directory through which we read.
+            now=os.fstat(child);named=os.stat(n,dir_fd=parent,follow_symlinks=False)
+            need(ancestor_identity(now)==ancestor_identity(s)==ancestor_identity(named),'ancestor replaced')
+    finally:
+        for fd in reversed(fds):os.close(fd)
+def installed_uid():return pwd.getpwnam('ynx').pw_uid
+def public(path,limit=MiB,owner=None):
+    with held(path) as (fd,s):
+        need(s.st_nlink==1 and 0<s.st_size<=limit and s.st_uid==(os.geteuid() if owner is None else owner) and not s.st_mode&0o022,'invalid public input')
+        chunks=[];size=0
+        while True:
+            b=os.read(fd,65536)
+            if not b:break
+            size+=len(b);need(size<=limit,'public input grew');chunks.append(b)
+        need(size==s.st_size,'public input length changed')
+    return b''.join(chunks)
+def bounded_stat(path):
+    p=canonical(path)
+    with held(p.parent,True) as (fd,_):
+        s=os.stat(p.name,dir_fd=fd,follow_symlinks=False)
+        need(stat.S_ISREG(s.st_mode) and s.st_size<=LIMIT,'regular source metadata required')
+        return s
+class Inventory:
+    def __init__(self):self.start=time.monotonic();self.entries={};self.raw=0;self.files=0;self.dirs=0
+    def check(self):need(time.monotonic()-self.start<=30 and len(self.entries)<=200000,'metadata enumeration bound exceeded; UNKNOWN')
+    def add(self,path,s):
+        self.check();need(not stat.S_ISLNK(s.st_mode) and (stat.S_ISREG(s.st_mode) or stat.S_ISDIR(s.st_mode)),'special or aliased source; UNKNOWN')
+        need(not any('unknown' in n.lower() or n.endswith(('.partial','.tmp')) for n in P(path).parts),'retained uncertain source; UNKNOWN')
+        value=identity(s)
+        if path in self.entries:need(self.entries[path]==value,'overlapping source changed');return False
+        self.entries[path]=value
+        if stat.S_ISREG(s.st_mode):self.raw+=s.st_size;self.files+=1
+        else:self.dirs+=1
+        need(self.raw<=LIMIT and len(self.entries)<=200000,'metadata count overflow');return True
+    def walk(self,path):
+        p=canonical(path)
+        with held(p.parent,True) as (fd,_):self.child(fd,p.name,str(p),0)
+    def names(self,fd):
+        names=[]
+        with os.scandir(fd) as entries:
+            for entry in entries:
+                self.check();names.append(entry.name)
+                need(len(names)<=200000,'directory entry bound exceeded; UNKNOWN')
+        return sorted(names)
+    def child(self,parent,name,path,depth):
+        need(depth<=64,'metadata depth bound exceeded')
+        s=os.stat(name,dir_fd=parent,follow_symlinks=False)
+        if not self.add(path,s):return
+        if stat.S_ISDIR(s.st_mode):
+            fd=os.open(name,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW,dir_fd=parent)
+            try:
+                need(identity(s)==identity(os.fstat(fd)),'directory changed at open')
+                names=self.names(fd)
+                for n in names:self.child(fd,n,path+'/'+n,depth+1)
+                need(names==self.names(fd) and identity(s)==identity(os.fstat(fd))==identity(os.stat(name,dir_fd=parent,follow_symlinks=False)),'source grew/replaced during enumeration; UNKNOWN')
+            finally:os.close(fd)
+        else:need(identity(s)==identity(os.stat(name,dir_fd=parent,follow_symlinks=False)),'file changed during metadata read')
+    def result(self):
+        # 64KiB per entry covers 4096-byte path/link PAX records and headers;
+        # 512 padding per file, 10KiB tar end/record padding; gzip worst-case
+        # expansion is bounded above by 2*tar + 1MiB (no compression saving).
+        tar=self.raw+512*self.files+65536*len(self.entries)+(10<<10)
+        archive=2*tar+MiB;need(archive<=LIMIT,'archive bound overflow')
+        return {k:str(v) for k,v in dict(rawBytes=self.raw,files=self.files,directories=self.dirs,tarBytesBound=tar,archiveBytesBound=archive).items()}
+def inventory(paths):
+    first=Inventory()
+    for p in paths:first.walk(p)
+    second=Inventory()
+    for p in paths:second.walk(p)
+    need(first.entries==second.entries,'source changed between metadata passes; UNKNOWN')
+    return first.result()
+def source(raw,commit):
+    s=decode(raw)
+    names=('ynx-abci','ynx-comet','ynx-bft-gatewayd','ynx-consensus-pq-remote-signer','ynx-consensus-pq-key-init','ynx-consensus-proof-verify','ynx-consensus-package','ynx-consensus-keycheck')
+    need(s['commit']==commit and s['platform']=='linux/amd64' and s['version'] in ('YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2','YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3'),'runtime metadata mismatch')
+    need(set(s['binaries'])==set(names),'runtime inventory differs')
+    total=0
+    for v in s['binaries'].values():
+        need(type(v) is dict and set(v)=={'bytes','sha256'} and type(v['bytes']) is int and 0<v['bytes']<=128*MiB and pin(v['sha256']),'invalid runtime bound')
+        total+=v['bytes']
+    need(total<=512*MiB,'runtime total exceeds original bound')
+    return s
+
+def budget(request,src,groups):
+    q,f,old,m=(integer(request[k]) for k in NUMBERS)
+    need(m<=GiB and old>=5*m,'original five migration copies absent')
+    future=5*m+6*(96*MiB)+64*MiB
+    binary_sum=sum(src['binaries'][n]['bytes'] for n in ('ynx-comet','ynx-consensus-package','ynx-consensus-keycheck'))
+    need(q>=old+binary_sum and f>=old+future+384*MiB,'public stage bound omits original packages/runtime')
+    public_phases=2*q+GiB+2*(2*f+GiB)
+    # Installation retains the old profile by rename, but the new full role and
+    # staging new-files can occupy different filesystems. Charge both copies.
+    install=2*(future+384*MiB+8*MiB)+2*int(groups['launch']['tarBytesBound'])
+    backups=sum(2*int(g['archiveBytesBound']) for g in groups.values())
+    # Height-halt publisher keeps a normal comet copy and request metadata.
+    halt=src['binaries']['ynx-comet']['bytes']+8*MiB
+    bridge=0
+    if request['bridgeMode']:
+        # One future generate; four old/new verifies in install/start; two
+        # inventories; three stage-public requests. Original helper formula:
+        # remote=3*inputs+2*output_bound+144MiB, plus its 256MiB disk reserve.
+        # Each source/package may have <=8192 public entries, each <=64KiB
+        # allocation/header overhead. This includes retained request/response
+        # archives, hydrated input AND chroot copy. No compressed benefit.
+        overhead=8192*65536
+        def operation(inputs,outputs):return 3*(inputs+overhead)+2*(outputs+overhead)+144*MiB+256*MiB
+        bridge=operation(m+2*96*MiB,future)+2*operation(old,3*MiB)+2*operation(future,3*MiB)+2*operation(2*MiB,2*MiB)+3*operation(2*MiB,3*MiB)
+    totals=dict(publicStagesBytesBound=public_phases,backupBytesBound=backups,installationBytesBound=install,heightHaltBytesBound=halt,bridgeBytesBound=bridge,metadataReserveBytes=16*MiB)
+    need(sum(totals.values())<=LIMIT,'cumulative bound overflow')
+    return {k:str(v) for k,v in totals.items()}
+def nearest(path):
+    p=canonical(path)
+    while not os.path.lexists(p):p=p.parent
+    with held(p,True):pass
+    return p
+def devices(totals,state,stage,tx,role):
+    # Charge the complete cumulative bound on each actual target filesystem.
+    # This is deliberately conservative across distinct mounts, never an
+    # inference that free space on one mount can pay for another mount.
+    paths=(stage.parent,nearest(BACKUPBASE/'operator-transitions'/tx/role),CANDIDATE,CANDIDATE/'bin',CANDIDATE/'config',CANDIDATE/'scripts',UNIT.parent,BRIDGEBASE,P(state).parent)
+    total=sum(int(v) for v in totals.values());out={}
+    for p in paths:
+        with held(p,True) as (fd,s):
+            fs=os.fstatvfs(fd)
+            need(0<fs.f_frsize<=65536 and fs.f_bavail>=0,'unsupported filesystem accounting')
+            row=dict(device=str(s.st_dev),availableBytes=str(fs.f_bavail*fs.f_frsize),requiredBytes=str(total))
+            if s.st_dev in out:row['availableBytes']=str(min(int(out[s.st_dev]['availableBytes']),int(row['availableBytes'])))
+            out[s.st_dev]=row
+    return sorted(out.values(),key=lambda v:int(v['device']))
+def receipt_numbers(v):
+    def number(x):need(type(x) is str and re.fullmatch('0|[1-9][0-9]*',x) and int(x)<=LIMIT,'invalid retained numeric receipt')
+    need(type(v['capacityAvailable']) is bool and v['sampleOnly'] is True and v['growthReserved'] is False and v['requiresRemeasure'] is True and v['sourceGrant'] is False and v['firstNativeImport'] is False,'retained capacity flags differ')
+    need(set(v['groups'])=={'committed','launch'},'retained source groups differ')
+    for g in v['groups'].values():
+        need(type(g) is dict and set(g)=={'rawBytes','files','directories','tarBytesBound','archiveBytesBound'},'retained group fields differ')
+        for value in g.values():number(value)
+        need(int(g['archiveBytesBound'])>=int(g['tarBytesBound'])>=int(g['rawBytes']),'retained archive bound differs')
+    need(set(v['bounds'])=={'publicStagesBytesBound','backupBytesBound','installationBytesBound','heightHaltBytesBound','bridgeBytesBound','metadataReserveBytes'},'retained bounds differ')
+    for value in v['bounds'].values():number(value)
+    need(type(v['filesystems']) is list and 0<len(v['filesystems'])<=9,'retained filesystem set differs')
+    seen=set()
+    for row in v['filesystems']:
+        need(type(row) is dict and set(row)=={'device','availableBytes','requiredBytes'},'retained filesystem fields differ')
+        for value in row.values():number(value)
+        need(row['device'] not in seen,'duplicate filesystem');seen.add(row['device'])
+    need(v['capacityAvailable']==all(int(row['availableBytes'])>int(row['requiredBytes']) for row in v['filesystems']),'capacity result differs from original numeric predicate')
+
+def measure(stage,binding,request_pin,process,mode,receipt_path='-'):
+    stage=canonical(stage);need(stage==CAPBASE/binding['transitionId']/binding['role']/'capacity','wrong capacity stage')
+    with held(stage,True) as (_,s):need(s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o700,'capacity stage ownership')
+    raw=public(stage/'request.json');need(sha(raw)==request_pin,'request pin mismatch');r=decode(raw)
+    fields={'version',*IDENTITY,*NUMBERS,'currentMigrationSHA256','bridgeMode'}
+    need(set(r)==fields and r['version']=='YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1','capacity request schema')
+    need(all(r[k]==binding[k] for k in IDENTITY) and binding['role'] in ROLES and binding['phase']=='quiesce','capacity source/phase binding')
+    need(type(r['bridgeMode']) is bool and pin(r['currentMigrationSHA256']),'invalid capacity source bounds')
+    for k in NUMBERS:integer(r[k])
+    old=public(stage/'old-package/common/operator-plan.json',96*MiB);need(sha(old)==binding['oldOperatorPlanSHA256'],'old plan bytes changed')
+    plan=decode(old);need(not plan['pqSchedule'] and not plan['pqScheduleHash'],'capacity only supports installed bootstrap operator')
+    manifest=decode(public(stage/'old-package/package-manifest.json',16*MiB))
+    need(manifest['operatorPlanHash']==binding['oldOperatorPlanSHA256'] and manifest['files']['common/operator-plan.json']==binding['oldOperatorPlanSHA256'],'verified original package plan differs')
+    need(manifest['files']['roles/'+binding['role']+'/config/bound-migration.json']==r['currentMigrationSHA256'],'migration source pin mismatch')
+    srcraw=public(stage/'SOURCE.json');oldsrc=public(stage/'old-SOURCE.json')
+    need(sha(srcraw)==binding['runtimeManifestSHA256'] and sha(oldsrc)==binding['oldRuntimeManifestSHA256'],'runtime source bytes mismatch')
+    src=source(srcraw,binding['runtimeCommit']);source(oldsrc,binding['oldRuntimeCommit'])
+    for relative,target in (('role-manifest.json',CANDIDATE/'role-manifest.json'),('scripts/start-operator.sh',CANDIDATE/'scripts/start-operator.sh'),('systemd/'+UNIT.name,UNIT)):
+        need(public(stage/'old-role'/relative)==public(target,owner=installed_uid() if relative=='role-manifest.json' else os.geteuid()),'original installed public identity differs')
+    rm=decode(public(CANDIDATE/'role-manifest.json',owner=installed_uid()))
+    role=binding['originalRole'];need(rm['node']['role']==binding['role'] and rm['chainId']==binding['chainId'] and rm['migrationStateHash']==binding['migrationStateHash'] and rm['privateValidatorKeyPath']==role['legacyKeyPath'] and rm['nodeKeyPath']==role['nodeKeyPath'],'installed role differs')
+    need(bounded_stat(CANDIDATE/'config/bound-migration.json').st_size==integer(r['currentMigrationBytes']),'installed migration size differs')
+    need(set(process)=={'mainPid','startTicks','runningExecutableSHA256'} and process['runningExecutableSHA256']==binding['oldCometSHA256'],'original process receipt differs')
+    for k in ('mainPid','startTicks'):integer(process[k])
+    paths=[role['home'],role['abciState'],role['abciState']+'.writer.lock',role['legacyStatePath'],role['legacyStatePath']+'.writer.lock',role['legacyKeyPath'],role['nodeKeyPath']]
+    need(role['home']!='/' and P(role['home']).name!='data' and len(set(paths[-2:]))==2,'unsupported backup source')
+    if binding['stateLayout']!='atomic-json':
+        need(binding['stateLayout'] in ('snapshot-journal','block-journal'),'unknown original state layout')
+        paths += [role['abciState']+'.lock',role['abciState']+'.read.lock']
+    for p in (role['legacyKeyPath'],role['nodeKeyPath']):
+        s=bounded_stat(p);need(s.st_size>0 and stat.S_IMODE(s.st_mode)==0o600,'original custody metadata differs')
+    groups=dict(committed=inventory(paths),launch=inventory([str(CANDIDATE),str(UNIT)]))
+    totals=budget(r,src,groups)
+    if mode=='remeasure':
+        # The quiesce archive/extracted stage is now already reflected in free
+        # bytes. Keep its original 1GiB floor, every future stage and backup;
+        # do not reserve its 2*q upload a second time.
+        totals['publicStagesBytesBound']=str(int(totals['publicStagesBytesBound'])-2*integer(r['quiesceStageBytesBound']))
+    fs=devices(totals,role['abciState'],stage,binding['transitionId'],binding['role'])
+    result=dict(version='YNX-OPERATOR-TRANSITION-CAPACITY/v1',**{k:r[k] for k in IDENTITY},requestSHA256=request_pin,process=process,groups=groups,bounds=totals,filesystems=fs,capacityAvailable=all(int(v['availableBytes'])>int(v['requiredBytes']) for v in fs),sampleOnly=True,growthReserved=False,requiresRemeasure=True,sourceGrant=False,firstNativeImport=False)
+    receipt_numbers(result)
+    if mode=='remeasure':
+        original=decode(public(P(receipt_path)))
+        need(set(original)==set(result) and original['capacityAvailable'] is True,'original successful capacity receipt required')
+        receipt_numbers(original)
+        for k in ('version',*IDENTITY,'requestSHA256','process','sampleOnly','growthReserved','requiresRemeasure','sourceGrant','firstNativeImport'):need(original[k]==result[k],'capacity receipt binding changed')
+        for group in groups:
+            need(set(original['groups'][group])==set(groups[group]),'original capacity group differs')
+            for k,v in groups[group].items():need(int(v)<=int(original['groups'][group][k]),'backup source grew beyond retained ceiling; UNKNOWN')
+    else:need(mode=='observe','invalid capacity action')
+    return result
+if __name__=='__main__':
+    try:
+        mode,stage,binding,request_pin,process,receipt=sys.argv[1:]
+        value=measure(stage,decode(binding),request_pin,decode(process),mode,receipt)
+        print(json.dumps(value,sort_keys=True,separators=(',',':')))
+        sys.exit(0 if value['capacityAvailable'] else 1)
+    except (ValueError,KeyError,TypeError,OSError,OverflowError) as error:
+        # No private path/name, content, or arbitrary OS exception is printed.
+        print('operator transition capacity unavailable; retain original attempt/UNKNOWN ('+type(error).__name__+')',file=sys.stderr);sys.exit(1)
+PYCAPACITY
+}
+
+operator_transition_capacity() {
+  [[ "$#" == 11 && "$(id -u)" == 0 && "$(uname -s)" == Linux ]] || return 64
+  local tx="$1" role="$2" stage="$3" approval_pin="$4" old_pin="$5" old_commit="$6" old_manifest="$7" commit="$8" manifest="$9" helper_pin="${10}" request_pin="${11}"
+  [[ "$role" =~ ^(primary|singapore|silicon-valley|seoul)$ && "$tx" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ && "$stage" == "/opt/ynx-chain/operator-transitions/$tx/$role/capacity" ]] || return 64
+  [[ "$(operator_transition_sha "${BASH_SOURCE[0]}")" == "$helper_pin" && "$(operator_transition_sha "$stage/helper.sh")" == "$helper_pin" ]] || return 1
+  local b process after wanted unit=ynx-consensus-operator-candidate.service candidate=/var/lib/ynx-chain/consensus-candidate unit_path=/etc/systemd/system/ynx-consensus-operator-candidate.service result
+  b="$(operator_transition_binding quiesce "$tx" "$role" "$stage/approval.json" "$approval_pin" "$stage/old-package" "$old_pin" "$stage/old-SOURCE.json" "$old_commit" "$old_manifest" - - "$stage/SOURCE.json" "$commit" "$manifest")" || return $?
+  [[ "$(systemctl show --property FragmentPath --value "$unit")" == "$unit_path" && -z "$(systemctl show --property DropInPaths --value "$unit")" && "$(systemctl show --property ExecStart --value "$unit")" == *"path=$candidate/scripts/start-operator.sh ;"* ]] || return 1
+  wanted="$(python3 -B -c 'import json,sys;print(json.loads(sys.argv[1])["oldCometSHA256"])' "$b")" || return $?
+  # Child shell preserves errexit for the ORIGINAL running getter even if a
+  # caller invokes this capacity function in a shell condition.
+  process="$(bash -Eeuo pipefail -c 'source "$1"; unit=ynx-consensus-operator-candidate.service; candidate=/var/lib/ynx-chain/consensus-candidate; operator_transition_running "$2"' _ "${BASH_SOURCE[0]}" "$wanted")" || return $?
+  result="$(operator_transition_capacity_measure observe "$stage" "$b" "$request_pin" "$process" -)" || { local rc=$?; [[ -z "$result" ]] || printf '%s\n' "$result"; return "$rc"; }
+  after="$(bash -Eeuo pipefail -c 'source "$1"; unit=ynx-consensus-operator-candidate.service; candidate=/var/lib/ynx-chain/consensus-candidate; operator_transition_running "$2"' _ "${BASH_SOURCE[0]}" "$wanted")" || return $?
+  [[ "$process" == "$after" ]] || { operator_transition_fail 'original capacity process changed; UNKNOWN'; return 1; }
+  printf '%s\n' "$result"
+}
+
+operator_transition_capacity_remeasure() {
+  local original_stage="/opt/ynx-chain/operator-transitions/$tx/$role/capacity" pins request_pin receipt_pin b process
+  pins="$(python3 -B - "$stage/capacity-receipts" "$tx" "$role" "$commit" "$manifest" <<'PYSET'
+import hashlib,json,pathlib,re,sys
+p=pathlib.Path(sys.argv[1]);tx,role,commit,source=sys.argv[2:]
+assert str(p.resolve(strict=True))==str(p)
+m=json.loads((p/'manifest.json').read_bytes());assert set(m)=={'version','transitionId','runtimeCommit','runtimeManifestSHA256','roles'}
+assert (m['version'],m['transitionId'],m['runtimeCommit'],m['runtimeManifestSHA256'])==('YNX-OPERATOR-TRANSITION-CAPACITY-SET/v1',tx,commit,source)
+assert set(m['roles'])=={'primary','singapore','silicon-valley','seoul'}
+for r,v in m['roles'].items():
+ assert set(v)=={'requestSHA256','receiptSHA256'} and all(re.fullmatch('[0-9a-f]{64}',x) for x in v.values())
+ f=p/(r+'.json');assert f.is_file() and not f.is_symlink() and f.stat().st_nlink==1 and f.stat().st_size<=1048576
+ raw=f.read_bytes();assert hashlib.sha256(raw).hexdigest()==v['receiptSHA256'];a=json.loads(raw)
+ assert a['capacityAvailable'] is True and a['role']==r and a['transitionId']==tx and a['runtimeCommit']==commit and a['runtimeManifestSHA256']==source and a['requestSHA256']==v['requestSHA256']
+print(m['roles'][role]['requestSHA256'])
+PYSET
+)" || return $?
+  request_pin="$pins"
+  [[ "$(operator_transition_sha "$original_stage/helper.sh")" == "$(operator_transition_sha "${BASH_SOURCE[0]}")" ]] || return 1
+  b="$(cat "$binding")" || return $?
+  process="$(cat "$attempt/original-process.json")" || return $?
+  operator_transition_capacity_measure remeasure "$original_stage" "$b" "$request_pin" "$process" "$stage/capacity-receipts/$role.json" >/dev/null || return $?
+}
+
 operator_transition_remote() {
   [[ "$#" == 18 && "$(id -u)" == 0 && "$(uname -s)" == Linux ]] || return 64
   local phase="$1" tx="$2" role="$3" stage="$4" approval_pin="$5" old_pin="$6" old_commit="$7" old_manifest="$8" next_pin="$9" commit="${10}" manifest="${11}" helper_pin="${12}" archive_pin="${13}" old_comet_pin="${14}" comet_pin="${15}" verifier_pin="${16}" keycheck_pin="${17}"
@@ -507,6 +816,7 @@ PY
     operator_transition_installed "$old_package" "$old_comet_pin" "$(operator_transition_value oldKeycheckSHA256)"
     if [[ "$action" == prepare ]]; then
       (set -o noclobber; operator_transition_running "$old_comet_pin" >"$attempt/original-process.json")
+      operator_transition_capacity_remeasure || return $?
       operator_transition_freeze
       (set -o noclobber; operator_transition_running "$old_comet_pin" >"$attempt/prepared-process.json")
       cmp "$attempt/original-process.json" "$attempt/prepared-process.json" >/dev/null
@@ -529,6 +839,7 @@ PY
     operator_transition_stopped
     # Establish the actual target under normal App/HRS/DB locks BEFORE any
     # backup; a planned height or publisher receipt is never a checkpoint.
+    operator_transition_capacity_remeasure || return $?
     operator_transition_inspect "$attempt/checkpoint-stopped.json"
     # The normal Go command holds original App/signing/Comet DB locks while
     # archiving. Two later equal heights alone are NOT a consistent backup.
@@ -751,5 +1062,5 @@ PY
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  if [[ "${1:-}" == light-capture ]]; then shift; operator_light_capture_remote "$@"; else operator_transition_remote "$@"; fi
+  if [[ "${1:-}" == capacity ]]; then shift; operator_transition_capacity "$@"; elif [[ "${1:-}" == light-capture ]]; then shift; operator_light_capture_remote "$@"; else operator_transition_remote "$@"; fi
 fi

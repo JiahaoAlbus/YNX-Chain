@@ -236,6 +236,57 @@ class PublicBridgeControls(unittest.TestCase):
         fixture=(ROOT/'scripts/verify/public-bft-production-driver-check.sh').read_text()
         self.assertIn('source scripts/ops/public-bft-linux-public-tools.sh',fixture)
 
+    def test_private_jail_temp_and_failed_public_scratch_retention(self):
+        # Only the maths process is a labelled stub. This checks the actual
+        # jail/receipt lifecycle, not Go package validation or Linux execution.
+        bundle=m.fresh(self.root/'runtime');m.fresh(bundle/'operator')
+        source={'binaries':{},'operator':{}}
+        for group,names in (('binaries',m.BINARIES),('operator',m.OPERATORS)):
+            for name in names:
+                path=bundle/name if group=='binaries' else bundle/'operator'/name
+                m.durable(path,b'PUBLIC synthetic '+name.encode());source[group][name]=m.read(path)[0]
+        m.durable(bundle/'SOURCE.json',m.encode(source))
+        host_tmp=m.fresh(self.root/'unrelated-host-temp');m.durable(host_tmp/'original',b'PUBLIC host sentinel')
+        host_before=m.catalog(host_tmp)
+        for status in (0,1):
+            with self.subTest(exitCode=status):
+                root=m.fresh(self.root/('operation-'+str(status)));m.fresh(root/'inputs')
+                for name in ('migration.json','validators.json','operator-plan.json'):m.durable(root/'inputs'/name,b'{}')
+                r=self.request('generate-package',{'genesisTime':'2026-01-01T00:00:00Z','planSHA256':m.sha(b'{}')})
+                r['sourceSHA256']=m.read(bundle/'SOURCE.json')[0]['sha256']
+                r['inputs']=[{'path':'inputs/'+v['path'],'bytes':v['bytes'],'sha256':v['sha256']} for v in m.catalog(root/'inputs')]
+                for name in r['transportSources']:
+                    m.durable(root/name,b'original');r['transportSources'][name]=m.read(root/name)[0]
+                m.durable(root/'request.json',m.encode(r))
+                actual_original=m.original
+                def map_original(path):return bundle if str(path)==r['runtime'] else actual_original(path)
+                def fake(command,target,input_file=None):
+                    scratch=target/'public-root/tmp';info=scratch.lstat()
+                    self.assertEqual(m.original(scratch),scratch)
+                    self.assertEqual(info.st_mode&0o777,0o700);self.assertEqual(info.st_uid,os.geteuid())
+                    self.assertEqual(list(scratch.iterdir()),[])
+                    self.assertNotEqual((info.st_dev,info.st_ino),(host_tmp.stat().st_dev,host_tmp.stat().st_ino))
+                    self.assertNotIn('TMPDIR',m.CLEAN_ENV)
+                    temporary=m.fresh(scratch/'ynx-operator-public-config-synthetic')
+                    m.durable(temporary/'config.toml',b'PUBLIC synthetic config')
+                    if status==0:
+                        (temporary/'config.toml').unlink();temporary.rmdir()
+                    package=m.fresh(target/'public-root/package');m.durable(package/'public-partial',b'PUBLIC original')
+                    m.durable(target/'stdout',b'');m.durable(target/'stderr',b'rejected\n' if status else b'')
+                    return status
+                with patch.dict(os.environ,{'TMPDIR':str(host_tmp)}),patch.object(m,'original_validator'),patch.object(m,'original',map_original),patch.object(m,'bounded_math',fake):
+                    self.assertEqual(m.execute(root,r),status)
+                self.assertEqual(m.catalog(host_tmp),host_before)
+                self.assertEqual((root/'outputs/package/public-partial').read_bytes(),b'PUBLIC original')
+                self.assertEqual(m.decode((root/'RESULT.json').read_bytes())['exitCode'],status)
+                self.assertEqual(m.decode((root/'command.json').read_bytes())['mounts'],[])
+                with tarfile.open(root/'response.tar') as archive:
+                    self.assertFalse(any('/tmp/' in name or 'public-root' in name for name in archive.getnames()))
+                self.assertEqual(bool(list((root/'public-root/tmp').iterdir())),status==1)
+                with patch.object(m,'original_validator'),patch.object(m,'original',map_original),patch.object(m,'bounded_math') as child,self.assertRaises(FileExistsError):
+                    m.execute(root,r)
+                child.assert_not_called()
+
     def test_normal_ci_reuses_actual_same_job_tools_and_fresh_public_inputs(self):
         workflow=(ROOT/'.github/workflows/resource-market-ci.yml').read_text()
         start=workflow.index('      - name: Verify original Linux public math bridge with the same built tools\n')
@@ -602,6 +653,16 @@ def actual_smoke(args):
             originalRequestSHA256=m.sha(m.encode(request)),omittedTransportMembers=skipped,
             originalResultSHA256=m.read(case/'RESULT.json',4<<20)[0]['sha256']))
         return case,status
+    def package_temp_completed(case,name):
+        # Success is from the real original Go CLI above, whose full operator
+        # verification creates/removes its public template via os.MkdirTemp.
+        # This additionally proves its scratch stayed in this private jail.
+        temporary=case/'public-root/tmp';m.original(temporary);info=temporary.lstat()
+        m.require(temporary.is_dir() and info.st_mode&0o777==0o700 and info.st_uid==os.geteuid()
+                  and not list(temporary.iterdir()),'normal Go public temporary directory was not private and cleaned')
+        observation=dict(pathInsideJail='/tmp',mode='0700',ownedByExecutor=True,remainingEntries=0,hostMount=False)
+        m.durable(parent/name/'TEMPORARY-DIRECTORY.json',m.encode(observation))
+        operations[-1]['privateTemporaryDirectory']=observation
     negative=next(c for c in fixture['negativeCases'] if c['name']=='invalid-dual-commit-signatures')
     negative_path=parent/'original-negative-request.json'
     m.durable(negative_path,json.dumps(negative['request'],separators=(',',':')).encode())
@@ -630,11 +691,13 @@ def actual_smoke(args):
     m.require(code==0 and m.read(referenced/'outputs/stdout',8192)[1]==m.read(summary/'outputs/stdout',8192)[1],
               'same original host migration reference changed normal Go result')
     generated,code=math_case('generate-package','generate-package',{'genesisTime':manifest['genesisTime'],'planSHA256':layout['operatorPlanHash'],'migrationEvidenceSHA256':m.sha(evidence)},[('inputs/migration.json',opfixture/'migration.json'),('inputs/validators.json',opfixture/'validator-manifest.json'),('inputs/operator-plan.json',opfixture/layout['operatorPlan'])]);m.require(code==0,'normal package generation through bridge failed')
+    package_temp_completed(generated,'generate-package')
     expected_package=opcase/'candidate-block-journal';actual_package=generated/'outputs/package'
     m.require(m.catalog(expected_package)==m.catalog(actual_package),'normal local/direct and bridge package bytes differ')
     files=[('inputs/package/'+f['path'],actual_package/f['path']) for f in m.catalog(actual_package)]
     producer_pin=m.read(generated/'request.json',2<<20)[0]['sha256']
-    _,code=math_case('same-origin-verify-package','verify-package',{'planSHA256':layout['operatorPlanHash'],'producerRequestSHA256':producer_pin},files);m.require(code==0,'original operator verification through bridge failed')
+    verified,code=math_case('same-origin-verify-package','verify-package',{'planSHA256':layout['operatorPlanHash'],'producerRequestSHA256':producer_pin},files);m.require(code==0,'original operator verification through bridge failed')
+    package_temp_completed(verified,'same-origin-verify-package')
     wrong=('a' if layout['operatorPlanHash'][0]!='a' else 'b')+layout['operatorPlanHash'][1:]
     rejected,code=math_case('wrong-plan','verify-package',{'planSHA256':wrong},files);m.require(code!=0 and m.read(rejected/'outputs/stdout',1<<20)[1]==b'','wrong independent plan must be rejected without success output')
     receipt=dict(version='YNX-PUBLIC-LINUX-TOOL-CI-SMOKE/v1',commit=source['commit'],sourceSHA256=m.sha(source_raw),exporterSOURCEPin=exporter_pin,fixtureSHA256=m.sha(fixture_raw),normalVerifierSHA256=source['binaries']['ynx-consensus-proof-verify']['sha256'],actualELF=True,syntheticOnly=True,actualLiveCapture=False,actual683MBMigration=False,syntheticSnapshotTransportRecord=True,proofClockPreflight=clock_check,publicMathOperations=operations,code=m.decode(raw)['code'],responseSHA256=m.sha(raw),sourceGrant=False,deployment=False,runtimeStarted=False)

@@ -5,6 +5,7 @@ set -Eeuo pipefail
 # No SSH, service, host /proc, key creation, or network operation is permitted.
 repo="$(cd "$(dirname "$0")/../.." && pwd -P)"
 tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+tmp="$(cd "$tmp" && pwd -P)"
 helper="$repo/scripts/ops/remote/public-bft-operator-transition.sh"
 real_dd="$(command -v dd)"
 fail() { echo "operator transition control failed: $*" >&2; exit 1; }
@@ -587,3 +588,6 @@ if freeze_control >"$f/foreign.out" 2>"$f/foreign.err"; then fail 'existing fore
 [[ "$(sha "$f/native/mutation-freeze.json")" == "$foreign_sha" && "$(sha "$f/native/block-production-pause.json")" == "$pause_sha" ]]
 
 echo 'operator transition source controls passed: independent pins, common approved halt target, four-role prepare barrier, one-shot publication, normal-exit boundary, exact int64 checkpoint/P/U/A, original inode/HRS preservation, partial/UNKNOWN refusal; no real package/service/activation claim'
+
+# Read-only metadata capacity controls; no remote operation or runtime binary.
+python3 -B "$repo/scripts/ops/test_public_bft_transition_capacity.py"

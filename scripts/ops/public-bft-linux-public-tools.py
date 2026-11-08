@@ -712,6 +712,11 @@ def execute(root, r):
         durable(out/'stage.json',encode({'profile':profile,'role':r['role'],'target':str(target),'files':{name:source['binaries'][name] for name in names},'installed':False,'runtimeStarted':False}))
     else:
         jail = fresh(root / 'public-root')
+        # The normal Go operator verifier renders a public config with
+        # os.MkdirTemp("", ...). Give it an exclusive 0700 /tmp inside this
+        # jail, never a mount/link to host temp or an inherited TMPDIR.
+        # Failed scratch stays with the original operation, outside outputs.
+        fresh(jail / 'tmp')
         fresh(jail / 'tool')
         binary = 'ynx-consensus-proof-verify' if op in ('proof','proof-capture') else 'ynx-consensus-package'
         checked_copy(bundle / binary, jail / 'tool' / binary, source['binaries'][binary])
