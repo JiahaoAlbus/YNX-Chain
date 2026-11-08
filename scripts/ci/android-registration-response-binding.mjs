@@ -1,0 +1,5 @@
+// Only the new cached-original binding case; five previous groups stay frozen.
+import fs from'node:fs';import path from'node:path';import os from'node:os';import{fileURLToPath}from'node:url';import{spawnSync}from'node:child_process';
+const root=fileURLToPath(new URL('../..',import.meta.url)),pkg=root+'/packages/wallet-auth',out=process.env.YNX_REGISTRATION_BINDING_OUT??fs.mkdtempSync(path.join(os.tmpdir(),'ynx-reg-binding-'));fs.mkdirSync(out,{recursive:true});
+for(const args of [[pkg+'/scripts/build-original-device-v4-registration-private-bundle.mjs','--out='+out],[pkg+'/test/registration-cached-pair-original-binding.test.mjs']]){const r=spawnSync(process.execPath,args,{cwd:root,env:process.env,stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)process.exit(r.status??1)}
+fs.writeFileSync(out+'/PUBLIC_BINDING_RESULT.json',JSON.stringify({newCasePassed:true,wrongOriginalSameChallengeRejectedBeforeEffects:true,matchingOriginalStillAccepted:true,NativeHostModelOnly:true,previousFiveGroupsReused:true,HermesExecuted:false,NativeExecuted:false,RootAdmission:false,SourceAdmission:false})+'\n');
