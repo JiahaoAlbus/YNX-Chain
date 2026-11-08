@@ -1,0 +1,78 @@
+{
+  "schema": "ANDROID_CODE_IMAGE_ROOT_CI_INPUTS/v1",
+  "nativeSource": "5cb9ae32e55874914aa5ce354f57f06a1abd8a9c",
+  "nativeParent": "a365871469d26c0bcdc297476fbdc722ee13397f",
+  "SDKBase": "fbf6bbe2d2dc1d5806a2facbc312c9093324699f",
+  "files": [
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/AndroidCodeImageReviewedPrivate.hpp",
+      "bytes": 780,
+      "sha256": "ae11bf5f747f1cdd2b043e371f099df5829042002ae2314843d324c074219549",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/AndroidCodeImageRoot.cpp",
+      "bytes": 19980,
+      "sha256": "e74adc2f7a7e2a5f5890775661c90dd3c39448469041e295f483ea03dfeb6f49",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/AndroidCodeImageRootPrivate.h",
+      "bytes": 3357,
+      "sha256": "f4141567c9543129c7d749e14ee2a427961b0f47575a4a804fe3eaf6c733d26d",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/CMakeLists.txt",
+      "bytes": 1680,
+      "sha256": "fcd8a3c7f56555c272212bef77d57ca05f5f8b08f7e028ec6c952c7332beecbd",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/INTEGRATION.md",
+      "bytes": 3954,
+      "sha256": "402fa2cc263e3885397406f97e5759a04ddfa24f5ef8a2ff29a1231bcdbc950e",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/PRIVATE_PINS.json",
+      "bytes": 2871,
+      "sha256": "5adf450c82233d494b98cd941a5ea6c361e613f76c285b1efa956f0e3595c2bb",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-code-image-root.PUBLIC.cpp",
+      "bytes": 10147,
+      "sha256": "d0de7c41f7637153bbfe8c57181253cd31bec8ee1630be60c33957e850ae2a4c",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "apps/wallet/modules/ynx-pq-custody/test/android-code-image-root.mjs",
+      "bytes": 16043,
+      "sha256": "028d0bcc410c856fbaed75865ee6276a85c3e58ca12c9f3f0c48bd53e072a529",
+      "role": "original-Native-5cb9ae32"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/android-code-image-root-ci/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7",
+      "role": "original-canonical-data-or-SHA-header"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/android-code-image-root-ci/MobileCanonicalDATA.cpp",
+      "bytes": 5243,
+      "sha256": "088924c5a093d3f15ff11de2c3ce00dec5a4ed0d35fb1832508a32f1095fe556",
+      "role": "original-canonical-data-or-SHA-header"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/android-code-image-root-ci/OriginalSHA256.hpp",
+      "bytes": 1848,
+      "sha256": "9d847ece1387b7c38526e26b23b59683f41ab222f1db83f1f4ab18f12f7b5999",
+      "role": "original-canonical-data-or-SHA-header"
+    }
+  ],
+  "RootRows": 0,
+  "actualJNIOrAPK": false,
+  "RootAdmission": false,
+  "SourceAdmission": false
+}
