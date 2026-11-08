@@ -27,6 +27,13 @@ def require(value, message):
 
 def qualify(identity):
     # No caller override, ancestor inference or migration of the 896 init grant.
+    if identity.get('commit') == '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
+        spec=importlib.util.spec_from_file_location('current7c_normal_live_source_data',Path(__file__).with_name('pq-7c25-live-source-data.py'))
+        current=importlib.util.module_from_spec(spec);spec.loader.exec_module(current)
+        q=current.qualification()
+        require(all(identity[k]==q[k] for k in ('commit','tree','forkTree')) and q['buildTag']==BUILD_TAG,
+                'exact current normal live source/module profile required')
+        return dict(q)
     q = NORMAL_LIVE_SOURCE_QUALIFICATION
     require(q is not None, 'normal live source/module/tagged CI qualification not supplied')
     require(all(identity[k] == q[k] for k in ('commit', 'tree', 'forkTree')) and
@@ -56,10 +63,11 @@ def prepare_matching_source(source, destination):
             'exact original Core composition callee required')
     spec=importlib.util.spec_from_file_location('original_core_live_composer',path)
     core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
-    require(core.PRODUCTION_TREE==identity['forkTree'] and core.FORK_COMMIT==q['optionalForkCommit'] and
-            core.FORK_TREE==q['optionalForkTree'] and
-            git('rev-parse',core.FORK_COMMIT+':third_party/cometbft')==core.FORK_TREE,
-            'original source and selected matching module identities differ')
+    require(git('rev-parse',q['optionalForkCommit']+':third_party/cometbft')==q['optionalForkTree'],
+            'actual selected matching module object differs')
+    if identity['commit'] != '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
+        require(core.PRODUCTION_TREE==identity['forkTree'] and core.FORK_COMMIT==q['optionalForkCommit'] and
+                core.FORK_TREE==q['optionalForkTree'], 'original legacy source/module identities differ')
     prepared=core.prepare_wire_live_source(source,destination,identity['commit'],identity['tree'])
     build_source=destination/'source'
     receipt_path=destination/'SOURCE-SELECTION.json'
@@ -81,7 +89,7 @@ def prepare_matching_source(source, destination):
     require(not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],
             'original source changed during composition')
     return dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
-                optionalForkCommit=core.FORK_COMMIT,optionalForkTree=core.FORK_TREE,
+                optionalForkCommit=selection['selectedOptionalForkCommit'],optionalForkTree=selection['selectedOptionalForkTree'],
                 compositionScriptSHA256=q['compositionScriptSHA256'],ciEvidenceSHA256=q['ciEvidenceSHA256'],
                 buildTag=BUILD_TAG,buildSource=str(build_source),originalSourceUnchanged=True,
                 originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)

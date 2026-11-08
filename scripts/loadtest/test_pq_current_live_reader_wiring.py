@@ -1,0 +1,73 @@
+"""Normal same-instance reader lifecycle controls; no node, getter or load execution."""
+import importlib.util,json,hashlib,tempfile
+from pathlib import Path
+from types import SimpleNamespace
+import unittest
+from unittest import mock
+s=importlib.util.spec_from_file_location('live_wiring_driver',Path(__file__).with_name('pq-independent-load.py'))
+d=importlib.util.module_from_spec(s);s.loader.exec_module(d)
+
+def options(profile='7c25'):
+    return SimpleNamespace(first_trial_profile=profile,commit='fixed-source',seconds=5,tail_seconds=30,header_hop_capture=False)
+
+class LiveReaderWiring(unittest.TestCase):
+    def test_reader_attaches_once_before_any_original_node_start(self):
+        c=SimpleNamespace(nodes=[]);reader=object();factory=mock.Mock(return_value=reader)
+        module=SimpleNamespace(NormalLiveReader=factory)
+        self.assertIs(d.attach_live_reader(c,module),reader);self.assertIs(c.live_reader,reader)
+        factory.assert_called_once_with(c,d.lab)
+        with self.assertRaises(RuntimeError):d.attach_live_reader(c,module)
+        started=SimpleNamespace(nodes=[object()]);factory.reset_mock()
+        with self.assertRaises(RuntimeError):d.attach_live_reader(started,module)
+        factory.assert_not_called()
+    def test_network_receives_exact_same_reader_and_original_binding(self):
+        reader=object();c=SimpleNamespace(live_reader=reader)
+        constructor=mock.Mock(side_effect=lambda *a,**kw:SimpleNamespace(live_reader=kw['live_reader']))
+        result=d.create_network_window(SimpleNamespace(NetworkWindow=constructor),c,options(),'fixed-tools','original-input-pin',500)
+        self.assertIs(result.live_reader,reader)
+        self.assertEqual(constructor.call_args.args,(c,d.lab,'fixed-source','fixed-tools','original-input-pin',500))
+        self.assertIs(constructor.call_args.kwargs['live_reader'],reader)
+        self.assertFalse(constructor.call_args.kwargs['header_capture'])
+    def test_missing_or_substituted_reader_cannot_claim_current_normal_wire(self):
+        constructor=mock.Mock()
+        with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
+            d.create_network_window(SimpleNamespace(NetworkWindow=constructor),SimpleNamespace(),options(),'tools','pin',500)
+        constructor.assert_not_called()
+        constructor=mock.Mock(return_value=SimpleNamespace(live_reader=object()))
+        with self.assertRaisesRegex(RuntimeError,'same sole'):
+            d.create_network_window(SimpleNamespace(NetworkWindow=constructor),SimpleNamespace(live_reader=object()),options(),'tools','pin',500)
+    def test_legacy_missing_publisher_stays_absent_instead_of_invented_reader(self):
+        constructor=mock.Mock(side_effect=lambda *a,**kw:SimpleNamespace(live_reader=kw['live_reader']))
+        result=d.create_network_window(SimpleNamespace(NetworkWindow=constructor),SimpleNamespace(),options('1695'),'tools','pin',500)
+        self.assertIsNone(result.live_reader)
+
+class CurrentSourceSelection(unittest.TestCase):
+    def test_current_selection_uses_returned_supplier_not_legacy_constants(self):
+        spec=importlib.util.spec_from_file_location('current_reader_control',Path(__file__).with_name('pq-normal-live-reader.py'))
+        m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp).resolve();source=base/'original';source.mkdir();destination=base/'composition'
+            path=source/'scripts/verify/wire-live-matching-source-ci.py';path.parent.mkdir(parents=True);path.write_bytes(b'# controlled public source\n')
+            for name in ('go.mod','go.sum'):(source/name).write_bytes(b'original descriptor\n')
+            q=dict(commit='7c25cbcc7d31b10743e26ae1ddca745085ee1b0b',tree='8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a',forkTree='5a128880d14bfc73de4334cba23218859ad3473c',optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',compositionScriptSHA256=hashlib.sha256(path.read_bytes()).hexdigest(),ciEvidenceSHA256='a'*64)
+            selection=dict(originalSourceCommit=q['commit'],originalSourceTree=q['tree'],originalProductionForkTree=q['forkTree'],selectedOptionalForkCommit=q['optionalForkCommit'],selectedOptionalForkTree=q['optionalForkTree'],buildTags=[m.BUILD_TAG])
+            for name in ('fakeVCSIdentity','originalCheckoutWritten','originalModuleDescriptorsChanged','nodeStarted','carrierEnabled','publicActivation'):selection[name]=False
+            def prepare(*args):
+                self.assertEqual(args,(source,destination,q['commit'],q['tree']))
+                build=destination/'source';build.mkdir(parents=True)
+                for name in ('go.mod','go.sum'):(build/name).write_bytes((source/name).read_bytes())
+                receipt=destination/'SOURCE-SELECTION.json';raw=json.dumps(selection).encode();receipt.write_bytes(raw)
+                return dict(sourceDirectory=str(build),receiptPath=str(receipt),receiptBytes=len(raw),receiptSHA256=hashlib.sha256(raw).hexdigest(),sourceSelection=selection)
+            core=SimpleNamespace(PRODUCTION_TREE='legacy-production',FORK_COMMIT='legacy-supplier',FORK_TREE='legacy-tree',prepare_wire_live_source=prepare)
+            def git(argv,**kwargs):
+                args=argv[3:]
+                if args[0]=='status':return b''
+                refs={'HEAD':q['commit'],'HEAD^{tree}':q['tree'],'HEAD:third_party/cometbft':q['forkTree'],q['optionalForkCommit']+':third_party/cometbft':q['optionalForkTree']}
+                self.assertEqual(args[0],'rev-parse');return refs[args[1]].encode()
+            fake=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module:None))
+            with mock.patch.object(m,'qualify',return_value=q),mock.patch.object(m.subprocess,'check_output',side_effect=git),mock.patch.object(m.importlib.util,'spec_from_file_location',return_value=fake),mock.patch.object(m.importlib.util,'module_from_spec',return_value=core):
+                result=m.prepare_matching_source(source,destination)
+            self.assertEqual((result['optionalForkCommit'],result['optionalForkTree']),(q['optionalForkCommit'],q['optionalForkTree']))
+            self.assertTrue(result['originalSourceUnchanged']);self.assertFalse(result['actualNetworkWindow'])
+
+if __name__=='__main__':unittest.main(verbosity=2)

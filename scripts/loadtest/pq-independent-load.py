@@ -655,6 +655,25 @@ class NormalBackend:
                 except (OSError,ValueError):pass
 
 
+def attach_live_reader(ceremony, live_module):
+    lab.require(not ceremony.nodes and getattr(ceremony,'live_reader',None) is None,
+                'one normal private reader must attach before original node startup')
+    reader=live_module.NormalLiveReader(ceremony,lab)
+    ceremony.live_reader=reader
+    return reader
+
+
+def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
+    reader=getattr(ceremony,'live_reader',None)
+    required=getattr(args,'first_trial_profile','own1b')=='7c25'
+    lab.require(not required or reader is not None,'7c25 normal private live reader NOT_SUPPLIED')
+    window=hook.NetworkWindow(ceremony,lab,args.commit,tools,plan_pin,demand,
+        live_reader=reader,header_capture=getattr(args,'header_hop_capture',False),
+        header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
+    lab.require(window.live_reader is reader,'normal network window must retain the same sole private reader')
+    return window
+
+
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
     lab.require(profile in ('own1b','d24','1695','7c25') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
@@ -767,6 +786,8 @@ def run(args):
         observed_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else COMMIT_OBSERVATION_SOURCE
         lab.require(observed_source is not None and args.commit==observed_source,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
     source=Path(args.source);identity=lab.check_source(source,args.commit)
+    live_module=module('current_normal_private_live_reader','pq-normal-live-reader.py') if profile=='7c25' else None
+    if live_module is not None:live_module.qualify(identity) # Exact source/module/tagged CI; never inherit old9081.
     if getattr(args,'staged_publication',False):lab.require(identity['tree']==(trial_source.TREE if first_trial else STAGED_CALLEE_TREE),'exact staged normal source tree differs')
     lab.git(source,"merge-base","--is-ancestor",normal.HELPER_COMMIT,args.commit)
     if args.wire_observation:lab.git(source,"merge-base","--is-ancestor",normal.WIRE_OBSERVER_COMMIT,args.commit)
@@ -805,9 +826,31 @@ def run(args):
         result["processCapacity"]=process_capacity(args)
         lab.require(result["processCapacity"]["canFitNecessaryLowerBound"],"normal per-owner sender pool cannot fit original owned PID limit; original multiplex callee required or explicit different workload; full configured demand retained, no rate reduction")
         bins=work/".private/bin"
+        if live_module is not None:
+            composed=work/".private/live-matching-source"
+            stages.run('prepare_normal_live_source',None,lambda:w.wait(w.launch('prepare-normal-live-source',
+                [sys.executable,'-I','-B',str(Path(__file__).with_name('pq-normal-live-reader.py')),
+                 '--prepare-source',str(source),'--destination',str(composed)])))
+            composition=json.loads((work/'public/prepare-normal-live-source.log').read_bytes())
+            lab.require(composition['source']==identity and composition['buildSource']==str(composed/'source')
+                        and composition['originalSourceUnchanged'] is True,'exact current normal live source composition differs')
+            selection=composition['originalCoreSelection'];raw_selection=lab.guard.bounded(Path(selection['receiptPath']),64<<10)
+            lab.require(hashlib.sha256(raw_selection).hexdigest()==selection['receiptSHA256']
+                        and len(raw_selection)==selection['receiptBytes'],'original live source selection pin differs')
+            with (work/'public/normal-live-source-selection.json').open('xb') as output:output.write(raw_selection)
+            result['normalLiveBuildSource']=composition
+            w.source=composed/'source'
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
-            stages.run("build",name,lambda name=name:w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name])))
+            stages.run("build",name,lambda name=name:w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-trimpath","-buildvcs=false"] if live_module is not None else []),*(["-tags",live_module.BUILD_TAG] if live_module is not None and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name])))
         result["binaries"]={n:lab.guard.digest(bins/n) for n in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
+        if live_module is not None:
+            result['normalLiveBuildProvenance']={}
+            for name,pin in result['binaries'].items():
+                w.wait(w.launch('buildinfo-'+name,['go','version','-m',str(bins/name)]))
+                info=work/'public'/('buildinfo-'+name+'.log');build=next(row for row in w.children if row['name']=='build-'+name)
+                result['normalLiveBuildProvenance'][name]=dict(binarySHA256=pin,buildArgv=build['command'],buildCwd=str(w.source),
+                    sourceSelectionSHA256=selection['receiptSHA256'],buildInfoFile=info.name,buildInfoSHA256=lab.guard.digest(info),
+                    originalSource=identity,selectedOptionalForkTree=composition['optionalForkTree'])
         root=work/".private/network"
         def create_original():
             p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"])
@@ -820,6 +863,9 @@ def run(args):
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
         ceremony.request_stage_observation=profile=='7c25'
+        if live_module is not None:
+            attach_live_reader(ceremony,live_module)
+            result['normalPrivateLiveReaderRequested']=True
         if staged:
             result['coldBootstrapReadinessBudget']=initialization.cold_readiness_budget(w)
             ceremony.initial_quiet_timeout=result['coldBootstrapReadinessBudget']['grantedColdPhaseSeconds']
@@ -858,7 +904,7 @@ def run(args):
             lab.write_new(work/"public/owned-storage-before.json",storage.capture("before"));monitor.check()
         if args.network_accounting:
             hook=module("original_pq_network_window","pq-network-window.py")
-            network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand,header_capture=getattr(args,"header_hop_capture",False),header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
+            network=create_network_window(hook,ceremony,args,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand)
             network.capture("start");monitor.check()
         if first_trial:
             monitor.check()
@@ -891,6 +937,10 @@ def run(args):
             try:
                 original_load=result.get("loadResult",{})
                 result["networkAccounting"]=network.finish(original_load.get("qualified"),{key:original_load.get(key) for key in ("originMonotonicNs","offeredWindowEndMonotonicNs","windowNs","observationCutoffNs")},load_result=original_load)
+                if live_module is not None:
+                    result['liveNetworkReads']=ceremony.live_reader.evidence
+                    result['networkBaseline']=normal.network_baseline_result(network,result['networkAccounting'],ceremony.live_reader,work/'public')
+                    lab.require(result['networkBaseline']['status']=='OBSERVED','actual current normal private wire/TCP reads incomplete; retain UNKNOWN')
                 if monitor is not None:monitor.check()
             except Exception as error:
                 result["networkAccounting"]=dict(status="UNKNOWN",reason="original network checkpoint or accounting failed",errorType=type(error).__name__,physicalBytesMeasured=False,gainsQualified=False)

@@ -1,9 +1,9 @@
 """Normal7c25 adapter controls; sealed data only, no Go/window/network execution."""
-import contextlib,copy,importlib.util,io,json,os,types,unittest
+import contextlib,copy,importlib.util,io,json,os,types,unittest,subprocess,tarfile,tempfile
 from pathlib import Path
 from unittest import mock
 HERE=Path(__file__).resolve().parent
-TOOLS=Path(os.environ.get('YNX_PROFILE_TEST_TOOLS',str(HERE)))
+TOOLS=os.environ.get('YNX_PROFILE_TEST_TOOLS')
 def module(name,path):
     spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 entry=module('fixed7c25_controller',HERE/'pq-first100-7c25-ci.py')
@@ -29,8 +29,28 @@ def assert_workflow(raw):
 class Fixed7c25(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        for name,pin in entry.TOOL_PINS.items():entry.pinned_bytes(TOOLS/name,pin)
-        cls.driver=entry.pinned_module('fixed7c25_driver',TOOLS/'pq-independent-load.py',entry.TOOL_PINS['pq-independent-load.py'])
+        if TOOLS is not None:
+            tools=Path(TOOLS)
+        else:
+            # The adapter intentionally pins an earlier immutable RuntimeTools.
+            # Read that exact Git snapshot, never the changing producer checkout.
+            temp=tempfile.TemporaryDirectory();cls.addClassCleanup(temp.cleanup)
+            root=Path(temp.name);raw=subprocess.check_output(['git','-C',str(HERE.parents[1]),'archive',entry.TOOLS,'scripts/loadtest'])
+            with tarfile.open(fileobj=io.BytesIO(raw),mode='r:') as archive:
+                members=archive.getmembers()
+                if len(members)>10000 or sum(m.size for m in members)>256<<20:raise RuntimeError('bounded immutable tools test snapshot required')
+                for member in members:
+                    path=Path(member.name)
+                    if path.is_absolute() or '..' in path.parts or not (member.isdir() or member.isfile()) or not (member.name.startswith('scripts/loadtest') or member.isdir() and member.name=='scripts'):
+                        raise RuntimeError('unsafe immutable tools test snapshot')
+                    destination=root/path
+                    if member.isdir():destination.mkdir(parents=True,exist_ok=True)
+                    else:
+                        destination.parent.mkdir(parents=True,exist_ok=True)
+                        with archive.extractfile(member) as source:destination.write_bytes(source.read())
+            tools=root/'scripts/loadtest'
+        for name,pin in entry.TOOL_PINS.items():entry.pinned_bytes(tools/name,pin)
+        cls.driver=entry.pinned_module('fixed7c25_driver',tools/'pq-independent-load.py',entry.TOOL_PINS['pq-independent-load.py'])
     def test_real_source_and_semantic_data_grant_no_window_or_prior_initialization(self):
         data=entry.validate_driver(self.driver)
         self.assertTrue(data['semanticPairConsumed']);self.assertEqual(data['heights'],9)
