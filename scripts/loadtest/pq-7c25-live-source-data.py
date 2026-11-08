@@ -75,20 +75,47 @@ def qualification(raw=None):
         metadata[kind]=strict(payload)
     qualify_ci(metadata['run'],metadata['job'],QUALIFICATION)
     raw=FIXTURE.read_bytes() if raw is None else raw
-    require(type(raw) is bytes and len(raw)==ARCHIVE_BYTES and hashlib.sha256(raw).hexdigest()==ARCHIVE_SHA256,'original source-CI archive pin differs')
+    return read_source_archive(raw,QUALIFICATION,EXPECTED,ARCHIVE_SHA256,ARCHIVE_BYTES)
+
+def read_source_archive(raw,q,expected,archive_sha256,archive_bytes):
+    """Read source components only; successful CI is separately mandatory."""
+    require(type(raw) is bytes and len(raw)==archive_bytes and hashlib.sha256(raw).hexdigest()==archive_sha256,'original source-CI archive pin differs')
     files={}
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-        require(len(archive.infolist())==8,'exact original public source files required')
+        require(len(archive.infolist())==10,'exact original source plus controller and qualification files required')
         for entry in archive.infolist():
             name=PurePosixPath(entry.filename)
             require(not name.is_absolute() and '..' not in name.parts and not entry.is_dir() and not stat.S_ISLNK(entry.external_attr>>16) and entry.file_size<=1<<20 and str(name) not in files,'bounded unique original source file required')
             files[str(name)]=archive.read(entry)  # Original ZIP CRC is checked.
     names=[name for name in files if name.endswith('/SOURCE.json')]
     require(len(names)==1,'one original source record required');name=names[0];prefix=name[:-len('SOURCE.json')]
-    record=strict(files[name]);q=QUALIFICATION
+    record=strict(files[name])
     require((q['commit'],q['tree'],q['forkTree'],q['optionalForkCommit'],q['optionalForkTree'])==(SOURCE,TREE,PRODUCTION_FORK,SUPPLIER,SUPPLIER_FORK), 'current7c live source graph differs')
+    ledger=strict(files['wire-live-7c25-controller.json'])
+    seal=strict(files['wire-live-7c25-qualification.json'])
+    roots={'go.mod':'711fee87261c833a6e4cae5c9706d9fd32e9aed4','go.sum':'940892c107fd2facdd222a07d11f227bb0963473','cmd':'d1c925ece2fbeacbf09085f452b70256dacf3317','internal':'012ef00081033b3b11c7fd1ccdfabdeb12ef4595','contracts':'cf38ed42bfdc26b461c21eb48be33891132aaa04','third_party':'c3570c029c238fad229aeac09b68d712472a6fab'}
+    require(ledger['schema']=='YNX-WIRE-LIVE-7C25-CI-CONTROLLER/v1'
+            and ledger['ciControllerCommit']==q['ciHead'] and ledger['ciControllerTree']==q['ciTree']
+            and ledger['ciRef']=='refs/heads/'+q['ciBranch']
+            and ledger['ciRun']==str(q['sourceCI']['run']) and ledger['ciAttempt']=='1'
+            and ledger['frozenProductionCommit']==SOURCE and ledger['frozenProductionTree']==TREE
+            and ledger['productionForkTree']==PRODUCTION_FORK
+            and ledger['optionalSupplierCommit']==SUPPLIER and ledger['optionalForkTree']==SUPPLIER_FORK
+            and ledger['frozenProductionOffComposedTree']==COMPOSED_TREE
+            and ledger['unchangedBuildRoots']==roots
+            and ledger['originalComposerSHA256']==q['compositionScriptSHA256'],
+            'CI-only controller must preserve all frozen production build roots')
+    require(seal['schema']=='YNX-WIRE-LIVE-7C25-EXACT-ROOTS-QUALIFICATION/v1'
+            and seal['controller']==ledger and seal['sameFrozenProductionBuildRoots'] is True
+            and seal['qualifiedOptionalSourceOnly'] is True
+            and all(seal[k] is False for k in ('actual7cCommitRun','actualRunningWindow','carrierEnabled','pressureAuthorized','authorityGranted'))
+            and ledger['sourceOnly'] is True
+            and all(ledger[k] is False for k in ('actualGoTestsPassed','pressureAuthorized','nodeStarted','authorityGranted')),
+            'CI-only exact-root qualification is source evidence only')
+    require(seal['normalSource']==dict(bytes=len(files[name]),sha256=hashlib.sha256(files[name]).hexdigest()),
+            'qualification must bind original source record bytes')
     require(hashlib.sha256(files[name]).hexdigest()==q['ciEvidenceSHA256'],'original source record pin differs')
-    require(record['sourceCommit']==q['commit'] and record['sourceTree']==q['tree'] and record['productionForkTree']==q['forkTree'] and record['optionalForkCommit']==q['optionalForkCommit'] and record['optionalForkTree']==q['optionalForkTree'] and record['buildTags']==[q['buildTag']],'original source graph differs')
+    require(record['sourceCommit']==q['ciHead'] and record['sourceTree']==q['ciTree'] and record['productionForkTree']==q['forkTree'] and record['optionalForkCommit']==q['optionalForkCommit'] and record['optionalForkTree']==q['optionalForkTree'] and record['buildTags']==[q['buildTag']],'original source graph differs')
     require(record['sourceOnly'] is True and record['actualKernelAndPrivateControlTests'] is True and record['actualPreStartNodeGetter'] is True and record['nodeProcessesStarted']==0 and all(record[k] is False for k in ('actualRunningWindow','carrierEnabled','productionForkModified','publicActivation','physicalBytesMeasured')),'source tests cannot become runtime or pressure evidence')
     def pinned(name,ref):
         payload=files[prefix+name]
@@ -97,10 +124,11 @@ def qualification(raw=None):
     for key,stem in (('normalProducer','normal-live-caller'),('originalSupplierBudget','original-peer-budget')):
         original=record[key];events=pinned(stem+'.jsonl',original);pinned(stem+'.stderr.log',original['stderr'])
         result=strict(pinned(stem+'.result.json',original['result']))
-        require(result['version']=='YNX-WIRE-LIVE-GO-RESULT/v1' and result['returnCode']==0 and result['timedOut'] is False and result['validationPassed'] is True and result['firstFailure'] is None,'original source test command did not pass')
-        require(original['requiredPassed']==result['requiredPassed']==list(EXPECTED[key]),'original named case set differs')
+        require(result['version']=='YNX-WIRE-LIVE-GO-RESULT/v1' and type(result['returnCode']) is int and result['returnCode']==0 and result['timedOut'] is False and result['validationPassed'] is True and result['firstFailure'] is None,'original source test command did not pass')
+        require(original['requiredPassed']==result['requiredPassed']==list(expected[key]),'original named case set differs')
         require(result['stdout']=={k:original[k] for k in ('path','bytes','sha256')} and result['stderr']==original['stderr'],'original result log binding differs')
-        original_stream(events,key,EXPECTED[key])
+        original_stream(events,key,expected[key])
     selection=record['preparedSourceSelection'];payload=files[prefix+'composition/SOURCE-SELECTION.json']
+    require(seal['sourceSelection']==dict(bytes=len(payload),sha256=hashlib.sha256(payload).hexdigest()),'qualification must bind original selection bytes')
     require(len(payload)==selection['receiptBytes'] and hashlib.sha256(payload).hexdigest()==selection['receiptSHA256'] and strict(payload)==selection['sourceSelection'],'original Core preparation receipt differs')
     return dict(q)

@@ -1,5 +1,5 @@
 """Normal same-instance reader lifecycle controls; no node, getter or load execution."""
-import importlib.util,json,hashlib,tempfile
+import importlib.util,json,hashlib,tempfile,zipfile,io
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -85,6 +85,31 @@ class CurrentOriginalStream(unittest.TestCase):
     def test_detached_pass_and_extra_top_cannot_qualify(self):
         for rows in ([('start',None),('pass','TestOriginal'),('pass',None)], [('start',None),('run','TestOriginal'),('pass','TestOriginal'),('run','TestExtra'),('pass','TestExtra'),('pass',None)]):
             with self.subTest(events=rows),self.assertRaises(RuntimeError):self.data.original_stream(self.stream(rows),'normalProducer',['TestOriginal'])
+    def test_actual_cancelled_ci_keeps_passing_streams_but_refuses_qualification(self):
+        base=Path(__file__).with_name('fixtures')/'7c25-cancelled-live-source'
+        raw=(base/'ORIGINAL.zip').read_bytes()
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            name=next(n for n in archive.namelist() if n.endswith('/SOURCE.json'))
+            original=archive.read(name);record=json.loads(original)
+        q=dict(commit=self.data.SOURCE,tree=self.data.TREE,forkTree=self.data.PRODUCTION_FORK,
+            optionalForkCommit=self.data.SUPPLIER,optionalForkTree=self.data.SUPPLIER_FORK,
+            buildTag='ynx_live_wire_observation',compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
+            ciEvidenceSHA256=hashlib.sha256(original).hexdigest(),ciHead='c5786c9250858951b7d91103434cd2e467b4ce13',
+            ciTree='5e9d1c0c1894ab2cf58d611f0e5cb387cba20b77',ciBranch='codex/ynx-pq-wire-live-7c25-qualification-20261108',
+            sourceCI=dict(run=42450897483,job=128639736221,artifact=13606205995),pressureAuthorized=False)
+        expected={key:tuple(record[key]['requiredPassed']) for key in ('normalProducer','originalSupplierBudget')}
+        self.assertEqual(tuple(map(len,expected.values())),(7,24))
+        result=self.data.read_source_archive(raw,q,expected,'84d68c8cfa4817fd5673696431217e15553e771c7c961e35e41879cb24287ad2',15199)
+        self.assertEqual(result,q);self.assertFalse(result['pressureAuthorized'])
+        run_raw=(base/'RUN.json').read_bytes();job_raw=(base/'JOB.json').read_bytes()
+        self.assertEqual((len(run_raw),hashlib.sha256(run_raw).hexdigest()),(12416,'fdd20eb544a14b8075f47d81ce7bccd82a8a0a2ee0dcbdaa01775e6731dd769d'))
+        self.assertEqual((len(job_raw),hashlib.sha256(job_raw).hexdigest()),(4726,'d0bf12c898f90e5d13884747b2944ca8e55eef6afaa1d7fa836b17e20c45af88'))
+        run=json.loads(run_raw);job=json.loads(job_raw)
+        self.assertEqual((run['conclusion'],job['conclusion']),('cancelled','cancelled'))
+        annotations=(base/'ANNOTATIONS.json').read_bytes()
+        self.assertEqual(hashlib.sha256(annotations).hexdigest(),'33b2301f9f3fffdac7498b4adf87fa741542590f98af4551336e5cd2f0e67b93')
+        self.assertTrue(any('exceeded the maximum execution time of 8m0s' in row['message'] for row in json.loads(annotations)))
+        with self.assertRaisesRegex(RuntimeError,'CI run must complete successfully'):self.data.qualify_ci(run,job,q)
     def test_cancelled_job_or_run_never_becomes_successful_qualification(self):
         q=dict(sourceCI=dict(run=1,job=2),ciHead='current-ci-only-head',ciBranch='exact-branch')
         run=dict(id=1,run_attempt=1,head_sha=q['ciHead'],head_branch=q['ciBranch'],event='push',path='.github/workflows/chain-core.yml',repository=dict(full_name='JiahaoAlbus/YNX-Chain'),status='completed',conclusion='success')
