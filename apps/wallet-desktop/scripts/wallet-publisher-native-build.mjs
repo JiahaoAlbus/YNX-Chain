@@ -207,3 +207,6 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInpu
  const role=deviceV4?composeDeviceV4PQCommands(historical,repo,headerFlag.slice(2),[127,137,145].includes(supplierNodeInputCount),[137,145].includes(supplierNodeInputCount),supplierNodeInputCount===145):pqNative?composePQNativeCommands(commands,repo):null;
  return {...plan,sources:[...sources,store,...controlSources,...(deviceV4?role.sources:[])],commands:role?.commands??commands,...(role?{...(deviceV4?{deviceV4PQRole:role.deviceV4PQRole}:{pqNativeRole:PQ_NATIVE_PROVENANCE}),pqNativeBaseCommands:historical,intermediateOutputs:role.intermediateOutputs}:{}),walletInputFiles:walletInputs,supplierNodeInputCount,nativeGrant:false,approval:false};
 }
+
+// Fixed TaskGrant successor; old product/source profiles remain unchanged.
+export{planOriginalTaskGrantMatchingDATA as walletTaskGrantMatchingProfileDATA}from'./wallet-task-grant-matching-native-profile.mjs';
