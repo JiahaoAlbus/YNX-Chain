@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '24'
       - run: node --test packages/wallet-auth/test/android-pending-native10-ci.test.mjs
-      - run: node scripts/ci/android-pending-native10.mjs host "$RUNNER_TEMP/android-pending-native10-host"
+      - run: node scripts/ci/android-pending-native10.mjs host "$RUNNER_TEMP/android-pending-native10-host" --normal-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -48,7 +48,7 @@ jobs:
       - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
         with:
           packages: 'ndk;27.1.12297006'
-      - run: node scripts/ci/android-pending-native10.mjs android "$RUNNER_TEMP/android-pending-native10-api24"
+      - run: node scripts/ci/android-pending-native10.mjs android "$RUNNER_TEMP/android-pending-native10-api24" --normal-only
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

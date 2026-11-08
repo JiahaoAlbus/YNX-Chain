@@ -13,4 +13,6 @@ export function verifyNative10Inputs(){
  return m;
 }
 export const strong=[...['open','borrow','current','close'].map(x=>'ynx_original_android_pending_directory_'+x+'_v1'),...['open','current','borrow_once','retire','close'].map(x=>'ynx_original_android_pending_pair_'+x+'_v1'),'ynx_original_android_pending_abort_current_v1'];
-export function verifySymbols(s){for(const n of strong)if(!new RegExp('\\bT _?'+n+'$','m').test(s))throw Error('MISSING_STRONG:'+n);if(s.includes('ynx_android_pending_directory_PUBLIC_close'))throw Error('NORMAL_PUBLIC_HOOK');}
+export function symbolKinds(s,name){return s.split('\n').flatMap(line=>{const m=/^\s*(?:[0-9a-fA-F]+\s+)?([A-Za-z?])\s+_?([A-Za-z0-9_]+)\s*$/.exec(line);return m&&m[2]===name?[m[1]]:[];});}
+export function verifySymbols(s){for(const n of strong){const definitions=symbolKinds(s,n).filter(k=>k!=='U');if(definitions.length!==1||definitions[0]!=='T')throw Error('EXACT_STRONG:'+n);}if(s.includes('ynx_android_pending_directory_PUBLIC_close'))throw Error('NORMAL_PUBLIC_HOOK');}
+export function verifyMainImports(s,names){for(const n of names){const kinds=symbolKinds(s,n);if(!kinds.includes('U')||kinds.some(k=>k!=='U'))throw Error('MAIN_IMPORT_ONLY:'+n);}}
