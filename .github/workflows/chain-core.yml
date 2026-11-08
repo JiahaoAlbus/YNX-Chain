@@ -132,6 +132,7 @@ jobs:
           python3 -B scripts/loadtest/test_pq_first100_1695_cold_readback.py -v
           python3 -B scripts/loadtest/test_pq_first100_1695_public_readback.py -v
           python3 -B scripts/loadtest/test_pq_7c25_source_qualification.py -v
+          python3 -B scripts/loadtest/test_pq_first100_7c25_ci.py -v
           python3 -B scripts/loadtest/test_pq_finalize_7c25_semantic_ci.py -v
           python3 -B scripts/loadtest/test_pq_7c25_semantic_readback.py -v
           python3 -B scripts/loadtest/test_pq_first100_stage_summary.py -v
