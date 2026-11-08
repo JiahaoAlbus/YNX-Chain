@@ -155,6 +155,8 @@ class D24ControllerControls(unittest.TestCase):
     def test_old_jobs_and_1b_wrapper_are_unchanged_new_job_is_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
         original=workflow.split('jobs:\n',1)[1].split('\n  first100-d24-controller-controls:',1)[0]
+        # The exact new-only guard cannot change any existing profile route.
+        original=original.replace("    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')\n","    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load')\n",1)
         self.assertEqual(hashlib.sha256(original.encode()).hexdigest(),'83bf4b2d9fdcba0b73abf264867288e70079891d674f76d364411d0a8cad0334')
         self.assertEqual(hashlib.sha256((HERE/'pq-current75-baseline-ci.py').read_bytes()).hexdigest(),'a9aef92484c840da2a2e6eca39c98573ee5850547a98257316668e0db0e4cbd2')
         runtime=workflow.split('\n  first100-d24-initialize-before-load:',1)[1]

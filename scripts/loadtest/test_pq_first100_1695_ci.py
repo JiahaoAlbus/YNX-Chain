@@ -64,10 +64,13 @@ class Fixed1695(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()),self.assertRaises((RuntimeError,SystemExit)):entry.main(argv)
     def test_old_workflow_bytes_preserved_and_new_jobs_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
-        base=workflow.split('\n  first100-1695-controller-controls:',1)[0].replace(', first100-1695-bounded-cold, first100-1695-public-owner]',']')
+        # Project only the exact additive 7c25 choice and its new-only fallback guard.
+        legacy=workflow.replace(', first100-7c25-public-owner]',']',1)
+        legacy=legacy.replace("    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')\n","    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load')\n",1)
+        base=legacy.split('\n  first100-1695-controller-controls:',1)[0].replace(', first100-1695-bounded-cold, first100-1695-public-owner]',']')
         self.assertEqual(hashlib.sha256(base.encode()).hexdigest(),'e9127104929017ae5c16e36fc2a267cbfe5d88a413837104126eae9381fbe446')
         for profile in entry.PROFILES:
-            job=workflow.split('\n  '+profile+':',1)[1].split('\n  first100-1695-',1)[0]
+            job=workflow.split('\n  '+profile+':',1)[1].split('\n  first100-1695-',1)[0].split('\n  first100-7c25-controller-controls:',1)[0]
             for literal in ("github.event_name == 'workflow_dispatch'","github.run_attempt == 1","inputs.load_profile == '"+profile+"'","inputs.signing_mode == 'online'",'needs: first100-1695-controller-controls',entry.GO_SOURCE,entry.TOOLS,'--check-tools-ci','remove-unused-android-for-'+profile+'-v1') :self.assertIn(literal,job)
             self.assertLess(job.index('--check-tools-ci'),job.index('Prepare only explicitly'));self.assertLess(job.index('Prepare only explicitly'),job.index('Execute sole'))
             self.assertEqual(job.count(' --execute'),2)
