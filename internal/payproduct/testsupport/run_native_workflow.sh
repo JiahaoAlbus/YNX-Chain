@@ -5,6 +5,22 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-sdk-native-parent-progress ]; then
+ : "${PAY_NODE_BINARY:?exact original Main runtime required}"
+ : "${PUBLIC_SHOP_SDK_MODULE:?exact frozen SDK wrapper required}"
+ : "${PUBLIC_SHOP_NATIVE_IMAGE:?PUBLIC image of original Native pending-phase fix required}"
+ "$PAY_NODE_BINARY" "$source_dir/../../apps/pay/native/testsupport/shop-sdk-native-parent-progress.mjs"
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-sdk-native-joint ]; then
+ : "${PAY_NODE_BINARY:?exact original Main runtime required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?pinned original Main wrapper required}"
+ : "${PUBLIC_SHOP_SDK_MODULE:?exact frozen SDK wrapper required}"
+ : "${PUBLIC_SHOP_NATIVE_IMAGE:?PUBLIC fixture image of original Native TUs required}"
+ : "${PUBLIC_SHOP_EXPECTED_DATA:?PUBLIC original request DATA required}"
+ "$PAY_NODE_BINARY" "$source_dir/../../apps/pay/native/testsupport/shop-sdk-native-joint.mjs"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-session-link-joint ]; then
  : "${PAY_GO_BINARY:?original Go executable required}"
  : "${PAY_NODE_BINARY:?original Main runtime required}"

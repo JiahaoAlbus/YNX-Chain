@@ -194,6 +194,26 @@ the V2 POST-introspection header, or accepted by increasing a header budget.
 adds build-tagged PUBLIC observers only in the owned composition; it never edits
 an owner checkout, installs Root rows, or adds a normal LINK export.
 
+`shop-sdk-native-joint` selects the new fixed SDK wrapper plus the original
+Native Owner/ProofLoan/NAPI translation units in the installed Node 24 runtime.
+Its PUBLIC native ports supply only bounded original request DATA and an
+explicitly unsigned proof fixture. The original Main wrapper enters P06's
+normal lookup path and sole business validator, then stops at the absent Pay
+capability. A second same-order lookup keeps the original SDK Promise; Main
+cancel prevents its cached DATA from entering Pay and sends no second GET.
+Native child closure and the separate PUBLIC parent closure are checked
+independently. This suite neither qualifies session4 nor installs an image.
+It requires explicit `PUBLIC_SHOP_SDK_MODULE`, `PUBLIC_SHOP_NATIVE_IMAGE`,
+`PUBLIC_SHOP_EXPECTED_DATA`, `PAY_NODE_BINARY` and `PAY_MAIN_PRODUCT_MODULE`;
+the SDK and Main source pins are checked before loading. Native fixture build
+commands, exact inputs and the one permitted fixture-body replacement belong
+in the corresponding owned build receipt, never in the installed application.
+`shop-sdk-native-parent-progress` couples the later original Native pending-phase
+fix to that same SDK wrapper. A known pending Source phase progresses on the
+same child while the original failure remains exact; final physical completion
+does not repeat session close, GET or proof acquisition. It checks only that
+child's physical witness and never asserts whole ProductSource/Pay closure.
+
 Refund receipt details now retain the original Core effect's `refundId`,
 `payer`, `recipient`, `assetId` and `unitVersion`, plus independently verified
 `executionHeight`, `executionIndex`, `executionMember` and `executionEvent`.
