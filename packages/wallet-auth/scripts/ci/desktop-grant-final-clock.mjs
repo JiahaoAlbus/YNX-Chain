@@ -1,0 +1,1 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';const r=spawnSync(process.execPath,['--test','test/desktop-grant-final-clock.test.mjs'],{cwd:fileURLToPath(new URL('../../',import.meta.url)),stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('DGA_FINAL_CLOCK_DELTA_FAILED:'+r.status);
