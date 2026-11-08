@@ -227,8 +227,8 @@ func (h *Products) Join(ctx context.Context) error {
 	return nil
 }
 
-// Close never closes borrowed Core resources. Any undrained request, Source
-// close failure or Cloud child debt retains all still-dependent owned parents.
+// Close never closes borrowed Core resources. Any undrained request,
+// unconfirmed Source close or Cloud child debt retains dependent owned parents.
 // Keep the first close cause even if a later retry can release remaining debt.
 func (h *Products) Close() error {
 	if h == nil {
@@ -253,8 +253,9 @@ func (h *Products) Close() error {
 		return remember(ErrProductsDraining)
 	}
 	if h.native != nil {
-		if err := h.native.Close(); err != nil {
-			return remember(err)
+		remember(h.native.Close())
+		if !h.native.Closed() {
+			return remember(ErrProductsDraining)
 		}
 	}
 	if h.cloud != nil {

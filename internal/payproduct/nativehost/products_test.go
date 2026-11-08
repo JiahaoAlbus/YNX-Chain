@@ -20,12 +20,45 @@ import (
 	"testing"
 	"time"
 
+	paynativesource "github.com/JiahaoAlbus/YNX-Chain/internal/authnativesource"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/cloud"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink/native"
 )
+
+// The actual normal parents and actual refused Source partial, without a
+// commissioned request or replacement Source. This tests cleanup composition,
+// not native invoice capability or merchant admission.
+func TestProductsOriginalSourceCloseFactReleasesParentsWithoutErasingRefusal(t *testing.T) {
+	h, err := OpenProducts(context.Background(), productsNormalConfig(t), buildinfo.Info{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, cause := paynativesource.NewOriginalNativePaySource(Resources{Engine: NativeEngine, Native: chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))})
+	if source == nil || cause == nil {
+		t.Fatal("actual Root0 Source partial required", cause)
+	}
+	h.native = &Runtime{composition: &paynativesource.OriginalPrivateNativePayComposition{Source: source}, first: cause}
+	h.sourceErr = cause
+	if h.native.Closed() || h.Closed() {
+		t.Fatal("Source and parent cleanup were inferred before Close")
+	}
+	if err = h.Join(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if h.native.Closed() || h.Closed() {
+		t.Fatal("Join counted as physical Source close")
+	}
+	if err = h.Close(); err != nil || !h.native.Closed() || !h.Closed() || h.pay.Service() != nil {
+		t.Fatal("actual Source/parents not safely closed", err)
+	}
+	if h.native.Err() != cause || h.NativeSourceStatus() != cause || h.native.Ready() {
+		t.Fatal("cleanup erased original Source refusal or admitted it")
+	}
+}
 
 func productsNormalConfig(t *testing.T) ProductsConfig {
 	t.Helper()

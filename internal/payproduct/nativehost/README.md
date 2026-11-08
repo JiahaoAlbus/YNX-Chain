@@ -18,7 +18,21 @@ The finite LINK policies must contain the original GET RPC read paths, the exact
 
 `OpenPrivate(products, PrivateConfig)` mounts the genuine Pay/Cloud handlers through original LINK `ListenPrivate` and `NewLocalCallerServer`, preserving the same request and fixed UID/PID/routes. It retains the listener even before Serve, never unlinks an existing endpoint, and uses the original retire/drain/SIGTERM path. The standalone `ynx-pay-private-host` cannot borrow another process's Go resources and has no engine/Root activation flag. An owning integrated process calls the typed boot functions above with its already-open original objects.
 
-Shutdown order is: retire original admission; join the LINK handler/body boundary and Serve goroutine; retire/join product requests, Pay retry and Cloud workers; close the Auth Source; close Cloud; close Pay's captured normal central transport; finally `EngineBinding.ShutdownEndpoint(ctx)`. Only the engine endpoint's listener/server/client are owned by that last call. Core closes its own original Node/Application afterward. Failed drain or child close retains dependent parents and the first cause. No uncertain operation is replayed on recovery.
+Shutdown order is: retire original admission; join the LINK handler/body boundary and Serve goroutine; retire/join product requests, Pay retry and Cloud workers; close the Auth Source; close Cloud; close Pay's captured normal central transport; finally `EngineBinding.ShutdownEndpoint(ctx)`. Only the engine endpoint's listener/server/client are owned by that last call. Core closes its own original Node/Application afterward. Undrained or unconfirmed child cleanup retains dependent parents and the first cause. No uncertain operation is replayed on recovery.
+
+The original Auth `Owner.Closed()` fact is required for Source release. The
+runtime delegates this fact to the retained concrete owner. A nonzero `Close`
+result remains the first cleanup cause; when that same owner confirms physical
+closure, Products may finish closing its parents while returning that error.
+Retirement, an empty active-request count, and `Close` returning are not such
+confirmation. Pending or UNKNOWN Source child cleanup keeps the parents held.
+The older Auth source without this predicate cannot compile this successor;
+its actual owner must supply the complete matching source, including request
+and commissioning cleanup. It does not affect the existing selected runtimes.
+`PAY_NATIVE_WORKFLOW_SUITE=native-source-close` runs the narrow real Root0
+partial cleanup check with explicit `PAY_NATIVE_HOST_MODFILE` pointing to the
+original complete normal-host dependency closure. No fake Source replaces the
+missing supplier method, and Root0 cleanup is not merchant admission.
 
 `PAY_NATIVE_WORKFLOW_SUITE=engine` selects the engine, RPC and private exact-route delta checks in `../testsupport/run_native_workflow.sh`. `engine-node` additionally requires a new `PAY_ENGINE_FIXTURE_REPORT` and a prepared composition containing the pinned Core26b production graph. It extracts only the original PUBLIC fixture helpers, commits the first block with the original BlockExecutor, and cold-recovers the same Node directory before exercising the actual S3 RPC/gateway/normal products Source boundary. These test-only controls never enter production or assert Source admission, merchant business success, activated PQ consensus, or funds movement.
 

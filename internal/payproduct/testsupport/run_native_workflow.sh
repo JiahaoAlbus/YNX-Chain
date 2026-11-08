@@ -90,6 +90,12 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-source-close ]; then
+ : "${PAY_NATIVE_HOST_MODFILE:?original complete normal-host module file required}"
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ go test -modfile="$PAY_NATIVE_HOST_MODFILE" -mod=readonly -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/nativehost -run '^TestNormalRuntimeOriginalSourceCloseFactPreservesConstructionCause$|^TestProductsOriginalSourceCloseFactReleasesParentsWithoutErasingRefusal$' -count=1 -timeout=1m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-operation-recovery ]; then
  : "${PAY_NODE_BINARY:?exact original Main Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"

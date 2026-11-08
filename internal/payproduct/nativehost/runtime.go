@@ -83,6 +83,12 @@ func (r *Runtime) PartialRetained() bool {
 	return r != nil && r.composition != nil && r.composition.Source != nil
 }
 func (r *Runtime) CompositionRetained() bool { return r != nil && r.composition != nil }
+
+// This fact belongs to the actual Source owner. Retire, a retained business
+// error or a previously failed Close cannot stand in for physical completion.
+func (r *Runtime) Closed() bool {
+	return r == nil || r.composition == nil || r.composition.Source == nil || r.composition.Source.Closed()
+}
 func (r *Runtime) Retire() {
 	if r != nil {
 		r.retired.Store(true)

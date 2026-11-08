@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	paynativesource "github.com/JiahaoAlbus/YNX-Chain/internal/authnativesource"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
@@ -30,6 +31,34 @@ func TestNormalNativeInvoiceFactoryRetainsCompositionAndRefusesCapability(t *tes
 	}
 	if r.Err() != err || r.Ready() {
 		t.Fatal("cleanup changed Source refusal into readiness")
+	}
+}
+
+// Use the actual supplier's Root0 partial, without admitting a Source or
+// installing requests. A construction error and completed physical cleanup
+// are distinct facts; neither retirement nor an empty handler proves Close.
+func TestNormalRuntimeOriginalSourceCloseFactPreservesConstructionCause(t *testing.T) {
+	actual := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	source, cause := paynativesource.NewOriginalNativePaySource(Resources{Engine: NativeEngine, Native: actual})
+	if source == nil || cause == nil {
+		t.Fatal("original Source refusal partial required", cause)
+	}
+	r := &Runtime{composition: &paynativesource.OriginalPrivateNativePayComposition{Source: source}, first: cause}
+	if r.Closed() {
+		t.Fatal("retained original Source declared closed before cleanup")
+	}
+	r.Retire()
+	if r.Closed() {
+		t.Fatal("retirement counted as physical Source close")
+	}
+	if err := r.Close(); err != nil || !r.Closed() || r.Err() != cause || r.Ready() {
+		t.Fatal("original Source cleanup erased cause or retained debt", err)
+	}
+	if err := r.Close(); err != nil || !r.Closed() || r.Err() != cause {
+		t.Fatal("repeated cleanup changed original outcome", err)
+	}
+	if !(*Runtime)(nil).Closed() {
+		t.Fatal("nil runtime acquired a child")
 	}
 }
 
