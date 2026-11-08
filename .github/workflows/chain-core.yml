@@ -85,6 +85,58 @@ jobs:
         with:
           go-version: "1.26.10"
           cache: false
+      - name: Check same-connection owned client image and physical close
+        env:
+          CGO_ENABLED: "1"
+          GOMAXPROCS: "2"
+          GOMEMLIMIT: 1536MiB
+          GOCACHE: ${{ runner.temp }}/task-grant-go-cache
+          GOTMPDIR: ${{ runner.temp }}/task-grant-go-tmp
+          YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE: ${{ runner.temp }}/owned-local-client
+          YNX_LINK_OWNED_LOCAL_CLIENT_TEST_SOCKET_ROOT: /private/tmp/ynx-oc-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$GOCACHE" "$GOTMPDIR"
+          install -d -m 700 "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE" "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_SOCKET_ROOT"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const files=['go.mod','go.sum','.github/workflows/chain-core.yml',...fs.readdirSync('internal/securelink')
+            .filter(n=>n.startsWith('local_caller')||n.startsWith('ipc')).sort().map(n=>'internal/securelink/'+n)];
+          const pins=files.map(file=>{const b=fs.readFileSync(file);return {file,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')};});
+          fs.writeFileSync(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE+'/SOURCE-BEFORE.json',JSON.stringify(pins,null,2)+'\n',{flag:'wx'});
+          NODE
+          set +e
+          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer)' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
+          export YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS=$?
+          set -e
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          const root=process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE;
+          const before=JSON.parse(fs.readFileSync(root+'/SOURCE-BEFORE.json'));
+          const after=before.map(({file})=>{const b=fs.readFileSync(file);return {file,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')};});
+          fs.writeFileSync(root+'/SOURCE-AFTER.json',JSON.stringify(after,null,2)+'\n',{flag:'wx'});
+          const rows=fs.readFileSync(root+'/go.jsonl','utf8').trim().split('\n').filter(Boolean).map(JSON.parse);
+          const names=['ExchangeCompleteFINAndDebt','ExchangePreflightNoSocket','ExchangePartialAndBounds',
+            'ExchangeCancellationJoinsCallback','ExchangeConcurrentCurrentAndCleanup','ExchangeCloseUnknownRetainsOriginal',
+            'PeerSameConnectedIdentity','PeerRejectsWrongExpectedIdentity','PeerCloseUnknownRetainedOnce','PeerActualExecChange']
+            .map(n=>'TestOriginalLocalCaller'+n);
+          const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
+            run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
+            pass:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='pass').length===1),
+            failures:rows.filter(r=>r.Action==='fail'||r.Action==='skip'),sourceBeforeAfterSame:JSON.stringify(before)===JSON.stringify(after),PUBLIC:true,RootAdmission:false,SourceAdmission:false};
+          fs.writeFileSync(root+'/CI-RESULT.json',JSON.stringify(result,null,2)+'\n',{flag:'wx'});
+          assert.equal(result.exit,0);assert.deepEqual(result.run,names);assert.deepEqual(result.pass,names);assert.equal(result.failures.length,0);assert.equal(result.sourceBeforeAfterSame,true);
+          NODE
+      - name: Preserve owned client actual kernel and close evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: owned-local-client-darwin-${{ github.sha }}
+          path: ${{ runner.temp }}/owned-local-client
+          if-no-files-found: error
       - name: Check new Product Unix transport and C ABI lifecycle with PUBLIC fixture loan
         env:
           CGO_ENABLED: "1"
@@ -423,6 +475,8 @@ jobs:
       GOMAXPROCS: "2"
       CGO_ENABLED: "1"
       OPENSSL_VERSION: "3.6.4"
+      YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE: ${{ runner.temp }}/securelink-evidence/owned-client
+      YNX_LINK_OWNED_LOCAL_CLIENT_TEST_SOCKET_ROOT: /tmp/ynx-oc-${{ github.run_id }}-${{ github.run_attempt }}
       # Tarball digest from the official openssl/openssl release asset metadata.
       OPENSSL_SOURCE_SHA256: "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
     steps:
@@ -530,6 +584,9 @@ jobs:
           test "$(grep -c '^--- PASS: TestDesktopTaskGrantNativeTLSSevenRoutesToActualNode ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           test "$(grep -c '^--- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath ' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           test "$(grep -c '^    --- PASS: TestOriginalTaskReadContinuationNativeTLSWholePath/' "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 2
+          for owned_test in ExchangeCompleteFINAndDebt ExchangePreflightNoSocket ExchangePartialAndBounds ExchangeCancellationJoinsCallback ExchangeConcurrentCurrentAndCleanup ExchangeCloseUnknownRetainsOriginal PeerSameConnectedIdentity PeerRejectsWrongExpectedIdentity PeerCloseUnknownRetainedOnce PeerActualExecChange; do
+            test "$(grep -c "^--- PASS: TestOriginalLocalCaller$owned_test " "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
+          done
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
       - name: Exercise the normal command through private IPC and actual PQ TLS
         run: |

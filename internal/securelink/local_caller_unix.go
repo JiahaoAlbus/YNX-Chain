@@ -542,32 +542,42 @@ func (c *LocalCallerClient) call(ctx context.Context, method, path, contentType 
 	if err = req.Write(conn); err != nil {
 		return out, err
 	}
-	// The total wire bound also covers chunk metadata/trailers, not only the
-	// decoded body. ReadResponse cannot allocate unbounded header maps.
-	budget := &wireBudget{reader: conn, remaining: int64(c.cfg.MaxHeaderBytes)}
-	reader := bufio.NewReader(budget)
-	resp, err := http.ReadResponse(reader, req)
+	out, partialBytes, err = readBoundedLocalCallerResponse(conn, req, c.cfg.MaxHeaderBytes, c.cfg.MaxResponseBytes)
 	if err != nil {
 		return out, err
 	}
-	defer resp.Body.Close()
-	out = LocalCallerResponse{PacketPresent: true, Method: req.Method, RequestPath: req.URL.RequestURI(), StatusCode: resp.StatusCode, Header: resp.Header.Clone()}
-	budget.remaining = c.cfg.MaxResponseBytes + int64(c.cfg.MaxHeaderBytes) - int64(reader.Buffered())
-	if resp.ContentLength > c.cfg.MaxResponseBytes {
-		return out, ErrBounds
-	}
-	b, err := io.ReadAll(io.LimitReader(resp.Body, c.cfg.MaxResponseBytes+1))
-	partialBytes = int64(len(b))
-	out.Body = b // adopt exact partial DATA before examining any late failure
-	if err != nil {
-		return out, err
-	}
-	if int64(len(b)) > c.cfg.MaxResponseBytes {
-		return out, ErrBounds
-	}
-	out.BodyComplete = true
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	return out, nil
+}
+
+// Both the original one-shot call and the explicit owned exchange use this
+// exact bounded HTTP response path. It grants no peer or Source authority.
+func readBoundedLocalCallerResponse(conn io.Reader, req *http.Request, maxHeader int, maxResponse int64) (out LocalCallerResponse, partialBytes int64, err error) {
+	// The total wire bound also covers chunk metadata/trailers, not only the
+	// decoded body. ReadResponse cannot allocate unbounded header maps.
+	budget := &wireBudget{reader: conn, remaining: int64(maxHeader)}
+	reader := bufio.NewReader(budget)
+	resp, err := http.ReadResponse(reader, req)
+	if err != nil {
+		return out, partialBytes, err
+	}
+	defer resp.Body.Close()
+	out = LocalCallerResponse{PacketPresent: true, Method: req.Method, RequestPath: req.URL.RequestURI(), StatusCode: resp.StatusCode, Header: resp.Header.Clone()}
+	budget.remaining = maxResponse + int64(maxHeader) - int64(reader.Buffered())
+	if resp.ContentLength > maxResponse {
+		return out, partialBytes, ErrBounds
+	}
+	b, err := io.ReadAll(io.LimitReader(resp.Body, maxResponse+1))
+	partialBytes = int64(len(b))
+	out.Body = b // adopt exact partial DATA before examining any late failure
+	if err != nil {
+		return out, partialBytes, err
+	}
+	if int64(len(b)) > maxResponse {
+		return out, partialBytes, ErrBounds
+	}
+	out.BodyComplete = true
+	return out, partialBytes, nil
 }
