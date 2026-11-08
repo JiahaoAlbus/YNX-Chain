@@ -9,8 +9,11 @@ const fail=c=>{throw Object.assign(Error(c),{code:c});},E='WALLET_PRODUCT_SOURCE
 function record(v,keys){if(!v||types.isProxy(v)||![Object.prototype,null].includes(Object.getPrototypeOf(v)))fail(E);const d=Object.getOwnPropertyDescriptors(v),own=Reflect.ownKeys(d);if(own.length!==keys.length||own.some(k=>typeof k!=='string'||!keys.includes(k)||!Object.hasOwn(d[k],'value')||!d[k].enumerable))fail(E);return Object.fromEntries(keys.map(k=>[k,d[k].value]));}
 function list(v,max,empty){if(types.isProxy(v)||!Array.isArray(v)||Object.getPrototypeOf(v)!==Array.prototype)fail(E);const d=Object.getOwnPropertyDescriptors(v),n=d.length.value;if(n>max||!empty&&n===0||Reflect.ownKeys(d).length!==n+1)fail(E);const out=[];for(let i=0;i<n;i++){if(!d[i]||!Object.hasOwn(d[i],'value')||!d[i].enumerable)fail(E);out.push(d[i].value);}return out;}
 const token=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v),hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v),owner=v=>typeof v==='string'&&/^0x[a-f0-9]{40}$/.test(v);
-export function inspectOriginalWalletProductScopeV1DATA(value,networkId,subjectOwner,issuedAtMs,expiresAtMs,atMs){
- if(!hex(networkId)||!owner(subjectOwner)||![issuedAtMs,expiresAtMs,atMs].every(Number.isSafeInteger)||issuedAtMs<0||expiresAtMs<=issuedAtMs||expiresAtMs-issuedAtMs>86400000||atMs<issuedAtMs||atMs>=expiresAtMs)fail(E);
+/** Pure closed shape/identity DATA only. It has no clock/window or permission
+ * result. Native true-borrow.current owns freshness for the private comparison
+ * consumer; ordinary Source qualification MUST retain the full inspector below. */
+export function inspectOriginalWalletProductScopeShapeV1DATA(value,networkId,subjectOwner){
+ if(!hex(networkId)||!owner(subjectOwner))fail(E);
  const s=record(value,['version','networkId','account','protectedResourceRef','operations','products']);
  if(s.version!==1||!hex(s.networkId)||!owner(s.account)||!token(s.protectedResourceRef))fail(E);
  if(s.networkId!==networkId||s.account!==subjectOwner)fail('WALLET_PRODUCT_SOURCE_IDENTITY');
@@ -18,6 +21,12 @@ export function inspectOriginalWalletProductScopeV1DATA(value,networkId,subjectO
  const products=list(s.products,64,true),seen=new Set(),owned=[];for(const v of products){const ref=record(v,['productId','sourceOrder']);if(!['shop.order','cloud.ide-usage'].includes(ref.productId)||!token(ref.sourceOrder))fail(E);const key=ref.productId+'/'+ref.sourceOrder;if(seen.has(key))fail(E);seen.add(key);owned.push(Object.freeze(ref));}
  if((ops.includes('readOriginalInvoiceIntent')||ops.some(op=>WALLET_NATIVE_PRODUCT_ARCHIVE_READ_OPERATIONS.includes(op)))&&owned.length===0)fail('WALLET_PRODUCT_SOURCE_ORIGINAL_PRODUCTS_REQUIRED');
  const scope=Object.freeze({...s,operations:Object.freeze(ops),products:Object.freeze(owned)}),scopeOriginal=canonical(scope);
+ return Object.freeze({scopeOriginal,scope,dataOnly:true,authorized:false,SourceAdmission:false,NativeAdmission:false,registered:false,approval:false});
+}
+
+export function inspectOriginalWalletProductScopeV1DATA(value,networkId,subjectOwner,issuedAtMs,expiresAtMs,atMs){
+ if(!hex(networkId)||!owner(subjectOwner)||![issuedAtMs,expiresAtMs,atMs].every(Number.isSafeInteger)||issuedAtMs<0||expiresAtMs<=issuedAtMs||expiresAtMs-issuedAtMs>86400000||atMs<issuedAtMs||atMs>=expiresAtMs)fail(E);
+ const {scopeOriginal,scope}=inspectOriginalWalletProductScopeShapeV1DATA(value,networkId,subjectOwner);
  return Object.freeze({scopeOriginal,scope,effectExpiresAtMs:expiresAtMs,dataOnly:true,authorized:false,SourceAdmission:false,NativeAdmission:false,registered:false,approval:false});
 }
 

@@ -19,6 +19,10 @@ async function fixture(){
  class RecoverableProductSessionClient{constructor(config){this.config=config;state.clients.push(this);}async openExistingBusinessRead(){return Object.freeze({capabilities:Object.freeze({readOnly:true}),async createBusinessProof(input){state.calls.push(input);if(state.proofErrorPresent)throw state.proofError;return state.proof;},async close(){state.closeCalls++;}});}}
  const mocks={
  './pq-wallet-contract.js':{PQ_SUITE:suite},
+ '../native/original-wallet-product-source-contract.mjs':{inspectOriginalWalletProductScopeShapeV1DATA(){throw Error('UNUSED_PRODUCT_SCOPE_IN_PREDECESSOR_MODEL');}},
+ './crypto.js':{evmAddressFromYNX(){throw Error('UNUSED_PRODUCT_IDENTITY_IN_PREDECESSOR_MODEL');}},
+ './pq-public-bytes.js':{pqHexBytes(){throw Error('UNUSED_PRODUCT_IDENTITY_IN_PREDECESSOR_MODEL');}},
+ '@noble/hashes/utils.js':{bytesToHex(){throw Error('UNUSED_PRODUCT_IDENTITY_IN_PREDECESSOR_MODEL');}},
  './original-auth-identity-fixed-native-image.js':{acquireOriginalProductSessionDeviceV4SourceStage(){return state.owner;}},
  './original-wallet-service-private-client.js':{hasOriginalWalletServicePrivateBridge:()=>false},
  './canonical.js':{WalletAuthError,exactFields(object,fields){assert.deepEqual(Object.keys(object).sort(),[...fields].sort());}},

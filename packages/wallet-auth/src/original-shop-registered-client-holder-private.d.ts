@@ -7,6 +7,9 @@ declare const originalReadHolder:unique symbol;
 export interface OriginalRegisteredClientReadHolder {
  readonly [originalReadHolder]:never;
  assertCurrent():void;
+ /** SAME already-held actual Native Device Source object for the fixed Native
+  * strong matcher. Borrow only: no Source acquisition, close or authority. */
+ readOriginalNativeDeviceSource():unknown;
  createBusinessProof(input:ProductBusinessReadInput):Promise<ProductSessionBusinessReadProofV4>;
  /** Drops this reference only. Never closes the Native Source parent. */
  release():void;
@@ -24,3 +27,20 @@ export type OriginalRegisteredClientGETProofOriginal=Readonly<{
  * Times come exclusively from the sole-decoded SAME original V4 header.
  * No SourceComparison/Native Shop identity is granted by this function. */
 export function createOriginalRegisteredClientGETProof(loan:OriginalRegisteredClientReadHolder,originalPath:string):Promise<OriginalRegisteredClientGETProofOriginal>;
+
+export interface OriginalDeviceSourceReferenceDATA {
+ readonly purpose:'product-session-device-source-v4';readonly sourceId:string;readonly instanceId:string;
+ /** Source generation, never device generation; exact safe integer. */
+ readonly generation:number;readonly accountIssuer:string;readonly accountSubject:string;
+}
+export function readOriginalRegisteredClientSourceReferenceDATA(loan:OriginalRegisteredClientReadHolder|OriginalRegisteredProductReadHolder):Readonly<OriginalDeviceSourceReferenceDATA>;
+declare const productScopedRead:unique symbol;
+/** Native true ProductBorrow/current and actual recognized DEVICE/env/actor/current matcher remain
+ * independently required. This SDK scope DATA match grants neither. */
+export interface OriginalRegisteredProductReadHolder {
+ readonly [productScopedRead]:never;
+ assertCurrent():void;readOriginalNativeDeviceSource():unknown;release():void;
+ statusDATA():Readonly<{released:boolean;readOnly:true;NativeAdmission:false;SourceAdmission:false}>;
+}
+export function captureOriginalRegisteredClientReadHolderForProductSource(read:unknown,scopeDATA:import('../native/original-wallet-product-source-contract.mjs').WalletProductSourceScopeV1):OriginalRegisteredProductReadHolder;
+export function createOriginalRegisteredClientGETProof(loan:OriginalRegisteredProductReadHolder,originalPath:string):Promise<OriginalRegisteredClientGETProofOriginal>;
