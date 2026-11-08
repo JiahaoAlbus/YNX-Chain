@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
-          printf '%s  %s\n' d9ef336190d9c35e06ec78feb75f49dfe887a05374546025d9436d4281599f55 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' f25359a8991bae50540a4161b707d8f2e7403cd8e985dfccb66fea4a4bf45af2 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
           tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
           docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
           df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
