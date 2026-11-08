@@ -113,11 +113,21 @@ class CurrentOriginalStream(unittest.TestCase):
     def test_cancelled_job_or_run_never_becomes_successful_qualification(self):
         q=dict(sourceCI=dict(run=1,job=2),ciHead='current-ci-only-head',ciBranch='exact-branch')
         run=dict(id=1,run_attempt=1,head_sha=q['ciHead'],head_branch=q['ciBranch'],event='push',path='.github/workflows/chain-core.yml',repository=dict(full_name='JiahaoAlbus/YNX-Chain'),status='completed',conclusion='success')
-        names=('Verify exact optional live getter composition without enabling a carrier','Bind actual tagged evidence to the unchanged 7c25 Go roots','Preserve exact 7c25 qualification with original tagged streams')
+        names=('Verify exact 7c25 CI-only source and route','Execute the current client and qualify actual terminal results','Verify the default-off normal node wire observation adapter','Verify exact optional live getter composition without enabling a carrier','Bind actual tagged evidence to the unchanged 7c25 Go roots','Preserve exact 7c25 qualification with original tagged streams')
         job=dict(id=2,run_id=1,run_attempt=1,head_sha=q['ciHead'],name='Original client observations and cohort readback',status='completed',conclusion='success',steps=[dict(name=n,status='completed',conclusion='success') for n in names])
         self.assertTrue(self.data.qualify_ci(run,job,q))  # Explicit synthetic control only.
         for changed_run,changed_job in ((dict(run,conclusion='cancelled'),job),(run,dict(job,conclusion='cancelled')),(run,dict(job,steps=job['steps'][:-1])),(dict(run,head_sha=self.data.SOURCE),job)):
             with self.subTest(run=changed_run,job=changed_job),self.assertRaises(RuntimeError):self.data.qualify_ci(changed_run,changed_job,q)
+    def test_actual_successful_current_component_and_cancelled_archive_separation(self):
+        q=self.data.qualification()
+        self.assertEqual(q['sourceCI'],dict(run=42452563828,job=128644748345,artifact=13606770461))
+        self.assertEqual((len(self.data.EXPECTED['normalProducer']),len(self.data.EXPECTED['originalSupplierBudget'])),(7,24))
+        self.assertNotEqual(q['commit'],q['ciHead'])
+        self.assertFalse(q['pressureAuthorized'] or q['actualFrozenProductionCommitRun'])
+        old=(Path(__file__).with_name('fixtures')/'7c25-cancelled-live-source/ORIGINAL.zip').read_bytes()
+        current=self.data.FIXTURE.read_bytes()
+        for wrong in (old,current[:-1],b'x'+current[1:]):
+            with self.subTest(size=len(wrong)),self.assertRaisesRegex(RuntimeError,'archive pin'):self.data.qualification(wrong)
     def test_absent_current_ci_cannot_borrow_legacy_source(self):
         with mock.patch.object(self.data,'QUALIFICATION',None),self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
             self.data.qualification(b'old CI is not current CI')

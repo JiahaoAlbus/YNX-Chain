@@ -12,11 +12,61 @@ SUPPLIER='5a49f5c91452604dffb910df736702b3b9df2562'
 SUPPLIER_FORK='08747364c24c065bf2b13527c210625d7ec95fba'
 COMPOSED_TREE='3cae5a04f26e17cffcfb9c253ea9013231881725'
 # Filled only from this exact new source/module's real tagged CI originals.
-QUALIFICATION=None
-EXPECTED=None
-ARCHIVE_SHA256=None
-ARCHIVE_BYTES=None
-CI_ORIGINALS=None
+QUALIFICATION={'commit': '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b',
+ 'tree': '8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a',
+ 'forkTree': '5a128880d14bfc73de4334cba23218859ad3473c',
+ 'optionalForkCommit': '5a49f5c91452604dffb910df736702b3b9df2562',
+ 'optionalForkTree': '08747364c24c065bf2b13527c210625d7ec95fba',
+ 'buildTag': 'ynx_live_wire_observation',
+ 'compositionScriptSHA256': 'e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
+ 'ciEvidenceSHA256': '327fa9e07a35708184666e40a5a341285dd90b4095bcfa20d3ebd22817014895',
+ 'sourceCI': {'run': 42452563828, 'job': 128644748345, 'artifact': 13606770461},
+ 'ciHead': '4931e0c0c6765e1655fcffb4763a8d952d8d828f',
+ 'ciTree': 'cc47ae24b05ea38f993f595c4e9e955bdd42bc24',
+ 'ciBranch': 'codex/ynx-pq-wire-live-7c25-qualification-20261108',
+ 'scope': 'original normal online finite wire/TCP baseline only; unchanged production roots qualified '
+          'separately',
+ 'actualFrozenProductionCommitRun': False,
+ 'pressureAuthorized': False}
+EXPECTED={'normalProducer': ('TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay',
+                    'TestOperatorWireLiveUnknownPreservesOriginalAndRetires',
+                    'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit',
+                    'TestOperatorWireLivePermissionsIdentityAndResiduals',
+                    'TestOperatorWireLiveRequesterUnknownAndProducerIdentity',
+                    'TestOperatorWireLiveSelfProcParsingAndDefaultOff',
+                    'TestOperatorWireLiveTypedNormalNodeBeforeStartIsUnknown'),
+ 'originalSupplierBudget': ('TestLosslessHexBudgetNormalize',
+                            'TestLosslessHexBudgetPeerIdentityAndLifetime',
+                            'TestLosslessHexBudgetPeerBytes',
+                            'TestLosslessHexBudgetPeerClock',
+                            'TestLosslessHexBudgetSendAttemptsAndAtomicCharge',
+                            'TestLosslessHexBudgetSendIdentityAndClock',
+                            'TestLosslessHexBudgetSendClockRollback',
+                            'TestLosslessHexBudgetParallelReservations',
+                            'TestLosslessHexBudgetParallelAttemptsAndClose',
+                            'TestLosslessHexBudgetInitialPeerReadinessDeadline',
+                            'TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier',
+                            'TestLosslessHexBudgetFullQueueStopsWithoutRawReplay',
+                            'TestLosslessHexBudgetReceiveBeforeOriginalCheckTx',
+                            'TestLosslessHexBudgetFullQueueElapsedDeadline',
+                            'TestLosslessHexBudgetInvalidEnableStaysDefaultOff',
+                            'TestLosslessHexBudgetPackReservesBeforeFrameAllocation',
+                            'TestLosslessHexBudgetPackFailureNeverFallsBack',
+                            'TestLosslessHexBudgetTypedNilPeerCannotClaimCapability',
+                            'TestLosslessHexBudgetLocalExhaustionDoesNotDisconnectAndRedial',
+                            'TestLosslessHexTransportDefaultOffAndSingleCarrier',
+                            'TestLosslessHexTransportLegacyEmptyUnknownAndMalformedKeepOriginalEntry',
+                            'TestLosslessHexTransportQueuedRetryKeepsSelectedFormat',
+                            'TestLosslessHexTransportRejectsBeforeCheckTxNoRawFallback',
+                            'TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey')}
+ARCHIVE_SHA256='b6ea06afbbaa1df4ec58cfeb0c56e351425d7727fd88820046db9c29c2c088d8'
+ARCHIVE_BYTES=15188
+CI_ORIGINALS={'run': {'name': '7c25-live-source-run-original.json',
+         'bytes': 12400,
+         'sha256': '0326fd0c23112e25a5ce89794a2c5c43827ef7bcac60da5205596309e96dcf3b'},
+ 'job': {'name': '7c25-live-source-job-original.json',
+         'bytes': 4722,
+         'sha256': 'b7b88d805bb1193bef0624321759da87173acf3678f223689716025a99fec7a4'}}
 FIXTURE=Path(__file__).with_name('fixtures')/'7c25-live-source-original.zip'
 
 def require(ok,message):
@@ -45,7 +95,10 @@ def qualify_ci(run,job,q):
             and job.get('name')=='Original client observations and cohort readback'
             and job.get('status')=='completed' and job.get('conclusion')=='success',
             'exact current tagged CI job must complete successfully')
-    for name in ('Verify exact optional live getter composition without enabling a carrier',
+    for name in ('Verify exact 7c25 CI-only source and route',
+                 'Execute the current client and qualify actual terminal results',
+                 'Verify the default-off normal node wire observation adapter',
+                 'Verify exact optional live getter composition without enabling a carrier',
                  'Bind actual tagged evidence to the unchanged 7c25 Go roots',
                  'Preserve exact 7c25 qualification with original tagged streams'):
         found=[step for step in job.get('steps',[]) if step.get('name')==name]
