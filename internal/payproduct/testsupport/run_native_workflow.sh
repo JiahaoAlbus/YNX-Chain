@@ -5,6 +5,13 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-source-cancel ]; then
+ : "${PAY_NODE_BINARY:?exact original Main Node executable required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
+ "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/r6/main-source-cancellation.test.mjs" "$source_dir/../../apps/pay/native/r6/product-source-lifetime.test.mjs" "$source_dir/../../apps/pay/native/r6/main-result.test.mjs"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = original-order-client ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/r6/original-order.test.mjs" "$source_dir/../../apps/pay/native/r6/main-result.test.mjs"

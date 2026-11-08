@@ -163,6 +163,19 @@ never retried. `PAY_NATIVE_WORKFLOW_SUITE=r6-private-client` checks these new
 custody cases and exact paths against Auth's compiled archive DATA contract;
 it neither repeats the archive E2E suite nor admits a Root/Source.
 
+Normal Main cancellation now carries one operation-owned `AbortSignal` through
+the business client and held ProductSource read. Cancelling invoice lookup,
+payment review or refund review aborts that same pending original read before
+it can enter Pay or Main signing; invalidated results retain no stale reference.
+Source drain also survives throwing listener registration/removal: a possibly
+installed listener is adopted before registration, active read debt is always
+released, and a cleanup failure never replaces the first read/add failure.
+Failed detach remains unsafe for reuse/safe-close, even if physical close finishes.
+`main-source-cancellation.test.mjs` checks the normal entry against an actual
+held HTTP recipient; optional pinned `PAY_MAIN_PRODUCT_MODULE` selects the
+original installed outer wrapper for bounded acceptance. It supplies no session,
+Root, invoice receipt or funds authority.
+
 Refund receipt details now retain the original Core effect's `refundId`,
 `payer`, `recipient`, `assetId` and `unitVersion`, plus independently verified
 `executionHeight`, `executionIndex`, `executionMember` and `executionEvent`.

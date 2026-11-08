@@ -67,3 +67,33 @@ test('nonnull original partial is adopted before failure and drains exact origin
  assert.equal(caught.cause,original);assert.equal(caught.partial.status().operationFailed,true);
  await release(caught.partial);assert.equal(closes,1);assert.equal(caught.partial.status().SourceAdmission,false);
 });
+
+test('throwing caller listener cleanup drains original read and preserves the first cause',async()=>{
+ for(const readFails of [false,true]){
+  let joins=0,closes=0,lateAbort;
+  const initial=Object.assign(Error('PUBLIC_ORIGINAL_READ_FAILED'),{code:'PUBLIC_ORIGINAL_READ_FAILED'});
+  const source=await open({readOriginalArchiveReceipt(){if(readFails)throw initial;return {dataOnly:true};},join(){joins++;},close(){closes++;}});
+  const signal=new AbortController().signal;
+  Object.defineProperties(signal,{addEventListener:{value(_name,listener){lateAbort=listener;}},removeEventListener:{value(){throw false;}}});
+  await assert.rejects(source.readOriginalArchiveReceipt(ref,fence(signal)),cause=>cause===(readFails?initial:false));
+  assert.equal(source.status().active,0);assert.equal(source.status().cleanupFailed,true);
+  assert.throws(()=>source.current(),cause=>cause===(readFails?initial:false));
+  source.retire();await source.join();
+  const closed=source.close();await assert.rejects(closed,cause=>cause===false);assert.equal(source.close(),closed);
+  assert.equal(joins,1);assert.equal(closes,1);assert.equal(source.status().closed,true);
+  lateAbort();assert.equal(closes,1);assert.equal(source.status().active,0);
+  assert.throws(()=>source.assertSafeToClose(),{code:'NATIVE_PAY_PRODUCT_CLOSE_UNCONFIRMED'});
+ }
+});
+
+test('listener registration failure adopts its possible installation before read and cleanup',async()=>{
+ let reads=0,removed=0,closes=0,lateAbort;
+ const source=await open({readOriginalArchiveReceipt(){reads++;},close(){closes++;}});
+ const signal=new AbortController().signal;
+ Object.defineProperties(signal,{addEventListener:{value(_name,listener){lateAbort=listener;throw null;}},removeEventListener:{value(){removed++;throw false;}}});
+ await assert.rejects(source.readOriginalArchiveReceipt(ref,fence(signal)),cause=>cause===null);
+ assert.equal(reads,0);assert.equal(removed,1);assert.equal(source.status().active,0);assert.equal(source.status().cleanupFailed,true);
+ assert.throws(()=>source.current(),cause=>cause===null);
+ source.retire();await source.join();await assert.rejects(source.close(),cause=>cause===false);
+ assert.equal(closes,1);lateAbort();assert.equal(source.status().active,0);
+});

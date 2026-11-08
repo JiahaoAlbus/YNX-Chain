@@ -66,6 +66,8 @@ export class NativePayBusinessClient {
  #fence(revision){this.#runtime.current();if(revision!==this.#revision)throw failure('NATIVE_PAY_SELECTION_CHANGED');}
  async #run(reference,phase,work){
   const revision=++this.#revision,current=()=>this.#fence(revision);
+  const signal=types.isProxy(this.#runtime.current)?undefined:Object.getOwnPropertyDescriptor(this.#runtime.current,'signal')?.value;
+  if(signal!==undefined)Object.defineProperty(current,'signal',{value:signal});
   this.#state={phase,reason:null,reference:clone(reference),bill:null};
   try{current();const result=await work(current);current();this.#state={phase:'ready',reason:null,reference:clone(reference),...result};return this.snapshot();}
   catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:nativePayFailureCode(error),reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
