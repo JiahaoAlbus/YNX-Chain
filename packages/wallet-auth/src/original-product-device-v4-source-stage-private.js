@@ -43,6 +43,7 @@ export function acquireOriginalProductSessionDeviceV4ReadLeaseStage(...args){
  });
  let unavailable=false;
  const origin=Object.freeze({deviceCurrent,
+  readContext(){return native.readContext();},
   assertCurrent(){if(unavailable)throw new Error('PRODUCT_DEVICE_V4_ORIGINAL_RETIRED');const state=native.status();if(state.retired||state.closed)throw new Error('PRODUCT_DEVICE_V4_ORIGINAL_RETIRED');const result=native.assertCurrent();if(result!==undefined)throw result;}
  });
  originalReadDevices.set(device,origin);

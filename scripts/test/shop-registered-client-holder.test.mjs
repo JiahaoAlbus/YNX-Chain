@@ -14,7 +14,10 @@ async function fixture(){
  './original-auth-identity-fixed-native-image.js':{acquireOriginalProductSessionDeviceV4SourceStage(){return state.owner;}},
  './original-wallet-service-private-client.js':{hasOriginalWalletServicePrivateBridge:()=>false},
  './canonical.js':{WalletAuthError,exactFields(object,fields){assert.deepEqual(Object.keys(object).sort(),[...fields].sort());}},
- './base64url.js':{encodeBase64url:()=>''},
+ './base64url.js':{encodeBase64url:()=>'',decodeBase64url(){throw Error('UNUSED_GET_CODEC_IN_ORIGINAL_HOLDER_MODEL');}},
+ // Only import-shape maintenance: these old holder cases never call fixed GET.
+ './product-session-proof-v4.js':{decodeProductSessionProofHeaderV4(){throw Error('UNUSED_GET_CODEC_IN_ORIGINAL_HOLDER_MODEL');},encodeProductSessionProofHeaderV4(){throw Error('UNUSED_GET_CODEC_IN_ORIGINAL_HOLDER_MODEL');},PRODUCT_SESSION_PROOF_HEADER_V4:'x-ynx-product-session-proof-v4'},
+ 'node:util':{types:{isProxy(){throw Error('UNUSED_GET_CONTEXT_IN_ORIGINAL_HOLDER_MODEL');}}},
  './product-session-gateway-client.js':{ProductSessionGatewayFetchAdapter:class{},ProductSessionGatewayPrivateAdapter:class{}},
  './product-session-recovery.js':{RecoverableProductSessionClient},
  './wallet-connection-coordinator.js':{WalletConnectionCoordinator:class{}}

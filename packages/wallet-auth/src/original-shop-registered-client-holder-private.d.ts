@@ -15,3 +15,12 @@ export interface OriginalRegisteredClientReadHolder {
 /** Only a child returned by the original normal factory AND a device/current
  * pair from the zeroarg fixed Native acquisition is accepted at runtime. */
 export function captureOriginalRegisteredClientReadHolder(read:unknown):OriginalRegisteredClientReadHolder;
+
+export type OriginalRegisteredClientGETProofOriginal=Readonly<{
+ proofHeaderName:'x-ynx-product-session-proof-v4';proofHeader:string;
+ issuedAt:string;expiresAt:string;issuedAtMs:number;expiresAtMs:number;
+}>;
+/** Same private captured loan, one original GET path and one proof flight.
+ * Times come exclusively from the sole-decoded SAME original V4 header.
+ * No SourceComparison/Native Shop identity is granted by this function. */
+export function createOriginalRegisteredClientGETProof(loan:OriginalRegisteredClientReadHolder,originalPath:string):Promise<OriginalRegisteredClientGETProofOriginal>;
