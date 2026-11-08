@@ -1,0 +1,129 @@
+{
+  "schema": "YNX_SHOP_V4_GET_SERVER_NORMAL_SOURCE_INPUTS_V1",
+  "sourceBase": "6c9109ed03e96933c8171f04365c0b63a49fd53f",
+  "operation": "shop-original-product-session-get/v4",
+  "phases": [
+    "VERIFY",
+    "CURRENT"
+  ],
+  "method": "GET",
+  "path": "/v5/shop/source/shop.order/invoice-intents/{originalOrderID}",
+  "requestBody": "",
+  "querySupported": false,
+  "sourceFiles": [
+    {
+      "path": "src/original-product-device-v4-server-current.js",
+      "bytes": 11411,
+      "sha256": "283fd00fa6ae01ef32688295c2d982e3ba27a62869763a1a67d5ac37348048e1"
+    },
+    {
+      "path": "src/original-shop-v4-get-server.d.ts",
+      "bytes": 3128,
+      "sha256": "3d95ac8ae5041b25be26420ab47c64b30ec3b8b0f9d9d46aa6b49df9095118f4"
+    },
+    {
+      "path": "src/original-shop-v4-get-server.js",
+      "bytes": 14811,
+      "sha256": "663596940fa1fc5c3d1d98b53a7e5556afaf9da5814167cc910da5e17d636bc8"
+    },
+    {
+      "path": "src/product-pair-session-v4-source.d.ts",
+      "bytes": 2633,
+      "sha256": "664515da3b54e0d476fd3de441c4d5039baff639cf23fafebbc5ed04c0a1a825"
+    },
+    {
+      "path": "src/product-pair-session-v4-source.js",
+      "bytes": 17972,
+      "sha256": "a6cc0cc1f8416f6bd560cb7c650f0c0dbdedc031e7892bd86a3aa579a035a605"
+    },
+    {
+      "path": "src/product-pair-session-v4-store.js",
+      "bytes": 23767,
+      "sha256": "494c2c25a5efaa409bd3495395a9c609a05c9b37511eb9f43dd045f5910f0e3b"
+    },
+    {
+      "path": "native/original-auth-identity-source-verifier.mjs",
+      "bytes": 23770,
+      "sha256": "9b7901dddcf4c033834544bdd8a19ceac104d74bdf7b2beabca27e218f966511"
+    },
+    {
+      "path": "native/original-shop-v4-get-dispatch.mjs",
+      "bytes": 3002,
+      "sha256": "0deccd5d911a58c6cb763a376c83cb9dff2cccff742a7a8dd0212916f5a9c5f6"
+    }
+  ],
+  "supplierHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/HANDOFF.json",
+    "bytes": 4597,
+    "sha256": "6e00b65afdf60ec2ad35bd27513b8149a205fb70b3de315721ae15d97a0e8dce"
+  },
+  "externalP07GoInputs": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/authority.go",
+      "bytes": 8459,
+      "sha256": "110710636808d4c144cd77f628bc413e5a87aa705308abbdd0a3fb20a530e593"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/capture.go",
+      "bytes": 1464,
+      "sha256": "2dbeda3a6d4c5a9cbf0211d17fdd971cf6432042bf84d74ef8befa5926cda133"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/contract.go",
+      "bytes": 4126,
+      "sha256": "aa6a630ca46dc237282564da82d506965d80c5ad54ae00f342e6ae0cd189c1f9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/go.mod",
+      "bytes": 271,
+      "sha256": "0e6ffa65803deae1f5576f8f1db576662108e516f5dd44945055a677d383808d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/go.sum",
+      "bytes": 153,
+      "sha256": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/physical.go",
+      "bytes": 5849,
+      "sha256": "33e9e30650e183403dc16238ef7816a698c54f104473344b1753e5ca46e55a06"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/runtime.go",
+      "bytes": 9389,
+      "sha256": "0d8d9950b96c2ee963443a0089efe821119fd43d1c44e2c3aee7e4ca0f3ca78f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/sdk_input.go",
+      "bytes": 2098,
+      "sha256": "b96075870993f45e8cd97040accf087821b68e4150726460b738330020c59875"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/sdk_output.go",
+      "bytes": 1581,
+      "sha256": "5f2cd973458646e9543d40d2ff867ec5145fda5e2ba2f3853fc5b66e89a1cf14"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/shop_v4.go",
+      "bytes": 14133,
+      "sha256": "cedcea27fb4459cc8740e2ad7f2cb74fee5b3b590109357eebde94de7e0c9840"
+    }
+  ],
+  "externalGoTest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/private-read-r2/frozen-private-go-r2-XdtDlP/go/source/shop_v4_test.go",
+    "bytes": 9619,
+    "sha256": "b4a44c9a30b9d7131e7ed7e335ad82345a7f39a636c70050dfe5399a900b1a31"
+  },
+  "supplierValidationReused": {
+    "NodeNewGroups": 9,
+    "GoRaceGroups": 8,
+    "GoVet": true,
+    "typesNegative": 3,
+    "rerunLocally": false
+  },
+  "runtimeResources": "NOT_SUPPLIED",
+  "readyForPreLoad": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "actualHTTP": false
+}

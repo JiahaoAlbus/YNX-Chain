@@ -13,3 +13,8 @@ export function assertOriginalProductSessionDeviceV4ServerCurrentResult(outcome:
 /** Existing original issuer callee retained unchanged; no caller configuration. */
 export function acquireOriginalProductPairSessionV4Issuer():Promise<Readonly<{owner:OriginalProductPairSessionV4IssuerOwner|OriginalProductPairSessionV4PartialOwner;error:unknown}>>;
 export function assertOriginalProductPairIssuerOwnerV4(owner:unknown):OriginalProductPairSessionV4IssuerOwner;
+import type{OriginalShopV4GETServerOwner}from'./original-shop-v4-get-server.js';
+/** Adopt nonnull owner first; only own error:null plus recognized owner succeeds. */
+export function acquireOriginalShopV4GETServer():Promise<Readonly<{owner:OriginalShopV4GETServerOwner|OriginalProductPairSessionV4PartialOwner;error:unknown}>>;
+export function assertOriginalShopV4GETServerOwner(owner:unknown):OriginalShopV4GETServerOwner;
+export function assertOriginalShopV4GETServerResult(outcome:unknown):OriginalShopV4GETServerOwner;
