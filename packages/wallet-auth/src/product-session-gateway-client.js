@@ -1,3 +1,4 @@
+import{inspectOriginalDeviceV4HTTPResponseDATA}from'./original-product-device-v4-http-response-data.js';
 import {inspectReferenceCompletion,assertReferenceSession} from './product-session-reference-completion.js';
 import { OriginalWalletServicePrivateClient } from './original-wallet-service-private-client.js';
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
@@ -230,16 +231,7 @@ async function readDeviceV4Response(response,stopped) {
   try { while(true){const part=await Promise.race([reader.read(),stopped]);if(part.done){done=true;break;}if(!(part.value instanceof Uint8Array))fail('PAIR_V4_HTTP_RESPONSE','Byte stream required');size+=part.value.length;if(size>MAX_RESPONSE_BYTES)fail('PAIR_V4_HTTP_RESPONSE','Response exceeds budget');chunks.push(Uint8Array.from(part.value));} }
   finally { if(!done){void reader.cancel().catch(()=>{});try{reader.releaseLock();}catch{/* Preserve the original read/abort cause while cancellation drains. */}}else reader.releaseLock(); }
   const raw=new Uint8Array(size);let offset=0;for(const chunk of chunks){raw.set(chunk,offset);offset+=chunk.length;}
-  let value;try{value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));}catch{fail('PAIR_V4_HTTP_RESPONSE','Invalid response JSON');}
-  if(response.status===409){exactFields(value,['code','newSession'],'Original recovery-only response');if(value.code!=='PAIR_V4_RECOVER_ORIGINAL_ONLY'||value.newSession!==false)fail('PAIR_V4_HTTP_RESPONSE','Invalid recovery-only response');throw Object.assign(new WalletAuthError(value.code,'Original operation requires recovery'),{originalResponse:value});}
-  if(response.status!==200){exactFields(value,['code','authorized','newSession'],'Original refused response');if(typeof value.code!=='string'||!/^PAIR_V4_[A-Z0-9_]+$/.test(value.code)||value.authorized!==false||value.newSession!==false)fail('PAIR_V4_HTTP_RESPONSE','Invalid refusal');throw Object.assign(new WalletAuthError(value.code,'Original Auth refused this request'),{originalResponse:value});}
-  exactFields(value,['original','durable','sourceAdmission','nativeAdmission'],'Original durable response');
-  if(value.durable!==true||value.sourceAdmission!==false||value.nativeAdmission!==false||typeof value.original!=='string'||!value.original.length||new TextEncoder().encode(value.original).length>393216)fail('PAIR_V4_HTTP_RESPONSE','Invalid original result');
-  let original;try{original=JSON.parse(value.original);}catch{fail('PAIR_V4_HTTP_RESPONSE','Original result is not JSON');}
-  if(canonicalJSON(original)!==value.original)fail('PAIR_V4_HTTP_RESPONSE','Original result bytes changed');
-  // DATA only. The existing caller verifies the returned original against the
-  // request, current Source, account approval and fixed proof codecs.
-  return Object.freeze(value);
+  return inspectOriginalDeviceV4HTTPResponseDATA(response.status,raw);
 }
 
 export function decodeProductSessionGatewayProofHeaderV2(value) {

@@ -7,7 +7,7 @@ import{parseProductSessionChallenge,productSessionApprovalDigest}from'./product-
 import registry from'../product-session-registry.json'with{type:'json'};
 const packets=new WeakMap(),fail=c=>{throw new WalletAuthError(c,c);};
 export function createOriginalDeviceV4RegistrationClientFromFixedParts({pending,gateway,record,originalContext,bytes,operationMethod,parseOriginal,isProxy,copyBytes,byteLength,toHex,toBase64url,nowMS,createOriginalDeviceIdentityDATA,verifyProductSessionApprovalV4Data,verifyProductSessionDeviceRegistrationProofV4Data,verifyProductSessionV4CompletionData,captureVerifiedPQSessionApproval,inspectOriginalProductDeviceV4PendingReviewDATA,finishProofForTransport,closeOriginalResources}){
- const flights=new Set(),owner={};let review,selection,selected=false,closed=false,closing,prepareFlight,submitFlight,hasCause=false,firstCause,retainedMember=null,preparedRef=null,clockFloor=0;
+ const flights=new Set(),owner={};let review,selection,selected=false,closed=false,closing,prepareFlight,prepareEntered=false,submitFlight,hasCause=false,firstCause,retainedMember=null,preparedRef=null,clockFloor=0;
  const remember=e=>{if(!hasCause){hasCause=true;firstCause=e;}};
  const alive=()=>{if(closed)fail('DEVICE_REGISTRATION_RETIRED');};
  const now=()=>{alive();const n=nowMS();if(!Number.isSafeInteger(n)||n<clockFloor)fail('DEVICE_REGISTRATION_CLOCK_ROLLBACK');clockFloor=n;return new Date(n);};
@@ -15,18 +15,18 @@ export function createOriginalDeviceV4RegistrationClientFromFixedParts({pending,
  function readReview(independent,operation='registration-pop'){
   alive();if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');pending.assertCurrent();
   const i=record(independent,['identityBinding','generation','publicPair',...(operation==='challenge-completion'?['challengeOriginal']:[])]),identity=createOriginalDeviceIdentityDATA(i.identityBinding),pair=record(i.publicPair,['pkA','pkB']),pkA=toHex(bytes(pair.pkA,2592)),pkB=toHex(bytes(pair.pkB,64));
-  const view=inspectOriginalProductDeviceV4PendingReviewDATA(pending.readOriginalReview());pending.assertCurrent();
+  const view=inspectOriginalProductDeviceV4PendingReviewDATA(pending.readOriginalReview());pending.assertCurrent();alive();
   if(view.scope.operation!==operation||view.scope.expected.generation!==i.generation||view.record.pkA!==pkA||view.record.pkB!==pkB)fail('DEVICE_REGISTRATION_SELECTED_PAIR_MISMATCH');
   if(operation==='challenge-completion'&&(typeof i.challengeOriginal!=='string'||i.challengeOriginal!==view.scope.challengeOriginal))fail('DEVICE_REGISTRATION_SELECTED_CHALLENGE_MISMATCH');
   for(const k of ['networkId','canonicalOwner','account','productId','clientId','deviceId'])if(view.scope.expected[k]!==identity.identity[k])fail('DEVICE_REGISTRATION_SELECTED_IDENTITY_MISMATCH');
   for(const[k,v]of Object.entries(identity.applicationBinding))if(view.scope.expected[k]!==v)fail('DEVICE_REGISTRATION_SELECTED_APPLICATION_MISMATCH');
   // Independent Main identity + actual new public pair are compared directly;
   // registrationId/revision/digest are Source originals, not self-filled expected16.
-  const capture=canonicalJSON({identity:identity.identity,applicationBinding:identity.applicationBinding,generation:i.generation,pkA,pkB,scope:view.scope});if(selection&&selection!==capture)fail('DEVICE_REGISTRATION_SELECTION_CHANGED');selection=capture;review=view;return view;
+  const capture=canonicalJSON({identity:identity.identity,applicationBinding:identity.applicationBinding,generation:i.generation,pkA,pkB,scope:view.scope});if(selection&&selection!==capture)fail('DEVICE_REGISTRATION_SELECTION_CHANGED');alive();selection=capture;review=view;return view;
  }
  async function preparePair(input){
   alive();const i=record(input,['approvalOriginal','policyRef','abortContext']),context=originalContext(i.abortContext);if(!review||review.scope.operation!=='registration-pop')fail('DEVICE_REGISTRATION_REVIEW_REQUIRED');if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');
-  pending.assertCurrent();const approval=parseOriginal(i.approvalOriginal,196608),at=now(),verified=verifyProductSessionApprovalV4Data(registry,review.request,approval,i.policyRef,copyBytes(review.scope.registrationOriginal),at);if(productSessionApprovalDigest(approval)!==review.scope.approvalDigest)fail('DEVICE_REGISTRATION_APPROVAL_ORIGINAL_MISMATCH');pending.assertCurrent();
+  pending.assertCurrent();const approval=parseOriginal(i.approvalOriginal,196608),at=now(),verified=verifyProductSessionApprovalV4Data(registry,review.request,approval,i.policyRef,copyBytes(review.scope.registrationOriginal),at);if(productSessionApprovalDigest(approval)!==review.scope.approvalDigest)fail('DEVICE_REGISTRATION_APPROVAL_ORIGINAL_MISMATCH');pending.assertCurrent();alive();originalContext(context);
   selected=true;let op,failed=false,cause,wire;const first=e=>{if(!failed){failed=true;cause=e;remember(e);}};
   try{
    try{op=await pending.produceRegistrationProof(context);}catch(e){if(e!==null&&(typeof e==='object'||typeof e==='function')&&!isProxy(e)){const d=Object.getOwnPropertyDescriptor(e,'partial');if(d&&Object.hasOwn(d,'value'))op=d.value;}throw e;}
@@ -65,11 +65,11 @@ export function createOriginalDeviceV4RegistrationClientFromFixedParts({pending,
    const d=Object.getOwnPropertyDescriptor(e,'cause');if(!d||!Object.hasOwn(d,'value'))break;e=d.value;
   }
  }
- function track(work,prepare=false){const flight=work();flights.add(flight);flight.then(()=>flights.delete(flight),e=>{if(prepare)remember(e);flights.delete(flight);});return flight;}
+ function track(work,prepare=false){let resolve,reject;const flight=new Promise((a,b)=>{resolve=a;reject=b});flights.add(flight);flight.then(()=>flights.delete(flight),e=>{if(prepare)remember(e);flights.delete(flight);});try{Promise.resolve(work()).then(resolve,reject)}catch(e){reject(e)}return flight;}
  async function prepareCompletion(input){
   alive();const i=record(input,['approvalOriginal','policyRef','abortContext']),context=originalContext(i.abortContext);if(!review||review.scope.operation!=='challenge-completion')fail('DEVICE_REGISTRATION_COMPLETION_REVIEW_REQUIRED');if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');
   pending.assertCurrent();const approval=parseOriginal(i.approvalOriginal,196608),at=now(),verified=verifyProductSessionApprovalV4Data(registry,review.request,approval,i.policyRef,copyBytes(review.scope.registrationOriginal),at);
-  if(productSessionApprovalDigest(approval)!==review.scope.approvalDigest||canonicalJSON(review.challenge)!==review.scope.challengeOriginal)fail('DEVICE_REGISTRATION_COMPLETION_ORIGINAL_MISMATCH');pending.assertCurrent();
+  if(productSessionApprovalDigest(approval)!==review.scope.approvalDigest||canonicalJSON(review.challenge)!==review.scope.challengeOriginal)fail('DEVICE_REGISTRATION_COMPLETION_ORIGINAL_MISMATCH');pending.assertCurrent();alive();originalContext(context);
   selected=true;let op,failed=false,cause,wire,target;const first=e=>{if(!failed){failed=true;cause=e;remember(e);}};
   try{
    try{op=await pending.produceChallengeProof(context);}catch(e){if(e!==null&&(typeof e==='object'||typeof e==='function')&&!isProxy(e)){const d=Object.getOwnPropertyDescriptor(e,'partial');if(d&&Object.hasOwn(d,'value'))op=d.value;}throw e;}
@@ -100,9 +100,9 @@ export function createOriginalDeviceV4RegistrationClientFromFixedParts({pending,
  return Object.freeze({
   readOriginalRegistrationReviewDATA(independent){return readReview(independent);},
   readOriginalCompletionReviewDATA(independent){return readReview(independent,'challenge-completion');},
-  prepareOriginalPairSubmission(input){if(prepareFlight)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareFlight=track(()=>preparePair(input),true);return prepareFlight;},
+  prepareOriginalPairSubmission(input){if(prepareEntered)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareEntered=true;prepareFlight=track(()=>preparePair(input),true);return prepareFlight;},
   readOriginalPairRequestDATA:readPacket,
-  prepareOriginalCompletionSubmission(input){if(prepareFlight)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareFlight=track(()=>prepareCompletion(input),true);return prepareFlight;},
+  prepareOriginalCompletionSubmission(input){if(prepareEntered)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareEntered=true;prepareFlight=track(()=>prepareCompletion(input),true);return prepareFlight;},
   readOriginalCompletionRequestDATA:readCompletionPacket,
   submitPreparedCompletion(ref,context){return track(()=>submitCompletion(ref,context));},
   submitPreparedPair(ref,context){const flight=track(()=>submit(ref,context));submitFlight=flight;return flight;},

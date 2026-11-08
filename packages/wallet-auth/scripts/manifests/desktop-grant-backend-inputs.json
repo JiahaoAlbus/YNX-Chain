@@ -591,8 +591,8 @@
     },
     {
       "path": "packages/wallet-auth/src/original-device-create-intent-data-core.js",
-      "bytes": 7963,
-      "sha256": "bde7ee2104402bbb3fe4c4cf00c5764cddd5d6dc09cc493bc27f35b8a83585b8"
+      "bytes": 8146,
+      "sha256": "cc29acb8a5e40158a02899368361cef6e1ca15c03f010f091c86dbf9bf5fd207"
     },
     {
       "path": "packages/wallet-auth/src/original-device-create-intent.js",
@@ -776,8 +776,8 @@
     },
     {
       "path": "packages/wallet-auth/src/product-session-gateway-client.js",
-      "bytes": 28766,
-      "sha256": "a07b58635894e845364850722f5b88b79aa4f5effd6ea7a0b91c6bb355d79a6b"
+      "bytes": 27253,
+      "sha256": "80a11ecda316d757ca539db747eaa411cc77df580d6668d2e9c3c884bcfece7e"
     },
     {
       "path": "packages/wallet-auth/src/product-session-gateway-http.js",
@@ -801,8 +801,8 @@
     },
     {
       "path": "packages/wallet-auth/src/product-session-pq-v4-codec.js",
-      "bytes": 16760,
-      "sha256": "15ae9481a0fa3d5d244b9a6e968207bc8f78c1d0ef1825164ab390131b77a327"
+      "bytes": 13482,
+      "sha256": "0a93da6ee98239dd8d38f9f42f24b4cf351ff35f808374869a81b344d17231c0"
     },
     {
       "path": "packages/wallet-auth/src/product-session-pq-v4-signing-private.js",
@@ -898,6 +898,26 @@
       "path": "packages/wallet-auth/src/product-session-pq-v4-message-data.js",
       "bytes": 2640,
       "sha256": "bdacefc432b5a4433df4396dd48270fc5913710876ef84ac848677f29c11db76"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-product-device-v4-registration-core.js",
+      "bytes": 16809,
+      "sha256": "3531dbd3980164c41a05a6c2d1eb867a67d1f98052dc357d3238942307e27bbf"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-pq-v4-verification-core.js",
+      "bytes": 6169,
+      "sha256": "87b2463793c4acd62f479b9ee2bcf9b8a61f7dbcffc02b45bd2754bca61be416"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-product-device-v4-pending-review-core.js",
+      "bytes": 7515,
+      "sha256": "1ddb43146fdd2cc44038813b29ab67933e6c50a3eb57e629949eda203b8b5050"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-product-device-v4-http-response-data.js",
+      "bytes": 2912,
+      "sha256": "7f4aa311ca8d2a93f521528e93809117634045abc4fe2e01d9cb809791c852ad"
     }
   ],
   "compiled": false,
