@@ -37,6 +37,7 @@ BEFORE_BASE = 'f27e07df6dd96114135aceace20a9413bba94649'
 CALLER = '6cc85996524896c68aa9877b209c777fbcc25ae0'
 BEFORE_TREE = 'd6ff40c8e2603d2ef4086fcca6bafc276fd710b1'
 BEFORE_ORIGINAL_COMMIT = 'fa67017923834a6414e73e31d742e41e83d55a1e'
+CARRIER_PREFIX = 'scripts/loadtest/testdata/finalize-height-evidence/'
 BEFORE_EXECUTION_TREE = '0397f75ec55db6a89b46e2e6d051ce960c36827d'
 AFTER_EXECUTION_TREE = '96d91aed6a015f7243bb18b5d7a375bddf51483a'
 EVIDENCE_OVERLAY = [{'path': 'internal/consensus/pq_lab_finalize_trace.go', 'mode': '100644', 'bytes': 39737, 'sha256': '0aa9b4e00a6c9f249ddc57063a3e9e37b4325f41a6014f0da3e571efb2eed61e', 'gitBlob': '72e4d368a9fc225a621e24f65ab9a281d9282645'}, {'path': 'internal/consensus/pq_lab_finalize_trace_test.go', 'mode': '100644', 'bytes': 23962, 'sha256': 'ff8908b58ee3a77900429bd3ca5d417564e3bbfcd87f969c8bcddf5f1f0923b5', 'gitBlob': 'a71ec1d82e1bb9bda22544dad4fa247b62ae80b3'}]
@@ -229,10 +230,10 @@ def prepare_sources(repo, work, controller=None):
     require(controller is not None, 'actual normal controller overlay checkout required')
     evidence = []
     for leaf in EVIDENCE_OVERLAY:
-        path = leaf['path']; expected = dict(bytes=leaf['bytes'], sha256=leaf['sha256'])
-        require(pin(controller / path) == expected, 'exact common Go evidence source bytes differ')
-        require(git(controller, 'rev-parse', 'HEAD:' + path).decode() == leaf['gitBlob'], 'common Go evidence controller Git blob differs')
-        raw = (controller / path).read_bytes()
+        path = leaf['path']; carrier = CARRIER_PREFIX + path; expected = dict(bytes=leaf['bytes'], sha256=leaf['sha256'])
+        require(pin(controller / carrier) == expected, 'exact common Go evidence source bytes differ')
+        require(git(controller, 'rev-parse', 'HEAD:' + carrier).decode() == leaf['gitBlob'], 'common Go evidence controller Git blob differs')
+        raw = (controller / carrier).read_bytes()
         written = subprocess.check_output(['git', '-C', str(repo), 'hash-object', '-w', '--stdin'], input=raw, timeout=45).strip().decode()
         require(written == leaf['gitBlob'], 'actual common evidence Git blob differs')
         evidence.append(dict(leaf))
@@ -252,7 +253,7 @@ def prepare_sources(repo, work, controller=None):
     output = dict(beforeProductionBase=BEFORE_BASE, beforeOriginalLocalCommit=BEFORE_ORIGINAL_COMMIT,
                   beforeTree=tree, afterCommit=AFTER, afterTree=AFTER_TREE, beforeForkTree=BEFORE_FORK_TREE, afterForkTree=AFTER_FORK_TREE, caller=caller,
                   sameFourTraceBlobs=True, sameFiveCallerBlobs=False, afterMainOverwritten=False, arms={},
-                  executionTrees=execution_trees, commonEvidenceOverlay=evidence,
+                  executionTrees=execution_trees, commonEvidenceOverlay=evidence, evidenceOverlayCarrierPrefix=CARRIER_PREFIX,
                   evidenceOverlayControllerCommit=git(controller, 'rev-parse', 'HEAD').decode())
     for arm, revision in execution_trees.items():
         archive = work / '.private' / (arm + '.tar')

@@ -141,7 +141,8 @@ def inspect(files, source_before, source_after, fixture, controller, artifact_sh
     require(source['beforeForkTree'] == result['beforeForkTree'] and source['afterForkTree'] == result['afterForkTree'], 'original source/fork receipts differ')
     require(source['executionTrees'] == dict(before=BEFORE_EXECUTION_TREE, after=AFTER_EXECUTION_TREE)
             and source['commonEvidenceOverlay'] == EVIDENCE_OVERLAY
-            and source['evidenceOverlayControllerCommit'] == controller, 'actual common evidence source binding differs')
+            and source['evidenceOverlayControllerCommit'] == controller
+            and source['evidenceOverlayCarrierPrefix'] == 'scripts/loadtest/testdata/finalize-height-evidence/', 'actual common evidence source binding differs')
     require(source['sameFourTraceBlobs'] is True and source['sameFiveCallerBlobs'] is False and source['afterMainOverwritten'] is False, 'caller overlay scope differs')
     require(files['go-version.log'].strip() == b'go version go1.26.10 linux/amd64', 'actual toolchain differs')
     original = trace.read_bundle(Path(fixture), TRACE_SHA, 'trace')
@@ -186,10 +187,10 @@ def inspect(files, source_before, source_after, fixture, controller, artifact_sh
     height_report = height_reader.compare_height_states(*arms, rows)
     return dict(schema='YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1', runID=run_id, jobID=job_id,
                 artifactSHA256=artifact_sha, controllerCommit=controller, afterCommit=AFTER, toolsCommit=result['toolsCommit'], toolsTree=result['toolsTree'], beforeForkTree=result['beforeForkTree'], afterForkTree=result['afterForkTree'],
-                afterTree=AFTER_TREE, beforeExecutionTree=BEFORE_EXECUTION_TREE, afterExecutionTree=AFTER_EXECUTION_TREE,
+                afterTree=AFTER_TREE, traceSHA256=TRACE_SHA, beforeProductionBase=BASE, beforeOriginalCallerTree=BEFORE, beforeExecutionTree=BEFORE_EXECUTION_TREE, afterExecutionTree=AFTER_EXECUTION_TREE,
                 commonEvidenceOverlay=EVIDENCE_OVERLAY, perHeightEvidence=height_report, completePerHeightTxResultsEqual=True,
                 completePerHeightBalanceNonceStateEqual=True, completePerHeightAppHashEqual=True,
-                equalityMeaning='Full original responses and complete canonical state length/SHA/AppHash reconstructed by each normal Go replay; reader compares all record bytes, not independent per-height state snapshots.',
+                equalityMeaning='Full responses and all per-height raw canonical state bytes compared against fixed original length/SHA/AppHash and between arms; Go executes cold reconstruction, reader does not execute loader.',
                 limitedOriginalTrajectoryQualified=True, heights=original['retainedHeights'],
                 stageParentWallSeconds=times, originalElapsedSeconds=result['elapsedSeconds'],
                 timingMeaning='Parent observed launch-to-exit wall time; sequential builds share cache. Not paired performance improvement or business latency.',

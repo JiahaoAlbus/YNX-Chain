@@ -35,6 +35,21 @@ class FutureSourceControls(unittest.TestCase):
         self.assertEqual(m.NORMAL_RECEIPT_SHA256,'c4cb8cfcf87b6ff4f6de2f91af656f93cd7c663487c02e733e7448554a45fab9')
         self.assertIsNone(m.SEMANTIC_RECEIPT_SHA256)
 
+    def test_semantic_receipt_cannot_omit_raw_cold_or_use_old_execution_trees(self):
+        fake=dict(schema='YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1',afterCommit=m.SOURCE,afterTree=m.TREE,
+                  toolsCommit='478bf2ee60c19dcbdb67872184f9e1f500511746',
+                  beforeExecutionTree='0397f75ec55db6a89b46e2e6d051ce960c36827d',afterExecutionTree='96d91aed6a015f7243bb18b5d7a375bddf51483a',
+                  traceSHA256='11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6',heights=9)
+        for k in ('limitedOriginalTrajectoryQualified','completePerHeightTxResultsEqual','completePerHeightBalanceNonceStateEqual',
+                  'completePerHeightAppHashEqual','completePerHeightRawStateBytesEqual','coldReconstructionProducerRecordsVerified','cleanupComplete'):fake[k]=True
+        fake['perHeightEvidence']=dict(heights=list(map(str,range(4,13))),completePerHeightRawStateBytesEqual=True,
+            coldReconstructionProducerRecordsVerified=True,coldStageObservedNanoseconds={arm:[dict(height=str(h)) for h in range(4,13)] for arm in ('before','after')})
+        # Synthetic contract metadata only; no sealed receipt or execution grant.
+        m.require_semantic(fake)
+        for delta in [dict(heights=8),dict(completePerHeightRawStateBytesEqual=False),dict(coldReconstructionProducerRecordsVerified=False),
+                      dict(afterExecutionTree=m.TREE),dict(schema='old'),dict(perHeightEvidence={})]:
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):m.require_semantic(dict(fake,**delta))
+
     def test_future_requires_own_profile_source_backend_and_same_demand(self):
         self.assertEqual(d.validate_options(options()),500)
         self.assertEqual(d.sender_backend_kind(options()),'public-owner')

@@ -70,6 +70,11 @@ def assert_workflow(raw):
     for item in ("runs-on: ubuntu-24.04", "ref: " + m.AFTER, "go-version: '1.26.10'", "cache: false", "persist-credentials: false", "fetch-depth: 1", "--operation \"$RUNNER_TEMP/pq-finalize-7c25-semantic\" --execute", "if: always() && steps.semantic.outputs.public != ''", "path: ${{ steps.semantic.outputs.public }}/**", "include-hidden-files: false", "GH_TOKEN: ${{ github.token }}"):
         if item not in block:
             raise AssertionError('fixed normal flow missing: ' + item)
+    for leaf in m.EVIDENCE_OVERLAY:
+        if m.CARRIER_PREFIX + leaf['path'] not in block:
+            raise AssertionError('fixed common Go evidence carrier missing')
+    if 'scripts/loadtest/pq-semantic-height-state.py' not in block:
+        raise AssertionError('exact height-state consumer missing')
     if block.count('--execute') != 1 or 'Node.Start' in block or 'baseline-input' in block or 'build ' in block:
         raise AssertionError('all builds/replays must remain in single original Window')
     if 'test_pq_finalize_7c25_semantic_ci.py" -v' not in block:

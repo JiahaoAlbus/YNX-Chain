@@ -181,6 +181,29 @@ def _sealed(directory, name, pin):
     return json.loads(raw)
 
 
+def require_semantic(semantic):
+    require(semantic.get('schema') == 'YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1'
+            and semantic.get('afterCommit') == SOURCE and semantic.get('afterTree') == TREE
+            and semantic.get('toolsCommit') == '478bf2ee60c19dcbdb67872184f9e1f500511746'
+            and semantic.get('beforeExecutionTree') == '0397f75ec55db6a89b46e2e6d051ce960c36827d'
+            and semantic.get('afterExecutionTree') == '96d91aed6a015f7243bb18b5d7a375bddf51483a'
+            and semantic.get('traceSHA256') == '11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6'
+            and all(semantic.get(k) is True for k in ('limitedOriginalTrajectoryQualified',
+                'completePerHeightTxResultsEqual','completePerHeightBalanceNonceStateEqual',
+                'completePerHeightAppHashEqual','completePerHeightRawStateBytesEqual',
+                'coldReconstructionProducerRecordsVerified','cleanupComplete'))
+            and type(semantic.get('heights')) is int and semantic['heights'] == 9,
+            'same-tuple complete nine-height transaction/raw-state/AppHash/cold equivalence NOT_SUPPLIED')
+    evidence = semantic.get('perHeightEvidence', {})
+    require(evidence.get('heights') == list(map(str, range(4,13)))
+            and evidence.get('completePerHeightRawStateBytesEqual') is True
+            and evidence.get('coldReconstructionProducerRecordsVerified') is True
+            and set(evidence.get('coldStageObservedNanoseconds', {})) == {'before','after'}
+            and all([r.get('height') for r in evidence['coldStageObservedNanoseconds'][arm]]
+                    == list(map(str,range(4,13))) for arm in ('before','after')),
+            'all original nine-height cold timing records NOT_SUPPLIED')
+
+
 def qualification(directory=None):
     directory = Path(directory) if directory is not None else Path(__file__).with_name('fixtures')/'7c25-source'
     normal = _sealed(directory,'NORMAL-READBACK.json',NORMAL_RECEIPT_SHA256)
@@ -192,14 +215,7 @@ def qualification(directory=None):
             and set(normal.get('coreRequiredPassed',[])) == CORE_REQUIRED,
             'future source normal originals not qualified')
     semantic = _sealed(directory,'SEMANTIC-READBACK.json',SEMANTIC_RECEIPT_SHA256)
-    require(semantic.get('afterCommit') == SOURCE and semantic.get('afterTree') == TREE
-            and semantic.get('toolsCommit') == '478bf2ee60c19dcbdb67872184f9e1f500511746'
-            and semantic.get('limitedOriginalTrajectoryQualified') is True
-            and semantic.get('completePerHeightTxResultsEqual') is True
-            and semantic.get('completePerHeightBalanceNonceStateEqual') is True
-            and semantic.get('completePerHeightAppHashEqual') is True
-            and type(semantic.get('heights')) is int and semantic['heights'] > 0,
-            'same-tuple per-height transaction/state/AppHash equivalence NOT_SUPPLIED')
+    require_semantic(semantic)
     return dict(schema='YNX-PERF-7C25-SOURCE-AND-SEMANTIC-QUALIFICATION/v1',source=SOURCE,sourceTree=TREE,
                 productionForkTree=FORK,sourceCIRef=CI_REF,sourceCIRun=CI_RUN,sourceCIJob=CI_JOB,
                 sourceOnlyQualified=True,semanticPairConsumed=True,heights=semantic['heights'],
