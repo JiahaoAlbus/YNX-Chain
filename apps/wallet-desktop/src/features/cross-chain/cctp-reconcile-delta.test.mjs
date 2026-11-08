@@ -70,6 +70,37 @@ async function harness(t, state = 'mint-ready') {
   return {current, wallet, reader, store: coldStore, flow, record, proof, calls, filePath, time};
 }
 
+test('late source proof loss keeps cold history query-only and recovers only the same burn after canonical readback', async t => {
+ for (const state of ['attestation-pending', 'mint-ready']) await t.test(state, async child => {
+  const h = await harness(child, state), entered = deferred(), release = deferred();
+  const priorProof = structuredClone(h.record.proof);
+  const receipt = h.reader.receipt.bind(h.reader), get = h.reader.get.bind(h.reader);
+  let missing = false;
+  h.reader.receipt = (...args) => missing ? null : receipt(...args);
+  h.reader.get = async (...args) => {h.calls.attestation++; entered.resolve(); await release.promise; return get(...args)};
+  const checking = h.flow.check(h.record.id);
+  await entered.promise;
+  missing = true; release.resolve();
+  await assert.rejects(checking, {code: 'CCTP_RECEIPT_MISMATCH'});
+  const saved = await new CctpStore({filePath: h.filePath}).get(h.record.id);
+  assert.equal(saved.state, 'attestation-pending'); assert.deepEqual(saved.proof, priorProof, 'retain any cached original proof as evidence without promoting it');
+  assert.equal(saved.operations[0].id, h.record.operations[0].id);
+  assert.equal(saved.operations[0].hash, BURN_HASH);
+  assert.equal(h.calls.prepare.length, 0);
+  await assert.rejects(h.flow.prepareStep(saved.id), {code: 'CCTP_CHECK_ORIGINAL'});
+  // Another read of the SAME source operation can recover; no quote, review,
+  // replacement source transaction or custody entry is used.
+  missing = false;
+  const cold = new CctpFlow({wallet: h.wallet, reader: h.reader, store: new CctpStore({filePath: h.filePath}), now: () => h.time});
+  const recovered = await cold.check(saved.id);
+  assert.equal(recovered.state, 'mint-ready'); assert.equal(recovered.proof.sourceTxHash, BURN_HASH);
+  assert.equal(recovered.proof.nonce, NONCE); assert.equal(recovered.id, saved.id);
+  assert.ok(h.calls.check.every(call => call.id === saved.operations[0].id));
+  assert.equal(h.calls.prepare.length, 0);
+  assert.equal(h.calls.attestation, 2);
+ });
+});
+
 test('cold cached mint proof cannot retain mint readiness after the original adapter observes a missing burn receipt', async t => {
   const h = await harness(t);
   const adapter = new CctpEVMAdapter({rpc: async (_url, method) => {
