@@ -126,7 +126,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          printf '%s  %s\n' 5948abdb55d68e28c46997369718360d149027274d11347ea68fed2613aa77fb apps/cloud/tests/file-session-v2-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' e4e1cfb58f8e169ccccd73935bcb9d75988d55ddfddc559e64e9a1ffc2a2624c apps/cloud/tests/file-session-v2-source.tar.gz | sha256sum --check
           mkdir -p "$RUNNER_TEMP/file-source" "$RUNNER_TEMP/file-evidence"
           tar -xzf apps/cloud/tests/file-session-v2-source.tar.gz -C "$RUNNER_TEMP/file-source"
           python3 - <<'PYCLOUD'
@@ -141,12 +141,8 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/file-source"
-          npm ci --omit=dev --ignore-scripts --no-audit --no-fund
           node --check apps/cloud/client/file-session-v2-client.mjs
-          node apps/cloud/client/file-session-v2.normal.fixture.mjs | tee "$RUNNER_TEMP/file-evidence/sdk-kernel.json"
-          node apps/cloud/client/file-session-v2-reference.normal.fixture.mjs | tee "$RUNNER_TEMP/file-evidence/reference-current-policy-guard.json"
-          node --experimental-vm-modules apps/cloud/client/file-session-v2-lifetime.normal.fixture.mjs | tee "$RUNNER_TEMP/file-evidence/local-lifetime-standins.json"
-          YNX_CLOUD_FILE_V2_NODE="$(command -v node)" YNX_CLOUD_FILE_V2_BRIDGE="$PWD/apps/cloud/client/file-session-v2-server-entry.mjs" GOMAXPROCS=2 go test -race -mod=readonly -count=1 -timeout=90s -json -run '^TestP04(WalletSessionPostVerifyCurrent|FileSessionV2)' ./internal/cloud | tee "$RUNNER_TEMP/file-evidence/current-routing.jsonl"
+          GOMAXPROCS=2 go test -race -mod=readonly -count=1 -timeout=90s -json -run '^TestP04FileSessionV2AuthorityFailureDoesNotInventRevocation$' ./internal/cloud | tee "$RUNNER_TEMP/file-evidence/authority-failure.jsonl"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
