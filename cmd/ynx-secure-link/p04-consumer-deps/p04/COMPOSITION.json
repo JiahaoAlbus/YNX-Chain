@@ -1,0 +1,67 @@
+{
+  "schema": "ynx-cloud-finite-get-native-test-composition/1",
+  "out": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child",
+  "sourceFiles": 446,
+  "baseDelivery": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/read-request-lifecycle-r1/HANDOFF.json",
+    "bytes": 6491,
+    "sha256": "10168a86fb04225e8e7d90d3d892088000c67e3f55cb0c263a0ea2b075648b81"
+  },
+  "testSupplier": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/server-tls-consumer-test-next/r11-public-fixture-r1",
+    "bytes": 4527,
+    "sha256": "a6acc8d9a057ab6f9963cc4ed4f0cceedf44d979011027780506745f738d588d"
+  },
+  "sameRequestR2": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/server-tls-consumer-test-next/r11-public-fixture-r2",
+    "bytes": 3803,
+    "sha256": "9d5eb05b747f06ed7d4aaf910c0c96d803aa3ef4ece8b6b32f24147e78de513d"
+  },
+  "matchingChildContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-child-contract-test-r3",
+    "bytes": 1697,
+    "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
+  },
+  "testChanges": [
+    "internal/developerauthority/original_finite_get_principal_test.go",
+    "internal/developerauthority/original_finite_get_context_test.go",
+    "internal/developerauthority/original_finite_get_schema_test.go",
+    "internal/securelink/original_server_tls_public_fixture.go",
+    "internal/securelink/original_server_tls_public_fixture_test.go"
+  ],
+  "normalBuildTags": [
+    "cloud_auth_v2",
+    "cloud_http_v5",
+    "cloud_auth_finite_get",
+    "cloud_link_finite_get",
+    "securelink_openssl",
+    "securelink_reviewed_server_tls"
+  ],
+  "testTags": [
+    "securelink_openssl",
+    "securelink_reviewed_server_tls",
+    "securelink_public_server_tls_test"
+  ],
+  "requiredTops": [
+    "TestR5FiniteGETPrincipalFactory",
+    "TestR5FiniteGETUnknownAndLate",
+    "TestR5ObservationAndV3",
+    "TestContextBoundRealServerSequentialRequests",
+    "TestR5DefaultV3ReleaseSchema"
+  ],
+  "requiredEnvironment": [
+    "YNX_IDE_TEST_OWNED_ROOT",
+    "YNX_IDE_TEST_NODE",
+    "YNX_PUBLIC_R5_FACTORY_SDK",
+    "YNX_PUBLIC_R5_VECTOR"
+  ],
+  "testOnly": true,
+  "productionBytesUnchanged": true,
+  "GoExecuted": false,
+  "OpenSSLExecuted": false,
+  "fullTestsExecuted": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "serviceStarted": false,
+  "publicDeployment": false
+}

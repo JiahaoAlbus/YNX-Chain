@@ -1,0 +1,66 @@
+{
+  "schema": "YNX-P04-original-collector-native-consumer-request/1",
+  "soleCollector": "original LINK collector via sole Root; no new collector or run dispatched here",
+  "reportedExistingLINKCI": {
+    "commitPrefix": "66463fc2",
+    "run": 42453250985,
+    "notConsumerFiveTopEvidence": true,
+    "actualResultToBeReadBySoleCollector": true
+  },
+  "candidate": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child",
+  "command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-race",
+    "-p",
+    "1",
+    "-count=1",
+    "-timeout=150s",
+    "-json",
+    "-tags=securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test",
+    "-run",
+    "^(TestR5FiniteGETPrincipalFactory|TestR5FiniteGETUnknownAndLate|TestR5ObservationAndV3|TestContextBoundRealServerSequentialRequests|TestR5DefaultV3ReleaseSchema)$",
+    "./internal/developerauthority"
+  ],
+  "requiredEnvironment": [
+    "YNX_IDE_TEST_OWNED_ROOT",
+    "YNX_IDE_TEST_NODE",
+    "YNX_PUBLIC_R5_FACTORY_SDK",
+    "YNX_PUBLIC_R5_VECTOR"
+  ],
+  "OpenSSL": "exact same original job-private CLI and linked lib 3.6.4",
+  "pathGuard": "original verifierDirectory ancestors unchanged; no tmp/symlink fallback or chmod relaxation",
+  "moduleDependency": "/Volumes/西部数据/YNX-large-work/protocol/pq-storage-f8-20261031/third_party/cometbft",
+  "sameSDKVectorNode": "original Auth supplied PUBLIC R5 math inputs; never substitute real account/Source or production SDK with fabricated PUBLIC grants",
+  "gateCommand": [
+    "node",
+    "apps/cloud/scripts/verify-finite-get-consumer-evidence.mjs",
+    "ORIGINAL_CONSUMER_GO_JSON_STDOUT"
+  ],
+  "requiredResults": "5 exact tops+7 rejection subtests each RUN/PASS once plus package PASS once; no skips/failures",
+  "notAllowed": "do not use GoFiles-only subset, no native-tag exclusion to call green, no public fixture in product build",
+  "originalProductionBytesUnchanged": true,
+  "GoExecutedOnMac": false,
+  "publicEnvironmentInputs": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/HANDOFF.json",
+    "bytes": 3762,
+    "sha256": "876cabce7fe0bd4309fa8388ec2cab8d0c6520a4c8c610e2310117bb61a92602"
+  },
+  "principalTestExpected": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/internal/developerauthority/original_finite_get_principal_test.go",
+    "bytes": 25000,
+    "sha256": "7db2ad195f74c13b71a2c640f6b9422d1b29afe65001eb3ac0aee3040e3adf80"
+  },
+  "sourceManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/SOURCE_MANIFEST.json",
+    "bytes": 83734,
+    "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469"
+  },
+  "R2MatchingChildContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-child-contract-test-r3/HANDOFF.json",
+    "bytes": 1697,
+    "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
+  },
+  "requiredSourceBinding": "sole collector records exact source archive/manifest and process cwd, pins before and after run, argv, Node/OpenSSL/toolchain identities and actual original raw JSON/exit; metadata counts alone are not source or Root authority"
+}

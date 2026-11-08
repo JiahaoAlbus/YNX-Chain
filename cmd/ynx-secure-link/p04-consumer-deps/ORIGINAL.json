@@ -1,0 +1,128 @@
+{
+  "schema": "YNX-LINK-P04-FINITE-GET-CONSUMER-DEPS/v1",
+  "state": "READY_EXACT_SUPPLIER_CAS",
+  "candidate": {
+    "handoff": {
+      "file": "p04/HANDOFF.json",
+      "bytes": 4576,
+      "sha256": "1917ea3aa8c6aecea4ad81a6e45cd3e1e18410bb29c5cf2a34d8204f8a2f3f69",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/HANDOFF.json"
+    },
+    "archive": {
+      "file": "p04/source.tar.gz",
+      "bytes": 2371214,
+      "sha256": "0d5fdca18efb0c00bbb7bb7767b69425356280e7bd8780397d88db9a75adba56",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/matching-r2-child-source-only.tar.gz"
+    },
+    "sourceManifest": {
+      "file": "p04/SOURCE_MANIFEST.json",
+      "bytes": 83734,
+      "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/SOURCE_MANIFEST.json"
+    },
+    "composition": {
+      "file": "p04/COMPOSITION.json",
+      "bytes": 2555,
+      "sha256": "041d32b7fc48bc76a40d15e45f20c5258bbe4003508ce920726937b6b5246bce",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json"
+    },
+    "request": {
+      "file": "p04/ORIGINAL_CI_REQUEST.json",
+      "bytes": 3402,
+      "sha256": "dc0da46fdac5dcbe526bcbe39094e18bc4ba064a01c6f447b64dce0355df4dc9",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/ORIGINAL_CI_REQUEST.json"
+    },
+    "extraMembers": [
+      {
+        "relative": "SOURCE_MANIFEST.json",
+        "bytes": 83734,
+        "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469"
+      },
+      {
+        "relative": "CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json",
+        "bytes": 2555,
+        "sha256": "041d32b7fc48bc76a40d15e45f20c5258bbe4003508ce920726937b6b5246bce"
+      },
+      {
+        "relative": "supplier-provenance/LINK-TEST-HANDOFF.json",
+        "bytes": 4527,
+        "sha256": "a6acc8d9a057ab6f9963cc4ed4f0cceedf44d979011027780506745f738d588d"
+      },
+      {
+        "relative": "supplier-provenance/LINK-TEST-R2-HANDOFF.json",
+        "bytes": 3803,
+        "sha256": "9d5eb05b747f06ed7d4aaf910c0c96d803aa3ef4ece8b6b32f24147e78de513d"
+      },
+      {
+        "relative": "supplier-provenance/P04-CHILD-TEST-HANDOFF.json",
+        "bytes": 1697,
+        "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
+      },
+      {
+        "relative": "supplier-provenance/CLOUD-CHILD-HANDOFF.json",
+        "bytes": 6491,
+        "sha256": "10168a86fb04225e8e7d90d3d892088000c67e3f55cb0c263a0ea2b075648b81"
+      },
+      {
+        "relative": "apps/cloud/scripts/verify-finite-get-consumer-evidence.mjs",
+        "bytes": 3013,
+        "sha256": "16982104c41e0c6920e13d833e0edbc0b5965e21a988497fa8ad9ad62306359a"
+      },
+      {
+        "relative": "ORIGINAL_CI_REQUEST.json",
+        "bytes": 3402,
+        "sha256": "dc0da46fdac5dcbe526bcbe39094e18bc4ba064a01c6f447b64dce0355df4dc9"
+      }
+    ]
+  },
+  "sdk": {
+    "handoff": {
+      "file": "sdk/HANDOFF.json",
+      "bytes": 3762,
+      "sha256": "876cabce7fe0bd4309fa8388ec2cab8d0c6520a4c8c610e2310117bb61a92602",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/HANDOFF.json"
+    },
+    "manifest": {
+      "file": "sdk/PUBLIC_SDK_FILES.json",
+      "bytes": 48092,
+      "sha256": "6b9864590e06ad5d2ba05df4d9359b34f44fb6c47227536b8b1b8f6b119478ff",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC_SDK_FILES.json"
+    },
+    "archive": {
+      "file": "sdk/public-inputs.tar.gz",
+      "bytes": 1069065,
+      "sha256": "7a418c7c8aacfa539760df7a3e3f1e4ee11455eef97504ace07257a9c38d132a",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/public-r5-sdk-vector-only.tar.gz"
+    },
+    "vector": {
+      "file": "sdk/vector.json",
+      "bytes": 192689,
+      "sha256": "4c13979678fd2c7ad3de174a2f91ae56e609a0bafb398def1ac6ba446d91186a",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC_IDE_FINITE_GET_V4_VECTOR.json"
+    }
+  },
+  "comet": {
+    "commit": "63ba175ec3725845536963daca5c8b79418187ad",
+    "repositoryTree": "cfa69e0246f6cc87fb7d87a947f5f4de38650c8e",
+    "moduleTree": "47d7cfeee7cd178cb897eda57a4674677fac7e67",
+    "descriptors": [
+      {
+        "file": "comet/go.mod",
+        "bytes": 6552,
+        "sha256": "265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59",
+        "originalPath": "/Volumes/西部数据/YNX-large-work/protocol/pq-storage-f8-20261031/third_party/cometbft/go.mod",
+        "relative": "go.mod"
+      },
+      {
+        "file": "comet/go.sum",
+        "bytes": 51533,
+        "sha256": "daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd",
+        "originalPath": "/Volumes/西部数据/YNX-large-work/protocol/pq-storage-f8-20261031/third_party/cometbft/go.sum",
+        "relative": "go.sum"
+      }
+    ]
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "normalRuntimePackage": false
+}

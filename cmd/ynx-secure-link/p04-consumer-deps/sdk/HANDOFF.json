@@ -1,0 +1,71 @@
+{
+  "schema": "YNX-P04-original-PUBLIC-R5-inputs-portable-freeze/1",
+  "atUTC": "2026-11-08T06:16:59.471044+00:00",
+  "baseCandidate": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-intake-r1/HANDOFF.json",
+    "bytes": 4024,
+    "sha256": "ea0db7880d73aee68eaf3170835967e4d1d9ad7b09eb23ec23e2794868b9ed8b"
+  },
+  "originalAuthInputs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/principal-factory/run.mjs",
+      "bytes": 3902,
+      "sha256": "34af1710d7208730fad8b65a400fbd8272dda102b2089dd15962ac6c2de7d8bf"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/ide-cloud-deployment-caller-successor/receiver-principal-r5/principal-factory/run-OcjSeQ/PUBLIC_RUNTIME.json",
+      "bytes": 212,
+      "sha256": "9b236390dab20cdab2abb5fdf31fcc58000335896cdd9ec77a9b7f05b6f042e2"
+    }
+  ],
+  "sdkOriginal": "/Users/huangjiahao/PUBLIC-r5-principal-runtime-P2KQMU/sdk",
+  "sdkFrozen": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC-R5-SDK",
+  "sdkFiles": 280,
+  "sdkWholeFiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC_SDK_FILES.json",
+    "bytes": 48092,
+    "sha256": "6b9864590e06ad5d2ba05df4d9359b34f44fb6c47227536b8b1b8f6b119478ff"
+  },
+  "vector": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC_IDE_FINITE_GET_V4_VECTOR.json",
+    "bytes": 192689,
+    "sha256": "4c13979678fd2c7ad3de174a2f91ae56e609a0bafb398def1ac6ba446d91186a"
+  },
+  "testSeamExactNewConsumerConstant": true,
+  "testSeam": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/PUBLIC-R5-SDK/native/original-auth-identity-source-verifier.mjs",
+    "bytes": 636,
+    "sha256": "e042a9f47119d8ab9853e80ad58d2c123fc8028f08dc75d3b075bc5a1672e84d"
+  },
+  "MacNodeProvenanceOnly": {
+    "path": "/Users/huangjiahao/PUBLIC-r5-principal-runtime-P2KQMU/node",
+    "bytes": 126827136,
+    "sha256": "8a7dd4c5cb35e6171dfbea7303650bc311f46971b06dd7e1c62e3f291cfd746c"
+  },
+  "MacNodeArchived": false,
+  "MacNodeExecuted": false,
+  "LinuxNode": "original collector matching Node copied into its private allowed ancestor chain and freshly byte-pinned; do not execute Mac binary",
+  "portablePublicInputs": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/public-r5-sdk-vector-only.tar.gz",
+    "bytes": 1069065,
+    "sha256": "7a418c7c8aacfa539760df7a3e3f1e4ee11455eef97504ace07257a9c38d132a"
+  },
+  "originalCIEnvironment": {
+    "YNX_PUBLIC_R5_FACTORY_SDK": "<explicit protected original job root>/PUBLIC-R5-SDK",
+    "YNX_PUBLIC_R5_VECTOR": "<explicit protected original job root>/PUBLIC_IDE_FINITE_GET_V4_VECTOR.json",
+    "YNX_IDE_TEST_NODE": "<original protected Linux Node, freshly pinned>",
+    "YNX_IDE_TEST_OWNED_ROOT": "<explicit existing private root passing unchanged verifierDirectory ancestors>"
+  },
+  "protection": "extract original owned private directories0700, files0600; no unsafe ancestor chmod/exception; restore same public module dependency from candidate request",
+  "soleCollector": "original LINK via sole Root; no additional run or collector started",
+  "noRunnersExecuted": true,
+  "GoExecuted": false,
+  "OpenSSLExecuted": false,
+  "genuineKeysOrAccountsRequested": false,
+  "PUBLICSourceNotProductionSDK462": true,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "nativeConsumerRuntimeVerified": false,
+  "installed": false,
+  "deployed": false
+}

@@ -1,0 +1,87 @@
+{
+  "schema": "YNX-P04-R2-native-consumer-matching-child-final/1",
+  "atUTC": "2026-11-08T06:23:38.964486+00:00",
+  "owningSource": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud",
+  "branch": "codex/cloud-key-recovery-rotation",
+  "HEAD": "806b657fc60d88bf6dc7fbc8f9125a2ba9c02d54",
+  "state": "MATCHING_TEST_CODE_AND_PORTABLE_PUBLIC_INPUTS_FROZEN_FIVE_TOP_NATIVE_EXECUTION_PENDING_ORIGINAL_COLLECTOR",
+  "LINKR2": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/server-tls-consumer-test-next/r11-public-fixture-r2/CODE-HANDOFF-R2.json",
+    "bytes": 3803,
+    "sha256": "9d5eb05b747f06ed7d4aaf910c0c96d803aa3ef4ece8b6b32f24147e78de513d"
+  },
+  "matchingOwnTestCAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-child-contract-test-r3/HANDOFF.json",
+    "bytes": 1697,
+    "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
+  },
+  "exactOwnTestDiff": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/R2-CHILD-TEST.patch",
+    "bytes": 4525,
+    "sha256": "c6daf86c9085de1c3d6a435f5c2e5685ffcb903a26338624788246433ffc9c94"
+  },
+  "AuthContractConfirmation": "original Auth owner independently read begin-before-LINK + finish-first retention and explicitly confirmed this matching test adaptation; no production edit",
+  "ownSourceFiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/OWN_SOURCE_FILES.json",
+    "bytes": 1771,
+    "sha256": "afe2c65c147236af2ecaf043a343f1e5462299e4bcf6da49d9b5b816d3e18a27"
+  },
+  "testComposition": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json",
+    "bytes": 2555,
+    "sha256": "041d32b7fc48bc76a40d15e45f20c5258bbe4003508ce920726937b6b5246bce"
+  },
+  "sourceManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/SOURCE_MANIFEST.json",
+    "bytes": 83734,
+    "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469"
+  },
+  "wholeReadback": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/INDEPENDENT_READBACK.json",
+    "bytes": 337,
+    "sha256": "056044621091430af6a8550d89dbb5be595e1c7ab30b56aa842bd8d3e5b2ad7f"
+  },
+  "sourceOnlyArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/matching-r2-child-source-only.tar.gz",
+    "bytes": 2371214,
+    "sha256": "0d5fdca18efb0c00bbb7bb7767b69425356280e7bd8780397d88db9a75adba56"
+  },
+  "PUBLICEnvironmentInputs": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/HANDOFF.json",
+    "bytes": 3762,
+    "sha256": "876cabce7fe0bd4309fa8388ec2cab8d0c6520a4c8c610e2310117bb61a92602"
+  },
+  "PUBLICSDKVectorArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-inputs-r1/public-r5-sdk-vector-only.tar.gz",
+    "bytes": 1069065,
+    "sha256": "7a418c7c8aacfa539760df7a3e3f1e4ee11455eef97504ace07257a9c38d132a"
+  },
+  "originalCIRequest": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/ORIGINAL_CI_REQUEST.json",
+    "bytes": 3402,
+    "sha256": "dc0da46fdac5dcbe526bcbe39094e18bc4ba064a01c6f447b64dce0355df4dc9"
+  },
+  "newNodeGuardChecks": {
+    "raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/NODE_GUARDS.stdout",
+      "bytes": 562,
+      "sha256": "dfa662cd55d7768f5f8ab059becfe21810b3ec1d4703bdf2bdac7edd3ec05261"
+    },
+    "passed": 5,
+    "skip": 0,
+    "nativeGoTestsNotClaimed": true
+  },
+  "runtimeAcceptanceRequired": "exact5tops + original7rejection subtests actual RUN/PASS once, packagePASS, original full-package native tags/environment, source-bound collector raw/exit",
+  "priorR1R2CandidatesAndHUnchanged": true,
+  "oldCompileREDUnchanged": true,
+  "GoExecutedOnMac": false,
+  "OpenSSLExecutedOnMac": false,
+  "newCollectorOrCIRunStarted": false,
+  "fullPackageRuntimeVerified": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "newProductRuntimePackage": false,
+  "installed": false,
+  "serviceStarted": false,
+  "deployed": false
+}

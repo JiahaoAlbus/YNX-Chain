@@ -69,7 +69,9 @@ jobs:
         with:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
-        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/core20-fixed-agent-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs cmd/ynx-secure-link/server-tls-ci.test.mjs
+        env:
+          YNX_LINK_P04_CONSUMER_DRIVER_TEST_ARTIFACTS: ${{ runner.temp }}/p04-consumer-driver-controls
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs cmd/ynx-secure-link-private-client/core20-fixed-agent-profile.test.mjs cmd/ynx-secure-link-private-client/retained-suffix.test.mjs cmd/ynx-secure-link/server-tls-ci.test.mjs cmd/ynx-secure-link/p04-finite-get-consumer-ci.test.mjs
       - name: Check original resource-current native client and Darwin kernel peer lifecycle
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
@@ -107,7 +109,7 @@ jobs:
           fs.writeFileSync(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE+'/SOURCE-BEFORE.json',JSON.stringify(pins,null,2)+'\n',{flag:'wx'});
           NODE
           set +e
-          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer|ShopProofV2)' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
+          go test -mod=readonly -race -p 1 -count=1 -timeout=120s -json -run '^TestOriginalLocalCaller(Exchange|Peer|ShopProofV[24])' ./internal/securelink > "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.jsonl" 2> "$YNX_LINK_OWNED_LOCAL_CLIENT_TEST_EVIDENCE/go.stderr"
           export YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS=$?
           set -e
           node --input-type=module <<'NODE'
@@ -122,7 +124,9 @@ jobs:
           const names=['ExchangeCompleteFINAndDebt','ExchangePreflightNoSocket','ExchangePartialAndBounds',
             'ExchangeCancellationJoinsCallback','ExchangeConcurrentCurrentAndCleanup','ExchangeCloseUnknownRetainsOriginal',
             'PeerSameConnectedIdentity','PeerRejectsWrongExpectedIdentity','PeerCloseUnknownRetainedOnce','PeerActualExecChange',
-            'ShopProofV2Carrier','ShopProofV2OwnedWire','ShopProofV2Preflight','ShopProofV2RequestCurrent','ShopProofV2IncomingRejection']
+            'ShopProofV2Carrier','ShopProofV2OwnedWire','ShopProofV2Preflight','ShopProofV2RequestCurrent','ShopProofV2IncomingRejection',
+            'ShopProofV4CarrierBounds','ShopProofV4RawHeaderReader','ShopProofV4ServerProfile','ShopProofV4OwnedWire',
+            'ShopProofV4Preflight','ShopProofV4IncomingRejection','ShopProofV4RequestSnapshot','ShopProofV4RawHeaderBudget','ShopProofV4PartialResponse']
             .map(n=>'TestOriginalLocalCaller'+n);
           const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
             run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
@@ -590,6 +594,11 @@ jobs:
             test "$(grep -c "^--- PASS: TestOriginalLocalCaller$owned_test " "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           done
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
+          for v4_test in CarrierBounds RawHeaderReader ServerProfile OwnedWire Preflight IncomingRejection RequestSnapshot RawHeaderBudget PartialResponse; do
+            for evidence_log in native-check.log unavailable-check.log; do
+              test "$(grep -c "^--- PASS: TestOriginalLocalCallerShopProofV4$v4_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
+            done
+          done
       - name: Exercise the normal command through private IPC and actual PQ TLS
         run: |
           set -euo pipefail
@@ -610,6 +619,12 @@ jobs:
           YNX_LINK_SERVER_TLS_CI_PRIVATE: ${{ runner.temp }}/securelink-server-tls-private
           YNX_LINK_SERVER_TLS_CI_EVIDENCE: ${{ runner.temp }}/securelink-evidence/server-tls
         run: node cmd/ynx-secure-link/server-tls-ci.mjs
+      - name: Run the complete original Cloud finite GET consumer package with actual native TLS
+        env:
+          YNX_LINK_P04_CONSUMER_EVIDENCE: ${{ runner.temp }}/securelink-evidence/p04-consumer
+        run: |
+          export YNX_LINK_P04_CONSUMER_PRIVATE="$HOME/ynx-link-p04-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs
       - name: Upload scoped evidence and upstream notices (no test keys)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

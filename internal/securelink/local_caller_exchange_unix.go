@@ -76,7 +76,7 @@ func (s *originalLocalCallerExchangeState) resultError() error {
 // A complete normal FIN may prove terminal original DATA, never live transport
 // or Auth Source. The socket and image/proc FDs stay owned until real cleanup.
 func (c *LocalCallerClient) CallOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
-	return c.callOriginalOwned(ctx, method, path, contentType, body, expected, nil)
+	return c.callOriginalOwned(ctx, method, path, contentType, body, expected, nil, nil)
 }
 
 // CallOriginalShopGETOwned carries only the sole SDK's original V2 proof header
@@ -85,10 +85,18 @@ func (c *LocalCallerClient) CallOriginalOwned(ctx context.Context, method, path,
 // CallOriginalOwned. The header is not parsed or treated as authorization;
 // the original Auth/P07 session and Source current remain independent gates.
 func (c *LocalCallerClient) CallOriginalShopGETOwned(ctx context.Context, path string, proof ProductSessionProofV2DATA, expected LocalCallerExpectedProcess) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
-	return c.callOriginalOwned(ctx, http.MethodGet, path, "", nil, expected, &proof)
+	return c.callOriginalOwned(ctx, http.MethodGet, path, "", nil, expected, &proof, nil)
 }
 
-func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
+// CallOriginalShopGETV4Owned carries only one original SDK V4 value on a
+// registered MaxBodyBytes=0 GET. It shares the exact original owned socket,
+// peer/image fences, response partial and physical-close debt with the old
+// methods; it supplies no session, Source or business approval.
+func (c *LocalCallerClient) CallOriginalShopGETV4Owned(ctx context.Context, path string, proof ProductSessionProofV4DATA, expected LocalCallerExpectedProcess) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
+	return c.callOriginalOwned(ctx, http.MethodGet, path, "", nil, expected, nil, &proof)
+}
+
+func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path, contentType string, body []byte, expected LocalCallerExpectedProcess, proof *ProductSessionProofV2DATA, proofV4 *ProductSessionProofV4DATA) (exchange *OriginalLocalCallerExchange, out LocalCallerResponse, err error) {
 	s := &originalLocalCallerExchangeState{ownerPID: os.Getpid(), client: c, changed: make(chan struct{}), active: 1, socketFD: -1}
 	exchange = &OriginalLocalCallerExchange{state: s}
 	originalLocalCallerExchangeCustody.Lock()
@@ -124,6 +132,9 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 		return exchange, out, ErrDenied
 	}
 	var proofValue string
+	if proof != nil && proofV4 != nil {
+		return exchange, out, ErrDenied
+	}
 	if proof != nil {
 		if len(proof.HeaderValue) > MaxProductSessionProofV2HeaderBytes {
 			return exchange, out, ErrBounds
@@ -131,6 +142,18 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 		proofValue = strings.Clone(proof.HeaderValue)
 		if err = validateProductSessionProofV2Carrier(proofValue); err != nil {
 			return exchange, out, err
+		}
+	}
+	if proofV4 != nil {
+		if len(proofV4.HeaderValue) > MaxProductSessionProofV4HeaderBytes {
+			return exchange, out, ErrBounds
+		}
+		proofValue = strings.Clone(proofV4.HeaderValue)
+		if err = validateProductSessionProofV4Carrier(proofValue); err != nil {
+			return exchange, out, err
+		}
+		if method != http.MethodGet || contentType != "" || len(body) != 0 {
+			return exchange, out, ErrDenied
 		}
 	}
 	if err = validateLocalCallerExpectedProcess(expected); err != nil {
@@ -143,6 +166,9 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 	if !ok {
 		return exchange, out, ErrDenied
 	}
+	if proofV4 != nil && route.MaxBodyBytes != 0 {
+		return exchange, out, ErrDenied
+	}
 	if int64(len(body)) > route.MaxBodyBytes {
 		return exchange, out, ErrBounds
 	}
@@ -150,11 +176,14 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 		// Bound input lengths before building the URL or request-line copy.
 		return exchange, out, ErrBounds
 	}
+	if proofV4 != nil && (len(path) > MaxProductSessionProofV4RequestHeaderBytes || len(c.cfg.Service) > MaxProductSessionProofV4RequestHeaderBytes-len(path)) {
+		return exchange, out, ErrBounds
+	}
 	body = bytes.Clone(body)
 	s.ctx, s.cancel = context.WithTimeout(ctx, min(c.cfg.Timeout, route.Timeout))
 	var req *http.Request
 	var requestWire []byte
-	if proof != nil {
+	if proof != nil || proofV4 != nil {
 		// Serialize only the new fixed empty GET before any process/hash/Dial
 		// work. This is the exact bounded owned byte sequence later written on
 		// the SAME socket; it is not a second HTTP attempt or a proof codec.
@@ -163,12 +192,21 @@ func (c *LocalCallerClient) callOriginalOwned(ctx context.Context, method, path,
 			return exchange, out, err
 		}
 		req.Close = true
-		req.Header.Set(ProductSessionProofV2Header, proofValue)
-		bounded := originalLocalCallerProofRequestBuffer{}
-		if err = req.Write(&bounded); err != nil {
-			return exchange, out, err
+		if proofV4 != nil {
+			req.Header.Set(ProductSessionProofV4Header, proofValue)
+			bounded := originalLocalCallerProofV4RequestBuffer{}
+			if err = req.Write(&bounded); err != nil {
+				return exchange, out, err
+			}
+			requestWire = bounded.Bytes()
+		} else {
+			req.Header.Set(ProductSessionProofV2Header, proofValue)
+			bounded := originalLocalCallerProofRequestBuffer{}
+			if err = req.Write(&bounded); err != nil {
+				return exchange, out, err
+			}
+			requestWire = bounded.Bytes()
 		}
-		requestWire = bounded.Bytes()
 	}
 	s.callbackDone = make(chan struct{})
 	s.stopCallback = context.AfterFunc(s.ctx, func() {
