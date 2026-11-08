@@ -452,8 +452,18 @@ func TestOriginalLocalCallerShopProofV4RawHeaderBudget(t *testing.T) {
 		if secondResponse, secondErr := http.ReadResponse(reader, req); secondErr == nil {
 			_ = secondResponse.Body.Close()
 			t.Fatal("pipelined second request produced a response")
-		} else if !errors.Is(secondErr, io.EOF) && !errors.Is(secondErr, syscall.ECONNRESET) {
+		} else if !errors.Is(secondErr, io.EOF) && !errors.Is(secondErr, io.ErrUnexpectedEOF) && !errors.Is(secondErr, syscall.ECONNRESET) {
 			t.Fatal("second request was not rejected by actual connection closure", secondErr)
+		}
+		// ReadResponse may convert the terminal EOF into ErrUnexpectedEOF.
+		// That parser result alone is insufficient: reject any buffered byte,
+		// then independently confirm closure on this SAME original socket.
+		var probe [1]byte
+		if n, err := reader.Read(probe[:]); n != 0 || !errors.Is(err, io.EOF) && !errors.Is(err, syscall.ECONNRESET) {
+			t.Fatalf("pipeline parser did not leave an empty closed reader: n=%d err=%v", n, err)
+		}
+		if n, err := conn.Read(probe[:]); n != 0 || !errors.Is(err, io.EOF) && !errors.Is(err, syscall.ECONNRESET) {
+			t.Fatalf("original pipeline socket closure is not known: n=%d err=%v", n, err)
 		}
 		p.stop(t)
 		if calls.Load() != 1 {

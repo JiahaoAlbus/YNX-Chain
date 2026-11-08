@@ -8,6 +8,8 @@ source_root=$(cd -- "$script_dir/../.." && pwd -P)
 scanner="$script_dir/secret-scan.sh"
 fixture_path='third_party/cometbft/rpc/jsonrpc/server/test.key'
 public_fixture="$source_root/$fixture_path"
+public_r5_vector_path='cmd/ynx-secure-link/p04-consumer-deps/sdk/vector.json'
+public_r5_vector="$source_root/$public_r5_vector_path"
 bash_bin=$(command -v bash)
 git_bin=$(command -v git)
 original_path=$PATH
@@ -16,7 +18,7 @@ original_path=$PATH
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
 unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
 
-if [[ ! -f "$scanner" || ! -f "$public_fixture" || -L "$public_fixture" ]]; then
+if [[ ! -f "$scanner" || ! -f "$public_fixture" || -L "$public_fixture" || ! -f "$public_r5_vector" || -L "$public_r5_vector" ]]; then
   echo 'secret-scan-check: required production source or public fixture missing' >&2
   exit 1
 fi
@@ -48,6 +50,11 @@ new_case() {
 public_fixture_copy() {
   mkdir -p -- "$repo/$(dirname -- "$fixture_path")"
   cp -- "$public_fixture" "$repo/$fixture_path"
+}
+
+public_r5_vector_copy() {
+  mkdir -p -- "$repo/$(dirname -- "$public_r5_vector_path")"
+  cp -- "$public_r5_vector" "$repo/$public_r5_vector_path"
 }
 
 key_header() {
@@ -140,6 +147,40 @@ expect_exit 23 "$case_dir/bin:$original_path"
 new_case fixture-digest-command-error
 public_fixture_copy
 stub_command sha256sum 1
+expect_exit 2 "$case_dir/bin:$original_path"
+
+new_case exact-public-r5-vector
+public_r5_vector_copy
+expect_exit 0
+
+new_case changed-public-r5-vector
+public_r5_vector_copy
+printf '\n' >>"$repo/$public_r5_vector_path"
+expect_exit 2
+
+new_case changed-public-r5-vector-without-token
+mkdir -p -- "$repo/$(dirname -- "$public_r5_vector_path")"
+printf '%s\n' '{"PUBLIC":true}' >"$repo/$public_r5_vector_path"
+expect_exit 2
+
+new_case public-r5-vector-at-another-path
+cp -- "$public_r5_vector" "$repo/unlisted-public-vector.json"
+expect_exit 1
+
+new_case public-r5-vector-symlink
+mkdir -p -- "$repo/$(dirname -- "$public_r5_vector_path")"
+cp -- "$public_r5_vector" "$case_dir/public-vector.json"
+ln -s -- "$case_dir/public-vector.json" "$repo/$public_r5_vector_path"
+expect_exit 2
+
+new_case r5-vector-digest-command-error
+public_r5_vector_copy
+# Correct digest text must not hide the digest command's actual failure.
+mkdir -p -- "$case_dir/bin"
+printf '#!/bin/sh\nprintf "%%s\\n" "%s  PUBLIC-vector"\nexit 1\n' \
+  '4c13979678fd2c7ad3de174a2f91ae56e609a0bafb398def1ac6ba446d91186a' \
+  >"$case_dir/bin/sha256sum"
+chmod 0700 "$case_dir/bin/sha256sum"
 expect_exit 2 "$case_dir/bin:$original_path"
 
 all_passed=1
