@@ -1,5 +1,5 @@
 import {types} from 'node:util';
-import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,rejectNativePayPending} from './merchant-invoice-approval.mjs';
+import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,retainOriginalPayReview} from './merchant-invoice-approval.mjs';
 import {nativeInvoiceProductIntentData,nativeInvoiceOrderBindingDATA,assertNativeInvoiceOrderBillDATA,nativeInvoiceOrderOperationDATA,assertNativeInvoiceOriginalOperationDATA} from './invoice-product-intent.mjs';
 import {nativeArchiveReceiptData,nativeArchiveReconciliationData} from './archive-receipt.mjs';
 const failure=code=>Object.assign(Error(code),{code});
@@ -59,7 +59,7 @@ export class NativePayBusinessClient {
  constructor(runtime){
   if(typeof runtime?.current!=='function'||!runtime.pay)throw failure('NATIVE_PAY_SOURCE_UNAVAILABLE');
   this.#runtime=runtime;this.#pay=runtime.pay;
-  if(runtime.main){this.#merchant=createNativeInvoiceMerchantApproval({main:runtime.main,pay:this.#pay});this.#actions=createNativePayActionApproval({main:runtime.main,pay:this.#pay,readInvoiceOriginals:runtime.readInvoiceOriginals});}
+  if(runtime.main){this.#merchant=createNativeInvoiceMerchantApproval({main:runtime.main,pay:this.#pay,reviewCustody:runtime.reviewCustody});this.#actions=createNativePayActionApproval({main:runtime.main,pay:this.#pay,readInvoiceOriginals:runtime.readInvoiceOriginals,reviewCustody:runtime.reviewCustody});}
  }
  snapshot(){return clone(this.#state);}
  invalidate(reason='NATIVE_PAY_SOURCE_UNAVAILABLE'){this.#revision++;this.#state={phase:'unavailable',reason,reference:null,bill:null};return this.snapshot();}
@@ -213,9 +213,9 @@ export class NativePayBusinessClient {
   }else throw failure('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
   const payReference=kind==='invoice_terms'?{hash:original.abciHash,kind,intentId}:{hash:original.abciHash,kind,merchant:original.merchant??merchant,invoiceId:original.invoiceId??invoiceId};
   current();const pending=await this.#runtime.main.requestPQPayBroadcast(Object.freeze(payReference));
-  try{current();const review=pending?.request?.review;
+  retainOriginalPayReview(this.#runtime.main,pending,current,()=>{const review=pending?.request?.review;
    if(pending?.status!=='approval-required'||pending.request.method!=='ynx_broadcastPQNativeAction'||review.hash!==original.abciHash||review.memberHash!==original.nativeHash||review.account!==original.owner||review.operationId!==original.operationId||review.typedAction?.kind!==kind)throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_CHANGED');
-  }catch(error){if(pending?.request?.id)try{rejectNativePayPending(this.#runtime.main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
+  },this.#runtime.reviewCustody);
   return {walletRequest:pending.request,approvalRequired:true,bill:null,recovery:{...reference,nativeHash:original.nativeHash,abciHash:original.abciHash},clientIndependentFinality:false};
  }
  async reviewOriginalBroadcast(reference){return this.#run(reference,'reviewing',current=>this.#reviewOriginalBroadcast(reference,current));}

@@ -14,13 +14,35 @@ export function rejectNativePayPending(main,id){
  }
 }
 
+/** Main-only bookkeeping for an already created original review. Capture the
+ * nonnull request before any late current/byte check; this grants no approval.
+ * A failed rejection remains with the SAME Main, even for primitive causes. */
+export function retainOriginalPayReview(main,pending,current,validate,custody){
+ const id=pending?.request?.id;
+ try{
+  if(id)custody?.remember(id);
+  current();validate();return pending;
+ }catch(error){
+  if(id)try{
+   rejectNativePayPending(main,id);
+   custody?.settled(id);
+  }catch(cleanup){
+   custody?.cleanupFailed(id,cleanup);
+   // Only diagnostic attachment; the retained Main bookkeeping above is what
+   // preserves cleanup debt when the original cause itself is false/0/null.
+   if(error&&typeof error==='object')try{error.cleanupCause=cleanup;}catch{}
+  }
+  throw error;
+ }
+}
+
 /** Main-process adapter only: the original Main object, original protected
  * journal and private Pay client are supplied by normal composition. It never
  * imports keys, approves a pending review, substitutes a signer or broadcasts.
  * The existing Main user approval/custody/ecdf Native path signs and retains
  * its complete Member. Source and separate broadcast consent remain mandatory
  * when that original Member is submitted to Pay.RegisterTerms. */
-export function createNativeInvoiceMerchantApproval({main,pay}){
+export function createNativeInvoiceMerchantApproval({main,pay,reviewCustody}){
  const journal=main?.transactionSender?.submissions?.intentStore;
  if(typeof main?.requestPQTypedAction!=='function'||typeof main?.reject!=='function'||typeof journal?.readPQOriginals!=='function'||typeof journal?.unresolvedPreparation!=='function'||typeof pay?.merchantTermsReview!=='function'||typeof pay?.readInvoiceIntent!=='function')fail('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
  async function retained(view,current,encode){
@@ -41,10 +63,9 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
    const pending=await main.requestPQTypedAction({kind:action.kind,fee:action.fee,payload:action.payload});
    // Main independently chooses its own current account/network/nonce. A drift
    // cannot silently alter the original Pay intent or be approved by this adapter.
-   try{
-    current();if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');
-   }catch(error){if(pending?.request?.id)try{rejectNativePayPending(main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
-   return pending; // The existing Main UI/Auth approval path owns this review.
+   return retainOriginalPayReview(main,pending,current,()=>{
+    if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');
+   },reviewCustody); // The existing Main UI/Auth approval path owns this review.
   },
   async readOriginalMerchantMember(intentId,originalHash,current,originalOrder){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
@@ -178,7 +199,7 @@ export function createPrivateNativeProductPayClient(originalProductTransport){
  * journal. readInvoiceOriginals is the original Main/Source read-only archive
  * port; it supplies retained terms and, for refunds, the payer's original
  * settlement review/Member/public snapshots. Its DATA does not grant consent. */
-export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
+export function createNativePayActionApproval({main,pay,readInvoiceOriginals,reviewCustody}){
  const journal=main?.transactionSender?.submissions?.intentStore;
  if(typeof main?.requestPQTypedAction!=='function'||typeof main?.reject!=='function'||typeof journal?.readPQOriginals!=='function'||typeof journal?.unresolvedPreparation!=='function')fail('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
  const sdk=()=>import('@ynx-chain/wallet-auth/pq-native-action');
@@ -213,9 +234,7 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
   if(rows.some(row=>row.kind==='pq-typed-action'&&digest(messageOf(row.typed.review,encodePQNativeAction))===digest(bytes))||await journal.unresolvedPreparation(action.owner))fail('NATIVE_INVOICE_ORIGINAL_RECONCILE_REQUIRED');current();
   const invoiceOriginals=await originals(bill,kind,current);
   const pending=await main.requestPQTypedAction({kind:action.kind,fee:action.fee,payload:action.payload,invoiceOriginals});
-  try{current();if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');}
-  catch(error){if(pending?.request?.id)try{rejectNativePayPending(main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
-  return pending;
+  return retainOriginalPayReview(main,pending,current,()=>{if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');},reviewCustody);
  }
  return Object.freeze({
   requestSettlement:(merchant,invoiceId,current,originalOrder)=>request('invoice_settle',merchant,invoiceId,current,undefined,originalOrder),

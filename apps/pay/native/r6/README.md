@@ -183,6 +183,17 @@ Source drain also survives throwing listener registration/removal: a possibly
 installed listener is adopted before registration, active read debt is always
 released, and a cleanup failure never replaces the first read/add failure.
 Failed detach remains unsafe for reuse/safe-close, even if physical close finishes.
+Original typed and separate broadcast reviews are now retained in Main-private
+bookkeeping immediately when their original request returns, before any late
+current or byte check. Failed cleanup preserves that SAME Main/request and its
+exact first cleanup cause, including false/0/null/undefined. Subsequent cancel
+does not reject an UNKNOWN request again; related new reviews stay blocked,
+while original invoice reads remain available. Only the original Main's actual
+completion notification releases the bookkeeping debt. A no-op rejection that
+leaves a request pending cannot report successful cancellation.
+Main's existing outer close check must delegate to `entry.assertSafeToClose()`
+after draining its own active calls. The entry checks its active operation and
+retained original review debts without closing its borrowed Main or Source.
 `main-source-cancellation.test.mjs` checks the normal entry against an actual
 held HTTP recipient; optional pinned `PAY_MAIN_PRODUCT_MODULE` selects the
 original installed outer wrapper for bounded acceptance. It supplies no session,
