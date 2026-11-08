@@ -1,3 +1,4 @@
+import {inspectReferenceCompletion,assertReferenceSession} from './product-session-reference-completion.js';
 import { OriginalWalletServicePrivateClient } from './original-wallet-service-private-client.js';
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
@@ -10,6 +11,31 @@ const MAX_RESPONSE_BYTES = 1_048_576;
 // Only this constructor can associate an adapter with its actual private endpoint.
 // A public property or duck-typed transport must not choose a persisted authority.
 const gatewayAuthorities = new WeakMap();
+const referenceReadResponses = new WeakMap(); // single bounded parsed response per actual adapter
+function referenceReadBody(input) { return canonicalJSON({reference:input.reference,request:input.request,completion:input.completion}); }
+function retainReferenceReadResponse(adapter,bodyOriginal,session) {
+  // Called only by the fixed methods after the actual response parser succeeds.
+  const sessionOriginal=canonicalJSON(session);
+  if(new TextEncoder().encode(sessionOriginal).length>MAX_RESPONSE_BYTES)fail('INVALID_GATEWAY_RESPONSE','Original reference target exceeds the response budget');
+  referenceReadResponses.set(adapter,Object.freeze({bodyOriginal,sessionOriginal}));
+}
+/** Package-private read-only transport observation. Not a Source, Root grant,
+ * account-policy capability or proof that a session remains active. No setter. */
+export function borrowRetainedProductSessionReferenceReadTarget(adapter,registry,raw,at) {
+  if(!gatewayAuthorities.has(adapter))fail('INVALID_GATEWAY','Original fixed reference adapter required');
+  const entry=referenceReadResponses.get(adapter),record=inspectReferenceCompletion(registry,raw,true);
+  if(!entry||entry.bodyOriginal!==canonicalJSON({reference:record.reference,request:record.request,completion:record.completion}))fail('SESSION_INACTIVE','No same-original reference response is retained');
+  const target=assertReferenceSession(record,JSON.parse(entry.sessionOriginal));let closed=false,floor=-Infinity;
+  const read=now=>{
+    if(closed||referenceReadResponses.get(adapter)!==entry)fail('SESSION_INACTIVE','Original reference response loan is no longer current');
+    if(!(now instanceof Date)||!Number.isFinite(now.getTime())||now.getTime()<floor)fail('CLOCK_ROLLBACK','Original reference response clock moved backwards');
+    floor=now.getTime();if(target.expiresAt<=now.toISOString())fail('SESSION_EXPIRED','Original reference target expired');
+    return target;
+  };
+  read(at);
+  return Object.freeze({read,close(){closed=true;if(referenceReadResponses.get(adapter)===entry)referenceReadResponses.delete(adapter);}});
+}
+
 
 export function productSessionGatewayAuthority(adapter) {
   if (!gatewayAuthorities.has(adapter)) fail("INVALID_GATEWAY", "Browser storage requires an authority-bound Product Session Gateway fetch adapter");
@@ -112,11 +138,16 @@ export class ProductSessionGatewayFetchAdapter {
   }
   async completeReturn(input) {
     exactFields(input,['requestId','reference','request','completion'],'Original return completion');
-    return this.#request(input.requestId,'/v2/product-sessions/returns/complete',{reference:input.reference,request:input.request,completion:input.completion},null);
+    const bodyOriginal=referenceReadBody(input);referenceReadResponses.delete(this);
+    const result=await this.#request(input.requestId,'/v2/product-sessions/returns/complete',JSON.parse(bodyOriginal),null);
+    retainReferenceReadResponse(this,bodyOriginal,result);return result;
   }
   async returnOutcome(input) {
     exactFields(input,['requestId','reference','request','completion'],'Original return outcome');
-    return this.#request(input.requestId,'/v2/product-sessions/returns/outcome',{reference:input.reference,request:input.request,completion:input.completion},null);
+    const bodyOriginal=referenceReadBody(input);referenceReadResponses.delete(this);
+    const result=await this.#request(input.requestId,'/v2/product-sessions/returns/outcome',JSON.parse(bodyOriginal),null);
+    if(result?.state==='completed'&&result.retryAuthorized===false)retainReferenceReadResponse(this,bodyOriginal,result.session);
+    return result;
   }
   async publicationOutcome(input) {
     exactFields(input,['requestId','publicationRequestId','request','approval'],'Original publication recovery');
