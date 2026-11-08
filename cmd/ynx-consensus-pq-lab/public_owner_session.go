@@ -147,22 +147,26 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 		}
 		commandStarted := time.Now()
 		var result any
+		var phase pqLabPublicOwnerFailurePhase
 		switch command.Operation {
 		case "sign":
 			if command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
 				return errors.New("sign cannot select proof authority")
 			}
+			phase = pqLabPublicOwnerSign
 			result, err = session.Sign(ctx, command.Request, command.CheckpointHeight, command.CheckpointAppHash, metrics)
 		case "recover", "close-owner":
 			if command.CheckpointHeight != 0 || command.CheckpointAppHash != "" || command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
 				return errors.New("original recovery/retirement cannot select new checkpoint")
 			}
 			if command.Operation == "recover" {
+				phase = pqLabPublicOwnerRecover
 				result, err = session.Recover(ctx, command.Request, metrics)
 			} else {
 				if command.Request.Version != "YNX-PQ-LAB-SENDER-REQUEST/v1" || command.Request.OperationID != "" || command.Request.FirstNonce != 0 || command.Request.Members != 0 {
 					return errors.New("owner retirement has no transaction request")
 				}
+				phase = pqLabPublicOwnerClose
 				err = session.CloseOwner(ctx, command.Request.OwnerIndex)
 			}
 		case "confirm":
@@ -171,8 +175,10 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 			}
 			var material consensus.PQLabProofMaterials
 			var proof consensus.PQTransactionProofRequest
+			phase = pqLabPublicOwnerConfirmMaterials
 			material, proof, err = pqLabPublicOwnerProof(*root, command)
 			if err == nil {
+				phase = pqLabPublicOwnerConfirm
 				result, err = session.Confirm(ctx, command.Request, material, proof, time.Now().UTC(), metrics)
 			}
 		default:
@@ -184,6 +190,7 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 			OperationID      string                                 `json:"operationId"`
 			Code             string                                 `json:"code"`
 			Result           any                                    `json:"result"`
+			Failure          *pqLabPublicOwnerFailureDiagnostic     `json:"failure,omitempty"`
 			Timings          *consensus.PQLabMetricsSnapshot        `json:"timings,omitempty"`
 			CalleeElapsedNS  int64                                  `json:"calleeElapsedNs,omitempty"`
 			StartupElapsedNS int64                                  `json:"startupElapsedNs,omitempty"`
@@ -191,18 +198,7 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 			StaticCache      *consensus.PQLabStaticCacheStats       `json:"staticCache,omitempty"`
 			SourceInputs     *consensus.PQLabSenderSourceStats      `json:"sourceInputs,omitempty"`
 		}{Version: "YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1", OwnerIndex: command.Request.OwnerIndex, OperationID: command.Request.OperationID, Code: "ORIGINAL_SAVED", Result: result, Session: session.Stats()}
-		if err != nil {
-			reply.Result, reply.Code = nil, "REJECTED"
-			if errors.Is(err, consensus.ErrPQLabSenderUnknown) {
-				reply.Code = "UNKNOWN"
-			}
-		} else if command.Operation == "confirm" {
-			reply.Code = "PROOF_CONFIRMED_DATA"
-		} else if command.Operation == "recover" {
-			reply.Code = "ORIGINAL_RECOVERED"
-		} else if command.Operation == "close-owner" {
-			reply.Code = "OWNER_RETIRED"
-		}
+		reply.Code, reply.Result, reply.Failure = pqLabPublicOwnerOutcome(command.Operation, phase, result, err)
 		if *timings {
 			m := metrics.Snapshot()
 			reply.Timings = &m
@@ -224,6 +220,116 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 		return errors.New("at least one original owner command required")
 	}
 	return nil
+}
+
+// Optional reply telemetry, independently versioned from REPLY/v1. This is a
+// closed diagnostic vocabulary, never raw errors, paths, identifiers or proof
+// details. FirstCausePresent means the callee returned a non-nil error at this
+// boundary; it does not recover a cause already collapsed to UNKNOWN upstream.
+type pqLabPublicOwnerFailureDiagnostic struct {
+	Version           string `json:"version"`
+	ErrorClass        string `json:"errorClass"`
+	FailurePhase      string `json:"failurePhase"`
+	FirstCausePresent bool   `json:"firstCausePresent"`
+}
+
+type pqLabPublicOwnerFailurePhase uint8
+
+const (
+	pqLabPublicOwnerSign pqLabPublicOwnerFailurePhase = iota + 1
+	pqLabPublicOwnerRecover
+	pqLabPublicOwnerClose
+	pqLabPublicOwnerConfirmMaterials
+	pqLabPublicOwnerConfirm
+)
+
+func (p pqLabPublicOwnerFailurePhase) label() string {
+	switch p {
+	case pqLabPublicOwnerSign:
+		return "SIGN"
+	case pqLabPublicOwnerRecover:
+		return "RECOVER"
+	case pqLabPublicOwnerClose:
+		return "CLOSE_OWNER"
+	case pqLabPublicOwnerConfirmMaterials:
+		return "CONFIRM_MATERIALS"
+	case pqLabPublicOwnerConfirm:
+		return "CONFIRM"
+	default:
+		return "UNSPECIFIED"
+	}
+}
+
+func pqLabPublicOwnerOutcome(operation string, phase pqLabPublicOwnerFailurePhase, result any, err error) (string, any, *pqLabPublicOwnerFailureDiagnostic) {
+	if err != nil {
+		code := "REJECTED"
+		if errors.Is(err, consensus.ErrPQLabSenderUnknown) {
+			code = "UNKNOWN"
+		}
+		return code, nil, &pqLabPublicOwnerFailureDiagnostic{
+			Version: "YNX-PQ-LAB-PUBLIC-OWNER-FAILURE/v1", ErrorClass: pqLabPublicOwnerErrorClass(err),
+			FailurePhase: phase.label(), FirstCausePresent: true,
+		}
+	}
+	code := "ORIGINAL_SAVED"
+	switch operation {
+	case "confirm":
+		code = "PROOF_CONFIRMED_DATA"
+	case "recover":
+		code = "ORIGINAL_RECOVERED"
+	case "close-owner":
+		code = "OWNER_RETIRED"
+	}
+	return code, result, nil
+}
+
+func pqLabPublicOwnerErrorClass(err error) string {
+	// Preserve UNKNOWN precedence, including joined/wrapped errors. A string
+	// resembling that sentinel is not evidence of the original UNKNOWN state.
+	switch {
+	case errors.Is(err, consensus.ErrPQLabSenderUnknown):
+		return "ORIGINAL_UNKNOWN"
+	case errors.Is(err, consensus.ErrPQLabPublicOwnerBusy):
+		return "OWNER_BUSY"
+	case errors.Is(err, context.Canceled):
+		return "CONTEXT_CANCELED"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "DEADLINE_EXCEEDED"
+	case errors.Is(err, os.ErrNotExist):
+		return "NOT_FOUND"
+	case errors.Is(err, os.ErrPermission):
+		return "PERMISSION_DENIED"
+	case errors.Is(err, os.ErrExist):
+		return "ALREADY_EXISTS"
+	}
+	var proofErr *consensus.PQLightProofError
+	if errors.As(err, &proofErr) {
+		return "PROOF_REJECTED"
+	}
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) || errors.Is(err, io.ErrShortWrite) {
+		return "IO_FAILURE"
+	}
+	// These exact original callee literals have no interpolated input. Unknown
+	// or changed text falls back safely; no substring/regex can expose it.
+	switch err.Error() {
+	case "original owner or bounded command budget refused":
+		return "OWNER_SCOPE_REJECTED"
+	case "original owner retired", "original owner absent or already retired", "original public owner session retired or closed":
+		return "OWNER_RETIRED"
+	case "actual four-node checkpoint differs from independently supplied H/AppHash", "independent original current checkpoint required", "actual checkpoint regressed behind original confirmed operation":
+		return "CHECKPOINT_REJECTED"
+	case "committed source changed during read", "committed source was replaced during read":
+		return "SOURCE_CHANGED"
+	case "actual owner nonce or balance differs from original request":
+		return "NONCE_OR_BALANCE_REJECTED"
+	case "operation id already belongs to different exact request", "confirmation proof differs from exact original operation", "different proof cannot replace original pending confirmation":
+		return "REQUEST_CONFLICT"
+	case "canonical 32-byte operation id required", "bounded exact per-owner nonce/member capacity required", "invalid original bounded batch size", "confirmation requires original public lab files", "independently pinned bounded lab proof materials required", "noncanonical lab proof materials":
+		return "PUBLIC_INPUT_REJECTED"
+	default:
+		return "OPERATION_REJECTED"
+	}
 }
 
 func pqLabPublicOwnerProof(root string, command pqLabSenderCommand) (consensus.PQLabProofMaterials, consensus.PQTransactionProofRequest, error) {

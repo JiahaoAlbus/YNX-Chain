@@ -614,7 +614,7 @@ def assert_native_cabi_workflow_contract(raw):
             raise AssertionError("native C-ABI normal-push source contract changed; no execution claim")
 
     push = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
-            "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+            "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')")
     header = ("    if: " + push + "\n    strategy:\n      fail-fast: false\n      matrix:\n"
               "        runner: [ubuntu-24.04, macos-15]\n    runs-on: ${{ matrix.runner }}\n"
               "    timeout-minutes: 18\n    env:\n      GOMAXPROCS: '2'\n      GOGC: '50'\n"
@@ -1858,7 +1858,8 @@ def assert_fresh_business_execution_workflow_contract(raw):
          and '"$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do' in identity
          and 'test "$YNX_WINDOW_SELECTIONS" -le 1' in identity)
     need('if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = \'true\' ]; then' in identity
-         and '[[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]' in identity)
+         and '[[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]] || exit 1\n' in identity
+         and '[[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]] || exit 1\n' in identity)
     need('YNX_NORMAL_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}' in normal
          and 'if [ "$YNX_NORMAL_FRESH_BUSINESS" = \'true\' ]; then' in normal
          and 'normal_args+=(--profile consensus-fresh-paired-business-v1)' in normal)
@@ -1924,7 +1925,7 @@ def assert_browser_verification_workflow_contract(raw):
 
     condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || "
                  "github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
-                 "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+                 "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')")
     need("    if: " + condition + "\n" in job)
     need("    runs-on: ubuntu-24.04\n    timeout-minutes: 8\n" in job)
     need("      - 'packages/ynx-batch-v01/**'\n" in raw.split("  pull_request:", 1)[0])
@@ -2052,7 +2053,8 @@ def assert_workflow_contract(raw):
     expected_job_if = ("(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
         "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
         "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
-        "(github.event_name == 'workflow_dispatch' && (startsWith(github.ref, "
+        "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || "
+        "(github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, "
         "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))")
     need("    if: " + expected_job_if + "\n" in job)
     heavy_group = "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade"
@@ -2157,7 +2159,7 @@ def assert_workflow_contract(raw):
     delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
     push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
-                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
     # One build-cache shape covers the original tests and later pinned ELFs.
@@ -2174,7 +2176,7 @@ def assert_workflow_contract(raw):
          + "\n    runs-on: ubuntu-24.04\n    timeout-minutes: 6\n")
     need("continue-on-error:" not in caddy_job)
     branches = re.findall(r"(?m)^  push:\n    branches:\n((?:      - [^\n]+\n)+)", raw)
-    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n"])
+    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n      - 'codex/ynx-pq-perf-source-20261108'\n"])
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
     need(lines(caddy_steps[0]) == [
         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -2219,7 +2221,7 @@ def assert_workflow_contract(raw):
     need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
-    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n" in mac_job)
+    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     combined = steps + delivery_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
@@ -3822,7 +3824,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("test_verify_retained_migration_preservation_once.py -v 2>&1 | tee", "test_verify_retained_migration_preservation_once.py -v 2>&1 || true | tee"),
             ("grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'", "echo 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'"),
             (".cleanupComplete == true", ".cleanupComplete != false"),
-            ("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n", "    if: false\n"),
+            ("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')\n", "    if: false\n"),
         ]
         for before, after in changes:
             self.assertIn(before, raw)
@@ -4409,7 +4411,7 @@ PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test str
 
 
 def assert_public_owner_cli_workflow_contract(step):
-    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
+    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
     if step.count(command) != 1 or step.count('go test ') != 1 or '        timeout-minutes: 3\n' not in step:
         raise AssertionError('original single bounded lab CLI call must remain')
     for block in (PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED, PUBLIC_OWNER_CLI_BLOCK):
@@ -4475,7 +4477,7 @@ class PublicOwnerSessionCIControls(unittest.TestCase):
 
     def test_public_owner_cli_exact_source_keeps_old_seven_and_single_90_second_call(self):
         root,step,scope,events=self.cli();assert_public_owner_cli_workflow_contract(step)
-        self.assertEqual(len(scope['required']),9)
+        self.assertEqual(len(scope['required']),14)
         source=(root/'cmd/ynx-consensus-pq-lab/public_owner_session_test.go').read_text()
         for name in scope['public_owner_cli_required']:
             self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)',source,re.M)),1)
@@ -4794,6 +4796,154 @@ class NormalSourceParentCIControls(unittest.TestCase):
         self.assertEqual(raw.count(' > "$RUNNER_TEMP/ynx-production-entrypoint-tests.jsonl"'),1)
         self.assertNotIn(' >> "$RUNNER_TEMP/ynx-current4-wire-tests.jsonl"', raw)
         self.assertIn("version='YNX-FOCUSED-PUBLIC-TEST-STREAMS/v2'", PUBLIC_TEST_STREAM_RETENTION_STEPS)
+
+
+
+FUTURE_PERF_SOURCE_REF = 'refs/heads/codex/ynx-pq-perf-source-20261108'
+FUTURE_PERF_SOURCE_IDENTITY = ("          if [ \"$YNX_ENTRY_REF\" = '" + FUTURE_PERF_SOURCE_REF + "' ]; then\n"
+    "            test \"$YNX_ENTRY_EVENT\" = 'push'\n          fi\n")
+
+
+def assert_future_perf_source_contract(raw):
+    assert_workflow_contract(raw)
+    if raw.count(FUTURE_PERF_SOURCE_IDENTITY) != 1:
+        raise AssertionError('future source identity must remain normal-push-only')
+    if "      - 'codex/*'\n" in raw or "      - 'codex/ynx-pq-perf-*'\n" in raw:
+        raise AssertionError('exact future ref cannot become a branch wildcard')
+    for name in ('browser-verification','native-compatibility','caddy-source','artifact-release-cabi','protocol-delivery','proof-verifier-macos'):
+        job,_=workflow_steps(raw,name)
+        condition=re.findall(r'(?m)^    if: (.+)$',job)
+        if len(condition)!=1 or "github.event_name == 'push'" not in condition[0] or "github.ref == '"+FUTURE_PERF_SOURCE_REF+"'" not in condition[0]:
+            raise AssertionError('normal future source producer omitted: '+name)
+    focused,_=workflow_steps(raw)
+    if "(github.event_name == 'push' && github.ref == '"+FUTURE_PERF_SOURCE_REF+"')" not in focused or "(github.event_name == 'workflow_dispatch' && github.ref != '"+FUTURE_PERF_SOURCE_REF+"'" not in focused:
+        raise AssertionError('future source must not inherit dispatched pressure/window admission')
+    if FUTURE_PERF_SOURCE_REF.removeprefix('refs/heads/') in gate.NORMAL_BRANCHES:
+        raise AssertionError('new source qualification is not existing remote-window eligibility')
+
+
+class FuturePerfSourceBranchControls(unittest.TestCase):
+    def raw(self):
+        return (Path(__file__).resolve().parents[2]/'.github/workflows/resource-market-ci.yml').read_text()
+
+    def condition(self,raw,name):
+        job,_=workflow_steps(raw,name)
+        return re.findall(r'(?m)^    if: (.+)$',job)[0]
+
+    def evaluate(self,condition,ref,event,flags=()):
+        import ast
+        from types import SimpleNamespace
+        inputs={name:False for name in ('paired_n1','consensus_e2e','consensus_e2e_retained_history','consensus_remote_e2e_retained_history','remote_signer_process','consensus_fresh_paired_business')}
+        inputs.update({name:True for name in flags});inputs['candidate_sha']='a'*40
+        expression=re.sub(r'!(?!=)','not ',condition.replace('&&','and').replace('||','or'))
+        expression=expression.replace('needs.focused-go.result','needs.focused_go.result').replace('needs.caddy-source.result','needs.caddy_source.result')
+        tree=ast.parse(expression,mode='eval')
+        allowed=(ast.Expression,ast.BoolOp,ast.Compare,ast.Attribute,ast.Name,ast.Constant,ast.And,ast.Or,ast.Not,ast.UnaryOp,ast.Eq,ast.NotEq,ast.Load,ast.Call)
+        if any(not isinstance(node,allowed) for node in ast.walk(tree)):raise AssertionError('closed predicate grammar changed')
+        for node in ast.walk(tree):
+            if isinstance(node,ast.Call) and (not isinstance(node.func,ast.Name) or node.func.id!='startsWith' or node.keywords):raise AssertionError('unknown predicate call')
+        values=dict(github=SimpleNamespace(ref=ref,event_name=event,sha='a'*40),inputs=SimpleNamespace(**inputs),needs=SimpleNamespace(focused_go=SimpleNamespace(result='success'),caddy_source=SimpleNamespace(result='success')),startsWith=lambda x,p:x.startswith(p))
+        # Actual job text uses hyphenated needs keys; these two fixed public
+        # status accesses are the only expression spelling normalization.
+        expression=expression.replace('needs.focused-go.result','needs.focused_go.result').replace('needs.caddy-source.result','needs.caddy_source.result')
+        return bool(eval(compile(expression,'<actual-closed-future-job>','eval'),{'__builtins__':{}},values))
+
+    def test_exact_future_ref_reaches_original_normal_jobs_only(self):
+        raw=self.raw();assert_future_perf_source_contract(raw)
+        for name in ('browser-verification','native-compatibility','caddy-source','artifact-release-cabi','focused-go','protocol-delivery','proof-verifier-macos'):
+            condition=self.condition(raw,name)
+            self.assertTrue(self.evaluate(condition,FUTURE_PERF_SOURCE_REF,'push'),name)
+            self.assertTrue(self.evaluate(condition,'refs/heads/codex/ynx-pq-perf-integration','push'),name)
+            self.assertFalse(self.evaluate(condition,FUTURE_PERF_SOURCE_REF+'-other','push'),name)
+        self.assertFalse(self.evaluate(self.condition(raw,'verify'),FUTURE_PERF_SOURCE_REF,'push'))
+        _,steps=workflow_steps(raw)
+        cli=next(s for s in steps if s.startswith('      - name: Exercise original lab callee readiness and actual cold costs\n'))
+        assert_public_owner_cli_workflow_contract(cli)
+        _,_,scope,_=PublicOwnerSessionCIControls().cli()
+        self.assertEqual(len(scope['required']),14)
+        self.assertEqual(len(CompleteStatePartitionControls().workflow_parts()[3]['live_observation_core_required']),2)
+
+    def test_future_dispatch_and_all_opt_in_modes_remain_unqualified(self):
+        import itertools,subprocess
+        raw=self.raw();focused=self.condition(raw,'focused-go');paired=self.condition(raw,'pq-paired-n1')
+        names=('paired_n1','consensus_e2e','consensus_e2e_retained_history','consensus_remote_e2e_retained_history','remote_signer_process','consensus_fresh_paired_business')
+        for enabled in itertools.product((False,True),repeat=6):
+            flags=tuple(n for n,b in zip(names,enabled) if b)
+            self.assertFalse(self.evaluate(focused,FUTURE_PERF_SOURCE_REF,'workflow_dispatch',flags))
+            self.assertFalse(self.evaluate(paired,FUTURE_PERF_SOURCE_REF,'workflow_dispatch',flags))
+        self.assertNotIn(FUTURE_PERF_SOURCE_REF.removeprefix('refs/heads/'),gate.NORMAL_BRANCHES)
+        body='\n'.join(line[10:] for line in FUTURE_PERF_SOURCE_IDENTITY.splitlines())+'\n'
+        for event,expected in [('push',0),('workflow_dispatch',1),('pull_request',1)]:
+            result=subprocess.run(['bash','-c','set -euo pipefail\n'+body],env={'PATH':'/usr/bin:/bin','YNX_ENTRY_EVENT':event,'YNX_ENTRY_REF':FUTURE_PERF_SOURCE_REF},capture_output=True,timeout=2)
+            self.assertEqual(result.returncode,expected)
+            self.assertEqual(result.stdout+result.stderr,b'')
+
+    def test_actual_fresh_caller_rejects_wrong_ref_without_implicit_errexit(self):
+        import subprocess
+        raw = self.raw()
+        start = raw.index('          if [ "$YNX_ENTRY_EVENT" = \'workflow_dispatch\' ]; then\n')
+        end = raw.index('\n      - name:', start)
+        body = '\n'.join(line[10:] for line in raw[start:end].splitlines()) + '\n'
+        sha = 'a123456789abcdef0123456789abcdef01234567'
+        old_refs = ('refs/heads/main', 'refs/heads/codex/ynx-pq-public-upgrade',
+                    'refs/heads/codex/ynx-pq-perf-integration')
+        good_refs = old_refs + ('refs/heads/codex/ynx-pq-remote-' + sha[:9],
+                               'refs/heads/codex/ynx-pq-remote-' + sha)
+        bad_refs = ('refs/heads/codex/other', 'refs/tags/codex/ynx-pq-remote-' + sha[:9],
+                    'refs/heads/codex/ynx-pq-remote-' + sha[:8],
+                    'refs/heads/codex/ynx-pq-remote-b12345678',
+                    'refs/heads/codex/ynx-pq-remote-' + sha.upper()[:9],
+                    'refs/heads/codex/ynx-pq-remote-' + sha[:9] + '-extra',
+                    FUTURE_PERF_SOURCE_REF)
+        for errexit in (False, True):
+            for ref in good_refs + bad_refs:
+                with self.subTest(errexit=errexit, ref=ref):
+                    environment = dict(PATH='/usr/bin:/bin', YNX_ENTRY_EVENT='workflow_dispatch',
+                        YNX_ENTRY_REF=ref, YNX_ENTRY_GITHUB_SHA=sha, YNX_ENTRY_CANDIDATE_SHA=sha,
+                        YNX_ENTRY_REMOTE_RETAINED='false', YNX_ENTRY_PAIRED='false',
+                        YNX_ENTRY_LOCAL='false', YNX_ENTRY_LOCAL_RETAINED='false',
+                        YNX_ENTRY_REMOTE_PROCESS='false', YNX_ENTRY_FRESH_BUSINESS='true')
+                    result = subprocess.run(['bash', '-c', ('set -Eeuo pipefail\n' if errexit else 'set -Euo pipefail\n') + body],
+                        cwd=Path(__file__).resolve().parents[2], env=environment,
+                        capture_output=True, timeout=3)
+                    self.assertEqual(result.returncode, 0 if ref in good_refs else 1)
+                    self.assertEqual(result.stdout + result.stderr, b'')
+        assert_fresh_business_execution_workflow_contract(raw)
+        for guard in ('[[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]',
+                      '[[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]'):
+            self.assertEqual(raw.count(guard + ' || exit 1\n'), 1)
+            changed = raw.replace(guard + ' || exit 1\n', guard + '\n', 1)
+            with self.subTest(removed_guard=guard), self.assertRaises(AssertionError):
+                assert_fresh_business_execution_workflow_contract(changed)
+
+    def test_original_entry_checker_closed_literals_match_actual_future_jobs(self):
+        import ast
+        root=Path(__file__).resolve().parents[2]
+        shell=(root/'scripts/verify/pq-remote-window-entry-check.sh').read_text()
+        body=shell.split("<<'PY'\n",1)[1].rsplit('\nPY',1)[0]
+        wanted={'expected_verify':'verify','expected_focused':'focused-go','normal_push':'artifact-release-cabi'}
+        def check(text):
+            values={}
+            for node in ast.parse(text).body:
+                if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and node.targets[0].id in wanted:
+                    if node.targets[0].id in values:raise AssertionError('duplicate closed entry predicate')
+                    values[node.targets[0].id]=ast.literal_eval(node.value)
+            if set(values)!=set(wanted):raise AssertionError('original closed entry predicates absent')
+            for key,job in wanted.items():
+                if values[key]!=self.condition(self.raw(),job):raise AssertionError('entry predicate differs from actual normal route')
+        check(body)
+        with self.assertRaises(AssertionError):check(body.replace(FUTURE_PERF_SOURCE_REF,FUTURE_PERF_SOURCE_REF+'-other'))
+        # The historical regression still requires its real Git object in a
+        # normal checkout. No fixture/public DATA replaces that original read.
+        self.assertIn("historical_revision = '8586f1a12333d750ca59c99989eec8520407bf09'",body)
+        self.assertIn("env=dict(PATH='/usr/bin:/bin', GIT_OPTIONAL_LOCKS='0')",body)
+        self.assertNotIn(FUTURE_PERF_SOURCE_REF, shell.split('expected_verify = ',1)[0])
+
+    def test_future_ref_removal_wildcard_dispatch_and_identity_bypass_refused(self):
+        raw=self.raw()
+        variants=[raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n",'',1),raw.replace("      - 'codex/ynx-pq-perf-source-20261108'\n","      - 'codex/*'\n",1),raw.replace(FUTURE_PERF_SOURCE_REF,FUTURE_PERF_SOURCE_REF+'-renamed'),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,'',1),raw.replace(FUTURE_PERF_SOURCE_IDENTITY,FUTURE_PERF_SOURCE_IDENTITY.replace("= 'push'","= 'workflow_dispatch'"),1),raw.replace("github.ref != '"+FUTURE_PERF_SOURCE_REF+"' && (startsWith",'(startsWith',1)]
+        for i,changed in enumerate(variants):
+            with self.subTest(index=i),self.assertRaises(AssertionError):assert_future_perf_source_contract(changed)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
+      - 'codex/ynx-pq-perf-source-20261108'
     paths:
       - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
@@ -72,6 +73,7 @@ on:
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
       - 'scripts/ops/test_validate_pq_source_parent_ci.py'
+      - 'scripts/ops/test_validate_pq_live_observation_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_tests.py'
@@ -202,6 +204,7 @@ on:
       - 'scripts/ops/test_validate_pq_wallet_policy_ci.py'
       - 'scripts/ops/test_validate_pq_current4_ci.py'
       - 'scripts/ops/test_validate_pq_source_parent_ci.py'
+      - 'scripts/ops/test_validate_pq_live_observation_ci.py'
       - 'scripts/verify/committed-account-proof-check.sh'
       - 'scripts/ops/collect_pq_committed_account_tests.py'
       - 'scripts/ops/test_collect_pq_committed_account_tests.py'
@@ -316,7 +319,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -371,7 +374,7 @@ jobs:
           compression-level: 6
 
   browser-verification:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     defaults:
@@ -538,7 +541,7 @@ jobs:
           retention-days: 30
 
   native-compatibility:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     defaults:
@@ -601,7 +604,7 @@ jobs:
           JS
 
   caddy-source:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -698,7 +701,7 @@ jobs:
           retention-days: 30
 
   artifact-release-cabi:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
     strategy:
       fail-fast: false
       matrix:
@@ -1533,7 +1536,7 @@ jobs:
           retention-days: 7
 
   focused-go:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/codex/ynx-pq-perf-source-20261108' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
@@ -1594,13 +1597,16 @@ jobs:
           go version
           git status --porcelain
           bash scripts/verify/pq-remote-window-entry-check.sh
+          if [ "$YNX_ENTRY_REF" = 'refs/heads/codex/ynx-pq-perf-source-20261108' ]; then
+            test "$YNX_ENTRY_EVENT" = 'push'
+          fi
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
             if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = 'true' ]; then
               if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
-                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
+                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]] || exit 1
               else
-                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]
+                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]] || exit 1
               fi
             elif [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
               bash scripts/ops/validate-pq-remote-window-entry.sh \
@@ -1676,6 +1682,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_wallet_policy_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_current4_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_source_parent_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_live_observation_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_tests.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_committed_account_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_collect_pq_committed_account_handler_tests.py' -v
@@ -2233,7 +2240,7 @@ jobs:
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"
             exit 1
           fi
@@ -2242,6 +2249,8 @@ jobs:
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-lab-callee-tests.jsonl').read_text().splitlines()]
           required = ['TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost', 'TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost', 'TestPQLabCalleeElapsedPUBLICColdSingleBefore', 'TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter', 'TestPQLabCheckpointCacheFallbackLargeOriginal', 'TestPQLabCheckpointCacheFallbackOnlyExactBound', 'TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent']
+          live_observation_cli_required = ['TestPQLabPublicOwnerFailureDiagnosticActualRejection', 'TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary', 'TestPQLabLiveObservationCommandOptInAndLegacy', 'TestPQLabLiveObservationCommandScopeAndSink', 'TestPQLabLiveObservationSignalForwarding']
+          required += live_observation_cli_required
           public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
           required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
           def qualify_public_owner_cli(events):
@@ -2279,6 +2288,7 @@ jobs:
               return public_owner_cli_required
           public_owner_cli_passed = qualify_public_owner_cli(events)
           print('YNX_PUBLIC_OWNER_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=public_owner_cli_passed, suitePassed=True, networkLoadMeasured=False, publicFinality=False, nativeGrant=False), sort_keys=True))
+          print('YNX_LIVE_OBSERVATION_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_observation_cli_required, suitePassed=True, performanceMeasured=False, cancellationCompleted=False, nativeGrant=False), sort_keys=True))
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -2572,7 +2582,19 @@ jobs:
                   if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
                       raise RuntimeError('sender parent persistence did not execute uniquely: ' + name)
               return sender_parent_persistence_required
+          live_observation_core_required = ['TestPQLabLiveObservationClosedStagesAndBounds', 'TestPQLabLiveObservationDisabledAndOutputFailure']
+          def qualify_live_observation_core(events):
+              qualify_state_partitions(events)
+              package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+              for name in live_observation_core_required:
+                  runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
+                  outcomes = [(e.get('Package'), e['Action']) for e in events if e.get('Test') == name and e.get('Action') in ('pass', 'fail', 'skip')]
+                  if len(runs) != 1 or runs[0].get('Package') != package or outcomes != [(package, 'pass')]:
+                      raise RuntimeError('live observation core did not execute uniquely: ' + name)
+              return live_observation_core_required
           state_partition_summary = qualify_state_partitions(events)
+          live_observation_core_passed = qualify_live_observation_core(events)
+          print('YNX_LIVE_OBSERVATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_observation_core_passed, suitePassed=True, performanceMeasured=False, cancellationCompleted=False, nativeGrant=False), sort_keys=True))
           print('YNX_COMPLETE_STATE_PARTITIONS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], **state_partition_summary), sort_keys=True))
           live_cold_owner_passed = qualify_live_cold_owner(events)
           print('YNX_LIVE_COLD_OWNER_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=live_cold_owner_passed, suitePassed=True, performanceMeasured=False, nativeGrant=False), sort_keys=True))
@@ -2597,6 +2619,7 @@ jobs:
           required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
+          required += ['TestPQLabLiveObservationClosedStagesAndBounds', 'TestPQLabLiveObservationDisabledAndOutputFailure']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
@@ -3195,10 +3218,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify existing Chain readback and recovery after protocol integration
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')) }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/mutationfreeze ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
       - name: Verify existing Chain SDK after protocol integration
-        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')) }}
         run: node --test sdk/js/index.test.mjs
       - name: Emit application-backed public Wallet HTTP fixture
         id: walletfixture
@@ -3955,10 +3978,10 @@ jobs:
           print('Streaming exporter inputs changed:', changed)
           PY
       - name: Verify original exporter v2 consumer and closed provenance
-        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'
         run: python3 -B scripts/ops/test_public_bft_final_snapshot_tools.py -v
       - name: Use the qualified exporter Go toolchain
-        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.26.10'
@@ -4007,7 +4030,7 @@ jobs:
           go test -v -p 1 -count=1 -timeout=180s -run '^(TestValidatedMigration|TestBlockJournalReader)' ./internal/consensus
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput|TestMigrationImportStorage|TestMigrationSchedulePreservation)' ./cmd/ynx-consensus-package
       - name: Build actual clean current-source offline tools without starting services
-        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'
         run: |
           bash scripts/ops/build-pq-offline-migration-tools.sh \
             --repository "$GITHUB_WORKSPACE" \
@@ -4016,7 +4039,7 @@ jobs:
             --work-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             --output-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-tools"
       - name: Upload the exact new-source clean exporter supply
-        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+        if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-offline-migration-streaming-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -4254,7 +4277,7 @@ jobs:
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
     needs: [focused-go, caddy-source]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
@@ -5809,7 +5832,7 @@ jobs:
 
   proof-verifier-macos:
     needs: protocol-delivery
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:

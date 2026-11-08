@@ -4,6 +4,7 @@ package consensus
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"math"
@@ -297,7 +298,7 @@ func RegisterProofHostSourceCatalog(manifestPath, manifestPin, bindingPath, bind
 	if err != nil {
 		return receipt, err
 	}
-	held := &proofHostOriginal{path: output, raw: encoded, file: f, info: info, changed: stamp}
+	held := &proofHostOriginal{path: output, raw: encoded, file: f, info: info, changed: stamp, heldSHA256: sha256.Sum256(encoded)}
 	if err := held.unchanged(); err != nil {
 		return receipt, err
 	}

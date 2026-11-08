@@ -147,7 +147,7 @@ class FinalSnapshotTools(unittest.TestCase):
             self.assertTrue(section.startswith("    if: github.event_name == 'push'\n"))
             names=['Verify original exporter v2 consumer and closed provenance','Use the qualified exporter Go toolchain',
                    'Build actual clean current-source offline tools without starting services','Upload the exact new-source clean exporter supply']
-            expected="steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'"
+            expected="steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'"
             for name in names:
                 self.assertEqual(section.count('      - name: '+name+'\n'),1)
                 body=section.split('      - name: '+name+'\n',1)[1].split('      - name: ',1)[0]
@@ -164,7 +164,9 @@ class FinalSnapshotTools(unittest.TestCase):
                             'run: python3 -B scripts/ops/test_public_bft_final_snapshot_tools.py -v']:
                 self.assertIn(literal,section)
         contract(workflow)
-        for old,new in [(" || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'",''),
+        for old,new in [(" || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'",''),
+                        (" || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'"," || startsWith(github.ref, 'refs/heads/codex/')"),
+                        (" || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'",''),
                         (" || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'"," || github.ref == 'refs/heads/main'"),
                         ('--source-commit "$GITHUB_SHA"','--source-commit 7f88113ea5848291db4f2da046aa447e876b8b8a')]:
             with self.subTest(mutation=new):

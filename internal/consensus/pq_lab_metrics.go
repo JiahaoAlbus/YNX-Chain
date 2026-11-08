@@ -11,8 +11,9 @@ import (
 // boundaries. Stages can nest: never add them to claim end-to-end latency.
 // It carries no keys, messages, authorization, nonce or cached current state.
 type PQLabMetrics struct {
-	mu     sync.Mutex
-	stages map[string]PQLabStageTiming
+	mu          sync.Mutex
+	stages      map[string]PQLabStageTiming
+	observation *PQLabLiveRequestObservation
 }
 type PQLabStageTiming struct {
 	Calls     uint64 `json:"calls"`
@@ -30,7 +31,9 @@ func pqLabMeasure(m *PQLabMetrics, stage string) func() {
 		return func() {}
 	}
 	start := time.Now()
+	finishObservation := pqLabObserve(m, stage)
 	return func() {
+		finishObservation()
 		m.mu.Lock()
 		defer m.mu.Unlock()
 		if m.stages == nil {

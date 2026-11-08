@@ -426,6 +426,7 @@ func (in *pqLabLiveMaterialsInputs) close() error {
 	if in.closed {
 		return in.closeErr
 	}
+	defer pqLabObserve(in.metrics, "live.observe.cleanup")()
 	in.closed = true
 	in.heldStatic = nil
 	in.heldStaticRoot, in.heldStaticPin = "", ""
@@ -520,6 +521,7 @@ func PreparePQLabLiveMaterialsMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLa
 }
 
 func (in *pqLabLiveMaterialsInputs) transaction(r PQLabLiveMaterialsRequest) (*proofHostOriginal, string, []byte, error) {
+	defer pqLabObserve(in.metrics, "live.observe.transaction")()
 	if r.Version != "YNX-PQ-LAB-LIVE-MATERIALS-REQUEST/v1" || r.PolicySHA256 != in.pin || r.Sequence == 0 || r.Sequence > in.policy.MaxOperations {
 		return nil, "", nil, errors.New("live operation differs from bounded startup policy")
 	}
@@ -567,15 +569,21 @@ func PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin string, r PQLabLiv
 	if err != nil {
 		return "", err
 	}
-	defer func() { err = errors.Join(err, f.unchanged(), f.file.Close()) }()
+	defer func() {
+		defer pqLabObserve(metrics, "live.observe.transactionCleanup")()
+		err = errors.Join(err, f.unchanged(), f.file.Close())
+	}()
 	if r.Sequence > 1 {
+		endPrevious := pqLabObserve(metrics, "live.observe.previousResult")
 		previous, e := readProofHostOriginal(filepath.Join(pqLabLiveOutputPath(in.directory, r.Sequence-1), "result.json"), "", 2<<20)
 		if e != nil {
+			endPrevious()
 			return "", errors.New("preceding exact durable live result required before next request")
 		}
 		var result PQLabLiveMaterialsResult
 		e = pqLabDecode(previous.raw, &result)
 		e = errors.Join(e, previous.file.Close())
+		endPrevious()
 		if e != nil || result.Version != "YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1" || result.PolicySHA256 != pin || result.Sequence != r.Sequence-1 || result.Outcome != "verified_transaction_data" || !result.SyntheticOnly || result.AuthorityGranted {
 			return "", errors.New("preceding live result is not exact completed DATA")
 		}
@@ -584,7 +592,10 @@ func PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin string, r PQLabLiv
 	if err = proofHostLiveAbsent(path, path+".partial", pqLabLiveOutputPath(in.directory, r.Sequence)); err != nil {
 		return "", err
 	}
-	if err = in.current(); err != nil {
+	endCurrent := pqLabObserve(metrics, "live.observe.currentBefore")
+	err = in.current()
+	endCurrent()
+	if err != nil {
 		return "", err
 	}
 	raw, err := json.Marshal(r)
@@ -597,7 +608,10 @@ func PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin string, r PQLabLiv
 	if err != nil {
 		return "", err
 	}
-	return path, in.current()
+	endCurrent = pqLabObserve(metrics, "live.observe.currentAfter")
+	err = in.current()
+	endCurrent()
+	return path, err
 }
 
 func pqLabLiveCanonicalEqual(a, b any) bool {

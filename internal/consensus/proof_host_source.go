@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"math"
 	"os"
@@ -296,6 +297,10 @@ type proofHostOriginal struct {
 	raw     []byte
 	file    *os.File
 	changed string
+	// Bound once by the original constructor, not refreshed by current(). Raw
+	// has internal mutable aliases, so every current FD stream is ALSO compared
+	// byte-for-byte with raw; this digest alone never proves raw is unchanged.
+	heldSHA256 [32]byte
 }
 
 func proofHostChangeStamp(stat unix.Stat_t) (string, error) {
@@ -349,11 +354,11 @@ func readProofHostOriginal(path, pin string, limit int64) (*proofHostOriginal, e
 	if err != nil || int64(len(raw)) != before.Size() {
 		return nil, errors.New("source read changed or exceeded bound")
 	}
-	r := &proofHostOriginal{path: path, info: before, raw: raw, file: f, changed: stamp}
+	r := &proofHostOriginal{path: path, info: before, raw: raw, file: f, changed: stamp, heldSHA256: sha256.Sum256(raw)}
 	if err = r.unchanged(); err != nil {
 		return nil, err
 	}
-	if pin != "" && proofHostSHA(raw) != pin {
+	if pin != "" && hex.EncodeToString(r.heldSHA256[:]) != pin {
 		return nil, errors.New("original source differs from independent SHA256")
 	}
 	ok = true
@@ -373,8 +378,10 @@ func (r *proofHostOriginal) unchanged() error {
 	if err != nil || stamp != r.changed {
 		return errors.New("original source change epoch changed")
 	}
-	h := sha256.New()
-	if _, err = io.Copy(h, io.NewSectionReader(r.file, 0, r.info.Size())); err != nil || hex.EncodeToString(h.Sum(nil)) != proofHostSHA(r.raw) {
+	if int64(len(r.raw)) != r.info.Size() {
+		return errors.New("held original bytes changed")
+	}
+	if _, err = proofHostCompareCurrentBytes(io.NewSectionReader(r.file, 0, r.info.Size()), r.raw, r.heldSHA256); err != nil {
 		return errors.New("held original bytes changed")
 	}
 	after, err := os.Lstat(r.path)
@@ -390,6 +397,38 @@ func (r *proofHostOriginal) unchanged() error {
 		return errors.New("held source changed during final hash read")
 	}
 	return nil
+}
+
+type proofHostCurrentBytesWriter struct {
+	raw    []byte
+	offset int
+	hash   hash.Hash
+}
+
+func (w *proofHostCurrentBytesWriter) Write(p []byte) (int, error) {
+	if len(p) > len(w.raw)-w.offset || !bytes.Equal(p, w.raw[w.offset:w.offset+len(p)]) {
+		return 0, errors.New("held original bytes changed")
+	}
+	n, err := w.hash.Write(p)
+	w.offset += n
+	return n, err
+}
+
+// One bounded FD stream still hashes every current byte. Its exact comparison
+// also detects mutations through the existing raw/captured-state aliases,
+// without rehashing the entire held buffer on every call. io.Copy uses a fixed
+// 32 KiB buffer for the SectionReader supplied by unchanged; no file-sized copy
+// or reusable permission is retained. The byte count is useful to narrow tests.
+func proofHostCompareCurrentBytes(current io.Reader, raw []byte, expected [32]byte) (int64, error) {
+	h := sha256.New()
+	w := &proofHostCurrentBytesWriter{raw: raw, hash: h}
+	n, err := io.Copy(w, current)
+	var actual [32]byte
+	h.Sum(actual[:0])
+	if err != nil || n != int64(len(raw)) || w.offset != len(raw) || actual != expected {
+		return n, errors.New("held original bytes changed")
+	}
+	return n, nil
 }
 
 // Retain the exact already-captured state bytes and a held descriptor without
@@ -417,7 +456,7 @@ func holdProofHostCapturedState(captured *pqEngineStateRead) (*proofHostOriginal
 	if err != nil {
 		return nil, err
 	}
-	r := &proofHostOriginal{path: captured.path, info: captured.info, raw: captured.data, file: f, changed: stamp}
+	r := &proofHostOriginal{path: captured.path, info: captured.info, raw: captured.data, file: f, changed: stamp, heldSHA256: sha256.Sum256(captured.data)}
 	if err = r.unchanged(); err != nil {
 		return nil, err
 	}
