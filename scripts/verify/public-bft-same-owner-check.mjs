@@ -8,6 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {sameOwnerProfile,validateSameOwnerApproval,validateSameOwnerReview,validateSameOwnerProjection} from './lib/public-bft-same-owner.mjs';
+import {bindSameOwnerRelease,validateSameOwnerReleaseRun} from './public-bft-release-source.mjs';
 import {validatorRoles, isSingleAppCustody} from './lib/owner-handover.mjs';
 const repo=path.resolve(import.meta.dirname,'../..'),root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-same-owner-public-')));
 fs.chmodSync(root,0o700);
@@ -68,6 +69,69 @@ assert.deepEqual(fs.readFileSync(reviewPath),before);
 accepted(call('scripts/verify/validate-production-custody-review.mjs',[reviewPath,commit,newManifest.sha256]));
 const projectedPath=path.join(root,'projected.json');write('projected.json',projected);
 assert.deepEqual(accepted(call('scripts/verify/validate-public-bft-cutover-approval-evidence.mjs',[projectedPath,commit,release,'--prepare-native'])),{...projected,validated:true});
+// The original formal release refs are eligible only with the same complete
+// protected approval/review and the exact normal CI run pinned by SOURCE.
+// These are PUBLIC control records, never a claim of actual GitHub success.
+const officialRef='refs/heads/codex/ynx-pq-perf-integration';
+const bound=bindSameOwnerRelease(rawPath,reviewPath,full,officialRef,'prepare-native');assertions++;
+const ci={id:1234,repository:{full_name:'JiahaoAlbus/YNX-Chain'},head_repository:{full_name:'JiahaoAlbus/YNX-Chain'},path:'.github/workflows/resource-market-ci.yml',event:'push',head_sha:full,head_branch:'codex/ynx-pq-perf-integration',status:'completed',conclusion:'success'};
+assert.equal(validateSameOwnerReleaseRun(ci,bound).operationAuthorized,false);assertions++;
+const publicRef='refs/heads/codex/ynx-pq-public-upgrade';
+validateSameOwnerReleaseRun({...ci,head_branch:publicRef.slice('refs/heads/'.length)},bindSameOwnerRelease(rawPath,reviewPath,full,publicRef,'prepare-native'));assertions++;
+for(const ref of ['refs/heads/codex/ynx-invoice-ledger-20261031','refs/heads/codex/arbitrary','refs/tags/release','HEAD','refs/heads/main'])refused(()=>bindSameOwnerRelease(rawPath,reviewPath,full,ref,'prepare-native'),'unapproved release ref '+ref);
+refused(()=>bindSameOwnerRelease(rawPath,reviewPath,commit+'f'.repeat(28),officialRef,'prepare-native'),'same short prefix is not full source');
+refused(()=>bindSameOwnerRelease(rawPath,reviewPath,full,officialRef,'plan'),'wrong phase cannot select release gate');
+const legacyPath=path.join(root,'legacy-branch-control.json');write('legacy-branch-control.json',{...rawApproval,custodyProfile:'single-app-gateway/v1'});
+refused(()=>bindSameOwnerRelease(legacyPath,reviewPath,full,officialRef,'prepare-native'),'old handover remains main-only');
+for(const [label,change]of [
+ ['wrong run',x=>x.id=1235],['string run ID',x=>x.id='1234'],['foreign repository',x=>x.repository.full_name='foreign/repo'],['fork head repository',x=>x.head_repository.full_name='foreign/repo'],['other workflow',x=>x.path='.github/workflows/chain-core.yml'],['dispatch',x=>x.event='workflow_dispatch'],['pull request',x=>x.event='pull_request'],['other HEAD',x=>x.head_sha='f'.repeat(40)],['same HEAD wrong ref',x=>x.head_branch='main'],['pending',x=>x.status='in_progress'],['failed',x=>x.conclusion='failure'],['cancelled',x=>x.conclusion='cancelled'],['missing conclusion',x=>delete x.conclusion]
+]){const bad=clone(ci);change(bad);refused(()=>validateSameOwnerReleaseRun(bad,bound),label);}
+// Exercise the normal helper and transaction process, replacing only actual
+// Git/GitHub/remote observations in an isolated control PATH. No real Git ref,
+// API call, operation permission, service, key or ledger is created/changed.
+const bin=path.join(root,'control-bin');fs.mkdirSync(bin);
+const gitControl=path.join(bin,'git'),ghControl=path.join(bin,'gh');
+fs.writeFileSync(gitControl,`#!/bin/sh
+case "$*" in
+ 'rev-parse --short=12 HEAD') printf '%s\\n' "$CONTROL_SHORT";;
+ 'rev-parse HEAD') if test -e "$CONTROL_CHANGED"; then printf '%s\\n' ffffffffffffffffffffffffffffffffffffffff; else printf '%s\\n' "$CONTROL_HEAD"; fi;;
+ 'symbolic-ref --quiet HEAD') printf '%s\\n' "$CONTROL_REF";;
+ 'status --short') printf '%s' "\${CONTROL_DIRTY:-}";;
+ *) exit 93;;
+esac
+`,{mode:0o700});
+fs.writeFileSync(ghControl,`#!/bin/sh
+test "$*" = 'api --hostname github.com --method GET repos/JiahaoAlbus/YNX-Chain/actions/runs/1234' || exit 94
+printf 'read\\n' >> "$CONTROL_GH_TRACE"
+test "\${CONTROL_GH_FAIL:-0}" = 0 || exit 95
+if test "\${CONTROL_CHANGE_AFTER_CI:-0}" = 1; then : > "$CONTROL_CHANGED"; fi
+cat "$CONTROL_CI"
+`,{mode:0o700});
+const ciPath=path.join(root,'ci-control.json');write('ci-control.json',ci);
+const controlEnv={...process.env,PATH:bin+':'+process.env.PATH,CONTROL_SHORT:commit,CONTROL_HEAD:full,CONTROL_REF:officialRef,CONTROL_CI:ciPath,CONTROL_CHANGED:path.join(root,'checkout-changed'),CONTROL_GH_TRACE:path.join(root,'ci-read-trace')};
+const sourceCLI=(extra={})=>spawnSync(process.execPath,[path.join(repo,'scripts/verify/public-bft-release-source.mjs'),rawPath,reviewPath,'prepare-native'],{cwd:repo,encoding:'utf8',timeout:10000,env:{...controlEnv,...extra}});
+assert.equal(accepted(sourceCLI()).sourceCommit,full);
+for(const env of [{CONTROL_DIRTY:' M original'}, {CONTROL_REF:'refs/heads/codex/ynx-invoice-ledger-20261031'}, {CONTROL_GH_FAIL:'1'}, {CONTROL_CHANGE_AFTER_CI:'1'}]){const r=sourceCLI(env);assert.notEqual(r.status,0);assert.equal(r.stdout,'');assertions++;fs.rmSync(controlEnv.CONTROL_CHANGED,{force:true});}
+const driver=path.join(root,'public-phase-control.sh');fs.writeFileSync(driver,'#!/bin/sh\nprintf "%s\\n" "$1" >> "$CONTROL_PHASES"\n',{mode:0o700});
+const evidence=path.join(root,'release-transaction'),phases=path.join(root,'release-phases');
+const transactionEnv={...controlEnv,PUBLIC_BFT_CUTOVER_MODE:'prepare-native',PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_DRIVER:driver,PUBLIC_BFT_CUTOVER_APPROVAL_FILE:rawPath,PUBLIC_BFT_CUSTODY_REVIEW_FILE:reviewPath,PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:evidence,PUBLIC_BFT_CUTOVER_TRANSACTION_ID:tx,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:path.join(root,planRef.file),PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:planRef.sha256,CONTROL_PHASES:phases};
+const shell=spawnSync('bash',[path.join(repo,'scripts/ops/public-bft-cutover-transaction.sh')],{cwd:repo,encoding:'utf8',timeout:20000,env:transactionEnv});
+assert.equal(shell.status,0,shell.stderr);assert.match(shell.stdout,/awaiting_final_snapshot_authorization/);assertions++;
+assert.deepEqual(fs.readFileSync(phases,'utf8').trim().split('\n'),['preflight','backup','freeze_mutations','pause_authoritative']);
+assert.deepEqual(fs.readFileSync(path.join(evidence,tx,'preparation-operator-plan.json')),fs.readFileSync(path.join(root,planRef.file)));
+assert.equal(fs.existsSync(path.join(evidence,tx,'candidate')),false);
+// A failed CI result is refused before an operation directory or phase call.
+write('ci-control.json',{...ci,conclusion:'failure'});
+const refusedEvidence=path.join(root,'refused-release-transaction');
+const failed=spawnSync('bash',[path.join(repo,'scripts/ops/public-bft-cutover-transaction.sh')],{cwd:repo,encoding:'utf8',timeout:10000,env:{...transactionEnv,PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:refusedEvidence}});
+assert.notEqual(failed.status,0);assert.equal(fs.existsSync(refusedEvidence),false);assertions++;write('ci-control.json',ci);
+// The main branch path must not call the new helper or acquire a different
+// source policy. All original handover validators still run later unchanged.
+const transactionSource=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-cutover-transaction.sh'),'utf8');
+const branchGuard=transactionSource.slice(transactionSource.indexOf('release_ref="$(git symbolic-ref'),transactionSource.indexOf('\numask 077'));
+assert.ok(branchGuard.includes('refs/heads/main) ;;'));
+const oldMain=spawnSync('bash',['-c','set -e\nnode() { echo unexpected-new-main-gate >&2; return 97; }\n'+branchGuard],{cwd:repo,encoding:'utf8',timeout:10000,env:{...controlEnv,CONTROL_REF:'refs/heads/main'}});
+assert.equal(oldMain.status,0,oldMain.stderr);assert.equal(oldMain.stdout,'');assertions++;
 const retain=call('scripts/verify/public-bft-candidate-binding.mjs',['--retain-operator-preparation',path.join(root,planRef.file),planRef.sha256,newManifest.sha256,path.join(root,'retained-plan.json')]);assert.equal(retain.status,0,retain.stderr);assert.deepEqual(fs.readFileSync(path.join(root,'retained-plan.json')),fs.readFileSync(path.join(root,planRef.file)));assertions++;
 // Actual final phase requires separately pinned actual final inputs; its stable
 // preparation evidence cannot authorize a different owner/key/source/expiry.

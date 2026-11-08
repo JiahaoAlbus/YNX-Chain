@@ -124,6 +124,7 @@ on:
       - 'scripts/verify/lib/public-bft-native-source.mjs'
       - 'scripts/verify/lib/public-bft-same-owner.mjs'
       - 'scripts/verify/public-bft-same-owner-check.mjs'
+      - 'scripts/verify/public-bft-release-source.mjs'
       - 'scripts/verify/validate-public-bft-production-rehearsal.mjs'
       - 'scripts/verify/validate-public-bft-production-recovery.mjs'
       - 'scripts/ops/public-bft-validator-registration.sh'
@@ -186,6 +187,7 @@ on:
     paths:
       - 'scripts/verify/lib/public-bft-same-owner.mjs'
       - 'scripts/verify/public-bft-same-owner-check.mjs'
+      - 'scripts/verify/public-bft-release-source.mjs'
       - 'scripts/ops/init-consensus-candidate-keys.sh'
       - 'scripts/verify/init-consensus-candidate-keys-check.sh'
       - 'scripts/ops/consensus-recovery-capsule.sh'

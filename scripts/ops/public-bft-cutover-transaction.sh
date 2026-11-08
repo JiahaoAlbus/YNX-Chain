@@ -52,7 +52,17 @@ fi
 [[ -n "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" ]] || { echo "PUBLIC_BFT_CUTOVER_APPROVAL_FILE is required" >&2; exit 1; }
 [[ -n "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" ]] || { echo "PUBLIC_BFT_CUSTODY_REVIEW_FILE is required" >&2; exit 1; }
 
-[[ "$(git branch --show-current)" == "main" ]] || { echo "public BFT cutover requires main branch" >&2; exit 1; }
+release_ref="$(git symbolic-ref --quiet HEAD)" || { echo "public BFT cutover requires an original named release checkout" >&2; exit 1; }
+case "$release_ref" in
+  refs/heads/main) ;; # Original handover profile remains main-only.
+  refs/heads/codex/ynx-pq-public-upgrade|refs/heads/codex/ynx-pq-perf-integration)
+    # Only the new same-owner profile may use the existing normal release
+    # refs. Revalidate its complete protected inputs and the original SOURCE
+    # run against actual GitHub success before creating an operation attempt.
+    node scripts/verify/public-bft-release-source.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "$mode"
+    ;;
+  *) echo "public BFT cutover requires main or an independently qualified same-owner normal release ref" >&2; exit 1 ;;
+esac
 [[ -z "$(git status --short)" ]] || { echo "public BFT cutover requires a clean worktree" >&2; exit 1; }
 
 umask 077
