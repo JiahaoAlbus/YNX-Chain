@@ -1,0 +1,226 @@
+{
+  "schema": "ORIGINAL_ANDROID_PENDING_PRODUCER_RETAINED_ROLE_BASE/v1",
+  "supplierBaseH": {
+    "bytes": 7535,
+    "sha256": "02d58d2aebff6b88840769876c722fdb818b47c6460aa0d686169617c3e19e98"
+  },
+  "baseSDK": "121225eb0db448993aee5d20cc3f9fe9e42e89d9",
+  "mappedNewSDKFiles": 35,
+  "supplierProductionEdits": 0,
+  "source": [
+    {
+      "logical": "include/AndroidDevicePendingProjectionPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDevicePendingProjectionPrivate.h",
+      "bytes": 926,
+      "sha256": "173c4a1ad68574ef086553c26597c5f2498e91fbe123bac8ae8fddd88d60976f"
+    },
+    {
+      "logical": "include/AndroidDeviceProvisioningPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceProvisioningPrivate.h",
+      "bytes": 9267,
+      "sha256": "862e4bb53d3b23c5584d9bcba45bdd84ebbd9ee06a1393ebc227f3b9bc7a7a96"
+    },
+    {
+      "logical": "include/AndroidDeviceRegistrationPortsPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceRegistrationPortsPrivate.h",
+      "bytes": 5765,
+      "sha256": "2bff6c9c4fd49a628b4c86cd945f4e16542bc3680f3959c7b25c6c919deb7f80"
+    },
+    {
+      "logical": "include/AndroidDeviceRegistrationPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/AndroidDeviceRegistrationPrivate.h",
+      "bytes": 5151,
+      "sha256": "9c2e219941b312f863dc62a9a1fe665d5ba336f1d19c434125587cf5569d712c"
+    },
+    {
+      "logical": "include/product_device_challenge_v4.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/product_device_challenge_v4.h",
+      "bytes": 2673,
+      "sha256": "fc4e2d792f52fe259744bfd1920713ee69a58f30bd3f0b7ceeecba09d78b4ef9"
+    },
+    {
+      "logical": "include/product_device_registration_v4.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/include/product_device_registration_v4.h",
+      "bytes": 5814,
+      "sha256": "aa630561ec84d70892e06020bb377dd9c603ce3bc3f7a769fd14fff497010c70"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidCodeImageRootPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidCodeImageRootPrivate.h",
+      "bytes": 3357,
+      "sha256": "f4141567c9543129c7d749e14ee2a427961b0f47575a4a804fe3eaf6c733d26d"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceCreationCoordinatesPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceCreationCoordinatesPrivate.h",
+      "bytes": 1535,
+      "sha256": "3a4cb20ca208d729f153ffc67c4866d0d27ce33bc22bb3a91e3efb769def3671"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDevicePendingProjectionPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDevicePendingProjectionPrivate.h",
+      "bytes": 926,
+      "sha256": "173c4a1ad68574ef086553c26597c5f2498e91fbe123bac8ae8fddd88d60976f"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceProvisioningCapturePrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceProvisioningCapturePrivate.h",
+      "bytes": 2267,
+      "sha256": "92f5be40791d8ecd8f1ca06d3c6128e9208f79e019a17ec3b5ddd7b9c39cf1b9"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceProvisioningEvaluatorPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceProvisioningEvaluatorPrivate.h",
+      "bytes": 2284,
+      "sha256": "3e2d03500579f51613428bff41d4fd68a526da54959b810b59120550375c4f54"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceProvisioningMainPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceProvisioningMainPrivate.h",
+      "bytes": 6761,
+      "sha256": "eadb2d55d27d9da92ac065de0b851c93246d416ad7582b92775e96231a1cd340"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceProvisioningPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceProvisioningPrivate.h",
+      "bytes": 9267,
+      "sha256": "862e4bb53d3b23c5584d9bcba45bdd84ebbd9ee06a1393ebc227f3b9bc7a7a96"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDeviceProvisioningProjectionPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDeviceProvisioningProjectionPrivate.h",
+      "bytes": 1887,
+      "sha256": "b4abb374103f7a4993cb2bc639a5644aff1cf1a472ce67b49a5cbc176d1bbf06"
+    },
+    {
+      "logical": "root-capture/after/include/AndroidDevicePublicGetPrivate.h",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/include/AndroidDevicePublicGetPrivate.h",
+      "bytes": 1578,
+      "sha256": "938cfe24d9dcff12d88d54f1ff3205d5cebd835bfb6dd945b295cc5df1a642be"
+    },
+    {
+      "logical": "root-capture/after/source/Authority.cpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/Authority.cpp",
+      "bytes": 29099,
+      "sha256": "1eb9129e27e564da2702c963172de6ebae41ba0754651bb53be11aba72092660"
+    },
+    {
+      "logical": "root-capture/after/source/CaptureJSON.cpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/CaptureJSON.cpp",
+      "bytes": 4246,
+      "sha256": "89fb31be5baa80970be75007cec70e01c181d0f48476ab374bf8624d767c807b"
+    },
+    {
+      "logical": "root-capture/after/source/CaptureJSON.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/CaptureJSON.hpp",
+      "bytes": 1332,
+      "sha256": "26f64e10649eb9a13f63e118845acbd437ef327b783919343f7a79e81bcc1130"
+    },
+    {
+      "logical": "root-capture/after/source/CollectorPrivate.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/CollectorPrivate.hpp",
+      "bytes": 3698,
+      "sha256": "bf16fad984872dfc0ce0159c24778d7a53104dd647bdee9a8c23168570341291"
+    },
+    {
+      "logical": "root-capture/after/source/Inventory.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/Inventory.hpp",
+      "bytes": 1847,
+      "sha256": "46460610ea1dd66f9e102c954b7a9be8feeba2b338f5c425897240dcd737962b"
+    },
+    {
+      "logical": "root-capture/after/source/Lifetime.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/Lifetime.hpp",
+      "bytes": 1432,
+      "sha256": "c8611ab34d7cbcbbc144519c4d378634820637986bff633a596d5a2928a1797c"
+    },
+    {
+      "logical": "root-capture/after/source/OriginalSHA256.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/OriginalSHA256.hpp",
+      "bytes": 1848,
+      "sha256": "9d847ece1387b7c38526e26b23b59683f41ab222f1db83f1f4ab18f12f7b5999"
+    },
+    {
+      "logical": "root-capture/after/source/PendingRootCapture.inc",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/PendingRootCapture.inc",
+      "bytes": 3389,
+      "sha256": "91a68bdb5c90fdd100b11825633db590e5090347477d1feb8de4917bc3f1396f"
+    },
+    {
+      "logical": "root-capture/after/source/PolicyBinding.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/PolicyBinding.hpp",
+      "bytes": 1090,
+      "sha256": "0ad53af8a17d450f51a9be9bdf404b8bc5ff5a9c5ea6e2366f0f00912c22dc2c"
+    },
+    {
+      "logical": "root-capture/after/source/ProjectionFacts.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/ProjectionFacts.hpp",
+      "bytes": 1677,
+      "sha256": "cc49fd4e01980a24de73e6dee9d5d82742dd1781113681e5907c5d30c82eda01"
+    },
+    {
+      "logical": "root-capture/after/source/RootCapture.cpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/RootCapture.cpp",
+      "bytes": 23461,
+      "sha256": "66aabb7ea388e59284172539acb59f5bf401adac4baf27d73460d3f8eec42f72"
+    },
+    {
+      "logical": "root-capture/after/source/RootCaptureResource.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/RootCaptureResource.hpp",
+      "bytes": 2597,
+      "sha256": "36669b07223d9fdb9a7817501f56c33dc47c4dc02b3bf543bb15253e89f57350"
+    },
+    {
+      "logical": "root-capture/after/source/RootFile.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/RootFile.hpp",
+      "bytes": 3607,
+      "sha256": "e63308ee77d959a9ed9cb4559fdd53ac441bdd85d26bdf89e6d4440b3e804da0"
+    },
+    {
+      "logical": "root-capture/after/source/RootImageLease.cpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/RootImageLease.cpp",
+      "bytes": 7512,
+      "sha256": "9a592993eff82bf6bfc0be457645a98ef638f633e6eb5b7a2911c86d8aaeab41"
+    },
+    {
+      "logical": "root-capture/after/source/RootImageLease.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/RootImageLease.hpp",
+      "bytes": 2536,
+      "sha256": "416572b17f4d32cf82c3116ec9fef2bb4bc5ca782d96b3fdb56aaf7621e5834a"
+    },
+    {
+      "logical": "root-capture/after/source/SourceNamespace.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/root-capture/after/source/SourceNamespace.hpp",
+      "bytes": 793,
+      "sha256": "37e4132a664f6452561288740e18e8f4ae3965ac45e591a8da5b5e73b584c5b6"
+    },
+    {
+      "logical": "source/Lifetime.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/source/Lifetime.hpp",
+      "bytes": 1432,
+      "sha256": "c8611ab34d7cbcbbc144519c4d378634820637986bff633a596d5a2928a1797c"
+    },
+    {
+      "logical": "source/OriginalSHA256.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/source/OriginalSHA256.hpp",
+      "bytes": 1848,
+      "sha256": "9d847ece1387b7c38526e26b23b59683f41ab222f1db83f1f4ab18f12f7b5999"
+    },
+    {
+      "logical": "source/PendingJournal.hpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/source/PendingJournal.hpp",
+      "bytes": 7239,
+      "sha256": "a3f49bb28a5f24253425f863a727b86b1bda0bdc8bdce7b5665de5678a0ff19d"
+    },
+    {
+      "logical": "source/PendingProducer.cpp",
+      "path": "packages/wallet-auth/native/android-pending-producer-role/source/PendingProducer.cpp",
+      "bytes": 21438,
+      "sha256": "81a9c859c83a29ddf4bd1466a4db6b0486cc9f2257baf6860a3b8970be4d2637"
+    }
+  ],
+  "RootRows": 0,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "wholeJNI": false
+}

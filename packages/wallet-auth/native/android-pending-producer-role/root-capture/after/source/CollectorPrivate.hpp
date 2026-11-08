@@ -1,0 +1,36 @@
+#pragma once
+// Auth-owned fixed Source18 backing, implemented by RootCapture.cpp. No
+// callback/installer slots. SDK supplies only offline canonical mathematics;
+// primitive Core verification alone is not a Root/current Source owner.
+#include "AndroidDeviceProvisioningPrivate.h"
+extern "C" {
+struct ynx_original_android_provision_source_v1;
+struct ynx_original_android_registered_device_v1;
+struct ynx_original_android_device_query_v1;
+// Zero input: original compiled Root/release/App/UID selection only. Purpose
+// product-session-device-provisioning-source-v4; exact two creation/query ops.
+void ynx_original_android_provision_source_open_v1(ynx_original_android_provision_source_v1**,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_provision_source_current_v1(ynx_original_android_provision_source_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_provision_source_copy_intent_v1(ynx_original_android_provision_source_v1*,uint8_t*,size_t,ynx_auth_android_provision_intent_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_provision_source_retire_v1(ynx_original_android_provision_source_v1*);
+void ynx_original_android_provision_source_join_v1(ynx_original_android_provision_source_v1*,ynx_auth_android_provision_drain_v1*);
+void ynx_original_android_provision_source_close_v1(ynx_original_android_provision_source_v1**,ynx_auth_android_provision_drain_v1*);
+// Independent primary product-session-device-source-v4 Source/current;
+// public pair and operation are
+// constraints, never a registered=true result or caller registration DTO.
+void ynx_original_android_registered_device_open_v1(ynx_original_android_provision_source_v1*,ynx_auth_android_provision_bytes_v1,const ynx_auth_android_device_public_pair_v1*,ynx_original_android_registered_device_v1**,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_registered_device_current_v1(ynx_original_android_registered_device_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_registered_device_copy_v1(ynx_original_android_registered_device_v1*,uint8_t*,size_t,ynx_auth_android_provision_registered_data_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_registered_device_retire_v1(ynx_original_android_registered_device_v1*);
+void ynx_original_android_registered_device_join_v1(ynx_original_android_registered_device_v1*,ynx_auth_android_provision_drain_v1*);
+void ynx_original_android_registered_device_close_v1(ynx_original_android_registered_device_v1**,ynx_auth_android_provision_drain_v1*);
+// Own product-session-device-query-source-v4 Source, not the creation Source
+// or its old creation terms/window. Only device.original-query is permitted.
+// Inputs were copied from genuine SAME Main original-operation query owner.
+void ynx_original_android_device_query_open_v1(ynx_auth_android_provision_bytes_v1,ynx_auth_android_provision_bytes_v1,ynx_auth_android_provision_bytes_v1,ynx_original_android_device_query_v1**,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_device_query_current_v1(ynx_original_android_device_query_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_device_query_copy_v1(ynx_original_android_device_query_v1*,uint8_t*,size_t,ynx_auth_android_provision_query_data_v1*,ynx_auth_android_provision_failure_v1*);
+void ynx_original_android_device_query_retire_v1(ynx_original_android_device_query_v1*);
+void ynx_original_android_device_query_join_v1(ynx_original_android_device_query_v1*,ynx_auth_android_provision_drain_v1*);
+void ynx_original_android_device_query_close_v1(ynx_original_android_device_query_v1**,ynx_auth_android_provision_drain_v1*);
+}
