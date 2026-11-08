@@ -8,7 +8,7 @@ on:
         type: boolean
         default: false
   push:
-    branches: [codex/ecosystem-ai, codex/final-ai, "codex/ai-receiver-ci/**"]
+    branches: [codex/ecosystem-ai, codex/final-ai, "codex/ai-receiver-ci/**", "codex/ai-runtime-ci/**"]
     paths: &runtime-paths
       - "internal/aiproduct/**"
       - "internal/aigateway/**"
@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   task-runtime:
-    if: ${{ !startsWith(github.ref, 'refs/heads/codex/ai-receiver-ci/') && !inputs.portable_receiver_only }}
+    if: ${{ !startsWith(github.ref, 'refs/heads/codex/ai-receiver-ci/') && !inputs.portable_receiver_only && !startsWith(github.ref, 'refs/heads/codex/ai-runtime-ci/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -99,7 +99,7 @@ jobs:
             ${{ runner.temp }}/p08-registered-receiver-evidence/early-parent-close-keeps-debt.json
 
   official-webdav:
-    if: ${{ !startsWith(github.ref, 'refs/heads/codex/ai-receiver-ci/') && !inputs.portable_receiver_only }}
+    if: ${{ !startsWith(github.ref, 'refs/heads/codex/ai-receiver-ci/') && !inputs.portable_receiver_only && !startsWith(github.ref, 'refs/heads/codex/ai-runtime-ci/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -157,6 +157,7 @@ jobs:
           path: ${{ runner.temp }}/p08-official-webdav/evidence/
 
   qualified-receiver:
+    if: ${{ !startsWith(github.ref, 'refs/heads/codex/ai-runtime-ci/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -209,3 +210,30 @@ jobs:
         with:
           name: p08-qualified-receiver-portable-public-evidence
           path: ${{ runner.temp }}/receiver-evidence/
+
+  task-recovery-delta:
+    if: ${{ startsWith(github.ref, 'refs/heads/codex/ai-runtime-ci/') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOWORK: "off"
+      GOTOOLCHAIN: local
+      CGO_ENABLED: "1"
+      GOMAXPROCS: "2"
+      GOMEMLIMIT: "1536MiB"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify cancellation at the original Auth return boundary and cold recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -race -p 1 ./internal/aiproduct -run '^(TestP08CancelDuringDispatchReturn|TestP08CancelledOriginalSettlement.*|TestP08ConversationCancelPreservesAuthUnknownColdOriginalQuery|TestP08DispatchAndOriginalReconcile)$' -count=1 -timeout=120s -json | tee "$RUNNER_TEMP/cancel-dispatch-return.jsonl"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p08-cancel-dispatch-return-evidence
+          path: ${{ runner.temp }}/cancel-dispatch-return.jsonl
