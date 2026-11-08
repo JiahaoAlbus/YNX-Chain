@@ -96,7 +96,7 @@ func New(cfg Config) (*Service, error) {
 	}
 	client := cfg.HTTPClient
 	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+		client = newWebhookHTTPClient()
 	}
 	now := cfg.Now
 	if now == nil {
@@ -557,12 +557,17 @@ func (s *Service) saveInvoice(invoice Invoice, action string) error {
 
 func (s *Service) RotateWebhookSecret(merchant Merchant) (string, error) {
 	secret := randomToken(32)
-	merchant.SecretVersion++
-	merchant.WebhookSecretCipher = s.seal(secret)
-	merchant.UpdatedAt = s.now()
+	at := s.now()
 	err := s.store.Update(func(data *Snapshot) error {
-		data.Merchants[merchant.ID] = merchant
-		appendAudit(data, merchant.ID, merchant.ID, "webhook.secret.rotate", merchant.ID, "committed", fmt.Sprintf("version %d", merchant.SecretVersion), s.now())
+		current, ok := data.Merchants[merchant.ID]
+		if !ok || current.Status != "active" {
+			return errors.New("webhook merchant is inactive")
+		}
+		current.SecretVersion++
+		current.WebhookSecretCipher = s.seal(secret)
+		current.UpdatedAt = at
+		data.Merchants[current.ID] = current
+		appendAudit(data, current.ID, current.ID, "webhook.secret.rotate", current.ID, "committed", fmt.Sprintf("version %d", current.SecretVersion), at)
 		return nil
 	})
 	return secret, err
@@ -572,13 +577,34 @@ func (s *Service) SetWebhook(merchant Merchant, endpoint string) error {
 	if err != nil {
 		return err
 	}
-	merchant.WebhookURL = v
-	merchant.UpdatedAt = s.now()
+	at := s.now()
 	return s.store.Update(func(data *Snapshot) error {
-		data.Merchants[merchant.ID] = merchant
-		appendAudit(data, merchant.ID, merchant.ID, "webhook.endpoint.update", merchant.ID, "committed", "", s.now())
+		current, ok := data.Merchants[merchant.ID]
+		if !ok || current.Status != "active" {
+			return errors.New("webhook merchant is inactive")
+		}
+		current.WebhookURL, current.UpdatedAt = v, at
+		data.Merchants[current.ID] = current
+		for id, d := range data.Deliveries {
+			if d.MerchantID == current.ID && (d.Status == "pending" || d.Status == "retrying") && (v == "" || d.Endpoint != v) {
+				retireWebhookEndpoint(data, id, at)
+			}
+		}
+		appendAudit(data, current.ID, current.ID, "webhook.endpoint.update", current.ID, "committed", "", at)
 		return nil
 	})
+}
+
+// A revoked URL is never silently redirected or re-enabled by changing it back.
+// The existing audited manual replay can retain this original event for a new
+// endpoint. No dispatch budget or original payload/signature is consumed here.
+func retireWebhookEndpoint(data *Snapshot, id string, at time.Time) WebhookDelivery {
+	d := detachedWebhookDelivery(data.Deliveries[id])
+	d.Status, d.UpdatedAt = "dead_letter", at
+	d.DeadLetteredAt, d.NextAttemptAt = &at, time.Time{}
+	data.Deliveries[id] = d
+	appendAudit(data, d.MerchantID, "system", "webhook.endpoint.revoked", id, "dead_letter", "original endpoint no longer configured", at)
+	return d
 }
 func (s *Service) queueWebhook(merchant Merchant, event, objectID string) error {
 	return s.store.Update(func(data *Snapshot) error { return s.enqueueWebhook(data, merchant, event, objectID) })
@@ -706,6 +732,14 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	if merchant.ID != d.MerchantID || merchant.Status != "active" || merchant.SecretVersion < 1 {
 		return d, errors.New("webhook merchant is inactive")
 	}
+	if merchant.WebhookURL == "" || merchant.WebhookURL != d.Endpoint {
+		at := s.now().UTC()
+		err := s.store.Update(func(data *Snapshot) error { d = retireWebhookEndpoint(data, id, at); return nil })
+		return d, err
+	}
+	if endpoint, err := validWebhookURL(d.Endpoint); err != nil || endpoint == "" {
+		return d, errors.New("invalid original webhook endpoint")
+	}
 	secret, err := s.open(merchant.WebhookSecretCipher)
 	if err != nil || secret == "" {
 		return d, errors.New("webhook signing secret unavailable")
@@ -721,6 +755,9 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	if err != nil {
 		return d, err
 	}
+	// One durable attempt authorizes one POST. Neither the standard transport
+	// nor an explicitly commissioned client receives a replayable request body.
+	req.GetBody = nil
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-YNX-Event-ID", event.ID)
 	req.Header.Set("X-YNX-Delivery-ID", event.ID)
@@ -751,12 +788,18 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 		if current.Status != "active" || current.SecretVersion != merchant.SecretVersion || current.WebhookSecretCipher != merchant.WebhookSecretCipher {
 			return errors.New("webhook merchant signing version changed before dispatch")
 		}
+		if current.WebhookURL == "" || current.WebhookURL != d.Endpoint || data.Deliveries[id].Status == "dead_letter" {
+			return errors.New("webhook endpoint revoked before dispatch")
+		}
 		data.Deliveries[id] = detachedWebhookDelivery(d)
 		return nil
 	}); err != nil {
 		return d, err
 	}
 	client := *s.client
+	if client.Timeout <= 0 || client.Timeout > webhookDispatchTimeout {
+		client.Timeout = webhookDispatchTimeout
+	}
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, sendErr := client.Do(req)
 	if sendErr == nil {
@@ -771,6 +814,11 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	}
 	d.UpdatedAt = s.now().UTC()
 	err = s.store.Update(func(data *Snapshot) error {
+		// Endpoint revocation may commit while this already-reserved request is
+		// in flight. Record its observation, but a failed late ACK cannot rearm it.
+		if current := data.Deliveries[id]; current.Status == "dead_letter" && d.Status != "delivered" {
+			d.Status, d.NextAttemptAt, d.DeadLetteredAt = current.Status, time.Time{}, current.DeadLetteredAt
+		}
 		data.Deliveries[id] = detachedWebhookDelivery(d)
 		outcome := d.Status
 		if sendErr != nil {
@@ -1122,7 +1170,7 @@ func validWebhookURL(v string) (string, error) {
 		return "", nil
 	}
 	u, err := url.Parse(v)
-	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" || u.Opaque != "" {
 		return "", errors.New("webhook endpoint must be absolute HTTPS without userinfo")
 	}
 	return u.String(), nil

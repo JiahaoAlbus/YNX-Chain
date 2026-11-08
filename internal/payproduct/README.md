@@ -55,13 +55,42 @@ Webhook deliveries bind the HMAC to `YNX_PAY_WEBHOOK_V1`, delivery ID, exact
 RFC3339Nano timestamp and payload hash. Receivers must validate
 `X-YNX-Delivery-ID`, `X-YNX-Timestamp`, `X-YNX-Payload-SHA256`,
 `X-YNX-Signature-Version` and `X-YNX-Signature`, then reject reused delivery
-IDs. Delivery attempts, retry state and secret version are persistent.
+IDs with a changed body. An authenticated duplicate with the same event/body
+must ACK without applying the business projection again. Original event ID,
+body and occurrence time stay fixed across retry/manual replay; the timestamp
+and signing proof are fresh for each durable attempt. Delivery attempts, retry
+state and secret version are persistent.
 After five failed attempts a delivery becomes terminal `dead_letter` and is no
 longer selected by the automatic retry worker. `POST
 /v1/merchant/webhooks/{id}/retry` accepts `reason` and `idempotencyKey` only
 for an owner/developer session; it creates and signs a new delivery ID linked
-to the original and records the Wallet actor in audit. It never changes invoice
+to the original and records the Wallet actor in audit. Its transmitted event ID
+remains the original event ID. It never changes invoice
 or settlement state.
+
+Changing or disabling the merchant endpoint atomically dead-letters its pending
+notifications for the former URL. It preserves their payload, original signing
+proof and attempt budget; changing the URL back cannot re-enable them. A late
+failed response from an already reserved dispatch cannot rearm a revoked URL.
+An observed successful ACK is retained. Endpoint updates and secret rotation
+modify the current merchant row, so an older authenticated snapshot cannot
+restore an old endpoint, signing key or inactive merchant.
+
+The default callback client has a ten-second total dispatch bound, no environment
+proxy, no redirect/replay, and no connection reuse. It rejects non-public literal
+or DNS addresses (including mixed public/private answers) and dials the checked
+numeric address directly. An explicitly supplied original client can pin a
+commissioned private recipient; neither merchant URL input nor renderer DATA can
+select that client. Controlled TLS acceptance uses an explicit PUBLIC recipient
+client, with no production key or public-network activation.
+
+`PAY_NATIVE_WORKFLOW_SUITE=webhook-dispatch` in the existing
+`testsupport/run_native_workflow.sh` runs the affected webhook controls and the
+actual normal `Products` retry worker against TLS, durable producer/recipient
+state, timeout/lost ACK, duplicate ACK, cold restart and retry exhaustion. It
+requires the original complete `PAY_NATIVE_HOST_MODFILE` composition. The PUBLIC
+outbox fixture is notification DATA; this check grants no Source admission and
+moves no funds. The default untagged webhook controls also run under `make test`.
 
 `ynx-pay-store backup --store <existing-store> --output <new-backup>` requires
 an existing, integrity-valid persisted Store. A missing source is an error and

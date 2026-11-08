@@ -19,6 +19,9 @@ func TestWebhookRetryBudgetSurvivesColdStoreAndDirectCalls(t *testing.T) {
 	s.client = receiver.Client()
 	m, _ := onboard(t, s)
 	m.WebhookURL = receiver.URL
+	if err := s.SetWebhook(m, receiver.URL); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.queueWebhook(m, "invoice.committed", "inv_original"); err != nil {
 		t.Fatal(err)
 	}
@@ -87,6 +90,9 @@ func TestWebhookPersistsAttemptBeforeSending(t *testing.T) {
 	s.client = receiver.Client()
 	m, _ := onboard(t, s)
 	m.WebhookURL = receiver.URL
+	if err := s.SetWebhook(m, receiver.URL); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.queueWebhook(m, "invoice.committed", "inv_original"); err != nil {
 		t.Fatal(err)
 	}
