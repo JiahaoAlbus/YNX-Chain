@@ -216,6 +216,7 @@ func (s *Store) taskReadReceiptLocked(record ActionRecord) (taskReadReceipt, err
 }
 
 func (s *Server) handleTaskToolResult(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	w.Header().Set("Cache-Control", "no-store")
 	s.store.mu.Lock()
 	task, err := s.store.ownedTaskLocked(session.Account, r.PathValue("id"))
 	if err != nil {
@@ -250,12 +251,18 @@ func (s *Server) handleTaskToolResult(w http.ResponseWriter, r *http.Request, se
 		writeError(w, http.StatusNotFound, "task result not found")
 		return
 	}
-	receipt, err := s.store.taskReadReceiptLocked(record)
+	receipt, wire, err := s.store.taskFeedbackResultLocked(record)
 	s.store.mu.Unlock()
 	if err != nil {
 		writeError(w, http.StatusConflict, "no verified committed tool result is available")
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
+	if wire != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(wire)
+		return
+	}
 	writeJSON(w, http.StatusOK, receipt)
 }

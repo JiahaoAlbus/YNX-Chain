@@ -133,30 +133,38 @@ func originalConversationReceiptPending(record ActionRecord) bool {
 // Resource-local COMMITTED is distinct from Auth's verified original outcome.
 // Only the original broker acceptance writes the authenticated encrypted wire.
 func (s *Store) taskFeedbackReceiptLocked(record ActionRecord) (taskReadReceipt, error) {
+	receipt, _, err := s.taskFeedbackResultLocked(record)
+	return receipt, err
+}
+
+// User reads and model feedback share the same settled-receipt gate. Keep the
+// resource-only getter separate: Auth must still query it to settle a lost ACK.
+// Registered results carry the exact original wire, never a reserialization.
+func (s *Store) taskFeedbackResultLocked(record ActionRecord) (taskReadReceipt, []byte, error) {
 	receipt, err := s.taskReadReceiptLocked(record)
 	if err != nil {
-		return taskReadReceipt{}, err
+		return taskReadReceipt{}, nil, err
 	}
 	if !originalConversationReceiptPending(record) {
-		return receipt, nil
+		return receipt, nil, nil
 	}
 	binding := record.ToolStep
 	if !originalBrokerOperation(binding.AuthorityOperationID) || binding.ResultAuthScope != string(policy.EgressOnlyReadFence) || binding.AuthorityReferenceState != "COMMITTED" || binding.ResultWireBinding == nil || binding.ResultWireCipher == "" || binding.ResultContentType != "application/json" {
-		return taskReadReceipt{}, errTaskEffectUnresolved
+		return taskReadReceipt{}, nil, errTaskEffectUnresolved
 	}
 	wire, err := s.decrypt(record.Account, storedMessage{Message: Message{ID: record.ID + ":conversation-wire", ConversationID: binding.TaskID}, Nonce: binding.ResultWireNonce, Cipher: binding.ResultWireCipher})
 	if err != nil {
-		return taskReadReceipt{}, err
+		return taskReadReceipt{}, nil, err
 	}
 	expected, err := marshalOriginalTaskResourceReceipt(receipt, binding.AuthorityOperationID)
 	if err != nil || !bytes.Equal([]byte(wire), expected) || bindTaskBytes([]byte(wire)) != *binding.ResultWireBinding {
-		return taskReadReceipt{}, errToolConflict
+		return taskReadReceipt{}, nil, errToolConflict
 	}
 	var original taskReadReceipt
 	if strictToolJSON(bytes.NewReader([]byte(wire)), &original) != nil {
-		return taskReadReceipt{}, errToolConflict
+		return taskReadReceipt{}, nil, errToolConflict
 	}
-	return original, nil
+	return original, []byte(wire), nil
 }
 func (s *Store) taskModelFeedbackContent(account, taskID, stepID string, receipt taskReadReceipt) ([]byte, error) {
 	s.mu.Lock()
@@ -165,13 +173,12 @@ func (s *Store) taskModelFeedbackContent(account, taskID, stepID string, receipt
 	if !ok || record.Account != account || record.ToolStep == nil || record.ToolStep.TaskID != taskID {
 		return nil, errToolNotFound
 	}
-	stored, err := s.taskFeedbackReceiptLocked(record)
+	stored, wire, err := s.taskFeedbackResultLocked(record)
 	if err != nil || stored.Binding != receipt.Binding || stored.EffectRef != receipt.EffectRef {
 		return nil, errTaskEffectUnresolved
 	}
-	if originalConversationReceiptPending(record) {
-		wire, err := s.decrypt(account, storedMessage{Message: Message{ID: record.ID + ":conversation-wire", ConversationID: taskID}, Nonce: record.ToolStep.ResultWireNonce, Cipher: record.ToolStep.ResultWireCipher})
-		return []byte(wire), err
+	if wire != nil {
+		return wire, nil
 	}
 	return json.Marshal(stored)
 }

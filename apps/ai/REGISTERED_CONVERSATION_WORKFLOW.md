@@ -56,6 +56,16 @@ cover exact feedback, no replay, lost ACK/cold query, changed original rejection
 wire save rollback, pre-return atomic run/step recovery and missing-scope refusal.
 Affected Shop, binding, dispatch, completion and resource regressions are included.
 
+Authenticated user tool-result GET now uses the same settled-receipt gate as
+model feedback. A local completed resource with Auth UNKNOWN returns 409 and
+no private result, including after reopening the encrypted Store. After the
+original query settles the same operation, GET returns the exact persisted
+original JSON bytes, without reconstructing the receipt. Missing/corrupt wire,
+missing scope, invalid operation, unknown Auth state and changed wire hashes
+refuse; foreign accounts, holders and tasks remain 404. Reads are no-store and
+do not mutate the durable image or call an executor, query or model. The private
+resource original-query path remains independently available for settlement.
+
 The next matching-cohort work consumes LINK eb311's real continuation inventory
 and the original Auth strict decoder/runtime/local adapter. It must not mix that
 new protocol/NAPI family with old R2/flat6 or promote HTTP DATA to a capability.
