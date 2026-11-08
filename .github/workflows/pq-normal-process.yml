@@ -654,7 +654,7 @@ jobs:
       - name: Receive the independently qualified fixed runtime tools
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 5edcc63b746a2f1c66d8d74e61d0fca1748c2441
+          ref: 79faca6de0c57e72c6ac9c44cf20de6d022e5b4f
           path: tools
           fetch-depth: 1
           filter: blob:none
@@ -730,10 +730,11 @@ jobs:
             /third_party/cometbft/
             /scripts/ops/validate-pq-remote-normal-ci.py
             /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/verify/wire-live-matching-source-ci.py
       - name: Receive independently qualified fixed runtime tools and original fixtures
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 5edcc63b746a2f1c66d8d74e61d0fca1748c2441
+          ref: 79faca6de0c57e72c6ac9c44cf20de6d022e5b4f
           path: tools
           fetch-depth: 1
           filter: blob:none
