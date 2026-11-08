@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "kind": "SOCIAL_DEVICE_C13_MATCHED_PUBLIC_BOUNDARY/v1",
+  "platform": "macos-only",
+  "nativeCommit": "a365871469d26c0bcdc297476fbdc722ee13397f",
+  "nativeModuleFiles": 16,
+  "normalCXXUnits": 10,
+  "sourceFiles": [
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/CMakeLists.txt",
+      "bytes": 2585,
+      "sha256": "611e6e398fc72a2f2a64fbe16d152c0f4cfae9a866a1b1f848deec3b15872235"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/CaptureLoan.cpp",
+      "bytes": 3206,
+      "sha256": "2a83111d9cf8da8824ab2441d48d522ab68c0407ee1b9cf23c5fc9be2c5710f5"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/CaptureLoan.hpp",
+      "bytes": 872,
+      "sha256": "7a52a04ca0cb4f2c380702f9e5f88bf4fba843a2742b800fd995281dd12626b3"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/CapturedSource.cpp",
+      "bytes": 8199,
+      "sha256": "907d78c472bc52003c4d38b7b6ce84f3803936d98a34d161bcc75e3b6d3ca0c8"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/CommittedSocial.cpp",
+      "bytes": 9406,
+      "sha256": "a86f6c19ae56a2d870f3b0a27d70b72c47a04c9a41bfa491b41b2d6f4fd88f29"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/DeviceNamespace.cpp",
+      "bytes": 1116,
+      "sha256": "6b94bee6da775e452a0f9b303d9b4a21cf5d304458abd7af873721756e85911a"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/DeviceNamespace.hpp",
+      "bytes": 415,
+      "sha256": "877bc7bfd42d966d3c442b79ff8bb39cfd4bfa58c54006a3e5653a120671e900"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/FiniteRole.cpp",
+      "bytes": 7636,
+      "sha256": "e602729a49d2db756db0d6f2fec8cadc4bc1fd0a20add3696c6896bec5ca9274"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/INTEGRATION.md",
+      "bytes": 10596,
+      "sha256": "f7ce3c4d4329b698875c06940fd99862c97c52488dc0b68bdfb18756e9710716"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/MainPairRoute.cpp",
+      "bytes": 995,
+      "sha256": "b099661de6e50e13351f00dc72252feca2da04ba57e2e05d2c1770acc1999f1a"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/OriginalServices.hpp",
+      "bytes": 6821,
+      "sha256": "020757e7ad1997419077830d1ba7380843f48efc2bfce5f981b03b3f02ea243b"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/PRIVATE_PINS.json",
+      "bytes": 22261,
+      "sha256": "161f9da8195f7494a52afb0eaeb7cab656779bfb0577de6501bfe0e5bc7adc7f"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/RegisteredDeviceSession.cpp",
+      "bytes": 9785,
+      "sha256": "b80939b1bab0f75690b9b4e1a5d84d27a04c69b7ca25bd529dc87ac342a8354a"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/RegisteredMainPair.cpp",
+      "bytes": 9779,
+      "sha256": "a70358f531f2bf905a033073787e431f800eb25392f49060b723070fe39d9b4c"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/SocialJointIssuer.cpp",
+      "bytes": 23935,
+      "sha256": "6aa212f979d1a4d2430285f06ea34af66622def438cd58c42d4062b22988ad62"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/native/social-joint-profile-issuer/SourceFrame.cpp",
+      "bytes": 816,
+      "sha256": "dff58322019951fdf59aa170866175764938abd9bc9ce492ca86c0a6ba61fc4e"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/test/social-joint-device-session.PUBLIC.cpp",
+      "bytes": 16042,
+      "sha256": "be16d6e34adfbbbc71be490041d0c87dc4c2d1348a2d77ffc9d314f0503f6f1e"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/test/social-joint-device-namespace.PUBLIC.cpp",
+      "bytes": 3266,
+      "sha256": "d87f1d466afb0ee1e929ec26e909e2c111bd64e962f056440cdb408f828da6a4"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/test/social-joint-device-namespace-auth.PUBLIC.mm",
+      "bytes": 7854,
+      "sha256": "d75fa3aa15c47b2ec586e32d764fb84d7f13623461e04771acbc6a0a095a5ae8"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/module/test/social-joint-device-namespace.mjs",
+      "bytes": 10449,
+      "sha256": "b1a6d7038a33311396736b3f24d6fc4dcc942410643f8846ee45516d54a74d85"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/HANDOFF.json",
+      "bytes": 6097,
+      "sha256": "34d73d438091f93337cfc6bcb3d5ca76f8ab270db1496394c9018bdea111d97e"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/SOURCEPINS.json",
+      "bytes": 10036,
+      "sha256": "f8fc8f2583081a78a7cff8fb9c44d5663a630e4ba10298c0dd8fd469b6c6c643"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4AccountNamespacePrivate.h",
+      "bytes": 750,
+      "sha256": "f0010056aa357f8d3575f73c9b7bc9b6beda5c03d263ec15c6a4659a8b352663"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceBorrowPrivate.h",
+      "bytes": 3343,
+      "sha256": "644f4ecac6c3fa44ec7351c4e4c876100728f204e85ab0f28df3fc9bd89d6768"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceBackendPrivate.hpp",
+      "bytes": 1866,
+      "sha256": "3259affdedc3db84f026738925f57cb52760c959f748c6ba7cc2ba7e7a468079"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceDarwinPrivate.hpp",
+      "bytes": 1052,
+      "sha256": "126d5b6779358e806f94b41c7d072915be5d5da30abdfb349ee34284bdc9e908"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceBorrow.cpp",
+      "bytes": 9569,
+      "sha256": "ae6c42cc0efce1d945535e60a0fafeba45639f2f181fe83ded804d9b4b56998f"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceClock.cpp",
+      "bytes": 418,
+      "sha256": "11b12d5b840a3086a473f4c3ba5594f1cc0306072cba8f93a72924f4b2cc0f67"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/source/DeviceV4SourceDarwin.mm",
+      "bytes": 6727,
+      "sha256": "b3e0eae541a850866ae707f831d8cf91c4bced0ee5240b74c21a71bb3cb35ef9"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/auth/controls/namespace_public_source.mm",
+      "bytes": 8258,
+      "sha256": "5b744a94893f86a0dbf525c747eeb0ea76bbfd53f7e11796bede7c98220271e9"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/base-native/original-auth-identity-source-authority.h",
+      "bytes": 11410,
+      "sha256": "11b1b8c8ec4d3aae6508bfeeda7171d8e1058ccd3c10dec43d919efcee7b420a"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/base-native/pay_native_permission_private.hpp",
+      "bytes": 2120,
+      "sha256": "5855f263a45a96feafae4c7766168afa029b1d6c5f5be6cc794c4b0903114045"
+    },
+    {
+      "path": "packages/wallet-auth/test/fixtures/social-device-c13-matching-profile/base-native/product_source_permission_private.hpp",
+      "bytes": 2172,
+      "sha256": "6438e6655fe432b4fb5859b24c6038d72476cd5ac872177774b0b44807fa8a8f"
+    }
+  ],
+  "runner": "module/test/social-joint-device-namespace.mjs",
+  "args": [
+    "--auth-root",
+    "auth",
+    "--base-native-dir",
+    "base-native"
+  ],
+  "counts": {
+    "thin": 11,
+    "selectedNewFullpath": 5,
+    "actualAuthBody": 12
+  },
+  "resourceBudget": {
+    "aggregateRSS": 536870912,
+    "stagePhysical": 134217728,
+    "memoryFloor": 2147483648,
+    "homeFloor": 536870912,
+    "stageFloor": 1073741824,
+    "activeSeconds": 85,
+    "cleanupSeconds": 5
+  },
+  "sourceRootBoundary": "Actual Auth Borrow/Darwin/Clock with PUBLIC ObjC Source getter only",
+  "requiredNormalCohort": "Separate R7 SDK/Current Auth guarded CAS/namespace61e/matched runtime remain required; not a wholeimage",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "normalWholeImage": false,
+  "normalLinux": false,
+  "realKeysOrSigning": false,
+  "oldGroupsRerun": false
+}
