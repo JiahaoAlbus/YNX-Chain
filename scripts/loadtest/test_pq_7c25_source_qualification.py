@@ -64,6 +64,18 @@ class FutureSourceControls(unittest.TestCase):
             changed=copy.deepcopy(rows);changed[3]['Action']=action
             with self.assertRaises(RuntimeError):m.original_go_frames(raw(changed),package,m.CLI_REQUIRED)
 
+    def test_go_literal_slash_label_uses_the_nearest_real_active_parent(self):
+        package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        top='TestBlockJournalVersionUpgradeFailurePreservesEvidence'
+        label=top+'/v12/compaction_synced'
+        def event(action,name=None):return dict(Action=action,Package=package,**({} if name is None else dict(Test=name)))
+        def raw(rows):return b'\n'.join(json.dumps(row).encode() for row in rows)
+        rows=[event('start'),event('run',top),event('run',label),event('pass',label),event('pass',top),event('pass')]
+        self.assertEqual(m.original_go_frames(raw(rows),package,{top})['childCases'],1)
+        closed=[event('start'),event('run',top),event('run',top+'/v12'),event('pass',top+'/v12'),
+                event('run',label),event('pass',label),event('pass',top),event('pass')]
+        with self.assertRaises(RuntimeError):m.original_go_frames(raw(closed),package,{top})
+
     def test_source_ci_cannot_borrow_integration_release_or_inflight_green(self):
         # A matching-looking in-flight record still cannot qualify this source.
         run=dict(id=m.CI_RUN,head_sha=m.SOURCE,head_branch=m.CI_REF,event='push',run_attempt=1,

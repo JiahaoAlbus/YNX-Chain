@@ -107,6 +107,12 @@ def original_go_frames(raw, package, required, *, frames=1, allowed_skips=(), cl
                 'original Go test name differs')
         if action == 'run':
             parent = name.rsplit('/',1)[0] if '/' in name else None
+            if parent is not None and not closed_tops:
+                # A t.Run label may itself contain '/'. Only prefixes that
+                # actually ran are parents; an invented intermediate run is
+                # not required. Still reject a child of a closed real parent.
+                while parent not in seen and '/' in parent:
+                    parent=parent.rsplit('/',1)[0]
             require(name not in seen and (parent is None or (parent in current and parent not in terminal)),
                     'duplicate original run or missing active parent')
             seen.add(name); current.add(name)
