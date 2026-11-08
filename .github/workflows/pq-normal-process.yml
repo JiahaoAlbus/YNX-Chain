@@ -654,7 +654,7 @@ jobs:
       - name: Receive the independently qualified fixed runtime tools
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 79faca6de0c57e72c6ac9c44cf20de6d022e5b4f
+          ref: 91caff35a141889a4a8de6b2f4ba533c69b64550
           path: tools
           fetch-depth: 1
           filter: blob:none
@@ -692,6 +692,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:
+      CGO_ENABLED: '1'
       GOMAXPROCS: '2'
       GOMEMLIMIT: 1024MiB
       GOTOOLCHAIN: local
@@ -731,10 +732,12 @@ jobs:
             /scripts/ops/validate-pq-remote-normal-ci.py
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/verify/wire-live-matching-source-ci.py
+            /packages/wallet-auth/go/sourceparentprofile/
+            /packages/wallet-auth/native/source-parent/
       - name: Receive independently qualified fixed runtime tools and original fixtures
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 79faca6de0c57e72c6ac9c44cf20de6d022e5b4f
+          ref: 91caff35a141889a4a8de6b2f4ba533c69b64550
           path: tools
           fetch-depth: 1
           filter: blob:none
@@ -770,6 +773,91 @@ jobs:
           path: |
             ${{ runner.temp }}/pq-first100-7c25-tools-ci.json
             ${{ runner.temp }}/pq-independent-load-*/public/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+
+  first100-7c25-native-build:
+    name: Actual private7c F2 CGO1 three-binary build without nodes or load
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1
+    needs: first100-7c25-controller-controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1024MiB
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Receive exact controller and original F2 C2 build carrier
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-first100-7c25-ci.py
+            /scripts/loadtest/pq-first100-7c25-native-build-ci.py
+            /scripts/loadtest/test_pq_first100_7c25_native_build_ci.py
+      - name: Verify original stream failure preservation before any compiler
+        run: python3 -I -B controller/scripts/loadtest/test_pq_first100_7c25_native_build_ci.py
+      - name: Receive original frozen7c source and complete immutable CGO inputs
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7c25cbcc7d31b10743e26ae1ddca745085ee1b0b
+          path: source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/resource-market-ci.yml
+            /go.mod
+            /go.sum
+            /cmd/
+            /internal/
+            /pkg/
+            /third_party/cometbft/
+            /scripts/ops/validate-pq-remote-normal-ci.py
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/verify/wire-live-matching-source-ci.py
+            /packages/wallet-auth/go/sourceparentprofile/
+            /packages/wallet-auth/native/source-parent/
+      - name: Receive unchanged F2 tools for actual original private source preparation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 91caff35a141889a4a8de6b2f4ba533c69b64550
+          path: tools
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Install original pinned Go without shared build caches
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Build all three original binaries from the actual private CGO view only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B controller/scripts/loadtest/pq-first100-7c25-native-build-ci.py \
+            --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" \
+            --operation "$RUNNER_TEMP/pq-first100-7c25-native-build"
+      - name: Preserve original CGO preparation build streams and first failure without binaries
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-first100-7c25-cgo-build-${{ github.sha }}
+          path: ${{ runner.temp }}/pq-first100-7c25-native-build/public/
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
