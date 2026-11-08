@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"io"
 	"net/http"
 	"regexp"
@@ -60,13 +59,7 @@ func (c *Client) verifyHTTPCommitment(header string, session Session, method, pa
 	if c == nil || !validScopes(requiredScopes) || len(requiredScopes) == 0 {
 		return zero, fail("INVALID_ROUTE_POLICY", 500)
 	}
-	encoded, err := json.Marshal(session)
-	if err != nil {
-		return reject("INVALID_SESSION")
-	}
-	var sessionFields map[string]any
-	err = json.Unmarshal(encoded, &sessionFields)
-	if err != nil || !validSessionFields(sessionFields) || !c.matchesPolicy(sessionFields) || session.Platform != c.policy.Platform || session.Version != "2" || session.ChainID != "ynx_6423-1" || session.DeviceAlgorithm != "p256-sha256" || !validFiniteConsent(session) {
+	if _, err := c.originalSessionFields(session); err != nil {
 		return reject("CROSS_PRODUCT_SESSION")
 	}
 	for _, scope := range requiredScopes {
