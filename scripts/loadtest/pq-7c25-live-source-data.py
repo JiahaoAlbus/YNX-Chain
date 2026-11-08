@@ -3,7 +3,7 @@
 The original source and CI-only route head are separate identities. Missing
 actual tagged CI originals remain NOT_SUPPLIED; legacy9081 is not inherited.
 """
-import hashlib,io,json,stat,zipfile
+import hashlib,importlib.util,io,json,stat,zipfile
 from pathlib import Path,PurePosixPath
 SOURCE='7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 TREE='8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
@@ -28,6 +28,16 @@ def strict(raw):
             require(key not in out,'duplicate original source field');out[key]=value
         return out
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda value:(_ for _ in ()).throw(RuntimeError('nonfinite original source JSON')))
+
+def original_stream(raw,key,required):
+    """Reuse original complete Go framing, including all started children."""
+    spec=importlib.util.spec_from_file_location('current7c_original_frames',Path(__file__).with_name('pq-7c25-source-qualification.py'))
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    package={'normalProducer':'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet',
+             'originalSupplierBudget':'github.com/cometbft/cometbft/mempool'}[key]
+    summary=module.original_go_frames(raw,package,required)
+    require(summary['topCases']==len(required),'extra original source test top scope')
+    return summary
 
 def qualification(raw=None):
     require(QUALIFICATION is not None and EXPECTED is not None and ARCHIVE_SHA256 is not None and ARCHIVE_BYTES is not None, 'current7c exact normal getter source/module/tagged CI NOT_SUPPLIED')
@@ -57,10 +67,7 @@ def qualification(raw=None):
         require(result['version']=='YNX-WIRE-LIVE-GO-RESULT/v1' and result['returnCode']==0 and result['timedOut'] is False and result['validationPassed'] is True and result['firstFailure'] is None,'original source test command did not pass')
         require(original['requiredPassed']==result['requiredPassed']==list(EXPECTED[key]),'original named case set differs')
         require(result['stdout']=={k:original[k] for k in ('path','bytes','sha256')} and result['stderr']==original['stderr'],'original result log binding differs')
-        rows=[strict(line) for line in events.splitlines()]
-        require(not any(row.get('Action')=='fail' for row in rows),'failed original Go event')
-        for case in EXPECTED[key]:
-            require([row['Action'] for row in rows if row.get('Test')==case and row.get('Action') in ('pass','fail','skip')]==['pass'],'required original named test missing/skipped/failed')
+        original_stream(events,key,EXPECTED[key])
     selection=record['preparedSourceSelection'];payload=files[prefix+'composition/SOURCE-SELECTION.json']
     require(len(payload)==selection['receiptBytes'] and hashlib.sha256(payload).hexdigest()==selection['receiptSHA256'] and strict(payload)==selection['sourceSelection'],'original Core preparation receipt differs')
     return dict(q)

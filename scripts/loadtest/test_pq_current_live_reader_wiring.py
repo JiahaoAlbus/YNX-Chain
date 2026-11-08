@@ -70,4 +70,23 @@ class CurrentSourceSelection(unittest.TestCase):
             self.assertEqual((result['optionalForkCommit'],result['optionalForkTree']),(q['optionalForkCommit'],q['optionalForkTree']))
             self.assertTrue(result['originalSourceUnchanged']);self.assertFalse(result['actualNetworkWindow'])
 
+class CurrentOriginalStream(unittest.TestCase):
+    def setUp(self):
+        spec=importlib.util.spec_from_file_location('current7c_data_control',Path(__file__).with_name('pq-7c25-live-source-data.py'))
+        self.data=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.data)
+        self.package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
+    def stream(self,events):
+        return b'\n'.join(json.dumps(dict(Package=self.package,Action=action,**({'Test':name} if name else {}))).encode() for action,name in events)
+    def test_complete_original_package_and_child_are_required(self):
+        rows=[('start',None),('run','TestOriginal'),('run','TestOriginal/child'),('pass','TestOriginal/child'),('pass','TestOriginal'),('pass',None)]
+        self.assertEqual(self.data.original_stream(self.stream(rows),'normalProducer',['TestOriginal'])['childCases'],1)
+        for changed in (rows[1:],rows[:-1],rows[:3]+rows[4:],[(('skip' if name=='TestOriginal/child' and action=='pass' else action),name) for action,name in rows]):
+            with self.subTest(events=changed),self.assertRaises(RuntimeError):self.data.original_stream(self.stream(changed),'normalProducer',['TestOriginal'])
+    def test_detached_pass_and_extra_top_cannot_qualify(self):
+        for rows in ([('start',None),('pass','TestOriginal'),('pass',None)], [('start',None),('run','TestOriginal'),('pass','TestOriginal'),('run','TestExtra'),('pass','TestExtra'),('pass',None)]):
+            with self.subTest(events=rows),self.assertRaises(RuntimeError):self.data.original_stream(self.stream(rows),'normalProducer',['TestOriginal'])
+    def test_absent_current_ci_cannot_borrow_legacy_source(self):
+        with mock.patch.object(self.data,'QUALIFICATION',None),self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):
+            self.data.qualification(b'old CI is not current CI')
+
 if __name__=='__main__':unittest.main(verbosity=2)
