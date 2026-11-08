@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "kind": "Original LINK registered receiver consumer CI-only intake",
+  "supplier": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/registered-receiver-r1-82c9xu/HANDOFF.json",
+    "bytes": 18370,
+    "sha256": "669c3a616c52b4e6f8fe96cc1d04aa1eec5c8dd7a7b3168dc7d3fb2180db5ccb"
+  },
+  "verifiedDirectHReferences": 28,
+  "verifiedFrozenInputRows": 501,
+  "verifiedUniqueReferencesIncludingInputRows": 522,
+  "existingOriginalAuthProductionCASRowsMatched": 8,
+  "testTag": "link_registered_receiver_interop",
+  "exactSelector": "^TestLINKP08RegisteredReceiverNormalConsumer$",
+  "testLeaves": [
+    {
+      "supplier": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/registered-receiver-r1-82c9xu/source/internal/aiproduct/link_registered_receiver_consumer_test.go",
+        "bytes": 8290,
+        "sha256": "2fd063d5e889d9c94e33256f04319a165de2d7a13f433512f705f8360833635a"
+      },
+      "target": "internal/aiproduct/link_registered_receiver_consumer_test.go",
+      "consumer": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/aiproduct/link_registered_receiver_consumer_test.go",
+        "bytes": 8644,
+        "sha256": "33d74e527485eb2f9b671804cad5bbc45cf3719831ef2551fa5031902e59d3f7"
+      },
+      "adaptation": "Only test temporary parent: fixed local user directory replaced by current user canonical home, preserving original unsafe-ancestor checks"
+    },
+    {
+      "supplier": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/registered-receiver-r1-82c9xu/source/internal/authtasklocal/public_registered_receiver_fixture.go",
+        "bytes": 598,
+        "sha256": "8c8d16cc63a3f35df0294242d24267285d608995eef8aef6dbbf302e9df19977"
+      },
+      "target": "internal/authtasklocal/public_registered_receiver_fixture.go",
+      "consumer": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/authtasklocal/public_registered_receiver_fixture.go",
+        "bytes": 598,
+        "sha256": "8c8d16cc63a3f35df0294242d24267285d608995eef8aef6dbbf302e9df19977"
+      },
+      "adaptation": "byte-exact original tag-only PUBLIC fixture"
+    },
+    {
+      "supplier": {
+        "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/registered-receiver-r1-82c9xu/source/packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
+        "bytes": 4556,
+        "sha256": "3e1f1304a3f68c151c9c2ba81de317fbf2173009731c6f10732f371a3c986528"
+      },
+      "target": "packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
+      "consumer": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-runtime/go/public_registered_receiver_fixture.go",
+        "bytes": 4556,
+        "sha256": "3e1f1304a3f68c151c9c2ba81de317fbf2173009731c6f10732f371a3c986528"
+      },
+      "adaptation": "byte-exact original tag-only PUBLIC fixture"
+    }
+  ],
+  "ciWorkflow": ".github/workflows/ynx-ai-runtime.yml",
+  "adoption": "Dedicated tagged exact-selector race step plus actual-run/pass/no-skip guard and PUBLIC lifecycle evidence upload. Normal builds exclude both cross-module PUBLIC fixtures. New apps/ai/*.go paths include normal cleanup implementation/tests.",
+  "localConsumerResult": {
+    "topPass": 1,
+    "subPass": 2,
+    "race": true,
+    "fail": 0,
+    "skip": 0,
+    "productionSourceChanged": false
+  },
+  "guardChecks": [
+    "actual1top2sub accepted",
+    "zero-run refused",
+    "skip refused",
+    "missing subtest refused"
+  ],
+  "supplierOldSuitesRerun": false,
+  "rootAdmission": false,
+  "receiverPurposePermission": false,
+  "listenerStarted": false,
+  "listenerDrainObserved": false,
+  "normalRemainingDependency": {
+    "state": "NOT_SUPPLIED CODE/CONTRACT; Root relayed to sole SDK/Source owner",
+    "required": "SAME original Source receiver-purpose permission/current typed borrow binds Source identity/version+authority/realm/tenant, independent receiver resource/namespace, actual server+caller process/image/epoch/current, finite3 budgets and protected endpoint, immutable window/revoke/lifetime.",
+    "notPermission": "Existing E21/E3/Core is only original task Source provenance, never independent receiver permission. No real receiver row may be emitted/admitted before this new accepted typed gate.",
+    "normalPositiveListenerAndFullLifecycle": "Blocked only by that exact typed permission and original Root resources; not replaced with PUBLIC registration."
+  }
+}

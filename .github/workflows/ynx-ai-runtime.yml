@@ -12,8 +12,7 @@ on:
       - "internal/authaitaskv6/**"
       - "cmd/ynx-ai-task/**"
       - "cmd/ynx-ai-gatewayd/**"
-      - "apps/ai/main.go"
-      - "apps/ai/main_v6_test.go"
+      - "apps/ai/*.go"
       - "apps/ai/scripts/webdav-interop-*"
       - "packages/auth-grant-policy/go/**"
       - "packages/auth-grant-runtime/go/**"
@@ -49,6 +48,31 @@ jobs:
           cache: true
       - name: Verify normal task, model and startup packages
         run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./internal/authaitaskv6 ./cmd/ynx-ai-task ./cmd/ynx-ai-gatewayd ./apps/ai
+      - name: Verify original registered receiver consumer refusal and Source debt
+        shell: bash
+        run: |
+          set -euo pipefail
+          task_receiver_evidence="$RUNNER_TEMP/p08-registered-receiver-evidence"
+          mkdir -p "$task_receiver_evidence"
+          LINK_REGISTERED_RECEIVER_EVIDENCE="$task_receiver_evidence" go test -mod=readonly -race -p 1 -tags=link_registered_receiver_interop ./internal/aiproduct -run '^TestLINKP08RegisteredReceiverNormalConsumer$' -count=1 -timeout=90s -json | tee "$task_receiver_evidence/consumer.jsonl"
+          python3 - "$task_receiver_evidence/consumer.jsonl" <<'PY'
+          import json, sys
+          events = [json.loads(line) for line in open(sys.argv[1])]
+          test = "TestLINKP08RegisteredReceiverNormalConsumer"
+          expected = {test, test + "/ordered-partial-drain", test + "/early-parent-close-keeps-debt"}
+          for name in expected:
+              assert any(e.get("Action") == "run" and e.get("Test") == name for e in events), name
+              assert any(e.get("Action") == "pass" and e.get("Test") == name for e in events), name
+          assert not any(e.get("Action") in {"skip", "fail"} for e in events)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p08-registered-receiver-public-evidence
+          path: |
+            ${{ runner.temp }}/p08-registered-receiver-evidence/consumer.jsonl
+            ${{ runner.temp }}/p08-registered-receiver-evidence/ordered-partial-drain.json
+            ${{ runner.temp }}/p08-registered-receiver-evidence/early-parent-close-keeps-debt.json
 
   official-webdav:
     runs-on: ubuntu-latest
