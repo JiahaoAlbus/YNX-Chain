@@ -1,0 +1,136 @@
+import { hasOriginalWalletServicePrivateBridge } from './original-wallet-service-private-client.js';
+import { exactFields, WalletAuthError } from "./canonical.js";
+import { encodeBase64url } from "./base64url.js";
+import { ProductSessionGatewayFetchAdapter, ProductSessionGatewayPrivateAdapter } from "./product-session-gateway-client.js";
+import { RecoverableProductSessionClient } from "./product-session-recovery.js";
+import { WalletConnectionCoordinator } from "./wallet-connection-coordinator.js";
+
+const originalBusinessReads = new WeakMap();
+/** Private read-only lookup: public Recoverable constructors never enter this
+ * inventory. The Native provenance gate is separately ANDed by the Node holder. */
+export function readOriginalProductWalletBusinessReadHolder(read){
+ const held=originalBusinessReads.get(read);
+ if(!held)throw new WalletAuthError('ORIGINAL_BUSINESS_READ_HOLDER_REQUIRED','Normal original read holder is required');
+ return held;
+}
+
+const CONFIG_FIELDS = [
+  "registry", "productId", "platform",
+  "walletInstalled", "schemeRegistered", "gatewayTimeoutMs", "storage",
+  "device", "scope", "discoveryWaitMs",
+  "openWallet", "openTimeoutMs",
+];
+export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
+
+// Same fixed normal transport as the original product factory. This is only a
+// narrow caller, never service/Source/Native qualification or a signing engine.
+// The existing Wallet journal owns once-only publish and UNKNOWN reconciliation.
+export function createProductWalletReturnPublisher(config){
+  exactFields(config,['gatewayTimeoutMs'],'Normal Wallet publication configuration');
+  if(typeof globalThis.fetch!=='function')throw new WalletAuthError('INVALID_GATEWAY','Normal publication requires the platform HTTPS transport');
+  const inapplicable=()=>{throw new WalletAuthError('PUBLISHER_CAPABILITY_NOT_APPLICABLE','Publication transport does not attest Wallet installation');};
+  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
+  return Object.freeze({
+    currentTime:input=>gateway.currentTime(input),
+    publishReturn:input=>gateway.publishReturn(input),
+    publicationOutcome:input=>gateway.publicationOutcome(input),
+  });
+}
+
+/** Fresh native-approved read of an existing protected session. Fixed original
+ * HTTPS clock only; no session DTO, endpoint, fetch, login or restore input.
+ * The platform owns read consent/Source/current and the actual key capability. */
+export async function createProductWalletBusinessReadClient(config){
+  if(config?.device?.version!=='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal reads require dual-PQ; no classic fallback');
+  exactFields(config,['registry','productId','platform','storage','device','deviceCurrent','abortContext','gatewayTimeoutMs'],'Existing native business read configuration');
+  if(config.platform==='web')throw new WalletAuthError('NATIVE_BUSINESS_READ_REQUIRED','Existing business read requires native custody');
+  assertProductRuntime();
+  if(typeof globalThis.fetch!=='function')throw new WalletAuthError('INVALID_GATEWAY','Normal read requires the platform HTTPS transport');
+  exactFields(config.device,['version','algorithm','readContext','produceHTTPProof'],'Version4 native read device');
+  if(config.device.version!=='4'||config.device.algorithm!=='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal device reads require dual-PQ; use explicit legacy data readers for history');
+  const inapplicable=()=>{throw new WalletAuthError('BUSINESS_READ_ONLY','Read client cannot discover or reconnect Wallet');};
+  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
+  const originalDevice=config.device,originalCurrent=config.deviceCurrent,originalContext=config.abortContext;
+  const client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage:config.storage,gateway,device:originalDevice,deviceCurrent:originalCurrent,abortContext:originalContext,tokenFactory:secureToken,clock:authorityClockRequired});
+  const child=await client.openExistingBusinessRead();
+  let retired=false,closed=false,closing=null,refs=0,wake=null,firstPresent=false,firstCause;
+  const current=()=>{if(firstPresent)throw firstCause;if(retired||closed||originalContext.signal.aborted)throw new WalletAuthError('ORIGINAL_BUSINESS_READ_RETIRED','Original read is no longer live');};
+  const read=Object.freeze({capabilities:child.capabilities,
+    createBusinessProof(input){current();return child.createBusinessProof(input);},
+    close(){
+      retired=true;
+      if(!closing){
+        // Install the unique promise before any foreign method or continuation.
+        closing=Promise.resolve().then(async()=>{if(refs)await new Promise(resolve=>{wake=resolve;});await child.close();closed=true;});
+      }
+      return closing;
+    }
+  });
+  const held=Object.freeze({
+    device:originalDevice,deviceCurrent:originalCurrent,
+    assertCurrent:current,
+    retain(){current();refs++;let released=false;const loanCurrent=()=>{if(released)throw new WalletAuthError('ORIGINAL_BUSINESS_READ_RELEASED','Original child reference is released');current();};return Object.freeze({
+      assertCurrent:loanCurrent,
+      retainFirstCause(error){if(!firstPresent){firstPresent=true;firstCause=error;}},
+      createBusinessProof(input){loanCurrent();try{return Promise.resolve(child.createBusinessProof(input)).catch(error=>{if(!firstPresent){firstPresent=true;firstCause=error;}throw error;});}catch(error){if(!firstPresent){firstPresent=true;firstCause=error;}throw error;}},
+      release(){if(!released){released=true;refs--;if(!refs&&wake){const resolve=wake;wake=null;resolve();}}}
+    });},
+    statusDATA(){return Object.freeze({retired,closed,childReferences:refs,firstCausePresent:firstPresent,NativeAdmission:false,SourceAdmission:false});}
+  });
+  originalBusinessReads.set(read,held);
+  return read;
+}
+
+/**
+ * Constructs the only supported product-facing Wallet connection surface.
+ * Product code supplies capabilities, never a callback, origin, route or Session.
+ */
+export function createProductWalletConnection(config) {
+  if(config?.device?.version!=='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal device connections require dual-PQ; no classic fallback');
+  exactFields(config, [...CONFIG_FIELDS,'deviceCurrent','abortContext'], "Product Wallet connection configuration");
+  assertProductRuntime();
+  throw new WalletAuthError('PQ_DEVICE_ISSUER_NOT_SUPPLIED','Original v4 device pairing and issuer are not supplied; no legacy login may run');
+  const privateBridge = hasOriginalWalletServicePrivateBridge();
+  const gateway = privateBridge ? new ProductSessionGatewayPrivateAdapter({walletInstalled: config.walletInstalled, schemeRegistered: config.schemeRegistered, timeoutMs: config.gatewayTimeoutMs}) : new ProductSessionGatewayFetchAdapter({
+    endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
+    fetch: globalThis.fetch.bind(globalThis),
+    walletInstalled: config.walletInstalled,
+    schemeRegistered: config.schemeRegistered,
+    timeoutMs: config.gatewayTimeoutMs,
+  });
+  if (typeof gateway.currentTime !== "function") throw new WalletAuthError("CLOCK_UNAVAILABLE", "Product Wallet connection requires the authority-time adapter");
+  const sessionClient = new RecoverableProductSessionClient({
+    registry: config.registry,
+    productId: config.productId,
+    platform: config.platform,
+    storage: config.storage,
+    gateway,
+    device: config.device,
+    tokenFactory: secureToken,
+    clock: authorityClockRequired,
+  });
+  return new WalletConnectionCoordinator({
+    registry: config.registry,
+    productId: config.productId,
+    sessionClient,
+    scope: config.scope,
+    discoveryWaitMs: config.discoveryWaitMs,
+    openWallet: config.openWallet,
+    openTimeoutMs: config.openTimeoutMs,
+  });
+}
+
+function secureToken() {
+  assertProductRuntime();
+  return encodeBase64url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+}
+
+// The genuine same-copy adapter above supplies currentTime. Never fall back to
+// a local clock if that authority contract is absent or becomes unavailable.
+function authorityClockRequired() {
+  throw new WalletAuthError("CLOCK_UNAVAILABLE", "Product Wallet connection requires verified Gateway authority time");
+}
+function assertProductRuntime() {
+  if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") throw new WalletAuthError("INVALID_RANDOM_SOURCE", "Product Wallet connection requires a cryptographic runtime");
+  if (!hasOriginalWalletServicePrivateBridge() && typeof globalThis.fetch !== "function") throw new WalletAuthError("INVALID_GATEWAY", "Product Wallet connection requires the platform HTTPS transport");
+}
