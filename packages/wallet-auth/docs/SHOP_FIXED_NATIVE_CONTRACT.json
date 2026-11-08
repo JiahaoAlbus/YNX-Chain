@@ -1,0 +1,56 @@
+{
+  "schema": "SDK_SHOP_FIXED_NATIVE_CUSTODY_CONSUMER/v1",
+  "DATAOnlyContractNotNewWire": true,
+  "nativeH": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/frozen-proof-v2-vyxQEm/HANDOFF.json",
+    "bytes": 6193,
+    "sha256": "7adbe9bfba2d4def18a3d3c7678fbf5b99ecc61a552a712585243aa892d3c2f8"
+  },
+  "nativeSource": [
+    {
+      "name": "ShopOriginalClientNapi.cpp",
+      "original": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/frozen-proof-v2-vyxQEm/source/ShopOriginalClientNapi.cpp",
+      "bytes": 15304,
+      "sha256": "8da37beeae6ce46988e7f54ad0621e3f95843236de4fc86d1c08a202d9032e88"
+    },
+    {
+      "name": "ShopOriginalClientNapi.d.ts",
+      "original": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/frozen-proof-v2-vyxQEm/source/ShopOriginalClientNapi.d.ts",
+      "bytes": 1169,
+      "sha256": "8e2221f90e20cc04c5a5878b339baaf8ad0e0e8926eb431e95e7efea39ace3e9"
+    },
+    {
+      "name": "ShopClientOwner.hpp",
+      "original": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/frozen-proof-v2-vyxQEm/source/ShopClientOwner.hpp",
+      "bytes": 3071,
+      "sha256": "3590e6cdf5b3497b184868de3c4223403ebe3827f24c804c759ace9dd1d436ab"
+    },
+    {
+      "name": "ShopClientOwner.cpp",
+      "original": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/frozen-proof-v2-vyxQEm/source/ShopClientOwner.cpp",
+      "bytes": 13204,
+      "sha256": "9082e575f0f2a28052f0fda6b3500adbcc2a2758962649dadc61534555cfe4df"
+    }
+  ],
+  "nativeFactory": [
+    "acquireOriginalShopPrivateClient()",
+    "isOriginalShopPrivateClient(SAMEoriginalOwner)"
+  ],
+  "nativeCustodyGetter": "SAME client/response readOriginalCustodyDATA() -> exact{selected:boolean,unknown:boolean,physicalDone:boolean}",
+  "path": "/v5/shop/source/shop.order/invoice-intents/{originalOrder}",
+  "method": "GET",
+  "status": 200,
+  "contentType": "application/json",
+  "bodyMaxBytes": 1048576,
+  "scopeMaxBytes": 32768,
+  "order": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$",
+  "SDKReturnsUnknownBusinessDATA": true,
+  "soleBusinessValidator": "P06 nativeInvoiceProductIntentData",
+  "noCanonicalResponseAssumption": true,
+  "qualifiedNativeImage": "NOT_SUPPLIED",
+  "actualRootSourceShopSession": "NOT_SUPPLIED",
+  "versionBoundary": "This supplied Native consumer has a legacy V2 proof branch. It supplies cleanup witness ABI only for SDK binding, not normal V4 PQ GET permission. No V4-to-V2/P256/introspection fallback exists in SDK. Actual normal V4 strong consumer/producer and matching image remain original owner CODE.",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

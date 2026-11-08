@@ -529,6 +529,12 @@
       "browser": null,
       "node": "./native/original-network-current-publisher-adapter.mjs",
       "default": null
+    },
+    "./original-shop-private-client": {
+      "types": "./src/original-shop-private-client.d.ts",
+      "browser": null,
+      "node": "./src/original-shop-private-client.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -954,7 +960,9 @@
     "native/social-fresh-joint-profile-v1/cabi/social_fresh_joint_profile_data.h",
     "native/social-fresh-joint-profile-v1/cabi/normal-inputs.json",
     "native/social-source-frame-v1",
-    "docs/SOCIAL_JOINT_PROFILE_C_DATA_BRIDGE.md"
+    "docs/SOCIAL_JOINT_PROFILE_C_DATA_BRIDGE.md",
+    "docs/SHOP_FIXED_PRIVATE_CLIENT.md",
+    "docs/SHOP_FIXED_NATIVE_CONTRACT.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

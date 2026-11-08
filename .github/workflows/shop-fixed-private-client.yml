@@ -1,0 +1,38 @@
+name: Shop fixed private client normal source
+on:
+  push:
+    branches: [codex/wallet-auth49-shop-fixed-private-client-20261108]
+  pull_request:
+    paths:
+      - packages/wallet-auth/src/original-shop-private-client.*
+      - packages/wallet-auth/test/shop-fixed-private-client.test.mjs
+      - packages/wallet-auth/test/fixtures/shop-fixed-client/**
+      - packages/wallet-auth/test/types/shop-fixed-private-client.mts
+      - scripts/ci/shop-fixed-private-*.mjs
+      - .github/workflows/shop-fixed-private-client.yml
+  workflow_dispatch:
+jobs:
+  source-model-package-only:
+    if: github.event_name != 'pull_request' || github.head_ref != 'codex/wallet-auth49-shop-fixed-private-client-20261108'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/shop-fixed-private-client.mjs 2>&1 | tee shop-fixed-private-client.log
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/shop-fixed-private-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: shop-fixed-private-client-normal
+          path: |
+            shop-fixed-private-client.log
+            ${{ runner.temp }}/shop-fixed-private-*/**
+            canonical-common-source-package
