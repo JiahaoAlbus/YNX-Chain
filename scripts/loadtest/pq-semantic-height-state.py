@@ -72,3 +72,52 @@ def compare_height_states(before, after, trace_rows):
                 coldReconstructionIndependentlyExecutedByReader=False, statePins=pins,
                 coldStageObservedNanoseconds=timings,
                 timingMeaning='Original Go monotonic load/encode/compare observations; no missing interval filled; not business latency or source performance improvement.')
+
+
+HEIGHT_TEST_CHILDREN = {
+    'TestPQLabFinalizeTraceHeightEvidencePUBLICNineStatesAndCold': tuple(map(str, range(4, 13))),
+    'TestPQLabFinalizeTraceHeightEvidencePUBLICColdRefusals': (
+        'live-hash', 'wrong-height', 'wrong-apphash', 'invalid-normal-state', 'output-failure', 'no-overwrite'),
+}
+
+
+def verify_go_tests(raw):
+    """Require the complete original two-top/15-child serial Go JSON stream."""
+    require(type(raw) is bytes and 0 < len(raw) <= 4 << 20 and raw.endswith(b'\n'),
+            'complete bounded height-evidence Go JSON stream required')
+    package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+    required = set(HEIGHT_TEST_CHILDREN)
+    for parent, names in HEIGHT_TEST_CHILDREN.items():
+        required.update(parent + '/' + name for name in names)
+    started = ended = False
+    active, ran, passed = set(), set(), set()
+    for line in raw.splitlines():
+        row = strict(line)
+        require(type(row) is dict, 'original Go JSON object required')
+        action = row.get('Action'); name = row.get('Test')
+        require(type(row) is dict and row.get('Package') == package and not ended,
+                'foreign/trailing height-evidence Go package')
+        require(action in ('start', 'run', 'output', 'pass'), 'failed/skipped/unknown height-evidence Go action')
+        if action == 'start':
+            require(not started and not name, 'duplicate Go package start'); started = True
+            continue
+        require(started, 'height-evidence Go package start missing')
+        if action == 'output':
+            require(not name or name in ran, 'Go output without original test run')
+            continue
+        if action == 'run':
+            require(name in required and name not in ran, 'unexpected/duplicate original height test')
+            parent = name.rsplit('/', 1)[0] if '/' in name else None
+            require(parent is None or parent in active, 'height subtest parent is not running')
+            active.add(name); ran.add(name)
+        elif name:
+            require(name in active and not any(child.startswith(name + '/') for child in active),
+                    'height test return without complete original run')
+            active.remove(name); passed.add(name)
+        else:
+            require(not active and ran == passed == required, 'incomplete/zero-hit height test package')
+            ended = True
+    require(started and ended and not active and passed == required, 'truncated height-evidence Go test stream')
+    return dict(package=package, topCases=2, childCases=15, passed=sorted(passed),
+                originalStreamBytes=len(raw), originalStreamSHA256=hashlib.sha256(raw).hexdigest(),
+                failed=0, skipped=0, packagePassed=True, nodeStarted=False, semanticPairQualified=False)

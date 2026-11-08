@@ -274,6 +274,20 @@ class FinalizeSemanticCIControls(unittest.TestCase):
             self.assertFalse(any(argv[0] in ('commit', 'checkout', 'branch', 'push', 'reset') for argv, _ in calls))
             self.assertNotEqual(*m.MAIN_BLOBS)
 
+    def test_exact_after_go_test_command_and_fixture_environment_restore_original_failure(self):
+        self.assertEqual(m.height_test_command(),['go','test','-mod=readonly','-json','-count=1','-p','1','-timeout=90s',
+            '-run=^TestPQLabFinalizeTraceHeightEvidencePUBLIC(NineStatesAndCold|ColdRefusals)$','./internal/consensus'])
+        for initial in ({},{'YNX_PUBLIC_REGISTERED_OBSERVER_TRACE':'retained-original-value'}):
+            window=types.SimpleNamespace(env=dict(initial));original=RuntimeError('original Linux test failure')
+            def call(name,command,source):
+                self.assertEqual(name,'after-height-evidence-tests')
+                self.assertEqual(command,m.height_test_command())
+                self.assertEqual(window.env['YNX_PUBLIC_REGISTERED_OBSERVER_TRACE'],str(PUBLIC))
+                raise original
+            with self.assertRaises(RuntimeError) as observed:m.run_height_tests(window,call,Path('/unused-source'),PUBLIC,Path('/unused-output'))
+            self.assertIs(observed.exception,original)
+            self.assertEqual(window.env,initial)
+
     def test_canonical_roots_and_source_inventory_never_hide_alias_or_vcs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve(); child = root / 'child'; child.mkdir()
