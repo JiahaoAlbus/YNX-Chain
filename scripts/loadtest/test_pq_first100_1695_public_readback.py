@@ -1,5 +1,6 @@
 """Public-owner original receipt controls; synthetic fixtures are not a run."""
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import unittest
@@ -12,6 +13,7 @@ def module(name, filename):
 
 m=module('public1695_reader','pq-first100-1695-public-readback.py')
 cold=module('public1695_cold_controls','test_pq_first100_1695_cold_readback.py')
+observation=module('public1695_future_observation','pq-live-request-observation-readback.py')
 
 
 def records():
@@ -25,6 +27,62 @@ def records():
 
 
 class Public1695Controls(unittest.TestCase):
+    def observation_line(self, sequence, event, stage='REQUEST', span=1, elapsed=0, reason='', **extra):
+        return json.dumps(dict(version=observation.VERSION,sequence=sequence,event=event,stage=stage,
+                               span=span,elapsedNs=elapsed,reason=reason,authorityGranted=False,**extra)).encode()+b'\n'
+
+    def split(self, raw):
+        return observation.split_original(raw,hashlib.sha256(raw).hexdigest())
+
+    def test_mixed_stdout_stderr_only_removes_validated_observations(self):
+        payload=b'{\n "version": "original-result/v1",\n "value": 1\n}\n'
+        raw=self.observation_line(1,'BEGIN')+self.observation_line(2,'BEGIN','STATIC_LOAD',2)+self.observation_line(3,'END','STATIC_LOAD',2,100)+self.observation_line(4,'END',elapsed=200)+payload
+        result,other=self.split(raw)
+        self.assertEqual(other,payload);self.assertEqual(json.loads(other)['value'],1)
+        self.assertEqual(result['completedSpans'][0]['elapsedNs'],100)
+        self.assertEqual(result['status'],'INTERVALS_RETURNED')
+        self.assertFalse(result['businessQualified']);self.assertFalse(result['ordinaryOutputAssumedSafe'])
+        legacy=b'original terminal error /private/marker '+observation.VERSION.encode()+b'\n'
+        result,other=self.split(raw+legacy)
+        self.assertEqual(other,payload+legacy)
+        self.assertNotIn('/private/marker',json.dumps(result))
+
+    def test_cancel_partial_and_empty_logs_never_create_end_or_signal_exit(self):
+        raw=self.observation_line(1,'BEGIN')+self.observation_line(2,'BEGIN','BOOTSTRAP_VALIDATE',2)+self.observation_line(3,'CANCEL',elapsed=100,reason='SIGTERM')
+        result,other=self.split(raw)
+        self.assertTrue(result['canceledSignalObserved']);self.assertFalse(result['cleanupCompleteInferred'])
+        self.assertFalse(result['signalExitStatusInferred']);self.assertEqual(result['completedSpans'],[])
+        self.assertTrue(all(row['elapsedNs'] is None for row in result['unresolvedSpans']))
+        partial=b'{"version":"'+observation.VERSION.encode()+b'","sequence":4'
+        result,other=self.split(raw+partial)
+        self.assertEqual(other,partial);self.assertEqual(len(result['partialRecordPrefixes']),1)
+        no_newline=self.observation_line(4,'END',elapsed=200).rstrip(b'\n')
+        result,other=self.split(raw+no_newline)
+        self.assertEqual(other,no_newline);self.assertEqual(result['completedSpans'],[])
+        result,other=self.split(b'')
+        self.assertEqual(result['status'],'NOT_OBSERVED');self.assertFalse(result['canceledSignalObserved'])
+
+    def test_closed_observation_vocabulary_and_matching_spans_are_required(self):
+        start=self.observation_line(1,'BEGIN')
+        for line in [self.observation_line(3,'END',elapsed=1),self.observation_line(2,'END','STATIC_LOAD',2,1),
+                     self.observation_line(2,'CANCEL',reason='SIGKILL'),self.observation_line(2,'BEGIN','private-path',2),
+                     self.observation_line(2,'BEGIN','STATIC_LOAD',2,path='/private'),
+                     self.observation_line(2,'END',elapsed=True)]:
+            with self.assertRaises(RuntimeError):self.split(start+line)
+        duplicate=start.replace(b'"sequence": 1',b'"sequence": 1,"sequence": 1')
+        with self.assertRaises(RuntimeError):self.split(duplicate)
+        with self.assertRaises(RuntimeError):observation.split_original(start,'0'*64)
+
+    def test_observation_truncation_does_not_close_active_spans(self):
+        raw=self.observation_line(1,'BEGIN')
+        for i in range(31):
+            raw+=self.observation_line(2+i*2,'BEGIN','STATIC_CURRENT',2+i)
+            raw+=self.observation_line(3+i*2,'END','STATIC_CURRENT',2+i,10)
+        raw+=self.observation_line(64,'TRUNCATED','OBSERVATION',0,100,'RECORD_BOUND')
+        result,other=self.split(raw)
+        self.assertTrue(result['truncated']);self.assertEqual(result['unresolvedSpans'],[dict(span=1,stage='REQUEST',elapsedNs=None)])
+        with self.assertRaises(RuntimeError):self.split(raw+self.observation_line(65,'END',elapsed=200))
+
     def test_optional_safe_failure_never_grants_source_or_replay(self):
         value=dict(version='YNX-PQ-LAB-PUBLIC-OWNER-FAILURE/v1',errorClass='CHECKPOINT_REJECTED',
                    failurePhase='SIGN',firstCausePresent=True)
