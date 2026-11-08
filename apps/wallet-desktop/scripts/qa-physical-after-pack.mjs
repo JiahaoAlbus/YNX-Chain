@@ -6,10 +6,11 @@ import {assemblePhysicalQACodeLayout} from './physical-code-layout.mjs';
 import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import {assertPhysicalQAProfile} from './qa-profile-selection.mjs';
 export default async function qaAfterPack(context){
  if(context.electronPlatformName!=='darwin'||context.arch!==3)throw Error('WALLET_PHYSICAL_QA_ARM64_ONLY');
  const profile=process.env.YNX_WALLET_QA_PROFILE_PATH;
- if(!profile||!path.isAbsolute(profile)||path.normalize(profile)!==profile||fs.realpathSync(profile)!==profile||fs.readdirSync(profile).length)throw Error('WALLET_PHYSICAL_QA_FRESH_PROFILE_REQUIRED');
+ const {reuseExisting}=assertPhysicalQAProfile(profile,{reuseExisting:process.env.YNX_WALLET_QA_REUSE_EXISTING_PROFILE==='1'});
  await afterPack(context);
  const contents=path.join(context.appOutDir,context.packager.appInfo.productFilename+'.app','Contents'),resources=path.join(contents,'Resources'),plist=path.join(contents,'Info.plist');
  const original=verifyDesktopPackage(resources,context.packager.projectDir);
@@ -19,5 +20,5 @@ export default async function qaAfterPack(context){
  execFileSync('plutil',['-replace','CFBundleIdentifier','-string','com.ynxweb4.wallet.qa.'+original.sourceCommit.slice(0,12),plist]);
  execFileSync('plutil',['-replace','CFBundleDisplayName','-string','YNX Wallet QA',plist]);
  const checked=verifyDesktopPackage(resources,context.packager.projectDir);
- fs.writeFileSync(path.join(resources,'ynx-wallet-qa-verification.json'),JSON.stringify({sourceCommit:original.sourceCommit,beforePhysicalVerified:original.packagedSourceVerified,physical:checked.physicalCodeLayout,profile,officialRelease:false,installed:false,SourceAdmission:false,RootAdmission:false},null,2)+'\n');
+ fs.writeFileSync(path.join(resources,'ynx-wallet-qa-verification.json'),JSON.stringify({sourceCommit:original.sourceCommit,beforePhysicalVerified:original.packagedSourceVerified,physical:checked.physicalCodeLayout,profile,reuseExistingProfile:reuseExisting,officialRelease:false,installed:false,SourceAdmission:false,RootAdmission:false},null,2)+'\n');
 }
