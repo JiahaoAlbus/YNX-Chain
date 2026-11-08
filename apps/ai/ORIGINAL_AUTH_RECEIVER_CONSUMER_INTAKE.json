@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "kind": "Original Auth registered receiver normal Go service intake",
+  "handoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/HANDOFF.json",
+    "bytes": 6068,
+    "sha256": "2e754ca2c064151e2b97f1ff9ae5113d93316ff1ab6cb6c8454be7e3a609fb33"
+  },
+  "CAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/CAS.json",
+    "bytes": 6625,
+    "sha256": "daf48a897920c025005b06399a939aaf2ae3ca56704304b08a1943b7897ac754"
+  },
+  "sourcefiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/SOURCEFILES.json",
+    "bytes": 23963,
+    "sha256": "7934dda5762a7a08359747807ce4ceb9df7fe471bb0da7cfaa9254c4b5e9b762"
+  },
+  "verifiedUniqueReferences": 93,
+  "imports": [
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver.go",
+        "bytes": 16243,
+        "sha256": "a344a9064df688a84a8f2934d9410746565bb862daf771b532adc7a52a55d003",
+        "blob": "5498ada5e65a7d707667255e634a7fa8b404827b"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_files.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver_files.go",
+        "bytes": 10202,
+        "sha256": "b8378f3aa8dbe9efdc586656595acab602ff900d654cfa661e5fea32b6e4d0de",
+        "blob": "ddbbf63282caa44c75eebef7dae03eb72bd3a266"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_process.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver_process.go",
+        "bytes": 406,
+        "sha256": "d0b708e035c6187122f09093d3b66ea04331da9124db69fa30020ee86321d78d",
+        "blob": "bcfaf3ff29e96a10e7f71be28f1442420fff44eb"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_process_darwin.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver_process_darwin.go",
+        "bytes": 1091,
+        "sha256": "f277ed66938674d71165a351c6d8a785def4f6ba479b6ff28a595920a2137798",
+        "blob": "f8aa1c5911d0d436924b3edaa167a3f4023ad338"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_process_darwin_nocgo.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver_process_darwin_nocgo.go",
+        "bytes": 175,
+        "sha256": "0258b2eb2b6fb66124dbcc8ddbc0b5f28950cec7f61e7d3a4adfdcc6f9a1b4b8",
+        "blob": "bc52aba40161d721e25a86557c8d28355702cab5"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "packages/auth-grant-runtime/go/task_read_receiver_process_linux.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/runtime/source/task_read_receiver_process_linux.go",
+        "bytes": 1447,
+        "sha256": "8560e008b8645eb77af0cb8f18e0a4df07c07a3ce0d1155543d600a5b9843b52",
+        "blob": "7d4906436b7bb08866498b678585a782ccb78101"
+      },
+      "before": null,
+      "byteExact": true
+    },
+    {
+      "target": "internal/authtasklocal/local.go",
+      "operation": "MOD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/local/source/local.go",
+        "bytes": 10259,
+        "sha256": "b3f211d81b344a018c896ca9f869ec2da9405a264411994b108f92b6f56d3fb9",
+        "blob": "a72aafbc8c2b0752c6457d987853f5bfe9db575c"
+      },
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/before/local.go",
+        "bytes": 9343,
+        "sha256": "cf5fc39cde2e2a3eac971783098cb585699dff8cf214328547e22c75e94a3330",
+        "blob": "806e3d13e37833f76f4d00b5e5f6c3aa566c8d26"
+      },
+      "byteExact": true
+    },
+    {
+      "target": "internal/authtasklocal/task_read_receiver.go",
+      "operation": "ADD",
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/registered-receiver-source-successor/frozen-r1-CO1voA/local/source/task_read_receiver.go",
+        "bytes": 3680,
+        "sha256": "5df9a0f324321d3c971759f5232c335dd400048796b619807be4e1d1df249699",
+        "blob": "4c5a5f1e0d82c049d219e42bbcb787cd92e9b8fe"
+      },
+      "before": null,
+      "byteExact": true
+    }
+  ],
+  "supplierTests": "Frozen supplier controls reused, not copied or rerun; consumer conformance and normal zero-input lifecycle checked separately",
+  "latestLINKSuccessor": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/QUALIFIED-DELIVERY.json",
+    "bytes": 11658,
+    "sha256": "0dd253112b7f3e156334f45893d2940c77cc19b6f108992e369a8916eab92a87"
+  },
+  "LINKSource": "a9d71639b3ca1be0e0b1cfeb306bcfa0ee914765",
+  "LINKConsumption": "Explicit next normal-input selection only. Existing eb311 Go production leaves unchanged. No JS/Native/installed or in-flight A image hot swap. New two JS leaves remain original LINK supplied, not P08 rewritten.",
+  "sourcePurposeDependency": {
+    "status": "NOT_SUPPLIED CODE/CONTRACT dependency separate from real Root resources",
+    "existing": "Original E21/E3/Core path authenticates task Source provenance only, NEVER receiver-purpose permission.",
+    "required": "Sole SDK/Source accepted SAME-Root receiver-purpose/current typed Source borrow binding authority/realm/tenant/version + independent receiverResource/namespace + actual server/caller peer/image/current + endpoint/finite3 budgets/window/revoke/lifetime. Existing accepted Source projection has no such receiver-purpose binding. No real row may be emitted/admitted until that gate exists.",
+    "privateTransportDTO": "Only bounded Root-owned postbuild configuration mechanism; not a signed Source projection or approval format."
+  },
+  "rootRowsAdded": false,
+  "newRuntimeOrArchive": false,
+  "businessAdmitted": false,
+  "latestLINKNextNormalSelection": {
+    "exactChangedLeaves": [
+      {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/cmd/ynx-secure-link-caller/task-grant-transport.mjs",
+        "bytes": 10852,
+        "sha256": "270b922f9ba246e7f984914fd1838f2ec3e58cae1195b7674e7580756804bfe7"
+      },
+      {
+        "path": "/Users/huangjiahao/.codex/worktrees/v5-link-native-ci/YNX Chain/cmd/ynx-secure-link-caller/task-grant-transport.test.mjs",
+        "bytes": 28238,
+        "sha256": "be48fc9c22a5e4f9ec30603c330939e27fd551a426b4bac8d7595830db7f3e3f"
+      }
+    ],
+    "qualifiedCIH": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-normal-consumer-next/ci-42435498303/readback-JAPuVg/CI-QUALIFIED-HANDOFF.json",
+      "bytes": 6315,
+      "sha256": "7dcc67be528290423f8e710f2162870c7f9f8ba84f0f51c62b8d24f7a0251b41"
+    },
+    "originalCI": {
+      "run": 42435498303,
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/42435498303",
+      "requiredJobs": [
+        {
+          "id": 128593686019,
+          "name": "LINK Product transport and archive deployment controls",
+          "conclusion": "success"
+        },
+        {
+          "id": 128593686193,
+          "name": "LINK resource-current native client and Linux kernel peer controls",
+          "conclusion": "success"
+        },
+        {
+          "id": 128593686288,
+          "name": "Chain Core source and release gate",
+          "conclusion": "success"
+        },
+        {
+          "id": 128593686325,
+          "name": "LINK actual Auth Reader and original P09 Go lifecycle",
+          "conclusion": "success"
+        },
+        {
+          "id": 128593686412,
+          "name": "Select actual LINK changed closure",
+          "conclusion": "success"
+        },
+        {
+          "id": 128593786895,
+          "name": "LINK native S3 source and isolated transport (not Chain release)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "consumption": "Next normal JS consumer input only; existing Go eb311 source and installed/in-flight A images are unchanged. Whole/component green reused, not rerun."
+  }
+}

@@ -66,7 +66,14 @@ refuse; foreign accounts, holders and tasks remain 404. Reads are no-store and
 do not mutate the durable image or call an executor, query or model. The private
 resource original-query path remains independently available for settlement.
 
-The next matching-cohort work consumes LINK eb311's real continuation inventory
-and the original Auth strict decoder/runtime/local adapter. It must not mix that
-new protocol/NAPI family with old R2/flat6 or promote HTTP DATA to a capability.
-This implementation does not claim installed/business/Root acceptance.
+The normal Go service consumes LINK eb311's real continuation inventory, the
+original Auth strict decoder/reservation adapter, and the original owner's real
+receiver registration/current methods. The byte-exact receiver intake is pinned
+in ORIGINAL_AUTH_RECEIVER_CONSUMER_INTAKE.json. Its receiver-purpose Source
+permission/current contract remains NOT_SUPPLIED; real Root registration and
+provider qualification are separate gates. Missing receiver selection returns
+no config, opens no listener and preserves the original grant Source first cause.
+The latest LINK a9d7163 two-leaf JS successor and its qualified CI handoff are
+explicitly selected only for subsequent normal consumer inputs; existing Go
+production remains eb311. No installed/in-flight image is hot-swapped. Do not
+promote HTTP DATA to a capability or claim installed/business/Root acceptance.

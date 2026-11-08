@@ -38,6 +38,10 @@ type Owner struct {
 	children                        map[*heldLocalSource]struct{}
 	retireOnce, closeOnce           sync.Once
 	retireErr, closeErr, earlyClose error
+	receiver                        receiverRuntime
+	receiverFirst                   error
+	receiverCloseMu                 sync.Mutex
+	receiverClosed                  bool
 }
 
 // Zero-input normal factory calls the real original factory and preserves a
@@ -45,6 +49,7 @@ type Owner struct {
 // empty. It never reads local paths or creates a Source from OS accessibility.
 func OpenOriginalLocalTaskGrantSource() (*Owner, error) {
 	o := &Owner{children: make(map[*heldLocalSource]struct{})}
+	o.openOriginalTaskReadReceiver()
 	r, e := native.OpenOriginalGrantRuntime()
 	o.runtime = r
 	o.first = e
@@ -200,9 +205,13 @@ func (o *Owner) Retire() error {
 		o.mu.Lock()
 		o.retired = true
 		r := o.runtime
+		receiver := o.receiver
 		o.mu.Unlock()
+		if receiver != nil {
+			o.retireErr = receiver.Retire()
+		}
 		if r != nil {
-			o.retireErr = r.Retire()
+			o.retireErr = errors.Join(o.retireErr, r.Retire())
 		}
 	})
 	return o.retireErr
@@ -212,12 +221,18 @@ func (o *Owner) Join() error {
 		return nil
 	}
 	o.mu.Lock()
-	defer o.mu.Unlock()
 	if !o.retired {
+		o.mu.Unlock()
 		return native.ErrRetired
 	}
 	if o.calls != 0 || len(o.children) != 0 {
+		o.mu.Unlock()
 		return ErrChildrenRetained
+	}
+	receiver := o.receiver
+	o.mu.Unlock()
+	if receiver != nil {
+		return receiver.Join()
 	}
 	return nil
 }
@@ -236,7 +251,25 @@ func (o *Owner) Close() error {
 		return e
 	}
 	early := o.earlyClose
+	receiver := o.receiver
 	o.mu.Unlock()
+	// Only our concrete receiver custody is owned here, not P08/LINK's listener.
+	// An unresolved receiver child must never be crossed to close the grant parent.
+	if receiver != nil {
+		o.receiverCloseMu.Lock()
+		if !o.receiverClosed {
+			if e := receiver.Join(); e != nil {
+				o.receiverCloseMu.Unlock()
+				return e
+			}
+			if e := receiver.Close(); e != nil {
+				o.receiverCloseMu.Unlock()
+				return e
+			}
+			o.receiverClosed = true
+		}
+		o.receiverCloseMu.Unlock()
+	}
 	o.closeOnce.Do(func() {
 		o.closeErr = retire
 		if o.runtime != nil {
