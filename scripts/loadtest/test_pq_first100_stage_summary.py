@@ -18,6 +18,35 @@ fixtures = module('first100_stage_original_ledger_fixture', 'test_pq_observed_th
 
 
 class First100StageSummaryControls(unittest.TestCase):
+    def test_interrupted_helper_cleanup_is_not_a_child_return_or_zero_wait(self):
+        report=dict(schema='YNX-PERF-PARENT-HELPER-BOUNDARIES/v1',clock='parent_monotonic_ns',
+                    attempted=3,completed=2,inFlight=1,retained=2,omittedCompleted=0,recordLimit=2048,
+                    records=[dict(name='launched',requestedMonotonicNs=10,slotAcquiredMonotonicNs=20,
+                                  launchRequestedMonotonicNs=25,launchReturnedMonotonicNs=40,
+                                  cleanupFinishedMonotonicNs=100,returnedMonotonicNs=110,errorType='RuntimeError'),
+                             dict(name='no-slot',requestedMonotonicNs=15,returnedMonotonicNs=90,errorType='RuntimeError')])
+        data=dict(originalHelperLifecycle=dict(maxConcurrent=3,cleanupDebt=[],parentTiming=report))
+        result=m.helper_stages(data)
+        self.assertEqual(result['stages']['requestToReturn']['observed'],2)
+        self.assertEqual(result['stages']['requestToReturn']['denominator'],3)
+        self.assertEqual(result['stages']['launchToCleanup']['minNs'],60)
+        self.assertEqual(result['stages']['parentWait']['observed'],0)
+        self.assertIsNone(result['stages']['parentWait']['minNs'])
+        self.assertFalse(result['records'][0]['childWaitReturnObserved'])
+        self.assertFalse(result['calleeElapsedInferred'])
+        self.assertEqual(m.helper_stages({})['status'],'NOT_SUPPLIED')
+        report['records'][0]['launchReturnedMonotonicNs']=120
+        with self.assertRaises(RuntimeError):m.helper_stages(data)
+
+    def test_helper_missing_completed_records_cannot_shrink_attempt_denominator(self):
+        report=dict(schema='YNX-PERF-PARENT-HELPER-BOUNDARIES/v1',clock='parent_monotonic_ns',
+                    attempted=5,completed=5,inFlight=0,retained=0,omittedCompleted=5,recordLimit=2048,records=[])
+        data=dict(originalHelperLifecycle=dict(maxConcurrent=3,cleanupDebt=[],parentTiming=report))
+        result=m.helper_stages(data)
+        self.assertEqual(result['stages']['requestToReturn']['missingOrCensored'],5)
+        report['omittedCompleted']=0
+        with self.assertRaises(RuntimeError):m.helper_stages(data)
+
     def setUp(self):
         for name in ('subprocess.Popen', 'urllib.request.urlopen', 'socket.create_connection'):
             patch = mock.patch(name, side_effect=AssertionError('local readback must not execute or use network'))

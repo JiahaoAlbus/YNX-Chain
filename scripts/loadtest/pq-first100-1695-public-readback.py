@@ -178,6 +178,7 @@ def inspect(files, prefix=''):
                 originalRuntimeHardware=receipt.get('runtimeHardware'),
                 originalPublicOwnerParentTimings=parent_transport, originalResources={k:receipt.get(k) for k in ('elapsedSeconds','peakRSSBytes','peakNewBytes','resourceGuardStageElapsed')},
                 originalSignReplies=original_sign_replies(files,prefix,load),
+                originalHelperLifecycle=receipt.get('normalHelperLifecycle'),
                 pressureAuthorized=False, physicalFaultDomains=1, stable1000TPSQualified=False,
                 runtimeBinaryBytesIndependentlyRehashed=False)
 

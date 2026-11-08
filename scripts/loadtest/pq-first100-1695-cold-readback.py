@@ -119,6 +119,7 @@ def inspect(files, prefix=''):
                 originalObservationRPCTiming=receipt.get('normalObservationRPCTiming'), originalNetworkAccounting=receipt.get('networkAccounting'),
                 originalOwnedStorageAccounting=receipt.get('ownedStorageAccounting'),
                 originalRuntimeHardware=receipt.get('runtimeHardware'), originalResources={k:receipt.get(k) for k in ('elapsedSeconds','peakRSSBytes','peakNewBytes','resourceGuardStageElapsed')},
+                originalHelperLifecycle=receipt.get('normalHelperLifecycle'),
                 pressureAuthorized=False, physicalFaultDomains=1, stable1000TPSQualified=False,
                 runtimeBinaryBytesIndependentlyRehashed=False)
 

@@ -296,12 +296,59 @@ def business(load):
                 actualConsensusCommitLatency=None, stableFinalTPS='UNMEASURED')
 
 
+def helper_stages(readback):
+    lifecycle = readback.get('originalHelperLifecycle')
+    if lifecycle is None:
+        return dict(status='NOT_SUPPLIED', records=[], stages={}, calleeElapsedInferred=False)
+    report = lifecycle['parentTiming']
+    require(report['schema'] == 'YNX-PERF-PARENT-HELPER-BOUNDARIES/v1'
+            and report['clock'] == 'parent_monotonic_ns', 'original helper parent clock/schema differs')
+    attempted, completed, inflight, retained, omitted, limit = [integer(report[k], k) for k in
+        ('attempted', 'completed', 'inFlight', 'retained', 'omittedCompleted', 'recordLimit')]
+    rows = report['records']
+    require(completed + inflight == attempted and retained + omitted == completed
+            and limit == 2048 and retained == len(rows) <= limit,
+            'original helper parent coverage differs')
+    require(len({row['name'] for row in rows}) == len(rows), 'duplicate original helper identity')
+    boundaries = ('requestedMonotonicNs', 'slotAcquiredMonotonicNs', 'launchRequestedMonotonicNs',
+                  'launchReturnedMonotonicNs', 'waitReturnedMonotonicNs',
+                  'cleanupFinishedMonotonicNs', 'returnedMonotonicNs')
+    spans = dict(requestToReturn=(boundaries[0], boundaries[-1]),
+                 helperSlotWait=(boundaries[0], boundaries[1]),
+                 slotToLaunch=(boundaries[1], boundaries[2]),
+                 parentLaunch=(boundaries[2], boundaries[3]),
+                 parentWait=(boundaries[3], boundaries[4]),
+                 parentCleanup=(boundaries[4], boundaries[5]),
+                 launchToCleanup=(boundaries[3], boundaries[5]))
+    values = collections.defaultdict(list)
+    records = []
+    for row in rows:
+        require('requestedMonotonicNs' in row and 'returnedMonotonicNs' in row,
+                'completed original helper lacks request/return')
+        times = [integer(row[key], key) for key in boundaries if key in row]
+        require(times == sorted(times), 'original helper parent boundaries reversed')
+        durations = {name: row[end]-row[start] if start in row and end in row else None
+                     for name, (start, end) in spans.items()}
+        for name, elapsed in durations.items():
+            values[name].append(elapsed)
+        records.append(dict(originalRecord=copy.deepcopy(row), stagesNs=durations,
+                            childWaitReturnObserved='waitReturnedMonotonicNs' in row,
+                            businessSuccessInferred=False))
+    return dict(status='OBSERVED_PARENT_BOUNDARIES', attempted=attempted, completed=completed,
+                inFlight=inflight, omittedCompleted=omitted, records=records,
+                maxConcurrent=lifecycle['maxConcurrent'], cleanupDebt=copy.deepcopy(lifecycle['cleanupDebt']),
+                stages={name: samples(values[name], attempted) for name in spans},
+                calleeElapsedInferred=False, stagesAdded=False, intervalsOverlap=True,
+                meaning='Parent wait/launch include guard overhead. Cleanup after an interrupted helper is not a successful child return or Go elapsed time; missing boundaries stay unknown.')
+
+
 def diagnostic(readback):
     return dict(source=readback['source'], tools=readback['tools'], controller=readback['controller'],
                 archiveSHA256=readback['archiveSHA256'], originalFirstCause=readback.get('originalFirstCause'),
                 initialization=initialization(readback), commit=commit_stages(readback),
                 nodeStartup=node_startup(readback), callees=callee_stages(readback), preparation=preparation(readback),
                 resources=resources(readback), observationRPC=rpc_stages(readback), tcp=tcp_scope(readback),
+                helpers=helper_stages(readback),
                 originalReadinessObservations=copy.deepcopy(readback.get('originalReadinessObservations')),
                 originalFailedCalleeMeasurements=copy.deepcopy(readback.get('originalFailedCalleeMeasurements')),
                 originalCompletionDiagnostics=copy.deepcopy(readback.get('originalCompletionDiagnostics')),
