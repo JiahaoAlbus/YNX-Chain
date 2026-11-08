@@ -1,0 +1,100 @@
+{
+  "schema": "AUTH_SHARED_GO_PRODUCT_SESSION_CURRENT_CONSUMER/v1",
+  "state": "SOURCE_COMMITTED_PUSHED_LOCAL_RACE_VET_VERIFIED_NOT_AUTHORITY_OR_PRODUCT_RUNTIME",
+  "owner": "Original Auth unique writer; A formal build/release only",
+  "branch": "codex/auth-productsessionv2-current-20261108",
+  "reviewedSourceCheckpoint": {
+    "commit": "b65601f28146d50c756cec0fa42c94445039fa14",
+    "tree": "b4ad3b72e50c57c619a4e259b98cedc5689e3648",
+    "base": "76979f5f21329aaeb2047437bf2ff4f4b60e2ef2"
+  },
+  "source": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-productsessionv2-consumer-successor-20261108/internal/productsessionv2/client.go",
+      "bytes": 18157,
+      "sha256": "ef888cbb4d41dcce360ad9b49692b644404c8b178fe3d0d3f0fc75b826e4d0eb",
+      "gitBlob": "131ec9bc245a84e2ea748896ba50bee037b5405f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-productsessionv2-consumer-successor-20261108/internal/productsessionv2/session_account_authorization.go",
+      "bytes": 3308,
+      "sha256": "1a83c07558b9c2eca12ff20a9d7026a9bd5981dddfc5f5d3a722bef3ea847bc6",
+      "gitBlob": "723ebf7ef8a15d2a7326fd9f436356dd54dd6ad5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-productsessionv2-consumer-successor-20261108/internal/productsessionv2/client_current_test.go",
+      "bytes": 12405,
+      "sha256": "5c074fe7d42e258dfaab088de5226c66b24736e229e1e73fdd5fd342f0fe2c88",
+      "gitBlob": "6bdff5c61a893721b81722b9b20820ad84a73947"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-productsessionv2-consumer-successor-20261108/internal/productsessionv2/testdata/original_sdk_session_authorization_vectors.json",
+      "bytes": 118155,
+      "sha256": "6d8cc4dd7ad235a6077fe8576374db5ed18971d2bcd5aacba025f6fa18a32849",
+      "gitBlob": "beb2799ebbe4d29e3aa3d90ed87f1a8f80f40b2f"
+    }
+  ],
+  "soleContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-shared-go-v3-session-contract-20261108/CONTRACT.json",
+    "bytes": 5646,
+    "sha256": "2fb09dcf7667eeb94dd1b26e1f4eee3b276aa2eed13ebad9f0d752d335cbbaca"
+  },
+  "evidence": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/shared-go-current-20261108-nXmg9D/RESULT.json",
+    "bytes": 1775,
+    "sha256": "3bdc554b2050e5386c39dc83ea703753ad167ada9f6cce579107b821302ba1dc"
+  },
+  "newTests": {
+    "top": 8,
+    "subcases": 63,
+    "skip": 0,
+    "fail": 0,
+    "race": true,
+    "vet": true,
+    "oracle": "20 direct+20 actual HTTP Authorize using original SDK public vectors",
+    "HTTPClockAdvance": "response BODY EOF, not an earlier RoundTrip callback",
+    "fixtures": "PUBLIC authority RoundTripper only, not registered/live proofs"
+  },
+  "changes": [
+    "Existing v2 HTTP consumer accepts full v3 session only with exact nine-field accountAuthorization, uint64 canonical strings/full lowercase pk2592/64, original accountaddress.Decode owner binding; no new crypto or policy installer",
+    "HTTP after-proof/session at one fresh clock, reject backwards clock/cancel, preserve proof-in-session window",
+    "ALL session scopes subset of fixed policy AllowedScopes, not only required route scopes",
+    "Web mutations require registered Origin; reject duplicate/mixed-case Origin or proof fields. Native and readonly web GET omission stays supported",
+    "v2 legitimate sessions remain; v1 and unsupported v4 are not reinterpreted or revived"
+  ],
+  "currentAuthority": "Original configured HTTPS gateway must perform actual current account-policy qualification; local schema cannot issue grants. P07 private verifiedBusinessRequest and business role/store mappings remain independently required.",
+  "CI": {
+    "existingWorkflow": ".github/workflows/ci.yml -> make test",
+    "existingMakefile": "test: go test ./cmd/... ./internal/...",
+    "automaticallyIncluded": "new internal/productsessionv2/*_test.go",
+    "workflowChanged": false,
+    "hostedRun": false,
+    "PRCreated": false
+  },
+  "firstFailures": [
+    "Offline GOTOOLCHAIN=local via Homebrew go1.25.7 refused go.mod1.26.10; used already-existing pinned Go1.26.10 cached binary, no download/gomod change",
+    "First test compilation on old API lacked new parser/Session field",
+    "Go regexp repetition5184 init panic fixed using exact-length lowercase hex scan, no length relaxation"
+  ],
+  "toolchain": {
+    "path": "/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.26.10.darwin-arm64/bin/go",
+    "bytes": 14534704,
+    "sha256": "5742f0004c49c005313d88cd06df964b09cad6bcf2eac4506bdb90abc923b1f4"
+  },
+  "truth": {
+    "newProtocol": false,
+    "newCrypto": false,
+    "newIssuer": false,
+    "Root": false,
+    "SourceAdmission": false,
+    "actualGateway": false,
+    "actualAccount": false,
+    "signature": false,
+    "keys": false,
+    "businessRole": false,
+    "serviceDeployment": false,
+    "installed": false,
+    "FinanceResumed": false
+  },
+  "integration": "Consume exact source checkpoint/matching package in P07 normal v2 client; P04 existing Node SDK authorizer remains independent. One original Go runtime/archive only, never hot-mix frozen Source150 or A packet."
+}
