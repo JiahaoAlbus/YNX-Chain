@@ -11,7 +11,7 @@ on:
         description: Exact own1b fresh504 initialization then first100 online100x5; separate fresh Root window required
         type: choice
         default: functional
-        options: [functional, first100-own1b-initialize-before-load, first100-d24-initialize-before-load, first100-1695-bounded-cold, first100-1695-public-owner]
+        options: [functional, first100-own1b-initialize-before-load, first100-d24-initialize-before-load, first100-1695-bounded-cold, first100-1695-public-owner, first100-7c25-public-owner]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   functional:
-    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load')
+    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')
     name: Normal original PQ processes (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -625,6 +625,150 @@ jobs:
             ${{ runner.temp }}/pq-hosted-initialization-space-first100-1695-public-owner-${{ github.run_id }}-1/INTENT.json
             ${{ runner.temp }}/pq-hosted-initialization-space-first100-1695-public-owner-${{ github.run_id }}-1/AFTER.json
             ${{ runner.temp }}/pq-hosted-initialization-space-first100-1695-public-owner-${{ github.run_id }}-1/RESULT.json
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  first100-7c25-controller-controls:
+    name: Fixed 7c25 public-owner source and adapter pure guards
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      YNX_PROFILE_TEST_TOOLS: ${{ github.workspace }}/tools/scripts/loadtest
+    steps:
+      - name: Receive this exact controller and original 7c25 adapter controls
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-first100-7c25-ci.py
+            /scripts/loadtest/test_pq_first100_7c25_ci.py
+      - name: Receive the independently qualified fixed runtime tools
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 5edcc63b746a2f1c66d8d74e61d0fca1748c2441
+          path: tools
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Require all eight original adapter controls and the actual workflow without a window
+        run: |
+          python3 -I -B - <<'PY7C25'
+          import importlib.util, unittest
+          from pathlib import Path
+          path=Path('controller/scripts/loadtest/test_pq_first100_7c25_ci.py')
+          spec=importlib.util.spec_from_file_location('fixed_7c25_controls',path)
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          workflow=Path('controller/.github/workflows/pq-normal-process.yml').read_text()
+          module.assert_workflow(workflow)
+          functional=workflow.split('  functional:\n',1)[1].split('    name:',1)[0]
+          if functional.strip()!="if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')":
+              raise SystemExit('new fixed profile must never fall through to the old functional job')
+          profile=workflow.split('  first100-7c25-public-owner:\n',1)[1].split('    needs:',1)[0]
+          route=[line.strip() for line in profile.splitlines() if line.startswith('    if: ')]
+          if route!=["if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-7c25-public-owner' && inputs.signing_mode == 'online'"]:
+              raise SystemExit('new profile requires the sole original fresh online dispatch route')
+          module.entry.verify_tools(Path('tools').resolve(strict=True))
+          suite=unittest.defaultTestLoader.loadTestsFromModule(module)
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun!=8 or result.skipped or not result.wasSuccessful():
+              raise SystemExit('all8 fixed7c25 pure controls must actually execute and pass')
+          PY7C25
+
+  first100-7c25-public-owner:
+    name: 7c25 public-owner normal504 initialization then first100 online100x5
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-7c25-public-owner' && inputs.signing_mode == 'online'
+    needs: first100-7c25-controller-controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1024MiB
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Receive this exact controller and original 7c25 adapter
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-first100-7c25-ci.py
+            /scripts/loadtest/test_pq_first100_7c25_ci.py
+      - name: Receive exact 7c25 qualified source without a production overlay
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7c25cbcc7d31b10743e26ae1ddca745085ee1b0b
+          path: source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/resource-market-ci.yml
+            /go.mod
+            /go.sum
+            /cmd/
+            /internal/
+            /pkg/
+            /third_party/cometbft/
+            /scripts/ops/validate-pq-remote-normal-ci.py
+            /scripts/loadtest/pq-source-artifact-intake.py
+      - name: Receive independently qualified fixed runtime tools and original fixtures
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 5edcc63b746a2f1c66d8d74e61d0fca1748c2441
+          path: tools
+          fetch-depth: 1
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Install the original pinned normal toolchain without shared build caches
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Require exact runtime tools CI and source semantic DATA before a fresh window
+        env:
+          PQ_BASELINE_PROFILE: first100-7c25-public-owner
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          python3 -I -B controller/scripts/loadtest/pq-first100-7c25-ci.py --check-tools-ci > "${{ runner.temp }}/pq-first100-7c25-tools-ci.json"
+      - name: Execute the sole original same-window normal504 then first100 and cleanup
+        id: first100
+        env:
+          PQ_BASELINE_PROFILE: first100-7c25-public-owner
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -I -B controller/scripts/loadtest/pq-first100-7c25-ci.py \
+            --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
+      - name: Preserve only original public qualification results and first failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-first100-7c25-public-owner-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pq-first100-7c25-tools-ci.json
+            ${{ runner.temp }}/pq-independent-load-*/public/
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
