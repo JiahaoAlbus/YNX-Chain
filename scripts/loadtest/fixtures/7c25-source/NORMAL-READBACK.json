@@ -1,0 +1,121 @@
+{
+  "schema": "YNX-PERF-7C25-NORMAL-CI-ORIGINAL-READBACK/v1",
+  "source": "7c25cbcc7d31b10743e26ae1ddca745085ee1b0b",
+  "sourceTree": "8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a",
+  "sourceCIRef": "codex/ynx-pq-perf-source-20261108",
+  "sourceCIRun": 42439090843,
+  "sourceCIJob": 128604251201,
+  "sourceOnlyQualified": true,
+  "cliRequiredPassed": [
+    "TestPQLabCalleeElapsedPUBLICColdSingleBefore",
+    "TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter",
+    "TestPQLabCheckpointCacheFallbackLargeOriginal",
+    "TestPQLabCheckpointCacheFallbackOnlyExactBound",
+    "TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent",
+    "TestPQLabLiveObservationCommandOptInAndLegacy",
+    "TestPQLabLiveObservationCommandScopeAndSink",
+    "TestPQLabLiveObservationSignalForwarding",
+    "TestPQLabPublicOwnerFailureDiagnosticActualRejection",
+    "TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary",
+    "TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck",
+    "TestPQLabSenderPUBLICOwnersOriginalStream",
+    "TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost",
+    "TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost"
+  ],
+  "coreRequiredPassed": [
+    "TestPQLabLiveObservationClosedStagesAndBounds",
+    "TestPQLabLiveObservationDisabledAndOutputFailure"
+  ],
+  "cli": {
+    "package": "github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab",
+    "packageInvocations": 1,
+    "requiredPassed": [
+      "TestPQLabCalleeElapsedPUBLICColdSingleBefore",
+      "TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter",
+      "TestPQLabCheckpointCacheFallbackLargeOriginal",
+      "TestPQLabCheckpointCacheFallbackOnlyExactBound",
+      "TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent",
+      "TestPQLabLiveObservationCommandOptInAndLegacy",
+      "TestPQLabLiveObservationCommandScopeAndSink",
+      "TestPQLabLiveObservationSignalForwarding",
+      "TestPQLabPublicOwnerFailureDiagnosticActualRejection",
+      "TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary",
+      "TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck",
+      "TestPQLabSenderPUBLICOwnersOriginalStream",
+      "TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost",
+      "TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost"
+    ],
+    "topCases": 14,
+    "childCases": 50,
+    "explicitSkipped": []
+  },
+  "core": {
+    "package": "github.com/JiahaoAlbus/YNX-Chain/internal/consensus",
+    "packageInvocations": 6,
+    "requiredPassed": [
+      "TestPQLabLiveObservationClosedStagesAndBounds",
+      "TestPQLabLiveObservationDisabledAndOutputFailure"
+    ],
+    "topCases": 610,
+    "childCases": 1535,
+    "explicitSkipped": [
+      "TestABCITransferPerformance",
+      "TestCommitStorageMatchedPerformance",
+      "TestFeeHistoryCost",
+      "TestPQCheckpointAccessTwoUIDOriginalStateLayouts",
+      "TestPQCheckpointAccessUIDHelper",
+      "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
+      "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart",
+      "TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart",
+      "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality",
+      "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
+    ]
+  },
+  "streams": {
+    "ynx-native-history-chain-tests.jsonl": {
+      "bytes": 65602,
+      "sha256": "7cf649b595436c23d9b60deda6d3ce9fa0200e938c36c30a89079459647c7655",
+      "events": 260
+    },
+    "ynx-initial-cache-state-tests.jsonl": {
+      "bytes": 2226299,
+      "sha256": "963ea4fca8475f4be7cfedef42c3e2546de04177f82f69deca27ef3c99a73004",
+      "events": 8682
+    },
+    "ynx-current4-wire-tests.jsonl": {
+      "bytes": 106881,
+      "sha256": "32e78aa0bb3ff47c616a2391a10ccaa4d0e12b14a9d8ab6e2d0bab95b9a8016e",
+      "events": 433
+    },
+    "ynx-lab-callee-tests.jsonl": {
+      "bytes": 70614,
+      "sha256": "742aec556b37340129893430164f93087c034e43227460be33a5113b746d156e",
+      "events": 265
+    },
+    "ynx-production-entrypoint-tests.jsonl": {
+      "bytes": 1408155,
+      "sha256": "1f99f4fa448af84468dfe381b482590620dc20ee6404230c44bbe2a9dd38244d",
+      "events": 5376
+    }
+  },
+  "originalSourceFiles": {
+    ".github/workflows/resource-market-ci.yml": {
+      "bytes": 474967,
+      "sha256": "34859948746bb252d9864f3ff891638d8dc32c61c63e01231f0269455fe97be2",
+      "gitBlob": "ad9eb894a9663ede861def01c6ccb77860bd48e8"
+    },
+    "scripts/ops/test_validate_pq_remote_normal_ci.py": {
+      "bytes": 414729,
+      "sha256": "22a35c1cf82e78db88c3e9ea87c83b6fd6c36f7a1e0da935e891be99d0f8de38",
+      "gitBlob": "06638261c6f7d7f09cc1c1a619f7fe93dbe5670c"
+    }
+  },
+  "oldRequiredCollectorsEnforcedByMatchingCI": true,
+  "actual500InitializedOwnersQualified": false,
+  "semanticPairConsumed": false,
+  "runtimePermissionGranted": false,
+  "pressureAuthorized": false,
+  "sourceParentAuthorityGranted": false,
+  "businessTPS": null,
+  "finalityLatency": null
+}

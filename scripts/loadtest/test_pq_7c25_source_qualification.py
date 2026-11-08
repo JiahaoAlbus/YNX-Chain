@@ -32,7 +32,8 @@ class FutureSourceControls(unittest.TestCase):
              mock.patch.object(d.subprocess,'Popen') as process:
             with self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):d.run(options())
         source.assert_not_called();window.assert_not_called();process.assert_not_called()
-        self.assertIsNone(m.NORMAL_RECEIPT_SHA256);self.assertIsNone(m.SEMANTIC_RECEIPT_SHA256)
+        self.assertEqual(m.NORMAL_RECEIPT_SHA256,'c4cb8cfcf87b6ff4f6de2f91af656f93cd7c663487c02e733e7448554a45fab9')
+        self.assertIsNone(m.SEMANTIC_RECEIPT_SHA256)
 
     def test_future_requires_own_profile_source_backend_and_same_demand(self):
         self.assertEqual(d.validate_options(options()),500)

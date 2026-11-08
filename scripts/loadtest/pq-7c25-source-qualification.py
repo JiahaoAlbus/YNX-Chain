@@ -18,7 +18,7 @@ CI_JOB = 128604251201
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 # These are evidence pins, not permissions. They may only be filled from the
 # Root sole collector's verified complete source/semantic originals.
-NORMAL_RECEIPT_SHA256 = None
+NORMAL_RECEIPT_SHA256 = 'c4cb8cfcf87b6ff4f6de2f91af656f93cd7c663487c02e733e7448554a45fab9'
 SEMANTIC_RECEIPT_SHA256 = None
 CLI_REQUIRED = frozenset(('TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost',
     'TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost', 'TestPQLabCalleeElapsedPUBLICColdSingleBefore',

@@ -1,0 +1,18 @@
+{
+  "schema": "YNX-PERF-7C25-NORMAL-READBACK-PROVENANCE/v1",
+  "source": "7c25cbcc7d31b10743e26ae1ddca745085ee1b0b",
+  "tree": "8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a",
+  "sourceCI": 42439090843,
+  "focusedJob": 128604251201,
+  "sourceCIConclusion": "success",
+  "soleCollectorHandoffSHA256": "aae69a61c3c759747aaba74887a9f043b275b6cd18afdfc43a17d771b872d88b",
+  "artifact": 13601662306,
+  "archiveBytes": 256252,
+  "archiveSHA256": "109510e0f9fdf2cb204e814c22a8ace01c422d38bf0245831ae673f41596877e",
+  "normalReadbackSHA256": "c4cb8cfcf87b6ff4f6de2f91af656f93cd7c663487c02e733e7448554a45fab9",
+  "sourceOnlyQualified": true,
+  "perHeightSemanticQualified": false,
+  "profileOptInEnabled": false,
+  "readerFirstCause": "Original Go t.Run slash label had no intermediate run; fixed reader using nearest real active parent, original stream untouched",
+  "scope": "Source functional originals only; no transaction/window/finality or authority claim"
+}
