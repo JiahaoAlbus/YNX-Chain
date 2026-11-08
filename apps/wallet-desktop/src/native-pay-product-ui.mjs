@@ -30,7 +30,7 @@ export function nativePayUIDisplay(reply){
  if(Array.isArray(value.pendingOriginals))for(const [i,hash]of value.pendingOriginals.slice(0,50).entries())if(typeof hash==='string'&&/^0x[0-9a-f]{64}$/.test(hash))facts.push(['pendingOriginals['+i+']',hash]);
  for(const key of ['id','method','approvalRequired'])if(primitive(value.walletRequest?.[key]))facts.push(['walletRequest.'+key,String(value.walletRequest[key])]);
  for(const key of ['merchant','invoiceId','nativeHash','abciHash','kind','owner','status'])if(primitive(value.reconciledOriginal?.[key]))facts.push(['reconciledOriginal.'+key,String(value.reconciledOriginal[key])]);
- const recoveries=[];if(Array.isArray(value.recoveryActions))for(const item of value.recoveryActions.slice(0,8))try{if(!recoveryNames.has(item.action))continue;const request=nativePayUIRequest(item.action,item);if(Object.keys(item).length!==Object.keys(request).length)continue;recoveries.push(request);}catch{}
+ const recoveries=[];if(Array.isArray(value.recoveryActions))for(const item of value.recoveryActions.slice(0,8))try{if(!recoveryNames.has(item.action))continue;const request=nativePayUIRequest(item.action,item);if(Object.keys(item).length!==Object.keys(request).length)continue;if(item.action==='lookup-intent'&&(request.productId!==value.reference?.productId||request.sourceOrder!==value.reference?.sourceOrder))continue;recoveries.push(request);}catch{}
  return {failed:value.ok===false,unknown:value.ok===false||value.outcomeUnknown===true,review:value.ok===true&&value.approvalRequired===true&&typeof value.walletRequest?.id==='string',facts,recoveries};
 }
 // Public selector only. SAME Main review association + original durable list
