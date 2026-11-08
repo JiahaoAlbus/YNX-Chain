@@ -836,8 +836,18 @@
     },
     {
       "path": "packages/wallet-auth/integration/DESKTOP_GRANT_STRONG_LINK_COHORT.json",
-      "bytes": 2550,
-      "sha256": "64fb16e3bd6660ddb47d76c1660703d7452a546a532ab1c0fba80d5929a97ce4"
+      "bytes": 3973,
+      "sha256": "a4391432ec46e99e94f46e81c5561d76b5e69294f66c6f78c6a2bd91a2087359"
+    },
+    {
+      "path": "packages/wallet-auth/scripts/manifests/desktop-grant-link-normal-inputs.json",
+      "bytes": 3896,
+      "sha256": "ec0aec2d9f02badd355c2bceaa29fcfb4ab7b9379955f53bb37cbb995140b5d0"
+    },
+    {
+      "path": "packages/wallet-auth/scripts/native/desktop-grant-link-normal-inputs.mjs",
+      "bytes": 3148,
+      "sha256": "28737f27c975f16dbe4d13a0c8c996d7b988922e5caa801ad8133b2a8e463aa9"
     }
   ],
   "compiled": false,
