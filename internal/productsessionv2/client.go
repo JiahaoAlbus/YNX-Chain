@@ -68,6 +68,9 @@ type Session struct {
 	IssuedAt        string                `json:"issuedAt"`
 	ExpiresAt       string                `json:"expiresAt"`
 	ServiceConsent  *FiniteServiceConsent `json:"serviceConsent,omitempty"`
+	// Existing v3 authority projection. It is checked in full and retained;
+	// this DATA is not a locally issued account policy or a business role.
+	AccountAuthorization *SessionAccountAuthorization `json:"accountAuthorization,omitempty"`
 }
 
 // FiniteServiceConsent is an explicit Wallet-signed Finance service window.
@@ -135,10 +138,12 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 			return zero, fail("INVALID_ROUTE_POLICY", 500)
 		}
 	}
-	if origin := request.Header.Get("Origin"); origin != "" && origin != c.policy.Origin {
+	origins := originalHeaderValues(request.Header, "Origin")
+	if len(origins) > 1 || (len(origins) == 1 && origins[0] != c.policy.Origin) ||
+		(len(origins) == 0 && c.policy.Platform == "web" && request.Method != http.MethodGet) {
 		return zero, fail("ORIGIN_MISMATCH", 403)
 	}
-	values := request.Header.Values(ProofHeader)
+	values := originalHeaderValues(request.Header, ProofHeader)
 	if len(values) != 1 || len(values[0]) == 0 || len(values[0]) > 16384 {
 		return zero, fail("PROOF_REQUIRED", 401)
 	}
@@ -226,7 +231,8 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 		return zero, fail("SESSION_INACTIVE", 401)
 	}
 	fields, ok := result["session"].(map[string]any)
-	if !ok || !validSessionFields(fields) || !c.matchesPolicy(fields) || text(fields, "version") != "2" || text(fields, "chainId") != "ynx_6423-1" || text(fields, "platform") != c.policy.Platform {
+	version := text(fields, "version")
+	if !ok || !validSessionFields(fields) || !c.matchesPolicy(fields) || (version != "2" && version != "3") || text(fields, "chainId") != "ynx_6423-1" || text(fields, "platform") != c.policy.Platform {
 		return zero, fail("SESSION_BINDING_MISMATCH", 403)
 	}
 	for _, key := range []string{"sessionBinding", "account", "deviceId", "deviceKey"} {
@@ -239,9 +245,32 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 	if err = json.Unmarshal(encoded, &session); err != nil {
 		return zero, fail("INVALID_AUTHORITY_RESPONSE", 503)
 	}
+	if version == "3" {
+		original, ok := fields["accountAuthorization"].(map[string]any)
+		if !ok {
+			return zero, fail("SESSION_BINDING_MISMATCH", 403)
+		}
+		authorization, err := parseSessionAccountAuthorization(original, session.Account)
+		if err != nil {
+			return zero, err
+		}
+		session.AccountAuthorization = authorization
+	}
+	// Sample ONE fresh time after the complete response and all parsing. A
+	// still-live session cannot revive a proof which expired during HTTP IO.
+	after := c.clock().UTC()
+	if after.Before(now) {
+		return zero, fail("CLOCK_UNAVAILABLE", 503)
+	}
+	if ctx.Err() != nil || request.Context().Err() != nil {
+		return zero, fail("AUTHORITY_UNAVAILABLE", 503)
+	}
+	if issued.After(after) || !expires.After(after) {
+		return zero, fail("PROOF_EXPIRED", 401)
+	}
 	sessionIssued, err1 := protocolTime(session.IssuedAt)
 	sessionExpires, err2 := protocolTime(session.ExpiresAt)
-	if err1 != nil || err2 != nil || sessionIssued.After(c.clock()) || !sessionExpires.After(c.clock()) || issued.Before(sessionIssued) || expires.After(sessionExpires) || session.DeviceAlgorithm != "p256-sha256" {
+	if err1 != nil || err2 != nil || sessionIssued.After(after) || !sessionExpires.After(after) || issued.Before(sessionIssued) || expires.After(sessionExpires) || session.DeviceAlgorithm != "p256-sha256" {
 		return zero, fail("SESSION_EXPIRED", 401)
 	}
 	if !validScopes(session.Scopes) {
@@ -249,6 +278,11 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 	}
 	if !validFiniteConsent(session) {
 		return zero, fail("SERVICE_CONSENT_BINDING_MISMATCH", 403)
+	}
+	for _, scope := range session.Scopes {
+		if !slices.Contains(c.policy.AllowedScopes, scope) {
+			return zero, fail("SCOPE_WIDENING", 403)
+		}
 	}
 	for _, scope := range requiredScopes {
 		if !slices.Contains(session.Scopes, scope) {
@@ -259,13 +293,33 @@ func (c *Client) Authorize(ctx context.Context, request *http.Request, requiredS
 }
 
 func validSessionFields(fields map[string]any) bool {
+	keys := slices.Clone(sessionFields)
+	if text(fields, "version") == "3" {
+		keys = append(keys, "accountAuthorization")
+		if value, ok := fields["accountAuthorization"].(map[string]any); !ok || !exactKeys(value, sessionAccountAuthorizationFields) {
+			return false
+		}
+	}
 	consent, present := fields["serviceConsent"]
 	if !present {
-		return exactKeys(fields, sessionFields)
+		return exactKeys(fields, keys)
 	}
-	keys := append(append([]string{}, sessionFields...), "serviceConsent")
+	keys = append(keys, "serviceConsent")
 	value, ok := consent.(map[string]any)
 	return exactKeys(fields, keys) && ok && exactKeys(value, []string{"profile", "issuedAt", "expiresAt", "durationSeconds"})
+}
+
+// net/http normalizes parsed field names, but callers can also construct an
+// http.Header directly. Count every original case-variant without folding
+// distinct credentials into a single successful value.
+func originalHeaderValues(header http.Header, name string) []string {
+	var values []string
+	for key, original := range header {
+		if strings.EqualFold(key, name) {
+			values = append(values, original...)
+		}
+	}
+	return values
 }
 
 func validFiniteConsent(session Session) bool {
