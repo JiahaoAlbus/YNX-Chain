@@ -13,8 +13,8 @@ struct ContentView:View {
     @EnvironmentObject var model:ShopModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedTab=0
-    @State private var desktopPath=NavigationPath()
-    private var desktopSelection:Binding<Int>{Binding(get:{selectedTab},set:{value in desktopPath=NavigationPath();selectedTab=value})}
+    @State private var desktopNavigationRevision=0
+    private var desktopSelection:Binding<Int>{Binding(get:{selectedTab},set:{value in selectedTab=value;desktopNavigationRevision+=1})}
     @AppStorage("shop-text-size") private var textSize="standard"
     @AppStorage("shop-color-scheme") private var themeChoice="system"
     private var textScale:CGFloat{textSize=="compact" ? 0.925:textSize=="larger" ? 1.15:1}
@@ -23,7 +23,7 @@ struct ContentView:View {
             let desktop=geometry.size.width>=900
             Group {
                 if desktop {
-                    NavigationStack(path:$desktopPath){page(desktop:true).id(selectedTab)}
+                    NavigationStack{page(desktop:true)}.id(desktopNavigationRevision)
                         .safeAreaInset(edge:.top,spacing:0){DesktopShopHeader(selectedTab:desktopSelection)}
                 } else {
                     TabView(selection:$selectedTab){
