@@ -16,6 +16,7 @@ QUALIFICATION=None
 EXPECTED=None
 ARCHIVE_SHA256=None
 ARCHIVE_BYTES=None
+CI_ORIGINALS=None
 FIXTURE=Path(__file__).with_name('fixtures')/'7c25-live-source-original.zip'
 
 def require(ok,message):
@@ -29,6 +30,29 @@ def strict(raw):
         return out
     return json.loads(raw,object_pairs_hook=pairs,parse_constant=lambda value:(_ for _ in ()).throw(RuntimeError('nonfinite original source JSON')))
 
+def qualify_ci(run,job,q):
+    """The CI-only head is distinct from the frozen tested Go source."""
+    ci=q['sourceCI']
+    require(run.get('id')==ci['run'] and run.get('run_attempt')==1
+            and run.get('head_sha')==q['ciHead'] and run.get('event')=='push'
+            and run.get('head_branch')==q['ciBranch']
+            and run.get('path')=='.github/workflows/chain-core.yml'
+            and run.get('repository',{}).get('full_name')=='JiahaoAlbus/YNX-Chain'
+            and run.get('status')=='completed' and run.get('conclusion')=='success',
+            'exact current tagged CI run must complete successfully')
+    require(job.get('id')==ci['job'] and job.get('run_id')==ci['run']
+            and job.get('head_sha')==q['ciHead'] and job.get('run_attempt')==1
+            and job.get('name')=='Original client observations and cohort readback'
+            and job.get('status')=='completed' and job.get('conclusion')=='success',
+            'exact current tagged CI job must complete successfully')
+    for name in ('Verify exact optional live getter composition without enabling a carrier',
+                 'Bind actual tagged evidence to the unchanged 7c25 Go roots',
+                 'Preserve exact 7c25 qualification with original tagged streams'):
+        found=[step for step in job.get('steps',[]) if step.get('name')==name]
+        require(len(found)==1 and found[0].get('status')=='completed' and found[0].get('conclusion')=='success',
+                'exact tagged source qualification step incomplete: '+name)
+    return True
+
 def original_stream(raw,key,required):
     """Reuse original complete Go framing, including all started children."""
     spec=importlib.util.spec_from_file_location('current7c_original_frames',Path(__file__).with_name('pq-7c25-source-qualification.py'))
@@ -40,7 +64,16 @@ def original_stream(raw,key,required):
     return summary
 
 def qualification(raw=None):
-    require(QUALIFICATION is not None and EXPECTED is not None and ARCHIVE_SHA256 is not None and ARCHIVE_BYTES is not None, 'current7c exact normal getter source/module/tagged CI NOT_SUPPLIED')
+    require(QUALIFICATION is not None and EXPECTED is not None and ARCHIVE_SHA256 is not None and ARCHIVE_BYTES is not None and CI_ORIGINALS is not None, 'current7c exact normal getter source/module/tagged CI NOT_SUPPLIED')
+    metadata={}
+    for kind in ('run','job'):
+        ref=CI_ORIGINALS[kind]
+        require(PurePosixPath(ref['name']).name==ref['name'],'original CI metadata filename required')
+        payload=FIXTURE.with_name(ref['name']).read_bytes()
+        require(len(payload)==ref['bytes'] and hashlib.sha256(payload).hexdigest()==ref['sha256'],
+                'exact current tagged CI metadata pin differs')
+        metadata[kind]=strict(payload)
+    qualify_ci(metadata['run'],metadata['job'],QUALIFICATION)
     raw=FIXTURE.read_bytes() if raw is None else raw
     require(type(raw) is bytes and len(raw)==ARCHIVE_BYTES and hashlib.sha256(raw).hexdigest()==ARCHIVE_SHA256,'original source-CI archive pin differs')
     files={}
