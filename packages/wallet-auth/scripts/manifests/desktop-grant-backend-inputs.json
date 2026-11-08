@@ -56,8 +56,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 110472,
-      "sha256": "d1aba7986e9575a2d1c91ca45893d470228b3c0641ad47dd9708d998deb3ce62"
+      "bytes": 111155,
+      "sha256": "2e65cbfaa774980c1e27401203fcf9dff84123a637b1df763be222ca5e60c4e8"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -76,8 +76,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
-      "bytes": 13016,
-      "sha256": "fa7180ac5f4749d2ceb44efe367210d23c1f39f46dca9a969cd0ff92a973b6a0"
+      "bytes": 13275,
+      "sha256": "aa7e1bd74936e9035032d67360bf9910dbd0a7c1a6c7219ab791da0eb211241d"
     },
     {
       "path": "packages/wallet-auth/native/original-browser-selected-pages-source-contract.mjs",

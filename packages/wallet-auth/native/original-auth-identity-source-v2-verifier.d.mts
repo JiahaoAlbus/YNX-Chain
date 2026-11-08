@@ -25,10 +25,22 @@ export interface OriginalAuthSourceV2Policy {
  readonly applicationId?:string;
  /** Mandatory only for device-v4, pinned by the same compiled Source row. */
  readonly productId?:string;
- /** Required only by the dedicated Pay Source; independently release-pinned. */
+ /** Purpose-specific and independently release-pinned. Primary DEVICE permits
+  * explicit linux only; absent keeps legacy macOS7. Other DEVICE families
+  * still forbid this field. Generic policy also serves non-DEVICE families. */
  readonly platform?:'linux'|'macos'|'windows'|'ios'|'android';
  /** Only AI V6 has a closed client/server role; never defaulted. */readonly sourceRole?:'client'|'server';
 }
+/** Primary DEVICE policy only: an explicit Root-selected Linux field is the
+ * exact eighth key; absence retains the existing seven-key macOS policy.
+ * This type is DATA, not a platform detector, Root row or Native admission.
+ * Other DEVICE pending/provision/query/final/http families do not inherit it. */
+export type OriginalPrimaryDeviceV4SourcePolicy = Readonly<Pick<OriginalAuthSourceV2Policy,
+ 'rootDigest'|'enrollmentDigest'|'endpoint'|'spki'> & {
+ readonly signatureContract:Readonly<{purpose:'product-session-device-source-v4';enrollmentFrame:string;profileFrame:string;currentFrame:string}>;
+ readonly applicationId:string;readonly productId:string;
+} & ({readonly platform?:never}|{readonly platform:'linux'})>;
+
 /** Four separately branded snapshots. Parsing alone does not authenticate their
  * origin. Native must supply/recheck genuine current registrations around use. */
 export interface OriginalAuthSourceV2Registrations {
