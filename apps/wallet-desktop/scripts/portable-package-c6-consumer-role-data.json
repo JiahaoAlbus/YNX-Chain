@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "6c462cfa07542abd8e454f916a2a2e3acaa8424f",
-  "sourceTree": "b98cd546cce18ef037ed66078ed3813b7c50f06c",
+  "sourceCommit": "0181119af492c8f7407814875e681508e172ee74",
+  "sourceTree": "cd0ba164e7c98b7a33c8646bc744a8d1bfac321d",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -33,6 +33,11 @@
       "relative": ".github/workflows/wallet-approved125a-helper-component.yml",
       "bytes": 907,
       "sha256": "595c7180a65ee7512e6f5f12ca388692a96a395c8290c89e6418d7d7c17321f0"
+    },
+    {
+      "relative": ".github/workflows/wallet-main-ui-pay.yml",
+      "bytes": 1789,
+      "sha256": "cafed9495972cce05979ff60076e78dd18d9462c561466fde9fa79e496422187"
     },
     {
       "relative": ".github/workflows/wallet-native49-c6-consumer.yml",
