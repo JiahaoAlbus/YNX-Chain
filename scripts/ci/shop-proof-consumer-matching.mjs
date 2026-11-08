@@ -7,14 +7,14 @@ const role=path.join(root,'packages/wallet-auth/native/shop-proof-consumer-role'
 const manifest=JSON.parse(fs.readFileSync(path.join(role,'INPUTS.json'),'utf8'));
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 if(manifest.files.length!==154||manifest.executedInputs!==156||manifest.testOnly!==true)throw Error('ROLE_MANIFEST_INVALID');
-for(const x of manifest.files){
+for(const x of [...manifest.files,...manifest.supportingFiles]){
  if(!/^[A-Za-z0-9_.\/-]+$/.test(x.path)||x.path.split('/').includes('..'))throw Error('ROLE_PATH_INVALID');
  const p=path.join(role,x.path),st=fs.lstatSync(p);if(!st.isFile()||st.isSymbolicLink())throw Error('ROLE_REGULAR_FILE_REQUIRED');
  const b=fs.readFileSync(p);if(b.length!==x.bytes||sha(b)!==x.sha256)throw Error('ROLE_PIN_DRIFT: '+x.path);
 }
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'packages/wallet-auth/package.json'),'utf8'));
 if(pkg.files.some(x=>x==='native'||x.startsWith('native/shop-proof-consumer-role')))throw Error('PUBLIC_FIXTURE_MUST_NOT_ENTER_NPM_FILES');
-const plan={schema:'YNX_SHOP_PROOF_MATCHING_CI_PLAN_V1',staticInputs:154,executedInputs:156,selector:'^TestShopProofConsumerMatching$',race:true,top:1,subcases:7,wholeBudgetMs:90000,reapReserveMs:6000,productionArchive:false,RootAdmission:false,SourceAdmission:false,normalCgoPositive:false};
+const plan={schema:'YNX_SHOP_PROOF_MATCHING_CI_PLAN_V1',staticInputs:154,executedInputs:156,supportingInputs:3,completeExecutedInputsIncludingDerived:159,selector:'^TestShopProofConsumerMatching$',race:true,top:1,subcases:7,wholeBudgetMs:90000,reapReserveMs:6000,productionArchive:false,RootAdmission:false,SourceAdmission:false,normalCgoPositive:false};
 if(process.argv.length===3&&process.argv[2]==='--plan'){console.log(JSON.stringify(plan,null,2));process.exit(0);}
 if(process.argv.length!==2)throw Error('ZERO_ARGUMENT_CI_ENTRY_REQUIRED');
 const out=process.env.SHOP_MATCHING_CI_OUTPUT;
@@ -31,6 +31,19 @@ const env={...process.env,GOTOOLCHAIN:'local',GOWORK:'off',LINK_SHOP_PROOF_MATCH
 const dep=spawnSync(go,['mod','download','-modfile='+modfile,'golang.org/x/sys@v0.48.0'],{cwd:path.join(role,'source/productreadsource'),env,encoding:'utf8',timeout:120000,maxBuffer:1<<20});
 fs.writeFileSync(path.join(out,'DEPENDENCY.stdout'),dep.stdout??'');fs.writeFileSync(path.join(out,'DEPENDENCY.stderr'),dep.stderr??'');
 if(dep.status!==0)throw Error('PINNED_DEPENDENCY_DOWNLOAD_FAILED');
+const supportBefore=manifest.supportingFiles.map(x=>({path:x.path,bytes:fs.statSync(path.join(role,x.path)).size,sha256:sha(fs.readFileSync(path.join(role,x.path)))}));
+fs.writeFileSync(path.join(out,'SUPPORTING-BEFORE.json'),JSON.stringify(supportBefore,null,2));
 // The frozen runner remains byte-identical and controls compile/test/reaping.
 const run=spawnSync(process.execPath,[path.join(role,'run-matching-r3.mjs')],{env,stdio:'inherit'});
+const supportAfter=manifest.supportingFiles.map(x=>({path:x.path,bytes:fs.statSync(path.join(role,x.path)).size,sha256:sha(fs.readFileSync(path.join(role,x.path)))}));
+fs.writeFileSync(path.join(out,'SUPPORTING-AFTER.json'),JSON.stringify(supportAfter,null,2));
+if(JSON.stringify(supportAfter)!==JSON.stringify(supportBefore))throw Error('SUPPORTING_SOURCE_DRIFT');
+fs.writeFileSync(path.join(out,'RUNNER_STATUS.json'),JSON.stringify({status:run.status,signal:run.signal,error:run.error?.message??null},null,2));
+for(const n of fs.readdirSync(env.LINK_SHOP_PROOF_MATCHING_EVIDENCE)){
+ const d=path.join(env.LINK_SHOP_PROOF_MATCHING_EVIDENCE,n);
+ if(!fs.statSync(d).isDirectory())continue;
+ for(const f of ['FIRST-ERROR.txt','typecheck-and-build-new-test.stderr','only-new-consumer.stderr']){
+  const p=path.join(d,f);if(fs.existsSync(p)){const b=fs.readFileSync(p,'utf8');if(b)console.error(f+'\n'+b.slice(-16000));}
+ }
+}
 if(run.error)throw run.error;process.exitCode=run.status??1;

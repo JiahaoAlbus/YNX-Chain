@@ -787,5 +787,26 @@
   "testOnly": true,
   "normalCgoPositive": false,
   "RootAdmission": false,
-  "SourceAdmission": false
+  "SourceAdmission": false,
+  "supportingFiles": [
+    {
+      "path": "source/ShopOriginalClientNapi.d.ts",
+      "bytes": 1169,
+      "sha256": "8e2221f90e20cc04c5a5878b339baaf8ad0e0e8926eb431e95e7efea39ace3e9"
+    },
+    {
+      "path": "link-source/cmd/ynx-secure-link-caller/private_client_v1.h",
+      "bytes": 8638,
+      "sha256": "d70692f4db740886104696fa54af7f3e49b96fe798bb8feed0bd30582d998216"
+    },
+    {
+      "path": "link-source/cmd/ynx-secure-link-caller/private_client_startup_v1.h",
+      "bytes": 3706,
+      "sha256": "3428bb2172f150209abe66ac6661a9f6e55e0790404d6b69b310ab07544c587a"
+    }
+  ],
+  "originalAuthSourceFiles": 33,
+  "supportingInputs": 3,
+  "completePhysicalSourceInputs": 157,
+  "completeExecutedInputsIncludingDerived": 159
 }

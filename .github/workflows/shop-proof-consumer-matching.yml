@@ -13,6 +13,7 @@ permissions:
   contents: read
 jobs:
   shop-proof-consumer-matching:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -41,6 +42,11 @@ jobs:
         if: always()
         with:
           name: shop-proof-consumer-matching
-          path: ${{ runner.temp }}/shop-matching
+          path: |
+            ${{ runner.temp }}/shop-matching
+            !${{ runner.temp }}/shop-matching/cache
+            !${{ runner.temp }}/shop-matching/modules
+            !${{ runner.temp }}/shop-matching/evidence/**/tmp
+            !${{ runner.temp }}/shop-matching/evidence/**/consumer.test
           if-no-files-found: error
           retention-days: 14
