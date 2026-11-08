@@ -36,7 +36,7 @@ export function openOriginalTaskReadResourceBridge(nativeRoot,store){
    // The sole existing DATA chain, captured before Native acquisition awaits.
    const row=actualGrant(g),material=originalMaterial(g),proofs=originalProofsDATA(g,row.original,request.holderProof),wire=requestDATA('execute',g,material,proofs,request.operationId,request.rawInput);
    let opened;try{opened=await method(nativeRoot,'openOriginalTaskReadContinuation')(ctx,request,continuation)}catch(error){opened={owner:error?.partial??null,errorPresent:true,error}}
-   const child=opened?.owner;let transport,packet,parsed,first,retired=false,childJoined=false,childClosed=false,closeWork;
+   const child=opened?.owner;let transport,packet,parsed,first,retired=false,childJoined=false,childClosed=false,childCloseSelected=false,closeWork;
    const remember=error=>{first??={error}},pair=physicalDone=>Object.freeze({physicalDone,errorPresent:!!first,error:first?first.error:null});
    const outer=child?Object.freeze({
     async assertCurrent(){if(retired)fail('TASK_RESOURCE_CONTINUATION_RETIRED');await checked(child,'assertCurrent');current();if(transport)await checked(transport,'assertCurrent');current()},
@@ -45,7 +45,7 @@ export function openOriginalTaskReadResourceBridge(nativeRoot,store){
       // Auth child remains live until packet release and actual LINK drain.
       await checked(child,'retire');try{await checked(child,'join')}catch(error){remember(error)}childJoined=method(child,'isJoined')()===true;return pair(childJoined)
      }catch(error){remember(error);return pair(false)}},
-    close(){return closeWork??=Promise.resolve().then(async()=>{const j=await outer.join();if(!j.physicalDone)return pair(false);try{if(transport){const r=await transport.close();if(r.errorPresent)remember(r.error);if(!r.physicalDone)return pair(false)}try{await checked(child,'close')}catch(error){remember(error)}childClosed=method(child,'isClosed')()===true;if(childClosed)calls.delete(outer);return pair(childClosed)}catch(error){remember(error);return pair(false)}})},
+    close(){if(closeWork)return closeWork;const work=Promise.resolve().then(async()=>{const j=await outer.join();if(!j.physicalDone)return pair(false);try{if(transport){const r=await transport.close();if(r.errorPresent)remember(r.error);if(!r.physicalDone)return pair(false)}try{childCloseSelected=true;await checked(child,'close')}catch(error){remember(error)}childClosed=method(child,'isClosed')()===true;if(childClosed)calls.delete(outer);return pair(childClosed)}catch(error){remember(error);return pair(false)}});closeWork=work;work.then(r=>{if(!r.physicalDone&&!childCloseSelected&&(!transport||!transport.lifetime().carrierCloseSelected)&&closeWork===work)closeWork=undefined});return work},
     isJoined(){return childJoined&&(!transport||transport.isJoined())},isClosed(){return childClosed&&(!transport||transport.isClosed())},firstCause(){return pair(childClosed)}
    }):null;
    if(outer)calls.add(outer); // Adopt partial before status, current, or cleanup.
