@@ -1,0 +1,3 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+for(const args of[['--experimental-vm-modules','--test','scripts/test/task-grant-normal-pipeline.test.mjs'],['packages/wallet-auth/node_modules/typescript/bin/tsc','--strict','--noEmit','--target','es2022','--module','nodenext','--moduleResolution','nodenext','--typeRoots','packages/wallet-auth/node_modules/@types','scripts/test/types/task-grant-normal-pipeline.mts']]){const r=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit'});if(r.error)throw r.error;if(r.status!==0)throw Error('TASK_GRANT_NORMAL_PIPELINE_DELTA_FAILED:'+r.status)}
