@@ -74,3 +74,39 @@ C/F control roundtrips at the actual resource mutex, plus plain-execute refusal
 and active-claim drain. Their control peer and Auth proof/reservation decisions
 are explicitly PUBLIC fixtures: not a Node WeakMap ticket, genuine Source,
 strict Auth D decoder, real user permission or complete business admission.
+
+## Original Auth strong callee consumed
+
+`ORIGINAL_AUTH_RESERVATION_CONSUMER_INTAKE.json` pins the original Auth
+frozen-6g2J0E three-ADD supplier. The existing original runtime/local mothers
+are byte-equal and unchanged. Their SAME concrete `Runtime`/`Owner` now implement
+`OpenOriginalTaskReservationSource`; P08's existing native method selection
+therefore invokes the actual normal callee automatically, without a new callback,
+codec, verifier constructor or Source setter. It obtains the genuine LINK child,
+reads D once, checks exact E21/E3/payload/wire/input/entity associations plus
+independent Source and Core AND proofs, and exposes repeatable Current and once F.
+The reserved check remains retained across the actual Store.mu final callback,
+result/save and partial/uncertain close. Borrowed LINK cleanup stays with LINK.
+
+New P08 controls additionally invoke the actual Auth method through a mounted
+SCM request with no independent Source. It refuses with no Store mutation and
+C0/D0/F0, returns an owned partial, and its Close leaves the borrowed LINK child
+live until handler/LINK cleanup. Ordinary contexts cannot acquire that child.
+These are real callee/refusal/custody checks, not an admitted-user positive.
+Original supplier's Core + SDK/Node/SCM C24/D1/F1 controls are reused byte-exact;
+they used its test mutex, not P08's Store. P08's prior actual Store C/F and model
+feedback checks keep their explicitly PUBLIC Source/authority boundary.
+
+These Go files belong to the existing service/runtime modules, not Go50 or a
+second c-archive. No Main138/P03 or Node/NAPI image is hot-swapped here.
+
+A distinct normal startup CODE contract remains explicit: the three ADD do not
+implement `ReadOriginalTaskReadReceiverRegistration` or
+`AssertOriginalTaskReadReceiverCurrent` on the original local owner. Those are
+private routing/current producer methods expected by this receiver's normal
+mount, not Grant authority or the now-supplied reservation API. Their original
+producer/normal assembler must bind the independently registered Auth peer and
+socket; no PID/path/Source guess or public profile setter substitutes for them.
+Root/source/peer/resource admission and actual same-SQL/P08 settlement/user
+positive remain separately unaccepted. Do not keep calling the Go reservation
+callee or strict D decoder missing: those bodies are now consumed.

@@ -22,6 +22,9 @@ import (
 // signed-binding decoder. It exercises actual SCM inventory and final F IO at
 // the real receiver mutex. No production constructor accepts this fixture.
 func p08MountedContinuationExchange(socket string, body []byte) (link.LocalCallerResponse, error) {
+	return p08MountedContinuationProbe(socket, body, true)
+}
+func p08MountedContinuationProbe(socket string, body []byte, expectClaim bool) (link.LocalCallerResponse, error) {
 	var out link.LocalCallerResponse
 	data, err := net.DialUnix("unix", nil, &net.UnixAddr{Name: socket, Net: "unix"})
 	if err != nil {
@@ -57,7 +60,7 @@ func p08MountedContinuationExchange(socket string, body []byte) (link.LocalCalle
 			var size [4]byte
 			if _, err := io.ReadFull(control, size[:]); err != nil {
 				if err == io.EOF {
-					if currents == 0 || claims != 1 {
+					if (expectClaim && (currents == 0 || claims != 1)) || (!expectClaim && (currents != 0 || claims != 0)) {
 						done <- fmt.Errorf("PUBLIC missing exact C/F sequence: C=%d F=%d", currents, claims)
 					} else {
 						done <- nil

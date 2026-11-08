@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "kind": "Sole original Auth three-ADD byte-exact normal runtime/local consumer intake",
+  "handoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-runtime-source/own-reserved-successor-r1/frozen-6g2J0E/HANDOFF.json",
+    "bytes": 17198,
+    "sha256": "2739f9f606a24b67e99fdb27b336e3e324283a54a69e124c6d25e3efabfe8606"
+  },
+  "sourcefiles": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-runtime-source/own-reserved-successor-r1/frozen-6g2J0E/SOURCEFILES.json",
+    "bytes": 14004,
+    "sha256": "d83ffe1b5575cf9eb97b3451ae839b81ce279a2940aaf70f5ed2453e85f9054f",
+    "blob": "9c917529eab8b594841d0ec1a3cb84a691c06cca"
+  },
+  "verifiedDirectHReferences": 37,
+  "verifiedUniqueHAndSourcefileReferences": 78,
+  "imports": [
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-runtime-source/own-reserved-successor-r1/frozen-6g2J0E/runtime/source/reservation_data.go",
+        "bytes": 6453,
+        "sha256": "1366e9abc4369f2d893366ac8ec1c3784290b26d70a1112f49d716a46494dcbb",
+        "blob": "69074090645dce2737c5e1be314c0a47a1516115"
+      },
+      "target": "packages/auth-grant-runtime/go/reservation_data.go",
+      "byteExact": true
+    },
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-runtime-source/own-reserved-successor-r1/frozen-6g2J0E/runtime/source/reservation_source.go",
+        "bytes": 10886,
+        "sha256": "bb2b5ea961b14ca09e2edda62cad6a1718d1d16ad1c129086445423fdaf4e203",
+        "blob": "8fe0d0957b6ce3e0b0ee8c153343150e23900a92"
+      },
+      "target": "packages/auth-grant-runtime/go/reservation_source.go",
+      "byteExact": true
+    },
+    {
+      "source": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-runtime-source/own-reserved-successor-r1/frozen-6g2J0E/local/source/reservation.go",
+        "bytes": 8105,
+        "sha256": "164de1ad33ee659fc4fa77eac828542082fbccaee74307877b4c244550a23d94",
+        "blob": "3489668469a3a9b6795ade616e51c1bd1347bf07"
+      },
+      "target": "internal/authtasklocal/reservation.go",
+      "byteExact": true
+    }
+  ],
+  "SDK": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-desktop-grant-strong-continuation-normal-intake-20261108/HANDOFF.json",
+    "bytes": 18167,
+    "sha256": "5c144b90844671a53c48163def48f46bcde4d0f0fd9cfd162ddf4e869d6a82c4",
+    "blob": "8b64d4a04d6ec91f9e61ded810958764f16b8847"
+  },
+  "LINK": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/task-read-continuation-next/GO-CODE-HANDOFF-R1.json",
+    "bytes": 7000,
+    "sha256": "d57c2812d086c72b71915c01e92b5f1a9529cfea81895281a99b82a53bfdf8f7",
+    "blob": "fb410b20582a709f56a4e2d4a804f81ab6810408"
+  },
+  "existingRuntimeLocalMotherByteEqualBefore": true,
+  "noNewNamespaceOrArchive": true,
+  "noSourceOrRootRowsAdded": true,
+  "normalCallee": "Existing original installed localOwner now implements OriginalTaskReservationVerifier; calls genuine LINK inventory from same context and delegates strict detached DATA + independent Source + original Core AND verification. P08 keeps Current non-consuming and ClaimAtEffect only at Store.mu."
+}
