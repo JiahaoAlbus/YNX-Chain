@@ -206,6 +206,13 @@ func TestRevalidationCurrentAfterBodyFence(t *testing.T) {
 				if e == nil || *f.calls != 1 || !*f.responseClose {
 					t.Fatalf("post-body fence err=%v calls=%d closed=%v", e, *f.calls, *f.responseClose)
 				}
+				code, status := "SESSION_EXPIRED", 401
+				if v.name == "rollback" {
+					code, status = "CLOCK_UNAVAILABLE", 503
+				}
+				if typed, ok := e.(*Error); !ok || typed.Code != code || typed.Status != status {
+					t.Fatalf("post-body failure classification: got %v, want %s/%d", e, code, status)
+				}
 			})
 		}
 	}
@@ -349,6 +356,15 @@ func TestRevalidationCurrentCloseAndOriginalFailure(t *testing.T) {
 					original, ok := e.(*Error)
 					if !ok || original.Code != "SESSION_BINDING_MISMATCH" {
 						t.Fatalf("first original failure replaced: %v", e)
+					}
+				}
+				if mode == "close-expiry" || mode == "close-rollback" {
+					code, status := "SESSION_EXPIRED", 401
+					if mode == "close-rollback" {
+						code, status = "CLOCK_UNAVAILABLE", 503
+					}
+					if typed, ok := e.(*Error); !ok || typed.Code != code || typed.Status != status {
+						t.Fatalf("post-close failure classification: got %v, want %s/%d", e, code, status)
 					}
 				}
 			})
