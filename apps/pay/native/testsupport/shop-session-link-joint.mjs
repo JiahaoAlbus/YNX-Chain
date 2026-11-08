@@ -32,4 +32,4 @@ try{
  assert.equal(sourceReads,1);assert.equal(preparations,1);service.assertSafeToClose();
 }finally{source.retire();await source.join();await source.close();source.assertSafeToClose();await lines.return();}
 assert.deepEqual([retired,joined,closed],[1,1,1]);
-process.stdout.write(JSON.stringify({type:'done',normalInstalledWrapper:true,originalRead:sourceReads,validatedOriginalRequests:preparations,payDispatched:0,signing:0,RootAdmission:false,SourceAdmission:false})+'\n');
+process.stdout.write(JSON.stringify({type:'done',pinnedOriginalMainWrapper:true,originalRead:sourceReads,validatedOriginalRequests:preparations,payDispatched:0,signing:0,RootAdmission:false,SourceAdmission:false})+'\n');
