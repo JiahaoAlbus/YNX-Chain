@@ -175,6 +175,7 @@ export class CctpReader {
     if (lower(receipt.transactionHash) !== hash || !HASH.test(receipt.blockHash ?? '') || lower(block?.hash) !== lower(receipt.blockHash) ||
       quantity(block.number) !== quantity(receipt.blockNumber) || lower(tx.blockHash) !== lower(receipt.blockHash) || quantity(tx.blockNumber) !== quantity(receipt.blockNumber) ||
       lower(receipt.from) !== account || lower(receipt.to) !== lower(to) || !Array.isArray(block.transactions) ||
+      block.transactions.filter(value => lower(value) === hash).length !== 1 ||
       quantity(receipt.transactionIndex) > BigInt(Number.MAX_SAFE_INTEGER) || quantity(tx.transactionIndex) !== quantity(receipt.transactionIndex) ||
       lower(block.transactions[Number(quantity(receipt.transactionIndex))]) !== hash || !Array.isArray(receipt.logs) || receipt.logs.length > 2000 || quantity(receipt.status) > 1n)
       fail('CCTP_RECEIPT_MISMATCH', 'The receipt is not bound to the original transaction in a canonical RPC block.');
@@ -212,6 +213,7 @@ export class CctpReader {
       deposit.maxFee !== uint(request.maxFeeUnits) || deposit.minFinalityThreshold !== BigInt(ROUTE.minFinalityThreshold) || deposit.hookData !== '0x')
       fail('CCTP_SOURCE_EVENT_MISMATCH', 'The source deposit differs from the reviewed burn.');
     decodeAndValidateMessage(messages[0].message, {...request, mode: 'source'});
+    const originalEvidence = receiptEvidence(receipt);
     const response = await this.get(`/v2/messages/${ROUTE.source.domain}?transactionHash=${hash}`, {pending404: true});
     if (response === null) return null;
     if (!response || lower(response.sourceTxHash) !== hash || !Array.isArray(response.messages) || response.messages.length > 1)
@@ -223,8 +225,16 @@ export class CctpReader {
     const destinationBlockNumber = quantity(await this.evm.call(request.destinationNetwork, 'eth_blockNumber')).toString();
     const decoded = decodeAndValidateMessage(item.message, {...request, mode: 'attested', destinationBlockNumber});
     if (nonce(item.eventNonce) !== decoded.nonce) fail('CCTP_ATTESTATION_MISMATCH', 'Circle event nonce differs from the signed message nonce.');
-    return {message: lower(item.message), attestation: attestationBytes(item.attestation), nonce: decoded.nonce,
+    const proof = {message: lower(item.message), attestation: attestationBytes(item.attestation), nonce: decoded.nonce,
       sourceTxHash: hash, feeExecuted: decoded.feeExecuted, amountReceived: decoded.amountReceived};
+    // Iris and the destination-height read may outlive the source inclusion.
+    // Recheck only this original burn, including its events, before publishing
+    // mint readiness. A disappeared/reincluded receipt requires another query,
+    // never another burn, quote, review or automatic attestation request.
+    const currentReceipt = await this.receipt(request.sourceNetwork, hash, request.account, ROUTE.source.tokenMessenger, encodeBurn(request).toLowerCase());
+    if (!currentReceipt || receiptEvidence(currentReceipt) !== originalEvidence)
+      fail('CCTP_RECEIPT_MISMATCH', 'The original source receipt changed during attestation verification. Query the same transaction again.');
+    return proof;
   }
 
   async destination(values) {

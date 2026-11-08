@@ -148,3 +148,21 @@ lost acknowledgements, cold UNKNOWN recovery, original burn/message identity,
 conflicting bindings, no Approval-DATA substitution, concurrent starts and read
 failure. Main's existing `test/cross-chain.test.mjs` already imports this module.
 These are controlled public protocol observations, never real bridge effects.
+
+## Source proof readback successor to Main cb445da1
+
+Before returning a complete Circle proof, `CctpReader.attestation` now re-reads
+the same original burn receipt, transaction and canonical block after the Iris
+GET and destination-height read. Its receipt identity, status and event evidence
+must equal the initial snapshot. A disappeared, reorganized, re-included or
+changed receipt fails with `CCTP_RECEIPT_MISMATCH`; `CctpFlow.check` preserves
+`attestation-pending` and any cached proof as evidence, withholding mint readiness.
+A later query of the same intent/hash/nonce may recover when that read is stable.
+This adds only public reads, without a replacement quote, review, burn or send.
+
+Main's existing `test/cross-chain.test.mjs` imports both affected test modules.
+The current route remains fixed native test USDC, Sepolia to Base Sepolia.
+There is no re-attest POST or automatic proof renewal in this implementation.
+Persisted `history` and completed `check` results are original DATA, not a fresh
+on-chain observation. Packaging, installation, user approval and real settlement
+remain separate original-owner gates; YNX/YNXT remains unavailable.

@@ -123,6 +123,49 @@ test('source attestation binds receipt, unique burn/message, original hash and V
   await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_ATTESTATION_MISMATCH'});
 });
 
+for (const mode of ['missing', 'canonical-reorg', 'reincluded', 'status', 'logs', 'height-reorg']) {
+  test(`source proof late ${mode} cannot publish an earlier burn receipt after Circle returns`, async () => {
+    let changed = false;
+    const f = fixture({
+      fetchImpl: () => {
+        changed = mode !== 'height-reorg';
+        return new Response(JSON.stringify(f.state.iris), {headers: {'content-type': 'application/json'}});
+      },
+      rpc: ({source, method, params, state}) => {
+        if (!source && method === 'eth_blockNumber' && mode === 'height-reorg') changed = true;
+        if (!source || !changed) return;
+        if (method === 'eth_getTransactionReceipt') {
+          if (mode === 'missing') return null;
+          const receipt = structuredClone(state.sourceReceipt);
+          if (mode === 'reincluded') {receipt.blockHash = hash('43'); for (const log of receipt.logs) log.blockHash = hash('43')}
+          if (mode === 'status') receipt.status = '0x0';
+          if (mode === 'logs') receipt.logs[1].data = '0x';
+          return receipt;
+        }
+        if (mode === 'reincluded' && method === 'eth_getTransactionByHash') return {...state.sourceTx, blockHash: hash('43')};
+        if (['canonical-reorg', 'reincluded', 'height-reorg'].includes(mode) && method === 'eth_getBlockByNumber' && params[0] === '0x64')
+          return {hash: hash('43'), number: '0x64', transactions: [sourceHash]};
+      },
+    });
+    await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
+    assert.equal(f.requests.length, 1, 'one original transaction GET; no replacement proof request');
+    assert.equal(f.calls.filter(call => call.source && call.method === 'eth_getTransactionReceipt').length, 2);
+  });
+}
+
+test('source proof stable recheck follows Circle and destination height using only the original burn hash', async () => {
+  const order = [];
+  const f = fixture({
+    fetchImpl: () => {order.push('Circle'); return new Response(JSON.stringify(f.state.iris), {headers: {'content-type': 'application/json'}})},
+    rpc: ({source, method}) => {if (source && method === 'eth_getTransactionReceipt') order.push('receipt'); if (method === 'eth_blockNumber') order.push('height')},
+  });
+  const result = await f.reader.attestation(sourceInput);
+  assert.equal(result.sourceTxHash, sourceHash); assert.equal(result.nonce, assignedNonce);
+  assert.deepEqual(order, ['receipt', 'Circle', 'height', 'receipt']);
+  assert.ok(f.calls.filter(call => call.method === 'eth_getTransactionReceipt' || call.method === 'eth_getTransactionByHash').every(call => call.params[0] === sourceHash));
+  assert.equal(f.requests.length, 1);
+});
+
 test('source receipt mismatch, removed message, duplicate deposit or wrong source calldata is rejected', async () => {
   const f = fixture();
   f.state.sourceReceipt.blockHash = hash('fe'); await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
@@ -184,4 +227,43 @@ test('expired original mint remains queryable while pending or after an onchain 
   assert.deepEqual(await pending.reader.destination(targetInput(pending.raw)), {state: 'pending', receipt: null});
   const reverted = fixture({message: {expiry: 99}}); reverted.state.targetReceipt.status = '0x0'; reverted.state.targetReceipt.logs = [];
   assert.equal((await reverted.reader.destination(targetInput(reverted.raw))).state, 'reverted');
+});
+
+test('desktop canonical transaction identity rejects a duplicate original burn hash before Iris', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: sourceBlock, number: '0x64', transactions: [sourceHash, sourceHash]};
+    }
+  }});
+  await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 1);
+  assert.equal(f.requests.length, 0);
+});
+
+test('desktop canonical transaction identity rejects a duplicate original mint hash on its initial read', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (!source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: targetBlock, number: '0x64', transactions: [targetHash, targetHash]};
+    }
+  }});
+  await assert.rejects(f.reader.destination(targetInput(f.raw)), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 1);
+  assert.equal(f.calls.some(call => call.method === 'eth_getBlockByNumber' && call.params[0] === 'finalized'), false);
+});
+
+test('desktop canonical transaction identity rejects a duplicate original mint hash on its final reread', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (!source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: targetBlock, number: '0x64', transactions: canonicalReads === 1 ? [targetHash] : [targetHash, targetHash]};
+    }
+  }});
+  await assert.rejects(f.reader.destination(targetInput(f.raw)), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 2);
+  assert.equal(f.calls.some(call => call.method === 'eth_getBlockByNumber' && call.params[0] === 'finalized'), true);
 });
