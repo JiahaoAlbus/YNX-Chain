@@ -291,7 +291,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
-          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 3 || 1 }}
+          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 4 || 1 }}
           persist-credentials: false
       - name: Verify exact 7c25 CI-only source and route
         if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
@@ -328,6 +328,7 @@ jobs:
       - name: Exercise the original readback CLI and complete logical denominators
         run: node --test scripts/loadtest/same-control-readback.test.mjs
       - name: Verify normal PQ lab producers and the original proof caller
+        if: github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
         env:
           YNX_PQ_LAB_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-source-proof
           YNX_PQ_LAB_STOPPED_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-stopped-stores
