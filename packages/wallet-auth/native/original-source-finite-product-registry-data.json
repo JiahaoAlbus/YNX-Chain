@@ -1,0 +1,883 @@
+{
+  "schema": "YNX_SOURCE_ONLY_FINITE_PRODUCT_REGISTRY_DATA/v1",
+  "roleProductIds": [
+    "developer",
+    "social"
+  ],
+  "walletStandaloneProduct": "NOT_REGISTERED_IN_ORIGINAL_REGISTRY",
+  "cloudRole": "NOT_SUPPORTED; original web-only row unchanged",
+  "sourceRegistry": {
+    "bytes": 10393,
+    "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+  },
+  "sourceParser": {
+    "path": "src/product-session-registry.js",
+    "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef"
+  },
+  "originalRegistryCanonical": "{\"chainId\":\"ynx_6423-1\",\"products\":[{\"applicationId\":\"com.ynxweb4.ai\",\"clientId\":\"ynx-ai-v1\",\"displayName\":\"YNX AI\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxai://wallet-auth/callback\"],\"nativeCallback\":\"ynxai://wallet-auth/callback\",\"productId\":\"ai\",\"scopes\":[\"ai:actions\",\"ai:attachments\",\"ai:conversations\",\"ai:data-control\",\"ai:generate\",\"ai:permissions\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://assistant.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.calendar\",\"clientId\":\"ynx-calendar-v1\",\"displayName\":\"YNX Calendar\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxcalendar\",\"ynxcalendar://wallet-auth/callback\"],\"nativeCallback\":\"ynxcalendar://wallet-auth/callback\",\"productId\":\"calendar\",\"scopes\":[\"calendar:account\",\"calendar:recover\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://calendar.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.card\",\"clientId\":\"ynx-card-v1\",\"displayName\":\"YNX Card\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxcard\",\"ynxcard://wallet-auth/callback\"],\"nativeCallback\":\"ynxcard://wallet-auth/callback\",\"productId\":\"card\",\"scopes\":[\"account:read\",\"card:application:write\",\"card:controls:write\",\"card:dispute:write\",\"card:simulation:write\",\"card:topup:write\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://card.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.cloud\",\"clientId\":\"ynx-cloud-web-v1\",\"displayName\":\"YNX Cloud\",\"evmCompatible\":false,\"legacyCallbacks\":[],\"nativeCallback\":null,\"platforms\":[\"web\"],\"productId\":\"cloud\",\"scopes\":[\"files.read\",\"files.write\"],\"sessionDurationSeconds\":300,\"webOrigin\":\"https://web4.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.creator-studio\",\"clientId\":\"ynx-creator-studio-web-v1\",\"displayName\":\"YNX Creator Studio\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxcreator\",\"ynxcreator://wallet-auth/callback\"],\"nativeCallback\":\"ynxcreator://wallet-auth/callback\",\"productId\":\"creator-studio\",\"scopes\":[\"creator:account\",\"creator:publish\",\"creator:revenue\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://creator.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.developer.testnetpreview\",\"clientId\":\"ynx-developer-v1\",\"displayName\":\"YNX Developer\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxdeveloper\",\"ynxdeveloper://wallet-auth/callback\"],\"nativeCallback\":\"ynxdeveloper://wallet-auth/callback\",\"productId\":\"developer\",\"scopes\":[\"account:read\",\"developer:deploy\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://developer.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.dex\",\"clientId\":\"ynx-dex-v1\",\"displayName\":\"YNX DEX\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxdex\",\"ynxdex://wallet-auth/callback\"],\"nativeCallback\":\"ynxdex://wallet-auth/callback\",\"productId\":\"dex\",\"scopes\":[\"dex:account\",\"dex:orders\",\"dex:trade\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://dex.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.docs\",\"clientId\":\"ynx-docs-mobile-v1\",\"displayName\":\"YNX Docs\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxdocs://wallet-auth/callback\"],\"nativeCallback\":\"ynxdocs://wallet-auth/callback\",\"productId\":\"docs\",\"scopes\":[\"docs.read\",\"docs.write\",\"files.read\",\"files.write\"],\"sessionDurationSeconds\":300,\"webOrigin\":\"https://docs.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.exchange\",\"clientId\":\"ynx-exchange-v1\",\"displayName\":\"YNX Exchange\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxexchange\",\"ynxexchange://wallet-auth/callback\"],\"nativeCallback\":\"ynxexchange://wallet-auth/callback\",\"productId\":\"exchange\",\"scopes\":[\"exchange:ai\",\"exchange:deposit\",\"exchange:read\",\"exchange:trade\",\"exchange:withdrawal-review\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://exchange.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.finance\",\"clientId\":\"ynx-finance-v1\",\"displayName\":\"YNX Finance\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxfinance\",\"ynxfinance://wallet-auth/callback\"],\"nativeCallback\":\"ynxfinance://wallet-auth/callback\",\"productId\":\"finance\",\"scopes\":[\"finance.ai.draft\",\"finance.pay.read\",\"finance.portfolio.read\",\"finance.profile.write\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://finance.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.mail\",\"clientId\":\"ynx-mail-v1\",\"displayName\":\"YNX Mail\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxmail://wallet-auth/callback\"],\"nativeCallback\":\"ynxmail://wallet-auth/callback\",\"productId\":\"mail\",\"scopes\":[\"mail:account\",\"mail:recover\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://mail.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.music\",\"clientId\":\"ynx-music-v1\",\"displayName\":\"YNX Music\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxmusic://auth/callback\"],\"nativeCallback\":\"ynxmusic://auth/callback\",\"platforms\":[\"android\",\"ios\",\"macos\",\"web\"],\"productId\":\"music\",\"scopes\":[\"music.creator\",\"music.library\",\"music.playback\",\"music.profile\"],\"sessionDurationSeconds\":300,\"webOrigin\":\"https://music.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.pay\",\"clientId\":\"ynx-pay-v1\",\"displayName\":\"YNX Pay\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxpay\",\"ynxpay://wallet-auth/callback\"],\"nativeCallback\":\"ynxpay://wallet-auth/callback\",\"platforms\":[\"android\",\"ios\",\"linux\",\"macos\",\"windows\"],\"productId\":\"pay\",\"scopes\":[\"account:read\",\"pay:case:create\",\"pay:settlement:submit\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://pay.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.merchant-console\",\"clientId\":\"ynx-merchant-console-v1\",\"displayName\":\"YNX Merchant Console\",\"evmCompatible\":true,\"legacyCallbacks\":[],\"nativeCallback\":null,\"platforms\":[\"web\"],\"productId\":\"pay-merchant\",\"scopes\":[\"account:read\",\"merchant:session:create\"],\"sessionDurationSeconds\":240,\"webCallback\":\"https://pay.ynxweb4.com/merchant/wallet-auth/callback\",\"webOrigin\":\"https://pay.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.quant\",\"clientId\":\"ynx-quant-v1\",\"displayName\":\"YNX Quant\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxquant\",\"ynxquant://wallet-auth/callback\"],\"nativeCallback\":\"ynxquant://wallet-auth/callback\",\"productId\":\"quant\",\"scopes\":[\"quant:account\",\"quant:mandate:create\",\"quant:mandate:execute\",\"quant:mandate:revoke\",\"quant:paper:workspace\",\"quant:records:read\"],\"sessionDurationSeconds\":180,\"webOrigin\":\"https://quant.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.shop\",\"clientId\":\"ynx-shop-v1\",\"displayName\":\"YNX Shop\",\"evmCompatible\":true,\"legacyCallbacks\":[\"ynxshop\",\"ynxshop://wallet-auth/callback\"],\"nativeCallback\":\"ynxshop://wallet-auth/callback\",\"productId\":\"shop\",\"scopes\":[\"account:read\",\"shop:orders:write\",\"shop:profile:write\",\"shop:seller:operate\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://shop.ynxweb4.com\"},{\"applicationId\":\"com.ynx.social\",\"clientId\":\"ynx-social-v1\",\"displayName\":\"YNX Social\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynx-social\",\"ynx-social://com.ynx.social\"],\"nativeCallback\":\"ynx-social://com.ynx.social\",\"productId\":\"social\",\"scopes\":[\"account:read\",\"profile:link\",\"social.ai\",\"social.contacts\",\"social.feed\",\"social.messaging\",\"social.profile\"],\"sessionDurationSeconds\":240,\"webOrigin\":\"https://social.ynxweb4.com\"},{\"applicationId\":\"com.ynxweb4.video\",\"clientId\":\"ynx-video-mobile-v1\",\"displayName\":\"YNX Video\",\"evmCompatible\":false,\"legacyCallbacks\":[\"ynxvideo\",\"ynxvideo://wallet-auth/callback\"],\"nativeCallback\":\"ynxvideo://wallet-auth/callback\",\"productId\":\"video\",\"scopes\":[\"video:account\",\"video:library\",\"video:playback\"],\"sessionDurationSeconds\":300,\"webOrigin\":\"https://video.ynxweb4.com\"}],\"schemaVersion\":2,\"wallet\":{\"authorizeCallback\":\"ynxwallet://authorize\",\"downloadUrl\":\"https://www.ynxweb4.com/dapp/download\",\"metaMaskDownloadUrl\":\"https://metamask.io/download\"}}",
+  "parsedRegistry": {
+    "schemaVersion": 2,
+    "chainId": "ynx_6423-1",
+    "wallet": {
+      "authorizeCallback": "ynxwallet://authorize",
+      "downloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "products": [
+      {
+        "productId": "ai",
+        "clientId": "ynx-ai-v1",
+        "displayName": "YNX AI",
+        "applicationId": "com.ynxweb4.ai",
+        "webOrigin": "https://assistant.ynxweb4.com",
+        "nativeCallback": "ynxai://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxai://wallet-auth/callback"
+        ],
+        "scopes": [
+          "ai:actions",
+          "ai:attachments",
+          "ai:conversations",
+          "ai:data-control",
+          "ai:generate",
+          "ai:permissions"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "calendar",
+        "clientId": "ynx-calendar-v1",
+        "displayName": "YNX Calendar",
+        "applicationId": "com.ynxweb4.calendar",
+        "webOrigin": "https://calendar.ynxweb4.com",
+        "nativeCallback": "ynxcalendar://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxcalendar",
+          "ynxcalendar://wallet-auth/callback"
+        ],
+        "scopes": [
+          "calendar:account",
+          "calendar:recover"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "card",
+        "clientId": "ynx-card-v1",
+        "displayName": "YNX Card",
+        "applicationId": "com.ynxweb4.card",
+        "webOrigin": "https://card.ynxweb4.com",
+        "nativeCallback": "ynxcard://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxcard",
+          "ynxcard://wallet-auth/callback"
+        ],
+        "scopes": [
+          "account:read",
+          "card:application:write",
+          "card:controls:write",
+          "card:dispute:write",
+          "card:simulation:write",
+          "card:topup:write"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "cloud",
+        "clientId": "ynx-cloud-web-v1",
+        "displayName": "YNX Cloud",
+        "applicationId": "com.ynxweb4.cloud",
+        "webOrigin": "https://web4.ynxweb4.com",
+        "nativeCallback": null,
+        "platforms": [
+          "web"
+        ],
+        "legacyCallbacks": [],
+        "scopes": [
+          "files.read",
+          "files.write"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300
+      },
+      {
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "applicationId": "com.ynxweb4.creator-studio",
+        "webOrigin": "https://creator.ynxweb4.com",
+        "nativeCallback": "ynxcreator://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxcreator",
+          "ynxcreator://wallet-auth/callback"
+        ],
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "developer",
+        "clientId": "ynx-developer-v1",
+        "displayName": "YNX Developer",
+        "applicationId": "com.ynxweb4.developer.testnetpreview",
+        "webOrigin": "https://developer.ynxweb4.com",
+        "nativeCallback": "ynxdeveloper://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxdeveloper",
+          "ynxdeveloper://wallet-auth/callback"
+        ],
+        "scopes": [
+          "account:read",
+          "developer:deploy"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "dex",
+        "clientId": "ynx-dex-v1",
+        "displayName": "YNX DEX",
+        "applicationId": "com.ynxweb4.dex",
+        "webOrigin": "https://dex.ynxweb4.com",
+        "nativeCallback": "ynxdex://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxdex",
+          "ynxdex://wallet-auth/callback"
+        ],
+        "scopes": [
+          "dex:account",
+          "dex:orders",
+          "dex:trade"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "docs",
+        "clientId": "ynx-docs-mobile-v1",
+        "displayName": "YNX Docs",
+        "applicationId": "com.ynxweb4.docs",
+        "webOrigin": "https://docs.ynxweb4.com",
+        "nativeCallback": "ynxdocs://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxdocs://wallet-auth/callback"
+        ],
+        "scopes": [
+          "docs.read",
+          "docs.write",
+          "files.read",
+          "files.write"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300
+      },
+      {
+        "productId": "exchange",
+        "clientId": "ynx-exchange-v1",
+        "displayName": "YNX Exchange",
+        "applicationId": "com.ynxweb4.exchange",
+        "webOrigin": "https://exchange.ynxweb4.com",
+        "nativeCallback": "ynxexchange://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxexchange",
+          "ynxexchange://wallet-auth/callback"
+        ],
+        "scopes": [
+          "exchange:ai",
+          "exchange:deposit",
+          "exchange:read",
+          "exchange:trade",
+          "exchange:withdrawal-review"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "finance",
+        "clientId": "ynx-finance-v1",
+        "displayName": "YNX Finance",
+        "applicationId": "com.ynxweb4.finance",
+        "webOrigin": "https://finance.ynxweb4.com",
+        "nativeCallback": "ynxfinance://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxfinance",
+          "ynxfinance://wallet-auth/callback"
+        ],
+        "scopes": [
+          "finance.ai.draft",
+          "finance.pay.read",
+          "finance.portfolio.read",
+          "finance.profile.write"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "mail",
+        "clientId": "ynx-mail-v1",
+        "displayName": "YNX Mail",
+        "applicationId": "com.ynxweb4.mail",
+        "webOrigin": "https://mail.ynxweb4.com",
+        "nativeCallback": "ynxmail://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxmail://wallet-auth/callback"
+        ],
+        "scopes": [
+          "mail:account",
+          "mail:recover"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "music",
+        "clientId": "ynx-music-v1",
+        "displayName": "YNX Music",
+        "applicationId": "com.ynxweb4.music",
+        "webOrigin": "https://music.ynxweb4.com",
+        "nativeCallback": "ynxmusic://auth/callback",
+        "platforms": [
+          "android",
+          "ios",
+          "macos",
+          "web"
+        ],
+        "legacyCallbacks": [
+          "ynxmusic://auth/callback"
+        ],
+        "scopes": [
+          "music.creator",
+          "music.library",
+          "music.playback",
+          "music.profile"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300
+      },
+      {
+        "productId": "pay",
+        "clientId": "ynx-pay-v1",
+        "displayName": "YNX Pay",
+        "applicationId": "com.ynxweb4.pay",
+        "webOrigin": "https://pay.ynxweb4.com",
+        "nativeCallback": "ynxpay://wallet-auth/callback",
+        "platforms": [
+          "android",
+          "ios",
+          "linux",
+          "macos",
+          "windows"
+        ],
+        "legacyCallbacks": [
+          "ynxpay",
+          "ynxpay://wallet-auth/callback"
+        ],
+        "scopes": [
+          "account:read",
+          "pay:case:create",
+          "pay:settlement:submit"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "pay-merchant",
+        "clientId": "ynx-merchant-console-v1",
+        "displayName": "YNX Merchant Console",
+        "applicationId": "com.ynxweb4.merchant-console",
+        "webOrigin": "https://pay.ynxweb4.com",
+        "nativeCallback": null,
+        "platforms": [
+          "web"
+        ],
+        "webCallback": "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+        "legacyCallbacks": [],
+        "scopes": [
+          "account:read",
+          "merchant:session:create"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "quant",
+        "clientId": "ynx-quant-v1",
+        "displayName": "YNX Quant",
+        "applicationId": "com.ynxweb4.quant",
+        "webOrigin": "https://quant.ynxweb4.com",
+        "nativeCallback": "ynxquant://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxquant",
+          "ynxquant://wallet-auth/callback"
+        ],
+        "scopes": [
+          "quant:account",
+          "quant:mandate:create",
+          "quant:mandate:execute",
+          "quant:mandate:revoke",
+          "quant:paper:workspace",
+          "quant:records:read"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 180
+      },
+      {
+        "productId": "shop",
+        "clientId": "ynx-shop-v1",
+        "displayName": "YNX Shop",
+        "applicationId": "com.ynxweb4.shop",
+        "webOrigin": "https://shop.ynxweb4.com",
+        "nativeCallback": "ynxshop://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxshop",
+          "ynxshop://wallet-auth/callback"
+        ],
+        "scopes": [
+          "account:read",
+          "shop:orders:write",
+          "shop:profile:write",
+          "shop:seller:operate"
+        ],
+        "evmCompatible": true,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "social",
+        "clientId": "ynx-social-v1",
+        "displayName": "YNX Social",
+        "applicationId": "com.ynx.social",
+        "webOrigin": "https://social.ynxweb4.com",
+        "nativeCallback": "ynx-social://com.ynx.social",
+        "legacyCallbacks": [
+          "ynx-social",
+          "ynx-social://com.ynx.social"
+        ],
+        "scopes": [
+          "account:read",
+          "profile:link",
+          "social.ai",
+          "social.contacts",
+          "social.feed",
+          "social.messaging",
+          "social.profile"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "applicationId": "com.ynxweb4.video",
+        "webOrigin": "https://video.ynxweb4.com",
+        "nativeCallback": "ynxvideo://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxvideo",
+          "ynxvideo://wallet-auth/callback"
+        ],
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300
+      }
+    ]
+  },
+  "platforms": [
+    "android",
+    "ios",
+    "linux",
+    "macos",
+    "web",
+    "windows"
+  ],
+  "bindings": {
+    "developer|android": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "android",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "bundleId": null,
+      "packageId": "com.ynxweb4.developer.testnetpreview",
+      "origin": "app://android/com.ynxweb4.developer.testnetpreview",
+      "callback": "ynxdeveloper://wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "developer|ios": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "ios",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "bundleId": "com.ynxweb4.developer.testnetpreview",
+      "packageId": null,
+      "origin": "app://ios/com.ynxweb4.developer.testnetpreview",
+      "callback": "ynxdeveloper://wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "developer|linux": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "linux",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "bundleId": null,
+      "packageId": "com.ynxweb4.developer.testnetpreview",
+      "origin": "app://linux/com.ynxweb4.developer.testnetpreview",
+      "callback": "ynxdeveloper://wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "developer|macos": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "macos",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "bundleId": "com.ynxweb4.developer.testnetpreview",
+      "packageId": null,
+      "origin": "app://macos/com.ynxweb4.developer.testnetpreview",
+      "callback": "ynxdeveloper://wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "developer|web": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "web",
+      "applicationId": "com.ynxweb4.developer.testnetpreview.web",
+      "bundleId": null,
+      "packageId": null,
+      "origin": "https://developer.ynxweb4.com",
+      "callback": "https://developer.ynxweb4.com/wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "developer|windows": {
+      "chainId": "ynx_6423-1",
+      "productId": "developer",
+      "clientId": "ynx-developer-v1",
+      "displayName": "YNX Developer",
+      "platform": "windows",
+      "applicationId": "com.ynxweb4.developer.testnetpreview",
+      "bundleId": null,
+      "packageId": "com.ynxweb4.developer.testnetpreview",
+      "origin": "app://windows/com.ynxweb4.developer.testnetpreview",
+      "callback": "ynxdeveloper://wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "developer:deploy"
+      ],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|android": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "android",
+      "applicationId": "com.ynx.social",
+      "bundleId": null,
+      "packageId": "com.ynx.social",
+      "origin": "app://android/com.ynx.social",
+      "callback": "ynx-social://com.ynx.social",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|ios": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "ios",
+      "applicationId": "com.ynx.social",
+      "bundleId": "com.ynx.social",
+      "packageId": null,
+      "origin": "app://ios/com.ynx.social",
+      "callback": "ynx-social://com.ynx.social",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|linux": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "linux",
+      "applicationId": "com.ynx.social",
+      "bundleId": null,
+      "packageId": "com.ynx.social",
+      "origin": "app://linux/com.ynx.social",
+      "callback": "ynx-social://com.ynx.social",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|macos": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "macos",
+      "applicationId": "com.ynx.social",
+      "bundleId": "com.ynx.social",
+      "packageId": null,
+      "origin": "app://macos/com.ynx.social",
+      "callback": "ynx-social://com.ynx.social",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|web": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "web",
+      "applicationId": "com.ynx.social.web",
+      "bundleId": null,
+      "packageId": null,
+      "origin": "https://social.ynxweb4.com",
+      "callback": "https://social.ynxweb4.com/wallet-auth/callback",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    },
+    "social|windows": {
+      "chainId": "ynx_6423-1",
+      "productId": "social",
+      "clientId": "ynx-social-v1",
+      "displayName": "YNX Social",
+      "platform": "windows",
+      "applicationId": "com.ynx.social",
+      "bundleId": null,
+      "packageId": "com.ynx.social",
+      "origin": "app://windows/com.ynx.social",
+      "callback": "ynx-social://com.ynx.social",
+      "scopes": [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240,
+      "walletAuthorizeCallback": "ynxwallet://authorize",
+      "walletDownloadUrl": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownloadUrl": "https://metamask.io/download"
+    }
+  },
+  "urlViews": {
+    "app://android/com.ynxweb4.developer.testnetpreview": {
+      "href": "app://android/com.ynxweb4.developer.testnetpreview",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "android",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynxweb4.developer.testnetpreview"
+    },
+    "ynxdeveloper://wallet-auth/callback": {
+      "href": "ynxdeveloper://wallet-auth/callback",
+      "origin": "null",
+      "protocol": "ynxdeveloper:",
+      "port": "",
+      "hostname": "wallet-auth",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/callback"
+    },
+    "app://ios/com.ynxweb4.developer.testnetpreview": {
+      "href": "app://ios/com.ynxweb4.developer.testnetpreview",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "ios",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynxweb4.developer.testnetpreview"
+    },
+    "app://linux/com.ynxweb4.developer.testnetpreview": {
+      "href": "app://linux/com.ynxweb4.developer.testnetpreview",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "linux",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynxweb4.developer.testnetpreview"
+    },
+    "app://macos/com.ynxweb4.developer.testnetpreview": {
+      "href": "app://macos/com.ynxweb4.developer.testnetpreview",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "macos",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynxweb4.developer.testnetpreview"
+    },
+    "https://developer.ynxweb4.com": {
+      "href": "https://developer.ynxweb4.com/",
+      "origin": "https://developer.ynxweb4.com",
+      "protocol": "https:",
+      "port": "",
+      "hostname": "developer.ynxweb4.com",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/"
+    },
+    "https://developer.ynxweb4.com/wallet-auth/callback": {
+      "href": "https://developer.ynxweb4.com/wallet-auth/callback",
+      "origin": "https://developer.ynxweb4.com",
+      "protocol": "https:",
+      "port": "",
+      "hostname": "developer.ynxweb4.com",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/wallet-auth/callback"
+    },
+    "app://windows/com.ynxweb4.developer.testnetpreview": {
+      "href": "app://windows/com.ynxweb4.developer.testnetpreview",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "windows",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynxweb4.developer.testnetpreview"
+    },
+    "app://android/com.ynx.social": {
+      "href": "app://android/com.ynx.social",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "android",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynx.social"
+    },
+    "ynx-social://com.ynx.social": {
+      "href": "ynx-social://com.ynx.social",
+      "origin": "null",
+      "protocol": "ynx-social:",
+      "port": "",
+      "hostname": "com.ynx.social",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": ""
+    },
+    "app://ios/com.ynx.social": {
+      "href": "app://ios/com.ynx.social",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "ios",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynx.social"
+    },
+    "app://linux/com.ynx.social": {
+      "href": "app://linux/com.ynx.social",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "linux",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynx.social"
+    },
+    "app://macos/com.ynx.social": {
+      "href": "app://macos/com.ynx.social",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "macos",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynx.social"
+    },
+    "https://social.ynxweb4.com": {
+      "href": "https://social.ynxweb4.com/",
+      "origin": "https://social.ynxweb4.com",
+      "protocol": "https:",
+      "port": "",
+      "hostname": "social.ynxweb4.com",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/"
+    },
+    "https://social.ynxweb4.com/wallet-auth/callback": {
+      "href": "https://social.ynxweb4.com/wallet-auth/callback",
+      "origin": "https://social.ynxweb4.com",
+      "protocol": "https:",
+      "port": "",
+      "hostname": "social.ynxweb4.com",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/wallet-auth/callback"
+    },
+    "app://windows/com.ynx.social": {
+      "href": "app://windows/com.ynx.social",
+      "origin": "null",
+      "protocol": "app:",
+      "port": "",
+      "hostname": "windows",
+      "username": "",
+      "password": "",
+      "hash": "",
+      "search": "",
+      "pathname": "/com.ynx.social"
+    }
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false
+}

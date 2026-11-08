@@ -1,3 +1,4 @@
+import type{DeviceSourceTypedProjectionDATA}from'./original-device-source-v2-typed-projection.mjs';
 import type {OriginalAuthSourceV2CurrentData,OriginalAuthSourceV2Previous,OriginalPrimaryDeviceV4SourcePolicy} from './original-auth-identity-source-v2-verifier.mjs';
 /** Existing policy families only. Android requires a separate SAME-source Root
  * selected exact policy registration; this collector does not enable it. */
@@ -12,4 +13,4 @@ export interface DeviceSourceCapturedV2DATA {
  readonly currentRaw:string;readonly nonce:string;
  readonly baselineAtMs:number;readonly currentAtMs:number;readonly afterAtMs:number;
 }
-export function collectOriginalDeviceSourceV2CapturedDATA(captureOriginal:string):Readonly<{projection:Readonly<OriginalAuthSourceV2CurrentData>;currentRaw:string;captureSHA256:string;dataOnly:true;RootAdmission:false;SourceAdmission:false;nativeAdmission:false;platformRuntimeVerified:false}>;
+export function collectOriginalDeviceSourceV2CapturedDATA(captureOriginal:string):Readonly<{projection:Readonly<OriginalAuthSourceV2CurrentData>;currentRaw:string;captureSHA256:string;typedProjection:DeviceSourceTypedProjectionDATA;dataOnly:true;RootAdmission:false;SourceAdmission:false;nativeAdmission:false;platformRuntimeVerified:false}>;

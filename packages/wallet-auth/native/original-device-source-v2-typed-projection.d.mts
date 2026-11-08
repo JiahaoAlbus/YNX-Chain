@@ -1,0 +1,13 @@
+export interface SourceProjectionFalseFlags {readonly dataOnly:true;readonly RootAdmission:false;readonly SourceAdmission:false;readonly nativeAdmission:false;readonly platformRuntimeVerified:false}
+export type DeviceSourcePurpose='product-session-device-provisioning-source-v4'|'product-session-device-source-v4'|'product-session-device-query-source-v4';
+export interface AccountComparisonDATA<P extends DeviceSourcePurpose=DeviceSourcePurpose>{readonly purpose:P;readonly sourceId:string;readonly instanceId:string;/** SOURCE profile generation only. */readonly sourceGeneration:string;readonly accountIssuer:string;readonly accountSubject:string}
+export interface ProvisionSourceIntentDATA{readonly network:string;readonly account:string;readonly stableDeviceIdentity:string;readonly intentOriginal:string;readonly sourceId:string;readonly instanceId:string;readonly sourceGeneration:string;/** Actual device generation from sole verified terms, never Source generation. */readonly deviceGeneration:string;readonly canonicalOwner:string}
+export interface PrimarySourceDeviceDATA{readonly registrationOriginal:string;readonly pkA:ArrayBuffer;readonly pkB:ArrayBuffer;readonly account:string;readonly network:string;readonly deviceGeneration:string;readonly canonicalOwner:string}
+export interface QuerySourceIdentityDATA{readonly account:string;readonly network:string;readonly stableDeviceIdentity:string;readonly sourceGeneration:string;readonly canonicalOwner:string}
+interface CommonProjection extends SourceProjectionFalseFlags{readonly window:Readonly<{notBeforeMs:number;expiresAtMs:number}>;readonly previousCanonical:string}
+export type DeviceSourceTypedProjectionDATA=CommonProjection&(
+ Readonly<{kind:1;value:Readonly<ProvisionSourceIntentDATA>;namespace:null;accountComparisonDATA:Readonly<AccountComparisonDATA<'product-session-device-provisioning-source-v4'>>}>|
+ Readonly<{kind:2;value:Readonly<PrimarySourceDeviceDATA>;namespace:Readonly<{issuer:string;subject:string}>;accountComparisonDATA:Readonly<AccountComparisonDATA<'product-session-device-source-v4'>>}>|
+ Readonly<{kind:3;value:Readonly<QuerySourceIdentityDATA>;namespace:null;accountComparisonDATA:Readonly<AccountComparisonDATA<'product-session-device-query-source-v4'>>}>);
+/** Internal post-sole-verification DATA copy; not an authentication entry. */
+export function projectVerifiedDeviceSourceCapturedDATA(projection:Readonly<Record<string,unknown>>,enrollmentBody:Readonly<Record<string,unknown>>,profileBody:Readonly<Record<string,unknown>>,currentBody:Readonly<Record<string,unknown>>,afterAtMs:number):DeviceSourceTypedProjectionDATA;
