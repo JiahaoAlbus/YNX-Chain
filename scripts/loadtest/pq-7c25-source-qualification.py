@@ -194,6 +194,10 @@ def require_semantic(semantic):
                 'coldReconstructionProducerRecordsVerified','cleanupComplete'))
             and type(semantic.get('heights')) is int and semantic['heights'] == 9,
             'same-tuple complete nine-height transaction/raw-state/AppHash/cold equivalence NOT_SUPPLIED')
+    go = semantic.get('afterSourceGoHeightTests', {})
+    require(go.get('topCases') == 2 and go.get('childCases') == 15 and go.get('packagePassed') is True
+            and go.get('failed') == 0 and go.get('skipped') == 0,
+            'same-window actual after-source Go height-evidence tests NOT_SUPPLIED')
     evidence = semantic.get('perHeightEvidence', {})
     require(evidence.get('heights') == list(map(str, range(4,13)))
             and evidence.get('completePerHeightRawStateBytesEqual') is True

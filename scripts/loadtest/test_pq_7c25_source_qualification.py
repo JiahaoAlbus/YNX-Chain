@@ -42,12 +42,13 @@ class FutureSourceControls(unittest.TestCase):
                   traceSHA256='11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6',heights=9)
         for k in ('limitedOriginalTrajectoryQualified','completePerHeightTxResultsEqual','completePerHeightBalanceNonceStateEqual',
                   'completePerHeightAppHashEqual','completePerHeightRawStateBytesEqual','coldReconstructionProducerRecordsVerified','cleanupComplete'):fake[k]=True
+        fake['afterSourceGoHeightTests']=dict(topCases=2,childCases=15,packagePassed=True,failed=0,skipped=0)
         fake['perHeightEvidence']=dict(heights=list(map(str,range(4,13))),completePerHeightRawStateBytesEqual=True,
             coldReconstructionProducerRecordsVerified=True,coldStageObservedNanoseconds={arm:[dict(height=str(h)) for h in range(4,13)] for arm in ('before','after')})
         # Synthetic contract metadata only; no sealed receipt or execution grant.
         m.require_semantic(fake)
         for delta in [dict(heights=8),dict(completePerHeightRawStateBytesEqual=False),dict(coldReconstructionProducerRecordsVerified=False),
-                      dict(afterExecutionTree=m.TREE),dict(schema='old'),dict(perHeightEvidence={})]:
+                      dict(afterExecutionTree=m.TREE),dict(schema='old'),dict(perHeightEvidence={}),dict(afterSourceGoHeightTests={})]:
             with self.subTest(delta=delta),self.assertRaises(RuntimeError):m.require_semantic(dict(fake,**delta))
 
     def test_future_requires_own_profile_source_backend_and_same_demand(self):

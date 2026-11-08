@@ -28,7 +28,7 @@ EVIDENCE_OVERLAY = [{'path': 'internal/consensus/pq_lab_finalize_trace.go', 'mod
 
 ROOTS = ('go.mod', 'go.sum', 'cmd', 'internal', 'third_party/cometbft')
 COMMANDS = ('go-version', 'fetch-original-source-objects', 'prepare-fixed-two-source-trees',
-            'before-build', 'before-buildinfo', 'before-replay', 'after-build', 'after-buildinfo', 'after-replay')
+            'before-build', 'before-buildinfo', 'before-replay', 'after-build', 'after-buildinfo', 'after-height-evidence-tests', 'after-replay')
 
 
 def selected(path):
@@ -185,10 +185,22 @@ def inspect(files, source_before, source_after, fixture, controller, artifact_sh
     arms = [{name[len(arm) + 8:]: raw for name, raw in files.items() if name.startswith(arm + '-replay/')} for arm in ('before', 'after')]
     rows = [trace.io.strict(line) for line in original['_records'].splitlines()]
     height_report = height_reader.compare_height_states(*arms, rows)
+    test_raw = files['after-height-evidence-tests.log']
+    test_result = height_reader.verify_go_tests(test_raw)
+    test_receipt = result['heightEvidenceTests']
+    require(test_receipt == dict(originalStream=dict(bytes=len(test_raw), sha256=sha(test_raw)),
+                result=test_result, inputEnvironment={'YNX_PUBLIC_REGISTERED_OBSERVER_TRACE': material['privateDirectory']},
+                traceSHA256=TRACE_SHA), 'actual height-evidence Go test result/input binding differs')
+    test_command = commands['after-height-evidence-tests']
+    require(test_command['cwd'] == commands['after-build']['cwd'] and test_command['argv'] ==
+            ['go','test','-mod=readonly','-json','-count=1','-p','1','-timeout=90s',
+             '-run=^TestPQLabFinalizeTraceHeightEvidencePUBLIC(NineStatesAndCold|ColdRefusals)$','./internal/consensus'],
+            'necessary original Linux height-evidence test command/source differs')
+
     return dict(schema='YNX-PERF-7C25-LINUX-SEMANTIC-ORIGINAL-READBACK/v1', runID=run_id, jobID=job_id,
                 artifactSHA256=artifact_sha, controllerCommit=controller, afterCommit=AFTER, toolsCommit=result['toolsCommit'], toolsTree=result['toolsTree'], beforeForkTree=result['beforeForkTree'], afterForkTree=result['afterForkTree'],
                 afterTree=AFTER_TREE, traceSHA256=TRACE_SHA, beforeProductionBase=BASE, beforeOriginalCallerTree=BEFORE, beforeExecutionTree=BEFORE_EXECUTION_TREE, afterExecutionTree=AFTER_EXECUTION_TREE,
-                commonEvidenceOverlay=EVIDENCE_OVERLAY, perHeightEvidence=height_report, completePerHeightTxResultsEqual=True,
+                commonEvidenceOverlay=EVIDENCE_OVERLAY, perHeightEvidence=height_report, afterSourceGoHeightTests=test_result, completePerHeightTxResultsEqual=True,
                 completePerHeightBalanceNonceStateEqual=True, completePerHeightAppHashEqual=True,
                 equalityMeaning='Full responses and all per-height raw canonical state bytes compared against fixed original length/SHA/AppHash and between arms; Go executes cold reconstruction, reader does not execute loader.',
                 limitedOriginalTrajectoryQualified=True, heights=original['retainedHeights'],

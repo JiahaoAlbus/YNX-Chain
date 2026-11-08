@@ -325,6 +325,33 @@ def compare_height_evidence(work, fixture):
     return module.compare_height_states(*arms, rows)
 
 
+def height_test_command():
+    return ['go', 'test', '-mod=readonly', '-json', '-count=1', '-p', '1', '-timeout=90s',
+            '-run=^TestPQLabFinalizeTraceHeightEvidencePUBLIC(NineStatesAndCold|ColdRefusals)$', './internal/consensus']
+
+
+def run_height_tests(window, call, src, fixture, work):
+    validate_fixture(fixture)
+    key = 'YNX_PUBLIC_REGISTERED_OBSERVER_TRACE'
+    previous = window.env.get(key)
+    window.env[key] = str(fixture)
+    try:
+        call('after-height-evidence-tests', height_test_command(), src)
+    finally:
+        if previous is None:
+            window.env.pop(key, None)
+        else:
+            window.env[key] = previous
+    path = work / 'public/after-height-evidence-tests.log'
+    stream_pin = pin(path)
+    require(stream_pin['bytes'] <= CAPS['logBytes'], 'height-evidence original Go test log bound')
+    spec = importlib.util.spec_from_file_location('semantic_height_tests', Path(__file__).with_name('pq-semantic-height-state.py'))
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    report = module.verify_go_tests(path.read_bytes())
+    validate_fixture(fixture)
+    return dict(originalStream=stream_pin, result=report, inputEnvironment={key: str(fixture)}, traceSHA256=TRACE_PIN)
+
+
 def original_window(controller):
     directory = controller / 'scripts/loadtest'
     for name, digest in GUARD_PINS.items():
@@ -459,6 +486,8 @@ def run(args):
             buildinfo = (work / 'public' / (arm + '-buildinfo.log')).read_text()
             require('go1.26.10' in buildinfo and '\tbuild\tCGO_ENABLED=0' in buildinfo and '\tbuild\tGOARCH=amd64' in buildinfo and '\tbuild\tGOOS=linux' in buildinfo and '\tbuild\tvcs.' not in buildinfo, 'actual build target/configuration differs')
             record.setdefault('binaries', {})[arm] = pin(binary)
+            if arm == 'after':
+                record['heightEvidenceTests'] = run_height_tests(window, call, src, fixture, work)
             call(arm + '-replay', [str(binary), 'finalize-trace', 'replay', '--synthetic', '--trace', str(fixture), '--trace-sha256', TRACE_PIN, '--output', str(work / 'public' / (arm + '-replay'))], src)
             require(source_inventory(src) == read_json(work / 'public' / (arm + '-source-inventory.json')), 'source bytes changed during build/replay')
         comparison = compare_outputs(work, fixture)

@@ -104,6 +104,29 @@ class SemanticOriginalControls(unittest.TestCase):
         self.assertFalse(report['runtimePressureAuthorized'])
         self.assertIsNone(report['effectiveBusinessTPS'])
 
+    def test_actual_height_go_stream_needs_two_tops_all_children_and_package_pass(self):
+        import json
+        spec=importlib.util.spec_from_file_location('height_go',Path(__file__).with_name('pq-semantic-height-state.py'))
+        h=importlib.util.module_from_spec(spec);spec.loader.exec_module(h)
+        package='github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
+        rows=[dict(Action='start',Package=package)]
+        for top,children in h.HEIGHT_TEST_CHILDREN.items():
+            rows.append(dict(Action='run',Package=package,Test=top))
+            for child in children:
+                for action in ('run','pass'):rows.append(dict(Action=action,Package=package,Test=top+'/'+child))
+            rows.append(dict(Action='pass',Package=package,Test=top))
+        rows.append(dict(Action='pass',Package=package))
+        def raw(r):return b''.join(json.dumps(v).encode()+b'\n' for v in r)
+        self.assertEqual(h.verify_go_tests(raw(rows))['childCases'],15)
+        for r in [rows[:-1],rows+rows,[rows[0],rows[-1]],rows[:2]+rows[4:]]:
+            with self.assertRaises(RuntimeError):h.verify_go_tests(raw(r))
+        for action in ('skip','fail','build-fail'):
+            wrong=copy.deepcopy(rows);wrong[3]['Action']=action
+            with self.assertRaises(RuntimeError):h.verify_go_tests(raw(wrong))
+        wrong=copy.deepcopy(rows);wrong[3]['Package']='foreign/package'
+        with self.assertRaises(RuntimeError):h.verify_go_tests(raw(wrong))
+
+
 
 if __name__ == '__main__':
     unittest.main()
