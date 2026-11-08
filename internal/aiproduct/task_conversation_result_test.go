@@ -3,6 +3,7 @@ package aiproduct
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -141,5 +142,68 @@ func TestP08ConversationUserResultRejectsCorruptOrForeign(t *testing.T) {
 	}
 	if c.effects != 1 || c.inputReads != 1 || c.queries != 0 || f.requests.Load() != 2 {
 		t.Fatal("result rejection performed work")
+	}
+}
+
+func TestP08ConversationCancelPreservesAuthUnknownColdOriginalQuery(t *testing.T) {
+	f, a, c := newP08ConversationLoop(t)
+	c.lostACK = true
+	request := f.request()
+	request.AuthorizationRef = "PUBLIC_QUERY_REF"
+	pending, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || len(pending.Steps) != 1 {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	approveConversationLoop(t, f, pending)
+	request.Resume, request.Prompt = true, ""
+	unknown, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err == nil || unknown.Status != "UNKNOWN" {
+		t.Fatalf("lost ACK: %+v %v", unknown, err)
+	}
+	id := pending.Steps[0]
+	before, _ := json.Marshal(f.server.store.state.Actions[id])
+	task := f.server.store.state.Tasks[f.task.ID]
+	body, _ := json.Marshal(map[string]uint64{"revision": task.Revision, "generation": task.Generation})
+	r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+task.ID+"/cancel", bytes.NewReader(body))
+	r.SetPathValue("id", task.ID)
+	w := httptest.NewRecorder()
+	f.server.handleTaskCancel(w, r, f.session)
+	if w.Code != http.StatusOK {
+		t.Fatalf("normal cancel: %d %s", w.Code, w.Body.String())
+	}
+	cancelled := f.server.store.state.Tasks[task.ID]
+	run := f.server.store.state.TaskRuns[unknown.ID]
+	after, _ := json.Marshal(f.server.store.state.Actions[id])
+	if cancelled.Status != "RECONCILING" || cancelled.CancelledAt.IsZero() || !run.Cancelled || run.Status != "UNKNOWN" || run.FirstCause != unknown.FirstCause || !bytes.Equal(before, after) {
+		t.Fatalf("cancel lost original uncertainty: task=%+v run=%+v", cancelled, run)
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resumed := &Server{store: cold}
+	prepared := &PreparedOriginalTaskRuntime{model: f.provider, authority: a, broker: &originalTaskAuthorityBroker{client: c}}
+	if err = prepared.install(resumed); err != nil {
+		t.Fatal(err)
+	}
+	if w := conversationResultRead(resumed, f.session, task.ID, id); w.Code != http.StatusConflict {
+		t.Fatal("cancel exposed unsettled result")
+	}
+	if _, err = resumed.runTaskModel(context.Background(), f.session, task.ID, request); err == nil {
+		t.Fatal("cancelled model resumed")
+	}
+	if _, err = resumed.dispatchApprovedStep(context.Background(), f.session, task.ID, id, request.AuthorizationRef); err == nil {
+		t.Fatal("cancelled effect dispatched")
+	}
+	if _, err = resumed.reconcileStep(context.Background(), f.session, task.ID, id, request.AuthorizationRef); err != nil {
+		t.Fatal("cancel blocked original recovery", err)
+	}
+	w = conversationResultRead(resumed, f.session, task.ID, id)
+	if w.Code != http.StatusOK || !bytes.Equal(w.Body.Bytes(), []byte(c.last.Original)) {
+		t.Fatal("original recovered receipt unavailable after cancel")
+	}
+	step := cold.state.Actions[id]
+	if step.ToolStep.AuthorityOperationID != a.operation || step.ToolStep.AuthorityReferenceState != "COMMITTED" || !cold.state.TaskRuns[unknown.ID].Cancelled || c.effects != 1 || c.inputReads != 1 || c.queries != 1 || f.requests.Load() != 1 {
+		t.Fatal("cancel recovery changed original operation or replayed effect/model")
 	}
 }

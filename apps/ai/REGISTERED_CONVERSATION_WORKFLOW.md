@@ -66,6 +66,14 @@ refuse; foreign accounts, holders and tasks remain 404. Reads are no-store and
 do not mutate the durable image or call an executor, query or model. The private
 resource original-query path remains independently available for settlement.
 
+Cancellation uses the same unresolved-effect gate as scheduling and completion.
+Thus a locally completed conversation with Auth UNKNOWN keeps the cancelled task
+RECONCILING and its cancelled run UNKNOWN, preserving its first cause and exact
+original step/operation. Cold recovery may query that original operation and
+read its settled receipt. It cannot dispatch again or resume the cancelled
+model. The cancellation record does not claim a remote rollback or rewrite the
+resource-local completion fact.
+
 The normal Go service consumes LINK eb311's real continuation inventory, the
 original Auth strict decoder/reservation adapter, and the original owner's real
 receiver registration/current methods. The byte-exact receiver intake is pinned

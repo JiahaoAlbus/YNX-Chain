@@ -32,7 +32,9 @@ func (s *Store) cancelTaskLocked(account, id string, expectedRev, expectedGen ui
 		return TaskRecord{}, ErrTaskState
 	}
 	previous := make(map[string]ActionRecord)
-	needsReconciliation := task.Status == "RECONCILING"
+	// Local resource completion cannot erase an unsettled original Auth result.
+	// Use the same debt gate as new scheduling/completion before closing runs.
+	needsReconciliation := task.Status == "RECONCILING" || s.taskHasUnresolvedEffectLocked(id)
 	for actionID, record := range s.state.Actions {
 		if record.Account != account || record.ToolStep == nil || record.ToolStep.TaskID != id {
 			continue
