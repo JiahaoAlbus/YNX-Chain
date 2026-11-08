@@ -962,7 +962,8 @@
     "native/social-source-frame-v1",
     "docs/SOCIAL_JOINT_PROFILE_C_DATA_BRIDGE.md",
     "docs/SHOP_FIXED_PRIVATE_CLIENT.md",
-    "docs/SHOP_FIXED_NATIVE_CONTRACT.json"
+    "docs/SHOP_FIXED_NATIVE_CONTRACT.json",
+    "native/original-shop-v4-get-dispatch.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

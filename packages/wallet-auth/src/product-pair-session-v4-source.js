@@ -8,10 +8,11 @@ import {evmAddressFromYNX} from './crypto.js';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-session-device-registration-v4.js';
 import {loadReleaseSelectedOriginalRootCurrentV3,assertOriginalRootReadCurrentOwnerV3,assertReleaseSelectedRootReadCurrentPlanV3} from './root-current-v3/root-read-current-owner-v3.mjs';
 import {acquireOriginalNativeCommittedProductPolicyV4} from './product-pair-session-v4-account-source.js';
-import {openProductPairSessionV4Store,openProductPairSessionV4CurrentStore,pairV4Digest} from './product-pair-session-v4-store.js';
+import {openProductPairSessionV4Store,openProductPairSessionV4CurrentStore,openProductPairSessionV4HTTPVerificationStore,pairV4Digest} from './product-pair-session-v4-store.js';
 import {ProductPairSessionV4IssuerKernel} from './product-pair-session-v4-issuer.js';
 import {OriginalProductSessionDeviceV4ServerCurrentKernel} from './original-product-device-v4-server-current.js';
 import {OriginalReadOnlyChildDebtV4} from './original-readonly-child-debt-v4.js';
+import {OriginalShopV4GETServerKernel} from './original-shop-v4-get-server.js';
 const fail=c=>{throw Object.assign(Error(c),{code:c});};
 const originalSourceFailure=cause=>cause===undefined?Object.assign(Error('PAIR_V4_SOURCE_FAILED_UNDEFINED'),{code:'PAIR_V4_SOURCE_FAILED_UNDEFINED',cause}):cause;
 // Independent release review must supply BOTH this exact service row and the
@@ -86,8 +87,8 @@ async function acquireOriginalPairServiceResources(readOnlyStore){
     }catch(cause){try{await dispose();}catch{}throw cause;}
    });
   },close,drainPartial});
-  current();store=(readOnlyStore?openProductPairSessionV4CurrentStore:openProductPairSessionV4Store)(e.storage);current();
-  owner=Object.freeze({store,source,registry:structuredClone(e.registry),retire(){closed=true;},async join(){while(pending.size)await Promise.allSettled([...pending]);},close,drainPartial});return Object.freeze({owner,error:undefined});
+  current();try{store=(readOnlyStore==='http-verify'?openProductPairSessionV4HTTPVerificationStore:readOnlyStore?openProductPairSessionV4CurrentStore:openProductPairSessionV4Store)(e.storage);}catch(cause){if(cause!==null&&(typeof cause==='object'||typeof cause==='function')&&Object.hasOwn(cause,'partial')&&cause.partial!==null&&cause.partial!==undefined)store=cause.partial;throw cause;}current();
+  owner=Object.freeze({store,source,registry:structuredClone(e.registry),serverNetworkId:m.networkId,serverIssuerExpiresAtMs:m.expiresAtMs,retire(){closed=true;},async join(){while(pending.size)await Promise.allSettled([...pending]);},close,drainPartial});return Object.freeze({owner,error:undefined});
  }catch(error){return Object.freeze({owner:owner??Object.freeze({retire(){closed=true;},async join(){while(pending.size)await Promise.allSettled([...pending]);},close,drainPartial,status:()=>Object.freeze({unknown:true,configured:false,rootChildren:roots.size,policyChildren:policies.size})}),error:originalSourceFailure(error)});}
 
 }
@@ -113,4 +114,29 @@ export async function acquireOriginalProductSessionDeviceV4ServerCurrent(...args
  if(args.length)fail('PAIR_V4_ZERO_INPUT_REQUIRED');const opened=await acquireOriginalPairServiceResources(true);
  if(opened.error!==undefined)return Object.freeze({owner:opened.owner,deviceCurrent:null,error:opened.error===null?Object.assign(Error('PAIR_V4_SERVER_CURRENT_SOURCE_FAILED'),{code:'PAIR_V4_SERVER_CURRENT_SOURCE_FAILED',cause:null}):opened.error});
  try{const kernel=new OriginalProductSessionDeviceV4ServerCurrentKernel(opened.owner.registry,opened.owner.store,opened.owner.source),owner=new OriginalDeviceServerCurrentOwnerV4(kernel);return Object.freeze({owner,deviceCurrent:owner.deviceCurrent,error:null});}catch(error){return Object.freeze({owner:opened.owner,deviceCurrent:null,error:Object.assign(Error('PAIR_V4_SERVER_CURRENT_SOURCE_FAILED'),{code:'PAIR_V4_SERVER_CURRENT_SOURCE_FAILED',cause:error})});}
+}
+
+// PRIVATE Auth finite Shop GET normal entry. Shares original service/Root
+// resources and Store history, but exposes only V4 identity verification plus
+// one durable HTTP replay consume. It does not create a Shop business session
+// or authorize a Store action; original P07 ACL remains independent.
+const shopGETOwners=new WeakSet();
+class OriginalShopV4GETServerOwner{
+ #kernel;
+ constructor(kernel){this.#kernel=kernel;shopGETOwners.add(this);Object.freeze(this);}
+ verifyOriginalGET(request,context){return this.#kernel.verifyOriginalGET(request,context);}
+ observeOriginalGET(request,context){return this.#kernel.observeOriginalGET(request,context);}
+ assertCurrent(authorization,request,context){return this.#kernel.assertCurrent(authorization,request,context);}
+ releaseOriginalGET(authorization,request,context){return this.#kernel.releaseOriginalGET(authorization,request,context);}
+ drainOriginalGET(authorization,request,context){return this.#kernel.drainOriginalGET(authorization,request,context);}
+ retire(){this.#kernel.retire();}join(){return this.#kernel.join();}close(){return this.#kernel.close();}drainPartial(){return this.#kernel.drainPartial();}status(){return this.#kernel.status();}
+}
+Object.freeze(OriginalShopV4GETServerOwner.prototype);
+export function assertOriginalShopV4GETServerOwner(owner){if(!shopGETOwners.has(owner))fail('SHOP_V4_GET_ORIGINAL_OWNER_REQUIRED');return owner;}
+export function assertOriginalShopV4GETServerResult(result){if(!result||types.isProxy(result)||Object.getPrototypeOf(result)!==Object.prototype)fail('SHOP_V4_GET_RESULT_SCHEMA');const d=Object.getOwnPropertyDescriptors(result);if(Reflect.ownKeys(d).length!==2||['owner','error'].some(k=>!d[k]?.enumerable||!Object.hasOwn(d[k],'value')))fail('SHOP_V4_GET_RESULT_SCHEMA');if(d.error.value!==null)throw d.error.value;return assertOriginalShopV4GETServerOwner(d.owner.value);}
+export async function acquireOriginalShopV4GETServer(...args){
+ if(args.length)fail('PAIR_V4_ZERO_INPUT_REQUIRED');const opened=await acquireOriginalPairServiceResources('http-verify');
+ if(opened.error!==undefined)return Object.freeze({owner:opened.owner,error:opened.error===null?Object.assign(Error('SHOP_V4_GET_SOURCE_FAILED'),{code:'SHOP_V4_GET_SOURCE_FAILED',cause:null}):opened.error});
+ try{return Object.freeze({owner:new OriginalShopV4GETServerOwner(new OriginalShopV4GETServerKernel(opened.owner.registry,opened.owner.store,opened.owner.source,opened.owner.serverNetworkId,Date.now,()=>performance.now(),opened.owner.serverIssuerExpiresAtMs)),error:null});}
+ catch(cause){return Object.freeze({owner:opened.owner,error:Object.assign(Error('SHOP_V4_GET_SOURCE_FAILED'),{code:'SHOP_V4_GET_SOURCE_FAILED',cause})});}
 }

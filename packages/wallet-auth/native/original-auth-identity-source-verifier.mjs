@@ -100,6 +100,10 @@ export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return f
 async function run(){
  let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
  const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ if(input?.operation==='shop-original-product-session-get/v4'){
+  const{dispatchOriginalShopV4GET}=await import('./original-shop-v4-get-dispatch.mjs');
+  const result=await dispatchOriginalShopV4GET(input);process.stdout.write(canonical(result)+'\n');return;
+ }
  if(input?.operation==='ide-protected-publisher-current-native-node/v1'){
   const {dispatchOriginalProtectedPublisherCurrent}=await import('./original-ide-protected-publisher-dispatch.mjs');
   const result=await dispatchOriginalProtectedPublisherCurrent(input);process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;

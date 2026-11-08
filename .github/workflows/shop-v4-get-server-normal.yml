@@ -1,0 +1,46 @@
+name: Shop V4 GET server normal intake
+on:
+  push:
+    branches: [codex/wallet-auth49-shop-v4-server-normal-20261108]
+  pull_request:
+    branches: [codex/wallet-auth49-shop-fixed-private-client-20261108]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  shop-v4-get-server-normal:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26.7.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - name: Only new normal intake and protected-resource boundary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ci/shop-v4-get-server-normal.mjs 2>&1 | tee shop-v4-normal.log
+      - name: Only affected WPR graph and finite dispatch delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test packages/wallet-auth/test/wpr-capture-source-graph-delta.test.mjs 2>&1 | tee wpr-graph-delta.log
+          node scripts/ci/wpr-fixed-capture-runner.mjs --graph-only
+          node scripts/ci/wpr-nodehost-composition.mjs
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - run: node scripts/ci/wpr-nodehost-composition.mjs --packed
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: wallet-auth49-shop-v4-server-normal
+          if-no-files-found: error
+          path: |
+            shop-v4-normal.log
+            wpr-graph-delta.log
+            wpr-fixed-capture-runner-controls
+            wpr-nodehost-composition-controls
+            ${{ runner.temp }}/shop-v4-normal-*
+            canonical-common-source-package
