@@ -1,0 +1,56 @@
+{
+  "schema": "YNX_ANDROID_CODE_IMAGE_ROOT_MATCHING_PRIVATE_INPUTS/v1",
+  "contractOwner": "Original Native/PQ; parent owns fixed C9 header/ReviewedLocator/INTEGRATION",
+  "qualifiedRootRows": 0,
+  "runtimeOrCryptoAdded": false,
+  "SourceParentFactoryAuthorityReused": false,
+  "modelOnlyReference": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sourceparent-normal-producer-successor/gcc-compat-r2-HWiA9R/HANDOFF.json",
+    "bytes": 3744,
+    "sha256": "e1087a14d9e0ea5f9a1d770fded2567727dece9a396660eda486af9d536df139"
+  },
+  "canonicalDATA": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sourceparent-normal-producer-successor/gcc-compat-r2-HWiA9R/inherited/MobileCanonicalDATA.hpp",
+      "bytes": 1495,
+      "sha256": "6658eafc777a860d1ce20f8a97617d82e816dab6b88b8b15c043a0f16d8d26a7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/sourceparent-normal-producer-successor/gcc-compat-r2-HWiA9R/inherited/MobileCanonicalDATA.cpp",
+      "bytes": 5243,
+      "sha256": "088924c5a093d3f15ff11de2c3ce00dec5a4ed0d35fb1832508a32f1095fe556"
+    }
+  ],
+  "originalSHA": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/android-device-provisioning-authority-successor/source-root-r2-XsS27A/HANDOFF.json",
+      "bytes": 4129,
+      "sha256": "e0dfddd6b0d067818eb3cf3c1eb3f7d9466cc134d2f045be68532e60e7c8b3b8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/android-device-provisioning-authority-successor/source-root-r2-XsS27A/source/OriginalSHA256.hpp",
+      "bytes": 1848,
+      "sha256": "9d847ece1387b7c38526e26b23b59683f41ab222f1db83f1f4ab18f12f7b5999"
+    }
+  ],
+  "hostPUBLICPrimitiveOnly": {
+    "path": "/opt/homebrew/opt/libsodium/lib/libsodium.26.dylib",
+    "bytes": 290544,
+    "sha256": "b58e7d73d836b7f9392e426dbbdb04cbef39e673911c348e41a0668d1ba0dbeb"
+  },
+  "normalComposition": "Thin object in SAME Auth JNI image; sole existing CanonicalDATA and libsodium SHA implementations supplied by original normal composer. Host PUBLIC dylib is not Android primitive qualification.",
+  "fixedPrivateInterfaces": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/AndroidCodeImageRootPrivate.h",
+      "bytes": 3357,
+      "sha256": "f4141567c9543129c7d749e14ee2a427961b0f47575a4a804fe3eaf6c733d26d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-native-v01-20261025/source/apps/wallet/modules/ynx-pq-custody/native/android-code-image-root/AndroidCodeImageReviewedPrivate.hpp",
+      "bytes": 780,
+      "sha256": "ae11bf5f747f1cdd2b043e371f099df5829042002ae2314843d324c074219549"
+    }
+  ],
+  "RootRecordsAndInstallation": "NOT_SUPPLIED",
+  "PUBLICMacroForbiddenInNormal": true
+}
