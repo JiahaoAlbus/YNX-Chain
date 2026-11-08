@@ -51,6 +51,8 @@ jobs:
       apple-view-only: ${{ steps.scope.outputs.apple-view-only }}
       session-inventory-only: ${{ steps.scope.outputs.session-inventory-only }}
       link-proof-intake: ${{ steps.scope.outputs.link-proof-intake }}
+      legacy-joint-only: ${{ steps.scope.outputs.legacy-joint-only }}
+      legacy-joint-checks: ${{ steps.scope.outputs.legacy-joint-checks }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
       receipt-test-delta: ${{ steps.scope.outputs.receipt-test-delta }}
       fulfillment-only: ${{ steps.scope.outputs.fulfillment-only }}
@@ -101,6 +103,11 @@ jobs:
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           lifecycle_fixture_files = {"internal/commerce/business_native_intent_test.go", "internal/commerce/business_native_invoice_test.go", "internal/commerce/native_order_cancellation_test.go"}
           lifecycle_fixture_only = bool(changed) and any(p in lifecycle_fixture_files for p in changed) and all(p in lifecycle_fixture_files or p == ".github/workflows/shop-native.yml" for p in changed)
+          legacy_joint_runner = "internal/commerce/testsupport/run_legacy_shop_session_joint.py"
+          legacy_joint_only = bool(changed) and legacy_joint_runner in changed and all(p in {legacy_joint_runner, ".github/workflows/shop-native.yml"} for p in changed)
+          legacy_joint_checks = legacy_joint_only or os.environ["EVENT_NAME"] == "workflow_dispatch"
+          if legacy_joint_only:
+              source_only = True  # Fixed tuple qualification, not a new client build.
           if session_inventory_only:
               source_only = True
           if lifecycle_fixture_only:
@@ -156,6 +163,8 @@ jobs:
               output.write("fulfillment-only=" + str(fulfillment_only).lower() + "\n")
               output.write("fulfillment-checks=" + str(fulfillment_checks).lower() + "\n")
               output.write("receipt-test-delta=" + str(receipt_test_delta).lower() + "\n")
+              output.write("legacy-joint-only=" + str(legacy_joint_only).lower() + "\n")
+              output.write("legacy-joint-checks=" + str(legacy_joint_checks).lower() + "\n")
               output.write("link-proof-intake=" + str(link_proof_intake).lower() + "\n")
               output.write("session-inventory-only=" + str(session_inventory_only).lower() + "\n")
               output.write("apple-view-only=" + str(apple_view_only).lower() + "\n")
@@ -182,9 +191,42 @@ jobs:
           echo "YNX_SHOP_FIXED_PAY_RECOVERY_SOURCE_ROOT=$RUNNER_TEMP/ynx-shop-pay-original-source" >> "$GITHUB_ENV"
       - name: Check original Main order navigation and IPC contract
         run: node --test apps/shop/native/pay-intent-navigation.test.mjs
+  legacy-shop-session-link-joint:
+    needs: change-scope
+    if: needs.change-scope.outputs.legacy-joint-checks == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.18.1'
+      - name: Run one original signed session2 inventory LINK and Main source joint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 internal/commerce/testsupport/run_legacy_shop_session_joint.py
+      - name: Retain exact fixed tuple and actual legacy result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shop-fixed-legacy-session2-joint
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/p07-fixed-legacy-joint/CI_RECEIPT.json
+            ${{ runner.temp }}/p07-fixed-legacy-joint/joint.log
+            ${{ runner.temp }}/p07-fixed-legacy-joint/public-result/RESULT.json
+            ${{ runner.temp }}/p07-fixed-legacy-joint/owners/P06/shop-session-link-joint-20261108/COMPOSITION.json
   order-recovery:
     needs: change-scope
-    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.apple-view-only != 'true'
+    if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.apple-view-only != 'true' && needs.change-scope.outputs.legacy-joint-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
