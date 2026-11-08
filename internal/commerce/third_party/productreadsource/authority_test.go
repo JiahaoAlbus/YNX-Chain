@@ -25,26 +25,6 @@ func publicAuthority(socket string) *Authority {
 	a.state.Store(&epoch{observation: &semanticObservation{1}, until: time.Now().Add(time.Second), wallStart: time.Now().UnixMilli(), scope: s, resource: resource})
 	return a
 }
-func fixture(t *testing.T) string {
-	t.Helper()
-	p, e := os.MkdirTemp("/Users/huangjiahao/.codex", "PUBLIC-product-source-")
-	if e != nil {
-		t.Fatal(e)
-	}
-	if e = os.Chmod(p, 0700); e != nil {
-		t.Fatal(e)
-	}
-	t.Cleanup(func() { // Only exact owned PUBLIC files are removed, never unknown children.
-		for _, name := range []string{"sock", "original", "saved", "alias"} {
-			_ = os.Remove(filepath.Join(p, name))
-		}
-		if e := os.Remove(p); e != nil {
-			t.Log("fixture retained (unknown child):", p, e)
-		}
-	})
-	t.Log("PUBLIC fixture", p)
-	return p
-}
 func TestNormalRoot0AndScope(t *testing.T) {
 	if a, e := OpenOriginalProductReadAuthority(context.Background()); a != nil || !errors.Is(e, ErrNotSupplied) {
 		t.Fatal(a, e)
@@ -72,7 +52,7 @@ func TestNormalRoot0AndScope(t *testing.T) {
 	}
 }
 func TestProtectedOriginalsAndPartial(t *testing.T) {
-	dir := fixture(t)
+	dir := ownedProtectedFixture(t)
 	p := filepath.Join(dir, "original")
 	raw := []byte("PUBLIC original not Root")
 	sum := sha256.Sum256(raw)
@@ -119,7 +99,7 @@ func TestProtectedOriginalsAndPartial(t *testing.T) {
 	}
 }
 func TestRealUnixRequestPureFenceDebt(t *testing.T) {
-	dir := fixture(t)
+	dir := ownedProtectedFixture(t)
 	socket := filepath.Join(dir, "sock")
 	a := publicAuthority(socket)
 	originalPath := filepath.Join(dir, "original")

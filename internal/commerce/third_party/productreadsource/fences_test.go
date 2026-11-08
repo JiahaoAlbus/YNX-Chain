@@ -14,7 +14,7 @@ import (
 )
 
 func TestReadUnchangedAndCloseUnknown(t *testing.T) {
-	dir := fixture(t)
+	dir := ownedProtectedFixture(t)
 	p := filepath.Join(dir, "original")
 	body := []byte("PUBLIC immutable original")
 	sum := sha256.Sum256(body)

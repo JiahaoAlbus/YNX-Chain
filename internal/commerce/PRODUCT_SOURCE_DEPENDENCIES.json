@@ -67,10 +67,10 @@
     "internal/securelink/task_runtime_unsupported.go": "ebd06db8396893ab4ad7f35c700796b9d12cc75da285dbd0c47212cbdd0ecdae",
     "internal/securelink/witness.go": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008",
     "internal/commerce/third_party/productreadsource/authority.go": "69736520c5bcaab5ef8644b8a6ac31eafc2af56cd570f17f9a007c974072e96d",
-    "internal/commerce/third_party/productreadsource/authority_test.go": "015e1268e1373f85246414568c0bc3f4a3f2a5aa2219226ec5f5bb73397b9334",
+    "internal/commerce/third_party/productreadsource/authority_test.go": "16d94eb8be5bdca5b7dbca86ef9d468f1ecdd922e38985f48fe410f031a060a5",
     "internal/commerce/third_party/productreadsource/capture.go": "2dbeda3a6d4c5a9cbf0211d17fdd971cf6432042bf84d74ef8befa5926cda133",
     "internal/commerce/third_party/productreadsource/contract.go": "aa6a630ca46dc237282564da82d506965d80c5ad54ae00f342e6ae0cd189c1f9",
-    "internal/commerce/third_party/productreadsource/fences_test.go": "8980f216ad7b342935903d8bc82469ac1c3fce7276e70d0ba18dca710f027725",
+    "internal/commerce/third_party/productreadsource/fences_test.go": "acc9d5b503e79cc952ae761b33cd950295de45c52efd00381418eee9a4d32a63",
     "internal/commerce/third_party/productreadsource/go.mod": "0e6ffa65803deae1f5576f8f1db576662108e516f5dd44945055a677d383808d",
     "internal/commerce/third_party/productreadsource/go.sum": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64",
     "internal/commerce/third_party/productreadsource/physical.go": "b0a6ff4016f343853095e7130698a92065142a266e5041adb5a203722f80c314",
@@ -152,7 +152,8 @@
     "internal/commerce/third_party/productreadsource/owned_fd_close.go": "38cf52c646fc159d9e7890c0c8b2816f50f81abb763c1cccb02b2dbbf7416241",
     "internal/commerce/third_party/productreadsource/owned_fd_close_public.go": "2c1a0065a08f5da2134ad1bf4f9f2e74cfd873551556c0305415163be1f2aef7",
     "internal/commerce/third_party/productreadsource/authority_closed_witness_test.go": "36c263cf99265308a57300df79f72fb2f8ecb613fcdc9463222ad6bc511e90f4",
-    "internal/commerce/third_party/productreadsource/authority_closed_fault_test.go": "479914d6c8c44ffff217e9fac78c127bd5694d17fffa14b1ed9638ec57778a3f"
+    "internal/commerce/third_party/productreadsource/authority_closed_fault_test.go": "479914d6c8c44ffff217e9fac78c127bd5694d17fffa14b1ed9638ec57778a3f",
+    "internal/commerce/third_party/productreadsource/owned_fixture_test.go": "ee0b76b1c8cd8e5f494a07121deadc31f77995727ae5adc4ff68d08da969e82f"
   },
   "LINKHeaderClosure": "complete original frozen cmd/ynx-secure-link-caller header directory, required by exact package cgo holder; no added carchive/runtime",
   "LINKSourceCommit": "85fdcec58e591d8ef1ce072430b37bf201192635",
@@ -164,5 +165,7 @@
   "AuthShopV4WitnessH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/closed-witness-r3/frozen-witness-r3-F6AyEl/HANDOFF.json",
   "AuthShopV4WitnessHSHA256": "86e68fca5bde1afbe884b107e5dc22a6456b2e7340d24601c3eff891b3671d5a",
   "AuthShopV4ParentWitnessH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/authority-witness-r4/frozen-authority-witness-r4-PRBPaB/HANDOFF.json",
-  "AuthShopV4ParentWitnessHSHA256": "4c6b316aef7d137240b45039e7e841628490cb5fb30164669a6261d56042d54a"
+  "AuthShopV4ParentWitnessHSHA256": "4c6b316aef7d137240b45039e7e841628490cb5fb30164669a6261d56042d54a",
+  "AuthShopV4PortableTestsH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/portable-fixture-r5/frozen-portable-test-r5-2Rp6W3/HANDOFF.json",
+  "AuthShopV4PortableTestsHSHA256": "beff43c207859d346fddd4fb78bf8e3ded829dfe3cc581681db38398eb50e7dd"
 }

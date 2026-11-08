@@ -175,6 +175,8 @@ jobs:
               tests = ["TestBusinessNativeIntentColdRecoveryUsesOriginalOrderAndNeverSettles", "TestNativeInvoiceCreateAndLookupBindOnlyExactOriginalBill", "TestNativeInvoicePrivacyDeletionRetainsCancelledOriginalAndUnknown", "TestNativeOrderCancellation"]
           if session_inventory_only:
               tests = ["TestShopSessionInventory", "TestCommerceV2", "TestSnapshot", "TestCommercePersistence", "TestAuthenticatedState", "TestPrivacy", "TestBusinessActor", "TestBusinessReplay", "TestBusinessTransaction", "TestNativeSellerRoleRevocation", "TestSellerTeamInvitationPersistence", "TestShopInvoiceSource"]
+          if v4_supplier_intake and "TestShopSessionInventory" not in tests:
+              tests.extend(["TestShopSessionInventory", "TestShopInvoiceSource"])
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("navigation-only=" + str(navigation_only).lower() + "\n")
               output.write("listing-only=" + str(listing_only).lower() + "\n")
