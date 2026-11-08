@@ -291,7 +291,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
-          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 2 || 1 }}
+          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 3 || 1 }}
           persist-credentials: false
       - name: Verify exact 7c25 CI-only source and route
         if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'
@@ -302,7 +302,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: false
-          cache: true
+          cache: ${{ github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'

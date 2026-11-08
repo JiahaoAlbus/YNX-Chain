@@ -24,9 +24,11 @@ BASE_TREE = '8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
 ROOTS = {'go.mod': '711fee87261c833a6e4cae5c9706d9fd32e9aed4', 'go.sum': '940892c107fd2facdd222a07d11f227bb0963473', 'cmd': 'd1c925ece2fbeacbf09085f452b70256dacf3317', 'internal': '012ef00081033b3b11c7fd1ccdfabdeb12ef4595', 'contracts': 'cf38ed42bfdc26b461c21eb48be33891132aaa04', 'third_party': 'c3570c029c238fad229aeac09b68d712472a6fab'}
 COMPOSER_SHA = 'e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac'
 ORIGINAL_WORKFLOW_SHA = 'c3b7c8e942ca36222adaa45b35bd61deb3fdf46b20ec505880fc8d6a58d974f2'
-TRANSFORMS = [['      - codex/v5-link-native-ci\n', '      - codex/v5-link-native-ci\n      - codex/ynx-pq-wire-live-7c25-qualification-20261108\n', 1], ['      - "scripts/verify/test_wire_live_matching_source_ci.py"\n', '      - "scripts/verify/test_wire_live_matching_source_ci.py"\n      - "scripts/verify/wire-live-7c25-qualification-ci.py"\n', 2], ["    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108')\n", 1], ['          BEFORE: ${{ github.event.before }}\n          AFTER: ${{ github.sha }}\n', '          BEFORE: ${{ github.event.before }}\n          AFTER: ${{ github.sha }}\n          QUALIFICATION_REF: ${{ github.ref }}\n', 1], ['          [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]\n', '          [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]\n          if [[ "$QUALIFICATION_REF" == "refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108" ]]; then\n            printf \'changed=false\\nclient_changed=true\\nintegration_changed=false\\n\' >> "$GITHUB_OUTPUT"\n            exit 0\n          fi\n', 1], ["      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')\n", "      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration') &&\n      github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n", 1], ['lossless-default-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['distributed-pq-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['lossless-matching-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['  link-scope:\n    name: Select actual LINK changed closure\n', "  link-scope:\n    name: Select actual LINK changed closure\n    if: github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n", 1], ['client-depth', '          fetch-depth: 1\n', "          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 2 || 1 }}\n"]]
+TRANSFORMS = [['      - codex/v5-link-native-ci\n', '      - codex/v5-link-native-ci\n      - codex/ynx-pq-wire-live-7c25-qualification-20261108\n', 1], ['      - "scripts/verify/test_wire_live_matching_source_ci.py"\n', '      - "scripts/verify/test_wire_live_matching_source_ci.py"\n      - "scripts/verify/wire-live-7c25-qualification-ci.py"\n', 2], ["    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108')\n", 1], ['          BEFORE: ${{ github.event.before }}\n          AFTER: ${{ github.sha }}\n', '          BEFORE: ${{ github.event.before }}\n          AFTER: ${{ github.sha }}\n          QUALIFICATION_REF: ${{ github.ref }}\n', 1], ['          [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]\n', '          [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]\n          if [[ "$QUALIFICATION_REF" == "refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108" ]]; then\n            printf \'changed=false\\nclient_changed=true\\nintegration_changed=false\\n\' >> "$GITHUB_OUTPUT"\n            exit 0\n          fi\n', 1], ["      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')\n", "      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration') &&\n      github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n", 1], ['lossless-default-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['distributed-pq-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['lossless-matching-source', "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n", "    if: needs.contract-tooling-scope.outputs.client_changed == 'true' && github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n"], ['  link-scope:\n    name: Select actual LINK changed closure\n', "  link-scope:\n    name: Select actual LINK changed closure\n    if: github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n", 1], ['client-depth', '          fetch-depth: 1\n', "          fetch-depth: ${{ github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' && 3 || 1 }}\n"], ['client-cache', '          cache: true\n', "          cache: ${{ github.ref != 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108' }}\n"]]
 NEW_STEPS = ["      - name: Verify exact 7c25 CI-only source and route\n        if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n        run: |\n          python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --self-test\n          python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --source-ledger\n", "      - name: Bind actual tagged evidence to the unchanged 7c25 Go roots\n        if: github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n        run: python3 -B scripts/verify/wire-live-7c25-qualification-ci.py --seal-evidence\n", "      - name: Preserve exact 7c25 qualification with original tagged streams\n        if: always() && github.ref == 'refs/heads/codex/ynx-pq-wire-live-7c25-qualification-20261108'\n        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02\n        with:\n          name: normal-live-wire-7c25-qualification-${{ github.sha }}\n          path: |\n            ${{ runner.temp }}/wire-live-7c25-controller.json\n            ${{ runner.temp }}/wire-live-7c25-qualification.json\n            ${{ runner.temp }}/wire-live-source-*/SOURCE.json\n            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl\n            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.stderr.log\n            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.result.json\n            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl\n            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log\n            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json\n            ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json\n          if-no-files-found: error\n          retention-days: 14\n"]
 UPLOAD_LINES = []
+CACHE_PARENT = 'c5786c9250858951b7d91103434cd2e467b4ce13'
+CACHE_PARENT_TREE = '5e9d1c0c1894ab2cf58d611f0e5cb387cba20b77'
 SCRIPT = 'scripts/verify/wire-live-7c25-qualification-ci.py'
 WORKFLOW = '.github/workflows/chain-core.yml'
 ALLOWED = {SCRIPT, WORKFLOW}
@@ -85,8 +87,13 @@ def source_ledger(root, environment, read_git=git):
     head = read_git(root, 'rev-parse', 'HEAD').decode().strip()
     require(re.fullmatch('[0-9a-f]{40}', head) and head != BASE and head == environment.get('GITHUB_SHA'),
             'actual CI controller/head differs')
-    require(read_git(root, 'show', '-s', '--format=%P', 'HEAD').decode().strip() == BASE,
-            'qualification controller must be the single CI-only successor of frozen 7c25')
+    parent = read_git(root, 'show', '-s', '--format=%P', 'HEAD').decode().strip()
+    require(parent in (BASE, CACHE_PARENT),
+            'qualification controller requires the exact original or known cache-fix parent')
+    if parent == CACHE_PARENT:
+        require(read_git(root, 'show', '-s', '--format=%P', CACHE_PARENT).decode().strip() == BASE and
+                read_git(root, 'rev-parse', CACHE_PARENT + '^{tree}').decode().strip() == CACHE_PARENT_TREE,
+                'known cache-fix parent ancestry/tree differs')
     require(not read_git(root, 'status', '--porcelain', '--untracked-files=normal').strip(),
             'CI-only source checkout is not clean')
     changes = read_git(root, 'diff', '--name-only', BASE, 'HEAD').decode().splitlines()
@@ -227,7 +234,7 @@ def original_projection(workflow):
             text = text.replace(new, old)
         else:
             name, old, new = change
-            section = job_text(text, 'client-observations' if name == 'client-depth' else name)
+            section = job_text(text, 'client-observations' if name in ('client-depth', 'client-cache') else name)
             require(section.count(new) == 1, 'exact owned job guard differs')
             text = text.replace(section, section.replace(new, old), 1)
     require(digest(text.encode()) == ORIGINAL_WORKFLOW_SHA, 'pre-existing workflow bytes changed')
@@ -319,6 +326,39 @@ class QualificationControls(unittest.TestCase):
                 with self.subTest(key=key),self.assertRaises(RuntimeError):source_ledger(root,env,read)
                 table[key]=old
         with self.assertRaises(RuntimeError):source_ledger(root,env,read)
+
+    def test_cache_disabled_only_for_exact_qualification_ref(self):
+        client=job_text(self.workflow,'client-observations')
+        expected="          cache: ${{ github.ref != '"+REF+"' }}\n"
+        self.assertEqual(client.count(expected),1)
+        self.assertEqual(client.count('    timeout-minutes: 8\n'),1)
+        self.assertIn("fetch-depth: ${{ github.ref == '"+REF+"' && 3 || 1 }}",client)
+        for ref in (REF,REF+'-foreign','refs/heads/main','refs/heads/codex/ynx-pq-perf-integration'):
+            self.assertEqual(evaluate("github.ref != '"+REF+"'",'push',ref,'main'),ref!=REF)
+        with self.assertRaises(RuntimeError):
+            original_projection(self.workflow.replace(expected,'          cache: false\n',1))
+        with self.assertRaises(RuntimeError):
+            original_projection(self.workflow.replace('&& 3 || 1','&& 2 || 1',1))
+
+    def test_known_cache_successor_and_only_exact_ancestry(self):
+        root,table,env=self.fake_source()
+        table[('show','-s','--format=%P','HEAD')]=CACHE_PARENT
+        table[('show','-s','--format=%P',CACHE_PARENT)]=BASE
+        table[('rev-parse',CACHE_PARENT+'^{tree}')]=CACHE_PARENT_TREE
+        read=lambda _,*args:(table[args]+'\n').encode()
+        with patch.dict(globals(),COMPOSER_SHA=digest(b'composer')):
+            result=source_ledger(root,env,read)
+            self.assertEqual(result['frozenProductionCommit'],BASE)
+            self.assertFalse(result['actualGoTestsPassed'])
+            for key,value in [(('show','-s','--format=%P','HEAD'),'d'*40),
+                              (('show','-s','--format=%P','HEAD'),BASE+' '+CACHE_PARENT),
+                              (('show','-s','--format=%P',CACHE_PARENT),'d'*40),
+                              (('rev-parse',CACHE_PARENT+'^{tree}'),'d'*40),
+                              (('diff','--name-only',BASE,'HEAD'),SCRIPT),
+                              (('rev-parse','HEAD:third_party'),'d'*40)]:
+                old=table[key];table[key]=value
+                with self.subTest(key=key),self.assertRaises(RuntimeError):source_ledger(root,env,read)
+                table[key]=old
 
     def test_go_stream_rejects_missing_duplicate_child_failure_skip_foreign(self):
         with tempfile.TemporaryDirectory() as d:
