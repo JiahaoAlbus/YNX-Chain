@@ -55,6 +55,11 @@ typedef struct {uint32_t version,size;int64_t not_before_ms,expires_ms;} ynx_soc
 /* Caller zero-initializes window. Filled version1/size24 is retained DATA even
  * on late error; early failure leaves all0. Immutable captured window, no renew. */
 void ynx_auth_social_joint_capture_borrow_window_v1(uint64_t,ynx_social_joint_source_window_v1*,ynx_social_joint_status_v1*);
+/* Immutable fixed normal composition, from the SAME recognized local capture:
+ * 1 original Main-local holder; 2 separately Root-registered remote holder.
+ * Zero/unknown is unavailable. No caller setter, IPC/ENV mode or fallback.
+ * This is only routing DATA; neither branch bypasses actual holder admission. */
+void ynx_auth_social_joint_capture_borrow_main_pair_route_v1(uint64_t,uint32_t*,ynx_social_joint_status_v1*);
 
 /* Binding resource is a locator only. Its producer MUST hold actual committed
  * Social fullpair/identity/device AND independent registered DEVICE/session/

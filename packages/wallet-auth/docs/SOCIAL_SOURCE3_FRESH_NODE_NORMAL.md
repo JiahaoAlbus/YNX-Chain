@@ -11,3 +11,12 @@ Main creates its existing Host only after independent normal prerequisites and s
 The v2 SourceInput dependency is the frozen 7878-byte R6 header e0134fc4...; historical 5444 is not a matching substitute. Actual matched Go helper executable, Native17 one-archive link, independently approved locator/resources and genuine captures remain NOT_LINKED/NOT_SUPPLIED. No default helper rows are emitted.
 
 Whole source-package byte coverage and normal import are distinct from a pure static graph. The generic strict scanner still rejects node:child_process/createRequire; it is not relaxed. Pure stdio/L-C DATA entries may be analyzed separately. The private Source I/O leaves and external helper image require their normal independent qualification and whole runtime manifest. This source packet does not manufacture an external image pin or call it a verified DATA graph.
+
+
+## R7 immutable Main-pair route normal cohort
+
+The SourceInput-v2 header is now exact8302/5f71bab5, with the sole SAME-kernel `ynx_auth_social_joint_capture_borrow_main_pair_route_v1(realLocalLoan,uint32Out,status24)` getter. Input112/status24 and the Main-read ABI stay unchanged. Route0 is unknown,1 is normal Main actor-local,2 is fixed role-provider registered; only the original private constructors attach this immutable routing DATA. It is not a setter, failed-local fallback, Source permission or Root read grant.
+
+Normal kernel intake adds source_main_pair_route.go and source_main_pair_route_ffi.go and overlays the formal capture_inventory ffi onto its R6 original before. The existing provider ffi in the preceding packet already matched the R7 after pin and is retained byte-identically. All belong to the SAME kernel/ONE Go aggregate. The matched finite Rust lib/wire/registry/Cargo/CPP and Node R8 service origin verifier are unchanged. The Node R8 custody version is distinct from this R7 Go/header revision.
+
+Both Source3 and finite source collectors require the same R7 header and actual route/capture/provider sources. No Rust/Go/Native binary is rebuilt here; missing Root rows, actual registered Main/DEVICE qualification and final whole-runtime linkage remain false.

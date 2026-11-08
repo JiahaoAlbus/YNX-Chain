@@ -13,3 +13,12 @@ The original zero-argument Source3 R8 Node getter and retained helper/stdio/Host
 The registered Main-pair read source is now matched to this SAME finite crate by the original Auth owner: two append-only lib/wire changes and five actual read modules. Removing the append delta restores the R1 lib/wire bytes exactly; registry/Cargo/CPP/Go/Native remain unchanged. Only Command31..35 are added to the sole YNXRIPC1 codec; existing 1..21 remain. ReadRow accepts family5 only, then uses original selected(id) and independently compares id/source/role/family. The separate READ rows and finite signing rows both remain empty; neither grants the other's purpose. The original C13 source112/status24/view192/storage8192 header is supplied normally. Main/DEVICE/Root positive and whole Linux linkage remain independent and false; no second Rust library or Go runtime is introduced.
 
 R2 query retains same-operation public partial originals before late errors; it never retries signature or replaces operation. Physical_done, error_present (including first0) and UNKNOWN remain independent. Root/Source/Native admission, real key access/signature, service start, whole Linux and business success are false.
+
+
+## R7 immutable Main-pair route normal cohort
+
+The SourceInput-v2 header is now exact8302/5f71bab5, with the sole SAME-kernel `ynx_auth_social_joint_capture_borrow_main_pair_route_v1(realLocalLoan,uint32Out,status24)` getter. Input112/status24 and the Main-read ABI stay unchanged. Route0 is unknown,1 is normal Main actor-local,2 is fixed role-provider registered; only the original private constructors attach this immutable routing DATA. It is not a setter, failed-local fallback, Source permission or Root read grant.
+
+Normal kernel intake adds source_main_pair_route.go and source_main_pair_route_ffi.go and overlays the formal capture_inventory ffi onto its R6 original before. The existing provider ffi in the preceding packet already matched the R7 after pin and is retained byte-identically. All belong to the SAME kernel/ONE Go aggregate. The matched finite Rust lib/wire/registry/Cargo/CPP and Node R8 service origin verifier are unchanged. The Node R8 custody version is distinct from this R7 Go/header revision.
+
+Both Source3 and finite source collectors require the same R7 header and actual route/capture/provider sources. No Rust/Go/Native binary is rebuilt here; missing Root rows, actual registered Main/DEVICE qualification and final whole-runtime linkage remain false.
