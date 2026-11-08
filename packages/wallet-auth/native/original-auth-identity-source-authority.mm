@@ -28,6 +28,7 @@ namespace ynx_auth_private {const void* original_wallet_pay_source_code_marker()
 #include "original-product-device-v4-provisioning-journal.h"
 #include "original-product-device-v4-query-journal.h"
 #include <algorithm>
+#include <cmath>
 #import <Security/Security.h>
 #import "original-ide-helper-xpc-peer.h"
 #import "original-ide-helper-client.h"
@@ -66,6 +67,10 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error;
 @end
 @implementation YNXAuthIdentitySourceAuthority {
+#ifdef YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE
+ NSHashTable*_deviceV4NativeReadLoans;
+ NSDictionary*_deviceV4NativeAccountNamespace;
+#endif
  NSDictionary*_productDeviceV4QueryJournalObservedIdentity;
  NSDictionary*_productDeviceV4RegisteredFinalizationJournalObservedIdentity;
  YNXAuthIdentityCurrentOwner *_custody;
@@ -519,6 +524,18 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     if(!ynx_auth_private::OriginalPaySourceMathCompletion::observe(_payObserved,issuerEpoch,currentEpoch,![_payObservedIdentity isEqual:identity]))return [self fail:@"PAY_NATIVE_OBSERVED_RETIRED" error:error];_payObservedIdentity=[identity copy];
     _payCurrentMonoDeadline=finalMono+std::chrono::milliseconds(expires-finalWall);
    }
+ #if defined(YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE)
+   if(_productDeviceV4){
+    id ns=projection[@"productDeviceAccountNamespaceDATA"];
+    if(ns){
+     NSSet*keys=[NSSet setWithArray:@[@"purpose",@"sourceId",@"instanceId",@"generation",@"accountIssuer",@"accountSubject"]];
+     if(!sourceV2||![ns isKindOfClass:NSDictionary.class]||![[NSSet setWithArray:[ns allKeys]]isEqual:keys]||![ns[@"purpose"]isEqual:@"product-session-device-source-v4"]||![ns[@"sourceId"]isEqual:projection[@"sourceId"]]||![ns[@"instanceId"]isEqual:projection[@"instanceId"]]||![ns[@"generation"]isEqual:projection[@"generation"]]||![ns[@"accountSubject"]isEqual:projection[@"selection"][@"association"][@"account"]])return [self fail:@"DEVICE_V4_ACCOUNT_NAMESPACE_TYPED_PROJECTION" error:error];
+     for(NSString*k in @[@"sourceId",@"instanceId",@"accountIssuer",@"accountSubject"]){id v=ns[k];if(![v isKindOfClass:NSString.class]||![v length]||[v lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>2048)return [self fail:@"DEVICE_V4_ACCOUNT_NAMESPACE_TYPED_TEXT" error:error];}
+     id g=ns[@"generation"];double value=[g isKindOfClass:NSNumber.class]?[g doubleValue]:0;if(![g isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)g)==CFBooleanGetTypeID()||!std::isfinite(value)||std::floor(value)!=value||value<1||value>9007199254740991.0)return [self fail:@"DEVICE_V4_ACCOUNT_NAMESPACE_GENERATION" error:error];
+    }
+    _deviceV4NativeAccountNamespace=[ns copy];
+   }
+ #endif
    _currentOriginal=[currentBytes copy];_currentNonce=[nonce copy];
    _selection=[projection[@"selection"] copy];_sequence=sequence;_floor=floor;_headDigest=[projection[@"head"] copy];_timeFloor=after;_cachedCurrentExpiresMS=expires;if(sourceV2)_observationHeight=[projection[@"executionHeight"]copy];return YES;
   }@catch(NSException *){return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_UNKNOWN" error:error];}
@@ -756,8 +773,15 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){if(_walletNativeProduct)ynx_auth_private::OriginalProductSourceMathCompletion::retire(_productObserved);if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_networkPublisherLoans||_managementEntered||_managementLoans||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_networkPublisherLoans||_managementEntered||_managementLoans||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||
+#ifdef YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE
+ _deviceV4NativeReadLoans.count||
+#endif
+(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
+#ifdef YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE
+ @synchronized(self){if(_deviceV4NativeReadLoans.count){[self retire];if(error)*error=[NSError errorWithDomain:@"YNXDeviceV4NativeBorrow" code:73005 userInfo:nil];return NO;}}
+#endif
  if(_wprPublication)return[self closeOriginalWPRPublicationSource:error];
  if(_ideCocoaParentSource)return [self closeOriginalIDECocoaParentChildFirst:error];
  if(_networkPublisher)return[self closeOriginalNetworkCurrentPublisherSource:error];
@@ -786,6 +810,9 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "WPRMaterializationSourcePrivate.inc.mm"
 #include "desktop-grant-source-methods.inc"
 #include "pay_native_source_methods.inc"
+#ifdef YNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE
+#include "device_v4_source_borrow_methods.inc.mm"
+#endif
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}if(![self join:error])return NO;_closeSelected=YES;
   auto refuse=[&](NSError*e){if(!_cleanupCause)_cleanupCause=e?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_COCOA_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;};

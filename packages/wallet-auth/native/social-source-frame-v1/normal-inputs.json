@@ -1,0 +1,42 @@
+{
+  "schema": "SOCIAL_BODY2_FRAME3_SAME_KERNEL_AGGREGATION/v1",
+  "bodyExports": [
+    "YNXSocialFreshJointProfilePrepareBodyDATA",
+    "YNXSocialFreshJointProfileInspectBodyDATA"
+  ],
+  "bodyFragment": "native/social-fresh-joint-profile-v1/cabi/bridge.go",
+  "bodyHeader": "native/social-fresh-joint-profile-v1/cabi/social_fresh_joint_profile_data.h",
+  "soleAggregateMain": "COPY_EXACT_BRIDGE_ONCE_TO_EXISTING_PACKAGE_MAIN_NO_NEW_MAIN_OR_RUNTIME",
+  "moduleImport": "github.com/JiahaoAlbus/YNX-Chain/sdk/socialfreshjointprofile",
+  "buildOnlyReplace": "native/social-fresh-joint-profile-v1",
+  "frameSymbol": "ynx_auth_social_source_frame_prepare_v1",
+  "frameKernelADD": [
+    {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_data.go",
+      "bytes": 387,
+      "sha256": "2dca7634d20d75fbe357045d0707447868bf8e38447c82a52777a85883b4d5c6"
+    },
+    {
+      "path": "native/social-source-frame-v1/delta/internal/social/kernel/source_signing_input_ffi.go",
+      "bytes": 1238,
+      "sha256": "188b6919780d60841a5a5066571e2ff683fb8f0be8cfcee53bb930a89d70e61a"
+    }
+  ],
+  "framePrivateHeader": {
+    "path": "native/social-source-frame-v1/delta/internal/social/kernel/social_source_frame_data_private.h",
+    "bytes": 1164,
+    "sha256": "636bbe2614cd78ba73419834c4cc522f0a9cc4518e02fa3497b67307ba98e7ad"
+  },
+  "frameOriginalVerifyOnly": {
+    "path": "native/social-source-frame-v1/original/source_authority.go",
+    "bytes": 27746,
+    "sha256": "dbe5dac34a32e260b26ba1c9da2482efb1c38cbf65d583ebe60a080a1b3024dd"
+  },
+  "frameOriginalAction": "VERIFY_EXISTING_SAME_KERNEL_SOURCE_EXACT_NO_SECOND_FRAME_WRITER",
+  "frameFunction": "PrepareOriginalSourceSigningInputDATA -> original sourceSigningInput",
+  "productionGoArchives": 1,
+  "PUBLICArchiveForbidden": true,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

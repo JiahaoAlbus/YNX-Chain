@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "kind": "SOCIAL_JOINT_PROFILE_SOLE_BODY_CABI_DATA_SOURCE/v1",
+  "originalSDKSource": "6dbd6a848c8f109ad6d7e4fcd165177a90fd7a8c",
+  "files": [
+    {
+      "path": "body.go",
+      "bytes": 8990,
+      "sha256": "ff195e4ec385045f5736eda8d9e0e9b5e4d8a5f577a2ebddc0d864d13a6abea7"
+    },
+    {
+      "path": "go.mod",
+      "bytes": 80,
+      "sha256": "ebe572fd7941ab640b8d1b07ae9e8ba2885b3323741ed5f41acb3e2c7c24cca7"
+    },
+    {
+      "path": "cabi/bridge.go",
+      "bytes": 9310,
+      "sha256": "919b4a8b4a60683a97543744888908081eb4066f15968b1cb2407400958655c4"
+    },
+    {
+      "path": "cabi/social_fresh_joint_profile_data.h",
+      "bytes": 4253,
+      "sha256": "dfee3a19b5069fec5cf9c5b834dd843441004cadc4fff2047cc2ac4d1bc9c4d4"
+    }
+  ],
+  "exports": [
+    "YNXSocialFreshJointProfilePrepareBodyDATA",
+    "YNXSocialFreshJointProfileInspectBodyDATA"
+  ],
+  "productionArchive": "NOT_PRODUCED",
+  "oneOriginalGoRuntimeOnly": true,
+  "sourceFrameForwarder": "NOT_SUPPLIED",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

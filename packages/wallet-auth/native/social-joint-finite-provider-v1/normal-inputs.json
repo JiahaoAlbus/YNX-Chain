@@ -1,0 +1,317 @@
+{
+  "version": 1,
+  "variant": "SOCIAL_FINITE_JOINT_PROVIDER_R1_R2_MAIN_READ_MATCHED_NORMAL_SOURCE_ONLY/v1",
+  "files": [
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+      "bytes": 5929,
+      "sha256": "aa496cad13707f2579b762877f0e8b2e996600b60f9be1da5c4bb8377d5e83c1"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
+      "bytes": 13311,
+      "sha256": "9caaefe4fe2b2e08bca02f9f30f7dbb7be47205e8233a5762ff6b831232fb8f7"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go",
+      "bytes": 3787,
+      "sha256": "33bd33339da4da35fdab51a896aca32c4702edefa722485281b2cf61e5f718b4"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route.go",
+      "bytes": 2124,
+      "sha256": "7ac1488c26bad953b1ee685413048e3274a12d5afd40397cd7f21ddcbd4b739b"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route_ffi.go",
+      "bytes": 769,
+      "sha256": "264f55dc8a708cd90d79e2a7b23d143e71cc4d9b6550166e6bcc62172426a8a4"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h",
+      "bytes": 2153,
+      "sha256": "85088b5923f0d6c6df5ed98a3fe5ef3ed4f21f9a8c6fbc85b0c2524612bc3aa7"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/ynx_auth_registered_main_pair_read_private_v1.h",
+      "bytes": 4543,
+      "sha256": "ca65bb5eb9174573467860a553f41c5d4420c79810ed4ea4f86291e719330840"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_custodian_private_v1.h",
+      "bytes": 3660,
+      "sha256": "cb65131c497127eb83a507ed952877602537a8ce39f7e70f93a46055f70fac8f"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_plan_private_v1.h",
+      "bytes": 1872,
+      "sha256": "fd66b2c593196a7ad8411b4ffe269f180af4b52f78ac1ce58ebc95b96c0c8ac7"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_provider_source_private_v1.h",
+      "bytes": 2481,
+      "sha256": "c10c291adb62951c5d0c25fc95cefa022597869c8042993498f8df433f6d5190"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/Cargo.lock",
+      "bytes": 43954,
+      "sha256": "f8b6e648c43881434c280e3326e4325dbecc0565f71dc286712b7f1c528d6736"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/Cargo.toml",
+      "bytes": 539,
+      "sha256": "aa80b52f993dcea00a161e93ff94aacf3af1ae5d31970379546ab41e1a47fda8"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/image_registration.rs",
+      "bytes": 8956,
+      "sha256": "11f8a103f291e03711bc66d1ee0b0dee9100a9d115561ec1fa29f6dd4b83725e"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/journal.rs",
+      "bytes": 711,
+      "sha256": "67eacb56c68a7a7053957615ee1076418cc4a9864a37a78f984b4c4de0d97330"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/key_ffi.rs",
+      "bytes": 5777,
+      "sha256": "4f78e0129dff66c83af65ea21ba9eedd470b8fa718677bbaf68bb3ca04ec9161"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/lib.rs",
+      "bytes": 453,
+      "sha256": "e87d8aa16bc45c586a16b69320e1816c397324fb1dcaf3c6aeaa8451ee36c30a"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/loaded_pair.rs",
+      "bytes": 11781,
+      "sha256": "5bc013b3d62a3f39597b63af601ae6a504cc1402c0c578a0e9f494c82fc85a86"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read.rs",
+      "bytes": 16617,
+      "sha256": "f4fa3d90a9e47c14380b2d370147875b933f9d5947d74591885ca2ed100acc6b"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_admission.rs",
+      "bytes": 14483,
+      "sha256": "0e54e071daf72993786ab0a57a6d76bedb1b33363464457fc620d9d6bc366cf6"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_data.rs",
+      "bytes": 4967,
+      "sha256": "fd8d86a97ffb85f5ac60a897870c3daa56b6b5655b71f3037d181a503c296b44"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_ffi.rs",
+      "bytes": 17032,
+      "sha256": "6859a14fc5e51254476277f8b018eba50e8b4cc138d4f8beeb5424e426f79db3"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/main_pair_read_resource.rs",
+      "bytes": 6929,
+      "sha256": "9029b48542e2991630bd1cab9f4a4914926b1b3419495e4b704ac7684769a852"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/peer.rs",
+      "bytes": 2929,
+      "sha256": "d17f4ef172b1c2128dfda59a931dbb99b7d6fc03d21c959f152e905ec2cd816e"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/plan.rs",
+      "bytes": 5990,
+      "sha256": "d259aabfe0ab1a083a51c4278f51e23417cec842f636c84ecffd384e5cf6e5af"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/postbuild.rs",
+      "bytes": 12447,
+      "sha256": "138d8204c28cc5a71caa3607a9c44fb4b78f8ca98cc8da0c67bc4cfd482144f8"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/raw.rs",
+      "bytes": 3602,
+      "sha256": "109917790254e1acfe13082f2230f805f5454e8364dc3e32046822098337aecf"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/registry.rs",
+      "bytes": 3601,
+      "sha256": "20204accc485c37916048109517cbfb102938a94ca160595568fc17f9a9b1bb0"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/server.rs",
+      "bytes": 15177,
+      "sha256": "42464da47c3f0da0ba8eb87606c64de4801d419c9842a91a7df42c7ed74a0600"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/transport.rs",
+      "bytes": 14602,
+      "sha256": "f308a134cf0f68fa8876783bc2012c270dcc13b1a6f4ce01bbb68cb4a37bdecb"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/producer/src/wire.rs",
+      "bytes": 10013,
+      "sha256": "ae0205717b9ece3f8153b85564b0bfba3322239eb56815e74e8502b16571ca86"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/composition.cpp",
+      "bytes": 4482,
+      "sha256": "e3d153062d008aa1c715dfd5498965ba85e9ec95dcfe9c10682c59e1c49e2573"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/composition.h",
+      "bytes": 1179,
+      "sha256": "4756b8e5f697a6fcd23ac97bddadc34bf14c50cdd72f108090aa2bd4948aa2b3"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/journal.cpp",
+      "bytes": 6871,
+      "sha256": "1957a2480cc3abe2ae6aae1502a5b4532e4d0b64b117cc959b2daf434df07928"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/journal.hpp",
+      "bytes": 1433,
+      "sha256": "355ba25adeb4be0548fc43100834572f1928e8e60892086275d0435a21011fd5"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/journal_c.cpp",
+      "bytes": 3505,
+      "sha256": "52002de0b29929e271a61943ac299a357bec087307499f16a199cc7a0ba56480"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/src/journal_c.h",
+      "bytes": 1218,
+      "sha256": "7bf3b6ba4a4096ea5bd0b749310410f6efcf9f3c8fc97979a901da2d49674b1a"
+    }
+  ],
+  "source3Collector": "scripts/social-source3-fresh-node-inputs.mjs",
+  "source3Header": {
+    "path": "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
+    "bytes": 8302,
+    "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49"
+  },
+  "CABIHeader": "native/social-joint-finite-provider-v1/include/ynx_social_finite_joint_custodian_private_v1.h",
+  "requestBytes": 208,
+  "statusBytes": 24,
+  "strongSymbols": [
+    "ynx_social_finite_joint_custodian_open_v1",
+    "ynx_social_finite_joint_custodian_current_v1",
+    "ynx_social_finite_joint_custodian_enter_original_once_v1",
+    "ynx_social_finite_joint_custodian_durable_original_intent_current_v1",
+    "ynx_social_finite_joint_custodian_sign_once_v1",
+    "ynx_social_finite_joint_custodian_copy_original_v1",
+    "ynx_social_finite_joint_custodian_query_original_v1",
+    "ynx_social_finite_joint_custodian_retire_v1",
+    "ynx_social_finite_joint_custodian_join_v1",
+    "ynx_social_finite_joint_custodian_close_v1",
+    "ynx_social_finite_joint_custodian_serve_registered_v1"
+  ],
+  "cppUnits": [
+    "native/social-joint-finite-provider-v1/src/composition.cpp",
+    "native/social-joint-finite-provider-v1/src/journal.cpp",
+    "native/social-joint-finite-provider-v1/src/journal_c.cpp"
+  ],
+  "includeDirectories": [
+    "native/social-joint-finite-provider-v1/include",
+    "native/social-joint-finite-provider-v1/src",
+    "native/social-source3-fresh-v1"
+  ],
+  "rust": {
+    "manifest": "native/social-joint-finite-provider-v1/producer/Cargo.toml",
+    "requiredFeature": "native-custody",
+    "testCommandsExcluded": true,
+    "normalDependencyRelative": "../../keeper-r4/original/native-source/native/rust/protocol",
+    "normalDependencyStatus": "NOT_MATERIALIZED_IN_THIS_SOURCE_PACKET"
+  },
+  "sameGoAggregate": {
+    "runtimeCount": 1,
+    "kernelADD": [
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_original.go",
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route.go",
+      "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route_ffi.go"
+    ],
+    "buildTags": [
+      "cgo",
+      "ynx_source_native_collector"
+    ],
+    "privatePackage": "internal/social/kernel",
+    "bodyModule": "github.com/JiahaoAlbus/YNX-Chain/sdk/socialfreshjointprofile",
+    "bodyModuleReplace": "native/social-fresh-joint-profile-v1",
+    "frameAndR6Capture": "MUST_BE_SAME_KERNEL_NOT_A_SECOND_GO_ARCHIVE",
+    "kernelMOD": [
+      {
+        "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+        "supplierBefore": {
+          "bytes": 5832,
+          "sha256": "f979a9f1e8c11fa8fca4f563b8809e0a10a300312ecd86c50b3a286206d0b921"
+        },
+        "normalSourceADDMapsToOriginalKernelMOD": true
+      }
+    ]
+  },
+  "missingFinalLink": [
+    "genuine Native Source/Binding + actual qualified remote registered Main holder + Linux registered DEVICE constructors in matching target",
+    "original keeper-r4 protection/wrapping/records/selected crypto C libraries",
+    "ONE normal Go archive containing actual Source/sole body/frame/envelope/provider bridge"
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "serviceStarted": false,
+  "finalLinuxLink": false,
+  "mainPairClient": {
+    "sourceSupplied": true,
+    "finiteCrateMatched": true,
+    "blocker": null,
+    "header": "native/social-joint-finite-provider-v1/include/ynx_auth_registered_main_pair_read_private_v1.h",
+    "strongSymbols": [
+      "ynx_auth_registered_main_pair_open_v1",
+      "ynx_auth_registered_main_pair_current_v1",
+      "ynx_auth_registered_main_pair_view_open_v1",
+      "ynx_auth_registered_main_pair_view_copy_v1",
+      "ynx_auth_registered_main_pair_view_current_v1",
+      "ynx_auth_registered_main_pair_view_release_v1",
+      "ynx_auth_registered_main_pair_close_v1",
+      "ynx_auth_registered_main_pair_server_open_v1",
+      "ynx_auth_registered_main_pair_server_current_v1",
+      "ynx_auth_registered_main_pair_peer_open_v1",
+      "ynx_auth_registered_main_pair_peer_current_v1",
+      "ynx_auth_registered_main_pair_peer_close_v1",
+      "ynx_auth_registered_main_pair_server_close_v1"
+    ],
+    "sourceBytes": 112,
+    "statusBytes": 24,
+    "viewBytes": 192,
+    "storageBytes": 8192,
+    "commandNumbers": [
+      31,
+      32,
+      33,
+      34,
+      35
+    ],
+    "sameFiniteCrate": true,
+    "independentReadRows": 0,
+    "signingRowsGrantRead": false,
+    "mainPrivateHeader": "native/social-joint-finite-provider-v1/include/social_main_committed_pair_private.h"
+  },
+  "mainPairRoute": {
+    "sourceVersion": "Auth R7 route-r1",
+    "sourceH": {
+      "bytes": 7098,
+      "sha256": "2b7c15ee553e273eb8b8cb40728cae8156acb76f838d6ed65214f409eddb0b5f"
+    },
+    "strongGetter": "ynx_auth_social_joint_capture_borrow_main_pair_route_v1",
+    "signature": "realLocalLoan,uint32Out,status24",
+    "unknown": 0,
+    "normalMainActorLocal": 1,
+    "fixedRoleProviderRegistered": 2,
+    "immutableFactoryOnly": true,
+    "routingDATAOnly": true,
+    "RootReadPurposeStillIndependent": true,
+    "callerModeSetter": false,
+    "fallbackOnLocalFailure": false,
+    "sameKernelOneGoRuntime": true,
+    "binaryLinkedHere": false
+  }
+}

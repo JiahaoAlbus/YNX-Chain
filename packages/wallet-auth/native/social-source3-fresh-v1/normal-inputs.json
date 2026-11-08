@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "kind": "SOCIAL_SOURCE3_R8_NODE_R7_MAIN_PAIR_ROUTE_NORMAL_SOURCE_ONLY/v1",
+  "SDKBase": "6dbd6a848c8f109ad6d7e4fcd165177a90fd7a8c",
+  "stdioBase": "0e04fa18aac0026f9561c084679cd6e8ed388013",
+  "HostACKBase": "eac4dcb8ea510449e0de09f5068f0cf9f2d0b87d",
+  "files": [
+    {
+      "path": "native/original-social-joint-profile-source-service-private.mjs",
+      "bytes": 19311,
+      "sha256": "37276424f1da7ef509d6166d105a482f3518d7c40832f31cc15d4ffead6f6771"
+    },
+    {
+      "path": "native/original-social-joint-profile-source-service-private.d.mts",
+      "bytes": 1611,
+      "sha256": "80c8ed6e21873a2ccf18fcc4d5b77f8e73edbefd430fde4eda16b90f28ae7867"
+    },
+    {
+      "path": "native/social-principal-stdio-v1/codec.mjs",
+      "bytes": 10409,
+      "sha256": "c80df49ba17566af07eb8960101efd5e0142f622be2cf702defb80e87557d50d"
+    },
+    {
+      "path": "native/social-principal-stdio-v1/codec.d.mts",
+      "bytes": 4689,
+      "sha256": "bc249df7866752790d2d8198a1b1d83a31e7042cd8621769a0ec03f2177b75da"
+    },
+    {
+      "path": "native/social-directory-lc-v1/codec.mjs",
+      "bytes": 6823,
+      "sha256": "2f9ee5c0dac8ee45dddca89f17676a8c8332244e05bdca8d43672d170af7c0b8"
+    },
+    {
+      "path": "src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "path": "src/original-auth-identity-source-current.js",
+      "bytes": 24034,
+      "sha256": "381cc36ced5eff4a845baadde882988c56bab72c8d3b1100838abe98b3ac4674"
+    },
+    {
+      "path": "src/original-social-joint-source-current-private.js",
+      "bytes": 239,
+      "sha256": "ba441332aaefadc85f1496515870150c45cf14324268bf757282a47787c1e216"
+    },
+    {
+      "path": "src/original-social-joint-source-current-private.d.ts",
+      "bytes": 385,
+      "sha256": "b64a19ad9e1b315c39412aae81a7fffaeb5c5e0af3cfeaa16d4e53e76447a41c"
+    },
+    {
+      "path": "src/original-social-device-directory-principal-dispatch-private.js",
+      "bytes": 4084,
+      "sha256": "7b15693d80a6b2d7f692c9629693f893defa7a6c927c9661c6d52d0823633698"
+    },
+    {
+      "path": "src/original-social-directory-response-loan-private.js",
+      "bytes": 5715,
+      "sha256": "10a45d09b6fb2e8ff6b13f8fb20736cc97c26356673a6169ebc5a9f659a60877"
+    },
+    {
+      "path": "src/product-session-gateway-node-host.js",
+      "bytes": 84506,
+      "sha256": "21bf6c7f076d673ebac1c6e1029dc4d3a7d348fe9ee59cc3296b50a214cd006f"
+    },
+    {
+      "path": "native/social-source3-fresh-v1/social_joint_profile_issuer_private.h",
+      "bytes": 8302,
+      "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/device_session_principal_capture_inventory_ffi.go",
+      "bytes": 5929,
+      "sha256": "aa496cad13707f2579b762877f0e8b2e996600b60f9be1da5c4bb8377d5e83c1"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_joint_provider_ffi.go",
+      "bytes": 13311,
+      "sha256": "9caaefe4fe2b2e08bca02f9f30f7dbb7be47205e8233a5762ff6b831232fb8f7"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route.go",
+      "bytes": 2124,
+      "sha256": "7ac1488c26bad953b1ee685413048e3274a12d5afd40397cd7f21ddcbd4b739b"
+    },
+    {
+      "path": "native/social-joint-finite-provider-v1/delta/go-source/internal/social/kernel/source_main_pair_route_ffi.go",
+      "bytes": 769,
+      "sha256": "264f55dc8a708cd90d79e2a7b23d143e71cc4d9b6550166e6bcc62172426a8a4"
+    }
+  ],
+  "normalEntry": "src/original-social-joint-source-current-private.js",
+  "acquire": "acquireOriginalSocialDeviceDirectoryPrincipalSourceV4",
+  "drain": "drainOriginalSocialDeviceDirectoryPrincipalSourceV4",
+  "privateFactory": "native/original-social-joint-profile-source-service-private.mjs::acquireOriginalSocialJointSourceService",
+  "entryInputs": "ZERO_ARGUMENTS; no provider/selector/path/approval object",
+  "ownerCustody": "SAME actual owner adopted as cleanup debt first; only actual producer origin verifier and producer-sealed methods allow Host identity registration. SDK never freezes possibly poisoned prototypes.",
+  "oneOwnerDebt": "No second acquisition while original Source3 acquisition/owner debt remains; only actual isClosed releases SDK slot",
+  "SourceInputHeader": {
+    "version": 2,
+    "bytes": 8302,
+    "sha256": "5f71bab5d051a60dc170f8b57e9991d7901ae57ecfea112ab84aa5a415627a49",
+    "SourceR6H": {
+      "bytes": 10737,
+      "sha256": "63b8a80b7ddf0ab71ba6f36d9056353ec4bb2714d8933d8b80e9559b3f4f8020"
+    },
+    "SourceR7H": {
+      "bytes": 7098,
+      "sha256": "2b7c15ee553e273eb8b8cb40728cae8156acb76f838d6ed65214f409eddb0b5f"
+    }
+  },
+  "Historical5444HeaderIsNotMatchingInput": true,
+  "closedLinkage": {
+    "matchedNativeStrong17": "NOT_LINKED",
+    "sameVersionGoHelperExecutable": "NOT_SUPPLIED",
+    "actualRootHelperLocatorRows": 0,
+    "genuineSourceResources": "NOT_SUPPLIED"
+  },
+  "graphBoundary": {
+    "strictDataEntries": [
+      "native/social-principal-stdio-v1/codec.mjs",
+      "native/social-directory-lc-v1/codec.mjs"
+    ],
+    "guardedPrivateIO": [
+      "native/original-social-joint-profile-source-service-private.mjs",
+      "src/original-auth-identity-source-current.js",
+      "src/product-session-gateway-node-host.js"
+    ],
+    "genericStrictScannerMustRejectChildProcessAndCreateRequire": true,
+    "wholeNodeExternalHelperQualification": "NOT_SUPPLIED",
+    "notClaimedPureDATAWholeSourceGraph": true
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "requiredProducerMethodContract": {
+    "originVerifier": "isOriginalSocialJointSourceService(owner)",
+    "trustedBeforeFirstPublication": [
+      "class/prototype method slots fixed",
+      "actual owner instance fixed",
+      "private initializer/fixed zeroarg selection"
+    ],
+    "R7ContainsOriginVerifier": false,
+    "status": "FORMAL_R8_SUPPLIED",
+    "R8OriginVerifierSupplied": true,
+    "R8H": {
+      "bytes": 2703,
+      "sha256": "a598dc59f304d57337f30d95a22d09c6208ff26b22693a618a9f4925126ea2e5"
+    }
+  },
+  "mainPairRoute": {
+    "sourceVersion": "Auth R7 route-r1",
+    "sourceH": {
+      "bytes": 7098,
+      "sha256": "2b7c15ee553e273eb8b8cb40728cae8156acb76f838d6ed65214f409eddb0b5f"
+    },
+    "strongGetter": "ynx_auth_social_joint_capture_borrow_main_pair_route_v1",
+    "signature": "realLocalLoan,uint32Out,status24",
+    "unknown": 0,
+    "normalMainActorLocal": 1,
+    "fixedRoleProviderRegistered": 2,
+    "immutableFactoryOnly": true,
+    "routingDATAOnly": true,
+    "RootReadPurposeStillIndependent": true,
+    "callerModeSetter": false,
+    "fallbackOnLocalFailure": false,
+    "sameKernelOneGoRuntime": true,
+    "binaryLinkedHere": false
+  }
+}

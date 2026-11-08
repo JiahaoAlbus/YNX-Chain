@@ -1,0 +1,74 @@
+{
+  "schema": "YNX-SOCIAL-DIRECTORY-REGISTERED-LC-READ-RELEASE/v1",
+  "version": 1,
+  "transport": "Existing same registered L/C private channel/FD only; not stdio or new service",
+  "frame": {
+    "layout": "tag:u8 + payloadLength:BEu32 + metadataLength:BEu32(0) + body",
+    "payloadLength": "4+len(body); bounded fixed exact by tag",
+    "metadata": "none; nonzero metadataLength refused",
+    "W": {
+      "meaning": "Main physically finished reading SAME retained original response; request release of SAME per-response hold",
+      "body": [
+        "version:u8=1",
+        "requestOriginalSHA256:32bytes",
+        "rootResponseOriginalSHA256:32bytes"
+      ],
+      "bodyBytes": 65,
+      "payloadBytes": 69,
+      "frameBytes": 74
+    },
+    "A": {
+      "meaning": "Node acknowledges SAME response-loan physical closure independently from any late cause; not business success or Root grant",
+      "body": [
+        "version:u8=1",
+        "requestOriginalSHA256:32bytes",
+        "rootResponseOriginalSHA256:32bytes",
+        "closed:u8(0|1)",
+        "errorPresent:u8(0|1)",
+        "errorKind:u8(none=0|code=1|retained=2)",
+        "errorCode:BEi32"
+      ],
+      "bodyBytes": 72,
+      "payloadBytes": 76,
+      "frameBytes": 81
+    },
+    "maxFrameBytes": 81
+  },
+  "rawBinding": {
+    "requestOriginal": "Auth Host private credential retained exact canonical request6 raw, AND independent already-verified Qualified9.requestOriginalSHA256; never Go/meta remarshal",
+    "requestMaxBytes": 393216,
+    "rootResponseOriginal": "Auth private exporter retained actual rootResponse raw only; no transport body/meta substitute",
+    "responseMaxBytes": 524288,
+    "hash": "SHA256 raw bytes; no new signature/domain/member",
+    "sameChannel": "not a wire claim; independent LINK private owner and one outstanding response loan required"
+  },
+  "error": {
+    "absent": "errorPresent=false,errorKind=none,errorCode=0",
+    "present": "errorPresent=true and errorKind=code with exact int32 including0, OR errorKind=retained/errorCode0 with actual original firstcause kept local",
+    "closed": "physical witness independent from error; closed=true/errorPresent=true is physical closure with UNKNOWN, not successful permission"
+  },
+  "lifecycle": [
+    "W only after Main actual read physically finished, not header/HTTP200/EOF",
+    "one W per SAME held response; no new request/nonce/replay to recover missing A",
+    "A only after sameHost/result completion and Auth actual per-response loan closed; LINK transport independently drains",
+    "valid A requires stored request+response hashes, SAMEchannel/outstanding; frame cannot prove channel identity",
+    "usable completion needs A.closed and no late firstcause plus actual LINK physical drain; never Root/Source grant",
+    "EOF/half-frame/lostACK/foreignbinding/latecurrent/cleanupfailure keep UNKNOWN and original nonce/bytes/debt",
+    "retire/cancel still permits same-original cleanup and observation, not new signing or new request"
+  ],
+  "authRequiredPrivateContract": {
+    "status": "REQUIRED_NOT_SUPPLIED_BY_THIS_SDK",
+    "capture": "Auth fixed registered receiver adopts SAME actual Host result and acquires per-response hold before any late current/error; stores actual sameHost and request/caller",
+    "readOriginal": "SAME held result private exporter returns owned canonical original bytes; must not invoke JSON stringify on result",
+    "assertCurrent": "sameHost/result delivery completion AND independent Source/window/revoke current",
+    "release": "release only SAME per-response hold, never close global Go Source",
+    "closed": "actual per-response physical closed witness with paired error presence/code; may be closed with late error",
+    "brand": "Auth lexical factory/private inventory; no public callback/options/DTO constructor or setter"
+  },
+  "admission": {
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "businessSuccess": false
+  }
+}
