@@ -11,6 +11,8 @@ const INPUT=['networkId','canonicalOwner','account','productId','clientId','plat
 const STABLE=['networkId','canonicalOwner','account','productId','clientId','deviceId'];
 const APPLICATION=['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'];
 const IDENTITY_INPUT=INPUT.filter(k=>!['generation','operationId','nonce','issuedAt','expiresAt'].includes(k));
+// Existing sole identity grammar, exposed only to fixed package-private DATA consumers.
+export const ORIGINAL_DEVICE_CREATE_IDENTITY_INPUT_FIELDS=Object.freeze([...IDENTITY_INPUT]);
 const ta=Object.getPrototypeOf(Uint8Array.prototype),getLength=Object.getOwnPropertyDescriptor(ta,'byteLength').get,getBuffer=Object.getOwnPropertyDescriptor(ta,'buffer').get,setBytes=Uint8Array.prototype.set;
 const views=new WeakMap(),encoder=new TextEncoder(),decoder=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const FLAGS=Object.freeze({dataOnly:true,userApproved:false,SourceAdmission:false,NativeAdmission:false});
