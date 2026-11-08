@@ -249,11 +249,10 @@ jobs:
         run: go test -mod=readonly -race ./internal/productsessionv2 -count=1 -v
       - name: Check original Auth V4 Go bridge and physical closure consumption
         if: needs.change-scope.outputs.v4-supplier-intake == 'true'
-        working-directory: internal/commerce/third_party/productreadsource
         run: |
           set -euo pipefail
           if [ ! -d "$HOME/.codex" ]; then mkdir -m 700 "$HOME/.codex"; fi
-          go test -mod=readonly -race -p 1 . -count=1 -v
+          go test -mod=readonly -race -p 1 github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource -count=1 -v
       - name: Verify actual consumption of original LINK fixed proof carrier
         if: needs.change-scope.outputs.link-proof-intake == 'true'
         run: |
