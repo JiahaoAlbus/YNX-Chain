@@ -266,8 +266,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-product-device-v4-pending-source-contract.mjs",
-      "bytes": 4720,
-      "sha256": "d5c928b27f4f9e81e4aff08c2ac9672c0039d3a8093fa3c6cd2dd8c1b24b0ad9"
+      "bytes": 912,
+      "sha256": "d238ddd4080106c17d1a56e650863894c82e440c141051e54834d6dcf4909e18"
     },
     {
       "path": "packages/wallet-auth/native/original-product-device-v4-provisioning-source-contract.mjs",
@@ -801,8 +801,8 @@
     },
     {
       "path": "packages/wallet-auth/src/product-session-pq-v4-codec.js",
-      "bytes": 17665,
-      "sha256": "0ffbc672c8e43c258749e6501be2c90a00549ae84615ee12400a782d7accf7f3"
+      "bytes": 16760,
+      "sha256": "15ae9481a0fa3d5d244b9a6e968207bc8f78c1d0ef1825164ab390131b77a327"
     },
     {
       "path": "packages/wallet-auth/src/product-session-pq-v4-signing-private.js",
@@ -888,6 +888,16 @@
       "path": "packages/wallet-auth/src/wallet-session-control.js",
       "bytes": 8185,
       "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-pending-scope-data-core.mjs",
+      "bytes": 4801,
+      "sha256": "8b107b19c53cbde083d7a779f7af2962f8a6b978b5a4c0155c01e85ea571fa09"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-pq-v4-message-data.js",
+      "bytes": 2640,
+      "sha256": "bdacefc432b5a4433df4396dd48270fc5913710876ef84ac848677f29c11db76"
     }
   ],
   "compiled": false,
