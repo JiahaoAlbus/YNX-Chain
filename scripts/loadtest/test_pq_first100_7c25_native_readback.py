@@ -20,6 +20,33 @@ class NativeBusinessReadback(unittest.TestCase):
         self.assertEqual(result['status'],'NOT_SUPPLIED');self.assertFalse(result['buildOrBusinessQualified'])
         with self.assertRaisesRegex(RuntimeError,'requires supporting source'):
             r.native_source_receipt({},'',dict(normalLiveBuildSource=dict(source='not sufficient')))
+    def test_cancelled_request_preserves_missing_bootstrap_end(self):
+        decoder = r.module('native_request_test', 'pq-live-request-observation-readback.py')
+        def frame(sequence, event, stage, span, elapsed=0, reason=''):
+            return dict(version=decoder.VERSION, sequence=sequence, event=event, stage=stage,
+                        span=span, elapsedNs=elapsed, reason=reason, authorityGranted=False)
+        frames = [
+            frame(1, 'BEGIN', 'REQUEST', 1),
+            frame(2, 'BEGIN', 'BOOTSTRAP_VALIDATE', 2),
+            frame(3, 'CANCEL', 'REQUEST', 1, 24162526122, 'SIGTERM'),
+        ]
+        raw = b''.join(json.dumps(row).encode() + b'\n' for row in frames)
+        captured, _ = decoder.split_original(raw, hashlib.sha256(raw).hexdigest())
+        lifecycle = dict(parentTiming=dict(records=[
+            dict(name='load-00000-live-publish', requestStageObservation=captured, requestProcessReturnCode=-15),
+            dict(name='load-00001-live-publish'),
+        ]))
+        files = {'load-00000-live-publish.log': raw}
+        first, second = r.original_live_requests(files, '', lifecycle)['records']
+        self.assertEqual(first['status'], 'OBSERVED_INCOMPLETE')
+        self.assertEqual(first['observation']['unresolvedSpans'][1],
+                         dict(span=2, stage='BOOTSTRAP_VALIDATE', elapsedNs=None))
+        self.assertEqual(first['observation']['records'][-1]['elapsedNs'], 24162526122)
+        self.assertFalse(second['launchObserved'])
+        captured['unresolvedSpans'][1]['elapsedNs'] = 24162526122
+        with self.assertRaisesRegex(RuntimeError, 'parent observation differ'):
+            r.original_live_requests(files, '', lifecycle)
+
     def test_old_tools_cannot_migrate_to_native_tuple(self):
         adapter=dict(controllerCommit='a'*40,controllerSourceSHA256=r.ADAPTER_SHA256,
             profile='first100-7c25-public-owner',senderBackend='public-owner',goSource=r.SOURCE,goTree=r.TREE,

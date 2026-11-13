@@ -55,6 +55,17 @@ def response(owner=4,identity='a'*64,code='ORIGINAL_SAVED'):
 
 
 class TransportControls(unittest.TestCase):
+    def test_sign_failure_detail_uses_only_closed_cli_fields(self):
+        reply = dict(code='REJECTED', result=None)
+        self.assertEqual(d.owner_failure_detail(reply, 'sign'), '')
+        reply['failure'] = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-FAILURE/v1',
+                                failurePhase='SIGN', errorClass='CHECKPOINT_REJECTED',
+                                firstCausePresent=True)
+        self.assertEqual(d.owner_failure_detail(reply, 'sign'), ' (SIGN/CHECKPOINT_REJECTED)')
+        reply['code'] = 'UNKNOWN'
+        self.assertEqual(d.owner_failure_detail(reply, 'sign'), ' (unqualified failure diagnostic)')
+        self.assertEqual(reply['code'], 'UNKNOWN')
+
     def test_actual_go_stream_through_original_reader_and_callee_collector(self):
         fixture=Path(__file__).with_name('fixtures')/'public-owner-original-go.jsonl'
         raw=fixture.read_bytes()

@@ -4,7 +4,7 @@ The caller supplies the separately frozen normal controller identity. The
 archive and current RuntimeTools are independently pinned; no old1695 source
 or runtime evidence is inherited by reusing its pure reducers.
 """
-import argparse,base64,copy,hashlib,importlib.util,json,re
+import argparse,base64,collections,copy,hashlib,importlib.util,json,re
 from pathlib import Path
 
 
@@ -29,8 +29,38 @@ cohort,conditions,public_transport=legacy.cohort,legacy.conditions,legacy.public
 
 def original_sign_replies(files,prefix,load):
     result=legacy.original_sign_replies(files,prefix,load)
-    result.update(schema='YNX-PERF-7C25-ORIGINAL-SIGN-REPLIES/v1',source=SOURCE)
+    failures = collections.Counter()
+    for record in result['records']:
+        if record['code'] in ('REJECTED', 'UNKNOWN'):
+            diagnostic = record['failureDiagnostic']['diagnostic']
+            failure_class = diagnostic['errorClass'] if diagnostic else 'NOT_SUPPLIED'
+            failures[failure_class] += 1
+    result.update(schema='YNX-PERF-7C25-ORIGINAL-SIGN-REPLIES/v1',source=SOURCE,
+                  failureClassCounts=dict(failures))
     return result
+
+
+def original_live_requests(files, prefix, lifecycle):
+    if lifecycle is None:
+        return dict(status='NOT_SUPPLIED', records=[])
+    decoder = module('current7c_original_request_log', 'pq-live-request-observation-readback.py')
+    records = []
+    for record in lifecycle['parentTiming']['records']:
+        name = record['name']
+        if not re.fullmatch(r'load-[0-9]{5}-live-publish', name):
+            continue
+        captured = record.get('requestStageObservation')
+        if captured is None:
+            records.append(dict(name=name, status=record.get('requestObservationCaptureStatus', 'NOT_SUPPLIED'),
+                                launchObserved='launchReturnedMonotonicNs' in record))
+            continue
+        path = prefix + name + '.log'
+        raw = files[path]
+        parsed, _ = decoder.split_original(raw, captured['originalSHA256'])
+        require(parsed == captured, 'original live request log and parent observation differ')
+        records.append(dict(name=name, status=parsed['status'], logPath=path,
+                            processReturnCode=record['requestProcessReturnCode'], observation=parsed))
+    return dict(status='ORIGINALS_READ', records=records)
 
 
 def identities(adapter,receipt,controller):
@@ -257,6 +287,7 @@ def read_archive(raw,expected_sha256,expected_bytes,*,controller):
         physicalHardwarePairEqualityQualified=False,canonicalInputPairEqualityQualified=False)
     receipt=strict(files[matches[0]])
     result['originalNativeSupportingSource']=native_source_receipt(files,prefix,receipt)
+    result['originalLiveRequests']=original_live_requests(files,prefix,result['originalHelperLifecycle'])
     result['originalFourNodeInclusion']=inclusion_replies(files,prefix,receipt.get('loadResult'))
     result['originalSuccessorAvailability']=successor_availability(files,prefix,receipt)
     stages=module('current7c_stage_summaries','pq-first100-stage-summary.py')

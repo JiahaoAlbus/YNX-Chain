@@ -43,6 +43,17 @@ first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-sourc
 first_trial_7c25_source=module('original_first_trial_7c25_source','pq-7c25-source-qualification.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
+owner_failure_readback=module('original_owner_failure_readback','pq-public-owner-failure-readback.py')
+
+
+def owner_failure_detail(reply, operation):
+    try:
+        diagnostic = owner_failure_readback.readback(reply, operation)['diagnostic']
+    except RuntimeError:
+        return ' (unqualified failure diagnostic)'
+    if diagnostic is None:
+        return ''
+    return f" ({diagnostic['failurePhase']}/{diagnostic['errorClass']})"
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -482,8 +493,12 @@ class NormalBackend:
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="signer"))
             reply=self.sign_original(row,request,checkpoint,case,notify,stop)
-            if reply["code"]=="REJECTED":raise scheduler.KnownFailure("normal signer returned explicit REJECTED; no retry")
-            lab.require(reply["code"]=="ORIGINAL_SAVED","normal original sign did not return known durable original; no retry")
+            if reply['code'] == 'REJECTED':
+                detail = owner_failure_detail(reply, 'sign')
+                raise scheduler.KnownFailure(f'normal signer returned explicit REJECTED{detail}; no retry')
+            if reply['code'] != 'ORIGINAL_SAVED':
+                detail = owner_failure_detail(reply, 'sign')
+                lab.require(False, f'normal original sign did not return known durable original{detail}; no retry')
             result=reply["result"];directory=self.c.root/"workload/sender-public"/("%04d"%owner)/row["operationId"]
             lab.require(result["operationId"]==row["operationId"],"normal signed operation identity differs")
         else:
