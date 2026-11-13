@@ -4,7 +4,7 @@ import time
 
 def backend_class(Base, Session, normal, lab):
     class PublicOwnerBackend(Base):
-        def __init__(self,ceremony,owners,stop,*,prepare_source=False):
+        def __init__(self,ceremony,owners,stop,*,prepare_source=False,prepare_live_session=None):
             lab.require(ceremony.mode=='online','public owner session requires original online workload')
             indices=sorted(v['ownerIndex'] for v in owners)
             lab.require(len(set(indices))==len(indices),'original initialized owners must be distinct')
@@ -13,6 +13,11 @@ def backend_class(Base, Session, normal, lab):
             # original three proof helpers fit the unchanged owned PID cap.
             lab.require(6+self.helper_limit<=lab.guard.CAPS['ownedProcesses'],'unchanged original PID cap exceeded')
             self.prepare_source = prepare_source
+            self.prepare_live_session = prepare_live_session
+            lane_count = len(ceremony.live) if prepare_live_session is not None else 0
+            self.maximum_pids = 6 + self.helper_limit + lane_count
+            lab.require(self.maximum_pids <= lab.guard.CAPS['ownedProcesses'],
+                        'original PID cap cannot accommodate the live proof sessions')
             self.public_session = (
                 Session(ceremony, indices, prepare_source=True)
                 if prepare_source else Session(ceremony, indices)
@@ -31,7 +36,7 @@ def backend_class(Base, Session, normal, lab):
             self.pool_ready=dict(readyMode=('ORIGINAL_PUBLIC_STATIC_SOURCE_PREPARED'
                                             if self.prepare_source else 'ORIGINAL_PUBLIC_SCOPE_ONLY'),readyCount=1,
                                 originalInitializedAccountCount=len(self.public_session.owners),
-                                maximumOwnedRuntimePIDs=6+self.helper_limit,
+                                maximumOwnedRuntimePIDs=self.maximum_pids,
                                 publicScopeReady=ready,signed=False,nonceReserved=False,
                                 bootstrapLoaded=self.prepare_source,loadClockStarted=False,sourceGrant=False,
                                 coldValidationIncludedInFirstCommand=not self.prepare_source)
@@ -52,6 +57,12 @@ def backend_class(Base, Session, normal, lab):
                     addedToPerCommand=False,
                     checkpointValidated=False,
                 )
+            if self.prepare_live_session is not None:
+                preparations = []
+                for lane in self.c.live:
+                    preparations.append(self.prepare_live_session(self, lane, check))
+                    check()
+                self.pool_ready['liveMaterialsPreparation'] = preparations
             return dict(self.pool_ready)
 
         def sign_original(self,row,request,checkpoint,case,notify,stop):

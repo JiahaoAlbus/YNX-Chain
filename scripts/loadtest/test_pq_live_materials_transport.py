@@ -1,6 +1,10 @@
 """Offline controls for the original Go proof-lane stream."""
 import importlib.util
 import io
+import json
+import tempfile
+import threading
+from types import SimpleNamespace
 from pathlib import Path
 import unittest
 
@@ -63,6 +67,52 @@ class Transport(unittest.TestCase):
         self.assertEqual(lane.exchange('result', 1)['result'], {'sequence': '1'})
         lane.exchange('request', 2, **REQUEST)
         self.assertEqual(len(stream.getvalue().splitlines()), 3)
+
+    def test_driver_launches_private_lane_and_preserves_callee_denominators(self):
+        driver_spec = importlib.util.spec_from_file_location('live_session_driver',
+            Path(__file__).with_name('pq-independent-load.py'))
+        driver = importlib.util.module_from_spec(driver_spec)
+        driver_spec.loader.exec_module(driver)
+        timings = dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1', clock='monotonic_elapsed_wall_ns',
+                       intervalsOverlap=True, stages={'live.publishTotal': dict(calls=1, elapsedNs=12)})
+        ready = dict(version='YNX-PQ-LAB-LIVE-MATERIALS-READY/v1',
+                     status='original_static_source_and_anchor_held', startupElapsedNs=400,
+                     syntheticOnly=True, authorityGranted=False, currentCheckpointClaim=False,
+                     session=stats(0), preparationTimings=timings)
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            for directory in ('public', '.private'):
+                (work/directory).mkdir()
+            policy = work/'.private/policy.json'
+            stop = threading.Event()
+            stdin = io.BytesIO()
+            def launch(name, argv, **options):
+                self.assertTrue(options['private_log'] and options['persistent'] and options['stdin_pipe'])
+                self.assertEqual(argv[1], 'live-materials-session')
+                frames = [ready, reply('request', 1, timings=timings,
+                                      requestPath=str(policy.parent/'request-000001.json')),
+                          reply('result', 1, timings=timings)]
+                (work/'.private'/(name+'.log')).write_text(''.join(json.dumps(frame)+'\n' for frame in frames))
+                return SimpleNamespace(stdin=stdin, poll=lambda: None)
+            measurements = driver.CalleeMeasurements(2, 2)
+            backend = SimpleNamespace(c=SimpleNamespace(bins=work, operations=2, proof_timeout=2,
+                                      measurements=measurements), w=SimpleNamespace(work=work, launch=launch),
+                                      stop_event=stop)
+            lane = dict(policy=policy, pin='c'*64, node=0)
+            preparation = driver.prepare_live_materials_session(backend, lane, lambda: None)
+            self.assertEqual(preparation['calleeStartupElapsedNs'], 400)
+            exchange = driver.NormalBackend.live_materials_command
+            exchange(backend, lane, 'request', 'load-00000', 1, stop,
+                     path=REQUEST['transaction_file'], tx=dict(abciHash='a'*64, nativeHash='b'*64))
+            self.assertEqual(exchange(backend, lane, 'result', 'load-00000', 1, stop),
+                             {'sequence': '1'})
+            groups = measurements.report()['groups']
+            for phase in ('live_publish', 'live_result'):
+                self.assertEqual(groups[phase]['calleeElapsed']['observed'], 1)
+                self.assertEqual(groups[phase]['calleeElapsed']['denominator'], 2)
+            self.assertEqual(len(stdin.getvalue().splitlines()), 2)
+            self.assertEqual(sorted(p.name for p in (work/'public').iterdir()),
+                ['load-00000-live-session-request.json', 'load-00000-live-session-result.json'])
 
     def test_wrong_ready_policy_refuses_before_any_command(self):
         stream = io.BytesIO()

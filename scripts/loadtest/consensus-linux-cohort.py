@@ -436,14 +436,15 @@ class Window:
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False):
+    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False):
         with self.lock:
-            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe)
+            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log)
 
-    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe):
+    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log):
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
         self.sample()
-        log = open(self.work / "public" / (name + ".log"), "xb", buffering=0)
+        log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
+                   "xb", buffering=0)
         os.chmod(log.name, 0o600); self.logs.append((name, log))
         def restrict():
             os.sched_setaffinity(0, self.cpus)

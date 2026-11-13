@@ -582,6 +582,40 @@ class NormalBackend:
                 if "chain identity differs" in str(error):raise
             stop.wait(.02)
         raise RuntimeError("original H+1 not observed before bounded cutoff; preserve submitted original UNKNOWN, no proof publication or replay")
+    def live_materials_command(self, lane, operation, prefix, sequence, stop, *, path=None, tx=None):
+        if "session" in lane:
+            lab.require(not stop.is_set(), "original live session canceled before command")
+            transaction = {}
+            if operation == "request":
+                transaction = dict(transaction_file=str(path),
+                                   transaction_sha256=normal.comet_hash(tx["abciHash"]),
+                                   native_wire_hash=normal.comet_hash(tx["nativeHash"]))
+            started = time.monotonic_ns()
+            reply = lane["session"].exchange(operation, sequence, **transaction)
+            returned = time.monotonic_ns()
+            group = "live_publish" if operation == "request" else "live_result"
+            self.c.measurements.record(group, prefix, reply)
+            timings = reply["timings"]
+            if operation == "request":
+                lab.require(reply["requestPath"] == str(lane["policy"].parent / f"request-{sequence:06d}.json"),
+                            "original live publication path differs")
+            lab.write_new(self.w.work / "public" / f"{prefix}-live-session-{operation}.json",
+                          dict(node=lane["node"], policySHA256=lane["pin"], sequence=sequence,
+                               parentElapsedNs=returned-started, calleeElapsedNs=reply["calleeElapsedNs"],
+                               timings=timings, intervalsOverlap=True))
+            return reply.get("result")
+        args = ["live-materials", operation, "--synthetic", "--policy", str(lane["policy"]),
+                "--policy-sha256", lane["pin"], "--sequence", str(sequence)]
+        suffix = "result"
+        if operation == "request":
+            suffix = "publish"
+            args.extend(("--transaction", str(path),
+                         "--transaction-sha256", normal.comet_hash(tx["abciHash"]),
+                         "--native-wire-hash", normal.comet_hash(tx["nativeHash"])))
+            if getattr(self.c, 'request_stage_observation', False):
+                args.append('--observe-stages')
+        return self.call(f"{prefix}-live-{suffix}", args)
+
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
         lane=None
@@ -593,7 +627,7 @@ class NormalBackend:
             lab.require(not lane["retired"],"normal original live lane retired")
             lane["sequence"]+=1;seq=lane["sequence"];prefix="load-%05d"%row["index"]
             notify(dict(kind="normal_stage",stage="live_publish"))
-            self.call(prefix+"-live-publish",["live-materials","request","--synthetic","--policy",str(lane["policy"]),"--policy-sha256",lane["pin"],"--sequence",str(seq),"--transaction",str(path),"--transaction-sha256",normal.comet_hash(tx["abciHash"]),"--native-wire-hash",normal.comet_hash(tx["nativeHash"]),*(['--observe-stages'] if getattr(self.c,'request_stage_observation',False) else [])])
+            self.live_materials_command(lane, "request", prefix, seq, stop, path=path, tx=tx)
             output=lane["policy"].parent/("operation-%06d"%seq);until=time.monotonic()+self.c.proof_timeout
             notify(dict(kind="normal_stage",stage="live_capture"))
             while not (output/"result.json").exists() and not stop.is_set() and time.monotonic()<until:
@@ -601,7 +635,7 @@ class NormalBackend:
                 stop.wait(.02)
             lab.require((output/"result.json").exists(),"normal original live proof result not supplied before bounded cutoff")
             notify(dict(kind="normal_stage",stage="live_read"))
-            result=self.call(prefix+"-live-result",["live-materials","result","--synthetic","--policy",str(lane["policy"]),"--policy-sha256",lane["pin"],"--sequence",str(seq)])
+            result=self.live_materials_command(lane, "result", prefix, seq, stop)
             lab.require(result["version"]=="YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1" and result["outcome"]=="verified_transaction_data" and result["policySHA256"]==lane["pin"] and int(result["sequence"])==seq and result["owningNodeIndex"]==lane["node"] and result["sourceKind"]=="original-node-owning-stores" and result["syntheticOnly"] is True and result["sourceReadOnly"] is True and result["authorityGranted"] is False and result["fourNodeAgreementClaim"] is False,"normal original live result scope differs")
             lab.require(normal.comet_hash(result["transactionHash"])==normal.comet_hash(tx["abciHash"]) and normal.comet_hash(result["nativeWireHash"])==normal.comet_hash(tx["nativeHash"]),"normal live proof original dual identity differs")
             for key in ("materials","proof","checkpoint"):normal.public_file(output,result[key])
@@ -664,9 +698,12 @@ class NormalBackend:
                 except ProcessLookupError:pass
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
-        for session in self.sessions.values():
-            if session.proc.stdin is not None and not session.proc.stdin.closed:
-                try:session.proc.stdin.close()
+        senders = [session.proc for session in self.sessions.values()]
+        proof_sessions = [child["process"] for child in children
+                          if child["name"].startswith("load-live-session-")]
+        for process in [*senders, *proof_sessions]:
+            if process.stdin is not None and not process.stdin.closed:
+                try:process.stdin.close()
                 except (OSError,ValueError):pass
 
 
@@ -743,7 +780,41 @@ def sender_backend_kind(args):
     return selected
 
 
-def make_sender_backend(ceremony,owners,stop,kind):
+def prepare_live_materials_session(backend, lane, check):
+    ceremony = backend.c
+    name = f"load-live-session-{lane['node']}"
+    path = backend.w.work / ".private" / (name + ".log")
+    stream = SenderSession.__new__(SenderSession)
+    stream.path = path
+    stream.partial = b""
+    stream.offset = 0
+    launched = time.monotonic_ns()
+    stream.proc = backend.w.launch(name, [
+        str(ceremony.bins / "ynx-consensus-pq-lab"), "live-materials-session",
+        "--synthetic", "--policy", str(lane["policy"]), "--policy-sha256", lane["pin"],
+        "--ready", "--timings",
+    ], persistent=True, stdin_pipe=True, thread_safe=True, private_log=True)
+    deadline = time.monotonic() + ceremony.proof_timeout
+    ready = stream.receive(path.with_suffix(".ready.json"), backend.stop_event,
+                           "YNX-PQ-LAB-LIVE-MATERIALS-READY/v1", deadline, check)
+    received = time.monotonic_ns()
+    timing = callee_snapshot(ready.get("preparationTimings"))
+    transport = module("original_live_materials_transport", "pq-live-materials-transport.py")
+    def receive():
+        next_command = lane["session"].commands + 1
+        return stream.receive(path.with_suffix(f".{next_command}.reply.json"), backend.stop_event,
+                              "YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1",
+                              time.monotonic() + ceremony.proof_timeout)
+    lane["session"] = transport.Lane(stream.proc.stdin, receive, ready, policy_sha256=lane["pin"],
+                                     node=lane["node"], max_operations=ceremony.operations)
+    return dict(node=lane["node"], policySHA256=lane["pin"], parentLaunchMonotonicNs=launched,
+                parentReadyReceivedMonotonicNs=received, parentLaunchToReadyNs=received-launched,
+                calleeStartupElapsedNs=ready["startupElapsedNs"], calleePreparationTimings=timing)
+
+
+def make_sender_backend(ceremony,owners,stop,kind,*,prepare_public_source=False,persistent_live=False):
+    lab.require(kind == 'public-owner' or not (prepare_public_source or persistent_live),
+                'prepared live transport requires the public owner backend')
     if kind=='per-account':return NormalBackend(ceremony,owners,stop)
     if kind=='bounded-cold':
         pool=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
@@ -753,7 +824,9 @@ def make_sender_backend(ceremony,owners,stop,kind):
     transport=module('normal_public_owner_transport','pq-public-owner-transport.py')
     pool=module('normal_public_owner_backend','pq-public-owner-backend.py')
     Session=transport.session_class(SenderSession,normal,lab)
-    return pool.backend_class(NormalBackend,Session,normal,lab)(ceremony,owners,stop)
+    return pool.backend_class(NormalBackend,Session,normal,lab)(
+        ceremony,owners,stop,prepare_source=prepare_public_source,
+        prepare_live_session=prepare_live_materials_session if persistent_live else None)
 
 
 def load_conditions(args):
