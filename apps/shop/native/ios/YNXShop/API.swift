@@ -348,8 +348,15 @@ struct OriginalMainPayRefusal:Error {let code:String;var presentationState:Strin
     func openOriginalOrder(_ orderID:String,originalOperation:String,expected:ShopSession)async throws{
         guard NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
         let result=try await request(["action":"order-invoice","productId":"shop.order","sourceOrder":orderID],operation:originalOperation,expected:expected)
-        guard result["queryOnly"] as? Bool==true,result["approvalRequired"] as? Bool==false,result["canRetry"] as? Bool==false,result["walletRequest"]==nil,let reference=result["reference"] as? [String:Any],reference["productId"] as? String=="shop.order",reference["sourceOrder"] as? String==orderID,let merchant=reference["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=reference["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
-        if let bill=result["bill"] as? [String:Any]{guard bill["sourceOrder"] as? String==orderID,bill["merchant"] as? String==merchant,bill["invoiceId"] as? String==invoice else{throw ShopError.security}}
+        guard result["queryOnly"] as? Bool==true,result["approvalRequired"] as? Bool==false,result["canRetry"] as? Bool==false,result["walletRequest"]==nil,result["paymentAuthorized"] as? Bool != true,let reference=result["reference"] as? [String:Any],reference["productId"] as? String=="shop.order",reference["sourceOrder"] as? String==orderID,let merchant=reference["merchant"] as? String,NativeWire.matches(merchant,"^0x[a-f0-9]{40}$"),let invoice=reference["invoiceId"] as? String,NativeWire.matches(invoice,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}
+        if let value=result["bill"], !(value is NSNull) {
+            guard let bill=value as? [String:Any],bill["sourceOrder"] as? String==orderID,bill["merchant"] as? String==merchant,bill["invoiceId"] as? String==invoice else{throw ShopError.security}
+            if let intent=result["intent"] as? [String:Any],intent["state"] as? String=="PREPARED" {
+                guard result["recoveryOnly"] as? Bool==true,reference["kind"] as? String=="invoice_terms",
+                      let hash=intent["termsNativeHash"] as? String,NativeWire.matches(hash,"^0x[a-f0-9]{64}$"),
+                      reference["nativeHash"] as? String==hash,bill["termsNativeHash"] as? String==hash else{throw ShopError.security}
+            }
+        }
     }
     private func review(_ action:String,_ orderID:String,_ operation:String,_ expected:ShopSession,extra:[String:String]=[:])async throws->String {
         guard NativeWire.matches(orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") else{throw ShopError.security}

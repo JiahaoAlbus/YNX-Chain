@@ -62,8 +62,14 @@ export function createOriginalShopPayNavigation({entry,current}){
    return Object.freeze({...original,originalOperation:ref.intentId,merchant:ref.merchant,invoiceID:ref.invoiceId,nativeHash:extra.nativeHash,abciHash:observed.abciHash,operationKind:observed.kind,operationStatus:observed.status,queryOnly:true,canRetry:false,clientIndependentFinality:false,paymentAuthorized:false});
   }
   if(action==='order-invoice'){
-   if(response.queryOnly!==true||response.approvalRequired!==false||response.walletRequest!=null||response.intent?.intentId!==ref.intentId||response.intent?.originalOperation!==ref.intentId||!['PREPARED','ISSUED'].includes(response.intent?.state))fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');
-   if(response.bill!=null&&(response.intent.state!=='ISSUED'||response.bill.sourceOrder!==sourceOrder||response.bill.invoiceId!==ref.invoiceId||response.bill.merchant!==ref.merchant))fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');
+   if(response.queryOnly!==true||response.approvalRequired!==false||response.walletRequest!=null||response.paymentAuthorized===true||response.intent?.intentId!==ref.intentId||response.intent?.originalOperation!==ref.intentId||!['PREPARED','ISSUED'].includes(response.intent?.state))fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');
+   if(response.bill!=null){
+    if(response.bill.sourceOrder!==sourceOrder||response.bill.invoiceId!==ref.invoiceId||response.bill.merchant!==ref.merchant)fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');
+    if(response.intent.state==='PREPARED'){
+     const hash=response.intent.termsNativeHash;
+     if(response.recoveryOnly!==true||ref.kind!=='invoice_terms'||!nativeHash(hash)||ref.nativeHash!==hash||response.bill.termsNativeHash!==hash)fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');
+    }
+   }
    return Object.freeze({...original,originalOperation:ref.intentId,invoiceID:ref.invoiceId,queryOnly:true,recoveryOnly:response.recoveryOnly===true,clientIndependentFinality:false,paymentAuthorized:false});
   }
   if(action==='order-refund-review'&&ref.refundId!==extra.refundId)fail('SHOP_NATIVE_PAY_ORIGINAL_CHANGED');

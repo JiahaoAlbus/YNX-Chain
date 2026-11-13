@@ -68,6 +68,28 @@ test('prepared unknown original remains read-only, and context or Main denial re
  const cause=Object.assign(Error('original pending'),{code:'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED'});
  f.entry.invoke=async()=>{throw cause;};await assert.rejects(f.nav.reviewOriginalOrderPayment(sourceOrder),error=>error===cause);
 });
+test('prepared original with retained terms bill recovers without authorizing payment',async()=>{
+ const termsHash='0x'+'4'.repeat(64);
+ for(const change of [null,r=>{r.bill.sourceOrder='foreign';},r=>{r.bill.termsNativeHash=originalAbciHash;},r=>{r.reference.nativeHash=originalAbciHash;},r=>{r.reference.kind='invoice_settle';},r=>{r.recoveryOnly=false;},r=>{r.paymentAuthorized=true;}]){
+  const f=originalEntry();const invoke=f.entry.invoke;
+  f.entry.invoke=async request=>{
+   const r=await invoke(request);
+   Object.assign(r.reference,{kind:'invoice_terms',nativeHash:termsHash});
+   Object.assign(r.intent,{state:'PREPARED',termsNativeHash:termsHash});
+   r.bill.termsNativeHash=termsHash;
+   r.recoveryOnly=true;
+   if(change)change(r);
+   return r;
+  };
+  if(change)await assert.rejects(f.nav.recoverOriginalOrder(sourceOrder),{code:'SHOP_NATIVE_PAY_ORIGINAL_CHANGED'});
+  else{
+   const state=await f.nav.recoverOriginalOrder(sourceOrder);
+   assert.equal(state.recoveryOnly,true);
+   assert.equal(state.paymentAuthorized,false);
+  }
+  assert.equal(f.calls.length,1);
+ }
+});
 test('one in-flight original action prevents duplicate dispatch and context withdrawal cannot adopt a late read',async()=>{
  let release,locked=false;const f=originalEntry();f.entry.invoke=()=>new Promise(resolve=>release=resolve);
  const nav=createOriginalShopPayNavigation({entry:f.entry,current(){if(locked)throw Error('original current retired');}});
@@ -206,12 +228,12 @@ test('original operation fixed P06 joint: actual Main and private client consume
  let handoff;
  if(process.env.YNX_SHOP_FIXED_PAY_RECOVERY_HANDOFF){
   const bytes=await readFile(process.env.YNX_SHOP_FIXED_PAY_RECOVERY_HANDOFF);
-  assert.equal(createHash('sha256').update(bytes).digest('hex'),'3bf5de51c371cea99dcacb48881a9cfabe27829ea40d680d5d7742a40474b43b');handoff=JSON.parse(bytes);
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),'1e99b08490013270641705a8647e5b76a3ab4abb4327ae5a7d131842ab014fea');handoff=JSON.parse(bytes);
  }else{
   const bytes=await readFile(new URL('./testdata/pay-original-operation-source.json',import.meta.url));
-  assert.equal(createHash('sha256').update(bytes).digest('hex'),'cb9bfb7d025c4b698dbe446a06977f4ccee4409f141cfa48c200701d50c59604');
-  const manifest=JSON.parse(bytes);assert.equal(manifest.sourceCommit,'2645269e97e067541c3dc60d3ad84d29497807c0');
-  assert.equal(manifest.supplierHandoffSHA256,'3bf5de51c371cea99dcacb48881a9cfabe27829ea40d680d5d7742a40474b43b');
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),'7219cff3e570e3c596c8a72aa2ac50abb8e8358e2ca600fc3fd78be35e617c5e');
+  const manifest=JSON.parse(bytes);assert.equal(manifest.sourceCommit,'e76e41207764ec0d501d8904d6d34d6bb7b5fb92');
+  assert.equal(manifest.supplierHandoffSHA256,'1e99b08490013270641705a8647e5b76a3ab4abb4327ae5a7d131842ab014fea');
   const {join}=await import('node:path');handoff={source:manifest.source.map(file=>({...file,path:join(process.env.YNX_SHOP_FIXED_PAY_RECOVERY_SOURCE_ROOT,file.relative)}))};
  }
  assert.equal(handoff.source.length,9);
@@ -253,4 +275,24 @@ test('original operation fixed P06 joint: actual Main and private client consume
   await nav.recoverOriginalOrder(sourceOrder);assert.equal(mainCalls.at(-1).action,'order-invoice');
   assert.equal(calls.filter(r=>r.path.endsWith('/reconcile')).length,1);assert.equal(calls.some(r=>/create|review|broadcast|submit/.test(r.path)),false);
  }
+ const prepared={...intent,state:'PREPARED',phase:'unknown'};
+ const pendingBill={...bill,operations:{[termsHash]:{...retained,kind:'invoice_terms',owner:merchant,nativeHash:termsHash,abciHash:intent.termsAbciHash}}};
+ const reads=[];
+ const pay=createPrivateNativeProductPayClient({origin:'https://controlled-original.test',async requestPrivate(request){
+  request.assertCurrent();
+  reads.push([request.method,request.path]);
+  let value;
+  if(request.method==='POST'&&request.path==='/v5/pay/invoice-intents/lookup')value=prepared;
+  else if(request.method==='GET'&&request.path===`/v5/pay/invoices/${merchant}/${invoiceId}`)value=pendingBill;
+  else throw Error('Unexpected write in prepared original recovery');
+  return {method:request.method,requestPath:request.path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(value))};
+ }});
+ const main=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});
+ main.compose({pay,current(){},async readOriginalInvoiceIntent(ref,current){current();assert.deepEqual(ref,{productId:'shop.order',sourceOrder});return original;}});
+ const nav=createOriginalShopPayNavigationFromMainIPC({api:{nativePayStatus:async()=>({ok:true,value:main.status()}),nativePayInvoke:async request=>({ok:true,value:await main.invokeResult(request)})},current(){}});
+ const recovered=await nav.recoverOriginalOrder(sourceOrder);
+ assert.equal(recovered.recoveryOnly,true);
+ assert.equal(recovered.paymentAuthorized,false);
+ assert.deepEqual(reads,[['POST','/v5/pay/invoice-intents/lookup'],['GET',`/v5/pay/invoices/${merchant}/${invoiceId}`]]);
+
 });

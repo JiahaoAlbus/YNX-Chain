@@ -1,7 +1,7 @@
 {
   "schema": "ynx.shop.pay-original-operation-fixture/v1",
-  "sourceCommit": "2645269e97e067541c3dc60d3ad84d29497807c0",
-  "supplierHandoffSHA256": "3bf5de51c371cea99dcacb48881a9cfabe27829ea40d680d5d7742a40474b43b",
+  "sourceCommit": "e76e41207764ec0d501d8904d6d34d6bb7b5fb92",
+  "supplierHandoffSHA256": "1e99b08490013270641705a8647e5b76a3ab4abb4327ae5a7d131842ab014fea",
   "source": [
     {
       "relative": "apps/pay/native/r6/archive-receipt.mjs",
@@ -10,8 +10,8 @@
     },
     {
       "relative": "apps/pay/native/r6/cli.mjs",
-      "bytes": 4818,
-      "sha256": "7f58d24b699226249158f4eb431f58a1a55292a064192382ca4b2eabebb2443d"
+      "bytes": 4976,
+      "sha256": "9565ec97aff02da661dffeba155f9babdea1076d0184f01385c1b4af738acb8f"
     },
     {
       "relative": "apps/pay/native/r6/desktop-entry.mjs",
@@ -20,18 +20,18 @@
     },
     {
       "relative": "apps/pay/native/r6/invoice-product-intent.mjs",
-      "bytes": 9220,
-      "sha256": "610f1ad325a89183078e4ec819f8436b362ece782f59c0810c6b3e402cb5c539"
+      "bytes": 9436,
+      "sha256": "22f231b705ccf58416c6df65d44a0714483e0e44b7a128f6ca9af071f060ed0b"
     },
     {
       "relative": "apps/pay/native/r6/main-entry.mjs",
-      "bytes": 10678,
-      "sha256": "a70f04c83563b580722f4d9f93d237b9059e247ffe35e6e31901503a145a507f"
+      "bytes": 11717,
+      "sha256": "e1919c4751806397bddcfe3779cbaabadf43d7ceed99c2982aea2613cafba835"
     },
     {
       "relative": "apps/pay/native/r6/merchant-invoice-approval.mjs",
-      "bytes": 24151,
-      "sha256": "fa12f4d608c449fae5a1ca3f1ff1a156317feaf9b0f00360f88cfa0bdb30469b"
+      "bytes": 24728,
+      "sha256": "9b659b49b50715aedd3634afec791984c94824922d799a436d0d35192b929bea"
     },
     {
       "relative": "apps/pay/native/r6/notification-inbox.mjs",
@@ -40,13 +40,13 @@
     },
     {
       "relative": "apps/pay/native/r6/pay-business-client.mjs",
-      "bytes": 27725,
-      "sha256": "784c1e2cbaebcd5c1fb81a0c3185f3282cc279daf0c06a0a4d022e9e5a759ea3"
+      "bytes": 29884,
+      "sha256": "9cad95905a8aacef9b0cf4cf9b4bdbbe5da6f7b1324a60881cd4a60aa9c5ac72"
     },
     {
       "relative": "apps/pay/native/r6/product-source.mjs",
-      "bytes": 11994,
-      "sha256": "b01157ea9fcde317f9d1b00283844a32618a22dd7d1e4b283becad852c167fa0"
+      "bytes": 12785,
+      "sha256": "9e2dc62bad80ddf65148d8ee7fbd403a9f5e12a3740de08002c944fff96c1372"
     }
   ],
   "scope": "Controlled transport tests only; no Source authority, signing, funds or installed-host assertion"
