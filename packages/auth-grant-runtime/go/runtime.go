@@ -12,8 +12,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/url"
+	"path"
 	"reflect"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,6 +51,9 @@ type modelDisclosure struct {
 type releaseSelection struct {
 	Projection               protectedRef
 	Authority, Realm, Tenant string
+	// Separate, exact records from the original protected disclosure owner.
+	// This is finite release selection, not a runtime approval or file search.
+	ModelDisclosurePermits [16]protectedRef
 }
 
 // Only the independent original Source release may supply exactly one actual
@@ -56,13 +61,15 @@ type releaseSelection struct {
 var admittedOriginalGrantReleases = [...]releaseSelection{}
 
 type Runtime struct {
-	mu         sync.Mutex
-	selection  releaseSelection
-	held       *heldDocument
-	projection authorityProjection
-	retired    bool
-	closeOnce  sync.Once
-	closeErr   error
+	mu                   sync.Mutex
+	selection            releaseSelection
+	held                 *heldDocument
+	projection           authorityProjection
+	modelDisclosureHolds []*heldDocument
+	modelDisclosureReady bool
+	retired              bool
+	closeOnce            sync.Once
+	closeErr             error
 }
 
 // OpenOriginalGrantRuntime is the normal zero-input factory. Empty original
@@ -92,6 +99,31 @@ func openProtectedRuntime(s releaseSelection) (r *Runtime, err error) {
 	if err = r.checkCurrent(); err != nil {
 		return r, err
 	}
+	seen := make(map[string]bool, len(s.ModelDisclosurePermits))
+	ended := false
+	for _, ref := range s.ModelDisclosurePermits {
+		if ref == (protectedRef{}) {
+			ended = true
+			continue
+		}
+		if ended || p.ModelDisclosure != nil {
+			return r, ErrProof
+		}
+		if seen[ref.Path] || ref.Path == s.Projection.Path {
+			return r, ErrProof
+		}
+		seen[ref.Path] = true
+		held, e := holdDocument(ref)
+		r.modelDisclosureHolds = append(r.modelDisclosureHolds, held)
+		if e != nil {
+			return r, e
+		}
+		var original modelDisclosure
+		if e = decodePrivate(held.raw, &original); e != nil {
+			return r, e
+		}
+	}
+	r.modelDisclosureReady = true
 	return r, nil
 }
 func (r *Runtime) checkCurrent() error {
@@ -127,7 +159,13 @@ func (r *Runtime) Close() error {
 	if r == nil {
 		return nil
 	}
-	r.closeOnce.Do(func() { r.Retire(); r.closeErr = r.held.close() })
+	r.closeOnce.Do(func() {
+		r.Retire()
+		for i := len(r.modelDisclosureHolds) - 1; i >= 0; i-- {
+			r.closeErr = errors.Join(r.closeErr, r.modelDisclosureHolds[i].close())
+		}
+		r.closeErr = errors.Join(r.closeErr, r.held.close())
+	})
 	return r.closeErr
 }
 
@@ -192,22 +230,25 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 	if e := r.Current(ctx); e != nil {
 		return e
 	}
+	if !r.modelDisclosureReady {
+		return ErrUnavailable
+	}
 	var p authorityProjection
 	if e := decodePrivate(r.held.raw, &p); e != nil {
 		return e
 	}
-	d := p.ModelDisclosure
-	if d == nil {
-		return ErrUnavailable
-	}
 	b := p.Snapshot.Grant.Binding
 	grant := p.Snapshot.Grant
 	u, e := url.Parse(q.URL)
-	if e != nil || u.Scheme != "https" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.Host == "" {
+	if e != nil || u.Scheme != "https" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.ForceQuery || u.Opaque != "" || u.Host == "" || u.String() != q.URL || u.RawPath != "" || path.Clean(u.Path) != u.Path || !strings.HasSuffix(u.Path, "/chat/completions") || len(q.Body) == 0 || len(q.Body) > 2<<20 {
 		return ErrProof
 	}
 	sumA, sumB := sha3.Sum512(q.Body), sha512.Sum512(q.Body)
 	actual := policy.Bind{Bytes: strconv.Itoa(len(q.Body)), SHA3_512: hex.EncodeToString(sumA[:]), SHA512: hex.EncodeToString(sumB[:])}
+	d, held, e := r.selectModelDisclosure(p.ModelDisclosure, q, actual)
+	if e != nil {
+		return e
+	}
 	ds := d.Disclosure
 	if q.Account != d.Account || q.Account != b.Account || q.TaskID != d.TaskID || q.TaskID != b.Task.ID || q.SessionID != d.SessionID || q.SessionID != b.SessionID || q.URL != d.URL || q.Model != d.Model || q.Model == "" || ds.Status != "active" || ds.GrantID != grant.ID || ds.GrantRevision != grant.Revision || ds.Holder != b.Holder || ds.HolderEpoch != b.HolderEpoch || ds.Actual != actual || ds.Purpose != "ai.model.inference" || ds.Target.Origin != "https://"+u.Host || ds.Target.Path != u.EscapedPath() || ds.Target.Tenant != b.Tenant || ds.Target.Operation != "ai.model.inference" || !reflect.DeepEqual(ds.Sources, b.Sources) || p.Snapshot.Holder.Status != "active" || p.Snapshot.Session.Status != "active" || grant.Status != "active" {
 		return ErrProof
@@ -221,6 +262,11 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 	if e = r.Current(ctx); e != nil {
 		return e
 	}
+	if held != nil {
+		if e = held.current(); e != nil {
+			return e
+		}
+	}
 	// Final original clock check after the held-file/current callback boundary.
 	for _, expires := range []string{p.Snapshot.Expires, grant.Expires, ds.Expires} {
 		end, _ := strconv.ParseUint(expires, 10, 64)
@@ -229,6 +275,36 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 		}
 	}
 	return ctx.Err()
+}
+func (r *Runtime) selectModelDisclosure(inline *modelDisclosure, q ModelDisclosureRequest, actual policy.Bind) (*modelDisclosure, *heldDocument, error) {
+	if len(r.modelDisclosureHolds) == 0 {
+		if inline == nil {
+			return nil, nil, ErrUnavailable
+		}
+		return inline, nil, nil
+	}
+	var selected *modelDisclosure
+	var owner *heldDocument
+	for _, held := range r.modelDisclosureHolds {
+		var d modelDisclosure
+		if e := decodePrivate(held.raw, &d); e != nil {
+			return nil, nil, e
+		}
+		if d.Account != q.Account || d.TaskID != q.TaskID || d.SessionID != q.SessionID || d.URL != q.URL || d.Model != q.Model || d.Disclosure.Actual != actual {
+			continue
+		}
+		if selected != nil {
+			return nil, nil, ErrProof
+		}
+		if e := held.current(); e != nil {
+			return nil, nil, e
+		}
+		selected, owner = &d, held
+	}
+	if selected == nil {
+		return nil, nil, ErrUnavailable
+	}
+	return selected, owner, nil
 }
 func (r *Runtime) OpenTaskGrantSource(ctx context.Context, b policy.TaskEffectBinding, gp, hp policy.Proof) (policy.HeldTaskGrantSource, error) {
 	if ctx == nil || r == nil {
