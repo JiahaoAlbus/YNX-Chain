@@ -229,12 +229,11 @@ func (s *Server) taskEffectHTTP(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, "bounded original authorization reference required")
 		return
 	}
-	var receipt taskReadReceipt
 	var err error
 	if reconcile {
-		receipt, err = s.reconcileStep(r.Context(), session, r.PathValue("id"), r.PathValue("stepId"), input.AuthorizationRef)
+		_, err = s.reconcileStep(r.Context(), session, r.PathValue("id"), r.PathValue("stepId"), input.AuthorizationRef)
 	} else {
-		receipt, err = s.dispatchApprovedStep(r.Context(), session, r.PathValue("id"), r.PathValue("stepId"), input.AuthorizationRef)
+		_, err = s.dispatchApprovedStep(r.Context(), session, r.PathValue("id"), r.PathValue("stepId"), input.AuthorizationRef)
 	}
 	if err != nil {
 		status := http.StatusConflict
@@ -244,21 +243,45 @@ func (s *Server) taskEffectHTTP(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, status, err.Error())
 		return
 	}
-	w.Header().Set("Cache-Control", "no-store")
-	if reconcile {
-		s.store.mu.Lock()
-		task, taskErr := s.store.ownedTaskLocked(session.Account, r.PathValue("id"))
-		s.store.mu.Unlock()
-		if taskErr != nil {
-			writeError(w, http.StatusNotFound, "original task not found")
-			return
+	s.store.mu.Lock()
+	body, err := s.store.taskEffectResponseLocked(session, r.PathValue("id"), r.PathValue("stepId"), reconcile)
+	s.store.mu.Unlock()
+	if err != nil {
+		status := http.StatusConflict
+		if errors.Is(err, errToolNotFound) {
+			status = http.StatusNotFound
 		}
-		if task.Holder != session.DeviceID {
-			writeJSON(w, http.StatusOK, map[string]any{"state": receipt.State, "effectRef": receipt.EffectRef, "recoveryOnly": true})
-			return
-		}
+		writeError(w, status, "no verified committed tool result is available")
+		return
 	}
-	writeJSON(w, http.StatusOK, receipt)
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(body)
+}
+
+// Build the same response for HTTP and V6 observation from the current Store.
+// Registered results must retain the exact bytes verified by the original broker.
+func (s *Store) taskEffectResponseLocked(session ProductSession, taskID, stepID string, reconcile bool) ([]byte, error) {
+	call, err := s.effectCallLocked(session, taskID, stepID, false)
+	if err != nil {
+		return nil, err
+	}
+	currentHolder := call.CurrentTask.Holder == session.DeviceID
+	if !reconcile && (!currentHolder || call.OriginalStep.ToolStep.Generation != call.CurrentTask.Generation) {
+		return nil, errToolNotFound
+	}
+	receipt, wire, err := s.taskFeedbackResultLocked(call.OriginalStep)
+	if err != nil {
+		return nil, err
+	}
+	if !currentHolder {
+		return taskActionResponse(http.StatusOK, map[string]any{"state": receipt.State, "effectRef": receipt.EffectRef, "recoveryOnly": true})
+	}
+	if wire != nil {
+		return wire, nil
+	}
+	return taskActionResponse(http.StatusOK, receipt)
 }
 
 func (s *Server) handleTaskToolDispatch(w http.ResponseWriter, r *http.Request, session ProductSession) {

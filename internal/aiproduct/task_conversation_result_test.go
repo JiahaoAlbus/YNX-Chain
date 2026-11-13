@@ -263,3 +263,65 @@ func TestP08ConversationCancelWhileModelWaitsForAuth(t *testing.T) {
 		t.Fatal("recovery replayed original tool or model")
 	}
 }
+
+func TestP08ConversationV6OriginalQueryReturnsVerifiedWire(t *testing.T) {
+	f, authority, client := newP08ConversationLoop(t)
+	client.lostACK = true
+	request := f.request()
+	request.AuthorizationRef = "PUBLIC_QUERY_REF"
+	pending, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || len(pending.Steps) != 1 {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	approveConversationLoop(t, f, pending)
+	request.Resume, request.Prompt = true, ""
+	if view, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request); err == nil || view.Status != "UNKNOWN" {
+		t.Fatalf("lost acknowledgement: %+v %v", view, err)
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{store: cold}
+	prepared := &PreparedOriginalTaskRuntime{model: f.provider, authority: authority, broker: &originalTaskAuthorityBroker{client: client}}
+	if err := prepared.install(server); err != nil {
+		t.Fatal(err)
+	}
+	source, err := NewTaskStoreSource(cold)
+	if err != nil {
+		t.Fatal(err)
+	}
+	step := pending.Steps[0]
+	query := p08ActionCall("PUBLIC-original-query", "/api/tasks/"+f.task.ID+"/tool-steps/"+step+"/reconcile", map[string]string{"authorizationRef": request.AuthorizationRef})
+	observation, err := source.ObserveOriginalTaskQuery(context.Background(), server, f.session, query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer observation.Close()
+	body, err := observation.Body()
+	if err != nil || !bytes.Equal(body, []byte(client.last.Original)) {
+		t.Fatalf("V6 recovery changed verified wire: %v", err)
+	}
+	if w := conversationResultRead(server, f.session, f.task.ID, step); w.Code != http.StatusOK || !bytes.Equal(w.Body.Bytes(), body) {
+		t.Fatal("user GET and V6 recovery returned different receipts")
+	}
+	if view, err := server.runTaskModel(context.Background(), f.session, f.task.ID, request); err != nil || view.Status != "COMPLETED" {
+		t.Fatalf("model did not resume with recovered receipt: %+v %v", view, err)
+	}
+	task := cold.state.Tasks[f.task.ID]
+	if _, err := cold.HandoffTask(f.session.Account, task.ID, task.Revision, task.Generation, task.Holder, "PUBLIC-next-holder"); err != nil {
+		t.Fatal(err)
+	}
+	history, err := source.ObserveOriginalTaskQuery(context.Background(), server, f.session, query)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer history.Close()
+	restricted, err := history.Body()
+	if err != nil || !bytes.Contains(restricted, []byte(`"recoveryOnly":true`)) || bytes.Contains(restricted, []byte(`"result"`)) {
+		t.Fatalf("former holder did not receive a restricted recovery response: %v", err)
+	}
+	if client.effects != 1 || client.inputReads != 1 || client.queries != 1 || f.requests.Load() != 2 {
+		t.Fatal("recovery replayed tool execution, original query or initial model request")
+	}
+}

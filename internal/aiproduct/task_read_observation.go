@@ -272,19 +272,7 @@ func (source *TaskStoreSource) ObserveOriginalTaskQuery(ctx context.Context, ser
 	s := source.store
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	actual, err := s.effectCallLocked(session, segments[2], segments[4], false)
-	if err != nil {
-		return nil, err
-	}
-	receipt, err := s.taskReadReceiptLocked(actual.OriginalStep)
-	if err != nil {
-		return nil, err
-	}
-	var response any = receipt
-	if actual.CurrentTask.Holder != session.DeviceID {
-		response = map[string]any{"state": receipt.State, "effectRef": receipt.EffectRef, "recoveryOnly": true}
-	}
-	body, err := taskActionResponse(http.StatusOK, response)
+	body, err := s.taskEffectResponseLocked(session, segments[2], segments[4], true)
 	if err != nil {
 		return nil, err
 	}
