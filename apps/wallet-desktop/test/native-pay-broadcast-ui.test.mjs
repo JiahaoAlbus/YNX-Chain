@@ -12,8 +12,8 @@ test('wrong review id/kind/account/operation/invoice cannot acquire a broadcast 
 test('only exact transport hash, durable unsubmitted status and explicit storage confirmation qualify',()=>{for(const change of [f=>f.reply.value.result.transportHash=memberHash,f=>f.reply.value.result.hash=memberHash,f=>f.row.status='pq-confirmed',f=>f.row.status='pq-submission-unknown',f=>f.row.status='pq-save-unconfirmed',f=>delete f.row.resultStorageConfirmed,f=>f.row.resultStorageConfirmed=false,f=>f.row.resultHeldInMemory=true,f=>f.reply.value.result.savedLocally=false,f=>f.row.kind='pq-transfer',f=>f.row.account=merchant,f=>f.row.operationId='OTHER',f=>f.pending.value.push({...f.row})]){const f=original();change(f);assert.throws(()=>selectNativePayBroadcastReview(f.selection,f.review,f.reply,f.pending));}});
 class Node{constructor(tag){this.tagName=tag;this.children=[];this.events={};this.value='';this.textContent='';this.disabled=false;}append(...n){this.children.push(...n);}replaceChildren(...n){this.children=n;}setAttribute(){}addEventListener(k,fn){this.events[k]=fn;}showModal(){this.open=true;}close(){this.open=false;}async fire(k){if(!this.disabled)return this.events[k]?.({preventDefault(){}});}}
 const find=(n,p)=>[...(p(n)?[n]:[]),...n.children.flatMap(c=>find(c,p))],text=n=>n.textContent+' '+n.children.map(text).join(' '),flush=()=>new Promise(r=>setImmediate(r));
-function mounted(pending){const f=original(),calls=[];let cancels=0,reviews=0,ctx={account,keyRevision:1,locked:false,focused:true};const api={nativePayStatus:async()=>ok({normalMainEntry:true,paymentAuthorized:false,canRequest:true}),nativePayCancel:async()=>{cancels++;return ok({cancelled:true,originalRetained:true});},pendingTransactions:async()=>pending??f.pending,nativePayInvoke:async request=>{calls.push(request);return ok({version:'ynx.pay.main-result/v1',ok:true,phase:'ready',canRetry:false,approvalRequired:true,walletRequest:{id:request.action==='broadcast-review'?'PUBLIC-broadcast':f.review.id,method:request.action==='broadcast-review'?'ynx_broadcastPQNativeAction':'ynx_signPQNativeAction'}});}};const doc={body:new Node('body'),createElement:t=>new Node(t),addEventListener(){}},ui=mountNativePayProductUI({document:doc,window:new Node('window'),api,getContext:()=>ctx,reviewPending:()=>reviews++});return {...f,ui,calls,api,reviews:()=>reviews,cancels:()=>cancels,set:c=>ctx={...ctx,...c}};}
-async function requestSign(f){await f.ui.open();const select=find(f.ui.element,n=>n.tagName==='select')[0];select.value='pay-review';await select.fire('change');for(const n of find(f.ui.element,n=>n.tagName==='input'))n.value=n.id.endsWith('merchant')?merchant:'PUBLIC';await find(f.ui.element,n=>n.tagName==='form')[0].fire('submit');await flush();}
+function mounted(pending,action='pay-review'){const f=action.startsWith('order-')?originalOrder(action):original(),calls=[];let cancels=0,reviews=0,ctx={account,keyRevision:1,locked:false,focused:true};const api={nativePayStatus:async()=>ok({normalMainEntry:true,paymentAuthorized:false,canRequest:true}),nativePayCancel:async()=>{cancels++;return ok({cancelled:true,originalRetained:true});},pendingTransactions:async()=>pending??f.pending,nativePayInvoke:async request=>{calls.push(request);return ok({version:'ynx.pay.main-result/v1',ok:true,phase:'ready',canRetry:false,approvalRequired:true,...(f.reference?{reference:f.reference}:{}),walletRequest:{id:request.action.endsWith('broadcast-review')?'PUBLIC-broadcast':f.review.id,method:request.action.endsWith('broadcast-review')?'ynx_broadcastPQNativeAction':'ynx_signPQNativeAction',review:f.review.review.invoice}});}};const doc={body:new Node('body'),createElement:t=>new Node(t),addEventListener(){}},ui=mountNativePayProductUI({document:doc,window:new Node('window'),api,getContext:()=>ctx,reviewPending:()=>reviews++});return {...f,ui,calls,api,reviews:()=>reviews,cancels:()=>cancels,set:c=>ctx={...ctx,...c}};}
+async function requestSign(f){await f.ui.open();const select=find(f.ui.element,n=>n.tagName==='select')[0];select.value=f.selection.request.action;await select.fire('change');for(const n of find(f.ui.element,n=>n.tagName==='input'))n.value=f.selection.request[n.id.slice('native-pay-'.length)];await find(f.ui.element,n=>n.tagName==='form')[0].fire('submit');await flush();}
 test('actual mounted flow hands original review over without cancelling, then waits for explicit second broadcast review click',async()=>{const f=mounted();await requestSign(f);const handoff=find(f.ui.element,n=>n.tagName==='button'&&n.textContent.startsWith('Open original'))[0];await handoff.fire('click');assert.equal(f.ui.element.open,false);assert.equal(f.cancels(),0);assert.equal(f.reviews(),1);assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),true);assert.equal(f.calls.length,1);const button=find(f.ui.element,n=>n.tagName==='button'&&n.textContent.startsWith('Request separate'))[0];assert(button);await button.fire('click');await flush();assert.deepEqual(f.calls[1],{action:'broadcast-review',kind:'invoice_settle',merchant,invoiceId:'PUBLIC',intentId:'',originalHash:transportHash});assert.equal(f.calls.length,2);assert.equal(f.cancels(),0);assert.equal(f.reviews(),1);});
 test('cold reopening cannot borrow generic pending rows or confirmed archive as a signed reference',async()=>{const f=mounted();await f.ui.open();assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),false);assert.equal(find(f.ui.element,n=>n.textContent.startsWith('Request separate')).length,0);assert.equal(f.calls.length,0);});
 test('real current summary missing storage flag is explicit refusal, no inferred true or broadcast action',async()=>{const f=mounted();delete f.row.resultStorageConfirmed;await requestSign(f);assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),false);assert.match(text(f.ui.element),/NATIVE_PAY_UI_ORIGINAL_STORAGE_UNCONFIRMED/);assert.equal(f.calls.length,1);assert.equal(find(f.ui.element,n=>n.textContent.startsWith('Request separate')).length,0);});
@@ -21,3 +21,43 @@ test('account/revision loss during pending-list read cannot attach a late broadc
 test('duplicate Main completion cannot duplicate selectors, and renderer observes only after original current guard',async()=>{const f=mounted();await requestSign(f);assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),true);assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),false);assert.equal(find(f.ui.element,n=>n.textContent.startsWith('Request separate')).length,1);const source=fs.readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8');assert(source.includes('if(!current())return;\n    void nativePayProductUI?.observeOriginalDecision(item.review,action,result);'));});
 
 test('refund id remains bound to the original Main signing review, not merely invoice/kind',()=>{const f=original('refund-review');f.review.review.invoice.refundID='OTHER';assert.throws(()=>selectNativePayBroadcastReview(f.selection,f.review,f.reply,f.pending),{code:'NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING'});});
+
+
+function originalOrder(action){
+ const f=original(action.slice('order-'.length));
+ const invoice=f.review.review.invoice,amount=action==='order-refund-review'?'1':'100';
+ const request={action,productId:'shop.order',sourceOrder:'PUBLIC-order',...(action==='order-refund-review'?{refundId:'PUBLIC-refund',amountAtoms:amount}:{})};
+ const reference={productId:request.productId,sourceOrder:request.sourceOrder,merchant:invoice.merchant,invoiceId:invoice.invoiceID,intentId,...(request.refundId?{refundId:request.refundId}:{})};
+ invoice.actionPayload={amount};
+ f.review.review.typedReview.action.payload={amount};
+ return {...f,reference,selection:{...f.selection,request}};
+}
+test('all three order actions require an explicit second review for the original order',async()=>{
+ for(const action of ['order-terms-review','order-pay-review','order-refund-review']){
+  const f=mounted(undefined,action);
+  await requestSign(f);
+  assert.equal(await f.ui.observeOriginalDecision(f.review,'approve',f.reply),true);
+  assert.equal(f.calls.length,1);
+  const [button]=find(f.ui.element,n=>n.tagName==='button'&&n.textContent.startsWith('Request separate'));
+  await button.fire('click');await flush();
+  assert.deepEqual(f.calls[1],{action:'order-broadcast-review',productId:'shop.order',sourceOrder:'PUBLIC-order',
+   kind:f.review.review.invoice.kind,originalHash:transportHash});
+  assert.equal(f.calls.length,2);
+ }
+});
+test('order binding drift, declined signing and UNKNOWN never offer broadcast',async()=>{
+ for(const [decision,mutate] of [
+  ['approve',f=>{f.reference.sourceOrder='FOREIGN-order';}],
+  ['approve',f=>{f.reference.intentId='invalid';}],
+  ['approve',f=>{f.reference.invoiceId='FOREIGN';}],
+  ['approve',f=>{f.review.review.typedReview.action.payload.amount='2';}],
+  ['approve',f=>{f.row.status='pq-submission-unknown';}],
+  ['reject',()=>{}]
+ ]){
+  const f=mounted(undefined,'order-refund-review');
+  mutate(f);await requestSign(f);
+  assert.equal(await f.ui.observeOriginalDecision(f.review,decision,f.reply),false);
+  assert.equal(f.calls.length,1);
+  assert.equal(find(f.ui.element,n=>n.textContent.startsWith('Request separate')).length,0);
+ }
+});

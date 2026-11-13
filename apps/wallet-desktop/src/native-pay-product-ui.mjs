@@ -33,21 +33,52 @@ export function nativePayUIDisplay(reply){
  const recoveries=[];if(Array.isArray(value.recoveryActions))for(const item of value.recoveryActions.slice(0,8))try{if(!recoveryNames.has(item.action))continue;const request=nativePayUIRequest(item.action,item);if(Object.keys(item).length!==Object.keys(request).length)continue;if(item.action==='lookup-intent'&&(request.productId!==value.reference?.productId||request.sourceOrder!==value.reference?.sourceOrder))continue;recoveries.push(request);}catch{}
  return {failed:value.ok===false,unknown:value.ok===false||value.outcomeUnknown===true,review:value.ok===true&&value.approvalRequired===true&&typeof value.walletRequest?.id==='string',facts,recoveries};
 }
+const signingKinds=Object.freeze({
+ 'terms-review':'invoice_terms','pay-review':'invoice_settle','refund-review':'invoice_refund',
+ 'order-terms-review':'invoice_terms','order-pay-review':'invoice_settle','order-refund-review':'invoice_refund',
+});
+function orderReviewBinding(request,value){
+ const ref=value.reference,invoice=value.walletRequest?.review,kind=signingKinds[request.action];
+ const amount=invoice?.actionPayload?.amount;
+ if(!ref||ref.productId!==request.productId||ref.sourceOrder!==request.sourceOrder||
+    !/^npi_[0-9a-f]{48}$/.test(ref.intentId??'')||
+    (value.intent&&(value.intent.intentId!==ref.intentId||value.intent.originalOperation!==ref.intentId))||
+    !/^0x[0-9a-f]{40}$/.test(ref.merchant??'')||
+    !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(ref.invoiceId??'')||
+    invoice?.kind!==kind||invoice.merchant!==ref.merchant||invoice.invoiceID!==ref.invoiceId||
+    !/^[A-Za-z0-9_-]{1,128}$/.test(invoice.operationId??'')||
+    typeof amount!=='string'||!/^[1-9][0-9]{0,19}$/.test(amount)||BigInt(amount)>18446744073709551615n||
+    (kind==='invoice_refund'&&(ref.refundId!==request.refundId||invoice.refundID!==request.refundId||amount!==request.amountAtoms)))return null;
+ return Object.freeze({productId:ref.productId,sourceOrder:ref.sourceOrder,intentId:ref.intentId,
+  merchant:ref.merchant,invoiceId:ref.invoiceId,owner:invoice.owner,operationId:invoice.operationId,amount});
+}
 // Public selector only. SAME Main review association + original durable list
 // are checked again; Main alone validates original Member and Pay submitOnce.
 export function selectNativePayBroadcastReview(selection,originalReview,reply,pending){
  const fail=code=>{throw Object.assign(Error(code),{code});},hash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
- const kindByAction={'terms-review':'invoice_terms','pay-review':'invoice_settle','refund-review':'invoice_refund'},kind=kindByAction[selection?.request?.action],r=selection?.request,c=selection?.context;
+ const r=selection?.request,c=selection?.context,kind=signingKinds[r?.action];
  if(!kind||originalReview?.id!==selection.reviewId||originalReview.method!=='ynx_signPQNativeAction'||originalReview.review?.account!==c?.account)fail('NATIVE_PAY_UI_SAME_ORIGINAL_REVIEW_REQUIRED');
  const typed=originalReview.review.typedReview,invoice=originalReview.review.invoice;
  if(typed?.account!==c.account||typed.action?.kind!==kind||typed.action?.owner!==c.account||invoice?.kind!==kind||invoice.owner!==c.account||invoice.operationId!==typed.operationId)fail('NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING');
- if(kind==='invoice_terms'){if(invoice.merchant!==c.account||!/^npi_[0-9a-f]{48}$/.test(r.intentId??''))fail('NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING');}
+ if(r.action.startsWith('order-')){
+  const binding=selection.orderBinding;
+  if(!binding||binding.productId!==r.productId||binding.sourceOrder!==r.sourceOrder||
+     !/^npi_[0-9a-f]{48}$/.test(binding.intentId)||binding.owner!==c.account||
+     invoice.merchant!==binding.merchant||invoice.invoiceID!==binding.invoiceId||
+     binding.operationId!==typed.operationId||
+     invoice.actionPayload?.amount!==binding.amount||typed.action?.payload?.amount!==binding.amount||
+     (kind==='invoice_terms'&&binding.merchant!==c.account)||
+     (kind==='invoice_refund'&&(invoice.refundID!==r.refundId||binding.amount!==r.amountAtoms)))fail('NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING');
+ }
+ else if(kind==='invoice_terms'){if(invoice.merchant!==c.account||!/^npi_[0-9a-f]{48}$/.test(r.intentId??''))fail('NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING');}
  else if(invoice.merchant!==r.merchant||invoice.invoiceID!==r.invoiceId||kind==='invoice_refund'&&invoice.refundID!==r.refundId)fail('NATIVE_PAY_UI_ORIGINAL_REVIEW_BINDING');
  const result=reply?.value?.result;if(reply?.ok!==true||reply.value.status!=='success'||result?.version!==1||result.account!==c.account||result.savedLocally!==true||result.submitted!==false||result.confirmed!==false||!hash(result.transportHash)||!hash(result.memberHash)||result.transportHash===result.memberHash||result.hash!==result.transportHash||result.operationId!==typed.operationId)fail('NATIVE_PAY_UI_ORIGINAL_SIGN_RESULT_UNCONFIRMED');
  if(pending?.ok!==true||!Array.isArray(pending.value)||pending.value.length>256)fail('NATIVE_PAY_UI_ORIGINAL_SELECTOR_UNAVAILABLE');
  const matches=pending.value.filter(row=>row?.account===c.account&&row.hash===result.transportHash&&row.operationId===result.operationId&&row.kind==='pq-typed-action');
  if(matches.length!==1||matches[0].status!=='pq-signed-unsubmitted'||matches[0].canRetryExact!==false)fail('NATIVE_PAY_UI_ORIGINAL_NOT_UNSUBMITTED');
  if(matches[0].resultStorageConfirmed!==true||matches[0].resultHeldInMemory===true)fail('NATIVE_PAY_UI_ORIGINAL_STORAGE_UNCONFIRMED');
+ if(r.action.startsWith('order-'))return nativePayUIRequest('order-broadcast-review',
+  {productId:r.productId,sourceOrder:r.sourceOrder,kind,originalHash:result.transportHash});
  return Object.freeze({action:'broadcast-review',kind,merchant:kind==='invoice_terms'?'':r.merchant,invoiceId:kind==='invoice_terms'?'':r.invoiceId,intentId:kind==='invoice_terms'?r.intentId:'',originalHash:result.transportHash});
 }
 
@@ -75,7 +106,7 @@ export function mountNativePayProductUI({document:doc,window:win,api,getContext,
  }
  async function run(request,recovery=false){
   if(busy||debt||!ready||held||(!recovery&&unknown))return;const before=context(),token=epoch;if(!live(before,token))return;busy=true;touched=true;facts.replaceChildren();recoveries.replaceChildren();review.hidden=true;paint();status.textContent='Reading original Pay result… / 正在读取原 Pay 结果…';
-  try{const reply=await api.nativePayInvoke(request);if(!live(before,token))return;const view=nativePayUIDisplay(reply);unknown=unknown||view.unknown;held=view.review;signSelection=view.review&&reply.value.walletRequest.method==='ynx_signPQNativeAction'&&['terms-review','pay-review','refund-review'].includes(request.action)?{reviewId:reply.value.walletRequest.id,request,context:before,token,consumed:false}:null;facts.replaceChildren();recoveries.replaceChildren();for(const [key,value]of view.facts){const dt=make('dt',key),dd=make('dd',value);dd.dir='ltr';facts.append(dt,dd);}review.hidden=!view.review;
+  try{const reply=await api.nativePayInvoke(request);if(!live(before,token))return;const view=nativePayUIDisplay(reply);unknown=unknown||view.unknown;held=view.review;signSelection=view.review&&reply.value.walletRequest.method==='ynx_signPQNativeAction'&&Object.hasOwn(signingKinds,request.action)?{reviewId:reply.value.walletRequest.id,request,context:before,token,consumed:false,orderBinding:request.action.startsWith('order-')?orderReviewBinding(request,reply.value):null}:null;facts.replaceChildren();recoveries.replaceChildren();for(const [key,value]of view.facts){const dt=make('dt',key),dd=make('dd',value);dd.dir='ltr';facts.append(dt,dd);}review.hidden=!view.review;
    status.textContent=(view.failed||view.unknown)?'Pay failed or outcome UNKNOWN. No automatic retry; use only original recovery below. / Pay 失败或结果未知，不自动重试；仅用下列原件恢复。':view.review?'Original Main review requested; nothing is approved by this screen. / 已请求主进程原审核，本页面未批准任何操作。':'Original Pay query completed. This is not payment or consensus finality. / 原 Pay 查询已返回，不代表付款或共识最终性。';
    for(const item of view.recoveries){const button=make('button',labels[item.action]);button.type='button';button.addEventListener('click',()=>{if(live(before,token))void run(item,true);});recoveries.append(button);}
   }catch(error){if(live(before,token)){unknown=true;status.textContent=(error.code?error.code+' · ':'')+'Original result is unconfirmed. Preserve references; no automatic retry or new signature. / 原结果未确认，请保留标识；不自动重试或重新签名。';}}
@@ -102,6 +133,6 @@ export function mountNativePayProductUI({document:doc,window:win,api,getContext,
     button.addEventListener('click',()=>{if(live(selected.context,selected.token)){button.disabled=true;void run(request);}});recoveries.append(original,button);
     status.textContent='Original signed result is retained and unsubmitted. This only requests a separate Main broadcast review; nothing is sent automatically. / 原签名结果已保留且未提交；下一步仅请求独立主进程广播审核，不自动发送。';paint();
     if(!root.open&&!doc.querySelector?.('dialog[open]'))root.showModal();return true;
-   }catch(error){if(live(selected.context,selected.token)){held=true;review.hidden=true;status.textContent=(error.code??'NATIVE_PAY_UI_ORIGINAL_SELECTOR_UNCONFIRMED')+' · Original retained; no broadcast candidate can be confirmed. / 原件保留，无法确认可提交原件。';paint();}return false;}
+   }catch(error){if(live(selected.context,selected.token)){held=true;unknown=true;review.hidden=true;status.textContent=(error.code??'NATIVE_PAY_UI_ORIGINAL_SELECTOR_UNCONFIRMED')+' · Original retained; no broadcast candidate can be confirmed. / 原件保留，无法确认可提交原件。';paint();}return false;}
   },invalidate:()=>opened?invalidate():Promise.resolve(true),close:closeSheet,element:root});
 }
