@@ -35,6 +35,7 @@ class HeldControllerTests(unittest.TestCase):
         self.assertEqual((options['rate'], options['seconds'], options['accounts'],
                           options['tail_seconds'], options['proof_timeout']), (100, 5, 500, 30, 30))
         self.assertFalse(options['execute'])
+        self.assertTrue(options['held_ready_only'])
         self.assertIsNone(plan['runtimePlanSHA256'])
         self.assertEqual(plan['configurationSHA256'], hashlib.sha256(
             json.dumps(fixed, sort_keys=True, separators=(',', ':')).encode()).hexdigest())

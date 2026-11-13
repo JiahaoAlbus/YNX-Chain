@@ -16,11 +16,11 @@ PROFILE = 'first100-held-public-owner'
 REF = 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
 WORKFLOW = '.github/workflows/pq-normal-process.yml'
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
-SOURCE = '8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2'
-SOURCE_TREE = '1db9efadc9c1d12dc21890bd6bf0614cf81e6fd9'
-TOOLS = 'e941a922dc865d33c1cb4851b4c7a789494ccd75'
-TOOLS_TREE = '9577356ab7b576c6ef44e991a4bdcb302e2af3e2'
-TOOLS_RUN = 43428452749
+SOURCE = '3412fd1527cd43ba7ef63ffe4a3f7baa9e333ca8'
+SOURCE_TREE = '409cbd6d1e815e5a613a41c7f65c7108792ae6a5'
+TOOLS = '4922b31a705b14526ac869437d5b290784442fe4'
+TOOLS_TREE = '3c59fd9bcdf25fef6c70394377663811826be806'
+TOOLS_RUN = 43435585757
 TOOLS_JOB_NAME = "Chain Core source and release gate"
 SUPPLIER = '5a49f5c91452604dffb910df736702b3b9df2562'
 SUPPLIER_TREE = '08747364c24c065bf2b13527c210625d7ec95fba'
@@ -65,7 +65,7 @@ def options(source, execute):
         initialize_before_load=True, initialization_only=False, staged_publication=True,
         startup_timings=True, wire_observation=True, commit_observation=True,
         network_accounting=True, owned_storage_accounting=True, header_hop_capture=False,
-        prior_result=None, prior_result_sha256=None, execute=execute)
+        prior_result=None, prior_result_sha256=None, held_ready_only=True, execute=execute)
 
 
 def plan():
@@ -169,13 +169,13 @@ def execute():
     finally:
         driver.lab.Window = original
     require(len(calls) == 1, 'exactly one original held first100 Window required')
-    load = result.get('loadResult', {})
     require(result.get('firstCause') is None and result.get('cleanupComplete') is True
             and result.get('normalNodeCleanExit', {}).get('allEightExitZero') is True
-            and load.get('windowCompleted') is True and load.get('configuredDemand') == 500
-            and load.get('releasedWithinWindow') == 500 and load.get('qualified') == 500
-            and all(load.get(k) == 0 for k in ('notReleased', 'notSubmitted', 'lateSubmitted', 'notQualified')),
-            'held first100 incomplete; retain the original first cause and full demand')
+            and result.get('heldReadyOnlyComplete') is True and result.get('loadExecuted') is False
+            and 'loadResult' not in result and result.get('peakRSSBytes', 1 << 63) <= 4 << 30
+            and result.get('preparationOnlyDemandAccounting', {}).get('notReleased') == 500
+            and result.get('normalFinalizeObservation', {}).get('fourComplete') is True,
+            'held readiness incomplete; retain the original first cause and full demand')
 
 
 def main():

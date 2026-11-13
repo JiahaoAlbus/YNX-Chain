@@ -879,14 +879,14 @@ jobs:
             /scripts/loadtest/test_pq_first100_held_ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2
+          ref: 3412fd1527cd43ba7ef63ffe4a3f7baa9e333ca8
           path: source
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: e941a922dc865d33c1cb4851b4c7a789494ccd75
+          ref: 4922b31a705b14526ac869437d5b290784442fe4
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -897,7 +897,7 @@ jobs:
         run: python3 -I -B scripts/loadtest/test_pq_first100_held_ci.py -v
 
   first100-held-public-owner:
-    name: Held public-owner normal504 initialization then first100 online100x5
+    name: Held public-owner normal504 four-proof readiness without business release
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-held-public-owner' && inputs.signing_mode == 'online'
     needs: first100-held-controller-controls
     runs-on: ubuntu-24.04
@@ -916,7 +916,7 @@ jobs:
           sparse-checkout: /scripts/loadtest/pq-first100-held-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2
+          ref: 3412fd1527cd43ba7ef63ffe4a3f7baa9e333ca8
           path: source
           fetch-depth: 0
           filter: blob:none
@@ -937,7 +937,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: e941a922dc865d33c1cb4851b4c7a789494ccd75
+          ref: 4922b31a705b14526ac869437d5b290784442fe4
           path: tools
           filter: blob:none
           persist-credentials: false
@@ -952,7 +952,7 @@ jobs:
         env:
           GIT_TERMINAL_PROMPT: '0'
         run: git fetch --no-tags --no-recurse-submodules --depth=1 --no-write-fetch-head origin 5a49f5c91452604dffb910df736702b3b9df2562
-      - name: Run the original held first100 once and preserve its outcome
+      - name: Run the original held four-proof readiness once and preserve its outcome
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
