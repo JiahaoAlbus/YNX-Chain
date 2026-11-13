@@ -413,6 +413,15 @@ func (s *Server) runTaskModel(ctx context.Context, session ProductSession, taskI
 	if blockedNewRun {
 		return taskRunView{}, errTaskEffectUnresolved
 	}
+	if prior.ID == "" {
+		if effects, ok := s.toolEffects.(*originalRuntimeToolEffects); ok {
+			// A known revoked runtime must not claim a new run or acquire page
+			// content. Per-round disclosure still checks the exact body later.
+			if err := effects.runtime.current(ctx); err != nil {
+				return taskRunView{}, errors.Join(errTaskEffectSourceUnavailable, err)
+			}
+		}
+	}
 	if prior.ID == "" && len(input.SelectedPages) > 0 {
 		if originalTask.Revision != input.TaskRevision || originalTask.Generation != input.Generation || originalTask.Holder != session.DeviceID {
 			return taskRunView{}, errToolConflict

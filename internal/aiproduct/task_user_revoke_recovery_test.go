@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -32,6 +33,35 @@ func (a *p08UserRecoveryAuthorizer) Authorize(_ context.Context, _ *http.Request
 type p08UserRecoveryBroker struct {
 	*p08ConversationClient
 	revoked bool
+}
+
+func TestP08RevokedRuntimeRejectsNewModelBeforeClaim(t *testing.T) {
+	f, _, client := newP08ConversationLoop(t)
+	runtime := f.server.toolEffects.(*originalRuntimeToolEffects).runtime
+	runtime.broker.client = &p08UserRecoveryBroker{p08ConversationClient: client, revoked: true}
+	before, err := os.ReadFile(f.server.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := f.request()
+	request.AuthorizationRef = "PUBLIC_QUERY_REF"
+	body, err := json.Marshal(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/api/tasks/"+f.task.ID+"/runs", bytes.NewReader(body))
+	req.SetPathValue("id", f.task.ID)
+	w := httptest.NewRecorder()
+	f.server.handleTaskModelRun(w, req, f.session)
+	after, err := os.ReadFile(f.server.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w.Code != http.StatusServiceUnavailable || !bytes.Equal(before, after) ||
+		len(f.server.store.state.TaskRuns) != 0 || f.requests.Load() != 0 || client.effects != 0 {
+		t.Fatalf("revoked request status=%d durable state changed=%t model=%d effects=%d",
+			w.Code, !bytes.Equal(before, after), f.requests.Load(), client.effects)
+	}
 }
 
 func (b *p08UserRecoveryBroker) NewEffectsCurrent(ctx context.Context) error {
