@@ -38,8 +38,8 @@
     "internal/securelink/local_caller_holder_unsupported.go": "18441482a501ac782bf03a7b20486fae5859ba53962d24bffd5e455a5d52a457",
     "internal/securelink/local_caller_host_test.go": "ccdf218ee2e654e40b6e5f3affae334d49f5bdab8bd04a0b8be8de2729fe2b67",
     "internal/securelink/local_caller_test.go": "eed0e65d14b6fdd391b39665fad517d5543c9b4087c8d517c8d1c112f0fd26f0",
-    "internal/securelink/local_caller_unix.go": "6aeaee4edad7249cfb73fc4a147ef0227d66f8651ae219c99aacc3bce30e2071",
-    "internal/securelink/local_caller_unsupported.go": "2c8cd1013b355e82aa289c707f7d071f4c754ee956528ed192402b919d9e6cb4",
+    "internal/securelink/local_caller_unix.go": "b86b9799d752e771c29fc9fba8bf296103aed678756542116b9130248bede15e",
+    "internal/securelink/local_caller_unsupported.go": "c25049a6f0ab77a7f9b1054f3118573f3f32b59abe5db9127fc970ec3953a5f5",
     "internal/securelink/local_client_error_test.go": "9b1d5c199035e49c3b45224784689887cffaa0b271a6e42f368334745bbc209d",
     "internal/securelink/native/README.md": "72d6a01d5c18ca8f0db9e2e49bb2512f953d4cb8247e82ac0a4810d4b2d61d9b",
     "internal/securelink/native/bridge.c": "95f9d636dda41a959356688136200af0b36a8aeb42958704dcfc5d03df8ebe8e",
@@ -99,8 +99,8 @@
     "internal/securelink/local_caller_exchange_peer_linux.go": "ad1cd11f7cce82de0e949714a927399c2843da61348791280d852e0207ced7e8",
     "internal/securelink/local_caller_exchange_peer_test.go": "4b85a54d7771be1822b48dd519d9c694bf2532929789dfa428806f4add78ca08",
     "internal/securelink/local_caller_exchange_test.go": "4c9661fe6644d5606fb6140aa35edcbf72d79b16f5d1121e9fe41a2649606830",
-    "internal/securelink/local_caller_exchange_unix.go": "548f5e089aac1d0763b9f4404227a215e126c18dfa7946949c941aed0a26c001",
-    "internal/securelink/local_caller_exchange_unsupported.go": "98614ba47794dc174b8b628d1ce9241f9c39639b151a63ef92f72d381770e51e",
+    "internal/securelink/local_caller_exchange_unix.go": "82c8e05699695bd2aa53af66066b0640885930a39e15be22c87e38600e2b46f9",
+    "internal/securelink/local_caller_exchange_unsupported.go": "21526d0474cb647ee0b54051c526d18da8bd20c74921dd48cc995b31cc2d92ce",
     "internal/securelink/local_caller_product_session_proof.go": "f02b55ebf3b3067e69aa1db3052ae8aaf2fc389ee439a161a96c795445239635",
     "internal/securelink/local_caller_product_session_proof_test.go": "2e602a1b5a6b8d05e48895d4651fa38a141cd162afd8fa181fe298a23cbeca4a",
     "internal/securelink/local_caller_product_session_proof_unix_test.go": "cd78c8980473355197d8ba09f321869c773dad8131b79382a6be3c29d35d9356",
@@ -153,7 +153,12 @@
     "internal/commerce/third_party/productreadsource/owned_fd_close_public.go": "2c1a0065a08f5da2134ad1bf4f9f2e74cfd873551556c0305415163be1f2aef7",
     "internal/commerce/third_party/productreadsource/authority_closed_witness_test.go": "36c263cf99265308a57300df79f72fb2f8ecb613fcdc9463222ad6bc511e90f4",
     "internal/commerce/third_party/productreadsource/authority_closed_fault_test.go": "479914d6c8c44ffff217e9fac78c127bd5694d17fffa14b1ed9638ec57778a3f",
-    "internal/commerce/third_party/productreadsource/owned_fixture_test.go": "ee0b76b1c8cd8e5f494a07121deadc31f77995727ae5adc4ff68d08da969e82f"
+    "internal/commerce/third_party/productreadsource/owned_fixture_test.go": "ee0b76b1c8cd8e5f494a07121deadc31f77995727ae5adc4ff68d08da969e82f",
+    "internal/securelink/local_caller_product_session_proof_v4.go": "1e5c647ab6ae871d813dde79180df90f2f76dfbe960e05191a3fa834e0fc434c",
+    "internal/securelink/local_caller_product_session_proof_v4_test.go": "a4be70b292fb7d940dd9aa18602a18995190027bd8272cf777af8447ae3f4719",
+    "internal/securelink/local_caller_product_session_proof_v4_unix_test.go": "ead8aa8752abac4be8b8ad3185b77a5e56e3ef14871f79470d1822d5d67391cd",
+    "internal/securelink/original_server_tls_public_fixture.go": "2cd843ea941515eedeacdcd4d6532705e60c788683ea501087ce3a806da3772d",
+    "internal/securelink/original_server_tls_public_fixture_test.go": "d94886b5db5c721c92b407d3bf16789a7a118f8540767affade79801bd642a9e"
   },
   "LINKHeaderClosure": "complete original frozen cmd/ynx-secure-link-caller header directory, required by exact package cgo holder; no added carchive/runtime",
   "LINKSourceCommit": "85fdcec58e591d8ef1ce072430b37bf201192635",
@@ -167,5 +172,11 @@
   "AuthShopV4ParentWitnessH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/authority-witness-r4/frozen-authority-witness-r4-PRBPaB/HANDOFF.json",
   "AuthShopV4ParentWitnessHSHA256": "4c6b316aef7d137240b45039e7e841628490cb5fb30164669a6261d56042d54a",
   "AuthShopV4PortableTestsH": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/portable-fixture-r5/frozen-portable-test-r5-2Rp6W3/HANDOFF.json",
-  "AuthShopV4PortableTestsHSHA256": "beff43c207859d346fddd4fb78bf8e3ded829dfe3cc581681db38398eb50e7dd"
+  "AuthShopV4PortableTestsHSHA256": "beff43c207859d346fddd4fb78bf8e3ded829dfe3cc581681db38398eb50e7dd",
+  "LINKV4": {
+    "head": "793c175b11f3fffecb3ce41000ac94e40263aec6",
+    "componentReadback": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/local-caller-proof-v4-next/source-ci-793-r1/COMPONENT-READBACK.json",
+    "sha256": "fb40f3c4ef6ecf18713a477ed20578a3ae5144814129cdbeefa32717d27c92c3",
+    "run": 42456926898
+  }
 }

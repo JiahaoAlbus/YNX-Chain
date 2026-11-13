@@ -117,6 +117,10 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 	if len(p.orders) == 0 || len(p.orders) > 64 {
 		return s, errShopInvoiceReadDenied
 	}
+	bodyLimit := int64(1)
+	if sessionRequired {
+		bodyLimit = 0
+	}
 	routes := make([]securelink.LocalCallerRoute, 0, len(p.orders))
 	seen := map[string]bool{}
 	for _, order := range p.orders {
@@ -125,7 +129,7 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 			return s, errShopInvoiceReadDenied
 		}
 		seen[path] = true
-		routes = append(routes, securelink.LocalCallerRoute{Method: "GET", Path: path, MaxBodyBytes: 1, Timeout: 10 * time.Second})
+		routes = append(routes, securelink.LocalCallerRoute{Method: "GET", Path: path, MaxBodyBytes: bodyLimit, Timeout: 10 * time.Second})
 	}
 	s.store, err = open()
 	if err != nil {
@@ -137,11 +141,16 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 	if err = a.current(ctx); err != nil {
 		return s, err
 	}
-	// The consumed LINK release admits only its existing 64 KiB request bound.
-	// A qualified closed V4 carrier must arrive before its larger PQ budget can
-	// be selected; merely enlarging this config would break normal construction.
-	headerBudget := 64 << 10
-	s.link, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes, Handler: http.HandlerFunc(s.serveHTTP), MaxHeaderBytes: headerBudget})
+	cfg := securelink.LocalCallerServerConfig{
+		Service: p.service, PeerUID: p.uid, PeerPID: p.pid, Routes: routes,
+		Handler: http.HandlerFunc(s.serveHTTP), MaxHeaderBytes: 64 << 10,
+	}
+	if sessionRequired {
+		cfg.MaxHeaderBytes = securelink.MaxProductSessionProofV4RequestHeaderBytes
+		s.link, err = securelink.NewProductSessionProofV4LocalCallerServer(cfg)
+	} else {
+		s.link, err = securelink.NewLocalCallerServer(cfg)
+	}
 	if err != nil {
 		return s, err
 	}

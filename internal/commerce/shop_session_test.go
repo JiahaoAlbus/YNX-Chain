@@ -1,10 +1,15 @@
 package commerce
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
+	"io"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -465,15 +470,52 @@ func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) 
 		t.Fatal("mapped normal service did not bind", e)
 	}
 	done := make(chan error, 1)
-	go func() { done <- service.Serve() }()
 	path := OriginalShopInvoiceReadPath + order.ID
-	client, e := securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: a.p.socket, Service: a.p.service, PeerUID: a.p.uid, PeerPID: a.p.pid, Routes: []securelink.LocalCallerRoute{{Method: "GET", Path: path, MaxBodyBytes: 0, Timeout: time.Second}}, Timeout: time.Second})
+	before, e := os.ReadFile(s.path)
 	if e != nil {
 		t.Fatal(e)
 	}
-	response, e := client.Call(t.Context(), "GET", path, "", nil)
-	if e != nil || response.StatusCode != 503 || len(s.s.ShopSessions) != 0 {
-		t.Fatal("Source qualification became Auth session authority", e, response.StatusCode)
+	opened := 0
+	a.hook = func(r *http.Request) {
+		opened++
+		if len(r.Header.Get(securelink.ProductSessionProofV4Header)) != securelink.MaxProductSessionProofV4HeaderBytes {
+			t.Error("normal Source did not receive the complete V4 header")
+		}
+		if _, err := securelink.LocalCallerFromRequest(r); err != nil {
+			t.Error("normal Source lost the original LINK caller", err)
+		}
+	}
+	go func() { done <- service.Serve() }()
+	for _, tc := range []struct {
+		name   string
+		fields string
+		want   int
+	}{
+		{"missing", "", http.StatusBadRequest},
+		{"mixed", securelink.ProductSessionProofV4Header + ": Aa\r\n" + securelink.ProductSessionProofV2Header + ": Aa\r\n", http.StatusBadRequest},
+		{"full-sized without Auth", securelink.ProductSessionProofV4Header + ": " + strings.Repeat("A", securelink.MaxProductSessionProofV4HeaderBytes) + "\r\n", http.StatusServiceUnavailable},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			conn, err := net.DialTimeout("unix", a.p.socket, time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer conn.Close()
+			if err := conn.SetDeadline(time.Now().Add(2 * time.Second)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.WriteString(conn, "GET "+path+" HTTP/1.1\r\nHost: "+a.p.service+"\r\nConnection: close\r\n"+tc.fields+"\r\n"); err != nil {
+				t.Fatal(err)
+			}
+			res, err := http.ReadResponse(bufio.NewReader(conn), &http.Request{Method: http.MethodGet})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if _, err := io.Copy(io.Discard, res.Body); err != nil || res.StatusCode != tc.want {
+				t.Fatalf("got status %d, want %d, body read error %v", res.StatusCode, tc.want, err)
+			}
+		})
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
@@ -484,6 +526,10 @@ func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) 
 	case <-done:
 	case <-ctx.Done():
 		t.Fatal("normal service listener did not drain")
+	}
+	after, e := os.ReadFile(s.path)
+	if e != nil || !bytes.Equal(before, after) || opened != 1 || len(s.s.ShopSessions) != 0 {
+		t.Fatalf("V4 carrier admitted a session or modified state: Source opens=%d, read error=%v", opened, e)
 	}
 	if a.closed.Load() != 1 || s.shopSessionDomain != nil {
 		t.Fatal("normal session domain lifecycle not released")

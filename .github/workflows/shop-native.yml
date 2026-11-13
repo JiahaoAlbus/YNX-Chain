@@ -51,6 +51,7 @@ jobs:
       apple-view-only: ${{ steps.scope.outputs.apple-view-only }}
       session-inventory-only: ${{ steps.scope.outputs.session-inventory-only }}
       link-proof-intake: ${{ steps.scope.outputs.link-proof-intake }}
+      link-v4-intake: ${{ steps.scope.outputs.link-v4-intake }}
       v4-supplier-intake: ${{ steps.scope.outputs.v4-supplier-intake }}
       legacy-joint-only: ${{ steps.scope.outputs.legacy-joint-only }}
       legacy-joint-checks: ${{ steps.scope.outputs.legacy-joint-checks }}
@@ -86,7 +87,7 @@ jobs:
               except (subprocess.SubprocessError, UnicodeError):
                   changed = []  # uncertain comparison keeps the full checks
           def source_path(path):
-              return (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
+              return path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
               return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
           receipt_files = {"internal/commerce/business_effect.go", "internal/commerce/business_effect_http.go", "internal/commerce/business_effect_plans.go", "internal/commerce/business_native_invoice_boundary_test.go", "internal/commerce/model.go", "internal/commerce/return_receipt.go", "internal/commerce/return_receipt_test.go", "internal/commerce/service.go", "internal/commerce/store.go"}
@@ -153,6 +154,7 @@ jobs:
           return_decision_checks = not native_client_only and not notification_only and not listing_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
           v4_supplier_intake = any(p.startswith("internal/commerce/third_party/productreadsource/") for p in changed) or v4_consumer_ci_delta
           link_proof_intake = "internal/securelink/local_caller_product_session_proof.go" in changed
+          link_v4_intake = not changed or any(p.startswith("internal/securelink/") or p == "internal/commerce/native_invoice_source_read.go" or p == "internal/commerce/shop_session_test.go" for p in changed)
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -177,6 +179,8 @@ jobs:
               tests = ["TestShopSessionInventory", "TestCommerceV2", "TestSnapshot", "TestCommercePersistence", "TestAuthenticatedState", "TestPrivacy", "TestBusinessActor", "TestBusinessReplay", "TestBusinessTransaction", "TestNativeSellerRoleRevocation", "TestSellerTeamInvitationPersistence", "TestShopInvoiceSource"]
           if v4_supplier_intake and "TestShopSessionInventory" not in tests:
               tests.extend(["TestShopSessionInventory", "TestShopInvoiceSource"])
+          if link_v4_intake and "TestShopSessionInventory" not in tests:
+              tests.append("TestShopSessionInventory")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("navigation-only=" + str(navigation_only).lower() + "\n")
               output.write("listing-only=" + str(listing_only).lower() + "\n")
@@ -191,6 +195,7 @@ jobs:
               output.write("legacy-joint-checks=" + str(legacy_joint_checks).lower() + "\n")
               output.write("v4-supplier-intake=" + str(v4_supplier_intake).lower() + "\n")
               output.write("link-proof-intake=" + str(link_proof_intake).lower() + "\n")
+              output.write("link-v4-intake=" + str(link_v4_intake).lower() + "\n")
               output.write("session-inventory-only=" + str(session_inventory_only).lower() + "\n")
               output.write("apple-view-only=" + str(apple_view_only).lower() + "\n")
               output.write("native-client-only=" + str(native_client_only).lower() + "\n")
@@ -301,16 +306,34 @@ jobs:
               if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:
                   raise SystemExit("required original LINK case absent/skipped: " + name)
           PY
+      - name: Verify original LINK V4 carrier and legacy transport compatibility
+        if: needs.change-scope.outputs.link-v4-intake == 'true'
+        run: |
+          set -euo pipefail
+          go test -mod=readonly -race ./internal/securelink -run '^TestOriginalLocalCaller(ShopProofV[24]|Exchange|Peer)' -count=1 -v | tee "$RUNNER_TEMP/shop-link-v4-intake.log"
+          python3 - "$RUNNER_TEMP/shop-link-v4-intake.log" <<'PY'
+          import pathlib, re, sys
+          log = pathlib.Path(sys.argv[1]).read_text()
+          required = ["CarrierBounds", "RawHeaderReader", "ServerProfile", "OwnedWire", "Preflight", "IncomingRejection", "RequestSnapshot", "RawHeaderBudget", "PartialResponse"]
+          for suffix in required:
+              name = "TestOriginalLocalCallerShopProofV4" + suffix
+              if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:
+                  raise SystemExit("required original LINK V4 case absent/failed/skipped: " + name)
+          PY
       - name: Verify affected Source and Native Pay reads on original transports
         if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
         env:
           READ_TESTS: ${{ needs.change-scope.outputs.read-tests }}
+          LINK_V4_INTAKE: ${{ needs.change-scope.outputs.link-v4-intake }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/shop-original-source-read"
           chmod 700 "$RUNNER_TEMP/shop-original-source-read"
           SHOP_SOURCE_READ_SOCKET_ROOT="$RUNNER_TEMP/shop-original-source-read" \
-            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run "$READ_TESTS" -count=1 -v
+            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run "$READ_TESTS" -count=1 -v | tee "$RUNNER_TEMP/shop-source-reads.log"
+          if [ "$LINK_V4_INTAKE" = true ]; then
+            grep -q '^--- PASS: TestShopSessionInventoryMappedNormalServiceStillRequiresAuth ' "$RUNNER_TEMP/shop-source-reads.log"
+          fi
           if [ "${{ needs.change-scope.outputs.receipt-test-delta }}" != "true" ]; then
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi

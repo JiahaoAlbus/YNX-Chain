@@ -25,6 +25,9 @@ type LocalCallerServer struct{}
 func NewLocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
 	return nil, ErrUnavailable
 }
+func NewProductSessionProofV4LocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
+	return nil, ErrUnavailable
+}
 func NewProductLocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
 	return nil, ErrUnavailable
 }
