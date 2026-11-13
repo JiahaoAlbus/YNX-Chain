@@ -892,33 +892,11 @@ const productionPackageIOBufferBytes = 64 << 10
 // Each read keeps one original descriptor through EOF and checks its identity
 // again before returning. No digest replaces the complete role byte comparison.
 func readProductionPackageFile(path string, consume func(io.Reader) error) (result error) {
-	before, err := os.Lstat(path)
-	if err != nil {
-		return err
-	}
-	if !before.Mode().IsRegular() {
-		return errors.New("production package input must be a regular file without a symlink")
-	}
-	f, err := os.Open(path)
+	f, check, err := openProductionPackageFile(path)
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, f.Close()) }()
-	check := func() error {
-		opened, openErr := f.Stat()
-		current, pathErr := os.Lstat(path)
-		same := func(info os.FileInfo) bool {
-			return info != nil && info.Mode() == before.Mode() && os.SameFile(before, info) &&
-				info.Size() == before.Size() && info.ModTime().Equal(before.ModTime())
-		}
-		if openErr != nil || pathErr != nil || !same(opened) || !same(current) {
-			return errors.New("production package file changed during complete read")
-		}
-		return nil
-	}
-	if err := check(); err != nil {
-		return err
-	}
 	result = consume(f)
 	return errors.Join(result, check())
 }
