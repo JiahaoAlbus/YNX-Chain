@@ -195,8 +195,13 @@ def inspect(raw, sha256, controller, configuration_sha256):
         heights = {int(row['height']) for row in observed['records']}
         business_finalize = finalize.business_heights(original, heights, commit['samples'])
         completed = [sample for sample in original['samples'] if sample['success']]
+        committed = finalize.business_heights(original, {row['height'] for row in commit['samples']}, commit['samples'])
         finalize_by_node[str(node)] = dict(
             path=path, sha256=manifest[prefix+path]['sha256'], original=original, business=business_finalize,
+            committed=committed,
+            retainedSuccessParentStages={stage: stages.samples(
+                [sample['phaseNs'].get(stage) for sample in completed], len(completed))
+                for stage in finalize.PHASES},
             retainedSuccessStages={stage: stages.samples(
                 [sample['childrenNs'].get(stage) for sample in completed], len(completed))
                 for stage in sorted(finalize.CHILDREN)},
@@ -214,6 +219,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
+                finalizeCommitCheckpoints=finalize.four_node_checkpoints(finalize_by_node),
                 businessBlockCommitStages=prior.business_commit_stages(dict(originalCommitCopies=commits), observed, stages),
                 originalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),
                 originalInitializationStages=receipt.get('initializationStages'),

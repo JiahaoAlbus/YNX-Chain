@@ -10,6 +10,17 @@ spec.loader.exec_module(reader)
 
 
 class FinalizeObservation(unittest.TestCase):
+    def test_four_node_checkpoints_keep_partial_height_and_reject_divergence(self):
+        original = {str(node): dict(committed=dict(samples={18: dict(appHash='a'*64)}))
+                    for node in range(4)}
+        original['0']['committed']['samples'][19] = dict(appHash='b'*64)
+        report = reader.four_node_checkpoints(original)
+        self.assertEqual(report['common'], [dict(height=18, appHash='a'*64)])
+        self.assertEqual(report['partial'], [dict(height=19, observedNodes=['0'])])
+        original['1']['committed']['samples'][18]['appHash'] = 'c'*64
+        with self.assertRaisesRegex(RuntimeError, 'AppHashes differ at height 18'):
+            reader.four_node_checkpoints(original)
+
     def test_stage_partition_and_original_commit_height(self):
         success = dict(attempt=1, requestPresent=True, height=19, success=True, appHash='a'*64,
                        failedPhase='', elapsedNs=60, phaseNs=dict.fromkeys(reader.PHASES, 10),

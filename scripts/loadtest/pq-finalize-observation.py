@@ -75,6 +75,23 @@ def business_heights(observation, heights, commit_samples):
                 failedAttempts=[row for row in observation['samples'] if not row['success']],
                 droppedAttempts=observation['dropped'])
 
+
+def four_node_checkpoints(by_node):
+    """Compare original Finalize/Commit coordinates where every node was observed."""
+    checkpoints = {}
+    for node, data in by_node.items():
+        for height, row in data['committed']['samples'].items():
+            checkpoints.setdefault(height, {})[node] = row['appHash']
+    common, partial = [], []
+    for height, hashes in sorted(checkpoints.items()):
+        require(len(set(hashes.values())) == 1, 'original node AppHashes differ at height %d' % height)
+        if set(hashes) == {'0', '1', '2', '3'}:
+            common.append(dict(height=height, appHash=next(iter(hashes.values()))))
+        else:
+            partial.append(dict(height=height, observedNodes=sorted(hashes)))
+    return dict(common=common, partial=partial)
+
+
 def retain_after_stop(window, descriptors, chain_id, genesis_hash, public_io):
     records, errors = [], []
     for descriptor in descriptors:
