@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -276,11 +277,14 @@ func generateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 	if err := os.Mkdir(commonDir, 0o700); err != nil {
 		return manifest, err
 	}
-	migrationPayload, err := boundMigration.CanonicalJSON()
-	if err != nil {
-		return manifest, err
-	}
-	if err := writeModeFile(filepath.Join(commonDir, "bound-migration.json"), append(migrationPayload, '\n'), 0o600); err != nil {
+	commonMigrationPath := filepath.Join(commonDir, "bound-migration.json")
+	if err := writeProductionPackageFile(commonMigrationPath, func(w io.Writer) error {
+		if err := boundMigration.WriteCanonicalJSON(w); err != nil {
+			return err
+		}
+		_, err := io.WriteString(w, "\n")
+		return err
+	}); err != nil {
 		return manifest, err
 	}
 	commonGenesisPath := filepath.Join(commonDir, "genesis.json")
@@ -325,7 +329,7 @@ func generateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		if err := writeModeFile(filepath.Join(roleDir, "config", "genesis.json"), genesisPayload, 0o600); err != nil {
 			return manifest, err
 		}
-		if err := writeModeFile(filepath.Join(roleDir, "config", "bound-migration.json"), append(migrationPayload, '\n'), 0o600); err != nil {
+		if err := copyProductionPackageFile(commonMigrationPath, filepath.Join(roleDir, "config", "bound-migration.json")); err != nil {
 			return manifest, err
 		}
 		peers := make([]string, 0, len(nodes)-1)
@@ -537,8 +541,7 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 		if err != nil || !bytes.Equal(roleGenesis, commonGenesis) {
 			return fmt.Errorf("production candidate role %s genesis differs from common genesis", role)
 		}
-		roleMigration, err := os.ReadFile(filepath.Join(roleRoot, "config", "bound-migration.json"))
-		if err != nil || !bytes.Equal(roleMigration, commonMigration) {
+		if err := compareProductionPackageFileBytes(filepath.Join(roleRoot, "config", "bound-migration.json"), commonMigration); err != nil {
 			return fmt.Errorf("production candidate role %s migration differs from common migration", role)
 		}
 		configPayload, err := os.ReadFile(filepath.Join(roleRoot, "config", "config.toml"))
@@ -584,12 +587,11 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 		if clean != relativePath || filepath.IsAbs(clean) || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || strings.Contains(strings.ToLower(clean), "priv_validator_key") || strings.Contains(strings.ToLower(clean), "node_key.json") {
 			return fmt.Errorf("unsafe production candidate package path %q", relativePath)
 		}
-		filePayload, err := os.ReadFile(filepath.Join(root, clean))
+		actualHash, err := hashProductionPackageFile(filepath.Join(root, clean))
 		if err != nil {
 			return fmt.Errorf("read production candidate package file %s: %w", clean, err)
 		}
-		sum := sha256.Sum256(filePayload)
-		if hex.EncodeToString(sum[:]) != expectedHash {
+		if actualHash != expectedHash {
 			return fmt.Errorf("production candidate package hash mismatch for %s", clean)
 		}
 	}
@@ -876,15 +878,112 @@ func packageFileHashes(root string) (map[string]string, error) {
 		if err != nil {
 			return err
 		}
-		payload, err := os.ReadFile(path)
+		sum, err := hashProductionPackageFile(path)
 		if err != nil {
 			return err
 		}
-		sum := sha256.Sum256(payload)
-		files[relative] = hex.EncodeToString(sum[:])
+		files[relative] = sum
 		return nil
 	})
 	return files, err
+}
+
+const productionPackageIOBufferBytes = 64 << 10
+
+// Each read keeps one original descriptor through EOF and checks its identity
+// again before returning. No digest replaces the complete role byte comparison.
+func readProductionPackageFile(path string, consume func(io.Reader) error) (result error) {
+	before, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if !before.Mode().IsRegular() {
+		return errors.New("production package input must be a regular file without a symlink")
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, f.Close()) }()
+	check := func() error {
+		opened, openErr := f.Stat()
+		current, pathErr := os.Lstat(path)
+		same := func(info os.FileInfo) bool {
+			return info != nil && info.Mode() == before.Mode() && os.SameFile(before, info) &&
+				info.Size() == before.Size() && info.ModTime().Equal(before.ModTime())
+		}
+		if openErr != nil || pathErr != nil || !same(opened) || !same(current) {
+			return errors.New("production package file changed during complete read")
+		}
+		return nil
+	}
+	if err := check(); err != nil {
+		return err
+	}
+	result = consume(f)
+	return errors.Join(result, check())
+}
+
+// Generated destinations are new independent files. On failure, leave the
+// partial file to the existing legacy/operator package cleanup policy.
+func writeProductionPackageFile(path string, emit func(io.Writer) error) (result error) {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, f.Close()) }()
+	if err := f.Chmod(0600); err != nil {
+		return err
+	}
+	return emit(f)
+}
+
+func copyProductionPackageFile(source, destination string) error {
+	return readProductionPackageFile(source, func(r io.Reader) error {
+		return writeProductionPackageFile(destination, func(w io.Writer) error {
+			_, err := io.CopyBuffer(struct{ io.Writer }{w}, struct{ io.Reader }{r}, make([]byte, productionPackageIOBufferBytes))
+			return err
+		})
+	})
+}
+
+func hashProductionPackageFile(path string) (string, error) {
+	h := sha256.New()
+	err := readProductionPackageFile(path, func(r io.Reader) error {
+		_, err := io.CopyBuffer(h, struct{ io.Reader }{r}, make([]byte, productionPackageIOBufferBytes))
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
+// expected is the same original common byte slice that was decoded and
+// validated above; do not reopen common here and compare against newer bytes.
+func compareProductionPackageFileBytes(path string, expected []byte) error {
+	return readProductionPackageFile(path, func(a io.Reader) error {
+		b := bytes.NewReader(expected)
+		x, y := make([]byte, productionPackageIOBufferBytes), make([]byte, productionPackageIOBufferBytes)
+		for {
+			n, aErr := io.ReadFull(a, x)
+			m, bErr := io.ReadFull(b, y)
+			if n != m || !bytes.Equal(x[:n], y[:m]) {
+				return errors.New("production package complete file bytes differ")
+			}
+			for _, err := range []error{aErr, bErr} {
+				if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+					return err
+				}
+			}
+			if aErr != nil || bErr != nil {
+				if aErr != bErr {
+					return errors.New("production package complete file lengths differ")
+				}
+				return nil
+			}
+		}
+	})
 }
 
 func writeJSON(path string, value any, mode os.FileMode) error {
