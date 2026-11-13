@@ -921,7 +921,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 96e6e7c4135c9412dad5796b5e36bcc3c7765a83
+          ref: 8beeaa6e602ec8e811ea30b5ed97d0dca27eed97
           path: tools
           filter: blob:none
           persist-credentials: false
