@@ -283,6 +283,60 @@ class TransportControls(unittest.TestCase):
         self.assertNotIn('replyReceivedMonotonicNs',report['records'][0])
         self.assertFalse(report['automaticRetry'])
 
+    def test_real_truncated_reply_preserves_bytes_and_refuses_recovery_on_poisoned_stream(self):
+        RealSession=m.session_class(d.SenderSession,n,d.lab)
+        s=RealSession.__new__(RealSession)
+        s.__dict__.update(session(lambda:None).__dict__)
+        s.offset=0;s.partial=b''
+        # The first poll is before the write. The child exits after retaining
+        # only a prefix of its original reply; no process is started here.
+        polls=iter((None,1))
+        s.proc.poll=lambda:next(polls,1)
+        original=command()
+        complete=json.dumps(response()).encode()+b'\n';prefix=complete[:-12]
+        with tempfile.TemporaryDirectory() as tmp:
+            s.path=Path(tmp)/'original-process.log';s.path.write_bytes(prefix)
+            reply_path=Path(tmp)/'original-reply.json'
+            with self.assertRaisesRegex(RuntimeError,'exited without one exact reply'):
+                s.exchange(original,reply_path,threading.Event())
+            self.assertTrue(s.poisoned);self.assertEqual(s.partial,prefix)
+            self.assertEqual(s.path.read_bytes(),prefix);self.assertFalse(reply_path.exists())
+            self.assertEqual(s.records,[])
+            written=s.proc.stdin.getvalue();offset=s.offset
+            # Late complete bytes cannot be assigned to another command, even
+            # if an outside process-liveness observation later says "running".
+            with s.path.open('ab') as output:output.write(complete[len(prefix):])
+            s.proc.poll=lambda:None
+            recover=n.sender_command_data('recover',original['request'])
+            self.assertEqual(recover['checkpointHeight'],'0')
+            for next_command in (recover,command(5,'c'*64)):
+                with self.assertRaisesRegex(RuntimeError,'recover originals, never replay'):
+                    s.exchange(next_command,Path(tmp)/'next-reply.json',threading.Event())
+            self.assertEqual(s.proc.stdin.getvalue(),written)
+            self.assertEqual((s.offset,s.partial),(offset,prefix))
+            self.assertEqual(json.loads(written),original)
+            self.assertEqual(s.path.read_bytes(),complete)
+            self.assertFalse((Path(tmp)/'next-reply.json').exists())
+
+    def test_real_broken_pipe_write_never_reads_or_retries_an_ack(self):
+        reader,writer=os.pipe();os.close(reader)
+        stream=os.fdopen(writer,'wb')
+        def unexpected_reply():self.fail('broken command write must not consume a reply')
+        s=session(unexpected_reply);s.proc.stdin=stream
+        try:
+            with self.assertRaises(BrokenPipeError):
+                s.exchange(command(),None,threading.Event())
+            self.assertTrue(s.poisoned);self.assertEqual(s.records,[])
+            for next_command in (command(),n.sender_command_data('recover',command()['request'])):
+                with self.assertRaisesRegex(RuntimeError,'recover originals, never replay'):
+                    s.exchange(next_command,None,threading.Event())
+            first=s.transport_report()['records'][0]
+            self.assertEqual(first['errorType'],'BrokenPipeError')
+            self.assertNotIn('replyReceivedMonotonicNs',first)
+        finally:
+            try:stream.close()
+            except BrokenPipeError:pass
+
     def test_concurrent_call_cannot_write_before_previous_reply(self):
         entered=threading.Event();release=threading.Event();second=threading.Event();errors=[]
         def reply():

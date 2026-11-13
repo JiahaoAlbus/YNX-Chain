@@ -255,10 +255,12 @@ def native_source_receipt(files,prefix,receipt):
     value=strict(raw)
     require(value==dependency['sourceDependencies'] and value['source']==SOURCE and value['sourceTree']==TREE,
             'original supporting source identity differs')
-    path=Path(__file__).with_name('pq-7c25-native-source-dependencies.py')
-    entry.pinned_bytes(path,entry.TOOL_PINS[path.name])
-    native=module('current7c_original_native_source_data',path.name)
-    require(value['files']==[dict(path=name,**ref) for name,ref in native.FILES.items()]
+    # The old receipt describes a fixed file inventory. Its original pins
+    # stay valid as the current composer learns to prepare newer sources.
+    inventory = json.dumps(value['files'], sort_keys=True, separators=(',', ':')).encode()
+    require(hashlib.sha256(inventory).hexdigest()
+            == '3c8897ba7007e32e0b3b806ea1d8e1510bd682b34d411055f4c699356c109057'
+            and all(entry.SOURCE_PINS.get(ref['path']) == ref['sha256'] for ref in value['files'])
             and value['fileCount']==11 and value['sourceBytes']==35651
             and value['originalSixRootComposerReused'] is True
             and value['originalSixRootReceiptIncludesTheseFiles'] is False

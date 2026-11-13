@@ -15,6 +15,15 @@ class NativeBusinessReadback(unittest.TestCase):
         self.assertEqual(result['originalReceipt']['fileCount'],11)
         with self.assertRaisesRegex(RuntimeError,'receipt bytes differ'):
             r.native_source_receipt({'normal-live-source-dependencies.json':raw[:-1]},'',dict(normalLiveSourceDependencies=ref))
+    def test_rehashed_receipt_cannot_substitute_a_native_source(self):
+        path = Path(__file__).with_name('fixtures') / '7c25-native-source/SOURCE-NATIVE-DEPENDENCIES.json'
+        value = json.loads(path.read_bytes())
+        value['files'][0]['sha256'] = '0' * 64
+        raw = json.dumps(value).encode()
+        ref = dict(receiptBytes=len(raw), receiptSHA256=hashlib.sha256(raw).hexdigest(), sourceDependencies=value)
+        with self.assertRaisesRegex(RuntimeError, 'closed original native source provenance differs'):
+            r.native_source_receipt({'normal-live-source-dependencies.json': raw}, '', dict(normalLiveSourceDependencies=ref))
+
     def test_missing_source_is_not_a_build_or_zero_tps(self):
         result=r.native_source_receipt({},'',{})
         self.assertEqual(result['status'],'NOT_SUPPLIED');self.assertFalse(result['buildOrBusinessQualified'])
