@@ -13,10 +13,20 @@ const account='0x'+'a'.repeat(40),intentId='npi_'+'d'.repeat(48);
 const action={chainId:'c'.repeat(64),nativeChainId:'6423',owner:account,nonce:'1',fee:'1',kind:'invoice_terms',payload:{invoiceID:'invoice-public',sessionID:'session-public',recipient:'0x'+'b'.repeat(40),payer:'',assetID:'YNXT',unitVersion:'1',feeRule:'native-transfer-fee-one/v1',keyEpoch:'1',revision:'1',amount:'100',maxFee:'1',expiresAt:'1000'}};
 const bytes=Buffer.from(encodePQNativeAction(action));
 const view={merchant:account,request:{genesis:action.chainId,nativeChainId:action.nativeChainId},signingMessageHash:createHash('sha256').update(bytes).digest('hex')};
-function fixture({cleanupCause,startup=false,noOp=false}={}){
+function fixture({cleanupCause,startup=false,noOp=false,retireAfterValidation=false}={}){
  let entered,finish,rejects=0,requested=0,published=0;const ready=new Promise(r=>entered=r),gate=new Promise(r=>finish=r),queue=new Map(),loans=new Set(),calls=[];
  const main={transactionSender:{submissions:{intentStore:{readPQOriginals:async()=>[],unresolvedPreparation:async()=>false}}},pendingRequests:()=>[...queue.values()],reject(id){rejects++;assert(queue.has(id));if(noOp)return;throw cleanupCause;},async requestPQTypedAction(){requested++;entered();await gate;const request={id:'PUBLIC-original-review',method:'ynx_signPQNativeAction',review:{account,typedReview:{action}}};queue.set(request.id,request);return{status:'approval-required',request};}};
- const getContext=()=>({account,revision:1,locked:false,focused:true,changing:false}),getGuard=()=>({account,assert(){}});
+ let current=true;
+ if(retireAfterValidation){
+  const request=main.requestPQTypedAction;
+  main.requestPQTypedAction=async()=>{
+   const result=await request();
+   Object.defineProperty(result.request.review,'typedReview',{get(){current=false;return {action};}});
+   return result;
+  };
+  main.reject=id=>{rejects++;assert.equal(id,'PUBLIC-original-review');queue.delete(id);};
+ }
+ const getContext=()=>({account,revision:1,locked:false,focused:current,changing:false}),getGuard=()=>({account,assert(){}});
  const pay={merchantTermsReview:async()=>({message:bytes.toString('base64'),intent:view}),readInvoiceIntent:async()=>view,readInvoice:async()=>({paidAtoms:'0'})};let entry;
  if(startup){entry=createWalletNativePayProductStartup({captureFactories:()=>({acquireOriginalProductSource(){let retired=false;const loan={current(){assert.equal(retired,false);},retire(){calls.push('retire');retired=true;},async join(){calls.push('join');},async close(){calls.push('close');},pay};loans.add(loan);return loan;},isOriginalProductSource:v=>loans.has(v)}),getMain:()=>main,getContext,getGuard});}
  else{entry=createNativePayMainEntry({getMain:()=>main,getContext});entry.compose({current(){},pay});}
@@ -52,6 +62,18 @@ for(const cleanupCause of [0,false,null])test(`normal startup controller really 
 });
 test('no-op Main reject cannot turn a late queued request into a clean close',async()=>{
  const f=fixture({noOp:true});await late(f);assert.throws(()=>f.service.assertSafeToClose(),{code:'NATIVE_PAY_MAIN_REVIEWS_RETAINED'});assert.equal(f.counts().rejects,1);assert.equal(f.queue.size,1);
+});
+test('retirement after review validation cancels only the review retained by this invocation',async()=>{
+ const f=fixture({retireAfterValidation:true});
+ const other={id:'PUBLIC-other-review'};
+ f.queue.set(other.id,other);
+ const flight=f.entry.invoke({action:'terms-review',intentId});
+ await f.ready;
+ f.finish();
+ await assert.rejects(flight,{code:'NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE'});
+ assert.deepEqual([...f.queue.values()],[other]);
+ assert.deepEqual(f.counts(),{rejects:1,requested:1,published:0});
+ assert.doesNotThrow(()=>f.entry.assertSafeToClose());
 });
 test('outer active operation is checked before consulting inner close; after settle exact inner falsy cause survives',async()=>{
  let release,consulted=0;const cause=false,entry={invoke:()=>new Promise(r=>release=r),assertSafeToClose(){consulted++;throw cause;}},service=createWalletNativePayProduct({entry,getMain:()=>({}),getGuard:()=>({assert(){}}),publishReview:()=>assert.fail()});

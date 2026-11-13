@@ -1,9 +1,9 @@
 {
   "owner": "P06 original; P01 exact whole9 consumer projection",
-  "sourceCommit": "66f7a82250ac2612e3e4c54f4834d22f652b5fd8",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/protected-same-holder-recovery-20261113/HANDOFF.json",
-  "handoffBytes": 6813,
-  "handoffSha256": "4ff1fe498cc902bf270c7c176a1a17cb1d5f8359fec0bbdc8490ca9684583efb",
+  "sourceCommit": "b275fd0675151934d1728944436ebef72811d0e0",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/protected-late-review-retirement-20261113/HANDOFF.json",
+  "handoffBytes": 4522,
+  "handoffSha256": "08987ea4f75690ab37b0f378da3eee923426ca5abe0015d00f2d396d639bf006",
   "productionModules": 9,
   "productionDocumentsPreservedFromR5": true,
   "files": [
@@ -39,8 +39,8 @@
     },
     {
       "path": "main-entry.mjs",
-      "bytes": 13342,
-      "sha256": "57afc4ed8bb63c40deb73a994356cfc325b36c5ba7ec5fe5d04128c072c5b4c0"
+      "bytes": 13932,
+      "sha256": "0f810b73e4eb06a81c07cc60c08e53865dca2f1a5a7435931823bff6bd38867d"
     },
     {
       "path": "desktop-entry.mjs",
