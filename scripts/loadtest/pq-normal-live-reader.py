@@ -415,6 +415,11 @@ def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
     spec=importlib.util.spec_from_file_location('pair_original_leg_trace',Path(__file__).with_name('pq-normal-leg-trace.py'))
     trace_reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(trace_reader)
     bundle['completeTraceData']=trace_reader.read(public,receipt,bundle['stoppedStateBytes'],original)
+    stage_spec=importlib.util.spec_from_file_location('pair_original_leg_stages',Path(__file__).with_name('pq-normal-leg-stages.py'))
+    stage_reader=importlib.util.module_from_spec(stage_spec);stage_spec.loader.exec_module(stage_reader)
+    bundle['nodeStageData']=stage_reader.read(receipt,original,dict(receiptSHA256=receipt_sha256,
+        toolsCommit=tools_commit,controller=ci['controllerCommit'],runID=binding['runID'],
+        source=receipt['source'],binaries=receipt['binaries']))
     requested=any(arg=='--startup-timings' or arg.startswith('--startup-timings=') for row in receipt['processes'] if '-node-' in row['name'] for arg in row.get('command',[]))
     if requested:
         spec=importlib.util.spec_from_file_location('pair_original_node_startup',Path(__file__).with_name('pq-node-startup-measurements.py'))
@@ -460,7 +465,7 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
         if bundle is None:
             result['missing'].append(label+' original normal PUBLIC leg with exact receipt/tool pins and common canonical signed user fixture not supplied')
             continue
-        evidence=bundle.get('provenance',{});result[label]=dict(originals=evidence,network=bundle.get('networkData'),completeTraceData=bundle.get('completeTraceData'),nodeStartupData=bundle.get('nodeStartupData'))
+        evidence=bundle.get('provenance',{});result[label]=dict(originals=evidence,network=bundle.get('networkData'),completeTraceData=bundle.get('completeTraceData'),nodeStartupData=bundle.get('nodeStartupData'),nodeStageData=bundle.get('nodeStageData'))
         if (evidence.get('selectedSupplierCommit'),evidence.get('selectedSupplierTree'))!=(PAIR_SUPPLIER['commit'],PAIR_SUPPLIER['tree']):result['missing'].append(label+' actual selected supplier differs from ed628/f1a')
         statuses=[phase['status'] for row in bundle.get('networkData',{}).get('losslessStatuses',[]) for phase in row.values()]
         expected='DISABLED' if label=='OFF' else 'OBSERVED'
