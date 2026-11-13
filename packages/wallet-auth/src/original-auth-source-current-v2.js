@@ -19,6 +19,7 @@ import{CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATI
 // PRIVATE normal Source-current counterpart. A PUBLIC test kernel is not a
 // service registration. Only the release-selected original factory may mount.
 import {randomBytes} from 'node:crypto';
+import {types} from 'node:util';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {dirname,basename} from 'node:path';
@@ -69,6 +70,14 @@ function originalSourceEffectExpiry(body,purpose){
 }
 function hint(raw){const e=parsed(raw),b=Buffer.from(e.body??'','base64url');if(e.version!==2||e.role!=='profile'&&e.role!=='enrollment'&&e.role!=='current'||!b.length||b.length>65536||b.toString('base64url')!==e.body)fail('AUTH_SOURCE_V2_ENVELOPE');return parsed(new TextDecoder('utf8',{fatal:true}).decode(b),65536);}
 function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==keys.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')||!d.enumerable))fail('AUTH_SOURCE_V2_SCHEMA');}
+function snapshotTransition(v){
+ if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_SOURCE_V2_SCHEMA');
+ const ds=Object.getOwnPropertyDescriptors(v),fields=['status','floor','head'];
+ if(Reflect.ownKeys(ds).length!==fields.length||fields.some(k=>!Object.hasOwn(ds,k)||!ds[k].enumerable||!Object.hasOwn(ds[k],'value')))fail('AUTH_SOURCE_V2_SCHEMA');
+ const {status,floor,head}=Object.fromEntries(fields.map(k=>[k,ds[k].value]));
+ if(typeof status!=='string'||typeof floor!=='number'||typeof head!=='string')fail('AUTH_SOURCE_V2_SCHEMA');
+ return Object.freeze({status,floor,head});
+}
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
 
 export class OriginalAuthSourceCurrentV2Kernel {
@@ -133,8 +142,10 @@ export class OriginalAuthSourceCurrentV2Kernel {
  }
  #body(p,digest,state,challenge,v){const now=this.#time();return {version:2,purpose:this.#policy.signatureContract.purpose,sourceId:v.profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest:digest,instanceId:v.profile.instanceId,generation:v.profile.generation,subjectOwner:v.profile.subjectOwner,subjectKeyVersion:v.subjectKeyVersion,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,v.profile.expiresAtMs,v.enrollment.expiresAtMs,originalSourceEffectExpiry(p.body,this.#policy.signatureContract.purpose))};}
  #signed(body,v,views){this.#networkOriginals();const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:views.current.activeRevision,executionHeight:views.current.executionHeight};const bodyRaw=canonical(body),message=encodeOriginalAuthSourceStatementV2('current',this.#policy.signatureContract.currentFrame,binding,bodyRaw);this.#partial=Object.freeze({phase:'SIGN_SELECTED',profileDigest:body.profileDigest,nonce:body.nonce,bodyRaw});const member=this.#signer.signCurrent(message,binding,views.current);const raw=canonicalOriginalAuthSourceEnvelopeV2('current',binding,bodyRaw,member);this.#partial=Object.freeze({phase:'SIGNED',profileDigest:body.profileDigest,nonce:body.nonce,currentRaw:raw});this.#networkOriginals();return raw;}
- async transition(profileDigest,state){
+ async transition(profileDigest,input){
   this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');this.#entered=true;
+  let state;
+  try{state=snapshotTransition(input);}catch(error){this.#remember(error);this.#entered=false;throw error;}
   try{const p=this.#profiles.get(profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');exact(state,['status','floor','head']);if(this.#policy.signatureContract.purpose===WM_PURPOSE&&state.head!==sha(canonical(p.body.selection[WM_KEY])))fail('MOBILE_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===RCV_PURPOSE&&state.head!==sha(canonical(p.body.selection[RCV_KEY])))fail('TASK_RECEIVER_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===DGA_PURPOSE&&state.head!==sha(canonical(p.body.selection[DGA_KEY])))fail('DESKTOP_GRANT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===TLS_PURPOSE&&state.head!==sha(canonical(p.body.selection[TLS_KEY])))fail('SERVER_TLS_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===NCP_PURPOSE&&state.head!==sha(canonical(p.body.selection[NCP_KEY])))fail('NETWORK_PUBLISHER_SOURCE_CURRENT_HEAD');if([NR_PURPOSE,NPR_PURPOSE].includes(this.#policy.signatureContract.purpose)&&state.head!==sha(canonical(p.body.selection[this.#policy.signatureContract.purpose===NPR_PURPOSE?NPR_KEY:NR_KEY])))fail('NETWORK_RESOURCE_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===AI_PURPOSE&&state.head!==sha(canonical(p.body.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPR_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPR_KEY])))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===BROWSER_PURPOSE&&state.head!==sha(canonical(p.body.selection[BROWSER_KEY])))fail('BROWSER_SELECTED_PAGES_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===WPC_PURPOSE&&state.head!==sha(canonical(p.body.selection[WPC_KEY])))fail('WALLET_PAY_CLIENT_SOURCE_CURRENT_HEAD');if(this.#policy.signatureContract.purpose===PAY_PURPOSE&&state.head!==sha(canonical(p.body.selection[PAY_KEY])))fail('PAY_SOURCE_CURRENT_MAPPING_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');if(this.#policy.signatureContract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');const before=await this.#views(p),v=this.#verify(p,before),old=this.#rows.get(profileDigest),sequence=old?old.sequence+1:p.body.minimumSequence;
    if(!Number.isSafeInteger(sequence)||!['active','revoked','retired'].includes(state.status)||!Number.isSafeInteger(state.floor)||state.floor<Math.max(p.body.minimumFloor,old?.floor??0)||state.floor>sequence||typeof state.head!=='string'||!/^[a-f0-9]{64}$/.test(state.head)||old&&old.status!=='active'&&state.status!==old.status)fail('AUTH_SOURCE_V2_TRANSITION_INVALID');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');
