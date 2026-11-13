@@ -62,11 +62,12 @@ def capture(work, name, command):
     return result.returncode
 
 
-def execute(source, tools, work):
+def execute(source, tools, guard_tools, work):
     workspace = Path(os.environ['GITHUB_WORKSPACE']).resolve(strict=True)
     controller = Path(__file__).resolve().parents[2]
     require(controller == workspace / 'controller' and source == workspace / 'source'
-            and tools == workspace / 'tools', 'only original three checkout locations allowed')
+            and tools == workspace / 'tools' and guard_tools == workspace / 'guard-tools',
+            'only the fixed checkout locations allowed')
     require(sys.platform == 'linux' and os.environ.get('GITHUB_ACTIONS') == 'true'
             and os.environ.get('RUNNER_ENVIRONMENT') == 'github-hosted'
             and os.environ.get('GITHUB_EVENT_NAME') == 'push'
@@ -78,6 +79,8 @@ def execute(source, tools, work):
     require(entry.TOOLS == F2 and entry.TOOLS_TREE == F2_TREE and entry.GO_SOURCE == SOURCE,
             'only original F2/C2 and frozen7c source allowed')
     entry.verify_tools(tools)
+    held = module('held_guard_identity', controller / 'scripts/loadtest/pq-first100-held-ci.py')
+    entry.checked_source(guard_tools, held.TOOLS, held.TOOLS_TREE)
     entry.checked_source(source, entry.GO_SOURCE, entry.GO_TREE)
     for path, expected in entry.SOURCE_PINS.items():
         entry.pinned_bytes(source / path, expected)
@@ -94,7 +97,11 @@ def execute(source, tools, work):
     driver = entry.pinned_module('original_f2_driver', tools / 'scripts/loadtest/pq-independent-load.py',
                                 entry.TOOL_PINS['pq-independent-load.py'])
     entry.validate_driver(driver)
-    lab = driver.lab
+    # Keep the historical F2 source preparation intact. The build process
+    # itself uses the successor observer to sample and retire compiler children.
+    lab = module('qualified_build_process_guard', guard_tools / 'scripts/loadtest/consensus-linux-cohort.py')
+    require(lab.CAPS == driver.lab.CAPS and lab.guard.CAPS == driver.lab.guard.CAPS,
+            'build observer must preserve original resource caps')
     rows, _ = lab.guard.proc_inventory()
     admission = dict(availableMemoryBytes=lab.guard.memory_available(),
         freeDiskBytes=shutil.disk_usage(work).free, conflictingHeavyProcesses=lab.heavy_processes(rows),
@@ -105,7 +112,8 @@ def execute(source, tools, work):
     go = Path(shutil.which('go')).resolve(strict=True)
     w = lab.Window(source, work, additional_storage=(workspace, go.parent.parent))
     result = dict(schema='YNX-FIRST100-SAME-VIEW-CGO-BUILD/v1', controller=os.environ['GITHUB_SHA'],
-        tools=F2, toolsTree=F2_TREE, source=SOURCE, cgoEnabled='1', binaryExecutionRequested=False,
+        tools=F2, toolsTree=F2_TREE, buildGuardTools=held.TOOLS, buildGuardToolsTree=held.TOOLS_TREE,
+        resourceObserverVersion=lab.RSS_OBSERVER_VERSION, source=SOURCE, cgoEnabled='1', binaryExecutionRequested=False,
         nodeStarted=False, keysCreated=False, loadExecuted=False, pressureAuthorized=False,
         qualified=False, firstCause=None, cleanupComplete=False, binaries={})
 
@@ -191,9 +199,11 @@ def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('--source', type=Path, required=True)
     parser.add_argument('--tools', type=Path, required=True)
+    parser.add_argument('--guard-tools', type=Path, required=True)
     parser.add_argument('--operation', type=Path, required=True)
     args = parser.parse_args()
-    execute(args.source.resolve(strict=True), args.tools.resolve(strict=True), args.operation)
+    execute(args.source.resolve(strict=True), args.tools.resolve(strict=True),
+            args.guard_tools.resolve(strict=True), args.operation)
     return 0
 
 
