@@ -165,9 +165,26 @@ def process_group_exit_probe(pid,before):
     """
     if not hasattr(os,"pidfd_open") or not hasattr(select,"poll"):
         return dict(state="unsupported")
-    root=Path('/proc')/str(pid);fd=None
-    def identity():
-        row=guard.parse_stat(guard.bounded(root/'stat'),pid)
+    root=Path('/proc')/str(pid);fd=None;terminal_stat=None
+    def identity(after_group_exit=False):
+        nonlocal terminal_stat
+        raw=guard.bounded(root/'stat')
+        try:
+            row=guard.parse_stat(raw,pid)
+        except RuntimeError as error:
+            if not after_group_exit or str(error)!='invalid proc stat fields':raise
+            # Linux do_task_stat keeps ppid=0, pgid=sid=-1, threads=0 when
+            # lock_task_sighand loses to exit. This is NOT an ownership row.
+            # Only the already-bound process-wide pidfd's positive exit event
+            # permits this final identity check; never relax the shared parser.
+            fields=raw[raw.rfind(b')')+1:].split()
+            require(fields[1:4]==[b'0',b'-1',b'-1'] and fields[17]==b'0'
+                    and fields[19].isdigit() and fields[0] in (b'R',b'S',b'D',b'T',b't',b'X',b'Z',b'P',b'I'),
+                    'invalid terminal proc stat fields after pidfd exit')
+            row=dict(pid=pid,parent=0,group=-1,startTicks=int(fields[19]),threads=0,
+                     state=fields[0].decode('ascii'))
+            terminal_stat=dict(row,session=-1,rawSHA256=hashlib.sha256(raw).hexdigest(),
+                               reason='same-identity-sighand-unavailable-after-pidfd-exit')
         require(row['startTicks']==before['startTicks'],'owned process identity changed around pidfd')
         return row
     try:
@@ -186,13 +203,15 @@ def process_group_exit_probe(pid,before):
         # though this pidfd itself still pins the former process.
         final_state='gone';final_threads=None
         try:
-            last=identity();final_state=last['state'];final_threads=last['threads']
+            last=identity(after_group_exit=bool(mask));final_state=last['state'];final_threads=last['threads']
         except OSError as error:
             if error.errno not in (errno.ENOENT,errno.ESRCH):raise
         if not mask:
             require(ids==[str(pid)],'reaped pidfd lacks kernel exit event')
             return dict(state='not-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,pollTimeoutMs=20,pollMask=0,leaderState=final_state,leaderThreads=final_threads)
-        return dict(state='group-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,fdinfoPid=int(ids[0]),pollTimeoutMs=20,pollMask=mask,firstLeaderState=first['state'],firstThreads=first['threads'],secondLeaderState=second['state'],secondThreads=second['threads'],lastLeaderState=final_state,lastThreads=final_threads,observedMonotonicNs=time.monotonic_ns(),nonConsuming=True)
+        proof=dict(state='group-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,fdinfoPid=int(ids[0]),pollTimeoutMs=20,pollMask=mask,firstLeaderState=first['state'],firstThreads=first['threads'],secondLeaderState=second['state'],secondThreads=second['threads'],lastLeaderState=final_state,lastThreads=final_threads,observedMonotonicNs=time.monotonic_ns(),nonConsuming=True)
+        if terminal_stat is not None:proof['terminalStat']=terminal_stat
+        return proof
     except OSError as error:
         if error.errno not in (errno.ENOENT,errno.ESRCH,errno.ENOSYS):raise
         return dict(state='unresolved',errno=error.errno)

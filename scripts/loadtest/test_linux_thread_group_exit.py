@@ -1,5 +1,6 @@
 """Actual Z/ESRCH regression and Linux group-lifetime proof; no chain load."""
 import errno
+import hashlib
 import importlib.util
 from pathlib import Path
 import sys
@@ -14,6 +15,13 @@ lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 def stat(pid=42,ticks=100,state='Z',threads=6):
     f=[state]+['0']*45;f[1]='1';f[2]='42';f[17]=str(threads);f[19]=str(ticks)
     return (str(pid)+' (original compiler) '+' '.join(f)).encode()
+
+
+def terminal_stat(raw=None):
+    # Linux do_task_stat leaves these defaults when lock_task_sighand fails.
+    prefix, separator, suffix=(stat() if raw is None else raw).rpartition(b') ')
+    fields=suffix.split();fields[1:4]=[b'0',b'-1',b'-1'];fields[17]=b'0'
+    return prefix+separator+b' '.join(fields)
 
 
 class ThreadGroupExitControls(unittest.TestCase):
@@ -31,15 +39,93 @@ class ThreadGroupExitControls(unittest.TestCase):
             receipt['heightVectorLeafSHA256']='f'*64;f.save(b,'receipt.json',receipt)
             with self.assertRaisesRegex(RuntimeError,'observer/tool versions differ'):h.compare(a,b)
 
-    def probe(self,mask=1,fd_pid=42,ticks_after=100):
-        calls=[];poller=mock.Mock();poller.poll.return_value=[] if not mask else [(17,mask)]
+    def probe(self,mask=1,fd_pid=42,ticks_after=100,stat_reads=None,owned=False):
+        calls=[];events=[];poller=mock.Mock();poller.poll.return_value=[] if not mask else [(17,mask)]
         def kernel(path,limit=65536):
+            if str(path).endswith('/smaps_rollup'):
+                raise ProcessLookupError(errno.ESRCH,'original private7c')
             if str(path).startswith('/proc/self/fdinfo/'):return ('Pid:\t%d\n'%fd_pid).encode()
-            calls.append(str(path));return stat(ticks=100 if len(calls)==1 else ticks_after)
+            calls.append(str(path))
+            return stat_reads[len(calls)-1] if stat_reads is not None else stat(ticks=100 if len(calls)==1 else ticks_after)
         with mock.patch.object(lab.os,'pidfd_open',return_value=17,create=True) as opened,mock.patch.object(lab.os,'close') as closed,mock.patch.object(lab.select,'poll',return_value=poller,create=True),mock.patch.object(lab.guard,'bounded',side_effect=kernel):
-            result=lab.process_group_exit_probe(42,dict(startTicks=100))
+            result=(lab.owned_rss(42,dict(startTicks=100),retired=events.append) if owned
+                    else lab.process_group_exit_probe(42,dict(startTicks=100)))
             opened.assert_called_once_with(42,0);poller.poll.assert_called_once_with(20);closed.assert_called_once_with(17)
-        return result
+        return (result,events) if owned else result
+
+    def test_private7c_final_stat_sentinel_requires_bound_positive_pidfd(self):
+        original=terminal_stat()
+        with self.assertRaisesRegex(RuntimeError,'invalid proc stat fields'):
+            lab.guard.parse_stat(original,42)
+        value,events=self.probe(stat_reads=[stat(),stat(),stat(),original],owned=True)
+        self.assertEqual(value,0);self.assertEqual(len(events),1)
+        proof=events[0]['groupExitProof']
+        self.assertEqual(proof['state'],'group-exited')
+        self.assertEqual(proof['lastThreads'],0)
+        self.assertEqual(proof['terminalStat'],dict(
+            reason='same-identity-sighand-unavailable-after-pidfd-exit',
+            pid=42,startTicks=100,parent=0,group=-1,session=-1,threads=0,
+            state='Z',rawSHA256=hashlib.sha256(original).hexdigest()))
+        self.assertEqual(events[0]['rssError'],errno.ESRCH)
+        self.assertEqual(events[0]['groupExitProof']['terminalStat'],proof['terminalStat'])
+
+    def test_terminal_sentinel_cannot_establish_identity_or_replace_exit_event(self):
+        sentinel=terminal_stat()
+        for rows,mask in (([sentinel,stat(),stat()],1),([stat(),sentinel,stat()],1),
+                          ([stat(),stat(),sentinel],0)):
+            with self.subTest(rows=rows,mask=mask),self.assertRaises(RuntimeError):
+                self.probe(mask=mask,stat_reads=rows)
+        # Ordinary inventory and successful RSS sampling keep the strict parser.
+        with mock.patch.object(lab.guard,'bounded',side_effect=[b'Rss: 12 kB\n',sentinel]):
+            with self.assertRaisesRegex(RuntimeError,'invalid proc stat fields'):
+                lab.owned_rss(42,dict(startTicks=100))
+
+    def test_terminal_stat_reuse_malformed_or_other_negative_fields_fail_closed(self):
+        sentinel=terminal_stat();prefix,separator,suffix=sentinel.rpartition(b') ')
+        invalid=[b'',b'42 (short) Z',terminal_stat(stat(pid=43)),terminal_stat(stat(ticks=101)),
+                 terminal_stat(stat(ticks=-1))]
+        for index,value in ((1,b'-1'),(2,b'-2'),(3,b'0'),(17,b'-1'),(17,b'1'),(19,b'not-a-tick')):
+            fields=suffix.split();fields[index]=value;invalid.append(prefix+separator+b' '.join(fields))
+        for raw in invalid:
+            with self.subTest(raw=raw),self.assertRaises((RuntimeError,ValueError)):
+                self.probe(stat_reads=[stat(),stat(),raw])
+
+    @unittest.skipUnless(sys.platform=='linux','real Linux pidfd exit with controlled terminal stat projection')
+    def test_actual_owned_pidfd_exit_with_terminal_stat_projection(self):
+        # Real child, /proc identities, fdinfo and whole-group poll. Only the
+        # leader ESRCH and documented terminal stat fields are injected; this
+        # is not a claim that this run naturally reproduced the kernel race.
+        process=lab.subprocess.Popen([sys.executable,'-I','-c','import os; os.read(0,1)'],
+                                     stdin=lab.subprocess.PIPE)
+        try:
+            directory=Path('/proc')/str(process.pid);original=lab.guard.bounded
+            before=lab.guard.parse_stat(original(directory/'stat'),process.pid)
+            reads=0;events=[];projection=None
+            def kernel(path,limit=65536):
+                nonlocal reads,projection
+                if path==directory/'smaps_rollup':
+                    raise ProcessLookupError(errno.ESRCH,'controlled leader RSS transition')
+                raw=original(path,limit)
+                if path==directory/'stat':
+                    reads+=1
+                    if reads==4:
+                        projection=terminal_stat(raw);return projection
+                elif path.parent==Path('/proc/self/fdinfo'):
+                    process.stdin.write(b'x');process.stdin.flush()
+                    exited=lab.select.poll();exited.register(int(path.name),1|16)
+                    self.assertTrue(exited.poll(2000),'owned child did not exit in test bound')
+                return raw
+            with mock.patch.object(lab.guard,'bounded',side_effect=kernel):
+                self.assertEqual(lab.owned_rss(process.pid,before,retired=events.append),0)
+            self.assertIsNotNone(projection);self.assertEqual(reads,4)
+            proof=events[0]['groupExitProof'];self.assertTrue(proof['pollMask']&(1|16))
+            self.assertEqual(proof['pid'],process.pid);self.assertEqual(proof['startTicks'],before['startTicks'])
+            self.assertEqual(proof['terminalStat']['rawSHA256'],hashlib.sha256(projection).hexdigest())
+            self.assertTrue(proof['nonConsuming']);self.assertIsNone(process.returncode)
+            self.assertEqual(process.wait(timeout=2),0)
+        finally:
+            if process.poll() is None:process.kill();process.wait(timeout=2)
+            process.stdin.close()
 
     def test_original_six_Z_esrch_observations_are_not_zero_without_group_proof(self):
         with mock.patch.object(lab.guard,'bounded',side_effect=[ProcessLookupError(errno.ESRCH,'original'),stat()]*6),mock.patch.object(lab,'same_process_rss_alternative',return_value=None),mock.patch.object(lab,'process_group_exit_probe',return_value=dict(state='not-exited',pidfdFlags=0,pollMask=0)),mock.patch.object(lab.time,'sleep'):
