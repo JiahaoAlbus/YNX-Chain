@@ -798,7 +798,7 @@ jobs:
           test ! -s "$evidence/native-entry.stdout"
           grep -F 'protected Cloud deployment requires the original Auth, runtime and V2 DATA configuration' "$evidence/native-entry.stderr"
           sh ./context/apps/cloud/scripts/verify-protected-cloud-image.sh "$image" 2>&1 | tee "$evidence/native-image-controls.log"
-      - name: Verify original empty Root issuer refusal against the same native build source
+      - name: Verify original Auth source refusal before listener acquisition
         working-directory: ${{ runner.temp }}/p04-native-docker
         run: |
           set -euo pipefail
@@ -808,11 +808,14 @@ jobs:
             -f ./context/infra/docker/ynx-cloudd.Dockerfile ./context 2>&1 | tee "$evidence/builder.log"
           builder=$(cat ./builder.id)
           [[ "$builder" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test_source="$GITHUB_WORKSPACE/cmd/ynx-secure-link/p04-native-docker-deps/qualified-source-refusal_test.go.in"
+          sha256sum "$test_source" > "$evidence/qualified-source-test.sha256"
           docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --mount "type=bind,source=$test_source,target=/src/internal/securelink/p04_qualified_source_refusal_test.go,readonly" \
             -e GOCACHE=/tmp/p04-ci-go-cache "$builder" go test -mod=readonly -p 2 -count=1 -timeout=90s \
             -tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls \
-            -run '^TestOriginalServerTLSOriginalFactoryEmptyRootCleanup$' -v ./internal/securelink 2>&1 | tee "$evidence/empty-root.log"
-          test "$(grep -c '^--- PASS: TestOriginalServerTLSOriginalFactoryEmptyRootCleanup ' "$evidence/empty-root.log")" = 1
+            -run '^TestOriginalServerTLSUnqualifiedSourceDoesNotOpenListener$' -v ./internal/securelink 2>&1 | tee "$evidence/qualified-source-refusal.log"
+          test "$(grep -c '^--- PASS: TestOriginalServerTLSUnqualifiedSourceDoesNotOpenListener ' "$evidence/qualified-source-refusal.log")" = 1
       - name: Preserve bounded local build evidence without publishing the image
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -1,0 +1,41 @@
+//go:build securelink_openssl && cgo && securelink_reviewed_server_tls && linux
+
+package securelink
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/authservertls"
+)
+
+func TestOriginalServerTLSUnqualifiedSourceDoesNotOpenListener(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	owner, err := OpenOriginalServerTLS(ctx)
+	if owner == nil || !errors.Is(err, authservertls.ErrSourceNotSupplied) {
+		t.Fatalf("original Auth source refusal: owner=%t err=%v", owner != nil, err)
+	}
+	if owner.FirstCause() != err || owner.state.listener != nil || owner.Current(ctx) == nil {
+		t.Fatal("missing qualified Auth source did not fence the original listener")
+	}
+	if _, err := owner.Identity(ctx); !errors.Is(err, authservertls.ErrSourceNotSupplied) {
+		t.Fatalf("unqualified Auth source returned identity or a different error: %v", err)
+	}
+	owner.Retire()
+	if err := owner.Join(ctx); err != nil {
+		t.Fatal(err)
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		if closeErr := owner.Close(); closeErr != err || owner.FirstCause() != err {
+			t.Fatalf("cleanup changed the original refusal: %v", closeErr)
+		}
+		lifetime := owner.Lifetime()
+		if !lifetime.PhysicalComplete || lifetime.ServeStarted || lifetime.BorrowHeld || lifetime.IssuerLeaseHeld ||
+			lifetime.Connections != 0 || lifetime.Requests != 0 || lifetime.IssuerCalls != 0 || lifetime.CleanupUnknown {
+			t.Fatalf("unqualified Auth source left physical work: %+v", lifetime)
+		}
+	}
+}
