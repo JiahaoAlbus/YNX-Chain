@@ -959,7 +959,9 @@
     "native/original-device-v4-registration-native-data.d.mts",
     "native/original-device-v4-registration-private-factory.mjs",
     "native/original-device-v4-registration-private-factory.d.mts",
-    "scripts/build-original-device-v4-registration-private-bundle.mjs"
+    "scripts/build-original-device-v4-registration-private-bundle.mjs",
+    "native/original-android-wallet-approval-private.mjs",
+    "scripts/build-original-android-wallet-approval-private-bundle.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

@@ -1,0 +1,33 @@
+name: Android Wallet approval private host
+on:
+  push:
+    branches: [codex/android-wallet-approval-host-20261113]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixed-verification-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26.7.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node packages/wallet-auth/scripts/build-original-android-wallet-approval-private-bundle.mjs "--out=$RUNNER_TEMP/wallet-approval"
+      - run: node packages/wallet-auth/test/android-wallet-approval-private-host.test.mjs "$RUNNER_TEMP/wallet-approval/ANDROID_WALLET_APPROVAL_PRIVATE.bundle.js"
+      - run: c++ -std=c++17 -c "$RUNNER_TEMP/wallet-approval/AndroidWalletApprovalPrivateBundle.cpp" -o "$RUNNER_TEMP/wallet-approval.o"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-wallet-approval-private-bundle
+          path: ${{ runner.temp }}/wallet-approval
+          if-no-files-found: error
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-wallet-approval-host-source-package
+          path: canonical-common-source-package
+          if-no-files-found: error
