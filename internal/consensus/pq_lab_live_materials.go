@@ -565,6 +565,13 @@ func PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin string, r PQLabLiv
 		return "", err
 	}
 	defer func() { err = errors.Join(err, in.close()) }()
+	return publishPQLabLiveMaterialsRequestOwned(in, r)
+}
+
+// Only a full normal loader can create these private held inputs. Both the
+// one-shot API and the fixed-lifetime session execute this identical body.
+func publishPQLabLiveMaterialsRequestOwned(in *pqLabLiveMaterialsInputs, r PQLabLiveMaterialsRequest) (path string, err error) {
+	pin, metrics := in.pin, in.metrics
 	f, _, _, err := in.transaction(r)
 	if err != nil {
 		return "", err
@@ -633,6 +640,11 @@ func ReadPQLabLiveMaterialsResultMeasured(path, pin string, sequence uint32, met
 		return out, err
 	}
 	defer func() { err = errors.Join(err, in.close()) }()
+	return readPQLabLiveMaterialsResultOwned(in, sequence)
+}
+
+func readPQLabLiveMaterialsResultOwned(in *pqLabLiveMaterialsInputs, sequence uint32) (out PQLabLiveMaterialsResult, err error) {
+	pin := in.pin
 	if sequence == 0 || sequence > in.policy.MaxOperations {
 		return out, errors.New("result outside fixed operation slots")
 	}

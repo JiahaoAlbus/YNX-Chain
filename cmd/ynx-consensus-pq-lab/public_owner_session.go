@@ -81,10 +81,14 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 	workload := f.String("workload-sha256", "", "independent online workload pin")
 	ownerText := f.String("owners", "", "explicit ascending comma-separated original owner indices")
 	fd := f.Int("credential-fd", -1, "original inherited synthetic credential descriptor")
-	ready := f.Bool("ready", false, "report opened public scope; does not preload migration, import keys or sign")
+	ready := f.Bool("ready", false, "report opened public scope; static preparation requires --prepare-source")
+	prepare := f.Bool("prepare-source", false, "validate and hold original static public source before READY; no keys, current checkpoint or signing authority")
 	timings := f.Bool("timings", false, "actual per-command nested callee timings; cold setup remains measured")
 	if err := parsePQLabFlags(f, args); err != nil {
 		return err
+	}
+	if *prepare && !*ready {
+		return errors.New("static source preparation requires explicit READY")
 	}
 	owners, err := pqLabPublicOwners(*ownerText)
 	if err != nil || !*synthetic || ctx == nil || ctx.Err() != nil || *root == "" || *plan == "" || *workload == "" || *fd < 3 || *fd > 4096 {
@@ -105,19 +109,33 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 		return err
 	}
 	defer func() { resultErr = errors.Join(resultErr, session.Close()) }()
+	var preparation *consensus.PQLabMetricsSnapshot
+	var preparedSession *consensus.PQLabPublicOwnerSessionStats
+	version, status := "YNX-PQ-LAB-PUBLIC-OWNER-READY/v1", "original_public_scope_held"
+	if *prepare {
+		metrics := &consensus.PQLabMetrics{}
+		if err = session.PrepareSource(ctx, metrics); err != nil {
+			return err
+		}
+		snapshot, stats := metrics.Snapshot(), session.Stats()
+		preparation, preparedSession = &snapshot, &stats
+		version, status = "YNX-PQ-LAB-PUBLIC-OWNER-READY/v2", "original_public_static_source_held"
+	}
 	startupNS := time.Since(started).Nanoseconds()
 	if *ready {
 		if err = json.NewEncoder(out).Encode(struct {
-			Version          string `json:"version"`
-			Status           string `json:"status"`
-			Owners           []int  `json:"owners"`
-			StartupElapsedNS int64  `json:"startupElapsedNs"`
-			Signed           bool   `json:"signed"`
-			NonceReserved    bool   `json:"nonceReserved"`
-			BootstrapLoaded  bool   `json:"bootstrapLoaded"`
-			SyntheticOnly    bool   `json:"syntheticOnly"`
-			AuthorityGranted bool   `json:"authorityGranted"`
-		}{Version: "YNX-PQ-LAB-PUBLIC-OWNER-READY/v1", Status: "original_public_scope_held", Owners: owners, StartupElapsedNS: startupNS, SyntheticOnly: true}); err != nil {
+			Version          string                                  `json:"version"`
+			Status           string                                  `json:"status"`
+			Owners           []int                                   `json:"owners"`
+			StartupElapsedNS int64                                   `json:"startupElapsedNs"`
+			Signed           bool                                    `json:"signed"`
+			NonceReserved    bool                                    `json:"nonceReserved"`
+			BootstrapLoaded  bool                                    `json:"bootstrapLoaded"`
+			SyntheticOnly    bool                                    `json:"syntheticOnly"`
+			AuthorityGranted bool                                    `json:"authorityGranted"`
+			Preparation      *consensus.PQLabMetricsSnapshot         `json:"preparationTimings,omitempty"`
+			Session          *consensus.PQLabPublicOwnerSessionStats `json:"session,omitempty"`
+		}{Version: version, Status: status, Owners: owners, StartupElapsedNS: startupNS, BootstrapLoaded: *prepare, SyntheticOnly: true, Preparation: preparation, Session: preparedSession}); err != nil {
 			return err
 		}
 	}

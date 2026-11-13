@@ -2235,12 +2235,27 @@ jobs:
           normal_source_cmd_passed = qualify_normal_source_cmd(events)
           print('YNX_PQ_NORMAL_SOURCE_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=normal_source_cmd_passed, suitePassed=True, sourceQualified=False, sourceGrant=False, nativeGrant=False, independentFinalityVerified=False, nodeStarted=False), sort_keys=True))
           PY
+      - name: Verify prepared signing and held proof sessions on original inputs
+        id: pqheldsessions
+        if: github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push'
+        timeout-minutes: 7
+        run: bash scripts/verify/pq-held-sessions-ci.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/ynx-pq-held-sessions"
+      - name: Retain original held session public test evidence
+        if: ${{ !cancelled() && steps.pqheldsessions.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-held-sessions-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-held-sessions/core.jsonl
+            ${{ runner.temp }}/ynx-pq-held-sessions/cli.jsonl
+          if-no-files-found: error
+          retention-days: 7
       - name: Exercise original lab callee readiness and actual cold costs
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' -skip '^TestPQLabSenderPUBLICOwnersPreparedReady(Refusals)?$' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"
             exit 1
           fi
@@ -2465,7 +2480,7 @@ jobs:
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           # Normal PQ lab producers and continuous capture run together in
           # their own bounded process. The original complete union is retained.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"
             exit 1
           fi
@@ -2473,7 +2488,7 @@ jobs:
           # The original Linux lab process completed 58 cases in 179.130s.
           # Keep caller/workload tests in one disjoint 180s process; retain
           # all original cases, failure receipts and complete union checks.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' -skip '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"
             exit 1
           fi
@@ -2489,7 +2504,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+          state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
           state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
           def qualify_state_partitions(events):
               # These are independent executions of one source/package, not partial

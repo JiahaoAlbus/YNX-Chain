@@ -54,6 +54,9 @@ func run(args []string, out io.Writer) error {
 	if args[0] == "proof-context" {
 		return runPQLabProofContext(args[1:], out)
 	}
+	if args[0] == "live-materials-session" {
+		return runPQLabLiveMaterialsSession(args[1:], out)
+	}
 	if args[0] == "live-materials" {
 		return runPQLabLiveMaterials(args[1:], out)
 	}

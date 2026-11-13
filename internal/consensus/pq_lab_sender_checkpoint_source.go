@@ -62,19 +62,27 @@ func (s *PQLabSenderCheckpointSource) closeLocked() error {
 	return s.closeErr
 }
 
-// Load performs the original bootstrap/migration validation on the first
-// actual command, inside checkpoint.loadTotal (never hidden in READY/warmup).
-// The existing per-file full-input limits apply. Only after complete validation
-// may a small input set enter the unchanged 32 MiB / 16-file cache. Larger
-// inputs remain operation-owned held originals, not an enlarged cache. This
-// avoids rereading the input after an optional cache-admission refusal.
-func (s *PQLabSenderCheckpointSource) Load(root, pin, activationPin string, height int64, appHash string, metrics *PQLabMetrics) (*PQLabSenderCheckpoint, error) {
-	defer pqLabMeasure(metrics, "checkpoint.loadTotal")()
+// Prepare validates and retains only the original public static source. It
+// does not capture current checkpoints, load sender keys, reserve a nonce or
+// authorize a signature. The same owner rechecks every held original on reuse;
+// Close invalidates the witness. Preparation is separately measured, never
+// represented as reduced end-to-end work or a current-state readiness claim.
+func (s *PQLabSenderCheckpointSource) Prepare(root, pin, activationPin string, metrics *PQLabMetrics) error {
+	defer pqLabMeasure(metrics, "checkpoint.prepareStaticTotal")()
 	if s == nil {
-		return nil, errors.New("missing original sender checkpoint source")
+		return errors.New("missing original sender checkpoint source")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	_, err := s.prepareLocked(root, pin, activationPin, metrics)
+	return err
+}
+
+// prepareLocked is shared by explicit preparation and the unchanged lazy Load.
+// Full validation creates the private witness once. Only a complete small input
+// set enters the original 32 MiB / 16-file cache; larger originals stay held by
+// this invocation. Neither path accepts a caller-supplied witness or digest.
+func (s *PQLabSenderCheckpointSource) prepareLocked(root, pin, activationPin string, metrics *PQLabMetrics) (*pqLabLiveStaticSnapshot, error) {
 	if s.closed || s.cache == nil {
 		return nil, errors.New("original sender checkpoint source closed or missing")
 	}
@@ -123,7 +131,20 @@ func (s *PQLabSenderCheckpointSource) Load(root, pin, activationPin string, heig
 		s.cache.mu.Unlock()
 	}
 	s.inputs.metrics = metrics
-	entry, err := s.inputs.loadStatic()
+	return s.inputs.loadStatic()
+}
+
+// Load always reads the four actual current checkpoints at the caller's exact
+// H/AppHash. Without explicit Prepare its first call also builds the static
+// witness, preserving the original lazy entry point and measured denominator.
+func (s *PQLabSenderCheckpointSource) Load(root, pin, activationPin string, height int64, appHash string, metrics *PQLabMetrics) (*PQLabSenderCheckpoint, error) {
+	defer pqLabMeasure(metrics, "checkpoint.loadTotal")()
+	if s == nil {
+		return nil, errors.New("missing original sender checkpoint source")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	entry, err := s.prepareLocked(root, pin, activationPin, metrics)
 	if err != nil {
 		return nil, err
 	}
