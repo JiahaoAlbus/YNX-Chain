@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -117,6 +118,8 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 		if err = session.PrepareSource(ctx, metrics); err != nil {
 			return err
 		}
+		// Discard dead validation allocations before READY opens proof lanes.
+		debug.FreeOSMemory()
 		snapshot, stats := metrics.Snapshot(), session.Stats()
 		preparation, preparedSession = &snapshot, &stats
 		version, status = "YNX-PQ-LAB-PUBLIC-OWNER-READY/v2", "original_public_static_source_held"

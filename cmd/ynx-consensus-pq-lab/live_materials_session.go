@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -71,6 +72,10 @@ func runPQLabLiveMaterialsSessionInput(ctx context.Context, args []string, input
 		return err
 	}
 	defer func() { resultErr = errors.Join(resultErr, session.Close()) }()
+	// Preparation parses and validates the whole original witness. Return its
+	// dead heap pages before READY lets the controller open the next lane.
+	// The session still owns every validated input needed by current checks.
+	debug.FreeOSMemory()
 	startupNS := time.Since(started).Nanoseconds()
 	if *ready {
 		if err = json.NewEncoder(out).Encode(struct {
