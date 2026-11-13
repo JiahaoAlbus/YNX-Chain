@@ -12,6 +12,8 @@ android {
                     "-DYNX_ACCOUNT_PROOF_INCLUDE_ROOTS=${project.findProperty('ynxAccountProofIncludeRoots') ?: ''}"
                 if (project.findProperty('ynxAndroidDeviceApproval') == 'true') {
                     arguments '-DYNX_ANDROID_DEVICE_APPROVAL=ON',
+                        "-DYNX_AUTH_MOBILE_PROVIDER=${project.findProperty('ynxAuthMobilePQProvider') ?: ''}",
+                        "-DYNX_AUTH_MOBILE_PROVIDER_SHA256=${project.findProperty('ynxAuthMobilePQProviderSha256') ?: ''}",
                         "-DYNX_APPROVAL_AUTH_INCLUDE=${project.findProperty('ynxApprovalAuthInclude') ?: ''}",
                         "-DYNX_APPROVAL_PLAN_INCLUDE=${project.findProperty('ynxApprovalPlanInclude') ?: ''}",
                         "-DYNX_APPROVAL_FAILURE_INCLUDE=${project.findProperty('ynxApprovalFailureInclude') ?: ''}",
