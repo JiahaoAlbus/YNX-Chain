@@ -1,4 +1,6 @@
 import {createHash} from 'node:crypto';
+import {shopRole, shopImportFile, shopImportPath, verifyShopCommandDependencyClosure} from './shop-legacy-archive-inputs.mjs';
+import {shopRequiredSymbols, shopNativeRequiredSymbols, shopBorrowSymbols} from './combined-archive-symbols.mjs';
 
 const command = 'cmd/ynx-artifact-release-cabi';
 const baseLINKCommit = '8df4139adb14c68d93e0a55a56851399d46059ac';
@@ -771,6 +773,9 @@ export function verifyPreparedCoreNeutralSymbols(selected, plain, macho) {
   return preparedKind(selected) === CORE19_C2_BINDING ? verifyCore19C2NeutralSymbols(selected, plain, macho) :
     verifyCore20FixedAgentNeutralSymbols(selected, plain, macho);
 }
+export function verifyShopArchiveNeutralSymbols(plain, macho) {
+  return verifyNeutralSymbols([...CORE19_C2_BINDING.neutralCSymbols, 'ynx_ctx_server_identity'], plain, macho);
+}
 function verifyNeutralSymbols(symbols, plain, macho) {
   return symbols.map(symbol => {
     const key = '_' + symbol;
@@ -857,11 +862,24 @@ export function verifyCoreSupplyBytes(raw, selected, sourceBytes, descriptorByte
 }
 
 /** Additional closed-profile check after the existing strong/single-runtime gate. */
-export function verifyCombinedSupplyResult(selected, result) {
+export function verifyCombinedSupplyResult(selected, result, additionalRole) {
   approved(selected);
+  requireValue(additionalRole === undefined || additionalRole === shopRole && selected === originalCore19, 'supported original archive roles required');
   exact(result?.coreExports, selected.symbols, 'strong Core export identities');
-  requireValue(result.linkExports?.length === 22 && result.productExports?.length === 8 && result.symbols?.length === selected.totalExports,
+  const shopExports = additionalRole === shopRole ? shopRequiredSymbols : [];
+  requireValue(result.linkExports?.length === 22 && result.productExports?.length === 8 && result.symbols?.length === selected.totalExports + shopExports.length,
     selected.id + ' requires complete Core' + selected.coreExports + ', LINK22 and Product8 strong ABI');
+  if (additionalRole === shopRole) {
+    requireValue(result.shopRole === shopRole, 'exact original Shop role required');
+    exact(result.linkExports, linkSymbols, 'original LINK22 identities');
+    exact(result.productExports, productSymbols, 'original Pay8 identities');
+    exact(result.shopExports, shopRequiredSymbols, 'original Shop13 strong identities');
+    exact(result.shopNativeObservedGoReferences, shopNativeRequiredSymbols, 'actual Shop Native11 references');
+    exact(result.shopArchiveBorrowUndefinedReferences?.map(row => row?.symbol), shopBorrowSymbols, 'actual Go to Shop Native borrow2 references');
+    requireValue(result.shopArchiveBorrowUndefinedReferences.every(row => Number.isSafeInteger(row.undefinedReferences) && row.undefinedReferences > 0),
+      'actual Shop borrow undefined reference counts required');
+    exact(result.symbols.map(row => row?.symbol), [...selected.symbols, ...linkSymbols, ...productSymbols, ...shopExports], 'complete strong62 identities');
+  }
   if (selected.coreExports === 20) {
     exact(result.linkExports, linkSymbols, 'Core20 original LINK22 identities');
     exact(result.productExports, productSymbols, 'Core20 original Product8 identities');
@@ -898,8 +916,9 @@ function jsonSequence(text) {
 }
 
 /** Inspect the ACTUAL original command root, not a union of separately listed roots. */
-export function verifyCoreCommandDependencyClosure(selected, text) {
+export function verifyCoreCommandDependencyClosure(selected, text, additionalRole) {
   approved(selected);
+  requireValue(additionalRole === undefined || additionalRole === shopRole && selected === originalCore19, 'supported original archive roles required');
   const rows = jsonSequence(text), byPath = new Map(), prefix = 'github.com/JiahaoAlbus/YNX-Chain/';
   for (const row of rows) {
     requireValue(row && typeof row.ImportPath === 'string' && !byPath.has(row.ImportPath) && !row.Error && !row.Incomplete &&
@@ -910,10 +929,13 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
   }
   const main = byPath.get(prefix + command);
   requireValue(main?.Name === 'main' && main.DepOnly !== true, 'actual original main package root required');
+  if (additionalRole === shopRole) verifyShopCommandDependencyClosure(byPath, main);
+  else requireValue(!byPath.has(shopImportPath), 'Shop dependency requires the exact original Shop archive role');
   const commandRoots = rows.filter(row => row.DepOnly !== true).map(row => row.ImportPath);
   exact(commandRoots, [main.ImportPath], 'single original command root');
   const link = prefix + 'internal/securelink';
   requireValue((main.Imports ?? []).includes(link), 'original main must directly import its LINK transport package');
+  if (additionalRole === shopRole) requireValue(byPath.get(link)?.CgoLDFLAGS?.includes('-lbsm'), 'original Darwin LINK85fd peer library required');
   const reached = new Set(), pending = [main.ImportPath];
   while (pending.length) {
     const name = pending.pop();
@@ -928,7 +950,10 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
   for (const name of selected.normalPackagePaths) {
     const row = byPath.get(prefix + name);
     const expected = selected.sourcePaths.filter(p => p.startsWith(name + '/') && p.endsWith('.go')).map(p => p.slice(name.length + 1));
-    if (name === command) expected.push('link_transport_import.go');
+    if (name === command) {
+      expected.push('link_transport_import.go');
+      if (additionalRole === shopRole) expected.push(shopImportFile);
+    }
     exact([...(row.GoFiles ?? []), ...(row.CgoFiles ?? [])], expected, 'actual ' + name + ' Go/cgo files');
     if (selected.coreExports === 20) exact(row.CgoFiles ?? [], selected.cgoTranslationUnits.filter(p => p.startsWith(name + '/'))
       .map(p => p.slice(name.length + 1)), 'actual Core20 cgo20 including two static controls');
@@ -936,6 +961,7 @@ export function verifyCoreCommandDependencyClosure(selected, text) {
   const resource = prefix + 'internal/ynxresourceconsent';
   requireValue(reached.has(resource) === selected.resourceBackendImported, 'actual fixed resource backend reachability differs from named profile');
   return {profile: selected.id, actualCommandRoot: main.ImportPath, totalPackages: rows.length,
+    ...(additionalRole === shopRole ? {shopRole, shopPackage: shopImportPath, shopNativeLinkFlags: ['-lbsm']} : {}),
     commandRoots, LINKTransportDirectImport: true, LINKTransportReachable: true,
     coreCommandReachablePackages: corePackages, reachableLocalPackages: [...reached].filter(name => name.startsWith(prefix)).sort(),
     resourceConsentPackageSuppliedSeparately: selected === core18, resourceConsentAlreadyImportedByCoreCommand: reached.has(resource),

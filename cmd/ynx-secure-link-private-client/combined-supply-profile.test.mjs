@@ -4,6 +4,9 @@ import {createHash} from 'node:crypto';
 import {CORE_SUPPLY_PROFILES, normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes,
   verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden,
   CORE19_C2_BINDING, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
+import {shopRole, shopImportFile, shopImportPath} from './shop-legacy-archive-inputs.mjs';
+import {linkRequiredSymbols, productTransportRequiredSymbols, shopRequiredSymbols,
+  shopNativeRequiredSymbols, shopBorrowSymbols} from './combined-archive-symbols.mjs';
 
 // Preserve the original fixture dialects; Core20 has its own independent suite.
 const legacyProfiles = CORE_SUPPLY_PROFILES.filter(row => row.coreExports <= 19);
@@ -533,6 +536,48 @@ test('Core19 requires real resource backend reachability without qualifying prot
   assert.equal(result.normalResourceBinder, 'FIXED_CORE_CABI_REACHABLE_PROTECTED_AUTH_NATIVE_FACTORY_NOT_QUALIFIED');
   rows.find(row => row.Name === 'main').Imports = rows.find(row => row.Name === 'main').Imports.filter(p => !p.endsWith('/ynxresourceconsent'));
   assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows)));
+});
+
+test('legacy Shop uses the original Core19 module and single command', () => {
+  const {selected} = core19Fixture(), rows = dependencyRecords(selected);
+  const main = rows.find(row => row.Name === 'main');
+  main.GoFiles.push(shopImportFile);
+  main.Imports.push(shopImportPath);
+  const link = rows.find(row => row.ImportPath === modulePath + 'internal/securelink');
+  link.CgoLDFLAGS = ['-lbsm'];
+  const shop = {ImportPath: shopImportPath, Name: 'productreadsource', DepOnly: true,
+    Module: {Path: modulePath.slice(0, -1), Main: true}, Imports: [modulePath + 'internal/securelink', 'C'],
+    GoFiles: ['authority.go','capture.go','contract.go','physical.go','runtime.go','sdk_input.go','sdk_output.go',
+      'shop_client_transport_original.go','shop_private_client.go','shop_source_constraints.go'],
+    CgoFiles: ['shop_private_client_cgo.go','shop_proof_carrier_cgo.go','shop_source_constraints_cgo.go']};
+  rows.push(shop);
+  const verifyClosure = () => verifyCoreCommandDependencyClosure(selected, jsonSequence(rows), shopRole);
+  assert.deepEqual(verifyClosure().commandRoots, [main.ImportPath]);
+  assert.equal(verifyClosure().shopPackage, shopImportPath);
+  assert.throws(() => verifyCoreCommandDependencyClosure(selected, jsonSequence(rows)), /exact original Shop archive role/);
+  link.CgoLDFLAGS = [];
+  assert.throws(verifyClosure, /Darwin LINK85fd peer library/);
+  link.CgoLDFLAGS = ['-lbsm'];
+  shop.Module.Replace = {Dir: '/PUBLIC/another-tree'};
+  assert.throws(verifyClosure, /sole module/);
+  delete shop.Module.Replace;
+  shop.CgoFiles.pop();
+  assert.throws(verifyClosure, /exact Auth Shop Go13/);
+});
+
+test('legacy Shop adds thirteen strong symbols and requires its original Native witnesses', () => {
+  const {selected} = core19Fixture();
+  const symbols = [...selected.symbols, ...linkRequiredSymbols, ...productTransportRequiredSymbols, ...shopRequiredSymbols];
+  const result = {shopRole, coreExports: selected.symbols, linkExports: linkRequiredSymbols,
+    productExports: productTransportRequiredSymbols, shopExports: shopRequiredSymbols, symbols: symbols.map(symbol => ({symbol})),
+    shopNativeObservedGoReferences: shopNativeRequiredSymbols,
+    shopArchiveBorrowUndefinedReferences: shopBorrowSymbols.map(symbol => ({symbol, undefinedReferences: 1}))};
+  assert.equal(symbols.length, 62);
+  verifyCombinedSupplyResult(selected, result, shopRole);
+  assert.throws(() => verifyCombinedSupplyResult(selected, result), /strong ABI/);
+  assert.throws(() => verifyCombinedSupplyResult(selected, {...result, shopNativeObservedGoReferences: []}, shopRole), /Native11/);
+  result.shopArchiveBorrowUndefinedReferences[0].undefinedReferences = 0;
+  assert.throws(() => verifyCombinedSupplyResult(selected, result, shopRole), /reference counts/);
 });
 
 test('go-list single command traverses its real LINK edge and leaves the separate resource binder absent', () => {

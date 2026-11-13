@@ -5,7 +5,10 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult,
   verifyCoreCommandDependencyClosure, verifyPreparedCoreRecipe, verifyPreparedCoreNeutralSymbols,
-  preparedCoreInputFiles, preparedCoreSourceInventories} from './combined-supply-profile.mjs';
+  verifyShopArchiveNeutralSymbols, preparedCoreInputFiles, preparedCoreSourceInventories} from './combined-supply-profile.mjs';
+import {loadShopLegacyArchiveInputs, verifyShopArchiveBase, verifyShopLegacyArchiveInputsUnchanged,
+  shopRole, shopLinkTree, shopImportPath, shopImportFile, shopPackage, shopCgoNames,
+  shopABIHeaderNames} from './shop-legacy-archive-inputs.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
@@ -14,14 +17,18 @@ const packagePath = 'cmd/ynx-artifact-release-cabi';
 const options = new Map();
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
-  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--link-commit', '--macos-deployment-target', '--out'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, fixed LINK commit, explicit macOS target and a new output directory required');
+  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--link-commit', '--macos-deployment-target', '--out', '--shop-handoff', '--shop-sha256'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, fixed LINK commit, explicit macOS target and a new output directory required');
   options.set(key, value);
 }
-if (options.size !== 9 || !/^[a-f0-9]{40}$/.test(options.get('--link-commit')??'') || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0') throw Error('nine build arguments, fixed LINK commit, explicit macOS 13.0 target and a native Darwin host required');
+const hasShop = options.has('--shop-handoff');
+if (hasShop !== options.has('--shop-sha256') || options.size !== (hasShop ? 11 : 9) ||
+    !/^[a-f0-9]{40}$/.test(options.get('--link-commit')??'') || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0')
+  throw Error('complete original build arguments, paired Shop inputs when selected, fixed LINK commit, explicit macOS 13.0 target and a native Darwin host required');
 const linkCommit = options.get('--link-commit');
 const deploymentTarget = options.get('--macos-deployment-target');
 const architecture = ({arm64: 'arm64', x64: 'amd64'})[process.arch];
 if (!architecture) throw Error('supported native Go architecture required');
+if (hasShop && architecture !== 'arm64') throw Error('original legacy Shop Native objects require a Darwin arm64 build');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const describe = file => {const bytes = fs.readFileSync(file); return {path: file, bytes: bytes.length, sha256: hash(bytes)};};
 function pinned(file, sha256) {
@@ -37,6 +44,8 @@ const supplyProfile = selectCoreSupplyProfile(core.value);
 const coreNormalization = normalizeCoreSupply(core.value);
 const coreSupply = coreNormalization.supply;
 const preparedBinding = supplyProfile.preparedComposition;
+if (hasShop) verifyShopArchiveBase(supplyProfile, core.descriptor, auth.descriptor, undefinedInput.descriptor, linkCommit);
+const shop = hasShop ? loadShopLegacyArchiveInputs(options.get('--shop-handoff'), options.get('--shop-sha256')) : null;
 const preparedInputs = preparedBinding ? {source: core, authHeaders: auth, nativeUndefined: undefinedInput,
   ...Object.fromEntries(Object.entries(preparedCoreInputFiles(supplyProfile)).map(([key, name]) =>
       [key, pinned(path.join(path.dirname(core.descriptor.path), name), preparedBinding.inputs[key].sha256)]))} : null;
@@ -79,9 +88,10 @@ function gitObject(commit, name) {
   if (result.status !== 0) throw Error('pinned git object unavailable: ' + name);
   return result.stdout;
 }
-function copyHeader(name, bytes, owner, original) {
+function copyHeader(name, bytes, owner, original, subdirectory = '') {
   if (!/^[A-Za-z0-9_.-]+\.h(?:pp)?$/.test(name)) throw Error('closed header basename required');
-  const target = path.join(include, name);
+  const target = path.join(include, subdirectory, name);
+  if (subdirectory) fs.mkdirSync(path.dirname(target), {recursive: true});
   fs.writeFileSync(target, bytes, {flag: 'wx'});
   headerRows.push({owner, name, ...describe(target), original});
 }
@@ -93,6 +103,8 @@ function goQuote(argument) {
 let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure, preparedCompositionVerification, preparedInventories, neutralCReadback;
 try {
   run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
+  if (shop && run('git', ['rev-parse', linkCommit + '^{tree}'], 'shop-link-exact-tree.log', repository).trim() !== shopLinkTree)
+    throw Error('original LINK85fd tree required for legacy Shop');
   let preparedLinkPaths;
   if (preparedBinding) {
     const linkTree = run('git', ['rev-parse', linkCommit + '^{tree}'], 'link-exact-tree.log', repository).trim();
@@ -169,6 +181,15 @@ try {
     }
     preparedCompositionVerification = {...preparedCompositionVerification, actualMaterializedGitBytesVerified: sources.length};
   }
+  if (shop) {
+    for (const {row, repositoryPath, bytes} of shop.files) {
+      materialize(repositoryPath, bytes, {owner: 'auth-shop-legacy', original: row.path});
+      if (repositoryPath.endsWith('.h')) copyHeader(path.basename(repositoryPath), bytes, 'shop', row.path,
+        row.relative.startsWith('native/') ? 'native' : '');
+    }
+    materialize(packagePath + '/' + shopImportFile, Buffer.from('package main\n\nimport _ "' + shopImportPath + '"\n'),
+      {owner: 'link-shop-composition', original: shop.handoff});
+  }
   const authNames = new Set();
   for (const row of auth.value.headers) {
     if (authNames.has(row.name) || !path.isAbsolute(row.path ?? '')) throw Error('unique pinned Auth headers required');
@@ -196,15 +217,15 @@ try {
   const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOMEMLIMIT: '1536MiB', GOWORK: 'off', GOFLAGS: '', GOOS: 'darwin', GOARCH: architecture,
     GOCACHE: goCache, GOTMPDIR: goTmp, TMPDIR: nativeTmp, SDKROOT: sdk, CC: cc, CXX: cxx, MACOSX_DEPLOYMENT_TARGET: deploymentTarget,
     CGO_CFLAGS: goQuote('-I' + include) + ' ' + targetFlags, CGO_CPPFLAGS: '', CGO_CXXFLAGS: '-O2 -g ' + targetFlags, CGO_LDFLAGS: '-O2 -g ' + targetFlags};
-  if (supplyProfile.coreExports === 20) Object.assign(env, {GOTOOLCHAIN: 'local', GOPROXY: 'off', GOSUMDB: 'off',
+  if (supplyProfile.coreExports === 20 || shop) Object.assign(env, {GOTOOLCHAIN: 'local', GOPROXY: 'off', GOSUMDB: 'off',
     GONOPROXY: 'none', GOPRIVATE: '', GOVCS: '*:off'});
   buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOMEMLIMIT', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
-  if (supplyProfile.coreExports === 20) for (const key of ['GOTOOLCHAIN', 'GOPROXY', 'GOSUMDB', 'GONOPROXY', 'GOPRIVATE', 'GOVCS']) buildEnvironment[key] = env[key];
+  if (supplyProfile.coreExports === 20 || shop) for (const key of ['GOTOOLCHAIN', 'GOPROXY', 'GOSUMDB', 'GONOPROXY', 'GOPRIVATE', 'GOVCS']) buildEnvironment[key] = env[key];
   const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
   if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
   const buildTags = 'securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport';
   const packageOutput = run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
-  coreCommandDependencyClosure = {...verifyCoreCommandDependencyClosure(supplyProfile, packageOutput),
+  coreCommandDependencyClosure = {...verifyCoreCommandDependencyClosure(supplyProfile, packageOutput, shop ? shopRole : undefined),
     originalOutput: describe(path.join(output, 'go-packages.json'))};
   archive = path.join(output, 'libynx_artifact_release.a');
   run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=' + buildTags, '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
@@ -212,15 +233,24 @@ try {
   if (!fs.existsSync(generated)) throw Error('original Core export generated header missing');
   copyHeader(path.basename(generated), fs.readFileSync(generated), 'generated', generated);
   const checkerPlan = {version: 1, goArchives: [describe(archive)],
-    coreSources: sources.filter(row => row.repositoryPath.startsWith(packagePath + '/') && row.repositoryPath.endsWith('.go') && row.path !== importLeaf),
+    coreSources: sources.filter(row => row.repositoryPath.startsWith(packagePath + '/') && row.repositoryPath.endsWith('.go') &&
+      row.path !== importLeaf && row.repositoryPath !== packagePath + '/' + shopImportFile),
     headers: headerRows.filter(row => ['core', 'link', 'product'].includes(row.owner)),
     nativeUndefined: [undefinedInput.descriptor], linkerInputs: [describe(archive)]};
+  if (shop) {
+    checkerPlan.shop = {role: shopRole, sources: sources.filter(row => shopCgoNames.some(name => row.repositoryPath === shopPackage + '/' + name)),
+      headers: headerRows.filter(row => row.owner === 'shop' && shopABIHeaderNames.includes(row.name)),
+      nativeUndefined: shop.nativeUndefined, nativeObject: shop.nativeObject, borrowObject: shop.borrowObject};
+    checkerPlan.linkerInputs.push(shop.borrowObject);
+  }
   const planFile = path.join(output, 'SYMBOL-PLAN.json');
   fs.writeFileSync(planFile, JSON.stringify(checkerPlan, null, 2) + '\n', {flag: 'wx'});
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
-  verifyCombinedSupplyResult(supplyProfile, checkResult);
+  verifyCombinedSupplyResult(supplyProfile, checkResult, shop ? shopRole : undefined);
   if (preparedBinding) neutralCReadback = verifyPreparedCoreNeutralSymbols(supplyProfile,
+    run('/usr/bin/nm', ['-g', archive], 'neutral-c-symbols-global.log'), run('/usr/bin/nm', ['-m', archive], 'neutral-c-symbols-macho.log'));
+  if (shop) neutralCReadback = verifyShopArchiveNeutralSymbols(
     run('/usr/bin/nm', ['-g', archive], 'neutral-c-symbols-global.log'), run('/usr/bin/nm', ['-m', archive], 'neutral-c-symbols-macho.log'));
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
   const deploymentChecker = await import('./combined-archive-deployment.mjs');
@@ -230,9 +260,12 @@ try {
     if (describe(row.path).sha256 !== row.sha256) throw Error('materialized source/header changed during build');
   }
   for (const dependency of [core, auth, undefinedInput, ...(preparedInputs ? Object.values(preparedInputs) : [])]) if (describe(dependency.descriptor.path).sha256 !== dependency.descriptor.sha256) throw Error('handoff changed during build');
+  if (shop) verifyShopLegacyArchiveInputsUnchanged(shop);
   if (describe(profileVerifier.path).sha256 !== profileVerifier.sha256) throw Error('supply profile verifier changed during build');
 } catch (error) { failure = error; }
 const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBINED_CORE_LINK_ARCHIVE_VERIFIED_NOT_DEPLOYED',
+  ...(shop ? {shopArchive: {role: shopRole, handoff: shop.handoff, linkTree: shopLinkTree, expectedNamedExports: 62,
+    nativeUndefined: shop.nativeUndefined, nativeObject: shop.nativeObject, borrowObject: shop.borrowObject}} : {}),
   coreHandoff: core.descriptor, authHeaders: auth.descriptor, nativeUndefined: undefinedInput.descriptor,
   coreSupplyProfile: {id: supplyProfile.id, commit: supplyProfile.commit, tree: supplyProfile.tree, coreExports: supplyProfile.coreExports, totalExports: supplyProfile.totalExports},
   coreSourceVerification: coreSourceVerification ?? null, profileVerifier,

@@ -26,6 +26,34 @@ export const linkRequiredSymbols=Object.freeze([
 export const productTransportRequiredSymbols=Object.freeze([
   'open','request','response_diagnostics','release_response','cancel','retire','join','close',
 ].map(name=>'ynx_product_pay_transport_'+name+'_v1'));
+export const shopArchiveRole='original-shop-go13';
+const shopClient=name=>'ynx_auth_shop_original_client_'+name+'_v1';
+const shopResponse=name=>'ynx_auth_shop_original_response_'+name+'_v1';
+const shopBaseExports=[
+  ...['acquire','current','scope','read','retire','join','close','release_closed'].map(shopClient),
+  ...['copy','release'].map(shopResponse),
+];
+const shopConstraints=shopClient('constraints');
+const shopDrain=shopResponse('drain_pending');
+const shopReadProof=shopClient('read_with_proof');
+export const shopBorrowSymbols=Object.freeze(['current','copy'].map(name=>'ynx_auth_shop_proof_borrow_'+name+'_v1'));
+const shopSourceExports=new Map([
+  ['shop_private_client_cgo.go',[...shopBaseExports,shopDrain]],
+  ['shop_source_constraints_cgo.go',[shopConstraints]],
+  ['shop_proof_carrier_cgo.go',[shopReadProof]],
+]);
+const shopHeaderExports=new Map([
+  ['ShopOriginalPrivateClient.h',shopBaseExports],
+  ['ShopOwnedExchangePrivate.h',[shopDrain]],
+  ['ShopSourceConstraintsPrivate.h',[shopConstraints]],
+  ['ShopProofCarrierPrivate.h',[shopReadProof,...shopBorrowSymbols]],
+]);
+export const shopRequiredSymbols=Object.freeze(sort([...shopSourceExports.values()].flat()));
+export const shopNativeRequiredSymbols=Object.freeze(shopRequiredSymbols.filter(name=>name!==shopClient('read')&&name!==shopConstraints));
+const shopNativePrefix=/^_ynx_auth_shop_/;
+const shopMainPrefix=/^_ynx_wallet_shop_(?:session_|invoice_introspection_proof_)/;
+const sameNames=(actual,expected)=>JSON.stringify([...actual].sort())===JSON.stringify([...expected].sort());
+const sameBytes=(a,b)=>a?.bytes===b.bytes&&a?.sha256===b.sha256;
 
 function bound(entry){
   requireValue(entry&&path.isAbsolute(entry.path??'')&&Number.isSafeInteger(entry.bytes)&&entry.bytes>0&&entry.bytes<=512*1024*1024&&/^[a-f0-9]{64}$/.test(entry.sha256??''),'exact bounded input identity required');
@@ -98,10 +126,100 @@ function strongFunction(name,globals,macho){
   return {symbol:name,type:rows[0].type,definition:definitions[0].trim(),undefinedReferences:attrs.length-definitions.length};
 }
 
+function readShopPlan(shop,inputs){
+  requireValue(shop?.role===shopArchiveRole,'explicit original Shop Go13 role required');
+  const sources=new Map(),headers=new Map();
+  const sourceNames=new Set(),headerNames=new Set();
+  for(const source of boundedRows(shop.sources,'original Shop Go sources',shopSourceExports.size)){
+    const name=path.basename(source.path??'');
+    requireValue(shopSourceExports.has(name)&&!sourceNames.has(name),'unique original Shop //export source required: '+name);
+    sourceNames.add(name);
+    const text=bound(source).toString('utf8').replace(/\/\*[\s\S]*?\*\//g,' ');
+    inputs.push(source);
+    const exports=[...text.matchAll(/^\/\/export ([A-Za-z_][A-Za-z0-9_]*)\s*$/gm)].map(match=>match[1]);
+    requireValue(sameNames(exports,shopSourceExports.get(name)),'exact original Shop //export set required: '+name);
+    for(const symbol of exports)sources.set(symbol,source.path);
+  }
+  requireValue(sourceNames.size===shopSourceExports.size,'all three original Shop Go export sources required');
+  for(const header of boundedRows(shop.headers,'original Shop ABI headers',shopHeaderExports.size)){
+    const name=path.basename(header.path??'');
+    requireValue(header.name===name&&shopHeaderExports.has(name)&&!headerNames.has(name),'unique original Shop ABI header required: '+name);
+    headerNames.add(name);
+    const text=uncomment(bound(header).toString('utf8'));inputs.push(header);
+    const prototypes=[...text.matchAll(/(?:^|\n)\s*(ynx_auth_shop_(?:status|acquisition)_v1)\s+(ynx_auth_shop_[A-Za-z0-9_]+)\s*\([^;{}]*\)\s*;/g)];
+    const exports=prototypes.map(match=>match[2]);
+    requireValue(sameNames(exports,shopHeaderExports.get(name))&&prototypes.every(([,type,symbol])=>
+      type===(symbol===shopClient('acquire')?'ynx_auth_shop_acquisition_v1':'ynx_auth_shop_status_v1')),
+    'exact original Shop header prototypes required: '+name);
+    for(const symbol of exports)headers.set(symbol,{owner:'shop',name,path:header.path});
+  }
+  requireValue(headerNames.size===shopHeaderExports.size,'all four original Shop ABI headers required');
+  const receipt=JSON.parse(bound(shop.nativeUndefined).toString('utf8'));inputs.push(shop.nativeUndefined);
+  requireValue(Array.isArray(receipt.authGoImports)&&sameNames(receipt.authGoImports,shopNativeRequiredSymbols.map(name=>'_'+name)),
+    'exact actual Native Shop eleven imports required');
+  const definitions=Object.entries(receipt.authGoExportSourceDefinitions??{});
+  requireValue(sameNames(definitions.map(([symbol])=>symbol),shopRequiredSymbols)&&definitions.every(([symbol,file])=>
+    typeof file==='string'&&path.basename(file)===path.basename(sources.get(symbol))),
+  'Native receipt must map the original thirteen Shop Go definitions');
+  const nativePath=path.basename(shop.nativeObject?.path??'');
+  const borrowPath=path.basename(shop.borrowObject?.path??'');
+  requireValue(nativePath==='legacy-objects.o'&&path.basename(receipt.combined?.path??'')===nativePath&&sameBytes(receipt.combined,shop.nativeObject),
+    'actual combined Native Shop object pin must match its receipt');
+  const originalBorrow=boundedRows(receipt.objects,'actual Native Shop objects',32).filter(row=>path.basename(row.path??'')==='ShopProofLoan.o');
+  requireValue(borrowPath==='ShopProofLoan.o'&&originalBorrow.length===1&&sameBytes(originalBorrow[0],shop.borrowObject),
+    'actual Native ShopProofLoan object pin must match its receipt');
+  const cpu=pin=>{
+    const raw=bound(pin);inputs.push(pin);
+    requireValue(raw.length>=32&&raw.readUInt32LE(0)===0xfeedfacf&&raw.readUInt32LE(12)===1,
+      'actual 64-bit Mach-O relocatable Shop object required: '+pin.path);
+    const cpuType=raw.readUInt32LE(4);
+    requireValue(cpuType===0x0100000c||cpuType===0x01000007,'unsupported Mach-O Shop object architecture: '+pin.path);
+    return cpuType===0x0100000c?'arm64':'amd64';
+  };
+  const arch=cpu(shop.nativeObject);
+  requireValue(cpu(shop.borrowObject)===arch,'same architecture required for Native Shop objects');
+  return {sources,headers,arch};
+}
+
+function requireUndefined(name,globals,macho,{single=false}={}){
+  const key='_'+name;
+  const rows=globals.filter(row=>row.name===key);
+  const attrs=attributes(macho,key);
+  requireValue(rows.length>0&&(!single||rows.length===1)&&rows.every(row=>row.type==='U')&&
+    attrs.length===rows.length&&attrs.every(row=>/\bundefined\b/.test(row)&&/\bexternal\b/.test(row)&&!/\bweak\b/.test(row)),
+  'missing/weak/defined/duplicate expected Shop undefined symbol: '+name);
+  return {symbol:name,undefinedReferences:rows.length};
+}
+
+function verifyShopObjects(shop,selection,globals,macho,run){
+  const readSymbols=pin=>({globals:plainSymbols(run('/usr/bin/nm',['-g',pin.path])),macho:run('/usr/bin/nm',['-m',pin.path])});
+  const native=readSymbols(shop.nativeObject),borrow=readSymbols(shop.borrowObject);
+  const nativeImports=native.globals.filter(row=>shopNativePrefix.test(row.name)&&row.type==='U').map(row=>row.name.slice(1));
+  requireValue(sameNames(nativeImports,shopNativeRequiredSymbols),'actual Native Shop object must import exactly the eleven original Go callees');
+  for(const name of shopNativeRequiredSymbols)requireUndefined(name,native.globals,native.macho,{single:true});
+  for(const object of [native,borrow]){
+    const definitions=object.globals.filter(row=>row.type!=='U'&&shopNativePrefix.test(row.name)).map(row=>row.name.slice(1));
+    requireValue(sameNames(definitions,shopBorrowSymbols),'only the original two C++ Shop borrow definitions may appear in Native objects');
+    requireValue(!object.globals.some(row=>row.type!=='U'&&shopMainPrefix.test(row.name)),
+      'Main Shop provider must remain outside the retained Native Shop objects');
+  }
+  const borrowProviders=shopBorrowSymbols.map(name=>({
+    symbol:name,object:strongFunction(name,borrow.globals,borrow.macho),combined:strongFunction(name,native.globals,native.macho),
+  }));
+  const archiveBorrow=shopBorrowSymbols.map(name=>requireUndefined(name,globals,macho));
+  const symbols=shopRequiredSymbols.map(name=>({...strongFunction(name,globals,macho),
+    header:selection.headers.get(name),source:selection.sources.get(name)}));
+  return {symbols,archiveBorrow,borrowProviders};
+}
+
 /**
  * plan v1: goArchives:[pin], linkerInputs:[pin], coreSources:[Go //export pin],
  * headers:[{owner:'core'|'link',name,...pin}], nativeUndefined:[nm -u text pin
  * or a pinned actual Native JSON {unresolvedCore:['_YNX...',...]}].
+ * Optional Shop role: shop:{role,sources:[pin],headers:[{name,...pin}],
+ * nativeUndefined:actual Native RESULT JSON pin,nativeObject:pin,borrowObject:pin}.
+ * The combined Native object is evidence. Its original ShopProofLoan.o must
+ * occur once in linkerInputs, alongside the one Go archive.
  * The caller owns complete source/linker-input provenance. This gate verifies
  * those exact inputs and cannot turn an incomplete Native compile into one.
  */
@@ -126,6 +244,7 @@ export function checkCombinedArchive(plan){
     }
   }
   requireValue(coreExportMap.size>0,'original Core //export closure is empty');
+  const shop=plan.shop===undefined?null:readShopPlan(plan.shop,allInputs);
   for(const header of boundedRows(plan.headers,'complete Core/LINK headers',64)){
     requireValue(['core','link','product'].includes(header.owner)&&/^[A-Za-z0-9_.-]+\.h$/.test(header.name??'')&&path.basename(header.path??'')===header.name&&!headerMap.has(header.name),'unique named Core/LINK/Product header required');
     const raw=bound(header);allInputs.push(header);headerMap.set(header.name,header);
@@ -176,7 +295,8 @@ export function checkCombinedArchive(plan){
   }
   requireValue(observed.size>0,'no actual Native Core/LINK undefined references supplied');
   const archivePath=fs.realpathSync(archive.path);
-  let archiveInputs=0;
+  let archiveInputs=0,borrowInputs=0;
+  const otherShopLinkerInputs=[];
   for(const input of boundedRows(plan.linkerInputs,'actual linker inputs',512)){
     const raw=bound(input);allInputs.push(input);
     requireValue(!input.path.endsWith('.a')||raw.subarray(0,8).toString()==='!<arch>\n','unidentified/thin archive in linker inputs');
@@ -184,8 +304,16 @@ export function checkCombinedArchive(plan){
       requireValue(fs.realpathSync(input.path)===archivePath&&input.sha256===archive.sha256,'second/unidentified archive in combined linker inputs');
       archiveInputs++;
     }
+    if(shop){
+      requireValue(!sameBytes(input,plan.shop.nativeObject),'combined Native Shop evidence must not duplicate its ShopProofLoan linker input');
+      if(sameBytes(input,plan.shop.borrowObject)){
+        requireValue(fs.realpathSync(input.path)===fs.realpathSync(plan.shop.borrowObject.path),'exact original ShopProofLoan linker input required');
+        borrowInputs++;
+      }else if(raw.subarray(0,8).toString()!=='!<arch>\n')otherShopLinkerInputs.push(input);
+    }
   }
   requireValue(archiveInputs===1,'combined archive must occur exactly once in linker inputs');
+  if(shop)requireValue(borrowInputs===1,'original ShopProofLoan object must occur exactly once in linker inputs');
   const commands=[];
   function run(tool,args){
     const result=spawnSync(tool,args,{encoding:'utf8',maxBuffer:64*1024*1024,timeout:30000});
@@ -204,16 +332,33 @@ export function checkCombinedArchive(plan){
     'unlisted Product transport archive export or missing dedicated header');
   requireValue(!globals.some(row=>row.type!=='U'&&row.name.startsWith('_ynx_product_pay_source_')),
     'Auth-owned Product Source definition in LINK archive');
+  const actualShop=globals.filter(row=>row.type!=='U'&&shopNativePrefix.test(row.name)).map(row=>row.name.slice(1));
+  requireValue(sameNames(actualShop,shop?shopRequiredSymbols:[]),
+    'unselected, missing or extra Shop Go archive definitions');
+  requireValue(!globals.some(row=>row.type!=='U'&&shopMainPrefix.test(row.name)),'Main Shop provider definition in Go archive');
+  const shopResult=shop?verifyShopObjects(plan.shop,shop,globals,macho,run):null;
+  for(const input of otherShopLinkerInputs){
+    const symbols=plainSymbols(run('/usr/bin/nm',['-g',input.path]));
+    requireValue(!symbols.some(row=>row.type!=='U'&&shopNativePrefix.test(row.name)),
+      'unexpected additional Shop provider in linker input: '+input.path);
+  }
   for(const name of ['crosscall2','_cgo_topofstack'])strongFunction(name,globals,macho);
   const full=plainSymbols(run('/usr/bin/nm',[archive.path]));
   const runtimeEntries=full.filter(row=>/^__rt0_(?:arm64|amd64)_darwin_lib$/.test(row.name)&&row.type!=='U');
   requireValue(runtimeEntries.length===1&&/^[Tt]$/.test(runtimeEntries[0].type),'one original Go runtime entry required');
+  if(shop)requireValue(runtimeEntries[0].name==='__rt0_'+shop.arch+'_darwin_lib','Shop Native objects and original Go runtime architecture must match');
   requireValue(!globals.some(row=>row.type!=='U'&&/^_ynx_link_private_fixture_/.test(row.name)),'fixture installer in normal combined archive');
   for(const input of allInputs)bound(input);
   return {version:1,status:'COMBINED_GO_ARCHIVE_STRONG_SYMBOLS_VERIFIED',goArchives:plan.goArchives,
     coreExports:sort(coreExportMap.keys()),linkExports:sort(links),productExports:sort(products),headers:[...headerMap.values()],
     nativeObservedGoReferences:sort(observed),nativeOtherOwnedReferences:sort(ignoredNative),nativeEvidence,
-    symbols:matrix,runtimeEntry:runtimeEntries[0].name,archiveMembers:members.length,commands,
+    symbols:shopResult?[...matrix,...shopResult.symbols]:matrix,runtimeEntry:runtimeEntries[0].name,archiveMembers:members.length,commands,
+    ...(shopResult?{
+      shopRole:shopArchiveRole,shopExports:shopRequiredSymbols,shopNativeObservedGoReferences:shopNativeRequiredSymbols,
+      shopArchiveBorrowUndefinedReferences:shopResult.archiveBorrow,
+      shopEvidence:{sources:plan.shop.sources,headers:plan.shop.headers,nativeUndefined:plan.shop.nativeUndefined,
+        nativeObject:plan.shop.nativeObject,borrowObject:plan.shop.borrowObject,borrowProviders:shopResult.borrowProviders},
+    }:{}),
     finalNativeImageVerified:false,RootAdmission:false,SourceAdmission:false,installed:false,deployed:false,
     limitation:'Exact archive/header/strong-symbol gate only. Caller supplies complete source and linker provenance; Native closure compilation and final common-image gate remain separate.'};
 }
