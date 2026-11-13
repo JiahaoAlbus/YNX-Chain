@@ -49,7 +49,28 @@ export function formatNumber(locale:WalletLocale,value:number):string{return new
 export function formatYNXT(locale:WalletLocale,value:number):string{return `${formatNumber(locale,value)} YNXT`}
 export function plural(locale:WalletLocale,count:number,forms:{one:string;other:string}):string{return new Intl.PluralRules(locale).select(count)==="one"?forms.one:forms.other}
 export function allMessages():Readonly<Record<WalletLocale,Readonly<Record<MessageKey,string>>>>{return Object.fromEntries(SUPPORTED_LOCALES.map((locale)=>[locale,{...MESSAGES[locale],...UI_MESSAGES[locale]}])) as Record<WalletLocale,Record<MessageKey,string>>}
-export function localizeError(locale:WalletLocale,value:unknown):string{const detail=value instanceof Error?value.message:String(value);return `${translate(locale,"errorPrefix")}: ${detail}`}
+const PROTECTED_DEVICE_APPROVAL_REQUIRED: Readonly<Record<WalletLocale, string>> = {
+  en: "This device request needs a protected approval flow that is unavailable here. Return to the requesting app.",
+  "zh-Hans": "此设备请求需要受保护的批准流程，当前无法使用。请返回发起请求的应用。",
+  "zh-Hant": "此裝置要求需要受保護的核准流程，目前無法使用。請返回發出要求的應用程式。",
+  ja: "このデバイスのリクエストには、ここでは利用できない保護された承認フローが必要です。リクエスト元のアプリに戻ってください。",
+  ko: "이 기기 요청에는 여기서 사용할 수 없는 보호된 승인 절차가 필요합니다. 요청한 앱으로 돌아가세요.",
+  es: "Esta solicitud de dispositivo requiere un proceso de aprobación protegido que no está disponible aquí. Vuelve a la aplicación solicitante.",
+  fr: "Cette demande liée à un appareil exige une procédure d’approbation protégée, indisponible ici. Retournez à l’application à l’origine de la demande.",
+  de: "Diese Geräteanfrage benötigt ein geschütztes Freigabeverfahren, das hier nicht verfügbar ist. Kehre zur anfragenden App zurück.",
+  pt: "Esta solicitação de dispositivo exige um fluxo de aprovação protegido que não está disponível aqui. Volte ao aplicativo solicitante.",
+  ru: "Для этого запроса устройства нужна защищённая процедура одобрения, которая здесь недоступна. Вернитесь в приложение, отправившее запрос.",
+  ar: "يتطلب طلب الجهاز هذا إجراء موافقة محميًا غير متاح هنا. عُد إلى التطبيق الذي أرسل الطلب.",
+  id: "Permintaan perangkat ini memerlukan proses persetujuan terlindungi yang tidak tersedia di sini. Kembali ke aplikasi yang mengirim permintaan.",
+};
+
+export function localizeError(locale: WalletLocale, value: unknown): string {
+  if (value instanceof Error && "code" in value && value.code === "PROTECTED_DEVICE_APPROVAL_REQUIRED") {
+    return PROTECTED_DEVICE_APPROVAL_REQUIRED[locale];
+  }
+  const detail = value instanceof Error ? value.message : String(value);
+  return `${translate(locale, "errorPrefix")}: ${detail}`;
+}
 
 const PRODUCT_AUTH_CANCELLED:Readonly<Record<WalletLocale,string>>={
   en:"Authentication cancelled. Review this request and tap Approve to try again.",

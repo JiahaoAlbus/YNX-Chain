@@ -49,8 +49,15 @@ export class ProductSessionController {
     return this.exclusive(async () => {
       const generation = this.generation;
       const at = this.now();
-      // No legacy parser or migration fallback: only the canonical v2 envelope is eligible.
-      const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, url, at) as MobileProductSessionRequest;
+      const parsed = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, url, at);
+      // The SDK also parses V4. The classic controller must refuse it before
+      // selecting an account, reading replay state, or entering authorization.
+      if (parsed.version !== "2") {
+        throw Object.assign(new Error("This device request requires the protected Wallet approval flow."), {
+          code: "PROTECTED_DEVICE_APPROVAL_REQUIRED",
+        });
+      }
+      const request = parsed as MobileProductSessionRequest;
       if (new URL(url).port) throw new Error("Wallet authorization route cannot contain a port");
       if (request.platform !== "web" && request.platform !== this.dependencies.platform) throw new Error("Request platform does not match this Wallet device");
       const id = productSessionRequestDigest(PRODUCT_SESSION_REGISTRY, request, at);

@@ -148,3 +148,12 @@ test("Faucet availability and receipt copy retain the unknown amount and limited
   assert.match(walletCopy("zh-Hans","This is a testnet request. Test YNXT has no monetary value."),/没有货币价值/);
   assert.match(walletCopy("ar","This is a testnet request. Test YNXT has no monetary value."),/لا توجد قيمة مالية/);
 });
+
+test("protected device intake refusal is localized without suggesting another approval", () => {
+  const error = Object.assign(new Error("internal device detail"), { code: "PROTECTED_DEVICE_APPROVAL_REQUIRED" });
+  const messages = SUPPORTED_LOCALES.map(locale => localizeError(locale, error));
+  assert.equal(new Set(messages).size, SUPPORTED_LOCALES.length);
+  assert.ok(messages.every(message => !message.includes("internal device detail")));
+  assert.match(localizeError("en", error), /unavailable here.*Return to the requesting app/);
+  assert.match(localizeError("zh-Hans", error), /当前无法使用.*返回发起请求的应用/);
+});

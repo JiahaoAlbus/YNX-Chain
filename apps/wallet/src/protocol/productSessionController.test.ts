@@ -102,6 +102,38 @@ test("v1, spoofed bindings, widened scopes and malformed routes fail before appr
   for (const url of ["ynxwallet://authorize?request=bad", unsafeURL(req) + "&request=duplicate", unsafeURL(req).replace("authorize?", "other?"), unsafeURL(req) + "#fragment", unsafeURL(req).replace("authorize?", "authorize:9999?")]) await assert.rejects(fixture().controller.receive(url));
 });
 
+test("canonical Android V4 device request cannot enter classic approval or consume its original", async () => {
+  const f = fixture();
+  let storageReads = 0;
+  const read = f.storage.getItem;
+  f.storage.getItem = async (key) => { storageReads++; return read(key); };
+  const original = createProductSessionRequest(registry, {
+    productId: "pay",
+    platform: "android",
+    deviceId: "test-product-device-001",
+    deviceAlgorithm: "ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512",
+    deviceRegistrationId: "00000000-0000-4000-8000-000000000001",
+    deviceRegistrationRevision: "1",
+    deviceRegistrationDigest: "a".repeat(64),
+    scopes: ["account:read"],
+    purpose: "Approve the original test device request",
+    nonce: "n".repeat(32),
+    state: "s".repeat(32),
+  }, NOW);
+  const url = encodeProductSessionWalletURL(registry, original, NOW);
+
+  await assert.rejects(f.controller.receive(url), { code: "PROTECTED_DEVICE_APPROVAL_REQUIRED" });
+  assert.equal(f.controller.current, null);
+  assert.equal(storageReads, 0);
+  assert.equal(f.storage.values.size, 0);
+  assert.equal(f.state.authorizations, 0);
+  assert.equal(f.state.reads, 0);
+  assert.deepEqual(f.state.opens, []);
+
+  const classic = await f.controller.receive(encodeProductSessionWalletURL(registry, request(), NOW));
+  assert.equal(classic.request.version, "2");
+});
+
 test("mobile Wallet accepts web origins but rejects another native operating system", async () => {
   await assert.rejects(fixture().controller.receive(unsafeURL(request("ios"))), /platform/);
   const f = fixture(), req = request("web", { productId: "finance", scopes: ["finance.profile.write"] });
