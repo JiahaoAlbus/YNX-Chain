@@ -23,3 +23,22 @@ test('no deployment receipt means current65 config is preserved and candidate/fu
  assert(!query.includes('operator-deployment-identity.mjs'));assert(!transport.includes('operator-deployment-identity.mjs'));
  assert(transport.includes("from '../../original-policy-supplier/operator-query.mjs'"));
 });
+
+test('shared operator preflight requires the configured Genesis and checkpoint in order', async () => {
+ const {NORMAL_OPERATOR, operatorStatusMatches, readOperatorAnchors} = await import('../src/original-policy-supplier/operator-query.mjs');
+ const checkpoint = {height: 49, hash: '6'.repeat(64)};
+ const next = {...expected, checkpoint};
+ const calls = [];
+ const read = async path => {
+  calls.push(path);
+  return path === '/blocks/0' ? original().genesis : checkpoint;
+ };
+ assert.equal(operatorStatusMatches(original().status, next), true);
+ assert.equal(operatorStatusMatches(original().status), false);
+ assert.equal(await readOperatorAnchors(read, next), true);
+ assert.deepEqual(calls, ['/blocks/0', '/blocks/49']);
+ assert.equal(await readOperatorAnchors(read, {...next, checkpoint: {...checkpoint, hash: '7'.repeat(64)}}), false);
+ calls.length = 0;
+ assert.equal(await readOperatorAnchors(read, {...next, genesisHash: NORMAL_OPERATOR.genesisHash}), false);
+ assert.deepEqual(calls, ['/blocks/0']);
+});

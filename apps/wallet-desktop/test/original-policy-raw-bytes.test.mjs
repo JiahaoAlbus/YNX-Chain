@@ -7,7 +7,7 @@ test('new exact policy HTTP operand controls through original installed SDK',()=
  const here=dirname(fileURLToPath(import.meta.url)),project=dirname(here),helpers=join(here,'fixtures/raw-policy-bytes'),out=mkdtempSync(join(tmpdir(),'ynx-raw-policy-ci-'));
  mkdirSync(join(out,'src'));mkdirSync(join(out,'node_modules/@ynx-chain'),{recursive:true});
  const sdk=dirname(dirname(fileURLToPath(import.meta.resolve('@ynx-chain/wallet-auth/pq-wallet-policy'))));symlinkSync(sdk,join(out,'node_modules/@ynx-chain/wallet-auth'),'dir');
- for(const name of['operator-query.mjs','operator-packet.mjs','transaction-resource.mjs','operator-projection.mjs','comet-projection.mjs','operator-policy-original.mjs']){
+ for(const name of['operator-query.mjs','operator-packet.mjs','transaction-resource.mjs','transaction-diagnostic.mjs','operator-projection.mjs','comet-projection.mjs','operator-policy-original.mjs']){
   let text=readFileSync(join(project,'src/original-policy-supplier',name),'utf8');
   if(name==='operator-query.mjs'){assert(text.includes("import {request} from 'node:https';"));text=text.replace("import {request} from 'node:https';","import {request} from '../mock-https.mjs';");}
   writeFileSync(join(out,'src',name),text);

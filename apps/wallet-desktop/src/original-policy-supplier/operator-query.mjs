@@ -8,7 +8,30 @@ import {CANONICAL_NETWORK_ID, inspectOperatorProjection, assertSessionProjection
 import {operatorProjectionCheckpoint,operatorCheckpointIdentity,encodeOperatorPolicyPacket} from './operator-packet.mjs';
 import {captureAuthorizationHTTPOriginal} from './operator-policy-original.mjs';
 export {CANONICAL_NETWORK_ID, inspectOperatorProjection};
-export const NORMAL_OPERATOR=Object.freeze({origin:'https://rpc.ynxweb4.com',spkiSha256:'916248ff98c234e4389f872d26638d35783acd4d9cc27f9eb6ffb6eded56558f',reportedCommit:'65efa82e0615',reportedRelease:'ynx-network-surgical-65efa82e0615',lifetimeMs:30000,readTimeoutMs:5000,maxBytes:8*1024*1024});
+// Release-owned source configuration. A successor needs an independently
+// verified deployment and checkpoint before this row can be replaced.
+const releaseOperator=Object.freeze({origin:'https://rpc.ynxweb4.com',spkiSha256:'916248ff98c234e4389f872d26638d35783acd4d9cc27f9eb6ffb6eded56558f',reportedCommit:'65efa82e0615',reportedRelease:'ynx-network-surgical-65efa82e0615',chainId:6423,genesisHash:CANONICAL_NETWORK_ID,checkpoint:null});
+const legacyRelease=releaseOperator.reportedCommit==='65efa82e0615'&&releaseOperator.reportedRelease==='ynx-network-surgical-65efa82e0615'&&releaseOperator.origin==='https://rpc.ynxweb4.com'&&releaseOperator.spkiSha256==='916248ff98c234e4389f872d26638d35783acd4d9cc27f9eb6ffb6eded56558f'&&releaseOperator.genesisHash===CANONICAL_NETWORK_ID;
+const digest=/^[0-9a-f]{64}$/;
+const origin=new URL(releaseOperator.origin);
+const checkpoint=releaseOperator.checkpoint;
+if(origin.protocol!=='https:'||origin.origin!==releaseOperator.origin||releaseOperator.chainId!==6423||
+   !digest.test(releaseOperator.genesisHash)||!digest.test(releaseOperator.spkiSha256)||
+   (!legacyRelease&&(!/^[0-9a-f]{40}$/.test(releaseOperator.reportedCommit)||!/^[A-Za-z0-9._-]{1,160}$/.test(releaseOperator.reportedRelease)||checkpoint===null))||
+   (checkpoint!==null&&(!Number.isSafeInteger(checkpoint?.height)||checkpoint.height<=0||!digest.test(checkpoint.hash))))throw Error('AUTH_POLICY_OPERATOR_CONFIG_INVALID');
+export const NORMAL_OPERATOR=Object.freeze({...releaseOperator,checkpoint:checkpoint===null?null:Object.freeze({...checkpoint}),lifetimeMs:30000,readTimeoutMs:5000,maxBytes:8*1024*1024});
+
+export function operatorStatusMatches(status,operator=NORMAL_OPERATOR){
+ return status?.chainId===operator.chainId&&status.catchingUp===false&&status.persistence===true&&status.persistenceError===''&&status.build?.commit===operator.reportedCommit&&status.build?.release===operator.reportedRelease;
+}
+export async function readOperatorAnchors(get,operator=NORMAL_OPERATOR){
+ const genesis=await get('/blocks/0');
+ if(genesis?.height!==0||genesis.hash!==operator.genesisHash)return false;
+ const checkpoint=operator.checkpoint;
+ if(checkpoint===null)return true;
+ const block=await get('/blocks/'+checkpoint.height);
+ return block?.height===checkpoint.height&&block.hash===checkpoint.hash;
+}
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 // Local diagnostic DATA only, not Source admission or transaction authority.
 // Keep the original refusal message and strict gate. Never retain a URL owner,
@@ -41,7 +64,7 @@ function readResponse(path,signal,remaining,allowAbsence=false){
 async function readJSON(path,signal,remaining){
  const raw=await readResponse(path,signal,remaining);try{return JSON.parse(raw.text);}catch{fail('AUTH_POLICY_QUERY_JSON');}
 }
-const healthy=status=>{if(status?.chainId!==6423||status.catchingUp!==false||status.persistence!==true||status.persistenceError!==''||status.build?.commit!==NORMAL_OPERATOR.reportedCommit||status.build?.release!==NORMAL_OPERATOR.reportedRelease)fail('AUTH_POLICY_OPERATOR_VERSION_OR_HEALTH_CHANGED');};
+const healthy=status=>{if(!operatorStatusMatches(status))fail('AUTH_POLICY_OPERATOR_VERSION_OR_HEALTH_CHANGED');};
 // Private normal source port, no caller-specified endpoint, key, DTO or mode.
 export function openNormalOperatorSource(mode,clock=Date.now){
  if(!['transaction','session','registered-binding'].includes(mode))fail('AUTH_POLICY_SOURCE_KIND');
@@ -49,7 +72,7 @@ export function openNormalOperatorSource(mode,clock=Date.now){
  const read=async request=>{
   if(retired||closed)fail('AUTH_POLICY_SOURCE_RETIRED');if(request?.networkId!==CANONICAL_NETWORK_ID||typeof request.owner!=='string'||!/^0x[0-9a-f]{40}$/.test(request.owner)||(mode!=='session'&&request.nativeChainId!=='6423'))fail('AUTH_POLICY_SOURCE_NETWORK');const start=clock();if(deadline===undefined)deadline=start+NORMAL_OPERATOR.lifetimeMs;
   const get=path=>{const now=clock();if(now<start||now>=deadline)fail('AUTH_POLICY_SOURCE_EXPIRED');return readJSON(path,controller.signal,Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-now));};
-  const before=await get('/status');healthy(before);const genesis=await get('/blocks/0');if(genesis.height!==0||genesis.hash!==CANONICAL_NETWORK_ID)fail('AUTH_POLICY_SOURCE_NETWORK');
+  const before=await get('/status');healthy(before);if(!await readOperatorAnchors(get))fail('AUTH_POLICY_SOURCE_NETWORK');
   const accountNow=clock();if(accountNow<start||accountNow>=deadline)fail('AUTH_POLICY_SOURCE_EXPIRED');
   const accountHTTP=await readResponse('/accounts/'+request.owner+'/authorization',controller.signal,Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-accountNow));
   const accountOriginal=captureAuthorizationHTTPOriginal(accountHTTP.text),raw=accountOriginal.body,view=inspectOperatorProjection(raw,request.owner);
@@ -72,8 +95,7 @@ export async function readOriginalTransaction(hash){
  const remaining=()=>{const now=Date.now();if(now<start||now>=deadline)fail('AUTH_POLICY_SOURCE_EXPIRED');return Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-now);};
  try{
   healthy(await readJSON('/status',controller.signal,remaining()));
-  const genesis=await readJSON('/blocks/0',controller.signal,remaining());
-  if(genesis.height!==0||genesis.hash!==CANONICAL_NETWORK_ID)fail('AUTH_POLICY_SOURCE_NETWORK');
+  if(!await readOperatorAnchors(path=>readJSON(path,controller.signal,remaining())))fail('AUTH_POLICY_SOURCE_NETWORK');
   const original=await readResponse('/txs/'+hash,controller.signal,remaining(),true);
   healthy(await readJSON('/status',controller.signal,remaining()));remaining();
   return original;

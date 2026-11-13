@@ -1,7 +1,7 @@
 import {request as httpsRequest} from 'node:https';
 import {checkServerIdentity} from 'node:tls';
 import {X509Certificate,createHash} from 'node:crypto';
-import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID} from '../../original-policy-supplier/operator-query.mjs';
+import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID,operatorStatusMatches,readOperatorAnchors} from '../../original-policy-supplier/operator-query.mjs';
 import {preparePQTransferTransport,preparePQOriginalLookup,preparePQActionOriginalLookup,preparePQActionFinalityLookup,preparePQAccountInitialTransport,preparePQTransferFinalityLookup,preparePQMigrationTransport,decodePQMigrationRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {PQ_PROGRESS_RESPONSE_BYTES} from '../../wallet-pq-progress.mjs';
 import {planPQTransferFinalityCollector,PQ_FINALITY_COLLECTOR_LIMITS} from './finality-collector.mjs';
@@ -11,7 +11,7 @@ import {preparePQReviewedTypedActionBroadcast} from './typed-action-broadcast.mj
 
 const fail=code=>{throw Object.assign(Error(code),{code});};
 function healthy(value) {
-  if(value?.chainId!==6423||value.catchingUp!==false||value.persistence!==true||value.persistenceError!==''||value.build?.commit!==NORMAL_OPERATOR.reportedCommit||value.build?.release!==NORMAL_OPERATOR.reportedRelease) fail('PQ_TRANSACTION_NODE_VERSION_OR_HEALTH');
+  if(!operatorStatusMatches(value)) fail('PQ_TRANSACTION_NODE_VERSION_OR_HEALTH');
 }
 function tlsIdentity(host,cert) {
   const error=checkServerIdentity(host,cert);if(error)return error;
@@ -89,9 +89,11 @@ export class PQTransactionNodeTransportKernel {
   async #preflight(deadline,assertCurrent=null) {
     const status=await this.#exchange('/status',{deadline,metadata:true,assertCurrent});
     let health;try {health=JSON.parse(status.text);}catch {fail('PQ_TRANSACTION_NODE_JSON');}healthy(health);
-    const genesis=await this.#exchange('/blocks/0',{deadline,metadata:true,assertCurrent});
-    let block;try {block=JSON.parse(genesis.text);}catch {fail('PQ_TRANSACTION_NODE_JSON');}
-    if(block?.height!==0||block.hash!==CANONICAL_NETWORK_ID)fail('PQ_TRANSACTION_NODE_NETWORK');
+    const anchorsMatch=await readOperatorAnchors(async path=>{
+      const response=await this.#exchange(path,{deadline,metadata:true,assertCurrent});
+      try{return JSON.parse(response.text);}catch{fail('PQ_TRANSACTION_NODE_JSON');}
+    });
+    if(!anchorsMatch)fail('PQ_TRANSACTION_NODE_NETWORK');
   }
   async submitTransfer(input,assertCurrent) {
     if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
