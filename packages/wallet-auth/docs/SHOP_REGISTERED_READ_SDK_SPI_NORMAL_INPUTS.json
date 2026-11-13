@@ -1,0 +1,72 @@
+{
+  "schema": "SDK_SHOP_REGISTERED_READ_STRONG_CONSUMER_INPUTS/v1",
+  "baseSDK": "709c82ab26ca971fa4aa14536e94fa4a6f79232c",
+  "SDKOnlyAdditiveCompileUnit": {
+    "path": "packages/wallet-auth/native/shop_registered_read_sdk_bridge.cpp",
+    "bytes": 17100,
+    "sha256": "eb5f6ebc25fd1dde4778e37109e49d2ef4a5c471322db290c2eefe18ac121623"
+  },
+  "AuthFormalNamespace": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/namespace-bootstrap-successor/frozen-namespace-u9pSYl/HANDOFF.json",
+    "bytes": 4620,
+    "sha256": "55c8b07e629e401c197e19e3c17fa624f7c9259e5aa699f8af82a90c9e1fff27"
+  },
+  "AuthSingleIntrinsicSuccessor": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/namespace-bootstrap-successor/frozen-intrinsic-23HmTa/HANDOFF.json",
+    "bytes": 2908,
+    "sha256": "aff058b92fa1d925f9f1bdf6974f15a259a4e10ccef0c45c0dd9a7b79b38e4d0"
+  },
+  "AuthFormalSlot": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/product-parent-slot-successor/frozen-product-slot-89jnzU/HANDOFF.json",
+    "bytes": 5346,
+    "sha256": "c6dc49a44eab2f77b0ac379b4f6f6f16667413bba0c36403811939d6e97e6ffd"
+  },
+  "requiredActualNamespaceHeader": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/shop-original-private-client-successor/proof-carrier-consumer-successor/namespace-bootstrap-successor/frozen-intrinsic-23HmTa/source/ShopSDKNamespaceBootstrapPrivate.hpp",
+    "bytes": 1572,
+    "sha256": "758cce1397ac205b4c11393fb28fb95782f8acd9e6ea0744dd44485e67ff53cd"
+  },
+  "registration": {
+    "owner": "Auth RegisterOriginalShopSDKNamespaceBootstrap",
+    "SDKAdditionalRegistrar": false,
+    "fixedLoanMethod": "copy_original_promise_then(napi_value*) noexcept -> S16",
+    "SDKBodyImplemented": true,
+    "nonnullRefAdoptedBeforeLateStatus": true,
+    "noJSExport": true
+  },
+  "requiredStrongSymbols": [
+    "ynx_sdk_shop_registered_read_capture_for_product_child_v4",
+    "ynx_sdk_shop_registered_read_current_for_product_child_v4",
+    "ynx_sdk_shop_registered_read_original_device_source_v4",
+    "ynx_sdk_shop_registered_read_begin_original_get_for_product_child_v4",
+    "ynx_sdk_shop_get_proof_current_for_product_child_v4",
+    "ynx_sdk_shop_get_proof_copy_original_v4",
+    "ynx_sdk_shop_get_proof_retire_v4",
+    "ynx_sdk_shop_get_proof_join_v4",
+    "ynx_sdk_shop_get_proof_close_v4",
+    "ynx_sdk_shop_registered_read_retire_v4",
+    "ynx_sdk_shop_registered_read_join_v4",
+    "ynx_sdk_shop_registered_read_close_v4"
+  ],
+  "unchangedSoleHolderJS": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-shop-registered-read-node-bootstrap-successor-20261108/native-spi-successor/source/packages/wallet-auth/src/original-shop-registered-client-holder-private.js",
+    "bytes": 10213,
+    "sha256": "9bd8cdf6a57377f45fba219938ed739dc0624f45890d8e1ca12a818659bebd6c"
+  },
+  "unchangedLoaderJS": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-shop-registered-read-node-bootstrap-successor-20261108/native-spi-successor/source/packages/wallet-auth/src/original-shop-registered-read-node-loader-private.js",
+    "bytes": 5121,
+    "sha256": "0348d494f1031b096930d4277439e9b16cbcc148217c3fe255e7f8376834dae5"
+  },
+  "normalRecipeConstraints": [
+    "compile SDK unit exactly once with original Auth formal headers, never PUBLIC fixture headers",
+    "Auth solely captures Node intrinsic; SDK borrows same loan then reference",
+    "Root-reviewed SDK holder + immutable loader pins remain independent",
+    "normal producer chooses same-image SDK/Auth CPP + Node runtime ABI; no linker waiver/weak stub/wholeleaf overwrite"
+  ],
+  "actualWholeImage": false,
+  "NativeSlotEnabled": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

@@ -1,0 +1,25 @@
+{
+  "purpose": "Exact private header snapshots for PUBLIC consumer model only; no second Auth producer",
+  "refs": [
+    {
+      "path": "packages/wallet-auth/test/shop-registered-read-spi/fixtures/ShopProductSourceBorrowPrivate.h",
+      "bytes": 1793,
+      "sha256": "3627ebad431b60bc14533eec5ef47e627c7d859dbfa78feb7b1bd3c43225465e"
+    },
+    {
+      "path": "packages/wallet-auth/test/shop-registered-read-spi/fixtures/ShopSDKNamespaceBootstrapPrivate.hpp",
+      "bytes": 1572,
+      "sha256": "758cce1397ac205b4c11393fb28fb95782f8acd9e6ea0744dd44485e67ff53cd"
+    },
+    {
+      "path": "packages/wallet-auth/test/shop-registered-read-spi/fixtures/ShopV4RegisteredHolderPrivate.h",
+      "bytes": 4679,
+      "sha256": "b495c96aa36a63856910ca6a863835a86f92f6cf2dc07228d057e259c4faa3f3"
+    },
+    {
+      "path": "packages/wallet-auth/test/shop-registered-read-spi/fixtures/native/ShopOriginalPrivateClient.h",
+      "bytes": 2399,
+      "sha256": "57050f9a0df89fe2a7fddaf4ffdb25bcd5ed468894da965b8fbcb7b0e102a9ea"
+    }
+  ]
+}
