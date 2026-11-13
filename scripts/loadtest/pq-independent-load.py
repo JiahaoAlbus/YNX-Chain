@@ -69,8 +69,8 @@ STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no ne
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
 HELD_TRIAL_PROFILE = 'held-first100'
-HELD_TRIAL_SOURCE = '8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2'
-HELD_TRIAL_TREE = '1db9efadc9c1d12dc21890bd6bf0614cf81e6fd9'
+HELD_TRIAL_SOURCE = '3412fd1527cd43ba7ef63ffe4a3f7baa9e333ca8'
+HELD_TRIAL_TREE = '409cbd6d1e815e5a613a41c7f65c7108792ae6a5'
 STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
 PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE))
@@ -270,6 +270,7 @@ class LoadCeremony(normal.Ceremony):
         lab.require(type(startup_timings) is bool and (not startup_timings or consumer_source in STARTUP_TIMING_ABI_SOURCES),'matching original startup timing ABI required; no source qualification implied')
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
+        self.finalize_observation_enabled=False;self.finalize_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
         self.startup_timings_enabled=startup_timings;self.preparation_startup_measurements=[]
@@ -345,6 +346,11 @@ class LoadCeremony(normal.Ceremony):
                 lab.require(not any(a.startswith("--commit-observation-") for a in resumed["nodes"][node]["args"]),"duplicate original Commit observer flags")
                 resumed["nodes"][node]["args"].extend(observed)
                 self.commit_observation_descriptors.append(dict(node=node,path=str(output),processName="pq-node-%d"%node))
+                if self.finalize_observation_enabled:
+                    finalize_output = private / ("finalize-node-%d.json" % node)
+                    resumed["nodes"][node]["args"].extend(("--finalize-observation-output", str(finalize_output)))
+                    self.finalize_observation_descriptors.append(dict(node=node, path=finalize_output,
+                                                                      processName="pq-node-%d" % node))
         return resumed
 
 
@@ -745,6 +751,9 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
     lab.require(profile in ('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE) and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
+    lab.require(type(getattr(args, 'held_ready_only', False)) is bool and
+                (not getattr(args, 'held_ready_only', False) or profile == HELD_TRIAL_PROFILE),
+                'READY-only requires the fixed held first100 profile')
     if profile in ('7c25', HELD_TRIAL_PROFILE):
         expected = HELD_TRIAL_SOURCE if profile == HELD_TRIAL_PROFILE else first_trial_7c25_source.SOURCE
         lab.require(args.commit==expected and getattr(args,'sender_backend','auto')=='public-owner',
@@ -1010,6 +1019,7 @@ def run(args):
         # This assignment is reached only after the matching source CI AND
         # per-height semantic evidence have passed the selected source gate.
         ceremony.request_stage_observation=profile=='7c25'
+        ceremony.finalize_observation_enabled=held
         if live_module is not None:
             attach_live_reader(ceremony,live_module)
             result['normalPrivateLiveReaderRequested']=True
@@ -1061,6 +1071,15 @@ def run(args):
             result['preloadInitialization']=stages.run('preload_initialization_gate','first100-before-release',lambda:preload_initialization.validate(result.get('initializedAccountReadback'),w.process_receipt(),result['preparationUnconfirmedOwners'],w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds']-time.monotonic(),args.seconds,args.tail_seconds))
             lab.write_new(work/'public/preload-initialization.json',result['preloadInitialization'])
         stages.seal()
+        if getattr(args, 'held_ready_only', False):
+            pool = result['senderPoolPreparation']
+            lab.require(pool['bootstrapLoaded'] is True and pool['signed'] is False
+                        and pool['nonceReserved'] is False and pool['loadClockStarted'] is False
+                        and [lane['node'] for lane in pool['liveMaterialsPreparation']] == list(range(4)),
+                        'all four original proof sessions must be READY before the no-release boundary')
+            monitor.check()
+            result['heldReadyOnlyComplete'] = True
+            return result
         result["loadExecuted"]=True
         result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
         monitor.check();lab.check_source(source,args.commit)
@@ -1118,6 +1137,14 @@ def run(args):
             except BaseException as error:
                 result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
                 result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
+        if ceremony is not None and ceremony.finalize_observation_enabled:
+            finalize = module('original_finalize_observation', 'pq-finalize-observation.py')
+            observed_finalize = finalize.retain_after_stop(w, ceremony.finalize_observation_descriptors,
+                                                          ceremony.plan["chainId"], ceremony.plan["originalGenesisHash"],
+                                                          proof_readback)
+            result['normalFinalizeObservation'] = observed_finalize
+            if not observed_finalize['fourComplete']:
+                result['firstCause'] = result['firstCause'] or 'original Finalize observation incomplete; preserve original failure and coverage'
         if storage is not None:
             try:
                 observed=storage.finish(result.get("normalCommitObservation"))

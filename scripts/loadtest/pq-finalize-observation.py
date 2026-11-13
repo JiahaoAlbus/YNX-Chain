@@ -1,5 +1,6 @@
 """Validate the normal stopped-node FinalizeBlock timing projection."""
 import re
+import stat
 
 VERSION = 'YNX-COMET-FINALIZE-OBSERVATION/v1'
 BOUNDARY = 'owning-Application-FinalizeBlock-after-lock;after-opt-in;normal-stop-output;pre-bind-replay-not-covered'
@@ -73,3 +74,27 @@ def business_heights(observation, heights, commit_samples):
     return dict(samples=selected, missingHeights=sorted(set(heights)-selected.keys()),
                 failedAttempts=[row for row in observation['samples'] if not row['success']],
                 droppedAttempts=observation['dropped'])
+
+def retain_after_stop(window, descriptors, chain_id, genesis_hash, public_io):
+    records, errors = [], []
+    for descriptor in descriptors:
+        node = descriptor['node']
+        try:
+            child, = (row for row in window.children if row['name'] == descriptor['processName'])
+            process = child['process']
+            require(process.poll() is not None, 'original Finalize producer must have stopped')
+            source = descriptor['path']
+            require(stat.S_IMODE(source.lstat().st_mode) == 0o600, 'original Finalize output mode differs')
+            raw = public_io.read_original(source, limit=512 << 10)
+            target = window.work / 'public' / f'finalize-observation-node-{node}-original.json'
+            public_io.write_new(target, raw)
+            record = dict(node=node, pid=process.pid, path=target.name, bytes=len(raw), sha256=public_io.sha(raw),
+                          complete=False)
+            records.append(record)
+            snapshot = public_io.strict(raw)
+            validate(snapshot, pid=process.pid, chain_id=chain_id, genesis_hash=genesis_hash)
+            record['complete'] = snapshot['captureComplete']
+        except (KeyError, RuntimeError, ValueError, TypeError, OSError) as error:
+            errors.append(dict(node=node, reason=str(error)))
+    return dict(records=records, errors=errors,
+                fourComplete=not errors and {row['node'] for row in records if row['complete']} == set(range(4)))
