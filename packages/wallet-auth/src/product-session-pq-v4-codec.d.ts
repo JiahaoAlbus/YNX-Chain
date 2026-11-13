@@ -61,3 +61,28 @@ export interface StoredProductSessionV4IssueOriginalDATA {
 /** Historical mathematics only: no policyRef/current/provider/callback/clock
  * input, no fabricated observation, no capability or issuer registration. */
 export function inspectStoredProductSessionV4IssueOriginalDATA(registry:unknown,input:StoredProductSessionV4IssueOriginalInputDATA):Readonly<StoredProductSessionV4IssueOriginalDATA>;
+
+export interface OriginalProductSessionV4ApprovalInputDATA {
+ readonly requestOriginal: string;
+ readonly approvalOriginal: string;
+ readonly registrationOriginal: string;
+ readonly checkedAtMs: number;
+}
+export interface OriginalProductSessionV4ApprovalDATA {
+ readonly originals: Readonly<OriginalProductSessionV4ApprovalInputDATA>;
+ readonly request: ProductSessionRequestV4;
+ readonly approval: ProductSessionApprovalV4;
+ readonly accountAuthorization: ProductSessionAccountAuthorization;
+ readonly signatureVerified: true;
+ readonly dataOnly: true;
+ readonly authorized: false;
+ readonly registered: false;
+ readonly current: false;
+ readonly SourceAdmission: false;
+ readonly RootAdmission: false;
+ readonly NativeAdmission: false;
+}
+/** Original signed mathematics at a supplied time. The issuer checks current policy separately. */
+export function inspectOriginalProductSessionV4ApprovalDATA(
+ registry: unknown, input: OriginalProductSessionV4ApprovalInputDATA,
+): Readonly<OriginalProductSessionV4ApprovalDATA>;
