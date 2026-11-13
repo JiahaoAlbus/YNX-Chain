@@ -1,9 +1,9 @@
 {
   "owner": "P06 original; P01 exact whole9 consumer projection",
-  "sourceCommit": "ff2a2e08d2e40f18c5ec1c7a24f831fb4105af21",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/fixed-protected-shop-source-20261113/HANDOFF.json",
-  "handoffBytes": 5871,
-  "handoffSha256": "a7e75f94e853b30992c8872bc9783edfe3539ede40354ea5f0f2e4c6f96d554d",
+  "sourceCommit": "0b34d9ee7862e7d4e297b67b2de9917ce6fbb5ed",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/protected-order-totals-20261113/HANDOFF.json",
+  "handoffBytes": 5415,
+  "handoffSha256": "73d7abeb8a83f91b02429be760a6f7848460ec4178311d99621f6ec82d308285",
   "productionModules": 9,
   "productionDocumentsPreservedFromR5": true,
   "files": [
@@ -29,8 +29,8 @@
     },
     {
       "path": "invoice-product-intent.mjs",
-      "bytes": 9436,
-      "sha256": "22f231b705ccf58416c6df65d44a0714483e0e44b7a128f6ca9af071f060ed0b"
+      "bytes": 9997,
+      "sha256": "e3c8fb1a9dc76f94e4794098ea5314a57bf6a92d00382b061ae33eb0589e9163"
     },
     {
       "path": "notification-inbox.mjs",

@@ -1,7 +1,8 @@
 import {types} from 'node:util';
 const fail=()=>{throw Object.assign(Error('NATIVE_PAY_ORIGINAL_PRODUCT_INTENT_INVALID'),{code:'NATIVE_PAY_ORIGINAL_PRODUCT_INTENT_INVALID'});};
 const fields=['productId','sourceOrder','merchant','recipient','genesis','nativeChainId','assetId','unitVersion','amountAtoms','domainData'];
-const uint=value=>typeof value==='string'&&/^[1-9][0-9]{0,19}$/.test(value)&&BigInt(value)<=18446744073709551615n;
+const uint=value=>typeof value==='string'&&/^(0|[1-9][0-9]{0,19})$/.test(value)&&BigInt(value)<=18446744073709551615n;
+const positiveUint=value=>value!=='0'&&uint(value);
 function descriptors(value,domain=false){
  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype&&!(domain&&Object.getPrototypeOf(value)===null))fail();
  const d=Object.getOwnPropertyDescriptors(value);
@@ -17,7 +18,7 @@ export function nativeInvoiceProductIntentData(value){
  const id=v=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v??'');
  if(!id(out.productId)||!id(out.sourceOrder)||out.storeId!==undefined&&!id(out.storeId)||
   !/^0x[0-9a-f]{40}$/.test(out.merchant)||!/^0x[0-9a-f]{40}$/.test(out.recipient)||
-  !/^[0-9a-f]{64}$/.test(out.genesis)||!uint(out.nativeChainId)||!uint(out.amountAtoms)||out.assetId!=='YNXT'||out.unitVersion!=='1')fail();
+  !/^[0-9a-f]{64}$/.test(out.genesis)||!positiveUint(out.nativeChainId)||!positiveUint(out.amountAtoms)||out.assetId!=='YNXT'||out.unitVersion!=='1')fail();
  let nodes=0;const seen=new Set();
  function copy(v,depth=0){
   if(++nodes>4096||depth>16)fail();
@@ -63,7 +64,7 @@ export function nativeInvoiceOrderBindingDATA(value,original){
   typeof get('signingMessageHash')!=='string'||!/^[0-9a-f]{64}$/.test(get('signingMessageHash'))||
   !id(terms.invoiceId)||!id(terms.sessionId)||terms.recipient!==request.recipient||
   terms.payer!==''&&!/^0x[0-9a-f]{40}$/.test(terms.payer)||terms.assetId!==request.assetId||terms.unitVersion!==request.unitVersion||terms.amountAtoms!==request.amountAtoms||
-  terms.feeRule!=='native-transfer-fee-one/v1'||terms.maxFeeAtoms!=='1'||!['keyEpoch','revision','expiresAtHeight'].every(k=>uint(terms[k]))||
+  terms.feeRule!=='native-transfer-fee-one/v1'||terms.maxFeeAtoms!=='1'||!['keyEpoch','revision','expiresAtHeight'].every(k=>positiveUint(terms[k]))||
   !(termsNativeHash===''&&termsAbciHash===''||hash(termsNativeHash)&&hash(termsAbciHash))||
   get('state')==='ISSUED'&&!hash(termsNativeHash))fail();
  return Object.freeze({original:request,intentId:get('intentId'),originalOperation:get('originalOperation'),merchant:request.merchant,
@@ -81,9 +82,14 @@ export function assertNativeInvoiceOrderBillDATA(value,expected,allowPendingTerm
   genesis:original.genesis,nativeChainId:original.nativeChainId,assetId:original.assetId,unitVersion:original.unitVersion,
   principalAtoms:original.amountAtoms,feeRule:terms.feeRule,maxFeeAtoms:terms.maxFeeAtoms,expiresAtHeight:terms.expiresAtHeight,termsNativeHash:expected.termsNativeHash,termsHash:expected.signingMessageHash};
  const pending=allowPendingTerms&&expected.state==='PREPARED'&&/^0x[0-9a-f]{64}$/.test(expected.termsNativeHash);
- if(expected.state!=='ISSUED'&&!pending||Object.entries(selected).some(([key,v])=>d[key]?.value!==v)||
-  pending&&['paidAtoms','refundedAtoms','netPaidAtoms'].some(k=>d[k]?.value!=='0'))
-  throw Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
+ const invalid=()=>Object.assign(Error('NATIVE_PAY_ORIGINAL_ORDER_BINDING'),{code:'NATIVE_PAY_ORIGINAL_ORDER_BINDING'});
+ if(expected.state!=='ISSUED'&&!pending||Object.entries(selected).some(([key,v])=>d[key]?.value!==v))throw invalid();
+ const paid=d.paidAtoms?.value,refunded=d.refundedAtoms?.value,net=d.netPaidAtoms?.value;
+ if(!uint(paid)||!uint(refunded)||!uint(net)||BigInt(refunded)>BigInt(paid)||BigInt(net)!==BigInt(paid)-BigInt(refunded))throw invalid();
+ const committed=d.status?.value==='committed_paid';
+ const knownRefundStatus=refunded==='0'?'none':refunded===paid?'refunded':'partial_refund';
+ if(paid!==(committed?original.amountAtoms:'0')||pending&&committed||
+  d.refundStatus?.value!=='unknown'&&d.refundStatus?.value!==knownRefundStatus)throw invalid();
  return value;
 }
 // The retained original operation, never an ABCI hash retargeted as a native

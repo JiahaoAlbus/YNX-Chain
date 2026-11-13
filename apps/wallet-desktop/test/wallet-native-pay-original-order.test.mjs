@@ -58,6 +58,31 @@ test('invoice read is bound to original order, session, network, terms and amoun
   const {entry}=boot({read:()=>{const v=bill();mutate(v);return v;}});const r=await entry.invokeResult({action:'order-invoice',...ref});assert.equal(r.ok,false);assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(r.bill,undefined);
  }
 });
+test('protected order never displays inconsistent payment or refund totals',async()=>{
+ const paid={status:'committed_paid',refundStatus:'partial_refund',paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'};
+ const scenarios=[
+  [{},true],
+  [{refundStatus:'unknown'},true],
+  [{refundStatus:'refunded',refundedAtoms:'100',netPaidAtoms:'0'},true],
+  [{netPaidAtoms:'71'},false],
+  [{paidAtoms:'90',netPaidAtoms:'60'},false],
+  [{refundedAtoms:'101',netPaidAtoms:'0'},false],
+  [{paidAtoms:'0100'},false],
+  [{paidAtoms:100},false],
+  [{status:'unknown'},false],
+  [{paidAtoms:'0',refundedAtoms:'0',netPaidAtoms:'0',refundStatus:'none'},false],
+  [{refundStatus:'none'},false],
+  [{refundStatus:'refunded'},false]
+ ];
+ for(const [change,valid] of scenarios){
+  const fixture=boot({read:()=>({...bill(),...paid,...change})});
+  const result=await fixture.entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{});
+  assert.equal(result.ok,valid,JSON.stringify({change,result}));
+  assert.equal(result.bill?.netPaidAtoms,valid?(change.netPaidAtoms??paid.netPaidAtoms):undefined);
+  if(!valid)assert.equal(result.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');
+  assert.deepEqual(fixture.calls.slice(1).map(call=>call.method),['GET','GET']);
+ }
+});
 test('lost original lookup offers read-only same-order recovery and never creates or retries',async()=>{
  let lookups=0;const first=boot({lookup(){lookups++;throw Object.assign(Error(),{code:'PUBLIC_LOOKUP_LOST'});}});
  const result=await first.entry.invokeResult({action:'order-pay-review',...ref});assert.equal(result.ok,false);assert.equal(lookups,1);assert.equal(first.calls.length,2);
@@ -83,9 +108,12 @@ function noSigningMain(){
 }
 test('payment, refund and retained broadcast recheck original bill before any Main/journal access',async()=>{
  for(const action of ['order-pay-review','order-refund-review','order-broadcast-review']){
-  const m=noSigningMain(),f=boot({main:m.main,read:()=>({...bill(),sessionId:'foreign-session'})});
-  const r=await f.entry.invokeResult({action,...ref,...(action==='order-refund-review'?{refundId:'refund-original',amountAtoms:'30'}:{}),...(action==='order-broadcast-review'?{kind:'invoice_refund',originalHash:'0x'+'8'.repeat(64)}:{})});
-  assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(m.touched(),0);assert.equal(f.calls.length,3);assert.equal(r.canRetry,false);
+  for(const change of [{sessionId:'foreign-session'},{status:'committed_paid',paidAtoms:'100',refundStatus:'partial_refund',refundedAtoms:'30',netPaidAtoms:'71'}]){
+   const m=noSigningMain(),f=boot({main:m.main,read:()=>({...bill(),...change})});
+   const r=await f.entry.invokeResult({action,...ref,...(action==='order-refund-review'?{refundId:'refund-original',amountAtoms:'30'}:{}),...(action==='order-broadcast-review'?{kind:'invoice_refund',originalHash:'0x'+'8'.repeat(64)}:{})});
+   assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(m.touched(),0);assert.equal(f.calls.length,3);assert.equal(r.canRetry,false);
+   assert.equal(r.walletRequest,undefined);
+  }
  }
 });
 test('merchant review or original-Member read cannot splice a changed lookup generation',async()=>{
@@ -219,10 +247,12 @@ test('original lookup recovery keeps pending terms visible and checks its embedd
 
 test('issued Shop intent replies bind their embedded invoice before rendering it',async()=>{
  for(const action of ['lookup-intent','create-intent']){
+  const paid={...bill(),status:'committed_paid',refundStatus:'partial_refund',paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'};
   const replies=[
-   {invoice:{...bill(),paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'}},
-   {invoice:{...bill(),sourceOrder:'other-order',paidAtoms:'100'}},
-   {invoice:{...bill(),termsNativeHash:'0x'+'8'.repeat(64)}},
+   {invoice:paid},
+   {invoice:{...paid,sourceOrder:'other-order'}},
+   {invoice:{...paid,termsNativeHash:'0x'+'8'.repeat(64)}},
+   {invoice:{...paid,netPaidAtoms:'71'}},
    {invoice:undefined}
   ];
   for(const [index,fields] of replies.entries()){
