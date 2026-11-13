@@ -88,6 +88,7 @@ export function createNativePayMainEntry({getMain,getContext}){
     const runtime={main,pay:originalSource.pay,current,expectedOriginalOperation:hostOrder?.operation,
      reviewCustody:Object.freeze({remember:id=>pending.remember(id,main),settled:id=>pending.settled(id,main),cleanupFailed:(id,cause)=>pending.cleanupFailed(id,main,cause)}),
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
+     ...(typeof originalSource.readOriginalShopInvoiceIntent==='function'?{readOriginalShopInvoiceIntent:(...args)=>originalSource.readOriginalShopInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
      ...(typeof originalSource.readOriginalArchiveReceipt==='function'?{readOriginalArchiveReceipt:(...args)=>originalSource.readOriginalArchiveReceipt(...args)}:{}),
      ...(typeof originalSource.readOriginalArchiveReconciliation==='function'?{readOriginalArchiveReconciliation:(...args)=>originalSource.readOriginalArchiveReconciliation(...args)}:{}),

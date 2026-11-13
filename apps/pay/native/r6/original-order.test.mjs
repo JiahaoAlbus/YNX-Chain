@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
 import {createNativePayMainEntry} from './main-entry.mjs';
 import {createPrivateNativeProductPayClient} from './merchant-invoice-approval.mjs';
+import {composeNativePayProductSource} from './product-source.mjs';
 
 const merchant='0x'+'1'.repeat(40),payer='0x'+'2'.repeat(40),intentId='npi_'+'3'.repeat(48),termsHash='0x'+'4'.repeat(64);
 const original={productId:'shop.order',storeId:'store-original',sourceOrder:'order:original',merchant,recipient:merchant,genesis:'a'.repeat(64),nativeChainId:'6423',assetId:'YNXT',unitVersion:'1',amountAtoms:'100',domainData:{schema:'ynx.shop.order.invoice/v1',order:{ID:'order:original'},approvedNativePrice:{PriceApprovalRef:'PUBLIC-original-price'}}};
@@ -24,7 +26,8 @@ function boot({lookup=view,readIntent=view,create,read=bill,main=null,change=()=
   return {method:request.method,requestPath:request.path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(result))};
  }});
  const entry=createNativePayMainEntry({getMain:()=>main,getContext:()=>({account:merchant,revision:1,focused:true})});
- entry.compose({pay,current,async readOriginalInvoiceIntent(selected,fence){fence();assert.deepEqual(selected,ref);calls.push({sourceRead:selected});return originalRead();},...extra});
+ async function readOriginalInvoiceIntent(selected,fence){fence();assert.deepEqual(selected,ref);calls.push({sourceRead:selected});return originalRead();}
+ entry.compose({pay,current,readOriginalInvoiceIntent,readOriginalShopInvoiceIntent:readOriginalInvoiceIntent,...extra});
  return{entry,calls,revoke:()=>{live=false;}};
 }
 test('original-order invoice derives merchant/invoice once from the frozen original lookup',async()=>{
@@ -303,4 +306,73 @@ test('a protected review on an UNKNOWN bill offers only the bound intent GET',as
    assert.deepEqual(f.calls.slice(1).map(call=>call.method),['GET','GET']);
   }
  }
+});
+
+test('protected Shop order requires the fixed original Shop reader and never uses the generic reader',async()=>{
+ const f=boot({extra:{readOriginalShopInvoiceIntent:undefined}});
+ const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});
+ let generic=0;
+ const loan={pay:{readInvoiceIntent(){throw Error('Missing Shop source reached Pay');}},current(){},retire(){},join(){},close(){},
+  readOriginalInvoiceIntent(){generic++;return original;}};
+ const source=await composeNativePayProductSource(entry,{acquireOriginalProductSource:()=>loan,isOriginalProductSource:value=>value===loan});
+ const request={action:'order-invoice',...ref};
+ for(const candidate of [f.entry,entry]){
+  const result=await candidate.invokeOriginalOrderResult(request,intentId,()=>{});
+  assert.equal(result.code,'NATIVE_PAY_SHOP_ORIGINAL_SOURCE_NOT_SUPPLIED');
+  assert.deepEqual(result.recoveryActions,[]);
+ }
+ assert.equal(generic,0);
+ assert.deepEqual(f.calls,[]);
+ source.retire();await source.join();await source.close();source.assertSafeToClose();
+});
+
+test('the fixed Shop loan and Pay read use the same live protected order',async t=>{
+ const shopPath=`/v5/shop/source/shop.order/invoice-intents/${ref.sourceOrder}`;
+ const intentPath=`/v5/pay/invoice-intents/${intentId}`;
+ const calls=[];
+ let scenario='ready',revoked=false;
+ const responses=new Map([[shopPath,original],[intentPath,view()],[`/v5/pay/invoices/${merchant}/${terms.invoiceId}`,bill()]]);
+ const server=createServer((req,res)=>{
+  calls.push([req.method,req.url]);
+  const value=responses.get(req.url);
+  const denied=scenario==='denied'&&req.url===shopPath;
+  res.writeHead(denied?403:value?200:404,{'Content-Type':'application/json'});
+  res.end(JSON.stringify(value??{}));
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve);}));
+ const origin=`http://127.0.0.1:${server.address().port}`;
+ const pay=createPrivateNativeProductPayClient({origin,async requestPrivate(request){
+  request.assertCurrent();
+  const result=await fetch(origin+request.path,{method:request.method,signal:request.assertCurrent.signal,redirect:'error'});
+  return {method:request.method,requestPath:request.path,status:result.status,contentType:result.headers.get('content-type'),body:new Uint8Array(await result.arrayBuffer())};
+ }});
+ const refusal=Object.assign(Error('Original Shop denied this reader'),{code:'PUBLIC_SHOP_READ_DENIED'});
+ const expired=Object.assign(Error('Original Shop holder retired'),{code:'PUBLIC_SHOP_HOLDER_RETIRED'});
+ const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account:merchant,revision:1,focused:true})});
+ const loan={pay,current(){},retire(){},join(){},close(){},readOriginalInvoiceIntent(){throw Error('Generic reader was reached');},
+  async readOriginalShopNativeInvoiceRequestDATA(order,current){
+   assert.equal(order,ref.sourceOrder);current();
+   const result=await fetch(origin+shopPath,{signal:current.signal,redirect:'error'});
+   if(result.status===403){await result.arrayBuffer();throw refusal;}
+   const value=await result.json();
+   if(scenario==='retired')revoked=true;
+   return value;
+  }};
+ const source=await composeNativePayProductSource(entry,{acquireOriginalProductSource:()=>loan,isOriginalProductSource:value=>value===loan});
+ try{
+  for(scenario of ['ready','denied','retired']){
+   const before=calls.length;
+   const result=await entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{if(revoked)throw expired;});
+   if(scenario==='ready'){
+    assert.equal(result.ok,true);assert.equal(result.bill.sourceOrder,ref.sourceOrder);
+    assert.deepEqual(result.recoveryActions,[{action:'intent',intentId}]);
+    assert.deepEqual(calls.slice(before),[['GET',shopPath],['GET',intentPath],['GET',`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]]);
+   }else{
+    assert.equal(result.code,scenario==='denied'?refusal.code:expired.code);
+    assert.deepEqual(result.recoveryActions,[]);
+    assert.deepEqual(calls.slice(before),[['GET',shopPath]]);
+   }
+  }
+ }finally{source.retire();await source.join();await source.close();source.assertSafeToClose();}
 });
