@@ -5,6 +5,8 @@ export interface OriginalAbort{readonly[opaque]:'MainRequestWeakHostRef'}
 export interface OriginalOperation{readOriginalMember():ArrayBuffer;assertCurrent():void;retire():void;join():D32|Promise<D32>;close():D32|Promise<D32>;readOriginalStatus():unknown}
 export interface OriginalSource{readOriginalReview():ArrayBuffer;produceRegistrationProof(ctx:OriginalAbort):Promise<OriginalOperation>;produceChallengeProof(ctx:OriginalAbort):Promise<OriginalOperation>;assertCurrent():void;retire():void;join():D32|Promise<D32>;close():D32|Promise<D32>}
 export interface OriginalHttp{readOriginalResponseDATA():NativeResponseDATA;readOriginalStatusDATA():NativeHttpStatusDATA;close():D32}
+export interface OriginalAccountPolicyBinding{readonly operation:'registration-pop'|'challenge-completion';readonly operationId:string;readonly requestDigest:string;readonly approvalDigest:string;readonly networkId:string;readonly account:string;readonly canonicalOwner:string}
+export interface OriginalAccountPolicy{readonly[opaque]:'IndependentAccountPolicyLoan';readOriginalPolicyDATA():string;assertOriginalCurrent(binding:OriginalAccountPolicyBinding):void;recheckOriginalCurrent(binding:OriginalAccountPolicyBinding):void|Promise<void>;retire():void;join():D32|Promise<D32>;close():D32|Promise<D32>}
 export interface IndependentIdentityDATA{readonly originalCreationIntent:string;readonly heldStableIdentity:string;readonly deviceGeneration:string;readonly originalOperation:string;readonly account:string;readonly network:ArrayBuffer;readonly canonicalOwner:string;readonly pkA:ArrayBuffer;readonly pkB:ArrayBuffer;readonly notBeforeMs:string;readonly expiresAtMs:string}
 export interface FixedNativeHost{
  acquireOriginalProductSessionDeviceV4PendingSource():Promise<OriginalSource>|OriginalSource;
@@ -13,6 +15,8 @@ export interface FixedNativeHost{
  closeOriginalDeviceV4AbortContext(ctx:OriginalAbort):D32;
  readOriginalDeviceV4IndependentDATA():IndependentIdentityDATA;
  readOriginalDeviceV4UserApprovalDATA(source:OriginalSource):Readonly<{approvalOriginal:string;policyOriginal:string}>;
+ acquireOriginalDeviceV4AccountPolicy?(source:OriginalSource,ctx:OriginalAbort,binding:OriginalAccountPolicyBinding):OriginalAccountPolicy|Promise<OriginalAccountPolicy>;
+ isOriginalAccountPolicy?(ref:unknown):boolean;
  submitOriginalDeviceV4Pair(source:OriginalSource,ctx:OriginalAbort,bodyOriginal:string):Promise<OriginalHttp>;
  submitOriginalDeviceV4Completion(source:OriginalSource,ctx:OriginalAbort,bodyOriginal:string):Promise<OriginalHttp>;
  readOriginalDeviceV4PairResponseDATA():NativeResponseDATA;

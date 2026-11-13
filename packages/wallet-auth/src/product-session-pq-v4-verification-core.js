@@ -8,7 +8,7 @@ import{readAccountPolicyObservation,accountAuthorizationFromView,registerVerifie
 import{inspectProductSessionDeviceRegistrationOriginalV4Data}from'./product-session-device-registration-v4.js';
 import{originalV4RegistrationForRequestDATA as recordFor,encodeOriginalProductSessionV4E5DATA as E5,encodeProductSessionDeviceChallengeV4Message,encodeProductSessionDeviceRegistrationV4Message,PRODUCT_SESSION_APPROVAL_DOMAIN_V4}from'./product-session-pq-v4-message-data.js';
 const fail=code=>{throw new WalletAuthError(code,code);};
-export function createOriginalV4VerificationDATAFromFixedMath({verifyMember,copyMessage,copyApprovalMember}){
+export function createOriginalV4VerificationDATAFromFixedMath({verifyMember,copyMessage,copyApprovalMember,verifyHistoricalApproval}){
 function prepareProductSessionApprovalV4Data(registry,request,input,policyRef,registrationOriginal,at=new Date()){
  const r=parseProductSessionRequest(registry,request,at);exactPQRecord(input,['account','expiresAt']);if(r.version!=='4')fail('PQ_SESSION_V4_REQUIRED');const view=readAccountPolicyObservation(policyRef,input.account,at),authorization=accountAuthorizationFromView(view),registration=recordFor(r,registrationOriginal,input.account,at);
  if(authorization.networkId!==registration.networkId||authorization.canonicalOwner!==registration.canonicalOwner||typeof input.expiresAt!=='string'||new Date(input.expiresAt).toISOString()!==input.expiresAt||input.expiresAt<=at.toISOString()||input.expiresAt>r.expiresAt||input.expiresAt>registration.expiresAt)fail('INVALID_APPROVAL_TIME');
@@ -17,6 +17,13 @@ function prepareProductSessionApprovalV4Data(registry,request,input,policyRef,re
  return Object.freeze({unsigned,get message(){return copyMessage(message);},purpose:'PRODUCT-SESSION-APPROVAL',dataOnly:true,SourceAdmission:false,NativeAdmission:false,approval:false});
 }
 function verifyProductSessionApprovalV4Data(registry,request,approval,policyRef,registrationOriginal,at=new Date()){
+ if (verifyHistoricalApproval) {
+  const checked = verifyHistoricalApproval(verifyMember, registry, request, approval, registrationOriginal, at);
+  const fresh = accountAuthorizationFromView(readAccountPolicyObservation(policyRef, checked.approval.account, at));
+  if (canonicalJSON(fresh) !== canonicalJSON(checked.authorization)) fail('ACCOUNT_POLICY_CHANGED');
+  const value = checked.approval;
+  return Object.freeze({approval:value,verifiedApproval:registerVerifiedPQSessionApproval(value,value.requestDigest,policyRef),signatureVerified:true,dataOnly:true,NativeAdmission:false,SourceAdmission:false});
+ }
  const proofAt=new Date(approval?.issuedAt);if(!Number.isFinite(+proofAt)||+proofAt>+at)fail('INVALID_APPROVAL_TIME');
  const prepared=prepareProductSessionApprovalV4Data(registry,request,{account:approval.account,expiresAt:approval.expiresAt},policyRef,registrationOriginal,proofAt),{walletProof,...unsigned}=approval;
  if(canonicalJSON(unsigned)!==canonicalJSON(prepared.unsigned)||approval.expiresAt<=at.toISOString())fail('SESSION_BINDING_MISMATCH');const a=prepared.unsigned.accountAuthorization;
