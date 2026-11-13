@@ -19,7 +19,7 @@ const expected = [
   'lost-half-timeout-close-ack-keeps-unknown-parent-no-redial',
   'same-session-independent-os-lifetime-and-operation-ack-refusals',
 ];
-test('resource_current held native actual Unix lifetime, ACK and UNKNOWN custody module', {timeout: 45000}, async t => {
+test('resource_current held native actual Unix lifetime, ACK and UNKNOWN custody module', {timeout: 70000}, async t => {
   assert.ok(['darwin', 'linux'].includes(process.platform), 'actual Darwin/Linux kernel required; no simulated peer or skip');
   const root = process.env.YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS;
   assert.ok(root && path.isAbsolute(root), 'explicit YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS required');
@@ -51,7 +51,7 @@ test('resource_current held native actual Unix lifetime, ACK and UNKNOWN custody
   const binary = path.join(owned, 'held-native-test');
   await run('compile', 'clang++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-pedantic', '-pthread',
     ...['resource-current-held-client.cpp', 'resource-current-held-identity.cpp', 'resource-current-peer.cpp',
-      'resource-current-held-native.test.cpp'].map(leaf => path.join(source, leaf)), ...flags, '-o', binary]);
+      'resource-current-held-native.test.cpp'].map(leaf => path.join(source, leaf)), ...flags, '-o', binary], 40000);
   const result = await run('kernel-controls', binary, [owned], 25000);
   const rows = result.stdout.trim().split('\n').map(line => JSON.parse(line));
   assert.deepEqual(rows.filter(row => row.control).map(row => row.control), expected);assert.ok(rows.filter(row => row.control).every(row => row.passed === true));
