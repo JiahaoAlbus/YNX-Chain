@@ -61,6 +61,7 @@ type p08BrokerAuthorityFixture struct {
 	queryErr       error
 	queryCalls     int
 	queryOperation string
+	queryBinding   func(*policy.TaskEffectBinding)
 }
 
 func (a *p08BrokerAuthorityFixture) queryCurrent(ctx context.Context) error {
@@ -79,11 +80,18 @@ func (a *p08BrokerAuthorityFixture) queryOriginalTaskMaterial(_ context.Context,
 		op = a.queryOperation
 	}
 	auth := a.authorization
+	if a.queryBinding != nil {
+		a.queryBinding(&auth.Binding)
+	}
 	g, err := open.DecodeBoundGrant(auth.Grant.Payload)
 	if err != nil {
 		a.f.t.Fatal(err)
 	}
-	return originalBrokerQueryMaterial{State: r.Step.ToolStep.AuthorityReferenceState, Binding: auth.Binding, Call: originalclient.TaskAuthorityCall{Grant: auth.Grant, Holder: auth.Holder, GrantRef: open.LegacyGrantRefV1{Realm: g.Realm, Tenant: g.Tenant, Kind: "grant", ID: g.ID, Rev: g.Rev}, OriginalOperation: op}}, a.queryErr
+	state := r.Step.ToolStep.AuthorityReferenceState
+	if state == "" && op != "" {
+		state = "UNKNOWN"
+	}
+	return originalBrokerQueryMaterial{State: state, Binding: auth.Binding, Call: originalclient.TaskAuthorityCall{Grant: auth.Grant, Holder: auth.Holder, GrantRef: open.LegacyGrantRefV1{Realm: g.Realm, Tenant: g.Tenant, Kind: "grant", ID: g.ID, Rev: g.Rev}, OriginalOperation: op}}, a.queryErr
 }
 
 func p08BrokerProofs(t *testing.T, auth OriginalTaskGrantAuthorization) OriginalTaskGrantAuthorization {
@@ -301,6 +309,45 @@ func TestP08AuthorityBrokerUnknownModelCheckpointRecovery(t *testing.T) {
 	result, err := f.server.runTaskModel(ctx, f.session, f.task.ID, r)
 	if err != nil || result.Status != "COMPLETED" || result.Content != "Actual PUBLIC HTTP provider answer for the verified order." || len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != complete.OriginalOperation || a.resolveCalls != resolves || f.providerRequests.Load() != 2 || p08BrokerStored(f).ToolStep.EffectFirstCause != first {
 		t.Fatalf("original checkpoint/query/model recovery: %+v %v NEW=%d query=%d", result, err, len(c.news), len(c.queries))
+	}
+}
+
+func TestP08AuthorityBrokerRejectsMismatchedHistoryBeforeBindingOperation(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, true)
+	f.approve(t)
+	good := p08BrokerResult(t, f)
+	ctx := context.Background()
+	const ref = "PUBLIC-original-proof-ref"
+	c.effectErr = errors.New("PUBLIC lost acknowledgement before original operation ID")
+	if _, err := f.server.dispatchApprovedStep(ctx, f.session, f.task.ID, f.step.ID, ref); !errors.Is(err, c.effectErr) {
+		t.Fatalf("lost acknowledgement: %v", err)
+	}
+	before := p08BrokerStored(f)
+	if before.Status != "UNKNOWN" || before.ToolStep.AuthorityOperationID != "" {
+		t.Fatal("test requires an uncertain step with no original ID yet")
+	}
+	p08BrokerRestart(t, f)
+	a.queryOperation = strings.Repeat("cd", 32)
+	a.queryBinding = func(b *policy.TaskEffectBinding) { b.SessionID = "PUBLIC-other-session" }
+	if _, err := f.server.reconcileStep(ctx, f.session, f.task.ID, f.step.ID, ref); !errors.Is(err, errToolConflict) {
+		t.Fatalf("mismatched history accepted: %v", err)
+	}
+	rejected := p08BrokerStored(f)
+	if !reflect.DeepEqual(before, rejected) || len(c.queries) != 0 {
+		t.Fatalf("mismatched history changed durable step or reached broker: operation=%q queries=%d",
+			rejected.ToolStep.AuthorityOperationID, len(c.queries))
+	}
+
+	p08BrokerRestart(t, f)
+	a.queryBinding = nil
+	a.queryOperation = good.OriginalOperation
+	c.result = good
+	receipt, err := f.server.reconcileStep(ctx, f.session, f.task.ID, f.step.ID, ref)
+	if err != nil || receipt.State != "COMMITTED" || receipt.AuthorityOperationID != good.OriginalOperation ||
+		len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != good.OriginalOperation ||
+		!bytes.Equal(c.queries[0].RawInput, c.news[0].RawInput) || p08BrokerStored(f).ToolStep.EffectFirstCause != before.ToolStep.EffectFirstCause {
+		t.Fatalf("original order recovery: state=%q operation=%q NEW=%d QUERY=%d err=%v",
+			receipt.State, receipt.AuthorityOperationID, len(c.news), len(c.queries), err)
 	}
 }
 

@@ -219,12 +219,14 @@ func (b *originalTaskAuthorityBroker) reconcile(ctx context.Context, e *original
 	if !originalBrokerOperation(material.Call.OriginalOperation) {
 		return taskReadReceipt{}, errToolConflict
 	}
-	if err := retainOriginalBrokerReference(e.store, request, originalclient.TaskAuthorityResult{State: material.State, OriginalOperation: material.Call.OriginalOperation}); err != nil {
-		return taskReadReceipt{}, err
-	}
 	auth := OriginalTaskGrantAuthorization{Binding: material.Binding, Grant: material.Call.Grant, Holder: material.Call.Holder}
 	selected, err := b.selected(e.store, call, auth, true)
 	if err != nil {
+		return taskReadReceipt{}, err
+	}
+	// Pin the historical operation only after its binding matches this Shop step.
+	// Keep the pin before the query so a lost response can be recovered without NEW.
+	if err := retainOriginalBrokerReference(e.store, request, originalclient.TaskAuthorityResult{State: material.State, OriginalOperation: material.Call.OriginalOperation}); err != nil {
 		return taskReadReceipt{}, err
 	}
 	material.Call.RawInput = bytes.Clone(selected.Input)
