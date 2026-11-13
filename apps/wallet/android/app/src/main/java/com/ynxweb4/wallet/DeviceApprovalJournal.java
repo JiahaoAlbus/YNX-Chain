@@ -85,14 +85,22 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
      * rechecks the current account and policy before any approval commit.
      */
     boolean hasCleanAttempt(String operation, byte[] binding) {
+        byte[][] attempt = readAttempt(operation, binding);
+        if (attempt == null) return false;
+        byte[] receipt = attempt[0], member = attempt[1], first = attempt[2];
+        return receipt != null && member != null && member.length > 0
+            && first != null && noFailure(receiptData(first, FAILURE_SIZE), 0)
+            && cleanReceipt(receipt);
+    }
+
+    /** Null is absent. A row with absent evidence is still ENTERED. */
+    byte[][] readAttempt(String operation, byte[] binding) {
         SQLiteDatabase db = getReadableDatabase();
         try (Cursor row = db.query(TABLE, new String[]{"binding", "receipt", "member", "first_failure"},
                 KEY, new String[]{operation}, null, null, null)) {
-            if (!row.moveToFirst()) return false;
+            if (!row.moveToFirst()) return null;
             requireEqual(binding, row.getBlob(0));
-            byte[] receipt = row.getBlob(1), member = row.getBlob(2), first = row.getBlob(3);
-            return receipt != null && member != null && member.length > 0
-                && first != null && noFailure(receiptData(first, FAILURE_SIZE), 0) && cleanReceipt(receipt);
+            return new byte[][]{row.getBlob(1), row.getBlob(2), row.getBlob(3)};
         }
     }
 

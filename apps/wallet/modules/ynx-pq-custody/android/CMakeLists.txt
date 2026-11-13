@@ -40,5 +40,6 @@ target_link_options(ynx_pq_custody PRIVATE -Wl,--no-undefined)
 option(YNX_ANDROID_DEVICE_APPROVAL "Link original Android DEVICE approval" OFF)
 if(YNX_ANDROID_DEVICE_APPROVAL)
  add_subdirectory(../native/android-account-approval android-account-approval)
- target_sources(ynx_pq_custody PRIVATE $<TARGET_OBJECTS:ynx_android_account_approval>)
+ target_sources(ynx_pq_custody PRIVATE src/main/cpp/DeviceApprovalJournalBridge.cpp
+  $<TARGET_OBJECTS:ynx_android_account_approval>)
 endif()
