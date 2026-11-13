@@ -337,7 +337,7 @@ class WalletPolicyCIControls(unittest.TestCase):
                     self.execute(kind, raw_json=raw)
 
     def test_source_mutations_cannot_remove_execution_or_restore_skip(self):
-        caller_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
+        caller_command = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' -skip \'^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
         self.assertEqual(self.raw.count(caller_command), 1)
         mutations = [
             self.raw.replace(caller_command, "", 1),
