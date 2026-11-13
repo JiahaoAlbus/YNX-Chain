@@ -21,6 +21,48 @@ finalize = module('pq-finalize-observation.py')
 require, strict = prior.require, prior.strict
 
 
+def readiness_resources(receipt):
+    peak = receipt.get('peakRSSSample')
+    if peak is None:
+        return None
+    rss = receipt['peakRSSBytes']
+    rows = peak['processes']
+    identities = {(row['pid'], row['startTicks']) for row in rows}
+    observed = [row['rssBytes'] for row in rows if row['rssBytes'] is not None]
+    require(len(identities) == len(rows) and all(type(value) is int and value >= 0 for value in observed)
+            and sum(observed) == rss == peak['rssBytes'], 'original peak RSS samples do not reconcile')
+    cap = receipt['caps']['rssBytes']
+    pool = receipt.get('senderPoolPreparation') or {}
+    lanes = pool.get('liveMaterialsPreparation', [])
+    require([lane['node'] for lane in lanes] == list(range(len(lanes))) and len(lanes) <= 4,
+            'original proof READY lane order differs')
+    return dict(peakRSSBytes=rss, rssCapBytes=cap, rssHeadroomBytes=cap-rss,
+                unmeasuredProcessCount=len(rows)-len(observed), readyProofLaneCount=len(lanes),
+                signerLaunchToReadyNs=pool.get('sourcePreparation', {}).get('parentLaunchToReadyNs'),
+                proofLaunchToReadyNs={str(lane['node']): lane.get('parentLaunchToReadyNs') for lane in lanes},
+                observedProcesses=rows)
+
+
+def compare_readiness(before, after):
+    """Compare the measured preparation envelopes without attributing a TPS gain."""
+    require(before.get('fullCohort') is None and after.get('status') == 'READY_ONLY_OBSERVED',
+            'original failed preparation and completed READY-only readback required')
+    left, right = (report['readinessResources'] for report in (before, after))
+    require(left['readyProofLaneCount'] < 4 and right['readyProofLaneCount'] == 4,
+            'original preparation outcomes differ')
+    require(before['toolchain'] == after['toolchain'] and before['caps'] == after['caps']
+            and before['conditions'] == after['conditions'], 'original configured resource conditions differ')
+    left_host, right_host = (report['hardware'] for report in (before, after))
+    keys = ('system', 'machine', 'cpuModels', 'kernelRelease', 'effectiveAffinity')
+    same_reported_host_class = (left_host['status'] == right_host['status'] == 'OBSERVED'
+                                and all(left_host[key] == right_host[key] for key in keys)
+                                and left_host['filesystem']['type'] == right_host['filesystem']['type'])
+    return dict(before=left, after=right, sameReportedHostClass=same_reported_host_class,
+                identicalPhysicalHostProven=False,
+                observedPeakDifferenceBytes=right['peakRSSBytes']-left['peakRSSBytes'],
+                successfulBusinessComparison=False)
+
+
 def inspect(raw, sha256, controller, configuration_sha256):
     files, manifest, _ = prior.original.public_archive(raw, sha256, entry_limit=8192)
     plans = [path for path in files if path.rsplit('/', 1)[-1] == 'pq-first100-held-plan.json']
@@ -103,7 +145,15 @@ def inspect(raw, sha256, controller, configuration_sha256):
                         and result['included'] is True and result['finalized'] is True
                         and result['executionSuccessful'] is True and str(result['executionCode']) == '0'
                         and result['nativeGrant'] is False, 'original proof execution or dual identity differs')
+    ready = receipt.get('heldReadyOnlyComplete') is True
+    if ready:
+        pool = receipt['senderPoolPreparation']
+        require(configuration['options']['held_ready_only'] is True and receipt['loadExecuted'] is False
+                and load is None and receipt['preparationOnlyDemandAccounting']['notReleased'] == 500
+                and [lane['node'] for lane in pool['liveMaterialsPreparation']] == list(range(4)),
+                'original READY-only boundary differs')
     finalize_by_node = {}
+    finalize_records = {ref['node']: ref for ref in receipt.get('normalFinalizeObservation', {}).get('records', [])}
     for record in commits['records']:
         if not record['producerReportedUsable']:
             continue
@@ -111,19 +161,33 @@ def inspect(raw, sha256, controller, configuration_sha256):
         path = f'finalize-observation-node-{node}-original.json'
         if prefix + path not in files:
             continue
+        if finalize_records:
+            ref = finalize_records[node]
+            require(ref['path'] == path and ref['pid'] == record['pid']
+                    and all(ref[key] == manifest[prefix+path][key] for key in ('bytes', 'sha256')),
+                    'Finalize observation receipt pin differs')
         commit = record['originalSnapshot']
         original = finalize.validate(read(path), pid=commit['processID'], chain_id=commit['chainID'],
                                      genesis_hash=commit['originalGenesisHash'])
         heights = {int(row['height']) for row in observed['records']}
         business_finalize = finalize.business_heights(original, heights, commit['samples'])
-        finalize_by_node[str(node)] = dict(path=path, sha256=manifest[prefix+path]['sha256'],
-                                         original=original, business=business_finalize)
-    return dict(report, status='OBSERVED' if load is not None else 'LOAD_RESULT_MISSING',
+        completed = [sample for sample in original['samples'] if sample['success']]
+        finalize_by_node[str(node)] = dict(
+            path=path, sha256=manifest[prefix+path]['sha256'], original=original, business=business_finalize,
+            retainedSuccessStages={stage: stages.samples(
+                [sample['childrenNs'].get(stage) for sample in completed], len(completed))
+                for stage in sorted(finalize.CHILDREN)},
+            retainedSuccessElapsed=stages.samples([sample['elapsedNs'] for sample in completed], len(completed)))
+    status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
+    return dict(report, status=status,
+                preparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
+                senderPoolPreparation=receipt.get('senderPoolPreparation'),
                 source=source, tools=tools, runtimePlanSHA256=runtime_pin, firstCause=receipt.get('firstCause'),
                 cleanupComplete=receipt.get('cleanupComplete'), hardware=receipt.get('runtimeHardware'),
                 toolchain=configuration.get('go'), conditions=receipt.get('loadConditions'),
                 caps=receipt.get('caps'), freshResourceAdmission=receipt.get('freshResourceAdmission'),
                 normalNodeCleanExit=receipt.get('normalNodeCleanExit'),
+                readinessResources=readiness_resources(receipt),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
@@ -138,8 +202,14 @@ if __name__ == '__main__':
     parser.add_argument('--archive', type=Path, required=True)
     for argument in ('archive-sha256', 'controller', 'configuration-sha256'):
         parser.add_argument('--' + argument, required=True)
+    parser.add_argument('--before-readback', type=Path)
     args = parser.parse_args()
     with args.archive.open('rb') as archive:
         result = inspect(archive.read((128 << 20) + 1), args.archive_sha256,
                          args.controller, args.configuration_sha256)
+    if args.before_readback is not None:
+        with args.before_readback.open('rb') as baseline:
+            original = baseline.read((32 << 20) + 1)
+        require(len(original) <= 32 << 20, 'original before readback exceeds bound')
+        result['readinessComparison'] = compare_readiness(strict(original), result)
     print(json.dumps(result, indent=2, sort_keys=True))

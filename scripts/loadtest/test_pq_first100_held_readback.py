@@ -24,12 +24,40 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
-    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None):
+    def test_peak_rss_preserves_overage_and_missing_process_samples(self):
+        receipt = dict(peakRSSBytes=12, caps=dict(rssBytes=10), peakRSSSample=dict(rssBytes=12, processes=[
+            dict(pid=1, startTicks=10, rssBytes=12), dict(pid=2, startTicks=11, rssBytes=None)]))
+        resources = reader.readiness_resources(receipt)
+        self.assertEqual(resources['rssHeadroomBytes'], -2)
+        self.assertEqual(resources['unmeasuredProcessCount'], 1)
+        receipt['peakRSSSample']['rssBytes'] = 13
+        with self.assertRaisesRegex(RuntimeError, 'do not reconcile'):
+            reader.readiness_resources(receipt)
+
+    def test_resource_comparison_keeps_host_identity_and_business_scope_separate(self):
+        hardware = dict(status='OBSERVED', system='Linux', machine='x86_64', cpuModels=['fixture'],
+                        kernelRelease='fixture', effectiveAffinity=[0, 1], filesystem=dict(type='ext4'))
+        before = dict(status='LOAD_RESULT_MISSING', fullCohort=None, toolchain='go1.26.11',
+                      caps=dict(rssBytes=10), conditions=dict(accounts=500), hardware=hardware,
+                      readinessResources=dict(readyProofLaneCount=3, peakRSSBytes=12))
+        after = dict(before, status='READY_ONLY_OBSERVED',
+                     readinessResources=dict(readyProofLaneCount=4, peakRSSBytes=8))
+        comparison = reader.compare_readiness(before, after)
+        self.assertEqual(comparison['observedPeakDifferenceBytes'], -4)
+        self.assertTrue(comparison['sameReportedHostClass'])
+        self.assertFalse(comparison['identicalPhysicalHostProven'])
+        self.assertFalse(comparison['successfulBusinessComparison'])
+        with self.assertRaisesRegex(RuntimeError, 'conditions differ'):
+            reader.compare_readiness(before, dict(after, caps=dict(rssBytes=20)))
+
+    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None, ready_lanes=None):
         source = dict(commit='a' * 40, tree='b' * 40)
         tools = dict(commit='c' * 40, tree='d' * 40)
         config = dict(profile='first100-held-public-owner', nodeCount=4, pressureLevel=1,
                       source=source['commit'], sourceTree=source['tree'],
                       tools=tools['commit'], toolsTree=tools['tree'])
+        if ready_lanes is not None:
+            config['options'] = dict(held_ready_only=True)
         pin = sha(encode(config))
         plan = dict(configuration=config, configurationSHA256=pin, runtimePlanSHA256=None)
         output = io.BytesIO()
@@ -38,6 +66,11 @@ class HeldReadbackTests(unittest.TestCase):
             if with_receipt:
                 archive.writestr(prefix + 'FIRST100-HELD-CI.json', encode(dict(plan, controllerCommit=self.controller)))
                 receipt = dict(source=source, toolIdentity=tools, loadExecuted=False, firstCause='stopped before release')
+                if ready_lanes is not None:
+                    receipt.update(heldReadyOnlyComplete=True, firstCause=None,
+                                   preparationOnlyDemandAccounting=dict(notReleased=500),
+                                   senderPoolPreparation=dict(liveMaterialsPreparation=[
+                                       dict(node=node) for node in ready_lanes]))
                 if confirmed is not None:
                     extra, load = confirmed
                     receipt.update(loadExecuted=True, firstCause=None, planSHA256=sha(extra['load-plan.json']),
@@ -58,6 +91,16 @@ class HeldReadbackTests(unittest.TestCase):
             self.assertIsNone(report['fullCohort'])
             if has_receipt:
                 self.assertEqual(report['firstCause'], 'stopped before release')
+
+    def test_ready_requires_four_lanes_and_preserves_unreleased_demand(self):
+        raw, pin = self.fixture(ready_lanes=range(4))
+        report = reader.inspect(raw, sha(raw), self.controller, pin)
+        self.assertEqual(report['status'], 'READY_ONLY_OBSERVED')
+        self.assertEqual(report['preparationOnlyDemandAccounting']['notReleased'], 500)
+        self.assertIsNone(report['fullCohort'])
+        raw, pin = self.fixture(ready_lanes=range(3))
+        with self.assertRaisesRegex(RuntimeError, 'READY-only boundary'):
+            reader.inspect(raw, sha(raw), self.controller, pin)
 
     def test_full_cohort_counts_one_confirmed_and_rejects_substituted_reply(self):
         fixture = reader.module('test_pq_observed_throughput.py').ObservedThroughputControls()
