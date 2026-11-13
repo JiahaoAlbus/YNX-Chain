@@ -60,7 +60,7 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		clone, foreign, fabricated observed
 	}
 	first := make(chan observations, 1)
-	racing := make(chan *http.Request, 1)
+	secondRequest := make(chan *http.Request, 1)
 	late := make(chan observed, 1)
 	startRead, resumeIssuer, resumeClose := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	var startOnce, issuerOnce, closeOnce sync.Once
@@ -70,7 +70,7 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	defer func() { start(); allowIssuer(); allowClose() }()
 	server := &http.Server{ReadHeaderTimeout: time.Second, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/PUBLIC-close-race" {
-			racing <- r
+			secondRequest <- r
 			<-startRead
 			late <- observe(owner, r)
 			<-resumeClose
@@ -126,7 +126,7 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	assertRefused("original request after handler exit", observe(owner, got.request))
 
 	writeRequest("/PUBLIC-close-race")
-	r := waitOriginalRequestIdentityTest(t, ctx, tracing)
+	r := waitOriginalRequestIdentityTest(t, ctx, secondRequest)
 	conn, ok := r.Context().Value(originalServerTLSConnKey{}).(*originalServerTLSConn)
 	if !ok || conn != got.request.Context().Value(originalServerTLSConnKey{}) || r.Context().Err() != nil {
 		t.Fatal("second request did not reuse the current original mTLS connection")
