@@ -49,6 +49,7 @@ test('protected navigation without the Main holder never falls back to legacy in
  const f=await fixture();
  await f.key.run(async()=>{
   assert.throws(()=>f.steps.openProtectedOrder('order-pay-review','PUBLIC-order'),{code:'STANDALONE_PAY_PROTECTED_HOLDER_REQUIRED'});
+  assert.throws(()=>f.steps.openProtectedOrder('order-broadcast-review','PUBLIC-order','invoice_terms','0x'+'a'.repeat(64)),{code:'STANDALONE_PAY_PROTECTED_HOLDER_REQUIRED'});
   assert.throws(()=>f.steps.openProtectedOrder('create-intent','PUBLIC-order'),{code:'STANDALONE_PAY_ORDER_INVALID'});
   assert.deepEqual(f.calls,[]);
  });
@@ -90,7 +91,7 @@ test('protected status and invoke bind the retained npi and same holder across a
 test('protected capture rejects a substituted request, account, generation or operation before status',async()=>{
  const f=await fixture({invokeOriginalOrderResult(){assert.fail('invalid holder invoked');}});
  await f.key.run(async()=>{
-  for(const patch of [{request:{}},{account:other},{walletGeneration:-1},{nativeGeneration:NaN},{originalOperation:'invalid'}]){
+  for(const patch of [{request:{}},{account:other},{walletGeneration:-1},{nativeGeneration:NaN},{nativeGeneration:0},{originalOperation:'invalid'}]){
    const steps=createMainStandalonePayNavigationSteps({nativePayProduct:f.pay,keyAccess:f.key,captureOriginalShopHolder(request){
     const holder=Object.freeze({request,originalOperation,account,walletGeneration:f.key.status().revision,nativeGeneration:3,session:{},current:()=>holder,...patch});
     return holder;
@@ -98,5 +99,42 @@ test('protected capture rejects a substituted request, account, generation or op
    assert.throws(()=>steps.openProtectedOrder('order-pay-review','PUBLIC-order'),{code:'STANDALONE_PAY_PROTECTED_HOLDER_INVALID'});
    assert.deepEqual(f.calls,[]);
   }
+ });
+});
+
+test('protected broadcast review binds the exact original hash and kind before calling Pay',async()=>{
+ const originalHash='0x'+'a'.repeat(64),captures=[],invocations=[];
+ const f=await fixture({
+  invoke(){assert.fail('legacy invoke');},
+  invokeOriginalOrderResult(request,npi,current){
+   current();invocations.push({request,npi});return {ok:true};
+  }
+ });
+ const steps=createMainStandalonePayNavigationSteps({nativePayProduct:f.pay,keyAccess:f.key,captureOriginalShopHolder(request){
+  captures.push(request);
+  const holder=Object.freeze({request,originalOperation,account,walletGeneration:f.key.status().revision,nativeGeneration:1,session:{},current:()=>holder});
+  return holder;
+ }});
+ await f.key.run(async()=>{
+  for(const kind of ['send','invoice_payment',{},null]){
+   assert.throws(()=>steps.openProtectedOrder('order-broadcast-review','PUBLIC-order',kind,originalHash),{code:'STANDALONE_PAY_BROADCAST_KIND_INVALID'});
+  }
+  for(const hash of ['0x123','0x'+'A'.repeat(64),{hash:originalHash}]){
+   assert.throws(()=>steps.openProtectedOrder('order-broadcast-review','PUBLIC-order','invoice_terms',hash),{code:'STANDALONE_PAY_ORIGINAL_HASH_INVALID'});
+  }
+  assert.deepEqual(captures,[]);
+  for(const kind of ['invoice_terms','invoice_settle','invoice_refund']){
+   const child=steps.openProtectedOrder('order-broadcast-review','PUBLIC-order',kind,originalHash);
+   assert.equal((await child.status()).ok,true);
+   assert.deepEqual(await child.invoke(),{ok:true,value:{ok:true}});
+   const {request,npi}=invocations.at(-1);
+   assert.equal(request,captures.at(-1));
+   assert(Object.isFrozen(request));
+   assert.deepEqual(request,{action:'order-broadcast-review',productId:'shop.order',sourceOrder:'PUBLIC-order',kind,originalHash});
+   assert.equal(npi,originalOperation);
+   assert.equal((await child.invoke()).error.code,'STANDALONE_PAY_INVOKE_ONCE');
+   await child.close();
+  }
+  assert.equal(invocations.length,3);
  });
 });

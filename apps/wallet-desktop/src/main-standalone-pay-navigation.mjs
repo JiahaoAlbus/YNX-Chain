@@ -4,17 +4,22 @@ import {types} from 'node:util';
 // may enter. A protected caller also needs the original holder captured by
 // Main's supplier. No renderer/IPC input can install or provide that holder.
 const fault=code=>Object.assign(Error(code),{code});
-const protectedActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-reconcile-operation']);
+const protectedActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-reconcile-operation','order-broadcast-review']);
+const broadcastKinds=new Set(['invoice_terms','invoice_settle','invoice_refund']);
 function publicError(cause){const raw=cause?.data?.code??cause?.code,code=typeof raw==='string'&&/^[A-Z0-9_]{1,128}$/.test(raw)?raw:'STANDALONE_PAY_NAVIGATION_FAILED';return {ok:false,error:{code,message:'Original Pay navigation did not complete. Preserve the original order; no retry or approval is performed.'}};}
 export function createMainStandalonePayNavigationSteps({nativePayProduct,keyAccess,captureOriginalShopHolder}){
  let closing=false,openingProtected=false,held=null,shutdown=null;
  function open(action,args,protectedOrder=false){
   if(closing)throw fault('STANDALONE_PAY_NAVIGATION_CLOSED');if(held||openingProtected)throw fault('STANDALONE_PAY_NAVIGATION_BUSY');
-  if(args.length!==(action==='order-refund-review'?3:action==='order-reconcile-operation'?2:1)||typeof args[0]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(args[0]))throw fault('STANDALONE_PAY_ORDER_INVALID');
+  const broadcast=action==='order-broadcast-review';
+  const argCount=broadcast||action==='order-refund-review'?3:action==='order-reconcile-operation'?2:1;
+  if(args.length!==argCount||typeof args[0]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(args[0]))throw fault('STANDALONE_PAY_ORDER_INVALID');
   const sourceOrder=args[0];
   if(action==='order-refund-review'&&(typeof args[1]!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(args[1])||typeof args[2]!=='string'||!/^[0-9]{1,256}$/.test(args[2])))throw fault('STANDALONE_PAY_REFUND_INVALID');
   if(action==='order-reconcile-operation'&&(typeof args[1]!=='string'||!/^0x[0-9a-f]{64}$/.test(args[1])))throw fault('STANDALONE_PAY_ORIGINAL_HASH_INVALID');
-  const request=Object.freeze({action,productId:'shop.order',sourceOrder,...(action==='order-reconcile-operation'?{nativeHash:args[1]}:{}),...(action==='order-refund-review'?{refundId:args[1],amountAtoms:args[2]}:{})});
+  if(broadcast&&!broadcastKinds.has(args[1]))throw fault('STANDALONE_PAY_BROADCAST_KIND_INVALID');
+  if(broadcast&&(typeof args[2]!=='string'||!/^0x[0-9a-f]{64}$/.test(args[2])))throw fault('STANDALONE_PAY_ORIGINAL_HASH_INVALID');
+  const request=Object.freeze({action,productId:'shop.order',sourceOrder,...(action==='order-reconcile-operation'?{nativeHash:args[1]}:{}),...(action==='order-refund-review'?{refundId:args[1],amountAtoms:args[2]}:{}),...(broadcast?{kind:args[1],originalHash:args[2]}:{})});
   const guard=keyAccess.current();guard.assert();const original=keyAccess.status();
   if(original.locked||original.authenticating||original.account!==guard.account||!/^0x[0-9a-f]{40}$/.test(original.account??'')||!Number.isSafeInteger(original.revision)||!Number.isSafeInteger(guard.expiresAtMs))throw fault('STANDALONE_PAY_CONTEXT_REQUIRED');
   const account=original.account,generation=original.revision,deadline=guard.expiresAtMs;
@@ -30,7 +35,7 @@ export function createMainStandalonePayNavigationSteps({nativePayProduct,keyAcce
    const walletGeneration=fields.walletGeneration?.value,nativeGeneration=fields.nativeGeneration?.value;
    const session=fields.session?.value,readCurrent=fields.current?.value;
    if(holderRequest!==request||typeof originalOperation!=='string'||!/^npi_[0-9a-f]{48}$/.test(originalOperation)||
-      holderAccount!==account||walletGeneration!==generation||!Number.isSafeInteger(nativeGeneration)||nativeGeneration<0||
+      holderAccount!==account||walletGeneration!==generation||!Number.isSafeInteger(nativeGeneration)||nativeGeneration<=0||
       !session||typeof session!=='object'||types.isProxy(session)||typeof readCurrent!=='function'||types.isProxy(readCurrent))
     throw fault('STANDALONE_PAY_PROTECTED_HOLDER_INVALID');
    operation=originalOperation;
