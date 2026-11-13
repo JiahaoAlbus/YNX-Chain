@@ -12,4 +12,4 @@ function verifyMember(wire,networkId,owner,purpose,message,pkA,pkB){
  if(c.N!==1||m.index!==0||m.pathA.length||m.pathB.length||c.owner!==owner||c.purpose!==purpose||!publicBytesEqual(c.chainId,network)||!publicBytesEqual(c.pkA,a)||!publicBytesEqual(c.pkB,z)||!publicBytesEqual(m.message,message))fail('PQ_SESSION_MEMBER_BINDING_MISMATCH');
  const verifier=createVerifier({chainId:network,purpose,cacheEntries:0,resolveTrustedOwner:()=>({algorithmVersion:VERSION,enabled:true,chainId:network,owner,pkA:a,pkB:z,purpose,policyRevision:'v4-math-only',activeFrom:0,revokedAt:null})});try{if(!verifier.verifyOne(b,{height:0}))fail('PQ_SESSION_MEMBER_SIGNATURE_INVALID');}finally{verifier.clear();}
 }
-export const originalV4PrivateVerificationDATA=createOriginalV4VerificationDATAFromFixedMath(Object.freeze({verifyMember,copyMessage:b=>copy(b,16384)}));
+export const originalV4PrivateVerificationDATA=createOriginalV4VerificationDATAFromFixedMath(Object.freeze({verifyMember,copyMessage:b=>copy(b,16384),copyApprovalMember:copy}));
