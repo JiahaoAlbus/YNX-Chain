@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Hosted Linux/Go1.26.10 real-compiler regressions; no YNX runtime is executed."""
+"""Go1.26.11 producer controls and hosted real-compiler regressions; no YNX runtime."""
+import ast
 import hashlib
 import json
 import os
@@ -13,6 +14,55 @@ import unittest
 
 
 HELPER = Path(__file__).resolve().with_name('build-pq-offline-migration-tools.sh')
+
+
+class OfflineMigrationToolsToolchainControls(unittest.TestCase):
+    """Execute the actual producer guards over public observations, without Go."""
+    def setUp(self):
+        body = HELPER.read_text().split("<<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
+        self.tree = ast.parse(body)
+        require = [n for n in self.tree.body if isinstance(n, ast.FunctionDef) and n.name == 'require']
+        self.assertEqual(len(require), 1)
+        self.namespace = {}
+        exec(compile(ast.Module(body=require, type_ignores=[]), str(HELPER), 'exec'), self.namespace)
+
+    def guard(self, message, **values):
+        candidates = [n for n in ast.walk(self.tree) if isinstance(n, ast.Expr)
+                      and isinstance(n.value, ast.Call) and isinstance(n.value.func, ast.Name)
+                      and n.value.func.id == 'require' and len(n.value.args) == 2
+                      and isinstance(n.value.args[1], ast.Constant)
+                      and message in str(n.value.args[1].value)]
+        self.assertEqual(len(candidates), 1)
+        namespace = dict(self.namespace, **values)
+        exec(compile(ast.Module(body=candidates, type_ignores=[]), str(HELPER), 'exec'), namespace)
+
+    def test_actual_compiler_guard_requires_exact_patched_linux_toolchain(self):
+        seen = []
+        def observe(raw):
+            def command(argv, cwd, environment):
+                seen.append((argv, cwd, environment))
+                return raw
+            return command
+        for raw in (b'go version go1.26.11 linux/amd64\n',
+                    b'go version go1.26.11 linux/amd64'):
+            self.guard('compiler required', command=observe(raw), work='original-source', environment={})
+        for raw in (b'go version go1.26.10 linux/amd64\n',
+                    b'go version go1.26.12 linux/amd64\n',
+                    b'go version go1.26.11 darwin/arm64\n',
+                    b'go version go1.26.11 linux/amd64\nadditional output\n'):
+            with self.subTest(observation=raw):
+                with self.assertRaisesRegex(RuntimeError, 'compiler required'):
+                    self.guard('compiler required', command=observe(raw), work='original-source', environment={})
+        self.assertEqual(seen, [(['go', 'version'], 'original-source', {})] * 6)
+
+    def test_actual_elf_header_guard_refuses_old_or_mixed_observation(self):
+        path = Path('/exclusive-public/ynx-chaind')
+        self.guard('actual ELF Go version differs', path=path, lines=[str(path) + ': go1.26.11'])
+        for lines in ([], [str(path) + ': go1.26.10'], [str(path) + ': go1.26.12'],
+                      ['/different/ynx-chaind: go1.26.11']):
+            with self.subTest(lines=lines):
+                with self.assertRaisesRegex(RuntimeError, 'actual ELF Go version differs'):
+                    self.guard('actual ELF Go version differs', path=path, lines=lines)
 
 
 class OfflineMigrationToolsProducer(unittest.TestCase):
@@ -30,6 +80,9 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.git('init', '--quiet', '--template=')
         self.git('config', 'user.name', 'Synthetic public producer fixture')
         self.git('config', 'user.email', 'synthetic@example.invalid')
+        # Keep the historical target minimum, as in the fixed 7f checkout. The
+        # current producer must compile it using actual Go1.26.11, without
+        # rewriting the selected Git object or relabeling its source identity.
         (self.repository / 'go.mod').write_text('module example.invalid/pq-offline-tools-fixture\n\ngo 1.26.10\n', encoding='ascii')
         for name in ('ynx-chaind', 'ynx-consensus-package'):
             directory = self.repository / 'cmd' / name
@@ -129,6 +182,8 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         for name in ('ynx-chaind', 'ynx-consensus-package'):
             path = output / name
             actual_raw, settings = self.read_go_info(path)
+            self.assertEqual(record['binaries'][name]['goInfo']['goVersion'], 'go1.26.11')
+            self.assertEqual(actual_raw.splitlines()[0], str(path) + ': go1.26.11')
             self.assertEqual(record['binaries'][name]['goInfo']['raw'], actual_raw)
             self.assertEqual(record['binaries'][name]['goInfo']['settings'], settings)
             self.assertEqual(record['binaries'][name]['sha256'], hashlib.sha256(path.read_bytes()).hexdigest())

@@ -147,12 +147,12 @@ def source_record(path, expected, tx, commit, native_release, bft_release, nativ
 
 def tools_build_info(value, name, full_commit):
     fields(value, ('goVersion', 'path', 'settings', 'raw'))
-    require(value['goVersion'] == 'go1.26.10' and type(value['path']) is str
+    require(value['goVersion'] == 'go1.26.11' and type(value['path']) is str
             and value['path'].endswith('/cmd/' + name) and type(value['raw']) is str
             and 0 < len(value['raw'].encode('utf8')) <= 128 << 10,
             'offline original Go build identity differs')
     lines = value['raw'].splitlines()
-    require(lines and lines[0].endswith('/' + name + ': go1.26.10'),
+    require(lines and lines[0].endswith('/' + name + ': go1.26.11'),
             'offline original Go metadata header differs')
     settings, main_path = {}, None
     for line in lines[1:]:

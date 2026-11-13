@@ -101,7 +101,7 @@ def source_observation():
 
 before = source_observation()
 environment.update(CGO_ENABLED='0', GOOS='linux', GOARCH='amd64', GOAMD64='v1', GOFLAGS='', GOENV='off', GOWORK='off', GOTOOLCHAIN='local')
-require(command(['go', 'version'], work, environment).strip() == b'go version go1.26.10 linux/amd64', 'normal Linux Go1.26.10 compiler required')
+require(command(['go', 'version'], work, environment).strip() == b'go version go1.26.11 linux/amd64', 'normal Linux Go1.26.11 compiler required')
 native_flags = '-s -w -X main.buildCommit=' + commit + ' -X main.buildRelease=pq-offline-validation'
 binaries = {}
 for name in ('ynx-chaind', 'ynx-consensus-package'):
@@ -111,7 +111,7 @@ for name in ('ynx-chaind', 'ynx-consensus-package'):
     require(path.is_file() and not path.is_symlink(), 'actual regular compiled ELF required')
     raw = command(['go', 'version', '-m', str(path)], work, environment, 128 << 10).decode('utf8')
     lines = raw.splitlines()
-    require(lines and lines[0] == str(path) + ': go1.26.10', 'actual ELF Go version differs')
+    require(lines and lines[0] == str(path) + ': go1.26.11', 'actual ELF Go version differs')
     settings, main_path = {}, None
     for line in lines[1:]:
         if line.startswith('\tbuild\t'):
@@ -130,7 +130,7 @@ for name in ('ynx-chaind', 'ynx-consensus-package'):
     for key, expected in {'-buildmode': 'exe', '-trimpath': 'true', 'CGO_ENABLED': '0', 'GOOS': 'linux', 'GOARCH': 'amd64',
                           'vcs': 'git', 'vcs.revision': commit, 'vcs.modified': 'false'}.items():
         require(settings.get(key) == expected, 'actual ELF build setting mismatch: ' + name + ':' + key)
-    # Go1.26.10 load/pkg.go deliberately omits -ldflags under -trimpath
+    # Go1.26.11 load/pkg.go deliberately omits -ldflags under -trimpath
     # (issue 52372), even though those flags still reach the linker. Preserve
     # that actual absence, not the requested flags in an observed metadata slot.
     require('-ldflags' not in settings, 'unexpected ldflags metadata under fixed trimpath toolchain')

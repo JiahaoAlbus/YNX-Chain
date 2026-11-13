@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Controls for the frozen-source exporter; no cryptography or private keys."""
+import ast
 import hashlib
+import re
 import importlib.util
 import json
 from pathlib import Path
@@ -30,9 +32,71 @@ def graph():
 
 
 class FrozenVerificationSourceControls(unittest.TestCase):
+
+    @staticmethod
+    def actual_guard(path, reason, values):
+        raw = path.read_text()
+        if path.suffix == '.sh':
+            raw = raw.split("<<'PY'\n", 1)[1].rsplit('\nPY', 1)[0]
+        tree = ast.parse(raw)
+        guards = [node for node in ast.walk(tree)
+                  if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
+                  and isinstance(node.value.func, ast.Name) and node.value.func.id in ('need', 'require')
+                  and len(node.value.args) == 2 and isinstance(node.value.args[1], ast.Constant)
+                  and reason in str(node.value.args[1].value)]
+        if len(guards) != 1:
+            raise AssertionError('one exact production guard required: ' + reason)
+        scope = dict(need=exporter.need, require=exporter.need, MIN_GO=exporter.MIN_GO,
+                     MODULE=exporter.MODULE, re=re)
+        scope.update(values)
+        exec(compile(ast.Module(body=guards, type_ignores=[]), str(path), 'exec'), scope)
+
+    def test_current_native_producer_requires_patched_tool_and_actual_elf(self):
+        native = SCRIPT.with_name('build-native-transition-candidate.sh')
+        for version in ('1.26.11', '1.26.10', '1.26.12', '1.26.1'):
+            with self.subTest(version=version):
+                values = dict(command=lambda argv: ('go version go' + version + ' linux/amd64').encode())
+                if version == '1.26.11':
+                    self.actual_guard(native, 'normal pinned Linux Go', values)
+                else:
+                    with self.assertRaises(RuntimeError):
+                        self.actual_guard(native, 'normal pinned Linux Go', values)
+                values = dict(lines=['/unused/ynx-chaind: go' + version], binary=Path('/unused/ynx-chaind'))
+                if version == '1.26.11':
+                    self.actual_guard(native, 'actual native ELF Go version differs', values)
+                else:
+                    with self.assertRaises(RuntimeError):
+                        self.actual_guard(native, 'actual native ELF Go version differs', values)
+
+    def test_both_current_source_consumers_require_one_patched_local_toolchain(self):
+        self.assertEqual(exporter.go_environment()['GOTOOLCHAIN'], 'local')
+        for version in ('1.26.11', '1.26.10', '1.26.12'):
+            for reason, values in [
+                ('producer required', dict(go_version='go' + version)),
+                ('original exact Go', dict(command=lambda *a, **kw: ('go' + version).encode(), minimum=Path('/unused'), env={}))]:
+                with self.subTest(version=version, guard=reason):
+                    if version == '1.26.11':
+                        self.actual_guard(SCRIPT, reason, values)
+                    else:
+                        with self.assertRaises(RuntimeError):
+                            self.actual_guard(SCRIPT, reason, values)
+
+    def test_immutable_original_directive_is_not_retagged_as_current(self):
+        # Frozen-source identities must keep their real historical bytes even
+        # though newly generated minimum consumers use the patched producer.
+        for reason in ('original root module and minimum Go required', 'original securelink minimum Go required'):
+            for original in ('1.26.10', '1.26.11'):
+                with self.subTest(guard=reason, original=original):
+                    snapshot = mock.Mock()
+                    snapshot.read.return_value = ('module ' + exporter.MODULE + '\n\ngo ' + original + '\n').encode()
+                    if original == '1.26.10':
+                        self.actual_guard(SCRIPT, reason, dict(snapshot=snapshot))
+                    else:
+                        with self.assertRaises(RuntimeError):
+                            self.actual_guard(SCRIPT, reason, dict(snapshot=snapshot))
     def test_fixed_source_identity_and_minimum_toolchain(self):
         self.assertEqual(exporter.REF, 'fdc08527514587d5756264e43ab63588791e189a')
-        self.assertEqual(exporter.MIN_GO, '1.26.10')
+        self.assertEqual(exporter.MIN_GO, '1.26.11')
         self.assertEqual(exporter.MODULE, 'github.com/JiahaoAlbus/YNX-Chain')
         self.assertEqual(exporter.EXPECTED_MODULES['github.com/cloudflare/circl'], 'v1.6.5')
 
@@ -115,7 +179,7 @@ class FrozenVerificationSourceControls(unittest.TestCase):
 
     def test_minimum_require_fragment_is_not_whole_root_or_replacement(self):
         fragment = exporter.require_fragment(modules(), {'github.com/cloudflare/circl', 'golang.org/x/net'}).decode()
-        self.assertTrue(fragment.startswith('go 1.26.10\n'))
+        self.assertTrue(fragment.startswith('go 1.26.11\n'))
         self.assertEqual(fragment.count('// indirect'), 3)
         self.assertIn('github.com/cloudflare/circl v1.6.5\n', fragment)
         self.assertIn('golang.org/x/net v0.60.0\n', fragment)

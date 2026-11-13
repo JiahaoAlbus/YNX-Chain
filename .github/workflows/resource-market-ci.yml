@@ -47,6 +47,8 @@ on:
       - 'scripts/ops/test_public_bft_final_snapshot_tools.py'
       - 'scripts/ops/build-native-transition-candidate.sh'
       - 'scripts/ops/test_build_native_transition_candidate.py'
+      - 'scripts/ops/export-core-verification-source.py'
+      - 'scripts/ops/test_export_core_verification_source.py'
       - 'scripts/ops/remote/verify-retained-migration-preservation-once.sh'
       - 'scripts/ops/test_verify_retained_migration_preservation_once.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
@@ -197,6 +199,8 @@ on:
       - 'packages/wallet-auth/native/source-parent/**'
   pull_request:
     paths:
+      - 'scripts/ops/export-core-verification-source.py'
+      - 'scripts/ops/test_export_core_verification_source.py'
       - 'scripts/ops/remote/public-bft-final-snapshot.sh'
       - 'scripts/ops/remote/public-bft-scoped-backup.sh'
       - 'scripts/ops/test_public_bft_legacy_backup_capacity.py'
@@ -2075,6 +2079,7 @@ jobs:
           bash scripts/verify/public-bft-operator-transition-check.sh
           timeout 45s python3 -B scripts/ops/test_public_bft_transition_payload.py -v
           timeout 25s python3 -B scripts/ops/test_public_bft_legacy_backup_capacity.py -v
+          python3 -B scripts/ops/test_export_core_verification_source.py -v
           python3 -B scripts/ops/test_validate_bootstrap_registration_ci.py -v
           python3 -B scripts/ops/test_collect_pq_light_source_tests.py -v
           python3 -B scripts/ops/test_validate_pq_light_source_ci.py -v
@@ -4069,7 +4074,7 @@ jobs:
         if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Install the pinned compiler runtime for retained-state fixtures
         if: steps.scope.outputs.changed == 'true'
@@ -4237,7 +4242,7 @@ jobs:
         if: steps.scope.outputs.changed == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Reproduce stable current-height pending and export the actual historical anchor
         if: steps.scope.outputs.changed == 'true'
@@ -4327,7 +4332,7 @@ jobs:
         if: steps.scope.outputs.changed == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Reproduce dirty original checkout and verify real clean ELF builds
         if: steps.scope.outputs.changed == 'true'

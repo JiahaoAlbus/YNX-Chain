@@ -44,10 +44,10 @@ class FinalSnapshotTools(unittest.TestCase):
             settings = {'-buildmode':'exe', '-trimpath':'true', 'CGO_ENABLED':'0', 'GOOS':'linux',
                         'GOARCH':'amd64', 'vcs':'git', 'vcs.revision':self.commit, 'vcs.modified':'false'}
             main = 'github.com/JiahaoAlbus/YNX-Chain/cmd/' + name
-            info = str(self.root/name) + ': go1.26.10\n\tpath\t' + main + '\n'
+            info = str(self.root/name) + ': go1.26.11\n\tpath\t' + main + '\n'
             info += ''.join('\tbuild\t' + k + '=' + v + '\n' for k,v in settings.items())
             self.binaries[name] = dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(),
-                                      goInfo=dict(goVersion='go1.26.10', path=main, settings=settings, raw=info))
+                                      goInfo=dict(goVersion='go1.26.11', path=main, settings=settings, raw=info))
         observation = dict(head=self.commit, tree=self.tree, status='')
         # Construct via the unchanged normal producer's actual record AST,
         # so schema drift cannot be hidden by a second hand-written v2 DTO.
@@ -78,6 +78,37 @@ class FinalSnapshotTools(unittest.TestCase):
                binaries={k:{f:r[f] for f in ('bytes','sha256')} for k,r in self.binaries.items()})
         pin=self.publish(v)
         self.assertEqual(self.reader(self.root,self.commit,pin),v)
+
+    def test_v2_exact_patched_toolchain_and_historical_pins_do_not_upgrade(self):
+        original_pin = self.publish()
+        self.assertEqual(self.reader(self.root, self.commit, original_pin), self.record)
+        for name in self.binaries:
+            for version in ('go1.26.10', 'go1.26.12'):
+                for fields in ('typed', 'raw', 'both'):
+                    with self.subTest(binary=name, version=version, fields=fields):
+                        value = copy.deepcopy(self.record)
+                        info = value['binaries'][name]['goInfo']
+                        if fields in ('typed', 'both'):
+                            info['goVersion'] = version
+                        if fields in ('raw', 'both'):
+                            info['raw'] = info['raw'].replace(': go1.26.11\n', ': ' + version + '\n', 1)
+                        changed_pin = self.publish(value)
+                        before = {p.name:p.read_bytes() for p in self.root.iterdir()}
+                        with self.assertRaisesRegex(ValueError, 'Go (build identity|metadata header) differs'):
+                            self.reader(self.root, self.commit, changed_pin)
+                        with self.assertRaisesRegex(ValueError, 'differs from original approval pin'):
+                            self.reader(self.root, self.commit, original_pin)
+                        self.assertEqual(before, {p.name:p.read_bytes() for p in self.root.iterdir()})
+
+        # A legacy v1 record still has its original independent raw pin. It
+        # cannot replace an approved v2 record by dropping build provenance.
+        v1 = dict(version='YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1', commit=self.commit, runId='1234',
+                  platform='linux/amd64', purpose=self.record['purpose'],
+                  binaries={k:{f:r[f] for f in ('bytes','sha256')} for k,r in self.binaries.items()})
+        v1_pin = self.publish(v1)
+        self.assertEqual(self.reader(self.root, self.commit, v1_pin), v1)
+        with self.assertRaisesRegex(ValueError, 'differs from original approval pin'):
+            self.reader(self.root, self.commit, original_pin)
 
     def test_v2_rejects_claims_closure_and_original_build_mismatch(self):
         mutations = {

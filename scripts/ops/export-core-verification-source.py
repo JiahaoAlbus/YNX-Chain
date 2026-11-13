@@ -26,7 +26,9 @@ SECURELINK_PACKAGES = ('internal/securelink', 'internal/securelink/native')
 SECURELINK_MODULES = {'golang.org/x/sys': 'v0.48.0'}
 MODULE = 'github.com/JiahaoAlbus/YNX-Chain'
 PACKAGE = MODULE + '/internal/ynxbatch'
-MIN_GO = '1.26.10'
+# New producers/consumers use the patched toolchain; immutable source snapshots
+# below retain their independently pinned historical go.mod directive bytes.
+MIN_GO = '1.26.11'
 VERSION = 'YNX-CORE-GO-VERIFICATION-SOURCE/v1'
 PLATFORMS = (('darwin', 'arm64'), ('linux', 'amd64'), ('windows', 'amd64'))
 BOOTSTRAP = ('internal/ynxbatch', 'internal/accountaddress')
@@ -128,7 +130,7 @@ class Snapshot:
 
 
 def go_environment(platform=None):
-    env = dict(os.environ, GOTOOLCHAIN='auto', GOWORK='off', CGO_ENABLED='0', GOFLAGS='-p=1',
+    env = dict(os.environ, GOTOOLCHAIN='local', GOWORK='off', CGO_ENABLED='0', GOFLAGS='-p=1',
                GOMAXPROCS='2', GOMEMLIMIT='1536MiB', GONOSUMDB='', GOPRIVATE='', GOSUMDB='sum.golang.org')
     if platform:
         env.update(GOOS=platform[0], GOARCH=platform[1])
@@ -388,7 +390,7 @@ def export(repository, output, source_ref=REF):
         write_new(minimum, 'sourceconsumer/http-v5-golden.json', http_validation[1])
     env = go_environment()
     go_version = command(['go', 'env', 'GOVERSION'], minimum, env=env).decode().strip()
-    need(go_version == 'go' + MIN_GO, 'original cached Go1.26.10 producer required')
+    need(go_version == 'go' + MIN_GO, 'original cached Go1.26.11 producer required')
     logs = {}
     logs['modulesVerified'] = command(['go', 'mod', 'verify'], minimum, env=env).decode().strip()
     before_graph = {name: pin((minimum / name).read_bytes()) for name in ('go.mod', 'go.sum')}
@@ -659,7 +661,7 @@ def export_securelink(repository, output):
     for name, raw in smoke.items():
         write_new(minimum, 'sourceconsumer/' + name, raw)
     env = go_environment()
-    need(command(['go', 'env', 'GOVERSION'], minimum, env).strip() == b'go1.26.10', 'original exact Go1.26.10 required')
+    need(command(['go', 'env', 'GOVERSION'], minimum, env).strip() == ('go' + MIN_GO).encode(), 'original exact Go1.26.11 required')
     logs = dict(moduleChecksums=command(['go', 'mod', 'verify'], minimum, env).decode().strip())
     before = {name: pin((minimum / name).read_bytes()) for name in ('go.mod', 'go.sum')}
     logs['defaultCGO0API'] = command(['go', 'test', '-mod=readonly', '-p', '1', './sourceconsumer', '-count=1'], minimum, env).decode().strip()

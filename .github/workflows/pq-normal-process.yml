@@ -53,7 +53,7 @@ jobs:
         if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: false
       - name: Execute all original callee controls including Linux private FD inheritance
         if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
