@@ -968,6 +968,16 @@
       "path": "packages/wallet-auth/native/social-principal-stdio-v1/codec.mjs",
       "bytes": 10409,
       "sha256": "c80df49ba17566af07eb8960101efd5e0142f622be2cf702defb80e87557d50d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-public-limits.h",
+      "bytes": 713,
+      "sha256": "4be7220b1f7e5601c6ddbeda54181a1375ff21dd13e1fa8028be8fbcc235b826"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-public-originals.h",
+      "bytes": 835,
+      "sha256": "6296a5ca5ee42251b8c712579baf658a06a8966dd9916da6deb45363f3d7a109"
     }
   ],
   "compiled": false,
