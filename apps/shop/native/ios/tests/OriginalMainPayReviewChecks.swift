@@ -6,9 +6,12 @@ import CryptoKit
   func check(_ value:Bool,_ text:String)throws{guard value else{throw NSError(domain:text,code:1)};count+=1;print("PASS "+text)}
   let operation="npi_"+String(repeating:"a",count:48),order="order_original",merchant="0x"+String(repeating:"b",count:40)
   let expected=ShopSession(account:"ynx1"+String(repeating:"q",count:38),token:String(repeating:"t",count:32),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:1)
-  var current=expected,inputs:[[String:String]]=[],fault="",drift=false
-  let nav=AppleOriginalMainPayNavigation(current:{current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"available":false,"paymentAuthorized":false]]},invoke:{input,session in
-   guard session==expected else{throw ShopError.contextChanged};inputs.append(input)
+  var current=expected,inputs:[[String:String]]=[],fault="",drift=false,protectedCalls=0
+  let nav=AppleOriginalMainPayNavigation(current:{current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"available":false,"paymentAuthorized":false]]},invoke:{input,expectedOperation,session in
+   guard session==expected else{throw ShopError.contextChanged}
+   protectedCalls+=1
+   guard expectedOperation==operation else{throw OriginalMainPayRefusal(code:"NATIVE_PAY_ORIGINAL_OPERATION_CHANGED")}
+   inputs.append(input)
    if drift{current=ShopSession(account:expected.account,token:expected.token,expiresAt:expected.expiresAt,nativeGeneration:2)}
    var ref:[String:Any]=["productId":"shop.order","sourceOrder":order,"intentId":operation,"merchant":merchant,"invoiceId":"invoice_original"]
    if let refund=input["refundId"]{ref["refundId"]=refund}
@@ -34,6 +37,13 @@ import CryptoKit
   try check(payment==terms && inputs.last?["action"]=="order-pay-review","payment uses existing Main typed review without intent body or approval")
   let refund=try await nav.reviewOriginalOrderRefund(order,originalOperation:operation,refundID:"refund_original",amountAtoms:String(UInt64.max),expected:expected)
   try check(refund==terms && inputs.last==["action":"order-refund-review","productId":"shop.order","sourceOrder":order,"refundId":"refund_original","amountAtoms":"18446744073709551615"],"refund review keeps explicit original id and exact UInt64 amount")
+  let beforeWrong=inputs.count,protectedBeforeWrong=protectedCalls
+  do{
+   _ = try await nav.reviewOriginalOrderPayment(order,originalOperation:"npi_"+String(repeating:"c",count:48),expected:expected)
+   throw NSError(domain:"foreign operation accepted",code:1)
+  }catch let error as OriginalMainPayRefusal{
+   try check(error.code=="NATIVE_PAY_ORIGINAL_OPERATION_CHANGED" && protectedCalls==protectedBeforeWrong+1 && inputs.count==beforeWrong,"host rejects another operation before issuing a review or retry")
+  }
   for bad in ["0","01","-1","1.0","18446744073709551616"]{
    let before=inputs.count
    do{_ = try await nav.reviewOriginalOrderRefund(order,originalOperation:operation,refundID:"refund_original",amountAtoms:bad,expected:expected);throw NSError(domain:"bad atoms accepted",code:1)}catch ShopError.security{try check(inputs.count==before,"invalid native review atoms rejected before Main "+bad)}
@@ -48,7 +58,7 @@ import CryptoKit
   let line=NativeCheckoutLine(ProductID:"product_original",VariantID:"variant_original",Quantity:1,NativePrice:nil,Title:"actual title",VariantName:"actual variant",UnitPriceYNXT:25)
   let actual=try JSONSerialization.jsonObject(with:JSONEncoder().encode(NativeCheckoutLineBinding(line))) as! [String:Any]
   try check(try CanonicalJSON.data(actual)==CanonicalJSON.data(["ProductID":"product_original","VariantID":"variant_original","Quantity":1]),"new display fields preserve the historical frozen-line binding representation")
-  try check(!inputs.contains{$0.keys.contains("token") || $0.keys.contains("account") || $0.keys.contains("signer")} ,"no review request serializes Shop authority or signer")
+  try check(!inputs.contains{$0.keys.contains("token") || $0.keys.contains("account") || $0.keys.contains("signer") || $0.keys.contains("intentId")} ,"no review request serializes Shop authority or signer")
   print("Original Main review checks PASS \(count); controlled authenticated closures only, no actual host/Source/sign/funds")
  }
 }

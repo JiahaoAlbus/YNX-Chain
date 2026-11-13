@@ -319,7 +319,9 @@ extension AppleOriginalNativePayNavigation {
 struct OriginalMainPayRefusal:Error {let code:String;var presentationState:String{switch code{case "USER_REJECTED_REQUEST","NATIVE_PAY_USER_REJECTED":return "native_main_rejected";case "USER_CANCELLED","USER_CANCELED":return "native_main_cancelled";default:return "unavailable"}}}
 @MainActor final class AppleOriginalMainPayNavigation:AppleOriginalNativePayNavigation {
     typealias StatusCall=(ShopSession)async throws->[String:Any]
-    typealias InvokeCall=([String:String],ShopSession)async throws->[String:Any]
+    // The protected host compares the expected operation before publishing any
+    // review. It travels beside the selector and the original session.
+    typealias InvokeCall=(_ input:[String:String],_ expectedOperation:String,_ expectedSession:ShopSession)async throws->[String:Any]
     private let current:()throws->ShopSession
     private let status:StatusCall,invoke:InvokeCall
     private var active=false
@@ -336,7 +338,7 @@ struct OriginalMainPayRefusal:Error {let code:String;var presentationState:Strin
         active=true;defer{active=false}
         try check(expected);let ready=try await status(expected);try check(expected);let state=try value(ready)
         guard state["normalMainEntry"] as? Bool==true,state["paymentAuthorized"] as? Bool==false,state["canRequest"] as? Bool != false,(state["available"] as? Bool==true || state["canRequest"] as? Bool==true) else{throw ShopError.unavailable}
-        let envelope=try await invoke(input,expected);try check(expected);let result=try value(envelope)
+        let envelope=try await invoke(input,operation,expected);try check(expected);let result=try value(envelope)
         if result["ok"] as? Bool==false,let code=result["code"] as? String,NativeWire.matches(code,"^[A-Za-z0-9_:-]{1,128}$"){throw OriginalMainPayRefusal(code:code)}
         guard result["ok"] as? Bool != false,result["clientIndependentFinality"] as? Bool==false,let reference=result["reference"] as? [String:Any],reference["intentId"] as? String==operation else{throw ShopError.security}
         if requireIntent{guard let intent=result["intent"] as? [String:Any],intent["intentId"] as? String==operation,intent["originalOperation"] as? String==operation,["PREPARED","ISSUED"].contains(intent["state"] as? String ?? "") else{throw ShopError.security}}

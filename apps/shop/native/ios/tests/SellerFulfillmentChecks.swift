@@ -89,7 +89,8 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         let config=URLSessionConfiguration.ephemeral;config.protocolClasses=[FulfillmentHTTP.self]
         var reviews:[[String:String]]=[],holdReview=false,reviewContinuation:CheckedContinuation<[String:Any],Never>?
         func reviewReply()->[String:Any]{["ok":true,"value":["clientIndependentFinality":false,"queryOnly":false,"approvalRequired":true,"canRetry":false,"reference":["productId":"shop.order","sourceOrder":"order_native_terms","intentId":nativeOrder["PayIntentID"]!,"merchant":nativeOrder["PayMerchant"]!,"invoiceId":nativeOrder["InvoiceID"]!],"walletRequest":["id":"original-retained-main-review","method":"ynx_signPQNativeAction","approvalRequired":true]]]}
-        let navigation=AppleOriginalMainPayNavigation(current:{guard let current=authority.current else{throw ShopError.signedOut};return current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,expected in
+        let navigation=AppleOriginalMainPayNavigation(current:{guard let current=authority.current else{throw ShopError.signedOut};return current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,expectedOperation,expected in
+            guard expectedOperation==nativeOrder["PayIntentID"] as? String else{throw ShopError.security}
             try check(expected==authority.current,"terms review retains exact current Seller session")
             reviews.append(input)
             if holdReview{return await withCheckedContinuation{reviewContinuation=$0}}

@@ -68,7 +68,8 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     lazy var navigation=AppleOriginalMainPayNavigation(current:{guard let session=self.authority.current else{throw ShopError.signedOut};return session},status:{_ in
         if let code=self.mainRefusal{return ["ok":false,"error":["code":code]]}
         return ["ok":true,"value":["normalMainEntry":true,"available":false,"canRequest":true,"paymentAuthorized":false]]
-    },invoke:{input,_ in
+    },invoke:{input,expectedOperation,_ in
+        guard expectedOperation==self.operation else{throw ShopError.security}
         self.mainCalls.append(input);self.mainReturned=true
         if input["action"]=="order-reconcile-operation" {
             if self.reconcileReplyLost{throw OriginalMainPayRefusal(code:"NATIVE_PAY_ORIGINAL_RESPONSE_UNAVAILABLE")}

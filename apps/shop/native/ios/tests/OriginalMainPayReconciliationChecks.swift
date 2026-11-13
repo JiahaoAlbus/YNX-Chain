@@ -6,7 +6,8 @@ import Foundation
   let expected=ShopSession(account:"ynx1"+String(repeating:"q",count:38),token:String(repeating:"t",count:32),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:1)
   let order="order_original",intent="npi_"+String(repeating:"a",count:48),hash="0x"+String(repeating:"b",count:64),abci="0x"+String(repeating:"c",count:64),merchant="0x"+String(repeating:"d",count:40)
   var current=expected,inputs:[[String:String]]=[],fault="",kind="invoice_refund",status="confirmed",drift=false
-  let nav=AppleOriginalMainPayNavigation(current:{current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,_ in
+  let nav=AppleOriginalMainPayNavigation(current:{current},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,expectedOperation,_ in
+   guard expectedOperation==intent else{throw ShopError.security}
    inputs.append(input)
    if drift{current=ShopSession(account:expected.account,token:expected.token,expiresAt:expected.expiresAt,nativeGeneration:2)}
    var ref:[String:Any]=["productId":"shop.order","sourceOrder":order,"intentId":intent,"nativeHash":hash,"merchant":merchant,"invoiceId":"invoice_original"]

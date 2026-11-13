@@ -70,7 +70,8 @@ final class RefundReviewHTTP:URLProtocol,@unchecked Sendable {
             let original:[String:Any]=["merchant":base["PayMerchant"]!,"invoiceId":base["InvoiceID"]!,"nativeHash":pendingHash,"abciHash":"0x"+String(repeating:"c",count:64),"kind":"invoice_refund","owner":base["PayMerchant"]!,"status":"confirmed"]
             return ["ok":true,"value":["clientIndependentFinality":false,"queryOnly":true,"approvalRequired":false,"canRetry":false,"reference":ref,"reconciledOriginal":original,"bill":["sourceOrder":orderID,"merchant":base["PayMerchant"]!,"invoiceId":base["InvoiceID"]!],"operations":[original]]]
         }
-        let navigation=AppleOriginalMainPayNavigation(current:{guard let value=authority.current else{throw ShopError.signedOut};return value},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,expected in
+        let navigation=AppleOriginalMainPayNavigation(current:{guard let value=authority.current else{throw ShopError.signedOut};return value},status:{_ in ["ok":true,"value":["normalMainEntry":true,"canRequest":true,"paymentAuthorized":false]]},invoke:{input,expectedOperation,expected in
+            guard expectedOperation==base["PayIntentID"] as? String else{throw ShopError.security}
             guard expected==authority.current else{throw ShopError.contextChanged};inputs.append(input)
             if holdMain{return try await withCheckedThrowingContinuation{held=$0}}
             if failMain{throw URLError(.networkConnectionLost)}

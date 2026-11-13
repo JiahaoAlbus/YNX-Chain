@@ -12,7 +12,8 @@ import Foundation
    if withdrawStatus{current=ShopSession(account:account,token:expected.token,expiresAt:expected.expiresAt,nativeGeneration:2)}
    if failStatus{return ["ok":false,"error":["code":"AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED"]]}
    return ["ok":true,"value":["normalMainEntry":true,"available":false,"canRequest":true,"paymentAuthorized":false]]
-  },invoke:{input,same in
+  },invoke:{input,expectedOperation,same in
+   try check(expectedOperation==operation,"protected invoke retains the original operation outside the selector")
    try check(same==expected,"invoke retains same original session and never derives account aliases");invokes.append(input)
    if withdrawInvoke{current=ShopSession(account:account,token:expected.token,expiresAt:expected.expiresAt,nativeGeneration:3)}
    let merchant="0x"+String(repeating:"b",count:40)
