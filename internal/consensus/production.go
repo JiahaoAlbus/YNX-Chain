@@ -482,11 +482,10 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
 		return fmt.Errorf("validate common production migration: %w", err)
 	}
-	canonicalMigration, err := migration.CanonicalJSON()
-	if err != nil {
-		return err
-	}
-	if _, _, err := validateCometMigrationAppState(genesis.AppState, migration, canonicalMigration); err != nil {
+	// Reuse the normal bootstrap validator: references validate the complete
+	// canonical stream without a second history-sized byte slice. Inline
+	// Genesis retains its original full canonical byte comparison.
+	if _, _, err := validateBootstrapMigrationAppState(genesis.AppState, migration); err != nil {
 		return fmt.Errorf("common genesis differs from complete original migration sidecar: %w", err)
 	}
 	var operator *ProductionOperatorPlan
