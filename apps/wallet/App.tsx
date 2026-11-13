@@ -1,3 +1,5 @@
+import { validateBitcoinOwnedReceiveAddress } from "./src/security/bitcoinOwnedAddress";
+import { readOwnedTronAddress } from "./src/security/ownedTronAddress";
 import { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Image, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
@@ -560,6 +562,8 @@ function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>voi
   const qrRef=useRef<{toDataURL(callback:(value:string)=>void):void}|null>(null),canSavePNG=Platform.OS==="android"&&receivePNGAvailable();
   const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
   const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
+  const [chain,setChain]=useState<"ynx"|"bitcoin"|"tron">("ynx");
+  const selectChain=(value:typeof chain)=>{scope.cancel();setFeedback("");setChain(value);};
   const uri=createPaymentURI(account.account);
   const dismiss=()=>{gate.close();scope.cancel();close()};
   const savePNG=async()=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
@@ -574,13 +578,54 @@ function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>voi
     await copyPublicValueWithExpiry(Clipboard,link?uri:account.account,{guard:lease.assert});lease.assert();
     setFeedback(c(link?"Receiving link copied for 30 seconds.":"Address copied for 30 seconds.",link?"收款链接已复制，30 秒后自动清除。":"收款地址已复制，30 秒后自动清除。"));
   }catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setFeedback(c("Clipboard unavailable. Select and copy the address below.","暂时无法使用剪贴板，请选择并复制下方地址。"))}finally{if(action.isCurrent()&&(!lease||lease.ownsScope()))setBusy(false);action.finish();lease?.finish()}};
-  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Receive YNXT","接收 YNXT")} close={dismiss}>
+  const chinese=locale==="zh-Hans";
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={chinese?"收款":"Receive"} close={dismiss}>
+    {(["ynx","bitcoin","tron"] as const).map(value=><SecondaryButton key={value} label={value==="ynx"?"YNX Testnet · YNXT":value==="bitcoin"?"Bitcoin Mainnet · BTC":"TRON Mainnet · TRX"} disabled={busy||chain===value} onPress={()=>selectChain(value)}/>)}
+    {chain!=="ynx"?<OwnedChainReceive key={chain} chain={chain} account={account.account}/>:<>
+
     <View style={styles.qr}><QRCodeView value={uri} size={210} quietZone={16} getRef={value=>{qrRef.current=value}} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{account.account}</Text>
     <InfoCard title="YNX Testnet · YNXT" body={c("This code and link contain only your public receiving address, network and asset. They do not set an amount or authorize payment. A sender must enter an amount and review the transfer.","二维码和链接仅包含公开收款地址、网络及资产，不包含金额或付款授权。付款方仍须填写金额并核对转账。")}/>
     <Button label={c("Copy receiving link","复制收款链接")} disabled={busy} onPress={()=>void copy(true)}/><SecondaryButton label={c("Copy receiving address","复制收款地址")} disabled={busy} onPress={()=>void copy(false)}/>
     {canSavePNG?<SecondaryButton label={receivePNGCopy(locale,busy?"saving":"save")} disabled={busy} onPress={()=>void savePNG()}/>:null}
     {feedback?<Text accessibilityRole="alert" style={styles.sheetText}>{feedback}</Text>:null}<Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text>
+    </>}
   </Sheet></Modal>;
+}
+
+function OwnedChainReceive({chain,account}:{chain:"bitcoin"|"tron";account:string}){
+  const locale=useContext(WalletLocaleContext),operations=useWalletOperations(),scope=useOperationScope(true,account),gate=useModalActionGate(account);
+  const [address,setAddress]=useState(""),[busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
+  const chinese=locale==="zh-Hans";
+  useEffect(()=>operations.subscribe(()=>{
+    gate.close();gate.open();setAddress("");setFeedback("");setBusy(false);
+  }),[operations,gate]);
+  const reveal=async()=>{
+    const action=gate.acquire();if(!action)return;
+    setAddress("");setFeedback("");setBusy(true);
+    let lease:WalletOperationLease|undefined;
+    const selection=Object.freeze({vaultAccount:account,network:"mainnet" as const});
+    const assertSelection=()=>{if(!action.isCurrent()||operations.selectedAccount()!==account)throw Error("WALLET_RECEIVE_SELECTION_CHANGED");};
+    try{
+      if(chain==="tron"){
+        const result=await readOwnedTronAddress({scope,repository,assertSelectionCurrent:assertSelection,checkBiometrics:assertStrongBiometrics},selection);
+        assertSelection();setAddress(result.address);
+      }else{
+        const current=scope.begin({account});lease=current;
+        const guard=()=>{assertSelection();current.assert();};
+        await current.step(()=>assertStrongBiometrics(guard));
+        const result=await current.step(()=>repository.bitcoinReceiveAddress(selection,guard));
+        const address=validateBitcoinOwnedReceiveAddress(selection,result).address;
+        guard();setAddress(address);
+      }
+    }catch(cause){if(action.isCurrent())setFeedback(message(cause));}
+    finally{lease?.finish();if(action.isCurrent())setBusy(false);action.finish();}
+  };
+  return <>
+    <Text style={styles.sheetText}>{chinese?"仅接收所选主网资产。":"Receive assets on the selected mainnet."}</Text>
+    {address?<><View style={styles.qr}><QRCodeView value={address} size={210} quietZone={16} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{address}</Text></>:null}
+    <Button label={chinese?"验证并显示收款地址":"Authenticate and show receiving address"} disabled={busy} onPress={()=>void reveal()}/>
+    {feedback?<Text accessibilityRole="alert" style={styles.sheetText}>{feedback}</Text>:null}
+  </>;
 }
 
 function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:boolean;account:WalletAccount;scannedRecipient?:string;close:()=>void;onSent:()=>void}){
