@@ -1,0 +1,32 @@
+name: Android C5 independent account policy
+on:
+  push:
+    branches: [codex/android-c5-independent-policy-20261113]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixed-verification-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26.7.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node --test packages/wallet-auth/test/android-c5-independent-policy.test.mjs packages/wallet-auth/test/registration-private-factory-model.test.mjs
+      - run: node packages/wallet-auth/scripts/build-original-device-v4-registration-private-bundle.mjs "--out=$RUNNER_TEMP/c5-private-bundle"
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-c5-independent-policy-source-package
+          path: canonical-common-source-package
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-c5-independent-policy-private-bundle
+          path: ${{ runner.temp }}/c5-private-bundle
+          if-no-files-found: error
