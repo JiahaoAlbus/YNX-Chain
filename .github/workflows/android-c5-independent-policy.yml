@@ -1,7 +1,7 @@
 name: Android C5 independent account policy
 on:
   push:
-    branches: [codex/android-c5-independent-policy-20261113]
+    branches: [codex/android-c5-independent-policy-20261113, codex/android-c5-scoped-policy-20261113]
   workflow_dispatch:
 permissions:
   contents: read

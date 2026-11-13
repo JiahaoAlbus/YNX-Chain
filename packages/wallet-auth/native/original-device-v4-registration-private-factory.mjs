@@ -37,13 +37,28 @@ export default function originalAndroidDeviceV4RegistrationPrivateFactory(native
   const addOp=op=>{if(op!==null&&op!==undefined&&!ops.some(r=>r.owner===op))ops.push({owner:op,retired:false,joined:false,closed:false})};
   const originalContext=v=>{alive();if(v!==context||!intrinsic('Abort',v))fail('DEVICE_REGISTRATION_ORIGINAL_CONTEXT_CHANGED');if(call('assertOriginalDeviceV4AbortCurrent',v)!==undefined)fail('DEVICE_REGISTRATION_ORIGINAL_ABORT_CONTEXT');alive();return v;};
   const sourceCurrent=()=>{alive();if(invoke('Source',source,'assertCurrent')!==undefined)fail('DEVICE_REGISTRATION_NATIVE_CURRENT_REFUSED');alive();};
-  const pending=Object.freeze({readOriginalReview(){sourceCurrent();const raw=bytes(invoke('Source',source,'readOriginalReview'));sourceCurrent();return raw},assertCurrent:sourceCurrent,async produceRegistrationProof(ctx){return produce('produceRegistrationProof',ctx)},async produceChallengeProof(ctx){return produce('produceChallengeProof',ctx)},retire(){invoke('Source',source,'retire')},async close(){return closeResources()}});
+  const pending=Object.freeze({readOriginalReview(){
+   registrationCurrent();
+   const raw=bytes(policyLoan
+    ?invoke('AccountPolicy',policyLoan,'readOriginalReviewDATA',policyBinding)
+    :invoke('Source',source,'readOriginalReview'));
+   registrationCurrent();
+   return raw;
+  },assertCurrent:registrationCurrent,async produceRegistrationProof(ctx){return produce('produceRegistrationProof',ctx)},async produceChallengeProof(ctx){return produce('produceChallengeProof',ctx)},retire(){invoke('Source',source,'retire')},async close(){return closeResources()}});
   async function produce(name,ctx){originalContext(ctx);let op;try{op=await invoke('Source',source,name,ctx);addOp(op);}catch(e){const d=e!==null&&(typeof e==='object'||typeof e==='function')?Object.getOwnPropertyDescriptor(e,'partial'):undefined;if(d&&Object.hasOwn(d,'value'))addOp(d.value);remember(e);throw e;}if(!intrinsic('Operation',op))throw Object.assign(new WalletAuthError('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED','Genuine operation required'),{partial:op});return op;}
   function operationMethod(op,name){if(name==='readOriginalMember'){if(ownedMember.has(op))return new Uint8Array(ownedMember.get(op));const member=bytes(invoke('Operation',op,name));if(!member.length||member.length>98304)fail('DEVICE_REGISTRATION_ORIGINAL_BYTES');ownedMember.set(op,member);return new Uint8Array(member)}return invoke('Operation',op,name);}
   function independent(){sourceCurrent();const d=record(call('readOriginalDeviceV4IndependentDATA'),['originalCreationIntent','heldStableIdentity','deviceGeneration','originalOperation','account','network','canonicalOwner','pkA','pkB','notBeforeMs','expiresAtMs']),networkId=hex(bytes(d.network,32));if(![d.notBeforeMs,d.expiresAtMs].every(v=>typeof v==='string'&&/^(0|[1-9][0-9]*)$/.test(v)&&BigInt(v)<=18446744073709551615n)||BigInt(d.notBeforeMs)>=BigInt(d.expiresAtMs)||BigInt(Date.now())<BigInt(d.notBeforeMs)||BigInt(Date.now())>=BigInt(d.expiresAtMs))fail('DEVICE_REGISTRATION_NATIVE_IDENTITY_WINDOW');const intent=inspectOriginalDeviceCreateIntentDATA(utf8.encode(d.originalCreationIntent)),t=intent.terms;alive();if(typeof d.originalOperation!=='string'||!/^([0-9a-f]{64})$/.test(d.originalOperation))fail('DEVICE_REGISTRATION_NATIVE_OPERATION_ID');if(intent.approvedTerms!==d.originalCreationIntent||intent.stableDeviceIdentity!==d.heldStableIdentity||t.generation!==d.deviceGeneration||t.account!==d.account||t.networkId!==networkId||t.canonicalOwner!==d.canonicalOwner)fail('DEVICE_REGISTRATION_NATIVE_IDENTITY_MISMATCH');
    const identityBinding=Object.freeze(Object.fromEntries(ORIGINAL_DEVICE_CREATE_IDENTITY_INPUT_FIELDS.map(k=>[k,t[k]]))),pair={pkA:d.pkA,pkB:d.pkB},selection=Object.freeze({identityBinding,generation:d.deviceGeneration,publicPair:Object.freeze({pkA:bytes(pair.pkA,2592),pkB:bytes(pair.pkB,64)})}),snapshot=canonicalJSON({identityBinding,generation:d.deviceGeneration,pkA:hex(selection.publicPair.pkA),pkB:hex(selection.publicPair.pkB),originalOperation:d.originalOperation,originalCreationIntent:d.originalCreationIntent,notBeforeMs:d.notBeforeMs,expiresAtMs:d.expiresAtMs});if(identitySnapshot&&identitySnapshot!==snapshot)fail('DEVICE_REGISTRATION_SELECTION_CHANGED');identitySnapshot=snapshot;identity=selection;sourceCurrent();return selection;
   }
-  function userApproval(){sourceCurrent();const originals=call('readOriginalDeviceV4UserApprovalDATA',source);alive();if(approvalSnapshot&&(originals.approvalOriginal!==approvalSnapshot.approvalOriginal||originals.policyOriginal!==approvalSnapshot.policyOriginal))fail('ACCOUNT_POLICY_CHANGED');sourceCurrent();return originals;}
+  function userApproval(){
+   registrationCurrent();
+   const originals=record(policyLoan
+    ?invoke('AccountPolicy',policyLoan,'readOriginalUserApprovalDATA',policyBinding)
+    :call('readOriginalDeviceV4UserApprovalDATA',source),['approvalOriginal','policyOriginal']);
+   if(approvalSnapshot&&(originals.approvalOriginal!==approvalSnapshot.approvalOriginal||originals.policyOriginal!==approvalSnapshot.policyOriginal))fail('ACCOUNT_POLICY_CHANGED');
+   registrationCurrent();
+   return Object.freeze(originals);
+  }
   // Wallet's policyOriginal documents the signing instant only. It cannot
   // become a fresh observation, even if signed PROFILE/CURRENT also exists.
   let policyLoan,policyRetired=false,policyJoined=false,policyClosed=false,policyCloseSelected=false,policyAcquiring=false;
@@ -54,9 +69,15 @@ export default function originalAndroidDeviceV4RegistrationPrivateFactory(native
    flight.then(()=>policyFlights.delete(flight),()=>policyFlights.delete(flight));
    return flight;
   }
+  function registrationCurrent(){
+   if(!policyLoan)return sourceCurrent();
+   originalContext(context);
+   if(invoke('AccountPolicy',policyLoan,'assertOriginalCurrent',policyBinding)!==undefined)fail('DEVICE_REGISTRATION_INDEPENDENT_POLICY_NOT_CURRENT');
+   originalContext(context);
+  }
   const policyResource={
    readOriginal(){this.assertCurrent();return parseOriginal(invoke('AccountPolicy',policyLoan,'readOriginalPolicyDATA'),524288)},
-   assertCurrent(){sourceCurrent();originalContext(context);if(invoke('AccountPolicy',policyLoan,'assertOriginalCurrent',policyBinding)!==undefined)fail('DEVICE_REGISTRATION_INDEPENDENT_POLICY_NOT_CURRENT');sourceCurrent();originalContext(context);},
+   assertCurrent:registrationCurrent,
    async recheck(){this.assertCurrent();if(await invoke('AccountPolicy',policyLoan,'recheckOriginalCurrent',policyBinding)!==undefined)fail('DEVICE_REGISTRATION_INDEPENDENT_POLICY_NOT_CURRENT');this.assertCurrent();},
    retire(){return invoke('AccountPolicy',policyLoan,'retire')},
    join(){return invoke('AccountPolicy',policyLoan,'join')},
@@ -90,7 +111,8 @@ export default function originalAndroidDeviceV4RegistrationPrivateFactory(native
    catch(e){const d=e!==null&&(typeof e==='object'||typeof e==='function')?Object.getOwnPropertyDescriptor(e,'partial'):undefined;if(d&&Object.hasOwn(d,'value')&&intrinsic('AccountPolicy',d.value))policyLoan=d.value;remember(e);throw e;}
    finally{policyAcquiring=false;}
    if(!intrinsic('AccountPolicy',policyLoan)){policyLoan=undefined;fail('DEVICE_REGISTRATION_INDEPENDENT_POLICY_NOT_SUPPLIED');}
-   await policyResource.recheck();
+   const scopedReview=inspectOriginalProductDeviceV4PendingReviewDATA(pending.readOriginalReview());
+   if(canonicalJSON(scopedReview.scope)!==canonicalJSON(s))fail('DEVICE_REGISTRATION_SELECTION_CHANGED');
    userApproval();const policyRef=captureProductSessionAccountPolicy(policyResource,{networkId:identity.identityBinding.networkId,account:identity.identityBinding.account},new Date(Date.now()));
    return completion?client.prepareOriginalCompletionSubmission({approvalOriginal:approvalSnapshot.approvalOriginal,policyRef,abortContext:context}):client.prepareOriginalPairSubmission({approvalOriginal:approvalSnapshot.approvalOriginal,policyRef,abortContext:context});
   }

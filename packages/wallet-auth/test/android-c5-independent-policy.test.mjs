@@ -17,21 +17,24 @@ try{
  await assert.rejects(unavailable.prepareOriginalPairSubmission(),{code:'DEVICE_REGISTRATION_INDEPENDENT_POLICY_NOT_SUPPLIED'});
  assert.equal(memberRead,0);
  await unavailable.close();events.length=0;
+ let loanAcquired=false,reviewReads=0,approvalReads=0;
+ const originalCurrent=source.assertCurrent;source.assertCurrent=()=>{assert.equal(loanAcquired,false,'full current after policy acquisition');originalCurrent.call(source);};
+ const readApproval=host.readOriginalDeviceV4UserApprovalDATA;host.readOriginalDeviceV4UserApprovalDATA=s=>{assert.equal(loanAcquired,false,'unscoped approval after acquisition');return readApproval.call(host,s);};
  let rechecks=0,late=false,selected,releaseRecheck,waitForRetire=false;
  const raw=f.policyOriginal;let fresh={...raw,observedAt:new Date(+f.at+5).toISOString(),expiresAt:new Date(+f.at+4000).toISOString()};
- const loan={readOriginalPolicyDATA:()=>canonicalJSON(fresh),assertOriginalCurrent(b){assert.equal(b,selected);},async recheckOriginalCurrent(b){assert.equal(b,selected);rechecks++;if(waitForRetire)await new Promise(resolve=>{releaseRecheck=resolve;});if(late)throw Error('PUBLIC_POLICY_WITHDRAWN');},retire(){events.push('policy-retire');},join(){return D();},close(){events.push('policy-close');return D();}};
+ const loan={readOriginalReviewDATA(b){reviewReads++;assert.equal(b,selected);return new TextEncoder().encode(canonicalJSON(f.scope)).buffer;},readOriginalUserApprovalDATA(b){approvalReads++;assert.equal(b,selected);return {approvalOriginal:canonicalJSON(f.approval),policyOriginal:canonicalJSON(f.policyOriginal)};},readOriginalPolicyDATA:()=>canonicalJSON(fresh),assertOriginalCurrent(b){assert.equal(b,selected);},async recheckOriginalCurrent(b){assert.equal(b,selected);rechecks++;if(waitForRetire)await new Promise(resolve=>{releaseRecheck=resolve;});if(late)throw Error('PUBLIC_POLICY_WITHDRAWN');},retire(){events.push('policy-retire');},join(){return D();},close(){events.push('policy-close');return D();}};
  const fixed={...host,isOriginalAccountPolicy:x=>x===loan,acquireOriginalDeviceV4AccountPolicy(s,c,b){
    assert.equal(s,source);assert.equal(c,ctx);assert.equal(b.operation,'registration-pop');
    assert.equal(b.operationId,f.scope.pendingId);assert.equal(b.requestDigest,productSessionRequestDigest(f.registry,f.request,f.at));
    assert.equal(b.approvalDigest,f.scope.approvalDigest);assert.equal(b.networkId,f.identity.networkId);assert.equal(b.account,f.identity.account);assert.equal(b.canonicalOwner,f.identity.canonicalOwner);
-   selected=b;return loan;
+   selected=b;loanAcquired=true;return loan;
  }};
  const retire=source.retire;source.retire=()=>{retire.call(source);releaseRecheck?.();};
  const client=await factory(fixed)();client.readOriginalRegistrationReviewDATA();
- const ref=await client.prepareOriginalPairSubmission();assert.equal(memberRead,1);assert.equal(rechecks,1);
+ const ref=await client.prepareOriginalPairSubmission();assert.equal(memberRead,1);assert.equal(rechecks,0);assert.equal(reviewReads,1);assert.equal(approvalReads,1);
  late=true;
  await assert.rejects(client.submitPreparedPair(ref),/PUBLIC_POLICY_WITHDRAWN/);
- assert.equal(rechecks,2);assert.equal(submitted,0);
+ assert.equal(rechecks,1);assert.equal(submitted,0);
  waitForRetire=true;
  const inflight=client.submitPreparedPair(ref);
  const rejected=assert.rejects(inflight);
@@ -42,7 +45,7 @@ try{
  assert.equal(submitted,0);
  assert.ok(events.indexOf('policy-close')<events.indexOf('source-close'));
  assert.ok(events.indexOf('policy-close')>events.indexOf('op-close'));
- events.length=0;late=false;waitForRetire=false;
+ events.length=0;late=false;waitForRetire=false;loanAcquired=false;
  fresh={...fresh,activeRecord:{...fresh.activeRecord,revision:'2'}};
  const changed=await factory(fixed)();
  changed.readOriginalRegistrationReviewDATA();
@@ -50,5 +53,13 @@ try{
  assert.equal(memberRead,1);
  assert.equal(submitted,0);
  await changed.close();
+ events.length=0;loanAcquired=false;
+ delete loan.readOriginalUserApprovalDATA;
+ const missingScopedPort=await factory(fixed)();
+ missingScopedPort.readOriginalRegistrationReviewDATA();
+ await assert.rejects(missingScopedPort.prepareOriginalPairSubmission(),{code:'DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED'});
+ assert.equal(memberRead,1);
+ assert.equal(submitted,0);
+ await missingScopedPort.close();
  console.log('PASS actual factory: historical-only denial, exact independent loan, fresh read, late withdrawal/no POST, ordered physical close');
 }finally{Date.now=oldNow;f.close();}

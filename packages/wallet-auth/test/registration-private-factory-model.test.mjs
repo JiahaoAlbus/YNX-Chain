@@ -13,7 +13,7 @@ const host={acquireOriginalProductSessionDeviceV4PendingSource:()=>source,captur
 const {productSessionRequestDigest}=await import('../src/product-session-v2.js');
 let rechecks=0,late=false,selected;
  const raw=f.policyOriginal, fresh={...raw,observedAt:new Date(+f.at+5).toISOString(),expiresAt:new Date(+f.at+4000).toISOString()};
- const loan={readOriginalPolicyDATA:()=>canonicalJSON(fresh),assertOriginalCurrent(b){assert.equal(b,selected);},async recheckOriginalCurrent(b){assert.equal(b,selected);rechecks++;if(late)throw Error('PUBLIC_POLICY_WITHDRAWN');},retire(){events.push('policy-retire');},join(){return D();},close(){events.push('policy-close');return D();}};
+ const loan={readOriginalReviewDATA(b){assert.equal(b,selected);return new TextEncoder().encode(canonicalJSON(f.scope)).buffer;},readOriginalUserApprovalDATA(b){assert.equal(b,selected);return {approvalOriginal:canonicalJSON(f.approval),policyOriginal:canonicalJSON(f.policyOriginal)};},readOriginalPolicyDATA:()=>canonicalJSON(fresh),assertOriginalCurrent(b){assert.equal(b,selected);},async recheckOriginalCurrent(b){assert.equal(b,selected);rechecks++;if(late)throw Error('PUBLIC_POLICY_WITHDRAWN');},retire(){events.push('policy-retire');},join(){return D();},close(){events.push('policy-close');return D();}};
  const fixed={...host,isOriginalAccountPolicy:x=>x===loan,acquireOriginalDeviceV4AccountPolicy(s,c,b){
    assert.equal(s,source);assert.equal(c,ctx);assert.equal(b.operation,'registration-pop');
    assert.equal(b.operationId,f.scope.pendingId);assert.equal(b.requestDigest,productSessionRequestDigest(f.registry,f.request,f.at));
