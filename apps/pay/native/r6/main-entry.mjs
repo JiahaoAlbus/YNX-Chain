@@ -18,6 +18,19 @@ export function createOriginalPayReviewTracker(){
   if(!Array.isArray(rows)||rows.some(row=>!row||typeof row.id!=='string'))fail('NATIVE_PAY_MAIN_PENDING_SOURCE_UNAVAILABLE');
   return rows.some(row=>row.id===id);
  }
+ function cancelReview(id,owner){
+  const row=pending.get(id);if(!row)return;
+  if(row.owner!==owner)fail('NATIVE_PAY_MAIN_REVIEW_OWNER_CHANGED');
+  if(row.failed)throw row.cause;
+  if(row.cancelling)fail('NATIVE_PAY_MAIN_REVIEW_CANCELLING');
+  row.cancelling=true;
+  try{
+   if(isPending(owner,id))rejectNativePayPending(owner,id);
+   if(isPending(owner,id))fail('NATIVE_PAY_MAIN_REVIEW_STILL_PENDING');
+   pending.delete(id);
+  }catch(error){if(!row.failed){row.failed=true;row.cause=error;}throw row.cause;}
+  finally{row.cancelling=false;}
+ }
  return Object.freeze({
   remember(id,owner){
    if(typeof id!=='string'||!id||id.length>256)fail('NATIVE_PAY_MAIN_REVIEW_ID_REQUIRED');
@@ -37,14 +50,11 @@ export function createOriginalPayReviewTracker(){
   },
   assertReviewAvailable(){for(const row of pending.values())if(row.failed)throw row.cause;},
   assertSafeToClose(){if(pending.size)fail('NATIVE_PAY_MAIN_REVIEWS_RETAINED');},
+  cancelReview,
   cancel(){
    let failed=false,cause;
-   for(const [id,row]of pending)try{
-    if(row.failed)throw row.cause;
-    if(isPending(row.owner,id))rejectNativePayPending(row.owner,id);
-    if(isPending(row.owner,id))fail('NATIVE_PAY_MAIN_REVIEW_STILL_PENDING');
-    pending.delete(id);
-   }catch(error){if(!row.failed){row.failed=true;row.cause=error;}if(!failed){failed=true;cause=row.cause;}}
+   for(const [id,row]of pending)try{cancelReview(id,row.owner);}
+   catch(error){if(!failed){failed=true;cause=error;}}
    if(failed)throw cause;return {cancelled:true,originalRetained:true};
   }
  });
@@ -83,10 +93,10 @@ export function createNativePayMainEntry({getMain,getContext}){
    };
    const operationAbort=new AbortController();
    Object.defineProperty(current,'signal',{value:operationAbort.signal});
-   current();active=true;activeAbort=operationAbort;let operationClient=null;
+   current();active=true;activeAbort=operationAbort;let operationClient=null,reviewId;
    try{
     const runtime={main,pay:originalSource.pay,current,expectedOriginalOperation:hostOrder?.operation,
-     reviewCustody:Object.freeze({remember:id=>pending.remember(id,main),settled:id=>pending.settled(id,main),cleanupFailed:(id,cause)=>pending.cleanupFailed(id,main,cause)}),
+     reviewCustody:Object.freeze({remember(id){pending.remember(id,main);reviewId=id;},settled:id=>pending.settled(id,main),cleanupFailed:(id,cause)=>pending.cleanupFailed(id,main,cause)}),
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readOriginalShopInvoiceIntent==='function'?{readOriginalShopInvoiceIntent:(...args)=>originalSource.readOriginalShopInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
@@ -118,9 +128,12 @@ export function createNativePayMainEntry({getMain,getContext}){
     else if(action==='reconcile-archive')state=await client.reconcileArchivedInvoice(request.productId,request.sourceOrder,merchant,invoiceId);
     else if(action==='recover-intent')state=await client.recoverIntent(intentId);
     else if(action==='broadcast-review'){const {action:_,...ref}=request;state=await client.reviewOriginalBroadcast(ref);}
-    current();if(state.walletRequest?.id)pending.remember(state.walletRequest.id,main);
+    current();if(state.walletRequest?.id!==reviewId)fail('NATIVE_PAY_MAIN_REVIEW_CHANGED');
     return nativePaySummary(state,{protectedOrder:!!hostOrder});
    }catch(error){
+    // A late fence or summary failure may follow successful review custody.
+    // Cancel only this call's review. The tracker retains a failed cleanup.
+    if(reviewId!==undefined)try{pending.cancelReview(reviewId,main);}catch{}
     // Error DATA is captured only while the same account and Source remain
     // current. invoke itself preserves the exact original thrown cause.
     if(onFailure&&operationClient)try{current();onFailure(operationClient.snapshot(),current);}catch{}

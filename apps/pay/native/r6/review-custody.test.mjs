@@ -56,6 +56,20 @@ test('a late validation failure with no-op rejection keeps the original frozen e
  assert.equal(f.calls(),1);assert.equal(f.queue.size,1);
 });
 
+test('late review cleanup leaves other retained approvals alone and preserves an uncertain reject',()=>{
+ const first='PUBLIC-other-review',cleanup=Object.assign(Error(),{code:'PUBLIC_REJECT_UNKNOWN'});
+ const f=fixture(()=>{throw cleanup;});
+ f.queue.set(first,{id:first});
+ f.tracker.remember(first,f.main);
+ f.tracker.remember(f.id,f.main);
+ assert.throws(()=>f.tracker.cancelReview(f.id,{}),{code:'NATIVE_PAY_MAIN_REVIEW_OWNER_CHANGED'});
+ thrown(()=>f.tracker.cancelReview(f.id,f.main),cleanup);
+ thrown(()=>f.tracker.cancelReview(f.id,f.main),cleanup);
+ assert.equal(f.calls(),1);
+ assert.deepEqual([...f.queue.keys()],[f.id,first]);
+ thrown(()=>f.tracker.assertReviewAvailable(),cleanup);
+});
+
 test('normal Main close assertion waits for its actual active read without closing borrowed Source',async()=>{
  const account='0x'+'a'.repeat(40);let resolve,closed=0;
  const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({account,revision:1,focused:true})});

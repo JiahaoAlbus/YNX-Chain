@@ -72,6 +72,12 @@ const pay=createPrivateNativeProductPayClient({origin,async requestPrivate(r){
  return {method:r.method,requestPath:r.path,status:response.status,contentType:response.headers.get('content-type'),body};
 }});
 let reviews=0,rejects=0,published=0,broadcastReviews=0,saved;
+let lateReviewChecks=0,holderRevoked=false;
+const lateReviewRevocation=Object.assign(Error('PUBLIC holder revoked after review retention'),{code:'PUBLIC_HOLDER_REVOKED_AFTER_REVIEW'});
+const assertLateReviewCurrent=()=>{
+ if(pending.size&&++lateReviewChecks>1)holderRevoked=true;
+ if(holderRevoked)throw lateReviewRevocation;
+};
 const main={pendingRequests:()=>[...pending.values()],reject(id){assert.equal(pending.delete(id),true);rejects++;},vault:{async status(){return {initialized:true,account:actor};}},transactionSender:{submissions:{intentStore:{async readPQOriginals(){return saved?[saved]:[];},async unresolvedPreparation(){return false;}}}},async requestPQTypedAction(input){
  assert.equal(input.kind,action.kind);assert.deepEqual(input.payload,action.payload);
  const {review}=prepare(stage,input.invoiceOriginals??null),invoice=caller.readPQTypedActionInvoiceReviewData(review);
@@ -101,6 +107,23 @@ try{
  const protectedRead={requiresOriginalHolder:true,request:{action:'order-invoice',productId:original.productId,sourceOrder:original.sourceOrder}};
  const inputDATA={action:['order-terms-review','order-pay-review','order-refund-review'][stage],productId:original.productId,sourceOrder:original.sourceOrder,...(stage===2?{refundId:action.payload.refundID,amountAtoms:action.payload.amount}:{})};
  const invoke=()=>protectedReview?service.invokeOriginalOrderResult(inputDATA,input.intentId,()=>{}):service.invoke(inputDATA);
+ if(process.env.PAY_PROTECTED_LATE_REVIEW_REVOKE==='1'){
+  assert.equal(protectedReview,true);
+  const refused=await entry.invokeOriginalOrderResult(inputDATA,input.intentId,assertLateReviewCurrent);
+  assert.equal(holderRevoked,true);
+  assert.equal(refused.code,lateReviewRevocation.code);
+  assert.equal(refused.reference,null);
+  assert.equal(refused.walletRequest,undefined);
+  assert.deepEqual(refused.recoveryActions,[]);
+  assert.equal(reviews,1);
+  assert.equal(published,0);
+  assert.equal(rejects,1);
+  assert.equal(pending.size,0);
+  entry.assertSafeToClose();
+  service.cancel();
+  assert.equal(rejects,1);
+  console.log(JSON.stringify({stage,kind:action.kind,lateReviewChecks,originalReviewCancelled:true,published,calls,signing:0,effectPOST:0,SourceAdmission:false}));
+ }else{
  if(protectedReview){
   control='mismatch';
   const rejected=await invoke();
@@ -146,4 +169,5 @@ try{
  }
  service.assertSafeToClose();
  console.log(JSON.stringify({stage,kind:action.kind,...(stage===2?{refundId:action.payload.refundID,amountAtoms:action.payload.amount}:{}),protectedReview,mismatchRefused:protectedReview,lostReplyExactGET:protectedReview,normalMainWrapper:true,originalMainTypedProducer:true,originalSDK:true,originalOrder:original.sourceOrder,intentId:input.intentId,calls,published,rejects,broadcastReviews,approve:0,signing:0,effectPOST:0,SourceAdmission:false}));
+ }
 }finally{source.retire();await source.join();await source.close();source.assertSafeToClose();}
