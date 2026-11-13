@@ -27,8 +27,11 @@ function readReference(value){
 export function nativePayRecoveryActions(reference,{protectedOrder=false}={}){
  const r=readReference(reference);if(!r)return [];
  const retainedIntent=/^npi_[0-9a-f]{48}$/.test(r.intentId??'');
- if(protectedOrder)return retainedIntent?[{action:'intent',intentId:r.intentId}]:[];
  const id=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v),merchant=/^0x[0-9a-f]{40}$/.test(r.merchant??''),hash=/^0x[0-9a-f]{64}$/.test(r.nativeHash??'');
+ // Only the private host may unwrap this selector and supply its original
+ // holder. The generic Main entry cannot dispatch this recovery descriptor.
+ if(protectedOrder)return retainedIntent&&r.productId==='shop.order'&&id(r.sourceOrder)
+  ?[{requiresOriginalHolder:true,request:{action:'order-invoice',productId:r.productId,sourceOrder:r.sourceOrder}}]:[];
  if(r.kind==='invoice_terms'&&id(r.productId)&&id(r.sourceOrder))return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
  if(id(r.productId)&&id(r.sourceOrder)){
   if(merchant&&id(r.invoiceId))return [{action:hash?'recover-archive':'reconcile-archive',productId:r.productId,sourceOrder:r.sourceOrder,merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];

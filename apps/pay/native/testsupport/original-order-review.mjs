@@ -98,6 +98,7 @@ const loan={pay,current(){},retire(){},async join(){},async close(){},readOrigin
 const source=await composeNativePayProductSource(entry,{acquireOriginalProductSource:async()=>loan,isOriginalProductSource:v=>v===loan});
 const service=createWalletNativePayProduct({entry:{...entry,invoke:entry.invokeResult},getMain:()=>main,getGuard:()=>({account:actor,assert(){}}),publishReview(request){assert.equal(pending.get(request.id),request);published++;}});
 try{
+ const protectedRead={requiresOriginalHolder:true,request:{action:'order-invoice',productId:original.productId,sourceOrder:original.sourceOrder}};
  const inputDATA={action:['order-terms-review','order-pay-review','order-refund-review'][stage],productId:original.productId,sourceOrder:original.sourceOrder,...(stage===2?{refundId:action.payload.refundID,amountAtoms:action.payload.amount}:{})};
  const invoke=()=>protectedReview?service.invokeOriginalOrderResult(inputDATA,input.intentId,()=>{}):service.invoke(inputDATA);
  if(protectedReview){
@@ -105,16 +106,16 @@ try{
   const rejected=await invoke();
   assert.equal(rejected.code,stage===0?'NATIVE_INVOICE_REVIEW_BINDING':'NATIVE_PAY_ACTION_BILL_MISMATCH');
   assert.equal(rejected.walletRequest,undefined);assert.equal(reviews,0);assert.equal(published,0);
-  assert.deepEqual(rejected.recoveryActions,[{action:'intent',intentId:input.intentId}]);
+  assert.deepEqual(rejected.recoveryActions,[protectedRead]);
   control='lost';
   const lost=await invoke();
   assert.equal(lost.code,'PUBLIC_ORIGINAL_REVIEW_LOST');assert.equal(lost.canRetry,false);
   assert.equal(lost.walletRequest,undefined);assert.equal(reviews,0);assert.equal(published,0);
   assert.deepEqual(lost.recoveryActions,rejected.recoveryActions);
   control='normal';
-  const before=calls.length,recovered=await service.invoke(lost.recoveryActions[0]);
+  const before=calls.length,recovered=await service.invokeOriginalOrderResult(lost.recoveryActions[0].request,input.intentId,()=>{});
   assert.equal(recovered.ok,true);assert.equal(recovered.intent.originalOperation,input.intentId);
-  assert.deepEqual(calls.slice(before),[{method:'GET',path:'/v5/pay/invoice-intents/'+input.intentId}]);
+  assert.deepEqual(calls.slice(before),[{method:'GET',path:'/v5/pay/invoice-intents/'+input.intentId},...(stage===0?[]:[{method:'GET',path:'/v5/pay/invoices/'+original.merchant+'/'+input.invoiceId}])]);
  }
  const result=await invoke();
  assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.approvalRequired,true);assert.equal(result.walletRequest.id,`PUBLIC-order-review-${stage}`);assert.equal(result.reference.invoiceId,input.invoiceId);assert.equal(result.reference.intentId,input.intentId);assert.equal(result.canRetry,false);assert.equal(reviews,1);assert.equal(published,1);
@@ -132,7 +133,7 @@ try{
    const entered=await broadcast();
    assert.equal(entered.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
    assert.equal(broadcastReviews,0);
-   assert.deepEqual(entered.recoveryActions,[{action:'intent',intentId:input.intentId}]);
+   assert.deepEqual(entered.recoveryActions,[protectedRead]);
   }
   control='mismatch-target';
   const rejected=await broadcast();

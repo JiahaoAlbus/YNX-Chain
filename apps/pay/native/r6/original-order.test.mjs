@@ -8,6 +8,7 @@ import {composeNativePayProductSource} from './product-source.mjs';
 const merchant='0x'+'1'.repeat(40),payer='0x'+'2'.repeat(40),intentId='npi_'+'3'.repeat(48),termsHash='0x'+'4'.repeat(64);
 const original={productId:'shop.order',storeId:'store-original',sourceOrder:'order:original',merchant,recipient:merchant,genesis:'a'.repeat(64),nativeChainId:'6423',assetId:'YNXT',unitVersion:'1',amountAtoms:'100',domainData:{schema:'ynx.shop.order.invoice/v1',order:{ID:'order:original'},approvedNativePrice:{PriceApprovalRef:'PUBLIC-original-price'}}};
 const ref={productId:original.productId,sourceOrder:original.sourceOrder};
+const protectedRead={requiresOriginalHolder:true,request:{action:'order-invoice',...ref}};
 const terms={invoiceId:'invoice-original',sessionId:'session-original',recipient:merchant,payer,assetId:'YNXT',unitVersion:'1',feeRule:'native-transfer-fee-one/v1',keyEpoch:'1',revision:'1',amountAtoms:'100',maxFeeAtoms:'1',expiresAtHeight:'100'};
 const view=()=>({intentId,originalOperation:intentId,request:structuredClone(original),merchant,state:'ISSUED',phase:'confirmed',signingMessageHash:'b'.repeat(64),termsNativeHash:termsHash,termsAbciHash:'0x'+'5'.repeat(64),terms:{...terms},invoice:{}});
 const bill=()=>({genesis:original.genesis,nativeChainId:'6423',merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,assetId:'YNXT',unitVersion:'1',principalAtoms:'100',paidAtoms:'0',refundedAtoms:'0',netPaidAtoms:'0',feeRule:terms.feeRule,maxFeeAtoms:'1',expiresAtHeight:'100',termsNativeHash:termsHash,termsHash:'b'.repeat(64),status:'terms_registered',refundStatus:'none',operations:{}});
@@ -303,7 +304,7 @@ test('protected Shop order resolves its original intent by GET before reviews an
  const result=await f.entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{});
  assert.equal(result.ok,true);
  assert.equal(result.reference.intentId,intentId);
- assert.deepEqual(result.recoveryActions,[{action:'intent',intentId}]);
+ assert.deepEqual(result.recoveryActions,[protectedRead]);
  assert.deepEqual(f.calls.map(call=>call.path),[undefined,`/v5/pay/invoice-intents/${intentId}`,`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]);
 });
 
@@ -324,18 +325,46 @@ test('protected operation and current stay out of renderer input and a revoked h
  assert.equal(late.calls.length,2);
 });
 
-test('a protected review on an UNKNOWN bill offers only the bound intent GET',async()=>{
+test('a protected review on an UNKNOWN bill offers only same-holder readback',async()=>{
  for(const [action,extra] of [['order-pay-review',{}],['order-refund-review',{refundId:'refund-original',amountAtoms:'30'}]]){
   for(const status of [{status:'unknown'},{refundStatus:'unknown'}]){
    const m=noSigningMain(),f=boot({main:m.main,read:()=>({...bill(),...status})});
    const result=await f.entry.invokeOriginalOrderResult({action,...ref,...extra},intentId,()=>{});
    assert.equal(result.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
    assert.equal(result.canRetry,false);
-   assert.deepEqual(result.recoveryActions,[{action:'intent',intentId}]);
+   assert.deepEqual(result.recoveryActions,[protectedRead]);
    assert.equal(m.touched(),0);
    assert.deepEqual(f.calls.slice(1).map(call=>call.method),['GET','GET']);
   }
  }
+});
+
+test('protected recovery reopens the same order through the fixed reader and current holder',async()=>{
+ const main=noSigningMain();
+ const fixture=boot({main:main.main,read:()=>({...bill(),status:'unknown'})});
+ const review=await fixture.entry.invokeOriginalOrderResult({action:'order-pay-review',...ref},intentId,()=>{});
+ assert.equal(review.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
+ assert.deepEqual(review.recoveryActions,[protectedRead]);
+ const descriptor=review.recoveryActions[0];
+ assert.equal((await fixture.entry.invokeResult(descriptor)).code,'NATIVE_PAY_MAIN_INPUT_INVALID');
+ const request=descriptor.request;
+ const before=fixture.calls.length;
+ const result=await fixture.entry.invokeOriginalOrderResult(request,intentId,()=>{});
+ assert.equal(result.ok,true);
+ assert.equal(result.queryOnly,true);
+ assert.equal(result.reference.intentId,intentId);
+ assert.equal(result.outcomeUnknown,true);
+ assert.deepEqual(fixture.calls.slice(before),[
+  {sourceRead:ref},
+  {method:'GET',path:`/v5/pay/invoice-intents/${intentId}`,body:undefined},
+  {method:'GET',path:`/v5/pay/invoices/${merchant}/${terms.invoiceId}`,body:undefined}
+ ]);
+ const expired=Object.assign(Error(),{code:'PUBLIC_HOLDER_EXPIRED'});
+ const rejected=await fixture.entry.invokeOriginalOrderResult(request,intentId,()=>{throw expired;});
+ assert.equal(rejected.code,expired.code);
+ assert.deepEqual(rejected.recoveryActions,[]);
+ assert.equal(fixture.calls.length,before+3);
+ assert.equal(main.touched(),0);
 });
 
 test('protected Shop order requires the fixed original Shop reader and never uses the generic reader',async()=>{
@@ -396,7 +425,7 @@ test('the fixed Shop loan and Pay read use the same live protected order',async 
    const result=await entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{if(revoked)throw expired;});
    if(scenario==='ready'){
     assert.equal(result.ok,true);assert.equal(result.bill.sourceOrder,ref.sourceOrder);
-    assert.deepEqual(result.recoveryActions,[{action:'intent',intentId}]);
+    assert.deepEqual(result.recoveryActions,[protectedRead]);
     assert.deepEqual(calls.slice(before),[['GET',shopPath],['GET',intentPath],['GET',`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]]);
    }else{
     assert.equal(result.code,scenario==='denied'?refusal.code:expired.code);
