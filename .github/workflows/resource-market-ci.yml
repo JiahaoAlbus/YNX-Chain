@@ -2237,7 +2237,7 @@ jobs:
           PY
       - name: Verify prepared signing and held proof sessions on original inputs
         id: pqheldsessions
-        if: github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push'
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
         timeout-minutes: 7
         run: bash scripts/verify/pq-held-sessions-ci.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/ynx-pq-held-sessions"
       - name: Retain original held session public test evidence
