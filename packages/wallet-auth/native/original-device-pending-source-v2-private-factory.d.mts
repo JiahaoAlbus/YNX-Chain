@@ -1,9 +1,11 @@
+import type { OriginalProductSessionV4ApprovalDATA } from '../src/product-session-pq-v4-codec.js';
 import type { createOriginalDeviceRegistrationAllocationFromSeedCanonicalDATA, createOriginalDeviceRegistrationPublicOriginalsDATA } from './original-device-registration-public-originals-private.mjs';
 import type{FixedSourceNativeObject}from'./original-auth-source-v2-fixed-core-gates.mjs';
 import type{PendingDeviceSourceTypedProjectionDATA}from'./original-device-pending-source-v2-typed-projection.mjs';
 import type{OriginalAuthSourceV2CurrentData}from'./original-auth-identity-source-v2-verifier.mjs';
 /** Fixed pending-only private realm entry, never a public Source/Root/provider constructor. */
 export interface OriginalPendingCollectorWithCreationIdentityDATA { (captureString:string):Readonly<{projection:Readonly<OriginalAuthSourceV2CurrentData>;currentRaw:string;captureSHA256:string;typedProjection:PendingDeviceSourceTypedProjectionDATA;dataOnly:true;RootAdmission:false;SourceAdmission:false;nativeAdmission:false;platformRuntimeVerified:false}>;readonly inspectOriginalDeviceCreationIdentityDATA:(originalIntentString:string)=>Readonly<OriginalDeviceCreationIdentity8DATA>;
+  readonly inspectOriginalProductSessionV4ApprovalDATA: (canonicalOriginal: string) => Readonly<OriginalProductSessionV4ApprovalDATA>;
   readonly createOriginalDeviceRegistrationPublicOriginalsDATA: typeof createOriginalDeviceRegistrationPublicOriginalsDATA;
   readonly createOriginalDeviceRegistrationAllocationFromSeedCanonicalDATA: typeof createOriginalDeviceRegistrationAllocationFromSeedCanonicalDATA;
 }

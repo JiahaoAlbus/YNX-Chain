@@ -73,6 +73,8 @@ export interface OriginalProductSessionV4ApprovalDATA {
  readonly request: ProductSessionRequestV4;
  readonly approval: ProductSessionApprovalV4;
  readonly accountAuthorization: ProductSessionAccountAuthorization;
+ readonly requestDigest: string;
+ readonly approvalDigest: string;
  readonly signatureVerified: true;
  readonly dataOnly: true;
  readonly authorized: false;
