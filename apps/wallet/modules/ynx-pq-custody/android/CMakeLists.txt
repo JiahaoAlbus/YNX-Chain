@@ -11,7 +11,9 @@ endif()
 foreach(required_header OriginalAccountPurposeChildPrivate.hpp normal_native_backend_private.hpp account_source_acquisition_private.hpp MobileAccountProofWireDATA.hpp)
  unset(account_header)
  unset(account_header CACHE)
- find_file(account_header "${required_header}" PATHS ${YNX_ACCOUNT_PROOF_INCLUDE_ROOTS} NO_DEFAULT_PATH)
+ # Release-selected host directories must not be rebased under the NDK sysroot.
+ find_file(account_header "${required_header}" PATHS ${YNX_ACCOUNT_PROOF_INCLUDE_ROOTS}
+  NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)
  if(NOT account_header)
   message(FATAL_ERROR "Matching account-proof header missing: ${required_header}")
  endif()
