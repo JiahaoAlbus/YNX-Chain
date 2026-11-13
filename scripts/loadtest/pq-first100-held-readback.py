@@ -22,6 +22,33 @@ preload = module('pq-preload-initialization.py')
 require, strict = prior.require, prior.strict
 
 
+def verify_archive_origin(run, job, artifacts, controller, sha256, size):
+    """Bind a downloaded archive to its original first-attempt workflow and upload step."""
+    run_id = run['id']
+    branch = 'codex/ynx-pq-current75-baseline-20261101'
+    require(type(run_id) is int and run_id > 0 and run['event'] == 'workflow_dispatch'
+            and run['run_attempt'] == 1 and run['head_sha'] == controller and run['head_branch'] == branch
+            and run['repository']['full_name'] == 'JiahaoAlbus/YNX-Chain'
+            and run['path'] == '.github/workflows/pq-normal-process.yml' and run['status'] == 'completed',
+            'original held workflow identity differs')
+    require(job['run_id'] == run_id and job['run_attempt'] == 1 and job['head_sha'] == controller
+            and type(job['id']) is int and job['id'] > 0 and job['status'] == 'completed'
+            and job['name'].startswith('Held public-owner normal504 '),
+            'original held job identity differs')
+    uploads = [step for step in job['steps'] if step['name'] == 'Preserve only original public receipts and streams']
+    require(len(uploads) == 1 and uploads[0]['conclusion'] == 'success', 'original held artifact upload missing')
+    matches = [artifact for artifact in artifacts['artifacts']
+               if artifact['name'] == f'pq-first100-held-public-owner-{run_id}-1']
+    require(len(matches) == 1, 'one original held artifact required')
+    artifact = matches[0]
+    require(artifact['workflow_run']['id'] == run_id and artifact['workflow_run']['head_sha'] == controller
+            and artifact['workflow_run']['head_branch'] == branch
+            and artifact['digest'] == 'sha256:' + sha256 and artifact['size_in_bytes'] == size,
+            'original held artifact identity or bytes differ')
+    return dict(run=run_id, job=job['id'], artifact=artifact['id'], runConclusion=run['conclusion'],
+                jobConclusion=job['conclusion'])
+
+
 def readiness_resources(receipt):
     peak = receipt.get('peakRSSSample')
     if peak is None:
@@ -247,10 +274,17 @@ if __name__ == '__main__':
     for argument in ('archive-sha256', 'controller', 'configuration-sha256'):
         parser.add_argument('--' + argument, required=True)
     parser.add_argument('--before-readback', type=Path)
+    parser.add_argument('--actions-metadata', type=Path,
+                        help='directory with original RUN.json, JOB.json and ARTIFACTS.json API responses')
     args = parser.parse_args()
     with args.archive.open('rb') as archive:
-        result = inspect(archive.read((128 << 20) + 1), args.archive_sha256,
-                         args.controller, args.configuration_sha256)
+        raw = archive.read((128 << 20) + 1)
+    result = inspect(raw, args.archive_sha256, args.controller, args.configuration_sha256)
+    if args.actions_metadata is not None:
+        records = [strict((args.actions_metadata / name).read_bytes())
+                   for name in ('RUN.json', 'JOB.json', 'ARTIFACTS.json')]
+        result['actionsOrigin'] = verify_archive_origin(*records, args.controller, args.archive_sha256, len(raw))
+        result['archiveOriginIndependentlyVerified'] = True
     if args.before_readback is not None:
         with args.before_readback.open('rb') as baseline:
             original = baseline.read((32 << 20) + 1)

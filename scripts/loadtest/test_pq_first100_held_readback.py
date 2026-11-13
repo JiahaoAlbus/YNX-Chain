@@ -24,6 +24,25 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_actions_metadata_binds_attempt_job_and_archive_digest(self):
+        branch = 'codex/ynx-pq-current75-baseline-20261101'
+        run = dict(id=1, event='workflow_dispatch', run_attempt=1, head_sha=self.controller,
+                   head_branch=branch, repository=dict(full_name='JiahaoAlbus/YNX-Chain'),
+                   path='.github/workflows/pq-normal-process.yml', status='completed', conclusion='failure')
+        job = dict(id=2, run_id=1, run_attempt=1, head_sha=self.controller, status='completed',
+                   name='Held public-owner normal504 fixture', conclusion='failure',
+                   steps=[dict(name='Preserve only original public receipts and streams', conclusion='success')])
+        artifacts = dict(artifacts=[dict(id=3, name='pq-first100-held-public-owner-1-1',
+                                       digest='sha256:'+'f'*64, size_in_bytes=10,
+                                       workflow_run=dict(id=1, head_sha=self.controller, head_branch=branch))])
+        origin = reader.verify_archive_origin(run, job, artifacts, self.controller, 'f'*64, 10)
+        self.assertEqual(origin['jobConclusion'], 'failure')
+        self.assertEqual(origin['artifact'], 3)
+        with self.assertRaisesRegex(RuntimeError, 'artifact identity or bytes'):
+            reader.verify_archive_origin(run, job, artifacts, self.controller, 'b'*64, 10)
+        with self.assertRaisesRegex(RuntimeError, 'job identity'):
+            reader.verify_archive_origin(run, dict(job, run_attempt=2), artifacts, self.controller, 'f'*64, 10)
+
     def test_peak_rss_preserves_overage_and_missing_process_samples(self):
         receipt = dict(peakRSSBytes=12, caps=dict(rssBytes=10), peakRSSSample=dict(rssBytes=12, processes=[
             dict(pid=1, startTicks=10, rssBytes=12), dict(pid=2, startTicks=11, rssBytes=None)]))
