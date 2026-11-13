@@ -42,6 +42,8 @@ def backend_class(Base, Session, normal, lab):
                 self.pool_ready['sourcePreparation'] = dict(
                     sourceReply=ready_path.name,
                     sourceReplySHA256=lab.guard.digest(ready_path),
+                    parentLaunchMonotonicNs=launch_ns,
+                    parentReadyReceivedMonotonicNs=ready_received_ns,
                     parentLaunchToReadyNs=ready_received_ns - launch_ns,
                     calleeStartupElapsedNs=ready['startupElapsedNs'],
                     calleePreparationTimings=ready['preparationTimings'],

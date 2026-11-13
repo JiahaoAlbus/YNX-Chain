@@ -2,6 +2,8 @@
 import hashlib
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import threading
@@ -72,6 +74,52 @@ class ParentBoundaryControls(unittest.TestCase):
         self.assertFalse(group['phaseAttemptDenominatorKnown'])
         self.assertIsNone(group['stages']['requestToReturn']['fullAttemptP50Ns'])
         self.assertEqual(group['stages']['requestToReturn']['minNs'], 160)
+
+    def test_prepared_ready_is_bound_to_go_bytes_and_precedes_load(self):
+        controls = module('prepared_ready_controls', 'test_pq_public_owner_transport.py')
+        ready = controls.ready_v2()
+        raw = json.dumps(ready).encode() + b'\n'
+        preparation = dict(sourceReply='load-public-owners-ready.json',
+                           sourceReplySHA256=hashlib.sha256(raw).hexdigest(),
+                           parentLaunchMonotonicNs=100, parentReadyReceivedMonotonicNs=250,
+                           parentLaunchToReadyNs=150, calleeStartupElapsedNs=ready['startupElapsedNs'],
+                           calleePreparationTimings=ready['preparationTimings'],
+                           parentClock='parent_monotonic_ns', intervalsOverlap=True,
+                           addedToPerCommand=False, checkpointValidated=False)
+        pool = dict(readyMode='ORIGINAL_PUBLIC_STATIC_SOURCE_PREPARED', publicScopeReady=ready,
+                    bootstrapLoaded=True, sourcePreparation=preparation, signed=False,
+                    nonceReserved=False, loadClockStarted=False, sourceGrant=False,
+                    coldValidationIncludedInFirstCommand=False)
+        receipt = dict(senderPoolPreparation=pool, loadResult=dict(originMonotonicNs='275'))
+        result = m.source_preparation(receipt, raw, [4, 5])
+        self.assertEqual((result['parentLaunchToReadyNs'], result['calleeStartupElapsedNs'],
+                          result['readyToLoadOriginNs']), (150, 100, 25))
+        self.assertTrue(result['readinessBeforeLoadObserved'])
+        self.assertFalse(result['businessQualified'])
+        with tempfile.TemporaryDirectory() as temp:
+            receipt_path, plan_path, ready_path = [Path(temp)/name for name in ('receipt', 'plan', 'ready')]
+            plan_path.write_bytes(json.dumps(dict(accounts=[dict(ownerIndex=4), dict(ownerIndex=5)])).encode())
+            receipt['planSHA256'] = hashlib.sha256(plan_path.read_bytes()).hexdigest()
+            receipt_path.write_bytes(json.dumps(receipt).encode())
+            ready_path.write_bytes(raw)
+            output = subprocess.check_output([sys.executable, '-B', str(Path(m.__file__)),
+                '--input', str(receipt_path), '--expected-sha256', hashlib.sha256(receipt_path.read_bytes()).hexdigest(),
+                '--ready', str(ready_path), '--load-plan', str(plan_path)])
+            self.assertEqual(json.loads(output), result)
+        with self.assertRaisesRegex(RuntimeError, 'SHA256'):
+            m.source_preparation(receipt, b' ' + raw, [4, 5])
+        with self.assertRaisesRegex(RuntimeError, 'READY differs'):
+            m.source_preparation(receipt, raw, [4, 6])
+        with self.assertRaisesRegex(RuntimeError, 'after original load origin'):
+            m.source_preparation(dict(receipt, loadResult=dict(originMonotonicNs='249')), raw, [4, 5])
+        with self.assertRaisesRegex(RuntimeError, 'parent elapsed differs'):
+            preparation['parentLaunchToReadyNs'] = 149
+            m.source_preparation(receipt, raw, [4, 5])
+        preparation['parentLaunchToReadyNs'] = 150
+        result = m.source_preparation(dict(receipt, loadResult=None), raw, [4, 5])
+        self.assertIsNone(result['readyToLoadOriginNs'])
+        self.assertFalse(result['readinessBeforeLoadObserved'])
+        self.assertEqual(m.source_preparation({}, None, []), dict(status='NOT_SUPPLIED'))
 
     def test_empty_report_has_no_fabricated_stage_or_success(self):
         result = read(report([]))

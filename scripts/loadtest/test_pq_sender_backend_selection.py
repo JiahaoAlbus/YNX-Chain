@@ -90,6 +90,7 @@ class BackendSelection(unittest.TestCase):
         self.assertFalse(report['coldValidationIncludedInFirstCommand'])
         self.assertEqual(report['sourcePreparation'], dict(
             sourceReply='load-public-owners-ready.json', sourceReplySHA256=sha256,
+            parentLaunchMonotonicNs=100, parentReadyReceivedMonotonicNs=750,
             parentLaunchToReadyNs=650, calleeStartupElapsedNs=450, calleePreparationTimings=timings,
             parentClock='parent_monotonic_ns', intervalsOverlap=True, addedToPerCommand=False,
             checkpointValidated=False))

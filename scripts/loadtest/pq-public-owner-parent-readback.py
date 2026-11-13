@@ -2,6 +2,7 @@
 import argparse
 import collections
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import re
@@ -112,14 +113,86 @@ def readback(raw, expected_sha256):
                 meaning='Parent wall spans only. Acquire-to-command includes checkpoint preparation; command-to-reply includes pipe, Go and receipt reading. Omitted or missing boundaries censor quantiles. Recover/close are separate phases; no finality follows from a reply code.')
 
 
+def source_preparation(receipt, raw, expected_owners):
+    """Bind pre-window parent observations to the preserved Go READY line."""
+    pool = receipt.get('senderPoolPreparation')
+    if pool is None or pool.get('readyMode') != 'ORIGINAL_PUBLIC_STATIC_SOURCE_PREPARED':
+        require(raw is None, 'prepared READY supplied without original pool receipt')
+        return dict(status='NOT_SUPPLIED')
+    require(type(raw) is bytes and 0 < len(raw) <= 2 << 20
+            and raw.endswith(b'\n') and raw.count(b'\n') == 1,
+            'one bounded original prepared READY line required')
+    owners = tuple(expected_owners)
+    require(0 < len(owners) <= 1000
+            and all(type(owner) is int and 0 <= owner < 1000 for owner in owners)
+            and tuple(sorted(set(owners))) == owners, 'original owner set required')
+    preparation = pool.get('sourcePreparation')
+    digest = hashlib.sha256(raw).hexdigest()
+    require(type(preparation) is dict and preparation.get('sourceReply') == 'load-public-owners-ready.json'
+            and preparation.get('sourceReplySHA256') == digest, 'prepared READY receipt SHA256 differs')
+    spec = importlib.util.spec_from_file_location('prepared_owner_transport',
+        Path(__file__).with_name('pq-public-owner-transport.py'))
+    transport = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(transport)
+    ready = transport.prepared_ready(strict(raw), owners, require)
+    require(pool.get('publicScopeReady') == ready and pool.get('bootstrapLoaded') is True
+            and all(pool.get(key) is False for key in
+                    ('signed', 'nonceReserved', 'loadClockStarted', 'sourceGrant',
+                     'coldValidationIncludedInFirstCommand'))
+            and preparation.get('calleeStartupElapsedNs') == ready['startupElapsedNs']
+            and preparation.get('calleePreparationTimings') == ready['preparationTimings']
+            and preparation.get('parentClock') == 'parent_monotonic_ns'
+            and preparation.get('intervalsOverlap') is True
+            and preparation.get('addedToPerCommand') is False
+            and preparation.get('checkpointValidated') is False,
+            'prepared READY receipt scope or timings differ')
+    launch = integer(preparation.get('parentLaunchMonotonicNs'))
+    received = integer(preparation.get('parentReadyReceivedMonotonicNs'))
+    elapsed = integer(preparation.get('parentLaunchToReadyNs'))
+    require(received - launch == elapsed, 'prepared READY parent elapsed differs')
+    load = receipt.get('loadResult')
+    gap = None
+    if load is not None:
+        origin = load.get('originMonotonicNs')
+        require(type(origin) is str and re.fullmatch('0|[1-9][0-9]{0,18}', origin),
+                'original load origin required')
+        gap = integer(int(origin)) - received
+        require(gap >= 0, 'prepared READY arrived after original load origin')
+    return dict(status='ORIGINAL_READY_READ', sourceReplySHA256=digest,
+                parentLaunchToReadyNs=elapsed, calleeStartupElapsedNs=ready['startupElapsedNs'],
+                calleePreparationTimings=ready['preparationTimings'],
+                readyToLoadOriginNs=gap, readinessBeforeLoadObserved=gap is not None,
+                intervalsOverlap=True, addedToPerCommand=False,
+                checkpointValidated=False, businessQualified=False)
+
+
+def pinned_file(path, expected, limit):
+    with path.open('rb') as source:
+        raw = source.read(limit + 1)
+    require(0 < len(raw) <= limit and hashlib.sha256(raw).hexdigest() == expected,
+            'original file bounds or SHA256 differ')
+    return raw
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--expected-sha256', required=True)
+    parser.add_argument('--ready', type=Path, help='read prepared READY against a pinned original window receipt')
+    parser.add_argument('--load-plan', type=Path, help='original load plan bound by receipt planSHA256')
     args = parser.parse_args()
-    with args.input.open('rb') as source:
-        raw = source.read((4 << 20)+1)
-    print(json.dumps(readback(raw, args.expected_sha256), indent=2))
+    if args.ready is None and args.load_plan is None:
+        print(json.dumps(readback(pinned_file(args.input, args.expected_sha256, 4 << 20),
+                                  args.expected_sha256), indent=2))
+        return
+    if args.ready is None or args.load_plan is None:
+        parser.error('--ready and --load-plan are both required for preparation readback')
+    receipt = strict(pinned_file(args.input, args.expected_sha256, 64 << 20))
+    plan = strict(pinned_file(args.load_plan, receipt.get('planSHA256'), 16 << 20))
+    with args.ready.open('rb') as source:
+        raw = source.read((2 << 20) + 1)
+    owners = sorted(account['ownerIndex'] for account in plan['accounts'])
+    print(json.dumps(source_preparation(receipt, raw, owners), indent=2))
 
 
 if __name__ == '__main__':
