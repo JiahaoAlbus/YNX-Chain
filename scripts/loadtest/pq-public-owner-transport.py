@@ -11,15 +11,112 @@ import threading
 import time
 
 
+def prepared_ready(reply, owners, require):
+    """Check Core's explicit static-only READY/v2, never command readiness."""
+    def closed(value, fields, label):
+        require(type(value) is dict and set(value)==set(fields.split()),
+                'closed original prepared READY '+label+' required')
+    def integer(value, maximum=(1<<63)-1):
+        return type(value) is int and 0<=value<=maximum
+
+    closed(reply,'version status owners startupElapsedNs signed nonceReserved bootstrapLoaded '
+                 'syntheticOnly authorityGranted preparationTimings session','fields')
+    require(reply['version']=='YNX-PQ-LAB-PUBLIC-OWNER-READY/v2'
+            and reply['status']=='original_public_static_source_held'
+            and type(reply['owners']) is list and reply['owners']==list(owners)
+            and all(type(v) is int for v in reply['owners'])
+            and integer(reply['startupElapsedNs'])
+            and reply['signed'] is False and reply['nonceReserved'] is False
+            and reply['bootstrapLoaded'] is True and reply['syntheticOnly'] is True
+            and reply['authorityGranted'] is False,
+            'original prepared public source READY differs; no command issued')
+    timing=reply['preparationTimings']
+    closed(timing,'version clock intervalsOverlap stages','preparation timings')
+    require(timing['version']=='YNX-PQ-LAB-CALLEE-ELAPSED/v1'
+            and timing['clock']=='monotonic_elapsed_wall_ns' and timing['intervalsOverlap'] is True
+            and type(timing['stages']) is dict and 0<len(timing['stages'])<=128,
+            'original static preparation timing schema differs')
+    # Keep the original bounded metric map extensible for static subspans. No
+    # current checkpoint, sender key or command may become preparation work.
+    required={'lab.bootstrapFullValidation','lab.validatedMigrationOwnerBuild',
+              'checkpoint.prepareStaticTotal','publicOwner.prepareSource'}
+    require(required<=set(timing['stages']),'original static preparation stages differ')
+    for name, stage in timing['stages'].items():
+        require(type(name) is str and 0<len(name)<=128
+                and not name.startswith('sender.')
+                and (not name.startswith('checkpoint.') or name=='checkpoint.prepareStaticTotal')
+                and name not in ('publicOwner.signTotal','publicOwner.confirmTotal','publicOwner.recoverTotal'),
+                'prepared source timing includes command or current-checkpoint work')
+        closed(stage,'calls elapsedNs','stage')
+        require(integer(stage['calls'],(1<<64)-1) and stage['calls']>0
+                and integer(stage['elapsedNs']), 'invalid original preparation stage timing')
+        require(name not in required or stage['calls']==1,'original static preparation must occur once')
+
+    session=reply['session']
+    closed(session,'allowedOwners openedOwners commands commandLimit retired closed staticCache sourceInputs','session')
+    require(integer(session['allowedOwners']) and session['allowedOwners']==len(owners)
+            and integer(session['openedOwners']) and session['openedOwners']==0
+            and integer(session['commands'],(1<<64)-1) and session['commands']==0
+            and integer(session['commandLimit'],(1<<64)-1) and session['commandLimit']>0
+            and session['retired'] is False and session['closed'] is False,
+            'prepared original session already opened an owner or consumed commands')
+    cache=session['staticCache'];source=session['sourceInputs']
+    closed(cache,'scope entries heldFiles originalBytes hits misses bypasses closed','static cache')
+    require(cache['scope']=='YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1' and cache['closed'] is False
+            and all(integer(cache[k],(1<<64)-1) for k in ('hits','misses','bypasses'))
+            and all(integer(cache[k]) for k in ('entries','heldFiles','originalBytes')),
+            'original prepared cache snapshot differs')
+    closed(source,'scope state staticOriginalFiles staticOriginalBytes activationOriginalFiles '
+                  'activationOriginalBytes cacheRetained cacheAdmissionReason cacheMaxBytes '
+                  'cacheMaxFiles snapshotOnly','source inputs')
+    require(source['scope']=='YNX-PQ-LAB-HELD-PUBLIC-INPUTS/v1' and source['snapshotOnly'] is True
+            and integer(source['cacheMaxBytes']) and source['cacheMaxBytes']==32<<20
+            and integer(source['cacheMaxFiles']) and source['cacheMaxFiles']==16
+            and integer(source['staticOriginalFiles'],16) and source['staticOriginalFiles']>0
+            and integer(source['staticOriginalBytes'],16<<30) and source['staticOriginalBytes']>0
+            and integer(source['activationOriginalFiles']) and source['activationOriginalFiles']==0
+            and integer(source['activationOriginalBytes']) and source['activationOriginalBytes']==0,
+            'prepared source bounds or static-only footprint differ')
+    retained=source['state']=='CACHE_ENTRY'
+    require(source['state'] in ('CACHE_ENTRY','INVOCATION_HELD')
+            and source['cacheRetained'] is retained,
+            'original prepared public source is not held')
+    count,size=source['staticOriginalFiles'],source['staticOriginalBytes']
+    expected=(1,count,size) if retained else (0,0,0)
+    reason='WITHIN_BOUNDS' if retained else 'BYTE_BOUND' if size>32<<20 else 'NOT_RETAINED_WITHIN_BOUNDS'
+    require(tuple(cache[k] for k in ('entries','heldFiles','originalBytes'))==expected
+            and (not retained or size<=32<<20) and source['cacheAdmissionReason']==reason,
+            'original prepared source/cache admission differs')
+    return reply
+
+
+def read_prepared_ready(path, require):
+    # Base.receive retains the exact line before decoding. Decode that original
+    # again so duplicate fields/nonfinite numbers cannot disappear in json.loads.
+    def fields(items):
+        result={}
+        for key,value in items:
+            require(key not in result,'duplicate original prepared READY field')
+            result[key]=value
+        return result
+    def constant(value):
+        raise RuntimeError('nonfinite original prepared READY number')
+    with open(path,'rb') as source:raw=source.read((2<<20)+1)
+    require(0<len(raw)<=2<<20 and raw.endswith(b'\n') and raw.count(b'\n')==1,
+            'one bounded original prepared READY line required')
+    return json.loads(raw,object_pairs_hook=fields,parse_constant=constant)
+
+
 def session_class(Base, normal, lab):
     class PublicOwnerSession(Base):
-        def __init__(self, ceremony, owners, name='load-public-owners'):
+        def __init__(self, ceremony, owners, name='load-public-owners', *, prepare_source=False):
             indices=tuple(owners)
+            lab.require(type(prepare_source) is bool,'explicit boolean static source preparation required')
             lab.require(0<len(indices)<=1000 and all(type(v) is int and 0<=v<1000 for v in indices)
                         and tuple(sorted(set(indices)))==indices,
                         'explicit ascending unique original owner indices required')
             lab.require(name and all(v.isalnum() or v in '-_' for v in name),'bounded original process label required')
-            self.c=ceremony;self.owners=indices;self.name=name
+            self.c=ceremony;self.owners=indices;self.name=name;self.prepare_source=prepare_source
             self.offset=0;self.partial=b'';self.ready=None
             self.lock=threading.Lock();self.poisoned=False
             self.trace_lock=threading.Lock();self.traces=[];self.attempts=0
@@ -33,6 +130,7 @@ def session_class(Base, normal, lab):
                       '--root',str(ceremony.root),'--plan-sha256',ceremony.pin,
                       '--activation-sha256',ceremony.activation_pin,'--workload-sha256',ceremony.workload_pin,
                       '--owners',','.join(map(str,indices)),'--ready','--timings','--credential-fd','3']
+                if prepare_source:args.append('--prepare-source')
                 self.proc=ceremony.w.launch(name,normal.fd3_command(args,fd),True,
                                            pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
             finally:
@@ -42,6 +140,11 @@ def session_class(Base, normal, lab):
         def wait_ready(self, stop, deadline, check):
             lab.require(self.ready is None,'original scope READY already consumed')
             path=self.c.w.work/'public'/(self.name+'-ready.json')
+            if getattr(self,'prepare_source',False):
+                self.receive(path,stop,'YNX-PQ-LAB-PUBLIC-OWNER-READY/v2',deadline,check)
+                reply=prepared_ready(read_prepared_ready(path,lab.require),self.owners,lab.require)
+                self.ready=dict(reply)
+                return dict(reply)
             reply=self.receive(path,stop,'YNX-PQ-LAB-PUBLIC-OWNER-READY/v1',deadline,check)
             lab.require(reply.get('status')=='original_public_scope_held'
                         and reply.get('owners')==list(self.owners)

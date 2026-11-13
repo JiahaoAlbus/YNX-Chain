@@ -9,6 +9,7 @@ import threading
 import tempfile
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 
 def module(name,file):
@@ -54,7 +55,157 @@ def response(owner=4,identity='a'*64,code='ORIGINAL_SAVED'):
     return dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1',ownerIndex=owner,operationId=identity,code=code)
 
 
+def ready_v1():
+    return dict(version='YNX-PQ-LAB-PUBLIC-OWNER-READY/v1',status='original_public_scope_held',
+                owners=[4,5],startupElapsedNs=100,signed=False,nonceReserved=False,
+                bootstrapLoaded=False,syntheticOnly=True,authorityGranted=False)
+
+
+def ready_v2(retained=True):
+    # Offline contract fixture, not an actual Go run or source qualification.
+    value=ready_v1()
+    stages={name:dict(calls=1,elapsedNs=10) for name in
+            ('lab.migrationFullRead','lab.migrationFullDecode','lab.validatedMigrationOwnerBuild',
+             'lab.bootstrapFullValidation','lab.loadStaticTotal','checkpoint.prepareStaticTotal',
+             'publicOwner.prepareSource',
+             'lab.staticOwnerHitRevalidateSources' if retained else 'live.heldStaticWitnessCurrent')}
+    size=4096 if retained else (32<<20)+1
+    source=dict(scope='YNX-PQ-LAB-HELD-PUBLIC-INPUTS/v1',state='CACHE_ENTRY' if retained else 'INVOCATION_HELD',
+                staticOriginalFiles=12,staticOriginalBytes=size,activationOriginalFiles=0,
+                activationOriginalBytes=0,cacheRetained=retained,
+                cacheAdmissionReason='WITHIN_BOUNDS' if retained else 'BYTE_BOUND',
+                cacheMaxBytes=32<<20,cacheMaxFiles=16,snapshotOnly=True)
+    cache=dict(scope='YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1',entries=int(retained),
+               heldFiles=12 if retained else 0,originalBytes=size if retained else 0,
+               hits=int(retained),misses=1,bypasses=int(not retained),closed=False)
+    value.update(version='YNX-PQ-LAB-PUBLIC-OWNER-READY/v2',status='original_public_static_source_held',
+                 bootstrapLoaded=True,preparationTimings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',
+                 clock='monotonic_elapsed_wall_ns',intervalsOverlap=True,stages=stages),
+                 session=dict(allowedOwners=2,openedOwners=0,commands=0,commandLimit=40,
+                              retired=False,closed=False,staticCache=cache,sourceInputs=source))
+    return value
+
+
 class TransportControls(unittest.TestCase):
+    def receive_ready(self, raw, opted, *, reject=False):
+        RealSession=m.session_class(d.SenderSession,n,d.lab)
+        s=RealSession.__new__(RealSession)
+        s.__dict__.update(session(lambda:None).__dict__)
+        s.prepare_source=opted;s.offset=0;s.partial=b'';s.ready=None;s.name='ready-contract'
+        with tempfile.TemporaryDirectory() as tmp:
+            work=Path(tmp);(work/'public').mkdir();s.path=work/'input.jsonl';s.path.write_bytes(raw)
+            s.c.w=SimpleNamespace(work=work)
+            path=work/'public'/'ready-contract-ready.json'
+            if reject:
+                with self.assertRaises((RuntimeError,ValueError,TypeError,KeyError)):
+                    s.wait_ready(threading.Event(),None,lambda:None)
+                self.assertIsNone(s.ready)
+                with self.assertRaises(RuntimeError):s.exchange(command(),None,threading.Event())
+            else:
+                ready=s.wait_ready(threading.Event(),None,lambda:None)
+                self.assertEqual(ready,json.loads(raw))
+                with self.assertRaises(RuntimeError):s.wait_ready(threading.Event(),None,lambda:None)
+            self.assertEqual(path.read_bytes(),raw)
+            self.assertEqual(s.proc.stdin.getvalue(),b'')
+            self.assertEqual(s.records,[])
+            self.assertEqual(s.transport_report()['attempted'],0)
+
+    def test_prepare_source_flag_is_keyword_only_boolean_and_opt_in(self):
+        calls=[]
+        window=SimpleNamespace(work=Path('/offline'),
+            launch=lambda *args,**kw:calls.append((args,kw)) or SimpleNamespace(stdin=io.BytesIO()))
+        ceremony=SimpleNamespace(root=Path('/offline'),bins=Path('/offline/bin'),w=window,
+                                 pin='a'*64,activation_pin='b'*64,workload_pin='c'*64)
+        Constructor=m.session_class(Receiver,SimpleNamespace(fd3_command=lambda args,fd:args),
+                                    SimpleNamespace(require=require))
+        info=SimpleNamespace(st_mode=0o100600,st_size=32,st_nlink=1)
+        with patch.object(m.os,'open',return_value=91),patch.object(m.os,'fstat',return_value=info),\
+             patch.object(m.os,'close'):
+            Constructor(ceremony,[4,5])
+            Constructor(ceremony,[4,5],prepare_source=False)
+            Constructor(ceremony,[4,5],prepare_source=True)
+            for invalid in (None,0,1,'true'):
+                with self.subTest(invalid=invalid),self.assertRaises(RuntimeError):
+                    Constructor(ceremony,[4,5],prepare_source=invalid)
+            with self.assertRaises(TypeError):Constructor(ceremony,[4,5],'name',True)
+        self.assertEqual(len(calls),3)
+        for i,(args,kw) in enumerate(calls):
+            self.assertEqual(args[1].count('--prepare-source'),int(i==2))
+            self.assertIn('--ready',args[1]);self.assertIn('--timings',args[1])
+            self.assertEqual(kw['pass_fds'],(91,));self.assertTrue(kw['stdin_pipe'])
+
+    def test_prepared_ready_keeps_raw_line_and_preparation_out_of_command_metrics(self):
+        self.receive_ready(json.dumps(ready_v1()).encode()+b'\n',False)
+        for retained in (True,False):
+            with self.subTest(retained=retained):
+                self.receive_ready(json.dumps(ready_v2(retained)).encode()+b'\n',True)
+
+    def test_prepared_ready_accepts_static_subspans_and_observational_cache_counters(self):
+        ready=ready_v2()
+        ready['preparationTimings']['stages']['lab.staticSubspan']=dict(calls=2,elapsedNs=3)
+        ready['session']['staticCache'].update(hits=3,misses=4,bypasses=2)
+        self.receive_ready(json.dumps(ready).encode()+b'\n',True)
+        held=ready_v2(False)
+        held['session']['sourceInputs'].update(staticOriginalBytes=4096,
+                                               cacheAdmissionReason='NOT_RETAINED_WITHIN_BOUNDS')
+        self.receive_ready(json.dumps(held).encode()+b'\n',True)
+
+    def test_ready_version_cannot_opt_in_or_fall_back(self):
+        self.receive_ready(json.dumps(ready_v1()).encode()+b'\n',True,reject=True)
+        self.receive_ready(json.dumps(ready_v2()).encode()+b'\n',False,reject=True)
+
+    def test_prepared_ready_rejects_wrong_closed_shape_types_and_authority_before_commands(self):
+        cases=[(('extra',),False),(('status',),'original_public_scope_held'),
+               (('owners',),[4,6]),(('owners',),[True,5]),(('startupElapsedNs',),True),
+               (('startupElapsedNs',),-1),(('startupElapsedNs',),1<<63),
+               (('signed',),True),(('nonceReserved',),True),(('bootstrapLoaded',),False),
+               (('syntheticOnly',),False),(('authorityGranted',),True),
+               (('preparationTimings','extra'),0),(('preparationTimings','intervalsOverlap'),False),
+               (('preparationTimings','clock'),'wall_clock'),
+               (('preparationTimings','stages','sender.signTotal'),dict(calls=1,elapsedNs=1)),
+               (('preparationTimings','stages','checkpoint.captureCurrentBytes'),dict(calls=1,elapsedNs=1)),
+               (('preparationTimings','stages','publicOwner.prepareSource','calls'),2),
+               (('preparationTimings','stages','publicOwner.prepareSource','calls'),True),
+               (('preparationTimings','stages','publicOwner.prepareSource','elapsedNs'),-1),
+               (('preparationTimings','stages','publicOwner.prepareSource','extra'),0),
+               (('session','extra'),False),(('session','allowedOwners'),3),
+               (('session','openedOwners'),1),(('session','openedOwners'),False),
+               (('session','commands'),1),(('session','commandLimit'),0),
+               (('session','retired'),True),(('session','closed'),True),
+               (('session','staticCache','extra'),0),(('session','staticCache','closed'),True),
+               (('session','staticCache','entries'),True),(('session','staticCache','misses'),True),
+               (('session','staticCache','originalBytes'),4097),
+               (('session','sourceInputs','extra'),False),
+               (('session','sourceInputs','state'),'NOT_LOADED'),
+               (('session','sourceInputs','cacheMaxBytes'),64<<20),
+               (('session','sourceInputs','cacheMaxFiles'),17),
+               (('session','sourceInputs','staticOriginalFiles'),17),
+               (('session','sourceInputs','snapshotOnly'),False),
+               (('session','sourceInputs','activationOriginalFiles'),1),
+               (('session','sourceInputs','activationOriginalBytes'),1),
+               (('session','sourceInputs','cacheRetained'),False)]
+        for path,value in cases:
+            with self.subTest(path=path,value=value):
+                bad=ready_v2();target=bad
+                for key in path[:-1]:target=target[key]
+                target[path[-1]]=value
+                self.receive_ready(json.dumps(bad).encode()+b'\n',True,reject=True)
+        for path in [('preparationTimings',),('session',),
+                     ('preparationTimings','stages','lab.bootstrapFullValidation')]:
+            bad=ready_v2();target=bad
+            for key in path[:-1]:target=target[key]
+            del target[path[-1]]
+            with self.subTest(missing=path):
+                self.receive_ready(json.dumps(bad).encode()+b'\n',True,reject=True)
+
+    def test_prepared_ready_rejects_duplicate_and_nonfinite_original_json(self):
+        raw=json.dumps(ready_v2(),separators=(',',':')).encode()+b'\n'
+        for malformed in (raw.replace(b'"signed":false',b'"signed":true,"signed":false'),
+                          raw.replace(b'"calls":1',b'"calls":2,"calls":1',1),
+                          raw.replace(b'"startupElapsedNs":100',b'"startupElapsedNs":NaN'),
+                          raw.replace(b'"elapsedNs":10',b'"elapsedNs":Infinity',1)):
+            with self.subTest(raw=malformed[:100]):self.receive_ready(malformed,True,reject=True)
+
     def test_sign_failure_detail_uses_only_closed_cli_fields(self):
         reply = dict(code='REJECTED', result=None)
         self.assertEqual(d.owner_failure_detail(reply, 'sign'), '')

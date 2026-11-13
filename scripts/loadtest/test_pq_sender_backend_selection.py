@@ -60,6 +60,40 @@ class BackendSelection(unittest.TestCase):
             self.assertIn('sender-owners',command);self.assertNotIn('x'*32,command)
             self.assertEqual(len(calls[0][1]['pass_fds']),1)
 
+    def test_prepared_backend_records_separate_parent_and_callee_intervals(self):
+        backend_module = d.module('prepared_public_owner_backend', 'pq-public-owner-backend.py')
+        timings = dict(intervalsOverlap=True, stages={'checkpoint.prepareStaticTotal': dict(calls=1, elapsedNs=400)})
+        class Session:
+            def __init__(self, ceremony, owners, *, prepare_source):
+                self.owners = owners
+                self.prepare_source = prepare_source
+                self.name = 'load-public-owners'
+                self.launched_ns = 100
+            def wait_ready(self, stop, deadline, check):
+                return dict(bootstrapLoaded=True, startupElapsedNs=450, preparationTimings=timings)
+        backend_type = backend_module.backend_class(d.NormalBackend, Session, d.normal, d.lab)
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            (work / 'public').mkdir()
+            ready_path = work / 'public' / 'load-public-owners-ready.json'
+            ready_path.write_bytes(b'original prepared reply')
+            sha256 = d.lab.guard.digest(ready_path)
+            ceremony = SimpleNamespace(mode='online', workload=dict(transactions=None), live=[],
+                                       w=SimpleNamespace(work=work), proof_timeout=30)
+            with mock.patch.object(backend_module.time, 'monotonic_ns', return_value=750):
+                backend = backend_type(ceremony, [dict(ownerIndex=4)], threading.Event(), prepare_source=True)
+                report = backend.prepare(lambda: None)
+        self.assertTrue(backend.public_session.prepare_source)
+        self.assertEqual(report['readyMode'], 'ORIGINAL_PUBLIC_STATIC_SOURCE_PREPARED')
+        self.assertTrue(report['bootstrapLoaded'])
+        self.assertFalse(report['signed'] or report['nonceReserved'] or report['loadClockStarted'])
+        self.assertFalse(report['coldValidationIncludedInFirstCommand'])
+        self.assertEqual(report['sourcePreparation'], dict(
+            sourceReply='load-public-owners-ready.json', sourceReplySHA256=sha256,
+            parentLaunchToReadyNs=650, calleeStartupElapsedNs=450, calleePreparationTimings=timings,
+            parentClock='parent_monotonic_ns', intervalsOverlap=True, addedToPerCommand=False,
+            checkpointValidated=False))
+
     def test_backend_identity_is_part_of_escalation_conditions(self):
         a=args(sender_backend='bounded-cold');b=args()
         self.assertNotEqual(d.load_conditions(a)['senderBackend'],d.load_conditions(b)['senderBackend'])
