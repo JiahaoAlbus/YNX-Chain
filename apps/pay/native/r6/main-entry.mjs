@@ -6,7 +6,7 @@ const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-inten
 Object.assign(shapes,{'order-invoice':['productId','sourceOrder'],'order-terms-review':['productId','sourceOrder'],'order-pay-review':['productId','sourceOrder'],
  'order-refund-review':['productId','sourceOrder','refundId','amountAtoms'],'order-receipt':['productId','sourceOrder','nativeHash'],'order-reconcile':['productId','sourceOrder'],
  'order-broadcast-review':['productId','sourceOrder','kind','originalHash'],'order-reconcile-operation':['productId','sourceOrder','nativeHash']});
-const protectedOrderActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-reconcile-operation']);
+const protectedOrderActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-broadcast-review','order-reconcile-operation']);
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
@@ -118,7 +118,7 @@ export function createNativePayMainEntry({getMain,getContext}){
     else if(action==='recover-intent')state=await client.recoverIntent(intentId);
     else if(action==='broadcast-review'){const {action:_,...ref}=request;state=await client.reviewOriginalBroadcast(ref);}
     current();if(state.walletRequest?.id)pending.remember(state.walletRequest.id,main);
-    return nativePaySummary(state);
+    return nativePaySummary(state,{protectedOrder:!!hostOrder});
    }catch(error){
     // Error DATA is captured only while the same account and Source remain
     // current. invoke itself preserves the exact original thrown cause.
@@ -129,7 +129,7 @@ export function createNativePayMainEntry({getMain,getContext}){
  async function invokeResult(raw,hostOrder){
   let failureState=null,failureCurrent=null;
   try{return {version:'ynx.pay.main-result/v1',ok:true,...await invoke(raw,(state,current)=>{failureState=state;failureCurrent=current;},hostOrder)};}
-  catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState);}
+  catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState,{protectedOrder:!!hostOrder});}
  }
  return Object.freeze({
   compose(originalSource){

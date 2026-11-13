@@ -24,15 +24,17 @@ function readReference(value){
 }
 // Same-reference query DATA only. An ABCI originalHash is never relabelled as
 // a nativeHash, and no returned action creates, signs, approves or resends.
-export function nativePayRecoveryActions(reference){
+export function nativePayRecoveryActions(reference,{protectedOrder=false}={}){
  const r=readReference(reference);if(!r)return [];
+ const retainedIntent=/^npi_[0-9a-f]{48}$/.test(r.intentId??'');
+ if(protectedOrder)return retainedIntent?[{action:'intent',intentId:r.intentId}]:[];
  const id=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v),merchant=/^0x[0-9a-f]{40}$/.test(r.merchant??''),hash=/^0x[0-9a-f]{64}$/.test(r.nativeHash??'');
  if(r.kind==='invoice_terms'&&id(r.productId)&&id(r.sourceOrder))return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
  if(id(r.productId)&&id(r.sourceOrder)){
   if(merchant&&id(r.invoiceId))return [{action:hash?'recover-archive':'reconcile-archive',productId:r.productId,sourceOrder:r.sourceOrder,merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];
   return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
  }
- if(/^npi_[0-9a-f]{48}$/.test(r.intentId??''))return [{action:'intent',intentId:r.intentId}];
+ if(retainedIntent)return [{action:'intent',intentId:r.intentId}];
  if(merchant&&id(r.invoiceId))return [{action:hash?'recover':'invoice',merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];
  return [];
 }
@@ -42,10 +44,10 @@ const failureCauses=new WeakMap();
 export function readNativePayFailureCause(result){
  return failureCauses.has(result)?{present:true,cause:failureCauses.get(result)}:{present:false};
 }
-export function nativePayFailureResultDATA(error,state=null){
+export function nativePayFailureResultDATA(error,state=null,options){
  const code=nativePayFailureCode(error),reference=readReference(own(state,'reference')),status=own(error,'status');
  const result={version:'ynx.pay.main-result/v1',ok:false,phase:'unavailable',reason:code,code,reference,
-  recoveryOnly:own(state,'recoveryOnly')===true,recoveryActions:nativePayRecoveryActions(reference),canRetry:false,
+  recoveryOnly:own(state,'recoveryOnly')===true,recoveryActions:nativePayRecoveryActions(reference,options),canRetry:false,
   clientIndependentFinality:false,paymentAuthorized:false,outcome:'UNKNOWN',
   ...(Number.isInteger(status)&&status>=100&&status<=599?{httpStatus:status}:{})};
  failureCauses.set(result,error);return result;
@@ -239,6 +241,13 @@ export class NativePayBusinessClient {
   current();const pending=await this.#runtime.main.requestPQPayBroadcast(Object.freeze(payReference));
   retainOriginalPayReview(this.#runtime.main,pending,current,()=>{const review=pending?.request?.review;
    if(pending?.status!=='approval-required'||pending.request.method!=='ynx_broadcastPQNativeAction'||review.hash!==original.abciHash||review.memberHash!==original.nativeHash||review.account!==original.owner||review.operationId!==original.operationId||review.typedAction?.kind!==kind)throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_CHANGED');
+   if(originalOrder){
+    const merchantTarget=originalOrder.merchant,invoiceTarget=originalOrder.terms.invoiceId;
+    const requestPath=kind==='invoice_terms'?`/v5/pay/invoice-intents/${intentId}/merchant-member`:
+     `/v5/pay/invoices/${merchantTarget}/${invoiceTarget}/${kind==='invoice_settle'?'settlements':'refunds'}`;
+    const target={version:1,service:'pay',kind,intentId:kind==='invoice_terms'?intentId:null,merchant:merchantTarget,invoiceId:invoiceTarget,requestPath};
+    if(Object.entries(target).some(([key,value])=>own(review.payTarget,key)!==value))throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_CHANGED');
+   }
   },this.#runtime.reviewCustody);
   return {walletRequest:pending.request,approvalRequired:true,bill:null,recovery:{...reference,nativeHash:original.nativeHash,abciHash:original.abciHash},clientIndependentFinality:false};
  }
@@ -246,7 +255,7 @@ export class NativePayBusinessClient {
  async reviewOriginalOrderBroadcast(productId,sourceOrder,kind,originalHash){const reference={productId,sourceOrder,kind,originalHash};return this.#run(reference,'reviewing',async current=>{
   const {binding}=await this.#originalOrder(reference,current);
   if(!['invoice_terms','invoice_settle','invoice_refund'].includes(kind))throw failure('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
-  if(kind!=='invoice_terms')this.#orderReviewReady(binding,kind);
+  if(kind!=='invoice_terms'||this.#expectedOriginalOperation!==undefined)this.#orderReviewReady(binding,kind);
   return this.#reviewOriginalBroadcast(reference,current,binding);
  });}
  // Compatibility command names now request the original Wallet's separate
@@ -311,9 +320,9 @@ export class NativePayBusinessClient {
 
 // UI/CLI output excludes full Member/envelope/policy material. Facts stay the
 // original authenticated Pay projection, never a locally invented paid receipt.
-export function nativePaySummary(state){
+export function nativePaySummary(state,options){
  const bill=state.bill;
- const summary={phase:state.phase,reason:state.reason??null,reference:state.reference,approvalRequired:state.approvalRequired===true,queryOnly:state.queryOnly===true,recoveryOnly:state.recoveryOnly===true,clientIndependentFinality:false,canRetry:false,recoveryActions:nativePayRecoveryActions(state.reference)};
+ const summary={phase:state.phase,reason:state.reason??null,reference:state.reference,approvalRequired:state.approvalRequired===true,queryOnly:state.queryOnly===true,recoveryOnly:state.recoveryOnly===true,clientIndependentFinality:false,canRetry:false,recoveryActions:nativePayRecoveryActions(state.reference,options)};
  if(bill)summary.bill=Object.fromEntries(['genesis','nativeChainId','merchant','invoiceId','sessionId','sourceOrder','status','refundStatus','assetId','unitVersion','principalAtoms','paidAtoms','refundedAtoms','netPaidAtoms','termsFeeAtoms','paymentFeeAtoms','refundFeeAtoms','feeRule','maxFeeAtoms','expiresAtHeight','termsNativeHash','settlementNativeHash'].map(k=>[k,bill[k]]));
  if(bill?.operations)summary.operations=Object.values(bill.operations).map(op=>({nativeHash:op.nativeHash,abciHash:op.abciHash,kind:op.kind,status:op.status,failure:op.failure??null}));
  if(summary.operations){summary.pendingOriginals=summary.operations.filter(op=>['unknown','submitted'].includes(op.status)).map(op=>op.nativeHash);summary.outcomeUnknown=summary.pendingOriginals.length>0||bill.status==='unknown'||bill.refundStatus==='unknown';}
