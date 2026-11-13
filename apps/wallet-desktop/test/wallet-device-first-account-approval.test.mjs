@@ -4,6 +4,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import * as fs from 'node:fs/promises';import path from 'node:path';import {tmpdir} from 'node:os';import {registerHooks} from 'node:module';
 import {canonicalJSON,createProductSessionRequest,productPlatformBinding} from '@ynx-chain/wallet-auth';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from '@ynx-chain/wallet-auth/product-session-device-registration-v4';
+import {bindDeviceRegistrationUI} from '../src/wallet-device-registration-ui.mjs';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
 import {configurePUBLICRegistration,createPUBLICSelection,createPUBLICRegistrationEvent} from './original-device-registration-public.fixture.mjs';
 const fixtureURL=new URL('./original-device-registration-public.fixture.mjs',import.meta.url).href,authorityURL=new URL('../src/desktop-wallet-authority.mjs',import.meta.url).href,controllerURL=new URL('../src/original-device-registration-controller.mjs',import.meta.url).href;
@@ -25,7 +26,53 @@ test('public originals alone or a foreign IPC frame cannot become account approv
 test('reject/cancel independent review enters neither policy, keys nor pending profile/journal',async t=>{const f=await setup(t),p=await f.prepare();const result=await f.controller.rejectOriginal(p.id);assert.equal(result.phase,'cancelled-before-account');assert.equal(f.counts.sign,0);assert.equal(f.counts.accountAcquire,0);assert.equal(f.counts.open,0);await assert.rejects(fs.readFile(f.filePath));});
 for(const mode of ['late-lock','cleanup-false'])test('first approval '+mode+' retains SAME journal original and never repeats signature or HTTP',async t=>{const f=await setup(t,mode),p=await f.prepare();await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)));const row=(await f.disk()).sessionOriginals[0];assert.equal(row.approval.original,f.approvalOriginal);assert.equal(row.pairSubmission,null);assert.equal(f.counts.sign,1);assert.equal(f.counts.submit,0);assert.equal(f.counts.open,0);assert.equal(f.counts.accountClose,1);await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)));assert.equal(f.counts.sign,1);if(mode==='cleanup-false')assert.equal(row.cleanupCause.kind,'boolean');});
 test('missing real committed policy is still refused after explicit review; no Source exception',async t=>{const f=await setup(t,'missing-policy'),p=await f.prepare();await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)),e=>e===false);assert.equal(f.counts.sign,0);assert.equal(f.counts.open,0);assert.equal(f.counts.submit,0);});
-for(const mode of ['normal','before-signer-false'])test('cold same request remains query-only after '+mode+'; no replacement review or signature',async t=>{const f=await setup(t,mode),p=await f.prepare();if(mode==='normal')await f.run(()=>f.controller.approveOriginal(f.event,p.id));else await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)),e=>e===false);await f.controller.close();const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority});await assert.rejects(f.run(()=>cold.prepareAccountApprovalReview(f.selection,f.originals)),{code:'DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY'});assert.equal(f.counts.sign,mode==='normal'?1:0);assert.equal(f.counts.open,0);await cold.close();});
+for(const mode of ['normal','before-signer-false'])test('cold same request remains query-only after '+mode+'; no replacement review or signature',async t=>{const f=await setup(t,mode),p=await f.prepare();if(mode==='normal')await f.run(()=>f.controller.approveOriginal(f.event,p.id));else await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)),e=>e===false);await f.controller.close();const coldStore=new FileTransactionIntentStore({filePath:f.filePath});
+ const cold=createOriginalDeviceRegistrationController({
+  vault:f.vault, networkId, authority:{approveOriginalDeviceRegistration:()=>assert.fail('Cold query entered approval'),transactionSender:{submissions:{intentStore:coldStore}}}
+ });
+ const [row]=await f.run(()=>coldStore.sessionRecoverySummaries(account,()=>f.lifecycle.current().assert()));
+ const read=()=>f.run(()=>cold.readOriginalPairOutcome(row.requestDigest));
+ const result=await read();
+ assert.equal(result.status,'not-entered');
+ assert.equal(result.signed,mode==='normal');
+ assert.equal(result.queryOnly,true);
+ assert.equal(result.canRetry,false);
+ assert.equal(result.registered,false);
+ assert.equal(result.originalResponseRetained,false);
+ assert.equal(Object.hasOwn(result,'approval'),false);
+ assert.equal(Object.hasOwn(result,'approvalOriginal'),false);
+ class Element {
+  children=[];
+  listeners={};
+  append(...children){this.children.push(...children);}
+  replaceChildren(){this.children=[];}
+  addEventListener(event,listener){this.listeners[event]=listener;}
+ }
+ const nodes=new Map(['#app-device-register','#app-device-register-cancel','#app-device-register-status','#app-device-registration-history'].map(id=>[id,new Element()]));
+ let queries=0;
+ const ui=bindDeviceRegistrationUI({
+  root:{querySelector:id=>nodes.get(id),createElement:()=>new Element()},
+  readContext:()=>f.lifecycle.status(),readCreation:()=>({phase:'idle'}),
+  api:{
+   deviceRegistrationStatus:async()=>({ok:true,value:cold.readStatusDATA()}),
+   deviceRegistrationHistory:async()=>({ok:true,value:[row]}),
+   deviceRegistrationOutcome:async digest=>{
+    assert.equal(digest,row.requestDigest);
+    queries++;
+    return {ok:true,value:await read()};
+   }
+  }
+ });
+ await ui.refresh();
+ const [item]=nodes.get('#app-device-registration-history').children;
+ const [,query,text]=item.children;
+ const expected=mode==='normal'?/Original account approval saved/:/Original account approval outcome is unknown/;
+ assert.match(text.textContent,expected);
+ await query.listeners.click();
+ assert.match(text.textContent,expected);
+ assert.equal(queries,1);
+ assert.equal(item.children.length,3);
+ await assert.rejects(f.run(()=>cold.prepareAccountApprovalReview(f.selection,f.originals)),{code:'DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY'});assert.equal(f.counts.sign,mode==='normal'?1:0);assert.equal(f.counts.open,0);await cold.close();});
 test('sole public codecs bind exact original bytes/app/generation/pair/request digest/window without issuing or renewing an operation',async t=>{const f=await setup(t),at=f.at,ok=inspectOriginalDeviceAccountApprovalDATA(f.selection,f.originals,{networkId,account,at});assert.equal(ok.scope.pendingId,f.originals.operationId);assert.equal(ok.scope.registrationOriginal,f.originals.registrationOriginal);assert.equal(ok.approvedAccount,false);assert.equal(ok.SourceAdmission,false);for(const change of [o=>o.extra=true,o=>delete o.operationId,o=>o.operationId='PUBLIC-not-an-allocation-hash',o=>o.requestOriginal=' '+o.requestOriginal,o=>{const r=JSON.parse(o.requestOriginal);r.deviceRegistrationDigest='b'.repeat(64);o.requestOriginal=canonicalJSON(r);},o=>{const r=JSON.parse(o.registrationOriginal);r.generation='2';o.registrationOriginal=canonicalJSON(r);},o=>{const r=JSON.parse(o.registrationOriginal);r.pkB='55'.repeat(64);o.registrationOriginal=canonicalJSON(r);},o=>{const r=JSON.parse(o.requestOriginal);r.expiresAt=r.issuedAt;o.requestOriginal=canonicalJSON(r);}]){const o=structuredClone(f.originals);change(o);assert.throws(()=>inspectOriginalDeviceAccountApprovalDATA(f.selection,o,{networkId,account,at}));}assert.equal(f.counts.open,0);assert.equal(f.counts.sign,0);});
 test('existing registration IPC remains zeroarg and does not accept new public DTO or fabricate fixed request getter',async()=>{const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),section=main.slice(main.indexOf("handleWalletIPC('wallet:prepare-device-registration'"),main.indexOf("handleWalletIPC('wallet:device-registration-status'"));assert.match(section,/if\(args.length\)/);assert.match(section,/prepareReview\(selection\)/);assert.doesNotMatch(section,/prepareAccountApprovalReview|requestOriginal|registrationOriginal/);});
 

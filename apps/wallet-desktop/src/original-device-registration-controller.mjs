@@ -347,7 +347,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
  }
  async function readOriginalPairOutcome(digest){
   const guard=vault.authorization.current();guard.assert();const original=await authority.transactionSender.submissions.intentStore.readSessionPairSubmission(guard.account,digest,()=>guard.assert());
-  return original?Object.freeze({operationId:original.operationId,requestDigest:original.requestDigest,status:original.status,
+  return original?Object.freeze({operationId:original.operationId,requestDigest:original.requestDigest,status:original.status,signed:original.signed,
     originalResponseRetained:original.pairSubmission?.responseOriginal!==null&&!!original.pairSubmission,queryOnly:true,canRetry:false,registered:false,newSession:false}):null;
  }
  async function readOriginalCompletionOutcome(digest){

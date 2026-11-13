@@ -1,3 +1,9 @@
+function accountApprovalText(signed) {
+ if(signed === true) return '原账户批准已保存，日志中没有配对提交记录。 / Original account approval saved. No pairing submission is recorded.';
+ if(signed === false) return '原账户批准结果未知，日志中没有配对提交记录。 / Original account approval outcome is unknown. No pairing submission is recorded.';
+ return null;
+}
+
 // Renderer display and zero-input IPC only. Approval stays in the existing
 // normal confirmation queue; this panel never approves, signs or submits.
 export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
@@ -15,11 +21,11 @@ export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
   for(const row of historyRows){
    const item=root.createElement('article'),title=root.createElement('p'),button=root.createElement('button'),result=root.createElement('p');
    title.textContent=`${row.productId} · ${row.createdAt}`;button.type='button';button.textContent='查看原记录（只读） / View original record';
-   const cacheKey=historySelection.account+':'+historySelection.revision+':'+row.requestDigest;result.textContent=outcomes.get(cacheKey)??(row.pairEntered?'原请求已进入，未获得再次发送权限。 / Original request entered; resending is not authorized.':'原设备操作记录已保留；这里只能查询。 / Original device operation retained; query only.');
+   const cacheKey=historySelection.account+':'+historySelection.revision+':'+row.requestDigest;result.textContent=outcomes.get(cacheKey)??(row.pairEntered===false?accountApprovalText(row.signed):null)??(row.pairEntered?'原请求已进入，未获得再次发送权限。 / Original request entered; resending is not authorized.':'原设备操作记录已保留；这里只能查询。 / Original device operation retained; query only.');
    button.addEventListener('click',async()=>{
     if(button.disabled)return;const selected=snapshot();button.disabled=true;
     try{const response=row.recordVersion===3?await api.deviceCompletionOutcome(row.requestDigest):await api.deviceRegistrationOutcome(row.requestDigest);if(!same(selected))return;
-     const value=response?.value,text=!response?.ok||!value?'原记录暂不可读，不会重新签名或发送。 / Original record unavailable; no signing or resending.':value.status==='response-retained'?'原响应已保存，尚未据此确认登记或连接成功。 / Original response retained; registration or connection is not established by this record.':'原操作仍待核对，只能查询，不会自动重试。 / Original operation requires reconciliation; query only, no automatic retry.';
+     const value=response?.value,text=!response?.ok||!value?'原记录暂不可读，不会重新签名或发送。 / Original record unavailable; no signing or resending.':value.status==='response-retained'?'原响应已保存，尚未据此确认登记或连接成功。 / Original response retained; registration or connection is not established by this record.':(value.status==='not-entered'?accountApprovalText(value.signed):null)??'原操作仍待核对，只能查询，不会自动重试。 / Original operation requires reconciliation; query only, no automatic retry.';
      outcomes.set(cacheKey,text);result.textContent=text;
     }catch{if(same(selected)){const text='原记录暂不可读，不会重新签名或发送。 / Original record unavailable; no signing or resending.';outcomes.set(cacheKey,text);result.textContent=text;}}
     finally{button.disabled=false;}

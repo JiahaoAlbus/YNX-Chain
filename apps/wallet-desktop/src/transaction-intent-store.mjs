@@ -434,7 +434,7 @@ export class FileTransactionIntentStore {
     const row=await this.readSessionOriginal(account,digest,guard);if(!isV4Session(row))return null;
     const slot=sessions(this).get(account+':'+digest),held=slot?.pairBeginAttempted?slot.record.pairSubmission:null;
     const confirmed=Boolean(row.pairSubmission&&(!held||row.pairSubmission.originalBody===held.originalBody));
-    return Object.freeze({operationId:row.operationId,requestDigest:row.requestDigest,pairSubmission:row.pairSubmission??held,
+    return Object.freeze({operationId:row.operationId,requestDigest:row.requestDigest,pairSubmission:row.pairSubmission??held,signed:row.approval!==null,
       status:!confirmed&&held?'entry-save-unknown':row.pairSubmission?.responseOriginal!==null&&row.pairSubmission?'response-retained':confirmed?'entry-retained':'not-entered',
       storageConfirmed:confirmed,queryOnly:true,canRetry:false,registered:false,newSession:false});
   }

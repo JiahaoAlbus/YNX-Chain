@@ -57,5 +57,5 @@ jobs:
         run: node --test --test-name-pattern 'canonical .*recovery|canonical reader|source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
       - name: First DEVICE account approval and existing pair/completion boundaries
         run: |
-          node --test test/wallet-device-first-account-approval.test.mjs
+          node --test test/wallet-device-first-account-approval.test.mjs test/wallet-device-registration-ui.test.mjs
           node --test --test-name-pattern "normal original account approval keeps|cold completion opens a fresh matching Source phase" test/original-device-registration-controller.test.mjs
