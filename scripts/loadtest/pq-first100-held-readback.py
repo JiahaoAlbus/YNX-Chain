@@ -126,6 +126,40 @@ def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
             'original READY-only signer receipt differs')
 
 
+def pipeline_pressure(load):
+    pipeline = load.get('pipeline')
+    if pipeline is None:
+        return None
+    samples = pipeline['queueSamples']
+    stages = ('publish', 'observe', 'finalize')
+    require(all(set(pipeline[key]) == set(stages) for key in
+                ('stageWorkers', 'queueCapacity', 'queuePeak', 'queueAtCutoff', 'completedByStage')),
+            'original staged worker inventory differs')
+    previous = -1
+    for sample in samples:
+        at = sample['atNs']
+        require(type(at) is int and at > previous and all(
+                0 <= sample['queued'][stage] <= pipeline['queueCapacity'][stage]
+                and 0 <= sample['activeWorkers'][stage] <= pipeline['stageWorkers'][stage] for stage in stages),
+                'original queue sample order or bounds differ')
+        previous = at
+    by_stage = {}
+    for stage in stages:
+        capacity = pipeline['queueCapacity'][stage]
+        workers = pipeline['stageWorkers'][stage]
+        full = [sample['atNs'] for sample in samples if sample['queued'][stage] == capacity]
+        occupied = [sample['atNs'] for sample in samples if sample['activeWorkers'][stage] == workers]
+        by_stage[stage] = dict(queueCapacity=capacity, workers=workers, peakQueued=pipeline['queuePeak'][stage],
+                               queuedAtCutoff=pipeline['queueAtCutoff'][stage],
+                               returnedOrRaised=pipeline['completedByStage'][stage],
+                               fullQueueSamplesInWindow=sum(at < load['windowNs'] for at in full),
+                               fullQueueSamplesTotal=len(full),
+                               firstFullQueueSampleNs=full[0] if full else None,
+                               allWorkersActiveSamples=len(occupied))
+    return dict(stages=by_stage, sampleCount=len(samples), queueSamplingAtomic=False,
+                chainSaturationProven=False)
+
+
 def inspect(raw, sha256, controller, configuration_sha256):
     files, manifest, _ = prior.original.public_archive(raw, sha256, entry_limit=8192)
     plans = [path for path in files if path.rsplit('/', 1)[-1] == 'pq-first100-held-plan.json']
@@ -185,7 +219,8 @@ def inspect(raw, sha256, controller, configuration_sha256):
                                     submissionAttemptWindowTPS=submitted / 5,
                                     knownFailureRate=terminal.get('failed', 0) / 500,
                                     unresolvedRate=(500 - load['qualified'] - terminal.get('failed', 0)) / 500,
-                                    backlogGrowing=load['backlogGrowing'], queueSamples=load['queueSamples'])
+                                    backlogGrowing=load['backlogGrowing'], queueSamples=load['queueSamples'],
+                                    pipelinePressure=pipeline_pressure(load))
         for row in load['rows']:
             if row['finalNs'] is None:
                 continue

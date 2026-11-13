@@ -24,6 +24,20 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_pipeline_pressure_uses_sampled_queue_and_active_worker_boundaries(self):
+        workers = dict(publish=2, observe=2, finalize=4)
+        capacity = dict(publish=4, observe=500, finalize=500)
+        load = dict(windowNs=5, pipeline=dict(
+            stageWorkers=workers, queueCapacity=capacity, queuePeak=dict(publish=4, observe=0, finalize=1),
+            queueAtCutoff=dict(publish=4, observe=0, finalize=1), completedByStage=workers,
+            queueSamples=[dict(atNs=at, queued=dict(publish=4, observe=0, finalize=1),
+                               activeWorkers=dict(publish=2, observe=0, finalize=4)) for at in (3, 5)]))
+        pressure = reader.pipeline_pressure(load)
+        self.assertEqual(pressure['stages']['publish']['fullQueueSamplesInWindow'], 1)
+        self.assertEqual(pressure['stages']['finalize']['allWorkersActiveSamples'], 2)
+        self.assertEqual(pressure['stages']['finalize']['returnedOrRaised'], 4)
+        self.assertFalse(pressure['chainSaturationProven'])
+
     def test_actions_metadata_binds_attempt_job_and_archive_digest(self):
         branch = 'codex/ynx-pq-current75-baseline-20261101'
         run = dict(id=1, event='workflow_dispatch', run_attempt=1, head_sha=self.controller,
