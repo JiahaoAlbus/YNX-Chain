@@ -20,17 +20,18 @@ type epoch struct {
 }
 type semanticObservation struct{ marker byte }
 type Authority struct {
-	mu       sync.Mutex
-	files    originalFiles
-	release  release
-	previous *previous
-	parent   context.Context
-	state    atomic.Pointer[epoch]
-	retired  atomic.Bool
-	closed   bool
-	children atomic.Int64
-	changed  chan struct{}
-	first    error
+	mu                    sync.Mutex
+	files                 originalFiles
+	release               release
+	previous              *previous
+	parent                context.Context
+	state                 atomic.Pointer[epoch]
+	retired               atomic.Bool
+	closed                bool
+	children              atomic.Int64
+	changed               chan struct{}
+	first                 error
+	sourceVerifierUnknown bool
 }
 type Hold struct {
 	parent      *Authority
@@ -39,6 +40,7 @@ type Hold struct {
 	request     *http.Request
 	caller      *securelink.LocalCaller
 	scope       ReadScopeDATA
+	adoption    sync.Mutex
 	closed      atomic.Bool
 	released    atomic.Bool
 	releaseDone atomic.Bool
@@ -132,12 +134,28 @@ func (a *Authority) Current(ctx context.Context) error {
 		return a.fail(e)
 	}
 	if e := a.refresh(ctx); e != nil {
-		return a.fail(e)
+		return a.finishRefreshError(ctx, e)
 	}
 	if e := a.atomicCurrent(ctx, nil); e != nil {
-		return a.fail(e)
+		return a.finishRefreshError(ctx, e)
 	}
 	return nil
+}
+
+// Request aborts must not revoke the shared Source. Only the exact context
+// result qualifies, and any independently observed held-file failure still
+// wins. A canceled server parent remains terminal. Called with a.mu held.
+func (a *Authority) finishRefreshError(ctx context.Context, err error) error {
+	if requestErr := ctx.Err(); requestErr != nil && err == requestErr && a.parent != nil && a.parent.Err() == nil {
+		if physical := a.files.current(); physical != nil {
+			return a.fail(physical)
+		}
+		if parentErr := a.parent.Err(); parentErr != nil {
+			return a.fail(parentErr)
+		}
+		return requestErr
+	}
+	return a.fail(err)
 }
 func (a *Authority) ProfileDATA(ctx context.Context) (ProfileDATA, error) {
 	if a == nil {
@@ -197,7 +215,15 @@ func (a *Authority) openShopReadAtCurrent(ctx context.Context, r *http.Request, 
 		return nil, ErrDenied
 	}
 	h := &Hold{parent: a, epoch: s, ctx: ctx, request: r, caller: caller, scope: ReadScopeDATA{Realm: p.Realm, Tenant: p.Tenant, Purpose: Purpose, Epoch: p.Epoch, Actor: mapping.Actor, Role: mapping.Role, StoreID: mapping.StoreID, ProductID: product, SourceOrder: order}}
+	// Serialize the final publication with the parent's zero-child close
+	// check. The socket observations above do not hold the Authority mutex.
+	a.mu.Lock()
+	if e = a.atomicCurrent(ctx, s); e != nil {
+		a.mu.Unlock()
+		return nil, e
+	}
 	a.children.Add(1)
+	a.mu.Unlock()
 	if e = h.Current(ctx); e != nil {
 		return h, e
 	}
@@ -268,8 +294,13 @@ func (h *Hold) Close() error {
 	if h.parent == nil || h.ctx == nil {
 		return ErrDenied
 	}
+	// After closed is set, verification cannot publish a new child. Take the
+	// exact already-published child without holding adoption through cleanup.
+	h.adoption.Lock()
 	h.closed.Store(true)
-	if v := h.v4.Load(); v != nil {
+	v := h.v4.Load()
+	h.adoption.Unlock()
+	if v != nil {
 		err := v.originalError()
 		if v.AssertOriginalClosed() != nil {
 			err = v.Close()
@@ -351,6 +382,12 @@ func (a *Authority) Close() error {
 	if a.children.Load() != 0 {
 		return ErrPending
 	}
+	if a.sourceVerifierUnknown {
+		if a.first != nil {
+			return a.first
+		}
+		return ErrUnknown
+	}
 	a.closed = true
 	if e := a.files.close(); e != nil && a.first == nil {
 		a.first = errors.Join(ErrUnknown, e)
@@ -366,6 +403,9 @@ func (a *Authority) AssertOriginalClosed() error {
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.sourceVerifierUnknown {
+		return ErrUnknown
+	}
 	if !a.closed || a.children.Load() != 0 {
 		return ErrPending
 	}

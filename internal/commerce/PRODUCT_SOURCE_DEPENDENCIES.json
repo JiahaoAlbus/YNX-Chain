@@ -66,7 +66,7 @@
     "internal/securelink/task_runtime_unix.go": "1ad282e9064f492f2ba4e917329b84e9fc4d11d185167a386c5e8e634069eb40",
     "internal/securelink/task_runtime_unsupported.go": "ebd06db8396893ab4ad7f35c700796b9d12cc75da285dbd0c47212cbdd0ecdae",
     "internal/securelink/witness.go": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008",
-    "internal/commerce/third_party/productreadsource/authority.go": "69736520c5bcaab5ef8644b8a6ac31eafc2af56cd570f17f9a007c974072e96d",
+    "internal/commerce/third_party/productreadsource/authority.go": "2d127f1861087af0ea165e5e5488ff26f30d5326fa323b2e1956a2b5c970d2b8",
     "internal/commerce/third_party/productreadsource/authority_test.go": "16d94eb8be5bdca5b7dbca86ef9d468f1ecdd922e38985f48fe410f031a060a5",
     "internal/commerce/third_party/productreadsource/capture.go": "2dbeda3a6d4c5a9cbf0211d17fdd971cf6432042bf84d74ef8befa5926cda133",
     "internal/commerce/third_party/productreadsource/contract.go": "aa6a630ca46dc237282564da82d506965d80c5ad54ae00f342e6ae0cd189c1f9",
@@ -74,7 +74,7 @@
     "internal/commerce/third_party/productreadsource/go.mod": "0e6ffa65803deae1f5576f8f1db576662108e516f5dd44945055a677d383808d",
     "internal/commerce/third_party/productreadsource/go.sum": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64",
     "internal/commerce/third_party/productreadsource/physical.go": "b0a6ff4016f343853095e7130698a92065142a266e5041adb5a203722f80c314",
-    "internal/commerce/third_party/productreadsource/runtime.go": "0d8d9950b96c2ee963443a0089efe821119fd43d1c44e2c3aee7e4ca0f3ca78f",
+    "internal/commerce/third_party/productreadsource/runtime.go": "344203dcab56fb52a65db2d834d2bf625e9c04a0ed6156588149ebaf4b29d274",
     "internal/commerce/third_party/productreadsource/sdk_input.go": "b96075870993f45e8cd97040accf087821b68e4150726460b738330020c59875",
     "internal/commerce/third_party/productreadsource/sdk_input_test.go": "13a12ef5cf9f54496f33fd9d1f4b61c5e96aacafc81e610a3a5e755261109574",
     "internal/commerce/third_party/productreadsource/sdk_output.go": "5f2cd973458646e9543d40d2ff867ec5145fda5e2ba2f3853fc5b66e89a1cf14",
@@ -146,7 +146,7 @@
     "internal/securelink/task_read_continuation_unsupported.go": "7d2d846f8b557b329eadb877696da0cd57c26763b165742ebdcf1f85e8bd2839",
     "internal/securelink/testdata/product-transport-contract-r2/SOURCE.json": "85fa3ad0288477ab822e3e7e163a44d699362f5d955b3ac160b29bb258a874fe",
     "internal/securelink/testdata/product-transport-contract-r2/product_pay_transport_private.h": "eb76abb33deb029cb2506dc2e0863deb6560479bac88eefb25526caa4927e612",
-    "internal/commerce/third_party/productreadsource/shop_v4.go": "1672574242d619dc5aa550720a9a33b2a3bda1608109d2b6c4935a950ef5a8fb",
+    "internal/commerce/third_party/productreadsource/shop_v4.go": "a3db9dfcf42656320736d1afceed609999b93e349bcefa51336099bb37cfd393",
     "internal/commerce/third_party/productreadsource/shop_v4_test.go": "b4a44c9a30b9d7131e7ed7e335ad82345a7f39a636c70050dfe5399a900b1a31",
     "internal/commerce/third_party/productreadsource/shop_v4_closed_witness_test.go": "df6b6c0aa3ded1b8e7d75ef7a2412b7947c5c066d2fc86da9cc9ebb036e312bc",
     "internal/commerce/third_party/productreadsource/owned_fd_close.go": "38cf52c646fc159d9e7890c0c8b2816f50f81abb763c1cccb02b2dbbf7416241",
@@ -158,7 +158,9 @@
     "internal/securelink/local_caller_product_session_proof_v4_test.go": "a4be70b292fb7d940dd9aa18602a18995190027bd8272cf777af8447ae3f4719",
     "internal/securelink/local_caller_product_session_proof_v4_unix_test.go": "ead8aa8752abac4be8b8ad3185b77a5e56e3ef14871f79470d1822d5d67391cd",
     "internal/securelink/original_server_tls_public_fixture.go": "2cd843ea941515eedeacdcd4d6532705e60c788683ea501087ce3a806da3772d",
-    "internal/securelink/original_server_tls_public_fixture_test.go": "d94886b5db5c721c92b407d3bf16789a7a118f8540767affade79801bd642a9e"
+    "internal/securelink/original_server_tls_public_fixture_test.go": "d94886b5db5c721c92b407d3bf16789a7a118f8540767affade79801bd642a9e",
+    "internal/commerce/third_party/productreadsource/shop_v4_publication_test.go": "15c761b1504294f9a994477780fc618d6116e7b6cbf12d379424d838f4a33e9a",
+    "internal/commerce/third_party/productreadsource/shop_v4_request_cancel_test.go": "99cf0088f4ae5da97983613eec100e44d203826441f8e874580b87518c325b81"
   },
   "LINKHeaderClosure": "complete original frozen cmd/ynx-secure-link-caller header directory, required by exact package cgo holder; no added carchive/runtime",
   "LINKSourceCommit": "85fdcec58e591d8ef1ce072430b37bf201192635",
@@ -178,5 +180,13 @@
     "componentReadback": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/local-caller-proof-v4-next/source-ci-793-r1/COMPONENT-READBACK.json",
     "sha256": "fb40f3c4ef6ecf18713a477ed20578a3ae5144814129cdbeefa32717d27c92c3",
     "run": 42456926898
+  },
+  "AuthShopV4LifecycleR6": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/lifecycle-r6-IS86un/HANDOFF.json",
+    "sha256": "38508a22aeed8c057d2343e82509d588535444b3b56e678b28835242662f1603"
+  },
+  "AuthShopV4RequestCancelR7": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/shop-v4-server-successor/request-cancel-r7-T8MwEJ/HANDOFF.json",
+    "sha256": "182d26ddb65199e9c547fdd97842241c55ce9cdcb3fbab6339aba62406824a06"
   }
 }

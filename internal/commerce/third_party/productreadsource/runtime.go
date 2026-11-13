@@ -6,10 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"sync/atomic"
+	"syscall"
 	"time"
 )
 
@@ -176,7 +179,7 @@ func (a *Authority) runtime(ctx context.Context) (map[string]json.RawMessage, er
 	if e = a.files.current(); e != nil {
 		return nil, e
 	}
-	call, cancel := context.WithTimeout(ctx, 7*time.Second)
+	call, cancel := context.WithTimeoutCause(ctx, 7*time.Second, errOriginalVerifierTimeout)
 	defer cancel()
 	cmd := exec.CommandContext(call, r.node.Path, r.verifier.Path)
 	cmd.Env = []string{"PATH=/usr/bin:/bin", "NODE_NO_WARNINGS=1"}
@@ -184,8 +187,11 @@ func (a *Authority) runtime(ctx context.Context) (map[string]json.RawMessage, er
 	out := &boundedOutput{limit: 2 << 20}
 	cmd.Stdout = out
 	cmd.Stderr = io.Discard
-	if cmd.Run() != nil {
-		return nil, ErrDenied
+	if e = runOriginalSourceVerifier(ctx, call, cmd); e != nil {
+		if e == ErrUnknown {
+			a.sourceVerifierUnknown = true
+		}
+		return nil, e
 	}
 	if e = a.files.current(); e != nil {
 		return nil, e
@@ -198,6 +204,55 @@ func (a *Authority) runtime(ctx context.Context) (map[string]json.RawMessage, er
 		return nil, ErrDenied
 	}
 	return result.Projection, nil
+}
+
+// Separate termination caused by the request from a verifier exit or its own
+// timeout. Wait must have actually completed before returning cancellation.
+// A late context error alone cannot overwrite an independent verifier failure.
+var errOriginalVerifierTimeout = errors.New("original Source verifier deadline")
+
+func runOriginalSourceVerifier(request, call context.Context, cmd *exec.Cmd) error {
+	var stoppedByRequest atomic.Bool
+	if cancel := cmd.Cancel; cancel != nil {
+		cmd.Cancel = func() error {
+			requestErr := request.Err()
+			err := cancel()
+			if err == nil && requestErr != nil && call.Err() == requestErr && context.Cause(call) != errOriginalVerifierTimeout {
+				stoppedByRequest.Store(true)
+			}
+			return err
+		}
+	}
+	if err := cmd.Start(); err != nil {
+		if cmd.Process != nil {
+			return ErrUnknown
+		}
+		if requestErr := request.Err(); requestErr != nil && err == requestErr && call.Err() == requestErr && context.Cause(call) != errOriginalVerifierTimeout {
+			return requestErr
+		}
+		return ErrDenied
+	}
+	err := cmd.Wait()
+	if cmd.ProcessState == nil {
+		return ErrUnknown
+	}
+	if err != nil {
+		// A successful signal can also target an exited-but-unreaped child.
+		// Only a signal exit or the exact CommandContext cancellation result
+		// can be attributed to that signal, never a normal nonzero exit.
+		var exit *exec.ExitError
+		requestErr := request.Err()
+		killed := false
+		if errors.As(err, &exit) {
+			status, ok := exit.Sys().(syscall.WaitStatus)
+			killed = ok && status.Signaled() && status.Signal() == syscall.SIGKILL
+		}
+		if stoppedByRequest.Load() && requestErr != nil && (err == requestErr || killed) {
+			return requestErr
+		}
+		return ErrDenied
+	}
+	return nil
 }
 func (a *Authority) refresh(ctx context.Context) error {
 	if ctx == nil {

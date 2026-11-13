@@ -287,9 +287,9 @@ jobs:
           import pathlib, re, sys
           log = pathlib.Path(sys.argv[1]).read_text()
           package = pathlib.Path("internal/commerce/third_party/productreadsource")
-          files = ["shop_v4_test.go", "shop_v4_closed_witness_test.go", "authority_closed_witness_test.go"]
+          files = ["shop_v4_test.go", "shop_v4_closed_witness_test.go", "authority_closed_witness_test.go", "shop_v4_publication_test.go", "shop_v4_request_cancel_test.go"]
           required = [name for file in files for name in re.findall(r"^func (TestShopV4[A-Za-z0-9_]+)\(t \*testing\.T\)", (package / file).read_text(), re.M)]
-          if len(required) != 19:
+          if len(required) != 27 or len(set(required)) != 27:
               raise SystemExit("original supplier V4 normal test inventory differs")
           for name in required:
               if len(re.findall(r"^--- PASS: " + name + r" ", log, re.M)) != 1:

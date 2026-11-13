@@ -194,7 +194,12 @@ func (h *Hold) VerifyOriginalShopGET(ctx context.Context) (*VerifiedShopGET, err
 	if h == nil || h.parent == nil || !sameShopContext(ctx, h.ctx) {
 		return nil, ErrDenied
 	}
+	child, cancel := context.WithCancel(ctx)
+	v := &VerifiedShopGET{hold: h, ctx: child, cancel: cancel}
+	h.adoption.Lock()
 	if prior := h.v4.Load(); prior != nil {
+		h.adoption.Unlock()
+		cancel()
 		prior.operation.Lock()
 		defer prior.operation.Unlock()
 		if prior.verified.Load() && prior.originalError() == nil {
@@ -205,17 +210,20 @@ func (h *Hold) VerifyOriginalShopGET(ctx context.Context) (*VerifiedShopGET, err
 		}
 		return prior, ErrDenied
 	}
-	child, cancel := context.WithCancel(ctx)
-	v := &VerifiedShopGET{hold: h, ctx: child, cancel: cancel}
-	if !h.v4.CompareAndSwap(nil, v) {
+	if h.closed.Load() {
+		h.adoption.Unlock()
 		cancel()
-		return h.VerifyOriginalShopGET(ctx)
+		if first := h.first.Load(); first != nil {
+			return nil, first.err
+		}
+		return nil, ErrRetired
 	}
 	v.operation.Lock()
+	// The first verify is already active when Close can first see this child.
+	v.active.Store(1)
+	h.v4.Store(v)
+	h.adoption.Unlock()
 	defer v.operation.Unlock()
-	if !v.beginOriginalWork() {
-		return v, v.remember(ErrRetired)
-	}
 	defer v.finishOriginalWork()
 	fail := func(e error) (*VerifiedShopGET, error) { return v, v.remember(e) }
 	if e := h.Current(ctx); e != nil {
