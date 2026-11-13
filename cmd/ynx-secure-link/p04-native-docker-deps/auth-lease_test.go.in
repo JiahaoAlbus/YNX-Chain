@@ -1,0 +1,275 @@
+package authservertls
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"net"
+	"os"
+	"path/filepath"
+	"sync/atomic"
+	"testing"
+	"time"
+)
+
+// PUBLIC physical seam only: no real certificate/key/Root/Source qualification.
+func publicRow(t *testing.T) reviewedServerRelease {
+	t.Helper()
+	home, e := os.UserHomeDir()
+	if e != nil {
+		t.Fatal(e)
+	}
+	dir, e := os.MkdirTemp(home, "PUBLIC-auth-listener-")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	pins := make([]reviewedFile, 6)
+	for i, name := range []string{"issuer.public", "source.public", "current.public", "cert.public", "key.PUBLIC", "ca.public"} {
+		path := filepath.Join(dir, name)
+		raw := []byte("PUBLIC-ONLY-" + name)
+		if e = os.WriteFile(path, raw, 0600); e != nil {
+			t.Fatal(e)
+		}
+		fi, e := os.Lstat(path)
+		if e != nil {
+			t.Fatal(e)
+		}
+		v, ok := id(fi)
+		if !ok {
+			t.Fatal("stat")
+		}
+		h := sha256.Sum256(raw)
+		pins[i] = reviewedFile{Path: path, Identity: v, SHA256: hex.EncodeToString(h[:])}
+	}
+	pins[4].Private = true
+	pins[4].SHA256 = ""
+	now := time.Now().UnixMilli()
+	return reviewedServerRelease{
+		SourceID: "PUBLIC-source", InstanceID: "PUBLIC-instance", IssuerRef: "PUBLIC-issuer",
+		CredentialRef: "PUBLIC-credential", CredentialEpoch: "7", ServerID: "PUBLIC-server",
+		ServerName: "public.invalid", PeerSAN: "PUBLIC-peer", ListenAddress: "127.0.0.1:18443",
+		NotBeforeMS: now - 1000, ExpiresMS: now + 60000,
+		IssuerOriginal: pins[0], SourceOriginal: pins[1], CurrentOriginal: pins[2],
+		Certificate: pins[3], PrivateKey: pins[4], CA: pins[5], TargetOrigin: "https://public.invalid",
+		CertificateSHA256: pins[3].SHA256, SPKISHA256: pins[5].SHA256,
+	}
+}
+
+// Build only the physical state needed by the preexisting FD/lifetime tests.
+// Never put an invented Source into the production open or borrow path.
+func openPublicPhysical(t *testing.T) (*ReviewedServerTLSLease, reviewedServerRelease) {
+	t.Helper()
+	row := publicRow(t)
+	now := time.Now()
+	s := &leaseState{row: row, changed: make(chan struct{}), wallFloor: now.UnixMilli(),
+		deadline: now.Add(time.Duration(row.ExpiresMS-now.UnixMilli()) * time.Millisecond)}
+	l := &ReviewedServerTLSLease{state: s}
+	t.Cleanup(func() { l.Retire(); _, _ = l.Close() })
+	for _, pin := range []reviewedFile{row.IssuerOriginal, row.SourceOriginal, row.CurrentOriginal, row.Certificate, row.PrivateKey, row.CA} {
+		h, err := holdReviewedFile(pin, uint32(os.Getuid()))
+		if h != nil {
+			s.files = append(s.files, h)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	return l, row
+}
+func TestEmptyNormalReturnsOwnedPartial(t *testing.T) {
+	l, e := OpenOriginalServerTLSLease(context.Background())
+	if l == nil || !errors.Is(e, ErrSourceNotSupplied) {
+		t.Fatal(l, e)
+	}
+	if l.Current(context.Background()) == nil {
+		t.Fatal("Root0 current")
+	}
+	if l.state.listener != nil || len(l.state.files) != 0 {
+		t.Fatal("empty Root acquired a listener or credential")
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		if done, err := l.Close(); !done || err != e {
+			t.Fatal("cleanup partial lost first cause", done, err)
+		}
+	}
+}
+
+func TestReviewedListenerWithoutQualifiedSourceRefusesBeforeResources(t *testing.T) {
+	ctx := context.Background()
+	row := publicRow(t)
+	l, first := openReviewedServerTLS(ctx, []reviewedServerRelease{row}, uint32(os.Getuid()), nil)
+	if l == nil || !errors.Is(first, ErrSourceDenied) || l.state.listener != nil || len(l.state.files) != 0 {
+		t.Fatal("missing Source did not refuse before resource acquisition", l, first)
+	}
+	if b, err := l.BorrowOriginal(ctx); b != nil || !errors.Is(err, ErrSourceDenied) {
+		t.Fatal("unqualified lease borrowed", b, err)
+	}
+	for attempt := 0; attempt < 2; attempt++ {
+		if done, err := l.Close(); !done || err != first {
+			t.Fatal("cleanup lost first cause", done, err)
+		}
+	}
+}
+
+func TestPhysicalBorrowDrainWithoutSourceAuthority(t *testing.T) {
+	l, _ := openPublicPhysical(t)
+	ctx := context.Background()
+	if got, e := l.BorrowOriginal(ctx); got != nil || !errors.Is(e, ErrSourceDenied) {
+		t.Fatal("physical files supplied authority", got, e)
+	}
+	l.state.borrows = 1
+	b := &ServerTLSBorrow{&borrowState{owner: l.state}}
+	b.state.listener = &originalListener{b.state}
+	copied := *b
+	if v, e := b.OriginalCredentials(ctx); !errors.Is(e, ErrSourceDenied) || v != (ServerTLSOriginals{}) {
+		t.Fatal("unqualified credential export", e)
+	}
+	if got, e := b.OriginalListener(ctx); got != nil || !errors.Is(e, ErrSourceDenied) {
+		t.Fatal("unqualified listener export", got, e)
+	}
+	offset, e := l.state.files[4].file.Seek(0, 1)
+	if e != nil || offset != 0 {
+		t.Fatal("Auth read private bytes", offset, e)
+	}
+	if done, e := l.Close(); done || !errors.Is(e, ErrPending) {
+		t.Fatal(done, e)
+	}
+	if ok, e := b.Release(); !ok || e != nil {
+		t.Fatal(ok, e)
+	}
+	if ok, e := copied.Release(); !ok || e != nil {
+		t.Fatal(ok, e)
+	}
+	if l.state.borrows != 0 {
+		t.Fatal("copy double release")
+	}
+	if e = l.Join(ctx); e != nil {
+		t.Fatal(e)
+	}
+	if done, e := l.Close(); !done || e != nil {
+		t.Fatal(done, e)
+	}
+	if b.Current(ctx) == nil {
+		t.Fatal("released current")
+	}
+}
+func TestPhysicalRetireUnblocksAcceptAndPreservesParent(t *testing.T) {
+	l, _ := openPublicPhysical(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	l.state.listener = listener // test-only loopback; never published as qualified
+	l.state.borrows = 1
+	b := &ServerTLSBorrow{&borrowState{owner: l.state}}
+	result := make(chan error, 1)
+	go func() { _, e := listener.Accept(); result <- e }()
+	l.Retire()
+	select {
+	case e := <-result:
+		if e == nil {
+			t.Fatal("accept after retire")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("accept stuck")
+	}
+	if done, _ := l.Close(); done {
+		t.Fatal("closed under borrow")
+	}
+	if l.state.files[4].file == nil {
+		t.Fatal("key parent closed")
+	}
+	_, _ = b.Release()
+	if done, _ := l.Close(); !done {
+		t.Fatal("not drained")
+	}
+}
+func TestReplacementAndContextAreSticky(t *testing.T) {
+	for _, kind := range []string{"replace", "context", "keymutation"} {
+		t.Run(kind, func(t *testing.T) {
+			l, row := openPublicPhysical(t)
+			ctx := context.Background()
+			if kind == "replace" {
+				path := row.CurrentOriginal.Path
+				if e := os.Rename(path, path+".old"); e != nil {
+					t.Fatal(e)
+				}
+				if e := os.WriteFile(path, []byte("PUBLIC-replacement"), 0600); e != nil {
+					t.Fatal(e)
+				}
+			}
+			if kind == "context" {
+				c, cancel := context.WithCancel(ctx)
+				cancel()
+				ctx = c
+			}
+			if kind == "keymutation" {
+				if e := os.WriteFile(row.PrivateKey.Path, []byte("PUBLIC-mutated"), 0600); e != nil {
+					t.Fatal(e)
+				}
+			}
+			if l.state.currentLocked(ctx) == nil {
+				t.Fatal("late current accepted")
+			}
+			// Cancellation refuses this call; physical failure permanently retires.
+			if kind != "context" && l.state.currentLocked(context.Background()) == nil {
+				t.Fatal("resurrection")
+			}
+			if kind == "context" && l.state.currentLocked(context.Background()) != nil {
+				t.Fatal("request cancel retired listener")
+			}
+		})
+	}
+}
+
+type lateCancelContext struct {
+	context.Context
+	calls atomic.Int32
+}
+
+func (c *lateCancelContext) Err() error {
+	if c.calls.Add(1) >= 2 {
+		return context.Canceled
+	}
+	return nil
+}
+func TestLateRequestCancellationDoesNotRevokeIssuer(t *testing.T) {
+	l, _ := openPublicPhysical(t)
+	if e := l.state.currentLocked(&lateCancelContext{Context: context.Background()}); !errors.Is(e, context.Canceled) {
+		t.Fatal(e)
+	}
+	if e := l.state.currentLocked(context.Background()); e != nil {
+		t.Fatal("late request canceled entire issuer", e)
+	}
+}
+func TestAmbiguousChildCloseNeverClosesParentsOrRetries(t *testing.T) {
+	l, _ := openPublicPhysical(t)
+	last := l.state.files[len(l.state.files)-1]
+	_ = last.file.Close()
+	done, e := l.Close()
+	if done || e == nil {
+		t.Fatal(done, e)
+	}
+	if last.parents[len(last.parents)-1].closeSelected || l.state.files[4].closeSelected {
+		t.Fatal("closed ancestor after child failure")
+	}
+	if done, e = l.Close(); done || !errors.Is(e, ErrUnknown) {
+		t.Fatal(done, e)
+	}
+	if last.parents[len(last.parents)-1].closeSelected {
+		t.Fatal("retry crossed child debt")
+	}
+	// Test-only reclaim untouched fixture FDs; production keeps original debt.
+	for _, h := range l.state.files {
+		if h.file != nil {
+			_ = h.file.Close()
+		}
+		for _, p := range h.parents {
+			if p.file != nil {
+				_ = p.file.Close()
+			}
+		}
+	}
+}

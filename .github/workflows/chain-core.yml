@@ -808,7 +808,10 @@ jobs:
             -f ./context/infra/docker/ynx-cloudd.Dockerfile ./context 2>&1 | tee "$evidence/builder.log"
           builder=$(cat ./builder.id)
           [[ "$builder" =~ ^sha256:[0-9a-f]{64}$ ]]
+          auth_test="$GITHUB_WORKSPACE/cmd/ynx-secure-link/p04-native-docker-deps/auth-lease_test.go.in"
           test_source="$GITHUB_WORKSPACE/cmd/ynx-secure-link/p04-native-docker-deps/qualified-source-refusal_test.go.in"
+          printf '%s  %s\n' 77c18b4393e4b45dfd7d385ad68e184e9a9329254d9ed3b6abacb8c8a98141b6 "$auth_test" | sha256sum --check --strict
+          printf '%s  %s\n' c0443bd54ed7e26dca4da45303b99cb977083213d8535ce62e3455a6f4832573 ./source/internal/authservertls/lease_test.go | sha256sum --check --strict
           sha256sum "$test_source" > "$evidence/qualified-source-test.sha256"
           docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
             --mount "type=bind,source=$test_source,target=/src/internal/securelink/p04_qualified_source_refusal_test.go,readonly" \
@@ -816,6 +819,52 @@ jobs:
             -tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls \
             -run '^TestOriginalServerTLSUnqualifiedSourceDoesNotOpenListener$' -v ./internal/securelink 2>&1 | tee "$evidence/qualified-source-refusal.log"
           test "$(grep -c '^--- PASS: TestOriginalServerTLSUnqualifiedSourceDoesNotOpenListener ' "$evidence/qualified-source-refusal.log")" = 1
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --mount "type=bind,source=$auth_test,target=/src/internal/authservertls/lease_test.go,readonly" \
+            -e GOCACHE=/tmp/p04-ci-go-cache "$builder" go test -mod=readonly -p 2 -count=1 -timeout=90s \
+            -tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls \
+            -run '^Test(EmptyNormalReturnsOwnedPartial|NormalRootEmptyBeforeListenAndCleanup|ReviewedListenerWithoutQualifiedSourceRefusesBeforeResources)$' \
+            -v ./internal/authservertls 2>&1 | tee "$evidence/auth-source-refusal.log"
+          for name in TestEmptyNormalReturnsOwnedPartial TestNormalRootEmptyBeforeListenAndCleanup TestReviewedListenerWithoutQualifiedSourceRefusesBeforeResources; do
+            test "$(grep -c "^--- PASS: $name " "$evidence/auth-source-refusal.log")" = 1
+          done
+          if grep -Eq '^[[:space:]]*--- SKIP:' "$evidence/qualified-source-refusal.log" "$evidence/auth-source-refusal.log"; then exit 1; fi
+      - name: Verify the same controlled image archive without publishing image bytes
+        working-directory: ${{ runner.temp }}/p04-native-docker
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/p04-native-docker-evidence"
+          image=$(cat ./image.id)
+          [[ "$image" =~ ^sha256:[0-9a-f]{64}$ ]]
+          binary_sha=$(cut -d ' ' -f 1 "$evidence/binary.sha256")
+          archive=./p04-protected-native-image.tar
+          docker image save --output "$archive" "$image"
+          sha256sum "$archive" > "$evidence/image-archive.sha256"
+          stat --format='%s' "$archive" > "$evidence/image-archive.bytes"
+          python3 -I - "$archive" "$image" "$binary_sha" <<'PY' > "$evidence/image-archive.json"
+          import hashlib, json, pathlib, sys, tarfile
+          archive, image_id, expected_binary = sys.argv[1:]
+          with tarfile.open(archive, 'r:') as image:
+              manifest = json.load(image.extractfile('manifest.json'))
+              assert len(manifest) == 1
+              config = image.extractfile(manifest[0]['Config']).read()
+              assert 'sha256:' + hashlib.sha256(config).hexdigest() == image_id
+              value = json.loads(config)
+              assert value['os'] == 'linux' and value['architecture'] == 'amd64'
+              assert value['config']['User'] == '10001:10001'
+              assert value['config']['Entrypoint'] == ['/usr/local/bin/ynx-cloudd', '-require-ide-deployment']
+              layers = manifest[0]['Layers']
+              binaries = []
+              for layer in layers:
+                  with tarfile.open(fileobj=image.extractfile(layer), mode='r|*') as content:
+                      for member in content:
+                          if member.name in ('usr/local/bin/ynx-cloudd', './usr/local/bin/ynx-cloudd'):
+                              assert member.isfile()
+                              binaries.append(hashlib.file_digest(content.extractfile(member), 'sha256').hexdigest())
+              assert binaries == [expected_binary]
+              print(json.dumps({'imageID': image_id, 'archiveBytes': pathlib.Path(archive).stat().st_size,
+                                'layers': len(layers), 'binarySHA256': expected_binary, 'archivePublished': False}))
+          PY
       - name: Preserve bounded local build evidence without publishing the image
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
