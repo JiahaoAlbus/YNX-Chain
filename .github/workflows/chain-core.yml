@@ -128,7 +128,7 @@ jobs:
             'PeerSameConnectedIdentity','PeerRejectsWrongExpectedIdentity','PeerCloseUnknownRetainedOnce','PeerActualExecChange',
             'ShopProofV2Carrier','ShopProofV2OwnedWire','ShopProofV2Preflight','ShopProofV2RequestCurrent','ShopProofV2IncomingRejection',
             'ShopProofV4CarrierBounds','ShopProofV4RawHeaderReader','ShopProofV4ServerProfile','ShopProofV4OwnedWire',
-            'ShopProofV4Preflight','ShopProofV4IncomingRejection','ShopProofV4RequestSnapshot','ShopProofV4RawHeaderBudget','ShopProofV4PartialResponse']
+            'ShopProofV4OwnedPrewriteCurrent','ShopProofV4Preflight','ShopProofV4IncomingRejection','ShopProofV4RequestSnapshot','ShopProofV4RawHeaderBudget','ShopProofV4PartialResponse']
             .map(n=>'TestOriginalLocalCaller'+n);
           const result={exit:Number(process.env.YNX_LINK_OWNED_LOCAL_CLIENT_TEST_STATUS),required:names,
             run:names.filter(n=>rows.filter(r=>r.Test===n&&r.Action==='run').length===1),
@@ -602,7 +602,7 @@ jobs:
             test "$(grep -c "^--- PASS: TestOriginalLocalCaller$owned_test " "$RUNNER_TEMP/securelink-evidence/native-check.log")" = 1
           done
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
-          for v4_test in CarrierBounds RawHeaderReader ServerProfile OwnedWire Preflight IncomingRejection RequestSnapshot RawHeaderBudget PartialResponse; do
+          for v4_test in CarrierBounds RawHeaderReader ServerProfile OwnedWire OwnedPrewriteCurrent Preflight IncomingRejection RequestSnapshot RawHeaderBudget PartialResponse; do
             for evidence_log in native-check.log unavailable-check.log; do
               test "$(grep -c "^--- PASS: TestOriginalLocalCallerShopProofV4$v4_test " "$RUNNER_TEMP/securelink-evidence/$evidence_log")" = 1
             done

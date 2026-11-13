@@ -135,6 +135,90 @@ func TestOriginalLocalCallerShopProofV4OwnedWire(t *testing.T) {
 	}
 }
 
+func TestOriginalLocalCallerShopProofV4OwnedPrewriteCurrent(t *testing.T) {
+	expected := publicOriginalLocalCallerExpected(t)
+	proof := ProductSessionProofV4DATA{HeaderValue: "Aa"}
+	for _, test := range []struct {
+		name string
+		want error
+	}{{"revoked", ErrRevoked}, {"canceled", context.Canceled}} {
+		t.Run(test.name, func(t *testing.T) {
+			socket, listener := localTestSocket(t)
+			client, err := NewLocalCallerClient(LocalCallerClientConfig{SocketPath: socket, Service: "ynx-shop-source", PeerUID: expected.UID, PeerPID: expected.PID, Timeout: 3 * time.Second,
+				Routes: []LocalCallerRoute{{Method: http.MethodGet, Path: publicShopProofPath, MaxBodyBytes: 0, Timeout: 3 * time.Second}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			read := make(chan error, 1)
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					read <- err
+					return
+				}
+				defer conn.Close()
+				if err := conn.SetReadDeadline(time.Now().Add(4 * time.Second)); err != nil {
+					read <- err
+					return
+				}
+				var first [1]byte
+				n, err := conn.Read(first[:])
+				if n != 0 || !errors.Is(err, io.EOF) {
+					read <- fmt.Errorf("connected peer saw %d bytes before close: %v", n, err)
+					return
+				}
+				read <- nil
+			}()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			calls := 0
+			x, response, err := client.callOriginalShopGETV4Fenced(ctx, publicShopProofPath, proof, expected, func(context.Context) error {
+				calls++
+				if test.want == context.Canceled {
+					cancel()
+					return nil
+				}
+				return test.want
+			})
+			if x != nil {
+				publicOwnedExchangeClose(t, x)
+			}
+			var dispatch *DispatchError
+			if x == nil || calls != 1 || !errors.As(err, &dispatch) || !errors.Is(err, test.want) || dispatch.DispatchPossible ||
+				response.PacketPresent || x.Lifetime().DispatchPossible || !errors.Is(x.Lifetime().FirstCause, test.want) {
+				t.Fatalf("failed fence lost original outcome: exchange=%t calls=%d err=%v response=%+v", x != nil, calls, err, response)
+			}
+			select {
+			case err := <-read:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("original peer did not observe physical close")
+			}
+		})
+	}
+	t.Run("current", func(t *testing.T) {
+		var calls atomic.Int32
+		p := newPublicShopV4Server(t, func(w http.ResponseWriter, r *http.Request) {
+			if calls.Load() != 1 || r.Header.Get(ProductSessionProofV4Header) != proof.HeaderValue {
+				t.Error("original proof reached the peer without exactly one write fence")
+			}
+			_, _ = w.Write([]byte("PUBLIC"))
+		})
+		x, response, err := p.client.callOriginalShopGETV4Fenced(context.Background(), publicShopProofPath, proof, expected, func(context.Context) error {
+			calls.Add(1)
+			return nil
+		})
+		if x != nil {
+			defer publicOwnedExchangeClose(t, x)
+		}
+		if err != nil || x == nil || calls.Load() != 1 || !x.Lifetime().DispatchPossible || !response.BodyComplete || string(response.Body) != "PUBLIC" {
+			t.Fatalf("approved Current did not preserve the one original exchange: %v %+v", err, response)
+		}
+	})
+}
+
 func TestOriginalLocalCallerShopProofV4Preflight(t *testing.T) {
 	expected := publicOriginalLocalCallerExpected(t)
 	for _, mode := range []string{"empty", "short", "CRLF", "comma", "oversize", "total-header", "unregistered", "body-route", "wrong-peer", "wrong-start", "wrong-image", "mixed-private", "body-private", "content-type-private"} {
