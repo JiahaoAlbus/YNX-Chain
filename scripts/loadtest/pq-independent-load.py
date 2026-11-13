@@ -158,6 +158,18 @@ class CalleeMeasurements:
         return dict(schema="YNX-PERF-ORIGINAL-CALLEE-MEASUREMENTS/v1",source=self.source,groups=result,intervalsOverlap=True,startupSeparate=True,startupEchoInFirstCommandNotAdded=True,cacheSnapshotsCumulativeNeverSummed=True,meaning="original monotonic elapsed wall spans; nested stages and concurrent processes are not additive; no authority or business/finality qualification")
 
 
+
+def finish_network_accounting(network, result):
+    """Finish the original capture using only an actual load result, if any."""
+    original_load = result.get("loadResult")
+    if original_load is None:
+        return network.finish(None, None, load_result=None)
+    return network.finish(original_load.get("qualified"),
+                          {key: original_load.get(key) for key in (
+                              "originMonotonicNs", "offeredWindowEndMonotonicNs", "windowNs", "observationCutoffNs")},
+                          load_result=original_load)
+
+
 def completion_diagnostics(result):
     """Explain incomplete demand separately from actual returned-reply defects."""
     load=result.get('loadResult',{});groups=result.get('normalCalleeMeasurements',{}).get('groups',{})
@@ -1114,8 +1126,7 @@ def run(args):
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
             try:
-                original_load=result.get("loadResult",{})
-                result["networkAccounting"]=network.finish(original_load.get("qualified"),{key:original_load.get(key) for key in ("originMonotonicNs","offeredWindowEndMonotonicNs","windowNs","observationCutoffNs")},load_result=original_load)
+                result["networkAccounting"]=finish_network_accounting(network,result)
                 if live_module is not None:
                     result['liveNetworkReads']=ceremony.live_reader.evidence
                     result['networkBaseline']=normal.network_baseline_result(network,result['networkAccounting'],ceremony.live_reader,work/'public')
