@@ -32,6 +32,7 @@ import (
 
 type pqTransactionProofFixture struct {
 	light    *pqLightProofFixture
+	account  *abciRevocationFixture
 	expected []PQTransactionProofExpectation
 	proofs   []PQTransactionProofRequest
 }
@@ -316,46 +317,128 @@ func newPQTransactionProofFixtureWithProfiles(t *testing.T, initialAccount, fund
 	if fundedInitial {
 		light.trust.Now = light.block(t, height+2).Time.Add(time.Second)
 	}
-	blockExpectation := func(b *cmttypes.LightBlock) PQLightProofExpectation {
-		return PQLightProofExpectation{ChainID: b.ChainID, HeaderHeight: b.Height, BlockHash: bytes.Clone(b.Hash()), StateHeight: b.Height - 1, StateAppHash: bytes.Clone(b.AppHash)}
-	}
-	light.expected, light.proof = blockExpectation(block), light.encode(t, block)
-	out := &pqTransactionProofFixture{light: light}
-	appendProof := func(at int64, envelope cmttypes.Tx, i int) {
-		actualBlock := h.blocks.LoadBlock(at)
-		block, successor := light.block(t, at), light.block(t, at+1)
-		results, err := h.raw.LoadFinalizeBlockResponse(at)
-		if err != nil {
-			t.Fatal(err)
-		}
-		kind, wire, err := pqTransactionWire(envelope)
-		if err != nil {
-			t.Fatal(err)
-		}
-		native := sha256.Sum256(wire)
-		expected := PQTransactionProofExpectation{Block: blockExpectation(block), Successor: blockExpectation(successor), TransactionType: kind, Envelope: bytes.Clone(envelope), NativeWire: bytes.Clone(wire), TransactionHash: envelope.Hash(), NativeWireHash: bytes.Clone(native[:]), Index: int64(i)}
-		txProof, err := cmtjson.Marshal(actualBlock.Data.Txs.Proof(i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		execution, resultProof, err := EncodePQTransactionExecutionProof(results.TxResults, i)
-		if err != nil {
-			t.Fatal(err)
-		}
-		out.expected = append(out.expected, expected)
-		out.proofs = append(out.proofs, PQTransactionProofRequest{Version: PQTransactionProofVersion, Block: light.encode(t, block), Successor: light.encode(t, successor), TransactionProof: txProof, ExecutionResult: execution, ExecutionProof: resultProof})
-	}
+	light.expected, light.proof = pqTransactionBlockExpectation(block), light.encode(t, block)
+	out := &pqTransactionProofFixture{light: light, account: account}
 	for i, envelope := range envelopes {
-		appendProof(height, envelope, i)
+		out.appendProof(t, height, envelope, i)
 	}
 	if fundedInitial {
 		result, err := h.raw.LoadFinalizeBlockResponse(height + 1)
 		if err != nil || len(result.TxResults) != 1 || result.TxResults[0].Code != 0 {
 			t.Fatal("original funded sender transfer did not actually succeed", err)
 		}
-		appendProof(height+1, fundedTransfer, 0)
+		out.appendProof(t, height+1, fundedTransfer, 0)
 	}
 	return out
+}
+
+func pqTransactionBlockExpectation(block *cmttypes.LightBlock) PQLightProofExpectation {
+	return PQLightProofExpectation{ChainID: block.ChainID, HeaderHeight: block.Height, BlockHash: bytes.Clone(block.Hash()), StateHeight: block.Height - 1, StateAppHash: bytes.Clone(block.AppHash)}
+}
+
+func (f *pqTransactionProofFixture) appendProof(t *testing.T, height int64, envelope cmttypes.Tx, index int) {
+	t.Helper()
+	h := f.light.harness
+	actualBlock := h.blocks.LoadBlock(height)
+	block, successor := f.light.block(t, height), f.light.block(t, height+1)
+	results, err := h.raw.LoadFinalizeBlockResponse(height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kind, wire, err := pqTransactionWire(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	native := sha256.Sum256(wire)
+	txProof, err := cmtjson.Marshal(actualBlock.Data.Txs.Proof(index))
+	if err != nil {
+		t.Fatal(err)
+	}
+	execution, resultProof, err := EncodePQTransactionExecutionProof(results.TxResults, index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.expected = append(f.expected, PQTransactionProofExpectation{Block: pqTransactionBlockExpectation(block), Successor: pqTransactionBlockExpectation(successor), TransactionType: kind, Envelope: bytes.Clone(envelope), NativeWire: bytes.Clone(wire), TransactionHash: envelope.Hash(), NativeWireHash: bytes.Clone(native[:]), Index: int64(index)})
+	f.proofs = append(f.proofs, PQTransactionProofRequest{Version: PQTransactionProofVersion, Block: f.light.encode(t, block), Successor: f.light.encode(t, successor), TransactionProof: txProof, ExecutionResult: execution, ExecutionProof: resultProof})
+}
+
+func TestPQTransactionProofActualValidatorDelegationWithTwoSignedHeaders(t *testing.T) {
+	f := newPQTransactionProofFixture(t)
+	h := f.light.harness
+	owner, validator := f.account.owner, h.f.migration.Validators[0].Address
+	index, ok := accountIndex(h.app.committed.Accounts, owner)
+	if !ok {
+		t.Fatal("original PQ owner is missing")
+	}
+	before := h.app.committed.Accounts[index]
+	const amount = 7
+	envelope := pqABCIVValidatorStake(t, f.account, f.account.key, owner, ynxauth.ActionStakeDelegate, ynxauth.StakeDelegatePayload{Validator: validator, AmountYNXT: amount}, before.Nonce+1)
+	check, err := h.app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: envelope})
+	if err != nil || check.Code != 0 {
+		t.Fatal("actual PQ delegation CheckTx rejected", err, check)
+	}
+	block := h.apply(t, cmttypes.Txs{envelope})
+	successor := h.apply(t, nil)
+	f.appendProof(t, block.LastBlockHeight, envelope, 0)
+	source, err := NewPQEngineFileSource(h.f.migration, h.path, h.f.bootstrap, f.light.authorization)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authority, err := source.ConsensusAuthorityForState(successor.ChainID, successor.LastBlockHeight, successor.AppHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, ok := authority.(*PQEngineSnapshot)
+	if !ok {
+		t.Fatal("actual PQ delegation lacks a snapshot from the normal authority loader")
+	}
+	trust := f.light.trust
+	trust.Snapshot, trust.Now = snapshot, successor.LastBlockTime.Add(time.Second)
+	proofIndex := len(f.proofs) - 1
+	result, err := VerifyPQTransactionProof(trust, f.expected[proofIndex], f.proofs[proofIndex])
+	if err != nil || result.TransactionType != PQActionType || result.Outcome != "succeeded" || !result.Included || !result.Finalized || !result.ExecutionSuccessful || !result.Block.CommitVerified || !result.Successor.CommitVerified || result.NativeGrant || !bytes.Equal(result.ExecutionData, []byte(SignedTransactionHash(envelope))) {
+		t.Fatal("actual delegation execution and signed finality were not verified", err, result)
+	}
+
+	var altered coretypes.ResultCommit
+	if err := cmtjson.Unmarshal(f.proofs[proofIndex].Successor.CommitResult, &altered); err != nil {
+		t.Fatal(err)
+	}
+	signature := &altered.Commit.Signatures[0].Signature
+	dual, err := ynxconsensusauth.ParseEnvelope(*signature)
+	if err != nil {
+		t.Fatal("successor did not carry the required dual signature", err)
+	}
+	dual.SLHDSASHA2256f[0] ^= 1
+	*signature, err = dual.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad := f.proofs[proofIndex]
+	bad.Successor.CommitResult, err = cmtjson.Marshal(altered)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := VerifyPQTransactionProof(trust, f.expected[proofIndex], bad); err == nil {
+		t.Fatal("delegation proof accepted a successor vote with a corrupt SLH-DSA signature")
+	}
+
+	reopened, err := NewPersistentApplicationWithEngineAuthorization(h.f.migration, h.path, h.f.bootstrap, f.light.authorization)
+	if err != nil {
+		t.Fatal("cold read of actual committed delegation", err)
+	}
+	state := reopened.committed
+	index, ok = accountIndex(state.Accounts, owner)
+	if !ok || state.Accounts[index].Nonce != before.Nonce+1 || state.Accounts[index].Balance != before.Balance-amount-1 || state.Accounts[index].Staked != before.Staked+amount {
+		t.Fatal("cold delegation account does not retain exact fee, nonce, and stake movement")
+	}
+	if len(state.StakeDelegations) != 1 {
+		t.Fatal("cold delegation record missing or duplicated")
+	}
+	delegation := state.StakeDelegations[0]
+	if delegation.Delegator != owner || delegation.Validator != validator || delegation.AmountYNXT != amount || delegation.TxHash != SignedTransactionHash(envelope) || delegation.BlockHeight != block.LastBlockHeight || delegation.AuthorizationHistory == "" {
+		t.Fatal("cold delegation record is detached from the proven original", delegation)
+	}
 }
 
 func clonePQTransactionProof(t *testing.T, p PQTransactionProofRequest) PQTransactionProofRequest {
