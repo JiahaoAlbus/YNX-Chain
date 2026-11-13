@@ -53,7 +53,7 @@ def verify_qualification_evidence(q):
     require(original.qualification()==q,'original source-CI qualification differs')
 
 
-def prepare_matching_source(source, destination):
+def prepare_matching_source(source, destination, *, held_source_only=False):
     """Reuse Core's exact source composer in a supervised private helper."""
     def git(*args):
         return subprocess.check_output(['git','-C',str(source),*args],timeout=5).decode().strip()
@@ -61,7 +61,17 @@ def prepare_matching_source(source, destination):
             'original source must remain clean and canonical')
     identity=dict(commit=git('rev-parse','HEAD'),tree=git('rev-parse','HEAD^{tree}'),
                   forkTree=git('rev-parse','HEAD:third_party/cometbft'))
-    q=qualify(identity)
+    held = identity['commit'] == native_source_dependencies.HELD_SOURCE
+    if held_source_only:
+        require(held and identity['tree'] == native_source_dependencies.HELD_TREE
+                and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',
+                'exact held-session source identity required')
+        q = dict(optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',
+                 optionalForkTree='08747364c24c065bf2b13527c210625d7ec95fba',
+                 compositionScriptSHA256='e35ff39c10090e9200bdabf7b265c1fd211fd2ae4d227ffaae52054c6dbc2fac',
+                 ciEvidenceSHA256=None)
+    else:
+        q=qualify(identity)
     path=source/'scripts/verify/wire-live-matching-source-ci.py'
     require(not path.is_symlink() and hashlib.sha256(path.read_bytes()).hexdigest()==q['compositionScriptSHA256'],
             'exact original Core composition callee required')
@@ -69,7 +79,7 @@ def prepare_matching_source(source, destination):
     core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
     require(git('rev-parse',q['optionalForkCommit']+':third_party/cometbft')==q['optionalForkTree'],
             'actual selected matching module object differs')
-    if identity['commit'] != '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
+    if not held and identity['commit'] != '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b':
         require(core.PRODUCTION_TREE==identity['forkTree'] and core.FORK_COMMIT==q['optionalForkCommit'] and
                 core.FORK_TREE==q['optionalForkTree'], 'original legacy source/module identities differ')
     prepared=core.prepare_wire_live_source(source,destination,identity['commit'],identity['tree'])
@@ -97,7 +107,9 @@ def prepare_matching_source(source, destination):
                 compositionScriptSHA256=q['compositionScriptSHA256'],ciEvidenceSHA256=q['ciEvidenceSHA256'],
                 buildTag=BUILD_TAG,buildSource=str(build_source),originalSourceUnchanged=True,
                 originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)
-    if identity['commit']==native_source_dependencies.SOURCE:
+    if held_source_only:
+        result.update(sourceCompositionOnly=True, pressureAuthorized=False)
+    if identity['commit'] in native_source_dependencies.SOURCE_TREES:
         result['originalNativeSourceDependencies']=native_source_dependencies.materialize(source,build_source,destination/'SOURCE-NATIVE-DEPENDENCIES.json')
     return result
 

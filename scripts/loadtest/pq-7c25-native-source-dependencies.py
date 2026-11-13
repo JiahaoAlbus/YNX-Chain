@@ -8,6 +8,9 @@ import hashlib,json,os,re,stat,subprocess,time
 from pathlib import Path,PurePosixPath
 SOURCE='7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 TREE='8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
+HELD_SOURCE='19485259d6f0440c89a3d31e27b97de25a8cd12f'
+HELD_TREE='3a6f9a5efe4e0257eab8edc1a62d52631281d5b2'
+SOURCE_TREES={SOURCE:TREE, HELD_SOURCE:HELD_TREE}
 FILES={'packages/wallet-auth/go/sourceparentprofile/canonical.cpp': {'mode': '100644',
                                                                'gitBlob': 'b5bdced61b6754b088980d736bc9ca027592a9b7',
                                                                'bytes': 62,
@@ -76,18 +79,20 @@ def git(source,*args):
 def source_identity(source):
     require(source.is_absolute() and source.resolve(strict=True)==source and not source.is_symlink(),
             'canonical original source required')
-    require(git(source,'rev-parse','HEAD').decode().strip()==SOURCE
-            and git(source,'rev-parse','HEAD^{tree}').decode().strip()==TREE
+    commit = git(source,'rev-parse','HEAD').decode().strip()
+    tree = git(source,'rev-parse','HEAD^{tree}').decode().strip()
+    require(SOURCE_TREES.get(commit) == tree
             and not git(source,'status','--porcelain','--untracked-files=all').strip(),
             'exact clean original7c source required')
+    return commit, tree
 
 def original_files(source):
-    source_identity(source);result={}
+    commit, _ = source_identity(source);result={}
     for name,ref in FILES.items():
         require(PurePosixPath(name).as_posix()==name and '..' not in PurePosixPath(name).parts
                 and name.startswith('packages/wallet-auth/'),'closed original dependency path required')
         expected=(ref['mode']+' blob '+ref['gitBlob']+'\t'+name+'\0').encode()
-        require(git(source,'ls-tree','-z',SOURCE,'--',name)==expected,'original dependency Git mode/blob differs')
+        require(git(source,'ls-tree','-z',commit,'--',name)==expected,'original dependency Git mode/blob differs')
         raw=git(source,'cat-file','blob',ref['gitBlob'])
         require(len(raw)==ref['bytes']<=1<<20 and hashlib.sha256(raw).hexdigest()==ref['sha256'],
                 'original dependency bytes differ')
@@ -123,14 +128,15 @@ def materialize(source,build_source,receipt):
             and receipt.name=='SOURCE-NATIVE-DEPENDENCIES.json','fresh sibling dependency receipt required')
     require(source!=build_source and source not in build_source.parents and build_source not in source.parents,
             'private build must be disjoint from original source')
+    commit, tree = source_identity(source)
     blobs=original_files(source)
     before={name:hashlib.sha256((build_source/name).read_bytes()).hexdigest()
             for name in ('go.mod','go.sum','third_party/cometbft/go.mod','third_party/cometbft/go.sum')}
     for name,raw in blobs.items():write_exclusive(build_source,name,raw)
     require(before=={name:hashlib.sha256((build_source/name).read_bytes()).hexdigest() for name in before},
             'original module descriptors changed during supporting source copy')
-    source_identity(source)
-    value=dict(schema='YNX-PERF-ORIGINAL-CGO-SOURCE-DEPENDENCIES/v1',source=SOURCE,sourceTree=TREE,
+    require(source_identity(source) == (commit, tree), 'original native dependency source changed')
+    value=dict(schema='YNX-PERF-ORIGINAL-CGO-SOURCE-DEPENDENCIES/v1',source=commit,sourceTree=tree,
         buildSource=str(build_source),files=[dict(path=name,**ref) for name,ref in FILES.items()],
         fileCount=len(FILES),sourceBytes=sum(ref['bytes'] for ref in FILES.values()),
         moduleDescriptorSHA256=before,elapsedNs=time.monotonic_ns()-started,
