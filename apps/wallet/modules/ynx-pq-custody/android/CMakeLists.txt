@@ -62,7 +62,10 @@ if(YNX_ANDROID_DEVICE_APPROVAL)
  add_subdirectory(../native/android-account-approval android-account-approval)
  include("${CMAKE_CURRENT_LIST_DIR}/AttachOriginalAndroidApproval.cmake")
  ynx_attach_original_android_approval(ynx_pq_custody)
+ target_include_directories(ynx_pq_custody PRIVATE
+  "${YNX_APPROVAL_PLAN_INCLUDE}" ../native/android-account-approval)
  target_sources(ynx_pq_custody PRIVATE src/main/cpp/DeviceApprovalJournalBridge.cpp
+  src/main/cpp/DeviceApprovalHolderStorage.cpp
   $<TARGET_OBJECTS:ynx_android_account_approval>)
  if(NOT CMAKE_READELF OR NOT EXISTS "${CMAKE_READELF}")
   message(FATAL_ERROR "Android approval requires the NDK readelf")
