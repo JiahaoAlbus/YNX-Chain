@@ -6,6 +6,7 @@ const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-inten
 Object.assign(shapes,{'order-invoice':['productId','sourceOrder'],'order-terms-review':['productId','sourceOrder'],'order-pay-review':['productId','sourceOrder'],
  'order-refund-review':['productId','sourceOrder','refundId','amountAtoms'],'order-receipt':['productId','sourceOrder','nativeHash'],'order-reconcile':['productId','sourceOrder'],
  'order-broadcast-review':['productId','sourceOrder','kind','originalHash'],'order-reconcile-operation':['productId','sourceOrder','nativeHash']});
+const protectedOrderActions=new Set(['order-invoice','order-terms-review','order-pay-review','order-refund-review','order-reconcile-operation']);
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
@@ -52,7 +53,8 @@ function input(value){
  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail('NATIVE_PAY_MAIN_INPUT_INVALID');
  const d=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(d);
  if(keys.some(k=>typeof k!=='string'||!Object.hasOwn(d[k],'value')||!d[k].enumerable))fail('NATIVE_PAY_MAIN_INPUT_INVALID');
- const action=d.action?.value,fields=shapes[action];
+ const action=d.action?.value;
+ const fields=typeof action==='string'&&Object.hasOwn(shapes,action)?shapes[action]:null;
  if(!fields||keys.length!==fields.length+1||keys.some(k=>k!=='action'&&!fields.includes(k))||fields.some(k=>typeof d[k]?.value!=='string'||d[k].value.length>256))fail('NATIVE_PAY_MAIN_INPUT_INVALID');
  return Object.fromEntries(keys.map(k=>[k,d[k].value]));
 }
@@ -68,16 +70,22 @@ export function createNativePayMainEntry({getMain,getContext}){
   return ()=>{const now=getContext();if(epoch!==e||!now||now.account!==c.account||now.revision!==c.revision||now.locked||now.changing||!now.focused)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');};
  };
  function cancel(){epoch++;activeAbort?.abort();client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
- async function invoke(raw,onFailure){
-   const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
+ async function invoke(raw,onFailure,hostOrder){
+   const request=input(raw);
+   if(hostOrder&&(!protectedOrderActions.has(request.action)||request.productId!=='shop.order'))fail('NATIVE_PAY_MAIN_INPUT_INVALID');
+   if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
    if(request.action.endsWith('-review'))pending.assertReviewAvailable();
    const assertContext=context(),originalSource=source,main=getMain();
-   const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
+   const current=()=>{
+    assertContext();
+    if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');
+    if(hostOrder&&Reflect.apply(hostOrder.assertCurrent,undefined,[])!==undefined)fail('NATIVE_PAY_MAIN_HOST_CURRENT_INVALID');
+   };
    const operationAbort=new AbortController();
    Object.defineProperty(current,'signal',{value:operationAbort.signal});
    current();active=true;activeAbort=operationAbort;let operationClient=null;
    try{
-    const runtime={main,pay:originalSource.pay,current,
+    const runtime={main,pay:originalSource.pay,current,expectedOriginalOperation:hostOrder?.operation,
      reviewCustody:Object.freeze({remember:id=>pending.remember(id,main),settled:id=>pending.settled(id,main),cleanupFailed:(id,cause)=>pending.cleanupFailed(id,main,cause)}),
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
      ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
@@ -118,6 +126,11 @@ export function createNativePayMainEntry({getMain,getContext}){
     throw error;
    }finally{if(activeAbort===operationAbort)activeAbort=null;active=false;}
   }
+ async function invokeResult(raw,hostOrder){
+  let failureState=null,failureCurrent=null;
+  try{return {version:'ynx.pay.main-result/v1',ok:true,...await invoke(raw,(state,current)=>{failureState=state;failureCurrent=current;},hostOrder)};}
+  catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState);}
+ }
  return Object.freeze({
   compose(originalSource){
    if(source||active)fail('NATIVE_PAY_MAIN_ALREADY_COMPOSED');
@@ -133,10 +146,15 @@ export function createNativePayMainEntry({getMain,getContext}){
   // calls it only after the original review/cleanup actually settles.
   settleOriginalReview:(id,owner)=>pending.settled(id,owner),
   invoke:raw=>invoke(raw),
-  async invokeResult(raw){
-   let failureState=null,failureCurrent=null;
-   try{return {version:'ynx.pay.main-result/v1',ok:true,...await invoke(raw,(state,current)=>{failureState=state;failureCurrent=current;})};}
-   catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState);}
+  invokeResult:raw=>invokeResult(raw),
+  // Only the protected Main host passes the retained intent and its current
+  // check out of band. The existing renderer request shape stays unchanged.
+  async invokeOriginalOrderResult(raw,expectedOriginalOperation,assertHostCurrent){
+   if(typeof expectedOriginalOperation!=='string'||!/^npi_[0-9a-f]{48}$/.test(expectedOriginalOperation))
+    return nativePayFailureResultDATA(Object.assign(Error(),{code:'NATIVE_PAY_MAIN_ORIGINAL_OPERATION_REQUIRED'}));
+   if(typeof assertHostCurrent!=='function'||types.isProxy(assertHostCurrent))
+    return nativePayFailureResultDATA(Object.assign(Error(),{code:'NATIVE_PAY_MAIN_HOST_CURRENT_INVALID'}));
+   return invokeResult(raw,{operation:expectedOriginalOperation,assertCurrent:assertHostCurrent});
   }
  });
 }

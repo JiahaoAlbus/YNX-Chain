@@ -44,3 +44,24 @@ test('normal Main startup returns UNKNOWN DATA and retains falsy first cause pri
  assert.equal(f.calls.filter(x=>x==='read').length,1);assert.equal(f.calls.filter(x=>x==='close').length,1);
  await f.service.shutdown();f.service.assertSafeToClose();
 });
+
+test('original-order host retirement during Source acquisition drains the late original parent', async () => {
+  let release, enter;
+  const gate = new Promise(resolve => { release = resolve; });
+  const entered = new Promise(resolve => { enter = resolve; });
+  const cause = Error('PUBLIC_HOST_RETIRED');
+  let live = true;
+  const f = fixture({async acquire(loan) { enter(); await gate; return loan; }});
+  const pending = f.service.invokeOriginalOrderResult(
+    {action: 'order-pay-review', productId: 'shop.order', sourceOrder: 'PUBLIC-order'},
+    'npi_' + 'a'.repeat(48),
+    () => { if (!live) throw cause; }
+  );
+  await entered;
+  live = false;
+  release();
+  await assert.rejects(pending, error => error === cause);
+  assert.deepEqual(f.calls, ['current', 'retire', 'join', 'close']);
+  await f.service.shutdown();
+  f.service.assertSafeToClose();
+});

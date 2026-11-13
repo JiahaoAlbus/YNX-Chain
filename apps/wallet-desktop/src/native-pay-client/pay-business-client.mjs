@@ -55,10 +55,11 @@ export function nativePayFailureResultDATA(error,state=null){
  * approvals, original Members and submission UNKNOWN. This client persists no
  * second transaction journal, balance, approval or retry counter. */
 export class NativePayBusinessClient {
- #runtime; #pay; #merchant; #actions; #revision=0; #state={phase:'unavailable',reason:'NATIVE_PAY_SOURCE_UNAVAILABLE',reference:null,bill:null};
+ #runtime; #pay; #merchant; #actions; #expectedOriginalOperation; #revision=0; #state={phase:'unavailable',reason:'NATIVE_PAY_SOURCE_UNAVAILABLE',reference:null,bill:null};
  constructor(runtime){
   if(typeof runtime?.current!=='function'||!runtime.pay)throw failure('NATIVE_PAY_SOURCE_UNAVAILABLE');
   this.#runtime=runtime;this.#pay=runtime.pay;
+  this.#expectedOriginalOperation=runtime.expectedOriginalOperation;
   if(runtime.main){this.#merchant=createNativeInvoiceMerchantApproval({main:runtime.main,pay:this.#pay,reviewCustody:runtime.reviewCustody});this.#actions=createNativePayActionApproval({main:runtime.main,pay:this.#pay,readInvoiceOriginals:runtime.readInvoiceOriginals,reviewCustody:runtime.reviewCustody});}
  }
  snapshot(){return clone(this.#state);}
@@ -82,9 +83,22 @@ export class NativePayBusinessClient {
  }
  async #originalOrder(reference,current){
   const original=await this.#originalProductIntent(reference.productId,reference.sourceOrder,current);
-  if(original.productId!=='shop.order'||typeof this.#pay.lookupInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
-  const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
+  if(original.productId!=='shop.order')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
+  const expected=this.#expectedOriginalOperation;
+  let intent;
+  if(expected===undefined){
+   if(typeof this.#pay.lookupInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
+   intent=await this.#pay.lookupInvoiceIntent(original,current);
+  }else{
+   // The host already holds the original intent ID. Read that exact record
+   // through the existing GET, which does not reconcile or repair the Store.
+   if(typeof expected!=='string'||!/^npi_[0-9a-f]{48}$/.test(expected))throw failure('NATIVE_PAY_MAIN_ORIGINAL_OPERATION_REQUIRED');
+   if(typeof this.#pay.readInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
+   intent=await this.#pay.readInvoiceIntent(expected,current);
+  }
+  current();
   const binding=nativeInvoiceOrderBindingDATA(intent,original);
+  if(expected!==undefined&&binding.intentId!==expected)throw failure('NATIVE_PAY_ORIGINAL_OPERATION_CHANGED');
   Object.assign(reference,{merchant:binding.merchant,invoiceId:binding.terms.invoiceId,intentId:binding.intentId});
   if(binding.state==='PREPARED')reference.kind='invoice_terms';
   return {intent,binding};
