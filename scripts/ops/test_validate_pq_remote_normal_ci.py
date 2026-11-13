@@ -997,6 +997,15 @@ def assert_native_cabi_workflow_contract(raw):
               if any(row.get('Test', '').startswith(name + '/') and (row.get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi' or row.get('Action') in ('fail', 'skip')) for row in rows):
                   raise RuntimeError('Wallet signing alias child refused: ' + name)
           print('YNX_WALLET_SIGN_ALIAS_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=wallet_alias, suitePassed=True, actualExportedGoABI=True, externalArchiveInterop=False, keysGenerated=False, signaturesProduced=False, accountAuthorized=False), sort_keys=True))
+          product_approval_v4 = ['TestProductSessionApprovalV4ExactTypedE5', 'TestProductSessionApprovalV4Refusals', 'TestProductSessionApprovalV4ActualCGOAndAND', 'TestProductSessionApprovalV4MemoryAndPublicPreflight']
+          for index, name in enumerate(product_approval_v4):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if index < 2 else 'cmd/ynx-artifact-release-cabi')
+              matches = [row for row in rows if row.get('Test') == name]
+              if [row.get('Package') for row in matches if row.get('Action') == 'run'] != [package] or [(row.get('Package'), row.get('Action')) for row in matches if row.get('Action') in ('pass', 'fail', 'skip')] != [(package, 'pass')]:
+                  raise RuntimeError('fixed product session approval did not execute uniquely: ' + name)
+              if any(row.get('Test', '').startswith(name + '/') and (row.get('Package') != package or row.get('Action') in ('fail', 'skip')) for row in rows):
+                  raise RuntimeError('fixed product session approval child refused: ' + name)
+          print('YNX_PRODUCT_SESSION_APPROVAL_V4_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=product_approval_v4, suitePassed=True, actualExportedGoABI=True, syntheticTestKeysOnly=True, accountAuthorized=False, androidImageLinked=False), sort_keys=True))
           pending_query = ['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary']
           for name in pending_query:
               package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in pending_query[:2] else 'cmd/ynx-artifact-release-cabi')
@@ -3249,12 +3258,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             for label, tests in lists.items():
                 for index,test in enumerate(tests):
                     pkg='cmd/ynx-artifact-release-cabi'
-                    if label in ('pending_query','source_v2') and index<2: pkg='internal/ynxbatch'
+                    if label in ('pending_query','source_v2','product_approval_v4') and index<2: pkg='internal/ynxbatch'
                     if label=='resource_consent' and index==0: pkg='internal/ynxresourceconsent'
                     if label=='legacy_snapshot':pkg='internal/chain'
                     if label=='ethers_required':
                         pkg='internal/api'
-                    if label in ('ethers_required','wallet_alias'):
+                    if label in ('ethers_required','wallet_alias','product_approval_v4'):
                         rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='run'))
                     rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
             if 'legacy_snapshot' not in lists:
@@ -3273,7 +3282,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
             run(rows)
-            selected={test for label in ('resource_consent','source_v2_capacity','legacy_snapshot','ethers_required','wallet_alias') for test in lists.get(label,[])}
+            selected={test for label in ('resource_consent','source_v2_capacity','legacy_snapshot','ethers_required','wallet_alias','product_approval_v4') for test in lists.get(label,[])}
             for index,row in enumerate(rows):
                 if row.get('Test') not in selected and 'Test' in row:continue
                 for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):

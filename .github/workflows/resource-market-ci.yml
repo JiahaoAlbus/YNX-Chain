@@ -822,6 +822,15 @@ jobs:
               if any(row.get('Test', '').startswith(name + '/') and (row.get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi' or row.get('Action') in ('fail', 'skip')) for row in rows):
                   raise RuntimeError('Wallet signing alias child refused: ' + name)
           print('YNX_WALLET_SIGN_ALIAS_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=wallet_alias, suitePassed=True, actualExportedGoABI=True, externalArchiveInterop=False, keysGenerated=False, signaturesProduced=False, accountAuthorized=False), sort_keys=True))
+          product_approval_v4 = ['TestProductSessionApprovalV4ExactTypedE5', 'TestProductSessionApprovalV4Refusals', 'TestProductSessionApprovalV4ActualCGOAndAND', 'TestProductSessionApprovalV4MemoryAndPublicPreflight']
+          for index, name in enumerate(product_approval_v4):
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if index < 2 else 'cmd/ynx-artifact-release-cabi')
+              matches = [row for row in rows if row.get('Test') == name]
+              if [row.get('Package') for row in matches if row.get('Action') == 'run'] != [package] or [(row.get('Package'), row.get('Action')) for row in matches if row.get('Action') in ('pass', 'fail', 'skip')] != [(package, 'pass')]:
+                  raise RuntimeError('fixed product session approval did not execute uniquely: ' + name)
+              if any(row.get('Test', '').startswith(name + '/') and (row.get('Package') != package or row.get('Action') in ('fail', 'skip')) for row in rows):
+                  raise RuntimeError('fixed product session approval child refused: ' + name)
+          print('YNX_PRODUCT_SESSION_APPROVAL_V4_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=product_approval_v4, suitePassed=True, actualExportedGoABI=True, syntheticTestKeysOnly=True, accountAuthorized=False, androidImageLinked=False), sort_keys=True))
           pending_query = ['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary']
           for name in pending_query:
               package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in pending_query[:2] else 'cmd/ynx-artifact-release-cabi')
