@@ -9,15 +9,16 @@ const ref={productId:original.productId,sourceOrder:original.sourceOrder};
 const terms={invoiceId:'invoice-original',sessionId:'session-original',recipient:merchant,payer,assetId:'YNXT',unitVersion:'1',feeRule:'native-transfer-fee-one/v1',keyEpoch:'1',revision:'1',amountAtoms:'100',maxFeeAtoms:'1',expiresAtHeight:'100'};
 const view=()=>({intentId,originalOperation:intentId,request:structuredClone(original),merchant,state:'ISSUED',phase:'confirmed',signingMessageHash:'b'.repeat(64),termsNativeHash:termsHash,termsAbciHash:'0x'+'5'.repeat(64),terms:{...terms},invoice:{}});
 const bill=()=>({genesis:original.genesis,nativeChainId:'6423',merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,assetId:'YNXT',unitVersion:'1',principalAtoms:'100',paidAtoms:'0',refundedAtoms:'0',netPaidAtoms:'0',feeRule:terms.feeRule,maxFeeAtoms:'1',expiresAtHeight:'100',termsNativeHash:termsHash,termsHash:'b'.repeat(64),status:'terms_registered',refundStatus:'none',operations:{}});
-function boot({lookup=view,create,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),operation=()=>{throw Error('Unexpected reconciliation');},extra={}}={}){
+function boot({lookup=view,readIntent=view,create,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),operation=()=>{throw Error('Unexpected reconciliation');},extra={}}={}){
  const calls=[];let live=true;
  const current=()=>{if(!live)throw Object.assign(Error(),{code:'ORIGINAL_SOURCE_RETIRED'});};
  const pay=createPrivateNativeProductPayClient({origin:'https://pay.original.test',async requestPrivate(request){
   request.assertCurrent();calls.push({method:request.method,path:request.path,body:request.body});let result;
   if(request.path==='/v5/pay/invoice-intents/lookup'){result=await lookup();change('lookup');}
+  else if(request.method==='GET'&&request.path===`/v5/pay/invoice-intents/${intentId}`){result=await readIntent();change('intent');}
   else if(request.method==='POST'&&request.path==='/v5/pay/invoice-intents'&&create){result=await create();}
   else if(request.method==='GET'&&request.path===`/v5/pay/invoices/${merchant}/${terms.invoiceId}`){result=await read();change('invoice');}
-  else if(request.path===`/v5/pay/invoice-intents/${intentId}/merchant-review`||request.path===`/v5/pay/invoice-intents/${intentId}`){result=await review();}
+  else if(request.path===`/v5/pay/invoice-intents/${intentId}/merchant-review`){result=await review();}
   else if(request.method==='POST'&&request.path.startsWith(`/v5/pay/invoices/${merchant}/${terms.invoiceId}/operations/`)&&request.path.endsWith('/reconcile')){result=await operation();change('operation');}
   else throw Object.assign(Error(),{code:'PUBLIC_UNEXPECTED_CALL'});
   return {method:request.method,requestPath:request.path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(result))};
@@ -85,7 +86,8 @@ test('payment, refund and retained broadcast recheck original bill before any Ma
 test('merchant review or original-Member read cannot splice a changed lookup generation',async()=>{
  for(const action of ['order-terms-review','order-broadcast-review'])for(const change of [v=>v.terms.sessionId='other-session',v=>v.signingMessageHash='c'.repeat(64),v=>{v.state='ISSUED';v.phase='confirmed';v.termsNativeHash=termsHash;v.termsAbciHash=view().termsAbciHash;}]){
   const m=noSigningMain(),prepared=()=>({...view(),state:'PREPARED',phase:'awaiting_merchant_approval',termsNativeHash:'',termsAbciHash:''});
-  const f=boot({main:m.main,lookup:prepared,review:()=>{const v=prepared();change(v);return action==='order-terms-review'?{intent:v}:v;}});
+  const changed=()=>{const v=prepared();change(v);return v;};
+  const f=boot({main:m.main,lookup:prepared,readIntent:changed,review:()=>({intent:changed()})});
   const r=await f.entry.invokeResult({action,...ref,...(action==='order-broadcast-review'?{kind:'invoice_terms',originalHash:'0x'+'8'.repeat(64)}:{})});
   assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(m.touched(),0);assert.equal(f.calls.length,3);
  }
@@ -237,4 +239,52 @@ test('issued Shop intent replies bind their embedded invoice before rendering it
    assert.equal(calls[1].path,action==='lookup-intent'?'/v5/pay/invoice-intents/lookup':'/v5/pay/invoice-intents');
   }
  }
+});
+
+test('protected Shop order resolves its original intent by GET before reviews and reconciliation',async()=>{
+ const actions={
+  'order-invoice':{},
+  'order-terms-review':{},
+  'order-pay-review':{},
+  'order-refund-review':{refundId:'refund-original',amountAtoms:'30'},
+  'order-reconcile-operation':{nativeHash:'0x'+'6'.repeat(64)}
+ };
+ for(const [action,extra] of Object.entries(actions)){
+  for(const readIntent of [
+   ()=>({...view(),intentId:'npi_'+'9'.repeat(48),originalOperation:'npi_'+'9'.repeat(48)}),
+   ()=>({...view(),request:{...original,sourceOrder:'foreign-order'}})
+  ]){
+   const main=noSigningMain();
+   const f=boot({main:main.main,readIntent});
+   const result=await f.entry.invokeOriginalOrderResult({action,...ref,...extra},intentId,()=>{});
+   assert.equal(result.ok,false);
+   assert.equal(result.reference.intentId,undefined);
+   assert.deepEqual(result.recoveryActions,[{action:'lookup-intent',...ref}]);
+   assert.equal(result.walletRequest,undefined);
+   assert.equal(main.touched(),0);
+   assert.deepEqual(f.calls,[{sourceRead:ref},{method:'GET',path:`/v5/pay/invoice-intents/${intentId}`,body:undefined}]);
+  }
+ }
+ const f=boot();
+ const result=await f.entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{});
+ assert.equal(result.ok,true);
+ assert.equal(result.reference.intentId,intentId);
+ assert.deepEqual(f.calls.map(call=>call.path),[undefined,`/v5/pay/invoice-intents/${intentId}`,`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]);
+});
+
+test('protected operation and current stay out of renderer input and a revoked host discards the read',async()=>{
+ const f=boot(),input={action:'order-invoice',...ref};
+ assert.equal((await f.entry.invokeResult({...input,expectedOriginalOperation:intentId})).code,'NATIVE_PAY_MAIN_INPUT_INVALID');
+ assert.equal((await f.entry.invokeOriginalOrderResult(input,undefined,()=>{})).code,'NATIVE_PAY_MAIN_ORIGINAL_OPERATION_REQUIRED');
+ assert.equal((await f.entry.invokeOriginalOrderResult(input,intentId,()=>true)).code,'NATIVE_PAY_MAIN_HOST_CURRENT_INVALID');
+ assert.equal((await f.entry.invokeOriginalOrderResult({action:'create-intent',...ref},intentId,()=>{})).code,'NATIVE_PAY_MAIN_INPUT_INVALID');
+ assert.equal(f.calls.length,0);
+
+ let revoked=false;
+ const late=boot({change:step=>{if(step==='intent')revoked=true;}});
+ const result=await late.entry.invokeOriginalOrderResult(input,intentId,()=>{if(revoked)throw 0;});
+ assert.equal(result.ok,false);
+ assert.equal(result.reference,null);
+ assert.equal(result.bill,undefined);
+ assert.equal(late.calls.length,2);
 });
