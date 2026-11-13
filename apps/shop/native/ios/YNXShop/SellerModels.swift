@@ -17,7 +17,30 @@ struct SellerReturnReceipt:Codable,Identifiable {let ID,ReturnID,ReceivedBy,Evid
 struct SellerPendingOperation:Identifiable {let id,kind,phase,storeID,target:String}
 // Presentation of Main's original review only. Main retains the authoritative
 // operation; this is never encoded into the Seller mutation/funds journal.
-struct SellerRefundReview {let refundID,amountAtoms:String;var reviewID:String?;var phase:String}
+struct SellerRefundReview {
+    let refundID,amountAtoms:String
+    var reviewID:String?
+    var phase:String
+    private let orderID, storeID, buyer, intentID, invoiceID, sessionID, termsHash:String
+    private let merchant, payout:String?
+
+    init(order:SellerOrder,payment:NativePaymentProjection,refundID:String,amountAtoms:String) {
+        self.refundID=refundID;self.amountAtoms=amountAtoms;phase="unknown"
+        orderID=order.ID;storeID=order.StoreID;buyer=order.Buyer;intentID=order.PayIntentID;invoiceID=order.InvoiceID
+        sessionID=payment.SessionID;termsHash=payment.TermsHash;merchant=order.PayMerchant;payout=order.PayPayoutAddress
+    }
+
+    func confirmed(in order:SellerOrder)->Bool {
+        guard order.ID==orderID, order.StoreID==storeID, order.Buyer==buyer, order.PayIntentID==intentID,
+              order.InvoiceID==invoiceID, order.PayMerchant==merchant, order.PayPayoutAddress==payout,
+              let payment=order.NativePayment, payment.SessionID==sessionID, payment.TermsHash==termsHash,
+              payment.CompleteKnownOriginals, !payment.ReconciliationRequired,
+              (try? payment.validate(order.paymentOrder,requirePaid:false)) != nil else{return false}
+        return payment.Receipts.contains{
+            $0.kind=="invoice_refund" && $0.status=="confirmed" && $0.refundId==refundID && $0.principalAtoms==amountAtoms
+        }
+    }
+}
 struct SellerOrder:Codable,Identifiable {let ID,Buyer,StoreID,Status,Currency,InvoiceID,PayIntentID:String;let SubtotalYNXT,ShippingYNXT,TaxYNXT,TotalYNXT:Int64;let TaxStatus,LogisticsStatus,RefundStatus,TrustStatus:String;let Lines:[SellerOrderLine];let Address:SellerAddress;let Shipment:SellerShipment?;let Resolution:SellerResolution?;let Settlement:SellerSettlement?;let Refund:SellerRefund?;let Timeline:[SellerTimelineEvent];var PayMerchant:String?=nil;var PayPayoutAddress:String?=nil;var NativePayment:NativePaymentProjection?=nil;var NativePrice:NativeCheckoutPrice?=nil;var ReturnReceipts:[SellerReturnReceipt]?=nil;var id:String{self.ID};var originalReturnID:String?{Timeline.last(where:{$0.Action=="order_transition" && $0.Status=="return_requested"})?.ID}}
 struct SellerMember:Identifiable {let Account,Role:String;var id:String{Account}}
 struct SellerAudit:Codable,Identifiable {let ID,Actor,Role,Action,ObjectType,ObjectID,Outcome,Detail,At:String;var id:String{self.ID}}

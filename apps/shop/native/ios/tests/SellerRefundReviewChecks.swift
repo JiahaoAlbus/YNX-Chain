@@ -152,8 +152,29 @@ final class RefundReviewHTTP:URLProtocol,@unchecked Sendable {
         try check(model.retainedRefundReviews[orderID]?.phase=="unknown" && model.retainedRefundReviews[orderID]?.amountAtoms=="5" && model.retainedRefundReviews[orderID]?.reviewID==nil,"lost Main reply retains exact original refund selection as unknown")
         let unknownCount=inputs.count;failMain=false;model.reviewOriginalRefund(model.orders[0],refundID:eventID,amountAtoms:"6");await settle()
         try check(inputs.count==unknownCount && !model.canReviewOriginalRefund(model.orders[0]),"unknown review is not redispatched with new amount or fake operation")
-        endpointOrder=used;endpointOrder["Timeline"]=[event(eventID),event(nextID)];try await refresh()
-        try check(model.canReviewOriginalRefund(model.orders[0]) && model.refundableOriginalEvent(model.orders[0])?.ID==nextID,"only accepted receipt for previous selection admits a later real refund event")
+        var mismatched=used;mismatched["Timeline"]=[event(eventID),event(nextID)]
+        model.readOriginalOrder(model.orders[0]);let mismatchRead=try await take();try mismatchRead.respond(mismatched);try await until{!model.busy}
+        try check(!model.canReviewOriginalRefund(model.orders[0]) && model.retainedRefundReviews[orderID]?.phase=="unknown","receipt for the same event but another amount cannot retire the original review")
+        model.reviewOriginalRefund(model.orders[0],refundID:nextID,amountAtoms:"1");await settle()
+        try check(inputs.count==unknownCount,"mismatched readback never allows another Main review")
+        var matched=payment(mismatched){projection in
+            var receipts=projection["Receipts"] as! [[String:Any]]
+            receipts[1]["principalAtoms"]="5";receipts[1]["refundedAtoms"]="5";receipts[1]["netPaidAtoms"]="95"
+            projection["Receipts"]=receipts;projection["RefundedAtoms"]="5";projection["NetPaidAtoms"]="95"
+        }
+        matched["RefundStatus"]="native_partial_refund"
+        model.readOriginalOrder(model.orders[0]);let pendingRead=try await take();try pendingRead.respond(pending(matched));try await until{!model.busy}
+        try check(!model.canReviewOriginalRefund(model.orders[0]) && model.retainedRefundReviews[orderID]?.phase=="unknown","incomplete payment readback retains original refund review")
+        let rebound=payment(matched){projection in
+            projection["SessionID"]="another_payment_session"
+            var receipts=projection["Receipts"] as! [[String:Any]]
+            for index in receipts.indices{receipts[index]["sessionId"]="another_payment_session"}
+            projection["Receipts"]=receipts
+        }
+        model.readOriginalOrder(model.orders[0]);let foreignSession=try await take();try foreignSession.respond(rebound);try await until{!model.busy}
+        try check(!model.canReviewOriginalRefund(model.orders[0]) && model.retainedRefundReviews[orderID]?.phase=="unknown","matching refund amount from another payment session cannot retire the original")
+        model.readOriginalOrder(model.orders[0]);let accepted=try await take();try accepted.respond(matched);try await until{!model.busy}
+        try check(model.canReviewOriginalRefund(model.orders[0]) && model.refundableOriginalEvent(model.orders[0])?.ID==nextID,"only confirmed receipt for the exact original amount admits a later refund event")
         endpointOrder=base;model.disconnect();try await connect()
         let queued=model.orders[0],queuedCount=inputs.count,oldSession=authority.current!
         model.reviewOriginalRefund(queued,refundID:eventID,amountAtoms:"5")

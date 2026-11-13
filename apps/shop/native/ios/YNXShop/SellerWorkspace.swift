@@ -969,8 +969,7 @@ private struct SellerRefundReviewForm:View {
     private var availableAtoms:String?{order.validatedNetPaidAtoms}
     private var pendingReview:SellerRefundReview? {
         guard let retained=seller.retainedRefundReviews[order.ID] else{return nil}
-        if let payment=order.NativePayment,(try? payment.validate(order.paymentOrder,requirePaid:false)) != nil,payment.Receipts.contains(where:{$0.refundId==retained.refundID}){return nil}
-        return retained
+        return retained.confirmed(in:order) ? nil:retained
     }
     private var amountValid:Bool {
         guard sellerCanonicalUInt64(amountAtoms,positive:true),let amount=UInt64(amountAtoms),let availableAtoms,let maximum=UInt64(availableAtoms),amount<=maximum else{return false}

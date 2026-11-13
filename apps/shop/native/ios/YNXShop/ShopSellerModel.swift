@@ -101,7 +101,7 @@ import SwiftUI
         // A retained review or lost review response cannot be replaced by a
         // changed amount/event. Only an accepted original receipt retires it.
         guard let prior=retainedRefundReviews[order.ID] else{return true}
-        return order.NativePayment?.Receipts.contains(where:{$0.refundId==prior.refundID})==true
+        return prior.confirmed(in:order)
     }
     func reviewOriginalRefund(_ order:SellerOrder,refundID:String,amountAtoms:String){
         guard !busy,canReviewOriginalRefund(order),refundableOriginalEvent(order)?.ID==refundID,
@@ -110,12 +110,15 @@ import SwiftUI
               let expected=api.currentSession else{return}
         busy=true;let at=epoch,view=selection
         Task{defer{if at==epoch{busy=false}};do{
-            guard at==epoch,view==selection,api.currentSession==expected,canReviewOriginalRefund(order),refundableOriginalEvent(order)?.ID==refundID else{return}
+            guard at==epoch,view==selection,api.currentSession==expected,canReviewOriginalRefund(order),
+                  refundableOriginalEvent(order)?.ID==refundID,let payment=order.NativePayment else{return}
             let check=try api.capture()
-            retainedRefundReviews[order.ID]=SellerRefundReview(refundID:refundID,amountAtoms:amountAtoms,reviewID:nil,phase:"unknown")
+            var review=SellerRefundReview(order:order,payment:payment,refundID:refundID,amountAtoms:amountAtoms)
+            retainedRefundReviews[order.ID]=review
             let reviewID=try await api.reviewOriginalNativeRefund(order.PayIntentID,orderID:order.ID,refundID:refundID,amountAtoms:amountAtoms);try check()
             guard at==epoch,view==selection,exactCurrentOrder(order) else{return}
-            retainedRefundReviews[order.ID]=SellerRefundReview(refundID:refundID,amountAtoms:amountAtoms,reviewID:reviewID,phase:"pending");state="native_main_review_pending"
+            review.reviewID=reviewID;review.phase="pending"
+            retainedRefundReviews[order.ID]=review;state="native_main_review_pending"
         }catch{if at==epoch,view==selection,api.currentSession==expected{state=(error as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"}}}
     }
     func canReconcileOriginalPayment(_ order:SellerOrder,nativeHash:String)->Bool {
