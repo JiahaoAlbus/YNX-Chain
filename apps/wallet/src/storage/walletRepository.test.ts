@@ -696,3 +696,27 @@ test("offline restore after v1 cleanup failure and enrollment invalidation retai
   assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).state,"complete");
   assert.equal(await repository.accountSecret(accountOne),SECRET_ONE);
 });
+
+test("BTC receive derives the original protected mnemonic address without writing storage",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),current=()=>{};
+  const manifest=await repository.addMnemonicAccount({entropyHex:"00".repeat(16),label:"Public vector",createdAt:"2026-07-16T12:00:00.000Z",backupConfirmed:true},current);
+  const vaultAccount=manifest.accounts[0]!.account;
+  const selection={vaultAccount,network:"mainnet" as const,index:0};
+  const before=storage.writes.length;
+  storage.beforeGet=async key=>{if(key.includes("account.auth"))selection.index=1;};
+  const result=await repository.bitcoinReceiveAddress(selection,current);
+  assert.equal(result.address,"bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu");
+  assert.equal(result.index,0);
+  assert.deepEqual(Object.keys(result).sort(),["address","family","index","network","networkVerified","path","publicKey","vaultAccount"]);
+  assert.equal(storage.writes.length,before);
+  let live=true;
+  storage.beforeGet=async key=>{if(key.includes("account.auth"))live=false;};
+  await assert.rejects(repository.bitcoinReceiveAddress(selection,()=>{if(!live)throw Error("Wallet locked");}),/Wallet locked/);
+  assert.equal(storage.writes.length,before);
+});
+
+test("BTC receive refuses to convert a legacy private-key account into a mnemonic account",async()=>{
+  const {storage,repository}=await twoAccounts(),before=storage.writes.length;
+  await assert.rejects(repository.bitcoinReceiveAddress({vaultAccount:accountOne,network:"mainnet"},()=>{}),/private-key backup/);
+  assert.equal(storage.writes.length,before);
+});

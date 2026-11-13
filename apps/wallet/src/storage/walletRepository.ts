@@ -1,3 +1,5 @@
+import { HDNodeWallet } from "ethers";
+import { bitcoinOwnedReceivePath, projectBitcoinOwnedReceiveAddress, type BitcoinReceiveSelection, type BitcoinOwnedReceiveAddress } from "../security/bitcoinOwnedAddress";
 import { walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
 import { mobileMnemonicFromEntropy, importMobileMnemonic, MOBILE_MNEMONIC_PATH, type MnemonicAccountMaterial } from "../security/mnemonicAccount";
 
@@ -315,6 +317,19 @@ export class WalletRepository {
     const recovery=await this.accountRecoveryMaterial(account,assertCurrent);
     if(recovery.kind!=="mnemonic")throw new Error("This account uses a private-key backup, not a recovery phrase. It cannot be converted without changing its identity.");
     return recovery.material;
+  }
+
+  /** Derive a public receive address within the existing authenticated account operation. */
+  async bitcoinReceiveAddress(selection: BitcoinReceiveSelection, assertCurrent: OperationGuard): Promise<BitcoinOwnedReceiveAddress> {
+    const {vaultAccount, network, index} = selection;
+    const captured = Object.freeze({vaultAccount, network, index});
+    const path = bitcoinOwnedReceivePath(captured);
+    const material = await this.accountMnemonic(vaultAccount, assertCurrent);
+    assertCurrent();
+    const publicKey = HDNodeWallet.fromPhrase(material.phrase, "", path).publicKey.slice(2);
+    const address = projectBitcoinOwnedReceiveAddress(captured, publicKey);
+    assertCurrent();
+    return address;
   }
 
   /** One cipher-bound read selects the actual backup kind. UI must not first
