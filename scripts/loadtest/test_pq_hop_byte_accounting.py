@@ -91,4 +91,65 @@ class OriginalNetworkHookHopControls(unittest.TestCase):
             self.assertEqual(saved,result['perHopTCPAccounting']);self.assertEqual(saved['sourceSocketEndpointBytesSentSum'],'100');self.assertIsNone(saved['actualPerTransactionHopBytes'])
             self.assertEqual(len(result['originalCheckpoints']),2);self.assertFalse(result['physicalBytesMeasured'])
 
+
+class PreparationNetworkAccountingControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        def load(name, filename):
+            spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(filename))
+            value=importlib.util.module_from_spec(spec);spec.loader.exec_module(value);return value
+        cls.hook=load('preparation_original_network_hook','pq-network-window.py')
+        cls.driver=load('preparation_original_load_driver','pq-independent-load.py')
+
+    def finish(self, result):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir();binding,start,end=fixture()
+            window=object.__new__(self.hook.NetworkWindow)
+            window.c=SimpleNamespace(w=SimpleNamespace(work=root));window.lab=self.driver.lab
+            window.layers=layers;window.tcp=tcp;window.binding=binding;window.pin=layers.digest(binding)
+            window.start=start;window.end=None
+            for name,value in [('start',start),('end',end)]:self.driver.lab.write_new(root/'public'/('network-'+name+'.json'),value)
+            before={p.name:p.read_bytes() for p in (root/'public').iterdir()}
+            window.capture=lambda side:setattr(window,'end',end)
+            with mock.patch('socket.socket',side_effect=AssertionError('no network')):
+                report=self.driver.finish_network_accounting(window,result)
+            self.assertEqual({name:(root/'public'/name).read_bytes() for name in before},before)
+            self.assertEqual(json.loads((root/'public/network-hop-accounting.json').read_bytes()),report['perHopTCPAccounting'])
+            return report
+
+    def test_readiness_without_load_keeps_raw_tcp_and_null_business_denominator(self):
+        result=dict(heldReadyOnlyComplete=True,loadExecuted=False,configuredDemand=500,firstCause=None)
+        before=copy.deepcopy(result);report=self.finish(result);hop=report['perHopTCPAccounting']
+        self.assertEqual(hop['status'],'OBSERVED_MATCHED_ENDPOINT_HOPS')
+        self.assertEqual(hop['sourceSocketEndpointBytesSentSum'],'100')
+        self.assertIsNone(hop['denominators']);self.assertIsNone(hop['matchedEndpointQualifiedCohortMean'])
+        self.assertIsNone(report['qualifiedCountEvidence']);self.assertIsNone(report['loadClockEvidence'])
+        self.assertIn('no load result supplied',report['captureScope'])
+        self.assertIn('no load result supplied',hop['phase']['meaning'])
+        self.assertFalse(hop['physicalBytesMeasured'] or hop['gainsQualified'])
+        self.assertEqual(result,before)
+
+    def test_preparation_failure_keeps_firstcause_and_no_invented_load(self):
+        result=dict(loadExecuted=False,firstCause='original READY incomplete')
+        report=self.finish(result)
+        self.assertEqual(report['perHopTCPAccounting']['status'],'OBSERVED_MATCHED_ENDPOINT_HOPS')
+        self.assertEqual(result,dict(loadExecuted=False,firstCause='original READY incomplete'))
+        self.assertIsNone(report['perHopTCPAccounting']['denominators'])
+
+    def test_existing_load_counts_clocks_and_capture_scope_are_preserved(self):
+        for count in (2,500):
+            load=counts(count);result=dict(loadResult=load,loadExecuted=True);before=copy.deepcopy(result)
+            report=self.finish(result);hop=report['perHopTCPAccounting']
+            self.assertEqual(hop,h.directional_hops(*fixture(),load))
+            self.assertEqual(hop['denominators']['configuredDemand'],500)
+            self.assertEqual(report['qualifiedCountEvidence'],count)
+            self.assertEqual(report['loadClockEvidence'],{key:load[key] for key in ('originMonotonicNs','offeredWindowEndMonotonicNs','windowNs','observationCutoffNs')})
+            self.assertEqual(report['captureScope'],'brackets load plus all drain/consumer overhead; neither atomic nor the exact offered-rate window')
+            self.assertEqual(result,before)
+
+    def test_present_invalid_empty_load_is_not_promoted_to_no_load(self):
+        report=self.finish(dict(loadResult={},loadExecuted=True))
+        self.assertEqual(report['perHopTCPAccounting']['status'],'UNKNOWN')
+        self.assertIn('complete original demand differs',report['perHopTCPAccounting']['reason'])
+
 if __name__=='__main__':unittest.main()

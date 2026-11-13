@@ -98,7 +98,9 @@ class NetworkWindow:
         result=self.layers.account_layers(binding=self.binding,start=self.start,end=self.end)
         result.update(frozenLINKSource=LINK_COMMIT,frozenModules=FROZEN,qualifiedCountEvidence=qualified_count,loadClockEvidence=load_clock,
             qualifiedCountMeaning="normal load result evidence only; not inferred from network counters; immutable binding count remains null",
-            captureScope="brackets load plus all drain/consumer overhead; neither atomic nor the exact offered-rate window",
+            captureScope=("original pre/post checkpoint bracket; no load result supplied; neither atomic nor an offered-rate window"
+                          if load_result is None else
+                          "brackets load plus all drain/consumer overhead; neither atomic nor the exact offered-rate window"),
             samplingOverheadNs=dict(start=str(int(self.start["endMonotonicNs"])-int(self.start["startMonotonicNs"])),end=str(int(self.end["endMonotonicNs"])-int(self.end["startMonotonicNs"]))),
             originalCheckpoints=[dict(path="network-%s.json"%side,sha256=self.lab.guard.digest(self.c.w.work/("public/network-%s.json"%side))) for side in ("start","end")])
         path=Path(__file__).with_name("pq-hop-byte-accounting.py")
