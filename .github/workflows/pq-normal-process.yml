@@ -886,7 +886,7 @@ jobs:
           sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: afe7be683d85b01b4486fb8fcff149b192858b58
+          ref: 352b83714def330237abf7cb4fbbcc89c9de02e9
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -937,7 +937,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: afe7be683d85b01b4486fb8fcff149b192858b58
+          ref: 352b83714def330237abf7cb4fbbcc89c9de02e9
           path: tools
           filter: blob:none
           persist-credentials: false
