@@ -1,0 +1,143 @@
+{
+  "schema": "YNX-P04-native-docker-ci-input/2",
+  "base": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-linux-ci-r1/HANDOFF.json",
+    "bytes": 4398,
+    "sha256": "0d29f442ab0d3a7c026988240535dbb10e5b34863beee108392a85a51078f407"
+  },
+  "contextArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-linux-ci-r2/docker-context.tar.gz",
+    "bytes": 37701,
+    "sha256": "6fab9686ac04b0486224455519e52a2e76ecbf77f5fe9840d0b66a235c3d9539"
+  },
+  "sourceArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/linux-source-input.tar.gz",
+    "bytes": 2368747,
+    "sha256": "32174cd183924bcaf5b24ba6d62538fdac7fc58b8a85c53df8ac113b501753d4"
+  },
+  "contextFiles": [
+    {
+      "relative": "apps/cloud/CONTAINER_OPERATIONS.md",
+      "bytes": 4173,
+      "sha256": "93c5ad0c6b76b8fb416687eb6ae1998555904ea828d77f5049ef7467d16de623"
+    },
+    {
+      "relative": "apps/cloud/deploy/ynx-cloudd.service.d/protected-deployment.conf",
+      "bytes": 564,
+      "sha256": "8bea6f260f786941d3a14fd4a59b36b302dc77369a1af14fd6679d77ac37ae86"
+    },
+    {
+      "relative": "apps/cloud/scripts/verify-protected-cloud-image.sh",
+      "bytes": 1222,
+      "sha256": "20f7cf0d7f8ccfe2367b2e97ffd079b7ff2e5153402ac49e6f06b828fc7b11ca"
+    },
+    {
+      "relative": "apps/cloud/web/app.js",
+      "bytes": 23308,
+      "sha256": "4e4da8e80c6bbd0328334b99f3f901486bfae0a216a43af2745448aec56c9bc9"
+    },
+    {
+      "relative": "apps/cloud/web/i18n.js",
+      "bytes": 16491,
+      "sha256": "63725ac90b322beabed3e81da370c5654ddd8ca2e9c7840a1646e7c35c39a4c0"
+    },
+    {
+      "relative": "apps/cloud/web/index.html",
+      "bytes": 7053,
+      "sha256": "2cdc05c57bae6fe2cc5cdd8de0555ca08710a9085d520c0e4debf1fffe33a00d"
+    },
+    {
+      "relative": "apps/cloud/web/mobile.css",
+      "bytes": 683,
+      "sha256": "1853703b4ff87e47f63671c13266085f39d232fcb4aa54d447349b2277fac364"
+    },
+    {
+      "relative": "apps/cloud/web/styles.css",
+      "bytes": 8302,
+      "sha256": "07e6f37f31ca28fd5d46ff4f4c822ef5a77c58012dff5d04f1beacd490c97cb8"
+    },
+    {
+      "relative": "apps/docs/web/app.js",
+      "bytes": 15288,
+      "sha256": "a5d1e6b6f4b3f52e03f108c1c9e79f6d77c31655aeb19644a50f3dbe01a090cc"
+    },
+    {
+      "relative": "apps/docs/web/i18n.js",
+      "bytes": 9213,
+      "sha256": "365f7da402a28d441abe7d0fefeb66466b9f0841eb72d96e2115d232f6dd7068"
+    },
+    {
+      "relative": "apps/docs/web/index.html",
+      "bytes": 3938,
+      "sha256": "1e41e9b17ae1581f0d1ad35bee2d7259fa134f38bda8e1b0e8d78948e02c7add"
+    },
+    {
+      "relative": "apps/docs/web/localize.js",
+      "bytes": 183,
+      "sha256": "c1d3229a1bf4cbb00a25856240797435fb4ec5d5196986ab6102a1d655bf34e4"
+    },
+    {
+      "relative": "apps/docs/web/styles.css",
+      "bytes": 7406,
+      "sha256": "e7cad2332fd4a3b3483cd49ba055780a9334b7aa1d4a3c4f109f0c3fe21e77d9"
+    },
+    {
+      "relative": "infra/docker/cloud-compose.yml",
+      "bytes": 891,
+      "sha256": "f02e7c4aed0c5a29bb18b6abfc204f87e64b754d84fc0b9cfe38a4f1b08eaa85"
+    },
+    {
+      "relative": "infra/docker/cloud-native-compose.yml",
+      "bytes": 1706,
+      "sha256": "b31f73f76d374a59906b2f767ded9f1b06a98e7db032bc8f17155021515e835a"
+    },
+    {
+      "relative": "infra/docker/ynx-cloudd.Dockerfile",
+      "bytes": 3553,
+      "sha256": "5bbd6e4ad959040f2855e4338611f4180459f7e464f681290b907397de64d245"
+    },
+    {
+      "relative": "infra/docker/ynx-cloudd.Dockerfile.dockerignore",
+      "bytes": 305,
+      "sha256": "2f94509159162b32e644bed9ef074438a991e0e49e44ee3958ee60316612cb6a"
+    }
+  ],
+  "webCommit": "806b657fc60d88bf6dc7fbc8f9125a2ba9c02d54",
+  "buildCommand": [
+    "docker",
+    "buildx",
+    "build",
+    "--load",
+    "--platform=linux/amd64",
+    "--target=native",
+    "--metadata-file",
+    "./image-metadata.json",
+    "--iidfile",
+    "./image.id",
+    "--build-context",
+    "cloud_release_source=./source",
+    "--build-arg",
+    "CLOUD_NATIVE_GO_BASE=golang:1.26.11-bookworm@sha256:79ecd0a7157c7a4cf3b281ced8465350591bf54fedab540e75374a003e1fde7e",
+    "--build-arg",
+    "CLOUD_NATIVE_RUNTIME_BASE=debian:bookworm-slim@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018",
+    "-f",
+    "./context/infra/docker/ynx-cloudd.Dockerfile",
+    "./context"
+  ],
+  "verifyCommand": "sh ./context/apps/cloud/scripts/verify-protected-cloud-image.sh \"$(cat ./image.id)\"",
+  "layout": "Extract contextArchive into ./context and sourceArchive into ./source of the original Linux CI job.",
+  "CIExecuted": false,
+  "deployed": false,
+  "baseImages": {
+    "CLOUD_NATIVE_GO_BASE": "golang:1.26.11-bookworm@sha256:79ecd0a7157c7a4cf3b281ced8465350591bf54fedab540e75374a003e1fde7e",
+    "CLOUD_NATIVE_RUNTIME_BASE": "debian:bookworm-slim@sha256:c67e92c8099ba22853ab4cfda7cfb494d253d6012ca82dee98ba8976772af018"
+  },
+  "goToolchain": "go1.26.11",
+  "goDirective": "1.26.10",
+  "requiredOutput": [
+    "image.id",
+    "image-metadata.json",
+    "verifier stdout",
+    "original CI job id"
+  ]
+}

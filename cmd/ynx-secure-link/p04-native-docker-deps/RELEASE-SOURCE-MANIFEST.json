@@ -1,0 +1,2264 @@
+{
+  "inputs": [
+    {
+      "relative": "apps/cloud/client/README.md",
+      "bytes": 26282,
+      "sha256": "e06f4b40657dca5723388956ec95ccfdccdbd6fdf4e631afb322c391cc684e54"
+    },
+    {
+      "relative": "apps/cloud/client/cloud.mjs",
+      "bytes": 24273,
+      "sha256": "81a6f68fd876dca131cfdf7648e4d4b30642e90382d184caf2c149bd9ced8cfe"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-client.mjs",
+      "bytes": 10839,
+      "sha256": "b222c08cab69d0d1e8cf1c1d4f7d23c5bae5b77388fe85f8403ebe56bc6e1108"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-client.test.mjs",
+      "bytes": 6071,
+      "sha256": "0fea741ff775da011b2cfe34e9c1b6f99396f46bed832feb93147948f1a0915d"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-command-context.test.mjs",
+      "bytes": 4187,
+      "sha256": "84a13c7781e425f56b7ee1128693e512deac0a40a369dea6c6c115551d428d45"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-command-session.mjs",
+      "bytes": 2762,
+      "sha256": "16a34cb602ca9f9f5e137435ec49dafae7d0b15a1335c47571384200357b24f3"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-command-session.test.mjs",
+      "bytes": 5623,
+      "sha256": "9de5a24a11ed90f73506bbec456ea5b5271cbe97a1e090f3905d34e742143287"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-observation-cli.fixture.mjs",
+      "bytes": 3464,
+      "sha256": "1539db146c1142a43c7d0a1616e45bee6c3de875b04b742ceda859fe15fecc6e"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-observation.mjs",
+      "bytes": 3046,
+      "sha256": "be72782317a6343fefe10d8534621ad873f67320edb54bf71889757fb8e2735d"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-observation.test.mjs",
+      "bytes": 4854,
+      "sha256": "07cbcb3350cba285e3421b6beec569f8faf8dcba5e9e1d82c33e519f64f85ae8"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-partial-debt.fixture.mjs",
+      "bytes": 2555,
+      "sha256": "1943355073901930c3014b508ccfcd4a2f28418ca03f1eacceedafb3728b2cfa"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-partial-debt.test.mjs",
+      "bytes": 690,
+      "sha256": "d09951f62c659760d5fc95ee3586a89d24ccd70e22dafc3b648528defb9770b4"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-read-context.test.mjs",
+      "bytes": 5955,
+      "sha256": "275af033608b99ce958d4afe1a6dd5565f049dae0eed756f62fed6c4d5e147d2"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-rollback.fixture.mjs",
+      "bytes": 4308,
+      "sha256": "7e4a38ee68d656258caec053b218e5999ebe79ad8b4841bc70fcb9010a385d75"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-bridge.mjs",
+      "bytes": 1230,
+      "sha256": "891f06990e58d27b3e24676d442fd141746ae687f2c274758be872c9a71f53d1"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-client.mjs",
+      "bytes": 30202,
+      "sha256": "e495ce363a4f63d6598b40878decba41bac30d23d0f256427c872eb935a9c22f"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-client.test.mjs",
+      "bytes": 11160,
+      "sha256": "8902b48d778599fc8ebe1876b0c49edea5a408aaa2e2216a3662f6f5941c6a19"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-launcher-lifecycle.fixture.mjs",
+      "bytes": 6902,
+      "sha256": "a894e9c638f4dfdf0486adf74ed462aa739859e7677edf3e4e20c55a18f96fcc"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-launcher.mjs",
+      "bytes": 6152,
+      "sha256": "594b65b456b4e24c7f275e2e8e85ee721cdb8a9e6d5b555ff26a769db1dd1291"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-launcher.test.mjs",
+      "bytes": 3305,
+      "sha256": "2c0bda0bc1c04a8ff5c8002189f9b08052c672f6df7ed935dd8409e48feae11a"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-observation.test.mjs",
+      "bytes": 6202,
+      "sha256": "5fdb08ddf14b95fe277658d9fd20c33d9f054e896efc3c7f956e049ab6bef2f4"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-receipt-cli.fixture.mjs",
+      "bytes": 3124,
+      "sha256": "62849267aeeb200355c00fc0733f2b2cfb5c466fd5c02a169dff6fdc36958bfe"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-receipt.test.mjs",
+      "bytes": 9949,
+      "sha256": "0e86db742bcd92eb16ef4020a525666d8a714e67c121741b6cc842a00738b368"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-service-readback.fixture.mjs",
+      "bytes": 3162,
+      "sha256": "59cec47933900a1a07d5518b15bfbfc4d3f8c776f4415a39cd43d289981cbdaa"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-supplier.json",
+      "bytes": 8596,
+      "sha256": "9bbde1cf6bc734aaf06d175a12717c496853bb803c5f52cdafa1e8da1bf0a81c"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-v2-workflow.fixture.mjs",
+      "bytes": 1976,
+      "sha256": "ab3301b932714dd0888ee037a42060a513bfbedb8b91db69a65afcb19566a395"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-workflow.mjs",
+      "bytes": 11977,
+      "sha256": "381a077aced02014af7b9c4241af79485b7fbbbead122c9a32da46efe89b5d3f"
+    },
+    {
+      "relative": "apps/cloud/client/deployment-workflow.test.mjs",
+      "bytes": 3570,
+      "sha256": "064eb017d66bae1fc7de199c9efbade3bbd789e5805ffb37b7554ae01869463d"
+    },
+    {
+      "relative": "apps/cloud/client/folder-cli.fixture.mjs",
+      "bytes": 4830,
+      "sha256": "a9d526e27cee01a14e234bafb12a348bda4e0b0c3644586797ff7524f1c25ffa"
+    },
+    {
+      "relative": "apps/cloud/client/link-cli.fixture.mjs",
+      "bytes": 5590,
+      "sha256": "0d0737d31322a98b33e57b6417cdc5f0d94b6e4b8350b18252ac017daeca6ec9"
+    },
+    {
+      "relative": "apps/cloud/client/link-workflow.mjs",
+      "bytes": 8082,
+      "sha256": "b89879d647f2de23108a565391c74b56b00c866e073a08601f01b6d563e880ff"
+    },
+    {
+      "relative": "apps/cloud/client/link-workflow.test.mjs",
+      "bytes": 4465,
+      "sha256": "e67d6708e8698def4264183f4c7cbf421e8c8db6dae701625943f0dfec2f0d8c"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/README.md",
+      "bytes": 3986,
+      "sha256": "4880ecfcf81ba88b144b0375e408544fd342e404861fa079d2acd637c821f204"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/bound_grant.go",
+      "bytes": 19501,
+      "sha256": "6bf52601a7949e7e4455245d730b1ee7bf183a035591f1e3fa4aa9bcc802b5c0"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/bound_grant_calls.go",
+      "bytes": 1796,
+      "sha256": "5fbce257a274f896b56e255c547ed32c6acfc6e79a92aa6c79ee10c253b5f324"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/bound_grant_test.go",
+      "bytes": 5334,
+      "sha256": "fc435081052238d2a26cdb4f214ab0c46a8b799223ef621a3bc6e2c0fadb8621"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/deployment_v2.go",
+      "bytes": 8511,
+      "sha256": "cf5b89c0cc5ae2db28d4fb3b6794fd01972340d84d6dc0e414c7356c99ccbf9f"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/deployment_v2_test.go",
+      "bytes": 5421,
+      "sha256": "4ce670a6d0a6ba3133acca504e8b3466adcfb5efbb363b250164af0919a922c1"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/framing.go",
+      "bytes": 1807,
+      "sha256": "aa5dcd3d73dc0e331b1def6f2083725863dfc27cc694c4acb9fbbf5bfdb4784b"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/framing_test.go",
+      "bytes": 2032,
+      "sha256": "db5f2443e2c477999cc78c49fcd84aa14de49e7550863efca53af36799ce75a9"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/go.mod",
+      "bytes": 75,
+      "sha256": "0f24358bad82276e55c886fa1ec87663cec668f1a6d075f79c86317e9acd52ba"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/identity_challenge.go",
+      "bytes": 4648,
+      "sha256": "f1184f27184a9a3458e53acafe1f63378b00ce4a4504835d7df2cb5b0a78719e"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/identity_challenge_test.go",
+      "bytes": 3658,
+      "sha256": "72e2a77d64414b8aee21b29991875e760476f87bf3543c82aac8136e0c37f624"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/identity_event.go",
+      "bytes": 8403,
+      "sha256": "4e82b0c2fc537ee839930b7afcc8ea3c5088176f34eb5da592bcfc3e4b2658f3"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/identity_event_test.go",
+      "bytes": 7890,
+      "sha256": "a2e1b2e3aca8481a7099639fd8f72b0dfacac41ffc55b0a466b2ac1337eb0452"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/open_envelope.go",
+      "bytes": 2595,
+      "sha256": "ce8e6d23890c83d03742dc4e3ddb945cc9264b70adb791665d73bf54b9377526"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/go/open_envelope_test.go",
+      "bytes": 908,
+      "sha256": "184f6a4726dc8998b97f13d3aa8bced1763bd05baba1410dde9c88faac1f74df"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/package.json",
+      "bytes": 1302,
+      "sha256": "a57dc707f75b667055aae1f8849dd057ea7f4b4d3b7df186cdc3e88b01253479"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/BOUND_GRANT_COMPAT_PROFILE.md",
+      "bytes": 4873,
+      "sha256": "0ddb89ce8747ec587023160e3342e2014a7ca9499c1eb3cd7c33c2406afb6dd8"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/WIRE_CONTRACT_PROPOSAL.md",
+      "bytes": 3297,
+      "sha256": "7aa55cade58673290e534f606ecded93108bf4b02b96459ae8fb4c1fa469b7a8"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/bound-grant-v1.json",
+      "bytes": 3800,
+      "sha256": "7038685a4da5ac5ad3d8d0559a63433ba281d18f64e15cb8cf5f7415ef8b895f"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/deployment-v2-open-decisions.json",
+      "bytes": 1686,
+      "sha256": "835b4b1c3da4bcb177a428e19765ff79256ceedb7ca13e8cb76fe72256b62997"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/deployment-v2-source-contract.md",
+      "bytes": 5234,
+      "sha256": "364011f0e14f9fc9c382d28e346cae9b69d9bc235e4dac55e6c0461955935c0d"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/deployment-v2.json",
+      "bytes": 2851,
+      "sha256": "d469b023572f64d99bb5860f4abbb2b87496f8c625ca3bf139c0b5b22df5a286"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/identity-challenge-v1.json",
+      "bytes": 2847,
+      "sha256": "d8e196e32c05a6b9b092df99f0d5e0fc45d603bc1491b08979facd9da312898a"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/identity-event-v1.json",
+      "bytes": 3030,
+      "sha256": "b80fa933ac12930bca7b1517f90c4d680a4db51c66af407228e5aaf1274ed1fe"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/schema/open-v1-minimum.proposal.json",
+      "bytes": 3404,
+      "sha256": "531c915ed16bdbe1c32bea1aa83f259292c47e7c349caaaf954ccf53a6d03153"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/bound-grant.d.ts",
+      "bytes": 4615,
+      "sha256": "253147da669e13b435fa3679a5618a71d5187ae0d1faad6b5d0272e601916193"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/bound-grant.js",
+      "bytes": 9764,
+      "sha256": "3065afcf3d58af3fe2b8a8c0a742e3051a051659aa4da837c1a87fb0b8a215d7"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/deployment-v2.d.ts",
+      "bytes": 2003,
+      "sha256": "a16d7d77aefa431f0c0f0cc3601ca358a1bcdbd4302693647279f2467071f22e"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/deployment-v2.js",
+      "bytes": 7209,
+      "sha256": "33f75248a34977b92dace48cd8dfeeaf6921a61b6809f3510b4667c100e25a00"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/framing.d.ts",
+      "bytes": 444,
+      "sha256": "280e0a171a71d84af394efb6ec84f520197588e43f7e9bb8dd2d155b07b2cac1"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/framing.js",
+      "bytes": 2937,
+      "sha256": "d546b01d9e8b1e888607ffa00c265789f900300967fe59c72bf3cc0fbef9f90f"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/identity-challenge.d.ts",
+      "bytes": 1333,
+      "sha256": "715e5fd9c087c6b446e2dd3f41057bede2e5e0c7f486f31a6273949375c90c59"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/identity-challenge.js",
+      "bytes": 4918,
+      "sha256": "be3a0845c4554927e8817bba92cf7cc669cc63c5b898f583a578420befc50dd5"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/identity-event.d.ts",
+      "bytes": 1726,
+      "sha256": "ae113660ce4ae8bcce389b4a72dc5a227e5aee338b4486a0ae1e21c4a586854e"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/identity-event.js",
+      "bytes": 7474,
+      "sha256": "4f4d28007ad786aa990e2a02113ba318d9e974ecf824a459edb0deff91926469"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/open-envelope.d.ts",
+      "bytes": 761,
+      "sha256": "471a0f1ec44f65b6c5e9d94b59f934fd1f6928866db32d0c3ab5a53253deff4c"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/src/open-envelope.js",
+      "bytes": 2848,
+      "sha256": "5a5186392428cecb9452e633474670abd5eb060de2531a89b1959737a5bbea33"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/bound-grant-v1.json",
+      "bytes": 29252,
+      "sha256": "b3d2bc6393793b5c697dd71b4e6fc443546a8c6e119fd11f65b9268796aeaae6"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/deployment-v2-bind.json",
+      "bytes": 776,
+      "sha256": "c1f9c31cd5388268984c1e2cf47a55e6e421512da8a5e3a1c5cf9f3c4824d7e2"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/deployment-v2-manifest.json",
+      "bytes": 3139,
+      "sha256": "bfff21c8195e2c1a81d46060caa04e73f756b1cb2a1dc164813aa9c6a6b86ecb"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/existing-context-vector.json",
+      "bytes": 11775,
+      "sha256": "2bb16e062b45390668ca3a6ba9ac3f20d48157b384b36ba14c9057de9fad3326"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/identity-challenge-v1.json",
+      "bytes": 2970,
+      "sha256": "a99acfd73eaad34cc237a05879211299fb8dea353ff8a8fa4f33518418419c1d"
+    },
+    {
+      "relative": "apps/cloud/client/node_modules/@ynx-chain/open-protocol/test/fixtures/identity-event-v1.json",
+      "bytes": 95034,
+      "sha256": "26ee98dffc762bfab47a0e61a13c678c291ae60b9085c46abc5bb0dc7e42df26"
+    },
+    {
+      "relative": "apps/cloud/client/object-access-cli.fixture.mjs",
+      "bytes": 4292,
+      "sha256": "e123adec9b6d963ffb04b062cef3b8a24645bc4792e9d4fb6dbfffd7b2ed17a4"
+    },
+    {
+      "relative": "apps/cloud/client/object-cli-journey.fixture.mjs",
+      "bytes": 5454,
+      "sha256": "1d543e6e3499ddec47a1236ed0da3e4fcd0e81a0aa119744167e4c261e1c0766"
+    },
+    {
+      "relative": "apps/cloud/client/object-client.mjs",
+      "bytes": 13739,
+      "sha256": "3d5c4cc8480deca773f8c12efd4617aa29e2dfff37dbf249e96113a53ce7adac"
+    },
+    {
+      "relative": "apps/cloud/client/object-client.test.mjs",
+      "bytes": 2731,
+      "sha256": "a8d77489152358a709e46365f0cab17bdbf5e3e04ea27a189c4f115a50eeacbd"
+    },
+    {
+      "relative": "apps/cloud/client/object-version-cli.fixture.mjs",
+      "bytes": 3873,
+      "sha256": "b17aebce504b271b2b960273aae92a19752ee14e9e41332a55ebab0b39bb2f8e"
+    },
+    {
+      "relative": "apps/cloud/client/object-workflow.fixture.mjs",
+      "bytes": 4834,
+      "sha256": "2b48ba50a30916dae04e247202904c6c5c9fd25e81eb7bdcf78c859f5291ce5b"
+    },
+    {
+      "relative": "apps/cloud/client/package-lock.json",
+      "bytes": 886,
+      "sha256": "79da763cc6e9cd1c02782f7ee2507279ccfe0327a706ac6a33bdc00c4f2bef4e"
+    },
+    {
+      "relative": "apps/cloud/client/package.json",
+      "bytes": 474,
+      "sha256": "53ef7ac7e74a900dded1194e794750062c91546ef9393b02e07f3e4ce2f01d69"
+    },
+    {
+      "relative": "apps/cloud/client/profiles/cloud-sdk-d8-production-lock.json",
+      "bytes": 52332,
+      "sha256": "8a44f95d67f3f50ffffe6e8c6af611388bd657524f87afe5d684b5a30ed70fa6"
+    },
+    {
+      "relative": "apps/cloud/client/profiles/cloud-sdk-typed390-production-lock.json",
+      "bytes": 52332,
+      "sha256": "8e5423f7e188793cb04b4f102be664ea2d73374b3576d9ebf33a9edda1c02b1e"
+    },
+    {
+      "relative": "apps/cloud/client/profiles/cloud-sdk795-production-lock.json",
+      "bytes": 52410,
+      "sha256": "65a292e59c914e242e07ca3fc7d65a5225d16553741161bcfec20de30a4d5672"
+    },
+    {
+      "relative": "apps/cloud/client/session-cli-journey.fixture.mjs",
+      "bytes": 6476,
+      "sha256": "2a12fcfd42f182381e11bf668e8a149e4a948fe919dea043136f064066928520"
+    },
+    {
+      "relative": "apps/cloud/client/session-file.mjs",
+      "bytes": 5127,
+      "sha256": "45f7bcad4a794c1f5a21119fadb1e21496c8f5aed7efec8c5a0110cd49f3d56d"
+    },
+    {
+      "relative": "apps/cloud/client/session-file.test.mjs",
+      "bytes": 3685,
+      "sha256": "879fdba2895899ef17daa0b0456eb3cb70e64900b4933bce41cdecee898d15b4"
+    },
+    {
+      "relative": "apps/cloud/client/trash-cli.fixture.mjs",
+      "bytes": 3823,
+      "sha256": "feb1c2434533e52884d06d14e7d4aa0ac5da1ee8808760bda43ddd4eea26f99d"
+    },
+    {
+      "relative": "apps/cloud/client/vendor/ynx-chain-open-protocol-0.0.0-dev.4.tgz",
+      "bytes": 52065,
+      "sha256": "bce32fba92e8d0da88ef3776e7c0b22b69b0241b0790c7b2723c85787bc0f082"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime.go",
+      "bytes": 8356,
+      "sha256": "83c82226cb64bb76bbfa23aeee089a5f7879207a6a50f760291e8b93034aa02b"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_billing.go",
+      "bytes": 1567,
+      "sha256": "a8fe20045a5d76531694f7ad9a5a2df823f1118d1ff8b9621f862561bab2d1bd"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_billing_test.go",
+      "bytes": 2035,
+      "sha256": "b25404046608cb0079f47b870558d3d9387baf2a4155aaa501c4e3036dc4ce58"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_commission.go",
+      "bytes": 7814,
+      "sha256": "9d66aa73850eb73fde905ea084c9d0ace1e29abf5564f88873ed9671e1c56f5c"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_commission_test.go",
+      "bytes": 5971,
+      "sha256": "8edda797514b8e99f4193a98614ff4ff1b7c5543f284a33967978c06df35bebc"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_config.go",
+      "bytes": 7705,
+      "sha256": "69e55194fcf7aa5ee2ef9da760e216b327a80619c742baedb6b827e090f3d472"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_config_test.go",
+      "bytes": 6403,
+      "sha256": "9554e1961dcca5ba60462c269822bedca99c843d111930b85f98722eef0159e8"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_finite_get.go",
+      "bytes": 362,
+      "sha256": "d493445668d46b71cbce38927a788e4288233bc7c95c0ec88e99fe42f244ff53"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_finite_get_available.go",
+      "bytes": 960,
+      "sha256": "24bd0d43bc5b3f389cc94326fbd46da793507940f9b32983286725b57cc2c159"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_finite_get_available_test.go",
+      "bytes": 716,
+      "sha256": "7c661a4382facaa630a85007472ac90a0bedac16cb82a3d3e8a87eda0319120f"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_finite_get_test.go",
+      "bytes": 6798,
+      "sha256": "cc459e7fbde66fe70f2f0bf7fcd142eb099d11c1787649c955d4ebd211f6ba12"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_finite_get_unavailable.go",
+      "bytes": 423,
+      "sha256": "7558b9b140842697238c685e9577209c33656375bd395c837d0c0751715f1cbf"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_listener_legacy.go",
+      "bytes": 674,
+      "sha256": "221ae39cc7dc126430a000ed172a3f900e0985227222e5b5c8de4f5332f0c771"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_listener_link.go",
+      "bytes": 1962,
+      "sha256": "e6aff0dce13f78e704da03ce095d30b0542e3cdb957d823ef47711aaec94dba3"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_listener_link_test.go",
+      "bytes": 4026,
+      "sha256": "7acc9c04a22462abd5a187f08954404d3f6b5846fe12d4ddc2db7ed856ffac27"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_live_link_read_test.go",
+      "bytes": 2975,
+      "sha256": "08cbff4e6458a76516eeedc4aaabec81356d07f821e6187afbc1e8ad75bd295e"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_pay_native.go",
+      "bytes": 683,
+      "sha256": "a907db400fa67e9afdb03c3b0a837324a8f9e6858b3752773a8470b50c97f12f"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_pay_native_test.go",
+      "bytes": 1082,
+      "sha256": "bd855a0529a6e6ec412332f580e2cbadb4351a95488f6aa8c8517face9c95b54"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_pay_unavailable.go",
+      "bytes": 332,
+      "sha256": "ba46e40db8ed67c1c05410b006ebd65131e7f21c096a8fe2ebdf5c1d07169949"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_request_drain.go",
+      "bytes": 1185,
+      "sha256": "09bd86ea7b53844029914226f626e7db74f1dae9184e996cc08acb941e820dec"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_source.go",
+      "bytes": 10828,
+      "sha256": "581163109f33b7aa5fff0df0bf182fcef7b246e5bb5eea3c0bc8698f11801e96"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_source_test.go",
+      "bytes": 6612,
+      "sha256": "7fe8b29e7caac31fc5c0eec9d3ec846f34d33375bcceae7d6d44fd5dc64bd1ca"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_test.go",
+      "bytes": 4564,
+      "sha256": "45aeaee87dc1076b50ed303f6539ce9645f541db50031518d8a6b11c8e62972c"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_v2_close_test.go",
+      "bytes": 2784,
+      "sha256": "7bb3444dffbe5ed88f001ba3b9011e8cb2335041e91a60e0b083444e9e0c412f"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_v2_data_startup.go",
+      "bytes": 1182,
+      "sha256": "356c84609747ee9c8daf390f79601882adca136541e5dde99ef2248a5be81816"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_v2_data_startup_test.go",
+      "bytes": 1976,
+      "sha256": "53bf5cdb20fa9a8527e93d2c0da9d34bee8a9d5b3cfe6c6906bb60191bec2f74"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_v2_test.go",
+      "bytes": 1843,
+      "sha256": "322a4e0e4aaf2fef3b7ce34bf6ac9f7fbb7dfe231fe6b8ccddb311b72185d652"
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/main.go",
+      "bytes": 15100,
+      "sha256": "c217b4127559888bf3c37e319fcec0a27311cec001c40686526b4cfc32a0a292"
+    },
+    {
+      "relative": "apps/cloud/sdk/README.md",
+      "bytes": 3028,
+      "sha256": "206d9cd105f0d5fa3fbc71f3cfa96447b8ad777e03b2d9ee3b9e35dfadb7b458"
+    },
+    {
+      "relative": "apps/cloud/sdk/index.d.ts",
+      "bytes": 8917,
+      "sha256": "99312f5f878a6aa32522a02a0c4daf703e76e062179968646829f17a1f730c02"
+    },
+    {
+      "relative": "apps/cloud/sdk/index.js",
+      "bytes": 38774,
+      "sha256": "621c6ae53759069590d8637324f8ac21acd81aee8f29a55f620705ff197adbe2"
+    },
+    {
+      "relative": "apps/cloud/sdk/observe-ide-deployment.d.ts",
+      "bytes": 1035,
+      "sha256": "1894df8279293fde450b2701a8eccbd7a5c5b72d8d2fde47636cb9ae5e78bb7c"
+    },
+    {
+      "relative": "apps/cloud/sdk/observe-ide-deployment.mjs",
+      "bytes": 5631,
+      "sha256": "6cb8cac88a17d39dd212a82f210746104936da2251f5968af02524a332770a31"
+    },
+    {
+      "relative": "apps/cloud/sdk/package.json",
+      "bytes": 464,
+      "sha256": "a65b7ee63d94d40f5368b5a420b34229c3e6d763ae4a8ec67d24208923683867"
+    },
+    {
+      "relative": "binary-source/authority.go",
+      "bytes": 4786,
+      "sha256": "3bbcef5b2b0f697b2f6f8bed9ac003e6fc54ac728720480a2db5c754306d523c"
+    },
+    {
+      "relative": "binary-source/body_binding_data.go",
+      "bytes": 961,
+      "sha256": "7f8ed2cda81bf300a3331c7a271ca39253696869a9a0a56125149db4f4d0f028"
+    },
+    {
+      "relative": "binary-source/canonical_transport.go",
+      "bytes": 2086,
+      "sha256": "ab322622ac245d8b66b0a930b0f426a0e5acbbab0b78ec0a240c8e34baf5c151"
+    },
+    {
+      "relative": "binary-source/capture.go",
+      "bytes": 18262,
+      "sha256": "04025f1111ac6c9bb61600f20d5adc14e906d8b05b318ab3d6954877996315c9"
+    },
+    {
+      "relative": "binary-source/go.mod",
+      "bytes": 86,
+      "sha256": "92f0a0cdb57124680ed7998a5fec8cce60daef4e96102ea682080dd28ddc6812"
+    },
+    {
+      "relative": "binary-source/go.sum",
+      "bytes": 153,
+      "sha256": "50525b09f4448026339b45ad88801ff0fae28a671b620e7e3cca358e7703941f"
+    },
+    {
+      "relative": "binary-source/principal_v5.go",
+      "bytes": 14257,
+      "sha256": "688c974563f06cddaa723063d8cb60d6c1b598ec1f9290fed63af77feb108cad"
+    },
+    {
+      "relative": "binary-source/principal_v5_test.go",
+      "bytes": 12221,
+      "sha256": "2054c71f4930795cf88d03e57912aad6d2fbc33fa85dc78ae150aec792f04d86"
+    },
+    {
+      "relative": "binary-source/recovery.go",
+      "bytes": 3688,
+      "sha256": "9ba7c5ccaa6d3006ccecdf4997227ddb687c1b6e4f6772cd160cdb9a657519ea"
+    },
+    {
+      "relative": "binary-source/secure_directory.go",
+      "bytes": 5387,
+      "sha256": "0d343aeb810cd3d665e62e514193147d287436b90c28fd9d21ea7abe501c5df3"
+    },
+    {
+      "relative": "binary-source/times_darwin.go",
+      "bytes": 169,
+      "sha256": "553c0c00d038adc31abfcdf2d8db4aa83cef463a5c27bcb473a05717ada274ea"
+    },
+    {
+      "relative": "binary-source/times_linux.go",
+      "bytes": 167,
+      "sha256": "a7cd265d3261767685761dd9ffbd7ebc376ade49538e1744ff3f57a1eae7640c"
+    },
+    {
+      "relative": "cmd/ynx-secure-link-caller/private_client_startup_v1.h",
+      "bytes": 3706,
+      "sha256": "3428bb2172f150209abe66ac6661a9f6e55e0790404d6b69b310ab07544c587a"
+    },
+    {
+      "relative": "cmd/ynx-secure-link-caller/private_client_v1.h",
+      "bytes": 8638,
+      "sha256": "d70692f4db740886104696fa54af7f3e49b96fe798bb8feed0bd30582d998216"
+    },
+    {
+      "relative": "cmd/ynx-secure-link-caller/resource_current_client_v1.h",
+      "bytes": 5145,
+      "sha256": "8ef6873ca75e1cdda2d03548f14b59e4458c570380d05930d2030aa3cc11ec3f"
+    },
+    {
+      "relative": "go.mod",
+      "bytes": 5001,
+      "sha256": "aa332e11ab06ded9aeca5ae93f5743bf8503cacace34d733bd56b8ddcf9b9cb9"
+    },
+    {
+      "relative": "go.sum",
+      "bytes": 39759,
+      "sha256": "cfa98a228afc945aa54730a821b80cfc31cb1b8c0aa57aa0bd1e7cf3827d23ad"
+    },
+    {
+      "relative": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "relative": "internal/accountaddress/address_test.go",
+      "bytes": 1676,
+      "sha256": "b3b1b3c242e9f826c069c41175bdb06413bc2394d8c3506b96b1f7705ac3b948"
+    },
+    {
+      "relative": "internal/authservertls/lease.go",
+      "bytes": 18596,
+      "sha256": "56fad308ffa607c13fb9639ffe5a863490270bffc1ae1988b76c41173eb3b544"
+    },
+    {
+      "relative": "internal/authservertls/lease_test.go",
+      "bytes": 6867,
+      "sha256": "c0443bd54ed7e26dca4da45303b99cb977083213d8535ce62e3455a6f4832573"
+    },
+    {
+      "relative": "internal/authservertls/parent_darwin.go",
+      "bytes": 427,
+      "sha256": "a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26"
+    },
+    {
+      "relative": "internal/authservertls/parent_linux.go",
+      "bytes": 429,
+      "sha256": "96ad86046ee79cd9b9be5ca9893a7eb958a426459e0e63e4a1deee7d02134882"
+    },
+    {
+      "relative": "internal/authservertls/qualification.go",
+      "bytes": 16282,
+      "sha256": "37264cee7e607292c4b5641ad41ba4fe58be86617f637f903e99fefa7c0089e2"
+    },
+    {
+      "relative": "internal/authservertls/qualification_test.go",
+      "bytes": 6286,
+      "sha256": "e8125496fbad6d6841f18e022ec4b78642acbd76ec7b034a1f4599485e9edca1"
+    },
+    {
+      "relative": "internal/cloud/adapters.go",
+      "bytes": 17022,
+      "sha256": "d60f6ef1f44a6be01c1ebc1ff66d42235a6904e11768c571d2eb9c970b794226"
+    },
+    {
+      "relative": "internal/cloud/adapters_test.go",
+      "bytes": 4727,
+      "sha256": "4b3af76e9a7a93b3dce0a1c4498b545993e6bcf5c9ff1b100c870b1ef0afd157"
+    },
+    {
+      "relative": "internal/cloud/capacity_benchmark_test.go",
+      "bytes": 3421,
+      "sha256": "0e1d4d4029aae804f34374e232bdce00185ffe63dcbd53852d817dc2238d50b8"
+    },
+    {
+      "relative": "internal/cloud/dedup_scope_test.go",
+      "bytes": 4674,
+      "sha256": "bc68698e569599540a287188e40e0bb58cb6289fff1b7b8ca3f35d07ec6b7b20"
+    },
+    {
+      "relative": "internal/cloud/file_session_v2.go",
+      "bytes": 8318,
+      "sha256": "fa1e31aae76cb991a790d1a306781c8d8204eea3c635b44264653bf02a712c0c"
+    },
+    {
+      "relative": "internal/cloud/folder_scope_test.go",
+      "bytes": 2798,
+      "sha256": "cb229736187367226fa6c097dd53b6734d322c392cba9ba52fec0b65980a41f2"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment.go",
+      "bytes": 18589,
+      "sha256": "f7d1e0f97a031f786ff38eb3011b0fc767c6aa9340de47af90cc5f821e3ceea9"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_actual_oci_test.go",
+      "bytes": 8494,
+      "sha256": "9f940bca11875bce6f56359e35db4445c91aa76431054de432d8e90c5cf45e5c"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_actual_recovery_test.go",
+      "bytes": 9781,
+      "sha256": "c1bdd409c0e4de612c73e75c8f62411b53059b03f88236d23b6c7aefe81ba1d9"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_approval_bound_test.go",
+      "bytes": 2286,
+      "sha256": "9445527d05f126e7e7f244b14b5cf9b6c9914a09d5cbebe60d4f8c1214c7d95c"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_artifact.go",
+      "bytes": 5355,
+      "sha256": "2c239da9092a8d8dc764777bede6689fc2420352a51693e25c5cec49b05ef91c"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_artifact_test.go",
+      "bytes": 4672,
+      "sha256": "0deea3c4826091ebdaa6b29dd0ace3b316ef77e3749b1482f1469d47b975228f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_bill_provenance.go",
+      "bytes": 9182,
+      "sha256": "9a1d29b3aa086a3209cb332075953bfbb86e2bde4a901445e02dca09c8642019"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_bill_provenance_test.go",
+      "bytes": 7476,
+      "sha256": "529b3395057d2791c31a32019ec426a1f7ad81411f7daae26cdcbb6c7ef8d459"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_billing.go",
+      "bytes": 15504,
+      "sha256": "ba2a6b4e34f18fb6bec3158bc9ccf679b6b68f1236454af396142c9abd866c8f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_billing_test.go",
+      "bytes": 20562,
+      "sha256": "5411c253d84ae3f160401b787d140cf7b2a25178ea9177ef2b42962ba9333717"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_catalog.go",
+      "bytes": 3810,
+      "sha256": "6b39481e9079c4cb892508de54c90caa8a5c92525a9e1072004e436177cd078a"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_catalog_test.go",
+      "bytes": 5533,
+      "sha256": "f6f1e38f919ff1dbd918d11016b1176eb9c41bb2852b2f976ef1c5414b76956b"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_create_receipt_test.go",
+      "bytes": 10365,
+      "sha256": "af370b395348bccee668435d8fb384610592571a5e132f0d3895b9970d17fdc7"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_created_instance.go",
+      "bytes": 4758,
+      "sha256": "2dcf9e7a44fd0f80f4ed02d886681bf0c21958086cc9977c3cc2d5d2bb39f0bc"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_execution.go",
+      "bytes": 3118,
+      "sha256": "84dbbaf22a8e67a236593a55cbd8ab0ebcbf80300dcb854ee5d93593f5d9d82c"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_finite_get_available.go",
+      "bytes": 635,
+      "sha256": "4461cd2c20d3d3e83c7c39b2e8cf0686f8d28b31319d184b5b3e7a63a8e8e179"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_finite_get_available_test.go",
+      "bytes": 2075,
+      "sha256": "9df595bac644a0a08369cbd6fb889c0d652ca98b9caba7ad9252f5fe7808b4e0"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_finite_get_unavailable.go",
+      "bytes": 328,
+      "sha256": "533a25283056b38aa8dfe3d66e3d540ac93ddfbffbebe0ba3b4dda1258da0d88"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_instance_test.go",
+      "bytes": 4881,
+      "sha256": "48e231fc91c1177cbaab107381d5a2384addf9746d2c77dd0ac9f45755b35e89"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_lifecycle_test.go",
+      "bytes": 13634,
+      "sha256": "1b8af2ad0b481e616a6ccf21f23e5e999111d8c1253cd484e5d604ad4e63b95c"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_native_intent.go",
+      "bytes": 4840,
+      "sha256": "13406d9a712350de9c850b41538a447a6c7299663c59f1be7868ba6d1a3b6194"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_native_intent_test.go",
+      "bytes": 3838,
+      "sha256": "85fd3888fae57ebd6fbf633034349b0b09ba6e811556e257d86d0640966a47a8"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_normal_integration_test.go",
+      "bytes": 806,
+      "sha256": "f787bffa04cb046c66ec2cbb35c52ea77caf0e7f0ae00982a1532ea5149260b3"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_observation_actual_test.go",
+      "bytes": 5488,
+      "sha256": "5ce6967c307320ace1a93c43df8482ff3869b41c3b2936db906dd04ca5a61d33"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_observation_test.go",
+      "bytes": 4427,
+      "sha256": "cca90ad577a12af6d9bd56755801f68d1850d5f19e5011f3c9eb4b30819897ad"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci.go",
+      "bytes": 18863,
+      "sha256": "4588f392b2af455740f7c219867151508a20157c9da3d821902d9086b470e7b3"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci_http.go",
+      "bytes": 3002,
+      "sha256": "75dffb0a3c5dbd04cb89f404b9c066d56cf8da55d1b0d8cba5390459ce5db6d7"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci_test.go",
+      "bytes": 10278,
+      "sha256": "5f47a8bea1c4e27fc9f097d44dda8a71cf7a87b5f4c4bc67e9b0d271f8c0d592"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_operations.go",
+      "bytes": 10939,
+      "sha256": "2f314f4dd9a7a0f108cb5fb0be8e91ba0f8eb99a45d75ea6b12df59d1a3ee0fa"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_operations_test.go",
+      "bytes": 5330,
+      "sha256": "5ffba87a98d674a3ac764d35e54639b315644b29c773380daf0badfd39cab91e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_preflight.go",
+      "bytes": 3410,
+      "sha256": "01bd766706d02d0fa0f414a5b59feefa02ec2ee457ca48378bc67a75c6e4bea1"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_preflight_test.go",
+      "bytes": 3144,
+      "sha256": "19f65ec57f9581dcb25bb5cac5256e26d002619414855e790c03842bf824d393"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_price.go",
+      "bytes": 8421,
+      "sha256": "98055f90d827cdd419727e86d41209379c0ae02c26e3e938c3d1eeda4c302f24"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_publication.go",
+      "bytes": 3826,
+      "sha256": "a43aa54a623b2d586b4f27383a4712dbd47c84477c41ebe5dcca2392751952d1"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_publication_test.go",
+      "bytes": 2472,
+      "sha256": "16a16880f39718749c8faf24161e282956ed961abf74c2d2a626bae29a2af5e1"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_query_special_test.go",
+      "bytes": 3278,
+      "sha256": "06b790dcb1a326ff7ca6d1efff8d467b92712f10d5f7b5ef07a61e9d621e0b8e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_cleanup.go",
+      "bytes": 2068,
+      "sha256": "93275f9ee72045bcc0abf38272bf125541de8ce44c6e8d0009988a277d56c1e6"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_cleanup_auth_test.go",
+      "bytes": 1049,
+      "sha256": "1f36cd91004380f09cb11e4aec37e8f08984f5be1a1dc1e1e74b11a36dd93c31"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_cleanup_integration_test.go",
+      "bytes": 3000,
+      "sha256": "0d38dafbb17332286d3ae42110cae4f811ee7e5c62beff50df794c004af1663d"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_cleanup_test.go",
+      "bytes": 3093,
+      "sha256": "d3cfcd442426fffc93f89d8a6a985b4e9302ce609480ee5403043a348c209591"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_fence.go",
+      "bytes": 4355,
+      "sha256": "a7566fe3933727ff174454fbea830a2ab3fa4edd79271fa8c81592ec1bfbd15e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_fence_test.go",
+      "bytes": 6954,
+      "sha256": "07e68ffe6f5bd03b87050f7d467ba3c80a78d872a004bf8e97051b4819f70612"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_target.go",
+      "bytes": 1781,
+      "sha256": "bff1de0515d2c76712c704574ca9a67229b989163cf59015655ae33a3ce4746b"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_read_target_test.go",
+      "bytes": 2975,
+      "sha256": "27613b7ea2a3f9852d936ed8dccac9de0cea37940405b2f78141f111aa79e1c3"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource.go",
+      "bytes": 5312,
+      "sha256": "b5ce93c3915125c7d99facbf09e903c77227734e115293377a9006bbbf51fde2"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource_special_test.go",
+      "bytes": 2147,
+      "sha256": "59ec51f10de82fb1201cfb9dba6ba494b4b7e00080b7e701baa243030a935eac"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource_test.go",
+      "bytes": 3020,
+      "sha256": "1161ad5f68afd83a004955a6102a475f87b8be727f63d5b6755ec8121c578e80"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_runtime.go",
+      "bytes": 6308,
+      "sha256": "27c02ebe69e0bebd6d71f0f87bf40fc32be78829cc0394ebdf1e713f2d4f1d02"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_runtime_test.go",
+      "bytes": 7668,
+      "sha256": "76c0e45ba9995c1d4636a5ad655ba12a1df2f871faa7d967973b3677bc7302de"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_runtime_window_test.go",
+      "bytes": 2354,
+      "sha256": "be34f1804ad3197d8f980ecbe6895e90a533e0b0325c9049cdd3a41b4089bd5f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_staged_artifact.go",
+      "bytes": 4128,
+      "sha256": "fde4c7a4ec9ba91a6e2090f80a922a4e5fd05bd9a632d2d834a809145f9d34fb"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_staged_current_test.go",
+      "bytes": 3739,
+      "sha256": "629722c43b3bb1f0c0b0c0519383154fc7f9130210d5eb1d765697705148c5b3"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_staged_test.go",
+      "bytes": 2311,
+      "sha256": "bb9de95f87c86bcbd42efdd9cc63642f5d9add93f43efdf728beceeffc496985"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_storage.go",
+      "bytes": 2013,
+      "sha256": "ceb6639418813b344959ac0125c10946341a4ded75f063ea06ef7e171f1d2db2"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_test.go",
+      "bytes": 9840,
+      "sha256": "0024b84120f6b5d949082ffaf2ec8271fbbbef4a7bc415e50e7daccaf7d288cb"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_transition.go",
+      "bytes": 3819,
+      "sha256": "67c23d90e25557748ca2be1b6856f728e3342a1b806410965aa5b09c4185ce1e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_usage.go",
+      "bytes": 11429,
+      "sha256": "e2f2091926c115c5a35155de007b018855212b057793a3abfc8d723efa44b39a"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_usage_frame_test.go",
+      "bytes": 2405,
+      "sha256": "8c9f888a5ac09aa1b0148cc810a47b1703955f02d7986771faac15bee29c1e0f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_usage_record.go",
+      "bytes": 1607,
+      "sha256": "f3f3346fdb79b2e293fb014d5eaa66cb6145b84e785b5a0f33af28b038f75640"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_auth_adapter.go",
+      "bytes": 7790,
+      "sha256": "a595620ecd6f0ea4a98f7de067cc4fdb4ca1d34c9e22f7fc9dce1e2765b85cbb"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_auth_adapter_test.go",
+      "bytes": 2709,
+      "sha256": "c919d0c5f59941674bf5a59775e2a4cb5d28c2060c20695df4643ff02794283e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_auth_unavailable.go",
+      "bytes": 536,
+      "sha256": "dba08802b731323f6529832c164fed77669467bdb5c23acd99bd25670c80f44a"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_authority.go",
+      "bytes": 4558,
+      "sha256": "c92a6e9d718d73feec9710b0c8b8268274bb8367226dadfe4fcf7146b832bcfd"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_billing_test.go",
+      "bytes": 6140,
+      "sha256": "c14efd01eea9017ac8e60fba87b44c50ab4b2abcdccaed2c0a87d78e00b4cf63"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_binary_body.go",
+      "bytes": 581,
+      "sha256": "c1bb5ae760d7308e61a9b968a55c9bc91025f41702cb7befa3dfbd002240380f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_binary_unavailable.go",
+      "bytes": 363,
+      "sha256": "2a6f014c77f422ed86f545bb34299a94929981f65704906c346e0be1b20e964f"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_data.go",
+      "bytes": 5558,
+      "sha256": "7d1f37246c220611096846e6c13345adbe6ebb606a98fb48afa61b1050521a66"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_execute.go",
+      "bytes": 5488,
+      "sha256": "3b9b499a83f0b84a5f50f6385f126afe73f208a3864096a613626156f8f3fb85"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_execution_test.go",
+      "bytes": 13865,
+      "sha256": "557245cb769e92671af9e0e6d4671bc7602987cfee99588469474004685ef39e"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_http.go",
+      "bytes": 5261,
+      "sha256": "de01d8d4ac30f57da6b25613a0282a9c64c05d2f19835d9c3a093ba28a10faa7"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_readback_test.go",
+      "bytes": 8699,
+      "sha256": "2246ea32a9b6afb74945531db6d44cbca779c63750d65849506eaa86f047bb20"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_source_owner_test.go",
+      "bytes": 1978,
+      "sha256": "7775b3c782adc4e2d66b486f10005f997c6d56455fa135147e1e415a2db72722"
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_v2_test.go",
+      "bytes": 6858,
+      "sha256": "4dc35ab5974c66509e78f565655620be6cbb135171f514d5c5807510c5cbab6e"
+    },
+    {
+      "relative": "internal/cloud/lifecycle.go",
+      "bytes": 22984,
+      "sha256": "7e99345ffb498a14510340b7b5cc7db7d5fc6fd66e1986abdf2a8e173ef39cf6"
+    },
+    {
+      "relative": "internal/cloud/lifecycle_adapter_test.go",
+      "bytes": 2927,
+      "sha256": "771813213b5a107c6cd5066664a93787dfdda9401e714ddc5c282ba3e8a3dfcb"
+    },
+    {
+      "relative": "internal/cloud/lifecycle_server_test.go",
+      "bytes": 3956,
+      "sha256": "b685c44a6a329ebbb8b913cd45642d01edf61ed7354bfdb08148879608c0ebec"
+    },
+    {
+      "relative": "internal/cloud/lifecycle_state_test.go",
+      "bytes": 3349,
+      "sha256": "19f8efb529b4def9ad98e205a95c4ebf25216b64e3dd41ba11c82af5ed2bf268"
+    },
+    {
+      "relative": "internal/cloud/lifecycle_test.go",
+      "bytes": 25398,
+      "sha256": "da4936789831f5377395f378a9f118451f078d89a55948929e926305f92af260"
+    },
+    {
+      "relative": "internal/cloud/object_access_operations_test.go",
+      "bytes": 3352,
+      "sha256": "27ec5b895b242d29bd113931a8a8d3264461346adf56cee19423793fbb8bbefb"
+    },
+    {
+      "relative": "internal/cloud/object_access_unknown_test.go",
+      "bytes": 2743,
+      "sha256": "cdfa422d6d9934fbfd845a553c5c3cfae87da34545d35aef3deb32141eef2f2c"
+    },
+    {
+      "relative": "internal/cloud/object_commit_fence.go",
+      "bytes": 8857,
+      "sha256": "0ca04b9b0141da468071a9031bc77b7f3a26f0e7d995c7de67b2f1384f526b03"
+    },
+    {
+      "relative": "internal/cloud/object_commit_fence_test.go",
+      "bytes": 2404,
+      "sha256": "7b9bec6d2ee646113a9a81afed1d395858ee16411716cafd0286e835f63c9471"
+    },
+    {
+      "relative": "internal/cloud/object_durability_test.go",
+      "bytes": 7790,
+      "sha256": "fe26c7c6e7e0fb5b01587a62ae3974380cacb9d409dee543b9c3191c8c35f676"
+    },
+    {
+      "relative": "internal/cloud/object_link_operations.go",
+      "bytes": 7556,
+      "sha256": "243091df736742341534d3ea1ed379d38d54c3ba4a07be5c912950a2297169b7"
+    },
+    {
+      "relative": "internal/cloud/object_link_operations_test.go",
+      "bytes": 2847,
+      "sha256": "51ecb0210942ffd2ba201fb1c73ee35e4419fcf16771ea3a63cc882c20c8b017"
+    },
+    {
+      "relative": "internal/cloud/object_link_unknown_test.go",
+      "bytes": 2599,
+      "sha256": "88cfcfb7cc56610c418125d07971ae1212ffcab376819f1b30d4e0ce71b8d63c"
+    },
+    {
+      "relative": "internal/cloud/object_operations.go",
+      "bytes": 8559,
+      "sha256": "547e4a3d0741b47cb147bbc1f69eeb9d8b7237ed65134b61e08683bf5f919441"
+    },
+    {
+      "relative": "internal/cloud/object_trash_operations_test.go",
+      "bytes": 4200,
+      "sha256": "810044586536bbc10bd8edcd3ec2e24bb675bd2b11bcad654ba7259ef60c1732"
+    },
+    {
+      "relative": "internal/cloud/object_version_operations.go",
+      "bytes": 5880,
+      "sha256": "bb36125a9d61738440edc8ed4efccb6ea7021cb027fc6e6449558543c104532d"
+    },
+    {
+      "relative": "internal/cloud/object_version_operations_test.go",
+      "bytes": 2350,
+      "sha256": "af60683fff8bf9683f07076246e881164e43e4568f34d97295db67540a046d8a"
+    },
+    {
+      "relative": "internal/cloud/object_versions.go",
+      "bytes": 15512,
+      "sha256": "01a3d01150eb65de1440bf0a230d04d60d2d9091410e93c24e8829d343897c25"
+    },
+    {
+      "relative": "internal/cloud/object_versions_cancellation_test.go",
+      "bytes": 1121,
+      "sha256": "9c6c1afb5cf986e91f63ddd0c60863524c095d1b0ee675c382401d192acd728f"
+    },
+    {
+      "relative": "internal/cloud/object_versions_regression_test.go",
+      "bytes": 2893,
+      "sha256": "4747ea21b9946a3da0cbb3b0e9162e16796fb3a9d0c20fc3c8984a3f28862729"
+    },
+    {
+      "relative": "internal/cloud/object_versions_test.go",
+      "bytes": 11236,
+      "sha256": "6514b60052ec29a87acacac9a85ab9f3914dd493973542b4bf38aaf961a364bd"
+    },
+    {
+      "relative": "internal/cloud/object_workflow_test.go",
+      "bytes": 8190,
+      "sha256": "e37f294b6718a316e53c6ee154c8fc9680bc25f63ed89af634cdbe5427adb0ca"
+    },
+    {
+      "relative": "internal/cloud/private_host.go",
+      "bytes": 7645,
+      "sha256": "d5f4286de2056885ebe0a8c739d2caf7dd3ec0e21f4d5332e1539a11f972a1b2"
+    },
+    {
+      "relative": "internal/cloud/private_host_access_cli_test.go",
+      "bytes": 4236,
+      "sha256": "19e8c0199edff66e070dce2d3aae08d740d4fc784c5769375369da10fb96efa3"
+    },
+    {
+      "relative": "internal/cloud/private_host_cli_journey_test.go",
+      "bytes": 3582,
+      "sha256": "79492a4430da3616a2f1617ba4d5062f1a758328d6368cce3a7186620b92a1b4"
+    },
+    {
+      "relative": "internal/cloud/private_host_folder_cli_test.go",
+      "bytes": 4161,
+      "sha256": "77c207455a5e874ee0054da15c4bd46625892f94441b1fa588e48da3173d69d8"
+    },
+    {
+      "relative": "internal/cloud/private_host_link_cli_test.go",
+      "bytes": 4084,
+      "sha256": "81c0db667ad9e09e6093cb01eebda73a3cefcc1b54333a1c589c6a83625f4569"
+    },
+    {
+      "relative": "internal/cloud/private_host_session_cli_test.go",
+      "bytes": 4848,
+      "sha256": "50de1fc216cc7a4fb675d8c02227e354492238d5075c11589e00fd18edd1063a"
+    },
+    {
+      "relative": "internal/cloud/private_host_test.go",
+      "bytes": 7652,
+      "sha256": "8e8d84b150b23baff3f02262a64145f398b37e597360eca4f4ca475c018a5e67"
+    },
+    {
+      "relative": "internal/cloud/private_host_trash_cli_test.go",
+      "bytes": 3773,
+      "sha256": "4dcf8d1b682c86ce98dfe389dd789f2949ce56eeb3e7ecae7cd42f0675bb73ad"
+    },
+    {
+      "relative": "internal/cloud/private_host_version_cli_test.go",
+      "bytes": 3364,
+      "sha256": "d22428789009edbd97527129dbfcf1a80b82ec679e31643fe5c148839db2e906"
+    },
+    {
+      "relative": "internal/cloud/recovery.go",
+      "bytes": 5765,
+      "sha256": "de3b0ea34aa419384ad2390dd1a7c1935783e42746dbb6e4b78e4cea58df851f"
+    },
+    {
+      "relative": "internal/cloud/security.go",
+      "bytes": 5733,
+      "sha256": "ea2b61b35f3d618742a69d5d702a147c85953a3eb3bf248c2a8bbe91224a40ad"
+    },
+    {
+      "relative": "internal/cloud/server.go",
+      "bytes": 43204,
+      "sha256": "1c7d2f12bc08d02063a22b3dc2f18dc8934ef22600c62af94191366ab78b59aa"
+    },
+    {
+      "relative": "internal/cloud/server_test.go",
+      "bytes": 18433,
+      "sha256": "75e11be4c35985957edacbbf6c8406bd15a77c697091dc910b37a7461ab4a30a"
+    },
+    {
+      "relative": "internal/cloud/service.go",
+      "bytes": 90944,
+      "sha256": "c1aa7b93008e212f74c80999fbf18ec6cfbc3b8be6cf221b0ebb3e65fb55151a"
+    },
+    {
+      "relative": "internal/cloud/service_test.go",
+      "bytes": 39286,
+      "sha256": "3f98bf656309231864d8e184b0debeb4a6c8ab57cfe32d66fa5ddbe69a0a6e60"
+    },
+    {
+      "relative": "internal/cloud/session_view.go",
+      "bytes": 1789,
+      "sha256": "768a444d7943f2f78287da094fe4fbe20d95be40c11debed8c074bc370d490e1"
+    },
+    {
+      "relative": "internal/cloud/session_view_test.go",
+      "bytes": 2167,
+      "sha256": "2e6446f6d7733c4dbef087678b397d8b043ed896b415d239389ff01aacbb0fdb"
+    },
+    {
+      "relative": "internal/cloud/store.go",
+      "bytes": 22155,
+      "sha256": "cdf56d41433c652c9246c3a7e3fac3dca7c445aba4e6d2b62fc0c0e55b400c65"
+    },
+    {
+      "relative": "internal/cloud/store_migration_test.go",
+      "bytes": 7224,
+      "sha256": "e445d79ba5775bec3ac005645e1054dfd686239304e3594a380a73ecc33e9736"
+    },
+    {
+      "relative": "internal/cloud/telemetry.go",
+      "bytes": 5711,
+      "sha256": "beb091a55bb779f71a998128c4af5d71e3b9c7b954a3aa85ee6925cb21f4c812"
+    },
+    {
+      "relative": "internal/cloud/telemetry_test.go",
+      "bytes": 1333,
+      "sha256": "6063893326299b8f92fecd38dbbe9599edb0b02f73439f66b0142e57821949b2"
+    },
+    {
+      "relative": "internal/cloud/types.go",
+      "bytes": 17951,
+      "sha256": "766ec0d8987046cbcfd8a9c908c9e296bbb9fed5e3659f56f4e0a6975eeb6838"
+    },
+    {
+      "relative": "internal/developerauthority/catalog.go",
+      "bytes": 26107,
+      "sha256": "aa6f86713416824ddca723bfe0c1240c7d8a06afed4addf36403a6ebd22fd3e8"
+    },
+    {
+      "relative": "internal/developerauthority/catalog_test.go",
+      "bytes": 13979,
+      "sha256": "b028f2bf6be92c8232edb6aa4921f6e046d3cc107e3c74cfce5423cb378f2e85"
+    },
+    {
+      "relative": "internal/developerauthority/cloud_ide_normal_closure_test.go",
+      "bytes": 6261,
+      "sha256": "a84b9f98e117734d8e6059648978f6835fdbea5b36c9093cfe8372e7153ca8df"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_approval.go",
+      "bytes": 14721,
+      "sha256": "bcd7df746e4afcf3ad35149ce091cfc7e3bc3da5acf0530c249c50601cca36a7"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_approval_reservation.go",
+      "bytes": 1019,
+      "sha256": "424f412f023b5c9475606c3a61e8313f5fb1ad2c47b7cf44acfd38629306deeb"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_normal_source.go",
+      "bytes": 1116,
+      "sha256": "638857f944c27093af39ee1ac1450bea03549b5c76772678f61c46d124da782a"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_observe.go",
+      "bytes": 1963,
+      "sha256": "c65ed993513d219a2161c2fa44530fd233f775bb9004e381002d2674462778a4"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_principal.go",
+      "bytes": 2319,
+      "sha256": "a2edd3b716e5309adc6ec6800786d45daa8f39b7af1ccb89a4763adc186b6dae"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_recovery.go",
+      "bytes": 2926,
+      "sha256": "7b706cc7fcdc1ddae58b6ba36a4d8ebd9f676b6c05fc603587c614da280518ec"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_registered.go",
+      "bytes": 1551,
+      "sha256": "554b3d4bed6b3d60c2e6ded08bad9d6525fb7dddd71a10d839faac6612c89a10"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_source.go",
+      "bytes": 21100,
+      "sha256": "118264b8ec9d2ebff2c7d3ff7488826de639077cae8a5501be1afa27c3942cda"
+    },
+    {
+      "relative": "internal/developerauthority/deployment_v2_types.go",
+      "bytes": 5630,
+      "sha256": "f566121eae41f6ed33e02b38963c9f7cfae7d4853d1eb1fec9064f24d345949f"
+    },
+    {
+      "relative": "internal/developerauthority/original_approval_issuer.go",
+      "bytes": 10026,
+      "sha256": "027e4fd752426eb58e3294ede40fa8fc699d209e955fc9cfa6da29b49ef62385"
+    },
+    {
+      "relative": "internal/developerauthority/original_approval_runtime.go",
+      "bytes": 3845,
+      "sha256": "6f75814fe576e8eb9593ee687263eb70a8dce410a0546df4ebfba5f303a1f9de"
+    },
+    {
+      "relative": "internal/developerauthority/original_approval_store.go",
+      "bytes": 22036,
+      "sha256": "947e6fa4ed2be4b6c6b75fa7799b762bfcef793362791a78997ed3a8a553ff96"
+    },
+    {
+      "relative": "internal/developerauthority/original_approval_verifier.go",
+      "bytes": 6531,
+      "sha256": "0e612b9833e31c285340426dbb3fe49cdc870b1d5ccc06a3e22f07a81ec1a040"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_context_test.go",
+      "bytes": 5045,
+      "sha256": "cbccf42efc02fd2b9ad4604357ff64f4bd0794b6e246d20fd47adcca4f3452b8"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_live_link_test.go",
+      "bytes": 2098,
+      "sha256": "28bf0a583e71f8a31be0f9939a9cab66152a7ad57a1c7dfde7d6a75d7809d63b"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_normal.go",
+      "bytes": 989,
+      "sha256": "c85055e2cff1e63edee69ef96211b5a9e6c7fa5871df94fe65c73571c053c8d4"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_observation.go",
+      "bytes": 2347,
+      "sha256": "981590b6765b8430145f8b97a5eab5de29cd91bf6622b5c2edf69316a62d5197"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_originals.go",
+      "bytes": 3254,
+      "sha256": "af61cbae0098396b5c6aa737f67e4b69ea43e2856220fd31eec99fe254f71996"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_principal.go",
+      "bytes": 32711,
+      "sha256": "f6ccaa2332854e0f92597d12de25d815b91dfbcafbd222b880f35e0e4b80ca15"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_principal_test.go",
+      "bytes": 27538,
+      "sha256": "bf53776fd915800766b6a58626840733e4d1acffb6de06037b71e0422586fd0e"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_request_child.go",
+      "bytes": 6555,
+      "sha256": "2545843ea4c785030a40d566c536ce5066ed2c4c881b5dceb0e25eb56d5a98fc"
+    },
+    {
+      "relative": "internal/developerauthority/original_finite_get_schema_test.go",
+      "bytes": 2078,
+      "sha256": "5e4ece0cab988dba00da024a40b0578038cd2e20bfc556b55a6f66734bb61b18"
+    },
+    {
+      "relative": "internal/developerauthority/original_http_binary_principal_v5.go",
+      "bytes": 5192,
+      "sha256": "707189913b5b9f662a6b0801e2e68f18d48e2703035c275fabb3417a18770269"
+    },
+    {
+      "relative": "internal/developerauthority/original_http_principal.go",
+      "bytes": 11550,
+      "sha256": "03d924a5e701ee182a98d985cb9baf561af7d9264f1365f7e25f3e3c68cf8546"
+    },
+    {
+      "relative": "internal/developerauthority/original_http_principal_test.go",
+      "bytes": 10985,
+      "sha256": "1d0e187cf922f54d70c9eabfbad5a74d8e144af8ae076622f5ec90fa9ad47f71"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_commissioning.go",
+      "bytes": 23493,
+      "sha256": "2257f32bac5e1b42d005198971243aed96117ec4098d9b50cd1ab9c03c6f2978"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_commissioning_test.go",
+      "bytes": 14676,
+      "sha256": "139c34202dc8e66e44e9751caee2201451bd25b6616f1c7999462d8bfcaa50a0"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_control.go",
+      "bytes": 10625,
+      "sha256": "5417d343ea7069e69615c7310629442e82c914db7e219eb49960c462862ab52d"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_dispatch.go",
+      "bytes": 3274,
+      "sha256": "a0489479b5b11f8ff2a9a6a2019de81c0494292684fe4c3ecc962b485b77f346"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_factory.go",
+      "bytes": 14700,
+      "sha256": "1e032d27530a720d223a2245b7492199faf0bf237b9963cc92eb722442e9e181"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_factory_test.go",
+      "bytes": 26532,
+      "sha256": "f173d028c914cf1f9cfc8e5df5cdd332d9cd0812526c4f12da10a975c6dd5d73"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_publication.go",
+      "bytes": 17263,
+      "sha256": "22c6c1bde22eaa171747750fb8e90e8324a4e95be7a2058efcd388511c35d406"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_wire.go",
+      "bytes": 3266,
+      "sha256": "87d21418b3a686ccf845028ac114849d92f028daf99a5d05b6c4c27a04302c24"
+    },
+    {
+      "relative": "internal/developerauthority/original_ide_source_wire_test.go",
+      "bytes": 4522,
+      "sha256": "d37bbdbe4cb5cd1f0f1ae06cc750f1a48eb9614af5439fbb7d4a6781bf4aaac2"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_nonce.go",
+      "bytes": 6631,
+      "sha256": "d508f1c295d4fe9b0bbc7658dc300fa686fdce8111df2254e1e7d4f5c7e3063a"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_process.go",
+      "bytes": 23770,
+      "sha256": "630c36d907089fb8384a87ca9731d1ad48d7853b02a985c0162d12102126a669"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_process_stat_darwin.go",
+      "bytes": 343,
+      "sha256": "6f4862042b811993db64c56045eb7bbe27e5bf35448ede2b6f73551b26d9b27f"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_process_stat_linux.go",
+      "bytes": 482,
+      "sha256": "cd1538d9146517dfdc88c19e9d4231d7aefd75abf873ea3a1d98754e5351d4df"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_process_stream_test.go",
+      "bytes": 4448,
+      "sha256": "4c228ba35af31987ac674150bd46bcb34c552ab22aa04b03cb3a6726e462c153"
+    },
+    {
+      "relative": "internal/developerauthority/original_source_process_test.go",
+      "bytes": 12107,
+      "sha256": "d16947f048b34489c962bdb391384990f3b387f75a24597e375ee91e3b4d7bf5"
+    },
+    {
+      "relative": "internal/developerauthority/postgres.go",
+      "bytes": 8738,
+      "sha256": "98e8092c177bd2e9a7b2c24dcdb45d0f5891c91a616fe52dd0fa653ad5864753"
+    },
+    {
+      "relative": "internal/developerauthority/postgres_first_cause_test.go",
+      "bytes": 2405,
+      "sha256": "bf0d77c0a3de9abc5ce6c3b67cf66230d6273d5048310495dc63d3e4304837ed"
+    },
+    {
+      "relative": "internal/developerauthority/postgres_test.go",
+      "bytes": 6754,
+      "sha256": "a024cd47ed2e620f16cf94b544db31ee151d36fd0f59008d499ec8d1eccc833a"
+    },
+    {
+      "relative": "internal/developerauthority/publication.go",
+      "bytes": 14253,
+      "sha256": "6324f813c84a6f948e7ae884587d95d0adb7d2c58fa5684bf0ddd28923e5bfd8"
+    },
+    {
+      "relative": "internal/developerauthority/publication_test.go",
+      "bytes": 4353,
+      "sha256": "48acb5b78511aeb6f6e2e22bdc17c104876f5738c7b1d8929bafeb58122fb52b"
+    },
+    {
+      "relative": "internal/developerauthority/recovery.go",
+      "bytes": 8242,
+      "sha256": "2a18f2cf863a78beb55a683254aa96e139dd652bd6803810bcdfdcd193a46ec6"
+    },
+    {
+      "relative": "internal/developerauthority/recovery_test.go",
+      "bytes": 4346,
+      "sha256": "df14758c8f36238f59b32ae046fd73c49f8562a99417393794467868d41e941d"
+    },
+    {
+      "relative": "internal/developerauthority/schema/deployment_v2_schema.sql",
+      "bytes": 1611,
+      "sha256": "6157d29309c83da71732033314a1b3a4b5d8657e88174e6e1afdd93936054287"
+    },
+    {
+      "relative": "internal/developerauthority/schema/original_ide_source_schema.sql",
+      "bytes": 2586,
+      "sha256": "eaa8f252ad3c89d4f91a6bd992c8ebe462ca7f4d3fb21f39d72d3f6bc73f5273"
+    },
+    {
+      "relative": "internal/securelink/authority_ingress.go",
+      "bytes": 1423,
+      "sha256": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f"
+    },
+    {
+      "relative": "internal/securelink/authority_ingress_openssl_test.go",
+      "bytes": 21524,
+      "sha256": "6e17e6bbf7876a4c2cb53909b3df6cc4b05e4dc40568d4812a72becceb995a6d"
+    },
+    {
+      "relative": "internal/securelink/authority_ingress_test.go",
+      "bytes": 2474,
+      "sha256": "b6f5e2824a12cb12b69d49777459ac6482c43dff2316973f57ce4d99e3176536"
+    },
+    {
+      "relative": "internal/securelink/authority_ingress_unix.go",
+      "bytes": 15804,
+      "sha256": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957"
+    },
+    {
+      "relative": "internal/securelink/authority_ingress_unsupported.go",
+      "bytes": 646,
+      "sha256": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a"
+    },
+    {
+      "relative": "internal/securelink/channel.go",
+      "bytes": 4965,
+      "sha256": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed"
+    },
+    {
+      "relative": "internal/securelink/channel_openssl_test.go",
+      "bytes": 9748,
+      "sha256": "3fb5de973151785491d83c25cc3a4b387c36d96fb6f7692cb999b29fc3df2e83"
+    },
+    {
+      "relative": "internal/securelink/channel_test.go",
+      "bytes": 1421,
+      "sha256": "784b820fb35cf9cb532fed96cb5bbadc82425ada03d905136fd740c6ec983d8d"
+    },
+    {
+      "relative": "internal/securelink/gate.go",
+      "bytes": 9655,
+      "sha256": "57e9499cc439c798568b6f1ba421c1a7951bdcd7b78dcaebdba6d89611b3caea"
+    },
+    {
+      "relative": "internal/securelink/gate_test.go",
+      "bytes": 8647,
+      "sha256": "1fc6998cfd9e2e67207b88751eff91663f71058c1fa3f2a2d823fe52484e1a33"
+    },
+    {
+      "relative": "internal/securelink/http.go",
+      "bytes": 14016,
+      "sha256": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18"
+    },
+    {
+      "relative": "internal/securelink/http_openssl_test.go",
+      "bytes": 15282,
+      "sha256": "3e505d023619d378a8eed8d8c1aea8863ea4083adc3581d24645397ddbfa4e15"
+    },
+    {
+      "relative": "internal/securelink/ipc.go",
+      "bytes": 2962,
+      "sha256": "92d89356ea934d8bdca2cf9a987d4a9fbb0d99cc84d408c02ccd11028b2715a4"
+    },
+    {
+      "relative": "internal/securelink/ipc_darwin.go",
+      "bytes": 550,
+      "sha256": "5728519120472056c1d41e3533ebd5baeda2ae7330977662f47ea2b444f24ebe"
+    },
+    {
+      "relative": "internal/securelink/ipc_linux.go",
+      "bytes": 546,
+      "sha256": "1d39c51612e2c97edbc013d847c58b4d6c003a50b263a7ea91cc7aaa89d0b27b"
+    },
+    {
+      "relative": "internal/securelink/ipc_peer_darwin.go",
+      "bytes": 345,
+      "sha256": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e"
+    },
+    {
+      "relative": "internal/securelink/ipc_peer_linux.go",
+      "bytes": 279,
+      "sha256": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f"
+    },
+    {
+      "relative": "internal/securelink/ipc_test.go",
+      "bytes": 2361,
+      "sha256": "f7e6e5a4f555bde864664cc6d3b6b508fa1bded241272340df66e18ad3bb9c7f"
+    },
+    {
+      "relative": "internal/securelink/ipc_unsupported.go",
+      "bytes": 483,
+      "sha256": "8002fadcc2fe0b40d7ef53599dbf23720252c6dd55d745beb8b7ab8fe62a4e42"
+    },
+    {
+      "relative": "internal/securelink/local_caller.go",
+      "bytes": 5090,
+      "sha256": "d3b68807a8c8cf17be64737c60cb273c11ef9d6dd734f78c6bc2178bb37b4d46"
+    },
+    {
+      "relative": "internal/securelink/local_caller_current_test.go",
+      "bytes": 11612,
+      "sha256": "de5077c6cb6870f392851f14c5727c9062c1081e1168b740a86f8f46e41bb2f2"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder.c",
+      "bytes": 12794,
+      "sha256": "f0b6aeef5c16607379af6b1999870669c239143d1fdb156d02f2adcfcfb6fc49"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder.go",
+      "bytes": 410,
+      "sha256": "506608d3bffb2b243177c6f89429c86f116522aa9e803f9d1ef20a45bd07549b"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder_cgo.go",
+      "bytes": 15431,
+      "sha256": "cca1888a91c25d486808a582a9015d477ba1bdc8792876383494a4d3c82938ef"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder_startup.go",
+      "bytes": 10315,
+      "sha256": "4350d4d8dcd5b415176a7231191e29df5dc7c4bd9dd2eb253bd0b7cd059fd91e"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder_startup_test.go",
+      "bytes": 16563,
+      "sha256": "7c8c02f7928866b32e7a2eae99edab2f2d8b536282b4e939a182f76088a5f3df"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder_test.go",
+      "bytes": 9889,
+      "sha256": "87a86d0370018c94f6ae81b2c72b9934824c7165218f830c2ea513a3fdde8559"
+    },
+    {
+      "relative": "internal/securelink/local_caller_holder_unsupported.go",
+      "bytes": 996,
+      "sha256": "18441482a501ac782bf03a7b20486fae5859ba53962d24bffd5e455a5d52a457"
+    },
+    {
+      "relative": "internal/securelink/local_caller_host_test.go",
+      "bytes": 10130,
+      "sha256": "ccdf218ee2e654e40b6e5f3affae334d49f5bdab8bd04a0b8be8de2729fe2b67"
+    },
+    {
+      "relative": "internal/securelink/local_caller_test.go",
+      "bytes": 24096,
+      "sha256": "eed0e65d14b6fdd391b39665fad517d5543c9b4087c8d517c8d1c112f0fd26f0"
+    },
+    {
+      "relative": "internal/securelink/local_caller_unix.go",
+      "bytes": 17749,
+      "sha256": "9cdd1b4b4fa572876fcfd0c5821ad654200ed508352252fd5ded6ecc4ce8b853"
+    },
+    {
+      "relative": "internal/securelink/local_caller_unsupported.go",
+      "bytes": 1388,
+      "sha256": "2c8cd1013b355e82aa289c707f7d071f4c754ee956528ed192402b919d9e6cb4"
+    },
+    {
+      "relative": "internal/securelink/local_client_error_test.go",
+      "bytes": 1609,
+      "sha256": "9b1d5c199035e49c3b45224784689887cffaa0b271a6e42f368334745bbc209d"
+    },
+    {
+      "relative": "internal/securelink/native/bridge.c",
+      "bytes": 31374,
+      "sha256": "88da89f57e1ee708eb3c503a11448bfa20f5d765ea16fbb807f55899354b7cb2"
+    },
+    {
+      "relative": "internal/securelink/native/bridge.h",
+      "bytes": 2643,
+      "sha256": "4957c7d7512ae811afa35828046946d082e67f58288fc013d07400c346055867"
+    },
+    {
+      "relative": "internal/securelink/native/openssl.go",
+      "bytes": 10829,
+      "sha256": "0afbf8448b502ae6acb07cfa93db6ad11b2fcee7ea75ace9d9c7879872956c61"
+    },
+    {
+      "relative": "internal/securelink/native/openssl_test.go",
+      "bytes": 21968,
+      "sha256": "f9cffe37f95168b2e8056d03c4775d8db86e1db5d59bf5dca13c78e9fb8ca268"
+    },
+    {
+      "relative": "internal/securelink/native/peer_spki_openssl.go",
+      "bytes": 1468,
+      "sha256": "fb53ff6aaf9bc9d6e5b6c4ea77f82ec74e9393678ac7ae8d7ee0e840f573c861"
+    },
+    {
+      "relative": "internal/securelink/native/peer_spki_openssl_test.go",
+      "bytes": 7543,
+      "sha256": "84b237bc200a6a7e9264aeeaccfafd42763a9e808d01a0e02c0e1c3b0558e6ba"
+    },
+    {
+      "relative": "internal/securelink/native/peer_spki_unavailable.go",
+      "bytes": 208,
+      "sha256": "ab2a364211d6407d7c00c6d5c179b4673459b977bea825a8263df25c1c5c3e1a"
+    },
+    {
+      "relative": "internal/securelink/native/peer_spki_unavailable_test.go",
+      "bytes": 646,
+      "sha256": "3930b0d94a02a0441c20009cbfedfc6b77fe712a185c5b1f8aa830e220893f34"
+    },
+    {
+      "relative": "internal/securelink/native/server_context_fds.go",
+      "bytes": 6047,
+      "sha256": "3b0413d8da9166f08ce1188704ed5e70a689f7c0b85645f308d56ddaccbcc4b0"
+    },
+    {
+      "relative": "internal/securelink/native/server_identity.go",
+      "bytes": 1783,
+      "sha256": "2fc0713b5fa6c872a0da7b03f195cb2c2815894a685bcd90551912025a424098"
+    },
+    {
+      "relative": "internal/securelink/native/server_identity_openssl.go",
+      "bytes": 2968,
+      "sha256": "31e9e0bc197949bba76a86f1f6ef25c4e7bef12a8fee43745e06c03a8f2fd6a9"
+    },
+    {
+      "relative": "internal/securelink/native/server_identity_openssl_test.go",
+      "bytes": 15250,
+      "sha256": "e4ea31a7b707d5d3d55a751d6f28cdd2f78f288bd969c4f2df015059676b112b"
+    },
+    {
+      "relative": "internal/securelink/native/server_identity_unavailable.go",
+      "bytes": 348,
+      "sha256": "167d973d6af61808aaeac0e3d4ca2c5ad90374a211d5f5cae87c59a716ba4b7f"
+    },
+    {
+      "relative": "internal/securelink/native/server_identity_unavailable_test.go",
+      "bytes": 1021,
+      "sha256": "613c51996c7ce991434569cd5b3d51b93307da1d5ba37407eb57124f8cdb1889"
+    },
+    {
+      "relative": "internal/securelink/native/types.go",
+      "bytes": 1793,
+      "sha256": "cad71f6b8cdfa234302c25853068501b43f8c4841f53e37be3892d92ad01dd5c"
+    },
+    {
+      "relative": "internal/securelink/native/unavailable.go",
+      "bytes": 1527,
+      "sha256": "b9066a4ce2ac94e8a4e4bcac4c3270293e160fac0df763da2b874d4fb5a72b89"
+    },
+    {
+      "relative": "internal/securelink/native/unavailable_test.go",
+      "bytes": 489,
+      "sha256": "9815a7d4c6cd1983b60c9396deec438ce68e1d061b40f33535db7de9cc45d54d"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls.go",
+      "bytes": 26493,
+      "sha256": "759324da51baf32779077c9dc06615f23c144b34cb7ec9ee0addce9b4f1e390c"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_auth.go",
+      "bytes": 5920,
+      "sha256": "a4be402381ee6e1a8a62d4f79de84c47fefff2a7ad8bcfd4ee09df30df851673"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_auth_test.go",
+      "bytes": 1706,
+      "sha256": "ef25cf1fab97929588d3e86c4bb700fb9d30bf07098efd26caba1f49d9637341"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_openssl_test.go",
+      "bytes": 6809,
+      "sha256": "79cf87ac21e5a20a0197af73638f04eb654f08035b2c6ea0c5509c6a7b7d0a83"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_public_fixture.go",
+      "bytes": 11361,
+      "sha256": "2cd843ea941515eedeacdcd4d6532705e60c788683ea501087ce3a806da3772d"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_public_fixture_test.go",
+      "bytes": 1854,
+      "sha256": "d94886b5db5c721c92b407d3bf16789a7a118f8540767affade79801bd642a9e"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_request_identity_openssl_test.go",
+      "bytes": 6966,
+      "sha256": "ee0ee48d296e007b27cecbccdfe08f6c9e95e9e1b4b4cb472076ab4e38d61cb6"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_test.go",
+      "bytes": 4791,
+      "sha256": "fd2f09864e6c3127c7dd990c3e30f5f5508065df53074fabe2e0b8d9159fbc3e"
+    },
+    {
+      "relative": "internal/securelink/original_server_tls_unavailable.go",
+      "bytes": 401,
+      "sha256": "e892d9270ecfb0bb4c28f9e019e743a55cc4c7cd0185da5d8b0653dd5fae0920"
+    },
+    {
+      "relative": "internal/securelink/pay_native_startup.c",
+      "bytes": 8327,
+      "sha256": "2ce286c6ad3b6dac5a58a1e94a28e3d9acb0465c7f98a2b479212efa0a89a48c"
+    },
+    {
+      "relative": "internal/securelink/pay_native_startup_cgo.go",
+      "bytes": 6192,
+      "sha256": "e6ee2ca7ce7c9920b5f3e90ebb6529c7ee628d950477ea72ff00f6efa54345b9"
+    },
+    {
+      "relative": "internal/securelink/pay_native_startup_profile.go",
+      "bytes": 4074,
+      "sha256": "345866456c2ae84773d4e7b5c245f2b7da504d754ba948fe0b3a6000a0c00597"
+    },
+    {
+      "relative": "internal/securelink/pay_native_startup_profile_test.go",
+      "bytes": 4531,
+      "sha256": "0428413321d3f2243e3268fda78b0c0076904e27ec5a254a79660b34904e9e2a"
+    },
+    {
+      "relative": "internal/securelink/product_local_caller_server.go",
+      "bytes": 1690,
+      "sha256": "45906c9887430c78217339a3a7d494e0c8c1b47fe0a6d102443611efd02fde67"
+    },
+    {
+      "relative": "internal/securelink/product_local_caller_server_test.go",
+      "bytes": 3269,
+      "sha256": "b19169a42e0a4e5db8a519a95dbbe40c93e855c5319e933a6b9d5b12cb625a7a"
+    },
+    {
+      "relative": "internal/securelink/product_private_client.c",
+      "bytes": 13970,
+      "sha256": "e5754b339e3dc662adcf26694c7a18685e17c642e6b29af10d8afc431b24545d"
+    },
+    {
+      "relative": "internal/securelink/product_private_client.go",
+      "bytes": 9881,
+      "sha256": "fda5b2a4c253de5e0d742013f2c6509b3705470f1a3b166b538a730934303dea"
+    },
+    {
+      "relative": "internal/securelink/product_private_client_cgo.go",
+      "bytes": 7730,
+      "sha256": "4af679b99220a60a16b02e2882ff33241e3748e95f28ed7c98f4b0dc85c8f0f8"
+    },
+    {
+      "relative": "internal/securelink/product_private_client_fixture.c",
+      "bytes": 3900,
+      "sha256": "6999417f706645ca314728f3638d85d22facf7a966509978c8ae119f7a0ca1e1"
+    },
+    {
+      "relative": "internal/securelink/product_private_client_fixture.go",
+      "bytes": 6811,
+      "sha256": "2dd217e4576f7cf8e1b4efee3a4e385a5aa576b1d9a3f5f3479d5f204e2e8b6b"
+    },
+    {
+      "relative": "internal/securelink/product_private_client_fixture_test.go",
+      "bytes": 10697,
+      "sha256": "b261ef9c8bf126ac44330e43090bf099aded5c86d0cc7d063097a071e68b12c5"
+    },
+    {
+      "relative": "internal/securelink/product_private_client_test.go",
+      "bytes": 4336,
+      "sha256": "dbf96b8f6e3a4a71ded5027da3eb20eb7c5c69499a76b4c6360aa001251eee5e"
+    },
+    {
+      "relative": "internal/securelink/protected_client.go",
+      "bytes": 12693,
+      "sha256": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb"
+    },
+    {
+      "relative": "internal/securelink/protected_client_openssl_test.go",
+      "bytes": 21470,
+      "sha256": "7be5d6a8b13954bdbd473c1f70454513e2bfce579f1c3e4c3bb47f845f5f832d"
+    },
+    {
+      "relative": "internal/securelink/protected_client_test.go",
+      "bytes": 7740,
+      "sha256": "90f9a600732e18ba56a4991af20e71816dcab27e16a73d0bbf0e7fc7e7dcb73f"
+    },
+    {
+      "relative": "internal/securelink/protected_material.go",
+      "bytes": 5857,
+      "sha256": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a"
+    },
+    {
+      "relative": "internal/securelink/protected_material_openssl_test.go",
+      "bytes": 8170,
+      "sha256": "3c6f9a51582bd55a9da016fe72ac4b41889099a60b7c78ac47e86e70a9fef83c"
+    },
+    {
+      "relative": "internal/securelink/protected_material_test.go",
+      "bytes": 1069,
+      "sha256": "33eb40cc82fce3180e78404c8346d8414b9b4f6a26fd68298ba02d6e0ee15fdc"
+    },
+    {
+      "relative": "internal/securelink/read.go",
+      "bytes": 11174,
+      "sha256": "6dab86c08adf4878a9f445c4cce0cd9613827e158c6959766d16ca70b3df844e"
+    },
+    {
+      "relative": "internal/securelink/static.go",
+      "bytes": 4471,
+      "sha256": "cafb2c191e3d7eb74a725016dbbbe940bb2564878496153e4513e1bd7cd5a127"
+    },
+    {
+      "relative": "internal/securelink/task_runtime.go",
+      "bytes": 3895,
+      "sha256": "8c7f5dc451daa4c1d7391eb84b503768f9d590622a2b5f874ed989c8324e152b"
+    },
+    {
+      "relative": "internal/securelink/task_runtime_test.go",
+      "bytes": 23446,
+      "sha256": "4a74070d61f254dcf6f2b8776d1e3c09b2a0ba6eec2140d73fd06c68064d9c42"
+    },
+    {
+      "relative": "internal/securelink/task_runtime_unix.go",
+      "bytes": 18226,
+      "sha256": "1ad282e9064f492f2ba4e917329b84e9fc4d11d185167a386c5e8e634069eb40"
+    },
+    {
+      "relative": "internal/securelink/task_runtime_unsupported.go",
+      "bytes": 917,
+      "sha256": "ebd06db8396893ab4ad7f35c700796b9d12cc75da285dbd0c47212cbdd0ecdae"
+    },
+    {
+      "relative": "internal/securelink/testdata/product-transport-contract-r2/product_pay_transport_private.h",
+      "bytes": 5717,
+      "sha256": "eb76abb33deb029cb2506dc2e0863deb6560479bac88eefb25526caa4927e612"
+    },
+    {
+      "relative": "internal/securelink/witness.go",
+      "bytes": 1248,
+      "sha256": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008"
+    },
+    {
+      "relative": "internal/ynxbatch/CERTIFICATE_CACHE_BASELINE_R1.json",
+      "bytes": 1018,
+      "sha256": "fe7282bfd2a94377786d018741a73112e4797e6b8308e1ed83a3c22b61f4025d"
+    },
+    {
+      "relative": "internal/ynxbatch/CERTIFICATE_CACHE_R1.md",
+      "bytes": 6837,
+      "sha256": "452a743d0b4412f671da4350b3aefd9b980e3238b492b6b2f1e76c2ad3bd5b63"
+    },
+    {
+      "relative": "internal/ynxbatch/CERTIFICATE_CACHE_SOURCE_R1.sha256",
+      "bytes": 738,
+      "sha256": "87ab590da15e2ca78f767f208fa5dbc4c880bde4e7b85378d4ec8f5795b8cf7f"
+    },
+    {
+      "relative": "internal/ynxbatch/PARALLEL_PROVIDER_R1.md",
+      "bytes": 4718,
+      "sha256": "ecdd5d17de3df1dcbf954b09ff152d44a384f41a9ed3ecb518f1ed8dfb157fcc"
+    },
+    {
+      "relative": "internal/ynxbatch/PARALLEL_PROVIDER_SOURCE_R1.sha256",
+      "bytes": 725,
+      "sha256": "918440c112e437d3b254afc949004ab7dbcc15275ad6b4f4d0f20c988a31ca5f"
+    },
+    {
+      "relative": "internal/ynxbatch/README.md",
+      "bytes": 6350,
+      "sha256": "75dd50aeaecbb072773d41522a88314ca9648d2b54f5ba65fcbce13063171e2c"
+    },
+    {
+      "relative": "internal/ynxbatch/SHA256SUMS.json",
+      "bytes": 1927,
+      "sha256": "e03310f3801218b202ef8dd6b18e7de426d4bfb63cda8171ceb8f91758b099a9"
+    },
+    {
+      "relative": "internal/ynxbatch/artifact_publication.go",
+      "bytes": 12934,
+      "sha256": "d47936adacc71c093bce15f6801553f849de728edf1af1f228d2d3a0cc85e962"
+    },
+    {
+      "relative": "internal/ynxbatch/artifact_publication_test.go",
+      "bytes": 19370,
+      "sha256": "2d7379aef06a2fc038953d4bda94e81fb2fe26ea3e5e6da830cf653c2f279f50"
+    },
+    {
+      "relative": "internal/ynxbatch/certificate_cache.go",
+      "bytes": 3033,
+      "sha256": "b24c173e8bcac5b179e73064893832a6da561a165cf4705874057b805eb6ef90"
+    },
+    {
+      "relative": "internal/ynxbatch/certificate_cache_test.go",
+      "bytes": 11708,
+      "sha256": "1c5e05bac937c45e4bd9ed46eef01c97a4681bab0140f088212a7e33b0257f49"
+    },
+    {
+      "relative": "internal/ynxbatch/codec.go",
+      "bytes": 10489,
+      "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+    },
+    {
+      "relative": "internal/ynxbatch/deployment_manifest_v2.go",
+      "bytes": 13808,
+      "sha256": "29f1169e6fbf4917d6ce0514c599a45cdaa12f98fa2e7121b219e3e294f2d435"
+    },
+    {
+      "relative": "internal/ynxbatch/deployment_manifest_v2_test.go",
+      "bytes": 9997,
+      "sha256": "c97985484fa1b0510b25aa61ab8ea621195cc55c9464a46bfd6b349d10814793"
+    },
+    {
+      "relative": "internal/ynxbatch/key_material.go",
+      "bytes": 6348,
+      "sha256": "8e110786013ba79d3cb0a834fe7c7faa3581af2c6bc218eb451f2e5250a756dd"
+    },
+    {
+      "relative": "internal/ynxbatch/key_material_test.go",
+      "bytes": 8504,
+      "sha256": "d47a34d2e307eddeb898996c89eac813ebec40fc7e87e8b1585b7d30c457345d"
+    },
+    {
+      "relative": "internal/ynxbatch/nist_test.go",
+      "bytes": 2701,
+      "sha256": "b4e3b81232662ce78102ec1453000e4158bb2e0f400899cdbc3c127e292bbcf8"
+    },
+    {
+      "relative": "internal/ynxbatch/parallel_provider.go",
+      "bytes": 2970,
+      "sha256": "31ee65025f33a6dc752c9ba9d24220753928a72466e2db5c22d39c6c69b29bfe"
+    },
+    {
+      "relative": "internal/ynxbatch/parallel_provider_benchmark_test.go",
+      "bytes": 7701,
+      "sha256": "0e3ee6c430186ad23ec76961d956053642387f0e607c23055a3c609f2fdc6c8f"
+    },
+    {
+      "relative": "internal/ynxbatch/parallel_provider_test.go",
+      "bytes": 13203,
+      "sha256": "52a2227db1c3afe85cff2f4ebe68b2710d48af31b97ed756951312366ac5db37"
+    },
+    {
+      "relative": "internal/ynxbatch/product_device_v4.go",
+      "bytes": 17397,
+      "sha256": "2031531734f67a1a57dd1fa59fe75ef877a3448019d213057d6b9de3f6e567c8"
+    },
+    {
+      "relative": "internal/ynxbatch/product_device_v4_test.go",
+      "bytes": 19757,
+      "sha256": "883891e25569352d5140d04cd3ae6bd0276e250304be8e5a85e3efc38e3e32a3"
+    },
+    {
+      "relative": "internal/ynxbatch/product_session_http.go",
+      "bytes": 16643,
+      "sha256": "bb407c3706238dd8137e2d0da2a1241bf10abfa8e4615256387ca4d053d68ac3"
+    },
+    {
+      "relative": "internal/ynxbatch/product_session_http_test.go",
+      "bytes": 23952,
+      "sha256": "7a9c8847182d0ed0d59fc678cabe162c2ec5916595101424279ac9ddcb67c4f3"
+    },
+    {
+      "relative": "internal/ynxbatch/project_control.go",
+      "bytes": 19332,
+      "sha256": "579e20dcff1c01db86c9b72dd254af390fff19f8832d7bf27b209831ff7c26f3"
+    },
+    {
+      "relative": "internal/ynxbatch/project_control_test.go",
+      "bytes": 24612,
+      "sha256": "f6d5d34a29b7ad260caa3df7de036a00563510448b767343be8176540817a388"
+    },
+    {
+      "relative": "internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    {
+      "relative": "internal/ynxbatch/publisher_registration.go",
+      "bytes": 19245,
+      "sha256": "48b95eb168de221472c87347aff90776e7ac8f1ff0711ebbca6243c19a9c0a35"
+    },
+    {
+      "relative": "internal/ynxbatch/publisher_registration_test.go",
+      "bytes": 28810,
+      "sha256": "6272ee99b7e51b4b2ce83ad5a2b106c7322c1384ee8e0182f9605d0e7a4ee08b"
+    },
+    {
+      "relative": "internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/acvp-sources.json",
+      "bytes": 3014,
+      "sha256": "cad091fe8bb98a4e4ac455b4fba6d50b3c1a24328d4a79ebf2a514b065eee1a9"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/deployment_v2_sdk_a7.json",
+      "bytes": 3139,
+      "sha256": "bfff21c8195e2c1a81d46060caa04e73f756b1cb2a1dc164813aa9c6a6b86ecb"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/generate-js-fixture.mjs",
+      "bytes": 3223,
+      "sha256": "cc11302b3ee9434953ef2f8d9b9d8e9a09aeb19fdcacaf633a2983337668f5a1"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/js-interop.json",
+      "bytes": 249023,
+      "sha256": "c8d72589dd36c961b50b1016f8d0a8ebf8bbae8fcf5890a22d71e14308410e6d"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/nist-acvp.json",
+      "bytes": 2215673,
+      "sha256": "6fb257e68050bd6bc9f57cc08ba74fafe55cebcb9ba3f84b711f2d2c5ce4a398"
+    },
+    {
+      "relative": "internal/ynxbatch/testdata/verify-go-fixture.mjs",
+      "bytes": 1511,
+      "sha256": "23d23fb7089122b76d97dd865a219aa9203d472fcb7cf42a106e8d96483d3d78"
+    },
+    {
+      "relative": "internal/ynxbatch/tree.go",
+      "bytes": 3853,
+      "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+    },
+    {
+      "relative": "internal/ynxbatch/verify.go",
+      "bytes": 9493,
+      "sha256": "b75f0a913574d08d3d9bac3f01d06d8bbbf106bdc802a7c8349b74560587fdb8"
+    },
+    {
+      "relative": "internal/ynxbatch/ynxbatch_test.go",
+      "bytes": 13892,
+      "sha256": "ec8e1551bb1dd454e6f53b59e702f2d842716c1ad888d09b3769b5fbe6bf409d"
+    },
+    {
+      "relative": "third_party/cometbft/go.mod",
+      "bytes": 6552,
+      "sha256": "265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59"
+    },
+    {
+      "relative": "third_party/cometbft/go.sum",
+      "bytes": 51533,
+      "sha256": "daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd"
+    }
+  ]
+}

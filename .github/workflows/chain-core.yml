@@ -456,6 +456,7 @@ jobs:
       p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}
       p04_cloud_live_read: ${{ steps.paths.outputs.p04_cloud_live_read }}
       darwin_server_identity: ${{ steps.paths.outputs.darwin_server_identity }}
+      p04_native_docker: ${{ steps.paths.outputs.p04_native_docker }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -730,5 +731,93 @@ jobs:
         with:
           name: link-darwin-server-identity-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/securelink-darwin-server-identity/
+          if-no-files-found: error
+          retention-days: 14
+  p04-native-docker:
+    name: P04 protected Cloud native Linux image and startup controls
+    needs: link-scope
+    if: needs.link-scope.outputs.p04_native_docker == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
+        with:
+          go-version: '1.26.11'
+          cache: false
+      - name: Stage only the original P04 source and Docker context
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/p04-native-docker-evidence"
+          mkdir -m 700 "$evidence"
+          git rev-parse HEAD > "$evidence/source-head.txt"
+          node cmd/ynx-secure-link/p04-native-docker-ci.mjs "$RUNNER_TEMP/p04-native-docker" "$evidence"
+          docker version > "$evidence/docker-version.txt"
+          docker buildx version > "$evidence/buildx-version.txt"
+      - name: Build the exact protected P04 native target without publication
+        working-directory: ${{ runner.temp }}/p04-native-docker
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/p04-native-docker-evidence"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            import {spawnSync} from "node:child_process";
+            const {buildCommand: [program, ...args]} = JSON.parse(fs.readFileSync(process.argv[1]));
+            const result = spawnSync(program, args, {stdio: "inherit"});
+            process.exit(result.status ?? 1);
+          ' "$evidence/INPUTS.json" 2>&1 | tee "$evidence/native-build.log"
+          image=$(cat ./image.id)
+          [[ "$image" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker image inspect "$image" > "$evidence/native-image.json"
+          cp ./image.id "$evidence/image.id"
+          cp ./image-metadata.json "$evidence/build-metadata.json"
+          container=$(docker create --network none "$image")
+          trap 'docker rm "$container" >/dev/null' EXIT
+          docker cp "$container:/usr/local/bin/ynx-cloudd" ./ynx-cloudd
+          sha256sum ./ynx-cloudd > "$evidence/binary.sha256"
+          go version -m ./ynx-cloudd | tee "$evidence/binary-buildinfo.txt"
+          grep -Fx './ynx-cloudd: go1.26.11' "$evidence/binary-buildinfo.txt"
+          grep -E '^[[:space:]]*build[[:space:]]+CGO_ENABLED=1$' "$evidence/binary-buildinfo.txt"
+          grep -E '^[[:space:]]*build[[:space:]]+-tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls$' "$evidence/binary-buildinfo.txt"
+      - name: Verify the real image entrypoint, OpenSSL linkage and missing configuration refusal
+        working-directory: ${{ runner.temp }}/p04-native-docker
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/p04-native-docker-evidence"
+          image=$(cat ./image.id)
+          status=0
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            "$image" > "$evidence/native-entry.stdout" 2> "$evidence/native-entry.stderr" || status=$?
+          test "$status" = 1
+          test ! -s "$evidence/native-entry.stdout"
+          grep -F 'protected Cloud deployment requires the original Auth, runtime and V2 DATA configuration' "$evidence/native-entry.stderr"
+          sh ./context/apps/cloud/scripts/verify-protected-cloud-image.sh "$image" 2>&1 | tee "$evidence/native-image-controls.log"
+      - name: Verify original empty Root issuer refusal against the same native build source
+        working-directory: ${{ runner.temp }}/p04-native-docker
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/p04-native-docker-evidence"
+          docker buildx build --load --platform=linux/amd64 --target=native-build \
+            --build-context cloud_release_source=./source --iidfile ./builder.id --progress=plain \
+            -f ./context/infra/docker/ynx-cloudd.Dockerfile ./context 2>&1 | tee "$evidence/builder.log"
+          builder=$(cat ./builder.id)
+          [[ "$builder" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            -e GOCACHE=/tmp/p04-ci-go-cache "$builder" go test -mod=readonly -p 2 -count=1 -timeout=90s \
+            -tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls \
+            -run '^TestOriginalServerTLSOriginalFactoryEmptyRootCleanup$' -v ./internal/securelink 2>&1 | tee "$evidence/empty-root.log"
+          test "$(grep -c '^--- PASS: TestOriginalServerTLSOriginalFactoryEmptyRootCleanup ' "$evidence/empty-root.log")" = 1
+      - name: Preserve bounded local build evidence without publishing the image
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: p04-native-docker-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/p04-native-docker-evidence/
           if-no-files-found: error
           retention-days: 14

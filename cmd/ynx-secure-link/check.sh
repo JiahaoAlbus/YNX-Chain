@@ -42,16 +42,18 @@ def p04_workflow_sections(revision):
         b'      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}': 'identity',
         b'      p04_cloud_live_read: ${{ steps.paths.outputs.p04_cloud_live_read }}': 'cloud',
         b'      darwin_server_identity: ${{ steps.paths.outputs.darwin_server_identity }}': 'darwin',
+        b'      p04_native_docker: ${{ steps.paths.outputs.p04_native_docker }}': 'docker',
     }
-    sections = {'shared': [], 'identity': [], 'cloud': [], 'darwin': []}
+    sections = {'shared': [], 'identity': [], 'cloud': [], 'darwin': [], 'docker': []}
     step = 'shared'
-    darwin_job = False
+    isolated_job = None
+    isolated_jobs = {b'  link-darwin-server-identity:': 'darwin', b'  p04-native-docker:': 'docker'}
     for line in git('show', revision + ':' + workflow).splitlines():
         if re.match(rb'^  [a-zA-Z0-9_-]+:$', line):
-            darwin_job = line == b'  link-darwin-server-identity:'
+            isolated_job = isolated_jobs.get(line)
         if line and not line.startswith(b'        '):
             step = selected_steps.get(line, 'shared')
-        sections['darwin' if darwin_job else selected_outputs.get(line, step)].append(line)
+        sections[isolated_job or selected_outputs.get(line, step)].append(line)
     return sections
 
 def owned(p):
@@ -109,13 +111,15 @@ p04_consumer = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-con
 ) for p in changes)
 p04_request_identity = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-request-identity-deps/') for p in changes)
 p04_cloud_live_read = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-cloud-live-read-deps/') for p in changes)
-if changes is not None and b'cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs' in changes and not (p04_consumer or p04_request_identity or p04_cloud_live_read):
+p04_native_docker = changes is None or any(p == b'cmd/ynx-secure-link/p04-native-docker-ci.mjs' or p.startswith(b'cmd/ynx-secure-link/p04-native-docker-deps/') for p in changes)
+if changes is not None and b'cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs' in changes and not (p04_consumer or p04_request_identity or p04_cloud_live_read or p04_native_docker):
     p04_consumer = True
 if changes is not None and b'.github/workflows/chain-core.yml' in changes:
     before_sections, after_sections = p04_workflow_sections(common), p04_workflow_sections(head)
     p04_consumer = p04_consumer or before_sections['shared'] != after_sections['shared']
     p04_request_identity = p04_request_identity or before_sections['identity'] != after_sections['identity']
     p04_cloud_live_read = p04_cloud_live_read or before_sections['cloud'] != after_sections['cloud']
+    p04_native_docker = p04_native_docker or before_sections['docker'] != after_sections['docker']
 p04_request_identity = p04_request_identity or p04_consumer
 p04_cloud_live_read = p04_cloud_live_read or p04_request_identity
 print('changed=' + str(changed).lower())
@@ -123,10 +127,13 @@ print('exclusive_link=' + str(exclusive).lower())
 print('p04_consumer=' + str(p04_consumer).lower())
 print('p04_request_identity=' + str(p04_request_identity).lower())
 print('p04_cloud_live_read=' + str(p04_cloud_live_read).lower())
+print('p04_native_docker=' + str(p04_native_docker).lower())
 darwin_server_identity = changes is None or any(p in (
-    b'.github/workflows/chain-core.yml', b'internal/securelink/native/bridge.c',
+    b'internal/securelink/native/bridge.c',
     b'internal/securelink/native/bridge.h', b'internal/securelink/native/openssl_test.go',
 ) or p.startswith(b'internal/securelink/native/server_identity') for p in changes)
+if changes is not None and b'.github/workflows/chain-core.yml' in changes:
+    darwin_server_identity = darwin_server_identity or before_sections['darwin'] != after_sections['darwin']
 print('darwin_server_identity=' + str(darwin_server_identity).lower())
 PY
     ;;

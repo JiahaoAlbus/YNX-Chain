@@ -1,0 +1,82 @@
+{
+  "schema": "YNX-P04-protected-native-release/1",
+  "base": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-cloud-live-link-read-r1/HANDOFF.json",
+    "bytes": 1724,
+    "sha256": "74d0cbd89e8d0ed258df2da595f2fc09a85080fa6eef6321bd4aae8bc0e81bc1"
+  },
+  "linkCommit": "dfcdff3e10a64dc41ec1ce632c4b9d25e377310b",
+  "sourceManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/RELEASE-SOURCE-MANIFEST.json",
+    "bytes": 84798,
+    "sha256": "99b2f7c3c23334d47234a74534c06aed83b5127c631a3a238eaa18455a155d46"
+  },
+  "archive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/linux-source-input.tar.gz",
+    "bytes": 2368747,
+    "sha256": "32174cd183924bcaf5b24ba6d62538fdac7fc58b8a85c53df8ac113b501753d4"
+  },
+  "files": 452,
+  "changedSourceLeaves": [
+    "apps/cloud/cmd/ynx-cloudd/ide_runtime.go",
+    "apps/cloud/cmd/ynx-cloudd/main.go",
+    "internal/cloud/file_session_v2.go",
+    "internal/cloud/server.go",
+    "internal/securelink/native/bridge.c",
+    "third_party/cometbft/go.mod",
+    "third_party/cometbft/go.sum"
+  ],
+  "entrypointDelta": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/release-entrypoints.tar.gz",
+    "bytes": 4363,
+    "sha256": "7950d12e617fd9287bc904a1ac5ce5da3a1ffd3ecff951017bd8597c8fb05142"
+  },
+  "entrypoints": [
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/infra/docker/ynx-cloudd.Dockerfile",
+      "bytes": 3253,
+      "sha256": "c53c1c0f4ce1a6d9b457b58193e9399c4db7395bee7bc08085518dbb5e4d98cc"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/infra/docker/ynx-cloudd.Dockerfile.dockerignore",
+      "bytes": 305,
+      "sha256": "2f94509159162b32e644bed9ef074438a991e0e49e44ee3958ee60316612cb6a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/infra/docker/cloud-compose.yml",
+      "bytes": 891,
+      "sha256": "f02e7c4aed0c5a29bb18b6abfc204f87e64b754d84fc0b9cfe38a4f1b08eaa85"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/infra/docker/cloud-native-compose.yml",
+      "bytes": 1461,
+      "sha256": "0af68aac06cd23480da1b67fbf42bd9e9f453a16ef0b72b534ff441f6f48918f"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/apps/cloud/deploy/ynx-cloudd.service.d/protected-deployment.conf",
+      "bytes": 564,
+      "sha256": "8bea6f260f786941d3a14fd4a59b36b302dc77369a1af14fd6679d77ac37ae86"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/apps/cloud/CONTAINER_OPERATIONS.md",
+      "bytes": 4033,
+      "sha256": "de250eb8137eeb15f40bcecc553c71615530dbcd29ec54a2558f9acd80831844"
+    }
+  ],
+  "localBinary": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/artifacts/ynx-cloudd-darwin-arm64",
+    "bytes": 15388930,
+    "sha256": "a56da1caa971de7536afadbfa2d7183b43fe47c35a0fffa57b3bca2d85148493"
+  },
+  "actualMissingConfigurationRefusal": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/protected-cloud-native-release-r1/artifacts/PROTECTED-REFUSAL.stderr",
+    "bytes": 109,
+    "sha256": "f37a5d76d78216a122c96d447ee0e837cb22ae9191d9480b0b76fc8798e20d5e"
+  },
+  "linuxNext": "Build native target from the verified source archive on original Linux Docker runner. Check CGO and exact six tags, inspect libssl/libcrypto linkage and fail startup without original configuration before persisting state.",
+  "linuxImageBuilt": false,
+  "installed": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "deployed": false
+}

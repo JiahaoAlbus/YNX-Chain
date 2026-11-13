@@ -78,11 +78,12 @@ function verifyBytes(raw, spec, label) {
   need(spec && Number.isSafeInteger(spec.bytes) && spec.bytes >= 0 && /^[a-f0-9]{64}$/.test(spec.sha256) &&
     raw.length === spec.bytes && sha(raw) === spec.sha256, 'exact bytes/SHA256 required: ' + label);
 }
-function asset(root, spec) {
+export function readP04PinnedAsset(root, spec) {
   need(spec && typeof spec.file === 'string', 'immutable relative dependency asset required');
   const file = path.join(root, safeP04Relative(spec.file)), input = read(file);
   verifyBytes(input.raw, spec, spec.file); return input;
 }
+const asset = readP04PinnedAsset;
 function parseJSON(raw, label) {try {return JSON.parse(raw.toString('utf8'));} catch {throw Error('P04 consumer CI: malformed JSON ' + label);}}
 
 // Parse rather than extract tar paths with a platform tool. No link, device,
