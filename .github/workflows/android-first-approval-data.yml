@@ -1,0 +1,24 @@
+name: Android first registration approval DATA
+on:
+  push:
+    branches: [codex/android-first-approval-math-20261113]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  normal-node-codec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '26.7.0'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node --test packages/wallet-auth/test/original-device-v4-approval-data.test.mjs
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: android-first-approval-data-source-package
+          path: canonical-common-source-package
+          if-no-files-found: error
