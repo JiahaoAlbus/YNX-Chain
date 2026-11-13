@@ -1027,6 +1027,10 @@ def run(args):
         stop.set()
         if backend is not None:
             backend.stop()
+            if getattr(backend, "pool_ready", None) is not None:
+                # A later lane can fail before the whole pool returns. Keep
+                # the successful earlier READY frames and their elapsed times.
+                result.setdefault("senderPoolPreparation", backend.pool_ready)
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
             result['normalObservationRPCTiming']=backend.rpc_measurements.report()
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()

@@ -95,6 +95,33 @@ class BackendSelection(unittest.TestCase):
             parentClock='parent_monotonic_ns', intervalsOverlap=True, addedToPerCommand=False,
             checkpointValidated=False))
 
+    def test_incomplete_proof_preparation_retains_completed_lanes(self):
+        backend_module = d.module('partial_proof_backend', 'pq-public-owner-backend.py')
+        class Session:
+            def __init__(self, ceremony, owners):
+                self.owners = owners
+            def wait_ready(self, stop, deadline, check):
+                return dict(bootstrapLoaded=False)
+        def prepare_lane(backend, lane, check):
+            if lane['node'] == 2:
+                raise RuntimeError('original proof READY deadline')
+            return dict(node=lane['node'], calleeStartupElapsedNs=100)
+        backend_type = backend_module.backend_class(d.NormalBackend, Session, d.normal, d.lab)
+        ceremony = SimpleNamespace(mode='online', workload=dict(transactions=None),
+                                   live=[dict(node=i) for i in range(4)],
+                                   w=SimpleNamespace(), proof_timeout=30)
+        backend = backend_type(ceremony, [dict(ownerIndex=4)], threading.Event(),
+                               prepare_live_session=prepare_lane)
+        with self.assertRaisesRegex(RuntimeError, 'original proof READY deadline'):
+            backend.prepare(lambda: None)
+        self.assertEqual([r['node'] for r in backend.pool_ready['liveMaterialsPreparation']], [0, 1])
+        self.assertFalse(backend.pool_ready['loadClockStarted'])
+        self.assertEqual(backend.pool_ready['maximumOwnedRuntimePIDs'], 13)
+        ceremony.live = [dict(node=i) for i in (0, 1, 2, 2)]
+        with self.assertRaisesRegex(RuntimeError, 'one original proof lane per validator'):
+            backend_type(ceremony, [dict(ownerIndex=4)], threading.Event(),
+                         prepare_live_session=prepare_lane)
+
     def test_backend_identity_is_part_of_escalation_conditions(self):
         a=args(sender_backend='bounded-cold');b=args()
         self.assertNotEqual(d.load_conditions(a)['senderBackend'],d.load_conditions(b)['senderBackend'])

@@ -15,6 +15,9 @@ def backend_class(Base, Session, normal, lab):
             self.prepare_source = prepare_source
             self.prepare_live_session = prepare_live_session
             lane_count = len(ceremony.live) if prepare_live_session is not None else 0
+            if prepare_live_session is not None:
+                lab.require(sorted(lane['node'] for lane in ceremony.live) == list(range(4)),
+                            'one original proof lane per validator required')
             self.maximum_pids = 6 + self.helper_limit + lane_count
             lab.require(self.maximum_pids <= lab.guard.CAPS['ownedProcesses'],
                         'original PID cap cannot accommodate the live proof sessions')
@@ -59,10 +62,10 @@ def backend_class(Base, Session, normal, lab):
                 )
             if self.prepare_live_session is not None:
                 preparations = []
+                self.pool_ready['liveMaterialsPreparation'] = preparations
                 for lane in self.c.live:
                     preparations.append(self.prepare_live_session(self, lane, check))
                     check()
-                self.pool_ready['liveMaterialsPreparation'] = preparations
             return dict(self.pool_ready)
 
         def sign_original(self,row,request,checkpoint,case,notify,stop):
