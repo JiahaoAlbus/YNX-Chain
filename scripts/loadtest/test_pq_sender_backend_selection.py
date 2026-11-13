@@ -45,9 +45,21 @@ class BackendSelection(unittest.TestCase):
             self.assertTrue(result['loadConditions']['persistentLiveMaterials'])
             self.assertFalse(result['actualLoadExecuted'])
             option.execute = True
-            with self.assertRaisesRegex(RuntimeError, 'fixed Linux and tagged live getter evidence'):
+            with self.assertRaisesRegex(RuntimeError, 'original scheduled controller job'):
                 d.run(option)
             window.assert_not_called()
+        qualification = d.module('held_source_contract', 'pq-held-first100-source.py')
+        run = dict(id=qualification.RUN, event='push', run_attempt=1, workflow_id=322643672,
+                   repository={'full_name': qualification.REPOSITORY}, path='.github/workflows/resource-market-ci.yml',
+                   head_sha=qualification.SOURCE, head_branch=qualification.BRANCH,
+                   status='completed', conclusion='success')
+        job = dict(run, id=qualification.JOB, run_id=qualification.RUN, name='focused-go',
+                   steps=[dict(name=name, status='completed', conclusion='success')
+                          for name in qualification.REQUIRED_STEPS])
+        self.assertTrue(qualification.validate(run, job)['sourceOnlyQualified'])
+        job['steps'][-1]['conclusion'] = 'skipped'
+        with self.assertRaisesRegex(RuntimeError, 'CI step incomplete'):
+            qualification.validate(run, job)
         for key, value in [('commit', d.first_trial_7c25_source.SOURCE), ('rate', 500), ('accounts', 499)]:
             with self.subTest(key=key), self.assertRaises(RuntimeError):
                 d.validate_options(SimpleNamespace(**dict(vars(option), **{key: value})))

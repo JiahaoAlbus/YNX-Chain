@@ -891,15 +891,23 @@ def run(args):
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     first_trial=getattr(args,'initialize_before_load',False)
     profile=getattr(args,'first_trial_profile','own1b')
-    if profile == HELD_TRIAL_PROFILE:
+    held = profile == HELD_TRIAL_PROFILE
+    if held:
+        trial_source = module('held_first100_source', 'pq-held-first100-source.py')
+        lab.require((trial_source.SOURCE, trial_source.TREE) == (HELD_TRIAL_SOURCE, HELD_TRIAL_TREE),
+                    'held first100 source and CI qualification differ')
         identity = lab.check_source(Path(args.source), args.commit)
         lab.require(identity['tree'] == HELD_TRIAL_TREE, 'exact held-session source tree differs')
         if not args.execute:
             return dict(status='prepared-only', source=identity, configuredDemand=demand,
                         requestedOfferedTPS=args.rate, loadConditions=load_conditions(args),
                         processCapacity=process_capacity(args), actualLoadExecuted=False)
-        raise RuntimeError('held first100 requires its fixed Linux and tagged live getter evidence')
-    trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
+        lab.require(os.environ.get('GITHUB_JOB') == 'first100-held-public-owner'
+                    and os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
+                    and os.environ.get('GITHUB_RUN_ATTEMPT') == '1',
+                    'held first100 requires its original scheduled controller job')
+    else:
+        trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
     trial_qualification=(trial_source.trial_qualification() if profile=='1695' else trial_source.qualification()) if first_trial else None
@@ -910,8 +918,8 @@ def run(args):
         observed_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else COMMIT_OBSERVATION_SOURCE
         lab.require(observed_source is not None and args.commit==observed_source,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
     source=Path(args.source);identity=lab.check_source(source,args.commit)
-    live_module=module('current_normal_private_live_reader','pq-normal-live-reader.py') if profile=='7c25' else None
-    if live_module is not None:live_module.qualify(identity) # Exact source/module/tagged CI; never inherit old9081.
+    live_module=module('current_normal_private_live_reader','pq-normal-live-reader.py') if profile=='7c25' or held else None
+    if live_module is not None and not held:live_module.qualify(identity) # Exact source/module/tagged CI; never inherit old9081.
     if getattr(args,'staged_publication',False):lab.require(identity['tree']==(trial_source.TREE if first_trial else STAGED_CALLEE_TREE),'exact staged normal source tree differs')
     lab.git(source,"merge-base","--is-ancestor",normal.HELPER_COMMIT,args.commit)
     if args.wire_observation:lab.git(source,"merge-base","--is-ancestor",normal.WIRE_OBSERVER_COMMIT,args.commit)
@@ -954,7 +962,8 @@ def run(args):
             composed=work/".private/live-matching-source"
             stages.run('prepare_normal_live_source',None,lambda:w.wait(w.launch('prepare-normal-live-source',
                 [sys.executable,'-I','-B',str(Path(__file__).with_name('pq-normal-live-reader.py')),
-                 '--prepare-source',str(source),'--destination',str(composed)])))
+                 '--prepare-source',str(source),'--destination',str(composed),
+                 *(['--held-source-only'] if held else [])])))
             composition=json.loads((work/'public/prepare-normal-live-source.log').read_bytes())
             lab.require(composition['source']==identity and composition['buildSource']==str(composed/'source')
                         and composition['originalSourceUnchanged'] is True,'exact current normal live source composition differs')
@@ -1022,11 +1031,14 @@ def run(args):
             result['initializationOnlyComplete']=True
             result['initializationScope']='normal create504, four-node bootstrap/activation/live policies, full500 original account census; original reserved preparation traffic only; no business load release, signing, POST, or finality claim'
             return result # Existing finally performs the same bounded stop and preserves all originals.
-        backend=make_sender_backend(ceremony,owners,stop,backend_kind)
+        backend=make_sender_backend(ceremony,owners,stop,backend_kind,
+                                    prepare_public_source=True,persistent_live=True) if held else make_sender_backend(ceremony,owners,stop,backend_kind)
         if backend_kind=='bounded-cold':
             result['signerTransport']='original cold per-operation DATA-ready/sign/EOF; same original owner/operation reopen for normal full proof Confirm; no automatic retry'
         elif backend_kind=='public-owner':
             result['signerTransport']='original sender-owners public scope; one serialized Go stream, separate original owner custody/nonce/UNKNOWN; first command retains measured cold validation; no automatic retry'
+        if held:
+            result['signerTransport'] = 'prepared original sender-owners with per-command current checkpoint validation'
         journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
         result["senderPoolPreparation"]=stages.run("sender_pool_preparation",None,lambda:backend.prepare(monitor.check))

@@ -553,5 +553,6 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
     parser.add_argument('--prepare-source',required=True)
     parser.add_argument('--destination',required=True)
+    parser.add_argument('--held-source-only',action='store_true')
     args=parser.parse_args()
-    print(json.dumps(prepare_matching_source(Path(args.prepare_source),Path(args.destination)),sort_keys=True))
+    print(json.dumps(prepare_matching_source(Path(args.prepare_source),Path(args.destination),held_source_only=args.held_source_only),sort_keys=True))
