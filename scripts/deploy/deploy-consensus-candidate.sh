@@ -536,6 +536,11 @@ deploy_candidate_role() {
   if [[ "$operator_package" == 1 ]]; then
     if public_bft_linux_tools_enabled; then capacity_mode=bridge; fi
     capacity_command="$(python3 -B scripts/ops/public-bft-candidate-capacity.py deploy "$role" "$release" "$stage" "$archive" "$archive_hash" "$work/runtime-SOURCE.json" "${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:?}" "$capacity_mode")" || return $?
+    if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
+      # A dry-run prints commands without contacting the host. The plan above
+      # was validated locally; its file inventory is not a dispatch record.
+      capacity_command='# YNX-CANDIDATE-STAGE-CAPACITY/v1: local plan checked; remote capacity measurement deferred'
+    fi
   fi
   # Reserve before ynx_ops_copy (whose normal transport uses cat > destination).
   # Atomic mkdir/noclobber also reject competing attempts after the existence

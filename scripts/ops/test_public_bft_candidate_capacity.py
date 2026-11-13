@@ -164,11 +164,18 @@ class CandidateCapacity(unittest.TestCase):
         for phase in ('initialize','deploy'):
             with self.subTest(phase=phase): self.caller_probe(phase)
 
-    def caller_probe(self, phase):
+    def test_normal_deploy_dry_run_reports_capacity_without_listing_nonexecuted_files(self):
+        self.caller_probe('deploy', dry_run=True)
+
+    def caller_probe(self, phase, dry_run=False):
         d=self.root/phase;d.mkdir()
         package=d/'package'; role=package/'roles/primary'
         for rel in ('config/genesis.json','config/bound-migration.json','role-manifest.json','scripts/start-operator.sh','systemd/ynx-consensus-operator-candidate.service'):
             p=role/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('PUBLIC')
+        if dry_run:
+            # The real operator package retains this recovery script, but the
+            # dry-run must never describe dispatching it.
+            (role/'scripts/backup-candidate.sh').write_text('PUBLIC BACKUP')
         plan=d/'plan.json';plan.write_text('PUBLIC PLAN')
         work=d/'work';(work/'roles').mkdir(parents=True);(work/'bin').mkdir()
         for name in ('ynx-comet','ynx-consensus-keycheck'):(work/'bin'/name).write_bytes((self.runtime/name).read_bytes())
@@ -185,7 +192,7 @@ class CandidateCapacity(unittest.TestCase):
         capture=d/'command'
         variables={'candidate_guard_root':str(d),'candidate_release':self.release,'candidate_package':str(package),
                    'candidate_operator_plan':str(plan),'candidate_operator_pin':'1'*64,'public_package_verifier':str(self.runtime/'ynx-consensus-package'),
-                   'CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256':self.pin,'package_root':str(package),'work':str(work),'release':self.release,'operator_package':'1'}
+                   'CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256':self.pin,'package_root':str(package),'work':str(work),'release':self.release,'operator_package':'1','DEPLOY_DRY_RUN':'1' if dry_run else '0'}
         script='set -Eeuo pipefail\n'+''.join(k+'='+shlex.quote(v)+'\n' for k,v in variables.items())
         script+='python3(){ '+shlex.quote(sys.executable)+' "$@"; }\nnode(){ printf true; }\npublic_bft_linux_tools_enabled(){ return 1; }\ncandidate_original_guard_command(){ printf true; }\n'
         script+='ynx_ops_ssh(){ printf "%s" "$5" >'+shlex.quote(str(capture))+'; return 77; }\n'+function+'\n'+invoke+' primary PUBLIC PUBLIC PUBLIC validator\n'
@@ -199,6 +206,9 @@ class CandidateCapacity(unittest.TestCase):
         self.assertIn('YNX-CANDIDATE-STAGE-CAPACITY/v1',command,'normal caller reserved without capacity gate')
         self.assertLess(command.index('YNX-CANDIDATE-STAGE-CAPACITY/v1'),command.index('sudo mkdir'))
         self.assertFalse('rm -' in command)
+        if dry_run:
+            self.assertNotIn('backup-candidate.sh',command)
+            self.assertNotIn('sudo /usr/bin/python3',command)
 
 
 if __name__=='__main__': unittest.main()
