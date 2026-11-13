@@ -156,6 +156,7 @@ jobs:
           python3 -B scripts/loadtest/test_pq_public_owner_parent_readback.py -v
           python3 -B scripts/loadtest/test_pq_sender_backend_selection.py -v
           python3 -B scripts/loadtest/test_pq_live_materials_transport.py -v
+          python3 -B scripts/loadtest/test_resource_guard_sampling.py -v
       - name: Verify hardware observation and record actual CI host separately
         run: |
           python3 -B scripts/loadtest/test_pq_runtime_hardware.py -v

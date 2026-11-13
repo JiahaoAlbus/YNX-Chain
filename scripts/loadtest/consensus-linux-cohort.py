@@ -336,6 +336,7 @@ class Window:
         self.retired_evidence=ProcessEvidence(self.retired_samples,("pid","startTicks","reason","rssError","statError"))
         self.fallback_evidence=ProcessEvidence(self.rss_fallback_samples,("pid","startTicks","tid","threadStartTicks","sampleKind","reason","originalRSSKernelError","retired"))
         self.peak_rss = self.peak_bytes = 0
+        self.peak_rss_sample = None
         self.last_storage_sample = None
         self.storage_bytes = 0
         self.logs = []
@@ -401,6 +402,7 @@ class Window:
             ids = guard.owned_set(rows, os.getpid(), known=self.known)
         with self.sample_stage('ownedRSS'):
             rss = 0
+            rss_by_pid = {}
             for pid in ids:
                 before = rows[pid]
                 self.known[pid] = before["startTicks"]
@@ -409,6 +411,7 @@ class Window:
                 def retain_fallback(event):
                     self.fallback_evidence.retain(event)
                 size = owned_rss(pid, before, retain_retired, retain_fallback)
+                rss_by_pid[pid] = size
                 if size is not None:
                     rss += size
         if self.last_storage_sample is None or time.monotonic() - self.last_storage_sample >= 1:
@@ -417,6 +420,15 @@ class Window:
             self.last_storage_sample = time.monotonic()
         with self.sample_stage('resourceCapsAndDiskReserve'):
             size = self.storage_bytes
+            if self.peak_rss_sample is None or rss > self.peak_rss:
+                names = {(child["process"].pid, child.get("startTicks")): child["name"]
+                         for child in self.children}
+                processes = [dict(pid=pid, startTicks=rows[pid]["startTicks"], rssBytes=value,
+                                  name="supervisor" if pid == os.getpid() else
+                                  names.get((pid, rows[pid]["startTicks"]), "owned-descendant"))
+                             for pid, value in sorted(rss_by_pid.items())]
+                self.peak_rss_sample = dict(sampleMonotonicSeconds=time.monotonic(), rssBytes=rss,
+                                            processes=processes)
             self.peak_rss, self.peak_bytes = max(self.peak_rss, rss), max(self.peak_bytes, size)
             require(rss <= CAPS["rssBytes"], "owned RSS exceeded 4GiB")
             require(size <= CAPS["newBytes"], "new artifacts exceeded 8GiB")

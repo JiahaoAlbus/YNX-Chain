@@ -1079,6 +1079,7 @@ def run(args):
                 result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=str(error),actualLoadWindowCommitCount=None)
                 result["firstCause"]=result["firstCause"] or "original store accounting failed"
         result["resourceGuardStageElapsed"]=w.sample_stage_report()
+        result["peakRSSSample"] = getattr(w, "peak_rss_sample", None)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()

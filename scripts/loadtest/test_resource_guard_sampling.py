@@ -1,6 +1,7 @@
 """Resource guard equality and discovery controls, no node or chain load."""
 import errno,importlib.util,os,stat,tempfile,threading,unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest import mock
 spec=importlib.util.spec_from_file_location('guard_controls',Path(__file__).with_name('consensus-linux-cohort.py'))
 lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
@@ -57,6 +58,21 @@ class ResourceGuardSamplingControls(unittest.TestCase):
                 w.sample();w.sample()
             self.assertEqual(inventory.call_count,2);self.assertEqual([c.args[0] for c in rss.call_args_list],[os.getpid(),os.getpid(),987654]);self.assertEqual(w.peak_rss,200);self.assertEqual(w.known[987654],20)
             report=w.sample_stage_report();self.assertEqual(report['stages']['procInventory']['calls'],2);self.assertEqual(report['stages']['ownedRSS']['calls'],2);self.assertFalse(report['cadenceChanged']);self.assertFalse(report['pidOrRSSCached'])
+    def test_peak_rss_sample_preserves_processes_even_when_cap_refuses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            w=self.window(Path(tmp))
+            w.children=[dict(process=SimpleNamespace(pid=987654), startTicks=20,
+                             name='load-live-session-0', persistent=False)]
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=(self.rows(True),[])), \
+                 mock.patch.object(lab,'owned_rss',side_effect=[1,lab.CAPS['rssBytes']]) as rss:
+                with self.assertRaisesRegex(RuntimeError,'owned RSS exceeded'):
+                    w.sample()
+            self.assertEqual(rss.call_count,2)
+            peak=w.peak_rss_sample
+            self.assertEqual(peak['rssBytes'],w.peak_rss)
+            self.assertEqual(sum(p['rssBytes'] for p in peak['processes']),peak['rssBytes'])
+            self.assertEqual(peak['processes'][-1]['name'],'load-live-session-0')
+
     def test_original_rss_failure_is_same_firstcause_and_measured(self):
         with tempfile.TemporaryDirectory() as tmp:
             w=self.window(Path(tmp));error=RuntimeError('active owned RSS unreadable')
