@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {parseP04SourceArchive, verifyP04ArchiveMembers, safeP04Relative, p04GoImports, inspectP04TypeGraph,
   qualifyP04ProtectedAncestors, verifyP04ConsumerDependencies, prepareP04ConsumerComposite, qualifyP04ConsumerEvents,
   runP04FiniteGETConsumerCI, verifyP04RequestIdentityDependencies, qualifyP04RequestIdentityEvents,
+  verifyP04CloudLiveReadDependencies, qualifyP04CloudLiveReadEvents,
   P04_REQUIRED_TOPS, P04_REQUIRED_SUBTESTS} from './p04-finite-get-consumer-ci.mjs';
 const deps = path.join(path.dirname(fileURLToPath(import.meta.url)), 'p04-consumer-deps');
 const packageName = 'github.com/JiahaoAlbus/YNX-Chain/internal/developerauthority';
@@ -121,4 +122,25 @@ test('P04 request identity uses the exact supplier composition and separate LINK
     assert.throws(() => qualify([...actual, {...terminal, Package: 'wrong'}]));
     assert.throws(() => qualify([...actual, {...terminal, Action: 'skip'}]));
   }
+});
+
+test('P04 Cloud live read checks the exact one-test delta and both routes in the Cloud package', () => {
+  const verified = verifyP04CloudLiveReadDependencies();
+  assert.equal(verified.sourceManifest.inputs.length, 449);
+  assert.equal(verified.candidate.files.size, 450);
+  assert.equal(verified.graph.cometGoSourceRequired, false);
+  assert.equal(verified.graph.packages.length, 9);
+  assert.equal(verified.graph.excluded.length, 2);
+  const Package = 'github.com/JiahaoAlbus/YNX-Chain/apps/cloud/cmd/ynx-cloudd';
+  assert.ok(verified.graph.packages.includes('apps/cloud/cmd/ynx-cloudd'));
+  const top = 'TestIDERuntimeLINKOriginalRequestReachesCloudReadRoutesWithoutGrant';
+  const names = [top, top + '/status', top + '/logs'];
+  const actual = [...names.map(Test => ({Package, Test, Action: 'run'})), ...[names[1], names[2], top].map(Test => ({Package, Test, Action: 'pass'})), {Package, Action: 'pass'}];
+  const qualify = rows => qualifyP04CloudLiveReadEvents(lines(rows), 0, null, null);
+  assert.deepEqual(qualify(actual).passed, [names[1], names[2], top]);
+  assert.throws(() => qualify(actual.filter(r => r.Test !== names[2])), /closed unique/);
+  assert.throws(() => qualify(actual.map(r => r.Test === names[1] && r.Action === 'pass' ? {...r, Action: 'skip'} : r)), /skip/);
+  const crossed = new Map(verified.candidate.files);
+  crossed.set(verified.graph.excluded[0], Buffer.from('package main'));
+  assert.throws(() => inspectP04TypeGraph(crossed, true), /Pay-only build constraint/);
 });

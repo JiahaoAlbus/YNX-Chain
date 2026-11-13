@@ -31,23 +31,24 @@ def commit(value):
 def paths(base, head):
     return [p for p in git('diff', '--no-renames', '--name-only', '-z', base, head).split(b'\0') if p]
 
-def p04_workflow_changed(base, head):
+def p04_workflow_sections(revision):
     workflow = '.github/workflows/chain-core.yml'
-    # These two lines only select the existing step. Any other workflow edit
-    # may alter the runner, OpenSSL, Go, or the frozen package's invocation.
-    def without_selection(revision):
-        lines = git('show', revision + ':' + workflow).splitlines()
-        kept = []
-        request_step = False
-        for line in lines:
-            if line.startswith(b'      - '):
-                request_step = line == b'      - name: Verify the composed P04 and Auth original request identity'
-            if line and not line.startswith(b'        ') and not line.startswith(b'      - '):
-                request_step = False
-            if not request_step and line != b'      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}':
-                kept.append(line)
-        return kept
-    return without_selection(base) != without_selection(head)
+    # Additional independent P04 selections leave the legacy runner unchanged.
+    selected_steps = {
+        b'      - name: Verify the composed P04 and Auth original request identity': 'identity',
+        b'      - name: Verify the original Cloud live LINK read routes': 'cloud',
+    }
+    selected_outputs = {
+        b'      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}': 'identity',
+        b'      p04_cloud_live_read: ${{ steps.paths.outputs.p04_cloud_live_read }}': 'cloud',
+    }
+    sections = {'shared': [], 'identity': [], 'cloud': []}
+    step = 'shared'
+    for line in git('show', revision + ':' + workflow).splitlines():
+        if line and not line.startswith(b'        '):
+            step = selected_steps.get(line, 'shared')
+        sections[selected_outputs.get(line, step)].append(line)
+    return sections
 
 def owned(p):
     return p == b'.github/workflows/chain-core.yml' or p.startswith((b'cmd/ynx-secure-link/', b'internal/securelink/', b'cmd/ynx-secure-link-caller/ide-finite-get-', b'cmd/ynx-secure-link-caller/ide_finite_get_', b'cmd/ynx-secure-link-caller/ai-mobile-v6-'))
@@ -103,15 +104,21 @@ p04_consumer = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-con
     b'cmd/ynx-secure-link-caller/build.mjs', b'scripts/verify/github-actions-pins-check.mjs',
 ) for p in changes)
 p04_request_identity = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-request-identity-deps/') for p in changes)
-if changes is not None and b'cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs' in changes and not (p04_consumer or p04_request_identity):
+p04_cloud_live_read = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-cloud-live-read-deps/') for p in changes)
+if changes is not None and b'cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs' in changes and not (p04_consumer or p04_request_identity or p04_cloud_live_read):
     p04_consumer = True
-    p04_request_identity = True
 if changes is not None and b'.github/workflows/chain-core.yml' in changes:
-    p04_consumer = p04_consumer or p04_workflow_changed(common, head)
+    before_sections, after_sections = p04_workflow_sections(common), p04_workflow_sections(head)
+    p04_consumer = p04_consumer or before_sections['shared'] != after_sections['shared']
+    p04_request_identity = p04_request_identity or before_sections['identity'] != after_sections['identity']
+    p04_cloud_live_read = p04_cloud_live_read or before_sections['cloud'] != after_sections['cloud']
+p04_request_identity = p04_request_identity or p04_consumer
+p04_cloud_live_read = p04_cloud_live_read or p04_request_identity
 print('changed=' + str(changed).lower())
 print('exclusive_link=' + str(exclusive).lower())
 print('p04_consumer=' + str(p04_consumer).lower())
 print('p04_request_identity=' + str(p04_request_identity).lower())
+print('p04_cloud_live_read=' + str(p04_cloud_live_read).lower())
 PY
     ;;
   *) printf '%s\n' 'usage: sh cmd/ynx-secure-link/check.sh [stub|native|ci-scope]' >&2; exit 2 ;;

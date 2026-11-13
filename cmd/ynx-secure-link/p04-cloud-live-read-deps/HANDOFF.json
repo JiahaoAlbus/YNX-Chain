@@ -1,0 +1,44 @@
+{
+  "schema": "YNX-P04-normal-cloud-live-link-read/1",
+  "base": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/auth-link-original-request-composition-r2/HANDOFF.json",
+    "bytes": 2784,
+    "sha256": "981bb7c7b2bec7dca4c58fc2f828c6d939504ea66ab72eecf753976b14d65efa"
+  },
+  "archive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-cloud-live-link-read-r1/source-input.tar.gz",
+    "bytes": 2364538,
+    "sha256": "5e48f2c3f0f3adc939e1b9456f569fc64b3547deee784da8943c71ca487bfb78"
+  },
+  "files": 449,
+  "test": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/20-cloud/apps/cloud/cmd/ynx-cloudd/ide_runtime_live_link_read_test.go",
+    "bytes": 2975,
+    "sha256": "08cbff4e6458a76516eeedc4aaabec81356d07f821e6187afbc1e8ad75bd295e"
+  },
+  "command": [
+    "go",
+    "test",
+    "-mod=readonly",
+    "-race",
+    "-p",
+    "1",
+    "-count=1",
+    "-timeout=150s",
+    "-json",
+    "-tags=cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test",
+    "-run",
+    "^TestIDERuntimeLINKOriginalRequestReachesCloudReadRoutesWithoutGrant$",
+    "./apps/cloud/cmd/ynx-cloudd"
+  ],
+  "expected": [
+    "real PQ mTLS request pointer forwarded from PUBLIC fixture to normal Cloud read handlers while original handler is still live",
+    "status and logs return no-store 503 IDE_DEPLOYMENT_AUTHORITY_UNAVAILABLE to local recorder",
+    "same original listener identity before and after routing",
+    "closed request rejected"
+  ],
+  "productionChanges": 0,
+  "goExecuted": false,
+  "SourceAdmission": false,
+  "deployed": false
+}

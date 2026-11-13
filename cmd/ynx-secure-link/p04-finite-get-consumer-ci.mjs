@@ -21,6 +21,8 @@ export const P04_REQUIRED_SUBTESTS = Object.freeze([
 export const P04_GO_ARGUMENTS = Object.freeze(['test', '-mod=readonly', '-race', '-p', '1', '-count=1', '-timeout=150s', '-json',
   '-tags=' + tags, '-run', '^(' + P04_REQUIRED_TOPS.join('|') + ')$', './internal/developerauthority']);
 const requestIdentityDependencies = path.join(directory, 'p04-request-identity-deps');
+const cloudLiveReadDependencies = path.join(directory, 'p04-cloud-live-read-deps');
+const requestIdentityHandoff = {file: 'HANDOFF.json', bytes: 2784, sha256: '981bb7c7b2bec7dca4c58fc2f828c6d939504ea66ab72eecf753976b14d65efa'};
 const requestIdentityProducer = '9fefca05e731a7ddd19e63354522daaed07085ba';
 const requestIdentitySuites = [
   {name: 'request-identity-link', package: 'internal/securelink', tests: ['TestOriginalServerTLSOriginalRequestIdentity']},
@@ -30,6 +32,12 @@ const requestIdentityArguments = [
   [...P04_GO_ARGUMENTS.slice(0, -2), '^TestOriginalServerTLSOriginalRequestIdentity$', './internal/securelink'],
   [...P04_GO_ARGUMENTS.slice(0, -2), '^TestAuthReceiver(UsesLiveLINKRequestIdentity|RefusesUnboundLINKRequest)$', './internal/developerauthority'],
 ];
+const cloudReadPackage = 'apps/cloud/cmd/ynx-cloudd';
+const cloudReadTest = 'TestIDERuntimeLINKOriginalRequestReachesCloudReadRoutesWithoutGrant';
+const cloudReadTags = 'cloud_auth_v2,cloud_http_v5,cloud_auth_finite_get,cloud_link_finite_get,' + tags;
+const cloudReadArguments = [...P04_GO_ARGUMENTS.slice(0, -4), '-tags=' + cloudReadTags, '-run', '^' + cloudReadTest + '$', './' + cloudReadPackage];
+const cloudReadSuite = {name: 'cloud-live-read', package: cloudReadPackage, tests: [cloudReadTest, cloudReadTest + '/status', cloudReadTest + '/logs']};
+const cloudReadExcludedPayLeaves = ['ide_runtime_pay_native.go', 'ide_runtime_pay_native_test.go'];
 export const P04_COMET_ORIGINAL = Object.freeze({commit: '63ba175ec3725845536963daca5c8b79418187ad',
   repositoryTree: 'cfa69e0246f6cc87fb7d87a947f5f4de38650c8e', moduleTree: '47d7cfeee7cd178cb897eda57a4674677fac7e67',
   descriptors: Object.freeze([
@@ -154,11 +162,17 @@ export function p04GoImports(raw) {
   for (const name of imports) need(!name.includes('\\'), 'escaped Go imports require explicit parser update');
   return imports;
 }
-export function inspectP04TypeGraph(files) {
-  const pending = ['internal/developerauthority'], visited = new Set(), imports = new Set();
+export function inspectP04TypeGraph(files, cloudLiveRead = false) {
+  const pending = [cloudLiveRead ? cloudReadPackage : 'internal/developerauthority'], visited = new Set(), imports = new Set();
+  const excluded = new Set();
+  if (cloudLiveRead) for (const name of cloudReadExcludedPayLeaves) {
+    const file = cloudReadPackage + '/' + name;
+    need(files.get(file)?.toString('utf8').startsWith('//go:build pay_pq && pay_cloud\n'), 'frozen Pay-only build constraint required: ' + file);
+    excluded.add(file);
+  }
   while (pending.length) {
     const folder = pending.pop(); if (visited.has(folder)) continue; visited.add(folder);
-    const leaves = [...files.keys()].filter(name => path.posix.dirname(name) === folder && name.endsWith('.go'));
+    const leaves = [...files.keys()].filter(name => path.posix.dirname(name) === folder && name.endsWith('.go') && !excluded.has(name));
     need(leaves.length > 0, 'complete local package source required: ' + folder);
     for (const leaf of leaves) for (const name of p04GoImports(files.get(leaf))) {
       imports.add(name); need(name !== 'github.com/cometbft/cometbft' && !name.startsWith('github.com/cometbft/cometbft/'), 'Comet import requires explicitly expanded original source graph');
@@ -167,7 +181,8 @@ export function inspectP04TypeGraph(files) {
       else if (name.startsWith('ynx.local/auth/binary-http-source/')) pending.push('binary-source/' + name.slice('ynx.local/auth/binary-http-source/'.length));
     }
   }
-  return {kind: 'STATIC_ALL_TAG_AND_TEST_IMPORT_SUPERSET_NOT_GO_LIST', packages: [...visited].sort(), imports: [...imports].sort(), cometGoSourceRequired: false};
+  return {kind: cloudLiveRead ? 'STATIC_IMPORT_SUPERSET_EXCLUDING_FIXED_PAY_TAG_LEAVES_NOT_GO_LIST' : 'STATIC_ALL_TAG_AND_TEST_IMPORT_SUPERSET_NOT_GO_LIST',
+    ...(cloudLiveRead ? {excluded: [...excluded]} : {}), packages: [...visited].sort(), imports: [...imports].sort(), cometGoSourceRequired: false};
 }
 
 export function qualifyP04ProtectedAncestors(rows, uid = process.getuid()) {
@@ -250,7 +265,7 @@ export function verifyP04ConsumerDependencies(root = dependencies) {
   return {inputs, manifest: m, candidate, sdk, vector, comet, graph, sourceManifest: sources, composition: c};
 }
 export function verifyP04RequestIdentityDependencies(base = verifyP04ConsumerDependencies(), root = requestIdentityDependencies) {
-  const h = asset(root, {file: 'HANDOFF.json', bytes: 2784, sha256: '981bb7c7b2bec7dca4c58fc2f828c6d939504ea66ab72eecf753976b14d65efa'});
+  const h = asset(root, requestIdentityHandoff);
   const handoff = parseJSON(h.raw, 'P04 request identity handoff');
   need(handoff.schema === 'YNX-P04-original-request-Auth-LINK-composition/1' && handoff.files === 448 &&
     handoff.link?.commit === requestIdentityProducer && handoff.link.tree === '2e5f627175e51fc7ab5158e98abcf023331ceee0' &&
@@ -279,9 +294,31 @@ export function verifyP04RequestIdentityDependencies(base = verifyP04ConsumerDep
   return {...base, candidate, sourceManifest, graph, inputs: [...base.inputs, h, archive], requestIdentityHandoff: h.pin};
 }
 
-export function prepareP04ConsumerComposite({dependencyRoot = dependencies, privateRoot, publicRoot, requestIdentity = false}) {
+export function verifyP04CloudLiveReadDependencies(base = verifyP04RequestIdentityDependencies(), root = cloudLiveReadDependencies) {
+  const h = asset(root, {file: 'HANDOFF.json', bytes: 1724, sha256: '74d0cbd89e8d0ed258df2da595f2fc09a85080fa6eef6321bd4aae8bc0e81bc1'});
+  const handoff = parseJSON(h.raw, 'P04 Cloud live read handoff');
+  need(handoff.schema === 'YNX-P04-normal-cloud-live-link-read/1' && handoff.files === 449 &&
+    handoff.base?.bytes === base.requestIdentityHandoff.bytes && handoff.base.sha256 === base.requestIdentityHandoff.sha256 &&
+    handoff.productionChanges === 0 && handoff.SourceAdmission === false && handoff.deployed === false &&
+    sameJSON(handoff.command, ['go', ...cloudReadArguments]), 'exact Cloud live read handoff and command required');
+  const archive = asset(root, {...handoff.archive, file: 'source.tar.gz'});
+  const candidate = parseP04SourceArchive(archive.raw), manifestRaw = candidate.files.get('SOURCE_MANIFEST.json');
+  need(manifestRaw, 'embedded Cloud live read source inventory required');
+  const sourceManifest = parseJSON(manifestRaw, 'Cloud live read source manifest');
+  need(sourceManifest.schema === base.sourceManifest.schema && sourceManifest.inputs?.length === handoff.files, 'complete Cloud live read source inventory required');
+  verifyP04ArchiveMembers(candidate, [...sourceManifest.inputs, {relative: 'SOURCE_MANIFEST.json', ...pin(manifestRaw)}]);
+  const test = cloudReadPackage + '/ide_runtime_live_link_read_test.go';
+  exact(sourceManifest.inputs.map(row => row.relative), [...base.sourceManifest.inputs.map(row => row.relative), test], 'original R2 leaves plus one Cloud test');
+  for (const row of base.sourceManifest.inputs) verifyBytes(candidate.files.get(row.relative), row, row.relative);
+  verifyBytes(candidate.files.get(test), handoff.test, test);
+  const graph = inspectP04TypeGraph(candidate.files, true);
+  return {...base, candidate, sourceManifest, graph, inputs: [...base.inputs, h, archive], cloudLiveReadHandoff: h.pin};
+}
+
+export function prepareP04ConsumerComposite({dependencyRoot = dependencies, privateRoot, publicRoot, requestIdentity = false, cloudLiveRead = false}) {
   const original = verifyP04ConsumerDependencies(dependencyRoot);
-  const verified = requestIdentity ? verifyP04RequestIdentityDependencies(original) : original;
+  let verified = requestIdentity || cloudLiveRead ? verifyP04RequestIdentityDependencies(original) : original;
+  if (cloudLiveRead) verified = verifyP04CloudLiveReadDependencies(verified);
   need(!within(privateRoot, publicRoot) && !within(publicRoot, privateRoot), 'disjoint private and evidence roots required');
   const source = path.join(privateRoot, 'source'), sdk = path.join(privateRoot, 'public-sdk'), staged = [];
   function materialize(root, name, raw, owner) {const file = write(root, name, raw); staged.push({...pin(raw, file), relative: path.relative(privateRoot, file), owner});}
@@ -291,7 +328,8 @@ export function prepareP04ConsumerComposite({dependencyRoot = dependencies, priv
   const vector = write(privateRoot, 'public-inputs/vector.json', verified.vector.raw); staged.push({...pin(verified.vector.raw, vector), relative: 'public-inputs/vector.json', owner: 'AUTH_ORIGINAL_PUBLIC_VECTOR'});
   const ownedRoot = path.join(privateRoot, 'owned-r5'); fs.mkdirSync(ownedRoot, {mode: 0o700}); const protectedRows = ancestors(ownedRoot);
   return {source, sdk, vector, ownedRoot, protectedRows, staged, inputs: verified.inputs.map(v => v.pin), graph: verified.graph,
-    ...(requestIdentity ? {requestIdentityHandoff: verified.requestIdentityHandoff} : {}),
+    ...(verified.requestIdentityHandoff ? {requestIdentityHandoff: verified.requestIdentityHandoff} : {}),
+    ...(cloudLiveRead ? {cloudLiveReadHandoff: verified.cloudLiveReadHandoff} : {}),
     originalCandidateBytesUnchanged: true, wholePackageNotGoFilesSubset: true, sourceFiles: verified.sourceManifest.inputs.length,
     RootAdmission: false, SourceAdmission: false, normalRuntimePackageBuilt: false};
 }
@@ -314,6 +352,11 @@ export function qualifyP04RequestIdentityEvents(suite, raw, status, signal, erro
   return {package: packagePath, passed: qualifyPackageEvents(raw, status, signal, error, packagePath, selected.tests)};
 }
 
+export function qualifyP04CloudLiveReadEvents(raw, status, signal, error) {
+  const packagePath = moduleName + '/' + cloudReadSuite.package;
+  return {package: packagePath, passed: qualifyPackageEvents(raw, status, signal, error, packagePath, cloudReadSuite.tests)};
+}
+
 function qualifyPackageEvents(raw, status, signal, error, expectedPackage, expected) {
   need(status === 0 && signal === null && error === null, 'actual Go exit0/no signal/timeout required');
   const ran = [], passed = []; let packages = 0;
@@ -328,7 +371,8 @@ function qualifyPackageEvents(raw, status, signal, error, expectedPackage, expec
   exact(ran, expected, 'selected test RUNs'); exact(passed, expected, 'selected test PASSes'); need(packages === 1, 'one actual package PASS required');
   return passed;
 }
-export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = false) {
+export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = false, cloudLiveRead = false) {
+  need(!(requestIdentity && cloudLiveRead), 'only one original CI suite per evidence root');
   need(env.CI === 'true' && env.GITHUB_ACTIONS === 'true' && /^[1-9][0-9]*$/.test(env.GITHUB_RUN_ID ?? ''), 'only original GitHub Actions execution; no local CI impersonation');
   need(['linux', 'darwin'].includes(process.platform) && /^v24\./.test(process.version), 'actual supported CI Node24 process required');
   const publicRoot = env.YNX_LINK_P04_CONSUMER_EVIDENCE, privateRoot = env.YNX_LINK_P04_CONSUMER_PRIVATE;
@@ -345,7 +389,7 @@ export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = f
     need(command.status === 0 && command.signal === null && command.error === null, 'actual command failed: ' + name); return {command, text: fs.readFileSync(stdout, 'utf8')};
   }
   try {
-    composite = prepareP04ConsumerComposite({privateRoot, publicRoot, requestIdentity});
+    composite = prepareP04ConsumerComposite({privateRoot, publicRoot, requestIdentity, cloudLiveRead});
     const prefix = env.OPENSSL_PREFIX; need(typeof prefix === 'string' && path.isAbsolute(prefix) && fs.realpathSync(prefix) === prefix &&
       env.PKG_CONFIG_PATH === path.join(prefix, 'lib/pkgconfig') && env.PKG_CONFIG_LIBDIR === env.PKG_CONFIG_PATH, 'same original private OpenSSL pkg-config context required');
     const variables = {...env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOMEMLIMIT: '1536MiB', GOTOOLCHAIN: 'local', GOWORK: 'off', GOFLAGS: '',
@@ -365,7 +409,11 @@ export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = f
     need(/^OpenSSL 3\.6\.4 /.test(run('openssl', ['version'], 'openssl-cli', privateRoot, variables, 10000).text), 'actual selected CLI OpenSSL3.6.4 required');
     const go = parseJSON(Buffer.from(run('go', ['env', '-json', 'GOVERSION', 'GOCACHE', 'CGO_ENABLED', 'GOWORK'], 'go-environment', composite.source, variables, 30000).text), 'Go environment');
     need(go.GOVERSION === 'go1.26.10' && go.CGO_ENABLED === '1' && go.GOWORK === 'off' && go.GOCACHE === env.GOCACHE && path.isAbsolute(go.GOCACHE) && !within(publicRoot, go.GOCACHE), 'original pinned Go/cache/resource context required');
-    if (requestIdentity) {
+    if (cloudLiveRead) {
+      const result = run('go', cloudReadArguments, cloudReadSuite.name, composite.source, variables, 210000);
+      const verified = qualifyP04CloudLiveReadEvents(result.text, result.command.status, result.command.signal, result.command.error);
+      qualification = {...verified, skipped: 0, failed: 0, actualRUNPASS: true, PUBLICSeams: true, responseRecorder: true, RootAdmission: false, SourceAdmission: false};
+    } else if (requestIdentity) {
       const packages = requestIdentitySuites.map((suite, index) => {
         const result = run('go', requestIdentityArguments[index], suite.name, composite.source, variables, 210000);
         return qualifyP04RequestIdentityEvents(suite.name, result.text, result.command.status, result.command.signal, result.command.error);
@@ -377,8 +425,10 @@ export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = f
     }
     verifyP04CompositeUnchanged(composite); json('SOURCE-AFTER.json', {unchanged: true, staged: composite.staged, inputs: composite.inputs});
   } catch (error) {failure = error;}
-  const receipt = {schema: requestIdentity ? 'YNX-LINK-P04-REQUEST-IDENTITY-CI/v1' : 'YNX-LINK-P04-FINITE-GET-CONSUMER-CI/v1',
-    state: failure ? 'FAIL_FIRSTCAUSE_PRESERVED' : requestIdentity ? 'PASS_ORIGINAL_REQUEST_IDENTITY_PUBLIC_NATIVE' : 'PASS_COMPLETE_PACKAGE_PUBLIC_NATIVE_CONSUMER', composite: composite ?? null,
+  let schema = 'YNX-LINK-P04-FINITE-GET-CONSUMER-CI/v1', state = 'PASS_COMPLETE_PACKAGE_PUBLIC_NATIVE_CONSUMER';
+  if (requestIdentity) {schema = 'YNX-LINK-P04-REQUEST-IDENTITY-CI/v1'; state = 'PASS_ORIGINAL_REQUEST_IDENTITY_PUBLIC_NATIVE';}
+  if (cloudLiveRead) {schema = 'YNX-LINK-P04-CLOUD-LIVE-READ-CI/v1'; state = 'PASS_CLOUD_LIVE_NATIVE_REQUEST_WITHOUT_GRANT';}
+  const receipt = {schema, state: failure ? 'FAIL_FIRSTCAUSE_PRESERVED' : state, composite: composite ?? null,
     commands, qualification: qualification ?? null, failure: failure ? {message: failure.message, stack: failure.stack} : null,
     publicEvidenceRoot: publicRoot, privateWorkRoot: privateRoot, keysPublished: false, normalRuntimeArchiveBuilt: false, installed: false, deployed: false, RootAdmission: false, SourceAdmission: false};
   json('RESULT.json', receipt); if (failure) throw failure; return {result: path.join(publicRoot, 'RESULT.json'), qualification};
@@ -386,6 +436,7 @@ export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = f
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const args = process.argv.slice(2);
   const requestIdentity = sameJSON(args, ['--original-request-identity']);
-  need(args.length === 0 || requestIdentity, 'only the two fixed original CI modes are accepted');
-  console.log(JSON.stringify(runP04FiniteGETConsumerCI(process.env, requestIdentity)));
+  const cloudLiveRead = sameJSON(args, ['--cloud-live-read']);
+  need(args.length === 0 || requestIdentity || cloudLiveRead, 'only the fixed original CI modes are accepted');
+  console.log(JSON.stringify(runP04FiniteGETConsumerCI(process.env, requestIdentity, cloudLiveRead)));
 }
