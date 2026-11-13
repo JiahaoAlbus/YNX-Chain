@@ -4,8 +4,10 @@ import {randomUUID} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {Interface, zeroPadValue} from 'ethers';
+import {Interface, Wallet, zeroPadValue} from 'ethers';
 import {AtomicMultiFile, validateNetwork, multiError} from '../../multichain-config.mjs';
+import {MultiJournal} from '../../multichain-journal.mjs';
+import {MultichainService} from '../../multichain-service.mjs';
 import {CctpFlow, CctpStore} from './cctp-flow.mjs';
 import {CctpEVMAdapter} from './cctp-action.mjs';
 import {CctpReader} from './cctp-reader.mjs';
@@ -222,4 +224,134 @@ test('original transaction lookup cannot publish its receipt after an account sw
   assert.equal(h.calls.check.length, 1);
   assert.equal(h.calls.attestation, 0, 'do not advance to Iris after actor changed during original lookup');
   assert.equal(h.calls.prepare.length, 0);
+});
+
+// The same public deterministic key already used by cctp-action.test.mjs.
+// It supplies synthetic original journal bytes only, never a real Wallet key.
+const PUBLIC_TEST_SECRET = '0x' + '0'.repeat(63) + '1';
+const PUBLIC_TEST_ACCOUNT = new Wallet(PUBLIC_TEST_SECRET).address.toLowerCase();
+const terminalToken = new Interface(['function balanceOf(address) view returns(uint256)', 'function allowance(address,address) view returns(uint256)', 'function approve(address,uint256) returns(bool)']);
+const terminalMint = new Interface(['function receiveMessage(bytes,bytes) returns(bool)']);
+
+async function originalTerminalHarness(t, {step, signed = false, knownHash = false, conflictingHash = false}) {
+  const directory = await mkdtemp(join(tmpdir(), 'ynx-cctp-original-terminal-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const journalPath = join(directory, 'journal.json'), routePath = join(directory, 'cross-chain.json'), time = 1800000000000;
+  const networks = [ROUTE.source, ROUTE.destination].map((route, i) => validateNetwork({name: route.name, chainId: String(route.chainId), rpcUrl: `https://terminal-${i}.example.org`, symbol: 'ETH', decimals: 18, genesis: '0x' + String(i + 1).repeat(64)}));
+  const context = {account: PUBLIC_TEST_ACCOUNT, revision: 1, locked: false};
+  const configuration = {revision: 5, selected: networks[0].id, networks, tokens: []};
+  const binding = {routeId: ROUTE.id, account: PUBLIC_TEST_ACCOUNT, recipient: RECIPIENT, amountUnits: '1000000', maxFeeUnits: '100',
+    maxSourceGasFeeWei: '1000000000000000', maxDestinationGasFeeWei: '1000000000000000', sourceNetwork: networks[0], destinationNetwork: networks[1],
+    context: {...context, epoch: 0}, configRevision: 5, expiresAt: time + 120000, quoteId: randomUUID()};
+  const proof = {sourceTxHash: BURN_HASH, nonce: NONCE, message: message(binding), attestation: '0x' + '12'.repeat(65), amountReceived: '999925', feeExecuted: '75'};
+  const intentId = randomUUID(), calls = {rpc: [], custody: 0, submit: 0, configWrites: 0};
+  let queryOnly = false;
+  const adapter = new CctpEVMAdapter({rpc: async (url, method, params) => {
+    calls.rpc.push(method); assert.equal(queryOnly, false, 'terminal original lookup must not query or send RPC');
+    const network = networks.find(n => n.rpcUrl === url); assert.ok(network);
+    if (method === 'eth_chainId') return network.chainId;
+    if (method === 'eth_getBlockByNumber') {assert.equal(params[0], '0x0'); return {hash: network.genesis}}
+    if (method === 'eth_getCode') return '0x6000';
+    if (method === 'eth_getTransactionCount') return '0x1';
+    if (method === 'eth_gasPrice') return '0x3b9aca00';
+    if (method === 'eth_estimateGas') return '0xc350';
+    if (method === 'eth_getBalance') return '0xde0b6b3a7640000';
+    if (method === 'eth_blockNumber') return '0x64';
+    if (method === 'eth_call') {
+      const selector = params[0].data.slice(0, 10);
+      for (const name of ['balanceOf', 'allowance']) if (selector === terminalToken.getFunction(name).selector) return terminalToken.encodeFunctionResult(name, [1000000]);
+      if (selector === terminalToken.getFunction('approve').selector) return terminalToken.encodeFunctionResult('approve', [true]);
+      if (selector === terminalMint.getFunction('receiveMessage').selector) return terminalMint.encodeFunctionResult('receiveMessage', [true]);
+      return '0x';
+    }
+    assert.fail('Fixture cannot send or perform any other RPC: ' + method);
+  }});
+  const config = {read: async () => copy(configuration), remove: async () => {calls.configWrites++; assert.fail('Original route must retain its network lock')}};
+  const journal = new MultiJournal({filePath: journalPath});
+  const service = new MultichainService({config, journal, adapter, getContext: async () => copy(context), now: () => time,
+    withSecret: async () => {
+      calls.custody++;
+      const rows = await journal.list(networks[0].id, PUBLIC_TEST_ACCOUNT);
+      assert.equal(rows.length, 1); assert.equal(rows[0].state, 'prepared'); assert.equal(rows[0].raw, null); assert.equal(rows[0].hash, null);
+      // Reject after the real reservation, before invoking the signer callback.
+      throw multiError('FIXTURE_CUSTODY_REFUSED', 'Controlled refusal before key callback');
+    }});
+  const review = await service.prepareCctpStep({intentId, step, binding, proof: step === 'mint' ? proof : null});
+  if (!signed) {
+    await assert.rejects(service.sendCctpStep(review.id, {account: PUBLIC_TEST_ACCOUNT, assert() {}, submit() {calls.submit++; assert.fail('Refused custody cannot submit')}}), {code: 'FIXTURE_CUSTODY_REFUSED'});
+    assert.equal(calls.custody, 1); assert.equal(calls.submit, 0);
+  } else {
+    // Use the actual journal reservation's live cancellation permit. A reopened
+    // record or renderer boolean cannot manufacture this durable terminal state.
+    const original = {id: review.id, network: review.network, account: review.account, nonce: review.transaction.nonce, asset: review.asset, to: review.to, amount: review.amount,
+      transaction: review.transaction, cctp: review.cctp, state: 'prepared', raw: null, hash: null, receipt: null, createdAt: time, updatedAt: time};
+    const permit = await journal.reserve(original);
+    try {
+      const bytes = await adapter.sign(PUBLIC_TEST_SECRET, original);
+      await journal.transition(original.id, {state: 'signed', ...bytes, updatedAt: time});
+      await permit.cancelSigned(time);
+    } finally {permit.retire()}
+    assert.equal(calls.custody, 0);
+  }
+  const original = (await journal.list(review.network.id, PUBLIC_TEST_ACCOUNT))[0];
+  assert.equal(original.state, signed ? 'local-cancelled-before-broadcast' : 'cancelled');
+  assert.equal(original.raw === null, !signed); assert.equal(original.hash === null, !signed);
+  const operation = {step, id: review.id, state: 'unknown', hash: conflictingHash ? '0x' + 'ee'.repeat(32) : knownHash ? original.hash : null};
+  const record = {id: intentId, revision: 0, binding, state: step === 'approve' ? 'approval-pending' : step === 'burn' ? 'burn-pending' : 'mint-pending',
+    operations: [...(step === 'mint' ? [{step: 'burn', id: randomUUID(), state: 'included', hash: BURN_HASH}] : []), operation],
+    proof: step === 'mint' ? proof : null, destination: null, firstError: signed ? 'ORIGINAL_SIGNED_CANCELLED' : 'FIXTURE_CUSTODY_REFUSED', createdAt: time, updatedAt: time};
+  const store = new CctpStore({filePath: routePath}); await store.insert(record);
+  queryOnly = true;
+  const cold = () => {
+    const coldStore = new CctpStore({filePath: routePath});
+    const wallet = new MultichainService({config, journal: new MultiJournal({filePath: journalPath}), adapter, getContext: async () => copy(context), now: () => time,
+      pendingRouteNetwork: id => coldStore.pendingNetwork(id), withSecret: async () => {calls.custody++; assert.fail('Cold terminal observation must not enter custody')}});
+    const reader = Object.fromEntries(['quote', 'attestation', 'destination'].map(name => [name, async () => assert.fail('Terminal observation must not request ' + name)]));
+    return {wallet, store: coldStore, flow: new CctpFlow({wallet, reader, store: coldStore, now: () => time})};
+  };
+  return {cold, original, record, operation, networks, calls, journalPath, routePath, config, configuration};
+}
+
+for (const options of [
+  {name: 'custody refusal before callback', step: 'approve'},
+  {name: 'signed cancellation with unacknowledged original hash', step: 'burn', signed: true},
+  {name: 'signed cancellation with known original hash and prior burn proof', step: 'mint', signed: true, knownHash: true},
+]) test('original Main terminal observation ' + options.name + ' stays query-only across cold recovery', async t => {
+  const h = await originalTerminalHarness(t, options), beforeCalls = copy(h.calls);
+  const beforeJournal = await readFile(h.journalPath, 'utf8'), beforeRoute = await readFile(h.routePath, 'utf8');
+  const expected = {...h.record, originalObservation: {version: 1, intentId: h.record.id, operationId: h.operation.id, step: options.step,
+    account: h.record.binding.account, network: h.original.network, recordedState: h.original.state, hash: h.original.hash, view: 'query-only', routeOutcome: 'unknown'}};
+  for (let restart = 0; restart < 2; restart++) {
+    const {wallet, store, flow} = h.cold();
+    const originalView = await wallet.checkCctpStep({id: h.operation.id, network: h.original.network, account: h.original.account});
+    const {raw, ...publicOriginal} = h.original;
+    assert.deepEqual(originalView, publicOriginal, 'the real Main query retains its original terminal state and strips raw bytes');
+    const observed = await flow.check(h.record.id);
+    assert.deepEqual(observed, expected, 'original terminal evidence is a response projection, never new route readiness');
+    if (raw) assert.equal(JSON.stringify(observed).includes(raw), false, 'signed custody bytes must never enter the route projection');
+    assert.deepEqual(await flow.history(), [h.record]);
+    assert.deepEqual(await store.get(h.record.id), h.record, 'retain local hash/null, proof, first cause and original revision');
+    await assert.rejects(flow.prepareStep(h.record.id), {code: 'CCTP_CHECK_ORIGINAL'});
+    await assert.rejects(flow.confirmStep({id: h.record.id, reviewId: h.operation.id}), {code: 'CCTP_CHECK_ORIGINAL'});
+    assert.equal((await flow.cancel(h.record.id)).cancelled, false);
+    for (const network of h.networks) {
+      assert.equal(await store.pendingNetwork(network.id), 1);
+      await assert.rejects(wallet.remove(network.id), {code: 'MULTICHAIN_RESOLUTION_REQUIRED'});
+    }
+    assert.equal(await readFile(h.journalPath, 'utf8'), beforeJournal, 'read-only original observation must not transition Main journal');
+    assert.equal(await readFile(h.routePath, 'utf8'), beforeRoute, 'read-only original observation must not rewrite route history');
+  }
+  assert.deepEqual(h.calls, beforeCalls, 'cold observation must perform no new RPC, custody, submit or network write');
+  assert.deepEqual(await h.config.read(), h.configuration);
+});
+
+test('original Main terminal observation refuses a different known hash without replacing durable history', async t => {
+  const h = await originalTerminalHarness(t, {step: 'burn', signed: true, conflictingHash: true}), beforeCalls = copy(h.calls);
+  const beforeJournal = await readFile(h.journalPath, 'utf8'), beforeRoute = await readFile(h.routePath, 'utf8');
+  const {flow, store} = h.cold();
+  await assert.rejects(flow.check(h.record.id), {code: 'CCTP_RESULT_MISMATCH'});
+  assert.deepEqual(await store.get(h.record.id), h.record);
+  assert.equal(await readFile(h.journalPath, 'utf8'), beforeJournal); assert.equal(await readFile(h.routePath, 'utf8'), beforeRoute);
+  for (const network of h.networks) assert.equal(await store.pendingNetwork(network.id), 1);
+  assert.deepEqual(h.calls, beforeCalls);
 });

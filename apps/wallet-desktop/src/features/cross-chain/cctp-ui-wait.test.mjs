@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mountCctpUI } from './cctp-ui.mjs';
+import { validateNetwork } from '../../multichain-config.mjs';
 
 const ID = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
 const REVIEW_ID = 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
@@ -181,5 +182,186 @@ test('dispose retires the unresolved action and clears its deadline without wait
     held.resolve(ok([h.pending])); await flush();
     assert.equal(h.root.children.length, 0);
     assert.deepEqual(h.calls, [{ method: 'history', input: undefined }]);
+  } finally { h.ui.dispose(); }
+});
+
+// These are public DATA observations returned by original check, not a new
+// terminal route state, cancellation permission, or replacement-send grant.
+const OBSERVATION_ACCOUNT = `0x${'11'.repeat(20)}`;
+const OBSERVATION_NETWORK = validateNetwork({ name: 'Public source fixture', rpcUrl: 'https://example.com', chainId: '11155111', symbol: 'ETH', decimals: 18, genesis: `0x${'12'.repeat(32)}` });
+const observationMessages = {
+  cancelled: 'Wallet recorded cancellation before signing. Transfer outcome is unknown.',
+  'local-cancelled-before-broadcast': 'Wallet recorded a local cancellation for the signed transaction. Transfer outcome is unknown.',
+};
+function observedOriginal(h, recordedState) {
+  const record = clone(h.pending);
+  record.binding.account = OBSERVATION_ACCOUNT;
+  record.binding.sourceNetwork = clone(OBSERVATION_NETWORK);
+  record.operations[0].hash = recordedState === 'cancelled' ? null : HASH;
+  record.originalObservation = {
+    version: 1, intentId: record.id, operationId: REVIEW_ID, step: 'burn', account: OBSERVATION_ACCOUNT,
+    network: clone(OBSERVATION_NETWORK), recordedState, hash: record.operations[0].hash,
+    view: 'query-only', routeOutcome: 'unknown',
+  };
+  return record;
+}
+const persistedOriginal = value => { const record = clone(value); delete record.originalObservation; return record; };
+const unrelatedRecord = (h, state) => ({
+  ...clone(h.ready), state,
+  id: state === 'ready' ? 'dddddddd-dddd-4ddd-dddd-dddddddddddd' : 'eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee',
+  binding: { ...clone(h.ready.binding), quoteId: 'ffffffff-ffff-4fff-ffff-ffffffffffff' },
+});
+const writeCalls = h => h.calls.filter(call => ['quote', 'start', 'prepare', 'confirm', 'cancel'].includes(call.method));
+
+for (const recordedState of Object.keys(observationMessages)) {
+  test(`original observation distinguishes ${recordedState} without claiming cancellation of the route`, async () => {
+    const h = fixture();
+    try {
+      const original = observedOriginal(h, recordedState);
+      h.result.history = [persistedOriginal(original)];
+      h.result.check = original;
+      await h.click('Restore transfer history'); await h.select('burn-pending');
+      await h.click('Check original transfer');
+      assert.ok(h.root.textContent.includes(observationMessages[recordedState]), 'Show the original Wallet observation without changing the route outcome');
+      assert.ok(!h.root.textContent.includes(observationMessages[recordedState === 'cancelled' ? 'local-cancelled-before-broadcast' : 'cancelled']));
+      assert.ok(h.root.textContent.includes('burn-pending'));
+      if (original.originalObservation.hash) {
+        const details = walk(h.root).find(node => node.tagName === 'DL');
+        const label = details.children.findIndex(node => node.tagName === 'DT' && node.textContent === 'Recorded transaction hash');
+        assert.ok(label >= 0, 'The original signed transaction hash needs a distinct observation label');
+        assert.equal(details.children[label + 1].textContent, HASH);
+      } else {
+        assert.ok(!h.root.textContent.includes(HASH), 'A pre-sign cancellation has no signed transaction hash');
+      }
+      assert.ok(!h.root.textContent.includes('Destination mint finalized and receipt verified.'));
+      assert.deepEqual(h.calls, [{ method: 'history', input: undefined }, { method: 'check', input: ID }]);
+    } finally { h.ui.dispose(); }
+  });
+
+  test(`original observation ${recordedState} keeps the lost-confirm fence across other history records`, async t => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const h = fixture();
+    try {
+      const oldQuoteButton = button(h.root, 'Review route and fees');
+      await h.reachReady();
+      const oldPrepareButton = button(h.root, 'Review next transaction');
+      await h.click('Review next transaction');
+      const oldConfirmButton = button(h.root, 'Confirm and send this transaction');
+      const held = h.hold('confirm'), action = h.click('Confirm and send this transaction'); await held.entered;
+      t.mock.timers.tick(120000); await action;
+      const original = observedOriginal(h, recordedState);
+      h.result.check = original;
+      await h.click('Check original transfer');
+      const writesBefore = clone(writeCalls(h));
+      h.result.history = [persistedOriginal(original), unrelatedRecord(h, 'ready'), unrelatedRecord(h, 'completed')];
+      await h.click('Restore transfer history'); await h.select('ready');
+      assertFenced(h.root);
+      // Retained old handlers must obey the same fence as newly rendered UI.
+      await oldQuoteButton.click(); await oldPrepareButton.click(); await oldConfirmButton.click();
+      h.result.check = unrelatedRecord(h, 'ready'); await h.click('Check original transfer');
+      assertFenced(h.root);
+      await h.select('completed'); assertFenced(h.root);
+      // A late successful confirm response is not a fresh original check.
+      held.resolve(ok(h.ready)); await flush(); assertFenced(h.root);
+      assert.deepEqual(writeCalls(h), writesBefore, 'No quote, prepare or send may follow a query-only observation');
+      assert.equal(h.calls.filter(call => call.method === 'confirm').length, 1);
+      assert.deepEqual(h.calls.filter(call => call.method === 'check').map(call => call.input), [ID, unrelatedRecord(h, 'ready').id]);
+    } finally { h.ui.dispose(); }
+  });
+}
+
+test('original observation from cold history establishes a write fence until a later trusted original result', async () => {
+  const h = fixture();
+  try {
+    const original = observedOriginal(h, 'local-cancelled-before-broadcast'), other = unrelatedRecord(h, 'ready');
+    h.result.history = [persistedOriginal(original), other]; h.result.check = original;
+    await h.click('Restore transfer history'); await h.select('burn-pending');
+    await h.click('Check original transfer');
+    await h.select('ready'); assertFenced(h.root);
+    h.result.check = other; await h.click('Check original transfer'); assertFenced(h.root);
+    assert.deepEqual(writeCalls(h), []);
+    await h.select('burn-pending');
+    const trusted = clone(original); delete trusted.originalObservation;
+    trusted.state = 'attestation-pending'; trusted.operations[0].state = 'included';
+    h.result.check = trusted; await h.click('Check original transfer');
+    await h.select('ready');
+    assert.ok(hasButton(h.root, 'Review next transaction'), 'Only a later trusted check of the original intent resolves this observation fence');
+    assert.deepEqual(writeCalls(h), []);
+  } finally { h.ui.dispose(); }
+});
+
+test('original observation arriving after account invalidation cannot replace the new account record', async () => {
+  const h = fixture();
+  try {
+    const original = observedOriginal(h, 'local-cancelled-before-broadcast');
+    h.result.history = [h.pending];
+    await h.click('Restore transfer history'); await h.select('burn-pending');
+    const held = h.hold('check'), action = h.click('Check original transfer'); await held.entered;
+    // Main's account/lock listener invalidates this renderer before the next
+    // account-owned history response. No real Wallet account is accessed.
+    h.ui.invalidate(); await action;
+    const current = { ...clone(h.pending), id: 'dddddddd-dddd-4ddd-dddd-dddddddddddd', binding: { ...clone(h.pending.binding), account: `0x${'33'.repeat(20)}` }, operations: [{ ...clone(h.pending.operations[0]), id: 'eeeeeeee-eeee-4eee-eeee-eeeeeeeeeeee', hash: `0x${'cd'.repeat(32)}` }] };
+    h.result.history = [current];
+    await h.click('Restore transfer history'); await h.select('burn-pending');
+    held.resolve(ok(original)); await flush();
+    assert.ok(h.root.textContent.includes(current.operations[0].hash));
+    assert.ok(!h.root.textContent.includes(HASH));
+    assert.ok(!h.root.textContent.includes(observationMessages['local-cancelled-before-broadcast']));
+    h.overrides.check = () => ok(current); await h.click('Check original transfer');
+    assert.deepEqual(h.calls.at(-1), { method: 'check', input: current.id });
+    assert.deepEqual(writeCalls(h), []);
+  } finally { h.ui.dispose(); }
+});
+
+test('original observation already displayed is removed on account or lock invalidation', async () => {
+  const h = fixture();
+  try {
+    h.result.check = observedOriginal(h, 'local-cancelled-before-broadcast');
+    await h.click('Restore transfer history'); await h.select('burn-pending'); await h.click('Check original transfer');
+    assert.ok(h.root.textContent.includes(observationMessages['local-cancelled-before-broadcast']));
+    const before = clone(h.calls); h.ui.invalidate();
+    assert.ok(!h.root.textContent.includes(HASH));
+    assert.ok(!h.root.textContent.includes(observationMessages['local-cancelled-before-broadcast']));
+    assert.deepEqual(h.calls, before, 'Invalidation must not make another IPC request');
+    assertFenced(h.root);
+  } finally { h.ui.dispose(); }
+});
+
+test('original observation cold recovery survives account switching until its original intent is checked', async () => {
+  const h = fixture();
+  try {
+    const original = observedOriginal(h, 'local-cancelled-before-broadcast');
+    h.result.history = [persistedOriginal(original)]; h.result.check = original;
+    await h.click('Restore transfer history'); await h.select('burn-pending'); await h.click('Check original transfer');
+    h.ui.invalidate();
+    const otherAccount = unrelatedRecord(h, 'ready'); otherAccount.binding.account = `0x${'33'.repeat(20)}`;
+    h.result.history = [otherAccount]; h.result.check = otherAccount;
+    await h.click('Restore transfer history'); await h.select('ready'); await h.click('Check original transfer');
+    assertFenced(h.root);
+    assert.ok(!h.root.textContent.includes(HASH));
+    assert.ok(!h.root.textContent.includes(observationMessages['local-cancelled-before-broadcast']));
+    h.ui.invalidate();
+    const trusted = persistedOriginal(original); trusted.state = 'attestation-pending'; trusted.operations[0].state = 'included';
+    const otherOriginalAccount = unrelatedRecord(h, 'ready'); otherOriginalAccount.binding.account = OBSERVATION_ACCOUNT;
+    h.result.history = [persistedOriginal(original), otherOriginalAccount];
+    await h.click('Restore transfer history');
+    const differentOperation = clone(trusted); differentOperation.operations[0].id = 'ffffffff-ffff-4fff-ffff-ffffffffffff';
+    const differentHash = clone(trusted); differentHash.operations[0].hash = `0x${'ef'.repeat(32)}`;
+    for (const [reason, result] of [
+      ['the same original operation is still UNKNOWN', persistedOriginal(original)],
+      ['an included operation has a different original ID', differentOperation],
+      ['an included operation has a different known original hash', differentHash],
+    ]) {
+      h.result.check = result;
+      await h.select('burn-pending'); await h.click('Check original transfer'); await h.select('ready');
+      assertFenced(h.root);
+      assert.deepEqual(writeCalls(h), [], reason);
+    }
+    h.result.check = trusted;
+    await h.select('burn-pending'); await h.click('Check original transfer');
+    await h.select('ready');
+    assert.ok(hasButton(h.root, 'Review next transaction'));
+    assert.deepEqual(h.calls.filter(call => call.method === 'check').map(call => call.input), [ID, otherAccount.id, ID, ID, ID, ID]);
+    assert.deepEqual(writeCalls(h), [], 'Account changes and original-result queries never trigger writes');
   } finally { h.ui.dispose(); }
 });

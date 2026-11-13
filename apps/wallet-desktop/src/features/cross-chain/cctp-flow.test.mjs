@@ -511,3 +511,148 @@ test('reverted mint preserves the burned transfer and network lock for original-
   await assert.rejects(h.start(),code('CCTP_UNRESOLVED'));
   const count=h.calls.check.length;await h.flow.check(record.id);assert.equal(h.calls.check.length,count+1);
 });
+
+// Main's local terminal observation is DATA about the original operation. It is
+// neither a cross-chain cancellation nor authority to release the original lock.
+async function terminalObservationFixture(t, { step = 'burn', knownHash = false, state = 'cancelled', observedHash } = {}) {
+  const h = await harness(t, { allowanceUnits: step === 'approve' ? '0' : '1000000' });
+  const record = step === 'mint' ? (await h.mintReady()).record : await h.start();
+  const review = await h.flow.prepareStep(record.id);
+  assert.equal(review.step, step);
+  if (!knownHash) h.wallet.send = async (id, guard) => {
+    guard.assert(); h.calls.send.push(id);
+    throw multiError('ORIGINAL_AUTH_INTERRUPTED', 'Controlled failure before signing.');
+  };
+  await h.confirm(record, review);
+  const network = copy(step === 'mint' ? record.binding.destinationNetwork : record.binding.sourceNetwork);
+  const response = {
+    id: review.id, account: ACCOUNT, network: copy(network),
+    state, hash: observedHash === undefined ? (knownHash ? TX[step] : null) : observedHash,
+    receipt: null, cctp: { version: 1, intentId: record.id, step },
+  };
+  const coldStore = new CctpStore({ filePath: h.filePath }), cold = h.createFlow(coldStore);
+  const before = await coldStore.get(record.id), bytes = await readFile(h.filePath, 'utf8');
+  const calls = copy(h.calls), reservations = await Promise.all([record.binding.sourceNetwork.id, record.binding.destinationNetwork.id].map(id => coldStore.pendingNetwork(id)));
+  let writes = 0;
+  for (const method of ['insert', 'update']) {
+    const original = coldStore[method].bind(coldStore);
+    coldStore[method] = async (...args) => { writes++; return original(...args); };
+  }
+  h.wallet.checkCctpStep = async input => {
+    h.calls.check.push(copy(input));
+    await h.current.hooks.check?.();
+    return copy(response);
+  };
+  const unchanged = async () => {
+    assert.equal(writes, 0, 'a query-only projection must not attempt any store mutation');
+    assert.equal(await readFile(h.filePath, 'utf8'), bytes);
+    assert.deepEqual(await coldStore.get(record.id), before);
+    assert.deepEqual(await Promise.all([record.binding.sourceNetwork.id, record.binding.destinationNetwork.id].map(id => coldStore.pendingNetwork(id))), reservations);
+    for (const name of ['prepare', 'send', 'cancel', 'quote', 'attestation', 'destination']) assert.deepEqual(h.calls[name], calls[name], name + ' must remain untouched');
+    for (const input of h.calls.check.slice(calls.check.length)) assert.deepEqual(input, { id: review.id, network, account: ACCOUNT });
+  };
+  return { ...h, cold, coldStore, record, review, response, before, unchanged };
+}
+
+for (const scenario of [
+  { name: 'unsigned approve cancelled after an auth interruption', step: 'approve' },
+  { name: 'signed burn locally cancelled with its known original hash', knownHash: true, state: 'local-cancelled-before-broadcast' },
+  { name: 'signed burn hash discovered through the original UNKNOWN lookup', state: 'local-cancelled-before-broadcast', observedHash: TX.burn },
+  { name: 'signed mint locally cancelled while the included burn and proof remain', step: 'mint', knownHash: true, state: 'local-cancelled-before-broadcast' },
+]) test('original terminal observation projects only query DATA: ' + scenario.name, async t => {
+  const h = await terminalObservationFixture(t, scenario);
+  const result = await h.cold.check(h.record.id);
+  assert.deepEqual(result, {
+    ...h.before,
+    originalObservation: {
+      version: 1, intentId: h.record.id, operationId: h.review.id, step: h.review.step,
+      account: ACCOUNT, network: h.response.network, recordedState: h.response.state,
+      hash: h.response.hash, view: 'query-only', routeOutcome: 'unknown',
+    },
+  });
+  await h.unchanged();
+  assert.deepEqual(await h.cold.history(), [h.before], 'ephemeral DATA must not become durable history');
+  await assert.rejects(h.cold.prepareStep(h.record.id), code('CCTP_CHECK_ORIGINAL'));
+  await assert.rejects(h.confirm(h.record, h.review, h.cold), code('CCTP_CHECK_ORIGINAL'));
+  assert.deepEqual(await h.cold.cancel(h.record.id), { cancelled: false, reason: 'query-original', record: h.before });
+  await assert.rejects(h.start(), code('CCTP_UNRESOLVED'));
+  // The deliberately attempted new quote above is independent of the original
+  // check. Every original reader/write boundary was already checked unchanged.
+  assert.equal(h.calls.prepare.length, h.before.operations.length);
+  assert.equal(h.calls.send.length, h.before.operations.length);
+});
+
+for (const [name, mutate] of [
+  ['operation id', r => { r.id = randomUUID(); }],
+  ['account', r => { r.account = OTHER_ACCOUNT; }],
+  ['network RPC with the same chain id', r => { r.network.rpcUrl = 'https://replacement.example.org/'; }],
+  ['network genesis with the same chain id', r => { r.network.genesis = `0x${'ee'.repeat(32)}`; }],
+  ['CCTP intent id', r => { r.cctp.intentId = randomUUID(); }],
+  ['CCTP step', r => { r.cctp.step = 'mint'; }],
+  ['CCTP version', r => { r.cctp.version = 2; }],
+  ['known original hash', r => { r.hash = TX.approve; }],
+  ['cancelled with a signed hash', r => { r.state = 'cancelled'; }],
+  ['local cancellation without its signed hash', r => { r.hash = null; }],
+  ['malformed local cancellation hash', r => { r.hash = '0x1234'; }],
+  ['missing local cancellation hash', r => { delete r.hash; }],
+  ['a local terminal answer claiming a receipt', r => { r.receipt = { hash: r.hash, status: 1 }; }],
+]) test('original terminal observation rejects substituted or invalid ' + name, async t => {
+  const h = await terminalObservationFixture(t, { knownHash: true, state: 'local-cancelled-before-broadcast' });
+  mutate(h.response);
+  await assert.rejects(h.cold.check(h.record.id), error => ['CCTP_RESULT_MISMATCH', 'CCTP_RESULT_UNKNOWN'].includes(error?.code));
+  await h.unchanged();
+});
+
+test('original terminal observation rejects a local signed cancellation with no hash even when UNKNOWN has none', async t => {
+  const h = await terminalObservationFixture(t, { state: 'local-cancelled-before-broadcast' });
+  assert.equal(h.before.operations.at(-1).hash, null);
+  assert.equal(h.response.hash, null);
+  await assert.rejects(h.cold.check(h.record.id), error => ['CCTP_RESULT_MISMATCH', 'CCTP_RESULT_UNKNOWN'].includes(error?.code));
+  await h.unchanged();
+});
+
+for (const [name, strip] of [
+  ['legacy id/state/hash only', r => { delete r.account; delete r.network; delete r.cctp; delete r.receipt; }],
+  ['missing account', r => { delete r.account; }],
+  ['missing network', r => { delete r.network; }],
+  ['missing CCTP metadata', r => { delete r.cctp; }],
+  ['missing CCTP version', r => { delete r.cctp.version; }],
+  ['missing CCTP intent', r => { delete r.cctp.intentId; }],
+  ['missing CCTP step', r => { delete r.cctp.step; }],
+  ['missing explicit null receipt', r => { delete r.receipt; }],
+]) test('original terminal observation keeps RESULT_UNKNOWN for ' + name, async t => {
+  const h = await terminalObservationFixture(t);
+  strip(h.response);
+  await assert.rejects(h.cold.check(h.record.id), code('CCTP_RESULT_UNKNOWN'));
+  await h.unchanged();
+});
+
+for (const [name, mutate] of [
+  ['account', h => { h.current.context.account = OTHER_ACCOUNT; }],
+  ['config revision', h => { h.current.revision++; }],
+  ['lock', h => { h.current.context.locked = true; }],
+]) test('original terminal observation waits for live ' + name + ' verification after Main lookup', async t => {
+  const h = await terminalObservationFixture(t), entered = gate(), release = gate();
+  h.current.hooks.check = async () => { entered.resolve(); await release.promise; };
+  const checking = h.cold.check(h.record.id);
+  const rejected = assert.rejects(checking, code('MULTICHAIN_CONTEXT_CHANGED'));
+  try { await entered.promise; mutate(h); } finally { release.resolve(); }
+  await rejected;
+  await h.unchanged();
+});
+
+for (const recordedState of ['included', 'reverted']) test('original terminal observation cannot demote a recorded ' + recordedState + ' mint', async t => {
+  const h = await terminalObservationFixture(t, { step: 'mint', knownHash: true, state: 'local-cancelled-before-broadcast' });
+  // Keep the real earlier included burn/proof, while exercising an old confirmed
+  // mint result. A local terminal response must not replace that chain evidence.
+  await h.store.update(h.record.id, h.before.revision, r => {
+    r.operations.at(-1).state = recordedState;
+    r.state = recordedState === 'reverted' ? 'failed' : 'mint-pending';
+  });
+  const before = await readFile(h.filePath, 'utf8'), original = await h.store.get(h.record.id), calls = copy(h.calls);
+  await assert.rejects(h.cold.check(h.record.id), error => ['CCTP_RESULT_MISMATCH', 'CCTP_RESULT_UNKNOWN'].includes(error?.code));
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  assert.deepEqual(await h.store.get(h.record.id), original);
+  assert.equal(await h.store.pendingNetwork(h.record.binding.destinationNetwork.id), 1);
+  for (const name of ['prepare', 'send', 'cancel', 'quote', 'attestation', 'destination']) assert.deepEqual(h.calls[name], calls[name]);
+});

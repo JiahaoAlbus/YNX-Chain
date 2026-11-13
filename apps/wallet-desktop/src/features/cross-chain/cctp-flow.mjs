@@ -212,9 +212,33 @@ export class CctpFlow {
     const current=await this.#current(r),op=activeOperations(r).at(-1);
     if(op&&op.state!=='review'){
       // Even dispatching/UNKNOWN after restart only reaches the original lookup.
-      const observed=await this.wallet.checkCctpStep({id:op.id,network:op.step==='mint'?r.binding.destinationNetwork:r.binding.sourceNetwork,account:r.binding.account});
+      const network = op.step === 'mint' ? r.binding.destinationNetwork : r.binding.sourceNetwork;
+      const account = r.binding.account;
+      const observed = await this.wallet.checkCctpStep({id: op.id, network, account});
       await this.#live(current);
       if(observed?.id!==op.id||op.hash&&observed.hash!==op.hash||observed.hash!==null&&!hash(observed.hash)||['included','reverted','submitted'].includes(observed.state)&&!hash(observed.hash))fail('RESULT_MISMATCH','Original transaction identity changed.');
+      const recordedState = observed.state;
+      if (recordedState === 'cancelled' || recordedState === 'local-cancelled-before-broadcast') {
+        if (!observed.account || !observed.network || !observed.cctp?.intentId || !observed.cctp.step || observed.cctp.version === undefined || observed.receipt === undefined ||
+            !['dispatching', 'unknown', 'submitted'].includes(op.state)) {
+          fail('RESULT_UNKNOWN', 'Keep the original transaction and its result.');
+        }
+        const validHash = recordedState === 'cancelled' ? observed.hash === null : hash(observed.hash);
+        if (observed.account !== account || JSON.stringify(observed.network) !== JSON.stringify(network) ||
+            observed.cctp.version !== 1 || observed.cctp.intentId !== r.id || observed.cctp.step !== op.step || observed.receipt !== null || !validHash) {
+          fail('RESULT_MISMATCH', 'Original transaction identity changed.');
+        }
+        // The original Main journal has already verified the signed record.
+        // Report its local state without changing durable route readiness.
+        return {
+          ...r,
+          originalObservation: {
+            version: 1, intentId: r.id, operationId: op.id, step: op.step, account,
+            network: clone(network), recordedState, hash: observed.hash,
+            view: 'query-only', routeOutcome: 'unknown',
+          },
+        };
+      }
       if(['included','reverted','submitted','unknown','signing-unknown','prepared','signed'].includes(observed.state)){
         // A cached proof can expire while no mint has been reviewed or sent.
         // Re-read only this original burn; retain cached evidence while pending.
