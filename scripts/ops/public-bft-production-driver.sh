@@ -1204,7 +1204,37 @@ NODE
   node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$evidence/result.json" "${DEPLOY_DRY_RUN:-0}"
   ln "$evidence/result.json" "$ingress_root/public-result.json"
 }
-[[ "$(git branch --show-current)" == "main" ]] || { echo "production driver requires main branch" >&2; exit 1; }
+release_ref="$(git symbolic-ref --quiet HEAD)" || { echo "production driver requires an original named release checkout" >&2; exit 1; }
+case "$release_ref" in
+  refs/heads/main) ;; # Preserve the original standalone/handover/recovery path.
+  refs/heads/codex/ynx-pq-public-upgrade|refs/heads/codex/ynx-pq-perf-integration)
+    # Reuse the transaction's protected same-owner release qualification, not
+    # a branch/environment bypass. This admits only its existing forward calls;
+    # it does not add an incident rollback or change UNKNOWN reconciliation.
+    release_mode="${PUBLIC_BFT_CUTOVER_MODE:-}"
+    case "$release_mode:$action" in
+      prepare-native:preflight|prepare-native:backup|prepare-native:freeze_mutations|prepare-native:pause_authoritative|prepare-native:capture_snapshot_source|prepare-native:prepare_testnet_assets) projection=preparation-approval.json ;;
+      continue-native:export_final_snapshot|continue-native:initialize_candidate|continue-native:deploy_candidate|continue-native:start_candidate|continue-native:verify_candidate) projection=approval.json ;;
+      continue-pq-native:verify_pq_continuation|continue-pq-native:start_dependencies|continue-pq-native:verify_continuity|continue-pq-native:switch_ingress|continue-pq-native:verify_public|continue-pq-native:unfreeze_mutations) projection=approval.json ;;
+      *) echo "production release driver requires its original native forward phase" >&2; exit 1 ;;
+    esac
+    [[ "${PUBLIC_BFT_CUTOVER_APPROVED:-}" == yes ]] || { echo "original cutover approval is required" >&2; exit 1; }
+    node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" "$release_mode" >/dev/null
+    # The independently validated original must be the same projection retained
+    # by the parent transaction. Do not create, repair, or advance that record.
+    node --input-type=module - "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" "$projection" "$release_mode" "$(git rev-parse --short=12 HEAD)" <<'RELEASE_PROJECTION'
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
+import {readSameOwnerOriginal,readSameOwnerJSON,validateSameOwnerApproval} from './scripts/verify/lib/public-bft-same-owner.mjs';
+const [original,review,root,name,mode,commit]=process.argv.slice(2),release=`ynx-bft-gateway-${commit}`;
+assert.ok(path.isAbsolute(root)&&path.normalize(root)===root&&fs.realpathSync(root)===root,'original canonical transaction required');
+const st=fs.lstatSync(root);assert.ok(st.isDirectory()&&(st.mode&0o077)===0&&st.uid===process.geteuid(),'original private transaction required');
+const approval=validateSameOwnerApproval(readSameOwnerJSON(original),review,commit,release,mode==='prepare-native');
+assert.equal(approval.transactionId,path.basename(root),'original transaction differs from approval');
+assert.deepEqual(readSameOwnerOriginal(path.join(root,name)).raw,Buffer.from(JSON.stringify(approval)+'\n'),'retained parent approval differs');
+RELEASE_PROJECTION
+    ;;
+  *) echo "production driver requires main or an independently qualified same-owner normal release ref" >&2; exit 1 ;;
+esac
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "production driver requires no tracked worktree changes" >&2; exit 1; }
 
 commit="$(git rev-parse --short=12 HEAD)"

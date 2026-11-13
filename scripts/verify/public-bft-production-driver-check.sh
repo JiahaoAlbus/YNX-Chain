@@ -3,7 +3,92 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 
-[[ "$#" == 0 || ( "$#" == 1 && ( "$1" == --snapshot-only || "$1" == --preflight-ports-only ) ) ]] || { echo 'usage: public-bft-production-driver-check.sh [--snapshot-only|--preflight-ports-only]' >&2; exit 1; }
+[[ "$#" == 0 || ( "$#" == 1 && ( "$1" == --snapshot-only || "$1" == --preflight-ports-only || "$1" == --release-source-only ) ) ]] || { echo 'usage: public-bft-production-driver-check.sh [--snapshot-only|--preflight-ports-only|--release-source-only]' >&2; exit 1; }
+# Exercise the complete original driver with PUBLIC control records. Git is
+# real in a private disposable repository; only GitHub metadata and the original
+# explicit dry-run transport are controlled. No real approval or SSH is used.
+if [[ "${1:-}" != --snapshot-only && "${1:-}" != --preflight-ports-only ]]; then
+node --input-type=module <<'RELEASE_DRIVER_TEST'
+import assert from 'node:assert/strict';import crypto from 'node:crypto';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';
+const source=process.cwd(),root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-driver-release-'))),repo=path.join(root,'repo');
+fs.chmodSync(root,0o700);fs.mkdirSync(repo);
+const run=(file,args,opts={})=>{const r=spawnSync(file,args,{cwd:repo,encoding:'utf8',timeout:15000,maxBuffer:2<<20,...opts});assert.ifError(r.error);return r;};
+const git=(...args)=>{const r=run('git',args);assert.equal(r.status,0,r.stderr);return r.stdout.trim();};
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex'),clone=x=>structuredClone(x),utc=d=>d.toISOString().replace(/\.\d{3}Z$/,'Z');
+const write=(name,value)=>{const raw=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value)+'\n');fs.writeFileSync(path.join(root,name),raw,{mode:0o600});return {file:name,sha256:hash(raw)};};
+try {
+for(const name of ['ops','deploy','verify']){fs.mkdirSync(path.join(repo,'scripts'),{recursive:true});fs.cpSync(path.join(source,'scripts',name),path.join(repo,'scripts',name),{recursive:true});}
+git('init','-q','-b','main');git('add','scripts');git('-c','user.name=YNX public control','-c','user.email=public-control@localhost','commit','-qm','isolated original driver source');
+const full=git('rev-parse','HEAD'),commit=full.slice(0,12),release=`ynx-bft-gateway-${commit}`,tx='same-owner-driver-public-001',now=new Date();
+const {sameOwnerProfile,validateSameOwnerApproval}=await import('file://'+path.join(repo,'scripts/verify/lib/public-bft-same-owner.mjs'));
+const {validatorRoles}=await import('file://'+path.join(repo,'scripts/verify/lib/owner-handover.mjs'));
+const validators=validatorRoles.map((role,i)=>{const pub=Buffer.alloc(32,i+1);return {role,validatorAddress:`ynx_validator_${role.replaceAll('-','_')}`,privateP2PHost:`10.77.42.${i+1}`,p2pPort:27656,nodeId:String(i+1).repeat(40),consensusKeyType:'tendermint/PubKeyEd25519',consensusPubKey:pub.toString('base64'),consensusAddress:hash(pub).slice(0,40).toUpperCase()};});
+const manifest={version:1,purpose:'ynx-production-bft-candidate-public-keys-only',chainId:'ynx_6423-1',validators};
+const oldManifest=write('original-validators.json',manifest),newManifest=write('target-validators.json',{...manifest,validators:[...validators].sort((a,b)=>a.role.localeCompare(b.role))});
+const nativeSource={statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'};
+const native={authoritativeCommit:'b'.repeat(40),authoritativeRelease:'ynx-chain-'+ 'b'.repeat(12),authoritativeBinarySha256:'c'.repeat(64),authoritativeSource:nativeSource,authoritativeSystemd:{fragmentSha256:'d'.repeat(64),dropIns:[]}};
+const plan={version:'YNX-PRODUCTION-OPERATOR/v1',chainId:'ynx_6423-1',validatorManifestSHA256:newManifest.sha256,originalGenesisHash:'e'.repeat(64),stateLayout:'atomic-json',runtimePlan:null,runtimePlanHash:'',pqSchedule:null,pqScheduleHash:'',preparationOnly:true,bootstrapRegistrationMode:'quiet-first-registration-v1',roles:validatorRoles.map(role=>({role,home:`/var/lib/ynx-chain/consensus-candidate/${role}`,abciState:`/var/lib/ynx-chain/consensus-candidate/${role}/data/application.json`,legacyKeyPath:`/etc/ynx/consensus-candidate/${role}/priv_validator_key.json`,legacyStatePath:`/etc/ynx/consensus-candidate/${role}/priv_validator_state.json`,nodeKeyPath:`/etc/ynx/consensus-candidate/${role}/node_key.json`}))};
+const planRef=write('preparation-plan.json',plan);
+const runtime={version:'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3',commit:full,runId:'1234',platform:'linux/amd64',runtimeStarted:false,publicDeployment:false,pqActivation:false};
+const exporter={version:'YNX-PQ-OFFLINE-MIGRATION-TOOLS/v2',commit:full,platform:'linux/amd64',runtimeStarted:false,deploymentReady:false,authorityGranted:false,executionReady:false};
+const operations=Object.fromEntries(['scripts/ops/public-bft-cutover-transaction.sh','scripts/ops/public-bft-production-driver.sh','scripts/ops/remote/public-bft-native-identity.py','scripts/ops/init-consensus-candidate-keys.sh'].map(name=>{const raw=fs.readFileSync(path.join(repo,name));return [name,{bytes:raw.length,sha256:hash(raw)}];}));
+const rows=validators.map((v,i)=>{
+ const role=v.role,custody=`/etc/ynx/consensus-candidate/${role}`;
+ const roleManifest={version:1,purpose:manifest.purpose,chainId:manifest.chainId,candidateRoot:`/var/lib/ynx-chain/consensus-candidate/${role}`,genesisHash:'9'.repeat(64),migrationStateHash:'8'.repeat(64),node:v,privateValidatorKeyPath:`${custody}/priv_validator_key.json`,nodeKeyPath:`${custody}/node_key.json`};
+ const rm=write(`${role}-role.json`,roleManifest);
+ const {privateP2PHost,p2pPort,...identity}=v;
+ const recovery={version:'YNX-CONSENSUS-KEYCHECK-ISOLATED-RECOVERY/v1',role,serviceUID:1000+i,roleManifestSHA256:rm.sha256,sourceDirectory:custody,privateRecoveryDirectory:`/var/lib/ynx-chain/recovery/${role}/attempt`,publicRecord:{version:1,purpose:manifest.purpose,...identity,custodyBoundary:'owner-controlled-host-local'}};
+ for(const k of ['sourceReadOnly','sourceFilesUnchanged','backupBytesMatched','restoreBytesMatched','restoredIdentityMatched','restoredHRSConsistency','manifestMatched','isolatedRecoveryVerified','sameHost'])recovery[k]=true;
+ for(const k of ['offHostRecoveryVerified','hrsHistoryVerified','independentReview','authorityGranted','signingPerformed','liveRestorePerformed','serviceChanged','rotationVerified'])recovery[k]=false;
+ const observation={version:'YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1',role,...native,transactionId:tx,commit,mainPid:String(100+i),runningExecutablePath:'/usr/local/bin/ynx-chaind',runningExecutableDeviceInode:`2049:${100+i}`,unitSHA256:native.authoritativeSystemd.fragmentSha256,dataPath:'/var/lib/ynx-chain/testnet',pauseMarkerPath:nativeSource.pauseMarkerPath,mutationMarkerPath:nativeSource.mutationMarkerPath,readOnly:true,deployment:false,nativeRootAuthorized:false};
+ delete observation.authoritativeSource;
+ return {role,roleManifest:rm,priorRecovery:write(`${role}-prior.json`,recovery),currentRecovery:write(`${role}-current.json`,Buffer.from(JSON.stringify({...recovery,privateRecoveryDirectory:`/var/lib/ynx-chain/recovery-current/${role}/attempt`}))),nativeObservation:write(`${role}-native.json`,observation)};
+});
+const review={version:'YNX-SAME-OWNER-INPLACE-CUSTODY/v1',custodyProfile:sameOwnerProfile,reviewId:'synthetic-review-001',transactionId:tx,sourceCommit:full,reviewedAt:utc(now),expiresAt:utc(new Date(now.getTime()+3600000)),sources:{originalValidatorManifest:oldManifest,validatorManifest:newManifest,operatorPreparationPlan:planRef,runtimeManifest:write('runtime-SOURCE.json',runtime),exporterManifest:write('exporter-SOURCE.json',exporter),operationAuthorization:write('original-authorization.txt',Buffer.from('SYNTHETIC PUBLIC CONTROL ONLY; not a real operation approval\n'))},roles:rows,operations};
+// Normal keycheck file is compact without LF, while an older retained CLI
+// stdout can include LF. Both independent raw pins survive without re-encoding.
+assert.notEqual(rows[0].priorRecovery.sha256,rows[0].currentRecovery.sha256);
+assert.equal(fs.readFileSync(path.join(root,rows[0].currentRecovery.file)).at(-1),125);
+let reviewRef=write('same-owner-review.json',review);
+const rawApproval={custodyProfile:sameOwnerProfile,schemaVersion:1,action:'ynx-public-bft-cutover',approved:true,approvalId:'synthetic-operation-001',transactionId:tx,commit,release,publicCutoverAuthorized:true,automaticRollbackRequired:true,custodyEvidence:`sha256:${reviewRef.sha256}`,operationAuthorizationEvidence:`sha256:${review.sources.operationAuthorization.sha256}`,validatorManifestSha256:newManifest.sha256,operatorPreparationPlanSha256:planRef.sha256,runtimeManifestSha256:review.sources.runtimeManifest.sha256,exporterManifestSha256:review.sources.exporterManifest.sha256,...native,authoritativeRoles:Object.fromEntries(validatorRoles.map(r=>[r,clone(native)])),preparationOnly:true,expiresAt:review.expiresAt};
+const reviewPath=path.join(root,reviewRef.file),rawPath=path.join(root,'approval.json');write('approval.json',rawApproval);
+
+const projected=validateSameOwnerApproval(rawApproval,reviewPath,commit,release,true);
+const bin=path.join(root,'bin');fs.mkdirSync(bin);
+const ci={id:1234,repository:{full_name:'JiahaoAlbus/YNX-Chain'},head_repository:{full_name:'JiahaoAlbus/YNX-Chain'},path:'.github/workflows/resource-market-ci.yml',event:'push',head_sha:full,head_branch:'codex/ynx-pq-perf-integration',status:'completed',conclusion:'success'};
+write('ci.json',ci);
+fs.writeFileSync(path.join(bin,'gh'),`#!/bin/sh\ntest "$*" = 'api --hostname github.com --method GET repos/JiahaoAlbus/YNX-Chain/actions/runs/1234' || exit 94\nprintf 'read\\n' >> "$CONTROL_GH_TRACE"\ncat "$CONTROL_CI"\n`,{mode:0o700});
+for(const command of ['ssh','scp','sudo','curl'])fs.writeFileSync(path.join(bin,command),'#!/bin/sh\nprintf forbidden >> "$CONTROL_TRANSPORT_TRACE"\nexit 96\n',{mode:0o700});
+write('deploy.env',Buffer.from('PRIMARY_NODE_HOST=primary.test\nPRIMARY_NODE_USER=ubuntu\nPRIMARY_NODE_SSH_KEY=/PUBLIC-NOT-A-KEY\n'));
+const baseEnv={...process.env,PATH:bin+':'+process.env.PATH,ENV_FILE:path.join(root,'deploy.env'),DEPLOY_DRY_RUN:'1',PUBLIC_BFT_LINUX_TOOL_ROLE:'',PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_MODE:'prepare-native',PUBLIC_BFT_CUTOVER_APPROVAL_FILE:rawPath,PUBLIC_BFT_CUSTODY_REVIEW_FILE:reviewPath,PUBLIC_BFT_PRODUCTION_BACKUP_APPROVED:'yes',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,CONTROL_CI:path.join(root,'ci.json'),CONTROL_GH_TRACE:path.join(root,'gh-trace'),CONTROL_TRANSPORT_TRACE:path.join(root,'transport-trace')};
+let number=0,passed=0;
+function invoke(label,{ok=false,env={},action='backup',projection=projected,transaction=tx}={}){
+ const parent=path.join(root,'run-'+number++);fs.mkdirSync(parent,{mode:0o700});const dir=path.join(parent,transaction);fs.mkdirSync(dir,{mode:0o700});
+ fs.writeFileSync(path.join(dir,'preparation-approval.json'),JSON.stringify(projection)+'\n',{mode:0o600});
+ const r=run('bash',['scripts/ops/public-bft-production-driver.sh',action],{env:{...baseEnv,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,...env}});
+ if(ok){assert.equal(r.status,0,label+': '+r.stderr);assert.match(r.stdout,/scoped backups passed/);for(const role of validatorRoles)assert.match(fs.readFileSync(path.join(dir,'roles',role+'-backup.txt'),'utf8'),/DRY RUN/);}
+ else{assert.notEqual(r.status,0,label+' unexpectedly accepted');assert.equal(fs.existsSync(path.join(dir,'roles')),false,label+' reached the remote phase');}
+ assert.equal(fs.existsSync(baseEnv.CONTROL_TRANSPORT_TRACE),false,'real transport attempted');passed++;return r;
+}
+git('checkout','-qb','codex/ynx-pq-perf-integration');
+invoke('eligible normal integration',{ok:true});
+git('checkout','-qb','codex/ynx-pq-public-upgrade');write('ci.json',{...ci,head_branch:'codex/ynx-pq-public-upgrade'});invoke('eligible normal public release',{ok:true});
+git('checkout','-q','codex/ynx-pq-perf-integration');write('ci.json',ci);
+for(const [label,change] of [['failed',{conclusion:'failure'}],['pending',{status:'in_progress',conclusion:null}],['wrong full HEAD',{head_sha:commit+'e'.repeat(28)}],['wrong CI ref',{head_branch:'main'}],['foreign repository',{repository:{full_name:'foreign/repo'}}],['dispatch',{event:'workflow_dispatch'}]]){write('ci.json',{...ci,...change});invoke(label);}
+write('ci.json',ci);
+git('checkout','-qb','codex/unauthorized-release');const reads=fs.readFileSync(baseEnv.CONTROL_GH_TRACE);invoke('unknown release ref');assert.deepEqual(fs.readFileSync(baseEnv.CONTROL_GH_TRACE),reads);git('checkout','-q','codex/ynx-pq-perf-integration');
+invoke('wrong phase',{env:{PUBLIC_BFT_CUTOVER_MODE:'continue-native'}});invoke('missing original consent',{env:{PUBLIC_BFT_CUTOVER_APPROVED:''}});invoke('different original operation',{transaction:'foreign-public-transaction'});invoke('changed parent projection',{projection:{...projected,approvalId:'changed-original-approval'}});
+write('legacy-approval.json',{...rawApproval,custodyProfile:'single-app-gateway/v1'});invoke('legacy profile on release ref',{env:{PUBLIC_BFT_CUTOVER_APPROVAL_FILE:path.join(root,'legacy-approval.json')}});
+const dirty=path.join(repo,'scripts/ops/lib.sh'),original=fs.readFileSync(dirty);fs.appendFileSync(dirty,'\n# PUBLIC dirty control\n');invoke('dirty actual checkout');fs.writeFileSync(dirty,original);
+// The original main path remains independent of the new GitHub release gate.
+git('checkout','-q','main');write('ci.json',{...ci,conclusion:'failure'});const beforeMain=fs.readFileSync(baseEnv.CONTROL_GH_TRACE);invoke('legacy main unchanged',{ok:true});assert.deepEqual(fs.readFileSync(baseEnv.CONTROL_GH_TRACE),beforeMain);
+git('checkout','-q','codex/ynx-pq-perf-integration');write('ci.json',ci);git('-c','user.name=YNX public control','-c','user.email=public-control@localhost','commit','--allow-empty','-qm','changed actual full HEAD');invoke('changed actual full HEAD');
+console.log('PUBLIC_BFT_DRIVER_RELEASE_SOURCE_PASS: '+passed+' complete original driver controls; actual private Git refs and protected PUBLIC records; controlled GitHub and dry-run transport only; no deployment/signing authority');
+} finally {fs.rmSync(root,{recursive:true,force:true});}
+RELEASE_DRIVER_TEST
+fi
+[[ "${1:-}" != --release-source-only ]] || exit 0
+
 if [[ "${1:-}" != --snapshot-only ]]; then
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict';
