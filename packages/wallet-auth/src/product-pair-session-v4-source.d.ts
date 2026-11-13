@@ -13,3 +13,20 @@ export function assertOriginalProductSessionDeviceV4ServerCurrentResult(outcome:
 /** Existing original issuer callee retained unchanged; no caller configuration. */
 export function acquireOriginalProductPairSessionV4Issuer():Promise<Readonly<{owner:OriginalProductPairSessionV4IssuerOwner|OriginalProductPairSessionV4PartialOwner;error:unknown}>>;
 export function assertOriginalProductPairIssuerOwnerV4(owner:unknown):OriginalProductPairSessionV4IssuerOwner;
+/** Candidate DATA only; no signed PROFILE, CURRENT registration or Root grant. */
+export interface OriginalPendingCompletionProfileCandidateDATA {
+ readonly kind:2;readonly profileBodyOriginal:string;readonly profileBodySHA256:string;readonly scopeOriginal:string;readonly currentHead:string;readonly originalProfileBodySHA256:string;
+ readonly pairOperationId:string;readonly operationId:string;readonly expiresAtMs:number;readonly newIssuancePlanRequired:true;readonly dataOnly:true;readonly authorized:false;readonly SourceAdmission:false;readonly nativeAdmission:false;
+}
+export interface OriginalPendingCompletionCandidateInput {
+ readonly profileBodyOriginal:string;readonly queryOriginal:import('node:buffer').Buffer;readonly originalPairPost:import('node:buffer').Buffer;
+ /** Independently supplied next-PROFILE constraint; this API never allocates it. */
+ readonly completionOperationId:string;
+}
+export interface OriginalProductPairPendingCompletionReaderV4 {
+ readOriginalCompletionCandidateDATA(input:OriginalPendingCompletionCandidateInput):Promise<Readonly<{candidate:OriginalPendingCompletionProfileCandidateDATA;errorPresent:false}>|Readonly<{candidate:OriginalPendingCompletionProfileCandidateDATA|null;errorPresent:true;error:unknown}>>;
+ retire():void;join():Promise<void>;close():Promise<void>;
+ statusDATA():Readonly<{retired:boolean;closed:boolean;active:number;childDebts:number;firstCausePresent:boolean;firstCause:unknown;SourceAdmission:false}>;
+}
+/** Retain a nonnull partial before inspecting errorPresent (including error=0). */
+export function acquireOriginalProductPairPendingCompletionReaderV4():Promise<Readonly<{owner:OriginalProductPairPendingCompletionReaderV4;errorPresent:false}>|Readonly<{owner:OriginalProductPairSessionV4PartialOwner|null;errorPresent:true;error:unknown}>>;

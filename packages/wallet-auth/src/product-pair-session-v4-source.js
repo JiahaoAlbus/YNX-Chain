@@ -1,3 +1,5 @@
+import {verifyProductSessionApprovalV4Data} from './product-session-pq-v4-codec.js';
+import {deriveOriginalPendingCompletionProfileCandidateDATA} from './product-device-pending-completion-candidate.mjs';
 // PRIVATE release-selected production Source factory, not a public SDK setter.
 // This server issues durable pair/session records, NOT Native/Source grants.
 import {openSync,closeSync,lstatSync,fstatSync,readFileSync,realpathSync,constants as F} from 'node:fs';
@@ -9,7 +11,7 @@ import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-s
 import {loadReleaseSelectedOriginalRootCurrentV3,assertOriginalRootReadCurrentOwnerV3,assertReleaseSelectedRootReadCurrentPlanV3} from './root-current-v3/root-read-current-owner-v3.mjs';
 import {acquireOriginalNativeCommittedProductPolicyV4} from './product-pair-session-v4-account-source.js';
 import {openProductPairSessionV4Store,openProductPairSessionV4CurrentStore,pairV4Digest} from './product-pair-session-v4-store.js';
-import {ProductPairSessionV4IssuerKernel} from './product-pair-session-v4-issuer.js';
+import {productPairSessionV4ActorDATA,ProductPairSessionV4IssuerKernel} from './product-pair-session-v4-issuer.js';
 import {OriginalProductSessionDeviceV4ServerCurrentKernel} from './original-product-device-v4-server-current.js';
 import {OriginalReadOnlyChildDebtV4} from './original-readonly-child-debt-v4.js';
 const fail=c=>{throw Object.assign(Error(c),{code:c});};
@@ -113,4 +115,35 @@ export async function acquireOriginalProductSessionDeviceV4ServerCurrent(...args
  if(args.length)fail('PAIR_V4_ZERO_INPUT_REQUIRED');const opened=await acquireOriginalPairServiceResources(true);
  if(opened.error!==undefined)return Object.freeze({owner:opened.owner,deviceCurrent:null,error:opened.error===null?Object.assign(Error('PAIR_V4_SERVER_CURRENT_SOURCE_FAILED'),{code:'PAIR_V4_SERVER_CURRENT_SOURCE_FAILED',cause:null}):opened.error});
  try{const kernel=new OriginalProductSessionDeviceV4ServerCurrentKernel(opened.owner.registry,opened.owner.store,opened.owner.source),owner=new OriginalDeviceServerCurrentOwnerV4(kernel);return Object.freeze({owner,deviceCurrent:owner.deviceCurrent,error:null});}catch(error){return Object.freeze({owner:opened.owner,deviceCurrent:null,error:Object.assign(Error('PAIR_V4_SERVER_CURRENT_SOURCE_FAILED'),{code:'PAIR_V4_SERVER_CURRENT_SOURCE_FAILED',cause:error})});}
+}
+
+// Same protected pair-service resources and original independent Source/current.
+// This returns candidate DATA, never a recognized PROFILE/CURRENT issuer.
+export async function acquireOriginalProductPairPendingCompletionReaderV4(...args){
+ if(args.length)fail('PAIR_V4_ZERO_INPUT_REQUIRED');
+ let opened;try{opened=await acquireOriginalPairServiceResources(true);}catch(error){return Object.freeze({owner:null,errorPresent:true,error});}
+ if(opened.error!==undefined)return Object.freeze({owner:opened.owner,errorPresent:true,error:opened.error});
+ const parent=opened.owner;let retired=false,firstPresent=false,first,active=0,drainFlight=null,closeFlight=null,parentCloseSelected=false,closed=false;const debts=new Set();
+ const remember=e=>{if(!firstPresent){firstPresent=true;first=e;}};
+ const live=()=>{if(firstPresent)throw first;if(retired)fail('PAIR_V4_PENDING_COMPLETION_RETIRED');parent.store.assertCurrent();};
+ const drain=()=>{if(!drainFlight)drainFlight=(async()=>{for(const h of debts){await h.retire();await h.join();await h.close();debts.delete(h);}})().finally(()=>{drainFlight=null;});return drainFlight;};
+ const owner=Object.freeze({
+  async readOriginalCompletionCandidateDATA({profileBodyOriginal,queryOriginal,originalPairPost,completionOperationId}){
+   live();if(active)fail('PAIR_V4_PENDING_COMPLETION_BUSY');active++;let held,candidate=null;
+   try{const at=Date.now(),post=JSON.parse(originalPairPost.toString('utf8'));
+    if(typeof completionOperationId!=='string'||!/^[a-f0-9]{64}$/.test(completionOperationId)||completionOperationId===post.operationId)fail('PENDING_COMPLETION_DISTINCT_OPERATION_REQUIRED');
+    held=await parent.source.acquire({request:post.request,registrationOriginal:post.registrationOriginal,account:post.approval.account,at});if(held)debts.add(held);live();
+    await held.recheck(at);held.assertCurrent(Date.now());
+    verifyProductSessionApprovalV4Data(parent.registry,post.request,post.approval,held.policyRef,Buffer.from(post.registrationOriginal),new Date());
+    const actor=productPairSessionV4ActorDATA(post.request,inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(post.registrationOriginal)).record,post.approval.account);
+    const read=()=>parent.store.readPendingCompletionOriginalsDATA({queryOriginal,originalPairPost,actor,at:Date.now()});
+    const originals=read();candidate=deriveOriginalPendingCompletionProfileCandidateDATA(profileBodyOriginal,originals,Date.now(),completionOperationId);
+    await held.recheck(Date.now());held.assertCurrent(Date.now());if(canonicalJSON(read())!==canonicalJSON(originals))fail('PAIR_V4_PENDING_COMPLETION_CHANGED');live();
+    await drain();live();if(Date.now()>=candidate.expiresAtMs)fail('PAIR_V4_PENDING_COMPLETION_EXPIRED');return Object.freeze({candidate,errorPresent:false});
+   }catch(error){remember(error);return Object.freeze({candidate,errorPresent:true,error:first});}finally{active--;}
+  },
+  retire(){retired=true;},async join(){if(!retired||active)fail('PAIR_V4_PENDING_COMPLETION_JOIN_PENDING');await drain();await parent.retire();await parent.join();},
+  close(){retired=true;if(!closeFlight)closeFlight=(async()=>{try{if(active)fail('PAIR_V4_PENDING_COMPLETION_JOIN_PENDING');await drain();await parent.retire();await parent.join();if(!closed){if(!parentCloseSelected){parentCloseSelected=true;await parent.close();}else await parent.drainPartial();closed=true;}if(firstPresent)throw first;}catch(error){remember(error);throw first;}})().finally(()=>{closeFlight=null;});return closeFlight;},
+  statusDATA(){return Object.freeze({retired,closed,active,childDebts:debts.size,firstCausePresent:firstPresent,firstCause:first,SourceAdmission:false});}
+ });return Object.freeze({owner,errorPresent:false});
 }

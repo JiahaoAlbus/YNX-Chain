@@ -626,13 +626,13 @@
     },
     {
       "path": "packages/wallet-auth/src/product-pair-session-v4-source.js",
-      "bytes": 14788,
-      "sha256": "2d9f1268bf91f8f1608e72deaf24313b746bb989240d25c9a511efc656304965"
+      "bytes": 18775,
+      "sha256": "ac83f7ab913aca750207017b4fb6b08d7e6f56237f73028cb928cf97d0e7ee9a"
     },
     {
       "path": "packages/wallet-auth/src/product-pair-session-v4-store.js",
-      "bytes": 20653,
-      "sha256": "ccd74b3be7ef5c3470f4418c78d46002c433cb8d806353983b2fb127f985ddfe"
+      "bytes": 23563,
+      "sha256": "8259fb54e4e53b8fb468d6c598254f87387d3a92c965f1c028865e3e30115401"
     },
     {
       "path": "packages/wallet-auth/src/product-session-account-policy.js",
@@ -838,6 +838,11 @@
       "path": "packages/wallet-auth/integration/DESKTOP_GRANT_STRONG_LINK_COHORT.json",
       "bytes": 2550,
       "sha256": "64fb16e3bd6660ddb47d76c1660703d7452a546a532ab1c0fba80d5929a97ce4"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-device-pending-completion-candidate.mjs",
+      "bytes": 3849,
+      "sha256": "a9a6a80f526ef1d4ab2b6f312f161808c035661f0678a5918ae4dc98005e4433"
     }
   ],
   "compiled": false,
