@@ -2171,7 +2171,6 @@ jobs:
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           required = ['TestInspectWalletPolicyNormalOriginalCheckpointAndRefusals', 'TestInspectWalletPolicyNoRegistrationAndArgumentsFailClosed']
-          required += ['TestOperatorFinalizeObservationDefaultAndClosedFlags', 'TestOperatorFinalizeObservationActualCallerAndFailureProjection', 'TestOperatorFinalizeObservationRetainsFailureAndDropDebt']
           for name in required:
               runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
               outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
@@ -2180,7 +2179,7 @@ jobs:
           outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
           if outcomes != ['pass']:
               raise RuntimeError('complete original Comet command package did not pass once')
-          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestInspectWalletPolicy', 'TestOperatorFinalizeObservation'))) for event in events):
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith('TestInspectWalletPolicy')) for event in events):
               raise RuntimeError('original command stream failed or wallet policy CLI skipped')
           print('YNX_WALLET_POLICY_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
@@ -2686,7 +2685,6 @@ jobs:
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           required += ['TestPQLabLiveObservationClosedStagesAndBounds', 'TestPQLabLiveObservationDisabledAndOutputFailure']
-          required += ['TestFinalizeTimingDefaultAndCanonicalEquivalence', 'TestFinalizeTimingFailuresAndBoundedKnownClock', 'TestFinalizeTimingMaterializationOriginalOwnership']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
@@ -2742,6 +2740,43 @@ jobs:
           if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestPQObserver', 'TestObserverCLI', 'TestObserverNode', 'TestObserverStatus'))) for event in events):
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
+          PY
+      - name: Qualify original Finalize phase observation tests
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          streams = (
+              ('ynx-production-entrypoint-tests.jsonl', 'cmd/ynx-comet', (
+                  'TestOperatorFinalizeObservationDefaultAndClosedFlags',
+                  'TestOperatorFinalizeObservationActualCallerAndFailureProjection',
+                  'TestOperatorFinalizeObservationRetainsFailureAndDropDebt',
+              )),
+              ('ynx-initial-cache-state-tests.jsonl', 'internal/consensus', (
+                  'TestFinalizeTimingDefaultAndCanonicalEquivalence',
+                  'TestFinalizeTimingFailuresAndBoundedKnownClock',
+                  'TestFinalizeTimingMaterializationOriginalOwnership',
+              )),
+          )
+          required_passed = {}
+          for filename, package_path, required in streams:
+              path = Path(os.environ['RUNNER_TEMP']) / filename
+              events = [json.loads(line) for line in path.read_text().splitlines()]
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + package_path
+              for name in required:
+                  matching = [(event.get('Package'), event['Action']) for event in events
+                              if event.get('Test') == name and event['Action'] in ('run', 'pass', 'fail', 'skip')]
+                  if matching != [(package, 'run'), (package, 'pass')]:
+                      raise RuntimeError('Finalize observation case did not run and pass once: ' + name)
+                  if any(event['Action'] in ('fail', 'skip') and event.get('Test', '').startswith(name + '/')
+                         for event in events):
+                      raise RuntimeError('Finalize observation child failed or skipped: ' + name)
+              required_passed[package_path] = required
+          print('YNX_FINALIZE_OBSERVATION_TESTS ' + json.dumps(dict(
+              sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required_passed, performanceMeasured=False,
+          ), sort_keys=True))
           PY
       - name: Qualify pinned bootstrap registration and normal block restoration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}

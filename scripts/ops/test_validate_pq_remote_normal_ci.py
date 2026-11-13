@@ -2024,6 +2024,14 @@ def assert_native_compatibility_classification_contract(raw):
     need("continue-on-error:" not in job and "provider: 'portable'" not in job and "if: false" not in job)
 
 
+FOCUSED_GO_TIMEOUT = (
+    "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || "
+    "(inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || "
+    "inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || "
+    "(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108') && 40 || 25 }}\n"
+)
+
+
 def assert_workflow_contract(raw):
     assert_native_compatibility_classification_contract(raw)
     assert_browser_verification_workflow_contract(raw)
@@ -2070,7 +2078,7 @@ def assert_workflow_contract(raw):
     need("    needs: focused-go\n" in paired_job)
     need("    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1\n" in paired_job)
     need("    timeout-minutes: 5\n" in paired_job)
-    need("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n" in job)
+    need(FOCUSED_GO_TIMEOUT in job)
     need("permissions:\n  contents: read\n  actions: read\n" in raw)
     need("      normal_ci_run_id:\n" in raw)
     for leaf in ("scripts/ops/validate-pq-remote-normal-ci.py", "scripts/ops/test_validate_pq_remote_normal_ci.py"):
@@ -2738,8 +2746,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(network, network.replace("--consensus-fresh-paired-business", "--consensus-signed-business", 1), 1),
             raw.replace(network, network.replace("if started > now or remaining < 150:", "if remaining < 120:", 1), 1),
             raw.replace(prepare, "", 1).replace(network, network + prepare, 1),
-            raw.replace("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n",
-                "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 15 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n", 1)]
+            raw.replace(FOCUSED_GO_TIMEOUT,
+                FOCUSED_GO_TIMEOUT.replace("&& 12 ||", "&& 15 ||", 1), 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
@@ -3757,6 +3765,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             mutations.append(changed)
         mutations.extend((line.replace("&& 12 ||", "&& 15 ||", 1),
                           line.replace(") && 15 ||", ") && 25 ||", 1),
+                          line.replace("&& 40 ||", "&& 41 ||", 1),
+                          line.replace("github.event_name == 'push' && github.ref ==", "github.ref ==", 1),
+                          line.replace("codex/ynx-pq-perf-source-20261108", "codex/ynx-pq-perf-integration", 1),
                           line.replace("|| 25 }}", "|| 26 }}", 1),
                           "    timeout-minutes: 25"))
         assert_workflow_contract(raw)
@@ -3809,7 +3820,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
-            ("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n", "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 18 || 25 }}\n"),
+            (FOCUSED_GO_TIMEOUT, FOCUSED_GO_TIMEOUT.replace("&& 15 ||", "&& 18 ||", 1)),
             ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
             ("if started > now or remaining < 150:", "if remaining < 120:"),
             ("remaining = started + 12*60 - now", "remaining = started + 15*60 - now"),
