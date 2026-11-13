@@ -50,7 +50,8 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'conditions differ'):
             reader.compare_readiness(before, dict(after, caps=dict(rssBytes=20)))
 
-    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None, ready_lanes=None):
+    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None,
+                ready_lanes=None, replaced_node=False):
         source = dict(commit='a' * 40, tree='b' * 40)
         tools = dict(commit='c' * 40, tree='d' * 40)
         config = dict(profile='first100-held-public-owner', nodeCount=4, pressureLevel=1,
@@ -79,11 +80,15 @@ class HeldReadbackTests(unittest.TestCase):
                                       exitCode=0 if j == 0 else None, signal=None)
                                  for j, phase in enumerate(('bootstrap', 'pq')) for i in range(4)]
                     boundary = reader.preload.validate(census, processes, [], 100, 5, 30)
+                    exited = [dict(row, exited=True, rawReturnCode=0, exitCode=0) for row in processes]
+                    if replaced_node:
+                        exited[-1]['startTicks'] += 1
                     signer = dict(syntheticOnly=True)
                     archive.writestr(prefix + 'initialized-account-readback.json', encode(census))
                     archive.writestr(prefix + 'preload-initialization.json', encode(boundary))
                     archive.writestr(prefix + 'load-public-owners-ready.json', encode(signer))
                     receipt.update(heldReadyOnlyComplete=True, firstCause=None,
+                                   cleanupComplete=True, normalNodeCleanExit=dict(allEightExitZero=True, records=exited),
                                    initializedAccountReadback=census, preloadInitialization=boundary,
                                    preparationUnconfirmedOwners=[], normalPublicOwnerTransport=dict(attempted=0),
                                    preparationOnlyDemandAccounting=dict(configuredDemand=500, notReleased=500,
@@ -122,6 +127,9 @@ class HeldReadbackTests(unittest.TestCase):
         self.assertIsNone(report['fullCohort'])
         raw, pin = self.fixture(ready_lanes=range(3))
         with self.assertRaisesRegex(RuntimeError, 'READY-only boundary'):
+            reader.inspect(raw, sha(raw), self.controller, pin)
+        raw, pin = self.fixture(ready_lanes=range(4), replaced_node=True)
+        with self.assertRaisesRegex(RuntimeError, 'node identities or exits differ'):
             reader.inspect(raw, sha(raw), self.controller, pin)
 
     def test_full_cohort_counts_one_confirmed_and_rejects_substituted_reply(self):

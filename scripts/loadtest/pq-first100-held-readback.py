@@ -82,6 +82,15 @@ def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
             and boundary == preload.validate(census, boundary['originalProcesses'],
                 receipt['preparationUnconfirmedOwners'], boundary['remainingOriginalActiveSeconds'], 5, 30),
             'original READY-only census or preload receipt differs')
+    exited = receipt['normalNodeCleanExit']
+    keys = ('name', 'pid', 'startTicks')
+    before = {tuple(row[key] for key in keys) for row in boundary['originalProcesses']}
+    after = exited['records']
+    require(receipt['cleanupComplete'] is True and exited['allEightExitZero'] is True
+            and len(after) == len(before) == 8 and before == {tuple(row[key] for key in keys) for row in after}
+            and all(row['exited'] is True and type(row['rawReturnCode']) is int
+                    and row['rawReturnCode'] == 0 and row['exitCode'] == 0 and row['signal'] is None for row in after),
+            'original READY-only node identities or exits differ')
     signer = pool['sourcePreparation']
     signer_path = 'load-public-owners-ready.json'
     require(signer['sourceReply'] == signer_path
@@ -206,6 +215,12 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 [sample['childrenNs'].get(stage) for sample in completed], len(completed))
                 for stage in sorted(finalize.CHILDREN)},
             retainedSuccessElapsed=stages.samples([sample['elapsedNs'] for sample in completed], len(completed)))
+    checkpoints = finalize.four_node_checkpoints(finalize_by_node)
+    if ready:
+        checkpoint = receipt['preloadInitialization']['checkpoint']
+        observed_checkpoint = next((row for row in checkpoints['common'] if row['height'] == checkpoint['height']), None)
+        if observed_checkpoint is not None:
+            require(observed_checkpoint == checkpoint, 'original READY-only census AppHash differs from Finalize and Commit')
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
     return dict(report, status=status,
                 preparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
@@ -219,7 +234,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
-                finalizeCommitCheckpoints=finalize.four_node_checkpoints(finalize_by_node),
+                finalizeCommitCheckpoints=checkpoints,
                 businessBlockCommitStages=prior.business_commit_stages(dict(originalCommitCopies=commits), observed, stages),
                 originalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),
                 originalInitializationStages=receipt.get('initializationStages'),
