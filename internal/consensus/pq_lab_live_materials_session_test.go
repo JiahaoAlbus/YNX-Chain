@@ -43,6 +43,9 @@ func TestPQLabLiveSessionOriginalProofAndHeldScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer session.Close()
+	if len(session.in.anchor.CommittedState) != 0 || len(control.in.anchor.CommittedState) == 0 {
+		t.Fatal("only the read-only command helper may release its decoded anchor state")
+	}
 	if s := prep.Snapshot().Stages; s["lab.bootstrapFullValidation"].Calls != 1 || s["live.anchorFullValidation"].Calls != 1 {
 		t.Fatal("original cold validation must execute once", s)
 	}

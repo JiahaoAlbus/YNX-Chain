@@ -48,6 +48,11 @@ func OpenPQLabLiveMaterialsSession(ctx context.Context, policyPath, pin string, 
 	if err = errors.Join(in.current(), ctx.Err()); err != nil {
 		return nil, errors.Join(err, in.close())
 	}
+	// This helper publishes and reads the node's original result. The owning
+	// Node still uses the decoded anchor to verify registry history. The
+	// helper keeps the pinned raw anchor and checks its original FD on every
+	// command, but no longer needs the decoded committed-state copy.
+	in.anchor.CommittedState = nil
 	in.metrics = nil
 	// Bounded synchronous commands allow explicit result readback without a
 	// queue, retry loop or unbounded policy-independent helper lifetime.
