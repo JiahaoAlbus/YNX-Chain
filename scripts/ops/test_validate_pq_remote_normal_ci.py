@@ -1329,7 +1329,7 @@ def assert_product_device_codec_workflow_contract(raw):
         raise AssertionError("new codec must reuse the original full suite once without filtering")
 
 
-STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', ''), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
+STATE_PARTITION_QUALIFIER = """state_partitions = [('state', '', '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab|TestPQCurrent4WirePUBLICStrictFramesAndOSPeer$|TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)'), ('proof-wallet', '^(TestPQLightProof|TestPQTransactionProof|TestPQConsensus(Light|Transaction|MigrationTransaction)ProofPublicFixture$|TestPQWalletPolicy)', ''), ('production', '^TestProduction', ''), ('lab', '^TestPQLab', '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'), ('lab-caller', '^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)', '^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$'), ('large-lab', '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$', '')]
 state_opt_in_skips = ['TestFeeHistoryCost', 'TestABCITransferPerformance', 'TestCommitStorageMatchedPerformance', 'TestPQCheckpointAccessTwoUIDOriginalStateLayouts', 'TestPQCheckpointAccessUIDHelper', 'TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality', 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart', 'TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming', 'TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart', 'TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown']
 def qualify_state_partitions(events):
     # These are independent executions of one source/package, not partial
@@ -1516,10 +1516,10 @@ def assert_state_math_required_workflow_contract(step):
     merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
              '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     live = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-            "-run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
+            "-run '^TestPQLab' -skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
     live_merge = ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> '
                   '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
-    caller = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
+    caller = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLab(Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)\' -skip \'^TestPQLab(SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl"; then\n'
     caller_merge = '          cat "$RUNNER_TEMP/ynx-lab-caller-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
     live_required = "          required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']\n"
     live_fallback_required = "          required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']\n"
@@ -3799,7 +3799,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']", "'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusalMissing']"),
             ("'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult'", "'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing'"),
             ("'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound'", "'TestPQLabLiveMaterialsCacheFallbackOnlyExactBoundMissing'"),
-            ("-skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
+            ("-skip '^TestPQLab(LiveMaterialsCacheBoundOriginalSetupRequestResult$|LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)$|Sender|PublicOwner|MultiOwner|OnlineSender|Checkpoint|ProofInputs|Workload)'", "-skip '^TestPQLab'"),
             ("-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'", "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing$'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>'),
             ("'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose'", "'TestPQLabLiveMaterialsUncachedOriginalCurrentAndCloseMissing'"),
@@ -4215,11 +4215,21 @@ class CompleteStatePartitionControls(unittest.TestCase):
                   "TestPQConsensusFutureProofPublicFixture", "TestPQConsensusLightProofPublicFixtureFuture",
                   "TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultFuture",
                   "TestPQLabSenderFutureSafety", "TestPQLabWorkloadFutureSafety", "TestPQLabCheckpointFutureSafety"}
+        recipe = (root / 'scripts/verify/pq-held-sessions-ci.sh').read_text()
+        held_selector = re.findall(r"-run '([^']+)' ./internal/consensus", recipe)
+        self.assertEqual(len(held_selector), 1)
+        held_cases = {name for name in original if re.search(held_selector[0], name)}
+        self.assertEqual(held_cases, {
+            'TestPQLabSenderPrepareOriginalWitnessAndCurrent',
+            'TestPQLabPublicOwnerPrepareBeforeCommands',
+            'TestPQLabLiveSessionOriginalProofAndHeldScope',
+            'TestPQLabLiveSessionLifecycleAndOriginalRefusal',
+        })
         for name in original | future:
             selected = [g[0] for g in groups if (not g[1] or re.search(g[1], name)) and
                         (not g[2] or not re.search(g[2], name))]
             with self.subTest(name=name):
-                self.assertEqual(len(selected), 0 if original_exclusions.search(name) else 1)
+                self.assertEqual(len(selected), 0 if original_exclusions.search(name) else 1 - int(name in held_cases))
         self.assertEqual([g[0] for g in groups], ['state', 'proof-wallet', 'production', 'lab', 'lab-caller', 'large-lab'])
         for name, wanted in [('TestPQLabMultiOwnerOriginalExecutionAndBounds', 'lab-caller'),
                              ('TestPQLabSenderFutureSafety', 'lab-caller'),
@@ -4411,7 +4421,7 @@ PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test str
 
 
 def assert_public_owner_cli_workflow_contract(step):
-    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
+    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic|LiveObservation)' -skip '^TestPQLabSenderPUBLICOwnersPreparedReady(Refusals)?$' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
     if step.count(command) != 1 or step.count('go test ') != 1 or '        timeout-minutes: 3\n' not in step:
         raise AssertionError('original single bounded lab CLI call must remain')
     for block in (PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED, PUBLIC_OWNER_CLI_BLOCK):
