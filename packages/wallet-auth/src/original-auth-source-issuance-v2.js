@@ -49,6 +49,9 @@ const devicePurpose=p=>[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDI
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
 import {verifyPQRegisteredMemberData} from './pq-registered-member.js';
+import {verifyOriginalDeviceRegistrationFirstProfileDATA} from './original-device-registration-first-profile-binding.mjs';
+import {acquireOriginalNativeCommittedProductPolicyV4} from './product-pair-session-v4-account-source.js';
+import {evmAddressFromYNX} from './crypto.js';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE'});
 // Existing separately admitted families plus the dedicated device-v4 CODE
@@ -65,7 +68,8 @@ export class OriginalSourceIssuanceV2Kernel {
  #networkCapture;
  #networkOriginals(){const purpose=this.#plan.policy.signatureContract.purpose,pending=purpose===NPR_PURPOSE;if(![NR_PURPOSE,NPR_PURPOSE].includes(purpose))return undefined;const key=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';if(typeof this.#io[key]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');const o=this.#io[key]();if(!this.#networkCapture)this.#networkCapture=(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(o);else(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(this.#networkCapture,o);return this.#networkCapture;}
  #plan;#approval;#signer;#io;#observe;#clock;#loan;#floor=0;#entered=false;#selected=false;#attempted=false;#retired=false;#unknown=false;#first;#hasFirst=false;#partial;#completion;#closeSelected=false;#closeFailed=false;#closeCause;
- constructor(plan,approval,signer,io,observe,clock=Date.now){this.#plan=structuredClone(plan);this.#approval=approval;this.#signer=signer;this.#io=io;this.#observe=observe;this.#clock=clock;}
+ #firstDevice;
+ constructor(plan,approval,signer,io,observe,clock=Date.now,firstDevice){this.#plan=structuredClone(plan);this.#approval=approval;this.#signer=signer;this.#io=io;this.#observe=observe;this.#clock=clock;this.#firstDevice=firstDevice;}
  #alive(){if(this.#retired||this.#unknown||this.#closeSelected)fail('AUTH_ISSUANCE_UNRESOLVED');}
  #now(){const n=this.#clock();if(!Number.isSafeInteger(n)||n<0||n<this.#floor)fail('AUTH_ISSUANCE_CLOCK_ROLLBACK');this.#floor=n;return n;}
  #remember(e){this.#unknown=true;if(!this.#hasFirst){this.#hasFirst=true;this.#first=e;}}
@@ -74,6 +78,8 @@ export class OriginalSourceIssuanceV2Kernel {
   exact(p,['role','rootRaw','enrollmentRaw','bodyRaw','policy','binding','approvalDigest','journalPath']);
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;let effectExpiresAtMs=body.expiresAtMs;
+  const first=firstDeviceProfile(p,body);
+  if(first){if(typeof this.#firstDevice!=='function')fail('AUTH_FIRST_DEVICE_PROTECTED_ORIGINALS_NOT_SUPPLIED');this.#firstDevice(p.bodyRaw,this.#now());}
   if(p.policy.signatureContract.purpose===TLS_PURPOSE)effectExpiresAtMs=inspectOriginalServerTLSSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   if(p.policy.signatureContract.purpose===RCV_PURPOSE)effectExpiresAtMs=inspectOriginalTaskReadReceiverIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   if(p.policy.signatureContract.purpose===DGA_PURPOSE)effectExpiresAtMs=inspectOriginalDesktopGrantAuthorityIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
@@ -154,19 +160,22 @@ class ProtectedApprovalOriginal {
 }
 // Internal release loader. Callers cannot pass a signer callback, role keys,
 // approval string or HTTP body to the normal administrative entrypoint.
+function firstDeviceProfile(plan,body){return plan.role==='profile'&&plan.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE&&body?.selection?.productSessionDeviceV4Pending?.operation==='registration-pop';}
 export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
  if(entry?.plan?.policy?.signatureContract?.purpose===WM_PURPOSE)fail('MOBILE_SOURCE_NATIVE_LOADER_REQUIRED');
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_ISSUANCE_NATIVE_RUNTIME_REQUIRED');
- let approval,a,b,keys,kernel,closed=false,first,present=false;
- const close=()=>{if(closed){if(present)throw first;return;}closed=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_ISSUANCE_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!present){present=true;first=e;}}if(present)throw first;};
+ let approval,a,b,keys,kernel,closed=false,first,present=false,mainOriginal,walletOriginal,policyHold,firstDevice;
+ const close=()=>{if(closed){if(present)throw first;return;}closed=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_ISSUANCE_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close(),()=>{const r=policyHold?.resource;if(r){r.retire();r.join();r.close();}},()=>walletOriginal?.close(),()=>mainOriginal?.close()])try{work();}catch(e){if(!present){present=true;first=e;}}if(present)throw first;};
  try{
   if(!Object.hasOwn(roles,entry.plan.role)||!PURPOSES.includes(entry.plan.policy.signatureContract.purpose)||entry.plan.approvalDigest!==entry.approval.sha256)fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
+  const isFirst=firstDeviceProfile(entry.plan,document(entry.plan.bodyRaw));
+  if(isFirst&&!entry.firstDeviceOriginals)fail('AUTH_FIRST_DEVICE_PROTECTED_ORIGINALS_NOT_SUPPLIED');
   approval=new ProtectedApprovalOriginal(entry.approval);approval.initialize();
   // Denial/expiry/mismatched exact operation refuses before touching role keys.
   independentApproval(entry.plan,approval.readOriginal(),Date.now());
   const root=document(entry.plan.rootRaw),e=entry.plan.role==='enrollment'?document(entry.plan.bodyRaw):document(Buffer.from(document(entry.plan.enrollmentRaw).body,'base64url').toString('utf8')),p=entry.plan.role==='profile'?document(entry.plan.bodyRaw):null;
   const owners=[root.rootOwner,e.profileOwner,e.currentOwner,p?.subjectOwner??entry.subjectOwner];
-  const observe=async()=>{const values=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await fetchOriginalNativeAuthorization(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner})));if(values.some(v=>v.executionHeight!==values[0].executionHeight))fail('AUTH_ISSUANCE_OBSERVATION_CHANGED');return Object.fromEntries(['root','profile','current','subject'].map((r,i)=>[r,values[i]]));};
+  const observe=async()=>{const values=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await fetchOriginalNativeAuthorization(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner})));if(values.some(v=>v.executionHeight!==values[0].executionHeight))fail('AUTH_ISSUANCE_OBSERVATION_CHANGED');if(policyHold)await policyHold.resource.recheck();return Object.fromEntries(['root','profile','current','subject'].map((r,i)=>[r,values[i]]));};
   const pending=entry.plan.policy.signatureContract.purpose===NPR_PURPOSE,nr=[NR_PURPOSE,NPR_PURPOSE].includes(entry.plan.policy.signatureContract.purpose),networkGetter=pending?'readNetworkResourcePendingConsentOriginalsV1':'readNetworkResourceOriginalsV1';const networkIO=nr?createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url))):null;
   if(nr&&typeof networkIO[networkGetter]!=='function')fail('NETWORK_RESOURCE_TYPED_ORIGINALS_GETTER_NOT_SUPPLIED');const networkHeld=nr?(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(networkIO[networkGetter]()):undefined;
   const firstViews=await observe(),selected=firstViews[entry.plan.role==='enrollment'?'root':'profile'],record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_ISSUANCE_ROLE_NOT_CURRENT');
@@ -188,12 +197,32 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   independentApproval(entry.plan,approval.readOriginal(),Date.now());
   window(document(entry.plan.bodyRaw),Date.now());
   if(Date.now()>=effectExpiresAtMs)fail('IDE_DEPLOYMENT_V2_ISSUANCE_EFFECT_EXPIRED');
+  if(isFirst){
+   // Root-selected immutable byte pins, never a caller-supplied approval or
+   // policyRef. Leave the normal release table empty until actual originals exist.
+   const refs=entry.firstDeviceOriginals;exact(refs,['main','wallet']);
+   mainOriginal=new ProtectedApprovalOriginal(refs.main);mainOriginal.initialize();
+   walletOriginal=new ProtectedApprovalOriginal(refs.wallet);walletOriginal.initialize();
+   const account=p.selection.association.account;
+   if(evmAddressFromYNX(account)!==p.subjectOwner)fail('AUTH_FIRST_DEVICE_SUBJECT');
+   policyHold=await acquireOriginalNativeCommittedProductPolicyV4(entry.node,{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner:p.subjectOwner},account);
+   firstDevice=(body,at)=>{
+    const main=mainOriginal.readOriginal(),wallet=walletOriginal.readOriginal();
+    const verified=verifyOriginalDeviceRegistrationFirstProfileDATA(main,wallet,body,policyHold.policyRef,at);
+    if(mainOriginal.readOriginal()!==main||walletOriginal.readOriginal()!==wallet)fail('AUTH_FIRST_DEVICE_PROTECTED_ORIGINAL_CHANGED');
+    policyHold.resource.assertCurrent();
+    if(Date.now()>=verified.expiresAtMs)fail('AUTH_FIRST_DEVICE_APPROVAL_WINDOW');
+   };
+   firstDevice(entry.plan.bodyRaw,Date.now());
+   independentApproval(entry.plan,approval.readOriginal(),Date.now());
+  }
   // Separate roleKeys, never entry.currentKeys. Their original protected
   // custodian must independently authorize this release's fixed role.
   if(nr)(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(networkHeld,networkIO[networkGetter]());
-  a=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
+  const preKey=()=>{if(isFirst){mainOriginal.readOriginal();walletOriginal.readOriginal();policyHold.resource.assertCurrent();window(p,Date.now());}};
+  preKey();a=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.A);a.initialize();preKey();b=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.B);b.initialize();preKey();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
   const signer={assertCurrent(view){if(closed)fail('AUTH_ISSUANCE_KEY_CLOSED');a.assertCurrent();b.assertCurrent();assertPQAuthorizationCurrent(selected,view);},signSelected(message,binding,view){this.assertCurrent(view);let batch;try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:roles[entry.plan.role]},[Buffer.from(message)]).batch;return encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}},close};
   const io=createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url)));
-  kernel=new OriginalSourceIssuanceV2Kernel(entry.plan,approval,signer,io,observe);await kernel.initialize();return kernel;
+  kernel=new OriginalSourceIssuanceV2Kernel(entry.plan,approval,signer,io,observe,Date.now,firstDevice);await kernel.initialize();return kernel;
  }catch(error){return Object.freeze({partial:kernel??{retire(){},join(){},close(){let first,present=false;try{close();}catch(e){first=e;present=true;}try{approval?.close();}catch(e){if(!present){first=e;present=true;}}if(present)throw first;}},error});}finally{a?.wipe();b?.wipe();}
 }
