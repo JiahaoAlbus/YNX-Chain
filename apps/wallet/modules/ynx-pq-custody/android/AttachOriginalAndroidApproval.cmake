@@ -1,0 +1,23 @@
+# Consume from the original Wallet Android CMakeLists after defining
+# ynx_pq_custody and only in YNX_ANDROID_DEVICE_APPROVAL. No standalone image.
+function(ynx_attach_original_android_approval target)
+  if(NOT TARGET "${target}" OR NOT ANDROID OR NOT YNX_ANDROID_DEVICE_APPROVAL)
+    message(FATAL_ERROR "Original Android approval target required")
+  endif()
+  get_property(attached TARGET "${target}" PROPERTY YNX_ORIGINAL_APPROVAL_ATTACHED)
+  if(attached)
+    message(FATAL_ERROR "Original Auth coordinator already attached")
+  endif()
+  set(src "${YNX_APPROVAL_AUTH_INCLUDE}/AndroidV4AccountApproval.cpp")
+  if(NOT IS_ABSOLUTE "${src}" OR NOT EXISTS "${src}" OR IS_SYMLINK "${src}")
+    message(FATAL_ERROR "Pinned original Auth coordinator required")
+  endif()
+  file(SHA256 "${src}" actual)
+  if(NOT actual STREQUAL "4cf0ab123c845f8af6a78d5dc97f0ec569c27cc6d3a848453abe33da0a513924")
+    message(FATAL_ERROR "Original Auth coordinator digest mismatch")
+  endif()
+  target_sources("${target}" PRIVATE "${src}")
+  target_include_directories("${target}" PRIVATE
+    "${YNX_APPROVAL_AUTH_INCLUDE}" "${YNX_APPROVAL_FAILURE_INCLUDE}")
+  set_property(TARGET "${target}" PROPERTY YNX_ORIGINAL_APPROVAL_ATTACHED TRUE)
+endfunction()
