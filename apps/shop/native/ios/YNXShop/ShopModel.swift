@@ -345,11 +345,13 @@ import SwiftUI
             orderRecoveryStates=states;preparedTransitionOrders=prepared;nativeBoundOrderIDs=Set(native.values.filter{$0.phase != "prepared"}.map{$0.orderID})
         }catch{orderRecoveryStates=Dictionary(uniqueKeysWithValues:orders.map{($0.orderID,"unavailable")})}
     }
-    private func queryNativeInvoice(_ original:NativeInvoicePreparationJournal.Record,check:@escaping ()throws->Void)async throws{
-        guard original.phase != "prepared" else{return}
+    private func readNativeInvoice(_ original:NativeInvoicePreparationJournal.Record,check:@escaping ()throws->Void)async throws->NativeInvoicePreparationJournal.Record {
+        guard original.phase != "prepared" else{throw ShopError.unresolvedMutation}
+        let path="orders/\(original.orderID)/native-pay-intent"
+        let needsLookup=original.phase=="unknown"
+        let result=try await api.raw(path+(needsLookup ? "-lookup":""),method:needsLookup ? "POST":"GET",json:needsLookup ? ["IdempotencyKey":original.key]:[:],beforeDispatch:check)
         try check()
-        let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(original.lookupByKey ? "-lookup":""),method:original.lookupByKey ? "POST":"GET",json:original.lookupByKey ? ["IdempotencyKey":original.key]:[:],beforeDispatch:check)
-        try check();_ = try nativeInvoices.observed(original,result:result)
+        return try nativeInvoices.observed(original,result:result)
     }
     func recoverOrder(_ order:Order){
         guard signedIn,!mutationBusy else{return}
@@ -370,8 +372,11 @@ import SwiftUI
                         _ = try BuyerTransitionRecovery.receipt(value,session:session,item:item)
                         try queue.confirmedTracked(item)
                     }
-                    if let original=try nativeInvoices.records(session.account)[order.orderID]{try await queryNativeInvoice(original,check:check)}
-                    try check();await loadOrders();try check();state=""
+                    if let original=try nativeInvoices.records(session.account)[order.orderID],original.phase != "prepared"{_ = try await readNativeInvoice(original,check:check)}
+                    try check()
+                    let refreshed=await readOrders()
+                    try check()
+                    if refreshed{state=""}
                 }catch{guard at==operationRevision else{return};do{try check()}catch{return};failure(error)}
             }
         }catch{failure(error)}
@@ -448,16 +453,22 @@ import SwiftUI
             let original=try nativeInvoices.prepare(order,account:account,legacyPending:legacy)
             mutationBusy=true;let revision=operationRevision,presentation=handoffPresentationRevision
             Task{defer{if revision==operationRevision{mutationBusy=false;refreshOrderRecoveries()}};do{
-                let create=original.phase=="prepared",adopted=original.phase=="reference" && !original.lookupByKey
-                let result=try await api.raw("orders/\(original.orderID)/native-pay-intent"+(!create && !adopted ? "-lookup":""),method:adopted ? "GET":"POST",json:adopted ? [:]:["IdempotencyKey":original.key],beforeDispatch:{try check();guard presentation==self.handoffPresentationRevision else{throw ShopError.contextChanged};if create{try self.nativeInvoices.dispatched(original)}})
-                try check();let retained=try nativeInvoices.observed(original,result:result)
-                guard let operation=retained.originalOperation,presentation==handoffPresentationRevision else{throw ShopError.contextChanged}
+                let current:()throws->Void={try check();guard presentation==self.handoffPresentationRevision else{throw ShopError.contextChanged}}
+                let retained:NativeInvoicePreparationJournal.Record
+                if original.phase=="prepared" {
+                    let result=try await api.raw("orders/\(original.orderID)/native-pay-intent",json:["IdempotencyKey":original.key],beforeDispatch:{try current();try self.nativeInvoices.dispatched(original)})
+                    try current()
+                    retained=try nativeInvoices.observed(original,result:result)
+                }else{
+                    retained=try await readNativeInvoice(original,check:current)
+                }
+                guard let operation=retained.originalOperation else{throw ShopError.security}
                 // The reference is durable before crossing into original Main.
                 // Missing Main navigation preserves it for explicit later use.
-                do{try await api.openOriginalNativePay(operation,orderID:original.orderID);try check()}
-                catch{let originalError=error;try check();guard presentation==handoffPresentationRevision else{return};await loadOrders();try check();throw originalError}
-                try await queryNativeInvoice(retained,check:check);try check();await loadOrders()
-            }catch{do{try check()}catch{return};failure(error)}}
+                do{try await api.openOriginalNativePay(operation,orderID:original.orderID);try current()}
+                catch{let originalError=error;try current();await loadOrders();try current();throw originalError}
+                _ = try await readNativeInvoice(retained,check:current);try current();await loadOrders()
+            }catch{guard revision==operationRevision,presentation==handoffPresentationRevision else{return};do{try check()}catch{return};failure(error)}}
         }catch{failure(error)}
     }
     func resumeNativeInvoiceReferences()async {
@@ -469,9 +480,9 @@ import SwiftUI
         defer{if revision==operationRevision{mutationBusy=false;refreshOrderRecoveries()}}
         do{let check=try api.capture();guard let account=api.currentSession?.account else{throw ShopError.signedOut}
             for original in try nativeInvoices.records(account).values where original.phase != "prepared" {
-                try await queryNativeInvoice(original,check:check)
+                _ = try await readNativeInvoice(original,check:check)
             }
-        }catch{failure(error)}
+        }catch{guard revision==operationRevision else{return};failure(error)}
     }
     func openReviewedInvoice(){guard let presentation=invoicePresentation else{return};invoicePresentation=nil;Task{do{let check=try api.capture();guard api.currentSession==presentation.session,presentation.revision==handoffPresentationRevision else{throw ShopError.contextChanged};try await api.reviewInvoice(presentation.url,expected:presentation.session);try check();try journey.reviewOpened(presentation.session.account,review:presentation.review);state="payment_pending"}catch{failure(error)}}}
     func resumeOriginalOrder()async {guard signedIn else{return};do{let check=try api.capture();guard let account=api.currentSession?.account,let review=try journey.load(account).review else{return};let value=try await api.raw("orders/\(review.original.orderID)",method:"GET",json:[:]);try check();let order=try AppleBuyerReceipt.decode(value,account:account);try journey.observed(account,order:order,journal:invoiceHandoffs);await loadOrders()}catch{failure(error)}}

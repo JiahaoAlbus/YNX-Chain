@@ -50,6 +50,9 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     var mainRefusal:String?
     var mainReturned=false
     var queryAfterMain=0
+    var wrongObservedOperation=false
+    var holdNativeRead=false
+    var heldNativeRead:BuyerLifecycleHTTP?
     var holdConfirm=false
     var heldConfirm:[BuyerLifecycleHTTP]=[]
     var failTransition=false
@@ -94,7 +97,7 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
     }
     static func session(_ account:String,generation:Int=1)->ShopSession {ShopSession(account:account,token:String(repeating:"t",count:43),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:generation)}
     func order()throws->Order{try AppleBuyerReceipt.decode(visible,account:authority.current!.account)}
-    func observation()->[String:Any]{["orderId":orderID,"originalOperation":operation,"state":"PREPARED","phase":"awaiting_merchant_approval","queryOnly":true,"fundsVerified":false]}
+    func observation()->[String:Any]{["orderId":orderID,"originalOperation":wrongObservedOperation ? "npi_"+String(repeating:"c",count:48):operation,"state":"PREPARED","phase":"awaiting_merchant_approval","queryOnly":true,"fundsVerified":false]}
     func receive(_ request:BuyerLifecycleHTTP) {
         let path=request.request.url!.path,method=request.request.httpMethod ?? "GET",body=request.body()
         calls.append(method+" "+path);bodies.append(body)
@@ -109,6 +112,7 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         }
         if path=="/api/orders/\(orderID)/native-pay-intent-lookup" || (path=="/api/orders/\(orderID)/native-pay-intent" && method=="GET") {
             if mainReturned{queryAfterMain+=1}
+            if method=="GET",holdNativeRead{heldNativeRead=request;return}
             if nativeLookupUnavailable{request.respond(["error":"original result is not yet available"],status:404)}else{request.respond(observation())};return
         }
         if path.hasSuffix("/confirm-payment") {if confirmFails{request.respond(["error":"controlled original archive unavailable"],status:503);return};if adoptArchiveOnConfirm{visible=original;visible["WalletBuyer"]=Self.account};if holdConfirm{heldConfirm.append(request)}else{request.respond(["untrustedTransportOnly":true])};return}
@@ -162,8 +166,29 @@ final class BuyerLifecycleHTTP:URLProtocol,@unchecked Sendable {
         try await until{!f.model.mutationBusy && f.mainReturned}
         try check(f.queryAfterMain==1,"Main return queries the same original intent while its operation still owns the busy lock")
         try check(f.mainCalls==[["action":"order-invoice","productId":"shop.order","sourceOrder":f.orderID]],"actual normal Main consumer receives only original order selector")
+        let read="GET /api/orders/\(f.orderID)/native-pay-intent"
+        let lookup="POST /api/orders/\(f.orderID)/native-pay-intent-lookup"
+        try check(f.calls.filter{$0==read}.count==1 && !f.calls.contains(lookup),"known original after Main returns through the GET-only bound read")
         let reference=try f.journal.records(BuyerLifecycleFixture.account)[f.orderID]
         try check(reference?.originalOperation==f.operation && reference?.phase=="reference" && f.model.orders.first?.status=="payment_pending","Main data-only return retains original reference and cannot mark funds paid")
+        f.wrongObservedOperation=true
+        f.model.recoverOrder(try f.order());try await until{!f.model.mutationBusy}
+        try check(try f.journal.records(BuyerLifecycleFixture.account)[f.orderID]==reference && f.calls.filter{$0==read}.count==2 && !f.calls.contains(lookup) && f.mainCalls.count==1,"another npi in a bound read is refused without rewriting the reference or retrying Main")
+        f.wrongObservedOperation=false
+        f.orderReadFails=true
+        f.model.recoverOrder(try f.order());try await until{!f.model.mutationBusy}
+        try check(f.model.state=="unavailable","failed final order refresh remains visible after an original read")
+        f.orderReadFails=false
+        let originalSession=f.authority.current
+        f.holdNativeRead=true
+        f.model.recoverOrder(try f.order());try await until{f.heldNativeRead != nil}
+        let saved=f.storage
+        f.model.state="profile_saved"
+        f.authority.current=BuyerLifecycleFixture.session(BuyerLifecycleFixture.account,generation:2)
+        f.heldNativeRead?.respond(f.observation());f.heldNativeRead=nil;f.holdNativeRead=false
+        try await until{!f.model.mutationBusy}
+        try check(f.storage==saved && f.model.state=="profile_saved" && f.mainCalls.count==1 && !f.calls.contains(lookup),"late bound read under the prior generation cannot write or publish under the same account")
+        f.authority.current=originalSession
     }
     @MainActor static func exclusivePaymentCheck()async throws {
         let f=try BuyerLifecycleFixture();defer{f.finish()};try await f.start();try await f.checkout()

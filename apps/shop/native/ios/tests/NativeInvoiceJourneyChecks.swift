@@ -33,7 +33,8 @@ final class NativeCreationHTTP:URLProtocol,@unchecked Sendable {
   NativeCreationHTTP.handle={request in let path=request.request.url!.path
    if path=="/api/products"{request.respond(["products":[]])}
    else if path=="/api/orders"{request.respond(["orders":[orderJSON]])}
-   else if path=="/api/orders/ord_native/native-pay-intent"{creates+=1;let raw=request.request.httpBody ?? request.request.httpBodyStream.flatMap{stream->Data? in stream.open();defer{stream.close()};var result=Data();var b=[UInt8](repeating:0,count:1024);while stream.hasBytesAvailable{let n=stream.read(&b,maxLength:b.count);if n<=0{break};result.append(contentsOf:b.prefix(n))};return result} ?? Data();originalKey=(try? JSONSerialization.jsonObject(with:raw) as? [String:Any])?["IdempotencyKey"] as? String;heldCreate=request}
+   else if path=="/api/orders/ord_native/native-pay-intent",request.request.httpMethod=="GET"{request.respond(lookupJSON)}
+   else if path=="/api/orders/ord_native/native-pay-intent",request.request.httpMethod=="POST"{creates+=1;let raw=request.request.httpBody ?? request.request.httpBodyStream.flatMap{stream->Data? in stream.open();defer{stream.close()};var result=Data();var b=[UInt8](repeating:0,count:1024);while stream.hasBytesAvailable{let n=stream.read(&b,maxLength:b.count);if n<=0{break};result.append(contentsOf:b.prefix(n))};return result} ?? Data();originalKey=(try? JSONSerialization.jsonObject(with:raw) as? [String:Any])?["IdempotencyKey"] as? String;heldCreate=request}
    else if path=="/api/orders/ord_native/native-pay-intent-lookup"{lookups+=1;if holdLookup{heldLookup=request}else{request.respond(lookupJSON)}}
    else{request.respond(orderJSON)}
   }
