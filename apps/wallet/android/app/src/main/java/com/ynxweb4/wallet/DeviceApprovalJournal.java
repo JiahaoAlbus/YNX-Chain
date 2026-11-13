@@ -16,11 +16,13 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
     private static final int MAX_MEMBER_SIZE = 98304;
     private static final String TABLE = "approval_attempt";
     private static final String KEY = "operation = ?";
+    private static final String CLAIM_COLUMN =
+        "key_claimed INTEGER NOT NULL DEFAULT 0 CHECK (key_claimed IN (0, 1))";
 
     DeviceApprovalJournal(Context context) {
         // Do not restore an ENTERED row or a key-attempt receipt onto another device.
         super(context, new java.io.File(context.getNoBackupFilesDir(),
-            "device-approval-v4.db").getAbsolutePath(), null, 1);
+            "device-approval-v4.db").getAbsolutePath(), null, 2);
     }
 
     @Override public void onConfigure(SQLiteDatabase db) {
@@ -29,11 +31,16 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
 
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE + " (operation TEXT PRIMARY KEY NOT NULL,"
-            + " binding BLOB NOT NULL, receipt BLOB, member BLOB, first_failure BLOB)");
+            + " binding BLOB NOT NULL, receipt BLOB, member BLOB, first_failure BLOB, " + CLAIM_COLUMN + ")");
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        throw new IllegalStateException("Unsupported DEVICE journal version");
+        if (oldVersion != 1 || newVersion != 2) {
+            throw new IllegalStateException("Unsupported DEVICE journal version");
+        }
+        db.execSQL("ALTER TABLE " + TABLE + " ADD COLUMN " + CLAIM_COLUMN);
+        // Old ENTERED rows may already have reached the signer.
+        db.execSQL("UPDATE " + TABLE + " SET key_claimed = 1");
     }
 
     /**
@@ -59,6 +66,36 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
         }
         requireEqual(expected, readColumn(db, operation, "binding"));
         return inserted;
+    }
+
+    /** Persist the only key-loan selection before opening OS custody. */
+    boolean claimKeyAttempt(String operation, byte[] binding) {
+        byte[] expected = binding.clone();
+        SQLiteDatabase db = getWritableDatabase();
+        boolean selected;
+        db.beginTransaction();
+        try {
+            requireEqual(expected, readColumn(db, operation, "binding"));
+            ContentValues values = new ContentValues();
+            values.put("key_claimed", 1);
+            selected = db.update(TABLE, values,
+                KEY + " AND key_claimed = 0 AND receipt IS NULL AND member IS NULL"
+                    + " AND first_failure IS NULL",
+                new String[]{operation}) == 1;
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        if (selected) {
+            try (Cursor row = db.query(TABLE, new String[]{"binding", "key_claimed"},
+                    KEY, new String[]{operation}, null, null, null)) {
+                if (!row.moveToFirst() || row.getInt(1) != 1) {
+                    throw new IllegalStateException("Original DEVICE key claim unavailable");
+                }
+                requireEqual(expected, row.getBlob(0));
+            }
+        }
+        return selected;
     }
 
     /** Storage-only, valid after retirement. Identical readback is idempotent. */

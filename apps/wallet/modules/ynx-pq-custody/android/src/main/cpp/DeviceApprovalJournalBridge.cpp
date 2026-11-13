@@ -16,6 +16,8 @@ JournalBridge::JournalBridge(JNIEnv* env, jobject journal, jstring operation, jb
     if (!type_ || env_->ExceptionCheck()) return;
     enter_ = env_->GetMethodID(type_, "enter", "(Ljava/lang/String;[B)Z");
     if (!enter_ || env_->ExceptionCheck()) return;
+    claim_ = env_->GetMethodID(type_, "claimKeyAttempt", "(Ljava/lang/String;[B)Z");
+    if (!claim_ || env_->ExceptionCheck()) return;
     receipt_ = env_->GetMethodID(type_, "recordReceipt", "(Ljava/lang/String;[B[B)V");
     if (!receipt_ || env_->ExceptionCheck()) return;
     retain_ = env_->GetMethodID(type_, "retain", "(Ljava/lang/String;[B[B[B)V");
@@ -32,6 +34,13 @@ JournalBridge::Entry JournalBridge::enter() {
     const auto inserted = env_->CallBooleanMethod(journal_, enter_, operation_, binding_);
     if (takeJavaFailure(env_)) return Entry::Unknown;
     return inserted == JNI_TRUE ? Entry::Inserted : Entry::Existing;
+}
+
+JournalBridge::Entry JournalBridge::claimKeyAttempt() {
+    if (!read_ || env_->ExceptionCheck()) return Entry::Unknown;
+    const auto claimed = env_->CallBooleanMethod(journal_, claim_, operation_, binding_);
+    if (takeJavaFailure(env_)) return Entry::Unknown;
+    return claimed == JNI_TRUE ? Entry::Inserted : Entry::Existing;
 }
 
 bool JournalBridge::recordReceipt(jbyteArray receipt) {

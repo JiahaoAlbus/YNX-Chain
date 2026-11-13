@@ -16,6 +16,7 @@ public:
 
     enum class Entry { Unknown, Existing, Inserted };
     Entry enter();
+    Entry claimKeyAttempt();
     bool recordReceipt(jbyteArray receipt);
     bool retain(jbyteArray member, jbyteArray firstFailure);
     enum class Read { Unavailable, Absent, Found };
@@ -30,6 +31,7 @@ private:
     jbyteArray binding_;
     jclass type_ = nullptr;
     jmethodID enter_ = nullptr;
+    jmethodID claim_ = nullptr;
     jmethodID receipt_ = nullptr;
     jmethodID retain_ = nullptr;
     jmethodID read_ = nullptr;
