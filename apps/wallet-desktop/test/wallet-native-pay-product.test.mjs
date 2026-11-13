@@ -32,3 +32,31 @@ test('complete P06 immutable consumer is inside existing Mac package selection a
  assert.equal(receipt.productionModules,9);assert.equal(receipt.files.length,9);for(const ref of receipt.files){const b=await fs.readFile(new URL(ref.path,base));assert.equal(b.length,ref.bytes);assert.equal(createHash('sha256').update(b).digest('hex'),ref.sha256);}
  const pkg=JSON.parse(await fs.readFile(new URL('../package.json',import.meta.url),'utf8')),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');assert.ok(pkg.build.files.includes('src/**'));assert.ok(main.includes("from './wallet-native-pay-product-startup.mjs'"));const gate=main.slice(main.indexOf('const originalAdmissionExit='),main.indexOf('const originalAdmissionExit=')+1600);assert.match(gate,/assertCloseSafe:\(\)=>\{/);assert.ok(gate.includes('nativePayProduct?.assertSafeToClose();'));assert.ok(gate.includes('originalProductContextBridge.assertSafeToClose();'));
 });
+
+test('private original-order call expires the same review if the host changes before publication', async () => {
+  const operation = 'npi_' + 'a'.repeat(48);
+  const input = {action: 'order-pay-review', productId: 'shop.order', sourceOrder: 'PUBLIC-order'};
+  const request = {id: 'PUBLIC-review', method: 'ynx_signPQNativeAction', review: {account}};
+  const failure = Error('PUBLIC_HOST_RETIRED');
+  let live = true;
+  let calls = 0;
+  const f = fixture({
+    invoke() { assert.fail('must not fall back to renderer invoke'); },
+    async invokeOriginalOrderResult(raw, originalOperation, current) {
+      calls++;
+      assert.equal(raw, input);
+      assert.equal(originalOperation, operation);
+      assert.equal(current(), undefined);
+      live = false;
+      return {walletRequest: {id: request.id, method: request.method}};
+    }
+  });
+  f.requests.push(request);
+  await assert.rejects(f.service.invokeOriginalOrderResult(input, operation, () => {
+    if (!live) throw failure;
+  }), error => error === failure);
+  assert.equal(calls, 1);
+  assert.deepEqual(f.published, []);
+  assert.deepEqual(f.expired, [request.id]);
+  f.service.assertSafeToClose();
+});
