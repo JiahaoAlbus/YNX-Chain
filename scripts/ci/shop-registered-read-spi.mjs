@@ -7,7 +7,7 @@ try{
  const ns=await import(pathToFileURL(join(pkg,'src/original-shop-registered-read-normal-private.js')).href);if(Object.keys(ns).join()!=='initializeOriginalShopRegisteredReadForProductSource')throw new Error('PRIVATE_NORMAL_EXPORT_CHANGED');
  const body=await readFile(join(native,'shop_registered_read_sdk_bridge.cpp'),'utf8'),model=await readFile(join(test,'PUBLIC-sdk-spi-model.cpp'),'utf8');const imports=[...new Set([...((body+model).matchAll(/\b(napi_[a-z0-9_]+)\s*\(/g))].map(x=>x[1]))].filter(x=>x!=='napi_status').sort();
  const nodeInclude=resolve(dirname(process.execPath),'../include/node'),output=join(work,'PUBLIC-model.node');
- const flags=process.platform==='darwin'?['-bundle','-Wl,-undefined,error',...imports.map(n=>'-Wl,-U,_'+n)]:['-shared','-fPIC'];
+ const flags=process.platform==='darwin'?['-bundle','-Wl,-undefined,error',...imports.map(n=>'-Wl,-U,_'+n)]:['-shared','-fPIC','-Wl,--wrap=_Znwm'];
  await run('cpp-model-compile','clang++',['-std=c++17','-Wall','-Wextra','-Werror',...flags,'-I'+nodeInclude,'-I'+join(test,'fixtures'),'-I'+native,join(test,'PUBLIC-sdk-spi-model.cpp'),'-o',output]);
  await run('sdk-body-public-model',process.execPath,[join(test,'sdk-spi-model.mjs')],{PUBLIC_SHOP_SPI_MODEL_ADDON:output});
  await run('normal-caller-model',process.execPath,['--experimental-vm-modules',join(test,'normal-caller-model.mjs')]);

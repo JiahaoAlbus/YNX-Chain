@@ -3,8 +3,29 @@
 #include "shop_registered_read_sdk_bridge.cpp"
 #undef napi_delete_reference
 static int allocationCountdown=-1;
-void*operator new(std::size_t n){if(allocationCountdown==0){allocationCountdown=-1;throw std::bad_alloc();}if(allocationCountdown>0)--allocationCountdown;if(auto*p=std::malloc(n))return p;throw std::bad_alloc();}
-void operator delete(void*p)noexcept{std::free(p);}
+static void checkAllocationFault() {
+ if (allocationCountdown == 0) {
+  allocationCountdown = -1;
+  throw std::bad_alloc();
+ }
+ if (allocationCountdown > 0) --allocationCountdown;
+}
+#if defined(__linux__)
+// Linker wrapping targets references from this fixture. ELF preemption can
+// otherwise resolve its operator new calls to the host Node executable.
+extern "C" void* __real__Znwm(std::size_t);
+extern "C" void* __wrap__Znwm(std::size_t size) {
+ checkAllocationFault();
+ return __real__Znwm(size);
+}
+#else
+void* operator new(std::size_t size) {
+ checkAllocationFault();
+ if (auto* value = std::malloc(size)) return value;
+ throw std::bad_alloc();
+}
+void operator delete(void* value) noexcept { std::free(value); }
+#endif
 static bool failDrop=false,nsUnknown=false;static int nsCloses=0;static napi_ref fixtureNS=nullptr,fixtureThen=nullptr;
 extern "C" napi_status napi_delete_reference(napi_env,napi_ref);
 extern "C" napi_status PUBLIC_delete_reference(napi_env e,napi_ref r){if(failDrop)return napi_generic_failure;return napi_delete_reference(e,r);}
