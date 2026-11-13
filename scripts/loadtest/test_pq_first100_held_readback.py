@@ -1,4 +1,5 @@
 """Readback controls with synthetic archive metadata only."""
+import base64
 import hashlib
 import importlib.util
 import io
@@ -23,7 +24,7 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
-    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/'):
+    def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None):
         source = dict(commit='a' * 40, tree='b' * 40)
         tools = dict(commit='c' * 40, tree='d' * 40)
         config = dict(profile='first100-held-public-owner', nodeCount=4, pressureLevel=1,
@@ -36,8 +37,15 @@ class HeldReadbackTests(unittest.TestCase):
             archive.writestr('pq-first100-held-plan.json', encode(plan))
             if with_receipt:
                 archive.writestr(prefix + 'FIRST100-HELD-CI.json', encode(dict(plan, controllerCommit=self.controller)))
-                archive.writestr(prefix + 'receipt.json', encode(dict(source=source, toolIdentity=tools,
-                    loadExecuted=False, firstCause='stopped before release')))
+                receipt = dict(source=source, toolIdentity=tools, loadExecuted=False, firstCause='stopped before release')
+                if confirmed is not None:
+                    extra, load = confirmed
+                    receipt.update(loadExecuted=True, firstCause=None, planSHA256=sha(extra['load-plan.json']),
+                                   loadResult=load, journalSegments=[dict(path='load-events-00000.jsonl',
+                                       bytes=len(extra['load-events-00000.jsonl']), sha256=sha(extra['load-events-00000.jsonl']))])
+                    for name, data in extra.items():
+                        archive.writestr(prefix + name, data)
+                archive.writestr(prefix + 'receipt.json', encode(receipt))
                 archive.writestr(prefix + 'requested-load.json', encode(dict(source=source, mode='online',
                     rate=100, seconds=5, accounts=accounts, tailSeconds=30, perAccountCapacity=1, configuredDemand=500)))
         return output.getvalue(), pin
@@ -50,6 +58,54 @@ class HeldReadbackTests(unittest.TestCase):
             self.assertIsNone(report['fullCohort'])
             if has_receipt:
                 self.assertEqual(report['firstCause'], 'stopped before release')
+
+    def test_full_cohort_counts_one_confirmed_and_rejects_substituted_reply(self):
+        fixture = reader.module('test_pq_observed_throughput.py').ObservedThroughputControls()
+        ledger = fixture.ledger(500)
+        row, _ = ledger.reserve(ledger.plan['windowNs'])
+        tx = b'original transaction fixture'
+        fixture.event(ledger, row, 'signed', 4_999_999_995, hash=sha(tx), nativeHash='b'*64)
+        fixture.event(ledger, row, 'submitted', 4_999_999_996)
+        fixture.event(ledger, row, 'ack', 4_999_999_997)
+        fixture.event(ledger, row, 'included', 5_000_000_001)
+        base = 'load-operations/%05d/' % row['index']
+        fixture.event(ledger, row, 'qualified', 5_000_000_002, hash=row['hash'], nativeHash=row['nativeHash'],
+                      normalVerifierCode='VERIFIED_TRANSACTION_DATA', executionSuccessful=True, executionCode='0',
+                      transactionType='pq_transfer', members=1, nativeGrant=False,
+                      normalConfirmCode='PROOF_CONFIRMED_DATA', proofReference=base+'qualified-receipt.json')
+        load = ledger.report(5_000_000_003)
+        result = dict(transactionHash='0x'+row['hash'], nativeWireHash=row['nativeHash'], included=True,
+                      finalized=True, executionSuccessful=True, executionCode='0', nativeGrant=False)
+        verifier = dict(code='VERIFIED_TRANSACTION_DATA', result=result)
+        confirm = dict(code='PROOF_CONFIRMED_DATA', result=dict(result=result))
+        proof = dict(sequence='1')
+        stem = 'load-%05d' % row['index']
+        originals = {
+            'load-plan.json': encode(ledger.plan),
+            'load-events-00000.jsonl': b'{}\n',
+            base+'transaction.abci': tx,
+            base+'submission-intent.json': encode(dict(id=row['id'], operationId=row['operationId'],
+                owner=row['ownerIndex'], nonce=str(row['nonce']), transactionHash=sha(tx),
+                submissionAttempts=1, qualifiedFinal=False)),
+            base+'four-node-inclusion.json': encode(dict(qualifiedFinal=False, rows=[dict(height='19',
+                hash=sha(tx), tx=base64.b64encode(tx).decode(), tx_result=dict(code=0))]*4)),
+            base+'qualified-receipt.json': encode(dict(id=row['id'], operationId=row['operationId'], mode='online',
+                normalConfirm=confirm, normalVerifier=verifier, normalLiveResult=proof)),
+            base+'original-confirm-reply.json': encode(confirm),
+            stem+'-normal-verifier.log': encode(verifier),
+            stem+'-live-result.log': encode(dict(version='YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1',
+                outcome='original_result_read', result=proof)),
+        }
+        raw, pin = self.fixture(confirmed=(originals, load))
+        cohort = reader.inspect(raw, sha(raw), self.controller, pin)['fullCohort']
+        self.assertEqual(cohort['submissionAttemptWindowTPS'], 0.2)
+        self.assertEqual(cohort['originalCohort']['counts']['qualifiedReceipt']['inTail'], 1)
+        self.assertEqual(cohort['unresolvedRate'], 499/500)
+        self.assertIsNone(cohort['originalCohort']['latencies']['submitToQualifiedReceiptObserved']['p95Ms'])
+        originals[base+'original-confirm-reply.json'] = encode(dict(confirm, code='REFUSED'))
+        raw, pin = self.fixture(confirmed=(originals, load))
+        with self.assertRaisesRegex(RuntimeError, 'original held proof'):
+            reader.inspect(raw, sha(raw), self.controller, pin)
 
     def test_original_configuration_and_full_demand_are_required(self):
         raw, pin = self.fixture(prefix='public/')

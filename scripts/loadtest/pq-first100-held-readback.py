@@ -69,7 +69,17 @@ def inspect(raw, sha256, controller, configuration_sha256):
             require(re.fullmatch(r'load-events-\d{5}\.jsonl', path)
                     and all(manifest[prefix + path][key] == segment[key] for key in ('bytes', 'sha256')),
                     'original load journal differs')
-        report['fullCohort'] = stages.business(load)
+        business = stages.business(load)
+        submitted = sum(row['submittedNs'] is not None and row['submittedNs'] < load['windowNs']
+                        for row in load['rows'])
+        require(submitted == load['submittedWithinWindow']
+                and submitted / 5 == load['actualSubmissionAttemptTPS'], 'original submission window differs')
+        terminal = business['terminalCounts']
+        report['fullCohort'] = dict(business, submittedWithinWindow=submitted,
+                                    submissionAttemptWindowTPS=submitted / 5,
+                                    knownFailureRate=terminal.get('failed', 0) / 500,
+                                    unresolvedRate=(500 - load['qualified'] - terminal.get('failed', 0)) / 500,
+                                    backlogGrowing=load['backlogGrowing'], queueSamples=load['queueSamples'])
         for row in load['rows']:
             if row['finalNs'] is None:
                 continue
@@ -87,8 +97,8 @@ def inspect(raw, sha256, controller, configuration_sha256):
                     'original held proof, confirmation or operation identity differs')
             for verification in (final['normalVerifier'], final['normalConfirm']['result']):
                 result = verification['result']
-                require(result['transactionHash'].lower() == row['hash']
-                        and result['nativeWireHash'].lower() == row['nativeHash']
+                require(result['transactionHash'].removeprefix('0x').lower() == row['hash']
+                        and result['nativeWireHash'].removeprefix('0x').lower() == row['nativeHash']
                         and result['included'] is True and result['finalized'] is True
                         and result['executionSuccessful'] is True and str(result['executionCode']) == '0'
                         and result['nativeGrant'] is False, 'original proof execution or dual identity differs')
