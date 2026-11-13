@@ -99,7 +99,7 @@ func TestToolLoopHTTPResultLinkage(t *testing.T) {
 	})
 	admit := func(_ context.Context, destination, model string, body []byte) error {
 		admissions++
-		if destination != s.cfg.ProviderURL || model != s.cfg.Model || bytes.Contains(body, []byte(s.cfg.ProviderAPIKey)) {
+		if destination != s.cfg.ProviderURL+"/chat/completions" || model != s.cfg.Model || bytes.Contains(body, []byte(s.cfg.ProviderAPIKey)) {
 			t.Error("wrong admission binding")
 		}
 		if admissions == 2 && !bytes.Contains(body, []byte("actual adapter bytes")) {

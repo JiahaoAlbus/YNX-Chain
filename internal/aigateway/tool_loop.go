@@ -106,7 +106,7 @@ type toolLoopCheckpoint struct {
 }
 
 // ToolModelAdmission must verify the existing session, selected context and
-// outbound disclosure for these exact bytes and configured destination on EVERY
+// outbound disclosure for these exact bytes and HTTP request URL on EVERY
 // model call, including newly obtained private tool results. It cannot switch
 // providers or models. The byte slice is a copy and contains no API credential.
 type ToolModelAdmission func(ctx context.Context, providerURL, model string, body []byte) error
@@ -427,11 +427,12 @@ func (s *Service) runToolLoop(ctx context.Context, state *toolLoopCheckpoint, sc
 		if len(body) > maxBodyBytes {
 			return result, ErrToolLoopLimit
 		}
-		if err := admit(ctx, s.cfg.ProviderURL, s.cfg.Model, bytes.Clone(body)); err != nil {
+		destination := s.cfg.ProviderURL + "/chat/completions"
+		if err := admit(ctx, destination, s.cfg.Model, bytes.Clone(body)); err != nil {
 			return result, fmt.Errorf("admit tool model disclosure: %w", err)
 		}
 		state.Rounds++
-		response, err := s.toolModelCall(ctx, body, state.RequestID)
+		response, err := s.toolModelCall(ctx, destination, body, state.RequestID)
 		if err != nil {
 			return result, err
 		}
@@ -479,9 +480,9 @@ func (s *Service) runToolLoop(ctx context.Context, state *toolLoopCheckpoint, sc
 	}
 }
 
-func (s *Service) toolModelCall(ctx context.Context, body []byte, requestID string) (toolLoopResponse, error) {
+func (s *Service) toolModelCall(ctx context.Context, destination string, body []byte, requestID string) (toolLoopResponse, error) {
 	var result toolLoopResponse
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.cfg.ProviderURL+"/chat/completions", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, destination, bytes.NewReader(body))
 	if err != nil {
 		return result, err
 	}
