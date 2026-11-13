@@ -18,10 +18,10 @@ WORKFLOW = '.github/workflows/pq-normal-process.yml'
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 SOURCE = '8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2'
 SOURCE_TREE = '1db9efadc9c1d12dc21890bd6bf0614cf81e6fd9'
-TOOLS = '8beeaa6e602ec8e811ea30b5ed97d0dca27eed97'
-TOOLS_TREE = 'ca19a412e721b8f8131eece35a5eb17a92ebeabd'
-TOOLS_RUN = 43427521342
-TOOLS_JOB = 131892515187
+TOOLS = 'e941a922dc865d33c1cb4851b4c7a789494ccd75'
+TOOLS_TREE = '9577356ab7b576c6ef44e991a4bdcb302e2af3e2'
+TOOLS_RUN = 43428452749
+TOOLS_JOB_NAME = "Chain Core source and release gate"
 SUPPLIER = '5a49f5c91452604dffb910df736702b3b9df2562'
 SUPPLIER_TREE = '08747364c24c065bf2b13527c210625d7ec95fba'
 GO = 'go1.26.11'
@@ -57,7 +57,7 @@ def options(source, execute):
 
 def plan():
     value = dict(profile=PROFILE, ref=REF, workflow=WORKFLOW, source=SOURCE, sourceTree=SOURCE_TREE,
-                 tools=TOOLS, toolsTree=TOOLS_TREE, toolsRun=TOOLS_RUN, toolsJob=TOOLS_JOB, go=GO,
+                 tools=TOOLS, toolsTree=TOOLS_TREE, toolsRun=TOOLS_RUN, toolsJobName=TOOLS_JOB_NAME, go=GO,
                  supplier=SUPPLIER, supplierTree=SUPPLIER_TREE, options=vars(options('source', False)),
                  nodeCount=4, pressureLevel=1)
     pin = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
@@ -101,8 +101,9 @@ def tools_ci(token):
             and run.get('status') == 'completed' and run.get('conclusion') == 'success',
             'fixed held first100 tools CI must pass before execution')
     jobs = [job for job in read('/attempts/1/jobs')['jobs']
-            if job['name'] == 'Chain Core source and release gate']
-    require(len(jobs) == 1 and jobs[0].get('id') == TOOLS_JOB and jobs[0].get('run_id') == TOOLS_RUN
+            if job['name'] == TOOLS_JOB_NAME]
+    require(len(jobs) == 1 and type(jobs[0].get('id')) is int and jobs[0]['id'] > 0
+            and jobs[0].get('run_id') == TOOLS_RUN and jobs[0].get('run_attempt') == 1
             and jobs[0].get('head_sha') == TOOLS and jobs[0].get('status') == 'completed'
             and jobs[0].get('conclusion') == 'success',
             'exact tools CI job did not pass')
@@ -112,7 +113,7 @@ def tools_ci(token):
         steps = [step for step in jobs[0]['steps'] if step['name'] == name]
         require(len(steps) == 1 and steps[0].get('status') == 'completed'
                 and steps[0].get('conclusion') == 'success', 'original held tools CI step did not pass: ' + name)
-    return dict(run=TOOLS_RUN, job=TOOLS_JOB, source=TOOLS, requiredSteps=list(required), conclusion='success')
+    return dict(run=TOOLS_RUN, job=jobs[0]['id'], source=TOOLS, requiredSteps=list(required), conclusion='success')
 
 
 def execute():
