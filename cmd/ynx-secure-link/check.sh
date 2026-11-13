@@ -35,10 +35,18 @@ def p04_workflow_changed(base, head):
     workflow = '.github/workflows/chain-core.yml'
     # These two lines only select the existing step. Any other workflow edit
     # may alter the runner, OpenSSL, Go, or the frozen package's invocation.
-    selection = (b'      p04_consumer: ${{ steps.paths.outputs.p04_consumer }}',
-                 b"        if: needs.link-scope.outputs.p04_consumer == 'true'")
     def without_selection(revision):
-        return [line for line in git('show', revision + ':' + workflow).splitlines() if line not in selection]
+        lines = git('show', revision + ':' + workflow).splitlines()
+        kept = []
+        request_step = False
+        for line in lines:
+            if line.startswith(b'      - '):
+                request_step = line == b'      - name: Verify the composed P04 and Auth original request identity'
+            if line and not line.startswith(b'        ') and not line.startswith(b'      - '):
+                request_step = False
+            if not request_step and line != b'      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}':
+                kept.append(line)
+        return kept
     return without_selection(base) != without_selection(head)
 
 def owned(p):
@@ -91,14 +99,19 @@ else:
     raise SystemExit('unsupported workflow event')
 # The frozen P04 package consumes its own pinned LINK copy. Changes to the
 # outer LINK listener do not change that package's inputs.
-p04_consumer = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-') or p in (
+p04_consumer = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-consumer-deps/') or p in (
     b'cmd/ynx-secure-link-caller/build.mjs', b'scripts/verify/github-actions-pins-check.mjs',
 ) for p in changes)
+p04_request_identity = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-request-identity-deps/') for p in changes)
+if changes is not None and b'cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs' in changes and not (p04_consumer or p04_request_identity):
+    p04_consumer = True
+    p04_request_identity = True
 if changes is not None and b'.github/workflows/chain-core.yml' in changes:
     p04_consumer = p04_consumer or p04_workflow_changed(common, head)
 print('changed=' + str(changed).lower())
 print('exclusive_link=' + str(exclusive).lower())
 print('p04_consumer=' + str(p04_consumer).lower())
+print('p04_request_identity=' + str(p04_request_identity).lower())
 PY
     ;;
   *) printf '%s\n' 'usage: sh cmd/ynx-secure-link/check.sh [stub|native|ci-scope]' >&2; exit 2 ;;

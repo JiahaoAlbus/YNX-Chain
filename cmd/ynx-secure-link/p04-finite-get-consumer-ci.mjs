@@ -20,6 +20,16 @@ export const P04_REQUIRED_SUBTESTS = Object.freeze([
 ]);
 export const P04_GO_ARGUMENTS = Object.freeze(['test', '-mod=readonly', '-race', '-p', '1', '-count=1', '-timeout=150s', '-json',
   '-tags=' + tags, '-run', '^(' + P04_REQUIRED_TOPS.join('|') + ')$', './internal/developerauthority']);
+const requestIdentityDependencies = path.join(directory, 'p04-request-identity-deps');
+const requestIdentityProducer = '9fefca05e731a7ddd19e63354522daaed07085ba';
+const requestIdentitySuites = [
+  {name: 'request-identity-link', package: 'internal/securelink', tests: ['TestOriginalServerTLSOriginalRequestIdentity']},
+  {name: 'request-identity-auth', package: 'internal/developerauthority', tests: ['TestAuthReceiverUsesLiveLINKRequestIdentity', 'TestAuthReceiverRefusesUnboundLINKRequest']},
+];
+const requestIdentityArguments = [
+  [...P04_GO_ARGUMENTS.slice(0, -2), '^TestOriginalServerTLSOriginalRequestIdentity$', './internal/securelink'],
+  [...P04_GO_ARGUMENTS.slice(0, -2), '^TestAuthReceiver(UsesLiveLINKRequestIdentity|RefusesUnboundLINKRequest)$', './internal/developerauthority'],
+];
 export const P04_COMET_ORIGINAL = Object.freeze({commit: '63ba175ec3725845536963daca5c8b79418187ad',
   repositoryTree: 'cfa69e0246f6cc87fb7d87a947f5f4de38650c8e', moduleTree: '47d7cfeee7cd178cb897eda57a4674677fac7e67',
   descriptors: Object.freeze([
@@ -239,8 +249,39 @@ export function verifyP04ConsumerDependencies(root = dependencies) {
     vectorData.deviceUnsigned && vector.raw.length <= (2 << 20), 'original PUBLIC R5 vector required');
   return {inputs, manifest: m, candidate, sdk, vector, comet, graph, sourceManifest: sources, composition: c};
 }
-export function prepareP04ConsumerComposite({dependencyRoot = dependencies, privateRoot, publicRoot}) {
-  const verified = verifyP04ConsumerDependencies(dependencyRoot);
+export function verifyP04RequestIdentityDependencies(base = verifyP04ConsumerDependencies(), root = requestIdentityDependencies) {
+  const h = asset(root, {file: 'HANDOFF.json', bytes: 2784, sha256: '981bb7c7b2bec7dca4c58fc2f828c6d939504ea66ab72eecf753976b14d65efa'});
+  const handoff = parseJSON(h.raw, 'P04 request identity handoff');
+  need(handoff.schema === 'YNX-P04-original-request-Auth-LINK-composition/1' && handoff.files === 448 &&
+    handoff.link?.commit === requestIdentityProducer && handoff.link.tree === '2e5f627175e51fc7ab5158e98abcf023331ceee0' &&
+    handoff.link.producerRun === 43425561496 && handoff.firstFailure?.run === 43424589950 &&
+    handoff.SourceAdmission === false && handoff.deployed === false &&
+    sameJSON(handoff.commandsAfterLINKSuccessor, requestIdentityArguments.map(args => ['go', ...args])),
+  'exact P04 Auth/LINK handoff and commands required');
+  const archive = asset(root, {...handoff.archive, file: 'source.tar.gz'});
+  const candidate = parseP04SourceArchive(archive.raw);
+  const manifestRaw = candidate.files.get('SOURCE_MANIFEST.json');
+  need(manifestRaw, 'embedded request identity source inventory required');
+  const sourceManifest = parseJSON(manifestRaw, 'request identity source manifest');
+  need(sourceManifest.schema === 'YNX-P04-finite-get-native-test-inputs/1' && sourceManifest.inputs?.length === handoff.files,
+    'complete request identity source inventory required');
+  verifyP04ArchiveMembers(candidate, [...sourceManifest.inputs, {relative: 'SOURCE_MANIFEST.json', ...pin(manifestRaw)}]);
+  const linkSource = 'internal/securelink/original_server_tls.go';
+  const changed = [linkSource, 'internal/developerauthority/original_finite_get_principal.go'];
+  const added = [handoff.link.changedTest.relative, 'internal/developerauthority/original_finite_get_live_link_test.go'];
+  const old = new Map(base.sourceManifest.inputs.map(row => [row.relative, row]));
+  exact(sourceManifest.inputs.filter(row => !old.has(row.relative)).map(row => row.relative), added, 'two original new test leaves');
+  exact(sourceManifest.inputs.filter(row => old.has(row.relative) && row.sha256 !== old.get(row.relative).sha256).map(row => row.relative),
+    changed, 'two original request identity source changes');
+  verifyBytes(candidate.files.get(linkSource), {bytes: 26493, sha256: '759324da51baf32779077c9dc06615f23c144b34cb7ec9ee0addce9b4f1e390c'}, linkSource);
+  verifyBytes(candidate.files.get(handoff.link.changedTest.relative), handoff.link.changedTest, 'exact fixed original LINK test');
+  const graph = inspectP04TypeGraph(candidate.files);
+  return {...base, candidate, sourceManifest, graph, inputs: [...base.inputs, h, archive], requestIdentityHandoff: h.pin};
+}
+
+export function prepareP04ConsumerComposite({dependencyRoot = dependencies, privateRoot, publicRoot, requestIdentity = false}) {
+  const original = verifyP04ConsumerDependencies(dependencyRoot);
+  const verified = requestIdentity ? verifyP04RequestIdentityDependencies(original) : original;
   need(!within(privateRoot, publicRoot) && !within(publicRoot, privateRoot), 'disjoint private and evidence roots required');
   const source = path.join(privateRoot, 'source'), sdk = path.join(privateRoot, 'public-sdk'), staged = [];
   function materialize(root, name, raw, owner) {const file = write(root, name, raw); staged.push({...pin(raw, file), relative: path.relative(privateRoot, file), owner});}
@@ -250,6 +291,7 @@ export function prepareP04ConsumerComposite({dependencyRoot = dependencies, priv
   const vector = write(privateRoot, 'public-inputs/vector.json', verified.vector.raw); staged.push({...pin(verified.vector.raw, vector), relative: 'public-inputs/vector.json', owner: 'AUTH_ORIGINAL_PUBLIC_VECTOR'});
   const ownedRoot = path.join(privateRoot, 'owned-r5'); fs.mkdirSync(ownedRoot, {mode: 0o700}); const protectedRows = ancestors(ownedRoot);
   return {source, sdk, vector, ownedRoot, protectedRows, staged, inputs: verified.inputs.map(v => v.pin), graph: verified.graph,
+    ...(requestIdentity ? {requestIdentityHandoff: verified.requestIdentityHandoff} : {}),
     originalCandidateBytesUnchanged: true, wholePackageNotGoFilesSubset: true, sourceFiles: verified.sourceManifest.inputs.length,
     RootAdmission: false, SourceAdmission: false, normalRuntimePackageBuilt: false};
 }
@@ -261,20 +303,32 @@ export function verifyP04CompositeUnchanged(composite) {
   ancestors(composite.ownedRoot); return true;
 }
 export function qualifyP04ConsumerEvents(raw, status, signal, error) {
+  qualifyPackageEvents(raw, status, signal, error, packageName, [...P04_REQUIRED_TOPS, ...P04_REQUIRED_SUBTESTS]);
+  return {tops: 5, negatives: 7, skipped: 0, failed: 0, actualRUNPASS: true, completePackageCompiled: true, PUBLICSeams: true, RootAdmission: false, SourceAdmission: false};
+}
+
+export function qualifyP04RequestIdentityEvents(suite, raw, status, signal, error) {
+  const selected = requestIdentitySuites.find(item => item.name === suite);
+  need(selected, 'only the fixed LINK and Auth request identity suites are accepted');
+  const packagePath = moduleName + '/' + selected.package;
+  return {package: packagePath, passed: qualifyPackageEvents(raw, status, signal, error, packagePath, selected.tests)};
+}
+
+function qualifyPackageEvents(raw, status, signal, error, expectedPackage, expected) {
   need(status === 0 && signal === null && error === null, 'actual Go exit0/no signal/timeout required');
-  const expected = [...P04_REQUIRED_TOPS, ...P04_REQUIRED_SUBTESTS], ran = [], passed = []; let packages = 0;
+  const ran = [], passed = []; let packages = 0;
   for (const line of raw.split('\n').filter(Boolean)) {
-    const row = parseJSON(Buffer.from(line), 'Go JSON event'); need(row.Package === packageName, 'one actual consumer package required');
+    const row = parseJSON(Buffer.from(line), 'Go JSON event'); need(row.Package === expectedPackage, 'one actual consumer package required');
     need(row.Action !== 'fail' && row.Action !== 'skip', 'any package/top/subtest fail or skip is a failure');
-    if (!row.Test) {if (row.Action === 'pass') {exact(passed, expected, 'all completed five tops/seven negatives'); packages++;} continue;}
+    if (!row.Test) {if (row.Action === 'pass') {exact(passed, expected, 'all selected tests complete'); packages++;} continue;}
     need(expected.includes(row.Test), 'unexpected selected test/subtest');
     if (row.Action === 'run') ran.push(row.Test);
     if (row.Action === 'pass') {need(ran.filter(t => t === row.Test).length === 1, 'one actual RUN before PASS required'); passed.push(row.Test);}
   }
-  exact(ran, expected, 'five top and seven subtest RUNs'); exact(passed, expected, 'five top and seven subtest PASSes'); need(packages === 1, 'one actual package PASS required');
-  return {tops: 5, negatives: 7, skipped: 0, failed: 0, actualRUNPASS: true, completePackageCompiled: true, PUBLICSeams: true, RootAdmission: false, SourceAdmission: false};
+  exact(ran, expected, 'selected test RUNs'); exact(passed, expected, 'selected test PASSes'); need(packages === 1, 'one actual package PASS required');
+  return passed;
 }
-export function runP04FiniteGETConsumerCI(env = process.env) {
+export function runP04FiniteGETConsumerCI(env = process.env, requestIdentity = false) {
   need(env.CI === 'true' && env.GITHUB_ACTIONS === 'true' && /^[1-9][0-9]*$/.test(env.GITHUB_RUN_ID ?? ''), 'only original GitHub Actions execution; no local CI impersonation');
   need(['linux', 'darwin'].includes(process.platform) && /^v24\./.test(process.version), 'actual supported CI Node24 process required');
   const publicRoot = env.YNX_LINK_P04_CONSUMER_EVIDENCE, privateRoot = env.YNX_LINK_P04_CONSUMER_PRIVATE;
@@ -291,7 +345,7 @@ export function runP04FiniteGETConsumerCI(env = process.env) {
     need(command.status === 0 && command.signal === null && command.error === null, 'actual command failed: ' + name); return {command, text: fs.readFileSync(stdout, 'utf8')};
   }
   try {
-    composite = prepareP04ConsumerComposite({privateRoot, publicRoot});
+    composite = prepareP04ConsumerComposite({privateRoot, publicRoot, requestIdentity});
     const prefix = env.OPENSSL_PREFIX; need(typeof prefix === 'string' && path.isAbsolute(prefix) && fs.realpathSync(prefix) === prefix &&
       env.PKG_CONFIG_PATH === path.join(prefix, 'lib/pkgconfig') && env.PKG_CONFIG_LIBDIR === env.PKG_CONFIG_PATH, 'same original private OpenSSL pkg-config context required');
     const variables = {...env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOMEMLIMIT: '1536MiB', GOTOOLCHAIN: 'local', GOWORK: 'off', GOFLAGS: '',
@@ -311,13 +365,27 @@ export function runP04FiniteGETConsumerCI(env = process.env) {
     need(/^OpenSSL 3\.6\.4 /.test(run('openssl', ['version'], 'openssl-cli', privateRoot, variables, 10000).text), 'actual selected CLI OpenSSL3.6.4 required');
     const go = parseJSON(Buffer.from(run('go', ['env', '-json', 'GOVERSION', 'GOCACHE', 'CGO_ENABLED', 'GOWORK'], 'go-environment', composite.source, variables, 30000).text), 'Go environment');
     need(go.GOVERSION === 'go1.26.10' && go.CGO_ENABLED === '1' && go.GOWORK === 'off' && go.GOCACHE === env.GOCACHE && path.isAbsolute(go.GOCACHE) && !within(publicRoot, go.GOCACHE), 'original pinned Go/cache/resource context required');
-    const result = run('go', P04_GO_ARGUMENTS, 'consumer-go', composite.source, variables, 210000);
-    qualification = qualifyP04ConsumerEvents(result.text, result.command.status, result.command.signal, result.command.error);
+    if (requestIdentity) {
+      const packages = requestIdentitySuites.map((suite, index) => {
+        const result = run('go', requestIdentityArguments[index], suite.name, composite.source, variables, 210000);
+        return qualifyP04RequestIdentityEvents(suite.name, result.text, result.command.status, result.command.signal, result.command.error);
+      });
+      qualification = {packages, skipped: 0, failed: 0, actualRUNPASS: true, PUBLICSeams: true, RootAdmission: false, SourceAdmission: false};
+    } else {
+      const result = run('go', P04_GO_ARGUMENTS, 'consumer-go', composite.source, variables, 210000);
+      qualification = qualifyP04ConsumerEvents(result.text, result.command.status, result.command.signal, result.command.error);
+    }
     verifyP04CompositeUnchanged(composite); json('SOURCE-AFTER.json', {unchanged: true, staged: composite.staged, inputs: composite.inputs});
   } catch (error) {failure = error;}
-  const receipt = {schema: 'YNX-LINK-P04-FINITE-GET-CONSUMER-CI/v1', state: failure ? 'FAIL_FIRSTCAUSE_PRESERVED' : 'PASS_COMPLETE_PACKAGE_PUBLIC_NATIVE_CONSUMER', composite: composite ?? null,
+  const receipt = {schema: requestIdentity ? 'YNX-LINK-P04-REQUEST-IDENTITY-CI/v1' : 'YNX-LINK-P04-FINITE-GET-CONSUMER-CI/v1',
+    state: failure ? 'FAIL_FIRSTCAUSE_PRESERVED' : requestIdentity ? 'PASS_ORIGINAL_REQUEST_IDENTITY_PUBLIC_NATIVE' : 'PASS_COMPLETE_PACKAGE_PUBLIC_NATIVE_CONSUMER', composite: composite ?? null,
     commands, qualification: qualification ?? null, failure: failure ? {message: failure.message, stack: failure.stack} : null,
     publicEvidenceRoot: publicRoot, privateWorkRoot: privateRoot, keysPublished: false, normalRuntimeArchiveBuilt: false, installed: false, deployed: false, RootAdmission: false, SourceAdmission: false};
   json('RESULT.json', receipt); if (failure) throw failure; return {result: path.join(publicRoot, 'RESULT.json'), qualification};
 }
-if (process.argv[1] === fileURLToPath(import.meta.url)) {need(process.argv.length === 2, 'no caller profile/source/provider/URL arguments'); console.log(JSON.stringify(runP04FiniteGETConsumerCI()));}
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const args = process.argv.slice(2);
+  const requestIdentity = sameJSON(args, ['--original-request-identity']);
+  need(args.length === 0 || requestIdentity, 'only the two fixed original CI modes are accepted');
+  console.log(JSON.stringify(runP04FiniteGETConsumerCI(process.env, requestIdentity)));
+}

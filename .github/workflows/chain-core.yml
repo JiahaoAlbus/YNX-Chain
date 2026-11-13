@@ -453,6 +453,7 @@ jobs:
       changed: ${{ steps.paths.outputs.changed }}
       exclusive_link: ${{ steps.paths.outputs.exclusive_link }}
       p04_consumer: ${{ steps.paths.outputs.p04_consumer }}
+      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -630,6 +631,13 @@ jobs:
         run: |
           export YNX_LINK_P04_CONSUMER_PRIVATE="$HOME/ynx-link-p04-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           node cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs
+      - name: Verify the composed P04 and Auth original request identity
+        if: needs.link-scope.outputs.p04_request_identity == 'true'
+        env:
+          YNX_LINK_P04_CONSUMER_EVIDENCE: ${{ runner.temp }}/securelink-evidence/p04-request-identity
+        run: |
+          export YNX_LINK_P04_CONSUMER_PRIVATE="$HOME/ynx-link-p04-request-identity-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          node cmd/ynx-secure-link/p04-finite-get-consumer-ci.mjs --original-request-identity
       - name: Upload scoped evidence and upstream notices (no test keys)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

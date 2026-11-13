@@ -6,7 +6,8 @@ import zlib from 'node:zlib';
 import {fileURLToPath} from 'node:url';
 import {parseP04SourceArchive, verifyP04ArchiveMembers, safeP04Relative, p04GoImports, inspectP04TypeGraph,
   qualifyP04ProtectedAncestors, verifyP04ConsumerDependencies, prepareP04ConsumerComposite, qualifyP04ConsumerEvents,
-  runP04FiniteGETConsumerCI, P04_REQUIRED_TOPS, P04_REQUIRED_SUBTESTS} from './p04-finite-get-consumer-ci.mjs';
+  runP04FiniteGETConsumerCI, verifyP04RequestIdentityDependencies, qualifyP04RequestIdentityEvents,
+  P04_REQUIRED_TOPS, P04_REQUIRED_SUBTESTS} from './p04-finite-get-consumer-ci.mjs';
 const deps = path.join(path.dirname(fileURLToPath(import.meta.url)), 'p04-consumer-deps');
 const packageName = 'github.com/JiahaoAlbus/YNX-Chain/internal/developerauthority';
 function scratch(t) {
@@ -101,4 +102,23 @@ test('P04 actual five tops and seven negative RUN PASS plus package PASS are man
 });
 test('P04 consumer driver never executes Go outside original CI or from metadata imports', () => {
   assert.throws(() => runP04FiniteGETConsumerCI({CI: 'false', GITHUB_ACTIONS: 'false'}), /original GitHub/);
+});
+
+test('P04 request identity uses the exact supplier composition and separate LINK and Auth pass records', () => {
+  const verified = verifyP04RequestIdentityDependencies();
+  assert.equal(verified.sourceManifest.inputs.length, 448);
+  assert.equal(verified.candidate.files.size, 449);
+  assert.equal(verified.graph.cometGoSourceRequired, false);
+  for (const [suite, pkg, names] of [
+    ['request-identity-link', packageName.replace('developerauthority', 'securelink'), ['TestOriginalServerTLSOriginalRequestIdentity']],
+    ['request-identity-auth', packageName, ['TestAuthReceiverUsesLiveLINKRequestIdentity', 'TestAuthReceiverRefusesUnboundLINKRequest']],
+  ]) {
+    const actual = names.flatMap(Test => [{Package: pkg, Test, Action: 'run'}, {Package: pkg, Test, Action: 'pass'}]);
+    const terminal = {Package: pkg, Action: 'pass'};
+    const qualify = rows => qualifyP04RequestIdentityEvents(suite, lines(rows), 0, null, null);
+    assert.deepEqual(qualify([...actual, terminal]).passed, names);
+    assert.throws(() => qualify([...actual.slice(2), terminal]));
+    assert.throws(() => qualify([...actual, {...terminal, Package: 'wrong'}]));
+    assert.throws(() => qualify([...actual, {...terminal, Action: 'skip'}]));
+  }
 });

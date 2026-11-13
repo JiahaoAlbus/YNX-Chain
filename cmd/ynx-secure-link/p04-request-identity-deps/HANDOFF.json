@@ -1,0 +1,76 @@
+{
+  "schema": "YNX-P04-original-request-Auth-LINK-composition/1",
+  "base": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/auth-link-original-request-composition-r1/HANDOFF.json",
+    "bytes": 2335,
+    "sha256": "3c889552c40dfe42c6250c3174f8e86985ee0db777defbd1bbd90a2766ca35a8"
+  },
+  "auth": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/cloud-finite-get-request-child-successor/live-link-identity-successor/HANDOFF.md",
+    "bytes": 1306,
+    "sha256": "4fc16c586864057800020a2a991904bd7e1c15d605c7fbced6ad565c98fac76e"
+  },
+  "archive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/auth-link-original-request-composition-r2/source-input.tar.gz",
+    "bytes": 2363289,
+    "sha256": "dea551a19a9e445b5fd68df1ab290f68bdd44587fef782e1f0aa349be1d8197f"
+  },
+  "files": 448,
+  "firstFailure": {
+    "run": 43424589950,
+    "job": 131882992185,
+    "log": {
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/link-original-request-identity-consumer-intake-r1/NATIVE-FAILED.log",
+      "bytes": 37356,
+      "sha256": "8cfcd9acd2dec6fa5d4e4ebd3d1551103967d8a12da654f281fa2ddcb34a90c4"
+    },
+    "error": "original_server_tls_request_identity_openssl_test.go:129:47: undefined: tracing"
+  },
+  "pending": "Original hosted private OpenSSL. Existing P04 runner pins R17, so its original owner must rebind the two new selectors to this exact composed archive.",
+  "commandsAfterLINKSuccessor": [
+    [
+      "go",
+      "test",
+      "-mod=readonly",
+      "-race",
+      "-p",
+      "1",
+      "-count=1",
+      "-timeout=150s",
+      "-json",
+      "-tags=securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test",
+      "-run",
+      "^TestOriginalServerTLSOriginalRequestIdentity$",
+      "./internal/securelink"
+    ],
+    [
+      "go",
+      "test",
+      "-mod=readonly",
+      "-race",
+      "-p",
+      "1",
+      "-count=1",
+      "-timeout=150s",
+      "-json",
+      "-tags=securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test",
+      "-run",
+      "^TestAuthReceiver(UsesLiveLINKRequestIdentity|RefusesUnboundLINKRequest)$",
+      "./internal/developerauthority"
+    ]
+  ],
+  "newGoTestsRun": false,
+  "SourceAdmission": false,
+  "deployed": false,
+  "link": {
+    "commit": "9fefca05e731a7ddd19e63354522daaed07085ba",
+    "tree": "2e5f627175e51fc7ab5158e98abcf023331ceee0",
+    "producerRun": 43425561496,
+    "productionBlobUnchanged": true,
+    "changedTest": {
+      "relative": "internal/securelink/original_server_tls_request_identity_openssl_test.go",
+      "bytes": 6966,
+      "sha256": "ee0ee48d296e007b27cecbccdfe08f6c9e95e9e1b4b4cb472076ab4e38d61cb6"
+    }
+  }
+}
