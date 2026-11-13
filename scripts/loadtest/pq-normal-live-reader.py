@@ -61,9 +61,10 @@ def prepare_matching_source(source, destination, *, held_source_only=False):
             'original source must remain clean and canonical')
     identity=dict(commit=git('rev-parse','HEAD'),tree=git('rev-parse','HEAD^{tree}'),
                   forkTree=git('rev-parse','HEAD:third_party/cometbft'))
-    held = identity['commit'] == native_source_dependencies.HELD_SOURCE
+    held_tree = native_source_dependencies.HELD_SOURCE_TREES.get(identity['commit'])
+    held = held_tree is not None
     if held_source_only:
-        require(held and identity['tree'] == native_source_dependencies.HELD_TREE
+        require(held and identity['tree'] == held_tree
                 and identity['forkTree'] == '5a128880d14bfc73de4334cba23218859ad3473c',
                 'exact held-session source identity required')
         q = dict(optionalForkCommit='5a49f5c91452604dffb910df736702b3b9df2562',

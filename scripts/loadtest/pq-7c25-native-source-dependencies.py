@@ -10,7 +10,10 @@ SOURCE='7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 TREE='8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
 HELD_SOURCE='19485259d6f0440c89a3d31e27b97de25a8cd12f'
 HELD_TREE='3a6f9a5efe4e0257eab8edc1a62d52631281d5b2'
-SOURCE_TREES={SOURCE:TREE, HELD_SOURCE:HELD_TREE}
+HELD_CI_SOURCE='a11754cc649121f2cec553d5b2ed5a784a1e3f99'
+HELD_CI_TREE='737ac34a1658e23d8ec03c65a099a44f9cbf8eb1'
+HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE}
+SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES}
 FILES={'packages/wallet-auth/go/sourceparentprofile/canonical.cpp': {'mode': '100644',
                                                                'gitBlob': 'b5bdced61b6754b088980d736bc9ca027592a9b7',
                                                                'bytes': 62,
