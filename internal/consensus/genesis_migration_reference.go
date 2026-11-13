@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"hash"
 	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -232,13 +233,40 @@ func validateCometMigrationAppState(raw []byte, m chain.ConsensusMigrationState,
 	return canonical, false, nil
 }
 
+// Keep inline bytes only while they can fit in Genesis. Continue hashing the
+// entire validated canonical stream after dropping the inline buffer.
+type genesisMigrationStream struct {
+	inline bytes.Buffer
+	digest hash.Hash
+	count  int
+}
+
+func (s *genesisMigrationStream) Write(p []byte) (int, error) {
+	if len(p) > maxCometMigrationBytes-s.count {
+		return 0, errors.New("complete migration exceeds the existing input bound")
+	}
+	if s.count+len(p) <= MaxCometGenesisBytes {
+		_, _ = s.inline.Write(p)
+	} else if s.count <= MaxCometGenesisBytes {
+		s.inline = bytes.Buffer{}
+	}
+	n, err := s.digest.Write(p)
+	s.count += n
+	return n, err
+}
+
 // Small Genesis bytes remain unchanged. Select the reference only if the
 // original complete Genesis's normal SaveAs encoding exceeds the existing cap.
-func boundCometGenesisAppState(doc *cmttypes.GenesisDoc, m chain.ConsensusMigrationState, canonical []byte) error {
-	if len(canonical) == 0 || len(canonical) > maxCometMigrationBytes {
+func boundCometGenesisAppState(doc *cmttypes.GenesisDoc, m chain.ConsensusMigrationState) error {
+	stream := genesisMigrationStream{digest: sha256.New()}
+	if err := m.WriteCanonicalJSON(&stream); err != nil {
+		return err
+	}
+	if stream.count == 0 {
 		return errors.New("complete migration exceeds the existing input bound")
 	}
-	if len(canonical) <= MaxCometGenesisBytes {
+	if stream.count <= MaxCometGenesisBytes {
+		doc.AppState = stream.inline.Bytes()
 		raw, err := cmtjson.MarshalIndent(doc, "", "  ")
 		if err != nil {
 			return err
@@ -247,7 +275,9 @@ func boundCometGenesisAppState(doc *cmttypes.GenesisDoc, m chain.ConsensusMigrat
 			return nil
 		}
 	}
-	raw, err := json.Marshal(newCometMigrationReference(m, canonical))
+	var digest [sha256.Size]byte
+	copy(digest[:], stream.digest.Sum(nil))
+	raw, err := json.Marshal(newCometMigrationReferenceDigest(m, digest, stream.count))
 	if err != nil {
 		return err
 	}

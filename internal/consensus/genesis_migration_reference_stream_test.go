@@ -122,8 +122,41 @@ func TestGenesisMigrationReferenceStreamLargeNormalSource(t *testing.T) {
 	}
 	// Discard the oracle's whole-history byte slice before the actual new path.
 	canonical = nil
+	doc, err := BuildCometGenesis(migration, f.doc.GenesisTime)
+	if err != nil || !bytes.Equal(doc.AppState, raw) {
+		t.Fatal("normal Genesis builder did not preserve the original large-history reference bytes", err)
+	}
 	got, ref, err := validateBootstrapMigrationAppState(raw, migration)
 	if err != nil || ref == nil || *ref != want || !bytes.Equal(got, raw) || len(got) > 4096 {
 		t.Fatal("large source did not bind the original bounded reference", err)
+	}
+}
+
+func TestGenesisMigrationStreamDropsInlineDataAtOriginalLimit(t *testing.T) {
+	stream := genesisMigrationStream{digest: sha256.New()}
+	expected := sha256.New()
+	chunk := bytes.Repeat([]byte("a"), 1<<20)
+	for i := 0; i < MaxCometGenesisBytes/len(chunk); i++ {
+		if n, err := stream.Write(chunk); n != len(chunk) || err != nil {
+			t.Fatal("inline stream failed", n, err)
+		}
+		_, _ = expected.Write(chunk)
+	}
+	if stream.inline.Len() != MaxCometGenesisBytes {
+		t.Fatal("exact-limit inline candidate was discarded before the final Genesis size check")
+	}
+	for _, suffix := range [][]byte{[]byte("crossing"), []byte("after-crossing")} {
+		if n, err := stream.Write(suffix); n != len(suffix) || err != nil || stream.inline.Cap() != 0 {
+			t.Fatal("large-history stream retained inline data", n, err)
+		}
+		_, _ = expected.Write(suffix)
+	}
+	if stream.count != MaxCometGenesisBytes+len("crossingafter-crossing") || !bytes.Equal(stream.digest.Sum(nil), expected.Sum(nil)) {
+		t.Fatal("large-history stream did not bind every byte")
+	}
+	stream.count = maxCometMigrationBytes
+	before := stream.digest.Sum(nil)
+	if n, err := stream.Write(chunk[:1]); n != 0 || err == nil || !bytes.Equal(before, stream.digest.Sum(nil)) {
+		t.Fatal("stream accepted data beyond the existing complete migration cap", n, err)
 	}
 }

@@ -3,7 +3,6 @@ package consensus
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -15,10 +14,6 @@ import (
 func BuildCometGenesis(state chain.ConsensusMigrationState, genesisTime time.Time) (*cmttypes.GenesisDoc, error) {
 	if err := state.ValidateConsensusValidatorKeys(); err != nil {
 		return nil, fmt.Errorf("validate consensus validator key bindings: %w", err)
-	}
-	appState, err := state.CanonicalJSON()
-	if err != nil {
-		return nil, err
 	}
 	appHash, err := hex.DecodeString(state.StateHash)
 	if err != nil {
@@ -54,12 +49,11 @@ func BuildCometGenesis(state chain.ConsensusMigrationState, genesisTime time.Tim
 		ConsensusParams: params,
 		Validators:      validators,
 		AppHash:         appHash,
-		AppState:        json.RawMessage(appState),
 	}
 	if err := genesis.ValidateAndComplete(); err != nil {
 		return nil, fmt.Errorf("validate CometBFT genesis: %w", err)
 	}
-	if err := boundCometGenesisAppState(genesis, state, appState); err != nil {
+	if err := boundCometGenesisAppState(genesis, state); err != nil {
 		return nil, err
 	}
 	return genesis, nil
