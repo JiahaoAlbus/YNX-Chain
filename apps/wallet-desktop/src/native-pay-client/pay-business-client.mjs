@@ -77,8 +77,10 @@ export class NativePayBusinessClient {
  }
  async #originalProductIntent(productId,sourceOrder,current){
   if(typeof productId!=='string'||typeof sourceOrder!=='string'||![productId,sourceOrder].every(v=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v)))throw failure('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
-  if(typeof this.#runtime.readOriginalInvoiceIntent!=='function')throw failure('NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE');
-  current();const original=await this.#runtime.readOriginalInvoiceIntent(Object.freeze({productId,sourceOrder}),current);current();
+  const protectedOrder=this.#expectedOriginalOperation!==undefined;
+  const reader=protectedOrder?'readOriginalShopInvoiceIntent':'readOriginalInvoiceIntent';
+  if(typeof this.#runtime[reader]!=='function')throw failure(protectedOrder?'NATIVE_PAY_SHOP_ORIGINAL_SOURCE_NOT_SUPPLIED':'NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE');
+  current();const original=await this.#runtime[reader](Object.freeze({productId,sourceOrder}),current);current();
   const request=nativeInvoiceProductIntentData(original);
   if(request.productId!==productId||request.sourceOrder!==sourceOrder)throw failure('NATIVE_PAY_PRODUCT_REFERENCE_CHANGED');
   return request;

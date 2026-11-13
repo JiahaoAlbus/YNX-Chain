@@ -85,6 +85,16 @@ export async function openNativePayProductSource({acquireOriginalProductSource,i
  // These methods are preparation/read service operations, never the three
  // signed-Member dispatch methods of Wallet's separate original Source.
  Object.freeze(pay);
+ async function readShopOrder(ref,fence){
+  if(ref.productId!=='shop.order'||typeof loan.readOriginalShopNativeInvoiceRequestDATA!=='function')fail('NATIVE_PAY_SHOP_ORIGINAL_SOURCE_NOT_SUPPLIED');
+  const value=await loan.readOriginalShopNativeInvoiceRequestDATA(ref.sourceOrder,fence);
+  fence();return value;
+ }
+ function boundIntent(value,ref){
+  const original=nativeInvoiceProductIntentData(value);
+  if(original.productId!==ref.productId||original.sourceOrder!==ref.sourceOrder)fail('NATIVE_PAY_PRODUCT_REFERENCE_CHANGED');
+  return original;
+ }
  const runtime=Object.freeze({
   current,pay,
   readOriginalArchiveReceipt(ref,callerCurrent){return run(callerCurrent,fence=>{
@@ -103,7 +113,7 @@ export async function openNativePayProductSource({acquireOriginalProductSource,i
    const ref=reference(input);let value,pendingEvidence;
    if(ref.productId==='shop.order'&&typeof loan.readOriginalShopNativeInvoiceRequestDATA==='function'){
     // Actor/role and the normal route stay inside the genuine supplier.
-    value=await loan.readOriginalShopNativeInvoiceRequestDATA(ref.sourceOrder,fence);
+    value=await readShopOrder(ref,fence);
    }else if(ref.productId==='cloud.ide-usage'&&typeof loan.readOriginalCloudBillLocator==='function'&&typeof loan.cloudClient?.nativeInvoiceIntentOriginal==='function'){
     const locator=await loan.readOriginalCloudBillLocator(ref,fence);fence();
     if(!locator||!locator.selection||typeof locator.utcDay!=='string')fail('NATIVE_PAY_CLOUD_ORIGINAL_LOCATOR_UNAVAILABLE');
@@ -117,10 +127,13 @@ export async function openNativePayProductSource({acquireOriginalProductSource,i
     pendingEvidence={ref,envelope:saved};
    }else if(typeof loan.readOriginalInvoiceIntent==='function')value=await loan.readOriginalInvoiceIntent(ref,fence);
    else fail('NATIVE_PAY_PRODUCT_ORIGINAL_UNAVAILABLE');
-   fence();const original=nativeInvoiceProductIntentData(value);
-   if(original.productId!==ref.productId||original.sourceOrder!==ref.sourceOrder)fail('NATIVE_PAY_PRODUCT_REFERENCE_CHANGED');
+   fence();const original=boundIntent(value,ref);
    if(pendingEvidence)originalEvidence=pendingEvidence;
    return original;
+  });},
+  readOriginalShopInvoiceIntent(input,callerCurrent){return run(callerCurrent,async fence=>{
+   const ref=reference(input);
+   return boundIntent(await readShopOrder(ref,fence),ref);
   });},
   readOriginalProductEvidence(input,callerCurrent){return run(callerCurrent,()=>{
    const ref=reference(input);

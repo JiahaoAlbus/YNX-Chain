@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import{createMainStandalonePayNavigationSteps}from'../src/main-standalone-pay-navigation.mjs';import{DesktopKeyLifecycle}from'../src/key-lifecycle.mjs';import{createWalletNativePayProduct}from'../src/wallet-native-pay-product.mjs';
 const account='0x'+'1'.repeat(40),other='0x'+'2'.repeat(40),deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return{promise,resolve}},flush=()=>new Promise(r=>setImmediate(r));
+const originalOperation='npi_'+'a'.repeat(48);
 async function fixture(patch={}){let steps,clock=1000,focused=true;const calls=[];const key=new DesktopKeyLifecycle({now:()=>clock,ttlMs:5000,unlockTtlMs:10000,focused:()=>focused,authorizer:{available:()=>true,authenticate:async()=>{}},schedule:()=>({unref(){}}),unschedule(){},beforeInvalidate:()=>steps?.retireAll()});key.setAccount(account);await key.unlock();const pay={status:()=>{calls.push('status');return{normalMainEntry:true,canRequest:true,available:false,sourceSupplied:false,paymentAuthorized:false};},invoke:async input=>{calls.push(input);return{version:'ynx.pay.main-result/v1',ok:true,reference:{productId:input.productId,sourceOrder:input.sourceOrder},queryOnly:true};},...patch};steps=createMainStandalonePayNavigationSteps({nativePayProduct:pay,keyAccess:key});return{key,pay,steps,calls,setClock:v=>clock=v,blur(){focused=false;key.setFocused(false);}};}
 test('Main-private status/invoke uses SAME actual ALS key lease, current account and fixed original order selector without native authority',async()=>{const f=await fixture();await f.key.run(async()=>{const step=f.steps.openOrder('PUBLIC-order');assert.equal((await step.status()).ok,true);const reply=await step.invoke();assert.equal(reply.ok,true);assert.deepEqual(f.calls,['status',{action:'order-invoice',productId:'shop.order',sourceOrder:'PUBLIC-order'}]);await step.close();step.assertSafeToClose();});await f.steps.close();assert.doesNotThrow(()=>f.steps.assertSafeToClose());});
 test('outside normal Main current context or locked state cannot open a step',async()=>{const f=await fixture();assert.throws(()=>f.steps.openOrder('PUBLIC-order'));f.key.lock();await assert.rejects(f.key.run(()=>f.steps.openOrder('PUBLIC-order')));assert.equal(f.calls.length,0);});
@@ -42,4 +43,60 @@ test('all four actual P06 Main input actions are consumed but missing real Sourc
 test('private original-operation reconciliation uses exact retained hash, existing normal Main port, once-only and no fabricated Source',async()=>{
  const originalHash='0x'+'a'.repeat(64),f=await fixture();await f.key.run(async()=>{for(const h of [undefined,'',123,'0x123'])assert.throws(()=>f.steps.openOrderReconcileOperation('PUBLIC-order',h),{code:'STANDALONE_PAY_ORIGINAL_HASH_INVALID'});const child=f.steps.openOrderReconcileOperation('PUBLIC-order',originalHash);await child.status();await child.invoke();assert.deepEqual(f.calls[1],{action:'order-reconcile-operation',productId:'shop.order',sourceOrder:'PUBLIC-order',nativeHash:originalHash});assert.equal((await child.invoke()).error.code,'STANDALONE_PAY_INVOKE_ONCE');await child.close();});
  const {createNativePayMainEntry}=await import('../src/native-pay-client/main-entry.mjs'),entry=createNativePayMainEntry({getMain:()=>{},getContext:()=>{}});await assert.rejects(entry.invoke({action:'order-reconcile-operation',productId:'shop.order',sourceOrder:'PUBLIC-order',nativeHash:originalHash}),{code:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE'});
+});
+
+test('protected navigation without the Main holder never falls back to legacy invoke',async()=>{
+ const f=await fixture();
+ await f.key.run(async()=>{
+  assert.throws(()=>f.steps.openProtectedOrder('order-pay-review','PUBLIC-order'),{code:'STANDALONE_PAY_PROTECTED_HOLDER_REQUIRED'});
+  assert.throws(()=>f.steps.openProtectedOrder('create-intent','PUBLIC-order'),{code:'STANDALONE_PAY_ORDER_INVALID'});
+  assert.deepEqual(f.calls,[]);
+ });
+});
+
+test('protected status and invoke bind the retained npi and same holder across awaits',async()=>{
+ const f=await fixture(),gate=deferred(),calls=[],reply=Object.freeze({ok:true,queryOnly:true});
+ let holder,currentHolder;
+ const product=createWalletNativePayProduct({
+  entry:{status:()=>f.pay.status(),invoke(){assert.fail('legacy invoke');},async invokeOriginalOrderResult(request,npi,current){
+   current();calls.push({request,npi});if(request.action==='order-pay-review')await gate.promise;current();return reply;
+  }},
+  getMain:()=>({pendingRequests:()=>[]}),getGuard:()=>f.key.current(),publishReview(){assert.fail('revoked holder published a review');},
+ });
+ const steps=createMainStandalonePayNavigationSteps({nativePayProduct:product,keyAccess:f.key,captureOriginalShopHolder(request){
+  holder=currentHolder=Object.freeze({request,originalOperation,account,walletGeneration:f.key.status().revision,nativeGeneration:3,session:Object.freeze({}),current:()=>currentHolder});
+  return holder;
+ }});
+ await f.key.run(async()=>{
+  const read=steps.openProtectedOrder('order-invoice','PUBLIC-order');
+  assert.equal((await read.status()).ok,true);
+  assert.equal((await read.invoke()).value,reply);
+  await read.close();
+  const child=steps.openProtectedOrder('order-pay-review','PUBLIC-order');
+  assert.equal((await child.status()).ok,true);
+  const pending=child.invoke();
+  await flush();
+  assert.deepEqual(calls.map(({request,npi})=>[request.action,request.productId,request.sourceOrder,npi]),[
+   ['order-invoice','shop.order','PUBLIC-order',originalOperation],
+   ['order-pay-review','shop.order','PUBLIC-order',originalOperation],
+  ]);
+  currentHolder=Object.freeze({...holder,nativeGeneration:4});
+  gate.resolve();
+  assert.equal((await pending).error.code,'STANDALONE_PAY_PROTECTED_HOLDER_CHANGED');
+  await child.close();
+ });
+});
+
+test('protected capture rejects a substituted request, account, generation or operation before status',async()=>{
+ const f=await fixture({invokeOriginalOrderResult(){assert.fail('invalid holder invoked');}});
+ await f.key.run(async()=>{
+  for(const patch of [{request:{}},{account:other},{walletGeneration:-1},{nativeGeneration:NaN},{originalOperation:'invalid'}]){
+   const steps=createMainStandalonePayNavigationSteps({nativePayProduct:f.pay,keyAccess:f.key,captureOriginalShopHolder(request){
+    const holder=Object.freeze({request,originalOperation,account,walletGeneration:f.key.status().revision,nativeGeneration:3,session:{},current:()=>holder,...patch});
+    return holder;
+   }});
+   assert.throws(()=>steps.openProtectedOrder('order-pay-review','PUBLIC-order'),{code:'STANDALONE_PAY_PROTECTED_HOLDER_INVALID'});
+   assert.deepEqual(f.calls,[]);
+  }
+ });
 });
