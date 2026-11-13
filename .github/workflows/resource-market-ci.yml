@@ -2250,6 +2250,56 @@ jobs:
             ${{ runner.temp }}/ynx-pq-held-sessions/cli.jsonl
           if-no-files-found: error
           retention-days: 7
+      - name: Acquire only the immutable optional supplier object
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        env:
+          WIRE_SUPPLIER_READ_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PY'
+          import base64, os, subprocess
+          commit = '5a49f5c91452604dffb910df736702b3b9df2562'
+          tree = '08747364c24c065bf2b13527c210625d7ec95fba'
+          # contents:read only; never write credentials to config, argv, disk
+          # or logs. This one explicit fetch is outside the offline helper.
+          environment = os.environ.copy()
+          token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
+          if not token:
+              raise RuntimeError('read-only supplier acquisition credential missing')
+          environment.update(GIT_CONFIG_COUNT='1',
+              GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',
+              GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + token).encode()).decode(),
+              GIT_TERMINAL_PROMPT='0', GIT_TRACE='0', GIT_TRACE_CURL='0', GIT_CURL_VERBOSE='0')
+          subprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules',
+              '--depth=1', '--no-write-fetch-head', 'origin', commit], env=environment, check=True, timeout=60)
+          actual_commit = subprocess.check_output(['git', 'rev-parse', '--verify', commit + '^{commit}'], text=True).strip()
+          actual_tree = subprocess.check_output(['git', 'rev-parse', '--verify', commit + ':third_party/cometbft'], text=True).strip()
+          if actual_commit != commit or actual_tree != tree:
+              raise RuntimeError('received immutable supplier identity differs')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != os.environ['GITHUB_SHA']:
+              raise RuntimeError('supplier acquisition changed original HEAD')
+          if subprocess.check_output(['git', 'status', '--porcelain']).strip():
+              raise RuntimeError('supplier acquisition changed original checkout')
+          print('YNX_WIRE_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)
+          PY
+      - name: Verify exact optional live getter composition without enabling a carrier
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        run: python3 -B scripts/verify/wire-live-matching-source-ci.py
+      - name: Preserve only public optional live source evidence
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108' && github.event_name == 'push' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: normal-live-wire-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/wire-live-source-*/SOURCE.json
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.result.json
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.stderr.log
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.result.json
+            ${{ runner.temp }}/wire-live-source-*/composition/SOURCE-SELECTION.json
+          if-no-files-found: warn
+          retention-days: 14
       - name: Exercise original lab callee readiness and actual cold costs
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
