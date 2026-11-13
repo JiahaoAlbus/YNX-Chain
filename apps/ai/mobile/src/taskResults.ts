@@ -26,7 +26,7 @@ export function readTaskProjection(value:unknown,expectedId:string):TaskProjecti
   const step:TaskStep={id:identifier(r.id),status:text(r.status,64),toolStep:{taskId:task.id,taskRevision:integer(s.taskRevision),generation:integer(s.generation),holder:text(s.holder,256),toolId:text(s.toolId,128),toolVersion:text(s.toolVersion,64)}};
   if(s.inputDigest!==undefined)step.toolStep.inputDigest=text(s.inputDigest,256);
   if(s.approvedFields!==undefined)step.toolStep.approvedFields=array(s.approvedFields,64).map(f=>text(f,128));
-  for(const k of ['authorityOperationId','remoteOperationId','remoteRef','effectFirstCause'] as const)if(s[k]!==undefined)step.toolStep[k]=text(s[k],1024,true);
+  for(const k of ['authorityOperationId','authorityReferenceState','remoteOperationId','remoteRef','effectFirstCause'] as const)if(s[k]!==undefined)step.toolStep[k]=text(s[k],1024,true);
   return step;
  });if(new Set(steps.map(s=>s.id)).size!==steps.length)fail();
  const events=array(v.events,100).map(raw=>{const e=object(raw);return {sequence:integer(e.sequence),type:text(e.type,128),objectId:text(e.objectId,256,true),at:text(e.at,64)}});

@@ -5,6 +5,24 @@ import {createTaskAPI,TaskAPIError,TaskWorkspaceController,type Task,type TaskAP
 const task:Task={id:"task_original",conversationId:"conv_original",holder:"holder_original",revision:2,generation:1,status:"READY"};
 const step:TaskStep={id:"step_original",status:"UNKNOWN",toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:"ai.conversation.read",toolVersion:"1",authorityOperationId:"original-node-op"}};
 const projection:TaskProjection={...task,cursor:2,hasMore:false,events:[],steps:[step]};
+
+test("cancelled task can query a locally completed step whose Auth receipt is UNKNOWN", async () => {
+ const original = {...step, status:"COMPLETED", toolStep:{...step.toolStep, authorityReferenceState:"UNKNOWN"}};
+ const cancelled = {...projection, revision:3, status:"RECONCILING", cancelledAt:"2026-11-13T00:00:00Z", steps:[original]};
+ let queries = 0;
+ const c = new TaskWorkspaceController("PUBLIC", mockAPI({
+  task:async()=>queries ? {...cancelled, revision:4, status:"CANCELLED", steps:[{...original, toolStep:{...original.toolStep, authorityReferenceState:"COMMITTED"}}]} : cancelled,
+  reconcile:async(taskID,stepID)=>{assert.equal(taskID,task.id);assert.equal(stepID,original.id);queries++;return {}},
+  result:async()=>({state:"COMMITTED",effectRef:original.id,result:{message:"original result"}})
+ }), storage().api, ()=>"query_original");
+ await c.select(task.id);
+ await c.reconcile(cancelled,c.state.projection!.steps[0]!,"PUBLIC-ref");
+ assert.equal(queries,1);
+ await c.select(task.id);
+ assert.equal(c.state.projection!.status,"CANCELLED");
+ await c.readResult(c.state.projection!.steps[0]!);
+ assert.deepEqual(c.state.receipt?.result,{message:"original result"});
+});
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
 function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
 test("native task requests use fresh original scope proof and fixed route, no legacy bearer",async()=>{
