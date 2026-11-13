@@ -994,6 +994,133 @@ class NativeSnapshotStopTests(unittest.TestCase):
         alias.unlink();write(self.root/'continuation-attempt/intent.json',{'status':'unknown','automaticRetry':False})
         with self.assertRaises(ValueError):q.native_boundary(str(self.root))
 
+class NativeAbortTests(unittest.TestCase):
+    setUp=NativeSnapshotStopTests.setUp
+    save_journal=NativeSnapshotStopTests.save_journal
+    complete=NativeSnapshotStopTests.complete
+    """New inverse controls, original snapshot tests remain unchanged."""
+    def prepared(self):
+        for name in ('snapshot-export-attempt','final-snapshot'):
+            shutil.rmtree(self.root/name)
+        for name in ('snapshot-approval.json','snapshot-approval.original.json'):(self.root/name).unlink()
+        self.save_journal(q.preparation_prefix())
+    def test_expired_original_scope_allows_only_explicit_inverse(self):
+        self.prep['expiresAt']='2000-01-01T00:00:00Z';self.snap['expiresAt']=self.prep['expiresAt']
+        write(self.root/'preparation-approval.json',self.prep);write(self.root/'snapshot-approval.json',self.snap)
+        with self.assertRaisesRegex(ValueError,'expired'):q.snapshot_complete(str(self.root))
+        v=q.snapshot_bindings(self.root,current=False);v['journalSHA256']=q.sha((self.root/'journal.jsonl').read_bytes())
+        write(self.root/'snapshot-export-attempt/result.json',v)
+        with self.assertRaisesRegex(ValueError,'expired'):q.native_boundary(str(self.root))
+        before=(self.root/'journal.jsonl').read_bytes();q.abort_start(str(self.root))
+        with self.assertRaises(ValueError):q.abort_start(str(self.root))
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root))
+        for i,phase in enumerate(q.ABORT_PHASES):
+            self.save_journal(q.snapshot_prefix()+q.pairs(q.ABORT_PHASES[:i])+[(phase,'started')])
+            q.abort_boundary(str(self.root),phase)
+        self.save_journal(q.snapshot_prefix()+q.pairs(q.ABORT_PHASES))
+        write(self.root/'recovery/validation.json',dict(status='passed',freezeRemoved=True,authoritativePaused=False,publicIngressChanged=False))
+        result=q.abort_complete(str(self.root));self.assertIs(result['checkpointReusable'],False)
+        self.assertEqual((self.root/'journal.jsonl').read_bytes()[:len(before)],before)
+        with self.assertRaises(FileExistsError):q.abort_complete(str(self.root))
+    def test_preparation_inverse_never_accepts_candidate_or_unknown(self):
+        self.prepared()
+        for name in ('continuation-attempt','candidate/initialize-attempt','candidate/start-attempt','pq-continuation-attempt','retained.UNKNOWN','payload.partial'):
+            with self.subTest(name=name):
+                file=self.root/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(b'first cause')
+                with self.assertRaises(ValueError):q.abort_start(str(self.root))
+                self.assertEqual(file.read_bytes(),b'first cause');file.unlink()
+        q.abort_start(str(self.root));self.save_journal(q.preparation_prefix()+[('abort_native_preflight','started'),('transaction','unknown')])
+        with self.assertRaises(ValueError):q.abort_boundary(str(self.root),'resume_authoritative')
+        self.assertTrue((self.root/'abort-attempt/intent.json').exists())
+    def test_inverse_terminals_do_not_accept_partial_or_reused_receipts(self):
+        self.prepared();q.abort_start(str(self.root));roles=self.root/'roles';roles.mkdir()
+        def put(path,value):path.write_text(''.join(k+'='+str(v)+'\n' for k,v in value.items()))
+        pause=dict(transactionId=self.root.name,operation='pause',commit=self.prep['commit'],authoritativeRelease='ynx-chain-original',bftRelease=self.prep['release'],pauseMarker='/var/lib/ynx-chain/block-production-pause.json',markerSha256='b'*64,heightBefore=101,heightAfter=101,readsOnline='true',productionStateVerified='true',reused='false')
+        put(roles/'primary-pause-authoritative.txt',pause);resumed={**pause,'operation':'resume','heightAfter':102};put(roles/'primary-resume-authoritative.txt',resumed)
+        self.save_journal(q.preparation_prefix()+q.pairs(q.ABORT_PHASES[:1])+[('resume_authoritative','started')]);q.abort_phase_result(str(self.root),'resume_authoritative')
+        for patch in ({'reused':'true'},{'markerSha256':'c'*64},{'heightBefore':99},{'heightAfter':101}):
+            put(roles/'primary-resume-authoritative.txt',{**resumed,**patch})
+            with self.assertRaises(ValueError):q.abort_phase_result(str(self.root),'resume_authoritative')
+        for role in q.ROLES:
+            old=dict(transactionId=self.root.name,role=role,operation='freeze',commit=self.prep['commit'],authoritativeRelease='ynx-chain-original',bftRelease=self.prep['release'],marker='/var/lib/ynx-chain/mutation-freeze.json',markerSha256='d'*64,readStatus=200,readEvm=200,mutationStateVerified='true',reused='false')
+            put(roles/(role+'-freeze.txt'),old);put(roles/(role+'-unfreeze.txt'),{**old,'operation':'unfreeze'})
+        self.save_journal(q.preparation_prefix()+q.pairs(q.ABORT_PHASES[:2])+[('unfreeze_mutations','started')]);q.abort_phase_result(str(self.root),'unfreeze_mutations')
+        path=roles/'seoul-unfreeze.txt';data=path.read_bytes();path.write_bytes(data[:-1])
+        with self.assertRaisesRegex(ValueError,'partial'):q.abort_phase_result(str(self.root),'unfreeze_mutations')
+        self.assertEqual(path.read_bytes(),data[:-1])
+    def test_inverse_requires_exact_journal_and_original_snapshot(self):
+        self.complete();raw=(self.root/'snapshot-export-attempt/result.json').read_bytes()
+        write(self.root/'snapshot-export-attempt/result.json',{**q.decode(raw),'remoteEvidenceSHA256':'f'*64})
+        with self.assertRaises(ValueError):q.abort_start(str(self.root))
+        self.assertFalse((self.root/'abort-attempt').exists())
+        (self.root/'snapshot-export-attempt/result.json').write_bytes(raw)
+        q.abort_start(str(self.root));self.save_journal(q.snapshot_prefix()+[('unfreeze_mutations','started')])
+        with self.assertRaises(ValueError):q.abort_boundary(str(self.root),'unfreeze_mutations')
+
+class NativeAbortRemoteTests(unittest.TestCase):
+    def test_readonly_marker_observer_positive_changed_private_and_candidate_refuse(self):
+        # Only OS transport/filesystem are controlled. Execute the real complete
+        # remote observer; no real systemd, marker, node, SSH or private body.
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();tx='synthetic-abort-operation';ev=root/'public-bft-cutover'/tx;ev.mkdir(parents=True)
+            native=dict(authoritativeCommit='b'*40,authoritativeRelease='ynx-chain-'+'b'*12,
+                        authoritativeSource=dict(mutationMarkerPath='/var/lib/ynx-chain/mutation-freeze.json',pauseMarkerPath='/var/lib/ynx-chain/block-production-pause.json'))
+            request=dict(version='YNX-NATIVE-ABORT-OBSERVATION/v1',transactionId=tx,role='primary',commit='a'*12,bftRelease='ynx-bft-gateway-'+'a'*12,evidenceRoot=str(ev),native=native,home=str(root/'home'),abciState=str(root/'application/state.json'),freezeSHA256='',pauseSHA256='',pauseRequired=True,nativePID='123',nativeExecutableIdentity='1:2')
+            mapped={}
+            for pause in (False,True):
+                key='pauseMarkerPath' if pause else 'mutationMarkerPath';p=root/('pause' if pause else 'freeze')
+                v=dict(transactionId=tx,commit=request['commit'],authoritativeRelease=native['authoritativeRelease'],authoritativeCommit=native['authoritativeCommit'],bftRelease=request['bftRelease'])
+                v['pausedAt' if pause else 'frozenAt']='2026-11-13T00:00:00Z'
+                if not pause:v['role']='primary'
+                p.write_bytes(raw(v));p.chmod(0o600);mapped[native['authoritativeSource'][key]]=p
+                request['pauseSHA256' if pause else 'freezeSHA256']=q.sha(p.read_bytes())
+            realstat=Path.lstat;realresolve=Path.resolve;realoriginal=q.original
+            def fake_stat(p,*a,**kw):
+                st=realstat(mapped.get(str(p),p),*a,**kw)
+                if str(p) in mapped:
+                    class Stat:
+                        pass
+                    out=Stat()
+                    for name in dir(st):
+                        if name.startswith('st_'):setattr(out,name,getattr(st,name))
+                    out.st_uid=0;return out
+                return st
+            def read(p,limit):return realoriginal(str(mapped.get(p,p)),limit)
+            unit=subprocess.CompletedProcess([],0,'LoadState=not-found\nActiveState=inactive\nMainPID=0\nControlGroup=\n','')
+            nativeunit=subprocess.CompletedProcess([],0,'MainPID=123\nInvocationID='+'a'*32+'\nExecMainStartTimestampMonotonic=789\nActiveState=active\n','')
+            realopen=open;realosstat=os.stat
+            def run(args,**kwargs):return nativeunit if 'ynx-chaind.service' in args else unit
+            def opened(path,*args,**kwargs):
+                return io.BytesIO(b'123 (native) '+b'0 '*19+b'9876\n') if str(path)=='/proc/123/stat' else realopen(path,*args,**kwargs)
+            def statted(path,*args,**kwargs):
+                if str(path)=='/proc/123/exe':
+                    class Stat:st_dev=1;st_ino=2
+                    return Stat()
+                return realosstat(path,*args,**kwargs)
+            with mock.patch.object(q.os,'geteuid',return_value=0),mock.patch.object(Path,'lstat',fake_stat),mock.patch.object(q,'original',side_effect=read),mock.patch('subprocess.run',side_effect=run),mock.patch('builtins.open',side_effect=opened),mock.patch.object(q.os,'stat',side_effect=statted):
+                self.assertTrue(q.abort_remote_observe(request)['candidateAbsent'])
+                original=mapped[native['authoritativeSource']['mutationMarkerPath']].read_bytes()
+                mapped[native['authoritativeSource']['mutationMarkerPath']].write_bytes(original+b' ')
+                with self.assertRaisesRegex(ValueError,'marker bytes'):q.abort_remote_observe(request)
+                mapped[native['authoritativeSource']['mutationMarkerPath']].write_bytes(original)
+                unit.stdout='LoadState=loaded\nActiveState=active\nMainPID=123\nControlGroup=/system.slice/candidate\n'
+                with self.assertRaisesRegex(ValueError,'unit/process'):q.abort_remote_observe(request)
+                unit.stdout='LoadState=not-found\nActiveState=inactive\nMainPID=0\nControlGroup=\n'
+                unit.returncode=73
+                with self.assertRaisesRegex(ValueError,'unit/process'):q.abort_remote_observe(request)
+                unit.returncode=0
+                oldnative=nativeunit.stdout;nativeunit.stdout=nativeunit.stdout.replace('MainPID=123','MainPID=456')
+                with self.assertRaisesRegex(ValueError,'native incarnation'):q.abort_remote_observe(request)
+                nativeunit.stdout=oldnative
+                changed=q.decode(original);changed['role']='seoul';mapped[native['authoritativeSource']['mutationMarkerPath']].write_bytes(raw(changed))
+                pinbefore=request['freezeSHA256'];request['freezeSHA256']=q.sha(raw(changed))
+                with self.assertRaisesRegex(ValueError,'closed scope'):q.abort_remote_observe(request)
+                mapped[native['authoritativeSource']['mutationMarkerPath']].write_bytes(original);request['freezeSHA256']=pinbefore
+                (ev/'primary-unfreeze.json.partial').write_bytes(b'UNKNOWN')
+                with self.assertRaisesRegex(ValueError,'recovery/UNKNOWN'):q.abort_remote_observe(request)
+                self.assertEqual((ev/'primary-unfreeze.json.partial').read_bytes(),b'UNKNOWN')
+
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--fixture':
         normal_caller_fixture(sys.argv[2],sys.argv[3],sys.argv[4])

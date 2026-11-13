@@ -140,7 +140,7 @@ def snapshot_prefix():
 
 def native_boundary(root_path, exporting=False):
     root = private_root(root_path)
-    for name in ('approval.json', 'continuation-attempt', 'candidate/initialize-attempt', 'candidate/start-attempt'):
+    for name in ('approval.json', 'continuation-attempt', 'candidate/initialize-attempt', 'candidate/start-attempt', 'abort-attempt'):
         need(not os.path.lexists(root / name), 'existing continuation/initialization must be retained')
     def scan(directory):
         for item in directory.iterdir():
@@ -165,7 +165,7 @@ def native_boundary(root_path, exporting=False):
         journal(root, preparation_prefix())
     return prep.get('custodyProfile', '')
 
-def snapshot_bindings(root):
+def snapshot_bindings(root, current=True):
     prep, prep_raw = load(root / 'preparation-approval.json', limit=1 << 20)
     snap, snap_raw = load(root / 'snapshot-approval.json', limit=1 << 20)
     original_raw = original(str(root / 'snapshot-approval.original.json'), 1 << 20)
@@ -176,7 +176,7 @@ def snapshot_bindings(root):
     before = dict(prep); before.pop('preparationOnly')
     need(stable == before and prep.get('transactionId') == root.name, 'snapshot changed original stable authorization')
     until = datetime.datetime.fromisoformat(prep['expiresAt'].replace('Z', '+00:00'))
-    need(until.tzinfo is not None and until > datetime.datetime.now(datetime.timezone.utc), 'snapshot approval expired')
+    need(until.tzinfo is not None and (not current or until > datetime.datetime.now(datetime.timezone.utc)), 'snapshot approval expired')
     intent, _ = load(root / 'snapshot-export-attempt/intent.json', limit=4096)
     need(intent == {'status': 'unknown', 'automaticRetry': False} and intent['automaticRetry'] is False, 'original exclusive snapshot intent required')
     terminal, terminal_raw = load(root / 'final-snapshot/remote-evidence.json', limit=1 << 20)
@@ -202,10 +202,10 @@ def snapshot_complete(root_path):
     publish(root / 'snapshot-export-attempt/result.json', value)
     return value
 
-def snapshot_record(root):
+def snapshot_record(root, current=True):
     value, _ = load(root / 'snapshot-export-attempt/result.json', limit=16 << 10)
     need(type(value) is dict and set(value) == SNAPSHOT_FIELDS and value['automaticRetry'] is False, 'closed original snapshot completion required')
-    bound = snapshot_bindings(root)
+    bound = snapshot_bindings(root, current=current)
     raw = original(str(root / 'journal.jsonl'), 1 << 20)
     # Hash the exact original bytes, including timestamps, through the durable
     # export stop. Later bootstrap/tail entries cannot rewrite that prefix.
@@ -217,6 +217,193 @@ def snapshot_record(root):
     bound['journalSHA256'] = sha(prefix)
     need(value == bound, 'snapshot completion or retained originals changed')
     return value
+
+# Explicit same-original inverse, usable only before any candidate attempt.
+ABORT_PHASES = ['abort_native_preflight', 'resume_authoritative', 'unfreeze_mutations', 'verify_recovery']
+
+def abort_boundary(root_path, phase=None):
+    root = private_root(root_path)
+    for name in ('approval.json', 'continuation-attempt', 'pq-continuation-attempt', 'candidate/initialize-attempt', 'candidate/start-attempt'):
+        need(not os.path.lexists(root/name), 'candidate/continuation footprint forbids native inverse')
+    for directory, dirs, files in os.walk(root, followlinks=False):
+        for name in dirs+files:
+            p=Path(directory)/name
+            need(not p.is_symlink() and not re.search(r'UNKNOWN|\.partial|\.tmp(?:$|[-.])',name), 'retained partial/UNKNOWN forbids native inverse')
+    prep, raw = load(root/'preparation-approval.json',limit=1<<20)
+    need(prep.get('custodyProfile')==SAME_OWNER and prep.get('preparationOnly') is True and prep.get('transactionId')==root.name, 'original same-owner preparation required')
+    base=preparation_prefix()
+    if os.path.lexists(root/'snapshot-export-attempt'):
+        snapshot_record(root,current=False);base=snapshot_prefix()
+    else:
+        for name in ('snapshot-approval.json','snapshot-approval.original.json','final-snapshot'):
+            need(not os.path.lexists(root/name), 'incomplete snapshot must be reconciled')
+    if phase is None:
+        need(not os.path.lexists(root/'abort-attempt'),'original inverse attempt/UNKNOWN must not be retried')
+        need(not os.path.lexists(root/'recovery') and not any(p.name.startswith('recovery-attempt-') for p in root.iterdir()),'prior recovery observation must be reconciled')
+        journal(root,base)
+    else:
+        intent,_=load(root/'abort-attempt/intent.json',limit=4096)
+        need(set(intent)=={'version','status','automaticRetry','preparationApprovalSHA256','journalSHA256'} and
+             intent['version']=='YNX-NATIVE-ABORT-INTENT/v1' and intent['status']=='unknown' and intent['automaticRetry'] is False and
+             intent['preparationApprovalSHA256']==sha(raw),'original exclusive inverse intent changed')
+        need(phase in ABORT_PHASES+['complete'],'unsupported inverse action')
+        i=len(ABORT_PHASES) if phase=='complete' else ABORT_PHASES.index(phase)
+        expected=base+pairs(ABORT_PHASES[:i])+([] if phase=='complete' else [(phase,'started')])
+        rows=journal(root,expected).splitlines(keepends=True)
+        need(sha(b''.join(rows[:len(base)]))==intent['journalSHA256'],'original stopped journal changed')
+    return root,prep,base
+
+def abort_start(root_path):
+    root,prep,base=abort_boundary(root_path)
+    value=dict(version='YNX-NATIVE-ABORT-INTENT/v1',status='unknown',automaticRetry=False,
+               preparationApprovalSHA256=sha(original(str(root/'preparation-approval.json'),1<<20)),journalSHA256=sha(journal(root,base)))
+    (root/'abort-attempt').mkdir(mode=0o700)
+    fsync_dir(root)
+    publish(root/'abort-attempt/intent.json',value)
+    return value
+
+def abort_complete(root_path):
+    root,prep,_=abort_boundary(root_path,'complete')
+    recovery,recovery_raw=load(root/'recovery/validation.json',limit=1<<20)
+    need(recovery.get('status')=='passed' and recovery.get('freezeRemoved') is True and recovery.get('authoritativePaused') is False and recovery.get('publicIngressChanged') is False,'original recovery verifier must finish successfully')
+    for name in ('journal.jsonl','recovery/validation.json'):
+        fd=os.open(root/name,os.O_RDONLY|os.O_NOFOLLOW)
+        try:os.fsync(fd)
+        finally:os.close(fd)
+    fsync_dir(root/'recovery');fsync_dir(root)
+    value=dict(version='YNX-NATIVE-ABORTED/v1',transactionId=root.name,commit=prep['commit'],status='native_recovered',
+               journalSHA256=sha(original(str(root/'journal.jsonl'),1<<20)),automaticRetry=False,checkpointReusable=False,recoveryValidationSHA256=sha(recovery_raw))
+    publish(root/'abort-attempt/result.json',value)
+    return value
+
+def line_record(path,keys):
+    raw=original(str(path),64<<10)
+    need(raw.endswith(b'\n'),'partial original phase stdout')
+    result={}
+    for line in raw.decode('ascii').splitlines():
+        k,sep,v=line.partition('=')
+        need(sep and k not in result,'duplicate/invalid original phase stdout')
+        result[k]=v
+    need(set(result)==set(keys.split()),'closed original phase stdout required')
+    return result
+
+def abort_observation_request(root_path,role,phase,evidence_root):
+    root,prep,_=abort_boundary(root_path,phase)
+    need(role in ROLES,'original role required')
+    plan,_=load(root/'preparation-operator-plan.json',prep['operatorPreparationPlanSha256'],1<<20)
+    roles={r['role']:r for r in plan['roles']};need(set(roles)==set(ROLES),'complete original plan required')
+    selected=roles[role]
+    native=prep['authoritativeRoles'][role]
+    live,_=load(root/'abort-attempt'/phase/(role+'-native.json'),limit=1<<20)
+    need(live.get('version')=='YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1' and live.get('role')==role and live.get('transactionId')==root.name and live.get('commit')==prep['commit'] and
+         all(live.get(k)==native[k] for k in ('authoritativeCommit','authoritativeRelease','authoritativeBinarySha256')) and live.get('readOnly') is True and
+         live.get('deployment') is False and live.get('nativeRootAuthorized') is False and decimal(live.get('mainPid')) and
+         re.fullmatch('[0-9]+:[0-9]+',live.get('runningExecutableDeviceInode','')),'current original native qualification differs')
+    tx=root.name; release=prep['release']
+    need(type(evidence_root) is str and re.fullmatch(r'/[A-Za-z0-9._/-]+',evidence_root) and '..' not in evidence_root and evidence_root.endswith('/public-bft-cutover/'+tx),'original evidence root required')
+    fields='transactionId role operation commit authoritativeRelease bftRelease marker markerSha256 readStatus readEvm mutationStateVerified reused'
+    freeze=line_record(root/'roles'/(role+'-freeze.txt'),fields)
+    for k,v in dict(transactionId=tx,role=role,operation='freeze',commit=prep['commit'],authoritativeRelease=native['authoritativeRelease'],bftRelease=release,marker=native['authoritativeSource']['mutationMarkerPath'],readStatus='200',readEvm='200',mutationStateVerified='true',reused='false').items():
+        need(freeze[k]==v,'original freeze evidence differs')
+    need(pin(freeze['markerSha256']),'original marker pin required')
+    pause=None
+    if role=='primary':
+        pause=line_record(root/'roles/primary-pause-authoritative.txt','transactionId operation commit authoritativeRelease bftRelease pauseMarker markerSha256 heightBefore heightAfter readsOnline productionStateVerified reused')
+        for k,v in dict(transactionId=tx,operation='pause',commit=prep['commit'],authoritativeRelease=native['authoritativeRelease'],bftRelease=release,pauseMarker=native['authoritativeSource']['pauseMarkerPath'],readsOnline='true',productionStateVerified='true',reused='false').items():
+            need(pause[k]==v,'original pause evidence differs')
+        need(pin(pause['markerSha256']) and decimal(pause['heightBefore']) and pause['heightBefore']==pause['heightAfter'],'original paused height/pin required')
+    return dict(version='YNX-NATIVE-ABORT-OBSERVATION/v1',transactionId=tx,role=role,commit=prep['commit'],bftRelease=release,
+                evidenceRoot=evidence_root,native=native,home=selected['home'],abciState=selected['abciState'],freezeSHA256=freeze['markerSha256'],
+                nativePID=live['mainPid'],nativeExecutableIdentity=live['runningExecutableDeviceInode'],
+                pauseSHA256=pause['markerSha256'] if pause else None,pauseRequired=phase in ('abort_native_preflight','resume_authoritative'))
+
+def abort_observation_result(root_path,role,phase,evidence_root):
+    request=abort_observation_request(root_path,role,phase,evidence_root)
+    expected={k:request[k] for k in ('version','transactionId','role','commit','freezeSHA256','pauseSHA256','pauseRequired')}
+    expected.update(readOnly=True,candidateAbsent=True)
+    value,_=load(Path(root_path)/'abort-attempt'/phase/(role+'-markers.json'),limit=16<<10)
+    need(value==expected and value['readOnly'] is True and value['candidateAbsent'] is True and type(value['pauseRequired']) is bool,'original marker observation receipt missing/changed')
+
+def abort_phase_result(root_path,phase):
+    root,prep,_=abort_boundary(root_path,phase)
+    if phase=='verify_recovery':
+        result,_=load(root/'recovery/validation.json',limit=1<<20)
+        need(result.get('status')=='passed' and result.get('commit')==prep['authoritativeCommit'][:12] and result.get('release')==prep['authoritativeRelease'] and
+             result.get('freezeRemoved') is True and result.get('authoritativePaused') is False and result.get('publicIngressChanged') is False,'original recovery verifier receipt differs')
+        return
+    need(phase in ('resume_authoritative','unfreeze_mutations'),'unsupported inverse terminal')
+    roles=('primary',) if phase=='resume_authoritative' else ROLES
+    for role in roles:
+        pause=phase=='resume_authoritative'
+        keys='transactionId operation commit authoritativeRelease bftRelease pauseMarker markerSha256 heightBefore heightAfter readsOnline productionStateVerified reused' if pause else 'transactionId role operation commit authoritativeRelease bftRelease marker markerSha256 readStatus readEvm mutationStateVerified reused'
+        old=line_record(root/'roles'/(role+'-pause-authoritative.txt' if pause else role+'-freeze.txt'),keys)
+        new=line_record(root/'roles'/(role+'-resume-authoritative.txt' if pause else role+'-unfreeze.txt'),keys)
+        for k in set(old)-{'operation','heightBefore','heightAfter'}:need(old[k]==new[k],'original inverse terminal differs from frozen evidence')
+        need(new['reused']=='false' and new['operation']==('resume' if pause else 'unfreeze'),'inverse cannot adopt a reused/missing marker')
+        if pause:need(decimal(new['heightBefore']) and decimal(new['heightAfter']) and int(new['heightAfter'])>int(new['heightBefore'])>=int(old['heightAfter']),'native did not resume')
+
+
+def abort_remote_observe(request):
+    """Read-only stream in the original root SSH session; no directory creation.
+
+    Production paths come solely from the retained approved plan. No private
+    application, HRS or key body is opened. The caller separately invokes the
+    original full native identity qualifier before this additional observation.
+    """
+    import subprocess
+    need(set(request)==set('version transactionId role commit bftRelease evidenceRoot native home abciState freezeSHA256 pauseSHA256 pauseRequired nativePID nativeExecutableIdentity'.split()) and request['version']=='YNX-NATIVE-ABORT-OBSERVATION/v1','closed inverse observation request required')
+    need(os.geteuid()==0,'original privileged read-only observer required')
+    role=request['role'];need(role in ROLES and type(request['pauseRequired']) is bool,'invalid role/phase')
+    native=request['native'];source=native['authoritativeSource']
+    def process_identity():
+        need(decimal(request['nativePID']),'actual original native PID required')
+        result=subprocess.run(['systemctl','show','ynx-chaind.service','--property=MainPID,InvocationID,ExecMainStartTimestampMonotonic,ActiveState'],capture_output=True,text=True,timeout=10)
+        value=unique(line.split('=',1) for line in result.stdout.splitlines() if '=' in line)
+        need(result.returncode==0 and set(value)=={'MainPID','InvocationID','ExecMainStartTimestampMonotonic','ActiveState'} and
+             value['MainPID']==request['nativePID'] and value['ActiveState']=='active' and re.fullmatch('[0-9a-f]{32}',value['InvocationID']) and decimal(value['ExecMainStartTimestampMonotonic']),'current native incarnation differs')
+        proc=Path('/proc')/value['MainPID']
+        # Only Linux process public stat and executable inode; no environ/key.
+        with open(proc/'stat','rb') as inp:raw=inp.read(65537)
+        need(len(raw)<=65536 and b') ' in raw,'invalid bounded native process stat')
+        fields=raw.rsplit(b') ',1)[1].split();need(len(fields)>19 and fields[19].isdigit(),'native start ticks missing')
+        st=os.stat(proc/'exe');need(str(st.st_dev)+':'+str(st.st_ino)==request['nativeExecutableIdentity'],'native executable incarnation changed')
+        return value,fields[19]
+    before_process=process_identity()
+    def absent(path):
+        p=Path(path);need(p.is_absolute() and str(p.resolve(strict=False))==str(p),'canonical absent candidate path required')
+        need(not os.path.lexists(p),'candidate writer/state footprint forbids inverse')
+    absent(request['abciState']);absent(Path(request['abciState']).parent)
+    absent(Path(request['home'])/'data')
+    for unit in ('ynx-consensus-operator-candidate.service','ynx-consensus-pq-remote-signer.service','ynx-comet.service'):
+        result=subprocess.run(['systemctl','show',unit,'--property=LoadState,ActiveState,MainPID,ControlGroup'],capture_output=True,text=True,timeout=10)
+        values=unique(line.split('=',1) for line in result.stdout.splitlines() if '=' in line)
+        need(set(values)=={'LoadState','ActiveState','MainPID','ControlGroup'} and values['MainPID']=='0' and values['ActiveState']=='inactive' and values['ControlGroup']=='' and
+             ((result.returncode==0 and values['LoadState']=='loaded') or (result.returncode in (0,1) and values['LoadState']=='not-found')),'candidate unit/process state is unknown or active')
+    def marker(path,pin_value,pause):
+        fixed='/var/lib/ynx-chain/'+('block-production-pause.json' if pause else 'mutation-freeze.json')
+        need(path==fixed and pin(pin_value),'original fixed marker/pin required')
+        before=Path(path).lstat();need(stat.S_ISREG(before.st_mode) and stat.S_IMODE(before.st_mode)==0o600 and before.st_uid==0 and before.st_nlink==1,'protected original marker required')
+        raw=original(path,16<<10);need(sha(raw)==pin_value and identity(before)==identity(Path(path).lstat()),'original marker bytes/identity changed')
+        value=decode(raw);timekey='pausedAt' if pause else 'frozenAt'
+        expected=dict(transactionId=request['transactionId'],commit=request['commit'],authoritativeRelease=native['authoritativeRelease'],authoritativeCommit=native['authoritativeCommit'],bftRelease=request['bftRelease'])
+        if not pause:expected['role']=role
+        need(set(value)==set(expected)|{timekey} and all(value[k]==v for k,v in expected.items()) and re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z',value[timekey]),'original marker closed scope differs')
+    remote=Path(request['evidenceRoot'])
+    need(str(remote).endswith('/public-bft-cutover/'+request['transactionId']) and str(remote.resolve(strict=True))==str(remote),'original remote evidence root differs')
+    retained=[remote/(role+'-unfreeze.json'),Path(source['mutationMarkerPath']+'.UNKNOWN'),Path(source['mutationMarkerPath']+'.partial-'+request['transactionId'])]
+    retained += [Path(str(retained[0])+suffix) for suffix in ('.partial','.UNKNOWN')]
+    if role=='primary' and request['pauseRequired']:
+        p=remote/'primary-resume-authoritative.json'
+        retained += [p,Path(str(p)+'.partial'),Path(str(p)+'.UNKNOWN'),Path(source['pauseMarkerPath']+'.UNKNOWN'),Path(source['pauseMarkerPath']+'.partial-'+request['transactionId'])]
+    need(all(not os.path.lexists(p) for p in retained),'original remote recovery/UNKNOWN footprint must be retained')
+    marker(source['mutationMarkerPath'],request['freezeSHA256'],False)
+    if role=='primary':
+        if request['pauseRequired']:marker(source['pauseMarkerPath'],request['pauseSHA256'],True)
+        else:
+            p=Path(source['pauseMarkerPath']);need(source['pauseMarkerPath']=='/var/lib/ynx-chain/block-production-pause.json' and not os.path.lexists(p),'original pause was not removed')
+    need(process_identity()==before_process,'native process changed while checking original markers')
+    return dict(version=request['version'],transactionId=request['transactionId'],role=role,commit=request['commit'],freezeSHA256=request['freezeSHA256'],pauseSHA256=request['pauseSHA256'],pauseRequired=request['pauseRequired'],readOnly=True,candidateAbsent=True)
+
 
 def expected_prefix(root=None):
     if root is not None:
@@ -1068,7 +1255,7 @@ def forward_gate(root_path, plan_path, plan_pin, phase=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('action', choices=('snapshot-start-check', 'native-continuation-check', 'snapshot-complete', 'mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'export-args', 'capture-binding', 'target-package'))
+    p.add_argument('action', choices=('abort-observation-result', 'abort-phase-result', 'abort-start', 'abort-check', 'abort-complete', 'abort-observation', 'abort-remote-observe', 'snapshot-start-check', 'native-continuation-check', 'snapshot-complete', 'mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'export-args', 'capture-binding', 'target-package'))
     p.add_argument('--transaction')
     p.add_argument('--plan')
     p.add_argument('--plan-sha256')
@@ -1078,12 +1265,26 @@ def main():
     p.add_argument('--runtime')
     p.add_argument('--role', choices=ROLES)
     p.add_argument('--evidence')
-    p.add_argument('--phase', choices=TAIL[1:]+['capture','resume'])
+    p.add_argument('--phase', choices=TAIL[1:]+['capture','resume']+ABORT_PHASES)
     p.add_argument('--approval')
     p.add_argument('--approval-sha256')
     p.add_argument('--export-receipt-dir')
     a = p.parse_args()
-    if a.action in ('snapshot-start-check', 'native-continuation-check'):
+    if a.action=='abort-observation-result':
+        abort_observation_result(a.transaction,a.role,a.phase,a.evidence)
+    elif a.action=='abort-phase-result':
+        abort_phase_result(a.transaction,a.phase)
+    elif a.action=='abort-start':
+        print(json.dumps(abort_start(a.transaction)))
+    elif a.action=='abort-check':
+        abort_boundary(a.transaction,a.phase)
+    elif a.action=='abort-complete':
+        print(json.dumps(abort_complete(a.transaction)))
+    elif a.action=='abort-observation':
+        print(base64.b64encode(json.dumps(abort_observation_request(a.transaction,a.role,a.phase,a.evidence),separators=(',',':')).encode()).decode())
+    elif a.action=='abort-remote-observe':
+        print(json.dumps(abort_remote_observe(decode(base64.b64decode(a.input,validate=True)))))
+    elif a.action in ('snapshot-start-check', 'native-continuation-check'):
         print(native_boundary(a.transaction, a.action == 'snapshot-start-check'))
     elif a.action == 'snapshot-complete':
         print(json.dumps(snapshot_complete(a.transaction), separators=(',', ':'), sort_keys=True))

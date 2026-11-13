@@ -82,6 +82,41 @@ write('legacy-approval.json',{...rawApproval,custodyProfile:'single-app-gateway/
 const dirty=path.join(repo,'scripts/ops/lib.sh'),original=fs.readFileSync(dirty);fs.appendFileSync(dirty,'\n# PUBLIC dirty control\n');invoke('dirty actual checkout');fs.writeFileSync(dirty,original);
 // The original main path remains independent of the new GitHub release gate.
 git('checkout','-q','main');write('ci.json',{...ci,conclusion:'failure'});const beforeMain=fs.readFileSync(baseEnv.CONTROL_GH_TRACE);invoke('legacy main unchanged',{ok:true});assert.deepEqual(fs.readFileSync(baseEnv.CONTROL_GH_TRACE),beforeMain);
+git('checkout','-q','codex/ynx-pq-perf-integration');write('ci.json',ci);
+// Real complete driver inverse entry; only the SSH executable is a PUBLIC
+// transport control. Its payload is checked separately by the real Python body.
+function abortDriver(label,failRole=''){
+ const parent=path.join(root,'abort-'+label);fs.mkdirSync(parent,{mode:0o700});const dir=path.join(parent,tx);fs.mkdirSync(dir,{mode:0o700});
+ for(const [name,value]of [['preparation-approval.json',projected],['preparation-approval.original.json',rawApproval],['preparation-operator-plan.json',plan]])fs.writeFileSync(path.join(dir,name),JSON.stringify(value)+'\n',{mode:0o600});
+ const retained=run('node',['scripts/verify/public-bft-release-source.mjs',rawPath,reviewPath,'retain-preparation',dir],{env:baseEnv});assert.equal(retained.status,0,retained.stderr);
+ // Retention is before all native work, never a repair for an old stop.
+ fs.mkdirSync(path.join(dir,'roles'),{mode:0o700});
+ for(const role of validatorRoles){const v={transactionId:tx,role,operation:'freeze',commit,authoritativeRelease:native.authoritativeRelease,bftRelease:release,marker:nativeSource.mutationMarkerPath,markerSha256:'e'.repeat(64),readStatus:200,readEvm:200,mutationStateVerified:true,reused:false};fs.writeFileSync(path.join(dir,'roles',role+'-freeze.txt'),Object.entries(v).map(([k,v])=>k+'='+v+'\n').join(''),{mode:0o600});}
+ const pause={transactionId:tx,operation:'pause',commit,authoritativeRelease:native.authoritativeRelease,bftRelease:release,pauseMarker:nativeSource.pauseMarkerPath,markerSha256:'f'.repeat(64),heightBefore:101,heightAfter:101,readsOnline:true,productionStateVerified:true,reused:false};fs.writeFileSync(path.join(dir,'roles/primary-pause-authoritative.txt'),Object.entries(pause).map(([k,v])=>k+'='+v+'\n').join(''),{mode:0o600});
+ const journal=['preflight','backup','freeze_mutations','pause_authoritative'].flatMap(phase=>['started','passed'].map(status=>({phase,status,at:'2026-11-13T00:00:00Z'})));journal.push({phase:'preparation',status:'awaiting_final_snapshot_authorization',at:'2026-11-13T00:00:00Z'});
+ fs.writeFileSync(path.join(dir,'journal.jsonl'),journal.map(x=>JSON.stringify(x)+'\n').join(''),{mode:0o600});
+ assert.notEqual(run('node',['scripts/verify/public-bft-release-source.mjs',rawPath,reviewPath,'retain-preparation',dir],{env:baseEnv}).status,0,'late source qualification admitted');
+ let result=run('python3',['-B','scripts/ops/public-bft-quiet-continuation.py','abort-start','--transaction',dir]);assert.equal(result.status,0,result.stderr);
+ fs.appendFileSync(path.join(dir,'journal.jsonl'),JSON.stringify({phase:'abort_native_preflight',status:'started',at:'2026-11-13T00:00:00Z'})+'\n');
+ const trace=path.join(parent,'transport.jsonl'),ghBefore=fs.readFileSync(baseEnv.CONTROL_GH_TRACE);
+ result=run('bash',['scripts/ops/public-bft-production-driver.sh','abort_native_preflight'],{env:{...baseEnv,DEPLOY_DRY_RUN:'0',PUBLIC_BFT_CUTOVER_MODE:'abort-native',PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,CONTROL_TRANSPORT_TRACE:trace,CONTROL_NATIVE:path.join(root,'control-native.json'),CONTROL_FAIL_ROLE:failRole,YNX_SSH_CONTROL_DIR:path.join(parent,'ssh-control')}});
+ if(failRole)assert.equal(result.status,73,result.stderr);else assert.equal(result.status,0,result.stderr);
+ assert.deepEqual(fs.readFileSync(baseEnv.CONTROL_GH_TRACE),ghBefore,'inverse performed GH query');
+ const events=fs.readFileSync(trace,'utf8').trim().split('\n').map(JSON.parse);assert.equal(events.some(x=>x.mutation),false);
+ if(failRole)assert.equal(events.at(-1).role,failRole);else assert.deepEqual(events.filter(x=>x.kind==='markers').map(x=>x.role),['primary','singapore','silicon-valley','seoul']);
+ const size=fs.statSync(trace).size;assert.notEqual(run('bash',['scripts/ops/public-bft-production-driver.sh','abort_native_preflight'],{env:{...baseEnv,DEPLOY_DRY_RUN:'0',PUBLIC_BFT_CUTOVER_MODE:'abort-native',PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,CONTROL_TRANSPORT_TRACE:trace}}).status,0);assert.equal(fs.statSync(trace).size,size,'retry reached transport');
+ passed++;
+}
+write('control-native.json',native);
+const transport=path.join(root,'abort-ssh.mjs');fs.writeFileSync(transport,`
+import fs from 'node:fs';const command=process.argv.at(-1),roles=['primary','singapore','silicon-valley','seoul'];
+if(command.includes('abort-remote-observe')){const match=command.match(/--input '([^']+)'/);if(!match)process.exit(91);const value=JSON.parse(Buffer.from(match[1],'base64'));fs.appendFileSync(process.env.CONTROL_TRANSPORT_TRACE,JSON.stringify({kind:'markers',role:value.role,mutation:false})+'\\n');if(value.role===process.env.CONTROL_FAIL_ROLE)process.exit(73);console.log(JSON.stringify(Object.assign(Object.fromEntries(['version','transactionId','role','commit','freezeSHA256','pauseSHA256','pauseRequired'].map(k=>[k,value[k]])),{readOnly:true,candidateAbsent:true})));}
+else{const role=roles.find(role=>command.includes("'"+role+"'"));if(!role||!command.includes('sudo env -i PATH=/usr/bin:/bin python3 -B - '))process.exit(92);fs.appendFileSync(process.env.CONTROL_TRANSPORT_TRACE,JSON.stringify({kind:'native',role,mutation:false})+'\\n');console.log(JSON.stringify({...JSON.parse(fs.readFileSync(process.env.CONTROL_NATIVE)),version:'YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1',role,transactionId:${JSON.stringify(tx)},commit:${JSON.stringify(commit)},mainPid:'123',runningExecutableDeviceInode:'1:2',readOnly:true,deployment:false,nativeRootAuthorized:false}));}
+`,{mode:0o600});
+fs.writeFileSync(path.join(bin,'ssh'),`#!/bin/sh\nexec node '${transport}' "$@"\n`,{mode:0o700});
+abortDriver('positive');abortDriver('third-read-unknown','silicon-valley');
+console.log('PUBLIC_BFT_DRIVER_ABORT_DATA_ONLY: original full entry, retained source, four-role readonly barrier, first unknown short circuit, no inverse replay; synthetic SSH executable only');
+
 git('checkout','-q','codex/ynx-pq-perf-integration');write('ci.json',ci);git('-c','user.name=YNX public control','-c','user.email=public-control@localhost','commit','--allow-empty','-qm','changed actual full HEAD');invoke('changed actual full HEAD');
 console.log('PUBLIC_BFT_DRIVER_RELEASE_SOURCE_PASS: '+passed+' complete original driver controls; actual private Git refs and protected PUBLIC records; controlled GitHub and dry-run transport only; no deployment/signing authority');
 } finally {fs.rmSync(root,{recursive:true,force:true});}

@@ -791,6 +791,10 @@ r="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR"
 printf '%s\\n' "$1" >> "$r/driver-calls.txt"
 if [[ "\${CONTROL_FAIL:-}" == "$1" ]]; then exit 72; fi
 case "$1" in
+ verify_recovery)
+ mkdir -m 0700 "$r/recovery"
+ printf '%s\\n' '{"status":"passed","freezeRemoved":true,"authoritativePaused":false,"publicIngressChanged":false}' >"$r/recovery/validation.json"
+ ;;
  export_final_snapshot)
  node --input-type=module - "$r" <<'NODE'
 import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
@@ -884,6 +888,51 @@ for(const label of ['wrong-tx','changed-expiry','future-plan','raw-preparation']
  const f=prepare(label);const v={...f.exportApproval};if(label==='wrong-tx')v.transactionId='different-transaction-001';if(label==='changed-expiry')v.expiresAt=utc(new Date(now.getTime()+1800000));if(label==='future-plan')v.operatorPlanSha256='f'.repeat(64);if(label==='raw-preparation'){delete v.snapshotOnly;v.preparationOnly=true;}
  fs.writeFileSync(f.exportFile,JSON.stringify(v)+'\n');saved=originals(f.dir);outcome=invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256);assert.notEqual(outcome.status,0,label);assert.deepEqual(originals(f.dir),saved);assert.equal(calls(f).length,4);
 }
+// Same-source historical inverse: real transaction and protected release helper,
+// synthetic transport only. Preparation itself records actual controlled GH run.
+const ci={id:1234,repository:{full_name:'JiahaoAlbus/YNX-Chain'},head_repository:{full_name:'JiahaoAlbus/YNX-Chain'},path:'.github/workflows/resource-market-ci.yml',event:'push',head_sha:full,head_branch:'codex/ynx-pq-perf-integration',status:'completed',conclusion:'success'};
+const bin=path.join(root,'abort-bin');fs.mkdirSync(bin,{mode:0o700});save(path.join(root,'abort-ci.json'),ci);
+fs.writeFileSync(path.join(bin,'gh'),`#!/bin/sh
+printf 'read\\n' >> "$CONTROL_GH_READS"
+cat "$CONTROL_GH_RECORD"
+`,{mode:0o700});
+process.env.PATH=bin+':'+process.env.PATH;process.env.CONTROL_GH_READS=path.join(root,'abort-gh-reads');process.env.CONTROL_GH_RECORD=path.join(root,'abort-ci.json');
+let git=spawnSync('git',['checkout','-qb','codex/ynx-pq-perf-integration'],{cwd:repo,encoding:'utf8'});assert.equal(git.status,0,git.stderr);
+for(const stage of ['prepared','exported']){
+ const f=stage==='prepared'?prepare('abort-'+stage):exported('abort-'+stage);
+ const saved=originals(f.dir),reads=fs.readFileSync(process.env.CONTROL_GH_READS);
+ const out=invoke(f.dir,'abort-native',rawPath,path.join(root,planRef.file),planRef.sha256);
+ assert.equal(out.status,0,out.stderr);assert.match(out.stdout,/native_recovered/);
+ assert.deepEqual(calls(f).slice(stage==='prepared'?4:5),['abort_native_preflight','resume_authoritative','unfreeze_mutations','verify_recovery']);
+ assert.deepEqual(fs.readFileSync(process.env.CONTROL_GH_READS),reads,'inverse refreshed mutable GH');
+ for(const [file,bytes]of Object.entries(saved))if(!file.endsWith('/journal.jsonl')&&!file.endsWith('/driver-calls.txt'))assert.equal(fs.readFileSync(file).toString('hex'),bytes);
+ const retained=originals(f.dir);assert.notEqual(invoke(f.dir,'abort-native',rawPath,path.join(root,planRef.file),planRef.sha256).status,0);assert.deepEqual(originals(f.dir),retained);
+ assert.notEqual(invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256).status,0);assert.deepEqual(originals(f.dir),retained);
+}
+for(const bad of ['missing-source','changed-source','wrong-raw','continuation-attempt','candidate/initialize-attempt','candidate/start-attempt','retained.UNKNOWN','preflight-failure','resume-failure','unfreeze-failure','recovery-failure']){
+ const f=prepare('abort-refuse-'+bad.replaceAll('/','-')),p=x=>path.join(f.dir,x);
+ if(bad==='missing-source')fs.unlinkSync(p('preparation-release.json'));
+ if(bad==='changed-source'){const v=JSON.parse(fs.readFileSync(p('preparation-release.json')));v.source.sourceCommit='f'.repeat(40);fs.writeFileSync(p('preparation-release.json'),JSON.stringify(v)+'\n');}
+ if(bad.includes('attempt')||bad.endsWith('UNKNOWN')){fs.mkdirSync(path.dirname(p(bad)),{recursive:true,mode:0o700});save(p(bad),Buffer.from('original UNKNOWN'))}
+ const fail={'preflight-failure':'abort_native_preflight','resume-failure':'resume_authoritative','unfreeze-failure':'unfreeze_mutations','recovery-failure':'verify_recovery'}[bad];
+ const saved=originals(f.dir),out=invoke(f.dir,'abort-native',bad==='wrong-raw'?f.exportFile:rawPath,path.join(root,planRef.file),planRef.sha256,fail?{CONTROL_FAIL:fail}:{});
+ assert.notEqual(out.status,0,bad+' accepted');
+ if(fail){assert.equal(out.status,72,out.stderr);assert.match(fs.readFileSync(p('journal.jsonl'),'utf8'),/"phase":"transaction","status":"unknown"/);assert.equal(calls(f).at(-1),fail);}
+ else assert.deepEqual(originals(f.dir),saved,bad+' wrote before boundary check');
+ const retained=originals(f.dir);assert.notEqual(invoke(f.dir,'abort-native',bad==='wrong-raw'?f.exportFile:rawPath,path.join(root,planRef.file),planRef.sha256).status,0);assert.deepEqual(originals(f.dir),retained);
+ assert.equal(calls(f).includes('initialize_candidate'),false);
+}
+// A current-time refusal for new work must not strand the original inverse.
+// Pure Date.now control advances only the original protected validator clock.
+const expired=prepare('abort-expired-scope'),clock=path.join(root,'expired-clock.cjs');fs.writeFileSync(clock,'Date.now=()=>'+String(now.getTime()+7200000)+';\n',{mode:0o600});
+const expiredEnv={NODE_OPTIONS:'--require='+clock};
+assert.notEqual(invoke(expired.dir,'export-native',expired.exportFile,path.join(root,planRef.file),planRef.sha256,expiredEnv).status,0);
+const oldReads=fs.readFileSync(process.env.CONTROL_GH_READS);
+assert.equal(invoke(expired.dir,'abort-native',rawPath,path.join(root,planRef.file),planRef.sha256,expiredEnv).status,0);
+assert.deepEqual(fs.readFileSync(process.env.CONTROL_GH_READS),oldReads);
+console.log('PUBLIC_BFT_NATIVE_ABORT_DATA_ONLY: exact original pre-init stop, retained source eligibility, expired inverse only, no replay, firstcause retained; synthetic transport');
+git=spawnSync('git',['checkout','-q','main'],{cwd:repo,encoding:'utf8'});assert.equal(git.status,0,git.stderr);
+
 // Missing quiet is a valid original preparation plan but cannot select the
 // same-owner public-cutover flow: refuse before any native driver/freeze call.
 const noQuietPlan={...plan};delete noQuietPlan.bootstrapRegistrationMode;

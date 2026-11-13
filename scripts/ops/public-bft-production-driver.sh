@@ -19,7 +19,7 @@ if [[ "$action" == prepare_testnet_assets ]]; then
 else
   testnet_assets_action=false
 fi
-[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "derive_frozen_bootstrap" || "$action" == "verify_frozen_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
+[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "abort_native_preflight" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "derive_frozen_bootstrap" || "$action" == "verify_frozen_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -41,7 +41,12 @@ public_bft_native_context() {
   local -a approval_mode=()
   # Standalone legacy backup/rehearsal keeps its original same-source contract;
   # no missing file or environment variable can enable an independent native.
-  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:export_final_snapshot || "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:derive_frozen_bootstrap ]]; then
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+    case "$action" in abort_native_preflight|resume_authoritative|unfreeze_mutations|verify_recovery) ;; *) return 1 ;; esac
+    python3 -B scripts/ops/public-bft-quiet-continuation.py abort-check --transaction "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" --phase "$action" || return $?
+    approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json"
+    approval_mode=(--prepare-native)
+  elif [[ "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:export_final_snapshot || "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:derive_frozen_bootstrap ]]; then
     [[ ! -e "$approved_path" && ! -L "$approved_path" ]] || { echo 'frozen snapshot phase cannot replace a final approval' >&2; return 1; }
     approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/snapshot-approval.json"
     approval_mode=(--export-native)
@@ -117,6 +122,26 @@ public_bft_native_qualify() {
   (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - '$role_native_full' '$role_native_release' '$role_native_binary' '$tx' '$commit' '$role' '$role_native_state' '$role_native_integrity' '$role_native_pause' '$role_native_mutation'$systemd_arg" <scripts/ops/remote/public-bft-native-identity.py >"$output")
 }
 
+abort_native_observe_role() {
+  local role="$1" user="$2" host="$3" key="$4" _kind="${5:-}" dir request
+  dir="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/abort-attempt/$action"
+  public_bft_native_qualify "$role" "$user" "$host" "$key" "$dir/$role-native.json" || return $?
+  request="$(python3 -B scripts/ops/public-bft-quiet-continuation.py abort-observation --transaction "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" --role "$role" --phase "$action" --evidence "${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/$(basename "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR")")" || return $?
+  # base64 has no shell metacharacters; the remote input has only the exact
+  # already-approved public paths and original marker pins, never key bodies.
+  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - abort-remote-observe --input '$request'" <scripts/ops/public-bft-quiet-continuation.py >"$dir/$role-markers.json") || return $?
+  python3 -B scripts/ops/public-bft-quiet-continuation.py abort-observation-result --transaction "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" --role "$role" --phase "$action" --evidence "${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/$(basename "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR")" || return $?
+}
+
+abort_native_preflight_phase() {
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]] || return 1
+  # No unguarded 'each_node' loop: its caller must stop on the first UNKNOWN.
+  abort_native_observe_role primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" || return $?
+  abort_native_observe_role singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" || return $?
+  abort_native_observe_role silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" || return $?
+  abort_native_observe_role seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" || return $?
+}
+
 authoritative_production_phase() {
   local operation="$1"
   if [[ "$operation" == "pause" ]]; then
@@ -170,8 +195,12 @@ authoritative_production_phase() {
   }
   local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
   local remote_helper="/tmp/ynx-public-bft-authoritative-pause-${transaction_id}.sh"
-  if [[ -n "${native_full_commit:-}" ]]; then public_bft_native_qualify primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$evidence_dir/primary-${operation}-native-identity.json"; fi
-  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-authoritative-pause.sh "$remote_helper"
+  if [[ -n "${native_full_commit:-}" ]]; then public_bft_native_qualify primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$evidence_dir/primary-${operation}-native-identity.json" || return $?; fi
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+    [[ ! -e "$evidence_dir/primary-resume-authoritative.txt" && ! -L "$evidence_dir/primary-resume-authoritative.txt" ]] || return 1
+    abort_native_observe_role primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" || return $?
+  fi
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-authoritative-pause.sh "$remote_helper" || return $?
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$commit' '$release' '$bft_release' '${native_pause:-/var/lib/ynx-chain/block-production-pause.json}' '${native_mutation:-/var/lib/ynx-chain/mutation-freeze.json}' '$remote_root' http://127.0.0.1:6420 / '$observation' '${native_full_commit:-}'" >"$evidence_dir/primary-${operation}-authoritative.txt"
   echo "production BFT authoritative $operation passed: transaction=$transaction_id evidence=$evidence_dir"
 }
@@ -1255,6 +1284,7 @@ case "$release_ref" in
     # it does not add an incident rollback or change UNKNOWN reconciliation.
     release_mode="${PUBLIC_BFT_CUTOVER_MODE:-}"
     case "$release_mode:$action" in
+      abort-native:abort_native_preflight|abort-native:resume_authoritative|abort-native:unfreeze_mutations|abort-native:verify_recovery) projection=preparation-approval.json ;;
       prepare-native:preflight|prepare-native:backup|prepare-native:freeze_mutations|prepare-native:pause_authoritative|prepare-native:capture_snapshot_source|prepare-native:prepare_testnet_assets) projection=preparation-approval.json ;;
       export-native:export_final_snapshot|export-native:derive_frozen_bootstrap) projection=snapshot-approval.json ;;
       continue-native:verify_frozen_snapshot|continue-native:initialize_candidate|continue-native:deploy_candidate|continue-native:start_candidate|continue-native:verify_candidate) projection=approval.json ;;
@@ -1262,7 +1292,11 @@ case "$release_ref" in
       *) echo "production release driver requires its original native forward phase" >&2; exit 1 ;;
     esac
     [[ "${PUBLIC_BFT_CUTOVER_APPROVED:-}" == yes ]] || { echo "original cutover approval is required" >&2; exit 1; }
-    node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" "$release_mode" >/dev/null
+    if [[ "$release_mode" == abort-native ]]; then
+      node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" abort-native "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" >/dev/null
+      python3 -B scripts/ops/public-bft-quiet-continuation.py abort-check --transaction "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" --phase "$action"
+    else
+      node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" "$release_mode" >/dev/null
     # The independently validated original must be the same projection retained
     # by the parent transaction. Do not create, repair, or advance that record.
     node --input-type=module - "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" "$projection" "$release_mode" "$(git rev-parse --short=12 HEAD)" <<'RELEASE_PROJECTION'
@@ -1275,6 +1309,7 @@ const approval=validateSameOwnerApproval(readSameOwnerJSON(original),review,comm
 assert.equal(approval.transactionId,path.basename(root),'original transaction differs from approval');
 assert.deepEqual(readSameOwnerOriginal(path.join(root,name)).raw,Buffer.from(JSON.stringify(approval)+'\n'),'retained parent approval differs');
 RELEASE_PROJECTION
+    fi
     ;;
   *) echo "production driver requires main or an independently qualified same-owner normal release ref" >&2; exit 1 ;;
 esac
@@ -1283,6 +1318,13 @@ esac
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
 public_bft_native_context
+if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+  [[ "${DEPLOY_DRY_RUN:-0}" != 1 && "${PUBLIC_BFT_CUTOVER_APPROVED:-}" == yes ]] || { echo 'native inverse requires explicit real original operation' >&2; exit 1; }
+  node scripts/verify/public-bft-release-source.mjs "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" abort-native "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" >/dev/null
+  export YNX_DEPLOY_CONNECTION_ATTEMPTS=1
+  mkdir -m 0700 "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/abort-attempt/$action"
+  if [[ "$action" == abort_native_preflight ]]; then abort_native_preflight_phase; exit 0; fi
+fi
 if [[ "$action" == capture_snapshot_source ]]; then
   capture_snapshot_source_phase
   exit 0
@@ -1406,14 +1448,25 @@ mutation_freeze_phase() {
     local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
     local remote_helper="/tmp/ynx-public-bft-mutation-freeze-${transaction_id}-${role}.sh"
     local mutation_urls="http://127.0.0.1:6420"
-    public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-${operation}-native-identity.json"
+    public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-${operation}-native-identity.json" || return $?
     # Shared marker semantics are preserved. Only the authorized chain RPC and
     # its new gateway are probed; paused products keep their original services.
     if [[ "$role" == primary && "$operation" == unfreeze && -s "$transaction_dir/ingress/public-result.json" ]]; then mutation_urls+=",http://127.0.0.1:27620"; fi
-    ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-mutation-freeze.sh "$remote_helper"
+    if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+      [[ ! -e "$evidence_dir/${role}-unfreeze.txt" && ! -L "$evidence_dir/${role}-unfreeze.txt" ]] || return 1
+      abort_native_observe_role "$role" "$user" "$host" "$key" || return $?
+    fi
+    ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-mutation-freeze.sh "$remote_helper" || return $?
     ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$role' '$commit' '$role_native_release' '$bft_release' '$role_native_mutation' '$remote_root' http://127.0.0.1:6420 '$mutation_urls' / '$role_native_full'" >"$evidence_dir/${role}-${operation}.txt"
   }
-  ynx_ops_each_node mutate_role
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+    mutate_role primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" full || return $?
+    mutate_role singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" validator || return $?
+    mutate_role silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" validator || return $?
+    mutate_role seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" validator || return $?
+  else
+    ynx_ops_each_node mutate_role
+  fi
   echo "production BFT mutation $operation passed: transaction=$transaction_id evidence=$evidence_dir"
 }
 
@@ -1547,6 +1600,9 @@ if [[ "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "
     verify_public) verify_public_phase ;;
     verify_recovery) recovery_phase ;;
   esac
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == abort-native ]]; then
+    python3 -B scripts/ops/public-bft-quiet-continuation.py abort-phase-result --transaction "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR" --phase "$action"
+  fi
   exit 0
 fi
 

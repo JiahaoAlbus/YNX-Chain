@@ -5,8 +5,8 @@ cd "$(dirname "$0")/../.."
 
 mode="${PUBLIC_BFT_CUTOVER_MODE:-plan}"
 case "$mode" in
-  plan|execute|prepare-native|export-native|continue-native|continue-pq-native) ;;
-  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native, export-native, continue-native or continue-pq-native" >&2; exit 1 ;;
+  plan|execute|prepare-native|export-native|continue-native|continue-pq-native|abort-native) ;;
+  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native, export-native, continue-native, continue-pq-native or abort-native" >&2; exit 1 ;;
 esac
 
 commit="$(git rev-parse --short=12 HEAD)"
@@ -52,6 +52,7 @@ fi
 [[ -n "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" ]] || { echo "PUBLIC_BFT_CUTOVER_APPROVAL_FILE is required" >&2; exit 1; }
 [[ -n "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" ]] || { echo "PUBLIC_BFT_CUSTODY_REVIEW_FILE is required" >&2; exit 1; }
 
+export PUBLIC_BFT_CUTOVER_MODE="$mode"
 release_ref="$(git symbolic-ref --quiet HEAD)" || { echo "public BFT cutover requires an original named release checkout" >&2; exit 1; }
 case "$release_ref" in
   refs/heads/main) ;; # Original handover profile remains main-only.
@@ -59,7 +60,11 @@ case "$release_ref" in
     # Only the new same-owner profile may use the existing normal release
     # refs. Revalidate its complete protected inputs and the original SOURCE
     # run against actual GitHub success before creating an operation attempt.
-    node scripts/verify/public-bft-release-source.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "$mode"
+    if [[ "$mode" == abort-native ]]; then
+      node scripts/verify/public-bft-release-source.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" abort-native "$transaction_dir" >/dev/null
+    else
+      node scripts/verify/public-bft-release-source.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "$mode" >/dev/null
+    fi
     ;;
   *) echo "public BFT cutover requires main or an independently qualified same-owner normal release ref" >&2; exit 1 ;;
 esac
@@ -76,7 +81,12 @@ p=pathlib.Path(sys.argv[1]);assert p.is_absolute() and str(p)==str(p.resolve(str
 PYROOT
   fi
 fi
-if [[ "$mode" == continue-pq-native ]]; then
+if [[ "$mode" == abort-native ]]; then
+  # Historical scope is only an inverse of a qualified original preparation.
+  # Never refresh CI, mint an approval, or retry an uncertain inverse here.
+  node scripts/verify/public-bft-release-source.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" abort-native "$transaction_dir" >/dev/null
+  python3 -B scripts/ops/public-bft-quiet-continuation.py abort-start --transaction "$transaction_dir" >/dev/null
+elif [[ "$mode" == continue-pq-native ]]; then
   # Resume the retained SAME transaction; never export/import/deploy/start
   # again. Original approval/expiry and the independent transition inputs are
   # revalidated before reserving the exclusive continuation attempt.
@@ -183,6 +193,11 @@ else
     validator_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).validatorManifestSha256)' "$transaction_dir/preparation-approval.json")"
     [[ "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:-}" == "$preparation_plan_pin" ]] || { echo "native preparation operator pin differs from original approval" >&2; exit 1; }
     node scripts/verify/public-bft-candidate-binding.mjs --retain-operator-preparation "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:-}" "$preparation_plan_pin" "$validator_pin" "$transaction_dir/preparation-operator-plan.json"
+    if [[ "$release_ref" != refs/heads/main ]]; then
+      # Retained before the first driver call. An already-prepared transaction
+      # without this original qualification cannot be retroactively admitted.
+      node scripts/verify/public-bft-release-source.mjs "$approval_input" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" retain-preparation "$transaction_dir" >/dev/null
+    fi
     node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/preparation-approval.original.json" "$transaction_dir/preparation-approval.json" "$transaction_dir"
   else
     printf '%s\n' "$approval_evidence" | node -e 'const fs=require("fs"),a=JSON.parse(fs.readFileSync(0,"utf8"));if(Object.hasOwn(a,"authoritativeCommit"))throw Error("independent native source requires prepare-native then continue-native")'
@@ -207,6 +222,9 @@ journal_event() {
 run_phase() {
   local phase="$1"
   journal_event "$phase" started
+  if [[ "$mode" == abort-native ]]; then
+    node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$journal" "$transaction_dir"
+  fi
   if [[ "$phase" == "initialize_candidate" ]]; then
     candidate_initialization_dispatched=1
   fi
@@ -225,8 +243,11 @@ rollback_transaction() {
   if [[ "$transaction_complete" == "1" || "$mutation_started" != "1" ]]; then
     exit "$original_status"
   fi
-  if [[ "$mode" == prepare-native || "$mode" == export-native || "$mode" == continue-native || "$mode" == continue-pq-native ]]; then
+  if [[ "$mode" == prepare-native || "$mode" == export-native || "$mode" == continue-native || "$mode" == continue-pq-native || "$mode" == abort-native ]]; then
     journal_event transaction unknown
+    if [[ "$mode" == abort-native ]]; then
+      node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$journal" "$transaction_dir" || true
+    fi
     echo "PUBLIC_BFT_NATIVE_OUTCOME_UNKNOWN: preserve original journal/markers/DB/attempt; no automatic resume, unfreeze, cleanup or retry" >&2
     [[ "$original_status" != 0 ]] || original_status=1
     exit "$original_status"
@@ -270,6 +291,17 @@ rollback_transaction() {
 trap rollback_transaction EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+if [[ "$mode" == abort-native ]]; then
+  mutation_started=1
+  for phase in abort_native_preflight resume_authoritative unfreeze_mutations verify_recovery; do
+    run_phase "$phase"
+  done
+  python3 -B scripts/ops/public-bft-quiet-continuation.py abort-complete --transaction "$transaction_dir"
+  transaction_complete=1
+  trap - EXIT INT TERM
+  exit 0
+fi
 
 if [[ "$mode" != export-native && "$mode" != continue-native && "$mode" != continue-pq-native ]]; then
   run_phase preflight
