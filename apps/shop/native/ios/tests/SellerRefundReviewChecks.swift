@@ -173,6 +173,9 @@ final class RefundReviewHTTP:URLProtocol,@unchecked Sendable {
         }
         model.readOriginalOrder(model.orders[0]);let foreignSession=try await take();try foreignSession.respond(rebound);try await until{!model.busy}
         try check(!model.canReviewOriginalRefund(model.orders[0]) && model.retainedRefundReviews[orderID]?.phase=="unknown","matching refund amount from another payment session cannot retire the original")
+        try check(model.orders[0].NativePayment?.SessionID==original.NativePayment?.SessionID &&
+                  model.orders[0].NativePayment?.PendingOriginals==[pendingHash] &&
+                  model.state=="unavailable","original order read refuses rebound payment identity without publishing its balances")
         model.readOriginalOrder(model.orders[0]);let accepted=try await take();try accepted.respond(matched);try await until{!model.busy}
         try check(model.canReviewOriginalRefund(model.orders[0]) && model.refundableOriginalEvent(model.orders[0])?.ID==nextID,"only confirmed receipt for the exact original amount admits a later refund event")
         endpointOrder=base;model.disconnect();try await connect()

@@ -28,11 +28,11 @@ import SwiftUI
     @Published private(set) var retainedTermsReviews:[String:String]=[:]
     @Published private(set) var retainedRefundReviews:[String:SellerRefundReview]=[:]
     private struct ReconciliationBinding:Equatable {
-        let orderID,storeID,buyer,intentID,invoiceID,merchant,payout,paymentInvoiceID,paymentSessionID,termsHash:String
+        let orderID,storeID,buyer,intentID,invoiceID,merchant,payout,paymentInvoiceID,paymentSessionID,termsHash,principalAtoms:String
         init?(_ order:SellerOrder){
             guard let payment=order.NativePayment,let merchant=order.PayMerchant,let payout=order.PayPayoutAddress else{return nil}
             orderID=order.ID;storeID=order.StoreID;buyer=order.Buyer;intentID=order.PayIntentID;invoiceID=order.InvoiceID
-            self.merchant=merchant;self.payout=payout;paymentInvoiceID=payment.InvoiceID;paymentSessionID=payment.SessionID;termsHash=payment.TermsHash
+            self.merchant=merchant;self.payout=payout;paymentInvoiceID=payment.InvoiceID;paymentSessionID=payment.SessionID;termsHash=payment.TermsHash;principalAtoms=payment.PrincipalAtoms
         }
     }
     private var submittedReconciliations:[String:ReconciliationBinding]=[:]
@@ -185,7 +185,9 @@ import SwiftUI
         guard at==epoch,view==selection,currentOrder(order) else{throw ShopError.contextChanged}
         let result=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response))
         guard result.ID==order.ID,result.StoreID==order.StoreID,result.Buyer==order.Buyer,result.Currency==order.Currency,result.TotalYNXT==order.TotalYNXT,result.PayIntentID==order.PayIntentID,result.InvoiceID==order.InvoiceID,result.PayMerchant==order.PayMerchant,result.PayPayoutAddress==order.PayPayoutAddress else{throw ShopError.security}
-        guard order.NativePayment==nil || result.NativePayment != nil else{throw ShopError.security}
+        if order.NativePayment != nil {
+            guard let original=ReconciliationBinding(order),original==ReconciliationBinding(result) else{throw ShopError.security}
+        }
         if let payment=result.NativePayment{try payment.validate(result.paymentOrder,requirePaid:false)}
         guard let index=orders.firstIndex(where:{$0.ID==order.ID}) else{throw ShopError.contextChanged}
         orders[index]=result;state="";return result
