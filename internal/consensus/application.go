@@ -45,6 +45,8 @@ type Application struct {
 	commitTimings               *commitTimings // nil outside opt-in diagnostics
 	commitTimingEnabled         bool
 	commitTimingLatest          *CommitTimingSample
+	finalizeTiming              *finalizeTimingCapture // nil by default; never state/schema
+	finalizeTimingActive        *finalizeTimings       // current Finalize only, under mu
 	nativeVerification          nativeVerificationCache
 	replayStateVersion          int                      // decoder-owned historical journal replay only; zero for normal execution
 	replayVerificationFacts     *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
@@ -880,6 +882,8 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	timing := a.beginFinalizeTiming(req)
+	defer a.finishFinalizeTiming(timing)
 	if a.pending != nil {
 		return nil, errors.New("cannot finalize another block before committing pending state")
 	}
@@ -905,14 +909,17 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		req = &owned
 	}
+	timing.enter("prepare")
 	state := a.committedExecutionStateView()
 	state, err := a.prepareConsensusExecution(state, req.Height)
 	if err != nil {
 		return nil, err
 	}
+	timing.enter("apply_transactions")
 	results := make([]*abcitypes.ExecTxResult, len(req.Txs))
 	for i, payload := range req.Txs {
 		next, tx, err := a.applyTransactionAt(state, payload, req.Height, req.Time, uint32(i))
+		timing.transaction(err != nil)
 		if err != nil {
 			results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error(), Data: tx.resultData}
 			continue
@@ -930,10 +937,12 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 			Events:  events,
 		}
 	}
-	pending, err := sealCommittedStateOwned(a.validatedMigration, req.Height, state)
+	timing.enter("seal")
+	pending, err := sealCommittedStateOwnedWithTimings(a.validatedMigration, req.Height, state, timing)
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
+	timing.enter("continuation")
 	if err := validateConsensusPQContinuation(a.committed, pending); err != nil {
 		return nil, err
 	}
@@ -952,6 +961,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err := a.pqInvoiceAuthorization.ValidateCommittedLedger(pending.InvoiceLedger, pending.Height); err != nil {
 		return nil, err
 	}
+	timing.enter("response")
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
 		return nil, err
@@ -979,6 +989,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		a.pendingBlockRequest, a.pendingBlockResponseHash = ownedRequest, hash
 	}
 	a.pending = &pending
+	timing.succeeded(pending.AppHash)
 	return response, nil
 }
 
@@ -1059,9 +1070,12 @@ func (a *Application) cloneExecutionState() executionState {
 }
 
 func (a *Application) cloneTransactionState(state executionState) executionState {
+	timing := a.finalizeTimingActive
+	started := timing.childStart()
+	defer timing.childFinish("transaction.clone", started, nil)
 	policy := a.pqCertificateCache.ClonePolicy(state.accountPolicy)
 	state.accountPolicy = nil
-	state = cloneExecutionStateValue(state)
+	state = cloneExecutionStateValueWithTimings(state, timing)
 	state.accountPolicy = policy
 	return state
 }
@@ -1397,6 +1411,10 @@ func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState,
 }
 
 func cloneExecutionStateValue(state executionState) executionState {
+	return cloneExecutionStateValueWithTimings(state, nil)
+}
+
+func cloneExecutionStateValueWithTimings(state executionState, timing *finalizeTimings) executionState {
 	return executionState{
 		hashVersion:   state.hashVersion,
 		invoiceLedger: clonePQInvoiceLedger(state.invoiceLedger),
@@ -1406,7 +1424,7 @@ func cloneExecutionStateValue(state executionState) executionState {
 		traceLots: cloneTraceLots(state.traceLots), accountPolicy: cloneConsensusAccountPolicy(state.accountPolicy), pqHistory: clonePQHistory(state.pqHistory), pqBatches: cloneExecutionPQBatches(state),
 		nativeTransfers: append([]BFTNativeTransfer(nil), state.nativeTransfers...), paySettlements: append([]BFTPaySettlement(nil), state.paySettlements...),
 
-		accounts: cloneExecutionAccounts(state), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		accounts: timing.accounts(state, "transaction.accounts_materialize"), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
 		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),

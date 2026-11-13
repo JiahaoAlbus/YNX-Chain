@@ -24,12 +24,13 @@ const operatorCommitObservationVersion = "YNX-COMET-COMMIT-OBSERVATION/v1"
 const operatorCommitObservationMaxSamples = 128
 
 func registerCommitObservationFlags(flags *pflag.FlagSet, p *pqOptions) {
+	flags.Var(&initializationStringFlag{target: &p.finalizeObservationOutput}, "finalize-observation-output", "disabled by default; separate bounded Finalize output; requires original synthetic Commit observation scope")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationOutput}, "commit-observation-output", "disabled by default; fresh private bounded Commit timing output after normal node stop")
 	flags.Var(&initializationStringFlag{target: &p.commitObservationScope}, "commit-observation-scope", "explicit synthetic-loopback-lab/v1 only; local persistence is not signer fsync or finality")
 }
 
 func (p pqOptions) commitObservationConfigured() bool {
-	return p.commitObservationOutput != "" || p.commitObservationScope != ""
+	return p.commitObservationOutput != "" || p.commitObservationScope != "" || p.finalizeObservationOutput != ""
 }
 
 func (p pqOptions) commitObservationWireOptions() pqOptions {
@@ -62,7 +63,10 @@ func (p pqOptions) validateCommitObservation() error {
 			}
 		}
 	}
-	return commitObservationPrivateParent(filepath.Dir(p.commitObservationOutput))
+	if err := commitObservationPrivateParent(filepath.Dir(p.commitObservationOutput)); err != nil {
+		return err
+	}
+	return p.validateFinalizeObservation()
 }
 
 func (p pqOptions) validateCommitObservationMigration(m chain.ConsensusMigrationState) error {
@@ -132,6 +136,7 @@ type operatorCommitObservation struct {
 	mu                     sync.Mutex
 	app                    *consensus.Application
 	file                   *commitObservationOutput
+	finalize               *operatorFinalizeObservation
 	result                 operatorCommitObservationResult
 	latestObserved         *operatorCommitSample
 	ran, attempted, closed bool
@@ -151,7 +156,11 @@ func prepareOperatorCommitObservation(config *cfg.Config, p pqOptions) (*operato
 	if err != nil {
 		return nil, err
 	}
-	return &operatorCommitObservation{file: file, result: operatorCommitObservationResult{
+	finalize, err := prepareOperatorFinalizeObservation(p)
+	if err != nil {
+		return nil, errors.Join(err, file.close())
+	}
+	return &operatorCommitObservation{file: file, finalize: finalize, result: operatorCommitObservationResult{
 		Version: operatorCommitObservationVersion, Scope: operatorWireObservationScope, ProcessID: os.Getpid(),
 		CaptureBoundary: "synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered",
 		MaxSamples:      operatorCommitObservationMaxSamples, Samples: []operatorCommitSample{}, RejectedNotifications: map[string]uint64{},
@@ -174,6 +183,9 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	if err := o.file.parentCurrent(); err != nil {
 		return err
 	}
+	if err := o.finalize.bind(app, m); err != nil {
+		return err
+	}
 	o.app = app
 	o.result.ChainID, o.result.OriginalGenesisHash = fmt.Sprintf("ynx_%d-1", m.Network.ChainID), m.OriginalGenesisHash
 	app.SetCommitTimingEnabled(true)
@@ -184,6 +196,7 @@ func (o *operatorCommitObservation) started() {
 	if o != nil {
 		o.mu.Lock()
 		o.ran = o.app != nil && !o.closed
+		o.finalize.started()
 		o.mu.Unlock()
 	}
 }

@@ -265,6 +265,10 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 }
 
 func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {
+	return sealCommittedStateOwnedWithTimings(witness, height, execution, nil)
+}
+
+func sealCommittedStateOwnedWithTimings(witness *validatedMigration, height int64, execution executionState, timing *finalizeTimings) (CommittedState, error) {
 	if err := witness.binds(execution.bootstrap); err != nil {
 		return CommittedState{}, err
 	}
@@ -289,9 +293,9 @@ func sealCommittedStateOwned(witness *validatedMigration, height int64, executio
 		MigrationStateHash:         migration.StateHash,
 		Initialized:                true,
 		Height:                     height,
-		Accounts:                   cloneExecutionAccounts(execution),
+		Accounts:                   timing.accounts(execution, "seal.accounts_materialize"),
 		NativeTransfers:            append([]BFTNativeTransfer(nil), execution.nativeTransfers...),
-		FeeEvents:                  execution.feeEvents.events(),
+		FeeEvents:                  timing.fees(execution.feeEvents),
 		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
 		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
 		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
@@ -357,13 +361,18 @@ func sealCommittedStateOwned(witness *validatedMigration, height int64, executio
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() && sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) {
 		state.AppHash = migration.StateHash
 	} else {
+		started := timing.childStart()
 		hash, err := state.calculateHash()
+		timing.childFinish("seal.hash", started, err)
 		if err != nil {
 			return CommittedState{}, err
 		}
 		state.AppHash = hash
 	}
-	if err := state.validateOwned(witness); err != nil {
+	started := timing.childStart()
+	err := state.validateOwned(witness)
+	timing.childFinish("seal.validate", started, err)
+	if err != nil {
 		return CommittedState{}, err
 	}
 	return state, nil

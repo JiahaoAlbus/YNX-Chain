@@ -2171,6 +2171,7 @@ jobs:
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-production-entrypoint-tests.jsonl').read_text().splitlines()]
           package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-comet'
           required = ['TestInspectWalletPolicyNormalOriginalCheckpointAndRefusals', 'TestInspectWalletPolicyNoRegistrationAndArgumentsFailClosed']
+          required += ['TestOperatorFinalizeObservationDefaultAndClosedFlags', 'TestOperatorFinalizeObservationActualCallerAndFailureProjection', 'TestOperatorFinalizeObservationRetainsFailureAndDropDebt']
           for name in required:
               runs = [event for event in events if event.get('Test') == name and event.get('Action') == 'run']
               outcomes = [(event.get('Package'), event['Action']) for event in events if event.get('Test') == name and event.get('Action') in ('pass', 'fail', 'skip')]
@@ -2179,7 +2180,7 @@ jobs:
           outcomes = [event['Action'] for event in events if event.get('Package') == package and 'Test' not in event and event.get('Action') in ('pass', 'fail', 'skip')]
           if outcomes != ['pass']:
               raise RuntimeError('complete original Comet command package did not pass once')
-          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith('TestInspectWalletPolicy')) for event in events):
+          if any(event.get('Action') in ('fail', 'build-fail') or (event.get('Action') == 'skip' and event.get('Test', '').startswith(('TestInspectWalletPolicy', 'TestOperatorFinalizeObservation'))) for event in events):
               raise RuntimeError('original command stream failed or wallet policy CLI skipped')
           print('YNX_WALLET_POLICY_CLI_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False, liveCurrentVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
@@ -2685,6 +2686,7 @@ jobs:
           required += ['TestPQLabSenderPUBLICOperationParentPersistenceBarrier', 'TestPQLabSenderPUBLICOperationParentFailurePreservesUnknown', 'TestPQLabSenderPUBLICPersistenceRolesKeepOriginalWrites', 'TestPQLabSenderPUBLICWorkloadPublicationAncestorBarriers', 'TestPQLabNetworkPUBLICFreshRootParentPersistence']
           required += ['TestPQLabLiveColdOwnerSameOriginalFullBoundary', 'TestPQLabLiveColdOwnerPreservesOriginalFirstCause', 'TestPQLabLiveColdOwnerNormalizationAndEncodingFirstCause']
           required += ['TestPQLabLiveObservationClosedStagesAndBounds', 'TestPQLabLiveObservationDisabledAndOutputFailure']
+          required += ['TestFinalizeTimingDefaultAndCanonicalEquivalence', 'TestFinalizeTimingFailuresAndBoundedKnownClock', 'TestFinalizeTimingMaterializationOriginalOwnership']
           combined_owner_required = ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           for name in combined_owner_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
