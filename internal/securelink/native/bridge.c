@@ -546,10 +546,14 @@ int ynx_ctx_server_identity(SSL_CTX *ctx, ynx_server_identity *out,
                 !ASN1_TIME_to_tm(X509_get0_notAfter(cert), &after)) {
                 reason = "held local certificate chain validity or ML-DSA policy rejected";goto done;
             }
-            errno = 0;const time_t start = timegm(&before);
-            if (errno == EOVERFLOW) goto done;
-            errno = 0;const time_t end = timegm(&after);
-            if (errno == EOVERFLOW || start >= end) goto done;
+            /* Darwin can leave EOVERFLOW from an intermediate search even
+             * when timegm returns a valid epoch. Check its failure value too. */
+            errno = 0;
+            const time_t start = timegm(&before);
+            if (start == (time_t)-1 && errno == EOVERFLOW) goto done;
+            errno = 0;
+            const time_t end = timegm(&after);
+            if ((end == (time_t)-1 && errno == EOVERFLOW) || start >= end) goto done;
             if ((int64_t)start > beginning) beginning = (int64_t)start;
             if ((int64_t)end < ending) ending = (int64_t)end;
         }

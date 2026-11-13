@@ -41,13 +41,17 @@ def p04_workflow_sections(revision):
     selected_outputs = {
         b'      p04_request_identity: ${{ steps.paths.outputs.p04_request_identity }}': 'identity',
         b'      p04_cloud_live_read: ${{ steps.paths.outputs.p04_cloud_live_read }}': 'cloud',
+        b'      darwin_server_identity: ${{ steps.paths.outputs.darwin_server_identity }}': 'darwin',
     }
-    sections = {'shared': [], 'identity': [], 'cloud': []}
+    sections = {'shared': [], 'identity': [], 'cloud': [], 'darwin': []}
     step = 'shared'
+    darwin_job = False
     for line in git('show', revision + ':' + workflow).splitlines():
+        if re.match(rb'^  [a-zA-Z0-9_-]+:$', line):
+            darwin_job = line == b'  link-darwin-server-identity:'
         if line and not line.startswith(b'        '):
             step = selected_steps.get(line, 'shared')
-        sections[selected_outputs.get(line, step)].append(line)
+        sections['darwin' if darwin_job else selected_outputs.get(line, step)].append(line)
     return sections
 
 def owned(p):
@@ -119,6 +123,11 @@ print('exclusive_link=' + str(exclusive).lower())
 print('p04_consumer=' + str(p04_consumer).lower())
 print('p04_request_identity=' + str(p04_request_identity).lower())
 print('p04_cloud_live_read=' + str(p04_cloud_live_read).lower())
+darwin_server_identity = changes is None or any(p in (
+    b'.github/workflows/chain-core.yml', b'internal/securelink/native/bridge.c',
+    b'internal/securelink/native/bridge.h', b'internal/securelink/native/openssl_test.go',
+) or p.startswith(b'internal/securelink/native/server_identity') for p in changes)
+print('darwin_server_identity=' + str(darwin_server_identity).lower())
 PY
     ;;
   *) printf '%s\n' 'usage: sh cmd/ynx-secure-link/check.sh [stub|native|ci-scope]' >&2; exit 2 ;;
