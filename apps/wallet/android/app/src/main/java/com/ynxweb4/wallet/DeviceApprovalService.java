@@ -30,7 +30,7 @@ public final class DeviceApprovalService extends Service {
 
     interface Host {
         DeviceApprovalPeer deviceApprovalPeer();
-        OriginalApproval originalDeviceApproval();
+        DeviceApprovalOperations.Holder originalDeviceApproval();
     }
 
     @Override
@@ -44,8 +44,9 @@ public final class DeviceApprovalService extends Service {
         }
         Host host = (Host) getApplication();
         DeviceApprovalPeer peer = host.deviceApprovalPeer();
-        OriginalApproval actor = host.originalDeviceApproval();
-        return peer == null || actor == null ? null : bindVerifiedPeer(peer, actor);
+        DeviceApprovalOperations.Holder holder = host.originalDeviceApproval();
+        return peer == null || holder == null
+                ? null : bindVerifiedPeer(peer, new DeviceApprovalOperations(holder));
     }
 
     @Override
