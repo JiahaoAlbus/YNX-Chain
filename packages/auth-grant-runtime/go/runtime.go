@@ -54,6 +54,7 @@ type releaseSelection struct {
 	// Separate, exact records from the original protected disclosure owner.
 	// This is finite release selection, not a runtime approval or file search.
 	ModelDisclosurePermits [16]protectedRef
+	ModelDisclosureCustody string
 }
 
 // Only the independent original Source release may supply exactly one actual
@@ -61,15 +62,17 @@ type releaseSelection struct {
 var admittedOriginalGrantReleases = [...]releaseSelection{}
 
 type Runtime struct {
-	mu                   sync.Mutex
-	selection            releaseSelection
-	held                 *heldDocument
-	projection           authorityProjection
-	modelDisclosureHolds []*heldDocument
-	modelDisclosureReady bool
-	retired              bool
-	closeOnce            sync.Once
-	closeErr             error
+	mu                    sync.Mutex
+	selection             releaseSelection
+	held                  *heldDocument
+	projection            authorityProjection
+	modelDisclosureHolds  []*heldDocument
+	modelDisclosureReady  bool
+	modelDisclosureReader originalModelDisclosureReader
+	modelDisclosureMu     sync.RWMutex
+	retired               bool
+	closeOnce             sync.Once
+	closeErr              error
 }
 
 // OpenOriginalGrantRuntime is the normal zero-input factory. Empty original
@@ -98,6 +101,15 @@ func openProtectedRuntime(s releaseSelection) (r *Runtime, err error) {
 	}
 	if err = r.checkCurrent(); err != nil {
 		return r, err
+	}
+	if s.ModelDisclosureCustody != "" {
+		if p.ModelDisclosure != nil || s.ModelDisclosurePermits != [16]protectedRef{} {
+			return r, ErrProof
+		}
+		r.modelDisclosureReader, err = openOriginalModelDisclosureReader(s)
+		if err != nil {
+			return r, err
+		}
 	}
 	seen := make(map[string]bool, len(s.ModelDisclosurePermits))
 	ended := false
@@ -161,6 +173,11 @@ func (r *Runtime) Close() error {
 	}
 	r.closeOnce.Do(func() {
 		r.Retire()
+		r.modelDisclosureMu.Lock()
+		defer r.modelDisclosureMu.Unlock()
+		if r.modelDisclosureReader != nil {
+			r.closeErr = errors.Join(r.closeErr, r.modelDisclosureReader.Close())
+		}
 		for i := len(r.modelDisclosureHolds) - 1; i >= 0; i-- {
 			r.closeErr = errors.Join(r.closeErr, r.modelDisclosureHolds[i].close())
 		}
@@ -226,7 +243,12 @@ type ModelDisclosureRequest struct {
 	Body                                   []byte
 }
 
-func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosureRequest) error {
+func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosureRequest) (err error) {
+	if e := r.Current(ctx); e != nil {
+		return e
+	}
+	r.modelDisclosureMu.RLock()
+	defer r.modelDisclosureMu.RUnlock()
 	if e := r.Current(ctx); e != nil {
 		return e
 	}
@@ -245,7 +267,49 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 	}
 	sumA, sumB := sha3.Sum512(q.Body), sha512.Sum512(q.Body)
 	actual := policy.Bind{Bytes: strconv.Itoa(len(q.Body)), SHA3_512: hex.EncodeToString(sumA[:]), SHA512: hex.EncodeToString(sumB[:])}
-	d, held, e := r.selectModelDisclosure(p.ModelDisclosure, q, actual)
+	if q.Account != b.Account || q.TaskID != b.Task.ID || q.SessionID != b.SessionID || q.Model == "" {
+		return ErrProof
+	}
+	var d *modelDisclosure
+	var held *heldDocument
+	var dynamic originalModelDisclosurePermit
+	var raw string
+	var key originalModelDisclosureKey
+	if r.modelDisclosureReader != nil {
+		key = originalModelDisclosureKey{Source: p.Snapshot.Version, Realm: b.Realm, Tenant: b.Tenant,
+			GrantID: grant.ID, GrantRevision: grant.Revision, Account: q.Account, Task: b.Task,
+			Generation: b.Generation, Holder: b.Holder, HolderEpoch: b.HolderEpoch, SessionID: b.SessionID,
+			SessionEpoch: b.SessionEpoch, ChannelBinding: b.ChannelBinding, URL: q.URL, Model: q.Model, Actual: actual}
+		dynamic, e = r.modelDisclosureReader.ReadOriginalPermit(ctx, key)
+		if dynamic != nil {
+			defer func() {
+				if dynamic != nil {
+					err = errors.Join(err, dynamic.Close())
+				}
+			}()
+		}
+		if e != nil {
+			return e
+		}
+		if dynamic == nil {
+			return ErrUnavailable
+		}
+		raw, e = dynamic.ReadOriginal(ctx, key)
+		if e != nil {
+			return e
+		}
+		if len(raw) == 0 || len(raw) > 1<<20 {
+			return ErrProof
+		}
+		var record originalModelDisclosureRecord
+		e = decodePrivate([]byte(raw), &record)
+		if e == nil && record.Key != key {
+			return ErrProof
+		}
+		d = &record.Permit
+	} else {
+		d, held, e = r.selectModelDisclosure(p.ModelDisclosure, q, actual)
+	}
 	if e != nil {
 		return e
 	}
@@ -264,6 +328,29 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 	}
 	if held != nil {
 		if e = held.current(); e != nil {
+			return e
+		}
+	}
+	if dynamic != nil {
+		if e = dynamic.Current(ctx); e != nil {
+			return e
+		}
+		original, readErr := dynamic.ReadOriginal(ctx, key)
+		if readErr != nil {
+			return readErr
+		}
+		if original != raw {
+			return ErrCurrent
+		}
+		if e = dynamic.Current(ctx); e != nil {
+			return e
+		}
+		release := dynamic
+		dynamic = nil
+		if e = release.Close(); e != nil {
+			return e
+		}
+		if e = r.Current(ctx); e != nil {
 			return e
 		}
 	}
