@@ -7,7 +7,7 @@
     "notConsumerFiveTopEvidence": true,
     "actualResultToBeReadBySoleCollector": true
   },
-  "candidate": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child",
+  "candidate": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume",
   "command": [
     "go",
     "test",
@@ -48,19 +48,25 @@
     "sha256": "876cabce7fe0bd4309fa8388ec2cab8d0c6520a4c8c610e2310117bb61a92602"
   },
   "principalTestExpected": {
-    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/internal/developerauthority/original_finite_get_principal_test.go",
-    "bytes": 25000,
-    "sha256": "7db2ad195f74c13b71a2c640f6b9422d1b29afe65001eb3ac0aee3040e3adf80"
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume/internal/developerauthority/original_finite_get_principal_test.go",
+    "bytes": 27538,
+    "sha256": "bf53776fd915800766b6a58626840733e4d1acffb6de06037b71e0422586fd0e"
   },
   "sourceManifest": {
-    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/SOURCE_MANIFEST.json",
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume/SOURCE_MANIFEST.json",
     "bytes": 83734,
-    "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469"
+    "sha256": "5aabd333cc6f73515813b6448fd691d78c042bb4d16ac030f0de9a4256c04681"
   },
   "R2MatchingChildContract": {
     "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-child-contract-test-r3/HANDOFF.json",
     "bytes": 1697,
     "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
   },
-  "requiredSourceBinding": "sole collector records exact source archive/manifest and process cwd, pins before and after run, argv, Node/OpenSSL/toolchain identities and actual original raw JSON/exit; metadata counts alone are not source or Root authority"
+  "requiredSourceBinding": "sole collector records exact source archive/manifest and process cwd, pins before and after run, argv, Node/OpenSSL/toolchain identities and actual original raw JSON/exit; metadata counts alone are not source or Root authority",
+  "singleConsumeTestCAS": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-single-consume-test-r4/HANDOFF.json",
+    "bytes": 2906,
+    "sha256": "5719403c3613d5893d9bfa3a2226c97616dc73ef79051f1bd1ac5bec9b784610"
+  },
+  "supersedesRun": 42456926898
 }

@@ -1,6 +1,6 @@
 {
   "schema": "ynx-cloud-finite-get-native-test-composition/1",
-  "out": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child",
+  "out": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume",
   "sourceFiles": 446,
   "baseDelivery": {
     "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/read-request-lifecycle-r1/HANDOFF.json",
@@ -21,6 +21,11 @@
     "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-child-contract-test-r3",
     "bytes": 1697,
     "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
+  },
+  "singleConsumeContract": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-single-consume-test-r4",
+    "bytes": 2906,
+    "sha256": "5719403c3613d5893d9bfa3a2226c97616dc73ef79051f1bd1ac5bec9b784610"
   },
   "testChanges": [
     "internal/developerauthority/original_finite_get_principal_test.go",

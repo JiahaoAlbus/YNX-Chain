@@ -733,8 +733,8 @@
     },
     {
       "relative": "internal/developerauthority/original_finite_get_principal_test.go",
-      "bytes": 25000,
-      "sha256": "7db2ad195f74c13b71a2c640f6b9422d1b29afe65001eb3ac0aee3040e3adf80"
+      "bytes": 27538,
+      "sha256": "bf53776fd915800766b6a58626840733e4d1acffb6de06037b71e0422586fd0e"
     },
     {
       "relative": "internal/developerauthority/original_http_binary_principal_v5.go",

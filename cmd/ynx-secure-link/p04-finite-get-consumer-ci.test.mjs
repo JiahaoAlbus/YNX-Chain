@@ -38,11 +38,13 @@ function events() {
 }
 const lines = rows => rows.map(r => JSON.stringify(r)).join('\n');
 
-test('P04 exact final child-contract 446-source and original PUBLIC280/vector CAS intake is portable metadata only', () => {
+test('P04 single-consume 446-source and original PUBLIC280/vector CAS intake is portable metadata only', () => {
   const v = verifyP04ConsumerDependencies();
-  assert.equal(v.sourceManifest.inputs.length, 446); assert.equal(v.candidate.files.size, 454); assert.equal(v.sdk.files.size, 280);
+  assert.equal(v.sourceManifest.inputs.length, 446); assert.equal(v.candidate.files.size, 455); assert.equal(v.sdk.files.size, 280);
   assert.equal(v.graph.cometGoSourceRequired, false); assert.equal(v.comet.length, 2);
-  assert.equal(v.candidate.files.get('internal/developerauthority/original_finite_get_principal_test.go').length, 25000);
+  const principalTest = v.sourceManifest.inputs.find(row => row.relative === 'internal/developerauthority/original_finite_get_principal_test.go');
+  assert.equal(principalTest.bytes, 27538);
+  assert.equal(principalTest.sha256, 'bf53776fd915800766b6a58626840733e4d1acffb6de06037b71e0422586fd0e');
   for (const name of ['private_client_v1.h', 'private_client_startup_v1.h']) assert.equal(v.candidate.files.has('cmd/ynx-secure-link-caller/' + name), true);
   assert.equal(v.inputs.some(r => r.pin.path.includes('/Users/huangjiahao/PUBLIC-')), false);
 });

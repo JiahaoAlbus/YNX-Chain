@@ -4,44 +4,49 @@
   "candidate": {
     "handoff": {
       "file": "p04/HANDOFF.json",
-      "bytes": 4576,
-      "sha256": "1917ea3aa8c6aecea4ad81a6e45cd3e1e18410bb29c5cf2a34d8204f8a2f3f69",
-      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/HANDOFF.json"
+      "bytes": 4346,
+      "sha256": "3fe2fa797d73edae6bf34e47010a6b02ebd7737b479373415a83712cfb3d71ca",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-single-consume-delivery-r1/HANDOFF.json"
     },
     "archive": {
       "file": "p04/source.tar.gz",
-      "bytes": 2371214,
-      "sha256": "0d5fdca18efb0c00bbb7bb7767b69425356280e7bd8780397d88db9a75adba56",
-      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/matching-r2-child-source-only.tar.gz"
+      "bytes": 2372254,
+      "sha256": "6f7306406beed181403fb4178e73a2bef06a8fba0c839b3cfd1e7ae0ace8bc76",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-single-consume-delivery-r1/matching-single-consume-source-only.tar.gz"
     },
     "sourceManifest": {
       "file": "p04/SOURCE_MANIFEST.json",
       "bytes": 83734,
-      "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469",
-      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/SOURCE_MANIFEST.json"
+      "sha256": "5aabd333cc6f73515813b6448fd691d78c042bb4d16ac030f0de9a4256c04681",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume/SOURCE_MANIFEST.json"
     },
     "composition": {
       "file": "p04/COMPOSITION.json",
-      "bytes": 2555,
-      "sha256": "041d32b7fc48bc76a40d15e45f20c5258bbe4003508ce920726937b6b5246bce",
-      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r16-child/CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json"
+      "bytes": 2820,
+      "sha256": "9ad514946a863f3a140ae958b91e308ca9c0a5dee0182a28ba21dbd392b8cf55",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/normal-v4-native-test-matching-r17-single-consume/CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json"
     },
     "request": {
       "file": "p04/ORIGINAL_CI_REQUEST.json",
-      "bytes": 3402,
-      "sha256": "dc0da46fdac5dcbe526bcbe39094e18bc4ba064a01c6f447b64dce0355df4dc9",
-      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-final-r2-child/ORIGINAL_CI_REQUEST.json"
+      "bytes": 3729,
+      "sha256": "1d0a6aae79738d5408f102489bc805a42a5e4630652a86cdfa32e60e2bf06fd5",
+      "originalPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P04/native-tls-test-single-consume-delivery-r1/ORIGINAL_CI_REQUEST.json"
     },
     "extraMembers": [
       {
         "relative": "SOURCE_MANIFEST.json",
         "bytes": 83734,
-        "sha256": "be91e265c5249de33343448e5fc07d391cf8cf1ef7b5c06549512378a2df0469"
+        "sha256": "5aabd333cc6f73515813b6448fd691d78c042bb4d16ac030f0de9a4256c04681"
       },
       {
         "relative": "CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json",
-        "bytes": 2555,
-        "sha256": "041d32b7fc48bc76a40d15e45f20c5258bbe4003508ce920726937b6b5246bce"
+        "bytes": 2820,
+        "sha256": "9ad514946a863f3a140ae958b91e308ca9c0a5dee0182a28ba21dbd392b8cf55"
+      },
+      {
+        "relative": "supplier-provenance/CLOUD-CHILD-HANDOFF.json",
+        "bytes": 6491,
+        "sha256": "10168a86fb04225e8e7d90d3d892088000c67e3f55cb0c263a0ea2b075648b81"
       },
       {
         "relative": "supplier-provenance/LINK-TEST-HANDOFF.json",
@@ -59,9 +64,9 @@
         "sha256": "12e3a46c6786a49a99ed0ea1315c2c25dd1967b2a5856504aa2a63ee261f3eee"
       },
       {
-        "relative": "supplier-provenance/CLOUD-CHILD-HANDOFF.json",
-        "bytes": 6491,
-        "sha256": "10168a86fb04225e8e7d90d3d892088000c67e3f55cb0c263a0ea2b075648b81"
+        "relative": "supplier-provenance/P04-SINGLE-CONSUME-TEST-HANDOFF.json",
+        "bytes": 2906,
+        "sha256": "5719403c3613d5893d9bfa3a2226c97616dc73ef79051f1bd1ac5bec9b784610"
       },
       {
         "relative": "apps/cloud/scripts/verify-finite-get-consumer-evidence.mjs",
@@ -70,8 +75,8 @@
       },
       {
         "relative": "ORIGINAL_CI_REQUEST.json",
-        "bytes": 3402,
-        "sha256": "dc0da46fdac5dcbe526bcbe39094e18bc4ba064a01c6f447b64dce0355df4dc9"
+        "bytes": 3729,
+        "sha256": "1d0a6aae79738d5408f102489bc805a42a5e4630652a86cdfa32e60e2bf06fd5"
       }
     ]
   },

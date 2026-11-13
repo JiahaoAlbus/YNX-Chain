@@ -26,10 +26,11 @@ export const P04_COMET_ORIGINAL = Object.freeze({commit: '63ba175ec3725845536963
     Object.freeze({relative: 'go.mod', bytes: 6552, sha256: '265396d8783ee13227b7dcded4787dfc169b86600388e028e3cecdb54a643d59'}),
     Object.freeze({relative: 'go.sum', bytes: 51533, sha256: 'daa9e68eab2c225e39a03b624169f17ad31dcf0b3f5c106c2b9df9ac3c9cdbfd'}),
   ])});
+const singleConsumeHandoff = 'supplier-provenance/P04-SINGLE-CONSUME-TEST-HANDOFF.json';
 const extraNames = ['SOURCE_MANIFEST.json', 'CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json',
   'supplier-provenance/CLOUD-CHILD-HANDOFF.json', 'supplier-provenance/LINK-TEST-HANDOFF.json',
   'supplier-provenance/LINK-TEST-R2-HANDOFF.json', 'supplier-provenance/P04-CHILD-TEST-HANDOFF.json',
-  'apps/cloud/scripts/verify-finite-get-consumer-evidence.mjs', 'ORIGINAL_CI_REQUEST.json'];
+  singleConsumeHandoff, 'apps/cloud/scripts/verify-finite-get-consumer-evidence.mjs', 'ORIGINAL_CI_REQUEST.json'];
 const need = (ok, why) => {if (!ok) throw Error('P04 consumer CI: ' + why);};
 const sha = b => createHash('sha256').update(b).digest('hex');
 const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -190,13 +191,24 @@ export function verifyP04ConsumerDependencies(root = dependencies) {
   need(c.schema === 'ynx-cloud-finite-get-native-test-composition/1' && c.testOnly === true && c.productionBytesUnchanged === true, 'original test-only composition required');
   exact(c.requiredTops, P04_REQUIRED_TOPS, 'original candidate test tops'); exact(c.testTags, tags.split(','), 'test-only tags');
   need(sameJSON(r.command, ['go', ...P04_GO_ARGUMENTS]), 'original complete-package test argv required');
-  for (const [field, spec] of [['sourceOnlyArchive', m.candidate.archive], ['sourceManifest', m.candidate.sourceManifest], ['testComposition', m.candidate.composition], ['originalCIRequest', m.candidate.request]])
+  need(h.schema === 'YNX-P04-single-consume-native-consumer-handoff/1', 'P04 single-consume delivery handoff required');
+  for (const [field, spec] of [['sourceArchive', m.candidate.archive], ['sourceManifest', m.candidate.sourceManifest], ['originalCIRequest', m.candidate.request]])
     need(h[field]?.bytes === spec.bytes && h[field]?.sha256 === spec.sha256, 'supplier handoff asset binding differs: ' + field);
   exact(m.candidate.extraMembers.map(row => row.relative), extraNames, 'candidate archive metadata extras');
   const candidate = parseP04SourceArchive(candidateTar.raw); verifyP04ArchiveMembers(candidate, [...sources.inputs, ...m.candidate.extraMembers]);
   for (const [name, input] of [['SOURCE_MANIFEST.json', sourceManifest], ['CLOUD_FINITE_GET_TLS_TEST_COMPOSITION.json', composition], ['ORIGINAL_CI_REQUEST.json', request]])
     need(candidate.files.get(name)?.equals(input.raw), 'original embedded metadata differs: ' + name);
-  verifyBytes(candidate.files.get('internal/developerauthority/original_finite_get_principal_test.go'), r.principalTestExpected, 'actual P04 final child-contract test');
+  const testHandoff = candidate.files.get(singleConsumeHandoff);
+  for (const spec of [h.testCAS, c.singleConsumeContract, r.singleConsumeTestCAS])
+    verifyBytes(testHandoff, spec, 'original P04 single-consume test handoff');
+  const testCAS = parseJSON(testHandoff, 'single-consume test handoff');
+  const principalTest = 'internal/developerauthority/original_finite_get_principal_test.go';
+  need(testCAS.schema === 'YNX-P04-native-consumer-single-consume-test-CAS/1' && testCAS.productionChanged === false &&
+    h.onlyChangedSourceLeaf === principalTest && testCAS.logical === principalTest &&
+    Number.isSafeInteger(r.supersedesRun) && r.supersedesRun > 0 &&
+    r.supersedesRun === h.actual793Failure?.run && r.supersedesRun === testCAS.actualFailure?.run, 'same P04 test-only successor and original failure required');
+  for (const spec of [r.principalTestExpected, testCAS.after])
+    verifyBytes(candidate.files.get(principalTest), spec, 'actual P04 single-consume test');
   for (const header of ['private_client_v1.h', 'private_client_startup_v1.h'])
     need(candidate.files.has('cmd/ynx-secure-link-caller/' + header), 'actual native CGO header dependency required: ' + header);
   const mod = candidate.files.get('go.mod')?.toString('utf8') ?? '';
@@ -214,8 +226,8 @@ export function verifyP04ConsumerDependencies(root = dependencies) {
     Array.isArray(sdkRows) && sdkRows.length === sdkH.sdkFiles, 'original Auth portable PUBLIC SDK manifest required');
   for (const [field, spec] of [['sdkWholeFiles', m.sdk.manifest], ['portablePublicInputs', m.sdk.archive], ['vector', m.sdk.vector]])
     need(sdkH[field]?.bytes === spec.bytes && sdkH[field]?.sha256 === spec.sha256, 'PUBLIC input handoff binding differs: ' + field);
-  need(h.PUBLICEnvironmentInputs?.bytes === m.sdk.handoff.bytes && h.PUBLICEnvironmentInputs?.sha256 === m.sdk.handoff.sha256 &&
-    h.PUBLICSDKVectorArchive?.bytes === m.sdk.archive.bytes && h.PUBLICSDKVectorArchive?.sha256 === m.sdk.archive.sha256, 'same candidate/public input cohort required');
+  for (const spec of [h.originalPUBLICSDK280AndVector, r.publicEnvironmentInputs])
+    verifyBytes(sdkHandoff.raw, spec, 'same candidate/public input cohort');
   const bundle = parseP04SourceArchive(sdkTar.raw);
   verifyP04ArchiveMembers(bundle, [...sdkRows.map(row => ({...row, relative: 'PUBLIC-R5-SDK/' + row.relative})),
     {relative: 'PUBLIC_SDK_FILES.json', ...m.sdk.manifest}, {relative: 'PUBLIC_IDE_FINITE_GET_V4_VECTOR.json', ...m.sdk.vector}]);
