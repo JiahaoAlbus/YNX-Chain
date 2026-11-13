@@ -566,8 +566,8 @@
     },
     {
       "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
-      "bytes": 53018,
-      "sha256": "12c7f19fb80b67ef46e2ba0f416a49048baf004be6028e98de34b06e899e96ec"
+      "bytes": 53785,
+      "sha256": "883cb5add6b808a2400850222f5beadb4d7e8b5ba0034fd5c70e35eb143b11b3"
     },
     {
       "path": "packages/wallet-auth/src/original-auth-source-issuance-approval-data.js",
