@@ -1,6 +1,7 @@
 """Normal adapter contracts only. No valid proof/signature/business fixtures."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import tempfile
 import threading
@@ -12,6 +13,26 @@ spec=importlib.util.spec_from_file_location('normal_callgraph',Path(__file__).wi
 driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
+    def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
+        b = object.__new__(driver.NormalBackend)
+        b.checkpoint_lock = threading.Lock()
+        b.fingerprint = b.cached_checkpoint = None
+        with tempfile.TemporaryDirectory() as temp:
+            paths = [Path(temp) / f'node-{i}.json' for i in range(4)]
+            for path in paths:
+                path.write_text(json.dumps(dict(height=1, appHash='a'*64, initialized=True)))
+            b.c = SimpleNamespace(plan=dict(nodes=[dict(statePath=str(path)) for path in paths]))
+            stop = threading.Event()
+            self.assertEqual(b.checkpoint(stop)['height'], 1)
+            for path in paths:
+                before = path.stat()
+                replacement = path.with_suffix('.new')
+                replacement.write_text(json.dumps(dict(height=2, appHash='b'*64, initialized=True)))
+                os.utime(replacement, ns=(before.st_atime_ns, before.st_mtime_ns))
+                replacement.replace(path)
+                self.assertEqual(path.stat().st_size, before.st_size)
+            self.assertEqual(b.checkpoint(stop), dict(height=2, appHash='b'*64))
+
     def test_all_four_original_engine_and_app_successors_required_before_publication(self):
         b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[]
         def rpc(address,method):

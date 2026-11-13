@@ -490,13 +490,19 @@ class NormalBackend:
         return reply
     def checkpoint(self,stop):
         paths=[Path(n["statePath"]) for n in self.c.plan["nodes"]]
+        def identities():
+            result = []
+            for path in paths:
+                info = path.stat()
+                result.append((info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+            return tuple(result)
         while not stop.is_set():
             with self.checkpoint_lock:
-                fingerprint=tuple((p.stat().st_mtime_ns,p.stat().st_size) for p in paths)
+                fingerprint=identities()
                 if fingerprint==self.fingerprint and self.cached_checkpoint is not None:return dict(self.cached_checkpoint)
                 values=[json.loads(lab.guard.bounded(p,128<<20)) for p in paths]
                 points={(v["height"],v["appHash"]) for v in values}
-                if len(points)==1 and all(v["initialized"] for v in values):
+                if len(points)==1 and all(v["initialized"] for v in values) and fingerprint==identities():
                     height,app=next(iter(points));self.fingerprint=fingerprint;self.cached_checkpoint=dict(height=height,appHash=app)
                     return dict(self.cached_checkpoint)
             stop.wait(.01)
