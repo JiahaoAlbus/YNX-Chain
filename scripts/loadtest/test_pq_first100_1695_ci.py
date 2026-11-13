@@ -64,6 +64,7 @@ class Fixed1695(unittest.TestCase):
             with contextlib.redirect_stderr(io.StringIO()),self.assertRaises((RuntimeError,SystemExit)):entry.main(argv)
     def test_old_workflow_bytes_preserved_and_new_jobs_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
+        workflow=workflow.replace(', first100-held-public-owner]',']',1).replace(" && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')",'',1)
         # Project only the exact additive 7c25 choice and its new-only fallback guard.
         legacy=workflow.replace(', first100-7c25-public-owner]',']',1)
         legacy=legacy.replace("    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')\n","    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load')\n",1)

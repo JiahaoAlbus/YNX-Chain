@@ -11,7 +11,7 @@ on:
         description: Exact own1b fresh504 initialization then first100 online100x5; separate fresh Root window required
         type: choice
         default: functional
-        options: [functional, first100-own1b-initialize-before-load, first100-d24-initialize-before-load, first100-1695-bounded-cold, first100-1695-public-owner, first100-7c25-public-owner]
+        options: [functional, first100-own1b-initialize-before-load, first100-d24-initialize-before-load, first100-1695-bounded-cold, first100-1695-public-owner, first100-7c25-public-owner, first100-held-public-owner]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   functional:
-    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')
+    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')
     name: Normal original PQ processes (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -672,7 +672,7 @@ jobs:
           workflow=Path('controller/.github/workflows/pq-normal-process.yml').read_text()
           module.assert_workflow(workflow)
           functional=workflow.split('  functional:\n',1)[1].split('    name:',1)[0]
-          if functional.strip()!="if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')":
+          if functional.strip()!="if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')":
               raise SystemExit('new fixed profile must never fall through to the old functional job')
           profile=workflow.split('  first100-7c25-public-owner:\n',1)[1].split('    needs:',1)[0]
           route=[line.strip() for line in profile.splitlines() if line.startswith('    if: ')]
@@ -858,6 +858,99 @@ jobs:
         with:
           name: pq-first100-7c25-cgo-build-${{ github.sha }}
           path: ${{ runner.temp }}/pq-first100-7c25-native-build/public/
+          if-no-files-found: warn
+          include-hidden-files: false
+          retention-days: 14
+
+  first100-held-controller-controls:
+    name: Fixed held first100 controller controls
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/pq-normal-process.yml
+            /scripts/loadtest/pq-first100-held-ci.py
+            /scripts/loadtest/test_pq_first100_held_ci.py
+      - name: Verify the fixed plan and single original dispatch route
+        run: python3 -I -B scripts/loadtest/test_pq_first100_held_ci.py -v
+
+  first100-held-public-owner:
+    name: Held public-owner normal504 initialization then first100 online100x5
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && inputs.load_profile == 'first100-held-public-owner' && inputs.signing_mode == 'online'
+    needs: first100-held-controller-controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/pq-first100-held-ci.py
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2
+          path: source
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.github/workflows/resource-market-ci.yml
+            /go.mod
+            /go.sum
+            /cmd/
+            /internal/
+            /pkg/
+            /third_party/cometbft/
+            /scripts/ops/validate-pq-remote-normal-ci.py
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/verify/wire-live-matching-source-ci.py
+            /packages/wallet-auth/go/sourceparentprofile/
+            /packages/wallet-auth/native/source-parent/
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 96e6e7c4135c9412dad5796b5e36bcc3c7765a83
+          path: tools
+          filter: blob:none
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.11'
+          cache: false
+      - name: Receive only the original immutable getter object
+        working-directory: source
+        env:
+          GIT_TERMINAL_PROMPT: '0'
+        run: git fetch --no-tags --no-recurse-submodules --depth=1 --no-write-fetch-head origin 5a49f5c91452604dffb910df736702b3b9df2562
+      - name: Run the original held first100 once and preserve its outcome
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o noclobber
+          python3 -I -B controller/scripts/loadtest/pq-first100-held-ci.py > "$RUNNER_TEMP/pq-first100-held-plan.json"
+          python3 -I -B controller/scripts/loadtest/pq-first100-held-ci.py --execute
+      - name: Preserve only original public receipts and streams
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-first100-held-public-owner-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pq-first100-held-plan.json
+            ${{ runner.temp }}/pq-independent-load-*/public/
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14

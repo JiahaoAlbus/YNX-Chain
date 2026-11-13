@@ -154,6 +154,7 @@ class D24ControllerControls(unittest.TestCase):
 
     def test_old_jobs_and_1b_wrapper_are_unchanged_new_job_is_dispatch_only(self):
         workflow=(HERE.parents[1]/'.github/workflows/pq-normal-process.yml').read_text()
+        workflow=workflow.replace(', first100-held-public-owner]',']',1).replace(" && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-held-public-owner')",'',1)
         original=workflow.split('jobs:\n',1)[1].split('\n  first100-d24-controller-controls:',1)[0]
         # The exact new-only guard cannot change any existing profile route.
         original=original.replace("    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load') && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-7c25-public-owner')\n","    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'first100-own1b-initialize-before-load')\n",1)
