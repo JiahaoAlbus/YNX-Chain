@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {CORE_SUPPLY_PROFILES, normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes,
   verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden,
-  CORE19_C2_BINDING, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols} from './combined-supply-profile.mjs';
+  CORE19_C2_BINDING, verifyCore19C2Recipe, verifyCore19C2NeutralSymbols,
+  selectCombinedGoToolchain, verifyCombinedGoEnvironment} from './combined-supply-profile.mjs';
 import {shopRole, shopImportFile, shopImportPath} from './shop-legacy-archive-inputs.mjs';
 import {linkRequiredSymbols, productTransportRequiredSymbols, shopRequiredSymbols,
   shopNativeRequiredSymbols, shopBorrowSymbols} from './combined-archive-symbols.mjs';
@@ -563,6 +564,61 @@ test('legacy Shop uses the original Core19 module and single command', () => {
   delete shop.Module.Replace;
   shop.CgoFiles.pop();
   assert.throws(verifyClosure, /exact Auth Shop Go13/);
+});
+
+const publicShopGoRoot = '/PUBLIC/golang.org/toolchain@v0.0.1-go1.26.11.darwin-arm64';
+const publicShopGo = publicShopGoRoot + '/bin/go';
+
+test('Shop Go toolchain selects the fixed patch above the unchanged e120 source minimum', () => {
+  const {core: raw} = core19Fixture();
+  const {supply: core} = normalizeCoreSupply(raw);
+  const selected = selectCoreSupplyProfile(raw);
+  const toolchain = selectCombinedGoToolchain(selected, shopRole, publicShopGo);
+  assert.equal(core.source.go, '1.26.10');
+  assert.equal(selected.commit, 'e12036079d28adef2559733739a4743e258ba4e5');
+  assert.equal(toolchain.profile, 'shop-single62-go1.26.11');
+  assert.equal(toolchain.version, 'go1.26.11');
+  assert.equal(toolchain.command, publicShopGo);
+  assert.equal(toolchain.root, publicShopGoRoot);
+  assert.deepEqual(toolchain.executable, {bytes: 14602880,
+    sha256: '20e07ffb4f08faaf125e413db024b6e988d3ec2799dcb3568a720d14be0ad133'});
+  assert.deepEqual(toolchain.versionFile, {bytes: 36,
+    sha256: '489cd0f7bd5ac954d65ee65cb20f23ddf906a4677b76ed4e9f5f204e35e0d7ba'});
+});
+
+test('Shop Go toolchain is required only for the exact original Shop role and uses an absolute executable', () => {
+  const {selected} = core19Fixture();
+  for (const executable of [undefined, 'go', '/PUBLIC/../PUBLIC/bin/go', '/PUBLIC/bin/go/', '/PUBLIC/go']) {
+    assert.throws(() => selectCombinedGoToolchain(selected, shopRole, executable), /absolute canonical Shop bin\/go/);
+  }
+  assert.throws(() => selectCombinedGoToolchain(selected, 'PUBLIC unknown role', publicShopGo), /requires original Core19 e120/);
+  for (const profile of CORE_SUPPLY_PROFILES) {
+    assert.throws(() => selectCombinedGoToolchain(profile, undefined, publicShopGo), /only accepted for Shop/);
+    if (profile !== selected) assert.throws(() => selectCombinedGoToolchain(profile, shopRole, publicShopGo), /requires original Core19 e120/);
+  }
+});
+
+test('Shop Go toolchain probe requires its exact version, native architecture and tool root', () => {
+  const {selected} = core19Fixture();
+  const toolchain = selectCombinedGoToolchain(selected, shopRole, publicShopGo);
+  const observed = {GOVERSION: 'go1.26.11', GOOS: 'darwin', GOARCH: 'arm64', GOROOT: publicShopGoRoot,
+    GOTOOLDIR: publicShopGoRoot + '/pkg/tool/darwin_arm64', GOTOOLCHAIN: 'local'};
+  assert.doesNotThrow(() => verifyCombinedGoEnvironment(toolchain, observed, 'arm64'));
+  for (const [key, value] of Object.entries({GOVERSION: 'go1.26.10', GOOS: 'linux', GOARCH: 'amd64',
+    GOROOT: '/PUBLIC/other', GOTOOLDIR: '/PUBLIC/other/pkg/tool/darwin_arm64', GOTOOLCHAIN: 'auto'})) {
+    assert.throws(() => verifyCombinedGoEnvironment(toolchain, {...observed, [key]: value}, 'arm64'), /Go/);
+  }
+  assert.throws(() => verifyCombinedGoEnvironment(toolchain, {...observed, GOARCH: 'amd64'}, 'amd64'), /Darwin arm64/);
+});
+
+test('Shop Go toolchain successor leaves every non-Shop profile at Go 1.26.10', () => {
+  const observed = {GOVERSION: 'go1.26.10', GOOS: 'darwin', GOARCH: 'arm64'};
+  for (const profile of CORE_SUPPLY_PROFILES) {
+    const toolchain = selectCombinedGoToolchain(profile);
+    assert.deepEqual(toolchain, {command: 'go', version: 'go1.26.10'});
+    assert.doesNotThrow(() => verifyCombinedGoEnvironment(toolchain, observed, 'arm64'));
+    assert.throws(() => verifyCombinedGoEnvironment(toolchain, {...observed, GOVERSION: 'go1.26.11'}, 'arm64'), /go1.26.10/);
+  }
 });
 
 test('legacy Shop adds thirteen strong symbols and requires its original Native witnesses', () => {

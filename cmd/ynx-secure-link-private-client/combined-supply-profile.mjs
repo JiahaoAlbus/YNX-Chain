@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import path from 'node:path';
 import {shopRole, shopImportFile, shopImportPath, verifyShopCommandDependencyClosure} from './shop-legacy-archive-inputs.mjs';
 import {shopRequiredSymbols, shopNativeRequiredSymbols, shopBorrowSymbols} from './combined-archive-symbols.mjs';
 
@@ -162,6 +163,33 @@ const exact = (actual, expected, label) => {
 const validPin = row => row && Number.isSafeInteger(row.bytes) && row.bytes > 0 && /^[a-f0-9]{64}$/.test(row.sha256 ?? '') && /^[a-f0-9]{40}$/.test(row.gitBlob ?? '');
 const samePin = (a, b) => a.bytes === b.bytes && a.sha256 === b.sha256 && a.gitBlob === b.gitBlob;
 function approved(selected) {requireValue(CORE_SUPPLY_PROFILES.includes(selected), 'approved named profile required');}
+
+const shopGoToolchain = deepFreeze({
+  profile: 'shop-single62-go1.26.11',
+  version: 'go1.26.11',
+  executable: {bytes: 14602880, sha256: '20e07ffb4f08faaf125e413db024b6e988d3ec2799dcb3568a720d14be0ad133'},
+  versionFile: {bytes: 36, sha256: '489cd0f7bd5ac954d65ee65cb20f23ddf906a4677b76ed4e9f5f204e35e0d7ba'},
+});
+
+export function selectCombinedGoToolchain(selected, role, shopGo) {
+  approved(selected);
+  if (role === undefined) {
+    requireValue(shopGo === undefined, 'explicit Shop Go toolchain is only accepted for Shop');
+    return {command: 'go', version: 'go1.26.10'};
+  }
+  requireValue(role === shopRole && selected === originalCore19, 'Shop Go toolchain requires original Core19 e120');
+  requireValue(typeof shopGo === 'string' && path.isAbsolute(shopGo) && path.resolve(shopGo) === shopGo &&
+    path.basename(shopGo) === 'go' && path.basename(path.dirname(shopGo)) === 'bin', 'absolute canonical Shop bin/go required');
+  return {...shopGoToolchain, command: shopGo, root: path.dirname(path.dirname(shopGo))};
+}
+
+export function verifyCombinedGoEnvironment(toolchain, goEnv, architecture) {
+  requireValue(goEnv?.GOVERSION === toolchain.version && goEnv.GOOS === 'darwin' && goEnv.GOARCH === architecture,
+    'original native Go toolchain/architecture required: ' + toolchain.version);
+  if (toolchain.root) requireValue(architecture === 'arm64' && goEnv.GOROOT === toolchain.root &&
+    goEnv.GOTOOLDIR === path.join(toolchain.root, 'pkg/tool/darwin_arm64') && goEnv.GOTOOLCHAIN === 'local',
+  'Shop Go must use its selected Darwin arm64 toolchain root without switching');
+}
 
 const core18 = CORE_SUPPLY_PROFILES.find(row => row.id === 'core18/48');
 const sourceV2Fields = Object.freeze(['domain UTF8', 'role UTF8', 'independently expected frame UTF8', 'network lowercase hex64 TEXT',

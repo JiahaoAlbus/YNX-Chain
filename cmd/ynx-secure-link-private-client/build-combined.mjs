@@ -5,7 +5,8 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult,
   verifyCoreCommandDependencyClosure, verifyPreparedCoreRecipe, verifyPreparedCoreNeutralSymbols,
-  verifyShopArchiveNeutralSymbols, preparedCoreInputFiles, preparedCoreSourceInventories} from './combined-supply-profile.mjs';
+  verifyShopArchiveNeutralSymbols, preparedCoreInputFiles, preparedCoreSourceInventories,
+  selectCombinedGoToolchain, verifyCombinedGoEnvironment} from './combined-supply-profile.mjs';
 import {loadShopLegacyArchiveInputs, verifyShopArchiveBase, verifyShopLegacyArchiveInputsUnchanged,
   shopRole, shopLinkTree, shopImportPath, shopImportFile, shopPackage, shopCgoNames,
   shopABIHeaderNames} from './shop-legacy-archive-inputs.mjs';
@@ -17,13 +18,14 @@ const packagePath = 'cmd/ynx-artifact-release-cabi';
 const options = new Map();
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
-  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--link-commit', '--macos-deployment-target', '--out', '--shop-handoff', '--shop-sha256'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, fixed LINK commit, explicit macOS target and a new output directory required');
+  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--link-commit', '--macos-deployment-target', '--out', '--shop-handoff', '--shop-sha256', '--shop-go-toolchain'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, fixed LINK commit, explicit macOS target and a new output directory required');
   options.set(key, value);
 }
 const hasShop = options.has('--shop-handoff');
-if (hasShop !== options.has('--shop-sha256') || options.size !== (hasShop ? 11 : 9) ||
+if (hasShop !== options.has('--shop-sha256') || hasShop !== options.has('--shop-go-toolchain') ||
+    options.size !== (hasShop ? 12 : 9) ||
     !/^[a-f0-9]{40}$/.test(options.get('--link-commit')??'') || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0')
-  throw Error('complete original build arguments, paired Shop inputs when selected, fixed LINK commit, explicit macOS 13.0 target and a native Darwin host required');
+  throw Error('complete original build arguments, paired Shop inputs and explicit Shop Go toolchain when selected, fixed LINK commit, explicit macOS 13.0 target and a native Darwin host required');
 const linkCommit = options.get('--link-commit');
 const deploymentTarget = options.get('--macos-deployment-target');
 const architecture = ({arm64: 'arm64', x64: 'amd64'})[process.arch];
@@ -41,6 +43,7 @@ const core = pinned(options.get('--core-handoff'), options.get('--core-sha256'))
 const auth = pinned(options.get('--auth-headers'), options.get('--auth-headers-sha256'));
 const undefinedInput = pinned(options.get('--native-undefined'), options.get('--native-undefined-sha256'));
 const supplyProfile = selectCoreSupplyProfile(core.value);
+const goToolchain = selectCombinedGoToolchain(supplyProfile, hasShop ? shopRole : undefined, options.get('--shop-go-toolchain'));
 const coreNormalization = normalizeCoreSupply(core.value);
 const coreSupply = coreNormalization.supply;
 const preparedBinding = supplyProfile.preparedComposition;
@@ -55,6 +58,17 @@ if (preparedBinding) for (const [key, expected] of Object.entries(preparedBindin
 }
 
 const profileVerifier = describe(path.join(directory, 'combined-supply-profile.mjs'));
+function readShopGoToolchain() {
+  function verify(file, expected, executable = false) {
+    if (fs.realpathSync(file) !== file || !fs.lstatSync(file).isFile()) throw Error('canonical regular Shop Go toolchain file required: ' + file);
+    if (executable) fs.accessSync(file, fs.constants.X_OK);
+    const actual = describe(file);
+    if (actual.bytes !== expected.bytes || actual.sha256 !== expected.sha256) throw Error('fixed Shop Go toolchain file required: ' + file);
+    return actual;
+  }
+  return {executable: verify(goToolchain.command, goToolchain.executable, true),
+    versionFile: verify(path.join(goToolchain.root, 'VERSION'), goToolchain.versionFile)};
+}
 if (auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
 const output = path.resolve(options.get('--out'));
@@ -219,16 +233,27 @@ try {
     CGO_CFLAGS: goQuote('-I' + include) + ' ' + targetFlags, CGO_CPPFLAGS: '', CGO_CXXFLAGS: '-O2 -g ' + targetFlags, CGO_LDFLAGS: '-O2 -g ' + targetFlags};
   if (supplyProfile.coreExports === 20 || shop) Object.assign(env, {GOTOOLCHAIN: 'local', GOPROXY: 'off', GOSUMDB: 'off',
     GONOPROXY: 'none', GOPRIVATE: '', GOVCS: '*:off'});
+  if (shop) {
+    Object.assign(env, {GOROOT: goToolchain.root, GOENV: 'off'});
+    toolchain.go = {profile: goToolchain.profile, sourceModuleMinimumGo: coreSupply.source.go,
+      expectedVersion: goToolchain.version, command: goToolchain.command, root: goToolchain.root,
+      before: readShopGoToolchain(), environment: null, after: null};
+  }
   buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOMEMLIMIT', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
   if (supplyProfile.coreExports === 20 || shop) for (const key of ['GOTOOLCHAIN', 'GOPROXY', 'GOSUMDB', 'GONOPROXY', 'GOPRIVATE', 'GOVCS']) buildEnvironment[key] = env[key];
-  const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
-  if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
+  if (shop) Object.assign(buildEnvironment, {GOROOT: env.GOROOT, GOENV: env.GOENV});
+  const goEnvKeys = ['GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS',
+    'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'];
+  if (shop) goEnvKeys.push('GOROOT', 'GOTOOLDIR', 'GOTOOLCHAIN');
+  const goEnv = JSON.parse(run(goToolchain.command, ['env', '-json', ...goEnvKeys], 'go-environment.json', source, env));
+  if (shop) toolchain.go.environment = {actual: goEnv, log: commands.at(-1).log};
+  verifyCombinedGoEnvironment(goToolchain, goEnv, architecture);
   const buildTags = 'securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport';
-  const packageOutput = run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
+  const packageOutput = run(goToolchain.command, ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
   coreCommandDependencyClosure = {...verifyCoreCommandDependencyClosure(supplyProfile, packageOutput, shop ? shopRole : undefined),
     originalOutput: describe(path.join(output, 'go-packages.json'))};
   archive = path.join(output, 'libynx_artifact_release.a');
-  run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=' + buildTags, '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
+  run(goToolchain.command, ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=' + buildTags, '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
   const generated = archive.replace(/\.a$/, '.h');
   if (!fs.existsSync(generated)) throw Error('original Core export generated header missing');
   copyHeader(path.basename(generated), fs.readFileSync(generated), 'generated', generated);
@@ -260,7 +285,10 @@ try {
     if (describe(row.path).sha256 !== row.sha256) throw Error('materialized source/header changed during build');
   }
   for (const dependency of [core, auth, undefinedInput, ...(preparedInputs ? Object.values(preparedInputs) : [])]) if (describe(dependency.descriptor.path).sha256 !== dependency.descriptor.sha256) throw Error('handoff changed during build');
-  if (shop) verifyShopLegacyArchiveInputsUnchanged(shop);
+  if (shop) {
+    verifyShopLegacyArchiveInputsUnchanged(shop);
+    toolchain.go.after = readShopGoToolchain();
+  }
   if (describe(profileVerifier.path).sha256 !== profileVerifier.sha256) throw Error('supply profile verifier changed during build');
 } catch (error) { failure = error; }
 const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBINED_CORE_LINK_ARCHIVE_VERIFIED_NOT_DEPLOYED',
@@ -283,7 +311,7 @@ const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBIN
   builder: describe(fileURLToPath(import.meta.url)), template: preparedBinding
     ? {...preparedBinding.template, commit: linkCommit, sourceReadMethod: 'ACTUAL_FIXED_GIT_BYTES'}
     : describe(path.join(directory, 'combined-entry.go.in')),
-  goBuildInvocations: commands.filter(row => row.command === 'go' && row.args[0] === 'build').length,
+  goBuildInvocations: commands.filter(row => row.command === goToolchain.command && row.args[0] === 'build').length,
   sameNormalNativeImageLinked: false, actualMacOS13RuntimeTested: false, RootAdmission: false, SourceAdmission: false, installed: false, deployed: false};
 if (deploymentResult) fs.writeFileSync(path.join(output, 'DEPLOYMENT-RESULT.json'), JSON.stringify(deploymentResult, null, 2) + '\n', {flag: 'wx'});
 const receiptFile = path.join(output, 'BUILD-RECEIPT.json');
