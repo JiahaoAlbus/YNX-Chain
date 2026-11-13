@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hosted Linux/Go1.26.10 real-compiler regressions; no YNX runtime is executed."""
+"""Hosted Linux real-compiler regressions; no YNX runtime is executed."""
 import hashlib
 import json
 import os
@@ -16,6 +16,8 @@ HELPER = Path(__file__).resolve().with_name('build-pq-offline-migration-tools.sh
 
 
 class OfflineMigrationToolsProducer(unittest.TestCase):
+    source_go = "1.26.10"
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix='ynx-offline-producer-')
         self.addCleanup(self.temporary.cleanup)
@@ -30,7 +32,7 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.git('init', '--quiet', '--template=')
         self.git('config', 'user.name', 'Synthetic public producer fixture')
         self.git('config', 'user.email', 'synthetic@example.invalid')
-        (self.repository / 'go.mod').write_text('module example.invalid/pq-offline-tools-fixture\n\ngo 1.26.10\n', encoding='ascii')
+        (self.repository / 'go.mod').write_text(f'module example.invalid/pq-offline-tools-fixture\n\ngo {self.source_go}\n', encoding='ascii')
         for name in ('ynx-chaind', 'ynx-consensus-package'):
             directory = self.repository / 'cmd' / name
             directory.mkdir(parents=True)

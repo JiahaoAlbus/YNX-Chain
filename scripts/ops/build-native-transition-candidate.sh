@@ -90,7 +90,7 @@ def source_observation():
 
 
 before = source_observation()
-require(command(['go', 'version']).strip() == b'go version go1.26.10 linux/amd64', 'normal pinned Linux Go1.26.10 required')
+require(command(['go', 'version']).strip() == b'go version go1.26.11 linux/amd64', 'normal pinned Linux Go1.26.11 required')
 output.mkdir(mode=0o700)
 binary = output / 'ynx-chaind'
 build = dict(commit=commit, release='ynx-chain-' + commit[:12],
@@ -99,7 +99,7 @@ flags = '-s -w -X main.buildCommit=' + build['commit'] + ' -X main.buildRelease=
 command(['go', 'build', '-p', '1', '-trimpath', '-buildvcs=true', '-ldflags', flags, '-o', str(binary), './cmd/ynx-chaind'], timeout=300)
 raw = command(['go', 'version', '-m', str(binary)]).decode('utf8', errors='strict')
 lines = raw.splitlines()
-require(lines and lines[0] == str(binary) + ': go1.26.10', 'actual native ELF Go version differs')
+require(lines and lines[0] == str(binary) + ': go1.26.11', 'actual native ELF Go version differs')
 settings, main_path = {}, None
 for line in lines[1:]:
     if line.startswith('\tbuild\t'):
@@ -149,7 +149,7 @@ after = source_observation()
 require(after == before, 'native original source changed during compilation or informational exit')
 record = dict(version='YNX-NATIVE-TRANSITION-CANDIDATE/v1', commit=commit, tree=tree,
               controllerCI=controller, platform='linux/amd64', sourceBefore=before, sourceAfter=after,
-              binaries={'ynx-chaind': dict(**pin(binary), goInfo=dict(goVersion='go1.26.10', path=main_path, settings=settings, raw=raw))},
+              binaries={'ynx-chaind': dict(**pin(binary), goInfo=dict(goVersion='go1.26.11', path=main_path, settings=settings, raw=raw))},
               buildIdentity=build, buildIdentityReadback=dict(bytes=len(identity), sha256=hashlib.sha256(identity).hexdigest(), raw=identity.decode('utf8')),
               informationalExitExecuted=True, runtimeStarted=False, publicDeployment=False, pqActivation=False,
               authorityGranted=False, deploymentReady=False,

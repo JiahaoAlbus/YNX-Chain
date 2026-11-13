@@ -7,7 +7,7 @@ evidence=${2:?fresh canonical private evidence directory required}
 mkdir -m 0700 "$evidence"
 cd "$source_root"
 export GOMAXPROCS=2 GOMEMLIMIT=1024MiB
-# The original CI owns exact Go 1.26.10/CGO/cache selection and job deadline.
+# The original CI owns exact source Go directive, CGO, cache selection and job deadline.
 export YNX_PQLAB_LIVE_SESSION_FIXTURE_ROOT="$evidence/private-fixture"
 timeout --signal=TERM --kill-after=5s 240s go test -mod=readonly -json -p 1 -count=1 -timeout=160s -run '^TestPQLab(LiveSession(OriginalProofAndHeldScope|LifecycleAndOriginalRefusal)|SenderPrepareOriginalWitnessAndCurrent|PublicOwnerPrepareBeforeCommands)$' ./internal/consensus > "$evidence/core.jsonl" 2> "$evidence/core.stderr.private"
 export YNX_PQ_LAB_LIVE_FIXTURE_ROOT="$evidence/private-fixture"

@@ -3999,7 +3999,7 @@ jobs:
         if: steps.scope.outputs.changed == 'true' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration' || github.ref == 'refs/heads/codex/ynx-pq-perf-source-20261108'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Install the pinned compiler runtime for retained-state fixtures
         if: steps.scope.outputs.changed == 'true'
@@ -4167,7 +4167,7 @@ jobs:
         if: steps.scope.outputs.changed == 'true'
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Reproduce stable current-height pending and export the actual historical anchor
         if: steps.scope.outputs.changed == 'true'

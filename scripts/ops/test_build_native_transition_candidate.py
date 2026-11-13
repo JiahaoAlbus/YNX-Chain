@@ -14,6 +14,7 @@ HELPER = Path(__file__).resolve().with_name('build-native-transition-candidate.s
 class NativeTransitionCandidate(unittest.TestCase):
     def setUp(self):
         self.fixture = original.OfflineMigrationToolsProducer()
+        self.fixture.source_go = "1.26.11"
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         self.program = self.fixture.repository / 'cmd/ynx-chaind/main.go'
