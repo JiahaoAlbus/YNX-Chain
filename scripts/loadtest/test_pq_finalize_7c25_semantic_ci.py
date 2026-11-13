@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 import shutil
 import stat
+import subprocess
 import tarfile
 import tempfile
 import types
@@ -21,7 +22,6 @@ from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-TOOLS_ROOT = ROOT
 spec = importlib.util.spec_from_file_location('finalize_semantic_controller', HERE / 'pq-finalize-7c25-semantic-ci.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
@@ -214,8 +214,23 @@ class FinalizeSemanticCIControls(unittest.TestCase):
             p.unlink()
             with self.assertRaises(RuntimeError): m.compare_outputs(root, PUBLIC)
 
+    def frozen_window_tools(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        directory = root / 'scripts/loadtest'
+        directory.mkdir(parents=True)
+        # This controller's source pin and its test are both about the
+        # original tools, independent of current performance branch changes.
+        for name in m.GUARD_PINS:
+            raw = subprocess.check_output(
+                ['git', '-C', str(ROOT), 'show', f'{m.TOOLS_COMMIT}:scripts/loadtest/{name}'],
+                timeout=15)
+            (directory / name).write_bytes(raw)
+        return root
+
     def test_original_window_caps_and_pid16_are_not_caller_selectable(self):
-        lab = m.original_window(TOOLS_ROOT)
+        lab = m.original_window(self.frozen_window_tools())
         self.assertEqual(lab.CAPS, m.CAPS)
         lab.admit(6 << 30, 16 << 30, [])
         for memory, disk, heavy in [((6 << 30)-1, 16 << 30, []), (6 << 30, (16 << 30)-1, []), (6 << 30, 16 << 30, [{'pid': 1}])]:
@@ -227,12 +242,12 @@ class FinalizeSemanticCIControls(unittest.TestCase):
         with self.assertRaises(RuntimeError): m.enforce_pid_budget(fake, types.SimpleNamespace(known={}))
 
     def test_guard_tamper_refused_before_import_or_host_effect(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp); directory = root / 'scripts/loadtest'; directory.mkdir(parents=True)
-            for name in m.GUARD_PINS:
-                shutil.copyfile(TOOLS_ROOT / 'scripts/loadtest' / name, directory / name)
-            p = directory / 'consensus-linux-cohort.py'; p.write_bytes(p.read_bytes() + b'\n')
-            with self.assertRaises(RuntimeError): m.original_window(root)
+        root = self.frozen_window_tools()
+        m.original_window(root)
+        p = root / 'scripts/loadtest/consensus-linux-cohort.py'
+        p.write_bytes(p.read_bytes() + b'\n')
+        with self.assertRaisesRegex(RuntimeError, 'original Window/guard pin differs'):
+            m.original_window(root)
 
     def test_source_archive_rejects_escape_links_duplicates_and_existing_output(self):
         for kind in ('escape', 'link', 'duplicate', 'extra'):
