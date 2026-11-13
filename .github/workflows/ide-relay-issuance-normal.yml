@@ -15,7 +15,7 @@ permissions:
 jobs:
   merged-relay-issuer-and-normal-package:
     # Only this supplier topic uses its dedicated integration/type/normal-pack job.
-    if: github.head_ref != 'codex/wallet-auth49-linux-device-source-v2-20261108' && github.head_ref != 'codex/wallet-auth49-android-source-only-20261108' && github.head_ref != 'codex/wallet-auth49-android-pending-source-20261108' && github.head_ref != 'codex/wallet-auth49-android-registration-client-20261108' && github.head_ref != 'codex/wallet-auth49-android-registration-response-binding-20261108'
+    if: github.head_ref != 'codex/wallet-auth49-linux-device-source-v2-20261108' && github.head_ref != 'codex/wallet-auth49-android-source-only-20261108' && github.head_ref != 'codex/wallet-auth49-android-pending-source-20261108' && github.head_ref != 'codex/wallet-auth49-android-registration-client-20261108' && github.head_ref != 'codex/wallet-auth49-android-registration-response-binding-20261108' && github.head_ref != 'codex/wallet-auth49-android-public-originals-private-20261108'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
