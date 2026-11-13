@@ -31,6 +31,16 @@ def commit(value):
 def paths(base, head):
     return [p for p in git('diff', '--no-renames', '--name-only', '-z', base, head).split(b'\0') if p]
 
+def p04_workflow_changed(base, head):
+    workflow = '.github/workflows/chain-core.yml'
+    # These two lines only select the existing step. Any other workflow edit
+    # may alter the runner, OpenSSL, Go, or the frozen package's invocation.
+    selection = (b'      p04_consumer: ${{ steps.paths.outputs.p04_consumer }}',
+                 b"        if: needs.link-scope.outputs.p04_consumer == 'true'")
+    def without_selection(revision):
+        return [line for line in git('show', revision + ':' + workflow).splitlines() if line not in selection]
+    return without_selection(base) != without_selection(head)
+
 def owned(p):
     return p == b'.github/workflows/chain-core.yml' or p.startswith((b'cmd/ynx-secure-link/', b'internal/securelink/', b'cmd/ynx-secure-link-caller/ide-finite-get-', b'cmd/ynx-secure-link-caller/ide_finite_get_', b'cmd/ynx-secure-link-caller/ai-mobile-v6-'))
 
@@ -61,6 +71,7 @@ if exclusive:
     if any(not owned(p) for p in paths(authorized, head)):
         raise SystemExit('outside authorized LINK closure; original CORE owner/gates required')
 
+changes = None
 if event == 'workflow_dispatch':
     changed = True
 elif event == 'pull_request':
@@ -73,12 +84,21 @@ elif event == 'push':
     if before == '0' * 40:
         changed = True
     else:
-        changes = paths(commit(before), head)
+        common = commit(before)
+        changes = paths(common, head)
         changed = any(owned(p) or native_dependency(p) or p in (b'go.mod', b'go.sum', b'scripts/verify/github-actions-pins-check.mjs') for p in changes)
 else:
     raise SystemExit('unsupported workflow event')
+# The frozen P04 package consumes its own pinned LINK copy. Changes to the
+# outer LINK listener do not change that package's inputs.
+p04_consumer = changes is None or any(p.startswith(b'cmd/ynx-secure-link/p04-') or p in (
+    b'cmd/ynx-secure-link-caller/build.mjs', b'scripts/verify/github-actions-pins-check.mjs',
+) for p in changes)
+if changes is not None and b'.github/workflows/chain-core.yml' in changes:
+    p04_consumer = p04_consumer or p04_workflow_changed(common, head)
 print('changed=' + str(changed).lower())
 print('exclusive_link=' + str(exclusive).lower())
+print('p04_consumer=' + str(p04_consumer).lower())
 PY
     ;;
   *) printf '%s\n' 'usage: sh cmd/ynx-secure-link/check.sh [stub|native|ci-scope]' >&2; exit 2 ;;

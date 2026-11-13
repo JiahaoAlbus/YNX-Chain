@@ -452,6 +452,7 @@ jobs:
     outputs:
       changed: ${{ steps.paths.outputs.changed }}
       exclusive_link: ${{ steps.paths.outputs.exclusive_link }}
+      p04_consumer: ${{ steps.paths.outputs.p04_consumer }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -623,6 +624,7 @@ jobs:
           YNX_LINK_SERVER_TLS_CI_EVIDENCE: ${{ runner.temp }}/securelink-evidence/server-tls
         run: node cmd/ynx-secure-link/server-tls-ci.mjs
       - name: Run the complete original Cloud finite GET consumer package with actual native TLS
+        if: needs.link-scope.outputs.p04_consumer == 'true'
         env:
           YNX_LINK_P04_CONSUMER_EVIDENCE: ${{ runner.temp }}/securelink-evidence/p04-consumer
         run: |

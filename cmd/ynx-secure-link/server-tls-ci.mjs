@@ -12,7 +12,8 @@ const repository = path.resolve(directory, '../..');
 const authDependencyDirectory = path.join(directory, 'server-tls-auth-deps');
 const moduleName = 'github.com/JiahaoAlbus/YNX-Chain';
 const tags = 'securelink_openssl,securelink_reviewed_server_tls,securelink_public_server_tls_test';
-export const SERVER_TLS_REQUIRED_TESTS = Object.freeze(['TestOriginalServerTLSOriginalFactoryEmptyRootCleanup', 'TestOriginalServerTLSPUBLICConsumerFixture']);
+export const SERVER_TLS_REQUIRED_TESTS = Object.freeze(['TestOriginalServerTLSOriginalFactoryEmptyRootCleanup',
+  'TestOriginalServerTLSPUBLICConsumerFixture', 'TestOriginalServerTLSOriginalRequestIdentity']);
 export const AUTH_SERVER_TLS_SNAPSHOT = Object.freeze([
   Object.freeze({path: 'internal/authservertls/lease.go', bytes: 16311, sha256: '119e448e87e16ef2690b7dbf4c37a6778ce88a4bba4e90fc89f7eef59ba7e7a2', gitBlob: 'c179ce4f8ab7929d775a6bef7b328e9c9f10ae55'}),
   Object.freeze({path: 'internal/authservertls/parent_darwin.go', bytes: 427, sha256: 'a04f8058d0e8068a0c0271b114d74481fd445e6b3ed80934295f7859a75eff26', gitBlob: 'a491f1aeb4e38a64f4537b11ef78352e51ae668c'}),
@@ -187,7 +188,7 @@ export function runServerTLSCI(env = process.env) {
     const go = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'CGO_ENABLED', 'GOCACHE', 'GOWORK', 'GOFLAGS'], 'go-environment', path.join(privateRoot, 'source'), testEnv, 30000).stdout);
     requireValue(go.GOVERSION === 'go1.26.10' && go.CGO_ENABLED === '1' && go.GOCACHE === cache && go.GOWORK === 'off' && go.GOFLAGS === '', 'original S3 Go1.26.10/cache/cgo context required');
     const result = run('go', ['test', '-mod=readonly', '-race', '-p', '1', '-count=1', '-timeout=90s', '-json', '-tags=' + tags,
-      '-run', '^TestOriginalServerTLS(OriginalFactoryEmptyRootCleanup|PUBLICConsumerFixture)$', './internal/securelink'], 'server-tls-tests', path.join(privateRoot, 'source'), testEnv, 150000);
+      '-run', '^(' + SERVER_TLS_REQUIRED_TESTS.join('|') + ')$', './internal/securelink'], 'server-tls-tests', path.join(privateRoot, 'source'), testEnv, 150000);
     qualification = qualifyServerTLSTestEvents(result.stdout, result.command.exit, result.command.signal, result.command.error);
     verifyCompositeUnchanged(composite); json('SOURCE-AFTER.json', {unchanged: true, compositeSHA256: composite.compositeSHA256, sources: composite.sources});
   } catch (error) {failure = error;}

@@ -16,11 +16,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink/native"
 )
 
-// ServerTLSIdentity is owned public DATA read from the actual listener's held
-// OpenSSL context. It is not a receiver registration, Source or Root capability.
-// Auth independently matches its reviewed receiver and SAME Source originals.
 var errOriginalServerTLSPending = errors.New("secure link: original server TLS physical drain pending")
 
+// ServerTLSIdentity is owned public DATA read from the actual listener's held
+// OpenSSL context. Auth independently matches its reviewed receiver and Source.
 type ServerTLSIdentity struct {
 	native.ServerIdentity
 	SourceID, InstanceID, IssuerRef, CredentialRef, TargetOrigin, ServerName string
@@ -265,7 +264,21 @@ func (o *OriginalServerTLS) Identity(ctx context.Context) (ServerTLSIdentity, er
 	s := o.state
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return ServerTLSIdentity{ServerIdentity: cloneServerTLSIdentity(s.identity), SourceID: s.profile.sourceID, InstanceID: s.profile.instanceID, IssuerRef: s.profile.issuerRef, CredentialRef: s.profile.credentialRef, TargetOrigin: s.profile.targetOrigin, ServerName: s.profile.serverName, CredentialEpoch: s.profile.credentialEpoch, CredentialUntil: s.profile.credentialUntil}, nil
+	return s.identityLocked(), nil
+}
+
+func (s *originalServerTLSState) identityLocked() ServerTLSIdentity {
+	return ServerTLSIdentity{
+		ServerIdentity:  cloneServerTLSIdentity(s.identity),
+		SourceID:        s.profile.sourceID,
+		InstanceID:      s.profile.instanceID,
+		IssuerRef:       s.profile.issuerRef,
+		CredentialRef:   s.profile.credentialRef,
+		TargetOrigin:    s.profile.targetOrigin,
+		ServerName:      s.profile.serverName,
+		CredentialEpoch: s.profile.credentialEpoch,
+		CredentialUntil: s.profile.credentialUntil,
+	}
 }
 
 type originalServerTLSConnKey struct{}
@@ -276,6 +289,7 @@ type originalServerTLSRequest struct {
 	ctx                       context.Context
 	conn                      *originalServerTLSConn
 	method, host, target, url string
+	active                    bool // guarded by state.mu
 }
 
 // CurrentOriginalRequest accepts only the exact request minted on this SAME
@@ -283,13 +297,80 @@ type originalServerTLSRequest struct {
 // requests cannot create it. This transports identity; Auth still owns every
 // independent receiver row, Source, DEVICE/session proof and business check.
 func (o *OriginalServerTLS) CurrentOriginalRequest(r *http.Request) error {
+	b, err := o.originalRequestBinding(r)
+	if err != nil {
+		return err
+	}
+	return o.currentOriginalRequest(b)
+}
+
+// OriginalRequestIdentity reads the held listener identity while its exact
+// native request is still in the handler. Auth can compare this observation
+// with its independently reviewed project, Cloud reference and receiver data.
+// Call outside Source and Store locks. A successful observation is valid at
+// the readback instant and cannot extend the original request's lifetime.
+func (o *OriginalServerTLS) OriginalRequestIdentity(r *http.Request) (ServerTLSIdentity, error) {
+	b, err := o.originalRequestBinding(r)
+	if err != nil {
+		return ServerTLSIdentity{}, err
+	}
+	s := b.state
+	s.mu.Lock()
+	if err = b.identityCurrentLocked(); err != nil {
+		s.mu.Unlock()
+		return ServerTLSIdentity{}, err
+	}
+	s.calls++
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.calls--
+		s.notifyLocked()
+		s.mu.Unlock()
+	}()
+	if err = o.currentOriginalRequest(b); err != nil {
+		return ServerTLSIdentity{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err = b.identityCurrentLocked(); err != nil {
+		return ServerTLSIdentity{}, err
+	}
+	b.conn.mu.Lock()
+	defer b.conn.mu.Unlock()
+	if b.conn.closed {
+		return ServerTLSIdentity{}, net.ErrClosed
+	}
+	if err := b.ctx.Err(); err != nil {
+		return ServerTLSIdentity{}, err
+	}
+	return s.identityLocked(), nil
+}
+
+func (b *originalServerTLSRequest) identityCurrentLocked() error {
+	s := b.state
+	if s.first != nil {
+		return s.first
+	}
+	_, held := s.connections[b.conn]
+	if s.retired || s.closed || s.closing || s.cleanupUnknown || !b.active || !held {
+		return ErrRevoked
+	}
+	return b.ctx.Err()
+}
+
+func (o *OriginalServerTLS) originalRequestBinding(r *http.Request) (*originalServerTLSRequest, error) {
 	if o == nil || o.state == nil || r == nil || r.URL == nil {
-		return ErrDenied
+		return nil, ErrDenied
 	}
 	b, ok := r.Context().Value(originalServerTLSRequestKey{}).(*originalServerTLSRequest)
 	if !ok || b == nil || b.state != o.state || b.request != r || r.Context() != b.ctx || r.Method != b.method || r.Host != b.host || r.RequestURI != b.target || r.URL.String() != b.url {
-		return ErrDenied
+		return nil, ErrDenied
 	}
+	return b, nil
+}
+
+func (o *OriginalServerTLS) currentOriginalRequest(b *originalServerTLSRequest) error {
 	if e := o.Current(b.ctx); e != nil {
 		return e
 	}
@@ -366,10 +447,16 @@ func (o *OriginalServerTLS) Serve(server *http.Server) error {
 			http.Error(w, "native listener unavailable", http.StatusServiceUnavailable)
 			return
 		}
+		b := &originalServerTLSRequest{state: s, conn: conn, method: r.Method, host: r.Host, target: r.RequestURI, url: r.URL.String(), active: true}
 		s.requests++
 		s.mu.Unlock()
-		defer func() { s.mu.Lock(); s.requests--; s.notifyLocked(); s.mu.Unlock() }()
-		b := &originalServerTLSRequest{state: s, conn: conn, method: r.Method, host: r.Host, target: r.RequestURI, url: r.URL.String()}
+		defer func() {
+			s.mu.Lock()
+			b.active = false
+			s.requests--
+			s.notifyLocked()
+			s.mu.Unlock()
+		}()
 		r = r.WithContext(context.WithValue(r.Context(), originalServerTLSRequestKey{}, b))
 		b.ctx = r.Context()
 		b.request = r

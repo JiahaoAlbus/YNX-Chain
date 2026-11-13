@@ -87,7 +87,7 @@ test('server TLS driver requires fresh owned disjoint evidence/private roots and
 
 test('server TLS driver requires actual normal empty-Root and PUBLIC consumer tests without skip zero-hit or opaque false green', () => {
   const qualified = qualifyServerTLSTestEvents(goEvents(), 0, null, null);
-  assert.equal(qualified.pass, 2); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.actualPUBLICConsumerFixture, true); assert.equal(qualified.RootAdmission, false);
+  assert.equal(qualified.pass, 3); assert.equal(qualified.actualAuthEmptyRootRefused, true); assert.equal(qualified.actualPUBLICConsumerFixture, true); assert.equal(qualified.RootAdmission, false);
   for (const [text, exit, signal, error] of [
     [goEvents().replace('"pass"', '"skip"'), 0, null, null], [goEvents(SERVER_TLS_REQUIRED_TESTS.slice(1)), 0, null, null],
     [goEvents([...SERVER_TLS_REQUIRED_TESTS, SERVER_TLS_REQUIRED_TESTS[0]]), 0, null, null], ['', 0, null, null],
