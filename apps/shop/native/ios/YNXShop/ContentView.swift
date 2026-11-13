@@ -175,38 +175,22 @@ private struct ShopRemoteProductImage:View {
     let height:CGFloat
     var compact=false
     @State private var retryGeneration=0
-    @State private var loadedImage:Image?
-    @State private var loadPhase="loading"
+    @State private var loadedImage:CGImage?
+    @State private var resultKey:String?
     private var requestKey:String{(url?.absoluteString ?? "missing")+":"+String(retryGeneration)}
     var body:some View{Group{
-        if let loadedImage{loadedImage.resizable().scaledToFit().accessibilityLabel(alt)}
+        if resultKey==requestKey,let loadedImage{Image(loadedImage,scale:1,label:Text(alt)).resizable().scaledToFit()}
         else if url==nil{state("shop_image_missing",symbol:"photo",loading:false,retry:false)}
-        else if loadPhase=="failed"{state("shop_image_failed",symbol:"exclamationmark.triangle",loading:false,retry:!compact)}
+        else if resultKey==requestKey{state("shop_image_failed",symbol:"exclamationmark.triangle",loading:false,retry:!compact)}
         else{state("shop_image_loading",symbol:"photo",loading:true,retry:false)}
     }.frame(maxWidth:.infinity).frame(height:height).background(ShopTheme.tertiary).clipped().task(id:requestKey){await loadOriginalImage()}}
     @MainActor private func loadOriginalImage()async {
-        loadedImage=nil
-        guard let url else{loadPhase="missing";return}
-        loadPhase="loading"
-        let configuration=URLSessionConfiguration.ephemeral
-        configuration.httpShouldSetCookies=false
-        let session=URLSession(configuration:configuration,delegate:ShopRedirectPolicy(),delegateQueue:nil)
-        defer{session.invalidateAndCancel()}
-        var request=URLRequest(url:url,cachePolicy:.reloadIgnoringLocalCacheData,timeoutInterval:15)
-        request.httpShouldHandleCookies=false
-        do{
-            let(data,response)=try await session.data(for:request)
-            guard !Task.isCancelled else{return}
-            guard let http=response as? HTTPURLResponse,(200..<300).contains(http.statusCode),response.url==url,!data.isEmpty,data.count<=16_777_216 else{loadPhase="failed";return}
-#if canImport(AppKit)
-            guard let native=NSImage(data:data) else{loadPhase="failed";return}
-            loadedImage=Image(nsImage:native)
-#elseif canImport(UIKit)
-            guard let native=UIImage(data:data) else{loadPhase="failed";return}
-            loadedImage=Image(uiImage:native)
-#endif
-            loadPhase="loaded"
-        }catch{if !Task.isCancelled{loadPhase="failed"}}
+        guard let url else{return}
+        let key=requestKey
+        let image=try? await ShopProductImageLoader.shared.image(at:url)
+        guard !Task.isCancelled else{return}
+        loadedImage=image
+        resultKey=key
     }
     private func state(_ title:LocalizedStringKey,symbol:String,loading:Bool,retry:Bool)->some View{VStack(spacing:8){
         if loading{ProgressView().controlSize(.small)}else{Image(systemName:symbol).foregroundStyle(ShopTheme.muted)}
