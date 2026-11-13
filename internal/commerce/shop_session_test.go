@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
@@ -12,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -533,5 +535,103 @@ func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) 
 	}
 	if a.closed.Load() != 1 || s.shopSessionDomain != nil {
 		t.Fatal("normal session domain lifecycle not released")
+	}
+}
+
+// Models the lifetime of the original Auth permission at the Store boundary.
+// The public fixture cannot commission Auth or make a V4 header authoritative.
+type shopSessionSellerReadVerifier struct{ verified *verifiedBusinessRequest }
+
+func (v shopSessionSellerReadVerifier) verifyOriginalShopSessionRead(_ *http.Request, role string) (*verifiedBusinessRequest, error) {
+	if role != v.verified.principal.Role {
+		return nil, ErrUnauthorized
+	}
+	return v.verified, nil
+}
+
+func TestShopSessionInventorySellerInvoiceReadBeforeClosingAuth(t *testing.T) {
+	for _, mode := range []string{"current", "revoke during close"} {
+		t.Run(mode, func(t *testing.T) {
+			s, _, order, expected := publicSourceInvoiceRecord(t)
+			realm, seller, ok := s.shopStoreNamespaceLocked(order.StoreID)
+			if !ok {
+				t.Fatal("missing seller tenant")
+			}
+			wallet, err := accountaddress.Encode(seller)
+			if err != nil {
+				t.Fatal(err)
+			}
+			original := &verifiedBusinessRequest{
+				shopSessionIssuer: &verifiedShopSessionIssuer{effectDigest("PUBLIC-seller-session")},
+				walletAccount:     wallet,
+				principal:         Principal{Account: seller, Role: "seller", SessionBinding: strings.Repeat("a", 43), ExpiresAt: time.Now().Add(10 * time.Minute).UTC()},
+				revalidate:        func(context.Context) error { return nil },
+				fence:             func() error { return nil },
+			}
+			ctx := context.WithValue(t.Context(), businessRequestContextKey{}, original)
+
+			renewed := *original
+			renewed.shopSessionIssuer = &verifiedShopSessionIssuer{effectDigest("PUBLIC-renewed-seller-session")}
+			renewed.principal.SessionBinding = strings.Repeat("b", 43)
+			renewed.principal.ExpiresAt = original.principal.ExpiresAt.Add(time.Minute)
+			renewed.shopSessionCaptureUntil = time.Now().Add(10 * time.Second)
+			current := context.WithValue(t.Context(), businessRequestContextKey{}, &renewed)
+			svc, a, client := configuredPublicInvoiceReadService(t, s, seller, order, "", func(a *publicInvoiceReadAuthority) {
+				a.p.realm, a.p.tenant = realm, seller
+				a.selected.realm, a.selected.tenant, a.selected.role = realm, seller, "seller"
+				renewed.fence = func() error {
+					if a.hold.closes.Load() != 0 {
+						return ErrUnauthorized
+					}
+					return nil
+				}
+				if mode == "revoke during close" {
+					a.hold.onClose = func() {
+						// Logout uses a separate proof for the same inventory row.
+						logout := renewed
+						logout.fence = original.fence
+						if err := s.RevokeOriginalShopSession(context.WithValue(t.Context(), businessRequestContextKey{}, &logout)); err != nil {
+							t.Error(err)
+						}
+					}
+				}
+				s.registerOriginalShopSessionVerifier(shopSessionSellerReadVerifier{&renewed})
+			})
+			domain := svc.sessionDomain
+			originalHold := observeCaptureShopSession(t, s, original, ctx)
+			if err := originalHold.CurrentOrder(ctx, "shop.order", order.ID); err != nil {
+				t.Fatal(err)
+			}
+
+			response, err := client.Call(t.Context(), "GET", OriginalShopInvoiceReadPath+order.ID, "", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if mode == "current" {
+				var returned NativeShopInvoiceRequestDATA
+				if response.StatusCode != http.StatusOK || json.Unmarshal(response.Body, &returned) != nil || !reflect.DeepEqual(returned, expected) {
+					t.Fatalf("renewed seller read returned %d, want original invoice DATA", response.StatusCode)
+				}
+			} else if response.StatusCode != http.StatusForbidden || bytes.Contains(response.Body, []byte(`"domainData"`)) {
+				t.Fatalf("closing permission after logout returned %d or exposed invoice DATA", response.StatusCode)
+			}
+			cold, err := Open(s.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			oldRow := cold.s.ShopSessions[sessionRecordID(domain, original.principal.SessionBinding)]
+			newRow := cold.s.ShopSessions[sessionRecordID(domain, renewed.principal.SessionBinding)]
+			if oldRow.Generation != 1 || oldRow.Revoked || newRow.Generation != 2 || newRow.Revoked != (mode == "revoke during close") || !newRow.ExpiresAt.Equal(renewed.principal.ExpiresAt) || a.hold.closes.Load() != 1 {
+				t.Fatal("read altered an original generation, extended a loan, or misreported revocation")
+			}
+			if newRow.Revoked {
+				cold.shopSessionDomain = domain
+				coldProof := renewed
+				coldProof.fence = original.fence
+				if err := cold.observeOriginalShopSession(current, &coldProof); !errors.Is(err, ErrUnauthorized) {
+					t.Fatal("cold reload resurrected the revoked renewed seller session", err)
+				}
+			}
+		})
 	}
 }

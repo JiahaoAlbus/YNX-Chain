@@ -35,6 +35,7 @@ type publicInvoiceReadHold struct {
 	closes  atomic.Int32
 	entered chan struct{}
 	release chan struct{}
+	onClose func()
 }
 
 func (a *publicInvoiceReadAuthority) current(ctx context.Context) error {
@@ -75,6 +76,9 @@ func (h *publicInvoiceReadHold) current(ctx context.Context) error {
 	return h.owner.current(ctx)
 }
 func (h *publicInvoiceReadHold) close() error {
+	if h.onClose != nil {
+		h.onClose()
+	}
 	if h.closes.Add(1) == 1 && h.owner.mode == "close-error" {
 		return errors.New("PUBLIC_SCOPE_CLOSE_FIRST_CAUSE")
 	}
@@ -100,6 +104,11 @@ func publicSourceInvoiceRecord(t *testing.T) (*Store, string, Order, NativeShopI
 	return s, buyer, o, request
 }
 func publicInvoiceReadService(t *testing.T, s *Store, buyer string, o Order, mode string) (*OriginalShopInvoiceReadService, *publicInvoiceReadAuthority, *securelink.LocalCallerClient) {
+	t.Helper()
+	return configuredPublicInvoiceReadService(t, s, buyer, o, mode, nil)
+}
+
+func configuredPublicInvoiceReadService(t *testing.T, s *Store, buyer string, o Order, mode string, configure func(*publicInvoiceReadAuthority)) (*OriginalShopInvoiceReadService, *publicInvoiceReadAuthority, *securelink.LocalCallerClient) {
 	t.Helper()
 	root := os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT")
 	if root == "" {
@@ -130,9 +139,19 @@ func publicInvoiceReadService(t *testing.T, s *Store, buyer string, o Order, mod
 		a.selected.actor = "PUBLIC-other-actor"
 	}
 	a.hold = &publicInvoiceReadHold{owner: a}
+	if configure != nil {
+		configure(a)
+	}
 	svc, err := prepareOriginalShopInvoiceReadService(t.Context(), a, func() (*Store, error) { return s, nil })
 	if err != nil {
 		t.Fatal(err)
+	}
+	if configure != nil {
+		svc.sessionDomain, err = s.bindOriginalShopSessionDomain(a, a.p)
+		if err != nil {
+			_ = svc.Close(t.Context())
+			t.Fatal(err)
+		}
 	}
 	done := make(chan error, 1)
 	go func() { done <- svc.Serve() }()

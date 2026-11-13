@@ -458,6 +458,12 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		deny(ErrInvalidState)
 		return
 	}
+	// Recheck Auth while its original permission still owns the V4 proof.
+	// Closing that permission retires the proof even on successful reads.
+	if session != nil && session.verified.current(r.Context()) != nil {
+		deny(errShopInvoiceReadDenied)
+		return
+	}
 	if err = closeHeld(); err != nil {
 		deny(err)
 		return
@@ -473,7 +479,7 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	// Keep the Session borrower alive through every Source/caller close/current
 	// await. A revoke during those awaits must still invalidate the response.
 	if session != nil {
-		if session.CurrentLocal() != nil || session.verified.current(r.Context()) != nil {
+		if session.CurrentLocal() != nil {
 			deny(errShopInvoiceReadDenied)
 			return
 		}
