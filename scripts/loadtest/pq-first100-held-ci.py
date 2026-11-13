@@ -44,6 +44,19 @@ def checkout(root, commit, tree=None):
         require(git(root, 'rev-parse', 'HEAD^{tree}') == tree, 'fixed checkout tree differs')
 
 
+def load_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_inputs(source, tools):
+    driver = load_module('held_first100_driver', tools / 'scripts/loadtest/pq-independent-load.py')
+    intake = load_module('held_first100_intake', source / 'scripts/loadtest/pq-source-artifact-intake.py')
+    return driver, intake
+
+
 def options(source, execute):
     return argparse.Namespace(
         source=str(source), commit=SOURCE, mode='online', rate=100, seconds=5,
@@ -132,11 +145,7 @@ def execute():
                                             timeout=10, text=True).strip() == GO,
             'fixed Go toolchain differs')
     ci = tools_ci(os.environ.get('GH_TOKEN'))
-    path = tools / 'scripts/loadtest/pq-independent-load.py'
-    spec = importlib.util.spec_from_file_location('held_first100_driver', path)
-    driver = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(driver)
-    intake = driver.module('held_first100_intake', str(source / 'scripts/loadtest/pq-source-artifact-intake.py'))
+    driver, intake = load_inputs(source, tools)
     original = driver.lab.Window
     calls = []
 

@@ -877,7 +877,23 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-first100-held-ci.py
             /scripts/loadtest/test_pq_first100_held_ci.py
-      - name: Verify the fixed plan and single original dispatch route
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 8e0e6b94254a2ae8c1508e1b55014b4d845b4dc2
+          path: source
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: e941a922dc865d33c1cb4851b4c7a789494ccd75
+          path: tools
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Verify the fixed plan, real cross-checkout imports and single original dispatch route
+        env:
+          YNX_HELD_CONTROLLER_INPUT_ROOT: ${{ github.workspace }}
         run: python3 -I -B scripts/loadtest/test_pq_first100_held_ci.py -v
 
   first100-held-public-owner:

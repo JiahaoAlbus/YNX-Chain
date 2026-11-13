@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import unittest
 
@@ -37,6 +38,13 @@ class HeldControllerTests(unittest.TestCase):
         self.assertIsNone(plan['runtimePlanSHA256'])
         self.assertEqual(plan['configurationSHA256'], hashlib.sha256(
             json.dumps(fixed, sort_keys=True, separators=(',', ':')).encode()).hexdigest())
+
+    @unittest.skipUnless(os.environ.get('YNX_HELD_CONTROLLER_INPUT_ROOT'), 'fixed checkouts required')
+    def test_actual_source_and_tools_import_across_checkouts(self):
+        root = Path(os.environ['YNX_HELD_CONTROLLER_INPUT_ROOT']).resolve(strict=True)
+        driver, intake = entry.load_inputs(root / 'source', root / 'tools')
+        self.assertEqual(driver.validate_options(entry.options(root / 'source', False)), 500)
+        self.assertEqual(intake.nonoverlapping_roots([root, root / 'source', root / 'tools']), [root])
 
     def test_host_rejects_reruns_and_different_routes(self):
         env = dict(GITHUB_ACTIONS='true', RUNNER_ENVIRONMENT='github-hosted',
