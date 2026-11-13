@@ -101,6 +101,9 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace 'com.ynxweb4.wallet'
+    buildFeatures {
+        aidl true
+    }
     defaultConfig {
         applicationId 'com.ynxweb4.wallet'
         minSdkVersion rootProject.ext.minSdkVersion
