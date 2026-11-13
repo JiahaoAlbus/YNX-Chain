@@ -249,6 +249,7 @@ test('protected Shop order resolves its original intent by GET before reviews an
   'order-terms-review':{},
   'order-pay-review':{},
   'order-refund-review':{refundId:'refund-original',amountAtoms:'30'},
+  'order-broadcast-review':{kind:'invoice_settle',originalHash:'0x'+'8'.repeat(64)},
   'order-reconcile-operation':{nativeHash:'0x'+'6'.repeat(64)}
  };
  for(const [action,extra] of Object.entries(actions)){
@@ -261,7 +262,7 @@ test('protected Shop order resolves its original intent by GET before reviews an
    const result=await f.entry.invokeOriginalOrderResult({action,...ref,...extra},intentId,()=>{});
    assert.equal(result.ok,false);
    assert.equal(result.reference.intentId,undefined);
-   assert.deepEqual(result.recoveryActions,[{action:'lookup-intent',...ref}]);
+   assert.deepEqual(result.recoveryActions,[]);
    assert.equal(result.walletRequest,undefined);
    assert.equal(main.touched(),0);
    assert.deepEqual(f.calls,[{sourceRead:ref},{method:'GET',path:`/v5/pay/invoice-intents/${intentId}`,body:undefined}]);
@@ -331,4 +332,18 @@ test('Wallet Main protected startup refuses a foreign intent after one GET and d
   assert.deepEqual(calls, [{method: 'GET', path: `/v5/pay/invoice-intents/${intentId}`, body: undefined}]);
   assert.deepEqual(lifecycle, ['retire', 'join', 'close']);
   await entry.shutdown();
+});
+
+test('a protected review on an UNKNOWN bill offers only the bound intent GET',async()=>{
+ for(const [action,extra] of [['order-pay-review',{}],['order-refund-review',{refundId:'refund-original',amountAtoms:'30'}]]){
+  for(const status of [{status:'unknown'},{refundStatus:'unknown'}]){
+   const m=noSigningMain(),f=boot({main:m.main,read:()=>({...bill(),...status})});
+   const result=await f.entry.invokeOriginalOrderResult({action,...ref,...extra},intentId,()=>{});
+   assert.equal(result.code,'NATIVE_PAY_ORIGINAL_RECONCILE_REQUIRED');
+   assert.equal(result.canRetry,false);
+   assert.deepEqual(result.recoveryActions,[{action:'intent',intentId}]);
+   assert.equal(m.touched(),0);
+   assert.deepEqual(f.calls.slice(1).map(call=>call.method),['GET','GET']);
+  }
+ }
 });

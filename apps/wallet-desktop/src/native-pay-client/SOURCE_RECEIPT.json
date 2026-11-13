@@ -1,9 +1,9 @@
 {
   "owner": "P06 original; P01 exact whole9 consumer projection",
-  "sourceCommit": "e564b41e11cba1917652fa92fceb4f68e07db985",
-  "handoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P06/protected-original-order-20261113/normal-source-r1/HANDOFF.json",
-  "handoffBytes": 5143,
-  "handoffSha256": "a60606e226e2f8c6df679e0185ee48b931c11ba716ba2b1044861971ce525ec2",
+  "sourceCommit": "9a94a7c7973d174946c4d1eecbd2ae507d0eafc6",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/protected-approval-binding-20261113/normal-source-r1/HANDOFF.json",
+  "handoffBytes": 5815,
+  "handoffSha256": "6a60ddfafb5b0ce6d1348e8339fcb711d0b711cb363779e64d4744e535f22611",
   "productionModules": 9,
   "productionDocumentsPreservedFromR5": true,
   "files": [
@@ -19,13 +19,13 @@
     },
     {
       "path": "pay-business-client.mjs",
-      "bytes": 30714,
-      "sha256": "ebc62b9bdabb50cbfe556b6624a766503e9f1d9fc67fb20f825733d70d56b1b9"
+      "bytes": 31570,
+      "sha256": "2ce6acafd1555c99c68d27c91e2a11c42c34d015be152eee8ee4c5fb7e4da55a"
     },
     {
       "path": "merchant-invoice-approval.mjs",
-      "bytes": 24728,
-      "sha256": "9b659b49b50715aedd3634afec791984c94824922d799a436d0d35192b929bea"
+      "bytes": 26034,
+      "sha256": "b034a83dcd5f69141bf987234727bab97bfe10e83eb6d191b35090d87281edab"
     },
     {
       "path": "invoice-product-intent.mjs",
@@ -39,8 +39,8 @@
     },
     {
       "path": "main-entry.mjs",
-      "bytes": 13083,
-      "sha256": "6d3a79398626777553a1b7118b99566a451ddd598096dca87ea4a914a4b7f549"
+      "bytes": 13166,
+      "sha256": "b9d40a5f80880db176e1f92942b680e89853ca4dfb6de33fe645cfe5ae71023c"
     },
     {
       "path": "desktop-entry.mjs",
