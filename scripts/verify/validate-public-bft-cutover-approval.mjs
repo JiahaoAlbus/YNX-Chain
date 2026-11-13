@@ -16,7 +16,8 @@ const expectedCommit = String(process.argv[3] || "");
 const expectedRelease = String(process.argv[4] || "");
 const custodyReviewPath = String(process.argv[5] || "");
 const preparation = process.argv[6] === "--prepare-native";
-if (process.argv.length !== (preparation ? 7 : 6)) fail("unexpected approval mode/arguments");
+const snapshot = process.argv[6] === "--export-native";
+if (process.argv.length !== (preparation || snapshot ? 7 : 6)) fail("unexpected approval mode/arguments");
 if (!approvalPath || !expectedCommit || !expectedRelease || !custodyReviewPath) fail("approval path, commit, release, and custody review path are required");
 if (!/^[0-9a-f]{12}$/.test(expectedCommit)) fail("expected commit must be 12 lowercase hexadecimal characters");
 if (expectedRelease !== "ynx-bft-gateway-" + expectedCommit) fail("expected release is not bound to the expected commit");
@@ -35,9 +36,10 @@ try {
 if (approval.custodyProfile === "single-app-same-owner-inplace/v1") {
   const {validateSameOwnerApproval, readSameOwnerJSON} = await import("./lib/public-bft-same-owner.mjs");
   approval = readSameOwnerJSON(approvalPath);
-  process.stdout.write(JSON.stringify(validateSameOwnerApproval(approval, custodyReviewPath, expectedCommit, expectedRelease, preparation)) + "\n");
+  process.stdout.write(JSON.stringify(validateSameOwnerApproval(approval, custodyReviewPath, expectedCommit, expectedRelease, preparation, {snapshot})) + "\n");
   process.exit(0);
 }
+if (snapshot) fail("snapshot-only export requires the original same-owner custody profile");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true) {
   fail("schema, action, or approved flag is invalid");
 }

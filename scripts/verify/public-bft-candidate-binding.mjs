@@ -122,6 +122,47 @@ const rawArgs = process.argv.slice(2);
 const operatorVersion = "YNX-PRODUCTION-OPERATOR/v1";
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 const hash = (value) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value) && value !== "0".repeat(64);
+
+if (rawArgs[0] === "--frozen-snapshot") {
+  if (rawArgs.length !== 5) fail("frozen snapshot requires the original transaction, migration, release, and approval");
+  const [, root, migration, fullCommit, selectedApproval] = rawArgs;
+  const {readSameOwnerOriginal, readSameOwnerJSON, validateSameOwnerProjection} = await import("./lib/public-bft-same-owner.mjs");
+  const info = fs.lstatSync(root);
+  if (!path.isAbsolute(root) || fs.realpathSync(root) !== root || !info.isDirectory() || (info.mode & 0o777) !== 0o700 || info.uid !== process.geteuid()) fail("original private transaction required");
+  if (!/^[0-9a-f]{40}$/.test(fullCommit) || /^0{40}$/.test(fullCommit)) fail("exact original full commit required");
+  const commit = fullCommit.slice(0, 12), release = `ynx-bft-gateway-${commit}`, tx = path.basename(root);
+  const snapshotPath = path.join(root, "snapshot-approval.json");
+  const snapshot = validateSameOwnerProjection(readSameOwnerJSON(snapshotPath), commit, release, false, {snapshot:true});
+  if (snapshot.transactionId !== tx || snapshot.sameOwnerEvidence.sourceCommit !== fullCommit) fail("snapshot approval differs from the retained transaction and exact source");
+  if (selectedApproval !== snapshotPath) {
+    if (selectedApproval !== path.join(root, "approval.json")) fail("unexpected final approval selection");
+    const final = validateSameOwnerProjection(readSameOwnerJSON(selectedApproval), commit, release);
+    const {snapshotOnly, ...snapshotFields} = snapshot;
+    const {operatorPlanSha256, candidateGenesisTime, caddySource, ...finalFields} = final;
+    if (JSON.stringify(canonicalProjection(snapshotFields)) !== JSON.stringify(canonicalProjection(finalFields))) fail("final approval changes the original frozen source or scope");
+  }
+  const read = (name, expected) => readSameOwnerOriginal(path.join(root, name), expected, 1 << 20);
+  const terminal = read("final-snapshot/remote-evidence.json");
+  const evidence = JSON.parse(terminal.raw);
+  const source = JSON.parse(read("snapshot-source-capture/snapshot-source.json", snapshot.snapshotSourceSha256).raw);
+  const receipt = readSameOwnerJSON(path.join(root, "snapshot-export-attempt/result.json"));
+  const receiptKeys = ["version","transactionId","commit","bftRelease","status","preparationApprovalSHA256","snapshotApprovalOriginalSHA256","snapshotApprovalSHA256","snapshotSourceSHA256","exporterManifestSHA256","remoteEvidenceSHA256","journalSHA256","automaticRetry"];
+  if (Object.keys(receipt).sort().join() !== receiptKeys.sort().join() || receipt.version !== "YNX-NATIVE-SNAPSHOT-EXPORTED/v1" || receipt.transactionId !== tx || receipt.commit !== commit || receipt.bftRelease !== release || receipt.status !== "awaiting_final_plan_authorization" || receipt.automaticRetry !== false || receipt.snapshotSourceSHA256 !== snapshot.snapshotSourceSha256 || receipt.exporterManifestSHA256 !== snapshot.exporterManifestSha256 || !hash(receipt.journalSHA256) || receipt.remoteEvidenceSHA256 !== terminal.sha256) fail("original successful snapshot-only terminal receipt required");
+  read("preparation-approval.json", receipt.preparationApprovalSHA256);
+  read("snapshot-approval.original.json", receipt.snapshotApprovalOriginalSHA256);
+  read("snapshot-approval.json", receipt.snapshotApprovalSHA256);
+  read("journal.jsonl", receipt.journalSHA256);
+  const output = read("roles/primary-export-final-snapshot.txt").raw.toString("utf8");
+  const shaLines = [...output.matchAll(/^sha256=([0-9a-f]{64})$/gm)];
+  if (shaLines.length !== 1 || shaLines[0][1] !== evidence.sha256 || !hash(evidence.stateHash) || evidence.transactionId !== tx || evidence.commit !== commit || evidence.bftRelease !== release || evidence.authoritativeRelease !== snapshot.authoritativeRelease || evidence.exporterCommit !== fullCommit || evidence.snapshotSourceSha256 !== snapshot.snapshotSourceSha256 || evidence.exporterManifestSha256 !== snapshot.exporterManifestSha256 || !Number.isSafeInteger(evidence.height) || evidence.height < 1 || String(evidence.height) !== source.height || evidence.lastBlockHash !== source.blockHash || !["validated","sourceUnchanged","pauseVerified","mutationFreezeVerified"].every(name => evidence[name] === true) || !["reused","runtimeStarted","deployment"].every(name => evidence[name] === false)) fail("frozen migration terminal differs from the original approved capture");
+  if (JSON.stringify(canonicalProjection(authoritativeIdentity(evidence))) !== JSON.stringify(canonicalProjection(authoritativeIdentity(snapshot)))) fail("frozen migration changed the approved original native identity");
+  const dataRoot = process.env.PUBLIC_BFT_LINUX_TOOL_ROLE ? JSON.parse(read("linux-public-data-root.json").raw).dataRoot : root;
+  requireRestrictedFile(migration, "frozen migration");
+  if (!path.isAbsolute(dataRoot) || path.basename(dataRoot) !== tx || migration !== path.join(dataRoot, "final-snapshot/migration.json") || hashOriginalFile(migration, 1 << 30, true).sha256 !== evidence.sha256) fail("frozen migration differs from the exact original export bytes");
+  read("final-snapshot/remote-evidence.json", terminal.sha256);
+  process.stdout.write(`${snapshot.validatorManifestSha256}\n`);
+  process.exit(0);
+}
 const gatewayMode = "single-app-gateway";
 const gatewayContinuityVersion = "YNX-SINGLE-APP-GATEWAY-CONTINUITY/v1";
 if (rawArgs[0] === "--migration-public-summary") {

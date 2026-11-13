@@ -89,6 +89,16 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		})
 		return value
 	}
+	flags.BoolFunc("derive-bootstrap", "derive public Genesis DATA only; no package, plan approval or activation", func(value string) error {
+		if supplied["derive-bootstrap"] {
+			return errors.New("duplicate -derive-bootstrap")
+		}
+		supplied["derive-bootstrap"] = true
+		if value != "true" {
+			return errors.New("-derive-bootstrap must be true when supplied")
+		}
+		return nil
+	})
 	verifyPackage := stringFlag("verify-package", "verify an existing production candidate package and exit")
 	verifyMigration := stringFlag("verify-migration-state", "verify one unbound YNX migration state and exit")
 	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
@@ -118,6 +128,20 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	}
 	if flags.NArg() != 0 {
 		return errors.New("unexpected positional arguments")
+	}
+	if supplied["derive-bootstrap"] {
+		allowed := map[string]bool{"derive-bootstrap": true, "migration-state": true, "validator-manifest": true, "genesis-time": true}
+		for name := range supplied {
+			if !allowed[name] {
+				return fmt.Errorf("-%s cannot be combined with -derive-bootstrap", name)
+			}
+		}
+		for _, name := range []string{"migration-state", "validator-manifest", "genesis-time"} {
+			if !supplied[name] {
+				return fmt.Errorf("-derive-bootstrap requires -%s", name)
+			}
+		}
+		return runBootstrapDerivation(*migrationPath, *validatorManifestPath, *genesisTime, stdout)
 	}
 	initialFlags := []string{"prepare-pq-initial-genesis", "genesis-sha256", "migration-file-sha256", "initial-accounts", "initial-accounts-sha256", "initial-genesis-output"}
 	initialMode := false
@@ -300,16 +324,9 @@ func runGeneration(migrationPath, validatorManifestPath, genesisTimeValue, outpu
 	if err != nil {
 		return err
 	}
-	manifestPayload, err := os.ReadFile(validatorManifestPath)
+	validatorManifest, err := readProductionValidatorManifest(validatorManifestPath)
 	if err != nil {
-		return fmt.Errorf("read validator manifest: %w", err)
-	}
-	if strings.Contains(strings.ToLower(string(manifestPayload)), "priv_key") || strings.Contains(strings.ToLower(string(manifestPayload)), "privatekey") || strings.Contains(strings.ToLower(string(manifestPayload)), "mnemonic") {
-		return errors.New("validator manifest must contain public metadata only")
-	}
-	var validatorManifest consensus.ProductionValidatorManifest
-	if err := json.Unmarshal(manifestPayload, &validatorManifest); err != nil {
-		return fmt.Errorf("decode validator manifest: %w", err)
+		return err
 	}
 	parsedGenesisTime, err := time.Parse(time.RFC3339, genesisTimeValue)
 	if err != nil {
@@ -328,4 +345,46 @@ func runGeneration(migrationPath, validatorManifestPath, genesisTimeValue, outpu
 	}
 	_, err = fmt.Fprintf(stdout, "production BFT candidate package ready: chain=%s roles=%d genesisHash=%s migrationStateHash=%s output=%s mode=%s source=%s operatorPlanHash=%s runtimeStarted=false deployment=not-performed pqActivation=not-performed\n", result.ChainID, len(result.Roles), result.GenesisHash, result.MigrationStateHash, output, mode, source, planHash)
 	return err
+}
+
+func readProductionValidatorManifest(validatorManifestPath string) (consensus.ProductionValidatorManifest, error) {
+	manifestPayload, err := os.ReadFile(validatorManifestPath)
+	if err != nil {
+		return consensus.ProductionValidatorManifest{}, fmt.Errorf("read validator manifest: %w", err)
+	}
+	if strings.Contains(strings.ToLower(string(manifestPayload)), "priv_key") || strings.Contains(strings.ToLower(string(manifestPayload)), "privatekey") || strings.Contains(strings.ToLower(string(manifestPayload)), "mnemonic") {
+		return consensus.ProductionValidatorManifest{}, errors.New("validator manifest must contain public metadata only")
+	}
+	var validatorManifest consensus.ProductionValidatorManifest
+	if err := json.Unmarshal(manifestPayload, &validatorManifest); err != nil {
+		return consensus.ProductionValidatorManifest{}, fmt.Errorf("decode validator manifest: %w", err)
+	}
+	return validatorManifest, nil
+}
+
+func runBootstrapDerivation(migrationPath, validatorManifestPath, genesisTimeValue string, stdout io.Writer) error {
+	if strings.TrimSpace(migrationPath) == "" || strings.TrimSpace(validatorManifestPath) == "" {
+		return errors.New("bootstrap derivation requires original migration and validator manifest paths")
+	}
+	when, err := time.Parse(time.RFC3339, genesisTimeValue)
+	if err != nil || when.IsZero() || when.Nanosecond() != 0 || when.UTC().Format(time.RFC3339) != genesisTimeValue {
+		return errors.New("bootstrap derivation requires canonical whole-second UTC genesis time")
+	}
+	// The complete original migration validator and FD identity guard remain
+	// held until all binding, Genesis encoding and output construction finish.
+	encoded, err := withVerifiedMigrationInput(migrationPath, func(migration chain.ConsensusMigrationState, _, _ string) ([]byte, error) {
+		manifest, err := readProductionValidatorManifest(validatorManifestPath)
+		if err != nil {
+			return nil, err
+		}
+		result, err := consensus.DeriveProductionBootstrap(migration, manifest, when.UTC())
+		if err != nil {
+			return nil, err
+		}
+		return json.Marshal(result)
+	})
+	if err != nil {
+		return err
+	}
+	return writeMigrationCheckOutput(stdout, encoded)
 }

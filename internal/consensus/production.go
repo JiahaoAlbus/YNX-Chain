@@ -180,6 +180,60 @@ func (m ProductionValidatorManifest) Validate(migration chain.ConsensusMigration
 	return err
 }
 
+// ProductionBootstrapDerivation is public DATA for preparing an independently
+// approved operator plan. It grants no registration, custody or activation.
+type ProductionBootstrapDerivation struct {
+	Version                 string `json:"version"`
+	OriginalGenesisHash     string `json:"originalGenesisHash"`
+	BoundMigrationStateHash string `json:"boundMigrationStateHash"`
+	ConsensusGenesisSHA256  string `json:"consensusGenesisSHA256"`
+	ConsensusGenesis        string `json:"consensusGenesis"`
+	GenesisTime             string `json:"genesisTime"`
+}
+
+// DeriveProductionBootstrap uses the complete normal manifest/migration and
+// key-binding validators, without creating a package or writing any file.
+func DeriveProductionBootstrap(migration chain.ConsensusMigrationState, validatorManifest ProductionValidatorManifest, genesisTime time.Time) (ProductionBootstrapDerivation, error) {
+	if err := validatorManifest.Validate(migration); err != nil {
+		return ProductionBootstrapDerivation{}, err
+	}
+	if genesisTime.IsZero() || genesisTime.Location() != time.UTC || genesisTime.Nanosecond() != 0 {
+		return ProductionBootstrapDerivation{}, errors.New("production genesis time must be an explicit whole-second UTC timestamp")
+	}
+	bound, err := bindProductionValidatorKeys(migration, validatorManifest)
+	if err != nil {
+		return ProductionBootstrapDerivation{}, err
+	}
+	genesis, err := BuildCometGenesis(bound, genesisTime)
+	if err != nil {
+		return ProductionBootstrapDerivation{}, err
+	}
+	// This is precisely GenesisDoc.SaveAs's existing Comet JSON encoder,
+	// including indentation and no trailing LF. No alternative codec is used.
+	raw, err := cmtjson.MarshalIndent(genesis, "", "  ")
+	if err != nil {
+		return ProductionBootstrapDerivation{}, err
+	}
+	if len(raw) == 0 || len(raw) > MaxCometGenesisBytes {
+		return ProductionBootstrapDerivation{}, errors.New("genesis exceeds the existing input bound")
+	}
+	digest := sha256.Sum256(raw)
+	return ProductionBootstrapDerivation{
+		Version:             "YNX-PUBLIC-BFT-BOOTSTRAP-DERIVATION/v1",
+		OriginalGenesisHash: migration.OriginalGenesisHash, BoundMigrationStateHash: bound.StateHash,
+		ConsensusGenesisSHA256: hex.EncodeToString(digest[:]), ConsensusGenesis: base64.StdEncoding.EncodeToString(raw),
+		GenesisTime: genesisTime.Format(time.RFC3339),
+	}, nil
+}
+
+func bindProductionValidatorKeys(migration chain.ConsensusMigrationState, validatorManifest ProductionValidatorManifest) (chain.ConsensusMigrationState, error) {
+	bindings := make([]chain.ConsensusValidatorKeyBinding, 0, len(validatorManifest.Validators))
+	for _, node := range validatorManifest.Validators {
+		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: node.ValidatorAddress, KeyType: node.ConsensusKeyType, PublicKey: node.ConsensusPubKey, ConsensusAddress: node.ConsensusAddress})
+	}
+	return migration.BindConsensusValidatorKeys(bindings)
+}
+
 func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState, validatorManifest ProductionValidatorManifest, output string, genesisTime time.Time) (manifest ProductionCandidatePackageManifest, err error) {
 	return generateProductionCandidatePackage(migration, validatorManifest, output, genesisTime, nil, "")
 }
@@ -214,11 +268,7 @@ func generateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		}
 	}()
 
-	bindings := make([]chain.ConsensusValidatorKeyBinding, 0, len(validatorManifest.Validators))
-	for _, node := range validatorManifest.Validators {
-		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: node.ValidatorAddress, KeyType: node.ConsensusKeyType, PublicKey: node.ConsensusPubKey, ConsensusAddress: node.ConsensusAddress})
-	}
-	boundMigration, err := migration.BindConsensusValidatorKeys(bindings)
+	boundMigration, err := bindProductionValidatorKeys(migration, validatorManifest)
 	if err != nil {
 		return manifest, err
 	}

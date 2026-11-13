@@ -140,6 +140,62 @@ const finalRef=write('final-plan.json',finalPlan);
 const fullApproval={...rawApproval,operatorPlanSha256:finalRef.sha256,snapshotSourceSha256:'f'.repeat(64),candidateGenesisTime:utc(now)};delete fullApproval.preparationOnly;
 write('final-approval.json',fullApproval);
 const finalProjection=accepted(call('scripts/verify/validate-public-bft-cutover-approval.mjs',[path.join(root,'final-approval.json'),commit,release,reviewPath]));
+const frozenRoot=path.join(evidence,tx), frozenSourceDir=path.join(frozenRoot,'snapshot-source-capture');
+fs.mkdirSync(frozenSourceDir,{mode:0o700});
+const frozenWrite=(relative,body)=>{
+ const bytes=Buffer.isBuffer(body)?body:Buffer.from(JSON.stringify(body)+'\n');
+ fs.writeFileSync(path.join(frozenRoot,relative),bytes,{mode:0o600});return hash(bytes);
+};
+const capture={version:'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE/v1',transactionId:tx,commit,bftRelease:release,height:'100',blockHash:'a'.repeat(64)};
+const capturePin=frozenWrite('snapshot-source-capture/snapshot-source.json',capture);
+const snapshotApproval={...rawApproval,snapshotOnly:true,snapshotSourceSha256:capturePin};delete snapshotApproval.preparationOnly;
+const snapshotRawPin=frozenWrite('snapshot-approval.original.json',snapshotApproval);
+const snapshotPath=path.join(frozenRoot,'snapshot-approval.original.json'),snapshotProjectionPath=path.join(frozenRoot,'snapshot-approval.json');
+const snapshotProjection=accepted(call('scripts/verify/validate-public-bft-cutover-approval.mjs',[snapshotPath,commit,release,reviewPath,'--export-native']));
+const snapshotPin=frozenWrite('snapshot-approval.json',snapshotProjection);
+assert.equal(bindSameOwnerRelease(snapshotPath,reviewPath,full,officialRef,'export-native').approval.snapshotSourceSha256,capturePin);
+accepted(call('scripts/verify/validate-public-bft-cutover-approval-evidence.mjs',[snapshotProjectionPath,commit,release,'--export-native']));
+for (const mode of [[],['--prepare-native']]) {
+ const rejected=call('scripts/verify/validate-public-bft-cutover-approval.mjs',[snapshotPath,commit,release,reviewPath,...mode]);
+ assert.notEqual(rejected.status,0);assert.equal(rejected.stdout,'');assertions++;
+}
+for(const [name,change] of [
+ ['future-plan',a=>{a.operatorPlanSha256=finalRef.sha256}],
+ ['future-time',a=>{a.candidateGenesisTime=utc(now)}],
+ ['not-snapshot-only',a=>{a.snapshotOnly=false}],
+ ['missing-source',a=>{delete a.snapshotSourceSha256}],
+ ['zero-source',a=>{a.snapshotSourceSha256='0'.repeat(64)}],
+]) {
+ const a=clone(snapshotApproval);change(a);
+ refused(()=>validateSameOwnerApproval(a,reviewPath,commit,release,false,{snapshot:true}),name);
+}
+fs.mkdirSync(path.join(frozenRoot,'final-snapshot'),{mode:0o700});
+fs.mkdirSync(path.join(frozenRoot,'roles'),{mode:0o700});
+fs.mkdirSync(path.join(frozenRoot,'snapshot-export-attempt'),{mode:0o700});
+const migrationPath=path.join(frozenRoot,'final-snapshot/migration.json'),migrationBytes=Buffer.from('PUBLIC original migration bytes\n');
+const migrationPin=frozenWrite('final-snapshot/migration.json',migrationBytes);
+const terminal={...native,transactionId:tx,commit,bftRelease:release,height:100,lastBlockHash:capture.blockHash,stateHash:'b'.repeat(64),sha256:migrationPin,snapshotSourceSha256:capturePin,exporterManifestSha256:snapshotApproval.exporterManifestSha256,exporterCommit:full,validated:true,sourceUnchanged:true,pauseVerified:true,mutationFreezeVerified:true,reused:false,runtimeStarted:false,deployment:false};
+const terminalPin=frozenWrite('final-snapshot/remote-evidence.json',terminal);
+const terminalOutput=Buffer.from(`sha256=${migrationPin}\n`);frozenWrite('roles/primary-export-final-snapshot.txt',terminalOutput);
+const readPin=name=>hash(fs.readFileSync(path.join(frozenRoot,name)));
+const frozenReceipt={version:'YNX-NATIVE-SNAPSHOT-EXPORTED/v1',transactionId:tx,commit,bftRelease:release,status:'awaiting_final_plan_authorization',preparationApprovalSHA256:readPin('preparation-approval.json'),snapshotApprovalOriginalSHA256:snapshotRawPin,snapshotApprovalSHA256:snapshotPin,snapshotSourceSHA256:capturePin,exporterManifestSHA256:terminal.exporterManifestSha256,remoteEvidenceSHA256:terminalPin,journalSHA256:readPin('journal.jsonl'),automaticRetry:false};
+frozenWrite('snapshot-export-attempt/result.json',frozenReceipt);
+const verifyFrozen=(migration=migrationPath,approval=snapshotProjectionPath)=>call('scripts/verify/public-bft-candidate-binding.mjs',['--frozen-snapshot',frozenRoot,migration,full,approval]);
+for(const file of ['final-snapshot/migration.json','final-snapshot/remote-evidence.json','snapshot-source-capture/snapshot-source.json','snapshot-export-attempt/result.json','roles/primary-export-final-snapshot.txt','journal.jsonl']){
+ const p=path.join(frozenRoot,file),original=fs.readFileSync(p);
+ if(file==='roles/primary-export-final-snapshot.txt')fs.writeFileSync(p,`sha256=${'f'.repeat(64)}\n`);
+ else fs.appendFileSync(p,'changes after source validation');
+ const refused=verifyFrozen();assert.notEqual(refused.status,0,file);assert.equal(refused.stdout,'');assertions++;
+ fs.writeFileSync(p,original);
+}
+const frozenVerified=verifyFrozen();assert.equal(frozenVerified.status,0,frozenVerified.stderr);assert.equal(frozenVerified.stdout.trim(),newManifest.sha256);assertions++;
+const frozenFinal={...finalProjection,snapshotSourceSha256:capturePin};frozenWrite('approval.json',frozenFinal);
+const frozenFinalPath=path.join(frozenRoot,'approval.json');
+const finalVerified=verifyFrozen(migrationPath,frozenFinalPath);assert.equal(finalVerified.status,0,finalVerified.stderr);assertions++;
+frozenWrite('approval.json',{...frozenFinal,snapshotSourceSha256:'9'.repeat(64)});
+assert.notEqual(verifyFrozen(migrationPath,frozenFinalPath).status,0);assertions++;
+frozenWrite('approval.json',frozenFinal);
+const aliased=path.join(frozenRoot,'same-bytes-migration.json');fs.writeFileSync(aliased,migrationBytes,{mode:0o600});assert.notEqual(verifyFrozen(aliased).status,0);assertions++;
 const finalCheck=call('scripts/verify/public-bft-candidate-binding.mjs',['--operator-continuation',path.join(root,planRef.file),planRef.sha256,path.join(root,finalRef.file),finalRef.sha256]);assert.equal(finalCheck.status,0,finalCheck.stderr);assertions++;
 // Run the actual shell's stable continuation comparison, without a shell
 // transaction, transport, initialization, or service side effect.

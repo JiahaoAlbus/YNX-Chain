@@ -5,8 +5,8 @@ cd "$(dirname "$0")/../.."
 
 mode="${PUBLIC_BFT_CUTOVER_MODE:-plan}"
 case "$mode" in
-  plan|execute|prepare-native|continue-native|continue-pq-native) ;;
-  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native, continue-native or continue-pq-native" >&2; exit 1 ;;
+  plan|execute|prepare-native|export-native|continue-native|continue-pq-native) ;;
+  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native, export-native, continue-native or continue-pq-native" >&2; exit 1 ;;
 esac
 
 commit="$(git rev-parse --short=12 HEAD)"
@@ -99,23 +99,29 @@ import hashlib,pathlib,sys
 assert hashlib.sha256(pathlib.Path(sys.argv[1]).read_bytes()).hexdigest()==sys.argv[2]
 PY
   node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/pq-continuation-attempt/intent.json" "$transaction_dir/pq-continuation-attempt/input.json" "$transaction_dir/pq-continuation-attempt" "$transaction_dir"
+elif [[ "$mode" == export-native ]]; then
+  # Consume only the original completed preparation. No export attempt may be
+  # retried, including missing stdout or a partial original result.
+  python3 -B scripts/ops/public-bft-quiet-continuation.py snapshot-start-check --transaction "$transaction_dir" >/dev/null
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/preparation-approval.json" "$commit" "$release" --prepare-native >/dev/null
+  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" --export-native)"
+  printf '%s\n' "$approval_evidence" | node -e '
+const fs=require("fs"),assert=require("assert/strict"),a=JSON.parse(fs.readFileSync(0)),p=JSON.parse(fs.readFileSync(process.argv[1]));
+assert.equal(a.custodyProfile,"single-app-same-owner-inplace/v1");assert.equal(a.transactionId,process.argv[2]);assert.equal(a.snapshotOnly,true);assert.equal(p.preparationOnly,true);assert.match(a.snapshotSourceSha256,/^[0-9a-f]{64}$/);
+delete a.snapshotOnly;delete a.snapshotSourceSha256;delete p.preparationOnly;assert.deepEqual(a,p,"export changed original stable authorization or expiry");' "$transaction_dir/preparation-approval.json" "$transaction_id"
+  mkdir -m 0700 "$transaction_dir/snapshot-export-attempt"
+  (set -C; printf '{"status":"unknown","automaticRetry":false}\n' >"$transaction_dir/snapshot-export-attempt/intent.json")
+  [[ -f "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" && ! -L "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" ]] || { echo "original snapshot approval must be protected regular file" >&2; exit 1; }
+  (set -C; cat -- "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" >"$transaction_dir/snapshot-approval.original.json")
+  cmp -- "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$transaction_dir/snapshot-approval.original.json" >/dev/null
+  printf '%s\n' "$approval_evidence" | cmp - <(node scripts/verify/validate-public-bft-cutover-approval.mjs "$transaction_dir/snapshot-approval.original.json" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" --export-native) >/dev/null
+  (set -C; printf '%s\n' "$approval_evidence" >"$transaction_dir/snapshot-approval.json")
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/snapshot-export-attempt/intent.json" "$transaction_dir/snapshot-export-attempt" "$transaction_dir/snapshot-approval.original.json" "$transaction_dir/snapshot-approval.json" "$transaction_dir"
 elif [[ "$mode" == continue-native ]]; then
   # No preflight/backup/freeze/pause is replayed. The exact completed original
   # preparation, not a newly constructed checkpoint or successful exit alone,
   # selects this one continuation. Any uncertain attempt remains exclusive.
-  node --input-type=module - "$transaction_dir" <<'NODE'
-import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
-const root=path.resolve(process.argv[2]),info=fs.lstatSync(root);
-assert.ok(info.isDirectory()&&!info.isSymbolicLink()&&(info.mode&0o7777)===0o700&&fs.realpathSync(root)===root,'original private canonical transaction required');
-const forbidden=['approval.json','continuation-attempt','candidate/initialize-attempt','candidate/start-attempt'];
-for(const name of forbidden)assert.equal(fs.existsSync(path.join(root,name))||(()=>{try{fs.lstatSync(path.join(root,name));return true}catch(e){if(e.code==='ENOENT')return false;throw e}})(),false,'existing continuation/initialization/UNKNOWN must be retained');
-function scan(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){assert.ok(!entry.isSymbolicLink(),'unexpected original evidence symlink');assert.ok(!/UNKNOWN|\.partial|\.tmp(?:$|[-.])/.test(entry.name),'retained partial/UNKNOWN blocks continuation');if(entry.isDirectory())scan(path.join(dir,entry.name));}}
-scan(root);
-const rows=fs.readFileSync(path.join(root,'journal.jsonl'),'utf8').trimEnd().split('\n').map(JSON.parse);
-const expected=['preflight','backup','freeze_mutations','pause_authoritative'].flatMap(phase=>[[phase,'started'],[phase,'passed']]);expected.push(['preparation','awaiting_final_snapshot_authorization']);
-assert.equal(rows.length,expected.length,'incomplete or changed original preparation');
-rows.forEach((row,index)=>{assert.deepEqual(Object.keys(row).sort(),['at','phase','status']);assert.deepEqual([row.phase,row.status],expected[index]);assert.match(row.at,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);});
-NODE
+  native_profile="$(python3 -B scripts/ops/public-bft-quiet-continuation.py native-continuation-check --transaction "$transaction_dir")"
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
   printf '%s\n' "$approval_evidence" | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));if(a.custodyProfile==="single-app-same-owner-inplace/v1"&&a.transactionId!==process.argv[1])throw Error("same-owner original transaction mismatch")' "$transaction_id"
   # Revalidate the original preparation projection and compare every stable
@@ -135,6 +141,11 @@ execFileSync(process.execPath,["scripts/verify/public-bft-candidate-binding.mjs"
 assert.ok(!Object.hasOwn(before,"caddySource"),"preparation cannot contain future final-plan Caddy authority");delete after.caddySource;
 delete before.preparationOnly;delete after.snapshotSourceSha256;delete after.operatorPlanSha256;delete after.candidateGenesisTime;
 assert.deepEqual(after,before,"continuation changed original stable authorization or expiry");' "$transaction_dir/preparation-approval.json"
+  if [[ "$native_profile" == single-app-same-owner-inplace/v1 ]]; then
+    node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/snapshot-approval.json" "$commit" "$release" --export-native >/dev/null
+    node scripts/verify/validate-public-bft-cutover-approval.mjs "$transaction_dir/snapshot-approval.original.json" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" --export-native | cmp - "$transaction_dir/snapshot-approval.json" >/dev/null
+    printf '%s\n' "$approval_evidence" | node -e 'const fs=require("fs"),assert=require("assert/strict"),a=JSON.parse(fs.readFileSync(0)),s=JSON.parse(fs.readFileSync(process.argv[1]));assert.equal(a.snapshotSourceSha256,s.snapshotSourceSha256);assert.equal(a.exporterManifestSha256,s.exporterManifestSha256)' "$transaction_dir/snapshot-approval.json"
+  fi
   mkdir -- "$transaction_dir/continuation-attempt"
   (set -C; printf '{"status":"unknown","automaticRetry":false}\n' >"$transaction_dir/continuation-attempt/intent.json")
   [[ -f "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" && ! -L "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" ]] || { echo "original continuation approval must be a protected regular file" >&2; exit 1; }
@@ -161,6 +172,12 @@ else
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" ${approval_mode[@]+"${approval_mode[@]}"})"
   printf '%s\n' "$approval_evidence" | node -e 'const a=JSON.parse(require("fs").readFileSync(0,"utf8"));if(a.custodyProfile==="single-app-same-owner-inplace/v1"&&a.transactionId!==process.argv[1])throw Error("same-owner original transaction mismatch")' "$transaction_id"
   if [[ "$mode" == prepare-native ]]; then
+    # The original same-owner public cutover must stop at quiet registration
+    # until independently verified PQ activation. Enforce before any driver
+    # phase, not after freezing/importing the original chain.
+    if printf '%s\n' "$approval_evidence" | node -e 'process.exit(JSON.parse(require("fs").readFileSync(0)).custodyProfile==="single-app-same-owner-inplace/v1"?0:1)'; then
+      [[ "$selected_bootstrap_mode" == quiet-first-registration-v1 ]] || { echo "same-owner native preparation requires the original quiet registration stop before public cutover" >&2; exit 1; }
+    fi
     (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/preparation-approval.json")
     preparation_plan_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).operatorPreparationPlanSha256)' "$transaction_dir/preparation-approval.json")"
     validator_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).validatorManifestSha256)' "$transaction_dir/preparation-approval.json")"
@@ -208,7 +225,7 @@ rollback_transaction() {
   if [[ "$transaction_complete" == "1" || "$mutation_started" != "1" ]]; then
     exit "$original_status"
   fi
-  if [[ "$mode" == prepare-native || "$mode" == continue-native || "$mode" == continue-pq-native ]]; then
+  if [[ "$mode" == prepare-native || "$mode" == export-native || "$mode" == continue-native || "$mode" == continue-pq-native ]]; then
     journal_event transaction unknown
     echo "PUBLIC_BFT_NATIVE_OUTCOME_UNKNOWN: preserve original journal/markers/DB/attempt; no automatic resume, unfreeze, cleanup or retry" >&2
     [[ "$original_status" != 0 ]] || original_status=1
@@ -254,7 +271,7 @@ trap rollback_transaction EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-if [[ "$mode" != continue-native && "$mode" != continue-pq-native ]]; then
+if [[ "$mode" != export-native && "$mode" != continue-native && "$mode" != continue-pq-native ]]; then
   run_phase preflight
   run_phase backup
   mutation_started=1
@@ -270,10 +287,25 @@ if [[ "$mode" == prepare-native ]]; then
   exit 0
 fi
 mutation_started=1
+if [[ "$mode" == export-native ]]; then
+  run_phase export_final_snapshot
+  journal_event snapshot awaiting_final_plan_authorization
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$journal" "$transaction_dir"
+  python3 -B scripts/ops/public-bft-quiet-continuation.py snapshot-complete --transaction "$transaction_dir"
+  transaction_complete=1
+  trap - EXIT INT TERM
+  exit 0
+fi
 if [[ "$mode" == continue-pq-native ]]; then
   run_phase verify_pq_continuation
 else
-  run_phase export_final_snapshot
+  if [[ "$mode" == continue-native && "$native_profile" == single-app-same-owner-inplace/v1 ]]; then
+    # Read original export evidence and full M before any init/journal change.
+    # This is not another export or a new transaction phase.
+    "$driver" verify_frozen_snapshot
+  else
+    run_phase export_final_snapshot
+  fi
   run_phase initialize_candidate
   run_phase deploy_candidate
   run_phase start_candidate

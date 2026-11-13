@@ -88,11 +88,12 @@ function recovery(v,role,rolePin,record) {
 }
 const operationFiles=['scripts/ops/public-bft-cutover-transaction.sh','scripts/ops/public-bft-production-driver.sh','scripts/ops/remote/public-bft-native-identity.py','scripts/ops/init-consensus-candidate-keys.sh'];
 const evidenceKeys=['version','reviewSHA256','sourceCommit','originalValidatorManifestSHA256','validatorManifestSHA256','operatorPreparationPlanSHA256','runtimeManifestSHA256','exporterManifestSHA256','operationAuthorizationEvidenceSHA256','operationsSourceSHA256','roleEvidenceSHA256','handover','recovery','hrsHistoryVerified','pqRecoveryVerified'];
-export function validateSameOwnerProjection(a,commit,release,preparation=false,{current=true}={}) {
+export function validateSameOwnerProjection(a,commit,release,preparation=false,{current=true,snapshot=false}={}) {
+  need(!(preparation&&snapshot),'one original approval phase required');
   const common=['custodyProfile','schemaVersion','action','approved','approvalId','transactionId','commit','release','publicCutoverAuthorized','automaticRollbackRequired','custodyEvidence','sameOwnerEvidence','operationAuthorizationEvidence','validatorManifestSha256','operatorPreparationPlanSha256','runtimeManifestSha256','exporterManifestSha256','authoritativeCommit','authoritativeRelease','authoritativeBinarySha256','authoritativeSource','authoritativeRoles','expiresAt'];
-  const allowed=[...common,...(preparation?['preparationOnly']:['operatorPlanSha256','snapshotSourceSha256','candidateGenesisTime'])];
+  const allowed=[...common,...(preparation?['preparationOnly']:snapshot?['snapshotOnly','snapshotSourceSha256']:['operatorPlanSha256','snapshotSourceSha256','candidateGenesisTime'])];
   if(Object.hasOwn(a,'authoritativeSystemd'))allowed.push('authoritativeSystemd');
-  if(!preparation&&Object.hasOwn(a,'caddySource'))allowed.push('caddySource');
+  if(!preparation&&!snapshot&&Object.hasOwn(a,'caddySource'))allowed.push('caddySource');
   if(Object.hasOwn(a,'validated')){need(a.validated===true,'invalid normalized validation result');allowed.push('validated');}
   closed(a,allowed);
   need(isSameOwner(a)&&a.schemaVersion===1&&a.action==='ynx-public-bft-cutover'&&a.approved===true&&id(a.approvalId)&&id(a.transactionId)&&a.commit===commit&&a.release===release&&release===`ynx-bft-gateway-${commit}`,'original operation scope differs');
@@ -107,6 +108,7 @@ export function validateSameOwnerProjection(a,commit,release,preparation=false,{
   caddySourceIdentity(a);operatorPreparationPin(a,preparation);
   need(time(a.expiresAt)&&(!current||(Date.parse(a.expiresAt)>Date.now()&&Date.parse(a.expiresAt)<=Date.now()+86400000)),'expired/invalid operation window');
   if(preparation)need(a.preparationOnly===true,'preparation scope required');
+  else if(snapshot)need(a.snapshotOnly===true&&hash(a.snapshotSourceSha256),'exact frozen snapshot-only scope required');
   else need(hash(a.operatorPlanSha256)&&hash(a.snapshotSourceSha256)&&time(a.candidateGenesisTime)&&Date.parse(a.candidateGenesisTime)<=Date.parse(a.expiresAt),'actual final state/plan/genesis pins required');
   const out={...a};delete out.validated;return out;
 }
@@ -147,14 +149,14 @@ export function validateSameOwnerReview(file,commit,manifestPin) {
   const evidence={version:'YNX-SAME-OWNER-INPLACE-CHECK/v1',reviewSHA256:original.sha256,sourceCommit:v.sourceCommit,originalValidatorManifestSHA256:v.sources.originalValidatorManifest.sha256,validatorManifestSHA256:manifestPin,operatorPreparationPlanSHA256:v.sources.operatorPreparationPlan.sha256,runtimeManifestSHA256:v.sources.runtimeManifest.sha256,exporterManifestSHA256:v.sources.exporterManifest.sha256,operationAuthorizationEvidenceSHA256:v.sources.operationAuthorization.sha256,operationsSourceSHA256:sha(JSON.stringify(v.operations)),roleEvidenceSHA256:sha(JSON.stringify(v.roles)),handover:'not-applicable-same-owner-verified',recovery:'original-legacy-isolated-same-host',hrsHistoryVerified:false,pqRecoveryVerified:false};
   return {custodyProfile:sameOwnerProfile,status:'passed',sameOwnerEvidence:evidence,custodyEvidence:`sha256:${original.sha256}`,expiresAt:v.expiresAt};
 }
-export function validateSameOwnerApproval(a,reviewPath,commit,release,preparation) {
+export function validateSameOwnerApproval(a,reviewPath,commit,release,preparation,{snapshot=false}={}) {
   const review=validateSameOwnerReview(reviewPath,commit,a.validatorManifestSha256);
   const normalized={...a,sameOwnerEvidence:review.sameOwnerEvidence};
   const packet=parseOriginalJSON(readSameOwnerOriginal(path.resolve(reviewPath),review.sameOwnerEvidence.reviewSHA256).raw);
   need(packet.transactionId===a.transactionId,'original transaction differs');
   for(const role of packet.roles)validateAuthoritativeObservation(reference(path.dirname(path.resolve(reviewPath)),role.nativeObservation),a,role.role,a.transactionId);
   need(!Object.hasOwn(a,'sameOwnerEvidence')&&!Object.hasOwn(a,'validated'),'raw approval cannot inject validator results');
-  validateSameOwnerProjection(normalized,commit,release,preparation);
+  validateSameOwnerProjection(normalized,commit,release,preparation,{snapshot});
   need(Date.parse(a.expiresAt)<=Date.parse(review.expiresAt),'approval outlives original evidence');
   return normalized;
 }

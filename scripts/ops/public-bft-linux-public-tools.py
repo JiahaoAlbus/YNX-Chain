@@ -6,6 +6,7 @@ has no key, Node, RPC, service, registration or signing command. The target is
 one original role selected by the original ops transport. A failed transport
 leaves its request and INTENT; reconcile reads the same completed result only.
 """
+import base64
 import hashlib
 import io
 import json
@@ -341,7 +342,7 @@ def validate_request(r):
     path = absolute(r['runtime'])
     require(re.fullmatch(r'/var/tmp/ynx-pq-runtime-[A-Za-z0-9._-]+/verified', str(path))
             and '-' + r['role'] + '-' in str(path), 'runtime must be original role intake verified directory')
-    require(r['operation'] in ('inventory', 'migration-summary', 'verify-migration', 'generate-package', 'verify-package', 'proof', 'stage-public', 'exporter-files', 'light-files', 'light-metadata', 'proof-capture'), 'unapproved public operation')
+    require(r['operation'] in ('inventory', 'migration-summary', 'verify-migration', 'derive-bootstrap', 'generate-package', 'verify-package', 'proof', 'stage-public', 'exporter-files', 'light-files', 'light-metadata', 'proof-capture'), 'unapproved public operation')
     require(type(r['arguments']) is dict and type(r['inputs']) is list and len(r['inputs']) <= MAX_FILES, 'bounded typed public request')
     names = set()
     for p in r['inputs']:
@@ -355,6 +356,7 @@ def validate_request(r):
     require(type(r['destination']) is str, 'destination correlation')
     if r['destination']: absolute(r['destination'])
     keys = {'inventory': set(), 'migration-summary': set(), 'verify-migration': set(),
+            'derive-bootstrap': {'genesisTime', 'validatorManifestSHA256', 'migrationEvidenceSHA256'},
             'generate-package': {'genesisTime', 'planSHA256'}, 'verify-package': {'planSHA256'},
             'proof': {'contextPath', 'contextSHA256', 'proofPaths'}, 'light-files': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'light-metadata': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'proof-capture': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'stage-public': {'profile'}, 'exporter-files': {'bundle','sourceSHA256'}}[r['operation']]
     extras=set(r['arguments'])-keys
@@ -366,6 +368,9 @@ def validate_request(r):
         if name in r['arguments']:pin(r['arguments'][name])
     if 'migrationEvidenceSHA256' in r['arguments']:require(r['role']=='primary','original migration is retained only on original primary')
     a = r['arguments']
+    if r['operation']=='derive-bootstrap':
+        require(not r['destination'], 'bootstrap derivation has no package or destination')
+        pin(a['validatorManifestSHA256'])
     if 'planSHA256' in a:
         pin(a['planSHA256'])
     if 'genesisTime' in a:
@@ -406,6 +411,11 @@ def validate_inputs(root, r):
         require(not names, 'operation takes no input')
     elif op in ('migration-summary', 'verify-migration'):
         require(names == {'inputs/migration.json'}, 'exact migration input required')
+    elif op == 'derive-bootstrap':
+        require(names == {'inputs/migration.json', 'inputs/validators.json'}, 'exact bootstrap derivation public inputs')
+        raw=read(root/'inputs/validators.json',256<<10)[1]
+        expected=pin(r['arguments']['validatorManifestSHA256'])
+        require(sha(raw)==expected and validator_manifest_pin(raw)==expected, 'validator original raw and canonical pins differ')
     elif op == 'generate-package':
         require(names == {'inputs/migration.json', 'inputs/validators.json', 'inputs/operator-plan.json'}, 'exact package generation public inputs')
         require(actual['inputs/operator-plan.json']['sha256'] == r['arguments']['planSHA256'], 'plan differs from independent pin')
@@ -756,6 +766,9 @@ def execute(root, r):
                 argv = ['/tool/' + binary, '-verify-migration-state', '/inputs/migration.json']
                 if op == 'migration-summary':
                     argv += ['-migration-public-summary', 'json']
+            elif op == 'derive-bootstrap':
+                argv = ['/tool/' + binary, '-derive-bootstrap', '-migration-state', '/inputs/migration.json',
+                        '-validator-manifest', '/inputs/validators.json', '-genesis-time', a['genesisTime']]
             elif op == 'verify-package':
                 argv = ['/tool/' + binary, '-verify-package', '/inputs/package', '-operator-plan-hash', a['planSHA256']]
             else:
@@ -773,6 +786,8 @@ def execute(root, r):
         require(int(math_finished)>=int(math_started),'original math host clock moved backwards; retain UNKNOWN')
         stdout = read(root / 'stdout', 1 << 20)[1]
         stderr = read(root / 'stderr', 1 << 20)[1]
+        if op == 'derive-bootstrap' and status == 0:
+            validate_bootstrap_derivation(stdout, a['genesisTime'])
         if op == 'generate-package' and (jail / 'package').exists():
             # Preserve partial package even when producer failed; caller may not
             # publish it as a successful package or silently rerun the command.
@@ -813,6 +828,11 @@ def verified_result(target, request, closed=True):
     if request['operation'] in ('inventory','stage-public','exporter-files','light-files','light-metadata'):
         require(r['mathStartedUnixNanoseconds'] is None,'non-math result cannot invent verifier clock')
     require(r['outputs']==catalog(target/'outputs'),'original output catalog mismatch')
+    if request['operation']=='derive-bootstrap':
+        require({p['path'] for p in r['outputs']}=={'stdout','stderr'}, 'bootstrap derivation has no package output')
+        require(r['mathStartedUnixNanoseconds'] is not None, 'original derivation math clock required')
+        if r['exitCode']==0:
+            validate_bootstrap_derivation(read(target/'outputs/stdout',1<<20)[1],request['arguments']['genesisTime'])
     if closed:require(set(p['path'] for p in catalog(target))=={'RESULT.json'}|{'outputs/'+p['path'] for p in r['outputs']}, 'closed output catalog mismatch')
     return r
 
@@ -1112,7 +1132,17 @@ def original_generation_inputs(transaction,migration,validators,plan,plan_pin,co
         'stateLayout','runtimePlan','runtimePlanHash','pqSchedule','pqScheduleHash','roles'}
     require(type(value) is dict and required<=set(value)<=required|{'heightHaltSessionId','bootstrapRegistrationMode'}
             and value['version']=='YNX-PRODUCTION-OPERATOR/v1','closed original public operator plan required before transport')
-    manifest=decode(read(Path(validators),256<<10)[1])
+    require(validator_manifest_pin(read(Path(validators),256<<10)[1])==pin(value['validatorManifestSHA256']),
+            'public validator manifest differs from original plan')
+
+
+def validator_manifest_pin(raw):
+    return sha(canonical_validator_manifest(raw))
+
+
+def canonical_validator_manifest(raw):
+    """Original manifest projection only; the unchanged Go manifest validates math."""
+    manifest=decode(raw)
     require(type(manifest) is dict and set(manifest)=={'version','purpose','chainId','validators'} and type(manifest['validators']) is list and len(manifest['validators'])==4,
             'closed original public validator manifest before transport')
     fields=('validatorAddress','role','privateP2PHost','p2pPort','nodeId','consensusKeyType','consensusPubKey','consensusAddress')
@@ -1120,8 +1150,36 @@ def original_generation_inputs(transaction,migration,validators,plan,plan_pin,co
             'public validator identity fields only')
     normalized={k:manifest[k] for k in ('version','purpose','chainId')}
     normalized['validators']=[{k:v[k] for k in fields} for v in sorted(manifest['validators'],key=lambda v:v['role'])]
-    canonical=json.dumps(normalized,separators=(',',':'),ensure_ascii=False).encode()
-    require(sha(canonical)==pin(value['validatorManifestSHA256']),'public validator manifest differs from original plan')
+    return json.dumps(normalized,separators=(',',':'),ensure_ascii=False).encode()
+
+
+def validate_bootstrap_derivation(raw, genesis_time):
+    # Transport DATA closure, not another genesis/consensus verifier. Preserve
+    # the normal Go producer's exact SaveAs bytes and original stdout bytes.
+    require(type(raw) is bytes and len(raw)<=1<<20, 'bootstrap derivation exceeds original stdout bound')
+    value=decode(raw)
+    keys={'version','originalGenesisHash','boundMigrationStateHash','consensusGenesisSHA256','consensusGenesis','genesisTime'}
+    require(type(value) is dict and set(value)==keys and all(type(v) is str for v in value.values()), 'closed bootstrap derivation DATA')
+    require(value['version']=='YNX-PUBLIC-BFT-BOOTSTRAP-DERIVATION/v1' and value['genesisTime']==genesis_time,
+            'bootstrap derivation version/time differs')
+    for name in ('originalGenesisHash','boundMigrationStateHash','consensusGenesisSHA256'):pin(value[name])
+    genesis=base64.b64decode(value['consensusGenesis'],validate=True)
+    require(genesis and base64.b64encode(genesis).decode()==value['consensusGenesis']
+            and sha(genesis)==value['consensusGenesisSHA256'], 'original genesis bytes/pin differ')
+    return value
+
+
+def original_derivation_inputs(transaction,migration,validators,validator_pin,commit):
+    # Same transaction's completed standard final-snapshot only. M is kept on
+    # its original primary; this bridge never uploads M from the Mac caller.
+    migration=original_migration(transaction,migration,commit)
+    require(absolute(validators)==absolute(os.environ.get('PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST','')),
+            'validator manifest differs from original public selection')
+    raw=read(Path(validators),256<<10)[1]
+    expected=pin(validator_pin)
+    require(sha(raw)==expected and validator_manifest_pin(raw)==expected,
+            'validator original raw and canonical pins differ')
+    return migration
 
 
 def client(args):
@@ -1161,6 +1219,13 @@ def client(args):
     elif operation in ('migration-summary','verify-migration'):
         require(len(values) == 1, 'migration original required'); sources=[('inputs/migration.json',original_migration(transaction,values[0],commit))]
         r['arguments']['migrationEvidenceSHA256']=read(transaction/'final-snapshot/remote-evidence.json',64<<10,False)[0]['sha256']
+    elif operation == 'derive-bootstrap':
+        require(len(values)==4, 'four original bootstrap derivation inputs required')
+        migration,validators,validator_pin,genesis=values
+        migration=original_derivation_inputs(transaction,migration,validators,validator_pin,commit)
+        r['arguments']={'genesisTime':genesis,'validatorManifestSHA256':validator_pin,
+            'migrationEvidenceSHA256':read(transaction/'final-snapshot/remote-evidence.json',64<<10,False)[0]['sha256']}
+        sources=[('inputs/migration.json',migration),('inputs/validators.json',absolute(validators))]
     elif operation == 'generate-package':
         require(len(values) == 6, 'six original generation inputs required')
         migration,validators,genesis,plan,plan_pin,output=values

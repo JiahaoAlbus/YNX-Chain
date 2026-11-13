@@ -19,7 +19,7 @@ if [[ "$action" == prepare_testnet_assets ]]; then
 else
   testnet_assets_action=false
 fi
-[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
+[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "derive_frozen_bootstrap" || "$action" == "verify_frozen_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "verify_pq_continuation" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -41,7 +41,11 @@ public_bft_native_context() {
   local -a approval_mode=()
   # Standalone legacy backup/rehearsal keeps its original same-source contract;
   # no missing file or environment variable can enable an independent native.
-  if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:export_final_snapshot || "${PUBLIC_BFT_CUTOVER_MODE:-}:$action" == export-native:derive_frozen_bootstrap ]]; then
+    [[ ! -e "$approved_path" && ! -L "$approved_path" ]] || { echo 'frozen snapshot phase cannot replace a final approval' >&2; return 1; }
+    approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/snapshot-approval.json"
+    approval_mode=(--export-native)
+  elif [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then
     approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json"
     if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then return 0; fi
     case "$action" in preflight|backup|freeze_mutations|pause_authoritative|capture_snapshot_source|prepare_testnet_assets) ;; *) echo "native preparation cannot authorize this phase; retain paused original state" >&2; return 1 ;; esac
@@ -257,7 +261,7 @@ final_snapshot_phase() {
   local source_input exporter_bundle full_commit source_pin exporter_pin pins local_root remote_stage helper_sha name
   local public_data_root migration_file
   local native_remote_args=""
-  local -a native_args=()
+  local -a native_args=() approval_mode=()
   transaction_id="$(basename "$transaction_dir")"
   [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid final snapshot transaction id" >&2; exit 1; }
   evidence_dir="$transaction_dir/roles"
@@ -279,7 +283,17 @@ final_snapshot_phase() {
   # Validate the original protected approval projection. Environment variables
   # select input locations only; neither the input nor SOURCE can authorize its
   # own hash, and the operator 8-ELF runtime does not contain this exporter.
-  pins="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/approval.json" "$commit" "$bft_release")"
+  local approval_path="$transaction_dir/approval.json"
+  if [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == export-native ]]; then
+    approval_path="$transaction_dir/snapshot-approval.json"
+    approval_mode=(--export-native)
+    [[ "${DEPLOY_DRY_RUN:-0}" != 1 && "$source_input" == "$transaction_dir/snapshot-source-capture/snapshot-source.json" ]] || { echo 'original frozen source capture is required for snapshot-only export' >&2; return 1; }
+    [[ -d "$transaction_dir/snapshot-export-attempt" && ! -L "$transaction_dir/snapshot-export-attempt" && -f "$transaction_dir/snapshot-export-attempt/intent.json" && ! -e "$transaction_dir/snapshot-export-attempt/result.json" && ! -L "$transaction_dir/snapshot-export-attempt/result.json" ]] || { echo 'original exclusive snapshot export intent is required' >&2; return 1; }
+    # A missing acknowledgement cannot be used to dispatch a second export.
+    local YNX_DEPLOY_CONNECTION_ATTEMPTS=1
+    export YNX_DEPLOY_CONNECTION_ATTEMPTS
+  fi
+  pins="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$approval_path" "$commit" "$bft_release" ${approval_mode[@]+"${approval_mode[@]}"})"
   source_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).snapshotSourceSha256))')"
   exporter_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).exporterManifestSha256))')"
   public_bft_linux_tools_enabled || [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "final export requires the approved Linux amd64 offline tools; no installed-binary fallback" >&2; exit 1; }
@@ -347,6 +361,34 @@ final_snapshot_phase() {
     (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$migration_file" >"$local_root/local-validation.txt")
   fi
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
+}
+
+frozen_snapshot_path() {
+  local transaction_dir="$1" data_root
+  data_root="$(public_bft_public_data_root "$transaction_dir")" || return $?
+  printf '%s\n' "$data_root/final-snapshot/migration.json"
+}
+
+derive_frozen_bootstrap_phase() {
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == export-native && "${DEPLOY_DRY_RUN:-0}" != 1 ]] || return 1
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:?original native transaction required}"
+  local validators="${PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST:-}" genesis_time="${PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME:-}" validator_pin migration full_commit
+  migration="$(frozen_snapshot_path "$transaction_dir")" || return $?
+  full_commit="$(git rev-parse HEAD)" || return $?
+  validator_pin="$(node scripts/verify/public-bft-candidate-binding.mjs --frozen-snapshot "$transaction_dir" "$migration" "$full_commit" "$native_approval_path")" || return $?
+  [[ "$validators" == /* && "$genesis_time" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]] || { echo 'original public validator manifest and explicit genesis time are required' >&2; return 1; }
+  # Keep the exact source provenance and four-role identities. The derive
+  # action publishes only DATA for the independently approved final plan.
+  [[ -f "$validators" && ! -L "$validators" && "$(shasum -a 256 "$validators" | awk '{print $1}')" == "$validator_pin" ]] || { echo 'validator manifest differs from the reviewed original bytes' >&2; return 1; }
+  local runtime_pin
+  runtime_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).runtimeManifestSha256)' "$native_approval_path")" || return $?
+  [[ "${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}" == "$runtime_pin" ]] || { echo 'derivation runtime differs from the independent original approval' >&2; return 1; }
+  public_bft_runtime_prepare "$transaction_dir" || return $?
+  if public_bft_linux_tools_enabled; then
+    public_bft_linux_tool_for_role primary derive-bootstrap "$migration" "$validators" "$validator_pin" "$genesis_time"
+  else
+    env -i PATH=/usr/bin:/bin "$public_package_verifier" -derive-bootstrap -migration-state "$migration" -validator-manifest "$validators" -genesis-time "$genesis_time"
+  fi
 }
 
 capture_snapshot_source_phase() {
@@ -1214,7 +1256,8 @@ case "$release_ref" in
     release_mode="${PUBLIC_BFT_CUTOVER_MODE:-}"
     case "$release_mode:$action" in
       prepare-native:preflight|prepare-native:backup|prepare-native:freeze_mutations|prepare-native:pause_authoritative|prepare-native:capture_snapshot_source|prepare-native:prepare_testnet_assets) projection=preparation-approval.json ;;
-      continue-native:export_final_snapshot|continue-native:initialize_candidate|continue-native:deploy_candidate|continue-native:start_candidate|continue-native:verify_candidate) projection=approval.json ;;
+      export-native:export_final_snapshot|export-native:derive_frozen_bootstrap) projection=snapshot-approval.json ;;
+      continue-native:verify_frozen_snapshot|continue-native:initialize_candidate|continue-native:deploy_candidate|continue-native:start_candidate|continue-native:verify_candidate) projection=approval.json ;;
       continue-pq-native:verify_pq_continuation|continue-pq-native:start_dependencies|continue-pq-native:verify_continuity|continue-pq-native:switch_ingress|continue-pq-native:verify_public|continue-pq-native:unfreeze_mutations) projection=approval.json ;;
       *) echo "production release driver requires its original native forward phase" >&2; exit 1 ;;
     esac
@@ -1228,7 +1271,7 @@ import {readSameOwnerOriginal,readSameOwnerJSON,validateSameOwnerApproval} from 
 const [original,review,root,name,mode,commit]=process.argv.slice(2),release=`ynx-bft-gateway-${commit}`;
 assert.ok(path.isAbsolute(root)&&path.normalize(root)===root&&fs.realpathSync(root)===root,'original canonical transaction required');
 const st=fs.lstatSync(root);assert.ok(st.isDirectory()&&(st.mode&0o077)===0&&st.uid===process.geteuid(),'original private transaction required');
-const approval=validateSameOwnerApproval(readSameOwnerJSON(original),review,commit,release,mode==='prepare-native');
+const approval=validateSameOwnerApproval(readSameOwnerJSON(original),review,commit,release,mode==='prepare-native',{snapshot:mode==='export-native'});
 assert.equal(approval.transactionId,path.basename(root),'original transaction differs from approval');
 assert.deepEqual(readSameOwnerOriginal(path.join(root,name)).raw,Buffer.from(JSON.stringify(approval)+'\n'),'retained parent approval differs');
 RELEASE_PROJECTION
@@ -1247,6 +1290,21 @@ fi
 if [[ "$testnet_assets_action" == true ]]; then
   prepare_testnet_assets_phase
   exit 0
+fi
+if [[ "$action" == derive_frozen_bootstrap ]]; then
+  derive_frozen_bootstrap_phase
+  exit 0
+fi
+if [[ "$action" == verify_frozen_snapshot ]]; then
+  [[ "${PUBLIC_BFT_CUTOVER_MODE:-}" == continue-native && "${DEPLOY_DRY_RUN:-0}" != 1 ]] || exit 1
+  transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:?original native transaction required}"
+  migration="$(frozen_snapshot_path "$transaction_dir")"
+  node scripts/verify/public-bft-candidate-binding.mjs --frozen-snapshot "$transaction_dir" "$migration" "$(git rev-parse HEAD)" "$native_approval_path" >/dev/null
+  exit 0
+fi
+if [[ "$action" == export_final_snapshot && "${PUBLIC_BFT_CUTOVER_MODE:-}" != export-native && -n "${native_approval_path:-}" ]] && node -e 'process.exit(JSON.parse(require("fs").readFileSync(process.argv[1])).custodyProfile==="single-app-same-owner-inplace/v1"?0:1)' "$native_approval_path"; then
+  echo 'same-owner continuation must reuse its frozen migration' >&2
+  exit 1
 fi
 
 backup_phase() {

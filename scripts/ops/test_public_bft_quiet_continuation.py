@@ -315,7 +315,7 @@ class QuietContinuationTests(unittest.TestCase):
     def test_normal_transaction_tail_is_not_initialization_replay(self):
         src=(HERE/'public-bft-cutover-transaction.sh').read_text()
         self.assertIn('continue-pq-native',src)
-        tail=src.split('mutation_started=1\nif [[ "$mode" == continue-pq-native ]]',1)[1]
+        tail='run_phase verify_pq_continuation'+src.rsplit('if [[ "$mode" == continue-pq-native ]]; then\n  run_phase verify_pq_continuation',1)[1]
         branch=tail.split('else\n',1)[0]
         self.assertIn('run_phase verify_pq_continuation',branch)
         for p in q.BOOTSTRAP:self.assertNotIn('run_phase '+p,branch)
@@ -913,6 +913,86 @@ ynx_ops_ssh() {
         self.assertEqual(marker.read_bytes(),b'original UNKNOWN')
         self.assertEqual(self.archive.read_bytes(),original)
         for name,body in self.payload.items():self.assertEqual((destination/name).read_bytes(),body)
+
+class NativeSnapshotStopTests(unittest.TestCase):
+    """PUBLIC transport-state controls; actual approval validation is in the shell checker."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.parent=Path(self.temp.name).resolve();self.root=self.parent/'original-snapshot-transaction';self.root.mkdir(mode=0o700)
+        self.prep=dict(custodyProfile=q.SAME_OWNER,preparationOnly=True,approved=True,transactionId=self.root.name,
+                      commit='a'*12,release='ynx-bft-gateway-'+'a'*12,exporterManifestSha256='b'*64,
+                      sameOwnerEvidence=dict(sourceCommit='a'*40),expiresAt=(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(hours=1)).isoformat())
+        write(self.root/'preparation-approval.json',self.prep)
+        self.snap={**self.prep,'snapshotOnly':True,'snapshotSourceSha256':'c'*64};self.snap.pop('preparationOnly')
+        write(self.root/'snapshot-approval.json',self.snap);write(self.root/'snapshot-approval.original.json',self.snap)
+        write(self.root/'snapshot-export-attempt/intent.json',dict(status='unknown',automaticRetry=False))
+        self.terminal=dict(transactionId=self.root.name,commit=self.prep['commit'],bftRelease=self.prep['release'],
+                           snapshotSourceSha256='c'*64,exporterManifestSha256='b'*64,exporterCommit='a'*40,sha256='d'*64,
+                           pauseVerified=True,mutationFreezeVerified=True,sourceUnchanged=True,validated=True,
+                           reused=False,deployment=False,runtimeStarted=False)
+        write(self.root/'final-snapshot/remote-evidence.json',self.terminal)
+        self.lines=q.snapshot_prefix();self.save_journal(self.lines)
+    def save_journal(self,lines):
+        self.root.joinpath('journal.jsonl').write_bytes(b''.join(raw(dict(phase=p,status=s,at='2026-11-13T00:00:00Z')) for p,s in lines))
+    def complete(self):return q.snapshot_complete(str(self.root))
+    def final(self):
+        a={**self.prep,'operatorPlanSha256':'e'*64,'snapshotSourceSha256':'c'*64};a.pop('preparationOnly');write(self.root/'approval.json',a)
+    def test_durable_snapshot_stop_and_exact_prefix_survive_later_bootstrap(self):
+        before=self.root.joinpath('journal.jsonl').read_bytes();result=self.complete()
+        self.assertEqual(set(result),q.SNAPSHOT_FIELDS);self.assertEqual(result['journalSHA256'],q.sha(before))
+        self.assertEqual(q.snapshot_record(self.root),result)
+        self.assertEqual(q.native_boundary(str(self.root)),q.SAME_OWNER)
+        self.final();prefix=q.expected_prefix(self.root);self.assertEqual(prefix,self.lines+q.pairs(q.BOOTSTRAP[1:]))
+        self.save_journal(prefix+[('bootstrap','awaiting_pq_activation')]);self.assertEqual(q.snapshot_record(self.root),result)
+        self.assertEqual(self.root.joinpath('journal.jsonl').read_bytes()[:len(before)],before)
+        original=(self.root/'snapshot-export-attempt/result.json').read_bytes()
+        with self.assertRaises((ValueError,FileExistsError)):self.complete()
+        self.assertEqual((self.root/'snapshot-export-attempt/result.json').read_bytes(),original)
+    def test_export_start_and_legacy_continuation_remain_disjoint(self):
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root),True)
+        with self.assertRaises(FileNotFoundError):q.native_boundary(str(self.root))
+        for name in ['snapshot-approval.json','snapshot-approval.original.json']:(self.root/name).unlink()
+        shutil.rmtree(self.root/'snapshot-export-attempt');shutil.rmtree(self.root/'final-snapshot');self.save_journal(q.preparation_prefix())
+        self.assertEqual(q.native_boundary(str(self.root),True),q.SAME_OWNER)
+        with self.assertRaises(FileNotFoundError):q.native_boundary(str(self.root))
+        legacy={**self.prep,'custodyProfile':'single-app-gateway/v1'};write(self.root/'preparation-approval.json',legacy)
+        self.assertEqual(q.native_boundary(str(self.root)),'single-app-gateway/v1')
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root),True)
+    def test_partial_unknown_and_wrong_terminal_never_publish_success(self):
+        for key,val in [('transactionId','other-original'),('snapshotSourceSha256','e'*64),('exporterCommit','f'*40),('validated',False),('reused',True),('runtimeStarted',True)]:
+            with self.subTest(key=key):
+                write(self.root/'final-snapshot/remote-evidence.json',{**self.terminal,key:val})
+                with self.assertRaises(ValueError):self.complete()
+                self.assertFalse((self.root/'snapshot-export-attempt/result.json').exists())
+        write(self.root/'final-snapshot/remote-evidence.json',self.terminal)
+        for suffix in [b'{',raw(dict(phase='transaction',status='unknown',at='2026-11-13T00:00:00Z'))]:
+            self.save_journal(self.lines);p=self.root/'journal.jsonl';p.write_bytes(p.read_bytes()+suffix)
+            with self.assertRaises(ValueError):self.complete()
+            self.assertFalse((self.root/'snapshot-export-attempt/result.json').exists())
+    def test_receipt_original_raw_source_and_journal_cannot_be_rebound(self):
+        self.complete()
+        for name in ['preparation-approval.json','snapshot-approval.original.json','snapshot-approval.json','final-snapshot/remote-evidence.json']:
+            with self.subTest(name=name):
+                p=self.root/name;before=p.read_bytes();p.write_bytes(before+b' ')
+                with self.assertRaises(ValueError):q.snapshot_record(self.root)
+                self.assertEqual(p.read_bytes(),before+b' ');p.write_bytes(before)
+        for name in ['snapshot-export-attempt/intent.json','snapshot-export-attempt/result.json']:
+            p=self.root/name;before=p.read_bytes();value=json.loads(before);value['automaticRetry']=0;write(p,value)
+            with self.assertRaises(ValueError):q.snapshot_record(self.root)
+            p.write_bytes(before)
+        p=self.root/'journal.jsonl';before=p.read_bytes();p.write_bytes(before.replace(b'00:00:00Z',b'00:00:01Z',1))
+        with self.assertRaises(ValueError):q.snapshot_record(self.root)
+        p.write_bytes(before);self.final();a=json.loads((self.root/'approval.json').read_bytes());a['snapshotSourceSha256']='f'*64;write(self.root/'approval.json',a)
+        with self.assertRaises(ValueError):q.expected_prefix(self.root)
+    def test_snapshot_completion_does_not_authorize_marker_alias_or_unknown(self):
+        self.complete()
+        marker=self.root/'retained.UNKNOWN';marker.write_bytes(b'original first cause')
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root))
+        self.assertEqual(marker.read_bytes(),b'original first cause');marker.unlink()
+        alias=self.root/'alias';alias.symlink_to(self.root/'snapshot-approval.json')
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root))
+        alias.unlink();write(self.root/'continuation-attempt/intent.json',{'status':'unknown','automaticRetry':False})
+        with self.assertRaises(ValueError):q.native_boundary(str(self.root))
 
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--fixture':

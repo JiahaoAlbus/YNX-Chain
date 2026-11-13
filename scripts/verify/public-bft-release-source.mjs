@@ -17,11 +17,11 @@ const need=(ok,message)=>{if(!ok)throw new Error('public BFT release source reje
 // Exported only so the original PUBLIC controls can check the exact binding.
 export function bindSameOwnerRelease(approvalFile,reviewFile,head,ref,mode) {
   need(/^[0-9a-f]{40}$/.test(head)&&releaseRefs.has(ref),'exact original normal release ref and full HEAD required');
-  need(['execute','prepare-native','continue-native','continue-pq-native'].includes(mode),'exact original transaction phase required');
+  need(['execute','prepare-native','export-native','continue-native','continue-pq-native'].includes(mode),'exact original transaction phase required');
   const raw=readSameOwnerJSON(path.resolve(approvalFile));
   need(raw.custodyProfile===sameOwnerProfile,'legacy handover remains main-only');
   const commit=head.slice(0,12),release=`ynx-bft-gateway-${commit}`;
-  const approval=validateSameOwnerApproval(raw,path.resolve(reviewFile),commit,release,mode==='prepare-native');
+  const approval=validateSameOwnerApproval(raw,path.resolve(reviewFile),commit,release,mode==='prepare-native',{snapshot:mode==='export-native'});
   need(approval.sameOwnerEvidence.sourceCommit===head,'protected same-owner source differs from actual full HEAD');
   const review=JSON.parse(readSameOwnerOriginal(path.resolve(reviewFile),approval.sameOwnerEvidence.reviewSHA256).raw.toString('utf8'));
   const runtime=JSON.parse(readSameOwnerOriginal(path.join(path.dirname(path.resolve(reviewFile)),review.sources.runtimeManifest.file),approval.runtimeManifestSha256).raw.toString('utf8'));

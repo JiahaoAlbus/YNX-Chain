@@ -34,6 +34,8 @@ public_bft_package_call() {
     public_bft_linux_tool migration-summary "$2"
   elif [[ $# == 4 && "$1" == -verify-package && "$3" == -operator-plan-hash ]]; then
     public_bft_linux_tool verify-package "$2" "$4"
+  elif [[ $# == 9 && "$1" == -derive-bootstrap && "$2" == -migration-state && "$4" == -validator-manifest && "$6" == -validator-manifest-sha256 && "$8" == -genesis-time ]]; then
+    public_bft_linux_tool derive-bootstrap "$3" "$5" "$7" "$9"
   elif [[ $# == 12 && "$1" == -migration-state && "$3" == -validator-manifest && "$5" == -genesis-time && "$7" == -operator-plan && "$9" == -operator-plan-hash && "${11}" == -output ]]; then
     public_bft_linux_tool generate-package "$2" "$4" "$6" "$8" "${10}" "${12}"
   else

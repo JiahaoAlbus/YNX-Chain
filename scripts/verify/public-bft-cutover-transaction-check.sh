@@ -20,6 +20,10 @@ cp scripts/verify/validate-production-custody-review.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-owner-handover-receipt.mjs "$repo/scripts/verify/"
 cp scripts/verify/lib/owner-handover.mjs "$repo/scripts/verify/lib/"
 cp scripts/verify/lib/public-bft-native-source.mjs "$repo/scripts/verify/lib/"
+mkdir -p "$repo/scripts/ops/remote"
+for name in scripts/verify/lib/public-bft-same-owner.mjs scripts/verify/public-bft-release-source.mjs scripts/verify/public-bft-same-owner-check.mjs scripts/ops/public-bft-production-driver.sh scripts/ops/remote/public-bft-native-identity.py scripts/ops/remote/public-bft-capture-snapshot-source.py scripts/ops/init-consensus-candidate-keys.sh; do
+  cp "$name" "$repo/$name"
+done
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
 git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'cutover fixture'
@@ -764,3 +768,137 @@ fi
 python3 -B scripts/ops/test_public_bft_quiet_continuation.py -v
 
 echo "public-bft-cutover-transaction-check passed: source-only stub, no service or transport; approval/custody remain commit-bound; fresh import precedes install and one explicit start; three pre-initialization failures restore baseline; six initialization/install failures, ten start-or-later failures and six retained attempts preserve original status/state/HRS without rollback or retry"
+
+# Reuse the original full same-owner PUBLIC fixture construction; keep its
+# actual protected approval/review validators, changing only service transport.
+python3 -B - "$repo" <<'PYSNAPSHOT'
+from pathlib import Path
+import sys
+r=Path(sys.argv[1]); source=(r/'scripts/verify/public-bft-same-owner-check.mjs').read_text()
+marker='const before=fs.readFileSync(reviewPath);'
+assert source.count(marker)==1
+source=source.split(marker)[0]
+source=source.replace("const full='123456789abc'+'d'.repeat(28)", "const full=spawnSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).stdout.trim()")
+(r/'scripts/verify/native-export-fixture.mjs').write_text(source)
+PYSNAPSHOT
+cat >>"$repo/scripts/verify/native-export-fixture.mjs" <<'SNAPSHOTJS'
+// The normal original validators and transaction run without any replacement.
+// Only transport/service work is the explicit PUBLIC state-machine driver.
+const driver=path.join(root,'snapshot-driver.sh');
+fs.writeFileSync(driver,`#!/usr/bin/env bash
+set -Eeuo pipefail
+r="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR"
+printf '%s\\n' "$1" >> "$r/driver-calls.txt"
+if [[ "\${CONTROL_FAIL:-}" == "$1" ]]; then exit 72; fi
+case "$1" in
+ export_final_snapshot)
+ node --input-type=module - "$r" <<'NODE'
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';
+const r=process.argv[2],a=JSON.parse(fs.readFileSync(path.join(r,'snapshot-approval.json'))),s=JSON.parse(fs.readFileSync(path.join(r,'snapshot-source-capture/snapshot-source.json')));
+fs.mkdirSync(path.join(r,'final-snapshot'),{mode:0o700});fs.mkdirSync(path.join(r,'roles'),{mode:0o700});
+const m=Buffer.from('{"syntheticOnly":true,"originalFrozenMigration":"no re-export"}\\n'),sha=crypto.createHash('sha256').update(m).digest('hex');
+const e={transactionId:a.transactionId,commit:a.commit,authoritativeCommit:a.authoritativeCommit,authoritativeRelease:a.authoritativeRelease,authoritativeBinarySha256:a.authoritativeBinarySha256,authoritativeSource:a.authoritativeSource,authoritativeSystemd:a.authoritativeSystemd,bftRelease:a.release,height:Number(s.height),lastBlockHash:s.blockHash,stateHash:'a'.repeat(64),sha256:sha,snapshotSourceSha256:a.snapshotSourceSha256,exporterManifestSha256:a.exporterManifestSha256,exporterCommit:a.sameOwnerEvidence.sourceCommit,pauseVerified:true,mutationFreezeVerified:true,sourceUnchanged:true,validated:true,reused:false,deployment:false,runtimeStarted:false};
+for(const [name,bytes]of [['final-snapshot/migration.json',m],['final-snapshot/remote-evidence.json',Buffer.from(JSON.stringify(e)+'\\n')],['roles/primary-export-final-snapshot.txt',Buffer.from('sha256='+sha+'\\n')]])fs.writeFileSync(path.join(r,name),bytes,{flag:'wx',mode:0o600});
+NODE
+ ;;
+ verify_frozen_snapshot)
+ node scripts/verify/public-bft-candidate-binding.mjs --frozen-snapshot "$r" "$r/final-snapshot/migration.json" "$(git rev-parse HEAD)" "$r/approval.json" >/dev/null
+ ;;
+ initialize_candidate)
+ test -f "$r/snapshot-export-attempt/result.json"
+ ;;
+ verify_candidate)
+ node - "$r" <<'NODE'
+const fs=require('fs'),p=require('path'),r=process.argv[2],a=JSON.parse(fs.readFileSync(p.join(r,'approval.json')));fs.mkdirSync(p.join(r,'candidate'),{mode:0o700});fs.writeFileSync(p.join(r,'candidate/verify-result.json'),JSON.stringify({version:'YNX-QUIET-BOOTSTRAP-READY/v1',transactionId:a.transactionId,operatorPlanSHA256:a.operatorPlanSha256,ready:true,dryRun:false,pqActivationVerified:false,publicIngressChanged:false})+'\\n',{mode:0o600,flag:'wx'});
+NODE
+ ;;
+esac
+if [[ "\${CONTROL_FAIL:-}" == "$1:after" ]]; then exit 73; fi
+`,{mode:0o700});
+function invoke(dir,mode,file,planFile,planPin,extra={}) {
+ return spawnSync('bash',['scripts/ops/public-bft-cutover-transaction.sh'],{cwd:repo,encoding:'utf8',timeout:15000,maxBuffer:2<<20,env:{...process.env,PUBLIC_BFT_CUTOVER_MODE:mode,PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_DRIVER:driver,PUBLIC_BFT_CUTOVER_APPROVAL_FILE:file,PUBLIC_BFT_CUSTODY_REVIEW_FILE:reviewPath,PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:path.dirname(dir),PUBLIC_BFT_CUTOVER_TRANSACTION_ID:tx,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:planFile,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:planPin,...extra}});
+}
+const save=(file,v)=>{const bytes=Buffer.isBuffer(v)?v:Buffer.from(JSON.stringify(v)+'\n');fs.writeFileSync(file,bytes,{flag:'wx',mode:0o600});return hash(bytes);};
+let n=0;
+function prepare(label) {
+ const parent=path.join(root,`${++n}-${label}`);fs.mkdirSync(parent,{mode:0o700});const dir=path.join(parent,tx);
+ const r=invoke(dir,'prepare-native',rawPath,path.join(root,planRef.file),planRef.sha256);assert.equal(r.status,0,r.stderr);
+ assert.equal(fs.existsSync(path.join(dir,'approval.json')),false);assert.equal(fs.existsSync(path.join(dir,'snapshot-export-attempt')),false);
+ const capture=path.join(dir,'snapshot-source-capture');fs.mkdirSync(capture,{mode:0o700});
+ const sourcePin=save(path.join(capture,'snapshot-source.json'),{height:'2061760',blockHash:'b'.repeat(64),syntheticOnly:true});
+ const exportApproval={...rawApproval,snapshotOnly:true,snapshotSourceSha256:sourcePin};delete exportApproval.preparationOnly;
+ const exportFile=path.join(parent,'export-approval.json');save(exportFile,exportApproval);
+ return {parent,dir,exportApproval,exportFile,sourcePin};
+}
+function exported(label) {
+ const f=prepare(label),before=fs.readFileSync(path.join(f.dir,'journal.jsonl'));
+ const p=invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256);assert.equal(p.status,0,p.stderr);
+ f.result=JSON.parse(p.stdout);assert.equal(f.result.status,'awaiting_final_plan_authorization');assert.equal(f.result.automaticRetry,false);
+ assert.deepEqual(fs.readFileSync(path.join(f.dir,'journal.jsonl')).subarray(0,before.length),before);
+ assert.deepEqual(calls(f),['preflight','backup','freeze_mutations','pause_authoritative','export_final_snapshot']);
+ assert.equal(fs.existsSync(path.join(f.dir,'approval.json')),false);assert.equal(fs.existsSync(path.join(f.dir,'candidate')),false);
+ assert.equal(fs.existsSync(path.join(f.parent,'final-plan.json')),false);assert.equal(fs.existsSync(path.join(f.parent,'final-approval.json')),false);
+ return f;
+}
+function finalize(f) {
+ const g=Buffer.from('{"synthetic":"final G after frozen M"}');const finalPlan={...plan,consensusGenesis:g.toString('base64'),consensusGenesisSHA256:hash(g),migrationStateHash:'a'.repeat(64)};delete finalPlan.preparationOnly;
+ f.finalPlanFile=path.join(f.parent,'final-plan.json');f.finalPin=save(f.finalPlanFile,finalPlan);
+ f.finalApproval={...rawApproval,snapshotSourceSha256:f.sourcePin,operatorPlanSha256:f.finalPin,candidateGenesisTime:utc(now)};delete f.finalApproval.preparationOnly;
+ f.finalFile=path.join(f.parent,'final-approval.json');save(f.finalFile,f.finalApproval);
+}
+function calls(f) {return fs.readFileSync(path.join(f.dir,'driver-calls.txt'),'utf8').trim().split('\n');}
+function originals(dir) {return Object.fromEntries(fs.readdirSync(dir,{withFileTypes:true}).flatMap(x=>x.isDirectory()?Object.entries(originals(path.join(dir,x.name))):[[path.join(dir,x.name),fs.readFileSync(path.join(dir,x.name)).toString('hex')]]));}
+const good=exported('positive');finalize(good);const before=originals(good.dir),m=fs.readFileSync(path.join(good.dir,'final-snapshot/migration.json'));
+let outcome=invoke(good.dir,'continue-native',good.finalFile,good.finalPlanFile,good.finalPin);assert.equal(outcome.status,0,outcome.stderr);assert.match(outcome.stdout,/awaiting_pq_activation/);
+assert.deepEqual(calls(good),['preflight','backup','freeze_mutations','pause_authoritative','export_final_snapshot','verify_frozen_snapshot','initialize_candidate','deploy_candidate','start_candidate','verify_candidate']);
+assert.deepEqual(fs.readFileSync(path.join(good.dir,'final-snapshot/migration.json')),m);
+for(const [p,v]of Object.entries(before))if(!p.endsWith('/journal.jsonl')&&!p.endsWith('/driver-calls.txt'))assert.equal(fs.readFileSync(p).toString('hex'),v);
+const paused=JSON.parse(fs.readFileSync(path.join(good.dir,'quiet-bootstrap-attempt/result.json')));assert.equal(paused.status,'awaiting_pq_activation');
+let saved=originals(good.dir);assert.notEqual(invoke(good.dir,'continue-native',good.finalFile,good.finalPlanFile,good.finalPin).status,0);assert.deepEqual(originals(good.dir),saved);
+// A durable export with lost stdout remains exclusive; no exporter replay.
+const lost=exported('lost-stdout');saved=originals(lost.dir);assert.notEqual(invoke(lost.dir,'export-native',lost.exportFile,path.join(root,planRef.file),planRef.sha256).status,0);assert.deepEqual(originals(lost.dir),saved);
+for(const failure of ['export_final_snapshot','export_final_snapshot:after']) {
+ const f=prepare(failure.replace(':','-'));outcome=invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256,{CONTROL_FAIL:failure});assert.equal(outcome.status,failure.includes(':')?73:72,outcome.stderr);
+ assert.equal(fs.existsSync(path.join(f.dir,'snapshot-export-attempt/result.json')),false);assert.match(fs.readFileSync(path.join(f.dir,'journal.jsonl'),'utf8'),/"phase":"transaction","status":"unknown"/);
+ saved=originals(f.dir);assert.notEqual(invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256).status,0);assert.deepEqual(originals(f.dir),saved);assert.equal(calls(f).filter(x=>x==='export_final_snapshot').length,1);
+}
+for(const label of ['no-export','missing-result','changed-result','changed-raw-approval','changed-terminal','changed-source','changed-M','missing-terminal-output','final-source-pin','final-expiry','verify-failure']) {
+ const f=label==='no-export'?prepare(label):exported(label);finalize(f);
+ const p=x=>path.join(f.dir,x),mutate=(file,fn)=>{const v=JSON.parse(fs.readFileSync(file));fn(v);fs.writeFileSync(file,JSON.stringify(v)+'\n');};
+ if(label==='missing-result')fs.unlinkSync(p('snapshot-export-attempt/result.json'));
+ if(label==='changed-result')mutate(p('snapshot-export-attempt/result.json'),v=>v.snapshotSourceSHA256='d'.repeat(64));
+ if(label==='changed-raw-approval')fs.appendFileSync(p('snapshot-approval.original.json'),' ');
+ if(label==='changed-terminal')mutate(p('final-snapshot/remote-evidence.json'),v=>v.height++);
+ if(label==='changed-source')fs.appendFileSync(p('snapshot-source-capture/snapshot-source.json'),' ');
+ if(label==='changed-M')fs.appendFileSync(p('final-snapshot/migration.json'),' ');
+ if(label==='missing-terminal-output')fs.unlinkSync(p('roles/primary-export-final-snapshot.txt'));
+ if(label==='final-source-pin')mutate(f.finalFile,v=>v.snapshotSourceSha256='d'.repeat(64));
+ if(label==='final-expiry')mutate(f.finalFile,v=>v.expiresAt='2000-01-01T00:00:00Z');
+ saved=originals(f.dir);outcome=invoke(f.dir,'continue-native',f.finalFile,f.finalPlanFile,f.finalPin,label==='verify-failure'?{CONTROL_FAIL:'verify_frozen_snapshot'}:{});assert.notEqual(outcome.status,0,label+' unexpectedly passed');
+ if(label==='verify-failure'){assert.equal(outcome.status,72,outcome.stderr);assert.match(fs.readFileSync(p('journal.jsonl'),'utf8'),/\"phase\":\"transaction\",\"status\":\"unknown\"/);const retained=originals(f.dir);assert.notEqual(invoke(f.dir,'continue-native',f.finalFile,f.finalPlanFile,f.finalPin).status,0);assert.deepEqual(originals(f.dir),retained);}
+ assert.equal(calls(f).includes('initialize_candidate'),false,label+' initialized');assert.equal(calls(f).filter(x=>x==='export_final_snapshot').length,label==='no-export'?0:1,label+' re-exported');
+ for(const [file,bytes]of Object.entries(saved))if(!file.endsWith('/journal.jsonl')&&!file.endsWith('/driver-calls.txt'))assert.equal(fs.readFileSync(file).toString('hex'),bytes,label+' rewrote original');
+}
+// A different normalized snapshot scope/expiry cannot consume original prep.
+for(const label of ['wrong-tx','changed-expiry','future-plan','raw-preparation']) {
+ const f=prepare(label);const v={...f.exportApproval};if(label==='wrong-tx')v.transactionId='different-transaction-001';if(label==='changed-expiry')v.expiresAt=utc(new Date(now.getTime()+1800000));if(label==='future-plan')v.operatorPlanSha256='f'.repeat(64);if(label==='raw-preparation'){delete v.snapshotOnly;v.preparationOnly=true;}
+ fs.writeFileSync(f.exportFile,JSON.stringify(v)+'\n');saved=originals(f.dir);outcome=invoke(f.dir,'export-native',f.exportFile,path.join(root,planRef.file),planRef.sha256);assert.notEqual(outcome.status,0,label);assert.deepEqual(originals(f.dir),saved);assert.equal(calls(f).length,4);
+}
+// Missing quiet is a valid original preparation plan but cannot select the
+// same-owner public-cutover flow: refuse before any native driver/freeze call.
+const noQuietPlan={...plan};delete noQuietPlan.bootstrapRegistrationMode;
+fs.writeFileSync(path.join(root,planRef.file),JSON.stringify(noQuietPlan)+'\n');planRef.sha256=hash(fs.readFileSync(path.join(root,planRef.file)));
+review.sources.operatorPreparationPlan=planRef;fs.writeFileSync(reviewPath,JSON.stringify(review)+'\n');
+const noQuietApproval={...rawApproval,custodyEvidence:'sha256:'+hash(fs.readFileSync(reviewPath)),operatorPreparationPlanSha256:planRef.sha256};
+const noQuietFile=path.join(root,'no-quiet-approval.json');save(noQuietFile,noQuietApproval);
+const approvedNoQuiet=call('scripts/verify/validate-public-bft-cutover-approval.mjs',[noQuietFile,commit,release,reviewPath,'--prepare-native']);assert.equal(approvedNoQuiet.status,0,approvedNoQuiet.stderr);
+const noQuietParent=path.join(root,'no-quiet-parent');fs.mkdirSync(noQuietParent,{mode:0o700});const noQuietDir=path.join(noQuietParent,tx);
+outcome=invoke(noQuietDir,'prepare-native',noQuietFile,path.join(root,planRef.file),planRef.sha256);assert.notEqual(outcome.status,0);assert.match(outcome.stderr,/requires the original quiet registration stop/);assert.equal(fs.existsSync(path.join(noQuietDir,'driver-calls.txt')),false);assert.equal(fs.existsSync(path.join(noQuietDir,'journal.jsonl')),false);
+assert.deepEqual(fs.readFileSync(path.join(noQuietDir,'preparation-approval.original.json')),fs.readFileSync(noQuietFile));
+console.log('PUBLIC_BFT_SAME_OWNER_SNAPSHOT_STOP_DATA_ONLY: original protected validators + transaction; frozen M -> one export -> durable stop -> original read-only verifier -> init -> quiet pause; no re-export, unknown preserved; synthetic transport only');
+} finally { fs.rmSync(root,{recursive:true,force:true}); }
+SNAPSHOTJS
+# This is the isolated public test repo, not the user's working tree.
+git -C "$repo" add scripts/verify/native-export-fixture.mjs
+git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'snapshot stop public fixture'
+node "$repo/scripts/verify/native-export-fixture.mjs"

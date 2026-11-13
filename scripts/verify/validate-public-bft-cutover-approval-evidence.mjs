@@ -10,7 +10,8 @@ function fail(message) {
 
 const [approvalPath, expectedCommit, expectedRelease] = process.argv.slice(2);
 const preparation = process.argv[5] === "--prepare-native";
-if (process.argv.length !== (preparation ? 6 : 5)) fail("unexpected approval evidence mode/arguments");
+const snapshot = process.argv[5] === "--export-native";
+if (process.argv.length !== (preparation || snapshot ? 6 : 5)) fail("unexpected approval evidence mode/arguments");
 if (!approvalPath || !expectedCommit || !expectedRelease) fail("approval evidence path, commit, and release are required");
 if (!/^[0-9a-f]{12}$/.test(expectedCommit) || expectedRelease !== `ynx-bft-gateway-${expectedCommit}`) fail("expected identity is invalid");
 const stat = fs.statSync(approvalPath);
@@ -24,10 +25,11 @@ try {
 if (approval.custodyProfile === "single-app-same-owner-inplace/v1") {
   const {validateSameOwnerProjection, readSameOwnerJSON} = await import("./lib/public-bft-same-owner.mjs");
   approval = readSameOwnerJSON(approvalPath);
-  const normalized = validateSameOwnerProjection(approval, expectedCommit, expectedRelease, preparation, {current: false});
+  const normalized = validateSameOwnerProjection(approval, expectedCommit, expectedRelease, preparation, {current: snapshot, snapshot});
   process.stdout.write(JSON.stringify({...normalized, validated: true}) + "\n");
   process.exit(0);
 }
+if (snapshot) fail("snapshot-only export requires the original same-owner custody profile");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);

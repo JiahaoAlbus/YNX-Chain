@@ -575,6 +575,211 @@ class PublicSuccessorControls(unittest.TestCase):
             m.retain_migration(str(bad_tx),'f'*64,'a'*40,io.BytesIO(raw))
 
 
+    def test_derive_bootstrap_closed_shell_and_request(self):
+        shell=HERE/'public-bft-linux-public-tools.sh'
+        script='source "$1"; PUBLIC_BFT_LINUX_TOOL_ROLE=primary; public_bft_linux_tool(){ printf "%s\\n" "$@"; }; public_bft_package_call unused "${@:2}"'
+        args=['-derive-bootstrap','-migration-state','/public/M','-validator-manifest','/public/V','-validator-manifest-sha256','c'*64,'-genesis-time','2026-11-13T01:02:03Z']
+        result=subprocess.run(['bash','-c',script,'test',str(shell),*args],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stdout,'derive-bootstrap\n/public/M\n/public/V\n'+'c'*64+'\n2026-11-13T01:02:03Z\n')
+        a=dict(genesisTime='2026-11-13T01:02:03Z',validatorManifestSHA256='c'*64,migrationEvidenceSHA256='d'*64)
+        r=self.request('derive-bootstrap',a);m.validate_request(r)
+        for changed in (args+['-output','/new'],args[:-2],args[:5]+args[7:]+args[5:7],args+['-operator-plan','/x']):
+            result=subprocess.run(['bash','-c',script,'test',str(shell),*changed],capture_output=True,text=True)
+            self.assertEqual(result.returncode,64);self.assertEqual(result.stdout,'')
+        for change in (lambda r:r['arguments'].pop('migrationEvidenceSHA256'),lambda r:r['arguments'].update(output='/new'),
+                       lambda r:r['arguments'].update(validatorManifestSHA256='0'*64),lambda r:r.update(destination='/new'),
+                       lambda r:r.update(role='seoul',runtime=r['runtime'].replace('-primary-','-seoul-'))):
+            bad=copy.deepcopy(r);change(bad)
+            with self.subTest(bad=bad),self.assertRaises(ValueError):m.validate_request(bad)
+
+
+    def _derivation_manifest(self):
+        fields=('validatorAddress','role','privateP2PHost','p2pPort','nodeId','consensusKeyType','consensusPubKey','consensusAddress')
+        value=dict(version='PUBLIC_SYNTHETIC_NOT_MATH',purpose='PUBLIC',chainId='public-test',validators=[])
+        for role in sorted(m.ROLES):
+            v=dict(zip(fields,('public',role,'127.0.0.1',26656,'public','public','public','public')))
+            value['validators'].append(v)
+        return json.dumps(value,separators=(',',':'),ensure_ascii=False).encode()
+
+    def _derivation_stdout(self):
+        genesis=b'{\n  "PUBLIC": "synthetic transport bytes, not a genesis proof"\n}\n'
+        value=dict(version='YNX-PUBLIC-BFT-BOOTSTRAP-DERIVATION/v1',originalGenesisHash='a'*64,
+            boundMigrationStateHash='b'*64,consensusGenesisSHA256=m.sha(genesis),
+            consensusGenesis=m.base64.b64encode(genesis).decode(),genesisTime='2026-11-13T01:02:03Z')
+        return (json.dumps(value,indent=2)+'\n').encode()
+
+    def _derivation_client(self):
+        tx,data=self.prepare_data();m.fresh(tx/'roles');m.fresh(tx/'final-snapshot');m.fresh(data/'final-snapshot')
+        migration=data/'final-snapshot/migration.json';m.durable(migration,b'PUBLIC synthetic completed migration; not math')
+        evidence=dict(transactionId=tx.name,exporterCommit='a'*40,sha256=m.read(migration)[0]['sha256'],validated=True,sourceUnchanged=True,
+            pauseVerified=True,mutationFreezeVerified=True,runtimeStarted=False,deployment=False)
+        m.durable(tx/'final-snapshot/remote-evidence.json',m.encode(evidence))
+        m.durable(tx/'roles/primary-export-final-snapshot.txt',('sha256='+evidence['sha256']+'\n').encode())
+        validators=self.root/'validators.json';m.durable(validators,self._derivation_manifest())
+        selection=patch.dict(os.environ,{'PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST':str(validators)})
+        selection.start();self.addCleanup(selection.stop)
+        args=[str(tx),'primary','/var/tmp/ynx-pq-runtime-source-primary-original/verified','a'*40,'b'*64,'derive-bootstrap',
+            str(migration),str(validators),m.read(validators)[0]['sha256'],'2026-11-13T01:02:03Z']
+        return tx,data,migration,validators,args
+
+    def test_derive_bootstrap_original_manifest_and_input_closure(self):
+        tx,data,migration,validators,args=self._derivation_client()
+        raw=validators.read_bytes();expected=m.sha(raw)
+        self.assertEqual(m.original_derivation_inputs(tx,str(migration),str(validators),expected,'a'*40),migration)
+        self.assertEqual(m.validator_manifest_pin(raw),expected)
+        r=self.request('derive-bootstrap',dict(genesisTime=args[-1],validatorManifestSHA256=expected,migrationEvidenceSHA256='d'*64))
+        root=m.fresh(self.root/'inputs-case');m.fresh(root/'inputs')
+        m.durable(root/'inputs/migration.json',migration.read_bytes());m.durable(root/'inputs/validators.json',raw)
+        r['inputs']=[{'path':'inputs/'+v['path'],'bytes':v['bytes'],'sha256':v['sha256']} for v in m.catalog(root/'inputs')]
+        m.validate_inputs(root,r)
+        # Canonical-only equality cannot replace the same approved raw bytes.
+        for altered in (raw+b'\n',json.dumps(m.decode(raw),sort_keys=True).encode(),m.encode({**m.decode(raw),'privateKey':'PUBLIC_SENTINEL'})):
+            with self.subTest(shape=len(altered)):
+                validators.write_bytes(altered)
+                with self.assertRaises(ValueError):m.original_derivation_inputs(tx,str(migration),str(validators),m.sha(altered),'a'*40)
+        validators.write_bytes(raw)
+        with self.assertRaises(ValueError):m.original_derivation_inputs(tx,str(migration),str(validators),'e'*64,'a'*40)
+        other=self.root/'not-selected.json';m.durable(other,raw)
+        with patch.object(m,'read',wraps=m.read) as read,self.assertRaisesRegex(ValueError,'public selection'):
+            m.original_derivation_inputs(tx,str(migration),str(other),expected,'a'*40)
+        self.assertFalse(any(Path(c.args[0])==other for c in read.call_args_list))
+        m.durable(root/'inputs/operator-plan.json',b'{}');r['inputs'].append({'path':'inputs/operator-plan.json',**m.read(root/'inputs/operator-plan.json')[0]})
+        with self.assertRaisesRegex(ValueError,'exact bootstrap'):m.validate_inputs(root,r)
+        self.assertEqual(validators.read_bytes(),raw)
+
+    def test_derive_bootstrap_no_migration_upload_or_unknown_reexecution(self):
+        tx,data,migration,validators,args=self._derivation_client();calls=[]
+        def receive(command,stream,out,err,limit):
+            with tarfile.open(fileobj=stream,mode='r:') as archive:
+                names=archive.getnames();r=m.decode(archive.extractfile('request.json').read())
+                self.assertNotIn('inputs/migration.json',names)
+                self.assertEqual(archive.extractfile('inputs/validators.json').read(),validators.read_bytes())
+                self.assertEqual({p['path'] for p in r['inputs']},{'inputs/migration.json','inputs/validators.json'})
+                self.assertEqual(r['arguments']['validatorManifestSHA256'],args[-2]);self.assertEqual(r['destination'],'')
+                self.assertEqual(r['arguments']['migrationEvidenceSHA256'],m.read(tx/'final-snapshot/remote-evidence.json')[0]['sha256'])
+                calls.append(r)
+            raise ValueError('controlled lost acknowledgement; no SSH')
+        before=migration.read_bytes()
+        with patch.object(m,'receive_transport',receive),self.assertRaisesRegex(ValueError,'controlled lost acknowledgement'):m.client(args)
+        local=data/'linux-public-tools'/m.sha(m.encode(calls[0]))
+        retained=m.catalog(local)
+        with patch.object(m,'receive_transport') as transport,self.assertRaisesRegex(ValueError,'UNKNOWN preserved'):m.client(args)
+        transport.assert_not_called();self.assertEqual(m.catalog(local),retained);self.assertEqual(migration.read_bytes(),before)
+        self.assertFalse((local/'inputs/migration.json').exists());self.assertTrue((local/'INTENT.json').exists());self.assertFalse((local/'PUBLISHED.json').exists())
+        inputs=sum(p['bytes'] for p in calls[0]['inputs'])
+        self.assertEqual(m.operation_space(calls[0],True),3*inputs+2*(3<<20)+(144<<20))
+        self.assertEqual(m.operation_space(calls[0]),2*inputs+3*(3<<20)+(144<<20))
+
+    def test_derive_bootstrap_bounded_original_stdout_contract(self):
+        raw=self._derivation_stdout();value=m.decode(raw);t=value['genesisTime']
+        self.assertEqual(m.validate_bootstrap_derivation(raw,t),value)
+        changes=[dict(extra='no'),dict(version='other'),dict(genesisTime='2026-11-13T01:02:04Z'),dict(originalGenesisHash='0'*64),
+            dict(boundMigrationStateHash=7),dict(consensusGenesisSHA256='f'*64),dict(consensusGenesis=''),
+            dict(consensusGenesis=value['consensusGenesis']+'\n'),dict(consensusGenesis=value['consensusGenesis'].rstrip('=')),
+            dict(consensusGenesis='e31=')]
+        # e31= decodes but is noncanonical pad-bit encoding of e30=.
+        for change in changes:
+            with self.subTest(fields=list(change)),self.assertRaises(ValueError):m.validate_bootstrap_derivation(m.encode({**value,**change}),t)
+        for bad in (m.encode({k:v for k,v in value.items() if k!='boundMigrationStateHash'}),raw+b'{}',b' '*(1<<20)+raw):
+            with self.assertRaises(ValueError):m.validate_bootstrap_derivation(bad,t)
+        self.assertEqual(self._derivation_stdout(),raw)
+
+    def test_derive_bootstrap_fixed_execution_and_failed_original_retention(self):
+        # Original hydrate/jail/framing run; only privileged ownership, runtime
+        # admission and the math subprocess are controlled synthetic fixtures.
+        from types import SimpleNamespace
+        class OwnedDirectory(type(Path())):
+            def stat(self,*a,**kw):
+                real=super().stat(*a,**kw)
+                return SimpleNamespace(st_uid=0,st_mode=real.st_mode)
+        bundle=m.fresh(self.root/'runtime');m.fresh(bundle/'operator');source={'binaries':{},'operator':{}}
+        for group,names in (('binaries',m.BINARIES),('operator',m.OPERATORS)):
+            for name in names:
+                p=bundle/name if group=='binaries' else bundle/'operator'/name
+                m.durable(p,b'PUBLIC SYNTHETIC '+name.encode());source[group][name]=m.read(p)[0]
+        m.durable(bundle/'SOURCE.json',m.encode(source))
+        for mode in ('success','nonzero','malformed'):
+            with self.subTest(mode=mode):
+                root=m.fresh(self.root/('execute-'+mode));m.fresh(root/'inputs')
+                original=m.fresh(self.root/('snapshot-'+mode));migration=b'PUBLIC original migration '+mode.encode()
+                evidence=dict(transactionId='original-transaction-001',exporterCommit='a'*40,sha256=m.sha(migration),validated=True,
+                    sourceUnchanged=True,pauseVerified=True,mutationFreezeVerified=True,deployment=False,runtimeStarted=False)
+                m.durable(original/'final-migration-state.json',migration);m.durable(original/'final-migration-state.evidence.json',m.encode(evidence))
+                manifest=self._derivation_manifest();m.durable(root/'inputs/validators.json',manifest)
+                r=self.request('derive-bootstrap',dict(genesisTime='2026-11-13T01:02:03Z',validatorManifestSHA256=m.sha(manifest),migrationEvidenceSHA256=m.sha(m.encode(evidence))))
+                r['sourceSHA256']=m.read(bundle/'SOURCE.json')[0]['sha256']
+                r['inputs']=[{'path':'inputs/migration.json','bytes':len(migration),'sha256':m.sha(migration)},
+                    {'path':'inputs/validators.json',**m.read(root/'inputs/validators.json')[0]}]
+                for name in r['transportSources']:
+                    m.durable(root/name,b'original');r['transportSources'][name]=m.read(root/name)[0]
+                m.durable(root/'request.json',m.encode(r));actual_original=m.original
+                def mapped(path):
+                    if str(path)==r['runtime']:return bundle
+                    if str(path)=='/var/backups/ynx-chain/public-bft-cutover/'+r['transaction']:return OwnedDirectory(original)
+                    return actual_original(path)
+                stdout=self._derivation_stdout() if mode=='success' else b'original nonzero or malformed DATA\n';commands=[]
+                def fake(command,target,input_file=None):
+                    commands.append(command);self.assertIsNone(input_file)
+                    self.assertEqual(command[6:],['/tool/ynx-consensus-package','-derive-bootstrap','-migration-state','/inputs/migration.json',
+                        '-validator-manifest','/inputs/validators.json','-genesis-time',r['arguments']['genesisTime']])
+                    self.assertEqual(command[:5],['/usr/bin/timeout','--signal=TERM','--kill-after=5','120','/usr/sbin/chroot'])
+                    self.assertEqual((target/'public-root/inputs/migration.json').read_bytes(),migration)
+                    self.assertEqual((target/'public-root/inputs/validators.json').read_bytes(),manifest)
+                    self.assertFalse((target/'public-root/package').exists())
+                    m.durable(target/'stdout',stdout);m.durable(target/'stderr',b'original failure\n' if mode=='nonzero' else b'')
+                    return 1 if mode=='nonzero' else 0
+                with patch.object(m,'original',mapped),patch.object(m,'original_validator') as admitted,patch.object(m,'bounded_math',fake):
+                    if mode=='malformed':
+                        with self.assertRaises(ValueError):m.execute(root,r)
+                    else:self.assertEqual(m.execute(root,r),1 if mode=='nonzero' else 0)
+                admitted.assert_called_once();self.assertEqual(len(commands),1);self.assertEqual((root/'stdout').read_bytes(),stdout)
+                self.assertEqual((original/'final-migration-state.json').read_bytes(),migration)
+                if mode=='malformed':
+                    self.assertFalse((root/'RESULT.json').exists());self.assertFalse((root/'COMPLETE.json').exists());continue
+                self.assertTrue((root/'COMPLETE.json').exists())
+                receiver=m.fresh(self.root/('receiver-'+mode));m.checked_copy(root/'response.tar',receiver/'response.tar',m.read(root/'response.tar',material=False)[0])
+                out,status=m.accept_result(receiver,r);self.assertEqual(status,1 if mode=='nonzero' else 0)
+                m.publish_result(receiver,r,out,status);self.assertEqual((out/'stdout').read_bytes(),stdout)
+                self.assertTrue((receiver/'PUBLISHED.json').is_file())
+                self.assertFalse(any('.partial' in p.name or 'UNKNOWN' in p.name for p in receiver.rglob('*')))
+                self.assertEqual({p['path'] for p in m.catalog(out)},{'stdout','stderr'})
+                # Reconciled/reused successful output must still validate the
+                # DATA, even when its catalog is coherently changed by a peer.
+                if mode=='success':
+                    (out/'stdout').write_bytes(b'{}\n');result=m.decode((out.parent/'RESULT.json').read_bytes());result['outputs']=m.catalog(out)
+                    (out.parent/'RESULT.json').write_bytes(m.encode(result))
+                    with self.assertRaisesRegex(ValueError,'closed bootstrap'):m.verified_result(out.parent,r)
+                with patch.object(m,'original',mapped),patch.object(m,'original_validator'),patch.object(m,'bounded_math') as math,self.assertRaisesRegex(ValueError,'closed original transport input'):m.execute(root,r)
+                math.assert_not_called()
+
+    def test_derive_bootstrap_completed_publication_reuses_exact_data(self):
+        from types import SimpleNamespace
+        tx,data,migration,validators,args=self._derivation_client();calls=[];stdout=self._derivation_stdout()
+        def receive(command,stream,out,err,limit):
+            with tarfile.open(fileobj=stream,mode='r:') as archive:
+                request=m.decode(archive.extractfile('request.json').read());calls.append(request)
+                self.assertNotIn('inputs/migration.json',archive.getnames())
+            remote=m.fresh(self.root/'completed-synthetic-response');outputs=m.fresh(remote/'outputs')
+            m.durable(outputs/'stdout',stdout);m.durable(outputs/'stderr',b'')
+            result=dict(version=m.VERSION,requestSHA256=m.sha(m.encode(request)),role=request['role'],commit=request['commit'],
+                sourceSHA256=request['sourceSHA256'],operation=request['operation'],exitCode=0,outputs=m.catalog(outputs),
+                sourceGrant=False,deployment=False,runtimeStarted=False,mathStartedUnixNanoseconds='100',mathFinishedUnixNanoseconds='101')
+            m.durable(remote/'RESULT.json',m.encode(result));m.pack(remote,m.catalog(remote),out);m.durable(err,b'');return 0
+        output=io.BytesIO();errors=io.BytesIO()
+        with patch.object(m,'receive_transport',receive),patch.object(m.sys,'stdout',SimpleNamespace(buffer=output)),patch.object(m.sys,'stderr',SimpleNamespace(buffer=errors)):
+            self.assertEqual(m.client(args),0)
+        self.assertEqual(output.getvalue(),stdout);self.assertEqual(errors.getvalue(),b'');self.assertEqual(len(calls),1)
+        local=data/'linux-public-tools'/m.sha(m.encode(calls[0]));before=m.catalog(local)
+        self.assertTrue((local/'PUBLISHED.json').exists());self.assertFalse((local/'inputs/migration.json').exists())
+        self.assertFalse(any('.partial' in p.name or 'UNKNOWN' in p.name for p in local.rglob('*')))
+        output=io.BytesIO()
+        with patch.object(m,'receive_transport') as transport,patch.object(m.sys,'stdout',SimpleNamespace(buffer=output)),patch.object(m.sys,'stderr',SimpleNamespace(buffer=errors)):
+            self.assertEqual(m.client(args),0)
+        transport.assert_not_called();self.assertEqual(output.getvalue(),stdout);self.assertEqual(m.catalog(local),before)
+        self.assertFalse(m.decode((local/'PUBLISHED.json').read_bytes())['mathReexecuted'])
+
+
 def actual_smoke(args):
     """CI only: original built ELF + fresh normal fixture, no rebuild/keygen."""
     import argparse,hashlib,shutil
@@ -690,6 +895,23 @@ def actual_smoke(args):
     referenced,code=math_case('same-origin-migration-summary','migration-summary',{'migrationEvidenceSHA256':m.sha(evidence)},[('inputs/migration.json',opfixture/'migration.json')])
     m.require(code==0 and m.read(referenced/'outputs/stdout',8192)[1]==m.read(summary/'outputs/stdout',8192)[1],
               'same original host migration reference changed normal Go result')
+    # The release bridge consumes the same host-local M and exact public V.
+    # The already built Go command must derive the identical operator Genesis.
+    reviewed_manifest=m.read(opfixture/'validator-manifest.json',256<<10)[1]
+    validator_pin=m.validator_manifest_pin(reviewed_manifest)
+    canonical_raw=m.canonical_validator_manifest(reviewed_manifest)
+    m.require(m.sha(canonical_raw)==validator_pin,'canonical validator fixture differs from its approved manifest pin')
+    canonical_path=parent/'approved-derive-validators.json';m.durable(canonical_path,canonical_raw)
+    derivation,code=math_case('derive-frozen-bootstrap','derive-bootstrap',
+        {'genesisTime':manifest['genesisTime'],'validatorManifestSHA256':validator_pin,'migrationEvidenceSHA256':m.sha(evidence)},
+        [('inputs/migration.json',opfixture/'migration.json'),('inputs/validators.json',canonical_path)])
+    derived=m.decode(m.read(derivation/'outputs/stdout',1<<20)[1]);original_plan=m.decode(m.read(opfixture/layout['operatorPlan'],1<<20)[1])
+    m.require(code==0 and derived['consensusGenesis']==original_plan['consensusGenesis']
+              and derived['consensusGenesisSHA256']==original_plan['consensusGenesisSHA256']
+              and derived['boundMigrationStateHash']==original_plan['migrationStateHash']
+              and derived['originalGenesisHash']==original_plan['originalGenesisHash'], 'actual frozen derivation differs from the normal operator plan')
+    m.require(operations[-1]['omittedTransportMembers']==['inputs/migration.json']
+              and not (derivation/'outputs/package').exists(),'frozen derivation transferred the original migration or created a package')
     generated,code=math_case('generate-package','generate-package',{'genesisTime':manifest['genesisTime'],'planSHA256':layout['operatorPlanHash'],'migrationEvidenceSHA256':m.sha(evidence)},[('inputs/migration.json',opfixture/'migration.json'),('inputs/validators.json',opfixture/'validator-manifest.json'),('inputs/operator-plan.json',opfixture/layout['operatorPlan'])]);m.require(code==0,'normal package generation through bridge failed')
     package_temp_completed(generated,'generate-package')
     expected_package=opcase/'candidate-block-journal';actual_package=generated/'outputs/package'

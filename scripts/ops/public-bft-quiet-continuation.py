@@ -127,11 +127,113 @@ def publish(path, value):
 def pairs(phases):
     return [(p, state) for p in phases for state in ('started', 'passed')]
 
-def expected_prefix():
+SAME_OWNER = 'single-app-same-owner-inplace/v1'
+SNAPSHOT_FIELDS = set(('version transactionId commit bftRelease status preparationApprovalSHA256 '
+    'snapshotApprovalOriginalSHA256 snapshotApprovalSHA256 snapshotSourceSHA256 exporterManifestSHA256 '
+    'remoteEvidenceSHA256 journalSHA256 automaticRetry').split())
+
+def preparation_prefix():
+    return pairs(PREFIX) + [('preparation', 'awaiting_final_snapshot_authorization')]
+
+def snapshot_prefix():
+    return preparation_prefix() + pairs(['export_final_snapshot']) + [('snapshot', 'awaiting_final_plan_authorization')]
+
+def native_boundary(root_path, exporting=False):
+    root = private_root(root_path)
+    for name in ('approval.json', 'continuation-attempt', 'candidate/initialize-attempt', 'candidate/start-attempt'):
+        need(not os.path.lexists(root / name), 'existing continuation/initialization must be retained')
+    def scan(directory):
+        for item in directory.iterdir():
+            st = item.lstat()
+            need(not stat.S_ISLNK(st.st_mode) and not re.search(r'UNKNOWN|\.partial|\.tmp(?:$|[-.])', item.name),
+                 'retained partial/UNKNOWN or alias blocks continuation')
+            if stat.S_ISDIR(st.st_mode):
+                scan(item)
+    scan(root)
+    prep, _ = load(root / 'preparation-approval.json', limit=1 << 20)
+    if exporting:
+        need(prep.get('custodyProfile') == SAME_OWNER, 'snapshot stop is same-owner only')
+        for name in ('snapshot-export-attempt', 'snapshot-approval.original.json', 'snapshot-approval.json', 'final-snapshot'):
+            need(not os.path.lexists(root / name), 'existing snapshot/UNKNOWN forbids export retry')
+        journal(root, preparation_prefix())
+    elif prep.get('custodyProfile') == SAME_OWNER:
+        snapshot_record(root)
+        journal(root, snapshot_prefix())
+    else:
+        for name in ('snapshot-export-attempt', 'snapshot-approval.original.json', 'snapshot-approval.json'):
+            need(not os.path.lexists(root / name), 'legacy preparation cannot adopt snapshot stop')
+        journal(root, preparation_prefix())
+    return prep.get('custodyProfile', '')
+
+def snapshot_bindings(root):
+    prep, prep_raw = load(root / 'preparation-approval.json', limit=1 << 20)
+    snap, snap_raw = load(root / 'snapshot-approval.json', limit=1 << 20)
+    original_raw = original(str(root / 'snapshot-approval.original.json'), 1 << 20)
+    need(prep.get('custodyProfile') == SAME_OWNER and prep.get('preparationOnly') is True and
+         snap.get('snapshotOnly') is True and pin(snap.get('snapshotSourceSha256')),
+         'original same-owner preparation and snapshot approvals required')
+    stable = dict(snap); stable.pop('snapshotOnly'); stable.pop('snapshotSourceSha256')
+    before = dict(prep); before.pop('preparationOnly')
+    need(stable == before and prep.get('transactionId') == root.name, 'snapshot changed original stable authorization')
+    until = datetime.datetime.fromisoformat(prep['expiresAt'].replace('Z', '+00:00'))
+    need(until.tzinfo is not None and until > datetime.datetime.now(datetime.timezone.utc), 'snapshot approval expired')
+    intent, _ = load(root / 'snapshot-export-attempt/intent.json', limit=4096)
+    need(intent == {'status': 'unknown', 'automaticRetry': False} and intent['automaticRetry'] is False, 'original exclusive snapshot intent required')
+    terminal, terminal_raw = load(root / 'final-snapshot/remote-evidence.json', limit=1 << 20)
+    need(terminal.get('transactionId') == root.name and terminal.get('commit') == prep.get('commit') and
+         terminal.get('bftRelease') == prep.get('release') and
+         terminal.get('snapshotSourceSha256') == snap['snapshotSourceSha256'] and
+         terminal.get('exporterManifestSha256') == snap.get('exporterManifestSha256') and
+         terminal.get('exporterCommit') == prep['sameOwnerEvidence']['sourceCommit'] and
+         all(terminal.get(k) is True for k in ('pauseVerified','mutationFreezeVerified','sourceUnchanged','validated')) and
+         all(terminal.get(k) is False for k in ('reused','deployment','runtimeStarted')) and pin(terminal.get('sha256')),
+         'original final snapshot terminal differs from independent approval')
+    return dict(version='YNX-NATIVE-SNAPSHOT-EXPORTED/v1', transactionId=root.name, commit=prep['commit'],
+                bftRelease=prep['release'], status='awaiting_final_plan_authorization',
+                preparationApprovalSHA256=sha(prep_raw), snapshotApprovalOriginalSHA256=sha(original_raw),
+                snapshotApprovalSHA256=sha(snap_raw), snapshotSourceSHA256=snap['snapshotSourceSha256'],
+                exporterManifestSHA256=snap['exporterManifestSha256'], remoteEvidenceSHA256=sha(terminal_raw),
+                automaticRetry=False)
+
+def snapshot_complete(root_path):
+    root = private_root(root_path)
+    value = snapshot_bindings(root)
+    value['journalSHA256'] = sha(journal(root, snapshot_prefix()))
+    publish(root / 'snapshot-export-attempt/result.json', value)
+    return value
+
+def snapshot_record(root):
+    value, _ = load(root / 'snapshot-export-attempt/result.json', limit=16 << 10)
+    need(type(value) is dict and set(value) == SNAPSHOT_FIELDS and value['automaticRetry'] is False, 'closed original snapshot completion required')
+    bound = snapshot_bindings(root)
+    raw = original(str(root / 'journal.jsonl'), 1 << 20)
+    # Hash the exact original bytes, including timestamps, through the durable
+    # export stop. Later bootstrap/tail entries cannot rewrite that prefix.
+    lines = raw.splitlines(keepends=True)
+    count = len(snapshot_prefix())
+    need(len(lines) >= count and all(line.endswith(b'\n') for line in lines), 'partial snapshot journal retained')
+    prefix = b''.join(lines[:count])
+    validate_journal(prefix, snapshot_prefix())
+    bound['journalSHA256'] = sha(prefix)
+    need(value == bound, 'snapshot completion or retained originals changed')
+    return value
+
+def expected_prefix(root=None):
+    if root is not None:
+        full, _ = load(root / 'approval.json', limit=1 << 20)
+        if full.get('custodyProfile') == SAME_OWNER:
+            retained = snapshot_record(root)
+            need(full.get('transactionId') == root.name and full.get('snapshotSourceSha256') == retained['snapshotSourceSHA256'] and
+                 full.get('exporterManifestSha256') == retained['exporterManifestSHA256'], 'final approval changed original export')
+            return snapshot_prefix() + pairs(BOOTSTRAP[1:])
     return pairs(PREFIX) + [('preparation', 'awaiting_final_snapshot_authorization')] + pairs(BOOTSTRAP)
 
 def journal(root, expected):
     raw = original(str(root / 'journal.jsonl'), 1 << 20)
+    validate_journal(raw, expected)
+    return raw
+
+def validate_journal(raw, expected):
     need(raw.endswith(b'\n'), 'partial journal retained')
     rows = [decode(line) for line in raw.splitlines()]
     need(len(rows) == len(expected), 'incomplete, repeated or UNKNOWN transaction journal')
@@ -171,7 +273,7 @@ def pause(root_path, plan_path, plan_pin):
     need(plan.get('bootstrapRegistrationMode') == QUIET, 'explicit pinned quiet bootstrap required')
     a, a_raw = approval(root)
     need(a['operatorPlanSha256'] == plan_pin, 'quiet plan differs from original final approval')
-    prefix = journal(root, expected_prefix())
+    prefix = journal(root, expected_prefix(root))
     ready, ready_raw = load(root / 'candidate/verify-result.json', limit=1 << 20)
     need(ready.get('version') == 'YNX-QUIET-BOOTSTRAP-READY/v1' and ready.get('transactionId') == root.name and
          ready.get('operatorPlanSHA256') == plan_pin and ready.get('ready') is True and ready.get('dryRun') is False and
@@ -187,7 +289,7 @@ def pause(root_path, plan_path, plan_pin):
         os.fsync(fd)
     finally:
         os.close(fd)
-    paused_journal = journal(root, expected_prefix() + [('bootstrap', 'awaiting_pq_activation')])
+    paused_journal = journal(root, expected_prefix(root) + [('bootstrap', 'awaiting_pq_activation')])
     result = {'version': 'YNX-QUIET-BOOTSTRAP-PAUSED/v1', 'transactionId': root.name,
               'approvalSHA256': sha(a_raw), 'operatorPlanSHA256': plan_pin, 'readySHA256': sha(ready_raw),
               'prefixSHA256': sha(prefix), 'journalSHA256': sha(paused_journal), 'expiresAt': a['expiresAt'],
@@ -733,10 +835,10 @@ def resume_check(root_path, plan_path, plan_pin, packet_path, packet_pin):
         need((root / 'pq-continuation-attempt/result.json').is_file(), 'incomplete continuation/UNKNOWN; no redispatch')
         final, _ = load(root / 'pq-continuation-attempt/result.json', limit=1 << 20)
         need(final == {'status': 'passed', 'automaticRetry': False, 'inputSHA256': packet_pin}, 'incomplete original continuation result')
-        journal(root, expected_prefix() + [('bootstrap', 'awaiting_pq_activation')] + pairs(TAIL) + [('transaction', 'passed')])
+        journal(root, expected_prefix(root) + [('bootstrap', 'awaiting_pq_activation')] + pairs(TAIL) + [('transaction', 'passed')])
         forward_gate(root_path, plan_path, plan_pin)
         return {**final, 'reconciled': True, 'redispatched': False}
-    raw = journal(root, expected_prefix() + [('bootstrap', 'awaiting_pq_activation')])
+    raw = journal(root, expected_prefix(root) + [('bootstrap', 'awaiting_pq_activation')])
     need(sha(raw) == result['pause']['journalSHA256'], 'original durable pause journal changed')
     for name in ('dependencies', 'ingress'):
         need(not os.path.lexists(root / name), 'late-phase residual exists; preserve UNKNOWN')
@@ -950,7 +1052,7 @@ def forward_gate(root_path, plan_path, plan_pin, phase=None):
     paused(root, plan_pin)
     if phase is not None:
         need(phase in TAIL[1:], 'only the original transaction tail may advance')
-        journal(root, expected_prefix() + [('bootstrap', 'awaiting_pq_activation')] +
+        journal(root, expected_prefix(root) + [('bootstrap', 'awaiting_pq_activation')] +
                 pairs(TAIL[:TAIL.index(phase)]) + [(phase, 'started')])
     intent, _ = load(root / 'pq-continuation-attempt/intent.json', limit=1 << 20)
     packet_path = str(root / 'pq-continuation-attempt/input.json')
@@ -966,10 +1068,10 @@ def forward_gate(root_path, plan_path, plan_pin, phase=None):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('action', choices=('mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'export-args', 'capture-binding', 'target-package'))
+    p.add_argument('action', choices=('snapshot-start-check', 'native-continuation-check', 'snapshot-complete', 'mode', 'pause', 'resume-check', 'observe-command', 'ready', 'verify-results', 'forward-gate', 'proof-args', 'export-args', 'capture-binding', 'target-package'))
     p.add_argument('--transaction')
-    p.add_argument('--plan', required=True)
-    p.add_argument('--plan-sha256', required=True)
+    p.add_argument('--plan')
+    p.add_argument('--plan-sha256')
     p.add_argument('--input')
     p.add_argument('--input-sha256')
     p.add_argument('--package')
@@ -981,7 +1083,11 @@ def main():
     p.add_argument('--approval-sha256')
     p.add_argument('--export-receipt-dir')
     a = p.parse_args()
-    if a.action == 'mode':
+    if a.action in ('snapshot-start-check', 'native-continuation-check'):
+        print(native_boundary(a.transaction, a.action == 'snapshot-start-check'))
+    elif a.action == 'snapshot-complete':
+        print(json.dumps(snapshot_complete(a.transaction), separators=(',', ':'), sort_keys=True))
+    elif a.action == 'mode':
         print(selected_plan(a.plan, a.plan_sha256).get('bootstrapRegistrationMode', ''))
     elif a.action == 'pause':
         print(json.dumps(pause(a.transaction, a.plan, a.plan_sha256)))
