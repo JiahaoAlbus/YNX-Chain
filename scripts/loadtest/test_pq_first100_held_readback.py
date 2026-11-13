@@ -1,5 +1,6 @@
 """Readback controls with synthetic archive metadata only."""
 import base64
+import copy
 import hashlib
 import importlib.util
 import io
@@ -221,6 +222,138 @@ class HeldReadbackTests(unittest.TestCase):
             reader.inspect(raw, sha(raw), self.controller, pin)
         with self.assertRaisesRegex(RuntimeError, 'configuration digest differs'):
             reader.inspect(raw, sha(raw), self.controller, '0' * 64)
+
+
+class HeldCheckpointReadbackTests(unittest.TestCase):
+    """Synthetic stopped-node originals exercise the real archive reader, not a run."""
+
+    def fixture(self, height=18, app_hash='a'*64, omitted=(), edit=None):
+        base = HeldReadbackTests()
+        raw, pin = base.fixture(ready_lanes=range(4))
+        prefix = 'fixture/public/'
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            files = {name: archive.read(name) for name in archive.namelist()}
+        receipt = reader.strict(files[prefix+'receipt.json'])
+        receipt['processes'] = receipt['normalNodeCleanExit']['records']
+        commit_refs, finalize_refs = [], []
+        commit_reader = reader.module('pq-commit-observation.py')
+        specimen = reader.strict((Path(__file__).with_name('fixtures') /
+                                  'commit-observation-public-schema.json').read_bytes())
+        for node in range(4):
+            process = next(row for row in receipt['processes'] if row['name'] == f'pq-node-{node}')
+            commit = copy.deepcopy(specimen['cases']['gap-and-overflow'])
+            commit.update(processID=process['pid'], captureBoundary=commit_reader.CAPTURE_BOUNDARY,
+                          successNotifications=1, droppedSuccessSamples=0, sampleOverflow=False,
+                          unobservedLatest=None, latestTimingAvailable=True,
+                          finalCheckpoint=dict(height=height, appHash=app_hash))
+            commit['coverage'].update(notificationCaptureComplete=True, observedHeightGaps=[])
+            commit['samples'][0].update(height=height, appHash=app_hash)
+            commit['samples'][0]['persistence']['height'] = height
+            commit_reader.validate_declared_contract(commit, process['pid'], commit['chainID'],
+                                                      commit['originalGenesisHash'])
+            sample = dict(attempt=1, requestPresent=True, height=height, success=True,
+                          appHash=app_hash, failedPhase='', elapsedNs=60,
+                          phaseNs=dict.fromkeys(reader.finalize.PHASES, 10),
+                          childrenNs={'seal.fee_materialize': 3}, counts={})
+            final = dict(version=reader.finalize.VERSION, scope='synthetic-loopback-lab/v1',
+                         captureBoundary=reader.finalize.BOUNDARY, processID=process['pid'],
+                         chainID=commit['chainID'], originalGenesisHash=commit['originalGenesisHash'],
+                         lockWaitIncluded=False, independentFinality=False, unreportedStagesAreUnknown=True,
+                         childrenOverlapParentPhases=True, maxSamples=128, captureComplete=True,
+                         observation=dict(attempts=1, dropped=0, samples=[sample], latest=copy.deepcopy(sample)))
+            cp, fp = (f'{kind}-observation-node-{node}-original.json' for kind in ('commit', 'finalize'))
+            c, f = encode(commit), encode(final)
+            files[prefix+cp] = c
+            if node not in omitted:
+                files[prefix+fp] = f
+            commit_refs.append(dict(node=node, pid=process['pid'], processName=process['name'], path=cp,
+                                    bytes=len(c), sha256=sha(c), sourceStopped=True, usable=True,
+                                    rawOriginalObservation=commit))
+            finalize_refs.append(dict(node=node, pid=process['pid'], path=fp,
+                                      bytes=len(f), sha256=sha(f), complete=True))
+        receipt.update(normalCommitObservation=dict(originalSnapshots=commit_refs, errors=[]),
+                       normalFinalizeObservation=dict(records=finalize_refs, errors=[], fourComplete=True))
+        if edit is not None:
+            edit(receipt, files, prefix)
+        files[prefix+'receipt.json'] = encode(receipt)
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, 'w') as archive:
+            for name, data in files.items():
+                archive.writestr(name, data)
+        return output.getvalue(), pin, receipt
+
+    def inspect(self, **kwargs):
+        raw, pin, receipt = self.fixture(**kwargs)
+        return reader.inspect(raw, sha(raw), HeldReadbackTests.controller, pin), receipt
+
+    def assert_ready_only(self, report):
+        self.assertEqual(report['status'], 'READY_ONLY_OBSERVED')
+        self.assertIsNone(report['fullCohort'])
+        self.assertEqual(report['preparationOnlyDemandAccounting']['notQualified'], 500)
+        self.assertFalse(report['stable1000TPSQualified'])
+
+    def test_four_pinned_originals_join_census_without_inventing_missing_timings(self):
+        report, receipt = self.inspect()
+        self.assert_ready_only(report)
+        checkpoint = dict(height=18, appHash='a'*64)
+        self.assertEqual(report['finalizeCommitCheckpoints'], dict(common=[checkpoint], partial=[]))
+        self.assertEqual(report['readinessCensusCheckpointJoin'], dict(
+            status='OBSERVED', checkpoint=checkpoint, observedNodes=['0', '1', '2', '3'],
+            missingNodes=[], fourNodeJoinObserved=True, independentFinality=False))
+        for node in range(4):
+            commit = report['originalCommitCopies']['records'][node]
+            final = report['finalizeByNode'][str(node)]
+            ref = receipt['normalFinalizeObservation']['records'][node]
+            self.assertNotIn('pid', commit)
+            self.assertEqual(commit['originalSnapshot']['processID'], ref['pid'])
+            self.assertEqual((final['path'], final['sha256']), (ref['path'], ref['sha256']))
+            self.assertEqual(final['business']['samples'], {})
+            absent = final['retainedSuccessStages']['transaction.clone']
+            self.assertEqual((absent['observed'], absent['missingOrCensored']), (0, 1))
+            self.assertIsNone(absent['minNs'])
+            stage = report['commitStages']['nodes'][str(node)]['byStorage']['atomic-json']['stages']['write']
+            self.assertEqual((stage['observed'], stage['missingOrCensored']), (0, 1))
+            self.assertIsNone(stage['minNs'])
+
+    def test_missing_fourth_original_keeps_ready_and_partial_checkpoint(self):
+        report, _ = self.inspect(omitted=(3,))
+        self.assert_ready_only(report)
+        self.assertEqual(report['finalizeCommitCheckpoints'], dict(
+            common=[], partial=[dict(height=18, observedNodes=['0', '1', '2'])]))
+        self.assertEqual(report['readinessCensusCheckpointJoin']['status'], 'NOT_OBSERVED')
+        self.assertEqual(report['readinessCensusCheckpointJoin']['missingNodes'], ['3'])
+        self.assertFalse(report['readinessCensusCheckpointJoin']['fourNodeJoinObserved'])
+        self.assertNotIn('3', report['finalizeByNode'])
+
+    def test_other_common_height_cannot_fill_missing_census_height(self):
+        report, _ = self.inspect(height=19)
+        self.assert_ready_only(report)
+        self.assertEqual(report['finalizeCommitCheckpoints']['common'], [dict(height=19, appHash='a'*64)])
+        self.assertEqual(report['readinessCensusCheckpointJoin']['status'], 'NOT_OBSERVED')
+        self.assertEqual(report['readinessCensusCheckpointJoin']['missingNodes'], ['0', '1', '2', '3'])
+
+    def test_absent_originals_keep_census_join_unobserved(self):
+        raw, pin = HeldReadbackTests().fixture(ready_lanes=range(4))
+        report = reader.inspect(raw, sha(raw), HeldReadbackTests.controller, pin)
+        self.assert_ready_only(report)
+        self.assertEqual(report['finalizeCommitCheckpoints'], dict(common=[], partial=[]))
+        self.assertEqual(report['readinessCensusCheckpointJoin']['status'], 'NOT_OBSERVED')
+        self.assertEqual(report['readinessCensusCheckpointJoin']['observedNodes'], [])
+        self.assertEqual(report['readinessCensusCheckpointJoin']['missingNodes'], ['0', '1', '2', '3'])
+
+    def test_finalize_ref_pid_path_bytes_and_sha_cannot_bypass_original_binding(self):
+        for key, value in [('pid', 999), ('path', 'other.json'), ('bytes', 1), ('sha256', 'f'*64)]:
+            with self.subTest(key=key):
+                def edit(receipt, files, prefix):
+                    receipt['normalFinalizeObservation']['records'][3][key] = value
+                with self.assertRaisesRegex(RuntimeError, 'Finalize observation receipt pin differs'):
+                    self.inspect(edit=edit)
+
+    def test_join_rejects_census_apphash_divergence(self):
+        for omitted in ((), (3,)):
+            with self.subTest(omitted=omitted):
+                with self.assertRaisesRegex(RuntimeError, 'census AppHash differs'):
+                    self.inspect(app_hash='b'*64, omitted=omitted)
 
 
 if __name__ == '__main__':

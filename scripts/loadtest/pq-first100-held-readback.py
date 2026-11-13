@@ -255,12 +255,12 @@ def inspect(raw, sha256, controller, configuration_sha256):
         path = f'finalize-observation-node-{node}-original.json'
         if prefix + path not in files:
             continue
+        commit = record['originalSnapshot']
         if finalize_records:
             ref = finalize_records[node]
-            require(ref['path'] == path and ref['pid'] == record['pid']
+            require(ref['path'] == path and ref['pid'] == commit['processID']
                     and all(ref[key] == manifest[prefix+path][key] for key in ('bytes', 'sha256')),
                     'Finalize observation receipt pin differs')
-        commit = record['originalSnapshot']
         original = finalize.validate(read(path), pid=commit['processID'], chain_id=commit['chainID'],
                                      genesis_hash=commit['originalGenesisHash'])
         heights = {int(row['height']) for row in observed['records']}
@@ -278,11 +278,20 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 for stage in sorted(finalize.CHILDREN)},
             retainedSuccessElapsed=stages.samples([sample['elapsedNs'] for sample in completed], len(completed)))
     checkpoints = finalize.four_node_checkpoints(finalize_by_node)
+    census_join = None
     if ready:
         checkpoint = receipt['preloadInitialization']['checkpoint']
-        observed_checkpoint = next((row for row in checkpoints['common'] if row['height'] == checkpoint['height']), None)
-        if observed_checkpoint is not None:
-            require(observed_checkpoint == checkpoint, 'original READY-only census AppHash differs from Finalize and Commit')
+        observed_nodes = []
+        for node, data in sorted(finalize_by_node.items()):
+            sample = data['committed']['samples'].get(checkpoint['height'])
+            if sample is not None:
+                require(sample['appHash'] == checkpoint['appHash'],
+                        'original READY-only census AppHash differs from Finalize and Commit')
+                observed_nodes.append(node)
+        missing_nodes = sorted(set(map(str, range(4))) - set(observed_nodes))
+        census_join = dict(status='NOT_OBSERVED' if missing_nodes else 'OBSERVED', checkpoint=checkpoint,
+                           observedNodes=observed_nodes, missingNodes=missing_nodes,
+                           fourNodeJoinObserved=not missing_nodes, independentFinality=False)
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
     return dict(report, status=status,
                 preparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
@@ -297,6 +306,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
+                readinessCensusCheckpointJoin=census_join,
                 businessBlockCommitStages=prior.business_commit_stages(dict(originalCommitCopies=commits), observed, stages),
                 originalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),
                 originalInitializationStages=receipt.get('initializationStages'),
