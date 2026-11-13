@@ -176,6 +176,59 @@ class WireLiveSourceControls(unittest.TestCase):
                     extract.assert_not_called()
                 self.assertFalse(destination.exists())
 
+    def test_signer_successor_keeps_exact_production_leaves_and_rejects_drift(self):
+        for drift in (None, "fork", "deleted", "extraction"):
+            with self.subTest(drift=drift), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                destination = root / "fresh"
+                descriptors = {name: ("original " + name).encode() for name in ci.DESCRIPTORS}
+                retained = {name: ("original " + name).encode()
+                            for name in (*ci.CURRENT_RETAINED, *ci.SIGNER_RETAINED)}
+                def original_git(_, *args):
+                    if args == ("rev-parse", "HEAD"): return b"source"
+                    if args == ("rev-parse", "HEAD^{tree}"): return b"tree"
+                    if args[0] == "status": return b""
+                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return ci.SIGNER_PRODUCTION_TREE.encode()
+                    if args == ("diff", "--name-only", ci.SIGNER_PRODUCTION_TREE, ci.CURRENT_FORK_TREE):
+                        changes = ci.DIFF | set(ci.SIGNER_RETAINED)
+                        if drift == "fork":
+                            changes.add("types/tx.go")
+                        return "\n".join(sorted(changes)).encode()
+                    if args == ("diff", "--diff-filter=D", "--name-only", ci.SIGNER_PRODUCTION_TREE, ci.CURRENT_FORK_TREE):
+                        return b"privval/ynx_remote_terminal_test.go\n" + (b"node/node.go\n" if drift == "deleted" else b"")
+                    if args[0] == "show":
+                        revision, name = args[1].split(":", 1)
+                        if name in descriptors and revision in ("source", ci.CURRENT_FORK_COMMIT):
+                            return descriptors[name]
+                        if revision == ci.SIGNER_PRODUCTION_TREE and name in retained:
+                            return retained[name]
+                        if revision == ci.CURRENT_FORK_TREE and name in ci.CURRENT_RETAINED:
+                            return retained[name]
+                    self.fail("unexpected git operation: " + str(args))
+                def original_extract(_, revision, target, paths=()):
+                    if revision == "source":
+                        for name, raw in {**descriptors, **{"third_party/cometbft/" + n: b for n, b in retained.items()}}.items():
+                            path = target / name
+                            path.parent.mkdir(parents=True, exist_ok=True)
+                            path.write_bytes(raw)
+                    else:
+                        self.assertEqual(revision, ci.CURRENT_FORK_TREE)
+                        self.assertEqual(paths, tuple(sorted(ci.DIFF)))
+                        if drift == "extraction":
+                            (target / ci.SIGNER_RETAINED[0]).write_bytes(b"stale signer")
+                with patch.object(ci, "git", side_effect=original_git), patch.object(ci, "require_supplier_source"), patch.object(ci, "extract", side_effect=original_extract) as extract:
+                    if drift:
+                        with self.assertRaisesRegex(RuntimeError, "remote signer"):
+                            ci.prepare_wire_live_source(root, destination, "source", "tree")
+                        self.assertEqual(extract.call_count, 2 if drift == "extraction" else 0)
+                        self.assertFalse((destination / "SOURCE-SELECTION.json").exists())
+                        continue
+                    result = ci.prepare_wire_lossless_source(root, destination, "source", "tree",
+                        supplier_commit=ci.CURRENT_FORK_COMMIT, supplier_tree=ci.CURRENT_FORK_TREE)
+                self.assertEqual(result["sourceSelection"]["retainedProductionSHA256"],
+                                 {name: hashlib.sha256(raw).hexdigest() for name, raw in retained.items()})
+                self.assertEqual(result["sourceSelection"]["exactOptionalDifference"], sorted(ci.DIFF))
+
     def test_current_requires_exact_observer_and_committed_view_source_tuple(self):
         for production, supplier, tree, message in (
                 ("01a03403ecbb5d17983cbe964dbbb73fcddf8a13", ci.CURRENT_FORK_COMMIT, ci.CURRENT_FORK_TREE, "production fork changed"),

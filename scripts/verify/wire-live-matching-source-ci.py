@@ -10,11 +10,15 @@ PRODUCTION_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 # has a different, independently fixed fork: its observer and committed-view
 # APIs must survive selection of the optional transport supplier.
 CURRENT_PRODUCTION_TREE = "5a128880d14bfc73de4334cba23218859ad3473c"
+SIGNER_PRODUCTION_TREE = "47d7cfeee7cd178cb897eda57a4674677fac7e67"
+OBSERVER_PRODUCTION_TREES = (CURRENT_PRODUCTION_TREE, SIGNER_PRODUCTION_TREE)
 CURRENT_FORK_COMMIT = "5a49f5c91452604dffb910df736702b3b9df2562"
 CURRENT_FORK_TREE = "08747364c24c065bf2b13527c210625d7ec95fba"
 DESCRIPTORS = ("go.mod", "go.sum", "third_party/cometbft/go.mod", "third_party/cometbft/go.sum")
 CURRENT_RETAINED = ("node/observer_node_test.go", "rpc/core/observer_status_test.go",
                     "rpc/core/status.go", "node/ynx_proof_source.go")
+SIGNER_RETAINED = ("privval/ynx_context_server.go", "privval/ynx_context_wire.go",
+                   "privval/ynx_remote_terminal_test.go")
 OBSERVER = ["TestObserverNodePUBLICExplicitRoleRefusesMissingAuthorityAndRemoteSigner",
             "TestObserverStatusPUBLICNoValidatorKeyRequiresNoMembershipLookup"]
 DIFF = {
@@ -232,7 +236,7 @@ def prepare_wire_lossless_source(root, fresh_output, expected_commit, expected_t
             and type(supplier_tree) is str and re.fullmatch("[0-9a-f]{40}", supplier_tree)
             and supplier_commit != "0" * 40 and supplier_tree != "0" * 40,
             "explicit immutable lossless supplier commit/tree required")
-    require(supplier_commit != FORK_COMMIT and supplier_tree not in (FORK_TREE, PRODUCTION_TREE, CURRENT_PRODUCTION_TREE),
+    require(supplier_commit != FORK_COMMIT and supplier_tree not in (FORK_TREE, PRODUCTION_TREE, *OBSERVER_PRODUCTION_TREES),
             "old/production supplier cannot qualify the corrected ON carrier")
     return _prepare_wire_source(root, fresh_output, expected_commit, expected_tree,
                                 supplier_commit, supplier_tree, True)
@@ -250,9 +254,9 @@ def _prepare_wire_source(root, fresh_output, expected_commit, expected_tree,
     require(commit == expected_commit and tree == expected_tree, "exact independently selected original source required")
     require(not git(root, "status", "--porcelain", "--untracked-files=normal").strip(), "original source must stay clean")
     production_tree = git(root, "rev-parse", "HEAD:third_party/cometbft").decode().strip()
-    require(production_tree in (PRODUCTION_TREE, CURRENT_PRODUCTION_TREE),
+    require(production_tree in (PRODUCTION_TREE, *OBSERVER_PRODUCTION_TREES),
             "production fork changed; refresh explicit source composition")
-    current = production_tree == CURRENT_PRODUCTION_TREE
+    current = production_tree in OBSERVER_PRODUCTION_TREES
     if current:
         if not lossless:
             supplier_commit, supplier_tree = CURRENT_FORK_COMMIT, CURRENT_FORK_TREE
@@ -260,9 +264,21 @@ def _prepare_wire_source(root, fresh_output, expected_commit, expected_tree,
                 "current observer/committed-view caller requires its exact matching supplier")
     require_supplier_source(root, supplier_commit, supplier_tree)
     changes = set(git(root, "diff", "--name-only", production_tree, supplier_tree).decode().splitlines())
+    deleted = set(git(root, "diff", "--diff-filter=D", "--name-only", production_tree, supplier_tree).decode().splitlines())
+    signer_retained = {}
+    if production_tree == SIGNER_PRODUCTION_TREE:
+        # The fixed optional supplier predates these three production leaves.
+        # Compare only the two trees available in the shallow CI checkout,
+        # then leave the signer changes in the original source archive.
+        signer_changes = set(SIGNER_RETAINED)
+        require(changes == DIFF | signer_changes and signer_changes.isdisjoint(DIFF)
+                and deleted == {"privval/ynx_remote_terminal_test.go"},
+                "remote signer source changed outside its exact production leaves")
+        changes -= signer_changes
+        deleted -= signer_changes
+        signer_retained = {name: git(root, "show", production_tree + ":" + name) for name in SIGNER_RETAINED}
     require(changes == DIFF, "unapproved delta outside exact optional observer/transport module")
-    require(not git(root, "diff", "--diff-filter=D", "--name-only", production_tree, supplier_tree).strip(),
-            "optional fork cannot remove original files")
+    require(not deleted, "optional fork cannot remove original files")
     descriptors = {name: git(root, "show", commit + ":" + name) for name in DESCRIPTORS}
     for name in DESCRIPTORS[2:]:
         require(descriptors[name] == git(root, "show", supplier_commit + ":" + name),
@@ -278,7 +294,14 @@ def _prepare_wire_source(root, fresh_output, expected_commit, expected_tree,
     source = fresh_output / "source"
     source.mkdir(mode=0o700)
     extract(root, commit, source, ("go.mod", "go.sum", "cmd", "internal", "contracts", "third_party"))
-    extract(root, supplier_commit + ":third_party/cometbft", source / "third_party/cometbft")
+    module = source / "third_party/cometbft"
+    if signer_retained:
+        extract(root, supplier_tree, module, tuple(sorted(changes)))
+        require(all((module / name).read_bytes() == raw for name, raw in signer_retained.items()),
+                "original remote signer bytes changed during extraction")
+        retained.update(signer_retained)
+    else:
+        extract(root, supplier_commit + ":third_party/cometbft", module)
     require(not (source / ".git").exists(), "composition cannot manufacture original VCS identity")
     require(all((source / name).read_bytes() == raw for name, raw in descriptors.items()),
             "original module descriptors changed")
@@ -346,14 +369,14 @@ def main():
         "-run", "^TestOperatorLossless" if lossless else "^TestOperatorWireLive", "./cmd/ynx-comet"], LOSSLESS if lossless else LIVE, env)
     env["CGO_ENABLED"] = "1"
     budget_names = BUDGET
-    if lossless or prepared["sourceSelection"]["originalProductionForkTree"] == CURRENT_PRODUCTION_TREE:
+    if lossless or prepared["sourceSelection"]["originalProductionForkTree"] in OBSERVER_PRODUCTION_TREES:
         budget_names = lossless_budget_tests(source)
     budget = run_go(source, output, "corrected-peer-budget" if lossless else "original-peer-budget", ["-mod=readonly", "-modfile=" + str(module),
         "-race", "-json", "-p", "1", "-count=1", "-timeout=90s", "-run",
         "^(TestLosslessHexBudget.*|TestLosslessHexTransport(DefaultOffAndSingleCarrier|RestoresBeforeOriginalPrecheckCacheAndTxKey|RejectsBeforeCheckTxNoRawFallback|QueuedRetryKeepsSelectedFormat|LegacyEmptyUnknownAndMalformedKeepOriginalEntry))$",
         "github.com/cometbft/cometbft/mempool"], budget_names, env)
     observer = None
-    if lossless and prepared["sourceSelection"]["originalProductionForkTree"] == CURRENT_PRODUCTION_TREE:
+    if lossless and prepared["sourceSelection"]["originalProductionForkTree"] in OBSERVER_PRODUCTION_TREES:
         env["CGO_ENABLED"] = "0"
         observer = run_go(source, output, "retained-observer", ["-mod=readonly", "-modfile=" + str(module),
             "-json", "-p", "1", "-count=1", "-timeout=90s", "-run", "^(" + "|".join(OBSERVER) + ")$",
