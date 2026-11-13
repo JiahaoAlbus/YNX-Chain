@@ -10,18 +10,36 @@ test("cancelled task can query a locally completed step whose Auth receipt is UN
  const original = {...step, status:"COMPLETED", toolStep:{...step.toolStep, authorityReferenceState:"UNKNOWN"}};
  const cancelled = {...projection, revision:3, status:"RECONCILING", cancelledAt:"2026-11-13T00:00:00Z", steps:[original]};
  let queries = 0;
- const c = new TaskWorkspaceController("PUBLIC", mockAPI({
+ const saved = storage();
+ let denyResult = false;
+ const api = mockAPI({
   task:async()=>queries ? {...cancelled, revision:4, status:"CANCELLED", steps:[{...original, toolStep:{...original.toolStep, authorityReferenceState:"COMMITTED"}}]} : cancelled,
   reconcile:async(taskID,stepID)=>{assert.equal(taskID,task.id);assert.equal(stepID,original.id);queries++;return {}},
-  result:async()=>({state:"COMMITTED",effectRef:original.id,result:{message:"original result"}})
- }), storage().api, ()=>"query_original");
+  result:async()=>{
+   if(denyResult)throw new TaskAPIError(401,"SESSION_REVOKED");
+   return {state:"COMMITTED",effectRef:original.id,authorityOperationId:original.toolStep.authorityOperationId,result:{message:"original result"}};
+  }
+ });
+ const c = new TaskWorkspaceController("PUBLIC",api,saved.api,()=>"query_original");
  await c.select(task.id);
  await c.reconcile(cancelled,c.state.projection!.steps[0]!,"PUBLIC-ref");
  assert.equal(queries,1);
- await c.select(task.id);
  assert.equal(c.state.projection!.status,"CANCELLED");
- await c.readResult(c.state.projection!.steps[0]!);
  assert.deepEqual(c.state.receipt?.result,{message:"original result"});
+ await c.whenClosed();
+ assert.ok(saved.values.every(value=>!value.includes("original result")));
+ await saved.api.write("PUBLIC",{...saved.saved!,runId:"original_run"});
+ const reopened = new TaskWorkspaceController("PUBLIC",api,saved.api,()=>"reopened_original");
+ await reopened.restoreOriginalTask();
+ assert.equal(reopened.state.projection?.id,task.id);
+ assert.deepEqual(reopened.state.receipt?.result,{message:"original result"});
+ assert.equal(queries,1);
+ denyResult = true;
+ await reopened.restoreOriginalTask();
+ assert.equal(reopened.state.error,"SESSION_REVOKED");
+ assert.equal(reopened.state.receipt,null);
+ assert.equal(queries,1);
+ await reopened.whenClosed();
 });
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
 function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}

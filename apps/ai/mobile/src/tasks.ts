@@ -20,7 +20,7 @@ export type TaskProjection=Task&{cursor:number;hasMore:boolean;recoveryOnly?:boo
 export type TaskRun={id:string;runId:string;taskId:string;status:string;steps:string[];content?:string;firstCause?:string;recoveryOnly:boolean};
 export type TaskReceipt={scope?:string;state:string;effectRef:string;originalOperationId?:string;authorityOperationId?:string;remoteRef?:string;result:unknown;authScope?:string};
 export type Delivery={version?:"2"|"6";id:string;binding:string;action:string;taskId:string;conversationId?:string;stepId?:string;runId?:string;revision?:number;generation?:number;state:"PENDING"|"UNKNOWN"|"RESPONSE_RECEIVED"|"REJECTED_RESPONSE"|"ORIGINAL_OBSERVED"};
-export type WorkspaceRecord={selectedTask:string;runId:string;deliveries:Delivery[]};
+export type WorkspaceRecord={selectedTask:string;selectedResultStep?:string;runId:string;deliveries:Delivery[]};
 export type TaskPersistence={read:(identity:string)=>Promise<WorkspaceRecord|null>;write:(identity:string,value:WorkspaceRecord)=>Promise<void>};
 export class TaskAPIError extends Error{constructor(public status:number,public code:string){super(code||`HTTP_${status}`)}}
 const segmentOrEmpty=(id:string)=>{if(id!=="")segment(id)};
@@ -69,7 +69,7 @@ export class TaskWorkspaceController{
  constructor(private identity:string,private api:TaskAPI,private storage:TaskPersistence,private newID:()=>string,private changed:(state:WorkspaceState)=>void=()=>{},private runCursors?:RunCursorPersistence){}
  private emit(){if(!this.disposed)this.changed({...this.state,record:{...this.state.record,deliveries:[...this.state.record.deliveries]}})}
  private persist(record:WorkspaceRecord){const snapshot=JSON.parse(JSON.stringify(record)) as WorkspaceRecord;const next=this.writes.catch(()=>{}).then(()=>this.storage.write(this.identity,snapshot));this.writes=next;return next}
- private async hydrate(){if(this.hydrated)return;const saved=await this.storage.read(this.identity);if(saved){if(!Array.isArray(saved.deliveries)||saved.deliveries.some(d=>!d||(d.version!==undefined&&d.version!=="2"&&d.version!=="6")))throw Error("TASK_JOURNAL_VERSION_INVALID");segmentOrEmpty(saved.selectedTask);segmentOrEmpty(saved.runId);this.state.record=saved;}this.hydrated=true}
+ private async hydrate(){if(this.hydrated)return;const saved=await this.storage.read(this.identity);if(saved){if(!Array.isArray(saved.deliveries)||saved.deliveries.some(d=>!d||(d.version!==undefined&&d.version!=="2"&&d.version!=="6")))throw Error("TASK_JOURNAL_VERSION_INVALID");segmentOrEmpty(saved.selectedTask);segmentOrEmpty(saved.runId);if(saved.selectedResultStep!==undefined){if(!saved.selectedTask||typeof saved.selectedResultStep!=="string")throw Error("TASK_JOURNAL_INVALID");segment(saved.selectedResultStep)}this.state.record=saved;}this.hydrated=true}
  private async work<T>(fn:(signal:AbortSignal)=>Promise<T>,apply:(value:T)=>void){
   if(this.disposed||this.state.busy)return;const epoch=++this.epoch;const request=new AbortController();this.request=request;this.state.busy=true;this.state.error="";this.emit();
   try{const value=await fn(request.signal);if(!this.disposed&&epoch===this.epoch){apply(value)}}catch(error){if(!this.disposed&&epoch===this.epoch)this.state.error=error instanceof Error?error.message:"TASK_REQUEST_FAILED"}finally{if(!this.disposed&&epoch===this.epoch){this.state.busy=false;this.request=null;this.emit()}}
@@ -108,10 +108,13 @@ export class TaskWorkspaceController{
    }
    throw Error("ORIGINAL_TASK_DISCOVERY_PAGE_LIMIT");
   },value=>{this.state.tasks=value.tasks;this.state.projection=value.projection;this.state.hasMore=value.hasMore;this.state.nextId=value.nextId;this.state.run=null;this.state.receipt=null});
-  if(!this.disposed&&!this.state.error&&this.state.projection&&this.state.record.runId)await this.readRun(this.state.record.runId);
+  if(this.disposed||this.state.error||!this.state.projection)return;
+  const step=this.state.projection?.steps.find(item=>item.id===this.state.record.selectedResultStep);
+  if(step?.status==="COMPLETED"&&!needsOriginalTaskQuery(step))await this.readResult(step);
+  else if(this.state.record.runId)await this.readRun(this.state.record.runId);
  }
  async discover(more=false){await this.work(signal=>this.api.list(signal,more?this.state.nextId:""),page=>{this.state.tasks=more?[...this.state.tasks,...page.tasks.filter(t=>!this.state.tasks.some(old=>old.id===t.id))]:page.tasks;this.state.nextId=page.nextId||"";this.state.hasMore=page.hasMore})}
- async select(id:string){await this.work(async signal=>{await this.hydrate();const legacy=this.legacyRecovery(id);const original=readTaskProjection(await this.readAPI(id).task(id,signal),id);if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");const projection=legacy?{...original,recoveryOnly:true}:original;const record={...this.state.record,selectedTask:id,runId:this.state.record.selectedTask===id?this.state.record.runId:""};await this.persist(record);return {projection,record}},value=>{this.state.projection=value.projection;this.state.record=value.record;this.state.run=null;this.state.receipt=null})}
+ async select(id:string){await this.work(async signal=>{await this.hydrate();const legacy=this.legacyRecovery(id);const original=readTaskProjection(await this.readAPI(id).task(id,signal),id);if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");const projection=legacy?{...original,recoveryOnly:true}:original;const sameTask=this.state.record.selectedTask===id;const record={...this.state.record,selectedTask:id,selectedResultStep:sameTask?this.state.record.selectedResultStep:undefined,runId:sameTask?this.state.record.runId:""};await this.persist(record);return {projection,record}},value=>{this.state.projection=value.projection;this.state.record=value.record;this.state.run=null;this.state.receipt=null})}
  private async mutate(action:string,task:Task|null,step:string,runId:string,invoke:(signal:AbortSignal)=>Promise<unknown>,apply:(value:unknown)=>void,conversationId=""){
   await this.work(async signal=>{
    await this.hydrate();if(signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");
@@ -164,9 +167,34 @@ export class TaskWorkspaceController{
    return;
   }
   if(!original||!needsOriginalTaskQuery(original))throw new Error("ORIGINAL_QUERY_ONLY");
-  await this.mutate("query",task,original.id,"",s=>this.api.reconcile(task.id,original.id,ref,s),()=>{});
+  let observed=false;
+  await this.mutate("query",task,original.id,"",signal=>{
+   this.state.receipt=null;this.emit();
+   return this.api.reconcile(task.id,original.id,ref,signal);
+  },()=>{observed=true});
+  if(!observed||!original.toolStep.authorityOperationId||original.toolStep.toolId!=="ai.conversation.read")return;
+  await this.work(async signal=>readTaskProjection(await this.api.task(task.id,signal),task.id),
+   projection=>{this.state.projection=projection});
+  const recovered=this.state.projection?.steps.find(item=>item.id===original.id);
+  if(!this.state.error&&this.state.projection?.id===task.id&&recovered?.status==="COMPLETED"&&
+   !needsOriginalTaskQuery(recovered)&&recovered.toolStep.authorityOperationId===original.toolStep.authorityOperationId){
+   await this.readResult(recovered);
+  }
  }
- async readResult(step:TaskStep){const task=this.state.projection;if(!task)return;await this.work(signal=>{this.state.receipt=null;this.emit();return this.readAPI(task.id).result(task.id,step.id,signal)},receipt=>{this.state.receipt=readTaskReceipt(receipt,step.id)})}
+ async readResult(step:TaskStep){
+  const task=this.state.projection;
+  if(!task||step.toolStep.taskId!==task.id)return;
+  await this.work(async signal=>{
+   this.state.receipt=null;this.emit();
+   const receipt=readTaskReceipt(await this.readAPI(task.id).result(task.id,step.id,signal),step.id);
+   const operation=step.toolStep.authorityOperationId;
+   if(step.toolStep.toolId==="ai.conversation.read"&&operation&&receipt.authorityOperationId!==operation)throw Error("TASK_ORIGINAL_RESULT_INVALID");
+   if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");
+   const record={...this.state.record,selectedTask:task.id,selectedResultStep:step.id};
+   await this.persist(record);
+   return {record,receipt};
+  },({record,receipt})=>{this.state.record=record;this.state.receipt=receipt});
+ }
  async reconnectOriginalRun(runId:string){const task=this.state.projection;if(!task||!this.runCursors)throw Error("ORIGINAL_RUN_CURSOR_STORAGE_REQUIRED");segment(runId);if(this.legacyRecovery(task.id))throw Error("LEGACY_ORIGINAL_QUERY_REQUIRED");await this.work(async signal=>{this.state.run=null;this.state.receipt=null;this.emit();const selected=task.id+":"+runId;if(this.followerKey!==selected){await this.follower?.close();if(this.disposed||signal.aborted)throw Error("TASK_REQUEST_CANCELLED");this.follower=new OriginalRunReconnect(this.identity,task,runId,this.api,this.runCursors!);this.followerKey=selected}return this.follower!.reconnect(signal,async()=>{})},value=>{this.state.projection=value.task;this.state.run=value.run;this.state.receipt=value.receipts.at(-1)??null})}
  async readRun(runId:string){const selected=this.state.projection;if(selected&&this.legacyRecovery(selected.id)){await this.work(async signal=>{this.state.run=null;this.state.receipt=null;this.emit();const received=await this.recoverLegacyRun(selected.id,runId,signal);return readTaskRun(received,selected,runId)},run=>{this.state.run=run});return}if(this.runCursors){await this.reconnectOriginalRun(runId);return}const task=this.state.projection;if(!task)return;await this.work(async signal=>{this.state.run=null;this.emit();const received=await this.api.runView(task.id,runId,signal);const run=readTaskRun(received,task,received.runId===runId||received.id===runId?received.runId:runId);if(run.taskId!==task.id||(run.runId!==runId&&run.id!==runId))throw new Error("ORIGINAL_RUN_BINDING_MISMATCH");if(!run.recoveryOnly&&run.status!=="UNKNOWN"){this.state.record={...this.state.record,deliveries:this.state.record.deliveries.map(delivery=>(!('adapter' in this.api)||delivery.version==="6")&&delivery.taskId===task.id&&delivery.runId===run.runId&&["run","resume"].includes(delivery.action)&&["PENDING","UNKNOWN"].includes(delivery.state)?{...delivery,state:"ORIGINAL_OBSERVED" as const}:delivery)};await this.persist(this.state.record)}return readTaskRun(run,task,run.runId)},run=>{this.state.run=run})}
  async model(expected:Task,runId:string,prompt:string,ref:string,tools:string[],resume=false){const task=this.current(expected);if(this.state.run?.recoveryOnly||this.state.run?.status==="UNKNOWN"||task.steps.some(needsOriginalTaskQuery)||this.state.record.deliveries.some(delivery=>delivery.taskId===task.id&&["run","resume"].includes(delivery.action)&&["UNKNOWN","PENDING","REJECTED_RESPONSE"].includes(delivery.state)))throw new Error("UNKNOWN_ORIGINAL_QUERY_REQUIRED");await this.mutate(resume?"resume":"run",task,"",runId,s=>{this.state.run=null;this.emit();return this.api.run(task,runId,prompt,ref,tools,resume,s)},value=>{this.state.run=readTaskRun(value,task,runId);this.state.record.runId=runId})}
