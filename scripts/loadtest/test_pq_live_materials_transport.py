@@ -34,7 +34,7 @@ def reply(operation, sequence, **changes):
                   operation=operation, sequence=str(sequence),
                   outcome='request_published' if operation == 'request' else 'original_result_read',
                   startupElapsedNs=400, calleeElapsedNs=12,
-                  syntheticOnly=True, authorityGranted=False,
+                  syntheticOnly=True, authorityGranted=False, firstCausePresent=False,
                   session=stats(2*sequence - (operation == 'request')))
     result.update(requestPath='/isolated/request' if operation == 'request' else None)
     if operation == 'result':
@@ -108,7 +108,8 @@ class Transport(unittest.TestCase):
             stop = threading.Event()
             stdin = io.BytesIO()
             def launch(name, argv, **options):
-                self.assertTrue(options['private_log'] and options['persistent'] and options['stdin_pipe'])
+                self.assertTrue(options['private_log'] and options['stdin_pipe'])
+                self.assertFalse(options.get('persistent', False))
                 self.assertEqual(argv[1], 'live-materials-session')
                 frames = [ready, reply('request', 1, timings=timings,
                                       requestPath=str(policy.parent/'request-000001.json')),
@@ -141,6 +142,18 @@ class Transport(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             open_lane(stream, lambda: None, session=dict(stats(0), policySHA256='d'*64))
         self.assertEqual(stream.getvalue(), b'')
+
+    def test_original_refusal_preserves_closed_class_and_poisoned_lane(self):
+        stream = io.BytesIO()
+        rejected = reply('request', 1, outcome='REFUSED_OR_UNKNOWN_NO_RETRY',
+                         failureClass='CONTEXT_ENDED', firstCausePresent=True)
+        del rejected['requestPath']
+        lane = open_lane(stream, lambda: rejected)
+        with self.assertRaises(transport.OriginalRefusal) as caught:
+            lane.exchange('request', 1, **REQUEST)
+        self.assertEqual(caught.exception.failure_class, 'CONTEXT_ENDED')
+        self.assertTrue(lane.poisoned)
+        self.assertEqual(lane.sequence, 0)
 
     def test_lost_or_refused_reply_cannot_trigger_replay(self):
         def lost():

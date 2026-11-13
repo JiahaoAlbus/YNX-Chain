@@ -46,6 +46,12 @@ def session_stats(stats, policy_sha256, node, max_operations, commands):
         'original live session identity or command accounting differs')
 
 
+class OriginalRefusal(RuntimeError):
+    def __init__(self, failure_class):
+        self.failure_class = failure_class
+        super().__init__(f"original live session {failure_class}; preserve original without retry")
+
+
 class Lane:
     """Operate a single already-opened Core lane. Its caller owns process cleanup."""
     def __init__(self, stdin, receive, ready, *, policy_sha256, node, max_operations):
@@ -85,11 +91,21 @@ class Lane:
         outcome = 'request_published' if operation == 'request' else 'original_result_read'
         require(type(reply) is dict and reply.get('version') == 'YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1'
                 and reply.get('operation') == operation and reply.get('sequence') == str(sequence)
-                and reply.get('outcome') == outcome and 'failure' not in reply
+                and 'failure' not in reply
                 and type(reply.get('startupElapsedNs')) is int and reply['startupElapsedNs'] == self.startup_ns
                 and type(reply.get('calleeElapsedNs')) is int and 0 <= reply['calleeElapsedNs'] < 1 << 63
                 and reply.get('syntheticOnly') is True and reply.get('authorityGranted') is False,
                 'original live reply refused or uncertain; preserve original without retry')
+        failure_class = reply.get('failureClass')
+        if reply.get('outcome') == 'REFUSED_OR_UNKNOWN_NO_RETRY':
+            require(failure_class in ('BUSY', 'CONTEXT_ENDED', 'REFUSED_OR_UNKNOWN')
+                    and reply.get('firstCausePresent') is True
+                    and 'requestPath' not in reply and 'result' not in reply,
+                    'unqualified original live refusal; preserve original without retry')
+            raise OriginalRefusal(failure_class)
+        require(reply.get('outcome') == outcome and 'failureClass' not in reply
+                and reply.get('firstCausePresent') is False,
+                'original live success scope differs; preserve original without retry')
         if operation == 'request':
             require(type(reply.get('requestPath')) is str and 'result' not in reply,
                     'original publication reply differs')

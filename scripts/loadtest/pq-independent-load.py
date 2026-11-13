@@ -797,11 +797,13 @@ def prepare_live_materials_session(backend, lane, check):
     stream.partial = b""
     stream.offset = 0
     launched = time.monotonic_ns()
+    # Refusal ends this lane's stream. Keep its PID under the Window guard,
+    # but let the original lane retirement handle that exit, not node liveness.
     stream.proc = backend.w.launch(name, [
         str(ceremony.bins / "ynx-consensus-pq-lab"), "live-materials-session",
         "--synthetic", "--policy", str(lane["policy"]), "--policy-sha256", lane["pin"],
         "--ready", "--timings",
-    ], persistent=True, stdin_pipe=True, thread_safe=True, private_log=True)
+    ], stdin_pipe=True, thread_safe=True, private_log=True)
     deadline = time.monotonic() + ceremony.proof_timeout
     # The private process log already holds the exact frames. Public timing
     # projections do not need a second durable copy of each private reply.
