@@ -33,3 +33,12 @@ add_library(ynx_pq_custody SHARED src/main/cpp/JNI.cpp src/main/cpp/OS43Android.
 target_include_directories(ynx_pq_custody PRIVATE ${YNX_ACCOUNT_PROOF_INCLUDE_ROOTS} ../native)
 target_link_libraries(ynx_pq_custody PRIVATE ReactAndroid::jsi ReactAndroid::reactnative fbjni::fbjni ynx_auth_mobile log)
 target_link_options(ynx_pq_custody PRIVATE -Wl,--no-undefined)
+
+
+# The approval signer shares the existing decoder and the single Auth/Core
+# archive. A complete approval build must resolve all holder ports at link.
+option(YNX_ANDROID_DEVICE_APPROVAL "Link original Android DEVICE approval" OFF)
+if(YNX_ANDROID_DEVICE_APPROVAL)
+ add_subdirectory(../native/android-account-approval android-account-approval)
+ target_sources(ynx_pq_custody PRIVATE $<TARGET_OBJECTS:ynx_android_account_approval>)
+endif()
