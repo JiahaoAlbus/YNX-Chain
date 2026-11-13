@@ -238,6 +238,8 @@ class SenderSession:
                             "original sender exited without one exact reply; preserve UNKNOWN")
                 continue
             stop.wait(.01)
+        # The resource monitor sets cancellation after publishing its first cause.
+        check()
         raise RuntimeError("original sender reply not supplied before cancellation/cutoff; preserve UNKNOWN, never re-sign or replay")
     def wait_ready(self,stop,deadline,check):
         lab.require(self.ready is None,"original sender ready already consumed")

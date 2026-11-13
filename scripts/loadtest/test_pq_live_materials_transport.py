@@ -76,6 +76,16 @@ class Transport(unittest.TestCase):
         lane.exchange('request', 2, **REQUEST)
         self.assertEqual(len(stream.getvalue().splitlines()), 3)
 
+    def test_ready_cancel_preserves_the_original_resource_failure(self):
+        driver = load_driver()
+        session = driver.SenderSession.__new__(driver.SenderSession)
+        stopped = threading.Event()
+        stopped.set()
+        def check():
+            raise RuntimeError('owned RSS exceeded 4GiB')
+        with self.assertRaisesRegex(RuntimeError, 'owned RSS exceeded 4GiB'):
+            session.receive(None, stopped, 'original', check=check)
+
     def test_receive_drains_large_original_even_after_process_exit(self):
         driver = load_driver()
         with tempfile.TemporaryDirectory() as temp:
