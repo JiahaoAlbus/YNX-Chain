@@ -32,7 +32,7 @@ operator_transition_capacity_role() {
   cp "$old_package/roles/$role/role-manifest.json" "$small/old-role/role-manifest.json" || return $?
   cp "$old_package/roles/$role/scripts/start-operator.sh" "$small/old-role/scripts/start-operator.sh" || return $?
   cp "$old_package/roles/$role/systemd/ynx-consensus-operator-candidate.service" "$small/old-role/systemd/ynx-consensus-operator-candidate.service" || return $?
-  python3 -B "$payload_helper" capacity-request --catalog "$payload_plan" --binding "$phase_root/$role.binding.json" --bridge "$bridge" --output "$small/request.json" || return $?
+  python3 -B "$payload_helper" capacity-request --catalog "$payload_plan" --binding "$phase_root/$role.binding.json" --bridge "$bridge" --bridge-tool-role "$bridge_tool_role" --output "$small/request.json" || return $?
   small_size="$(python3 -B "$payload_helper" capacity-size --directory "$small")" || return $?
   (set -o noclobber; tar -czf - -C "$small" . >"$small_archive") || return $?
   small_pin="$(operator_transition_sha "$small_archive")" || return $?
@@ -80,8 +80,8 @@ operator_transition_driver() {
   source scripts/deploy/deploy-consensus-candidate.sh
   source scripts/ops/remote/public-bft-operator-transition.sh
   source scripts/ops/public-bft-linux-public-tools.sh
-  local bridge=0
-  if public_bft_linux_tools_enabled; then bridge=1; fi
+  local bridge=0 bridge_tool_role=-
+  if public_bft_linux_tools_enabled; then bridge=1; bridge_tool_role="$PUBLIC_BFT_LINUX_TOOL_ROLE"; fi
   [[ "${DEPLOY_DRY_RUN:-0}" == 0 ]] || operator_transition_fail 'no dry-run can produce stopped/installed/started authority; use the isolated source controls'
   [[ "$bridge" == 1 || ( "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ) ]] || operator_transition_fail 'the original pinned Linux amd64 tools are required; no rebuild fallback'
   tx="${YNX_OPERATOR_TRANSITION_ID:-}"; work="${YNX_OPERATOR_TRANSITION_WORK_ROOT:-}"
@@ -108,6 +108,10 @@ PYMODE
   local root="$work/$tx" phase_root
   umask 077
   if [[ "$phase" == quiesce ]]; then mkdir -m 0700 "$root"; else test -d "$root" && test ! -L "$root"; fi
+  if [[ "$phase" != quiesce ]]; then
+    # Bind the original budgeted tool host before even the inventory request.
+    python3 -B scripts/ops/public-bft-transition-payload.py capacity-role --directory "$root/quiesce-attempt/capacity" --bindings "$root/quiesce-attempt" --bridge-tool-role "$bridge_tool_role" || return $?
+  fi
   phase_root="$root/$phase-attempt"
   mkdir -m 0700 "$phase_root" || operator_transition_fail 'phase already attempted, including uncertain local/remote results; reconcile the original instead of resending'
   if [[ "$bridge" == 1 ]]; then
@@ -313,7 +317,9 @@ PY
     extracted="$remote/source"; upload="$remote/source.tar.gz"
     ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; sudo test -d '/opt/ynx-chain/operator-transitions/$tx/$role'; test \"\$(df -PB1 /opt/ynx-chain | awk 'NR==2 {print \$4}')\" -gt '$((size*2+1073741824))'; sudo mkdir -m 0700 '$remote'; sudo chown \"\$(id -un)\" '$remote'; (set -o noclobber; : > '$upload')" >"$phase_root/$role.reserve.txt"
     ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$upload"
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0700 '$extracted' '$extracted/bin'" >"$phase_root/$role.stage.txt"
+    # Preserve the receiving root owner, not the controller UID/GID stored
+    # by its archive. The remote capture guard still requires stage 0:700.
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo mkdir -m 0700 '$extracted'; sudo tar --no-same-owner -xzf '$upload' -C '$extracted'; sudo chmod 0700 '$extracted' '$extracted/bin'" >"$phase_root/$role.stage.txt"
     if [[ "$bridge" == 1 ]]; then public_bft_linux_stage "$role" "transition-$phase"; else
       ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo chmod 0755 '$extracted/bin/ynx-comet' '$extracted/bin/ynx-consensus-package' '$extracted/bin/ynx-consensus-keycheck'" >"$phase_root/$role.permissions.txt"
     fi

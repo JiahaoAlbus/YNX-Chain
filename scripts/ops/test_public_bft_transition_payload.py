@@ -193,7 +193,7 @@ if operator_transition_capacity_all; then printf 'FREEZE\n' >>"$observed"; exit 
         root.mkdir(mode=0o700, parents=True)
         self.write(root / 'catalog.json', payload.encode(record))
         self.write(root / 'binding.json', payload.encode(binding))
-        payload.capacity_request(root / 'catalog.json', root / 'binding.json', root / 'request.json', True)
+        payload.capacity_request(root / 'catalog.json', root / 'binding.json', root / 'request.json', True, 'primary')
         request_raw = (root / 'request.json').read_bytes()
         request = payload.public.decode(request_raw)
         public_bound = 2 * int(request['quiesceStageBytesBound']) + 4 * int(request['futureStageBytesBound']) + 3 * payload.GIB
@@ -262,6 +262,9 @@ if operator_transition_capacity_all; then printf 'FREEZE\n' >>"$observed"; exit 
             self.write(bindings / (role + '.binding.json'), payload.encode(binding))
         record['phase'] = 'install'
         payload.capacity_set(self.root / 'capacity', bindings, record=record, phase='install', bridge_mode=True)
+        payload.capacity_set(self.root / 'capacity', bindings, bridge_tool_role='primary')
+        with self.assertRaisesRegex(ValueError, 'bridge tool role changed'):
+            payload.capacity_set(self.root / 'capacity', bindings, bridge_tool_role='singapore')
         with self.assertRaisesRegex(ValueError, 'later phase'):
             payload.capacity_set(self.root / 'capacity', bindings, record=record, phase='install', bridge_mode=False)
         record['stageBytesBound'] = str(int(record['futureStageBytesBound']) + 1)

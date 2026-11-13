@@ -45,6 +45,7 @@ type ApplicationInitializationResult struct {
 
 type applicationInitializationHooks struct {
 	afterReservation func(string) error
+	storage          func(string) (initializationStorage, error)
 }
 
 // InitializeApplication imports a complete native migration into a fresh
@@ -88,6 +89,37 @@ func initializeApplication(migration chain.ConsensusMigrationState, rawGenesis [
 	if err != nil {
 		return result, err
 	}
+	marker, err := json.Marshal(struct {
+		Version string                 `json:"version"`
+		Path    string                 `json:"statePath"`
+		Layout  string                 `json:"stateLayout"`
+		Pins    ConsensusBootstrapPins `json:"independentPins"`
+	}{ApplicationInitializationVersion, options.StatePath, options.StateLayout, pins})
+	if err != nil {
+		return result, err
+	}
+	var atomicPayload []byte
+	if options.StateLayout == "atomic-json" {
+		atomicPayload, err = encodeCommittedStateJSON(expected.committed)
+		if err != nil {
+			return result, err
+		}
+	}
+	stateBytes, err := initializationStateBytes(options.StateLayout, migration.StateHash, len(want), len(atomicPayload))
+	if err != nil {
+		return result, err
+	}
+	measureStorage := measureInitializationStorage
+	if hooks != nil && hooks.storage != nil {
+		measureStorage = hooks.storage
+	}
+	storage, err := measureStorage(parent)
+	if err != nil {
+		return result, fmt.Errorf("measure application initialization filesystem: %w", err)
+	}
+	if err = storage.check(stateBytes, uint64(len(marker)), options.StateLayout); err != nil {
+		return result, err
+	}
 	// Mkdir, rather than MkdirAll, is the exclusive reservation. An old state,
 	// lock, UNKNOWN record or partial attempt is never opened for replacement.
 	if err = os.Mkdir(directory, 0o700); err != nil {
@@ -99,15 +131,6 @@ func initializeApplication(migration chain.ConsensusMigrationState, rawGenesis [
 	directoryInfo, err := os.Lstat(directory)
 	if err != nil || !directoryInfo.IsDir() || directoryInfo.Mode().Perm() != 0o700 {
 		return result, errors.New("reserved application directory must remain private and regular")
-	}
-	marker, err := json.Marshal(struct {
-		Version string                 `json:"version"`
-		Path    string                 `json:"statePath"`
-		Layout  string                 `json:"stateLayout"`
-		Pins    ConsensusBootstrapPins `json:"independentPins"`
-	}{ApplicationInitializationVersion, options.StatePath, options.StateLayout, pins})
-	if err != nil {
-		return result, err
 	}
 	if err = writeInitializationFile(filepath.Join(directory, ".ynx-initialization-attempt.json"), marker); err != nil {
 		return result, err
@@ -126,13 +149,10 @@ func initializeApplication(migration chain.ConsensusMigrationState, rawGenesis [
 		// The normal encoder supplies the exact original snapshot format. An
 		// exclusive direct write, only inside our new private directory, keeps
 		// partial bytes on failure instead of a rename helper deleting them.
-		payload, encodeErr := encodeCommittedStateJSON(expected.committed)
-		if encodeErr != nil {
-			return result, encodeErr
-		}
-		if err = writeInitializationFile(options.StatePath, payload); err != nil {
+		if err = writeInitializationFile(options.StatePath, atomicPayload); err != nil {
 			return result, err
 		}
+		atomicPayload = nil
 	} else {
 		// The original snapshot-journal fresh anchor is its hash-bound header;
 		// its first snapshot must advance migration.Height. The block journal

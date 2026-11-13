@@ -6,8 +6,14 @@ umask 077
 # reader. Neither branch reads a service environment or starts a node. The
 # independent pins come from the original approved cutover, never SOURCE.json.
 exec python3 -B - "$@" <<'PY'
-import hashlib, json, os, re, stat, subprocess, sys, time
+import hashlib, json, os, re, resource, stat, subprocess, sys, time
 from pathlib import Path
+
+# This normal publish path already accepts at most one GiB in both the local
+# candidate binding/Go summary and the Mac public transport. Do not infer the
+# canonical exported length M from the live legacy state length S.
+SNAPSHOT_MAX_BYTES = 1 << 30
+SNAPSHOT_RESERVE_BYTES = 2 << 30
 
 def require(ok, message):
     if not ok:
@@ -87,6 +93,26 @@ def sync_dir(path):
 
 def absent(path):
     require(not os.path.lexists(path), 'existing output/partial/UNKNOWN must be preserved: ' + str(path))
+
+def snapshot_capacity(evidence):
+    original(evidence)
+    require(evidence.is_dir(), 'original snapshot filesystem required')
+    fs = os.statvfs(evidence)
+    available = fs.f_bavail * fs.f_frsize
+    required = SNAPSHOT_MAX_BYTES + SNAPSHOT_RESERVE_BYTES
+    require(available > required, 'insufficient original snapshot filesystem capacity')
+    limits = resource.getrlimit(resource.RLIMIT_FSIZE)
+    require(all(value == resource.RLIM_INFINITY or value >= SNAPSHOT_MAX_BYTES for value in limits),
+            'existing file limit cannot support the original migration cap')
+    return dict(version='YNX-NATIVE-SNAPSHOT-CAPACITY/v1', availableBytes=available,
+                requiredBytes=required, device=evidence.stat().st_dev,
+                exportCeilingBytes=SNAPSHOT_MAX_BYTES, reserveBytes=SNAPSHOT_RESERVE_BYTES,
+                exportedMigrationBytes=None, fullFirstImportReady=False, growthReserved=False)
+
+def snapshot_file_limit():
+    # Child-only kernel ceiling; no host/process-wide tuning or caller override.
+    # An oversized/uncertain original export remains failed and retained.
+    resource.setrlimit(resource.RLIMIT_FSIZE, (SNAPSHOT_MAX_BYTES, SNAPSHOT_MAX_BYTES))
 
 def source_record(path, expected, tx, commit, native_release, bft_release, native_identity):
     actual, raw, _ = read(path, 16384, True)
@@ -340,18 +366,21 @@ def main():
     status()
     time.sleep(int(observation))
     status()
+    capacity = snapshot_capacity(evidence)
     os.mkdir(attempt, 0o700)
     sync_dir(evidence)
     durable(attempt / 'intent.json', (json.dumps(dict(version='YNX-PUBLIC-BFT-SNAPSHOT-ATTEMPT/v1',
         transactionId=tx, commit=commit, snapshotSourceSha256=source_pin, exporterManifestSha256=manifest_pin,
         status='unknown', automaticRetry=False), separators=(',', ':')) + '\n').encode())
+    durable(attempt / 'capacity.json', (json.dumps(capacity, separators=(',', ':')) + '\n').encode())
     # The normal exporter reserves its own output and preserves uncertain files.
     # It runs before any mutating constructor and receives no service env/keys.
     for label, command in (
         ('export', [str(bundle / 'ynx-chaind'), '--data-dir', str(Path(source['statePath']).parent), '--export-consensus-state', str(snapshot)]),
         ('verify', [str(bundle / 'ynx-consensus-package'), '-verify-migration-state', str(snapshot)])):
         with open(attempt / (label + '.stdout'), 'xb') as out, open(attempt / (label + '.stderr'), 'xb') as err:
-            completed = subprocess.run(command, env=env, stdout=out, stderr=err, check=False)
+            completed = subprocess.run(command, env=env, stdout=out, stderr=err, check=False,
+                                       preexec_fn=snapshot_file_limit if label == 'export' else None)
             out.flush(); os.fsync(out.fileno()); err.flush(); os.fsync(err.fileno())
             durable(attempt / (label + '.exit-code'), (str(completed.returncode) + '\n').encode())
             completed.check_returncode()
@@ -363,7 +392,7 @@ def main():
     require(check_source(source, tx, commit, release, native_identity) == before, 'original source or markers changed across export')
     source_record(absolute(source_path), source_pin, tx, commit, native, release, native_identity)
     tools_record(bundle, full_commit, manifest_pin)
-    actual, _, _ = read(snapshot, 1 << 40)
+    actual, _, _ = read(snapshot, SNAPSHOT_MAX_BYTES)
     result = dict(transactionId=tx, commit=commit, authoritativeRelease=native, bftRelease=release,
                   height=int(source['height']), lastBlockHash=source['blockHash'], stateHash=match[3].decode(),
                   sha256=actual['sha256'], snapshotSourceSha256=source_pin, exporterManifestSha256=manifest_pin,

@@ -96,6 +96,22 @@ class CapacityTests(unittest.TestCase):
             nonlocal count;count+=1;return types.SimpleNamespace(f_frsize=4096,f_bavail=(1 if count==4 else 1<<40))
         with patch.object(f.m.os,'fstatvfs',side_effect=fs):v=f.m.measure(str(f.stage),f.b,f.pin,f.process,'observe')
         self.assertFalse(v['capacityAvailable'])
+    def test_only_selected_original_tool_role_carries_bulk_bridge_operations(self):
+        f=self.f
+        f.r['version']='YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v2'
+        f.r['bridgeToolRole']='primary'
+        f.save()
+        producer=f.measure()['bounds']
+        f.r['bridgeToolRole']='singapore'
+        f.save()
+        peer=f.measure()['bounds']
+        self.assertEqual(int(peer['bridgeBytesBound']),3*(2*3+144+256)*(1<<20))
+        self.assertGreater(int(producer['bridgeBytesBound']),int(peer['bridgeBytesBound']))
+        self.assertEqual({k:v for k,v in producer.items() if k!='bridgeBytesBound'},
+                         {k:v for k,v in peer.items() if k!='bridgeBytesBound'})
+        for bad in ('', 'outside'):
+            f.r['bridgeToolRole']=bad;f.save()
+            with self.assertRaisesRegex(ValueError,'bridge tool role'):f.measure()
     def test_all_original_journal_locks_counted_and_missing_refused(self):
         f=self.f
         for layout in ('snapshot-journal','block-journal'):

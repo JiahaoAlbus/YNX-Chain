@@ -92,6 +92,58 @@ func newApplicationInitializationFixture(t *testing.T) applicationInitialization
 	return applicationInitializationFixture{migration: migration, raw: raw, pins: pins, bootstrap: bootstrap, contract: contract, history: transfer.Hash}
 }
 
+func TestInitializeApplicationCapacityMatchesWrittenLayoutAndRefusesBeforeReservation(t *testing.T) {
+	f := newApplicationInitializationFixture(t)
+	for _, layout := range []string{"atomic-json", "snapshot-journal", "block-journal"} {
+		t.Run(layout, func(t *testing.T) {
+			parent := t.TempDir()
+			path := filepath.Join(parent, "fresh", "state")
+			options := ApplicationInitializationOptions{StatePath: path, StateLayout: layout}
+			hooks := &applicationInitializationHooks{storage: func(measuredParent string) (initializationStorage, error) {
+				if measuredParent != parent {
+					t.Fatalf("measured %q, want %q", measuredParent, parent)
+				}
+				return initializationStorage{blockSize: 4096, availableBlocks: 0}, nil
+			}}
+			if _, err := initializeApplication(f.migration, f.raw, f.pins, options, hooks); err == nil || !strings.Contains(err.Error(), "insufficient application initialization storage") {
+				t.Fatalf("no-space guard returned %v", err)
+			}
+			if _, err := os.Lstat(filepath.Dir(path)); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("no-space check created a reservation: %v", err)
+			}
+			hooks.storage = func(string) (initializationStorage, error) {
+				return initializationStorage{blockSize: 4096, availableBlocks: 1 << 30, reportsInodes: true}, nil
+			}
+			if _, err := initializeApplication(f.migration, f.raw, f.pins, options, hooks); err == nil || !strings.Contains(err.Error(), "inodes_available=0") {
+				t.Fatalf("no-inode guard returned %v", err)
+			}
+			if _, err := os.Lstat(filepath.Dir(path)); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("no-inode check created a reservation: %v", err)
+			}
+			if _, err := InitializeApplication(f.migration, f.raw, f.pins, options); err != nil {
+				t.Fatal(err)
+			}
+			app, err := openInitializedApplication(f.migration, options, f.bootstrap)
+			if err != nil {
+				t.Fatal(err)
+			}
+			compact, err := json.Marshal(app.committed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			atomic, err := encodeCommittedStateJSON(app.committed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			planned, err := initializationStateBytes(layout, f.migration.StateHash, len(compact), len(atomic))
+			info, statErr := os.Stat(path)
+			if err != nil || statErr != nil || planned != uint64(info.Size()) {
+				t.Fatalf("preflight size %d differs from actual file %v, sizing error=%v, stat error=%v", planned, info, err, statErr)
+			}
+		})
+	}
+}
+
 func TestInitializeApplicationAllLayoutsColdReadPreservesCompleteNativeSource(t *testing.T) {
 	f := newApplicationInitializationFixture(t)
 	before, err := f.migration.CanonicalJSON()

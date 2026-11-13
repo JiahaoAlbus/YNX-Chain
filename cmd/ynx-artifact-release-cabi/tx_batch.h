@@ -84,7 +84,9 @@ enum YNXTransactionBatchCleanupV1 {
  * Caller allocations must be live, aligned, correctly sized and immutable
  * throughout the synchronous call; arbitrary pointer validity is not verified.
  * Output buffer/length/cleanup must be mutually disjoint and disjoint from the
- * request and all inputs. Inputs may overlap each other. Initialize length=0
+ * request and all inputs. Public inputs must not overlap either PKCS8 span;
+ * public/public and private/private overlaps remain allowed. Distinct subranges
+ * of one allocation are allowed. Initialize length=0
  * and cleanup=UNKNOWN. Layout failures write nothing. Admitted failure sets
  * length=0 and leaves the member buffer untouched. Success copies only length
  * bytes after logical cleanup, leaving remaining capacity untouched. Allocate

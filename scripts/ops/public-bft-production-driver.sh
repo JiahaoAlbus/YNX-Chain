@@ -650,9 +650,15 @@ initialize_candidate_phase() {
     tar -czf "$archive" -C "$stage" .
     chmod 0600 "$archive"
     expected="$(shasum -a 256 "$archive" | awk '{print $1}')"
+    local capacity_command capacity_mode=local
+    if public_bft_linux_tools_enabled; then capacity_mode=bridge; fi
+    capacity_command="$(python3 -B scripts/ops/public-bft-candidate-capacity.py initialize "$role" "$candidate_release" "$stage" "$archive" "$expected" "$(dirname "$public_package_verifier")/SOURCE.json" "${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:?}" "$capacity_mode")" || return $?
+    # Read-only aggregate on each actual target filesystem, before any remote
+    # reservation. Import-state/backup capacity is checked by its own producer.
     ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail
 $destination_guard
 $(candidate_original_guard_command "$role")
+$capacity_command
 sudo test ! -e '$remote_stage'; sudo test ! -L '$remote_stage'
 test ! -e '$remote_archive'; test ! -L '$remote_archive'
 for directory in '/opt/ynx-chain/consensus-initialization' '/opt/ynx-chain/consensus-initialization/$candidate_release'; do

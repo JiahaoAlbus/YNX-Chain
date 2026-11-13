@@ -532,6 +532,11 @@ deploy_candidate_role() {
   local archive_hash
   archive_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
   local remote_archive="/tmp/${release}-${role}.tar.gz" remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
+  local capacity_command=: capacity_mode=local
+  if [[ "$operator_package" == 1 ]]; then
+    if public_bft_linux_tools_enabled; then capacity_mode=bridge; fi
+    capacity_command="$(python3 -B scripts/ops/public-bft-candidate-capacity.py deploy "$role" "$release" "$stage" "$archive" "$archive_hash" "$work/runtime-SOURCE.json" "${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:?}" "$capacity_mode")" || return $?
+  fi
   # Reserve before ynx_ops_copy (whose normal transport uses cat > destination).
   # Atomic mkdir/noclobber also reject competing attempts after the existence
   # checks. Any failed reservation/copy leaves its evidence in place; a retry
@@ -541,6 +546,7 @@ if sudo test -e '$remote_dir' || sudo test -L '$remote_dir' || test -e '$remote_
   echo 'candidate release or archive already exists; retain and reconcile the original attempt' >&2
   exit 1
 fi
+$capacity_command
 sudo install -d -m 0700 '/opt/ynx-chain/consensus-candidates/${release}'
 sudo mkdir -m 0700 '$remote_dir'
 (umask 077; set -o noclobber; : > '$remote_archive')"

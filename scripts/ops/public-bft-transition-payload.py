@@ -42,7 +42,7 @@ CAPACITY_FILES = {'helper.sh', 'request.json', 'approval.json', 'old-SOURCE.json
 CAPACITY_IDENTITIES = ('transitionId', 'role', 'approvalSHA256', 'oldOperatorPlanSHA256',
                        'oldRuntimeCommit', 'oldRuntimeManifestSHA256', 'runtimeCommit', 'runtimeManifestSHA256')
 REQUEST_FIELDS = {'version', *CAPACITY_IDENTITIES, 'quiesceStageBytesBound', 'futureStageBytesBound',
-                  'oldPackageBytes', 'currentMigrationBytes', 'currentMigrationSHA256', 'bridgeMode'}
+                  'oldPackageBytes', 'currentMigrationBytes', 'currentMigrationSHA256', 'bridgeMode', 'bridgeToolRole'}
 
 
 def need(ok, message):
@@ -72,7 +72,7 @@ def durable(path, raw):
     public.sync(path.parent)
 
 
-def capacity_request(catalog_path, binding_path, output, bridge_mode):
+def capacity_request(catalog_path, binding_path, output, bridge_mode, bridge_tool_role):
     record = public.decode(public.read(Path(catalog_path), 8 * MIB)[1])
     binding = public.decode(public.read(Path(binding_path), MIB)[1])
     need(record.get('version') == VERSION and record.get('phase') == 'quiesce'
@@ -80,24 +80,30 @@ def capacity_request(catalog_path, binding_path, output, bridge_mode):
     need(binding.get('phase') == 'quiesce' and binding.get('role') in ROLES
          and binding.get('oldOperatorPlanSHA256') == record['oldOperatorPlanSHA256'],
          'capacity request differs from original phase binding')
-    request = {'version': 'YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1',
+    need(bridge_tool_role in (ROLES if bridge_mode else ('-',)), 'invalid original bridge tool role')
+    request = {'version': 'YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v2',
                **{name: binding[name] for name in CAPACITY_IDENTITIES},
                'quiesceStageBytesBound': record['stageBytesBound'],
                'futureStageBytesBound': record['futureStageBytesBound'],
                'oldPackageBytes': record['oldPackageBytes'],
                'currentMigrationBytes': str(record['migration']['bytes']),
                'currentMigrationSHA256': record['migration']['sha256'],
-               'bridgeMode': bridge_mode}
+               'bridgeMode': bridge_mode, 'bridgeToolRole': bridge_tool_role}
     durable(output, encode(request))
 
 
 def validate_capacity(request_raw, receipt_raw, binding):
     request, receipt = public.decode(request_raw), public.decode(receipt_raw)
     need(type(binding) is dict and binding.get('phase') in ('quiesce', 'install', 'start'), 'normal phase binding required')
-    need(type(request) is dict and set(request) == REQUEST_FIELDS
-         and request['version'] == 'YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1', 'closed capacity request required')
+    need(type(request) is dict, 'closed capacity request required')
+    version = request.get('version')
+    need((version == 'YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v2' and set(request) == REQUEST_FIELDS)
+         or (version == 'YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1' and set(request) == REQUEST_FIELDS - {'bridgeToolRole'}),
+         'closed capacity request required')
     need(request['role'] in ROLES and type(request['bridgeMode']) is bool
          and re.fullmatch('[A-Za-z0-9][A-Za-z0-9._-]{7,127}', request['transitionId']), 'capacity identity required')
+    if 'bridgeToolRole' in request:
+        need(request['bridgeToolRole'] in (ROLES if request['bridgeMode'] else ('-',)), 'invalid original bridge tool role')
     for field in CAPACITY_IDENTITIES:
         if field not in ('approvalSHA256',):
             need(request[field] == binding[field], 'capacity source/role differs from phase binding')
@@ -166,14 +172,22 @@ def capacity_accept(request_path, receipt_path, binding_path):
     return request, receipt, {'requestSHA256': public.sha(request_raw), 'receiptSHA256': public.sha(receipt_raw)}
 
 
-def capacity_set(directory, bindings, output=None, record=None, phase=None, bridge_mode=None):
+def capacity_set(directory, bindings, output=None, record=None, phase=None, bridge_mode=None, bridge_tool_role=None):
     directory, bindings = Path(directory), Path(bindings)
-    roles, identity = {}, None
+    roles, identity, original_bridge = {}, None, None
     for role in ROLES:
         request, receipt, pins = capacity_accept(directory / role / 'source/request.json',
                                                 directory / role / 'receipt.json', bindings / (role + '.binding.json'))
         current = {k: request[k] for k in ('transitionId', 'runtimeCommit', 'runtimeManifestSHA256')}
         need(identity is None or identity == current, 'four capacity sources differ')
+        tool_role = request.get('bridgeToolRole')
+        bridge = (request['bridgeMode'], tool_role)
+        need(original_bridge is None or original_bridge == bridge, 'four capacity bridge tool roles differ')
+        if bridge_tool_role is not None:
+            # v1 reserved the full math budget on all four roles.
+            allowed = (tool_role,) if tool_role is not None else (ROLES if bridge[0] else ('-',))
+            need(bridge_tool_role in allowed, 'original capacity bridge tool role changed')
+        original_bridge = bridge
         identity, roles[role] = current, pins
         if record is not None:
             need(record['phase'] == phase and phase in ('install', 'start')
@@ -358,17 +372,19 @@ def pack(payload, old_package, old_pin, new_package, new_pin, phase, catalog_pat
 
 
 def main(argv):
-    if argv and argv[0] in ('capacity-accept', 'capacity-set', 'phase-budget'):
+    if argv and argv[0] in ('capacity-accept', 'capacity-set', 'capacity-role', 'phase-budget'):
         parser = argparse.ArgumentParser()
         action = argv[0]
         names = {'capacity-accept': ('request', 'receipt', 'binding'),
                  'capacity-set': ('directory', 'bindings', 'output'),
+                 'capacity-role': ('directory', 'bindings', 'bridge-tool-role'),
                  'phase-budget': ('catalog', 'capacity', 'bindings', 'phase')}[action]
         for field in names: parser.add_argument('--' + field, required=True)
         if action == 'phase-budget': parser.add_argument('--bridge', choices=('0', '1'), required=True)
         args = parser.parse_args(argv[1:])
         if action == 'capacity-accept': capacity_accept(args.request, args.receipt, args.binding)
         elif action == 'capacity-set': capacity_set(args.directory, args.bindings, args.output)
+        elif action == 'capacity-role': capacity_set(args.directory, args.bindings, bridge_tool_role=args.bridge_tool_role)
         else: capacity_set(args.capacity, args.bindings, record=public.decode(public.read(Path(args.catalog), 8 * MIB)[1]), phase=args.phase, bridge_mode=args.bridge == '1')
         return
     if len(argv) == 3 and argv[:2] == ['capacity-size', '--directory']:
@@ -379,8 +395,9 @@ def main(argv):
         for field in ('catalog', 'binding', 'output'):
             parser.add_argument('--' + field, required=True)
         parser.add_argument('--bridge', choices=('0', '1'), required=True)
+        parser.add_argument('--bridge-tool-role', choices=('-', *ROLES), required=True)
         args = parser.parse_args(argv[1:])
-        capacity_request(args.catalog, args.binding, args.output, args.bridge == '1')
+        capacity_request(args.catalog, args.binding, args.output, args.bridge == '1', args.bridge_tool_role)
         return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('inspect', 'pack'))

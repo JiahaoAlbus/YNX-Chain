@@ -772,3 +772,6 @@ if (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
 fi
 
 echo "public-bft-production-driver-check passed: original backup/freeze/pause controls retained; final snapshot uses approved readonly tools, rejects replay and preserves partial/UNKNOWN"
+
+# Read-only PUBLIC stage/install capacity; no SSH, keys or runtime execution.
+timeout 30s python3 -B scripts/ops/test_public_bft_candidate_capacity.py -v

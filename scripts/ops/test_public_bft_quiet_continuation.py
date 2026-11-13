@@ -4,13 +4,17 @@ import base64
 import copy
 import datetime
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import shlex
+import shutil
+import stat
 import subprocess
 import sys
 import tempfile
+import tarfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
@@ -808,6 +812,107 @@ printf 'ORIGINAL_TERMINAL_ACCEPTED\n'
                 if case.startswith('stopped-'):self.assertIn('SYNTHETIC_STOPPED_HELPER_FAILURE',r.stderr)
         r,root=self.run_control('same',conditional=True);self.assertEqual(r.returncode,0,r.stderr)
         self.assertEqual(r.stdout,'ORIGINAL_TERMINAL_ACCEPTED\n')
+
+class CaptureStageOwnershipTests(unittest.TestCase):
+    """Original staging command, PUBLIC synthetic archive, no privilege/SSH.
+
+    The sudo test double executes GNU tar with its documented superuser
+    ownership default explicitly, since this suite also runs without root.
+    All actual mkdir/tar/SHA/chmod operations stay in this test's directory.
+    This is a caller regression, not evidence of a live host capture.
+    """
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory(prefix='quiet-stage-owner-')
+        self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name).resolve()
+        self.tar=shutil.which('gtar') or shutil.which('tar')
+        self.assertIsNotNone(self.tar,'normal GNU tar required by remote Linux control')
+        version=subprocess.run([self.tar,'--version'],capture_output=True,text=True,timeout=5)
+        self.assertEqual(version.returncode,0,version.stderr)
+        self.assertIn('GNU tar',version.stdout)
+        caller=(HERE/'public-bft-operator-transition.sh').read_text()
+        body=caller.split('  capture_selected_role() {\n',1)[1].split('\n  }\n',1)[0]
+        lines=[line for line in body.splitlines() if 'ynx_ops_ssh ' in line and 'sudo tar ' in line]
+        self.assertEqual(len(lines),1,'one original fixed public stage extractor required')
+        self.command=lines[0]
+        # A different sender UID/GID represents a Darwin controller archive,
+        # without any actual key/config/DB/runtime content or real username.
+        self.sender_uid=os.geteuid()+10000;self.sender_gid=os.getegid()+10000
+        self.payload={'binding.json':b'{"syntheticPublicOnly":true}\n',
+                      'bin/ynx-comet':b'PUBLIC NONEXECUTABLE standin\n',
+                      'source-plan.json':b'{"source":"PUBLIC fixture"}\n'}
+        self.archive=self.root/'source.tar.gz'
+        with tarfile.open(self.archive,'w:gz',format=tarfile.USTAR_FORMAT) as out:
+            for name in ('.','./bin'):
+                info=tarfile.TarInfo(name);info.type=tarfile.DIRTYPE;info.mode=0o700
+                info.uid=self.sender_uid;info.gid=self.sender_gid;out.addfile(info)
+            for name,body in self.payload.items():
+                info=tarfile.TarInfo('./'+name);info.size=len(body);info.mode=0o600
+                info.uid=self.sender_uid;info.gid=self.sender_gid;out.addfile(info,io.BytesIO(body))
+        with tarfile.open(self.archive,'r:gz') as archive:
+            members=archive.getmembers()
+            self.assertEqual({m.uid for m in members},{self.sender_uid})
+            self.assertEqual({m.gid for m in members},{self.sender_gid})
+            self.assertEqual(members[0].name,'.')
+
+    def stage(self,phase,pin=None):
+        directory=self.root/phase;directory.mkdir(mode=0o700,exist_ok=True)
+        destination=directory/'source'
+        script=r'''set -Eeuo pipefail
+role=primary;user=synthetic;host=synthetic.invalid;key=NOT_READ
+upload="$1";extracted="$2";archive_pin="$3";phase_root="$4";test_tar="$5"
+sudo() {
+  if [[ "$1" == tar ]]; then
+    shift
+    case " $* " in
+      *' --no-same-owner '*) "$test_tar" "$@" ;;
+      *) "$test_tar" --same-owner "$@" ;;
+    esac
+  else command "$@"; fi
+}
+ynx_ops_ssh() {
+  [[ "$#" == 5 && "$1" == primary && "$2" == synthetic && "$3" == synthetic.invalid && "$4" == NOT_READ ]]
+  eval "$5"
+}
+'''+self.command+'\n'
+        env=dict(os.environ,LC_ALL='C',LANG='C');env.pop('TAR_OPTIONS',None)
+        result=subprocess.run(['bash','-c',script,'PUBLIC-stage-control',str(self.archive),str(destination),
+            pin or q.sha(self.archive.read_bytes()),str(directory),self.tar],capture_output=True,text=True,env=env,timeout=10)
+        return result,destination
+
+    def test_capture_and_resume_preserve_receiver_owner_and_all_public_bytes(self):
+        original=self.archive.read_bytes()
+        for phase in ('capture','resume'):
+            with self.subTest(phase=phase):
+                result,destination=self.stage(phase)
+                self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+                for path in [destination,destination/'bin',*[destination/name for name in self.payload]]:
+                    st=path.lstat()
+                    self.assertFalse(stat.S_ISLNK(st.st_mode))
+                    self.assertEqual(st.st_uid,os.geteuid())
+                    self.assertNotEqual(st.st_gid,self.sender_gid)
+                    self.assertEqual(stat.S_IMODE(st.st_mode),0o700 if path.is_dir() else 0o600)
+                for name,body in self.payload.items():self.assertEqual((destination/name).read_bytes(),body)
+                self.assertEqual(self.archive.read_bytes(),original)
+                # This remains a strict root-owned stage on the real root
+                # receiver; no change to the production stage guard.
+                remote=(HERE/'remote/public-bft-operator-transition.sh').read_text()
+                self.assertIn('"$(stat -c %u:%a "$stage")" == 0:700',remote)
+
+    def test_wrong_archive_pin_and_existing_stage_preserve_original_refusals(self):
+        original=self.archive.read_bytes()
+        result,destination=self.stage('bad-pin','f'*64)
+        self.assertNotEqual(result.returncode,0)
+        self.assertFalse(destination.exists())
+        result,destination=self.stage('retained')
+        self.assertEqual(result.returncode,0,result.stderr)
+        marker=destination/'retained.UNKNOWN';marker.write_bytes(b'original UNKNOWN')
+        result,same=self.stage('retained')
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(same,destination)
+        self.assertEqual(marker.read_bytes(),b'original UNKNOWN')
+        self.assertEqual(self.archive.read_bytes(),original)
+        for name,body in self.payload.items():self.assertEqual((destination/name).read_bytes(),body)
 
 if __name__=='__main__':
     if len(sys.argv)==5 and sys.argv[1]=='--fixture':

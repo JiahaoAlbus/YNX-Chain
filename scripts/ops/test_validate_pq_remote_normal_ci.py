@@ -989,6 +989,14 @@ def assert_native_cabi_workflow_contract(raw):
               if terminal != ['pass']:
                   raise RuntimeError('current migration authorization core did not execute and pass: ' + name)
           print('YNX_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=current_migration, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False), sort_keys=True))
+          wallet_alias = ['TestTransactionBatchCABIPUBLICSecretPublicAliasBoundary', 'TestAccountInitialCABIPUBLICSecretPublicAliasBoundary']
+          for name in wallet_alias:
+              matches = [row for row in rows if row.get('Test') == name]
+              if [row.get('Package') for row in matches if row.get('Action') == 'run'] != ['github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi'] or [(row.get('Package'), row.get('Action')) for row in matches if row.get('Action') in ('pass', 'fail', 'skip')] != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
+                  raise RuntimeError('Wallet signing alias boundary did not execute uniquely: ' + name)
+              if any(row.get('Test', '').startswith(name + '/') and (row.get('Package') != 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi' or row.get('Action') in ('fail', 'skip')) for row in rows):
+                  raise RuntimeError('Wallet signing alias child refused: ' + name)
+          print('YNX_WALLET_SIGN_ALIAS_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=wallet_alias, suitePassed=True, actualExportedGoABI=True, externalArchiveInterop=False, keysGenerated=False, signaturesProduced=False, accountAuthorized=False), sort_keys=True))
           pending_query = ['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary']
           for name in pending_query:
               package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in pending_query[:2] else 'cmd/ynx-artifact-release-cabi')
@@ -3246,6 +3254,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                     if label=='legacy_snapshot':pkg='internal/chain'
                     if label=='ethers_required':
                         pkg='internal/api'
+                    if label in ('ethers_required','wallet_alias'):
                         rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='run'))
                     rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
             if 'legacy_snapshot' not in lists:
@@ -3264,7 +3273,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                 with contextlib.redirect_stdout(io.StringIO()):
                     exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
             run(rows)
-            selected=set(lists.get('resource_consent',[])+lists.get('source_v2_capacity',[])+lists.get('legacy_snapshot',[])+lists.get('ethers_required',[]))
+            selected={test for label in ('resource_consent','source_v2_capacity','legacy_snapshot','ethers_required','wallet_alias') for test in lists.get(label,[])}
             for index,row in enumerate(rows):
                 if row.get('Test') not in selected and 'Test' in row:continue
                 for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):

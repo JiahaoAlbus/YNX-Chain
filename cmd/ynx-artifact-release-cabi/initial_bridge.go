@@ -37,22 +37,31 @@ func checkInitialRequest(req *C.YNXAccountInitialRequestV1, buffer *C.uint8_t, c
 	spans := []struct {
 		value        C.YNXAccountInitialBytesV1
 		minimum, max uintptr
+		private      bool
 	}{
-		{req.message_original, 1, initialMessageMaximum}, {req.genesis_original, 1, initialGenesisMaximum},
-		{req.expected.genesis_sha256, 32, 32}, {req.expected.network_id, 32, 32}, {req.expected.owner, 42, 42}, {req.expected.execution_height, 1, 20},
-		{req.expected.pk_a, ynxbatch.PublicKeyASize, ynxbatch.PublicKeyASize}, {req.expected.pk_b, ynxbatch.PublicKeyBSize, ynxbatch.PublicKeyBSize},
-		{req.pkcs8_a, ynxbatch.PKCS8ASize, ynxbatch.PKCS8ASize}, {req.pkcs8_b, ynxbatch.PKCS8BSize, ynxbatch.PKCS8BSize},
-		{req.pk_a, ynxbatch.PublicKeyASize, ynxbatch.PublicKeyASize}, {req.pk_b, ynxbatch.PublicKeyBSize, ynxbatch.PublicKeyBSize},
+		{req.message_original, 1, initialMessageMaximum, false}, {req.genesis_original, 1, initialGenesisMaximum, false},
+		{req.expected.genesis_sha256, 32, 32, false}, {req.expected.network_id, 32, 32, false}, {req.expected.owner, 42, 42, false}, {req.expected.execution_height, 1, 20, false},
+		{req.expected.pk_a, ynxbatch.PublicKeyASize, ynxbatch.PublicKeyASize, false}, {req.expected.pk_b, ynxbatch.PublicKeyBSize, ynxbatch.PublicKeyBSize, false},
+		{req.pkcs8_a, ynxbatch.PKCS8ASize, ynxbatch.PKCS8ASize, true}, {req.pkcs8_b, ynxbatch.PKCS8BSize, ynxbatch.PKCS8BSize, true},
+		{req.pk_a, ynxbatch.PublicKeyASize, ynxbatch.PublicKeyASize, false}, {req.pk_b, ynxbatch.PublicKeyBSize, ynxbatch.PublicKeyBSize, false},
 	}
-	inputs := make([]memoryRange, len(spans))
-	for i, s := range spans {
+	public := make([]memoryRange, 0, len(spans)-2)
+	private := make([]memoryRange, 0, 2)
+	for _, s := range spans {
 		if uintptr(s.value.length) < s.minimum || uintptr(s.value.length) > s.max {
 			return resultBounds
 		}
-		inputs[i] = initialSpanRange(s.value)
+		r := initialSpanRange(s.value)
+		if s.private {
+			private = append(private, r)
+		} else {
+			public = append(public, r)
+		}
 	}
 	outputs := []memoryRange{{uintptr(unsafe.Pointer(buffer)), uintptr(capacity)}, {uintptr(unsafe.Pointer(outLength)), unsafe.Sizeof(*outLength)}, {uintptr(unsafe.Pointer(cleanup)), unsafe.Sizeof(*cleanup)}}
-	return checkMemoryLayout(request, inputs, outputs)
+	// Reject public/PKCS8 cross-aliases before any DATA copy or scalar write.
+	// Distinct subranges of one allocation and same-category aliases stay legal.
+	return checkMigrationAuthorizationLayout(request, public, private, outputs)
 }
 
 //export YNXAccountInitialSignV1

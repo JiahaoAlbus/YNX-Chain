@@ -602,15 +602,19 @@ def budget(request,src,groups):
     halt=src['binaries']['ynx-comet']['bytes']+8*MiB
     bridge=0
     if request['bridgeMode']:
-        # One future generate; four old/new verifies in install/start; two
-        # inventories; three stage-public requests. Original helper formula:
-        # remote=3*inputs+2*output_bound+144MiB, plus its 256MiB disk reserve.
-        # Each source/package may have <=8192 public entries, each <=64KiB
-        # allocation/header overhead. This includes retained request/response
-        # archives, hydrated input AND chroot copy. No compressed benefit.
-        overhead=8192*65536
-        def operation(inputs,outputs):return 3*(inputs+overhead)+2*(outputs+overhead)+144*MiB+256*MiB
-        bridge=operation(m+2*96*MiB,future)+2*operation(old,3*MiB)+2*operation(future,3*MiB)+2*operation(2*MiB,2*MiB)+3*operation(2*MiB,3*MiB)
+        # Each host receives three stage-public requests. They have no body
+        # inputs; their three ELF copies already count in the phase payloads.
+        bridge=3*(2*3*MiB+144*MiB+256*MiB)
+        if request.get('bridgeToolRole',request['role'])==request['role']:
+            # The controller pins these bulk requests to its original tool
+            # role: future generate, four verifies, and two inventories.
+            # Keep the original full copy/overhead/reserve for each call.
+            overhead=8192*65536
+            def operation(inputs,outputs):return 3*(inputs+overhead)+2*(outputs+overhead)+144*MiB+256*MiB
+            bridge+=operation(m+2*96*MiB,future)+2*operation(old,3*MiB)+2*operation(future,3*MiB)+2*operation(2*MiB,2*MiB)
+            if 'bridgeToolRole' not in request:
+                # A retained v1 receipt counted full stage overhead too.
+                bridge+=3*operation(2*MiB,3*MiB)-3*(2*3*MiB+144*MiB+256*MiB)
     totals=dict(publicStagesBytesBound=public_phases,backupBytesBound=backups,installationBytesBound=install,heightHaltBytesBound=halt,bridgeBytesBound=bridge,metadataReserveBytes=16*MiB)
     need(sum(totals.values())<=LIMIT,'cumulative bound overflow')
     return {k:str(v) for k,v in totals.items()}
@@ -656,7 +660,10 @@ def measure(stage,binding,request_pin,process,mode,receipt_path='-'):
     with held(stage,True) as (_,s):need(s.st_uid==os.geteuid() and stat.S_IMODE(s.st_mode)==0o700,'capacity stage ownership')
     raw=public(stage/'request.json');need(sha(raw)==request_pin,'request pin mismatch');r=decode(raw)
     fields={'version',*IDENTITY,*NUMBERS,'currentMigrationSHA256','bridgeMode'}
-    need(set(r)==fields and r['version']=='YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1','capacity request schema')
+    if r.get('version')=='YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v2':
+        need(set(r)==fields|{'bridgeToolRole'},'capacity request schema')
+        need(r['bridgeToolRole'] in (ROLES if r['bridgeMode'] else ('-',)),'invalid original bridge tool role')
+    else:need(set(r)==fields and r['version']=='YNX-OPERATOR-TRANSITION-CAPACITY-REQUEST/v1','capacity request schema')
     need(all(r[k]==binding[k] for k in IDENTITY) and binding['role'] in ROLES and binding['phase']=='quiesce','capacity source/phase binding')
     need(type(r['bridgeMode']) is bool and pin(r['currentMigrationSHA256']),'invalid capacity source bounds')
     for k in NUMBERS:integer(r[k])

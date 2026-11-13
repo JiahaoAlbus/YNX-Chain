@@ -74,7 +74,9 @@ enum YNXAccountInitialCleanupV1 {
  * All caller allocations must be live/aligned/sized/stable, with no concurrent
  * mutation. Arbitrary pointer validity is not checked. Output buffer, length and
  * cleanup must be mutually disjoint and disjoint from request and every input;
- * inputs may alias. Initialize length0/cleanupUNKNOWN. Layout rejection writes
+ * public inputs must not overlap either PKCS8 span. Public/public and private/
+ * private aliases and distinct subranges of one allocation remain allowed.
+ * Initialize length0/cleanupUNKNOWN. Layout rejection writes
  * nothing. Admitted failure length0 leaves member buffer untouched. Success
  * copies only length bytes after logical cleanup, leaving unused capacity
  * untouched. Allocate exactly98304; no sizing/signing retry. Only public DATA
