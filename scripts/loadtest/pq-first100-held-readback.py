@@ -18,6 +18,7 @@ def module(filename):
 prior = module('pq-first100-7c25-readback.py')
 stages = module('pq-first100-stage-summary.py')
 finalize = module('pq-finalize-observation.py')
+preload = module('pq-preload-initialization.py')
 require, strict = prior.require, prior.strict
 
 
@@ -61,6 +62,32 @@ def compare_readiness(before, after):
                 identicalPhysicalHostProven=False,
                 observedPeakDifferenceBytes=right['peakRSSBytes']-left['peakRSSBytes'],
                 successfulBusinessComparison=False)
+
+
+def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
+    pool = receipt['senderPoolPreparation']
+    transport = receipt['normalPublicOwnerTransport']
+    accounting = receipt['preparationOnlyDemandAccounting']
+    require(configuration['options']['held_ready_only'] is True and receipt['loadExecuted'] is False
+            and 'loadResult' not in receipt and all(accounting[k] == 500 for k in
+                ('configuredDemand', 'notReleased', 'notSubmitted', 'notQualified'))
+            and all(pool[k] is False for k in ('signed', 'nonceReserved', 'loadClockStarted'))
+            and pool['bootstrapLoaded'] is True and transport['attempted'] == 0
+            and [lane['node'] for lane in pool['liveMaterialsPreparation']] == list(range(4)),
+            'original READY-only boundary differs')
+    census = read('initialized-account-readback.json')
+    boundary = read('preload-initialization.json')
+    require(census == receipt['initializedAccountReadback']
+            and boundary == receipt['preloadInitialization']
+            and boundary == preload.validate(census, boundary['originalProcesses'],
+                receipt['preparationUnconfirmedOwners'], boundary['remainingOriginalActiveSeconds'], 5, 30),
+            'original READY-only census or preload receipt differs')
+    signer = pool['sourcePreparation']
+    signer_path = 'load-public-owners-ready.json'
+    require(signer['sourceReply'] == signer_path
+            and signer['sourceReplySHA256'] == manifest[prefix+signer_path]['sha256']
+            and read(signer_path) == pool['publicScopeReady'],
+            'original READY-only signer receipt differs')
 
 
 def inspect(raw, sha256, controller, configuration_sha256):
@@ -147,11 +174,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                         and result['nativeGrant'] is False, 'original proof execution or dual identity differs')
     ready = receipt.get('heldReadyOnlyComplete') is True
     if ready:
-        pool = receipt['senderPoolPreparation']
-        require(configuration['options']['held_ready_only'] is True and receipt['loadExecuted'] is False
-                and load is None and receipt['preparationOnlyDemandAccounting']['notReleased'] == 500
-                and [lane['node'] for lane in pool['liveMaterialsPreparation']] == list(range(4)),
-                'original READY-only boundary differs')
+        verify_ready_boundary(receipt, configuration, read, manifest, prefix)
     finalize_by_node = {}
     finalize_records = {ref['node']: ref for ref in receipt.get('normalFinalizeObservation', {}).get('records', [])}
     for record in commits['records']:

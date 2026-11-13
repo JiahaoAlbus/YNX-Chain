@@ -67,10 +67,32 @@ class HeldReadbackTests(unittest.TestCase):
                 archive.writestr(prefix + 'FIRST100-HELD-CI.json', encode(dict(plan, controllerCommit=self.controller)))
                 receipt = dict(source=source, toolIdentity=tools, loadExecuted=False, firstCause='stopped before release')
                 if ready_lanes is not None:
+                    census = dict(schema='YNX-PERF-ORIGINAL-INITIALIZED-ACCOUNT-CENSUS/v1',
+                                  configuredLoadAccounts=500, completeFourNodeAccountReadback=True,
+                                  normalGoStaticOrCryptoQualification=False, signCommandsIssued=0,
+                                  businessPOSTsIssued=0, sourceGrant=False,
+                                  nodes=[dict(node=i, height=18, appHash='a'*64,
+                                              matchingOriginalLoadAccounts=500, snapshotBytes=1,
+                                              snapshotSHA256='b'*64) for i in range(4)])
+                    processes = [dict(name=f'{phase}-node-{i}', pid=10+j*4+i, startTicks=100+i,
+                                      exited=j == 0, rawReturnCode=0 if j == 0 else None,
+                                      exitCode=0 if j == 0 else None, signal=None)
+                                 for j, phase in enumerate(('bootstrap', 'pq')) for i in range(4)]
+                    boundary = reader.preload.validate(census, processes, [], 100, 5, 30)
+                    signer = dict(syntheticOnly=True)
+                    archive.writestr(prefix + 'initialized-account-readback.json', encode(census))
+                    archive.writestr(prefix + 'preload-initialization.json', encode(boundary))
+                    archive.writestr(prefix + 'load-public-owners-ready.json', encode(signer))
                     receipt.update(heldReadyOnlyComplete=True, firstCause=None,
-                                   preparationOnlyDemandAccounting=dict(notReleased=500),
-                                   senderPoolPreparation=dict(liveMaterialsPreparation=[
-                                       dict(node=node) for node in ready_lanes]))
+                                   initializedAccountReadback=census, preloadInitialization=boundary,
+                                   preparationUnconfirmedOwners=[], normalPublicOwnerTransport=dict(attempted=0),
+                                   preparationOnlyDemandAccounting=dict(configuredDemand=500, notReleased=500,
+                                                                        notSubmitted=500, notQualified=500),
+                                   senderPoolPreparation=dict(bootstrapLoaded=True, signed=False,
+                                       nonceReserved=False, loadClockStarted=False, publicScopeReady=signer,
+                                       sourcePreparation=dict(sourceReply='load-public-owners-ready.json',
+                                                              sourceReplySHA256=sha(encode(signer))),
+                                       liveMaterialsPreparation=[dict(node=node) for node in ready_lanes]))
                 if confirmed is not None:
                     extra, load = confirmed
                     receipt.update(loadExecuted=True, firstCause=None, planSHA256=sha(extra['load-plan.json']),
