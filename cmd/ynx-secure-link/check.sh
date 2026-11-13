@@ -44,10 +44,11 @@ def p04_workflow_sections(revision):
         b'      darwin_server_identity: ${{ steps.paths.outputs.darwin_server_identity }}': 'darwin',
         b'      p04_native_docker: ${{ steps.paths.outputs.p04_native_docker }}': 'docker',
     }
-    sections = {'shared': [], 'identity': [], 'cloud': [], 'darwin': [], 'docker': []}
+    sections = {'shared': [], 'identity': [], 'cloud': [], 'darwin': [], 'docker': [], 'resource_current': []}
     step = 'shared'
     isolated_job = None
-    isolated_jobs = {b'  link-darwin-server-identity:': 'darwin', b'  p04-native-docker:': 'docker'}
+    isolated_jobs = {b'  link-darwin-server-identity:': 'darwin', b'  p04-native-docker:': 'docker',
+                     b'  resource-current-native-linux:': 'resource_current'}
     for line in git('show', revision + ':' + workflow).splitlines():
         if re.match(rb'^  [a-zA-Z0-9_-]+:$', line):
             isolated_job = isolated_jobs.get(line)
