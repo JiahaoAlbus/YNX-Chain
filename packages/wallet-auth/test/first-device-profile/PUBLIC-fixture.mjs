@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+const packageRoot = process.argv[2];
+const { ynxAddressFromEVM } = await import(packageRoot + '/src/crypto.js');
+const { productPlatformBinding } = await import(packageRoot + '/src/product-session-registry.js');
+const registry = JSON.parse(fs.readFileSync(packageRoot + '/product-session-registry.json'));
+const at = Date.now();
+const owner = '0x' + '1'.repeat(40);
+const account = ynxAddressFromEVM(owner);
+const network = 'aa'.repeat(32);
+const b = productPlatformBinding(registry, 'social', 'android');
+const expected={networkId:network,canonicalOwner:owner,account,productId:b.productId,clientId:b.clientId,platform:'android',applicationId:b.applicationId,bundleId:b.bundleId,packageId:b.packageId,origin:b.origin,callback:b.callback,deviceId:'PUBLIC-completion-device',generation:'1',registrationId:'11111111-1111-4111-8111-111111111111',revision:'1'};
+export { expected, at };

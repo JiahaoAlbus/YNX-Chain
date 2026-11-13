@@ -65,6 +65,38 @@ function storedIssueApproval(registry,requestInput,approval,registrationOriginal
  verifyMember(pqDecodeBase64url(approval.walletProof,{max:98304}),authorization.networkId,authorization.canonicalOwner,'PRODUCT-SESSION-APPROVAL',E5(PRODUCT_SESSION_APPROVAL_DOMAIN_V4,authorization.networkId,authorization.canonicalOwner,{request:r,approval:unsigned}),authorization.pkA,authorization.pkB);
  return Object.freeze({request:r,approval:value,authorization});
 }
+/**
+ * Verify the original signed approval and its request and device record at
+ * the supplied check time. The issuer still owns the current policy check.
+ */
+export function inspectOriginalProductSessionV4ApprovalDATA(registry, input) {
+ const invalid = 'PQ_STORED_V4_ISSUE_DATA_INVALID';
+ if (arguments.length !== 2) fail(invalid);
+ const originals = Object.freeze(storedIssueRecord(input, [
+  'requestOriginal', 'approvalOriginal', 'registrationOriginal', 'checkedAtMs',
+ ]));
+ const checkedAt = storedIssueTime(originals.checkedAtMs);
+ const request = storedIssueRaw(originals.requestOriginal, 16384);
+ const approval = storedIssueRaw(originals.approvalOriginal, 196608);
+ storedIssueRaw(originals.registrationOriginal, 16384);
+ const verified = storedIssueApproval(
+  registry, request, approval, Buffer.from(originals.registrationOriginal, 'utf8'), checkedAt,
+ );
+ return Object.freeze({
+  originals,
+  request: verified.request,
+  approval: verified.approval,
+  accountAuthorization: verified.authorization,
+  signatureVerified: true,
+  dataOnly: true,
+  authorized: false,
+  registered: false,
+  current: false,
+  SourceAdmission: false,
+  RootAdmission: false,
+  NativeAdmission: false,
+ });
+}
 /** Verify preserved original PAIR+COMPLETE mathematics against their original
  * signed times and actual store commit timestamps. Supplied PK/JSON/store times
  * do not establish Root/checkpoint/account/current/revoke or store provenance. */

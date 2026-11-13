@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+const pkg=process.argv[2],{expected,at}=await import(pkg+'/test/first-device-profile/PUBLIC-fixture.mjs');
+const {canonicalJSON:c}=await import(pkg+'/src/canonical.js');
+const {createOriginalDeviceCreateIntentDATA}=await import(pkg+'/src/original-device-create-intent.js');
+const {createOriginalDeviceRegistrationPublicOriginalsFromSeedCanonicalDATA:seeded}=await import(pkg+'/src/original-device-registration-public-originals-core.mjs');
+const {inspectOriginalDeviceRegistrationFirstProfileBindingDATA:inspect,inspectOriginalDeviceRegistrationFirstCurrentBindingDATA:inspectCurrent,verifyOriginalDeviceRegistrationFirstProfileDATA:verify}=await import(pkg+'/src/original-device-registration-first-profile-binding.mjs');
+const {createHash}=await import('node:crypto');
+const {productSessionApprovalDigest}=await import(pkg+'/src/product-session-v2.js');
+const iso=n=>new Date(n).toISOString();
+const identity=Object.fromEntries(['networkId','canonicalOwner','account','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId','generation'].map(k=>[k,expected[k]]));
+const intent=createOriginalDeviceCreateIntentDATA({...identity,operationId:'ac'.repeat(32),nonce:'cd'.repeat(32),issuedAt:iso(at-1000),expiresAt:iso(at+20000)});
+const seed={creationIntentOriginal:intent.approvedTerms,publicPair:{pkA:'11'.repeat(2592),pkB:'22'.repeat(64)},allocationSeedHex:'ae'.repeat(112),allocatedAtMs:String(at),mainDeviceOperationId:'ef'.repeat(32)};
+const retained=seeded(c(seed)),main={seedInputOriginal:c(seed),allocationOriginal:retained.allocationOriginal,registrationOriginal:retained.registrationOriginal,requestOriginal:retained.requestOriginal};
+const reg=JSON.parse(retained.registrationOriginal);
+const activeRecord={pkA:'33'.repeat(2592),pkB:'44'.repeat(64),revision:'1',registeredAt:'10',activeFrom:'11'};
+const policy={version:'YNX-PRODUCT-SESSION-ACCOUNT-POLICY/v1',networkId:identity.networkId,canonicalOwner:identity.canonicalOwner,checkpoint:{kind:'trusted-node-committed/v1',height:'12',blockHash:'55'.repeat(32)},policyVersion:'YNX-ACCOUNT-POLICY/v1',algorithmVersion:'YNX-BATCH/v0.1',activeRecord,observedAt:iso(at),expiresAt:iso(at+5)};
+const approval={version:'4',result:'approved',account:identity.account,requestDigest:retained.requestDigest,issuedAt:iso(at+2),expiresAt:iso(at+10000),accountAuthorization:{...activeRecord,networkId:policy.networkId,canonicalOwner:policy.canonicalOwner,policyVersion:policy.policyVersion,algorithmVersion:policy.algorithmVersion},walletProof:'PUBLIC-FIXTURE-NOT-A-SIGNATURE'};
+const wallet={version:'YNX-WALLET-DEVICE-V4-APPROVED-PUBLIC/v1',policyOriginal:c(policy),approvalOriginal:c(approval),requestOriginal:retained.requestOriginal,requestDigest:retained.requestDigest,operationId:retained.operationId,registrationOriginal:retained.registrationOriginal,account:reg.canonicalOwner};
+const association=Object.fromEntries(['account','clientId','productId','platform','applicationId','deviceId'].map(k=>[k,identity[k]]));
+const scope={version:'4',operation:'registration-pop',pendingId:retained.operationId,expected:{...identity,registrationId:reg.registrationId,revision:reg.revision,registrationDigest:retained.registrationDigest},registrationOriginal:retained.registrationOriginal,requestOriginal:retained.requestOriginal,approvalDigest:productSessionApprovalDigest(approval),challengeOriginal:null};
+const profile={version:2,purpose:'product-session-device-pending-source-v4',subjectOwner:reg.canonicalOwner,issuedAtMs:at+3,expiresAtMs:at+9999,selection:{association,productSessionDeviceV4Pending:scope}};
+const call=(m=main,w=wallet,p=profile,t=at+10)=>inspect(c(m),c(w),c(p),t);
+const check=(label,f)=>{f();console.log(label);};
+check('binds exact first-scope and three independent operation IDs; DATA only',()=>{const x=call();assert.equal(x.creationOperationId,'ac'.repeat(32));assert.equal(x.mainDeviceOperationId,'ef'.repeat(32));assert.equal(x.pairOperationId,'ae'.repeat(32));assert.match(x.currentHead,/^[0-9a-f]{64}$/);assert.equal(x.signatureVerified,false);assert.equal(x.SourceAdmission,false);});
+check('rejects drift in each of the three immutable Main journal originals',()=>{for(const k of ['allocationOriginal','registrationOriginal','requestOriginal'])assert.throws(()=>call({...main,[k]:main[k]+' '}));assert.throws(()=>call({...main,seedInputOriginal:c({...seed,mainDeviceOperationId:retained.operationId})}));});
+check('rejects Wallet swapped original, request digest, and DEVICE-for-PAIR',()=>{for(const k of ['requestOriginal','requestDigest','registrationOriginal'])assert.throws(()=>call(main,{...wallet,[k]:wallet[k]+' '}));assert.throws(()=>call(main,{...wallet,operationId:seed.mainDeviceOperationId}));});
+check('rejects snapshot not present at signing and approval/profile expiry',()=>{assert.throws(()=>call(main,{...wallet,policyOriginal:c({...policy,observedAt:iso(at+3)})}));assert.throws(()=>call(main,wallet,{...profile,expiresAtMs:at+10001}));assert.throws(()=>call(main,wallet,profile,at+10000));});
+check('rejects profile replay of creation/DEVICE IDs and foreign approval digest',()=>{for(const patch of [{pendingId:seed.mainDeviceOperationId},{pendingId:intent.terms.operationId},{approvalDigest:'0'.repeat(64)},{operation:'challenge-completion'}])assert.throws(()=>call(main,wallet,{...profile,selection:{association,productSessionDeviceV4Pending:{...scope,...patch}}}));});
+check('primitive originals reject accessors/proxy and noncanonical JSON without trap execution',()=>{let calls=0;const fake=new Proxy(main,{get(){calls++;throw Error('TRAP');},getPrototypeOf(){calls++;throw Error('TRAP');}});assert.throws(()=>inspect(fake,c(wallet),c(profile),at+10));assert.equal(calls,0);assert.throws(()=>inspect(c(main)+' ',c(wallet),c(profile),at+10));});
+check('CURRENT binds the separately admitted envelope hash and exact PROFILE bytes, never grants current',()=>{
+ const sha=raw=>createHash('sha256').update(raw).digest('hex');
+ const env=p=>c({body:Buffer.from(c(p)).toString('base64url'),member:'PUBLIC-DATA-NOT-A-SIGNATURE'});
+ const signed=env(profile),digest=sha(signed),read=(raw,d)=>inspectCurrent(c(main),c(wallet),c(profile),raw,d,at+10);
+ const got=read(signed,digest);
+ assert.equal(got.profileDigest,digest);assert.equal(got.currentHead,call().currentHead);assert.equal(got.currentAdmitted,false);
+ assert.throws(()=>read(signed,sha(c(profile))));
+ assert.throws(()=>read(signed,retained.operationId));
+ const foreign=env({...profile,expiresAtMs:at+9000});assert.throws(()=>read(foreign,sha(foreign)));
+});
+const {captureProductSessionAccountPolicy}=await import(pkg+'/src/product-session-account-policy.js');
+const {preparePQProductSessionApprovalV4}=await import(pkg+'/src/product-session-pq-v4-codec.js');
+const {createPQWalletKeyHandle,readPQWalletKeyPublic,signPQWalletProductSessionApprovalV4,destroyPQWalletKeyHandle}=await import(pkg+'/src/pq-wallet-key-backup.js');
+const {readFileSync}=await import('node:fs');
+const registry=JSON.parse(readFileSync(pkg+'/product-session-registry.json','utf8'));
+const key=await createPQWalletKeyHandle({chainId:identity.networkId,owner:identity.canonicalOwner});
+try{
+ const pub=readPQWalletKeyPublic(key),historical={...policy,activeRecord:{...activeRecord,pkA:Buffer.from(pub.pkA,'base64url').toString('hex'),pkB:Buffer.from(pub.pkB,'base64url').toString('hex')}};
+ let checks=0,refuseAt=Infinity;
+ const capture=(original,t,changing=false)=>captureProductSessionAccountPolicy({readOriginal:()=>original,assertCurrent(){if(changing&&++checks>=refuseAt)throw Error('PUBLIC_CURRENT_LOST');},async recheck(){},retire(){},join(){},close(){}},{networkId:identity.networkId,account:identity.account},new Date(t));
+ const signingPolicy=capture(historical,at+2),q=JSON.parse(main.requestOriginal);
+ const signed=signPQWalletProductSessionApprovalV4(key,preparePQProductSessionApprovalV4(registry,q,{account:identity.account,expiresAt:iso(at+10000)},signingPolicy,Buffer.from(main.registrationOriginal),new Date(at+2)),new Date(at+2));
+ const make=(a,p=historical)=>[{...wallet,approvalOriginal:c(a),policyOriginal:c(p)},{...profile,selection:{association,productSessionDeviceV4Pending:{...scope,approvalDigest:productSessionApprovalDigest(a)}}}];
+ const fresh={...historical,observedAt:iso(at+8),expiresAt:iso(at+1000)};
+ const [walletSigned,profileSigned]=make(signed),verifyWith=(ref,w=walletSigned,p=profileSigned)=>verify(c(main),c(w),c(p),ref,at+10);
+ check('real portable E5/N1 signature plus independently newer current policy succeeds only as DATA',()=>{const got=verifyWith(capture(fresh,at+10));assert.equal(got.signatureVerified,true);assert.equal(got.authorized,false);assert.equal(got.SourceAdmission,false);});
+ check('missing, expired, rotated and changed-after-math policy fail closed',()=>{
+  assert.throws(()=>verifyWith({}),/ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED/);
+  assert.throws(()=>verifyWith(signingPolicy),/ACCOUNT_POLICY_EXPIRED/);
+  assert.throws(()=>verifyWith(capture({...fresh,activeRecord:{...fresh.activeRecord,revision:'2'}},at+10)),/AUTH_FIRST_DEVICE_ACCOUNT_POLICY_CHANGED/);
+  const late=capture(fresh,at+10,true);refuseAt=checks+2;assert.throws(()=>verifyWith(late),/PUBLIC_CURRENT_LOST/);
+ });
+ check('altered signature cannot be rescued by recomputing the unsigned PROFILE approval digest',()=>{
+  const [w,p]=make({...signed,walletProof:'AAAA'});assert.throws(()=>verifyWith(capture(fresh,at+10),w,p));
+ });
+}finally{destroyPQWalletKeyHandle(key);}
