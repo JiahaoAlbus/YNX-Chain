@@ -17,6 +17,7 @@ def module(filename):
 
 prior = module('pq-first100-7c25-readback.py')
 stages = module('pq-first100-stage-summary.py')
+finalize = module('pq-finalize-observation.py')
 require, strict = prior.require, prior.strict
 
 
@@ -102,6 +103,21 @@ def inspect(raw, sha256, controller, configuration_sha256):
                         and result['included'] is True and result['finalized'] is True
                         and result['executionSuccessful'] is True and str(result['executionCode']) == '0'
                         and result['nativeGrant'] is False, 'original proof execution or dual identity differs')
+    finalize_by_node = {}
+    for record in commits['records']:
+        if not record['producerReportedUsable']:
+            continue
+        node = record['node']
+        path = f'finalize-observation-node-{node}-original.json'
+        if prefix + path not in files:
+            continue
+        commit = record['originalSnapshot']
+        original = finalize.validate(read(path), pid=commit['processID'], chain_id=commit['chainID'],
+                                     genesis_hash=commit['originalGenesisHash'])
+        heights = {int(row['height']) for row in observed['records']}
+        business_finalize = finalize.business_heights(original, heights, commit['samples'])
+        finalize_by_node[str(node)] = dict(path=path, sha256=manifest[prefix+path]['sha256'],
+                                         original=original, business=business_finalize)
     return dict(report, status='OBSERVED' if load is not None else 'LOAD_RESULT_MISSING',
                 source=source, tools=tools, runtimePlanSHA256=runtime_pin, firstCause=receipt.get('firstCause'),
                 cleanupComplete=receipt.get('cleanupComplete'), hardware=receipt.get('runtimeHardware'),
@@ -110,7 +126,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 normalNodeCleanExit=receipt.get('normalNodeCleanExit'),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
-                originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
+                finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 businessBlockCommitStages=prior.business_commit_stages(dict(originalCommitCopies=commits), observed, stages),
                 originalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),
                 originalInitializationStages=receipt.get('initializationStages'),
