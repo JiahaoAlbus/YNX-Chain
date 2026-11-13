@@ -509,12 +509,14 @@ func (s *Server) persistTaskModelResult(session ProductSession, run taskModelRun
 		current.Status = string(result.Status)
 		if modelErr != nil {
 			current.Status = "UNKNOWN"
-			if current.FirstCause == "" {
-				current.FirstCause = taskModelFailureCause(modelErr)
-			}
 		}
 	}
-	if superseded {
+	if modelErr != nil && current.Status == "UNKNOWN" && current.FirstCause == "" {
+		current.FirstCause = taskModelFailureCause(modelErr)
+	}
+	// Cancellation already classified the run using the original effect debt.
+	// A late model exit may drain it but cannot replace that classification.
+	if superseded && !current.Cancelled {
 		current.Status = "STOPPED"
 		if current.FirstCause == "" {
 			current.FirstCause = "TASK_GENERATION_OR_HOLDER_CHANGED"

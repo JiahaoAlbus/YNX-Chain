@@ -211,3 +211,55 @@ func TestP08ConversationCancelPreservesAuthUnknownColdOriginalQuery(t *testing.T
 		t.Fatal("cancel recovery changed original operation or replayed effect/model")
 	}
 }
+
+func TestP08ConversationCancelWhileModelWaitsForAuth(t *testing.T) {
+	f, a, client := newP08ConversationLoop(t)
+	client.lostACK = true
+	request := f.request()
+	request.AuthorizationRef = "PUBLIC_QUERY_REF"
+	pending, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || len(pending.Steps) != 1 {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	approveConversationLoop(t, f, pending)
+	effects := f.server.toolEffects.(*originalRuntimeToolEffects)
+	effects.runtime.broker.client = &p08CancelAtAuthorityReturn{originalTaskBrokerClient: client, after: func() {
+		task := f.server.store.state.Tasks[f.task.ID]
+		body, _ := json.Marshal(map[string]uint64{"revision": task.Revision, "generation": task.Generation})
+		r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+task.ID+"/cancel", bytes.NewReader(body))
+		r.SetPathValue("id", task.ID)
+		w := httptest.NewRecorder()
+		f.server.handleTaskCancel(w, r, f.session)
+		if w.Code != http.StatusOK || f.server.store.state.TaskRuns[pending.ID].Status != "UNKNOWN" {
+			t.Fatalf("cancellation did not retain unresolved run: %d %s", w.Code, w.Body.String())
+		}
+	}}
+	request.Resume, request.Prompt = true, ""
+	view, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err == nil || !view.Cancelled || view.Status != "UNKNOWN" || view.Content != "" || view.FirstCause != "MODEL_OR_TOOL_RUN_UNRESOLVED" {
+		t.Fatalf("late model exit changed cancelled UNKNOWN: %+v %v", view, err)
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resumed := &Server{store: cold}
+	prepared := &PreparedOriginalTaskRuntime{model: f.provider, authority: a, broker: &originalTaskAuthorityBroker{client: client}}
+	if err = prepared.install(resumed); err != nil {
+		t.Fatal(err)
+	}
+	if run := cold.state.TaskRuns[pending.ID]; run.Active || !run.Cancelled || run.Status != "UNKNOWN" || run.FirstCause != view.FirstCause {
+		t.Fatalf("cold cancelled run lost original state: %+v", run)
+	}
+	stepID := pending.Steps[0]
+	if _, err = resumed.reconcileStep(context.Background(), f.session, f.task.ID, stepID, request.AuthorizationRef); err != nil {
+		t.Fatal(err)
+	}
+	w := conversationResultRead(resumed, f.session, f.task.ID, stepID)
+	if w.Code != http.StatusOK || !bytes.Equal(w.Body.Bytes(), []byte(client.last.Original)) || cold.state.Tasks[f.task.ID].Status != "CANCELLED" {
+		t.Fatal("original receipt did not settle cancelled task after restart")
+	}
+	if client.effects != 1 || client.inputReads != 1 || client.queries != 1 || f.requests.Load() != 1 {
+		t.Fatal("recovery replayed original tool or model")
+	}
+}
