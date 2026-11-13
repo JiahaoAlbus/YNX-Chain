@@ -206,7 +206,7 @@ class IndependentLoadControls(unittest.TestCase):
             with mock.patch.object(driver.lab.os,"sched_getaffinity",return_value={0},create=True),mock.patch.object(driver.lab.os,"sched_setaffinity",create=True):
                 window=driver.lab.Window(root,root)
             path=root/"public/finished.log";log=path.open("xb",buffering=0);log.write(b"original")
-            process=SimpleNamespace(poll=lambda:0)
+            process=SimpleNamespace(pid=987654,poll=lambda:0)
             window.logs.append(("finished",log));window.children.append(dict(name="finished",process=process,persistent=False))
             window.retire_log(process);self.assertTrue(log.closed)
             with mock.patch.object(driver.lab.guard,"proc_inventory",return_value=({},None)),mock.patch.object(driver.lab.guard,"owned_set",return_value=set()):

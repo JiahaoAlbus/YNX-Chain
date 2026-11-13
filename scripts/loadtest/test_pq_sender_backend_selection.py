@@ -31,6 +31,27 @@ class BackendSelection(unittest.TestCase):
         self.assertEqual(public['originalOwnedPIDLimit'],d.lab.guard.CAPS['ownedProcesses'])
         self.assertFalse(public['normalLargeOwnerInputQualified'])
 
+    def test_held_profile_prepares_exact_cohort_without_opening_window(self):
+        option = args(commit=d.HELD_TRIAL_SOURCE, first_trial_profile=d.HELD_TRIAL_PROFILE,
+                      initialize_before_load=True, startup_timings=True, wire_observation=True,
+                      network_accounting=True, commit_observation=True, owned_storage_accounting=True,
+                      execute=False)
+        identity = dict(commit=d.HELD_TRIAL_SOURCE, tree=d.HELD_TRIAL_TREE)
+        with mock.patch.object(d.lab, 'check_source', return_value=identity), \
+             mock.patch.object(d.lab, 'Window') as window:
+            result = d.run(option)
+            self.assertEqual(result['configuredDemand'], 500)
+            self.assertEqual(result['processCapacity']['maximumRuntimePIDs'], 13)
+            self.assertTrue(result['loadConditions']['persistentLiveMaterials'])
+            self.assertFalse(result['actualLoadExecuted'])
+            option.execute = True
+            with self.assertRaisesRegex(RuntimeError, 'fixed Linux and tagged live getter evidence'):
+                d.run(option)
+            window.assert_not_called()
+        for key, value in [('commit', d.first_trial_7c25_source.SOURCE), ('rate', 500), ('accounts', 499)]:
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                d.validate_options(SimpleNamespace(**dict(vars(option), **{key: value})))
+
     def test_wrong_source_mode_or_backend_fails_before_any_window(self):
         for a in (args(commit=d.first_trial_d24_source.SOURCE),args(mode='pre-signed'),
                   args(staged_publication=False),args(sender_backend='fallback')):

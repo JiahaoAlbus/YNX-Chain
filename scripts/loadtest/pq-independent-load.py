@@ -68,9 +68,12 @@ STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-own
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
-STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE}
+HELD_TRIAL_PROFILE = 'held-first100'
+HELD_TRIAL_SOURCE = '2db09bd8e6178221ddd61b4522762947782f1ff5'
+HELD_TRIAL_TREE = '63b2ec94f847a978fafb7d96a35856653d6e342a'
+STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
-PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE))
+PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE))
 
 
 def callee_snapshot(value):
@@ -725,7 +728,7 @@ def attach_live_reader(ceremony, live_module):
 
 def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
     reader=getattr(ceremony,'live_reader',None)
-    required=getattr(args,'first_trial_profile','own1b')=='7c25'
+    required=getattr(args,'first_trial_profile','own1b') in ('7c25', HELD_TRIAL_PROFILE)
     lab.require(not required or reader is not None,'7c25 normal private live reader NOT_SUPPLIED')
     window=hook.NetworkWindow(ceremony,lab,args.commit,tools,plan_pin,demand,
         live_reader=reader,header_capture=getattr(args,'header_hop_capture',False),
@@ -736,10 +739,11 @@ def create_network_window(hook,ceremony,args,tools,plan_pin,demand):
 
 def validate_options(args):
     profile=getattr(args,'first_trial_profile','own1b')
-    lab.require(profile in ('own1b','d24','1695','7c25') and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
-    if profile=='7c25':
-        lab.require(args.commit==first_trial_7c25_source.SOURCE and getattr(args,'sender_backend','auto')=='public-owner',
-                    '7c25 requires its exact source and explicit public-owner backend')
+    lab.require(profile in ('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE) and (profile=='own1b' or getattr(args,'initialize_before_load',False)),'selected source requires explicit same-window first100 profile')
+    if profile in ('7c25', HELD_TRIAL_PROFILE):
+        expected = HELD_TRIAL_SOURCE if profile == HELD_TRIAL_PROFILE else first_trial_7c25_source.SOURCE
+        lab.require(args.commit==expected and getattr(args,'sender_backend','auto')=='public-owner',
+                    'selected first100 requires its exact source and explicit public-owner backend')
     lab.require(args.mode in ("online","pre-signed") and args.rate in (100,500,1000) and 1<=args.accounts<=996 and 1<=args.per_account<=1024 and 1<=args.seconds<=60 and 1<=args.tail_seconds<=120 and 1<=args.proof_timeout<=120,"bounded explicit original load configuration required")
     if getattr(args,'initialization_only',False):
         lab.require(getattr(args,'staged_publication',False) and (args.mode,args.rate,args.seconds,args.accounts,args.per_account)==('online',100,5,500,1),'initialization-only requires exact original staged online500 plus4 reserved owners; no reduced-account qualification')
@@ -758,7 +762,14 @@ def process_capacity(args):
     # and proof readers will fit. Keep the original ownership limit unchanged.
     if getattr(args,'staged_publication',False):
         limit=lab.guard.CAPS['ownedProcesses']
-        public=sender_backend_kind(args)=='public-owner';senders=1 if public else 2;maximum=5+senders+3
+        public=sender_backend_kind(args)=='public-owner';senders=1 if public else 2
+        held = getattr(args, 'first_trial_profile', 'own1b') == HELD_TRIAL_PROFILE
+        maximum=5+senders+3+(4 if held else 0)
+        if held:
+            return dict(originalOwnedPIDLimit=limit, minimumLongLivedPIDs=10,
+                        maximumRuntimePIDs=maximum, originalNodeProcesses=4,
+                        maximumSignSenderProcesses=1, persistentProofProcesses=4,
+                        maximumSharedProofHelperProcesses=3, canFitNecessaryLowerBound=maximum<=limit)
         return dict(originalOwnedPIDLimit=limit,minimumLongLivedPIDs=6 if public else 5,maximumRuntimePIDs=maximum,originalNodeProcesses=4,maximumSignSenderProcesses=senders,maximumSharedProofHelperProcesses=3,accountCount=args.accounts,completeDemand=args.rate*args.seconds,oneWaveIndependentAccountCapacity=args.accounts,oneWaveCoversFullDemand=args.accounts>=args.rate*args.seconds,canFitNecessaryLowerBound=maximum<=limit,normalLargeOwnerInputQualified=STAGED_SOURCE_QUALIFICATION is not None,interpretation=('one normal public-owner stream with per-account original custody; cold validation remains in first command' if public else 'bounded original cold opens; process leases separate from account pending; large-account input/full normal callee qualification is a separate hard gate'))
     senders=args.accounts if args.mode=="online" else 0
     required=1+4+senders  # parent supervisor + four original nodes + per-owner CLI
@@ -782,6 +793,10 @@ def sender_backend_kind(args):
     lab.require(staged and args.mode=='online','selected sender backend requires original staged online demand')
     if selected=='public-owner':
         lab.require(args.commit in PUBLIC_OWNER_ABI_SOURCES,'exact public owner ABI required; source qualification is separate')
+        if args.commit == HELD_TRIAL_SOURCE:
+            lab.require(getattr(args, 'first_trial_profile', 'own1b') == HELD_TRIAL_PROFILE
+                        and getattr(args, 'initialize_before_load', False),
+                        'held-session source requires its explicit first100 profile')
         if args.commit==first_trial_7c25_source.SOURCE:
             lab.require(getattr(args,'first_trial_profile','own1b')=='7c25' and getattr(args,'initialize_before_load',False),
                         'future public owner requires its separately qualified 7c25 profile')
@@ -852,6 +867,8 @@ def load_conditions(args):
         sameHost=True,physicalFaultDomains=1,cryptoOrAuthorityChanged=False,canonicalInputPairEquality='NOT_YET_QUALIFIED')
     if getattr(args,'first_trial_profile','own1b')=='7c25':
         result['requestStageObservation']=True
+    if result['firstTrialProfile'] == HELD_TRIAL_PROFILE:
+        result.update(preparePublicSource=True, persistentLiveMaterials=True)
     return result
 
 
@@ -874,6 +891,14 @@ def run(args):
     lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     first_trial=getattr(args,'initialize_before_load',False)
     profile=getattr(args,'first_trial_profile','own1b')
+    if profile == HELD_TRIAL_PROFILE:
+        identity = lab.check_source(Path(args.source), args.commit)
+        lab.require(identity['tree'] == HELD_TRIAL_TREE, 'exact held-session source tree differs')
+        if not args.execute:
+            return dict(status='prepared-only', source=identity, configuredDemand=demand,
+                        requestedOfferedTPS=args.rate, loadConditions=load_conditions(args),
+                        processCapacity=process_capacity(args), actualLoadExecuted=False)
+        raise RuntimeError('held first100 requires its fixed Linux and tagged live getter evidence')
     trial_source={'own1b':first_trial_source,'d24':first_trial_d24_source,'1695':first_trial_1695_source,'7c25':first_trial_7c25_source}[profile]
     expected_source=trial_source.SOURCE if first_trial else STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
@@ -1119,7 +1144,7 @@ if __name__=="__main__":
     p.add_argument('--sender-backend',choices=('auto','bounded-cold','public-owner'),default='auto',help='explicit normal sender transport; public-owner requires exact1695 ABI plus separate source/semantic/window qualification; no automatic fallback')
     p.add_argument('--startup-timings',action='store_true',help='matching original source ABI only: registration/activation and node startup wall stages; separate source CI and runtime window gates still required')
     p.add_argument('--initialize-before-load',action='store_true',help='Root-selected separate1b first100 profile: complete original504 initialization/census/bootstrap0 and livePQ gate in same window before release; no500/1000 or actual window grant')
-    p.add_argument('--first-trial-profile',choices=('own1b','d24','1695','7c25'),default='own1b',help='explicit fixed source selection for same-window first100 only; each source keeps its independent CI/semantic gates; no pressure grant')
+    p.add_argument('--first-trial-profile',choices=('own1b','d24','1695','7c25',HELD_TRIAL_PROFILE),default='own1b',help='explicit fixed source selection for same-window first100 only; each source keeps its independent CI/semantic gates; no pressure grant')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))
