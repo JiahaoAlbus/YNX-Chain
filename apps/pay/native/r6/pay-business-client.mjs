@@ -169,26 +169,36 @@ export class NativePayBusinessClient {
   }
   return {bill,reconciledOriginal:observed,...(archiveReceipt?{archiveReceipt}:{}),queryOnly:true,clientIndependentFinality:false};
  });}
- async createInvoiceIntent(productId,sourceOrder){return this.#run({productId,sourceOrder},'creating-intent',async current=>{
+ #originalIntentResult(original,intent,reference,queryOnly){
+  const result={intent,bill:intent.invoice??null,clientIndependentFinality:false};
+  if(queryOnly)result.queryOnly=true;
+  if(original.productId!=='shop.order')return result;
+
+  const binding=nativeInvoiceOrderBindingDATA(intent,original);
+  if(binding.state==='ISSUED'){
+   assertNativeInvoiceOrderBillDATA(intent.invoice,binding);
+   return result;
+  }
+
+  Object.assign(reference,{merchant:binding.merchant,invoiceId:binding.terms.invoiceId,intentId:binding.intentId,kind:'invoice_terms'});
+  const hasOriginalTerms=binding.termsNativeHash!=='';
+  if(hasOriginalTerms){
+   reference.nativeHash=binding.termsNativeHash;
+   nativeInvoiceOrderOperationDATA(intent.invoice,binding,binding.termsNativeHash);
+  }
+  return {...result,bill:hasOriginalTerms?intent.invoice:null,recoveryOnly:hasOriginalTerms||binding.phase!=='awaiting_merchant_approval'};
+ }
+ async createInvoiceIntent(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'creating-intent',async current=>{
   if(typeof this.#pay.createInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_PRODUCER_UNAVAILABLE');
   const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
   const intent=await this.#pay.createInvoiceIntent(original,current);current();
-  return {intent,bill:intent.invoice??null,clientIndependentFinality:false};
+  return this.#originalIntentResult(original,intent,reference,false);
  });}
  async lookupOriginalInvoiceIntent(productId,sourceOrder){const reference={productId,sourceOrder};return this.#run(reference,'recovering',async current=>{
   if(typeof this.#pay.lookupInvoiceIntent!=='function')throw failure('NATIVE_PAY_INTENT_LOOKUP_UNAVAILABLE');
   const original=await this.#originalProductIntent(productId,sourceOrder,current);current();
   const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
-  if(original.productId==='shop.order'&&intent.state==='PREPARED'){
-   const binding=nativeInvoiceOrderBindingDATA(intent,original);
-   Object.assign(reference,{merchant:binding.merchant,invoiceId:binding.terms.invoiceId,intentId:binding.intentId,kind:'invoice_terms'});
-   if(binding.termsNativeHash!==''){
-    reference.nativeHash=binding.termsNativeHash;
-    nativeInvoiceOrderOperationDATA(intent.invoice,binding,binding.termsNativeHash);
-   }
-   return {intent,bill:binding.termsNativeHash?intent.invoice:null,queryOnly:true,recoveryOnly:binding.termsNativeHash!==''||binding.phase!=='awaiting_merchant_approval',clientIndependentFinality:false};
-  }
-  return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};
+  return this.#originalIntentResult(original,intent,reference,true);
  });}
  async openInvoice(merchant,invoiceId){return this.#run({merchant,invoiceId},'reading',async current=>{const bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();return {bill,clientIndependentFinality:false};});}
  async openIntent(intentId){return this.#run({intentId},'reading',async current=>{const intent=await this.#pay.readInvoiceIntent(intentId,current);current();return {intent,bill:intent.invoice??null,clientIndependentFinality:false};});}

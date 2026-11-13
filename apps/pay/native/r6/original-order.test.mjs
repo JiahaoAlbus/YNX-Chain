@@ -9,12 +9,13 @@ const ref={productId:original.productId,sourceOrder:original.sourceOrder};
 const terms={invoiceId:'invoice-original',sessionId:'session-original',recipient:merchant,payer,assetId:'YNXT',unitVersion:'1',feeRule:'native-transfer-fee-one/v1',keyEpoch:'1',revision:'1',amountAtoms:'100',maxFeeAtoms:'1',expiresAtHeight:'100'};
 const view=()=>({intentId,originalOperation:intentId,request:structuredClone(original),merchant,state:'ISSUED',phase:'confirmed',signingMessageHash:'b'.repeat(64),termsNativeHash:termsHash,termsAbciHash:'0x'+'5'.repeat(64),terms:{...terms},invoice:{}});
 const bill=()=>({genesis:original.genesis,nativeChainId:'6423',merchant,invoiceId:terms.invoiceId,sessionId:terms.sessionId,sourceOrder:original.sourceOrder,assetId:'YNXT',unitVersion:'1',principalAtoms:'100',paidAtoms:'0',refundedAtoms:'0',netPaidAtoms:'0',feeRule:terms.feeRule,maxFeeAtoms:'1',expiresAtHeight:'100',termsNativeHash:termsHash,termsHash:'b'.repeat(64),status:'terms_registered',refundStatus:'none',operations:{}});
-function boot({lookup=view,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),operation=()=>{throw Error('Unexpected reconciliation');},extra={}}={}){
+function boot({lookup=view,create,read=bill,main=null,change=()=>{},originalRead=()=>structuredClone(original),review=()=>({intent:view()}),operation=()=>{throw Error('Unexpected reconciliation');},extra={}}={}){
  const calls=[];let live=true;
  const current=()=>{if(!live)throw Object.assign(Error(),{code:'ORIGINAL_SOURCE_RETIRED'});};
  const pay=createPrivateNativeProductPayClient({origin:'https://pay.original.test',async requestPrivate(request){
   request.assertCurrent();calls.push({method:request.method,path:request.path,body:request.body});let result;
   if(request.path==='/v5/pay/invoice-intents/lookup'){result=await lookup();change('lookup');}
+  else if(request.method==='POST'&&request.path==='/v5/pay/invoice-intents'&&create){result=await create();}
   else if(request.method==='GET'&&request.path===`/v5/pay/invoices/${merchant}/${terms.invoiceId}`){result=await read();change('invoice');}
   else if(request.path===`/v5/pay/invoice-intents/${intentId}/merchant-review`||request.path===`/v5/pay/invoice-intents/${intentId}`){result=await review();}
   else if(request.method==='POST'&&request.path.startsWith(`/v5/pay/invoices/${merchant}/${terms.invoiceId}/operations/`)&&request.path.endsWith('/reconcile')){result=await operation();change('operation');}
@@ -55,7 +56,7 @@ test('lost original lookup offers read-only same-order recovery and never create
  let lookups=0;const first=boot({lookup(){lookups++;throw Object.assign(Error(),{code:'PUBLIC_LOOKUP_LOST'});}});
  const result=await first.entry.invokeResult({action:'order-pay-review',...ref});assert.equal(result.ok,false);assert.equal(lookups,1);assert.equal(first.calls.length,2);
  assert.deepEqual(result.recoveryActions,[{action:'lookup-intent',...ref}]);assert.equal(result.canRetry,false);
- const cold=boot();const recovered=await cold.entry.invokeResult(result.recoveryActions[0]);assert.equal(recovered.ok,true);assert.equal(recovered.intent.originalOperation,intentId);assert.equal(cold.calls.length,2);
+ const cold=boot({lookup:()=>({...view(),invoice:bill()})});const recovered=await cold.entry.invokeResult(result.recoveryActions[0]);assert.equal(recovered.ok,true);assert.equal(recovered.intent.originalOperation,intentId);assert.equal(cold.calls.length,2);
 });
 test('retirement during lookup never reads bill, requests review or exposes stale original reference',async()=>{
  let resolve;const f=boot({lookup:()=>new Promise(yes=>resolve=yes)});const pending=f.entry.invokeResult({action:'order-invoice',...ref});
@@ -206,5 +207,34 @@ test('original lookup recovery keeps pending terms visible and checks its embedd
   if(paid==='0'){assert.equal(r.ok,true,JSON.stringify(r));assert.equal(r.recoveryOnly,true);assert.equal(r.outcomeUnknown,true);assert.deepEqual(r.pendingOriginals,[termsHash]);assert.equal(r.reference.nativeHash,termsHash);}
   else{assert.equal(r.code,'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.equal(r.bill,undefined);}
   assert.deepEqual(r.recoveryActions,[{action:'lookup-intent',...ref}]);
+ }
+});
+
+test('issued Shop intent replies bind their embedded invoice before rendering it',async()=>{
+ for(const action of ['lookup-intent','create-intent']){
+  const replies=[
+   {invoice:{...bill(),paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'}},
+   {invoice:{...bill(),sourceOrder:'other-order',paidAtoms:'100'}},
+   {invoice:{...bill(),termsNativeHash:'0x'+'8'.repeat(64)}},
+   {invoice:undefined}
+  ];
+  for(const [index,fields] of replies.entries()){
+   const reply=()=>({...view(),...fields});
+   const {entry,calls}=boot({lookup:reply,create:reply});
+   const result=await entry.invokeResult({action,...ref});
+   assert.equal(result.ok,index===0,JSON.stringify({action,index,result}));
+   if(index===0){
+    assert.equal(result.bill.sourceOrder,ref.sourceOrder);
+    assert.equal(result.bill.netPaidAtoms,'70');
+    assert.equal(result.queryOnly,action==='lookup-intent');
+   }else{
+    assert.equal(result.bill,undefined);
+    assert.deepEqual(result.recoveryActions,[{action:'lookup-intent',...ref}]);
+   }
+   assert.equal(result.walletRequest,undefined);
+   assert.equal(result.canRetry,false);
+   assert.equal(calls.length,2);
+   assert.equal(calls[1].path,action==='lookup-intent'?'/v5/pay/invoice-intents/lookup':'/v5/pay/invoice-intents');
+  }
  }
 });
