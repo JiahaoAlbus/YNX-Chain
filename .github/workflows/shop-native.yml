@@ -699,7 +699,9 @@ jobs:
           subprocess.run(
               ["xcrun", "simctl", "openurl", sys.argv[1], "ynxshop://wallet-auth/callback"],
               check=True,
-              timeout=20,
+              # LaunchServices can still be settling after a cold simulator
+              # launch. Send one callback and require its actual exit status.
+              timeout=90,
           )
           PY
           xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/ynx-shop-deeplink.png"
