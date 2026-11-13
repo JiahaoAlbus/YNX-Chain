@@ -626,8 +626,8 @@
     },
     {
       "path": "packages/wallet-auth/src/product-pair-session-v4-source.js",
-      "bytes": 18775,
-      "sha256": "ac83f7ab913aca750207017b4fb6b08d7e6f56237f73028cb928cf97d0e7ee9a"
+      "bytes": 21424,
+      "sha256": "2ca0147cf50bd18505f9aa7c5f0b9934ce02c2d492949ad12e7589e2bc782ec5"
     },
     {
       "path": "packages/wallet-auth/src/product-pair-session-v4-store.js",

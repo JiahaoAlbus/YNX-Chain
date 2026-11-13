@@ -5,6 +5,7 @@ import {deriveOriginalPendingCompletionProfileCandidateDATA} from './product-dev
 import {openSync,closeSync,lstatSync,fstatSync,readFileSync,realpathSync,constants as F} from 'node:fs';
 import {dirname} from 'node:path';
 import{types}from'node:util';
+import {decodePendingPairOriginalQueryDATA} from './product-pair-pending-original-query-data.mjs';
 import {canonicalJSON} from './canonical.js';
 import {evmAddressFromYNX} from './crypto.js';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-session-device-registration-v4.js';
@@ -117,6 +118,34 @@ export async function acquireOriginalProductSessionDeviceV4ServerCurrent(...args
  try{const kernel=new OriginalProductSessionDeviceV4ServerCurrentKernel(opened.owner.registry,opened.owner.store,opened.owner.source),owner=new OriginalDeviceServerCurrentOwnerV4(kernel);return Object.freeze({owner,deviceCurrent:owner.deviceCurrent,error:null});}catch(error){return Object.freeze({owner:opened.owner,deviceCurrent:null,error:Object.assign(Error('PAIR_V4_SERVER_CURRENT_SOURCE_FAILED'),{code:'PAIR_V4_SERVER_CURRENT_SOURCE_FAILED',cause:error})});}
 }
 
+// Detach caller bytes synchronously before any protected Source borrow.
+const completionByteView=Object.getPrototypeOf(Uint8Array.prototype);
+const completionByteLength=Object.getOwnPropertyDescriptor(completionByteView,'byteLength').get;
+const completionByteBuffer=Object.getOwnPropertyDescriptor(completionByteView,'buffer').get;
+const completionCopyBytes=Uint8Array.prototype.set;
+const completionDecode=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
+function captureCompletionBytes(value,maximum){
+ if(types.isProxy(value)||!types.isUint8Array(value)||!Buffer.isBuffer(value))fail('PENDING_COMPLETION_ORIGINAL_BUFFER_REQUIRED');
+ const size=completionByteLength.call(value);
+ if(!size||size>maximum||types.isSharedArrayBuffer(completionByteBuffer.call(value)))fail('PENDING_COMPLETION_ORIGINAL_BUFFER_INVALID');
+ const owned=Buffer.alloc(size);completionCopyBytes.call(owned,value);
+ return owned;
+}
+function captureCompletionReaderInputs(inputs){
+ if(!inputs||typeof inputs!=='object'||types.isProxy(inputs)||Object.getPrototypeOf(inputs)!==Object.prototype)fail('PAIR_V4_SOURCE_SCHEMA');
+ const keys=['profileBodyOriginal','queryOriginal','originalPairPost','completionOperationId'],descriptors=Object.getOwnPropertyDescriptors(inputs);
+ if(Reflect.ownKeys(descriptors).length!==keys.length||keys.some(key=>!Object.hasOwn(descriptors,key)||!descriptors[key].enumerable||!Object.hasOwn(descriptors[key],'value')))fail('PAIR_V4_SOURCE_SCHEMA');
+ const {profileBodyOriginal:{value:profileBodyOriginal},queryOriginal:{value:queryOriginal},originalPairPost:{value:originalPairPost},completionOperationId:{value:completionOperationId}}=descriptors;
+ if(typeof profileBodyOriginal!=='string'||!profileBodyOriginal.length||Buffer.byteLength(profileBodyOriginal)>65536)fail('PENDING_COMPLETION_PROFILE_SIZE');
+ const ownedQuery=captureCompletionBytes(queryOriginal,1024),ownedPost=captureCompletionBytes(originalPairPost,393216);
+ let post;try{const raw=completionDecode.decode(ownedPost);if(raw.charCodeAt(0)===0xfeff)fail('PENDING_COMPLETION_ORIGINAL_UTF8');post=JSON.parse(raw);}catch{fail('PENDING_COMPLETION_ORIGINAL_POST_INVALID');}
+ if(!post||typeof post!=='object'||Array.isArray(post))fail('PENDING_COMPLETION_ORIGINAL_POST_INVALID');
+ if(typeof completionOperationId!=='string'||!/^[a-f0-9]{64}$/.test(completionOperationId)||completionOperationId===post.operationId)fail('PENDING_COMPLETION_DISTINCT_OPERATION_REQUIRED');
+ const query=decodePendingPairOriginalQueryDATA(ownedQuery);
+ if(query.operationId!==post.operationId||query.originalRequestBodyDigest!==pairV4Digest(ownedPost))fail('PENDING_COMPLETION_ORIGINAL_QUERY_BINDING');
+ return {profileBodyOriginal,ownedQuery,ownedPost,completionOperationId,post};
+}
+
 // Same protected pair-service resources and original independent Source/current.
 // This returns candidate DATA, never a recognized PROFILE/CURRENT issuer.
 export async function acquireOriginalProductPairPendingCompletionReaderV4(...args){
@@ -128,15 +157,14 @@ export async function acquireOriginalProductPairPendingCompletionReaderV4(...arg
  const live=()=>{if(firstPresent)throw first;if(retired)fail('PAIR_V4_PENDING_COMPLETION_RETIRED');parent.store.assertCurrent();};
  const drain=()=>{if(!drainFlight)drainFlight=(async()=>{for(const h of debts){await h.retire();await h.join();await h.close();debts.delete(h);}})().finally(()=>{drainFlight=null;});return drainFlight;};
  const owner=Object.freeze({
-  async readOriginalCompletionCandidateDATA({profileBodyOriginal,queryOriginal,originalPairPost,completionOperationId}){
+  async readOriginalCompletionCandidateDATA(inputs){
    live();if(active)fail('PAIR_V4_PENDING_COMPLETION_BUSY');active++;let held,candidate=null;
-   try{const at=Date.now(),post=JSON.parse(originalPairPost.toString('utf8'));
-    if(typeof completionOperationId!=='string'||!/^[a-f0-9]{64}$/.test(completionOperationId)||completionOperationId===post.operationId)fail('PENDING_COMPLETION_DISTINCT_OPERATION_REQUIRED');
+   try{const {profileBodyOriginal,ownedQuery,ownedPost,completionOperationId,post}=captureCompletionReaderInputs(inputs),at=Date.now();
     held=await parent.source.acquire({request:post.request,registrationOriginal:post.registrationOriginal,account:post.approval.account,at});if(held)debts.add(held);live();
     await held.recheck(at);held.assertCurrent(Date.now());
     verifyProductSessionApprovalV4Data(parent.registry,post.request,post.approval,held.policyRef,Buffer.from(post.registrationOriginal),new Date());
     const actor=productPairSessionV4ActorDATA(post.request,inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(post.registrationOriginal)).record,post.approval.account);
-    const read=()=>parent.store.readPendingCompletionOriginalsDATA({queryOriginal,originalPairPost,actor,at:Date.now()});
+    const read=()=>parent.store.readPendingCompletionOriginalsDATA({queryOriginal:ownedQuery,originalPairPost:ownedPost,actor,at:Date.now()});
     const originals=read();candidate=deriveOriginalPendingCompletionProfileCandidateDATA(profileBodyOriginal,originals,Date.now(),completionOperationId);
     await held.recheck(Date.now());held.assertCurrent(Date.now());if(canonicalJSON(read())!==canonicalJSON(originals))fail('PAIR_V4_PENDING_COMPLETION_CHANGED');live();
     await drain();live();if(Date.now()>=candidate.expiresAtMs)fail('PAIR_V4_PENDING_COMPLETION_EXPIRED');return Object.freeze({candidate,errorPresent:false});

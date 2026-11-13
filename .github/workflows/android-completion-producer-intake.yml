@@ -1,13 +1,13 @@
 name: Android completion supplier normal SDK intake
 on:
   push:
-    branches: [codex/wallet-auth49-android-completion-intake-20261108]
+    branches: [codex/wallet-auth49-android-completion-input-capture-20261113]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   prefix-types-and-source-package:
-    if: github.ref == 'refs/heads/codex/wallet-auth49-android-completion-intake-20261108'
+    if: github.ref == 'refs/heads/codex/wallet-auth49-android-completion-input-capture-20261113'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -23,6 +23,11 @@ jobs:
           set -euo pipefail
           export YNX_COMPLETION_INTAKE_OUT="$GITHUB_WORKSPACE/completion-intake-output"
           node scripts/ci/android-completion-producer-intake.mjs 2>&1 | tee completion-intake.log
+      - run: >-
+          node packages/wallet-auth/test/android-completion-input-capture.mjs
+          packages/wallet-auth/src/product-pair-session-v4-source.js
+          packages/wallet-auth/src/product-pair-pending-original-query-data.mjs fixed
+        name: Original input snapshot and accessor refusals
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
