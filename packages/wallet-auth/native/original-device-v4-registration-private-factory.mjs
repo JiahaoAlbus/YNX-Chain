@@ -2,7 +2,7 @@
 // No package export/App provider, NativeModules/global setter, pointer DTO,
 // Root bit or replacement context. Actual installer/tag enforcement is Main's.
 import{createOriginalDeviceV4RegistrationClientFromFixedParts}from'../src/original-product-device-v4-registration-core.js';
-import{originalV4PrivateVerificationDATA as verification}from'../src/product-session-pq-v4-verification-private.mjs';
+import{originalV4RegistrationVerificationDATA as verification}from'../src/product-session-pq-v4-verification-private.mjs';
 import{inspectOriginalProductDeviceV4PendingReviewDATA}from'../src/original-product-device-v4-pending-review-core.js';
 import{createOriginalDeviceIdentityDATA,inspectOriginalDeviceCreateIntentDATA,ORIGINAL_DEVICE_CREATE_IDENTITY_INPUT_FIELDS}from'../src/original-device-create-intent-data-core.js';
 import{captureProductSessionAccountPolicy}from'../src/product-session-account-policy.js';

@@ -4,7 +4,7 @@ import factory from'../native/original-device-v4-registration-private-factory.mj
 import{registrationPUBLICFixture}from'./fixtures/device-v4-registration-portable.PUBLIC.mjs';
 import{createOriginalDeviceCreateIntentDATA}from'../src/original-device-create-intent-data-core.js';
 import{canonicalJSON}from'../src/canonical.js';import{createProductSessionChallenge}from'../src/product-session-v2.js';import{originalV4PrivateVerificationDATA as math}from'../src/product-session-pq-v4-verification-private.mjs';
-const f=registrationPUBLICFixture(),oldNow=Date.now;Date.now=()=>+f.at;
+const f=registrationPUBLICFixture(),oldNow=Date.now;Date.now=()=>+f.at+10;
 const F=(present=false,code=0)=>({present:present?1:0,code,origin:0,platform_code:'0'}),D=(present=false)=>({failure:F(present,0),unknown:0,physical_done:1}),events=[],ctx={},made=createOriginalDeviceCreateIntentDATA({...f.identity,generation:'3',operationId:f.scope.pendingId,nonce:'ab'.repeat(32),issuedAt:new Date(80000).toISOString(),expiresAt:new Date(110000).toISOString()});
 let memberRead=0,submitted=0,actualOperation='dd'.repeat(32);const op={readOriginalMember(){memberRead++;return f.member.buffer.slice(f.member.byteOffset,f.member.byteOffset+f.member.byteLength)},assertCurrent(){},retire(){events.push('op-retire')},join(){return D()},close(){events.push('op-close');return D()}};
 const source={readOriginalReview(){return new TextEncoder().encode(canonicalJSON(f.scope)).buffer},assertCurrent(){assert.ok(!events.includes('source-close'))},async produceRegistrationProof(c){assert.equal(c,ctx);return op},produceChallengeProof(){throw Error('not selected')},retire(){events.push('source-retire')},join(){return D()},close(){events.push('source-close');return D()}};
@@ -18,7 +18,7 @@ try{
  assert.equal(memberRead,0);
  await unavailable.close();events.length=0;
  let rechecks=0,late=false,selected,releaseRecheck,waitForRetire=false;
- const raw=f.policyOriginal, fresh={...raw,observedAt:new Date(+f.at-5).toISOString(),expiresAt:new Date(+f.at+4000).toISOString()};
+ const raw=f.policyOriginal;let fresh={...raw,observedAt:new Date(+f.at+5).toISOString(),expiresAt:new Date(+f.at+4000).toISOString()};
  const loan={readOriginalPolicyDATA:()=>canonicalJSON(fresh),assertOriginalCurrent(b){assert.equal(b,selected);},async recheckOriginalCurrent(b){assert.equal(b,selected);rechecks++;if(waitForRetire)await new Promise(resolve=>{releaseRecheck=resolve;});if(late)throw Error('PUBLIC_POLICY_WITHDRAWN');},retire(){events.push('policy-retire');},join(){return D();},close(){events.push('policy-close');return D();}};
  const fixed={...host,isOriginalAccountPolicy:x=>x===loan,acquireOriginalDeviceV4AccountPolicy(s,c,b){
    assert.equal(s,source);assert.equal(c,ctx);assert.equal(b.operation,'registration-pop');
@@ -42,5 +42,13 @@ try{
  assert.equal(submitted,0);
  assert.ok(events.indexOf('policy-close')<events.indexOf('source-close'));
  assert.ok(events.indexOf('policy-close')>events.indexOf('op-close'));
+ events.length=0;late=false;waitForRetire=false;
+ fresh={...fresh,activeRecord:{...fresh.activeRecord,revision:'2'}};
+ const changed=await factory(fixed)();
+ changed.readOriginalRegistrationReviewDATA();
+ await assert.rejects(changed.prepareOriginalPairSubmission(),{code:'ACCOUNT_POLICY_CHANGED'});
+ assert.equal(memberRead,1);
+ assert.equal(submitted,0);
+ await changed.close();
  console.log('PASS actual factory: historical-only denial, exact independent loan, fresh read, late withdrawal/no POST, ordered physical close');
 }finally{Date.now=oldNow;f.close();}
