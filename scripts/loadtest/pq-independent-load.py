@@ -217,7 +217,7 @@ class SenderSession:
             self.proc=ceremony.w.launch(self.name,normal.fd3_command(args,fd),persistent,pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
         finally:os.close(fd)
         self.path=ceremony.w.work/"public"/(self.name+".log")
-    def receive(self,path,stop,version,deadline=None,check=lambda:None):
+    def receive(self,path,stop,version,deadline=None,check=lambda:None,*,include_original=False):
         while not stop.is_set() and (deadline is None or time.monotonic()<deadline):
             check()
             with open(self.path,"rb") as source:
@@ -228,7 +228,7 @@ class SenderSession:
                 if path is not None:
                     with open(path,"xb") as output:output.write(line+b"\n");output.flush();os.fsync(output.fileno())
                 reply=json.loads(line);lab.require(reply["version"]==version,"original sender reply version differs")
-                return reply
+                return (reply, line+b"\n") if include_original else reply
             if chunk:
                 # Drain bytes already written, even if the child has exited.
                 continue
@@ -602,6 +602,9 @@ class NormalBackend:
                                    transaction_sha256=normal.comet_hash(tx["abciHash"]),
                                    native_wire_hash=normal.comet_hash(tx["nativeHash"]))
             started = time.monotonic_ns()
+            if operation == "result":
+                original_path = self.w.work / "public" / f"{prefix}-live-result.log"
+                transaction["retain_original"] = lambda raw: proof_readback.write_new(original_path, raw)
             reply = lane["session"].exchange(operation, sequence, **transaction)
             returned = time.monotonic_ns()
             group = "live_publish" if operation == "request" else "live_result"
@@ -820,17 +823,18 @@ def prepare_live_materials_session(backend, lane, check):
         "--ready", "--timings",
     ], stdin_pipe=True, thread_safe=True, private_log=True)
     deadline = time.monotonic() + ceremony.proof_timeout
-    # The private process log already holds the exact frames. Public timing
-    # projections do not need a second durable copy of each private reply.
+    # READY and requests stay in the private stream. The normal portable
+    # catalog also requires the accepted original result frame for each proof.
     ready = stream.receive(None, backend.stop_event,
                            "YNX-PQ-LAB-LIVE-MATERIALS-READY/v1", deadline, check)
     received = time.monotonic_ns()
     timing = callee_snapshot(ready.get("preparationTimings"))
     transport = module("original_live_materials_transport", "pq-live-materials-transport.py")
-    def receive():
+    def receive(*, include_original=False):
         return stream.receive(None, backend.stop_event,
                               "YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1",
-                              time.monotonic() + ceremony.proof_timeout)
+                              time.monotonic() + ceremony.proof_timeout,
+                              include_original=include_original)
     lane["session"] = transport.Lane(stream.proc.stdin, receive, ready, policy_sha256=lane["pin"],
                                      node=lane["node"], max_operations=ceremony.operations)
     return dict(node=lane["node"], policySHA256=lane["pin"], parentLaunchMonotonicNs=launched,

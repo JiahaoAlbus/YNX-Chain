@@ -76,10 +76,11 @@ class Lane:
         self.awaiting_result = False
         self.poisoned = False
 
-    def exchange(self, operation, sequence, **transaction):
+    def exchange(self, operation, sequence, *, retain_original=None, **transaction):
         expected = self.sequence if self.awaiting_result else self.sequence + 1
         require(not self.poisoned and sequence == expected and sequence <= self.max_operations
-                and operation == ('result' if self.awaiting_result else 'request'),
+                and operation == ('result' if self.awaiting_result else 'request')
+                and (retain_original is None or (operation == 'result' and callable(retain_original))),
                 'original live lane sequence or operation differs; preserve original')
         raw = command(operation, sequence, **transaction)
         # Lost writes and replies leave the original operation unresolved. No
@@ -87,7 +88,10 @@ class Lane:
         self.poisoned = True
         require(self.stdin.write(raw) == len(raw), 'original live command short write')
         self.stdin.flush()
-        reply = self.receive()
+        if retain_original is None:
+            reply = self.receive()
+        else:
+            reply, original = self.receive(include_original=True)
         outcome = 'request_published' if operation == 'request' else 'original_result_read'
         require(type(reply) is dict and reply.get('version') == 'YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1'
                 and reply.get('operation') == operation and reply.get('sequence') == str(sequence)
@@ -114,6 +118,8 @@ class Lane:
                     'original result reply differs')
         session_stats(reply.get('session'), self.policy_sha256, self.node, self.max_operations,
                       self.commands + 1)
+        if retain_original is not None:
+            retain_original(original)
         self.commands += 1
         self.sequence = sequence
         self.awaiting_result = operation == 'request'

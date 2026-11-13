@@ -135,7 +135,28 @@ class Transport(unittest.TestCase):
             self.assertEqual(len(stdin.getvalue().splitlines()), 2)
             self.assertEqual([p.name for p in (work/'.private').iterdir()], ['load-live-session-0.log'])
             self.assertEqual(sorted(p.name for p in (work/'public').iterdir()),
-                ['load-00000-live-session-request.json', 'load-00000-live-session-result.json'])
+                ['load-00000-live-result.log', 'load-00000-live-session-request.json',
+                 'load-00000-live-session-result.json'])
+            original = (work/'.private/load-live-session-0.log').read_bytes().splitlines(keepends=True)[-1]
+            self.assertEqual((work/'public/load-00000-live-result.log').read_bytes(), original)
+
+    def test_original_result_retention_failure_poisoned_without_replay(self):
+        stream = io.BytesIO()
+        def receive(*, include_original=False):
+            if include_original:
+                return reply('result', 1), b'original frame bytes'
+            return reply('request', 1)
+        def fail(raw):
+            self.assertEqual(raw, b'original frame bytes')
+            raise OSError('original frame retention failed')
+        lane = open_lane(stream, receive)
+        lane.exchange('request', 1, **REQUEST)
+        with self.assertRaisesRegex(OSError, 'retention failed'):
+            lane.exchange('result', 1, retain_original=fail)
+        with self.assertRaisesRegex(RuntimeError, 'preserve original'):
+            lane.exchange('result', 1, retain_original=fail)
+        self.assertTrue(lane.poisoned)
+        self.assertEqual(len(stream.getvalue().splitlines()), 2)
 
     def test_wrong_ready_policy_refuses_before_any_command(self):
         stream = io.BytesIO()
