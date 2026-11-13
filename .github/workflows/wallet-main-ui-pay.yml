@@ -55,6 +55,10 @@ jobs:
       # source image and materialized by checkout. No install or scripts run.
       - name: Original source proof readback and Main canonical identity controls
         run: node --test --test-name-pattern 'canonical .*recovery|canonical reader|source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
+      - name: Cross-chain original terminal observation and timeout controls
+        run: node --test --test-name-pattern 'original (Main terminal|terminal|) ?observation|terminal recovery from|confirm times out|timed-out start' src/features/cross-chain/cctp-flow.test.mjs src/features/cross-chain/cctp-reconcile-delta.test.mjs src/features/cross-chain/cctp-ui-wait.test.mjs
+      - name: Pay original order binding through the normal client
+        run: node --test test/wallet-native-pay-original-order.test.mjs
       - name: First DEVICE account approval and existing pair/completion boundaries
         run: |
           node --test test/wallet-device-first-account-approval.test.mjs test/wallet-device-registration-ui.test.mjs

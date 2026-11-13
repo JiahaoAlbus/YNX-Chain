@@ -22,7 +22,20 @@ export function mountCctpUI({root,api,locale='en'}){
     return value?.state==='completed'&&target?.state==='finalized'&&receipt?.status===1&&receipt.confirmationScope==='rpc-finalized-block'&&
       hash(receipt.hash)&&receipt.hash===mint?.hash&&hash(receipt.blockHash)&&hash(receipt.finalizedBlockHash)&&height(receipt.blockNumber)&&height(receipt.finalizedBlockNumber)&&BigInt(receipt.finalizedBlockNumber)>=BigInt(receipt.blockNumber)&&Boolean(value.proof);
   };
-  const transferMessage=value=>isFinalized(value)?text.completed:value?.state==='failed'?text.failed:text.waiting;
+  const observationText = locale.startsWith('zh') ? {
+    cancelled: '钱包记录了签名前取消，跨链结果仍待确认。',
+    'local-cancelled-before-broadcast': '钱包记录了已签名交易的本地取消，跨链结果仍待确认。',
+    hash: '已记录的交易哈希',
+  } : {
+    cancelled: 'Wallet recorded cancellation before signing. Transfer outcome is unknown.',
+    'local-cancelled-before-broadcast': 'Wallet recorded a local cancellation for the signed transaction. Transfer outcome is unknown.',
+    hash: 'Recorded transaction hash',
+  };
+  const transferMessage = value => {
+    const observation = value?.originalObservation;
+    if (observation?.view === 'query-only') return observationText[observation.recordedState] ?? text.waiting;
+    return isFinalized(value) ? text.completed : value?.state === 'failed' ? text.failed : text.waiting;
+  };
   const mutations=new Set(['start','prepare','confirm','cancel']);
   const preflightText=locale.startsWith('zh')?{check:'检查路线可用性',stop:'停止路线检查',cancelled:'已停止本次路线检查。',unknown:'尚未核实两条链的身份与 genesis pin。',verified:'链身份与 genesis pin 已核实',unverified:'尚未核实',source:'源链 Ethereum Sepolia',destination:'目标链 Base Sepolia',scope:'此结果仅表示网络身份检查；报价、批准和到账均须单独核实。'}:{check:'Check route availability',stop:'Stop route check',cancelled:'Route check cancelled.',unknown:'Chain identities and genesis pins have not been checked.',verified:'Chain identity and genesis pin verified',unverified:'Unverified',source:'Source Ethereum Sepolia',destination:'Destination Base Sepolia',scope:'This checks network identity only. Fees, approval and arrival need separate verification.'};
   const preflightIssue=code=>{const zh=locale.startsWith('zh');if(code==='CCTP_NETWORK_REQUIRED')return zh?'请先在钱包网络设置中保存这条链及其已核实的 genesis pin。':'Save this chain and its verified genesis pin in Wallet network settings.';if(code==='CCTP_NETWORK_AMBIGUOUS')return zh?'这条链有多个网络配置，请先核对配置。':'Multiple saved networks match this chain; review the network configuration.';if(code==='CCTP_NETWORK_INVALID')return zh?'已保存的网络配置未通过校验，请核对原配置。':'The saved network configuration could not be validated.';if(code==='MULTICHAIN_NETWORK_MISMATCH'||code==='CCTP_NETWORK_MISMATCH')return zh?'RPC 返回的链身份与已保存的 pin 不匹配。':'The RPC identity does not match the saved chain and genesis pin.';if(code==='MULTICHAIN_RPC_TIMEOUT'||code==='CCTP_PREFLIGHT_TIMEOUT')return zh?'网络身份查询超时，本次仍为未核实。':'The network identity query timed out; this result remains unverified.';return zh?'RPC 暂时无法提供可核验的链身份与 genesis。':'The RPC could not provide verifiable chain identity and genesis.'};
@@ -54,6 +67,25 @@ export function mountCctpUI({root,api,locale='en'}){
     finally{clearTimeout(timer);task.stop=null}
   };
   const recovered=(method,result)=>{
+    if (method === 'check') {
+      const observation = result.originalObservation;
+      if (observation?.view === 'query-only') {
+        recovery ??= {method: 'check', intentId: result.id};
+        if (recovery.intentId === result.id) recovery.observation ??= observation;
+        return;
+      }
+      if (recovery?.intentId !== result.id) return;
+      const original = recovery.observation;
+      if (original) {
+        const operation = result.operations?.find(op => op.id === original.operationId && op.step === original.step);
+        const network = original.step === 'mint' ? result.binding?.destinationNetwork : result.binding?.sourceNetwork;
+        if (result.binding?.account !== original.account || JSON.stringify(network) !== JSON.stringify(original.network) ||
+            !operation || !['included', 'reverted'].includes(operation.state) ||
+            !/^0x[0-9a-f]{64}$/.test(operation.hash) || (original.hash !== null && operation.hash !== original.hash)) return;
+      }
+      recovery = null;
+      return;
+    }
     if(!recovery)return;
     if(method==='history'&&recovery.method==='start'){
       const original=result.find(item=>item.binding?.quoteId===recovery.input);
@@ -61,7 +93,7 @@ export function mountCctpUI({root,api,locale='en'}){
       // A completed failed start followed by a fresh empty history has no
       // durable route to check. An unresolved start remains fenced.
       else if(recovery.settled&&recovery.result?.ok===false)recovery=null;
-    }else if(method==='check'&&recovery.intentId===result.id)recovery=null;
+    }
   };
   const work=async(action,readOnly=false)=>{
     if(busy||disposed||recovery&&!readOnly)return;const task={request:null,stop:null};busy=task;const ticket=generation;status.textContent=text.busy;render();
@@ -89,6 +121,8 @@ export function mountCctpUI({root,api,locale='en'}){
     if(record){
       show(text.state,record.state);
       for(const op of record.operations??[]){const step=text[op.step]??op.step;show(step+receiptText.stepStatus,op.state);if(op.hash)show(step+receiptText.transaction,op.hash)}
+      const observation = record.originalObservation;
+      if (observation?.view === 'query-only' && observation.hash) show(observationText.hash, observation.hash);
       if(record.proof){if(record.proof.nonce)show('CCTP nonce',record.proof.nonce);show(receiptText.fee,usdc(record.proof.feeExecuted));show(isFinalized(record)?receiptText.received:receiptText.claim,usdc(record.proof.amountReceived))}
       const target=record.destination,receipt=target?.receipt;
       if(target){show(receiptText.destination,target.state);if(receipt){for(const [label,key] of [['hash','hash'],['block','blockNumber'],['blockHash','blockHash'],['scope','confirmationScope'],['finalized','finalizedBlockNumber'],['finalizedHash','finalizedBlockHash']])if(receipt[key]!=null)show(receiptText[label],receipt[key])}if(target.balanceUnits!=null){show(receiptText.balance,usdc(target.balanceUnits));show(receiptText.balanceScope,receiptText.balanceNote)}}
