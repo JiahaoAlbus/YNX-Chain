@@ -44,6 +44,14 @@ def reply(operation, sequence, **changes):
     return result
 
 
+def load_driver():
+    driver_spec = importlib.util.spec_from_file_location('live_session_driver',
+        Path(__file__).with_name('pq-independent-load.py'))
+    driver = importlib.util.module_from_spec(driver_spec)
+    driver_spec.loader.exec_module(driver)
+    return driver
+
+
 class Transport(unittest.TestCase):
     def test_go_marshal_order_and_escaping(self):
         request = transport.command('request', 1, **REQUEST).decode()
@@ -68,11 +76,24 @@ class Transport(unittest.TestCase):
         lane.exchange('request', 2, **REQUEST)
         self.assertEqual(len(stream.getvalue().splitlines()), 3)
 
+    def test_receive_drains_large_original_even_after_process_exit(self):
+        driver = load_driver()
+        with tempfile.TemporaryDirectory() as temp:
+            session = driver.SenderSession.__new__(driver.SenderSession)
+            session.path = Path(temp)/'original.log'
+            version = 'YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1'
+            body = dict(version=version, result={'proof': 'a'*130000})
+            raw = json.dumps(body).encode()+b'\n'
+            session.path.write_bytes(raw)
+            session.partial = b''
+            session.offset = 0
+            session.proc = SimpleNamespace(poll=lambda: 0)
+            self.assertEqual(session.receive(None, threading.Event(), version), body)
+            self.assertEqual(session.offset, len(raw))
+            self.assertEqual(list(Path(temp).iterdir()), [session.path])
+
     def test_driver_launches_private_lane_and_preserves_callee_denominators(self):
-        driver_spec = importlib.util.spec_from_file_location('live_session_driver',
-            Path(__file__).with_name('pq-independent-load.py'))
-        driver = importlib.util.module_from_spec(driver_spec)
-        driver_spec.loader.exec_module(driver)
+        driver = load_driver()
         timings = dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1', clock='monotonic_elapsed_wall_ns',
                        intervalsOverlap=True, stages={'live.publishTotal': dict(calls=1, elapsedNs=12)})
         ready = dict(version='YNX-PQ-LAB-LIVE-MATERIALS-READY/v1',
@@ -111,6 +132,7 @@ class Transport(unittest.TestCase):
                 self.assertEqual(groups[phase]['calleeElapsed']['observed'], 1)
                 self.assertEqual(groups[phase]['calleeElapsed']['denominator'], 2)
             self.assertEqual(len(stdin.getvalue().splitlines()), 2)
+            self.assertEqual([p.name for p in (work/'.private').iterdir()], ['load-live-session-0.log'])
             self.assertEqual(sorted(p.name for p in (work/'public').iterdir()),
                 ['load-00000-live-session-request.json', 'load-00000-live-session-result.json'])
 

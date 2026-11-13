@@ -222,10 +222,18 @@ class SenderSession:
             self.partial+=chunk;lab.require(len(self.partial)<=2<<20,"original sender reply bound")
             if b"\n" in self.partial:
                 line,self.partial=self.partial.split(b"\n",1)
-                with open(path,"xb") as output:output.write(line+b"\n");output.flush();os.fsync(output.fileno())
+                if path is not None:
+                    with open(path,"xb") as output:output.write(line+b"\n");output.flush();os.fsync(output.fileno())
                 reply=json.loads(line);lab.require(reply["version"]==version,"original sender reply version differs")
                 return reply
-            lab.require(self.proc.poll() is None,"original sender exited without one exact reply; preserve UNKNOWN")
+            if chunk:
+                # Drain bytes already written, even if the child has exited.
+                continue
+            if self.proc.poll() is not None:
+                # A final write may race the empty read and process exit.
+                lab.require(self.path.stat().st_size > self.offset,
+                            "original sender exited without one exact reply; preserve UNKNOWN")
+                continue
             stop.wait(.01)
         raise RuntimeError("original sender reply not supplied before cancellation/cutoff; preserve UNKNOWN, never re-sign or replay")
     def wait_ready(self,stop,deadline,check):
@@ -795,14 +803,15 @@ def prepare_live_materials_session(backend, lane, check):
         "--ready", "--timings",
     ], persistent=True, stdin_pipe=True, thread_safe=True, private_log=True)
     deadline = time.monotonic() + ceremony.proof_timeout
-    ready = stream.receive(path.with_suffix(".ready.json"), backend.stop_event,
+    # The private process log already holds the exact frames. Public timing
+    # projections do not need a second durable copy of each private reply.
+    ready = stream.receive(None, backend.stop_event,
                            "YNX-PQ-LAB-LIVE-MATERIALS-READY/v1", deadline, check)
     received = time.monotonic_ns()
     timing = callee_snapshot(ready.get("preparationTimings"))
     transport = module("original_live_materials_transport", "pq-live-materials-transport.py")
     def receive():
-        next_command = lane["session"].commands + 1
-        return stream.receive(path.with_suffix(f".{next_command}.reply.json"), backend.stop_event,
+        return stream.receive(None, backend.stop_event,
                               "YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1",
                               time.monotonic() + ceremony.proof_timeout)
     lane["session"] = transport.Lane(stream.proc.stdin, receive, ready, policy_sha256=lane["pin"],
