@@ -7,6 +7,7 @@ owner's reply. EOF/cancellation never retries a command or releases a nonce.
 import json
 import os
 import stat
+import subprocess
 import threading
 import time
 
@@ -109,7 +110,7 @@ def read_prepared_ready(path, require):
 
 def session_class(Base, normal, lab):
     class PublicOwnerSession(Base):
-        def __init__(self, ceremony, owners, name='load-public-owners', *, prepare_source=False):
+        def __init__(self, ceremony, owners, name='load-public-owners', *, prepare_source=False, poison_retirement=False):
             indices=tuple(owners)
             lab.require(type(prepare_source) is bool,'explicit boolean static source preparation required')
             lab.require(0<len(indices)<=1000 and all(type(v) is int and 0<=v<1000 for v in indices)
@@ -119,6 +120,8 @@ def session_class(Base, normal, lab):
             self.c=ceremony;self.owners=indices;self.name=name;self.prepare_source=prepare_source
             self.offset=0;self.partial=b'';self.ready=None
             self.lock=threading.Lock();self.poisoned=False
+            lab.require(type(poison_retirement) is bool,'explicit poison retirement experiment required')
+            self.poison_retirement=poison_retirement
             self.trace_lock=threading.Lock();self.traces=[];self.attempts=0
             self.launched_ns=time.monotonic_ns()
             fd=os.open(ceremony.root/'workload/private-senders/recovery.raw',os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
@@ -155,6 +158,78 @@ def session_class(Base, normal, lab):
                         'original public scope READY differs; no command issued')
             self.ready=dict(reply)
             return dict(reply)
+
+        def retire_poisoned_original(self):
+            """Experiment: stop this Popen once, without flushing uncertain pipe bytes.
+
+            dup2 atomically replaces the parent's pipe descriptor with /dev/null,
+            so BufferedWriter.close cannot flush a partially written command to
+            the child. EOF lets its normal Go defer join and retire the session.
+            On failure or timeout, terminate then kill the exact Popen, bounded.
+            Never read a late frame or infer key wiping from a forced exit.
+            """
+            p=self.proc
+            out=dict(pid=getattr(p,'pid',None),stdinCut=False,stdinCloseErrorType=None,
+                     eofExitObserved=False,terminateRequested=False,killRequested=False,
+                     returnCode=None,cleanupErrorType=None,cleanupErrorTypes=[],lateRepliesRead=False,
+                     wipeProven=False,originalOperationReplayed=False)
+            def failed(error):
+                name=type(error).__name__
+                if out['cleanupErrorType'] is None:out['cleanupErrorType']=name
+                out['cleanupErrorTypes'].append(name)
+            def alive():
+                try:return p.poll() is None
+                except BaseException as error:failed(error);return None
+            try:
+                if p.stdin is not None and not p.stdin.closed:
+                    nullfd=None
+                    try:
+                        nullfd=os.open(os.devnull,os.O_WRONLY|os.O_CLOEXEC)
+                        os.dup2(nullfd,p.stdin.fileno(),inheritable=False)
+                        out['stdinCut']=True
+                        p.stdin.close()
+                    except BaseException as error:
+                        out['stdinCloseErrorType']=type(error).__name__
+                    finally:
+                        if nullfd is not None:
+                            try:os.close(nullfd)
+                            except BaseException as error:failed(error)
+                if out['stdinCut'] and alive() is True:
+                    try:
+                        p.wait(timeout=1)
+                        out['eofExitObserved']=True
+                    except subprocess.TimeoutExpired:pass
+                    except BaseException as error:failed(error)
+                if alive() is True:
+                    out['terminateRequested']=True
+                    try:p.terminate()
+                    except BaseException as error:failed(error)
+                    if alive() is True:
+                        try:p.wait(timeout=1)
+                        except subprocess.TimeoutExpired:pass
+                        except BaseException as error:failed(error)
+                if alive() is True:
+                    out['killRequested']=True
+                    try:p.kill()
+                    except BaseException as error:failed(error)
+                    if alive() is True:
+                        try:p.wait(timeout=1)
+                        except subprocess.TimeoutExpired:pass
+                        except BaseException as error:failed(error)
+                try:out['returnCode']=p.poll()
+                except BaseException as error:failed(error)
+            except BaseException as error:failed(error)
+            return out
+
+        def retire_poison_once(self):
+            # Caller holds the same stream lock as every exchange and the
+            # experimental cutoff close. Never repeat an uncertain cleanup.
+            if getattr(self,'poison_retirement_report',None) is None:
+                try:self.poison_retirement_report=self.retire_poisoned_original()
+                except BaseException as cleanup_error:
+                    self.poison_retirement_report=dict(cleanupErrorType=type(cleanup_error).__name__,
+                        returnCode=None,wipeProven=False,lateRepliesRead=False,originalOperationReplayed=False)
+            return dict(self.poison_retirement_report)
 
         def exchange(self, command, path, stop, prepare_command=None, prepare_owner_path=None, on_owner_prepare=None):
             lab.require(self.ready is not None,'original public scope READY required')
@@ -232,6 +307,10 @@ def session_class(Base, normal, lab):
                 return reply
             except BaseException as error:
                 trace['errorType']=type(error).__name__
+                # Preserve this very first exception. Cleanup is separately
+                # reported and never reads/reassigns the uncertain reply.
+                if acquired and self.poisoned and getattr(self,'poison_retirement',False):
+                    trace['poisonRetirement']=self.retire_poison_once()
                 raise
             finally:
                 if acquired:self.lock.release()
@@ -241,9 +320,13 @@ def session_class(Base, normal, lab):
 
         def transport_report(self):
             with self.trace_lock:
-                return dict(schema='YNX-PERF-PUBLIC-OWNER-TRANSPORT/v1',clock='parent_monotonic_ns',
+                result=dict(schema='YNX-PERF-PUBLIC-OWNER-TRANSPORT/v1',clock='parent_monotonic_ns',
                             attempted=self.attempts,retained=len(self.traces),omitted=self.attempts-len(self.traces),
                             records=[dict(v) for v in self.traces],recordLimit=2048,
                             meaning='Queue wait and write-to-reply are parent observations; nested Go callee timings overlap. Missing replies remain unknown; these records do not qualify business finality.',
                             automaticRetry=False,authorityGranted=False)
+                if getattr(self,'poison_retirement',False):
+                    result['experimentalPoisonRetirement']=dict(stopStreamLockDeferred=getattr(self,'stopStreamLockDeferred',False),
+                        cleanupReport=getattr(self,'poison_retirement_report',None),physicalWipeProven=False)
+                return result
     return PublicOwnerSession

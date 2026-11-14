@@ -1039,10 +1039,27 @@ class NormalBackend:
                 except ProcessLookupError:pass
         # Terminate before closing buffered stdin so a stalled child cannot
         # hold a writer/close lock past the bounded cleanup boundary.
-        senders = [session.proc for session in self.sessions.values()]
+        for session in self.sessions.values():
+            process=session.proc
+            if getattr(session,'poison_retirement',False):
+                # The original process has already been signalled above. Never
+                # race an active writer's dup2/close or wait without a bound.
+                if not session.lock.acquire(timeout=.05):
+                    session.stopStreamLockDeferred=True
+                    continue
+                try:
+                    if session.poisoned:
+                        session.retire_poison_once()
+                    elif process.stdin is not None and not process.stdin.closed:
+                        try:process.stdin.close()
+                        except (OSError,ValueError):pass
+                finally:session.lock.release()
+            elif process.stdin is not None and not process.stdin.closed:
+                try:process.stdin.close()
+                except (OSError,ValueError):pass
         proof_sessions = [child["process"] for child in children
                           if child["name"].startswith("load-live-session-")]
-        for process in [*senders, *proof_sessions]:
+        for process in proof_sessions:
             if process.stdin is not None and not process.stdin.closed:
                 try:process.stdin.close()
                 except (OSError,ValueError):pass
