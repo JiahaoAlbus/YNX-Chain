@@ -815,7 +815,11 @@ if __name__ == '__main__':
             original = baseline.read((32 << 20) + 1)
         require(len(original) <= 32 << 20, 'original before readback exceeds bound')
         before = strict(original)
-        if result['fullCohort'] is None:
+        if before.get('fullCohort') is not None and result['fullCohort'] is None:
+            result['businessComparison'] = dict(status='AFTER_COHORT_MISSING',
+                                                beforeStatus=before.get('status'),
+                                                afterStatus=result['status'])
+        elif result['fullCohort'] is None:
             result['readinessComparison'] = compare_readiness(before, result)
         else:
             result['businessComparison'] = compare_business(before, result)
