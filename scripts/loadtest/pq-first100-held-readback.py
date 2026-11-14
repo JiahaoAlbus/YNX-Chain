@@ -130,6 +130,7 @@ def compare_business(before, after):
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
+                    observationRPC=report.get('observationRPC'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
@@ -138,6 +139,34 @@ def compare_business(before, after):
                 sameReportedConditions=not differences and not hardware_differences,
                 identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
                 throughputGainAttributed=False, sustainedTPSQualified=False)
+
+
+def observation_rpc(receipt):
+    original = receipt.get('normalObservationRPCTiming')
+    if original is None:
+        return None
+    groups = original['groups']
+    require(original['schema'] == 'YNX-PERF-PARENT-RPC-ELAPSED/v1'
+            and original['clock'] == 'parent_monotonic_ns' and original['groupLimit'] == 12
+            and original['intervalsOverlap'] is True and original['independentFinality'] is False
+            and original['businessSuccessInferred'] is False and type(groups) is list and len(groups) <= 12,
+            'original observation RPC schema differs')
+    by_method = {}
+    fields = ('attempted', 'returned', 'raised', 'completed', 'inFlight')
+    for group in groups:
+        node, method = group['node'], group['method']
+        require(type(node) is int and 0 <= node < 4 and method in ('tx', 'status', 'abci_info')
+                and all(type(group[key]) is int and group[key] >= 0 for key in fields)
+                and group['completed'] == group['returned'] + group['raised']
+                and group['attempted'] == group['completed'] + group['inFlight'],
+                'original observation RPC counters differ')
+        nodes = by_method.setdefault(method, {})
+        require(node not in nodes, 'duplicate original observation RPC group')
+        nodes[node] = group
+    return dict(original=original, countsByMethod={
+        method: {key: sum(group[key] for group in nodes.values()) for key in fields}
+        for method, nodes in by_method.items()
+    }, elapsedIntervalsAdded=False)
 
 
 def public_owner_timing(receipt, load):
@@ -390,6 +419,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 publicOwnerTiming=public_owner_timing(receipt, load) if load is not None else None,
+                observationRPC=observation_rpc(receipt),
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,

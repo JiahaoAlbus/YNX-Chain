@@ -66,6 +66,25 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'outside the cohort'):
             reader.public_owner_timing(receipt, dict(load, firstOperationalFailure=dict(first, id='other')))
 
+    def test_observation_rpc_preserves_counts_and_keeps_elapsed_intervals_separate(self):
+        first = dict(node=0, method='tx', attempted=4, returned=1, raised=2, completed=3, inFlight=1)
+        second = dict(node=1, method='tx', attempted=1, returned=1, raised=0, completed=1, inFlight=0)
+        receipt = dict(normalObservationRPCTiming=dict(schema='YNX-PERF-PARENT-RPC-ELAPSED/v1',
+                       clock='parent_monotonic_ns', groupLimit=12, intervalsOverlap=True,
+                       independentFinality=False, businessSuccessInferred=False, groups=[first, second]))
+        report = reader.observation_rpc(receipt)
+        self.assertEqual(report['countsByMethod']['tx'],
+                         dict(attempted=5, returned=2, raised=2, completed=4, inFlight=1))
+        self.assertFalse(report['elapsedIntervalsAdded'])
+        self.assertEqual(report['original']['groups'], [first, second])
+        self.assertIsNone(reader.observation_rpc({}))
+        second['node'] = 0
+        with self.assertRaisesRegex(RuntimeError, 'duplicate'):
+            reader.observation_rpc(receipt)
+        second.update(node=1, completed=2)
+        with self.assertRaisesRegex(RuntimeError, 'counters differ'):
+            reader.observation_rpc(receipt)
+
     def test_actions_metadata_binds_attempt_job_and_archive_digest(self):
         branch = 'codex/ynx-pq-current75-baseline-20261101'
         run = dict(id=1, event='workflow_dispatch', run_attempt=1, head_sha=self.controller,
