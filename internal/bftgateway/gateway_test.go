@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -54,6 +55,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 	txHash := consensus.SignedTransactionHash(txPayload)
 	cometTxHash := strings.ToUpper(strings.TrimPrefix(txHash, "0x"))
 	blockTime := time.Date(2026, 7, 12, 1, 2, 3, 0, time.UTC)
+	var sourceLogInventoryReads atomic.Int64
 
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -111,7 +113,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"height": "17", "value": base64.StdEncoding.EncodeToString(raw)}}})
 				return
 			}
-			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) || path == consensus.PQWalletIdentityPath {
+			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) || strings.HasPrefix(path, consensus.MigrationHistoryLogBlocksPath) || path == consensus.PQWalletIdentityPath {
 				var value any = consensus.MigrationHistoryTransactionView{MigrationHistoryAnchor: consensus.MigrationHistoryAnchor{Version: consensus.MigrationHistoryVersion, Source: "source_import", SourceAnchor: strings.Repeat("1", 64), OriginalGenesisHash: strings.Repeat("2", 64), NativeChainID: 6423, MigrationHeight: 16, MigrationBlockHash: strings.Repeat("f", 64)}}
 				if strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) {
 					value = consensus.MigrationHistoryBlockView{MigrationHistoryAnchor: value.(consensus.MigrationHistoryTransactionView).MigrationHistoryAnchor}
@@ -127,6 +129,13 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 						t.Errorf("unexpected empty source log range: %s", path)
 					}
 					value = consensus.MigrationHistoryLogsView{MigrationHistoryAnchor: value.(consensus.MigrationHistoryTransactionView).MigrationHistoryAnchor, From: 11, To: 16, Logs: []chain.EVMLog{}}
+				}
+				if strings.HasPrefix(path, consensus.MigrationHistoryLogBlocksPath) {
+					if path != consensus.MigrationHistoryLogBlocksPath+"11/16" {
+						t.Errorf("unexpected empty source log inventory range: %s", path)
+					}
+					sourceLogInventoryReads.Add(1)
+					value = consensus.MigrationHistoryLogBlocksView{MigrationHistoryAnchor: value.(consensus.MigrationHistoryTransactionView).MigrationHistoryAnchor, From: 11, To: 16, Blocks: []consensus.MigrationHistoryLogBlock{}}
 				}
 				if path == consensus.PQWalletIdentityPath {
 					value = consensus.PQWalletIdentityView{Version: consensus.PQWalletIdentityVersion, Source: "configured-abci-bootstrap", RecordsView: "committed", HashAlgorithm: "sha256", NativeChainID: 6423, NativeGenesisHash: strings.Repeat("2", 64), CometChainID: "ynx_6423-1", CometGenesisSHA256: strings.Repeat("3", 64), MigrationStateHash: strings.Repeat("1", 64), MigrationHeight: 16, InitialHeight: 17, CurrentStateHeight: 17, CurrentStateAppHash: strings.Repeat("4", 64)}
@@ -308,6 +317,9 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 		t.Fatalf("unexpected committed EVM receipt: %+v", receipt)
 	}
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":5,"method":"eth_getLogs","params":[{"fromBlock":"0xb","toBlock":"0x11"}]}`, []any{})
+	if sourceLogInventoryReads.Load() != 1 {
+		t.Fatal("cross-boundary empty logs must verify the exact original source inventory once")
+	}
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":6,"method":"eth_getLogs","params":[{"address":"0x0000000000000000000000000000000000000001","topics":["0x0000000000000000000000000000000000000000000000000000000000000001"]}]}`, []any{})
 	assertRPCResult(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":7,"method":"eth_getTransactionReceipt","params":["0x0000000000000000000000000000000000000000000000000000000000000000"]}`, nil)
 	assertRPCError(t, server.URL+"/evm", `{"jsonrpc":"2.0","id":8,"method":"eth_getLogs","params":[{"fromBlock":"0x11","toBlock":"0x10"}]}`, -32602)
