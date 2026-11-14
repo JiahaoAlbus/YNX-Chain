@@ -558,6 +558,22 @@ jobs:
             adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
             grep -q 'Search products and categories' "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
           done
+          python3 - "$RUNNER_TEMP/shop-device-catalog-2.xml" <<'PYCODE'
+          import re, subprocess, sys, xml.etree.ElementTree as ET
+          raw = open(sys.argv[1]).read().split("UI hierchary dumped")[0].strip()
+          nodes = list(ET.fromstring(raw).iter("node"))
+          def tap(label):
+              node = next(n for n in nodes if n.get("text") == label or n.get("content-desc") == label)
+              bounds = [int(x) for x in re.findall(r"\d+", node.get("bounds"))]
+              subprocess.run(["adb","shell","input","tap",str((bounds[0]+bounds[2])//2),str((bounds[1]+bounds[3])//2)],check=True)
+          tap("Search products and categories")
+          subprocess.run(["adb","shell","input","text","zzp07nomatch9f788c7"],check=True)
+          subprocess.run(["adb","shell","input","keyevent","4"],check=True)
+          tap("Search")
+          PYCODE
+          sleep 5
+          adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-search.xml"
+          grep -Eq 'No published products are available|Offline|unavailable|Unable|Could not' "$RUNNER_TEMP/shop-device-search.xml"
           adb logcat -d -b crash > "$RUNNER_TEMP/shop-device-crash.log"
           test ! -s "$RUNNER_TEMP/shop-device-crash.log"
           SH
