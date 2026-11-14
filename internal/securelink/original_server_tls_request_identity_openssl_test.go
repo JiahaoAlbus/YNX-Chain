@@ -5,8 +5,10 @@ package securelink
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -14,6 +16,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink/native"
 )
 
 func waitOriginalRequestIdentityTest[T any](t *testing.T, ctx context.Context, ch <-chan T) T {
@@ -32,8 +36,19 @@ func waitOriginalRequestIdentityTest[T any](t *testing.T, ctx context.Context, c
 // pre-cancel barriers are test controlled; the HTTP request and socket are live.
 func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	fixture := newTLSFixture(t)
+	t.Run("wrapper_close", func(t *testing.T) { testOriginalServerTLSOriginalRequestIdentity(t, fixture, false) })
+	t.Run("native_close", func(t *testing.T) { testOriginalServerTLSOriginalRequestIdentity(t, fixture, true) })
+}
+
+func testOriginalServerTLSOriginalRequestIdentity(t *testing.T, fixture tlsFixture, closeFromNative bool) {
+	t.Helper()
 	owner, borrow, _ := publicOriginalServerTLS(t, fixture)
 	foreign, _, _ := publicOriginalServerTLS(t, fixture)
+	rawBarrier := &authorityCloseBarrier{entered: make(chan struct{}), release: make(chan struct{})}
+	defer rawBarrier.unblock()
+	if closeFromNative {
+		owner.state.listener = authorityBarrierListener{Listener: borrow.listener, barrier: rawBarrier}
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 	expected, err := owner.Identity(ctx)
@@ -58,10 +73,19 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		request                    *http.Request
 		original, fresh            observed
 		clone, foreign, fabricated observed
+		transport                  OriginalFiniteGETRequestTransport
+		transportErr               error
+		changedProof, clonedProof  error
 	}
 	first := make(chan observations, 1)
 	secondRequest := make(chan *http.Request, 1)
 	late := make(chan observed, 1)
+	lateCurrent := make(chan error, 1)
+	type transportObservation struct {
+		evidence OriginalFiniteGETRequestTransport
+		err      error
+	}
+	lateTransport := make(chan transportObservation, 1)
 	startRead, resumeIssuer, resumeClose := make(chan struct{}), make(chan struct{}), make(chan struct{})
 	var startOnce, issuerOnce, closeOnce sync.Once
 	start := func() { startOnce.Do(func() { close(startRead) }) }
@@ -72,16 +96,28 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		if r.URL.Path == "/PUBLIC-close-race" {
 			secondRequest <- r
 			<-startRead
-			late <- observe(owner, r)
+			go func() { late <- observe(owner, r) }()
+			go func() {
+				evidence, err := owner.OriginalFiniteGETRequestTransport(r)
+				lateTransport <- transportObservation{evidence, err}
+			}()
+			lateCurrent <- owner.CurrentOriginalRequest(r)
 			<-resumeClose
 			return
 		}
 		original := observe(owner, r)
 		fresh := observe(owner, r)
+		transport, transportErr := owner.OriginalFiniteGETRequestTransport(r)
+		_, clonedProof := owner.OriginalFiniteGETRequestTransport(r.Clone(r.Context()))
+		proof := r.Header.Get(ProductSessionProofV4Header)
+		r.Header.Set(ProductSessionProofV4Header, "Changed_Original_Proof")
+		_, changedProof := owner.OriginalFiniteGETRequestTransport(r)
+		r.Header.Set(ProductSessionProofV4Header, proof)
 		first <- observations{
 			request: r, original: original, fresh: fresh,
 			clone: observe(owner, r.Clone(r.Context())), foreign: observe(foreign, r),
 			fabricated: observe(owner, httptest.NewRequest(http.MethodGet, "https://adapter.ynx.test/PUBLIC-first", nil)),
+			transport:  transport, transportErr: transportErr, changedProof: changedProof, clonedProof: clonedProof,
 		}
 		_, _ = io.WriteString(w, "PUBLIC original request")
 	})}
@@ -94,7 +130,7 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	}
 	writeRequest := func(target string) {
 		t.Helper()
-		if _, e := io.WriteString(client, "GET "+target+" HTTP/1.1\r\nHost: adapter.ynx.test\r\n\r\n"); e != nil {
+		if _, e := io.WriteString(client, "GET "+target+" HTTP/1.1\r\nHost: adapter.ynx.test\r\nX-YNX-Product-Session-Proof-V4: PUBLIC_proof\r\n\r\n"); e != nil {
 			t.Fatal(e)
 		}
 	}
@@ -109,6 +145,11 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		t.Fatalf("actual keep-alive mTLS response: status=%d close=%t body=%q err=%v", response.StatusCode, response.Close, body, err)
 	}
 	got := waitOriginalRequestIdentityTest(t, ctx, first)
+	exporter, err := client.ExportKeyingMaterial("EXPORTER-Channel-Binding", nil, 32)
+	if err != nil || got.transportErr != nil || got.transport.ChannelSHA256 != sha256.Sum256(exporter) ||
+		got.transport.ProofSHA256 != sha256.Sum256([]byte("PUBLIC_proof")) || !errors.Is(got.changedProof, ErrDenied) || !errors.Is(got.clonedProof, ErrDenied) {
+		t.Fatalf("original FiniteGET proof and channel binding: export=%v transport=%v changed=%v clone=%v", err, got.transportErr, got.changedProof, got.clonedProof)
+	}
 	for _, result := range []observed{got.original, got.fresh} {
 		if result.err != nil || !reflect.DeepEqual(result.identity, expected) {
 			t.Fatalf("request identity differs from the actual listener certificate/SPKI: %v", result.err)
@@ -124,6 +165,12 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	assertRefused("fabricated request", got.fabricated)
 	waitOriginalRequestIdentityTest(t, ctx, got.request.Context().Done())
 	assertRefused("original request after handler exit", observe(owner, got.request))
+	if err := owner.CurrentOriginalRequest(got.request); err == nil {
+		t.Fatal("finished request remained current on keep-alive connection")
+	}
+	if closed, err := owner.OriginalRequestClosed(got.request); closed || err != nil {
+		t.Fatalf("HTTP handler exit replaced physical close: closed=%t err=%v", closed, err)
+	}
 
 	writeRequest("/PUBLIC-close-race")
 	r := waitOriginalRequestIdentityTest(t, ctx, secondRequest)
@@ -137,7 +184,7 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		if callCtx != r.Context() {
 			return callCtx.Err()
 		}
-		if issuerCalls.Add(1) == 1 {
+		if issuerCalls.Add(1) == 3 {
 			close(issuerEntered)
 		}
 		<-resumeIssuer
@@ -149,27 +196,57 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 		conn.mu.Unlock()
 		t.Fatal("original connection is already closed or lacks its cancel callback")
 	}
-	conn.cancel = func(cause error) {
-		close(closeEntered)
-		<-resumeClose
-		originalCancel(cause)
+	var nativeConn *native.Conn
+	if closeFromNative {
+		nativeConn = conn.tls
+	} else {
+		conn.cancel = func(cause error) {
+			close(closeEntered)
+			<-resumeClose
+			originalCancel(cause)
+		}
 	}
 	conn.mu.Unlock()
 	start()
 	waitOriginalRequestIdentityTest(t, ctx, issuerEntered)
 	connectionClosed := make(chan error, 1)
-	go func() { connectionClosed <- conn.Close() }()
-	waitOriginalRequestIdentityTest(t, ctx, closeEntered)
-	// Close has selected the actual original wrapper. Hold its original cancel
-	// callback so context cancellation cannot explain the identity rejection.
+	if closeFromNative {
+		if nativeConn == nil {
+			t.Fatal("live request lacks the original OpenSSL connection")
+		}
+		rawBarrier.armed.Store(true)
+		go func() { connectionClosed <- nativeConn.Close() }()
+		waitOriginalRequestIdentityTest(t, ctx, rawBarrier.entered)
+		conn.mu.Lock()
+		wrapperClosed := conn.closed
+		conn.mu.Unlock()
+		if wrapperClosed {
+			t.Fatal("HTTP wrapper masked native close selection")
+		}
+	} else {
+		go func() { connectionClosed <- conn.Close() }()
+		waitOriginalRequestIdentityTest(t, ctx, closeEntered)
+	}
 	if r.Context().Err() != nil || owner.Lifetime().Retired {
 		t.Fatal("connection-close window was masked by context cancellation or listener retirement")
 	}
+	for _, original := range []*http.Request{got.request, r} {
+		if closed, err := owner.OriginalRequestClosed(original); closed || err != nil {
+			t.Fatalf("close selection replaced physical completion: closed=%t err=%v", closed, err)
+		}
+	}
 	allowIssuer()
 	assertRefused("original connection closed during issuer current", waitOriginalRequestIdentityTest(t, ctx, late))
-	if issuerCalls.Load() != 1 || r.Context().Err() != nil {
-		t.Fatalf("expected one issuer observation with live request context: calls=%d context=%v", issuerCalls.Load(), r.Context().Err())
+	if err := waitOriginalRequestIdentityTest(t, ctx, lateCurrent); !errors.Is(err, net.ErrClosed) {
+		t.Fatalf("Current accepted the original connection after close selection: %v", err)
 	}
+	if seen := waitOriginalRequestIdentityTest(t, ctx, lateTransport); !errors.Is(seen.err, net.ErrClosed) || seen.evidence != (OriginalFiniteGETRequestTransport{}) {
+		t.Fatalf("transport evidence escaped after close selection: %v", seen.err)
+	}
+	if issuerCalls.Load() != 3 || r.Context().Err() != nil {
+		t.Fatalf("expected all issuer observations with live request context: calls=%d context=%v", issuerCalls.Load(), r.Context().Err())
+	}
+	rawBarrier.unblock()
 	allowClose()
 	if err = waitOriginalRequestIdentityTest(t, ctx, connectionClosed); err != nil {
 		t.Fatal(err)
@@ -180,6 +257,17 @@ func TestOriginalServerTLSOriginalRequestIdentity(t *testing.T) {
 	}
 	if err = owner.Join(ctx); err != nil || borrow.releases.Load() != 0 {
 		t.Fatalf("request/connection drain: %v %+v", err, owner.Lifetime())
+	}
+	for _, original := range []*http.Request{got.request, r} {
+		if closed, err := owner.OriginalRequestClosed(original); !closed || err != nil {
+			t.Fatalf("same request lost its physical close witness: closed=%t err=%v", closed, err)
+		}
+		if closed, err := owner.OriginalRequestClosed(original.Clone(original.Context())); closed || !errors.Is(err, ErrDenied) {
+			t.Fatalf("cloned request gained a physical close witness: closed=%t err=%v", closed, err)
+		}
+		if closed, err := foreign.OriginalRequestClosed(original); closed || !errors.Is(err, ErrDenied) {
+			t.Fatalf("foreign listener gained a physical close witness: closed=%t err=%v", closed, err)
+		}
 	}
 	if err = owner.Close(); err != nil || !owner.Lifetime().PhysicalComplete || borrow.releases.Load() != 1 {
 		t.Fatalf("physical close: %v %+v", err, owner.Lifetime())

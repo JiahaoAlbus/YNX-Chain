@@ -3,6 +3,7 @@ package securelink
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"net"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -289,7 +291,46 @@ type originalServerTLSRequest struct {
 	ctx                       context.Context
 	conn                      *originalServerTLSConn
 	method, host, target, url string
+	finiteGETProof            [sha256.Size]byte
 	active                    bool // guarded by state.mu
+}
+
+// OriginalFiniteGETRequestTransport is evidence from one live request on the
+// native listener. ConnectionID is meaningful only inside this Go process.
+// The digests bind the TLS channel and original carrier bytes. Auth must still
+// hold this exact request and independently check the nonce and the Unix peer.
+type OriginalFiniteGETRequestTransport struct {
+	ConnectionID               native.ConnectionID
+	ChannelSHA256, ProofSHA256 [sha256.Size]byte
+}
+
+// OriginalFiniteGETRequestTransport reads the original V4 proof and channel
+// binding for the protected Auth adapter. It accepts the actual HTTP request
+// and never takes a body, nonce, peer process identity, or header from that adapter.
+func (o *OriginalServerTLS) OriginalFiniteGETRequestTransport(r *http.Request) (OriginalFiniteGETRequestTransport, error) {
+	var transport OriginalFiniteGETRequestTransport
+	_, err := o.observeOriginalRequest(r, false, &transport)
+	return transport, err
+}
+
+func originalFiniteGETProofDigest(r *http.Request) (digest [sha256.Size]byte) {
+	if !localCallerV4EmptyGET(r) || r.Body != nil && r.Body != http.NoBody {
+		return digest
+	}
+	var proof string
+	for name, values := range r.Header {
+		if !strings.HasPrefix(strings.ToLower(name), "x-ynx-product-session-proof") {
+			continue
+		}
+		if !strings.EqualFold(name, ProductSessionProofV4Header) || proof != "" || len(values) != 1 || validateProductSessionProofV4Carrier(values[0]) != nil {
+			return digest
+		}
+		proof = values[0]
+	}
+	if proof != "" {
+		return sha256.Sum256([]byte(proof))
+	}
+	return digest
 }
 
 // CurrentOriginalRequest accepts only the exact request minted on this SAME
@@ -297,11 +338,8 @@ type originalServerTLSRequest struct {
 // requests cannot create it. This transports identity; Auth still owns every
 // independent receiver row, Source, DEVICE/session proof and business check.
 func (o *OriginalServerTLS) CurrentOriginalRequest(r *http.Request) error {
-	b, err := o.originalRequestBinding(r)
-	if err != nil {
-		return err
-	}
-	return o.currentOriginalRequest(b)
+	_, err := o.observeOriginalRequest(r, false, nil)
+	return err
 }
 
 // OriginalRequestIdentity reads the held listener identity while its exact
@@ -310,44 +348,101 @@ func (o *OriginalServerTLS) CurrentOriginalRequest(r *http.Request) error {
 // Call outside Source and Store locks. A successful observation is valid at
 // the readback instant and cannot extend the original request's lifetime.
 func (o *OriginalServerTLS) OriginalRequestIdentity(r *http.Request) (ServerTLSIdentity, error) {
+	return o.observeOriginalRequest(r, true, nil)
+}
+
+// OriginalRequestClosed is a physical transport witness for the exact
+// request. A false result with nil error means draining is pending. An error
+// means the request was rejected or that physical close could not be confirmed.
+// Call from the owner that can wait independently of the HTTP handler.
+func (o *OriginalServerTLS) OriginalRequestClosed(r *http.Request) (bool, error) {
+	b, err := o.originalRequestOwner(r)
+	if err != nil {
+		return false, err
+	}
+	s := b.state
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	b.conn.mu.Lock()
+	defer b.conn.mu.Unlock()
+	if b.active || !b.conn.closeCompleted || !b.conn.httpExited || b.conn.calls != 0 {
+		return false, nil
+	}
+	return b.conn.closeErr == nil, b.conn.closeErr
+}
+
+func (o *OriginalServerTLS) observeOriginalRequest(r *http.Request, identity bool, transport *OriginalFiniteGETRequestTransport) (ServerTLSIdentity, error) {
 	b, err := o.originalRequestBinding(r)
 	if err != nil {
 		return ServerTLSIdentity{}, err
 	}
+	var evidence OriginalFiniteGETRequestTransport
+	if transport != nil && (b.finiteGETProof == ([sha256.Size]byte{}) || b.finiteGETProof != originalFiniteGETProofDigest(r)) {
+		return ServerTLSIdentity{}, ErrDenied
+	}
 	s := b.state
 	s.mu.Lock()
-	if err = b.identityCurrentLocked(); err != nil {
+	if err = b.currentLocked(); err != nil {
 		s.mu.Unlock()
 		return ServerTLSIdentity{}, err
+	}
+	if !b.conn.begin() {
+		s.mu.Unlock()
+		return ServerTLSIdentity{}, net.ErrClosed
 	}
 	s.calls++
 	s.mu.Unlock()
 	defer func() {
+		b.conn.end()
 		s.mu.Lock()
 		s.calls--
 		s.notifyLocked()
 		s.mu.Unlock()
 	}()
-	if err = o.currentOriginalRequest(b); err != nil {
+	conn, err := o.currentOriginalRequest(b)
+	if err != nil {
 		return ServerTLSIdentity{}, err
+	}
+	if transport != nil {
+		exporter, err := conn.ExportKeyingMaterial("EXPORTER-Channel-Binding", nil, 32)
+		if err != nil {
+			return ServerTLSIdentity{}, err
+		}
+		evidence = OriginalFiniteGETRequestTransport{ConnectionID: conn.ID(), ChannelSHA256: sha256.Sum256(exporter), ProofSHA256: b.finiteGETProof}
+		clear(exporter)
+		if evidence.ConnectionID == (native.ConnectionID{}) {
+			return ServerTLSIdentity{}, ErrDenied
+		}
+		if b.finiteGETProof != originalFiniteGETProofDigest(r) {
+			return ServerTLSIdentity{}, ErrDenied
+		}
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err = b.identityCurrentLocked(); err != nil {
+	if err = b.currentLocked(); err != nil {
 		return ServerTLSIdentity{}, err
 	}
 	b.conn.mu.Lock()
 	defer b.conn.mu.Unlock()
-	if b.conn.closed {
+	if b.conn.closeSelectedLocked() {
 		return ServerTLSIdentity{}, net.ErrClosed
 	}
 	if err := b.ctx.Err(); err != nil {
 		return ServerTLSIdentity{}, err
 	}
+	if !b.matchesRoute(r) {
+		return ServerTLSIdentity{}, ErrDenied
+	}
+	if transport != nil {
+		*transport = evidence
+	}
+	if !identity {
+		return ServerTLSIdentity{}, nil
+	}
 	return s.identityLocked(), nil
 }
 
-func (b *originalServerTLSRequest) identityCurrentLocked() error {
+func (b *originalServerTLSRequest) currentLocked() error {
 	s := b.state
 	if s.first != nil {
 		return s.first
@@ -360,29 +455,44 @@ func (b *originalServerTLSRequest) identityCurrentLocked() error {
 }
 
 func (o *OriginalServerTLS) originalRequestBinding(r *http.Request) (*originalServerTLSRequest, error) {
-	if o == nil || o.state == nil || r == nil || r.URL == nil {
-		return nil, ErrDenied
+	b, err := o.originalRequestOwner(r)
+	if err != nil {
+		return nil, err
 	}
-	b, ok := r.Context().Value(originalServerTLSRequestKey{}).(*originalServerTLSRequest)
-	if !ok || b == nil || b.state != o.state || b.request != r || r.Context() != b.ctx || r.Method != b.method || r.Host != b.host || r.RequestURI != b.target || r.URL.String() != b.url {
+	if !b.matchesRoute(r) {
 		return nil, ErrDenied
 	}
 	return b, nil
 }
 
-func (o *OriginalServerTLS) currentOriginalRequest(b *originalServerTLSRequest) error {
+func (b *originalServerTLSRequest) matchesRoute(r *http.Request) bool {
+	return r.URL != nil && r.Method == b.method && r.Host == b.host && r.RequestURI == b.target && r.URL.String() == b.url
+}
+
+func (o *OriginalServerTLS) originalRequestOwner(r *http.Request) (*originalServerTLSRequest, error) {
+	if o == nil || o.state == nil || r == nil {
+		return nil, ErrDenied
+	}
+	b, ok := r.Context().Value(originalServerTLSRequestKey{}).(*originalServerTLSRequest)
+	if !ok || b == nil || b.state != o.state || b.request != r || r.Context() != b.ctx {
+		return nil, ErrDenied
+	}
+	return b, nil
+}
+
+func (o *OriginalServerTLS) currentOriginalRequest(b *originalServerTLSRequest) (*native.Conn, error) {
 	if e := o.Current(b.ctx); e != nil {
-		return e
+		return nil, e
 	}
 	c, e := b.conn.secure()
 	if e != nil {
-		return e
+		return nil, e
 	}
 	a := c.Snapshot()
 	if !a.Verified || !a.Mutual || a.Resumed || !a.AllChainMLDSA87 || a.Protocol != "TLSv1.3" || a.Group != Group || a.Cipher != Cipher || a.PeerSignature != "mldsa87" || a.LocalEKU != "serverAuth" || a.PeerEKU != "clientAuth" || a.LocalSAN != o.state.profile.serverName || a.PeerSAN != o.state.profile.peerSAN || !time.Now().Before(a.NotAfter) {
-		return ErrDenied
+		return nil, ErrDenied
 	}
-	return b.ctx.Err()
+	return c, b.ctx.Err()
 }
 
 // Serve installs native OpenSSL on the ORIGINAL product http.Server, preserving
@@ -457,6 +567,7 @@ func (o *OriginalServerTLS) Serve(server *http.Server) error {
 			s.notifyLocked()
 			s.mu.Unlock()
 		}()
+		b.finiteGETProof = originalFiniteGETProofDigest(r)
 		r = r.WithContext(context.WithValue(r.Context(), originalServerTLSRequestKey{}, b))
 		b.ctx = r.Context()
 		b.request = r
@@ -524,13 +635,16 @@ func (l *originalServerTLSListener) Accept() (net.Conn, error) {
 // owner must never let a later ErrClosed erase an ambiguous first close.
 type originalServerTLSRawConn struct {
 	net.Conn
-	state *originalServerTLSState
-	once  sync.Once
-	err   error
+	state   *originalServerTLSState
+	once    sync.Once
+	closing atomic.Bool
+	err     error
 }
 
 func (c *originalServerTLSRawConn) Close() error {
 	c.once.Do(func() {
+		// Native TLS can close the actual socket before the HTTP wrapper does.
+		c.closing.Store(true)
 		c.err = c.Conn.Close()
 		if c.err != nil && !errors.Is(c.err, net.ErrClosed) {
 			s := c.state
@@ -612,11 +726,14 @@ func (c *originalServerTLSConn) secure() (*native.Conn, error) {
 func (c *originalServerTLSConn) begin() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.closed {
+	if c.closeSelectedLocked() {
 		return false
 	}
 	c.calls++
 	return true
+}
+func (c *originalServerTLSConn) closeSelectedLocked() bool {
+	return c.closed || c.raw.closing.Load()
 }
 func (c *originalServerTLSConn) end() { c.mu.Lock(); c.calls--; c.mu.Unlock(); c.forgetIfDone() }
 func (c *originalServerTLSConn) httpDone() {
