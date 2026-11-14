@@ -50,6 +50,14 @@ func TestRefundUnknownColdStoreCannotBeReleasedOrResent(t *testing.T) {
 	if err != nil || outcome.Status != "unknown" || outcome.RefundTransactionHash != auth.TransactionHash || outcome.Amount != 30 || p.createCalls != 1 {
 		t.Fatal("unknown original refund identity lost", err)
 	}
+	var totals PaymentFinancials
+	if err = s.store.View(func(data Snapshot) error {
+		var e error
+		totals, e = paymentFinancials(data, data.Invoices[invoice.ID])
+		return e
+	}); err != nil || totals.RefundStatus != "unknown" || totals.RefundedPrincipal != 0 || totals.NetPrincipal != 100 {
+		t.Fatal("cold original refund uncertainty was hidden or counted as returned money", err, totals)
+	}
 	if _, err = s.CreateRefundRequest(session, invoice.ID, 80, "cannot overrefund unknown original", "refund-eighty-after-unknown"); err == nil {
 		t.Fatal("unknown refund released remaining principal")
 	}

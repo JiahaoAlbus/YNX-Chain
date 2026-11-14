@@ -19,8 +19,16 @@ func paymentFinancials(data Snapshot, invoice Invoice) (PaymentFinancials, error
 		return out, nil
 	}
 	out.PaidPrincipal = invoice.Settlement.Amount
+	unconfirmed := false
 	for _, refund := range data.Refunds {
-		if refund.InvoiceID != invoice.ID || refund.Status != "refunded" || refund.Evidence == nil {
+		if refund.InvoiceID != invoice.ID {
+			continue
+		}
+		if refund.Status == "unknown" || refund.Status == "submitted" || (refund.Status == "refunded" && refund.Evidence == nil) {
+			unconfirmed = true
+			continue
+		}
+		if refund.Status != "refunded" {
 			continue
 		}
 		if refund.Amount <= 0 || refund.Amount > out.PaidPrincipal-out.RefundedPrincipal {
@@ -34,6 +42,9 @@ func paymentFinancials(data Snapshot, invoice Invoice) (PaymentFinancials, error
 	}
 	if out.PaidPrincipal > 0 && out.RefundedPrincipal == out.PaidPrincipal {
 		out.RefundStatus = "refunded"
+	}
+	if unconfirmed {
+		out.RefundStatus = "unknown"
 	}
 	return out, nil
 }
