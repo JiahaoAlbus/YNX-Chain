@@ -1162,8 +1162,8 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
   copyUI(output,"Checking recipient, balance and network fee…");
   try {
-    const amountIssue=nativeAmountDraftIssue(amount,document.documentElement?.lang?.startsWith('zh'));
-    if(amountIssue){if(current())output.textContent=amountIssue;return;}
+    const amountIssue=nativeAmountDraftIssue(amount);
+    if(amountIssue){if(current())copyUI(output,amountIssue);return;}
     let recipient = to;
     if (!current()) return;
     if (to.startsWith("ynx:")) {

@@ -1,3 +1,5 @@
+import {initWalletLocale,setWalletCopy,WALLET_LOCALES,WALLET_COPY} from '../src/wallet-locale.mjs';
+import {NATIVE_AMOUNT_DRAFT_KEY} from '../src/wallet-locale-transfer-errors.mjs';
 import {nativeAmountDraftIssue} from '../src/native-amount-draft-ui.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -112,3 +114,12 @@ test('default Send refuses a legacy preparation response instead of opening clas
 });
 test('native amount draft rejects decimal/exponent/leading-zero inputs before parsing or original Main preparation',async()=>{for(const amount of ['1.2','1.25','1e3','01','0','-1','123456789012345678901']){const f=harness();f.get('#transfer-amount').value=amount;f.get('#transfer-to').value='ynx:PUBLIC';await f.get('#transfer-form').listeners.submit({preventDefault(){}});assert.equal(f.prepareInputs.length,0);assert.equal(f.parses.length,0);assert.equal(f.actions.length,0);assert.match(f.get('#transfer-result').textContent,/positive whole YNXT/);assert.equal(f.get('#transfer-amount').value,amount);}});
 test('native amount helper preserves accepted whole string precision; original SDK remains the range authority',()=>{for(const value of ['1','9007199254740993','18446744073709551615'])assert.equal(nativeAmountDraftIssue(value),null);assert.match(nativeAmountDraftIssue('0.00',true),/不会转换或舍入/);const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');assert.match(html,/<input id="transfer-amount" inputmode="numeric" placeholder="1"/);assert(html.includes('native-amount-hint'));assert(!/<input id="transfer-amount"[^>]*0\.00/.test(html));});
+
+test('actual invalid Send amount stays unchanged while its warning follows all twelve languages',async()=>{
+ const f=harness(),doc=f.context.document;doc.documentElement={};doc.querySelectorAll=()=>[];
+ const output=f.get('#transfer-result');output.ownerDocument=doc;output.isConnected=true;
+ const locale=initWalletLocale({document:doc}),draft=f.get('#transfer-amount');f.context.setWalletCopy=setWalletCopy;
+ draft.value='1.25';f.get('#transfer-to').value='ynx:PUBLIC';await f.submit();
+ assert.equal(output.textContent,WALLET_COPY.en[NATIVE_AMOUNT_DRAFT_KEY]);
+ for(const language of WALLET_LOCALES){locale.select(language);assert.equal(output.textContent,WALLET_COPY[language][NATIVE_AMOUNT_DRAFT_KEY]);assert.equal(draft.value,'1.25');assert.equal(f.parses.length,0);assert.equal(f.prepareInputs.length,0);assert.equal(f.actions.length,0);if(language!=='en')assert.notEqual(output.textContent,NATIVE_AMOUNT_DRAFT_KEY);}
+});

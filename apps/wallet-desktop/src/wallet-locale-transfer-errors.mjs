@@ -4,6 +4,21 @@ export const TRANSFER_ERROR_KEYS=Object.freeze([
   'Insufficient YNXT to cover the amount and network fee',
   'Insufficient YNXT to cover this transaction and its maximum network fee'
 ]);
+export const NATIVE_AMOUNT_DRAFT_KEY="This native transfer accepts positive whole YNXT only (for example 1), without decimals, exponents or leading zeroes. The amount is never converted or rounded.";
+export const NATIVE_AMOUNT_DRAFT_COPY=Object.freeze({
+  "en": "This native transfer accepts positive whole YNXT only (for example 1), without decimals, exponents or leading zeroes. The amount is never converted or rounded.",
+  "zh-Hans": "当前原生转账仅接受正整数 YNXT（例如 1），不接受小数、指数或前导零；不会转换或舍入金额。",
+  "zh-Hant": "目前原生轉帳僅接受正整數 YNXT（例如 1），不接受小數、指數或前導零；不會轉換或捨入金額。",
+  "ja": "現在のネイティブ送金は正の整数 YNXT（例：1）のみ受け付けます。小数、指数表記、先頭のゼロは使えず、金額の変換や丸めは行いません。",
+  "ko": "현재 네이티브 전송은 양의 정수 YNXT(예: 1)만 허용합니다. 소수, 지수 표기, 앞의 0은 사용할 수 없으며 금액을 변환하거나 반올림하지 않습니다.",
+  "es": "Esta transferencia nativa solo admite YNXT enteros positivos (por ejemplo, 1), sin decimales, exponentes ni ceros iniciales. El importe no se convierte ni redondea.",
+  "fr": "Ce transfert natif accepte uniquement un nombre entier positif de YNXT (par exemple 1), sans décimales, exposant ni zéro initial. Le montant n’est ni converti ni arrondi.",
+  "de": "Diese native Übertragung akzeptiert nur positive ganze YNXT (zum Beispiel 1), ohne Dezimalstellen, Exponenten oder führende Nullen. Der Betrag wird weder umgerechnet noch gerundet.",
+  "pt": "Esta transferência nativa aceita apenas YNXT inteiros positivos (por exemplo, 1), sem decimais, expoentes ou zeros à esquerda. O valor não é convertido nem arredondado.",
+  "ru": "Для этого нативного перевода допустимо только положительное целое число YNXT (например, 1), без дробной части, экспоненты и начальных нулей. Сумма не преобразуется и не округляется.",
+  "ar": "يقبل هذا التحويل الأصلي أعداد YNXT الصحيحة الموجبة فقط (مثل 1)، دون كسور أو صيغة أسية أو أصفار بادئة. لا يُحوَّل المبلغ ولا يُقرَّب.",
+  "id": "Transfer native ini hanya menerima YNXT bilangan bulat positif (misalnya 1), tanpa desimal, eksponen, atau nol di depan. Jumlah tidak dikonversi atau dibulatkan."
+});
 export const POLICY_UNAVAILABLE_KEY='Unable to verify the current account transaction policy. Check the network and try again.';
 export const POLICY_UNAVAILABLE_COPY=Object.freeze({
  en:POLICY_UNAVAILABLE_KEY,
