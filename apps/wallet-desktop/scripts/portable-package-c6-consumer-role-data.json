@@ -1,7 +1,7 @@
 {
   "kind": "YNX_PORTABLE_C6_MAIN_APPROVAL/v1",
-  "sourceCommit": "30922581b863027fa2691b84102e7af82fa4548f",
-  "sourceTree": "8bbe0c256543031efc5ddc2ea0236d3b08813e3b",
+  "sourceCommit": "8d9c047775a4092a694c6694b539e6e585e65a91",
+  "sourceTree": "501e159ba1950ba13d6a0717774c1f0b3ce4f20f",
   "mainFiles24": [
     "apps/wallet-desktop/scripts/after-pack.mjs",
     "apps/wallet-desktop/scripts/build-mac.mjs",
@@ -36,8 +36,8 @@
     },
     {
       "relative": ".github/workflows/wallet-main-ui-pay.yml",
-      "bytes": 4554,
-      "sha256": "2fde57631c0e7a3ba80378f3e42271036a82cf931b44c06ebf692e6e8fc0e660"
+      "bytes": 4677,
+      "sha256": "8daec4bfe5e9761b61dfe28c21d6e2967c00e8f68a3e9e85b0916ec7dbd2a8c0"
     },
     {
       "relative": ".github/workflows/wallet-native49-c6-consumer.yml",
@@ -411,13 +411,13 @@
     },
     {
       "relative": "apps/wallet-desktop/src/features/cross-chain/cctp-ui-wait.test.mjs",
-      "bytes": 27492,
-      "sha256": "bd9f90385343359c0e675fe6ad664ba40e8727183e671e53c5e44d352858d8a2"
+      "bytes": 30121,
+      "sha256": "145d64f75b755292636c3eefdeab6455c381b1e8b0ba52928fa4ed9db284804a"
     },
     {
       "relative": "apps/wallet-desktop/src/features/cross-chain/cctp-ui.mjs",
-      "bytes": 20950,
-      "sha256": "a9fd8683f7076b939082ca10a562a056e68577800b9604801f59848160d0d05f"
+      "bytes": 23293,
+      "sha256": "e1362bb14c2135ad96cfdfe86aac36cb6a8c4774e6c26abecb39f2294fa10836"
     },
     {
       "relative": "apps/wallet-desktop/src/features/pq-transaction/node-transport.mjs",
@@ -556,8 +556,8 @@
     },
     {
       "relative": "apps/wallet-desktop/src/renderer.js",
-      "bytes": 122778,
-      "sha256": "8554c6b985091aea9e13bdb7f1822b682acfddd5dc8801dd473a1e8aec889dbf"
+      "bytes": 122919,
+      "sha256": "64baefc4b9e06a62948d89121ec2fb8a191f5d88576c6ea2710fa7a996b2e245"
     },
     {
       "relative": "apps/wallet-desktop/src/styles.css",
@@ -693,6 +693,11 @@
       "relative": "apps/wallet-desktop/test/auth28-after-pack-helper.test.mjs",
       "bytes": 6536,
       "sha256": "eb011e119b66f51256399a10225b787d3bd944f2b7d387b5d7a8adb37008ab15"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/cross-chain-dialog-reopen.test.mjs",
+      "bytes": 9808,
+      "sha256": "5386194952f6465eee2b0c3b680b96ea2cb8dd6c711f5b8ad01d2b0ebd3e9a01"
     },
     {
       "relative": "apps/wallet-desktop/test/desktop-agent-delegation-controller.test.mjs",
@@ -833,6 +838,11 @@
       "relative": "apps/wallet-desktop/test/original-policy-raw-bytes.test.mjs",
       "bytes": 2362,
       "sha256": "e53908818603a06758986002148c03794da7f1fc5bf3f1cfbd619d115f3ebd59"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/pq-private-review-integration.test.mjs",
+      "bytes": 10465,
+      "sha256": "cb10a79e3d88e1c38426e203a0494e954b06e1705f7ff8ff1e22f679bbe67d45"
     },
     {
       "relative": "apps/wallet-desktop/test/product-native-context.test.mjs",
