@@ -25,7 +25,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  },[session?.taskRuntime,session?.taskCredentials]);
  const task=state?.projection,busy=state?.busy||false;
  const perform=(work:()=>Promise<unknown>)=>{setLocalError("");void work().catch(error=>setLocalError(error instanceof Error?error.message:"TASK_REQUEST_FAILED"))};
- const refresh=()=>{if(controller&&task)perform(()=>controller.select(task.id));else if(controller)perform(()=>controller.restoreOriginalTask())};
+ const refresh=()=>{if(controller&&task)perform(()=>controller.refreshOriginalTask(task.id));else if(controller)perform(()=>controller.restoreOriginalTask())};
  const snapshot=(value:Task)=>({id:value.id,holder:value.holder,revision:value.revision,generation:value.generation});
  const confirm=(title:string,value:Task,work:(expected:Task)=>Promise<unknown>,extra="")=>{
   const expected={...value};const summary=snapshot(expected);

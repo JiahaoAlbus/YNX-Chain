@@ -127,6 +127,16 @@ export class TaskWorkspaceController{
   const step=this.state.projection.steps.find(item=>item.id===this.state.record.selectedResultStep);
   if(step?.status==="COMPLETED"&&!needsOriginalTaskQuery(step))await this.readResult(step);
  }
+ async refreshOriginalTask(id:string){
+  if(this.disposed||this.state.busy)return;
+  await this.select(id);
+  if(this.disposed||this.state.error||this.state.projection?.id!==id||!this.state.record.runId)return;
+  const selectedStep=this.state.record.selectedResultStep;
+  await this.readRun(this.state.record.runId);
+  if(this.disposed||this.state.error||this.state.projection?.id!==id||!selectedStep||this.state.receipt?.effectRef===selectedStep)return;
+  const step=this.state.projection.steps.find(item=>item.id===selectedStep);
+  if(step?.status==="COMPLETED"&&!needsOriginalTaskQuery(step))await this.readResult(step);
+ }
  private async mutate(action:string,task:Task|null,step:string,runId:string,invoke:(signal:AbortSignal)=>Promise<unknown>,apply:(value:unknown)=>void,conversationId=""){
   await this.work(async signal=>{
    await this.hydrate();if(signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");

@@ -33,3 +33,12 @@ test('normal consumer refuses wrong-version or blocked model response before cle
 test('normal client readRun uses durable event pages and rechecks same completed run/receipt on reconnect',async()=>{const f=await setup(true);await f.c.restore();await f.c.discover();await f.c.select(f.data.task.id);await f.c.readRun(f.data.requestRunID);assert.equal(f.c.state.error,'');assert.equal(f.cursor!.taskId,f.data.task.id);assert.equal(f.cursor!.runId,f.data.requestRunID);assert.equal(f.cursor!.recordId,f.data.completedRun.id);const saved=f.cursor!.cursor;assert.equal(f.c.state.run!.content,f.data.completedRun.content);assert.equal(f.c.state.receipt!.effectRef,f.data.requestStepID);await f.c.readRun(f.data.requestRunID);assert.equal(f.c.state.error,'');assert.equal(f.cursor!.cursor,saved);assert.equal(f.c.state.run!.content,f.data.completedRun.content);assert.ok(f.calls.every(c=>['task.list','task.read','task.run-read','task.step-result'].includes(c)));assert.ok(f.writes.every(w=>!w.includes(f.data.completedRun.content)));await f.c.whenClosed()});
 
 test('normal cold startup restores original Go task/model/tool results through actual V6 consumer and durable cursor',async()=>{const f=await setup(true,true);await f.c.restoreOriginalTask();assert.equal(f.c.state.error,'');assert.equal(f.c.state.run!.content,f.data.completedRun.content);assert.equal(f.c.state.receipt!.effectRef,f.data.requestStepID);assert.equal(f.cursor!.runId,f.data.requestRunID);assert.equal(f.c.state.record.deliveries[0]!.state,'UNKNOWN');assert.deepEqual(f.calls,['task.list','task.read','task.read','task.run-read','task.step-result']);assert.ok(f.writes.every(w=>!w.includes(f.data.completedRun.content)));await f.c.whenClosed()});
+test('workspace refresh reloads the original run and selected receipt without new effects',async()=>{
+ const f=await setup(true,true);await f.c.restoreOriginalTask();
+ const step=f.c.state.projection!.steps.find(s=>s.id===f.data.requestStepID)!;await f.c.readResult(step);
+ await f.c.refreshOriginalTask(f.data.task.id);
+ assert.equal(f.c.state.error,'');assert.equal(f.c.state.run!.content,f.data.completedRun.content);assert.equal(f.c.state.receipt!.effectRef,f.data.requestStepID);
+ assert.equal(f.c.state.record.deliveries[0]!.state,'UNKNOWN');
+ assert.ok(f.calls.every(c=>['task.list','task.read','task.run-read','task.step-result'].includes(c)));
+ assert.ok(f.writes.every(w=>!w.includes(f.data.completedRun.content)));await f.c.whenClosed();
+});
