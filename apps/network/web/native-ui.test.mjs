@@ -123,6 +123,81 @@ test('native business UI binds review to original ID and never treats an adapter
  const swapped=setup(op=>op==='participation_get'?response({code:'OK',entry:entry(),walletApproval:false,capabilities:{...partCaps,submit:true}}):op==='participation_review'?response({code:'OK',review:review(entry('PREPARED',OTHER)),walletApproval:false,capabilities:{...partCaps,submit:true}}):undefined);await swapped.load();await select(swapped);await doReview(swapped);assert.equal(swapped.node('native-part-submit').disabled,true);
 });
 
+test('public participation identity checks the original action replies and allows only original read recovery',async t=>{
+ const binding={bytes:'1',sha3_512:'a'.repeat(128),sha512:'b'.repeat(128)};
+ const original={...entry(),binding,businessBinding:binding,slot:'public-fixture-slot',guard:'public-fixture-guard'};
+ const changed={...original,intent:{...original.intent,request:{...original.intent.request,owner:'0x'+'c'.repeat(40)}}};
+ const caps={...partCaps,submit:true};
+ const data=values=>response({code:'OK',walletApproval:false,authority:false,capabilities:caps,...values});
+ for(const operation of ['review','cancel','reconcile','submit'])await t.test(operation,async()=>{
+  let reads=0;
+  const s=setup((op,payload)=>{
+   if(op==='participation_get'){
+    assert.equal(payload.id,ID);
+    return data({entry:++reads===2?changed:original});
+   }
+   if(op==='participation_review')return operation==='review'
+    ?data({entry:changed,review:review(changed)})
+    :data({review:review(original)});
+   if(op==='participation_'+operation)return data({entry:{...changed,state:'RPC_REPORTED_COMMITTED'}});
+  });
+  await s.load();await select(s);
+  if(operation==='submit')await doReview(s);
+  await s.emit('native-part-'+operation,'click');await settle();
+  assert.match(s.node('native-part-operation').textContent,operation==='submit'?/UNKNOWN/:/NATIVE_RESPONSE_INVALID/);
+  assert.equal(s.node('native-part-original-owner').textContent,original.intent.request.owner);
+  assert.equal(s.node('native-part-get').disabled,false);
+  for(const id of ['prepare','review','cancel','reconcile','submit','revoke','resolve','list','next'])assert.equal(s.node('native-part-'+id).disabled,true,id);
+  const before=s.calls.length;
+  s.node('native-part-id').value=OTHER;
+  await s.emit('native-part-get-form','submit');await s.emit('native-part-resolve','click');await s.emit('native-part-list','click');await settle();
+  assert.equal(s.calls.length,before,'mismatch must not open a different read or action');
+  await select(s);
+  assert.equal(reads,2);
+  assert.equal(s.node('native-part-original-owner').textContent,original.intent.request.owner);
+  assert.equal(s.node('native-part-submit').disabled,true);
+  await select(s);
+  assert.equal(reads,3);
+  assert.equal(s.node('native-part-original-owner').textContent,original.intent.request.owner);
+  assert.equal(s.node('native-part-review').disabled,false);
+  assert.equal(s.node('native-part-submit').disabled,true);
+  if(operation==='submit'){
+   assert.match(s.node('native-part-entry-state').textContent,/UNKNOWN/);
+   await doReview(s);
+   await s.emit('native-part-submit','click');await settle();
+   assert.equal(s.calls.filter(call=>call.operation==='participation_submit').length,1);
+  }else assert.equal(s.calls.some(call=>call.operation==='participation_submit'),false);
+ });
+});
+
+test('public participation identity keeps effects closed when the original read capability was lost',async()=>{
+ const original=entry(),changed={...original,intent:{...original.intent,generation:'2'}};
+ const observed={...partCaps,submit:true};
+ let reads=0;
+ const s=setup(op=>{
+  if(op==='participation_get')return response({code:'OK',entry:original,walletApproval:false,authority:false,capabilities:++reads===1?observed:{...observed,read:false}});
+  if(op==='participation_review')return response({code:'OK',review:review(changed),walletApproval:false,authority:false,capabilities:observed});
+ });
+ await s.load();await select(s);await doReview(s);await select(s);
+ assert.equal(reads,2);
+ assert.match(s.node('native-part-operation').textContent,/UNAVAILABLE/);
+ for(const id of ['prepare','review','cancel','reconcile','submit','revoke','resolve','get'])assert.equal(s.node('native-part-'+id).disabled,true,id);
+ await s.emit('native-part-submit','click');await settle();
+ assert.equal(s.calls.some(call=>call.operation==='participation_submit'),false);
+});
+
+test('public participation identity accepts reordered JSON and rejects a replaced binding',async t=>{
+ const binding={bytes:'1',sha3_512:'a'.repeat(128),sha512:'b'.repeat(128)};
+ const original={...entry(),binding};
+ for(const replaced of [false,true])await t.test(replaced?'replaced binding':'reordered JSON',async()=>{
+  const observed={...original,intent:{generation:'1',request:{action:'delegate',owner:original.intent.request.owner,requestId:original.intent.request.requestId}},binding:{sha512:replaced?'c'.repeat(128):binding.sha512,sha3_512:binding.sha3_512,bytes:'1'}};
+  const s=setup(op=>op==='participation_get'?response({code:'OK',entry:original,walletApproval:false,capabilities:{...partCaps,submit:true}}):op==='participation_review'?response({code:'OK',review:review(observed),walletApproval:false,capabilities:{...partCaps,submit:true}}):undefined);
+  await s.load();await select(s);await doReview(s);
+  assert.equal(s.node('native-part-submit').disabled,replaced);
+  assert.match(s.node('native-part-operation').textContent,replaced?/NATIVE_RESPONSE_INVALID/:/OK/);
+ });
+});
+
 test('native business UI UNKNOWN submit is never resent even after another current review',async()=>{
  const s=setup(op=>op==='participation_get'?response({code:'OK',entry:entry(),walletApproval:false,capabilities:{...partCaps,submit:true}}):op==='participation_review'?response({code:'OK',review:review(),walletApproval:false,capabilities:{...partCaps,submit:true}}):op==='participation_submit'?Promise.reject(Object.assign(new Error('transport timed out after post'),{code:'NATIVE_TIMEOUT',outcome:'UNKNOWN'})):op==='participation_reconcile'?response({code:'UNKNOWN',entry:entry('UNKNOWN'),walletApproval:false,capabilities:{...partCaps}}):undefined);await s.load();await select(s);await doReview(s);assert.equal(s.node('native-part-submit').disabled,false);s.emit('native-part-submit','click');await settle();assert.match(s.node('native-part-operation').textContent,/UNKNOWN/);await s.load();await select(s);await doReview(s);assert.equal(s.node('native-part-submit').disabled,true);s.emit('native-part-submit','click');await settle();assert.equal(s.calls.filter(c=>c.operation==='participation_submit').length,1);s.emit('native-part-reconcile','click');await settle();assert.deepEqual(JSON.parse(JSON.stringify(s.calls.find(c=>c.operation==='participation_reconcile').payload)),{id:ID});
 });

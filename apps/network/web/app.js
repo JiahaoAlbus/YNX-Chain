@@ -375,7 +375,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 (() => {
   let generation=0, busy=null, node=null, nodeCaps={}, nodeIntent=null, partCaps={}, resourceCaps={}, resource=null, review=null, entry=null, cursor='', formVersion=0;
   const entries=new Map(), attempted=new Set(), uncertain=new Set(), unresolved=new Map(), knownRequests=new Set();
-  let preparingRequest=null, recoveredDifference=false, partCode=null;
+  let preparingRequest=null, recoveredDifference=false, partCode=null, partRecovery=null;
   const nodeKeys=['install','start','stop','restart','visibleConsent','read','logs'];
   const partKeys=['prepare','read','review','cancel','reconcile','submit','revoke','list'];
   const resourceKeys=['read','meter','stop','review','cancelReview','productionDispatch'];
@@ -419,14 +419,30 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   async function run(channel,task,effect=false){
     if(!ready()){state('native-'+channel+'-operation','NATIVE_REQUIRED');render();return;}
     if(busy){state('native-'+channel+'-operation','NATIVE_BUSY');return;}
-    const op={generation,channel,effect};busy=op;text('native-'+channel+'-operation',effect?(channel==='node'?'等待原生确认；网页不能批准。':channel==='part'?'交由 Wallet 审阅':'正在释放本机资源'):'正在读取');render();
-    try{await task(()=>generation===op.generation&&busy===op&&ready());}
-    catch(error){if(op.generation===generation){if(channel==='node'){nodeCaps={};nodeIntent=null;}if(channel==='part'){partCaps={};review=null;}if(channel==='resource')resourceCaps={};const code=error?.outcome==='UNKNOWN'||effect&&error?.outcome!=='NOT_SENT'?'UNKNOWN':error?.code||'NATIVE_UNAVAILABLE';if(channel==='part'&&effect&&code==='UNKNOWN'&&entry)uncertain.add(entry.id);state('native-'+channel+'-operation',code);if(effect&&code==='UNKNOWN'){nodeIntent=null;if(channel==='node')nodeCaps={};if(channel==='resource')resourceCaps={};review=null;}}}
+    const op={generation,channel,effect,partRead:channel==='part'&&partCaps.read===true};busy=op;text('native-'+channel+'-operation',effect?(channel==='node'?'等待原生确认；网页不能批准。':channel==='part'?'交由 Wallet 审阅':'正在释放本机资源'):'正在读取');render();
+    try{await task(()=>generation===op.generation&&busy===op&&ready(),op);}
+    catch(error){if(op.generation===generation){if(channel==='node'){nodeCaps={};nodeIntent=null;}if(channel==='part'){partCaps=error?.keepOriginalRead===true&&op.partRead?{read:true}:{};review=null;}if(channel==='resource')resourceCaps={};const code=error?.outcome==='UNKNOWN'||effect&&error?.outcome!=='NOT_SENT'?'UNKNOWN':error?.code||'NATIVE_UNAVAILABLE';const original=op.originalEntry||entry;if(channel==='part'&&effect&&code==='UNKNOWN'&&original)uncertain.add(original.id);state('native-'+channel+'-operation',code);if(effect&&code==='UNKNOWN'){nodeIntent=null;if(channel==='node')nodeCaps={};if(channel==='resource')resourceCaps={};review=null;}}}
     finally{if(busy===op)busy=null;render();}
   }
   function nodeStatus(value){authority(value,'productionGrant');nodeCaps=caps(value.capabilities,nodeKeys);if(value.code!=='OK'||!object(value.node)){node=null;return value.code;}const n=value.node;if(n.nodeId!=='ordinary-node'||typeof n.productionSupported!=='boolean'||typeof n.processOwned!=='boolean'||!uint(n.generation)||!['production','isolated-lifecycle-fixture'].includes(n.mode)||!ref(n.stage)||typeof n.artifactSHA256!=='string')throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});node=n;return value.code;}
   function acceptEntry(value,select=true){if(!object(value)||!exactID(value.id)||!object(value.intent)||!object(value.intent.request)||!['delegate','unbond','withdraw','vote'].includes(value.intent.request.action)||!ref(value.state))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});entries.set(value.id,{id:value.id,requestId:value.intent.request.requestId,action:value.intent.request.action,state:value.state,createdAt:value.createdAt,updatedAt:value.updatedAt});if(select){entry=value;review=null;recoveredDifference=false;$('native-part-id').value=value.id;}return value;}
-  function participation(value){authority(value,'walletApproval');partCode=value.code;partCaps=caps(value.capabilities,partKeys);if(value.authority!==undefined&&value.authority!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});return value.code;}
+  // The JSON key order does not change a retained original intent.
+  function sameJSON(a,b){
+    if(a===b)return true;
+    if(Array.isArray(a)||Array.isArray(b))return Array.isArray(a)&&Array.isArray(b)&&a.length===b.length&&a.every((v,i)=>sameJSON(v,b[i]));
+    if(!object(a)||!object(b))return false;
+    const keys=Object.keys(a);
+    return keys.length===Object.keys(b).length&&keys.every(key=>Object.hasOwn(b,key)&&sameJSON(a[key],b[key]));
+  }
+  function checkParticipationIdentity(original,candidate){
+    if(object(candidate)&&original.id===candidate.id&&sameJSON(original.intent,candidate.intent)&&
+       ['binding','businessBinding','slot','guard'].every(key=>!Object.hasOwn(original,key)||sameJSON(original[key],candidate[key])))return;
+    partRecovery=original;
+    entry=original;
+    $('native-part-id').value=original.id;
+    throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID',keepOriginalRead:true});
+  }
+  function participation(value){authority(value,'walletApproval');if(value.authority!==undefined&&value.authority!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});partCode=value.code;const observed=caps(value.capabilities,partKeys);partCaps=partRecovery?{read:observed.read===true}:observed;return value.code;}
   function resourceStatus(value){authority(value,'productionEnabled');resourceCaps=caps(value.capabilities,resourceKeys);if(resourceCaps.productionDispatch===true)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});resource=value;raw('native-resource-preview-bytes',null);raw('native-resource-preview-sha',null);original('native-resource-original',value);raw('native-resource-code',value.code);return value.code;}
   async function list(current,next=false){
     const payload=next?{cursor,limit:20}:{limit:20};
@@ -493,7 +509,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
     const action=$('native-part-action').value||'delegate';$('native-part-amount-field').hidden=action==='withdraw'||action==='vote';$('native-part-amount').required=action!=='withdraw'&&action!=='vote';$('native-part-choice-field').hidden=action!=='vote';
     text('native-part-target-note',action==='delegate'?'填写原验证者标识。':action==='unbond'?'填写原委托标识。':action==='withdraw'?'填写原解押标识。':'填写原提案标识；不会在网页生成投票编码。');
     $('governance-use-proposal').disabled=!paired||!governanceDetailModel?.proposal||!canSelectProposal();
-    disabled('native-part-prepare',partCaps.prepare===true&&unresolved.size===0&&!knownRequests.has($('native-part-request').value.trim()));$('native-part-draft').disabled=!!busy||unresolved.size>0||entry?.state==='UNKNOWN'||entry?.state==='AWAITING_WALLET';disabled('native-part-resolve',partCaps.read===true&&(unresolved.size>0||ref($('native-part-request').value.trim())));disabled('native-part-list',partCaps.list===true);disabled('native-part-next',partCaps.list===true&&!!cursor);disabled('native-part-get',partCaps.read===true);disabled('native-part-revoke',partCaps.revoke===true);
+    disabled('native-part-prepare',partCaps.prepare===true&&unresolved.size===0&&!knownRequests.has($('native-part-request').value.trim()));$('native-part-draft').disabled=!!busy||!!partRecovery||unresolved.size>0||entry?.state==='UNKNOWN'||entry?.state==='AWAITING_WALLET';disabled('native-part-resolve',!partRecovery&&partCaps.read===true&&(unresolved.size>0||ref($('native-part-request').value.trim())));disabled('native-part-list',partCaps.list===true);disabled('native-part-next',partCaps.list===true&&!!cursor);disabled('native-part-get',partCaps.read===true);$('native-part-id').readOnly=!!partRecovery;disabled('native-part-revoke',partCaps.revoke===true);
     $('native-part-entry-panel').hidden=!entry;raw('native-part-entry-id',entry?.id);raw('native-part-entry-state',entry&&uncertain.has(entry.id)?'UNKNOWN':entry?.state);raw('native-part-blocked',entry?.blockedReason||entry?.lastError||null);
     const reviewed=unresolved.size===0&&review&&review.entry?.id===entry?.id&&review.authority===false&&review.requiresWalletApproval===true&&review.walletAdapterConfigured===true&&review.originalEffectMayExist===false&&review.conditionStatus==='CURRENT_RPC_REPORTED';
     disabled('native-part-review',partCaps.review===true&&!!entry);disabled('native-part-cancel',partCaps.cancel===true&&!!entry);disabled('native-part-reconcile',partCaps.reconcile===true&&!!entry);disabled('native-part-submit',partCaps.submit===true&&entry?.state==='PREPARED'&&reviewed&&!entry.publishAttemptedAt&&!attempted.has(entry.id));
@@ -535,19 +551,62 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
     },true);
   });
   $('native-node-restart').addEventListener('click',()=>{if(nodeCaps.restart!==true||nodeCaps.visibleConsent!==true||node?.processOwned!==true)return;run('node',async current=>{const value=(await request('node_restart',{})).payload;if(!current())return;authority(value,'productionGrant');nodeIntent=null;nodeCaps={};state('native-node-operation',value.code);},true);});
-  function canSelectProposal(){return !busy&&unresolved.size===0&&!['UNKNOWN','AWAITING_WALLET'].includes(entry?.state);}
+  function canSelectProposal(){return !busy&&!partRecovery&&unresolved.size===0&&!['UNKNOWN','AWAITING_WALLET'].includes(entry?.state);}
   function draftChanged(){formVersion++;review=null;entry=null;recoveredDifference=false;render();}
   for(const name of ['action','request','owner','target','amount','fee','expires','choice'])$('native-part-'+name).addEventListener(name==='action'||name==='choice'?'change':'input',draftChanged);
-  $('native-part-draft').addEventListener('click',()=>{if(busy||unresolved.size)return;const bytes=new Uint8Array(16);if(!window.crypto?.getRandomValues){state('native-part-operation','LOCAL_ID_UNAVAILABLE');return;}window.crypto.getRandomValues(bytes);$('native-part-request').value='local-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');$('native-part-expires').value=new Date(Date.now()+5*60*1000).toISOString();draftChanged();});
+  $('native-part-draft').addEventListener('click',()=>{if(busy||partRecovery||unresolved.size)return;const bytes=new Uint8Array(16);if(!window.crypto?.getRandomValues){state('native-part-operation','LOCAL_ID_UNAVAILABLE');return;}window.crypto.getRandomValues(bytes);$('native-part-request').value='local-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');$('native-part-expires').value=new Date(Date.now()+5*60*1000).toISOString();draftChanged();});
   function requestForm(){const action=$('native-part-action').value||'delegate',req={requestId:$('native-part-request').value.trim(),owner:$('native-part-owner').value.trim(),action,feeCapYnxt:$('native-part-fee').value.trim(),expiresAt:$('native-part-expires').value.trim()},target=$('native-part-target').value.trim(),amount=$('native-part-amount').value.trim(),expiry=Date.parse(req.expiresAt);if(!ref(req.requestId)||!/^0x[a-f0-9]{40}$/.test(req.owner)||!uint(req.feeCapYnxt)||!Number.isFinite(expiry)||!req.expiresAt.endsWith('Z')||expiry<=Date.now()||expiry>Date.now()+10*60*1000)throw Object.assign(new Error('INVALID_REQUEST'),{code:'INVALID_REQUEST',outcome:'NOT_SENT'});if(action==='delegate'||action==='unbond'){if(!uint(amount)||BigInt(amount)===0n||BigInt(amount)>9223372036854775807n)throw Object.assign(new Error('INVALID_AMOUNT'),{code:'INVALID_AMOUNT',outcome:'NOT_SENT'});req.amountYnxt=amount;if(action==='delegate'&&ref(target))req.validator=target;else if(action==='unbond'&&exactID(target))req.delegationId=target;else throw Object.assign(new Error('INVALID_TARGET'),{code:'INVALID_TARGET',outcome:'NOT_SENT'});}else if(action==='withdraw'&&exactID(target))req.unbondingId=target;else if(action==='vote'&&ref(target)&&['yes','no','abstain'].includes($('native-part-choice').value)){req.proposal=target;req.choice=$('native-part-choice').value;}else throw Object.assign(new Error('INVALID_TARGET'),{code:'INVALID_TARGET',outcome:'NOT_SENT'});return req;}
   $('native-part-form').addEventListener('submit',event=>{event.preventDefault();if(partCaps.prepare!==true||$('native-part-prepare').disabled)return;const form=formVersion;run('part',async current=>{const req=requestForm();preparingRequest=req;try{const value=(await request('participation_prepare',req)).payload;if(!current())return;participation(value);if(value.entry){acceptEntry(value.entry,form===formVersion);knownRequests.add(req.requestId);}state('native-part-operation',value.code);}catch(error){if(error?.outcome==='NOT_SENT')unresolved.delete(req.requestId);else{unresolved.set(req.requestId,{request:req,cause:error?.code||'NATIVE_RESPONSE_INVALID'});throw Object.assign(new Error(error?.message||'NATIVE_RESPONSE_INVALID'),{code:error?.code||'NATIVE_RESPONSE_INVALID',outcome:'UNKNOWN'});}throw error;}finally{if(preparingRequest===req)preparingRequest=null;}});});
-  async function get(id){if(!exactID(id)||partCaps.read!==true)return;return run('part',async current=>{entry=null;review=null;recoveredDifference=false;const value=(await request('participation_get',{id})).payload;if(!current())return;participation(value);if(value.entry&&value.entry.id===id)acceptEntry(value.entry);else if(value.entry)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});state('native-part-operation',value.code);});}
-  $('native-part-get-form').addEventListener('submit',event=>{event.preventDefault();get($('native-part-id').value.trim());});
+  async function get(id){
+    if(!exactID(id)||partCaps.read!==true||partRecovery&&partRecovery.id!==id)return;
+    return run('part',async current=>{
+      if(!partRecovery)entry=null;
+      review=null;recoveredDifference=false;
+      const value=(await request('participation_get',{id})).payload;
+      if(!current())return;
+      participation(value);
+      if(partRecovery&&value.code==='OK'){
+        if(partCaps.read!==true){state('native-part-operation','UNAVAILABLE');return;}
+        checkParticipationIdentity(partRecovery,value.entry);
+        acceptEntry(value.entry);
+        partRecovery=null;
+        partCaps=caps(value.capabilities,partKeys);
+      }else if(!partRecovery&&value.entry){
+        if(value.entry.id!==id)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});
+        acceptEntry(value.entry);
+      }
+      state('native-part-operation',value.code);
+    });
+  }
+  $('native-part-get-form').addEventListener('submit',event=>{event.preventDefault();return get($('native-part-id').value.trim());});
   function requestShape(value){const keys=['requestId','owner','action','proposal','choice','validator','delegationId','unbondingId','amountYnxt','feeCapYnxt','expiresAt'];return object(value)&&Object.keys(value).every(k=>keys.includes(k))?JSON.stringify(keys.map(k=>value[k]??'')):null;}
-  $('native-part-resolve').addEventListener('click',()=>{const id=unresolved.keys().next().value||$('native-part-request').value.trim();if(!ref(id)||partCaps.read!==true)return;run('part',async current=>{const pending=unresolved.get(id),value=(await request('participation_resolve',{requestId:id})).payload;if(!current())return;participation(value);if(value.authority!==false||value.resolvedRequestId!==id)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});knownRequests.add(id);if(value.code==='OK'&&value.entry){acceptEntry(value.entry);recoveredDifference=!!pending&&requestShape(value.entry.intent.request)!==requestShape(pending.request);unresolved.delete(id);}else{entry=null;review=null;}state('native-part-operation',unresolved.has(id)?'UNKNOWN':value.code);});});
-  $('native-part-list').addEventListener('click',()=>run('part',current=>list(current,false)));
+  $('native-part-resolve').addEventListener('click',()=>{const id=unresolved.keys().next().value||$('native-part-request').value.trim();if(partRecovery||!ref(id)||partCaps.read!==true)return;run('part',async current=>{const pending=unresolved.get(id),value=(await request('participation_resolve',{requestId:id})).payload;if(!current())return;participation(value);if(value.authority!==false||value.resolvedRequestId!==id)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});knownRequests.add(id);if(value.code==='OK'&&value.entry){acceptEntry(value.entry);recoveredDifference=!!pending&&requestShape(value.entry.intent.request)!==requestShape(pending.request);unresolved.delete(id);}else{entry=null;review=null;}state('native-part-operation',unresolved.has(id)?'UNKNOWN':value.code);});});
+  $('native-part-list').addEventListener('click',()=>{if(!partRecovery)return run('part',current=>list(current,false));});
   $('native-part-next').addEventListener('click',()=>{if(cursor&&partCaps.list===true)run('part',current=>list(current,true));});
-  for(const action of ['review','cancel','reconcile','submit'])$('native-part-'+action).addEventListener('click',()=>{const id=entry?.id;if(!id||partCaps[action]!==true||action==='submit'&&$('native-part-submit').disabled)return;if(busy)return;if(action==='submit')attempted.add(id);const selected=id;run('part',async current=>{let value;try{value=(await request('participation_'+action,{id})).payload;}catch(error){if(action==='submit'&&error?.outcome==='NOT_SENT')attempted.delete(id);throw error;}if(!current())return;participation(value);if(value.entry){if(value.entry.id!==id)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});acceptEntry(value.entry);}if(action==='review'&&value.review){const candidate=value.review;if(candidate.entry?.id!==id||JSON.stringify(candidate.entry?.intent)!==JSON.stringify(entry?.intent)||candidate.version!=='YNX-NETWORK-PARTICIPATION-REVIEW/v1'||candidate.authority!==false||candidate.requiresWalletApproval!==true||candidate.independentFinality!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});review=candidate;acceptEntry(candidate.entry);review=candidate;}if(entry?.id!==selected)review=null;state('native-part-operation',value.code);},action==='submit');});
+  for(const action of ['review','cancel','reconcile','submit'])$('native-part-'+action).addEventListener('click',()=>{
+    const original=entry,id=original?.id;
+    if(busy||!id||partCaps[action]!==true||action==='submit'&&$('native-part-submit').disabled)return;
+    if(action==='submit')attempted.add(id);
+    return run('part',async (current,op)=>{
+      op.originalEntry=original;
+      let value;
+      try{value=(await request('participation_'+action,{id})).payload;}
+      catch(error){if(action==='submit'&&error?.outcome==='NOT_SENT')attempted.delete(id);throw error;}
+      if(!current())return;
+      participation(value);
+      if(value.entry)checkParticipationIdentity(original,value.entry);
+      const candidate=action==='review'?value.review:null;
+      if(candidate){
+        checkParticipationIdentity(original,candidate.entry);
+        if(candidate.version!=='YNX-NETWORK-PARTICIPATION-REVIEW/v1'||candidate.authority!==false||candidate.requiresWalletApproval!==true||candidate.independentFinality!==false)
+          throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});
+      }
+      if(value.entry)acceptEntry(value.entry);
+      if(candidate){acceptEntry(candidate.entry);review=candidate;}
+      if(entry?.id!==id)review=null;
+      state('native-part-operation',value.code);
+    },action==='submit');
+  });
   $('native-part-revoke').addEventListener('click',()=>{if(partCaps.revoke!==true)return;run('part',async current=>{const value=(await request('participation_revoke',{})).payload;if(!current())return;participation(value);review=null;nodeIntent=null;state('native-part-operation',value.code);},true);});
   document.querySelectorAll('[data-participation-action]').forEach(button=>button.addEventListener('click',()=>{$('native-part-action').value=button.dataset.participationAction;if(button.dataset.participationChoice)$('native-part-choice').value=button.dataset.participationChoice;draftChanged();$('native-part-form').scrollIntoView?.({block:'start'});}));
   for(const action of ['meter','stop','review','cancel'])$('native-resource-'+action).addEventListener('click',()=>{const key=action==='cancel'?'cancelReview':action;if(resourceCaps[key]!==true)return;run('resource',async current=>{raw('native-resource-preview-bytes',null);raw('native-resource-preview-sha',null);const value=(await request(action==='cancel'?'resource_review_cancel':'resource_'+action,{})).payload;if(!current())return;if(action==='review'||action==='cancel'){authority(value,'authority');if(value.productionEnabled!==false||value.consentProduced!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});raw('native-resource-code',value.code);raw('native-resource-preview-bytes',uint(value.previewBytes)?value.previewBytes:null);raw('native-resource-preview-sha',typeof value.previewSHA256==='string'&&/^[a-f0-9]{64}$/.test(value.previewSHA256)?value.previewSHA256:null);original('native-resource-original',value);resourceCaps=caps(value.capabilities,resourceKeys);}else resourceStatus(value);state('native-resource-operation',value.code);},action==='stop');});
