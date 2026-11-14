@@ -16,6 +16,11 @@ on:
         required: false
         default: false
         type: boolean
+      source_only:
+        description: 'Run the task recovery source checks without building clients'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [codex/ecosystem-ai]
     paths:
@@ -32,7 +37,7 @@ permissions:
 
 jobs:
   ios-simulator:
-    if: ${{ (inputs.artifact_run == '' || inputs.artifact_run == null) && !inputs.android_only }}
+    if: ${{ (inputs.artifact_run == '' || inputs.artifact_run == null) && !inputs.android_only && !inputs.source_only }}
     runs-on: macos-15
     timeout-minutes: 45
     defaults:
@@ -100,7 +105,7 @@ jobs:
           if-no-files-found: error
 
   android-preview:
-    if: ${{ inputs.artifact_run == '' || inputs.artifact_run == null }}
+    if: ${{ (inputs.artifact_run == '' || inputs.artifact_run == null) && !inputs.source_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     defaults:
@@ -223,3 +228,24 @@ jobs:
           name: ynx-ai-android-task-ui-${{ github.run_id }}
           path: ${{ runner.temp }}/ynx-ai-task-ui-last.xml
           if-no-files-found: warn
+
+  task-recovery-source-check:
+    if: ${{ inputs.source_only }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/ai/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: apps/ai/mobile/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsx --test src/taskColdRestore.test.ts src/taskResultFlow.test.ts src/taskReconnect.test.ts src/tasks.test.ts src/taskV6.test.ts src/sessionSignOut.test.ts
+      - run: pnpm run typecheck && pnpm run product-check
