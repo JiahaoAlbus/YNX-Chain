@@ -407,6 +407,93 @@ class TransportControls(unittest.TestCase):
         self.assertEqual((confirm['materialsFile'],confirm['materialsSHA256'],confirm['proofFile']),
                          ('/public/materials','d'*64,'/public/proof'))
 
+    def confirmation_path(self, change=None, *, lost_ack=False):
+        # Exercise the real stream reader, metrics collector, public backend
+        # and finalizer. Proof DATA below is an offline boundary fixture only;
+        # it does not execute or stand in for the Go signature verifier.
+        result=dict(included=True,finalized=True,executionSuccessful=True,executionCode='0',
+                    nativeGrant=False,transactionHash='b'*64,nativeWireHash='c'*64,
+                    transactionType='pq_transfer')
+        reply=response(code='PROOF_CONFIRMED_DATA')
+        reply.update(result=dict(result=dict(result)),calleeElapsedNs=10,
+                     timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',
+                                  clock='monotonic_elapsed_wall_ns',intervalsOverlap=True,
+                                  stages={'confirm.total':dict(calls=1,elapsedNs=9)}))
+        if change is not None:change(reply)
+        raw=json.dumps(reply,separators=(',',':')).encode()+b'\n'
+        RealSession=m.session_class(d.SenderSession,n,d.lab)
+        s=RealSession.__new__(RealSession);s.__dict__.update(session(lambda:None).__dict__)
+        s.offset=0;s.partial=b''
+        if lost_ack:
+            polls=iter((None,1));s.proc.poll=lambda:next(polls,1)
+        with tempfile.TemporaryDirectory() as temporary:
+            work=Path(temporary);case=work/'public'/'case';case.mkdir(parents=True)
+            s.path=work/'public'/'original-confirm-stream.log'
+            original=raw[:-12] if lost_ack else raw;s.path.write_bytes(original)
+            window=SimpleNamespace(work=work)
+            s.c=SimpleNamespace(w=window,mode='online',
+                                measurements=d.CalleeMeasurements(1,2,source='OFFLINE_CONFIRM_BOUNDARY_ONLY'))
+            Backend=b.backend_class(d.NormalBackend,RealSession,n,d.lab)
+            backend=Backend.__new__(Backend);backend.c=s.c;backend.w=window;backend.public_session=s
+            request=command()['request'];row=dict(id='d'*64,operationId=request['operationId'],ownerIndex=4)
+            tx=dict(abciHash='b'*64,nativeHash='c'*64,members='1')
+            proof=dict(materials=dict(path='/offline/materials',sha256='e'*64),proof=dict(path='/offline/proof'))
+            backend.live_proof=lambda *a:(proof,dict(code='VERIFIED_TRANSACTION_DATA',result=result),{})
+            handle=dict(row=row,account=dict(ownerIndex=4),case=case,started=d.time.monotonic_ns(),
+                        tx=tx,path=case/'transaction.abci',request=request)
+            events=[];error=None
+            with patch.object(d.proof_readback,'finalize_portable_catalog') as exported:
+                try:backend.finalize(handle,events.append,threading.Event())
+                except RuntimeError as caught:error=caught
+            sent=json.loads(s.proc.stdin.getvalue())
+            self.assertEqual(sent,n.sender_command_data('confirm',request,materials='/offline/materials',
+                                                       materials_sha='e'*64,proof='/offline/proof'))
+            self.assertEqual(s.path.read_bytes(),original)
+            retained=case/'original-confirm-reply.json'
+            self.assertEqual(retained.exists(),not lost_ack)
+            if retained.exists():self.assertEqual(retained.read_bytes(),raw)
+            if error is None:
+                self.assertTrue((case/'qualified-receipt.json').exists())
+                self.assertEqual([e['kind'] for e in events].count('qualified'),1)
+                exported.assert_called_once()
+            else:
+                self.assertFalse((case/'qualified-receipt.json').exists())
+                self.assertNotIn('qualified',[e['kind'] for e in events]);exported.assert_not_called()
+            if lost_ack:
+                written=s.proc.stdin.getvalue();self.assertTrue(s.poisoned)
+                with self.assertRaisesRegex(RuntimeError,'recover originals, never replay'):
+                    s.exchange(n.sender_command_data('recover',request),None,threading.Event())
+                self.assertEqual(s.proc.stdin.getvalue(),written)
+            return error,s.c.measurements.report()['groups']['confirm'],s.transport_report()
+
+    def test_finalizer_requires_full_confirm_result_beyond_transport_success_code(self):
+        error,metrics,trace=self.confirmation_path()
+        self.assertIsNone(error);self.assertEqual(metrics['outcomes'],{'PROOF_CONFIRMED_DATA':1})
+        self.assertEqual(trace['records'][0]['operation'],'confirm')
+        for field,value in (('included',False),('finalized',False),('executionSuccessful',False),
+                            ('executionCode','1'),('nativeGrant',True),
+                            ('transactionHash','f'*64),('nativeWireHash','f'*64)):
+            with self.subTest(field=field):
+                error,metrics,trace=self.confirmation_path(lambda reply:reply['result']['result'].update({field:value}))
+                self.assertIsNotNone(error)
+                # Retain the original producer claim as DATA, never turn its
+                # observed successful code/timing into a qualified receipt.
+                self.assertEqual(metrics['outcomes'],{'PROOF_CONFIRMED_DATA':1})
+                self.assertEqual(trace['records'][0]['code'],'PROOF_CONFIRMED_DATA')
+
+    def test_finalizer_preserves_confirm_unknown_rejection_and_truncated_ack(self):
+        for code in ('UNKNOWN','REJECTED'):
+            with self.subTest(code=code):
+                error,metrics,trace=self.confirmation_path(lambda reply:reply.update(code=code,result=None))
+                self.assertIsNotNone(error);self.assertEqual(metrics['outcomes'],{code:1})
+                self.assertEqual(trace['records'][0]['code'],code)
+        error,metrics,trace=self.confirmation_path(lost_ack=True)
+        self.assertIn('exited without one exact reply',str(error))
+        self.assertEqual(metrics['calleeElapsed']['observed'],0)
+        self.assertEqual(metrics['replyTimingCoverage']['notReachedOrReplyNotSupplied'],1)
+        self.assertNotIn('replyReceivedMonotonicNs',trace['records'][0])
+        self.assertFalse(trace['automaticRetry'])
+
     def test_actual_broken_pipe_close_uses_original_cleanup_path(self):
         reader,writer=os.pipe();os.close(reader)
         stream=os.fdopen(writer,'wb');stream.write(b'buffered original command')
