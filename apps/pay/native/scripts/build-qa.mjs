@@ -60,6 +60,7 @@ if(macApp){
  await fs.mkdir(path.join(contents,'MacOS'),{recursive:true});await fs.mkdir(path.join(resources,'client'),{recursive:true});
  for(const dir of ['bin','lib'])await fs.cp(path.join(output,dir),path.join(resources,'client',dir),{recursive:true});
  await fs.copyFile(path.join(root,'macos/PayApp.swift'),path.join(resources,'PayApp.swift'));
+ await fs.copyFile(path.join(root,'macos/PayReconnectState.swift'),path.join(resources,'PayReconnectState.swift'));
  await fs.writeFile(path.join(contents,'Info.plist'),`<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>YNXPay</string><key>CFBundleIdentifier</key><string>com.ynx.pay.localqa</string><key>CFBundleName</key><string>YNX Pay QA</string><key>CFBundleDisplayName</key><string>YNX Pay QA</string><key>CFBundleShortVersionString</key><string>0.1.0</string><key>CFBundleVersion</key><string>1</string><key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/><key>NSPrincipalClass</key><string>NSApplication</string></dict></plist>`);
  const osTemp=execFileSync('/usr/bin/getconf',['DARWIN_USER_TEMP_DIR'],{encoding:'utf8'}).trim();
  if(!/^\/(?:private\/)?var\/folders\//.test(osTemp))throw Error('Original OS Swift driver temporary directory unavailable.');
@@ -68,7 +69,7 @@ if(macApp){
   const sdk=execFileSync('/usr/bin/xcrun',['--show-sdk-path'],{encoding:'utf8'}).trim();
   // Root's bounded exception: only the standard Swift driver's transient
   // files use this owned OS directory; caches, output and logs stay external.
-  execFileSync('/usr/bin/xcrun',['swiftc','-parse-as-library','-swift-version','5','-target','arm64-apple-macos13.0','-sdk',sdk,'-O','-module-cache-path',process.env.SWIFT_MODULECACHE_PATH,'-framework','SwiftUI','-framework','AppKit',path.join(root,'macos/PayApp.swift'),'-o',path.join(contents,'MacOS/YNXPay')],{env:{...process.env,TMPDIR:swiftTemp},stdio:'inherit'});
+  execFileSync('/usr/bin/xcrun',['swiftc','-parse-as-library','-swift-version','5','-target','arm64-apple-macos13.0','-sdk',sdk,'-O','-module-cache-path',process.env.SWIFT_MODULECACHE_PATH,'-framework','SwiftUI','-framework','AppKit',path.join(root,'macos/PayReconnectState.swift'),path.join(root,'macos/PayApp.swift'),'-o',path.join(contents,'MacOS/YNXPay')],{env:{...process.env,TMPDIR:swiftTemp},stdio:'inherit'});
  }finally{await fs.rm(swiftTemp,{recursive:true,force:true});}
  await fs.copyFile(path.join(root,'scripts/install-mac-qa.mjs'),path.join(output,'install-mac-qa.mjs'));
  await fs.copyFile(path.join(root,'scripts/package-integrity.mjs'),path.join(output,'package-integrity.mjs'));

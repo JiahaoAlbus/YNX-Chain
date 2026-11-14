@@ -48,8 +48,9 @@ enum PayBridge {
     @Published var busy = false
     @Published var status = "Checking original Wallet / Source…"
     @Published var sourceReady = false
-    private var generation = 0
-    func invalidate() { generation += 1; result = ""; sourceReady = false; status = "Reconnect original Wallet / Source" }
+    private var lifecycle = PayReconnectState()
+    func invalidate() { lifecycle.invalidate(); result = ""; sourceReady = false; status = "Reconnect Wallet, then read the original invoice again." }
+    func becameActive() { if lifecycle.activate(busy: busy) { perform("status") } }
     func perform(_ action: String) {
         guard !busy else { return }
         var request = ["action": action]
@@ -70,10 +71,10 @@ enum PayBridge {
         default: break
         }
         busy = true
-        let envelope = request, currentGeneration = generation
+        let envelope = request, currentGeneration = lifecycle.generation
         Task {
             let text = await Task.detached { PayBridge.invoke(envelope) }.value
-            guard currentGeneration == generation else { busy = false; return }
+            guard currentGeneration == lifecycle.generation else { busy = false; if lifecycle.completed() { perform("status") }; return }
             result = text
             if let bytes = text.data(using: .utf8), let value = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any] {
                 if action == "status" {
@@ -97,6 +98,7 @@ enum PayBridge {
                 }
             }
             busy = false
+            if lifecycle.completed() { perform("status") }
         }
     }
     func openWallet() {
@@ -211,8 +213,8 @@ struct PayHome: View {
             ScrollView { Text(model.result.isEmpty ? "No invoice or transaction is selected." : model.result).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                 .padding().background(.quaternary, in: RoundedRectangle(cornerRadius: 10)).frame(minHeight: 130, maxHeight: 220)
             Text("Local QA client · approvals stay in original Wallet · no funds sent by client startup").font(.caption).foregroundStyle(.secondary)
-        }.padding(24).frame(minWidth: 760, minHeight: 690).task { model.perform("status") }
-        .onChange(of: scenePhase) { phase in if phase == .active { model.perform("status") } else { model.invalidate() } }
+        }.padding(24).frame(minWidth: 760, minHeight: 690).task { model.becameActive() }
+        .onChange(of: scenePhase) { phase in if phase == .active { model.becameActive() } else { model.invalidate() } }
     }
 }
 

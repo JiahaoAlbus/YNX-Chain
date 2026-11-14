@@ -72,3 +72,14 @@ jobs:
         run: node --test apps/pay/native/scripts/qa-comet-input.test.mjs apps/pay/native/scripts/qa-openssl-input.test.mjs apps/pay/native/r6/desktop-bridge-identity.test.mjs apps/pay/native/r6/candidate-invoice-entry.test.mjs
       - name: Test Pay current and original order recovery
         run: node --test apps/pay/native/r6/client-current-boundary.test.mjs apps/pay/native/r6/original-order.test.mjs apps/pay/native/r6/direct-review-unknown.test.mjs
+
+  pay-ui-lifecycle:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Pay GUI lifecycle and stale return
+        run: |
+          xcrun swiftc -frontend -parse apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayApp.swift
+          xcrun swiftc apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayReconnectStateTests.swift -o "$RUNNER_TEMP/pay-reconnect-state-test"
+          "$RUNNER_TEMP/pay-reconnect-state-test"
