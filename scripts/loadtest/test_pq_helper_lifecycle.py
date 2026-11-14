@@ -159,6 +159,22 @@ class HelperLifecycleControls(unittest.TestCase):
             self.assertEqual(backend.helper_cleanup_debt, [])
             backend.live_materials_command.assert_called_once()
 
+    def test_lane_reaps_after_broken_stdin_close(self):
+        with tempfile.TemporaryDirectory() as temp:
+            backend = self.backend(Path(temp))
+            process = subprocess.Popen([sys.executable, '-I', '-c', 'import time; time.sleep(60)'],
+                                       stdin=subprocess.PIPE)
+            self.addCleanup(process.wait)
+            self.addCleanup(lambda: process.kill() if process.poll() is None else None)
+            lane = dict(node=0, retired=False, originalProcess=process)
+            with mock.patch.object(process.stdin, 'close', side_effect=BrokenPipeError('lost reply')):
+                backend.retire_live_lane(lane)
+            self.assertIsNotNone(process.poll())
+            self.assertTrue(lane['retired'])
+            self.assertEqual(backend.helper_cleanup_debt, [])
+            self.assertFalse(backend.stop_event.is_set())
+            process.stdin.close()
+
     def test_stop_during_launch_resource_guard_never_starts_a_new_helper(self):
         stop = threading.Event()
         window = object.__new__(driver.lab.Window)

@@ -934,7 +934,10 @@ class NormalBackend:
             return
         try:
             if process.stdin is not None and not process.stdin.closed:
-                process.stdin.close()
+                try:
+                    process.stdin.close()
+                except (OSError, ValueError):
+                    pass
             try:
                 process.wait(timeout=.25)
             except subprocess.TimeoutExpired:
