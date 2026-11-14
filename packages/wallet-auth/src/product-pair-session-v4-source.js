@@ -97,6 +97,7 @@ class OriginalDeviceServerCurrentOwnerV4 {
  #kernel; #deviceCurrent;
  constructor(kernel){this.#kernel=kernel;this.#deviceCurrent=Object.freeze({readCurrent:(...a)=>kernel.readCurrent(...a),assertCurrent:(...a)=>kernel.assertCurrent(...a),readRegistrationOriginal:(...a)=>kernel.readRegistrationOriginal(...a),readSessionOriginal:(...a)=>kernel.readSessionOriginal(...a)});deviceCurrentOwners.add(this);Object.freeze(this);}
  get deviceCurrent(){return this.#deviceCurrent;}
+ releaseCurrent(held,context){return this.#kernel.releaseCurrent(held,context);}drainReleasedCurrent(held,context){return this.#kernel.drainReleasedCurrent(held,context);}
  retire(){this.#kernel.retire();}join(){return this.#kernel.join();}close(){return this.#kernel.close();}drainPartial(){return this.#kernel.drainPartial();}status(){return this.#kernel.status();}
 }
 Object.freeze(OriginalDeviceServerCurrentOwnerV4.prototype);

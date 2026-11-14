@@ -6,5 +6,7 @@ export class OriginalProductSessionDeviceV4ServerCurrentKernel implements Origin
  assertCurrent(held:OriginalProductSessionDeviceCurrentV4,sameContext:ProductSessionDeviceAbortContextV4):Promise<undefined>;
  readRegistrationOriginal(held:OriginalProductSessionDeviceCurrentV4):Uint8Array;
  readSessionOriginal(held:OriginalProductSessionDeviceCurrentV4):string;
+ releaseCurrent(held:OriginalProductSessionDeviceCurrentV4,sameContext:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
+ drainReleasedCurrent(held:OriginalProductSessionDeviceCurrentV4,sameContext:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
  retire():void;join():Promise<void>;close():Promise<void>;drainPartial():Promise<void>;status():Readonly<{retired:boolean;pending:number;held:number;unknown:boolean;firstCausePresent:boolean;firstCause:unknown}>;
 }
