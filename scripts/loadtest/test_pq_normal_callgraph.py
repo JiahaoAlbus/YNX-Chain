@@ -199,8 +199,13 @@ class NormalCallgraphControls(unittest.TestCase):
             frame = public/'load-00000-live-session-request.json'
             frame.write_text(json.dumps(dict(node=2, policySHA256=lane['pin'], sequence=1)))
             load = dict(rows=[dict(index=0, status='unknown'), dict(index=1, status='queued')])
+            (output/'intent.json').write_text('{}')
+            (output/'verifier').mkdir()
+            (output/'result.json').symlink_to(output/'intent.json')
             self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'],
-                             [dict(index=0, status='FAILURE_NOT_SUPPLIED')])
+                             [dict(index=0, node=2, sequence=1, status='FAILURE_NOT_SUPPLIED',
+                                   stoppedOutputEntries={'intent.json':'file', 'verifier':'directory',
+                                                         'result.json':'unexpected'})])
             original = output/'failure.json'
             raw = json.dumps(dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', PolicySHA256=lane['pin'],
                                   Outcome='unknown', FirstCauseSHA256='b'*64, Sequence=1)).encode()

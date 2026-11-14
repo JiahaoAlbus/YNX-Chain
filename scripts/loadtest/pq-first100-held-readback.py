@@ -168,6 +168,14 @@ def stopped_proof_failures(receipt, load, files, prefix):
                 and re.fullmatch(r'[0-9a-f]{64}', request['policySHA256']),
                 'original stopped proof request scope differs')
         data = None
+        progress = record.get('stoppedOutputEntries')
+        if progress is not None:
+            allowed = {'intent.json', 'derived-source-plan.json', 'source-context', 'verifier',
+                       'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json'}
+            require(type(progress) is dict and progress.keys() <= allowed
+                    and all(kind in ('directory', 'file', 'unexpected') for kind in progress.values())
+                    and record['node'] == request['node'] and record['sequence'] == request['sequence'],
+                    'original stopped proof output inventory differs')
         if status in ('ALREADY_RETAINED', 'RETAINED_AFTER_STOP'):
             path = f'load-operations/{index:05d}/original-live-proof-failure.json'
             require(record['path'] == path and record['node'] == request['node']

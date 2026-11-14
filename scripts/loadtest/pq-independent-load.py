@@ -776,9 +776,22 @@ class NormalBackend:
                 lab.require(frame['policySHA256'] == lane['pin'] and type(sequence) is int
                             and 1 <= sequence <= self.c.operations, 'original proof request binding differs')
                 output = lane['policy'].parent / f'operation-{sequence:06d}'
+                lab.require(not output.exists() or (output.is_dir() and output.resolve() == output),
+                            'original stopped proof output directory differs')
+                progress = {}
+                for name in ('intent.json', 'derived-source-plan.json', 'source-context', 'verifier',
+                             'materials.json', 'proof.json', 'committed-state.json', 'result.json', 'failure.json'):
+                    try:
+                        mode = (output / name).lstat().st_mode
+                    except FileNotFoundError:
+                        continue
+                    progress[name] = ('directory' if stat.S_ISDIR(mode)
+                                      else 'file' if stat.S_ISREG(mode) else 'unexpected')
+                context = dict(index=index, node=lane['node'], sequence=sequence,
+                               stoppedOutputEntries=progress)
                 original = output / 'failure.json'
                 if not original.exists():
-                    records.append(dict(index=index, status='FAILURE_NOT_SUPPLIED'))
+                    records.append(dict(context, status='FAILURE_NOT_SUPPLIED'))
                     continue
                 if not retained.exists():
                     stopped = threading.Event()
@@ -790,7 +803,7 @@ class NormalBackend:
                                 == proof_readback.read_original(retained, limit=4096),
                                 'retained proof failure differs from stopped original')
                     status = 'ALREADY_RETAINED'
-                records.append(dict(index=index, node=lane['node'], sequence=sequence, status=status,
+                records.append(dict(context, status=status,
                                     path=str(retained.relative_to(public)), sha256=lab.guard.digest(retained)))
             except (OSError, KeyError, RuntimeError, ValueError) as error:
                 records.append(dict(index=index, status='ORIGINAL_FAILURE_UNAVAILABLE',
