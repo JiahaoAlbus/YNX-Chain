@@ -2506,7 +2506,28 @@ jobs:
           mkdir "$YNX_SOURCE_LOG_CASE"
           cp internal/consensus/migration_history_query.go "$YNX_SOURCE_LOG_CASE/fixed-query.go"
           trap 'cp "$YNX_SOURCE_LOG_CASE/fixed-query.go" internal/consensus/migration_history_query.go' EXIT
-          git show 09b959fb7f7e59c05702cb79a67f24df6496ce11:internal/consensus/migration_history_query.go > internal/consensus/migration_history_query.go
+          # Reproduce the exact original log branch while retaining the current
+          # request dispatch and independent log-block inventory declarations.
+          python3 -B - <<'PY'
+          import hashlib, subprocess
+          from pathlib import Path
+          path = Path('internal/consensus/migration_history_query.go')
+          current = path.read_bytes()
+          original = subprocess.check_output(['git', 'show', '09b959fb7f7e59c05702cb79a67f24df6496ce11:internal/consensus/migration_history_query.go'])
+          if hashlib.sha256(original).hexdigest() != 'a968ac3ea3736303d2e6f85915b4d9026c57831463138b102cc10f1c67b02eb6':
+              raise RuntimeError('original log query bytes differ')
+          def span(source, start):
+              end = b'\n\t} else if pageQuery {'
+              if source.count(start) != 1 or source.count(end) != 1:
+                  raise RuntimeError('exact original log branch boundary required')
+              a = source.index(start) + len(start)
+              return a, source.index(end, a)
+          start, end = span(current, b'\n\t} else if logsQuery {\n')
+          old_start, old_end = span(original, b'\n\tif logsQuery {\n')
+          if b'value.Logs = append(value.Logs, log)' not in original[old_start:old_end] or b'json.Marshal(log)' not in current[start:end]:
+              raise RuntimeError('expected historical unbounded and current bounded log branches')
+          path.write_bytes(current[:start] + original[old_start:old_end] + current[end:])
+          PY
           set +e
           go test -p 1 -count=1 -timeout=60s -run '^TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords$' ./internal/consensus > "$YNX_SOURCE_LOG_CASE/original-red.log" 2>&1
           YNX_SOURCE_LOG_RED=$?
