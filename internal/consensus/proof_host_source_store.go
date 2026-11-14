@@ -265,7 +265,11 @@ func (in *proofHostInputs) capture(l proofHostLedger, output string, now time.Ti
 		}
 		if err == nil {
 			state.bootstrap = in.bootstrap
-			err = state.Validate(in.migration)
+			if in.heldMigration != nil {
+				err = state.validateOwned(in.heldMigration.witness)
+			} else {
+				err = state.Validate(in.migration)
+			}
 		}
 	}
 	if err != nil {
@@ -284,8 +288,13 @@ func (in *proofHostInputs) capture(l proofHostLedger, output string, now time.Ti
 	if err = in.engine.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height); err != nil {
 		return out, err
 	}
-	snapshot, e := newPQEngineSnapshot(in.bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
-	snapshot, err = withRuntimeUpgradeSnapshot(snapshot, e, in.runtime)
+	var snapshot *PQEngineSnapshot
+	if in.heldMigration != nil {
+		snapshot, err = newPQEngineSnapshotOwned(in.heldMigration.witness, in.bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	} else {
+		snapshot, err = newPQEngineSnapshot(in.bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	}
+	snapshot, err = withRuntimeUpgradeSnapshot(snapshot, err, in.runtime)
 	if err != nil {
 		return out, err
 	}

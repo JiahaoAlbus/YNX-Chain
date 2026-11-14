@@ -1802,6 +1802,10 @@ type PQLabProofMaterials struct {
 const PQLabProofMaterialsVersion = "YNX-PQ-LOOPBACK-PROOF-MATERIALS/v1"
 const MaxPQLabProofMaterialsBytes = 256 << 20
 
+// Only the complete migration member may exceed 64 MiB. The aggregate
+// public proof-material frame retains its existing bound.
+const maxPQLabProofCanonicalMigrationBytes = 128 << 20
+
 // DecodePQLabProofMaterials requires a distinct exact operator pin. Canonical
 // typed JSON rejects aliases, missing/extra fields, duplicates and trailing data.
 func DecodePQLabProofMaterials(raw []byte, pin string) (PQLabProofMaterials, error) {
@@ -1830,6 +1834,13 @@ type PQLabProofExport struct {
 	VerifierArguments           []string                 `json:"verifierArguments"`
 }
 
+func validatePQLabProofMaterials(m PQLabProofMaterials, now time.Time) error {
+	if m.Version != PQLabProofMaterialsVersion || len(m.Migration) == 0 || len(m.Migration) > maxPQLabProofCanonicalMigrationBytes || len(m.Genesis) == 0 || len(m.Genesis) > 64<<20 || len(m.CommittedState) == 0 || len(m.CommittedState) > 128<<20 || len(m.Schedule) == 0 || len(m.Schedule) > 1<<20 || len(m.TrustedLightBlock) == 0 || len(m.TrustedLightBlock) > MaxPQTrustedLightBlockBytes || m.EngineHeight < 1 || len(m.EngineAppHash) != 32 || now.IsZero() {
+		return errors.New("bounded actual lab checkpoint material required")
+	}
+	return nil
+}
+
 // WritePQLabProofInputs reconstructs the NORMAL engine FileSource and uses the
 // unchanged dual-PQ light/transaction verifier before emitting the normal CLI
 // contract. Success is conditional mathematical DATA, not operator provenance,
@@ -1837,8 +1848,8 @@ type PQLabProofExport struct {
 // Failures retain the exclusive output directory and original public materials.
 func WritePQLabProofInputs(directory string, m PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time) (PQLabProofExport, error) {
 	var empty PQLabProofExport
-	if m.Version != PQLabProofMaterialsVersion || len(m.Migration) == 0 || len(m.Migration) > 64<<20 || len(m.Genesis) == 0 || len(m.Genesis) > 64<<20 || len(m.CommittedState) == 0 || len(m.CommittedState) > 128<<20 || len(m.Schedule) == 0 || len(m.Schedule) > 1<<20 || len(m.TrustedLightBlock) == 0 || len(m.TrustedLightBlock) > MaxPQTrustedLightBlockBytes || m.EngineHeight < 1 || len(m.EngineAppHash) != 32 || now.IsZero() {
-		return empty, errors.New("bounded actual lab checkpoint material required")
+	if err := validatePQLabProofMaterials(m, now); err != nil {
+		return empty, err
 	}
 	var migration chain.ConsensusMigrationState
 	if err := json.Unmarshal(m.Migration, &migration); err != nil {
@@ -1868,16 +1879,23 @@ func WritePQLabProofInputs(directory string, m PQLabProofMaterials, proof PQTran
 	if m.Expected.Block.ChainID != bootstrap.record.ChainID {
 		return empty, errors.New("expected chain differs from original lab bootstrap")
 	}
-	if err = pqLabFreshDirectory(directory); err != nil {
+	if err = writePQLabProofOriginals(directory, m); err != nil {
 		return empty, err
+	}
+	return finishPQLabProofInputsPrepared(directory, m, proof, now, migration, bootstrap, authorization, trusted)
+}
+
+func writePQLabProofOriginals(directory string, m PQLabProofMaterials) error {
+	if err := pqLabFreshDirectory(directory); err != nil {
+		return err
 	}
 	files := map[string][]byte{"migration.json": m.Migration, "genesis.json": m.Genesis, "committed-state.json": m.CommittedState, "schedule.json": m.Schedule, "trusted-light-block.json": m.TrustedLightBlock}
 	for name, raw := range files {
-		if err = pqLabWriteExclusive(filepath.Join(directory, name), raw); err != nil {
-			return empty, err
+		if err := pqLabWriteExclusive(filepath.Join(directory, name), raw); err != nil {
+			return err
 		}
 	}
-	return finishPQLabProofInputsPrepared(directory, m, proof, now, migration, bootstrap, authorization, trusted)
+	return nil
 }
 
 // Exact continuation only: originals written before a crash/invalid proof are
@@ -1909,6 +1927,11 @@ func finishPQLabProofInputsPrepared(directory string, m PQLabProofMaterials, pro
 	if err != nil {
 		return empty, err
 	}
+	return finishPQLabProofInputsFromSource(directory, m, proof, now, bootstrap, source, trusted)
+}
+
+func finishPQLabProofInputsFromSource(directory string, m PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time, bootstrap *ConsensusBootstrap, source *PQEngineFileSource, trusted *cmttypes.LightBlock) (PQLabProofExport, error) {
+	var empty PQLabProofExport
 	authority, err := source.ConsensusAuthorityForState(bootstrap.record.ChainID, m.EngineHeight, m.EngineAppHash)
 	if err != nil {
 		return empty, err

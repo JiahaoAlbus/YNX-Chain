@@ -118,6 +118,95 @@ func TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation(t *testing.T) {
 	}
 }
 
+func TestPQLabLiveMaterialsHeldVerifierMatchesColdProof(t *testing.T) {
+	m, proof := pqLabProofFixture(t)
+	root := pqLabWorkloadTemp(t)
+	original := filepath.Join(root, "migration.json")
+	proofSourceWrite(t, original, m.Migration)
+	source, err := readProofHostOriginal(original, proofHostSHA(m.Migration), maxProofHostMigrationBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.file.Close()
+	migration, err := decodeProofHostMigration(source.raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	witness, err := newPQLabLiveBootstrap(m.Genesis, m.Pins, migration, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	engine, err := NewPQEngineAuthorization(m.Schedule, m.ScheduleHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	in := &proofHostInputs{
+		plan: ProofHostSourcePlan{ConsensusGenesisSHA256: m.Pins.CometGenesisSHA256, OriginalGenesisHash: m.Pins.OriginalGenesisHash,
+			MigrationStateHash: m.Pins.MigrationStateHash, ScheduleHash: m.ScheduleHash},
+		bootstrap: witness.bootstrap, engine: engine,
+		originals:     map[string]*proofHostOriginal{"genesis": {raw: m.Genesis}, "schedule": {raw: m.Schedule}},
+		heldMigration: &pqLabProofMigration{witness: witness, original: source, canonical: source.raw},
+	}
+	now := time.Now().UTC()
+	output := filepath.Join(root, "verifier")
+	cold, err := WritePQLabProofInputs(output, m, proof, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	saved := filepath.Join(root, "cold")
+	if err := os.Rename(output, saved); err != nil {
+		t.Fatal(err)
+	}
+	held, err := in.writeLiveProofVerifier(output, m, proof, now)
+	compareCold, _ := json.Marshal(cold)
+	compareHeld, _ := json.Marshal(held)
+	if err != nil || !bytes.Equal(compareCold, compareHeld) || !held.Result.Finalized {
+		t.Fatal("held verifier diverged from independent cold verification", err)
+	}
+	for _, name := range []string{"migration.json", "committed-state.json", "trust-context.json", "request.json", "PUBLIC-PROOF-INPUTS.json"} {
+		a, err := os.ReadFile(filepath.Join(saved, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := os.ReadFile(filepath.Join(output, name))
+		if err != nil || !bytes.Equal(a, b) {
+			t.Fatal("held verifier changed a public original", name, err)
+		}
+	}
+	changed := m
+	changed.EngineAppHash = bytes.Repeat([]byte{0xff}, 32)
+	if result, err := in.writeLiveProofVerifier(filepath.Join(root, "wrong-checkpoint"), changed, proof, now); err == nil || result.Result.Finalized {
+		t.Fatal("held verifier accepted a changed committed checkpoint")
+	}
+}
+
+func TestPQLabLiveMaterialsProofFrameMatchesOriginalEncoding(t *testing.T) {
+	for _, size := range []int{1, 2, 3, 64<<10 + 2} {
+		m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: bytes.Repeat([]byte{42}, size),
+			Genesis: []byte("genesis"), CommittedState: []byte("state"), Schedule: []byte("schedule")}
+		head, tail, err := pqLabProofMaterialFrame(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		path := filepath.Join(t.TempDir(), "materials.json")
+		receipt, err := writePQLabProofMaterialFrame(path, head, m.Migration, tail)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected, err := json.Marshal(m)
+		if err != nil || !bytes.Equal(raw, expected) || receipt != pqLabFile(path, expected) {
+			t.Fatal("streamed proof frame differs from original v1 JSON or receipt", size, err)
+		}
+		if _, err := writePQLabProofMaterialFrame(path, head, m.Migration, tail); err == nil {
+			t.Fatal("existing frame was replaced")
+		}
+	}
+}
+
 func TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope(t *testing.T) {
 	plan, policy, large := pqLabHeldWitnessOriginal(t)
 	root, pin := policy.RootDir, policy.PlanSHA256
@@ -169,8 +258,43 @@ func TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope(t *testing.T
 	if coldMetrics.Snapshot().Stages["lab.validatedMigrationOwnerBuild"].Calls != 1 || coldMetrics.Snapshot().Stages["lab.bootstrapFullValidation"].Calls != 1 || cold.cache.Stats().Entries != 0 {
 		t.Fatal("cold invocation skipped independent original validation or enlarged optional cache")
 	}
-	if err := cold.current(); err != nil {
+	original, err := cold.loadStatic()
+	if err != nil {
 		t.Fatal(err)
+	}
+	proofMigration, err := cold.proofMigrationFor(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCanonical := bytes.TrimSpace(large)
+	if proofMigration.rawSHA != pqLabSHA(large) || !bytes.Equal(proofMigration.canonical, wantCanonical) {
+		t.Fatal("held proof canonicalization changed the raw digest or canonical verifier input")
+	}
+	again, err := cold.proofMigrationFor(original)
+	if err != nil || again != proofMigration {
+		t.Fatal("same live owner reconstructed the proof migration", err)
+	}
+	planForProof := ProofHostSourcePlan{MigrationFile: plan.MigrationFile, MigrationSHA256: proofMigration.rawSHA,
+		GenesisFile: plan.GenesisFile, ConsensusGenesisSHA256: plan.CometGenesisSHA256,
+		OriginalGenesisHash: plan.OriginalGenesisHash, MigrationStateHash: plan.MigrationStateHash,
+		ScheduleFile: cold.activation.ScheduleFile, ScheduleSHA256: pqLabSHA(cold.schedule), ScheduleHash: cold.activation.ScheduleHash}
+	owned, err := loadProofHostInputsWithMigration(planForProof, plan.ChainID, proofMigration)
+	if err != nil || owned.originals["migration"] != proofMigration.original || owned.bootstrap != original.witness.bootstrap {
+		t.Fatal("derived plan did not use its exact original migration and immutable bootstrap", err)
+	}
+	if err := owned.close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := loadProofHostInputsWithMigration(planForProof, "different-chain", proofMigration); err == nil {
+		t.Fatal("held proof migration was rebound to a different chain")
+	}
+	changedPin := planForProof
+	changedPin.MigrationSHA256 = strings.Repeat("a", 64)
+	if _, err := loadProofHostInputsWithMigration(changedPin, plan.ChainID, proofMigration); err == nil {
+		t.Fatal("held proof migration accepted a different raw source digest")
+	}
+	if err := cold.current(); err != nil {
+		t.Fatal("closing borrowed proof input must leave the original owner current", err)
 	}
 	// Same bytes and restored mtime are still a new change epoch. The retained
 	// witness cannot turn a current-file refusal into a cache hit or rebase.
