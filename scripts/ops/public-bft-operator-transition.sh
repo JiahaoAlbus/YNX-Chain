@@ -195,21 +195,28 @@ PY
     remote_stage="$remote_parent/$phase"
     local upload="$remote_stage/source.tar.gz" extracted="$remote_stage/source" extract_command='' receipt="$role.result"
     if [[ "$transition_action" == prepare ]]; then receipt="$role.prepared"; fi
-    if [[ "$transition_action" != complete ]]; then
-      ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; sudo mkdir -p '$remote_parent'; sudo test \"\$(realpath -e '$remote_parent')\" = '$remote_parent'; free=\$(df -PB1 '$remote_parent' | awk 'NR==2 {print \$4}'); test \"\$free\" -gt '$((size * 2 + 1073741824))'; sudo mkdir -m 0700 '$remote_stage'; sudo chown \"\$(id -un)\" '$remote_stage'; (set -o noclobber; : > '$upload')" >"$phase_root/$role.reserve.txt"
-      ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$upload"
+    if [[ "$transition_action" == signer-preflight ]]; then receipt="$role.signer-preflight"; fi
+    if [[ "$transition_action" != complete && ! ( "$phase" == start && "$transition_action" == run ) ]]; then
+      ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; sudo mkdir -p '$remote_parent'; sudo test \"\$(realpath -e '$remote_parent')\" = '$remote_parent'; free=\$(df -PB1 '$remote_parent' | awk 'NR==2 {print \$4}'); test \"\$free\" -gt '$((size * 2 + 1073741824))'; sudo mkdir -m 0700 '$remote_stage'; sudo chown \"\$(id -un)\" '$remote_stage'; (set -o noclobber; : > '$upload')" >"$phase_root/$role.reserve.txt" || return $?
+      ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$upload" || return $?
       if [[ "$bridge" == 1 ]]; then
-        ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0700 '$extracted/bin'" >"$phase_root/$role.stage.txt"
-        public_bft_linux_stage "$role" "transition-$phase"
+        ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0700 '$extracted/bin'" >"$phase_root/$role.stage.txt" || return $?
+        public_bft_linux_stage "$role" "transition-$phase" || return $?
       else
         extract_command="sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0755 '$extracted/bin/ynx-comet' '$extracted/bin/ynx-consensus-package' '$extracted/bin/ynx-consensus-keycheck';"
       fi
     fi
     # Mark dispatch before SSH: lost replies are UNKNOWN even if no remote
     # success receipt reached this host. No phase retries or automatic undo.
-    (set -o noclobber; printf '%s\n' "$archive_pin" >"$phase_root/$role.$transition_action.dispatched")
-    operator_transition_sync "$phase_root/$role.$transition_action.dispatched" "$phase_root"
-    (set -o noclobber; ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; $extract_command sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin' '$transition_action'" >"$phase_root/$receipt.partial" 2>"$phase_root/$role.$transition_action.error.txt")
+    (set -o noclobber; printf '%s\n' "$archive_pin" >"$phase_root/$role.$transition_action.dispatched") || return $?
+    operator_transition_sync "$phase_root/$role.$transition_action.dispatched" "$phase_root" || return $?
+    (set -o noclobber; ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; $extract_command sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin' '$transition_action'" >"$phase_root/$receipt.partial" 2>"$phase_root/$role.$transition_action.error.txt") || return $?
+    if [[ "$transition_action" == signer-preflight ]]; then
+      cmp "$phase_root/$role.binding.json" "$phase_root/$receipt.partial" >/dev/null || return $?
+      ln "$phase_root/$receipt.partial" "$phase_root/$receipt.json" || return $?
+      operator_transition_sync "$phase_root/$receipt.json" "$phase_root"
+      return
+    fi
     python3 -B - "$phase_root/$role.binding.json" "$phase_root/$receipt.partial" "$transition_action" <<'PY'
 import json,sys
 b,r=(json.load(open(p)) for p in sys.argv[1:3]); assert r['version']=='YNX-OPERATOR-TRANSITION-RESULT/v1'
@@ -236,6 +243,19 @@ for role in ('primary','singapore','silicon-valley','seoul'):
     if key!=expected: raise SystemExit('original stopped checkpoints differ; all files retained, explicit reconciliation required, no automatic bootstrap restart')
 PY
   else
+    if [[ "$phase" == start ]]; then
+      # Validate both the original stage and every signer receipt on its own
+      # host before allowing any of the four starts.
+      transition_action=signer-preflight
+      dispatch_operator_transition primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" full || return $?
+      dispatch_operator_transition singapore "$SG_NODE_USER" "$SG_NODE_HOST" "$SG_NODE_SSH_KEY" validator || return $?
+      dispatch_operator_transition silicon-valley "$SILICON_VALLEY_NODE_USER" "$SILICON_VALLEY_NODE_HOST" "$SILICON_VALLEY_NODE_SSH_KEY" validator || return $?
+      dispatch_operator_transition seoul "$SEOUL_NODE_USER" "$SEOUL_NODE_HOST" "$SEOUL_NODE_SSH_KEY" validator || return $?
+      for role in primary singapore silicon-valley seoul; do
+        cmp "$phase_root/$role.binding.json" "$phase_root/$role.signer-preflight.json" >/dev/null || return $?
+      done
+      transition_action=run
+    fi
     ynx_ops_each_node dispatch_operator_transition
   fi
   printf 'operator transition phase=%s complete; original state/HRS retained; activation and independent finality are not established by process status\n' "$phase"

@@ -987,6 +987,102 @@ class SignerInstallerCLIControls(unittest.TestCase):
                 self.assertEqual(stopped.exception.code,2);run.assert_not_called();self.assertEqual(out.getvalue(),'')
 
 
+class OriginalSignerInstallReceiptContractTests(unittest.TestCase):
+    """Real main/run/render/writer; only host observations use the old fixture.
+
+    These are inert runtime headers and no private body may be opened. The
+    resulting receipt is install DATA, not startup, custody or authorization.
+    """
+    def fixture(self):
+        temporary = tempfile.TemporaryDirectory(prefix='ynx-signer-cli-receipt-')
+        self.addCleanup(temporary.cleanup)
+        f = Fixture(Path(temporary.name).resolve(), 'original')
+        f.unix_fd()
+        f.args.install = True
+        return f
+
+    def invoke(self, f, output):
+        argv = []
+        for name, value in vars(f.args).items():
+            if name != 'install': argv.extend(['--' + name.replace('_', '-'), str(value)])
+        argv.append('--install')
+        original_run = installer.run
+        def actual_run_with_original_host_observation(args):
+            self.assertEqual(vars(args), vars(f.args))
+            f.args = args
+            return f.run(SimpleNamespace(run=original_run))
+        # Inject only the same existing HostObservations at run's normal host
+        # seam. main still parses every original argument; run is not stubbed.
+        with mock.patch.object(installer, 'run', side_effect=actual_run_with_original_host_observation), \
+                contextlib.redirect_stdout(output):
+            installer.main(argv)
+
+    def test_original_cli_install_receipt_is_complete_durable_data_for_explicit_prestart(self):
+        f = self.fixture()
+        before = {Path(p): Path(p).read_bytes() for p in f.forbidden}
+        output = io.StringIO()
+        self.invoke(f, output)
+        saved = (Path(f.args.output_dir) / 'receipt.json').read_bytes()
+        self.assertEqual(output.getvalue().encode(), saved)
+        receipt = installer.decode(saved)
+        fields = {'version', 'role', 'runtimeCommit', 'runtimeSOURCEsha256', 'operatorPlanSHA256',
+                  'originalConfigSHA256', 'renderedConfigSHA256', 'unitSHA256', 'encryptedCredentialSHA256',
+                  'installed', 'runtimeStarted', 'publicDeployment', 'pqActivation', 'nativeRootAuthorized',
+                  'privateKeyCheckPerformed', 'sandboxReadonlyValidated', 'freshnessVerified',
+                  'credentialInstalled', 'custodyProvisioned', 'installedFiles'}
+        self.assertEqual(set(receipt), fields)
+        self.assertEqual(receipt['version'], 'YNX-PQ-REMOTE-SIGNER-INSTALL-DATA/v1')
+        for field, arg in [('role', 'role'), ('runtimeCommit', 'runtime_commit'),
+                           ('runtimeSOURCEsha256', 'runtime_source_sha256'), ('operatorPlanSHA256', 'operator_plan_sha256'),
+                           ('originalConfigSHA256', 'config_sha256'), ('unitSHA256', 'unit_sha256'),
+                           ('encryptedCredentialSHA256', 'credential_sha256')]:
+            self.assertEqual(receipt[field], getattr(f.args, arg))
+        self.assertIs(receipt['installed'], True)
+        for field in ('runtimeStarted', 'publicDeployment', 'pqActivation', 'nativeRootAuthorized',
+                      'privateKeyCheckPerformed', 'sandboxReadonlyValidated', 'freshnessVerified',
+                      'credentialInstalled', 'custodyProvisioned'):
+            self.assertIs(receipt[field], False)
+        paths = [f.host.destination(installer.TARGETS[k]) for k in ('binary', 'launcher', 'config', 'unit')]
+        self.assertEqual(len(receipt['installedFiles']), 4)
+        for path, entry in zip(paths, receipt['installedFiles']):
+            self.assertEqual(set(entry), {'path', 'bytes', 'sha256'})
+            self.assertEqual(entry, {'path': str(path), 'bytes': path.stat().st_size, 'sha256': sha(path.read_bytes())})
+        self.assertEqual(receipt['renderedConfigSHA256'], receipt['installedFiles'][2]['sha256'])
+        intent = installer.decode((Path(f.args.output_dir) / 'intent.json').read_bytes())
+        self.assertEqual(set(intent), fields - {'installedFiles'} | {'status', 'automaticRetry'})
+        self.assertEqual(intent, {**{k:v for k,v in receipt.items() if k != 'installedFiles'},
+                                  'installed': False, 'status': 'unknown', 'automaticRetry': False})
+        for path, value in before.items(): self.assertEqual(path.read_bytes(), value)
+        self.assertTrue(all(event[0] == 'read-only-host-observation' for event in f.host.events))
+
+    def test_original_cli_lost_stdout_preserves_receipt_and_refuses_second_install(self):
+        f = self.fixture()
+        class LostAck(io.StringIO):
+            def write(self, value): raise BrokenPipeError('controlled original stdout loss')
+        with self.assertRaisesRegex(BrokenPipeError, 'stdout loss'):
+            self.invoke(f, LostAck())
+        receipt = Path(f.args.output_dir) / 'receipt.json'
+        raw = receipt.read_bytes()
+        self.assertIs(installer.decode(raw)['installed'], True)
+        output = io.StringIO()
+        with self.assertRaisesRegex(ValueError, 'EXISTING_INSTALL_OR_UNKNOWN'):
+            self.invoke(f, output)
+        self.assertEqual(output.getvalue(), '')
+        self.assertEqual(receipt.read_bytes(), raw)
+
+    def test_original_cli_wrong_independent_inputs_or_stale_unit_never_publishes_receipt(self):
+        for kind in ('operator_plan_sha256', 'config_sha256', 'unit_sha256', 'credential_sha256', 'stale-unit'):
+            with self.subTest(kind=kind):
+                f = self.fixture()
+                if kind == 'stale-unit': f.host.existing_unit = True
+                else: setattr(f.args, kind, 'f' * 64)
+                output = io.StringIO()
+                with self.assertRaises(ValueError): self.invoke(f, output)
+                self.assertEqual(output.getvalue(), '')
+                self.assertFalse(Path(f.args.output_dir).exists())
+                self.assertEqual(f.host.owners, [])
+
+
 class OriginalBootstrapCustodyBoundaryTests(unittest.TestCase):
     """Actual input callee with inert files, never host custody or a daemon."""
 

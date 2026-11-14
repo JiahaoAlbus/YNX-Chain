@@ -594,4 +594,20 @@ python3 -B "$repo/scripts/ops/test_public_bft_transition_capacity.py"
 
 # Actual inode/flock/fsync/no-replace controls with inert custody and explicit
 # service/UID/keycheck doubles; not a service or signing qualification.
+python3 -B - "$repo/scripts/ops/public-bft-operator-transition.sh" "$repo/scripts/ops/remote/public-bft-operator-transition.sh" <<'PYSIGNER'
+import pathlib, sys
+local, remote = [pathlib.Path(p).read_text() for p in sys.argv[1:]]
+barrier = local.index('transition_action=signer-preflight')
+start = local.index('transition_action=run', barrier)
+for role in ('primary', 'singapore', 'silicon-valley', 'seoul'):
+    assert 'dispatch_operator_transition '+role+' ' in local[barrier:start]
+assert '$role.signer-preflight.json' in local[barrier:start]
+mode = remote.index('if [[ "$action" == signer-preflight ]]')
+attempt = remote.index('attempt="$root/$phase-attempt"', mode)
+assert 'operator_transition_cold_custody signer-installation' in remote[mode:attempt]
+assert 'systemctl start' not in remote[mode:attempt]
+loaded = remote.index('operator_transition_require_loaded_signer || return')
+assert remote.index('operator_transition_cold_custody signer-installation || return', attempt) < loaded
+assert loaded < remote.index('30 systemctl start "$unit"', loaded)
+PYSIGNER
 python3 -B "$repo/scripts/ops/test_public_bft_cold_custody.py"

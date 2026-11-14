@@ -169,6 +169,67 @@ class OriginalColdCustodyTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         return Fixture(temporary.name)
 
+    def test_installer_receipt_pins_original_role_outputs_and_never_grants_authority(self):
+        f = self.fixture()
+        env = f.install / 'remote-signer-install'
+        env.mkdir(mode=0o700)
+        b = f.b
+        b['scheduleHash'] = 'f' * 64
+        paths = {name: str(f.root / 'signer-files' / name) for name in ('binary','launcher','config','unit','credential')}
+        cfg = {'legacyKey': b['custodyHandoff']['legacyKeyPath'], 'legacyState': b['originalRole']['legacyStatePath'],
+               'abciState': b['originalRole']['abciState'], 'scheduleHash': b['scheduleHash']}
+        bodies = dict(binary=b'inert binary',launcher=b'inert launcher',config=raw(cfg),
+                      unit=b'inert unit',credential=b'inert encrypted credential')
+        pins = {}
+        for name,mode in (('binary',0o755),('launcher',0o755),('config',0o640),('unit',0o644),('credential',0o600)):
+            pins[name]=write(Path(paths[name]),bodies[name])
+            Path(paths[name]).chmod(mode)
+        daemon='ynx-consensus-pq-remote-signer'
+        source=f.install/'operator-runtime-SOURCE.json'
+        b['runtimeManifestSHA256']=write(source,{'binaries':{daemon:{'sha256':pins['binary']}},
+            'operator':{daemon+'-launch.sh':{'sha256':pins['launcher']}}})
+        receipt=dict(version='YNX-PQ-REMOTE-SIGNER-INSTALL-DATA/v1',role=b['role'],runtimeCommit=b['runtimeCommit'],
+                     runtimeSOURCEsha256=b['runtimeManifestSHA256'],operatorPlanSHA256=b['nextOperatorPlanSHA256'],
+                     originalConfigSHA256='a'*64,renderedConfigSHA256=pins['config'],unitSHA256=pins['unit'],
+                     encryptedCredentialSHA256=pins['credential'],installed=True,
+                     installedFiles=[dict(path=paths[name],bytes=len(bodies[name]),sha256=pins[name])
+                                     for name in ('binary','launcher','config','unit')])
+        for name in ('runtimeStarted','publicDeployment','pqActivation','nativeRootAuthorized','privateKeyCheckPerformed',
+                     'sandboxReadonlyValidated','freshnessVerified','credentialInstalled','custodyProvisioned'):
+            receipt[name]=False
+        receipt_file=env/'receipt.json'
+        intent_file=env/'intent.json'
+        def publish(value, bind=True):
+            intent={k:v for k,v in value.items() if k!='installedFiles'}
+            intent.update(installed=False,status='unknown',automaticRetry=False)
+            for p in (receipt_file,intent_file):
+                if p.exists():p.unlink()
+            receipt_pin=write(receipt_file,value)
+            write(intent_file,intent)
+            if bind:b['signerInstallReceiptSHA256']=receipt_pin
+        publish(receipt)
+        f.m.signer_installation(b,f.install,source,paths)
+        for name,mutated,bind in (
+            ('actual pin',dict(receipt,originalConfigSHA256='c'*64),False),
+            ('role',dict(receipt,role='seoul'),True),
+            ('runtime',dict(receipt,runtimeCommit='b'*40),True),
+            ('plan',dict(receipt,operatorPlanSHA256='c'*64),True),
+            ('authority',dict(receipt,pqActivation=True),True),
+            ('missing file',dict(receipt,installedFiles=receipt['installedFiles'][:-1]),True),
+        ):
+            with self.subTest(name=name):
+                publish(mutated,bind)
+                with self.assertRaises(ValueError):f.m.signer_installation(b,f.install,source,paths)
+                publish(receipt)
+        for leaf in ('binary','launcher','config','unit','credential'):
+            with self.subTest(replaced=leaf):
+                file=Path(paths[leaf]);mode=file.stat().st_mode & 0o777
+                file.unlink();write(file,b'substituted');file.chmod(mode)
+                with self.assertRaises(ValueError):f.m.signer_installation(b,f.install,source,paths)
+                file.unlink();write(file,bodies[leaf]);file.chmod(mode)
+        intent_file.unlink()
+        with self.assertRaises(FileNotFoundError):f.m.signer_installation(b,f.install,source,paths)
+
     def test_actual_same_inode_rename_two_locks_and_readonly_start_verification(self):
         f = self.fixture()
         f.transfer()
@@ -342,16 +403,16 @@ class OriginalColdCustodyTests(unittest.TestCase):
         approval = json.loads((root / 'install.json').read_bytes())
         pins = json.loads((root / 'pins.json').read_bytes())
 
-        def invoke(old, new, change=None):
+        def invoke(old, new, change=None, phase='install', **extra):
             def update(path, value):
                 path.write_bytes(raw(value)); return hashlib.sha256(path.read_bytes()).hexdigest()
             oldpin = update(root / 'old/common/operator-plan.json', old)
             newpin = update(root / 'next/common/operator-plan.json', new)
-            a = dict(approval, oldOperatorPlanSHA256=oldpin, nextOperatorPlanSHA256=newpin)
+            a = dict(approval, phase=phase, oldOperatorPlanSHA256=oldpin, nextOperatorPlanSHA256=newpin, **extra)
             apin = update(root / 'install.json', a)
             if change: change()
             argv = ['bash', '-c', 'set -Eeuo pipefail; source "$1"; shift; operator_transition_binding "$@"',
-                    '--', str(SOURCE), 'install', a['transitionId'], 'primary', str(root / 'install.json'), apin,
+                    '--', str(SOURCE), phase, a['transitionId'], 'primary', str(root / 'install.json'), apin,
                     str(root / 'old'), oldpin, str(root / 'old-SOURCE.json'), 'a' * 40, pins['oldManifest'],
                     str(root / 'next'), newpin, str(root / 'SOURCE.json'), '8' * 40, pins['manifest']]
             return subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
@@ -367,6 +428,16 @@ class OriginalColdCustodyTests(unittest.TestCase):
         accepted = invoke(original, target)
         self.assertEqual(accepted.returncode, 0, accepted.stderr)
         self.assertEqual(json.loads(accepted.stdout)['custodyHandoff']['version'], 'YNX-ORIGINAL-SIGNER-CUSTODY/v1')
+        receipts = {row['role']: '9' * 64 for row in target['roles']}
+        start = invoke(original, target, phase='start', signerInstallReceiptSHA256ByRole=receipts)
+        self.assertEqual(start.returncode, 0, start.stderr)
+        self.assertEqual(json.loads(start.stdout)['signerInstallReceiptSHA256'], receipts['primary'])
+        for phase, extra in (('start',{}),('start',{'signerInstallReceiptSHA256ByRole':{'primary':'9'*64}}),
+                             ('install',{'signerInstallReceiptSHA256ByRole':receipts})):
+            with self.subTest(phase=phase,extra=extra):
+                denied=invoke(original,target,phase=phase,**extra)
+                self.assertNotEqual(denied.returncode,0)
+                self.assertEqual(denied.stdout,b'')
         for field in ('legacyKeyPath', 'legacyStatePath', 'nodeKeyPath'):
             changed = copy.deepcopy(target); changed['roles'][0][field] += '-wrong'
             rejected = invoke(original, changed)

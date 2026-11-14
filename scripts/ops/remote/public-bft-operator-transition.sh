@@ -50,7 +50,8 @@ try:
     for s in (approvalpin,oldpin,oldmanifest,manifest): need(pin(s),'missing independent pin')
     raw,a=read(approval); need(sha(raw)==approvalpin,'approval differs from external pin')
     keys={'version','transitionId','phase','approved','oldOperatorPlanSHA256','oldRuntimeCommit','oldRuntimeManifestSHA256','nextOperatorPlanSHA256','runtimeCommit','runtimeManifestSHA256','cutoverTransactionId','freezeSHA256','nativePauseSHA256','checkpoint','backups'}
-    need(set(a) in (keys,keys|{'futureTargetHeight'}) and a['version']=='YNX-OPERATOR-TRANSITION-APPROVAL/v1' and a['transitionId']==tx and a['phase']==phase and a['approved'] is True,'exact phase approval required')
+    optional={'futureTargetHeight','signerInstallReceiptSHA256ByRole'}
+    need(keys<=set(a)<=keys|optional and a['version']=='YNX-OPERATOR-TRANSITION-APPROVAL/v1' and a['transitionId']==tx and a['phase']==phase and a['approved'] is True,'exact phase approval required')
     need((a['oldOperatorPlanSHA256'],a['oldRuntimeCommit'],a['oldRuntimeManifestSHA256'],a['runtimeCommit'],a['runtimeManifestSHA256'])==(oldpin,oldcommit,oldmanifest,commit,manifest),'approval/runtime/old plan mismatch')
     need(re.fullmatch('[0-9a-f]{40}',commit) and re.fullmatch('[0-9a-f]{40}',oldcommit),'full runtime commits required')
     need(type(a['freezeSHA256']) is dict and set(a['freezeSHA256'])==set(roles) and all(pin(v) for v in a['freezeSHA256'].values()) and pin(a['nativePauseSHA256']),'all original freeze/pause pins required')
@@ -77,7 +78,7 @@ try:
         need(decimal(future) and int(future)<2**63-1,'enabled halt requires one independently approved futureTargetHeight string')
     else:
         need('futureTargetHeight' not in a,'future target is only valid for an enabled quiesce plan')
-    target=old; schedule=None
+    target=old; schedule=None; handoffs=set()
     if phase=='quiesce':
         need(newpkg=='-' and newpin=='-' and a['nextOperatorPlanSHA256'] is None and a['checkpoint'] is None and a['backups'] is None,'quiesce cannot assert a future self-trusted checkpoint')
     else:
@@ -97,11 +98,17 @@ try:
                 base='/etc/ynx/consensus-candidate/'+name
                 need(previous['legacyKeyPath']==base+'/priv_validator_key.json' and previous['legacyStatePath']==base+'/priv_validator_state.json' and previous['nodeKeyPath']==base+'/node_key.json','cold handoff requires the exact original same-role custody')
                 need(current['legacyKeyPath']=='/etc/ynx/consensus-pq-legacy/'+name+'/priv_validator_key.json' and current['nodeKeyPath']=='/etc/ynx/consensus-pq-engine/'+name+'/node_key.json','cold handoff destinations differ from the fixed same-role profile')
+                handoffs.add(name)
         schedule=json.loads(base64.b64decode(target['pqSchedule'],validate=True),object_pairs_hook=unique)
         cp=a['checkpoint']; need(type(cp) is dict and set(cp)=={'height','appHash','registryRoot','registryEventCount'} and decimal(cp['height']) and decimal(cp['registryEventCount']) and pin(cp['appHash']) and pin(cp['registryRoot']),'independent stopped checkpoint required')
         need(schedule['registryHeight']==int(cp['height']) and schedule['registryRoot']==cp['registryRoot'] and schedule['registryEventCount']==int(cp['registryEventCount']),'new schedule differs from approved exact committed registry')
         need(schedule['authorizedAt']==int(cp['height'])+1 and schedule['paramsUpdateHeight']==schedule['authorizedAt'] and schedule['validatorUpdateHeight']==schedule['activationHeight']-2 and schedule['activationHeight']>=schedule['authorizedAt']+3,'P/U/A order differs')
         need(type(a['backups']) is dict and set(a['backups'])==set(roles) and all(pin(v) for v in a['backups'].values()),'independent original stopped backup pins required')
+    receipts=a.get('signerInstallReceiptSHA256ByRole')
+    if phase=='start' and handoffs:
+        need(type(receipts) is dict and set(receipts)==handoffs and all(pin(v) for v in receipts.values()),'start requires independent signer install receipt pins for all changed custody roles')
+    else:
+        need('signerInstallReceiptSHA256ByRole' not in a,'signer install receipt pins are only valid for approved cold custody start')
     r=oldroles[role]
     for k in ('home','abciState','legacyKeyPath','legacyStatePath','nodeKeyPath'):
         need(re.fullmatch('/[A-Za-z0-9_./-]+',r[k]) and str(pathlib.PurePosixPath(r[k]))==r[k] and '..' not in pathlib.PurePosixPath(r[k]).parts,'unsafe original path')
@@ -109,6 +116,7 @@ try:
     out['oldKeycheckSHA256']=oldsrc['binaries']['ynx-consensus-keycheck']['sha256']
     if phase!='quiesce' and any(oldroles[role][k]!=newroles[role][k] for k in ('legacyKeyPath','nodeKeyPath')):
         out['custodyHandoff']=dict(version='YNX-ORIGINAL-SIGNER-CUSTODY/v1',legacyKeyPath=newroles[role]['legacyKeyPath'],nodeKeyPath=newroles[role]['nodeKeyPath'],legacyStatePath=r['legacyStatePath'])
+        if phase=='start':out['signerInstallReceiptSHA256']=receipts[role]
     need(all(pin(out[k]) for k in ('oldCometSHA256','oldKeycheckSHA256','cometSHA256','packageVerifierSHA256','keycheckSHA256')),'full binary pins required')
     out.update(quiesceMode='height-halt' if halt_session else 'parallel-stop',heightHaltSessionId=halt_session,futureTargetHeight=future)
     print(json.dumps(out,separators=(',',':'),sort_keys=True))
@@ -711,15 +719,101 @@ def verify(b,qroot,install,binary,newmanifest,host):
             if path!=nextnode:need(list(inode(info))==result['originalInodes'][str(original_path)],'original custody inode changed before signer startup')
         host.keycheck(binary,newmanifest,target,nextnode,b['keycheckSHA256'])
         host.inactive()
+def signer_installation(b, install, source_path, paths=None):
+    """Admit the normal installer receipt and read back its exact host files."""
+    daemon='ynx-consensus-pq-remote-signer'
+    paths=paths or dict(binary='/usr/local/libexec/'+daemon,launcher='/usr/local/libexec/'+daemon+'-launch',
+                        config='/etc/ynx/consensus-pq-remote-signer.conf',unit='/etc/systemd/system/'+daemon+'.service',
+                        credential='/etc/credstore.encrypted/ynx-pq-recovery')
+    evidence=install/'remote-signer-install'
+    for directory in (install,evidence):
+        info=directory.lstat()
+        need(directory.resolve(strict=True)==directory and stat.S_ISDIR(info.st_mode)
+             and info.st_uid==os.geteuid() and stat.S_IMODE(info.st_mode)==0o700,'original private signer installation evidence required')
+    def original_evidence(name):
+        p=evidence/name;info=p.lstat()
+        need(info.st_uid==os.geteuid() and stat.S_IMODE(info.st_mode)==0o600,'original protected installer record required')
+        return original(p,16<<10)
+    raw=original_evidence('receipt.json')
+    need(sha(raw)==b['signerInstallReceiptSHA256'],'installed signer receipt differs from independent start approval')
+    r=decode(raw); intent=decode(original_evidence('intent.json'))
+    needed={'version','role','runtimeCommit','runtimeSOURCEsha256','operatorPlanSHA256','originalConfigSHA256',
+            'renderedConfigSHA256','unitSHA256','encryptedCredentialSHA256','installed','installedFiles',
+            'runtimeStarted','publicDeployment','pqActivation','nativeRootAuthorized','privateKeyCheckPerformed',
+            'sandboxReadonlyValidated','freshnessVerified','credentialInstalled','custodyProvisioned'}
+    need(set(r)==needed and r['version']=='YNX-PQ-REMOTE-SIGNER-INSTALL-DATA/v1' and r['installed'] is True,
+         'incomplete original signer installation receipt')
+    for k in ('runtimeStarted','publicDeployment','pqActivation','nativeRootAuthorized','privateKeyCheckPerformed',
+              'sandboxReadonlyValidated','freshnessVerified','credentialInstalled','custodyProvisioned'):
+        need(r[k] is False,'signer installation receipt cannot grant authority')
+    expected=dict(r);del expected['installedFiles']
+    expected.update(installed=False,status='unknown',automaticRetry=False)
+    need(intent==expected and intent['installed'] is False and intent['automaticRetry'] is False,
+         'signer installation differs from original exclusive intent')
+    need((r['role'],r['runtimeCommit'],r['runtimeSOURCEsha256'],r['operatorPlanSHA256'])==
+         (b['role'],b['runtimeCommit'],b['runtimeManifestSHA256'],b['nextOperatorPlanSHA256']),
+         'signer installation role, runtime or next operator plan differs')
+    source=original(source_path,128<<10)
+    need(sha(source)==b['runtimeManifestSHA256'],'original installer runtime source differs')
+    source=decode(source)
+    need(type(r['installedFiles']) is list and len(r['installedFiles'])==4,'complete exact installed signer file set required')
+    got={record['path']:record for record in r['installedFiles']}
+    need(len(r['installedFiles'])==len(got)==4 and set(got)=={paths[k] for k in ('binary','launcher','config','unit')},
+         'complete exact installed signer file set required')
+    pins={'binary':source['binaries'][daemon]['sha256'],'launcher':source['operator'][daemon+'-launch.sh']['sha256'],
+          'config':r['renderedConfigSHA256'],'unit':r['unitSHA256'],'credential':r['encryptedCredentialSHA256']}
+    for name,expected_pin in pins.items():
+        file=P(paths[name]);before=file.lstat()
+        need(before.st_uid==os.geteuid() and stat.S_IMODE(before.st_mode)=={'binary':0o755,'launcher':0o755,'config':0o640,'unit':0o644,'credential':0o600}[name],
+             'installed original signer file ownership or mode differs')
+        if name in ('binary','credential'):
+            fd=os.open(file,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+            with os.fdopen(fd,'rb') as held_file:
+                need(file.resolve(strict=True)==file and stat.S_ISREG(before.st_mode) and before.st_nlink==1
+                     and 0<before.st_size<=(128<<20 if name=='binary' else 1<<20)
+                     and identity(os.fstat(held_file.fileno()))==identity(before),'installed signer file changed while opening')
+                actual=hashlib.file_digest(held_file,'sha256').hexdigest()
+                need(identity(os.fstat(held_file.fileno()))==identity(before),'installed signer file changed while reading')
+        else:
+            body=original(file,1<<20)
+            actual=sha(body)
+        need(actual==expected_pin and identity(file.lstat())==identity(before),'installed original signer file differs')
+        if name!='credential':
+            need(got[str(file)]==dict(path=str(file),bytes=before.st_size,sha256=expected_pin),'installed signer file receipt pin differs')
+        if name=='config':
+            config=decode(body)
+            need(config['legacyKey']==b['custodyHandoff']['legacyKeyPath'] and config['legacyState']==b['originalRole']['legacyStatePath']
+                 and config['abciState']==b['originalRole']['abciState'] and config['scheduleHash']==b['scheduleHash'],
+                 'installed signer configuration differs from original custody or schedule')
+    need(original_evidence('receipt.json')==raw,'signer installation receipt changed while verifying')
 def main():
     need(sys.platform=='linux' and os.geteuid()==0,'normal original Linux root operator required')
     mode,bpath,qroot,install,binary,oldmanifest,newmanifest=sys.argv[1:]
-    need(mode in ('transfer','verify'),'fixed custody action required')
-    b=decode(original(bpath))
+    need(mode in ('transfer','verify','signer-installation'),'fixed custody action required')
+    if bpath=='-':
+        need(mode=='signer-installation','only the read-only signer barrier accepts a projection descriptor')
+        with os.fdopen(8,'rb') as f:raw=f.read((1<<20)+1)
+        need(0<len(raw)<=1<<20,'bounded verified start projection required')
+    else:raw=original(bpath)
+    b=decode(raw)
     if mode=='transfer':transfer(b,P(qroot),P(install),P(binary),P(oldmanifest),P(newmanifest),Host())
-    else:verify(b,P(qroot),P(install),P(binary),P(newmanifest),Host())
+    elif mode=='verify':verify(b,P(qroot),P(install),P(binary),P(newmanifest),Host())
+    elif descriptor(b) is not None:signer_installation(b,P(install),P(install)/'operator-runtime-SOURCE.json')
 if __name__=='__main__':main()
 PYCUSTODY
+}
+
+operator_transition_require_loaded_signer() {
+  local signer=ynx-consensus-pq-remote-signer.service
+  systemctl daemon-reload || return $?
+  [[ "$(systemctl show --property LoadState --value "$signer")" == loaded &&
+     "$(systemctl show --property ActiveState --value "$signer")" == inactive &&
+     "$(systemctl show --property MainPID --value "$signer")" == 0 &&
+     "$(systemctl show --property FragmentPath --value "$signer")" == "/etc/systemd/system/$signer" &&
+     -z "$(systemctl show --property DropInPaths --value "$signer")" &&
+     "$(systemctl show --property User --value "$signer")" == ynx-pq-signer &&
+     "$(systemctl show --property ExecStart --value "$signer")" == *'path=/usr/local/libexec/ynx-consensus-pq-remote-signer-launch ;'* ]] ||
+    operator_transition_fail 'original signer unit was not loaded exactly from its verified installation'
 }
 
 operator_transition_receipt() {
@@ -1065,7 +1159,7 @@ operator_transition_remote() {
   [[ "$#" == 18 && "$(id -u)" == 0 && "$(uname -s)" == Linux ]] || return 64
   local phase="$1" tx="$2" role="$3" stage="$4" approval_pin="$5" old_pin="$6" old_commit="$7" old_manifest="$8" next_pin="$9" commit="${10}" manifest="${11}" helper_pin="${12}" archive_pin="${13}" old_comet_pin="${14}" comet_pin="${15}" verifier_pin="${16}" keycheck_pin="${17}"
   local action="${18}"
-  [[ ( "$phase" == quiesce && ( "$action" == prepare || "$action" == complete ) ) || ( "$phase" != quiesce && "$action" == run ) ]] || return 64
+  [[ ( "$phase" == quiesce && ( "$action" == prepare || "$action" == complete ) ) || ( "$phase" != quiesce && "$action" == run ) || ( "$phase" == start && "$action" == signer-preflight ) ]] || return 64
   [[ "$stage" =~ ^/opt/ynx-chain/operator-transitions/[A-Za-z0-9._/-]+$ && "$stage" != *..* && "$(realpath -e "$stage")" == "$stage" ]]
   [[ "$(stat -c %u "$stage")" == 0 && "$(stat -c %a "$stage")" == 700 ]]
   [[ "$phase" == quiesce || "$phase" == install || "$phase" == start ]]
@@ -1074,11 +1168,23 @@ operator_transition_remote() {
   printf '%s  %s\n' "$helper_pin" "$stage/helper.sh" "$approval_pin" "$stage/approval.json" "$old_manifest" "$stage/old-SOURCE.json" "$manifest" "$stage/SOURCE.json" "$comet_pin" "$stage/bin/ynx-comet" "$verifier_pin" "$stage/bin/ynx-consensus-package" "$keycheck_pin" "$stage/bin/ynx-consensus-keycheck" | sha256sum --strict -c - >/dev/null
   local old_package="$stage/old-package" new_package=-
   [[ "$phase" == quiesce ]] || new_package="$stage/new-package"
-  "$stage/bin/ynx-consensus-package" -verify-package "$old_package" -operator-plan-hash "$old_pin" >/dev/null
-  if [[ "$phase" != quiesce ]]; then "$stage/bin/ynx-consensus-package" -verify-package "$new_package" -operator-plan-hash "$next_pin" >/dev/null; fi
   local root="/var/lib/ynx-chain/operator-transitions/$tx/$role" attempt binding unit=ynx-consensus-operator-candidate.service
   local candidate=/var/lib/ynx-chain/consensus-candidate unit_path="/etc/systemd/system/$unit"
   umask 077
+  if [[ "$action" == signer-preflight ]]; then
+    [[ -d "$root" && "$(realpath -e "$root")" == "$root" && "$(stat -c %u:%a "$root")" == 0:700 &&
+       ! -e "$root/start-attempt" && ! -L "$root/start-attempt" ]] || return 1
+    local preflight_binding
+    preflight_binding="$(operator_transition_binding "$phase" "$tx" "$role" "$stage/approval.json" "$approval_pin" "$old_package" "$old_pin" "$stage/old-SOURCE.json" "$old_commit" "$old_manifest" "$new_package" "$next_pin" "$stage/SOURCE.json" "$commit" "$manifest")" || return $?
+    binding=-
+    # Pass the exact verified projection through an already opened descriptor;
+    # this read-only barrier must not reserve or create a start attempt.
+    operator_transition_cold_custody signer-installation 8< <(printf '%s\n' "$preflight_binding") || return $?
+    printf '%s\n' "$preflight_binding"
+    return
+  fi
+  "$stage/bin/ynx-consensus-package" -verify-package "$old_package" -operator-plan-hash "$old_pin" >/dev/null
+  if [[ "$phase" != quiesce ]]; then "$stage/bin/ynx-consensus-package" -verify-package "$new_package" -operator-plan-hash "$next_pin" >/dev/null; fi
   mkdir -p /var/lib/ynx-chain/operator-transitions
   [[ "$(realpath -e /var/lib/ynx-chain/operator-transitions)" == /var/lib/ynx-chain/operator-transitions && "$(stat -c %u /var/lib/ynx-chain/operator-transitions)" == 0 && "$(stat -c %a /var/lib/ynx-chain/operator-transitions)" == 700 ]]
   local lock=/var/lib/ynx-chain/operator-transitions/.operator-switch.lock
@@ -1202,6 +1308,10 @@ for k,v in b['checkpoint'].items(): assert r['checkpoint'][k]==v
 PY
       operator_transition_installed "$new_package" "$comet_pin" "$keycheck_pin"
       operator_transition_cold_custody verify || return $?
+      operator_transition_cold_custody signer-installation || return $?
+      if operator_transition_value signerInstallReceiptSHA256 >/dev/null 2>&1; then
+        operator_transition_require_loaded_signer || return $?
+      fi
       # The normal factory, remote SecretConnection and durable signer acquire
       # their ORIGINAL leases. Failure never falls back to the old Ed profile.
       timeout --signal=TERM --kill-after=5 30 systemctl start "$unit"
