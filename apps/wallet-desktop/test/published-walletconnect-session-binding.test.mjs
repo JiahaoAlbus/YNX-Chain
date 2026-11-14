@@ -28,7 +28,7 @@ function storage() {
   const records = new Map();
   return { records, async getItem(key) { return structuredClone(records.get(key)); }, async setItem(key, value) { records.set(key, structuredClone(value)); } };
 }
-async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [],pendingProposals=[],pair=async()=>{},pairDeadlineMs=30000,store = storage(), disconnect = async () => {}, handlers: callbacks = {} } = {}) {
+async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCOUNT_B)], pendingRequests = [],pendingProposals=[],pair=async()=>{},pairDeadlineMs=30000,store = storage(), disconnect = async () => {}, clock=()=>NOW,handlers: callbacks = {} } = {}) {
   const active = Object.fromEntries(sessions.map(value => [value.topic, value]));
   const handlers = new Map(), responses = [], events = [], approvals = [];
   const kit = {
@@ -42,7 +42,7 @@ async function fixture({ sessions = [session("topic-a"), session("topic-b", ACCO
     async emitSessionEvent(event) { events.push(event); },
     async approveSession(input) { approvals.push(input); const approved = { ...session("approved-topic"), namespaces: input.namespaces }; active[approved.topic] = approved; return approved; }
   };
-  const transport = new WalletConnectTransport({ projectId: "synthetic-project-id", metadata: { name: "Synthetic Wallet", url: "https://wallet.example" }, walletKitFactory: async () => kit, clock: () => NOW,pairDeadlineMs });
+  const transport = new WalletConnectTransport({ projectId: "synthetic-project-id", metadata: { name: "Synthetic Wallet", url: "https://wallet.example" }, walletKitFactory: async () => kit, clock,pairDeadlineMs });
   await transport.start(callbacks);
   return { transport, kit, active, handlers, responses, events, approvals, store };
 }
@@ -215,4 +215,35 @@ test("Desktop cold unknown/quarantined, missing/conflicting expiry and unsafe ve
 test("Desktop approval arriving after lock retires that exact session and cannot become current",async()=>{
  const f=await fixture({sessions:[]}),value=proposal(801,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});await f.transport.pair(pairUri("c".repeat(64)));await f.handlers.get("session_proposal")(value);await f.transport.bindProposalAccount(801,ACCOUNT_A);await f.transport.decideProposal(801,ACCOUNT_A);
  const deferred=Promise.withResolvers();f.kit.approveSession=()=>deferred.promise;let locked=false;const approving=f.transport.approveSession(801,ACCOUNT_A,()=>{if(locked)throw new Error("locked");});locked=true;deferred.resolve({...session("late-approved"),namespaces:{eip155:{accounts:[`${WALLETCONNECT_CHAIN}:${ACCOUNT_A}`],methods:["personal_sign"],events:[]}}});await assert.rejects(approving,/locked/);assert.throws(()=>f.transport.sessionOrigin("late-approved"));
+});
+test("fallback approval never enters SDK if the wallet locks while the decision is saved",async()=>{
+ const store=storage(),f=await fixture({sessions:[],store}),value=proposal(811,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});
+ await f.transport.pair(pairUri("c".repeat(64)));await f.handlers.get("session_proposal")(value);await f.transport.bindProposalAccount(811,ACCOUNT_A);
+ const {promise:entered,resolve:started}=Promise.withResolvers(),{promise:pending,resolve:release}=Promise.withResolvers(),set=store.setItem;let hold=true,locked=false;
+ store.setItem=async(key,v)=>{await set.call(store,key,v);if(hold&&v.records?.some(r=>r.id===811&&r.state==="decided")){hold=false;started();await pending;}};
+ const attempt=f.transport.approveSession(811,ACCOUNT_A,()=>{if(locked)throw Error("locked");});await entered;locked=true;release();await assert.rejects(attempt,/locked/);
+ assert.equal(f.approvals.length,0);locked=false;await assert.rejects(f.transport.approveSession(811,ACCOUNT_A));assert.equal(f.approvals.length,0);
+});
+test("fallback approval never enters SDK if the review expires during durable decision",async()=>{
+ let now=NOW;const store=storage(),f=await fixture({sessions:[],store,clock:()=>now}),value=proposal(812,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:["personal_sign"],events:[]}});
+ await f.transport.pair(pairUri("c".repeat(64)));await f.handlers.get("session_proposal")(value);await f.transport.bindProposalAccount(812,ACCOUNT_A);
+ const {promise:entered,resolve:started}=Promise.withResolvers(),{promise:pending,resolve:release}=Promise.withResolvers(),set=store.setItem;let hold=true;
+ store.setItem=async(key,v)=>{await set.call(store,key,v);if(hold&&v.records?.some(r=>r.id===812&&r.state==="decided")){hold=false;started();await pending;}};
+ const attempt=f.transport.approveSession(812,ACCOUNT_A);await entered;now=f.transport.proposalReviewDeadline(812);release();await assert.rejects(attempt);assert.equal(f.approvals.length,0);
+});
+test("normal Main sequence retains decided state and stops before SDK after a late lock or expiry",async()=>{
+ for(const kind of ['lock','expiry']){
+  let now=NOW,locked=false;const store=storage(),f=await fixture({sessions:[],store,clock:()=>now}),value=proposal(813,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+  await f.transport.pair(pairUri('c'.repeat(64)));await f.handlers.get('session_proposal')(value);await f.transport.bindProposalAccount(813,ACCOUNT_A);
+  const {promise:entered,resolve:started}=Promise.withResolvers(),{promise:pending,resolve:release}=Promise.withResolvers(),set=store.setItem;let hold=true;
+  store.setItem=async(key,v)=>{await set.call(store,key,v);if(hold&&v.records?.some(r=>r.id===813&&r.state==='decided')){hold=false;started();await pending;}};
+  const guard=()=>{if(locked)throw Error('locked');};const decision=f.transport.decideProposal(813,ACCOUNT_A,guard);await entered;if(kind==='lock')locked=true;else now=f.transport.proposalReviewDeadline(813);release();await assert.rejects(decision);
+  assert.equal(f.approvals.length,0);locked=false;await assert.rejects(f.transport.approveSession(813,ACCOUNT_A,guard));assert.equal(f.approvals.length,0);
+ }
+});
+test("unknown SDK approval outcome cannot repeat the original approval",async()=>{
+ const f=await fixture({sessions:[]}),value=proposal(814,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+ await f.transport.pair(pairUri('c'.repeat(64)));await f.handlers.get('session_proposal')(value);await f.transport.bindProposalAccount(814,ACCOUNT_A);await f.transport.decideProposal(814,ACCOUNT_A);
+ let calls=0;f.kit.approveSession=async()=>{calls++;throw Error('PUBLIC lost acknowledgement');};
+ await assert.rejects(f.transport.approveSession(814,ACCOUNT_A),/lost acknowledgement/);await assert.rejects(f.transport.approveSession(814,ACCOUNT_A));assert.equal(calls,1);
 });
