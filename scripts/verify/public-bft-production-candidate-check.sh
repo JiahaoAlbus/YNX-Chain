@@ -85,7 +85,8 @@ function fixture(name) {
   const plan = {version:'YNX-PRODUCTION-OPERATOR/v1',chainId:'ynx_6423-1',stateLayout:'atomic-json',consensusGenesisSHA256:'a'.repeat(64),originalGenesisHash:'b'.repeat(64),migrationStateHash:'c'.repeat(64),pqSchedule:null,runtimePlan:null,roles:roles.map(role=>({role,home:`/original/${role}/home`,abciState:`/original/${role}/app/state.json`,legacyKeyPath:`/original/${role}/pv.json`,legacyStatePath:`/original/${role}/hrs.json`,nodeKeyPath:`/original/${role}/node.json`}))};
   write(planPath,plan); write(validator,{version:1,validators:roles.map(role=>({role}))});
   const planPin = digest(fs.readFileSync(planPath));
-  const snapshot = {height:41,lastBlockHash:'b'.repeat(64),stateHash:'6'.repeat(64),accounts:[{address:'0x'+'1'.repeat(40),balance:100,nonce:0}]};
+  const balance='9007199254740993',nonce='18446744073709551615';
+  const snapshot = {height:41,lastBlockHash:'b'.repeat(64),stateHash:'6'.repeat(64),accounts:[{address:'0x'+'1'.repeat(40),balance,nonce}]};
   write(path.join(transaction,'final-snapshot/migration.json'),snapshot);
   const snapshotPins={snapshotSourceSha256:'9'.repeat(64),exporterManifestSha256:'d'.repeat(64)};
   write(path.join(transaction,'final-snapshot/remote-evidence.json'),{transactionId:path.basename(transaction),commit,authoritativeRelease:`ynx-chain-${commit}`,bftRelease:release,...snapshot,sha256:digest(fs.readFileSync(path.join(transaction,'final-snapshot/migration.json'))),pauseVerified:true,mutationFreezeVerified:true,validated:true,sourceUnchanged:true,exporterCommit:fullCommit,...snapshotPins,recordedAt});
@@ -96,7 +97,7 @@ function fixture(name) {
   write(tool,`#!${process.execPath}\n`+String.raw`
 const fs=require('fs'),path=require('path'),a=process.argv.slice(2);
 if(a[0]==='-verify-migration-state'){
-  if(a.length!==4||a[2]!=='-migration-public-summary'||a[3]!=='json')throw Error('summary argv');
+  if(a.length!==4||a[2]!=='-migration-public-summary'||!['json','json-account'].includes(a[3]))throw Error('summary argv');
   const input=a[1],dir=path.dirname(path.dirname(path.dirname(input))),control=path.join(dir,'summary-control.json');
   const change=fs.existsSync(control)?JSON.parse(fs.readFileSync(control)):{};
   fs.appendFileSync(path.join(dir,'calls.jsonl.summary'),JSON.stringify(a)+'\n');
@@ -106,6 +107,11 @@ if(a[0]==='-verify-migration-state'){
   if(change.kind==='large-output'){process.stdout.write('x'.repeat(16384));process.exit(0)}
   const raw=fs.readFileSync(input),m=JSON.parse(raw),crypto=require('crypto');
   const out={version:'YNX-MIGRATION-PUBLIC-SUMMARY/v1',classification:'data',sourceSHA256:crypto.createHash('sha256').update(raw).digest('hex'),sourceBytes:String(raw.length),height:String(m.height),lastBlockHash:m.lastBlockHash,stateHash:m.stateHash,firstCanonicalAccount:(m.accounts.find(a=>/^0x[0-9a-f]{40}$/.test(a.address))||{address:''}).address};
+  if(a[3]==='json-account'){
+    out.version='YNX-MIGRATION-PUBLIC-SUMMARY/v2';
+    const account=m.accounts.find(a=>a.address===out.firstCanonicalAccount);
+    out.firstCanonicalBalance=String(account.balance);out.firstCanonicalNonce=String(account.nonce);
+  }
   if(change.kind==='wrong-sha')out.sourceSHA256='f'.repeat(64);
   if(change.kind==='wrong-bytes')out.sourceBytes='1';
   if(change.kind==='wrong-type')out.height=Number(out.height);
@@ -576,7 +582,9 @@ try {
   const summaryEnv={...f.env,PUBLIC_BFT_MIGRATION_VERIFIER:f.env.SYNTHETIC_METADATA_ELF};
   const publicTargets=node([bindingCLI,'--public-read-targets',binding,path.join(f.transaction,'final-snapshot/migration.json'),path.join(proofDir,'gateway-status.json')],0,summaryEnv).stdout;
   node([...observeArgs,'public'],1);for(const file of ['before.json','after.json','gateway-status.json']){const p=path.join(proofDir,file);write(p,{...JSON.parse(fs.readFileSync(p)),publicCutoverReady:true});}node(observeArgs,1);const publicObservation=node([...observeArgs,'public']).stdout;
-  write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),{address:'0x'+'1'.repeat(40),balance:100,nonce:0});write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64),parentHash:'b'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
+  const largeAccountRaw='{"address":"0x'+'1'.repeat(40)+'","balance":9007199254740993,"nonce":18446744073709551615}\n';
+  assert.equal(publicTargets,'0x'+'1'.repeat(40)+' 42 9007199254740993 18446744073709551615\n');
+  write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),largeAccountRaw);write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64),parentHash:'b'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
   write(path.join(proofDir,'mutation-freeze.json'),{httpStatus:503});
   const publicArgs=[bindingCLI,'--public-readback',binding,proofDir];
   node(publicArgs,1); // The replacement-chain first block alone proves no original history read.
@@ -587,7 +595,7 @@ try {
   const retainedEVM={jsonrpc:'2.0',id:2,result:{number:'0x29',hash:'0x'+retainedBlock.hash,ynxEncoding:'native-source-block',independentFinality:false,transactions:['0x'+'8'.repeat(64),'0x'+'9'.repeat(64)],ynxSourceHistory:retainedAnchor,ynxSourceBlock:retainedBlock}};
   write(path.join(proofDir,'retained-native-block.json'),retainedNative);
   write(path.join(proofDir,'retained-evm-block.json'),retainedEVM);
-  const publicSource=JSON.parse(node(publicArgs).stdout);assert.equal(publicSource.accountBalanceVerified,false);assert.equal(publicSource.allNativeHistoryVerified,false);assert.equal(publicSource.ecosystemContinuityVerified,false);
+  const publicSource=JSON.parse(node(publicArgs).stdout);assert.equal(publicSource.accountBalanceVerified,true);assert.equal(publicSource.accountNonceVerified,true);assert.equal(publicSource.allNativeHistoryVerified,false);assert.equal(publicSource.ecosystemContinuityVerified,false);
   assert.equal(publicSource.retainedBlockHeight,41);assert.equal(publicSource.retainedBlockHash,retainedBlock.hash);
   assert.equal(publicSource.retainedNativeBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-native-block.json'))));
   assert.equal(publicSource.retainedEVMBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-evm-block.json'))));
@@ -611,12 +619,25 @@ try {
   // Even harmless reformatting must not replace the original observed bytes.
   fs.appendFileSync(identityPath,'\n');node(publicArgs,1);fs.writeFileSync(identityPath,identityRaw);
   const publicSourcePath=path.join(proofDir,'public-result.json');write(publicSourcePath,publicSource);const publicCheck=[bindingCLI,'--public-result-check',binding,publicSourcePath,'0',proofDir];node(publicCheck);
-  for(const name of ['native','evm']){
-    const file=path.join(proofDir,'retained-'+name+'-block.json'),original=fs.readFileSync(file);
+  for(const name of ['retained-native-block.json','retained-evm-block.json','read-targets.txt','account.json','gateway-pq-identity.json']){
+    const file=path.join(proofDir,name),original=fs.readFileSync(file);
     fs.appendFileSync(file,'\n');node(publicCheck,1);fs.writeFileSync(file,original);
   }
-  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true],['retainedBlockHash','f'.repeat(64)],['retainedNativeBlockSHA256',null],['retainedEVMBlockSHA256',null]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
+  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true],['accountBalanceVerified',false],['accountNonceVerified',false],['accountReadSHA256',null],['readTargetsSHA256',null],['retainedBlockHash','f'.repeat(64)],['retainedNativeBlockSHA256',null],['retainedEVMBlockSHA256',null]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
   for(const [file,field,value]of [['account.json','address','0x'+'2'.repeat(40)],['block.json','hash','f'.repeat(64)],['block.json','parentHash','f'.repeat(64)],['evm-chain-id.json','result','0x1'],['mutation-freeze.json','httpStatus',404]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});node(publicArgs,1);fs.writeFileSync(p,old);}
+  const accountPath=path.join(proofDir,'account.json');
+  for(const invalidAccount of [
+    largeAccountRaw.replace('9007199254740993','9007199254740992'),
+    largeAccountRaw.replace('18446744073709551615','18446744073709551614'),
+    largeAccountRaw.replace('9007199254740993','"9007199254740993"'),
+    largeAccountRaw.replace('9007199254740993','0,"balance":9007199254740993'),
+    largeAccountRaw.replace('18446744073709551615','1.8446744073709551615e19'),
+    largeAccountRaw.replace(',"nonce":18446744073709551615',''),
+  ]) {
+    write(accountPath,invalidAccount);node(publicArgs,1);node(publicCheck,1);
+    assert.equal(fs.readFileSync(accountPath,'utf8'),invalidAccount);
+  }
+  write(accountPath,largeAccountRaw);
   // Exercise the original public caller and its real ingress receipt reader.
   // Other admission remains isolated: this synthetic public receipt does not
   // confer ingress/candidate authority or prove a real service was switched.

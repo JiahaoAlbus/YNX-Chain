@@ -69,7 +69,7 @@ function requireRuntimeProofSources(source) {
   }
 }
 
-function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
+function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256, withAccount = false) {
   const binary = process.env.PUBLIC_BFT_MIGRATION_VERIFIER;
   if (!path.isAbsolute(binary || "") || path.basename(binary) !== "ynx-consensus-package" || !/^[0-9a-f]{40}$/.test(runtimeCommit || "") || /^0{40}$/.test(runtimeCommit) || !hash(runtimeManifestSHA256)) fail("independently pinned normal migration verifier is required");
   const sourcePath = path.join(path.dirname(binary), "SOURCE.json");
@@ -96,7 +96,7 @@ function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
     // full original eight-ELF validator and selected binary checks run on the
     // original Linux role. A shell shim never substitutes for an ELF pin.
     const bridge = path.resolve("scripts/ops/public-bft-linux-public-tools.sh");
-    const result = spawnSync(remotePublic ? "/bin/bash" : binary, [...(remotePublic ? [bridge] : []),"-verify-migration-state",file,"-migration-public-summary","json"], {
+    const result = spawnSync(remotePublic ? "/bin/bash" : binary, [...(remotePublic ? [bridge] : []),"-verify-migration-state",file,"-migration-public-summary",withAccount ? "json-account" : "json"], {
       shell:false, encoding:"utf8", timeout:120000, maxBuffer:8192, stdio:["ignore","pipe","pipe"],
       env:remotePublic ? {...process.env, LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"} : {PATH:"/usr/bin:/bin",LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"}
     });
@@ -105,7 +105,11 @@ function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
     let summary;
     try { summary=JSON.parse(result.stdout); } catch { fail("normal migration verifier did not return public summary JSON"); }
     const keys=["version","classification","sourceSHA256","sourceBytes","height","lastBlockHash","stateHash","firstCanonicalAccount"];
-    if (!summary || Array.isArray(summary) || Object.keys(summary).sort().join()!==keys.sort().join() || Object.values(summary).some(v=>typeof v!=="string") || result.stdout!==JSON.stringify(summary)+"\n" || summary.version!=="YNX-MIGRATION-PUBLIC-SUMMARY/v1" || summary.classification!=="data" || summary.sourceSHA256!==input.sha256 || summary.sourceBytes!==input.bytes || !/^[1-9][0-9]*$/.test(summary.height) || BigInt(summary.height)>=9223372036854775807n || !/^(0x)?[0-9a-fA-F]{64}$/.test(summary.lastBlockHash) || !hash(summary.stateHash) || (summary.firstCanonicalAccount!=="" && !/^0x[0-9a-f]{40}$/.test(summary.firstCanonicalAccount))) fail("normal migration public summary differs from the complete original input");
+    if (withAccount) keys.push("firstCanonicalBalance", "firstCanonicalNonce");
+    const version = withAccount ? "v2" : "v1";
+    if (!summary || Array.isArray(summary) || Object.keys(summary).sort().join()!==keys.sort().join() || Object.values(summary).some(v=>typeof v!=="string") || result.stdout!==JSON.stringify(summary)+"\n" || summary.version!==`YNX-MIGRATION-PUBLIC-SUMMARY/${version}` || summary.classification!=="data" || summary.sourceSHA256!==input.sha256 || summary.sourceBytes!==input.bytes || !/^[1-9][0-9]*$/.test(summary.height) || BigInt(summary.height)>=9223372036854775807n || !/^(0x)?[0-9a-fA-F]{64}$/.test(summary.lastBlockHash) || !hash(summary.stateHash) || (summary.firstCanonicalAccount!=="" && !/^0x[0-9a-f]{40}$/.test(summary.firstCanonicalAccount))) fail("normal migration public summary differs from the complete original input");
+    if (withAccount && (!summary.firstCanonicalAccount || !accountQuantity(summary.firstCanonicalBalance, 9223372036854775807n) ||
+        !accountQuantity(summary.firstCanonicalNonce, 18446744073709551615n))) fail("normal migration verifier account quantities are invalid");
     if (!sameOriginalFile(input.identity,fs.lstatSync(file,{bigint:true})) || (!remotePublic && (!sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true})) || !sameOriginalFile(executable.identity,fs.lstatSync(binary,{bigint:true})))) || !sameOriginalFile(sourcePin.identity,fs.lstatSync(sourcePath,{bigint:true}))) fail("normal migration verifier or source changed during complete validation");
     return summary;
   } finally { if (descriptor !== null) fs.closeSync(descriptor); }
@@ -239,6 +243,51 @@ if (rawArgs[0] === "--caddy-source-check") {
   caddyManifest(rawArgs[2],gatewayBinding(rawArgs[1]),rawArgs[3]);
   process.exit(0);
 }
+function parseStrictJSON(raw, label, exactIntegerFields = []) {
+  let parsed;
+  try {
+    const text = raw.toString("utf8");
+    if (!Buffer.from(text, "utf8").equals(raw)) throw new Error("invalid UTF-8");
+    parsed = JSON.parse(text);
+    // JSON.parse accepts duplicate object keys. Walk the already valid grammar
+    // to reject them, including escaped spellings, before using source pins.
+    let at = 0;
+    const space = () => { while (/\s/.test(text[at] || "")) at++; };
+    const string = () => { const start = at++; while (text[at] !== '"') { if (text[at] === "\\") at++; at++; } at++; return JSON.parse(text.slice(start, at)); };
+    const value = depth => {
+      if (depth > 32) throw new Error("JSON nesting exceeds bound");
+      space();
+      if (text[at] === "{") {
+        at++; space(); const keys = new Set();
+        if (text[at] !== "}") for (;;) {
+          space();
+          const key = string();
+          if (keys.has(key)) throw new Error("duplicate object key");
+          keys.add(key);
+          space();
+          at++;
+          space();
+          const start = at;
+          value(depth + 1);
+          // Keep the integer's original spelling even outside JS's safe range.
+          if (depth === 0 && exactIntegerFields.includes(key)) {
+            const token = text.slice(start, at);
+            parsed[key] = /^(0|[1-9][0-9]*)$/.test(token) ? token : undefined;
+          }
+          space();
+          if (text[at] !== ",") break;
+          at++;
+        }
+        at++;
+      } else if (text[at] === "[") {
+        at++; space(); if (text[at] !== "]") for (;;) { value(depth + 1); space(); if (text[at] !== ",") break; at++; } at++;
+      } else if (text[at] === '"') string();
+      else { while (at < text.length && !/[\s,}\]]/.test(text[at])) at++; }
+    };
+    value(0); space(); if (at !== text.length) throw new Error("trailing JSON");
+  } catch (error) { fail(`${label} is not strict JSON: ${error.message}`); }
+  return parsed;
+}
 // This only qualifies the public protocol route and its configured-source
 // observation. The RPC anchor is never a trusted checkpoint or signature proof.
 function gatewayPQIdentity(file, b) {
@@ -256,30 +305,7 @@ function gatewayPQIdentity(file, b) {
     if (size > limit || size !== before.size || after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs) fail("gateway PQ identity changed or exceeded its bound during read");
     raw = buffer.subarray(0, size);
   } finally { fs.closeSync(fd); }
-  let v;
-  try {
-    const text = raw.toString("utf8");
-    if (!Buffer.from(text, "utf8").equals(raw)) throw new Error("invalid UTF-8");
-    v = JSON.parse(text);
-    // JSON.parse accepts duplicate object keys. Walk the already valid grammar
-    // to reject them, including escaped spellings, before using source pins.
-    let at = 0;
-    const space = () => { while (/\s/.test(text[at] || "")) at++; };
-    const string = () => { const start = at++; while (text[at] !== '"') { if (text[at] === "\\") at++; at++; } at++; return JSON.parse(text.slice(start, at)); };
-    const value = depth => {
-      if (depth > 32) throw new Error("JSON nesting exceeds bound");
-      space();
-      if (text[at] === "{") {
-        at++; space(); const keys = new Set();
-        if (text[at] !== "}") for (;;) { space(); const key = string(); if (keys.has(key)) throw new Error("duplicate object key"); keys.add(key); space(); at++; value(depth + 1); space(); if (text[at] !== ",") break; at++; }
-        at++;
-      } else if (text[at] === "[") {
-        at++; space(); if (text[at] !== "]") for (;;) { value(depth + 1); space(); if (text[at] !== ",") break; at++; } at++;
-      } else if (text[at] === '"') string();
-      else { while (at < text.length && !/[\s,}\]]/.test(text[at])) at++; }
-    };
-    value(0); space(); if (at !== text.length) throw new Error("trailing JSON");
-  } catch (error) { fail(`gateway PQ identity is not strict JSON: ${error.message}`); }
+  const v = parseStrictJSON(raw, "gateway PQ identity");
   const i = v?.identity, a = v?.anchor;
   // The operation/approval keeps its original short release alias. Runtime
   // identity must match the independently pinned full commit, never its prefix.
@@ -374,33 +400,49 @@ function retainedBlockObservation(b, root) {
   return {retainedBlockHeight:height,retainedBlockHash:blockHash,retainedNativeBlockSHA256:native.sha256,retainedEVMBlockSHA256:evm.sha256};
 }
 
+function accountQuantity(value, max) {
+  return typeof value === "string" && /^(0|[1-9][0-9]{0,19})$/.test(value) && BigInt(value) <= max;
+}
+
+function publicReadback(b, bindingPath, root) {
+  const o=readJSON(path.join(root,"observation.json"),"public observation"),s=readJSON(path.join(root,"gateway-status.json"),"public status"),block=readJSON(path.join(root,"block.json"),"public block"),evm=readJSON(path.join(root,"evm-chain-id.json"),"public EVM chain");
+  identityObservation(o, false);
+  if (gatewayPQIdentity(path.join(root,"gateway-pq-identity.json"), b) !== o.pqIdentitySHA256) fail("public PQ identity raw bytes changed after the original observation");
+  const targets = hashOriginalFile(path.join(root,"read-targets.txt"), 256, true, true);
+  const match = /^(0x[0-9a-f]{40}) ([1-9][0-9]{0,18}) (0|[1-9][0-9]{0,18}) (0|[1-9][0-9]{0,19})\n$/.exec(targets.raw.toString("utf8"));
+  if (!match || match[0].length !== targets.raw.length) fail("public account read targets are malformed");
+  const [,address,height,balance,nonce] = match;
+  if (!accountQuantity(balance, 9223372036854775807n) || !accountQuantity(nonce, 18446744073709551615n)) fail("public account read targets exceed native quantity bounds");
+  const account = hashOriginalFile(path.join(root,"account.json"), 1 << 20, true, true);
+  const a = parseStrictJSON(account.raw, "public account", ["balance", "nonce"]);
+  if (a?.address !== address || a.balance !== balance || a.nonce !== nonce) fail("public account address, balance or nonce differs from the frozen migration");
+  if (readJSON(path.join(root,"mutation-freeze.json"),"shared mutation freeze").httpStatus !== 503) fail("shared mutation freeze was removed before the qualified public readback");
+  if (!gatewayIdentity(o,b) || o.verified !== true || o.dryRun !== false || o.publicCutoverReady !== true || o.publicIngressChanged !== true || o.source !== "configured-comet-rpc" || o.bindingSHA256 !== sha256(bindingPath) || o.ecosystemContinuityVerified !== false || o.independentFinalityVerified !== false || String(block.height) !== height || block.height !== b.finalSnapshotHeight+1 || !hash(String(block.hash).replace(/^0x/,"").toLowerCase()) || String(block.hash).replace(/^0x/,"").toLowerCase() !== String(s.earliestBlockHash).replace(/^0x/,"").toLowerCase() || evm.jsonrpc !== "2.0" || evm.id !== 1 || evm.error !== undefined || evm.result !== "0x1917") fail("public account/history/EVM readback does not match the original observed source");
+  const retained = retainedBlockObservation(b, root);
+  if (block.parentHash !== retained.retainedBlockHash) fail("public first candidate block does not continue the original native block");
+  return {...o,version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",RPCOnly:true,publicIngressChanged:true,
+    accountIdentityRead:address,accountBalanceVerified:true,accountNonceVerified:true,accountReadSHA256:account.sha256,
+    readTargetsSHA256:targets.sha256,historyBlockHeight:block.height,historyBlockHash:block.hash,...retained,allNativeHistoryVerified:false};
+}
+
 if (rawArgs[0] === "--public-result-check") {
   if (rawArgs.length !== 5 || !["0","1"].includes(rawArgs[3])) fail("exact public result arguments required");
   const b=gatewayBinding(rawArgs[1]),v=readJSON(rawArgs[2],"public result"),dry=rawArgs[3]==="1";
   identityObservation(v, dry);
   if (!gatewayIdentity(v,b) || v.version!=="YNX-SINGLE-APP-GATEWAY-PUBLIC/v1" || v.bindingSHA256!==sha256(rawArgs[1]) || v.verified!==!dry || v.dryRun!==dry || v.publicIngressChanged!==!dry || v.RPCOnly!==true || v.ecosystemContinuityVerified!==false || v.independentFinalityVerified!==false) fail("public result is not an original qualified RPC-only observation");
-  if(!dry && (v.source!=="configured-comet-rpc" || !/^0x[0-9a-f]{40}$/.test(v.accountIdentityRead||"") || v.historyBlockHeight!==b.finalSnapshotHeight+1 || !hash(String(v.historyBlockHash||"").replace(/^0x/,"").toLowerCase()))) fail("public result lacks account/history readback");
-  if (!dry && Object.entries(retainedBlockObservation(b, rawArgs[4])).some(([key, value]) => v[key] !== value)) fail("retained block receipts differ from the bytes originally observed");
+  if (!dry && JSON.stringify(v) !== JSON.stringify(publicReadback(b, rawArgs[1], rawArgs[4]))) fail("public result differs from the original completed readback");
   process.exit(0);
 }
 if (rawArgs[0] === "--public-read-targets") {
   if (rawArgs.length !== 4) fail("exact public read target arguments required");
-  const b=gatewayBinding(rawArgs[1]),m=verifiedMigrationSummary(rawArgs[2],b.runtimeCommit,b.runtimeManifestSha256),s=readJSON(rawArgs[3],"gateway status");
+  const b=gatewayBinding(rawArgs[1]),m=verifiedMigrationSummary(rawArgs[2],b.runtimeCommit,b.runtimeManifestSha256,true),s=readJSON(rawArgs[3],"gateway status");
   if (m.sourceSHA256 !== b.finalSnapshotSha256 || m.height !== String(b.finalSnapshotHeight) || m.lastBlockHash !== b.finalSnapshotBlockHash || m.stateHash !== b.finalSnapshotStateHash || s.earliestBlockHeight !== b.finalSnapshotHeight+1 || !hash(String(s.earliestBlockHash||"").replace(/^0x/,""))) fail("original account/history read boundary mismatch");
-  if (!m.firstCanonicalAccount) fail("original migration contains no canonical account for readback");
-  process.stdout.write(`${m.firstCanonicalAccount} ${s.earliestBlockHeight}\n`);process.exit(0);
+  process.stdout.write(`${m.firstCanonicalAccount} ${s.earliestBlockHeight} ${m.firstCanonicalBalance} ${m.firstCanonicalNonce}\n`);process.exit(0);
 }
 if (rawArgs[0] === "--public-readback") {
   if (rawArgs.length !== 3) fail("exact public readback arguments required");
-  const b=gatewayBinding(rawArgs[1]),root=rawArgs[2],o=readJSON(path.join(root,"observation.json"),"public observation"),s=readJSON(path.join(root,"gateway-status.json"),"public status"),a=readJSON(path.join(root,"account.json"),"public account"),block=readJSON(path.join(root,"block.json"),"public block"),evm=readJSON(path.join(root,"evm-chain-id.json"),"public EVM chain");
-  identityObservation(o, false);
-  if (gatewayPQIdentity(path.join(root,"gateway-pq-identity.json"), b) !== o.pqIdentitySHA256) fail("public PQ identity raw bytes changed after the original observation");
-  const targets=fs.readFileSync(path.join(root,"read-targets.txt"),"utf8").trim().split(" ");
-  if (readJSON(path.join(root,"mutation-freeze.json"),"shared mutation freeze").httpStatus !== 503) fail("shared mutation freeze was removed before the qualified public readback");
-  if (!gatewayIdentity(o,b) || o.verified !== true || o.dryRun !== false || o.publicCutoverReady !== true || o.publicIngressChanged !== true || o.source !== "configured-comet-rpc" || o.bindingSHA256 !== sha256(rawArgs[1]) || o.ecosystemContinuityVerified !== false || o.independentFinalityVerified !== false || targets.length !== 2 || a.address !== targets[0] || block.height !== Number(targets[1]) || block.height !== b.finalSnapshotHeight+1 || !hash(String(block.hash).replace(/^0x/,"").toLowerCase()) || String(block.hash).replace(/^0x/,"").toLowerCase() !== String(s.earliestBlockHash).replace(/^0x/,"").toLowerCase() || evm.jsonrpc !== "2.0" || evm.id !== 1 || evm.error !== undefined || evm.result !== "0x1917") fail("public account/history/EVM readback does not match the original observed source");
-  const retained = retainedBlockObservation(b, root);
-  if (block.parentHash !== retained.retainedBlockHash) fail("public first candidate block does not continue the original native block");
-  process.stdout.write(`${JSON.stringify({...o,version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",RPCOnly:true,publicIngressChanged:true,accountIdentityRead:a.address,historyBlockHeight:block.height,historyBlockHash:block.hash,...retained,accountBalanceVerified:false,allNativeHistoryVerified:false})}\n`);process.exit(0);
+  const b=gatewayBinding(rawArgs[1]);
+  process.stdout.write(JSON.stringify(publicReadback(b, rawArgs[1], rawArgs[2]))+"\n");process.exit(0);
 }
 function pinnedOperator(file, pin) {
   if (!path.isAbsolute(file || "") || !hash(pin)) fail("absolute operator plan and independent nonzero SHA256 are required");

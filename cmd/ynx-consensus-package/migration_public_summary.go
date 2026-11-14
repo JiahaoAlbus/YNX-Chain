@@ -18,6 +18,7 @@ import (
 )
 
 const migrationPublicSummaryVersion = "YNX-MIGRATION-PUBLIC-SUMMARY/v1"
+const migrationPublicAccountSummaryVersion = "YNX-MIGRATION-PUBLIC-SUMMARY/v2"
 const migrationPublicSummaryMaximum = 1 << 30
 
 // This is DATA about the exact complete input, not a substitute migration,
@@ -31,6 +32,8 @@ type migrationPublicSummary struct {
 	LastBlockHash         string `json:"lastBlockHash"`
 	StateHash             string `json:"stateHash"`
 	FirstCanonicalAccount string `json:"firstCanonicalAccount"`
+	FirstCanonicalBalance string `json:"firstCanonicalBalance,omitempty"`
+	FirstCanonicalNonce   string `json:"firstCanonicalNonce,omitempty"`
 }
 
 // Compare the complete seconds/nanoseconds pair without UnixNano overflow.
@@ -145,7 +148,7 @@ func writeMigrationCheckOutput(output io.Writer, encoded []byte) error {
 // The opt-in summary and preservation checks share the same bounded original
 // FD through strict complete validation and their read-only inspection. No
 // caller may substitute summary metadata for the original migration.
-func writeMigrationPublicSummary(path string, output io.Writer) error {
+func writeMigrationPublicSummary(path string, withAccount bool, output io.Writer) error {
 	encoded, err := withVerifiedMigrationInput(path, func(migration chain.ConsensusMigrationState, sourceSHA256, sourceBytes string) ([]byte, error) {
 		summary := migrationPublicSummary{Version: migrationPublicSummaryVersion, Classification: "data",
 			SourceSHA256: sourceSHA256, SourceBytes: sourceBytes,
@@ -153,8 +156,18 @@ func writeMigrationPublicSummary(path string, output io.Writer) error {
 		for _, account := range migration.Accounts {
 			if accountaddress.IsCanonical(account.Address) {
 				summary.FirstCanonicalAccount = account.Address
+				if withAccount {
+					summary.FirstCanonicalBalance = strconv.FormatInt(account.Balance, 10)
+					summary.FirstCanonicalNonce = strconv.FormatUint(account.Nonce, 10)
+				}
 				break
 			}
+		}
+		if withAccount {
+			if summary.FirstCanonicalAccount == "" {
+				return nil, errors.New("original migration contains no canonical account for public readback")
+			}
+			summary.Version = migrationPublicAccountSummaryVersion
 		}
 		encoded, err := json.Marshal(summary)
 		if err != nil || len(encoded)+1 > 4096 {

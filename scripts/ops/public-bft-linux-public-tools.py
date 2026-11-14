@@ -342,7 +342,7 @@ def validate_request(r):
     path = absolute(r['runtime'])
     require(re.fullmatch(r'/var/tmp/ynx-pq-runtime-[A-Za-z0-9._-]+/verified', str(path))
             and '-' + r['role'] + '-' in str(path), 'runtime must be original role intake verified directory')
-    require(r['operation'] in ('inventory', 'migration-summary', 'verify-migration', 'derive-bootstrap', 'generate-package', 'verify-package', 'proof', 'stage-public', 'exporter-files', 'light-files', 'light-metadata', 'proof-capture'), 'unapproved public operation')
+    require(r['operation'] in ('inventory', 'migration-summary', 'migration-account-summary', 'verify-migration', 'derive-bootstrap', 'generate-package', 'verify-package', 'proof', 'stage-public', 'exporter-files', 'light-files', 'light-metadata', 'proof-capture'), 'unapproved public operation')
     require(type(r['arguments']) is dict and type(r['inputs']) is list and len(r['inputs']) <= MAX_FILES, 'bounded typed public request')
     names = set()
     for p in r['inputs']:
@@ -355,13 +355,13 @@ def validate_request(r):
     require(sum(p['bytes'] for p in r['inputs']) <= MAX_TOTAL, 'input byte bound')
     require(type(r['destination']) is str, 'destination correlation')
     if r['destination']: absolute(r['destination'])
-    keys = {'inventory': set(), 'migration-summary': set(), 'verify-migration': set(),
+    keys = {'inventory': set(), 'migration-summary': set(), 'migration-account-summary': set(), 'verify-migration': set(),
             'derive-bootstrap': {'genesisTime', 'validatorManifestSHA256', 'migrationEvidenceSHA256'},
             'generate-package': {'genesisTime', 'planSHA256'}, 'verify-package': {'planSHA256'},
             'proof': {'contextPath', 'contextSHA256', 'proofPaths'}, 'light-files': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'light-metadata': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'proof-capture': {'captureRoot','captureReceiptSHA256','sourcePlanSHA256'}, 'stage-public': {'profile'}, 'exporter-files': {'bundle','sourceSHA256'}}[r['operation']]
     extras=set(r['arguments'])-keys
     permitted=({'captureRoot','captureReceiptSHA256','sourcePlanSHA256'} if r['operation']=='proof' else
-               {'migrationEvidenceSHA256'} if r['operation'] in ('migration-summary','verify-migration','generate-package') else
+               {'migrationEvidenceSHA256'} if r['operation'] in ('migration-summary','migration-account-summary','verify-migration','generate-package') else
                {'producerRequestSHA256'} if r['operation']=='verify-package' else set())
     require(keys<=set(r['arguments']) and (not extras or extras==permitted), 'fixed operation fields')
     for name in ('migrationEvidenceSHA256','producerRequestSHA256'):
@@ -409,7 +409,7 @@ def validate_inputs(root, r):
     names = set(actual)
     if op in ('inventory', 'stage-public', 'exporter-files', 'light-files', 'light-metadata', 'proof-capture'):
         require(not names, 'operation takes no input')
-    elif op in ('migration-summary', 'verify-migration'):
+    elif op in ('migration-summary', 'migration-account-summary', 'verify-migration'):
         require(names == {'inputs/migration.json'}, 'exact migration input required')
     elif op == 'derive-bootstrap':
         require(names == {'inputs/migration.json', 'inputs/validators.json'}, 'exact bootstrap derivation public inputs')
@@ -762,10 +762,10 @@ def execute(root, r):
                 dest = jail / p['path']
                 ensure_directories(dest.parent)
                 checked_copy(root / p['path'], dest, {k: p[k] for k in ('bytes', 'sha256')})
-            if op in ('verify-migration', 'migration-summary'):
+            if op in ('verify-migration', 'migration-summary', 'migration-account-summary'):
                 argv = ['/tool/' + binary, '-verify-migration-state', '/inputs/migration.json']
-                if op == 'migration-summary':
-                    argv += ['-migration-public-summary', 'json']
+                if op != 'verify-migration':
+                    argv += ['-migration-public-summary', 'json-account' if op == 'migration-account-summary' else 'json']
             elif op == 'derive-bootstrap':
                 argv = ['/tool/' + binary, '-derive-bootstrap', '-migration-state', '/inputs/migration.json',
                         '-validator-manifest', '/inputs/validators.json', '-genesis-time', a['genesisTime']]
@@ -1216,7 +1216,7 @@ def client(args):
         sources=[('inputs/context.json',public/'delivery/trust-context.json'),('inputs/request.json',public/'delivery/request.json')]+[('inputs/'+field,public/'delivery'/name) for _,name,field in LIGHT_NAMES if field and context[field]]
     elif operation == 'stage-public':
         require(len(values)==1, 'fixed public stage profile');r['arguments']={'profile':values[0]}
-    elif operation in ('migration-summary','verify-migration'):
+    elif operation in ('migration-summary','migration-account-summary','verify-migration'):
         require(len(values) == 1, 'migration original required'); sources=[('inputs/migration.json',original_migration(transaction,values[0],commit))]
         r['arguments']['migrationEvidenceSHA256']=read(transaction/'final-snapshot/remote-evidence.json',64<<10,False)[0]['sha256']
     elif operation == 'derive-bootstrap':

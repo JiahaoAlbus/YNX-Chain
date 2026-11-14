@@ -44,6 +44,13 @@ func newOperatorCLIFixture(t *testing.T) operatorCLIFixture {
 		validators = append(validators, chain.Validator{Address: addresses[i], Moniker: "synthetic-" + role, VotingPower: 1, Active: true})
 	}
 	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators)
+	sender, recipient := "0x"+strings.Repeat("1", 40), "0x"+strings.Repeat("2", 40)
+	if _, err := d.Faucet(sender, 25); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Transfer(sender, recipient, 2); err != nil {
+		t.Fatal(err)
+	}
 	d.ProduceBlock()
 	migration, err := d.ExportConsensusMigrationState()
 	if err != nil {

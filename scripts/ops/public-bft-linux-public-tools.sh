@@ -32,6 +32,8 @@ public_bft_package_call() {
     public_bft_linux_tool verify-migration "$2"
   elif [[ $# == 4 && "$1" == -verify-migration-state && "$3" == -migration-public-summary && "$4" == json ]]; then
     public_bft_linux_tool migration-summary "$2"
+  elif [[ $# == 4 && "$1" == -verify-migration-state && "$3" == -migration-public-summary && "$4" == json-account ]]; then
+    public_bft_linux_tool migration-account-summary "$2"
   elif [[ $# == 4 && "$1" == -verify-package && "$3" == -operator-plan-hash ]]; then
     public_bft_linux_tool verify-package "$2" "$4"
   elif [[ $# == 9 && "$1" == -derive-bootstrap && "$2" == -migration-state && "$4" == -validator-manifest && "$6" == -validator-manifest-sha256 && "$8" == -genesis-time ]]; then

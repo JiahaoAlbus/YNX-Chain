@@ -114,7 +114,9 @@ class PublicBridgeControls(unittest.TestCase):
         shell=HERE/'public-bft-linux-public-tools.sh'
         result=subprocess.run(['bash','-c',script,'test',str(shell),'-verify-migration-state','/public/migration.json','-migration-public-summary','json'],capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr);self.assertEqual(result.stdout,'migration-summary\n/public/migration.json\n')
-        for args in (['-h'],['-verify-package','/x'],['-verify-package','/x','-operator-plan-hash','a'*64,'extra'],[';','id']):
+        result=subprocess.run(['bash','-c',script,'test',str(shell),'-verify-migration-state','/public/migration.json','-migration-public-summary','json-account'],capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertEqual(result.stdout,'migration-account-summary\n/public/migration.json\n')
+        for args in (['-h'],['-verify-migration-state','/public/migration.json','-migration-public-summary','arbitrary'],['-verify-package','/x'],['-verify-package','/x','-operator-plan-hash','a'*64,'extra'],[';','id']):
             result=subprocess.run(['bash','-c',script,'test',str(shell),*args],capture_output=True,text=True)
             self.assertEqual(result.returncode,64);self.assertEqual(result.stdout,'')
         # Unconfigured Linux behavior is still the exact original executable.
@@ -895,6 +897,12 @@ def actual_smoke(args):
     referenced,code=math_case('same-origin-migration-summary','migration-summary',{'migrationEvidenceSHA256':m.sha(evidence)},[('inputs/migration.json',opfixture/'migration.json')])
     m.require(code==0 and m.read(referenced/'outputs/stdout',8192)[1]==m.read(summary/'outputs/stdout',8192)[1],
               'same original host migration reference changed normal Go result')
+    account_summary,code=math_case('same-origin-migration-account-summary','migration-account-summary',{'migrationEvidenceSHA256':m.sha(evidence)},[('inputs/migration.json',opfixture/'migration.json')])
+    account_value=m.decode(m.read(account_summary/'outputs/stdout',8192)[1])
+    frozen_account=next(account for account in m.decode(m.read(opfixture/'migration.json',1<<30)[1])['accounts'] if account['address']==value['firstCanonicalAccount'])
+    m.require(code==0 and account_value==dict(value,version='YNX-MIGRATION-PUBLIC-SUMMARY/v2',
+        firstCanonicalBalance=str(frozen_account['balance']),firstCanonicalNonce=str(frozen_account['nonce'])),
+        'original Linux account summary does not match the exact frozen account')
     # The release bridge consumes the same host-local M and exact public V.
     # The already built Go command must derive the identical operator Genesis.
     reviewed_manifest=m.read(opfixture/'validator-manifest.json',256<<10)[1]

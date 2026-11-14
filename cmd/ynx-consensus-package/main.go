@@ -101,7 +101,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	})
 	verifyPackage := stringFlag("verify-package", "verify an existing production candidate package and exit")
 	verifyMigration := stringFlag("verify-migration-state", "verify one unbound YNX migration state and exit")
-	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
+	publicSummary := stringFlag("migration-public-summary", "json or json-account: emit bounded public metadata only after complete -verify-migration-state validation")
 	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
 	verifyPreservation := stringFlag("verify-migration-preservation", "read-only unbound Application import and complete original account/contract/history query check; no persistence, validator binding, InitChain or activation")
 	verifySchedulePreservation := stringFlag("verify-migration-schedule-preservation", "compare a complete original migration against an isolated PQ-scheduled export; no runtime start, validator binding or activation")
@@ -189,8 +189,8 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	if mode == "" && (supplied["operator-plan"] != supplied["operator-plan-hash"] || (supplied["operator-plan"] && (strings.TrimSpace(*operatorPlan) == "" || strings.TrimSpace(*operatorPlanHash) == ""))) {
 		return errors.New("-operator-plan and -operator-plan-hash must be supplied together and nonempty")
 	}
-	if supplied["migration-public-summary"] && (mode != "verify-migration-state" || *publicSummary != "json") {
-		return errors.New("-migration-public-summary json requires only -verify-migration-state")
+	if supplied["migration-public-summary"] && (mode != "verify-migration-state" || (*publicSummary != "json" && *publicSummary != "json-account")) {
+		return errors.New("-migration-public-summary json or json-account requires only -verify-migration-state")
 	}
 	if mode != "verify-migration-schedule-preservation" {
 		for _, name := range []string{"scheduled-migration-state", "pq-admission-height"} {
@@ -229,7 +229,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	switch mode {
 	case "verify-migration-state":
 		if supplied["migration-public-summary"] {
-			return writeMigrationPublicSummary(*verifyMigration, stdout)
+			return writeMigrationPublicSummary(*verifyMigration, *publicSummary == "json-account", stdout)
 		}
 		migration, err := verifyMigrationState(*verifyMigration)
 		if err != nil {

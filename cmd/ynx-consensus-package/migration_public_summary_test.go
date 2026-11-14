@@ -24,6 +24,9 @@ func migrationSummaryFixture(t *testing.T) (string, []byte, chain.ConsensusMigra
 			t.Fatal(err)
 		}
 	}
+	if _, err := d.Transfer("0x"+strings.Repeat("1", 40), "0x"+strings.Repeat("2", 40), 2); err != nil {
+		t.Fatal(err)
+	}
 	d.ProduceBlock()
 	migration, err := d.ExportConsensusMigrationState()
 	if err != nil {
@@ -71,6 +74,18 @@ func TestMigrationPublicSummaryNormalCommandCompleteOriginal(t *testing.T) {
 	canonical, err := json.Marshal(summary)
 	if err != nil || !bytes.Equal(output.Bytes(), append(canonical, '\n')) {
 		t.Fatal("summary is not one canonical JSON line")
+	}
+	assertMigrationFileUnchanged(t, path, raw, before)
+	output.Reset()
+	if err := runCommand([]string{"-verify-migration-state", path, "-migration-public-summary", "json-account"}, &output, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	summary.Version = migrationPublicAccountSummaryVersion
+	summary.FirstCanonicalBalance = "22"
+	summary.FirstCanonicalNonce = "1"
+	wantAccount, err := json.Marshal(summary)
+	if err != nil || !bytes.Equal(output.Bytes(), append(wantAccount, '\n')) || output.Len() > 4096 {
+		t.Fatalf("account summary differs from the exact migration record: %s (%v)", output.Bytes(), err)
 	}
 	assertMigrationFileUnchanged(t, path, raw, before)
 	output.Reset()
@@ -159,7 +174,7 @@ func TestMigrationPublicSummaryOriginalFileBoundsAndIdentity(t *testing.T) {
 			target := filepath.Join(t.TempDir(), "source.json")
 			prepare(target)
 			var output bytes.Buffer
-			if err := writeMigrationPublicSummary(target, &output); err == nil || output.Len() != 0 {
+			if err := writeMigrationPublicSummary(target, false, &output); err == nil || output.Len() != 0 {
 				t.Fatalf("%s original boundary accepted: %v", name, err)
 			}
 			if name == "hardlink" {

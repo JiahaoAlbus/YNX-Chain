@@ -1270,11 +1270,11 @@ NODE
     curl --noproxy '*' --max-time 10 -fsS -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$evm" >"$evidence/evm-chain-id.json"
     node scripts/verify/public-bft-candidate-binding.mjs --public-read-targets "$candidate_binding" "$candidate_migration" "$evidence/gateway-status.json" >"$evidence/read-targets.txt"
     local account height retained_height retained_quantity retained_request
-    read -r account height <"$evidence/read-targets.txt"
+    read -r account height _ <"$evidence/read-targets.txt"
     retained_height=$((height - 1))
     printf -v retained_quantity '0x%x' "$retained_height"
     printf -v retained_request '{"jsonrpc":"2.0","id":2,"method":"eth_getBlockByNumber","params":["%s",false]}' "$retained_quantity"
-    curl --noproxy '*' --max-time 10 -fsS "$rpc/accounts/$account" >"$evidence/account.json"
+    curl --disable --noproxy '*' --max-time 10 --max-filesize 1048576 -fsS "$rpc/accounts/$account" >"$evidence/account.json"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/blocks/$height" >"$evidence/block.json"
     curl --disable --noproxy '*' --max-time 10 --max-filesize 33554432 -fsS "$rpc/blocks/$retained_height" >"$evidence/retained-native-block.json"
     curl --disable --noproxy '*' --max-time 10 --max-filesize 67108864 -fsS -H 'content-type: application/json' -d "$retained_request" "$evm" >"$evidence/retained-evm-block.json"
