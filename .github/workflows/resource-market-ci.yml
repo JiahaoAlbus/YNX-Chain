@@ -2353,7 +2353,7 @@ jobs:
         timeout-minutes: 3
         run: |
           set -euo pipefail
-          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-callee-tests.jsonl"
             exit 1
           fi
@@ -2362,8 +2362,8 @@ jobs:
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-lab-callee-tests.jsonl').read_text().splitlines()]
           required = ['TestPQLabSenderPUBLICReadyBeforeCommandsAndSeparateColdCost', 'TestPQLabSenderPUBLICTimingsWithoutReadyRetainsColdCost', 'TestPQLabCalleeElapsedPUBLICColdSingleBefore', 'TestPQLabCalleeElapsedPUBLICSameInputCurrentReadBeforeAfter', 'TestPQLabCheckpointCacheFallbackLargeOriginal', 'TestPQLabCheckpointCacheFallbackOnlyExactBound', 'TestPQLabCheckpointCacheFallbackRereadsOriginalAndCurrent']
-          public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
-          required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+          public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck', 'TestPQLabSenderPUBLICOwnersPreparedReady', 'TestPQLabSenderPUBLICOwnersPreparedReadyRefusals', 'TestPQLabSenderPUBLICOwnersPreparedReadyThenPrepareAndCurrentSign', 'TestPQLabPublicOwnerFailureDiagnosticActualRejection', 'TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary']
+          required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck', 'TestPQLabSenderPUBLICOwnersPreparedReady', 'TestPQLabSenderPUBLICOwnersPreparedReadyRefusals', 'TestPQLabSenderPUBLICOwnersPreparedReadyThenPrepareAndCurrentSign', 'TestPQLabPublicOwnerFailureDiagnosticActualRejection', 'TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary']
           def qualify_public_owner_cli(events):
               package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
               if any(not isinstance(e, dict) for e in events):

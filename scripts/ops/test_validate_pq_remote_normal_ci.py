@@ -1473,8 +1473,8 @@ print('YNX_PUBLIC_OWNER_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['
 """
 PUBLIC_OWNER_CORE_REQUIRED = """required += ['TestPQLabSenderHeldInputStatsOriginalCountsAndNoCacheGrowth', 'TestPQLabSenderHeldInputStatsNeverLoadsOrValidatesSources', 'TestPQLabPublicOwnerSessionOriginalIsolationAndWitness', 'TestPQLabPublicOwnerSessionProofAndOwnerRetirement']
 """
-PUBLIC_OWNER_CLI_BLOCK = """public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
-required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck']
+PUBLIC_OWNER_CLI_BLOCK = """public_owner_cli_required = ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck', 'TestPQLabSenderPUBLICOwnersPreparedReady', 'TestPQLabSenderPUBLICOwnersPreparedReadyRefusals', 'TestPQLabSenderPUBLICOwnersPreparedReadyThenPrepareAndCurrentSign', 'TestPQLabPublicOwnerFailureDiagnosticActualRejection', 'TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary']
+required += ['TestPQLabSenderPUBLICOwnersOriginalStream', 'TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck', 'TestPQLabSenderPUBLICOwnersPreparedReady', 'TestPQLabSenderPUBLICOwnersPreparedReadyRefusals', 'TestPQLabSenderPUBLICOwnersPreparedReadyThenPrepareAndCurrentSign', 'TestPQLabPublicOwnerFailureDiagnosticActualRejection', 'TestPQLabPublicOwnerFailureDiagnosticClosedVocabulary']
 def qualify_public_owner_cli(events):
     package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab'
     if any(not isinstance(e, dict) for e in events):
@@ -4498,12 +4498,12 @@ PUBLIC_TEST_STREAM_RETENTION_STEPS = "      - name: Retain exact public test str
 
 
 def assert_public_owner_cli_workflow_contract(step):
-    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
+    command = "          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestPQLab(SenderPUBLIC|CalleeElapsedPUBLIC|CheckpointCacheFallback|PublicOwnerFailureDiagnostic)' ./cmd/ynx-consensus-pq-lab > \"$RUNNER_TEMP/ynx-lab-callee-tests.jsonl\"; then\n"
     if step.count(command) != 1 or step.count('go test ') != 1 or '        timeout-minutes: 3\n' not in step:
         raise AssertionError('original single bounded lab CLI call must remain')
     for block in (PUBLIC_OWNER_CLI_ORIGINAL_REQUIRED, PUBLIC_OWNER_CLI_BLOCK):
         if step.count(''.join('          '+line+'\n' for line in block.splitlines())) != 1:
-            raise AssertionError('all old lab cases and exact two owner CLI cases must remain qualified')
+            raise AssertionError('all old lab cases and exact seven owner CLI cases must remain qualified')
     if step.count("          print('YNX_LAB_CALLEE_TESTS '") != 1:
         raise AssertionError('original lab evidence marker must remain')
 
@@ -4564,8 +4564,8 @@ class PublicOwnerSessionCIControls(unittest.TestCase):
 
     def test_public_owner_cli_exact_source_keeps_old_seven_and_single_90_second_call(self):
         root,step,scope,events=self.cli();assert_public_owner_cli_workflow_contract(step)
-        self.assertEqual(len(scope['required']),9)
-        source=(root/'cmd/ynx-consensus-pq-lab/public_owner_session_test.go').read_text()
+        self.assertEqual(len(scope['required']),14)
+        source='\n'.join((root/'cmd/ynx-consensus-pq-lab'/name).read_text() for name in ('public_owner_session_test.go', 'public_owner_prepare_test.go', 'public_owner_ready_prepare_test.go', 'public_owner_diagnostics_test.go'))
         for name in scope['public_owner_cli_required']:
             self.assertEqual(len(re.findall(r'^func '+name+r'\(t \*testing.T\)',source,re.M)),1)
         self.assertEqual(scope['qualify_public_owner_cli'](events),scope['public_owner_cli_required'])

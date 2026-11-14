@@ -431,6 +431,67 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 	return fail(errors.New("original live checkpoint crossing budget exhausted"))
 }
 
+// The final read fences an already encoded immutable checkpoint. Only the
+// original Node's typed adjacent Commit crossing permits another read; this
+// does not repeat capture, proof verification, output publication or signing.
+// The existing continuation validator still authenticates the saved H/H+1.
+func pqLabFinalProofCheckpoint(ctx context.Context, loadActual func() (sm.State, error), trace *pqLabProofCaptureObservation) (sm.State, error) {
+	const attempts = 3
+	if ctx == nil || loadActual == nil {
+		return sm.State{}, errors.New("original final checkpoint read input required")
+	}
+	var firstCrossing error
+	fail := func(cause error) (sm.State, error) {
+		return sm.State{}, errors.Join(firstCrossing, cause)
+	}
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return fail(err)
+		}
+		actual, err := loadActual()
+		if err == nil {
+			if err = ctx.Err(); err != nil {
+				return fail(err)
+			}
+			return actual, nil
+		}
+		// Do not use message/hash matching or errors.Is on a joined error:
+		// another failure alongside the sentinel must remain terminal.
+		crossing := false
+		for cause, depth := err, 0; cause != nil && depth < 8; depth++ {
+			if cause == node.ErrProofSourceCheckpointCrossing {
+				crossing = true
+				break
+			}
+			if _, joined := cause.(interface{ Unwrap() []error }); joined {
+				break
+			}
+			cause = errors.Unwrap(cause)
+		}
+		if !crossing {
+			return fail(err)
+		}
+		trace.noteCrossing()
+		if firstCrossing == nil {
+			firstCrossing = err
+		}
+		if contextErr := ctx.Err(); contextErr != nil {
+			return fail(contextErr)
+		}
+		if attempt == attempts {
+			return fail(err)
+		}
+		timer := time.NewTimer(5 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fail(ctx.Err())
+		case <-timer.C:
+		}
+	}
+	return fail(errors.New("original final checkpoint crossing budget exhausted"))
+}
+
 func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMaterialsRequest, envelope []byte, kind string, wire []byte, output string, now time.Time, trace *pqLabProofCaptureObservation) (out PQLabLiveMaterialsResult, err error) {
 	defer func() {
 		if recover() != nil {
@@ -613,7 +674,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 			first = false
 			return actual, nil
 		}
-		return c.view.LoadState()
+		return pqLabFinalProofCheckpoint(ctx, c.view.LoadState, trace)
 	}
 	ledger.committed = func(s sm.State) ([]byte, error) {
 		if s.LastBlockHeight != actual.LastBlockHeight || s.ChainID != actual.ChainID || !bytes.Equal(s.AppHash, actual.AppHash) || !s.LastBlockID.Equals(actual.LastBlockID) {

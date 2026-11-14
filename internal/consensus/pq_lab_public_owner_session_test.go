@@ -64,6 +64,77 @@ func publicOwnerState(t *testing.T, p PQLabNetworkPlan) CommittedState {
 	return state
 }
 
+func TestPQLabPublicOwnerPrepareOwnerOpensOnlySelectedCustody(t *testing.T) {
+	p, options, credential := publicOwnerSessionFixture(t)
+	ctx := context.Background()
+	s, err := OpenPQLabPublicOwnerSession(ctx, options, credential, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	before := publicOwnerState(t, p)
+	cancelled, cancel := context.WithCancel(ctx)
+	cancel()
+	if err := s.PrepareOwner(cancelled, 0, nil); !errors.Is(err, context.Canceled) {
+		t.Fatal("cancelled preparation opened custody", err)
+	}
+	if err := s.PrepareOwner(ctx, 2, nil); err == nil {
+		t.Fatal("unapproved owner prepared")
+	}
+	s.gates[0].mu.Lock()
+	if err := s.PrepareOwner(ctx, 0, nil); !errors.Is(err, ErrPQLabPublicOwnerBusy) {
+		s.gates[0].mu.Unlock()
+		t.Fatal("busy owner prepared concurrently", err)
+	}
+	s.gates[0].mu.Unlock()
+	metrics := &PQLabMetrics{}
+	commands := s.Stats().Commands
+	if err := s.PrepareOwner(ctx, 0, metrics); err != nil {
+		t.Fatal(err)
+	}
+	stages := metrics.Snapshot().Stages
+	if s.Stats().OpenedOwners != 1 || s.Stats().Commands != commands+1 || stages["sender.importFullPrivatePublicPair"].Calls != 1 || stages["checkpoint.loadTotal"].Calls != 0 {
+		t.Fatal("preparation did not remain owner-scoped and checkpoint-free")
+	}
+	entries, err := os.ReadDir(filepath.Join(p.RootDir, "workload", "sender-public", "0000"))
+	if err != nil || len(entries) != 0 {
+		t.Fatal("preparation created or changed a sender operation", err)
+	}
+	other := PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OperationID: strings.Repeat("e", 64), OwnerIndex: 1, FirstNonce: 2, Members: 1}
+	_, err = s.Sign(ctx, other, before.Height, before.AppHash, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire, err := os.ReadFile(filepath.Join(p.RootDir, "workload", "sender-public", "0001", other.OperationID, "transaction.abci"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkpointReadApplyOriginal(t, p, options.PlanSHA256, wire)
+	request := PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OperationID: strings.Repeat("d", 64), OwnerIndex: 0, FirstNonce: 2, Members: 1}
+	if _, err := s.Sign(ctx, request, before.Height, before.AppHash, nil); err == nil {
+		t.Fatal("prepared owner accepted stale original checkpoint")
+	}
+	operation := filepath.Join(p.RootDir, "workload", "sender-public", "0000", request.OperationID)
+	if _, err := os.Lstat(operation); !os.IsNotExist(err) {
+		t.Fatal("stale checkpoint created an operation", err)
+	}
+	current := publicOwnerState(t, p)
+	signMetrics := &PQLabMetrics{}
+	result, err := s.Sign(ctx, request, current.Height, current.AppHash, signMetrics)
+	if err != nil || result.OperationID != request.OperationID || signMetrics.Snapshot().Stages["sender.importFullPrivatePublicPair"].Calls != 0 || signMetrics.Snapshot().Stages["checkpoint.captureCurrentBytes"].Calls != 12 {
+		t.Fatal("prepared owner did not run the original fresh-checkpoint sign", err)
+	}
+	if _, err := s.Sign(ctx, request, 0, "", nil); err != nil {
+		t.Fatal("prepared owner lost original operation recovery", err)
+	}
+	if err := s.CloseOwner(ctx, 0); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.PrepareOwner(ctx, 0, nil); err == nil {
+		t.Fatal("retired owner prepared again")
+	}
+}
+
 func TestPQLabPublicOwnerSessionOriginalIsolationAndWitness(t *testing.T) {
 	p, options, credential := publicOwnerSessionFixture(t)
 	ctx := context.Background()

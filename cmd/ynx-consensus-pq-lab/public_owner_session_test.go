@@ -42,6 +42,7 @@ func TestPQLabSenderPUBLICOwnersOriginalStream(t *testing.T) {
 	args, created, height, hash := publicOwnerCommandArgs(t)
 	args = append(args, "--ready")
 	a := pqLabSenderCommand{Version: "YNX-PQ-LAB-SENDER-COMMAND/v1", Operation: "sign", Request: consensus.PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OperationID: strings.Repeat("a", 64), OwnerIndex: 0, FirstNonce: 2, Members: 1}, CheckpointHeight: height, CheckpointAppHash: hash}
+	prepare := pqLabSenderCommand{Version: a.Version, Operation: "prepare-owner", Request: consensus.PQLabSenderRequest{Version: a.Request.Version, OwnerIndex: 0}}
 	unknown := a
 	unknown.Request.OperationID = strings.Repeat("c", 64)
 	retire := pqLabSenderCommand{Version: a.Version, Operation: "close-owner", Request: consensus.PQLabSenderRequest{Version: a.Request.Version, OwnerIndex: 0}}
@@ -54,12 +55,12 @@ func TestPQLabSenderPUBLICOwnersOriginalStream(t *testing.T) {
 	wrong := b
 	wrong.Request.OwnerIndex = 2
 	var out bytes.Buffer
-	if err := runPQLabPublicOwnersInput(context.Background(), args, bytes.NewReader(publicOwnerCommandWire(a, unknown, retire, b, recover, wrong)), &out); err != nil {
+	if err := runPQLabPublicOwnersInput(context.Background(), args, bytes.NewReader(publicOwnerCommandWire(prepare, a, unknown, retire, b, recover, wrong)), &out); err != nil {
 		t.Fatal(err)
 	}
 	originalStream := bytes.Clone(out.Bytes())
 	lines := bytes.Split(bytes.TrimSpace(originalStream), []byte{'\n'})
-	if len(lines) != 7 {
+	if len(lines) != 8 {
 		t.Fatal("actual command denominator lost", len(lines))
 	}
 	var ready struct {
@@ -72,7 +73,7 @@ func TestPQLabSenderPUBLICOwnersOriginalStream(t *testing.T) {
 		t.Fatal("normal READY preloaded authority or changed original owners", e)
 	}
 	lines = lines[1:]
-	codes := []string{"ORIGINAL_SAVED", "UNKNOWN", "OWNER_RETIRED", "ORIGINAL_SAVED", "ORIGINAL_RECOVERED", "REJECTED"}
+	codes := []string{"OWNER_PREPARED", "ORIGINAL_SAVED", "UNKNOWN", "OWNER_RETIRED", "ORIGINAL_SAVED", "ORIGINAL_RECOVERED", "REJECTED"}
 	for i, line := range lines {
 		var reply struct {
 			Version, Code string
@@ -84,10 +85,13 @@ func TestPQLabSenderPUBLICOwnersOriginalStream(t *testing.T) {
 		if err := json.Unmarshal(line, &reply); err != nil || reply.Code != codes[i] || reply.Version != "YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1" {
 			t.Fatal("normal owner reply", i, err, string(line))
 		}
-		if i == 0 && reply.Timings.Stages["lab.bootstrapFullValidation"].Calls != 1 {
+		if i == 0 && (reply.Timings.Stages["sender.importFullPrivatePublicPair"].Calls != 1 || reply.Timings.Stages["checkpoint.loadTotal"].Calls != 0 || reply.Result.OperationID != "") {
+			t.Fatal("owner preparation signed or captured a checkpoint", reply)
+		}
+		if i == 1 && (reply.Timings.Stages["lab.bootstrapFullValidation"].Calls != 1 || reply.Timings.Stages["sender.importFullPrivatePublicPair"].Calls != 0) {
 			t.Fatal("first cold work hidden")
 		}
-		if i == 3 && (reply.Timings.Stages["lab.bootstrapFullValidation"].Calls != 0 || reply.Timings.Stages["checkpoint.captureCurrentBytes"].Calls != 12 || reply.Session.OpenedOwners != 2 || reply.Session.StaticCache.Misses != 1) {
+		if i == 4 && (reply.Timings.Stages["lab.bootstrapFullValidation"].Calls != 0 || reply.Timings.Stages["checkpoint.captureCurrentBytes"].Calls != 12 || reply.Session.OpenedOwners != 2 || reply.Session.StaticCache.Misses != 1) {
 			t.Fatal("owner B lost shared public witness/fresh current", reply)
 		}
 		if reply.Result.AuthorityGranted {
@@ -145,12 +149,19 @@ func TestPQLabSenderPUBLICOwnersBoundedFramingAndLostAck(t *testing.T) {
 	args, created, height, hash := publicOwnerCommandArgs(t)
 	command := pqLabSenderCommand{Version: "YNX-PQ-LAB-SENDER-COMMAND/v1", Operation: "sign", Request: consensus.PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OperationID: strings.Repeat("f", 64), OwnerIndex: 1, FirstNonce: 2, Members: 1}, CheckpointHeight: height, CheckpointAppHash: hash}
 	raw := bytes.TrimSpace(publicOwnerCommandWire(command))
+	prepareWithTransaction := command
+	prepareWithTransaction.Operation = "prepare-owner"
+	prepareWithCheckpoint := pqLabSenderCommand{Version: command.Version, Operation: "prepare-owner", Request: consensus.PQLabSenderRequest{Version: command.Request.Version, OwnerIndex: 1}, CheckpointHeight: height, CheckpointAppHash: hash}
+	prepareWithProof := pqLabSenderCommand{Version: command.Version, Operation: "prepare-owner", Request: consensus.PQLabSenderRequest{Version: command.Request.Version, OwnerIndex: 1}, ProofFile: "/original-proof"}
 	for name, bad := range map[string][]byte{
 		"duplicate-owner":     bytes.Replace(raw, []byte(`"ownerIndex":1`), []byte(`"ownerIndex":0,"ownerIndex":1`), 1),
 		"duplicate-operation": bytes.Replace(raw, []byte(`"operation":"sign"`), []byte(`"operation":"recover","operation":"sign"`), 1),
 		"unknown-field":       append(append([]byte(nil), raw[:len(raw)-1]...), []byte(`,"extra":0}`)...),
 		"trailing-json":       append(append([]byte(nil), raw...), []byte(`{}`)...),
 		"line-bound":          bytes.Repeat([]byte(" "), (32<<10)+1),
+		"prepare-transaction": bytes.TrimSpace(publicOwnerCommandWire(prepareWithTransaction)),
+		"prepare-checkpoint":  bytes.TrimSpace(publicOwnerCommandWire(prepareWithCheckpoint)),
+		"prepare-proof":       bytes.TrimSpace(publicOwnerCommandWire(prepareWithProof)),
 	} {
 		t.Run(name, func(t *testing.T) {
 			var out bytes.Buffer

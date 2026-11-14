@@ -7,7 +7,10 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
 	"time"
 
@@ -150,6 +153,227 @@ func TestPQLabLiveMaterialsCaptureOnlyOriginalCommitCrossings(t *testing.T) {
 			entries, readErr := os.ReadDir(dir)
 			if readErr != nil || len(entries) != 0 || afterDeadline != deadline || control.next != 1 || len(control.seen) != 0 || control.retired || control.busy {
 				t.Fatal("read-only recapture wrote output, moved request, or changed owner/deadline")
+			}
+		})
+	}
+}
+
+func TestPQLabLiveMaterialsFinalReadOnlyOriginalCommitCrossings(t *testing.T) {
+	for _, scenario := range []string{"stable", "typed", "two-typed", "wrapped", "same-text", "joined", "wrapped-joined", "io", "typed-then-io", "app-crossing", "exhausted", "cancel", "cancel-success", "deadline-crossing", "expired", "already-canceled"} {
+		t.Run(scenario, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if scenario == "already-canceled" {
+				cancel()
+			} else if scenario == "expired" {
+				cancel()
+				ctx, cancel = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+				defer cancel()
+			}
+			if scenario == "deadline-crossing" {
+				cancel()
+				ctx, cancel = context.WithTimeout(context.Background(), 10*time.Millisecond)
+				defer cancel()
+			}
+			deadline, _ := ctx.Deadline()
+			trace := newPQLabProofCaptureObservation(2, 1, "", "")
+			calls := 0
+			originalIO := errors.New("PRIVATE-original-IO-first-cause")
+			load := func() (sm.State, error) {
+				calls++
+				switch scenario {
+				case "typed", "two-typed", "wrapped":
+					count := 1
+					if scenario == "two-typed" {
+						count = 2
+					}
+					if calls <= count {
+						if scenario == "wrapped" {
+							return sm.State{}, fmt.Errorf("original read: %w", node.ErrProofSourceCheckpointCrossing)
+						}
+						return sm.State{}, node.ErrProofSourceCheckpointCrossing
+					}
+				case "same-text":
+					return sm.State{}, errors.New(node.ErrProofSourceCheckpointCrossing.Error())
+				case "joined", "wrapped-joined":
+					err := errors.Join(node.ErrProofSourceCheckpointCrossing, originalIO)
+					if scenario == "wrapped-joined" {
+						err = fmt.Errorf("original read: %w", err)
+					}
+					return sm.State{}, err
+				case "io":
+					return sm.State{}, originalIO
+				case "typed-then-io":
+					if calls == 1 {
+						return sm.State{}, node.ErrProofSourceCheckpointCrossing
+					}
+					return sm.State{}, originalIO
+				case "app-crossing":
+					return sm.State{}, errProofHostCheckpointCrossing
+				case "exhausted":
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				case "cancel":
+					cancel()
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				case "deadline-crossing":
+					<-ctx.Done()
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				case "cancel-success":
+					cancel()
+				}
+				// A read-loop control only, not a synthetic authorized checkpoint.
+				return sm.State{ChainID: "read-loop-control", LastBlockHeight: 12}, nil
+			}
+			actual, err := pqLabFinalProofCheckpoint(ctx, load, trace)
+			wantCalls, wantCrossings := 1, uint32(0)
+			passed := scenario == "stable" || scenario == "typed" || scenario == "two-typed" || scenario == "wrapped"
+			switch scenario {
+			case "typed", "wrapped", "typed-then-io":
+				wantCalls, wantCrossings = 2, 1
+			case "two-typed":
+				wantCalls, wantCrossings = 3, 2
+			case "exhausted":
+				wantCalls, wantCrossings = 3, 3
+			case "cancel", "deadline-crossing":
+				wantCrossings = 1
+			case "expired", "already-canceled":
+				wantCalls = 0
+			}
+			if calls != wantCalls || trace.crossings != wantCrossings || (err == nil) != passed {
+				t.Fatal("typed-only final read count/refusal changed", calls, trace.crossings, err)
+			}
+			if passed && actual.LastBlockHeight != 12 || !passed && actual.LastBlockHeight != 0 {
+				t.Fatal("failed final read exposed a checkpoint")
+			}
+			if (scenario == "joined" || scenario == "wrapped-joined" || scenario == "io" || scenario == "typed-then-io") && !errors.Is(err, originalIO) {
+				t.Fatal("original IO first cause lost", err)
+			}
+			if (scenario == "cancel" || scenario == "cancel-success" || scenario == "already-canceled") && !errors.Is(err, context.Canceled) {
+				t.Fatal("cancel was converted to success", err)
+			}
+			if (scenario == "expired" || scenario == "deadline-crossing") && !errors.Is(err, context.DeadlineExceeded) {
+				t.Fatal("original deadline was lost", err)
+			}
+			if (scenario == "typed-then-io" || scenario == "exhausted" || scenario == "cancel" || scenario == "deadline-crossing") && !errors.Is(err, node.ErrProofSourceCheckpointCrossing) {
+				t.Fatal("original crossing first cause lost", err)
+			}
+			afterDeadline, _ := ctx.Deadline()
+			if afterDeadline != deadline {
+				t.Fatal("final read extended original capture deadline")
+			}
+		})
+	}
+}
+
+func TestPQLabLiveMaterialsFinalReadKeepsOriginalProofCheckpoint(t *testing.T) {
+	f := newProofHostSourceFixture(t, "atomic-json", "")
+	h := f.f.light.harness
+	before, err := h.raw.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stateRaw, err := h.app.captureProofHostCommittedJSON(before)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalRaw := bytes.Clone(stateRaw)
+	// One actual later BlockExecutor Commit supplies the real signed H+1.
+	after := h.apply(t, nil)
+	originalFiles := proofSourceTree(t, filepath.Join(f.root, "original"))
+	var firstProof []byte
+	for _, scenario := range []string{"stable", "original-reader-refuses-typed", "typed-stable", "typed-forward", "same-text", "wrong-hash", "rollback", "wrong-original-block"} {
+		t.Run(scenario, func(t *testing.T) {
+			planRaw := proofSourceJSON(t, f.plan)
+			in, err := loadProofHostInputs(planRaw, proofHostSHA(planRaw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if err := in.close(); err != nil {
+					t.Error(err)
+				}
+			}()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			in.ctx = ctx
+			trace := newPQLabProofCaptureObservation(2, 1, "", "")
+			finalCalls, committedCalls := 0, 0
+			loadFinal := func() (sm.State, error) {
+				finalCalls++
+				if scenario != "stable" && finalCalls == 1 {
+					if scenario == "same-text" {
+						return sm.State{}, errors.New(node.ErrProofSourceCheckpointCrossing.Error())
+					}
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				}
+				actual := before.Copy()
+				switch scenario {
+				case "typed-forward":
+					actual = after
+				case "wrong-hash":
+					actual.AppHash = bytes.Repeat([]byte{91}, 32)
+				case "rollback":
+					actual.LastBlockHeight--
+				case "wrong-original-block":
+					actual.LastBlockID.Hash = bytes.Repeat([]byte{92}, 32)
+				}
+				return actual, nil
+			}
+			first := true
+			ledger := proofHostLedger{validators: h.raw.LoadValidators, results: h.raw.LoadFinalizeBlockResponse, blocks: h.blocks}
+			ledger.load = func() (sm.State, error) {
+				if first {
+					first = false
+					return before, nil
+				}
+				if scenario == "original-reader-refuses-typed" {
+					return loadFinal() // exact old final-read behavior, controlled sentinel
+				}
+				return pqLabFinalProofCheckpoint(ctx, loadFinal, trace)
+			}
+			ledger.committed = func(actual sm.State) ([]byte, error) {
+				committedCalls++
+				if actual.LastBlockHeight != before.LastBlockHeight || !bytes.Equal(actual.AppHash, before.AppHash) || !actual.LastBlockID.Equals(before.LastBlockID) {
+					return nil, errors.New("original captured state was retargeted")
+				}
+				return bytes.Clone(stateRaw), nil
+			}
+			output := filepath.Join(f.root, "final-"+scenario)
+			captured, captureErr := in.capture(ledger, output, time.Now().UTC())
+			passed := scenario == "stable" || scenario == "typed-stable" || scenario == "typed-forward"
+			if (captureErr == nil) != passed || committedCalls != 1 {
+				t.Fatal("final read repeated capture or changed proof acceptance", captureErr, committedCalls)
+			}
+			wantFinal := 2
+			if scenario == "stable" || scenario == "original-reader-refuses-typed" || scenario == "same-text" {
+				wantFinal = 1
+			}
+			if finalCalls != wantFinal {
+				t.Fatal("final read exceeded its bounded calls", finalCalls)
+			}
+			if passed {
+				found := false
+				for _, file := range captured.Files {
+					if file.Role == "state" {
+						found = bytes.Equal(file.Bytes, originalRaw)
+					}
+				}
+				if !found || !captured.LedgerProofVerified {
+					t.Fatal("historical full state or verified proof replaced")
+				}
+				if firstProof == nil {
+					firstProof = bytes.Clone(captured.Proof)
+				} else if !bytes.Equal(firstProof, captured.Proof) {
+					t.Fatal("typed read changed original transaction proof bytes")
+				}
+			} else if _, err := os.Lstat(output); !os.IsNotExist(err) {
+				t.Fatal("failed final read published a partial source bundle", err)
+			}
+			if scenario == "original-reader-refuses-typed" && !errors.Is(captureErr, node.ErrProofSourceCheckpointCrossing) {
+				t.Fatal("original caller counterexample did not reach final typed read", captureErr)
+			}
+			if !bytes.Equal(stateRaw, originalRaw) || !reflect.DeepEqual(originalFiles, proofSourceTree(t, filepath.Join(f.root, "original"))) {
+				t.Fatal("final read mutated original files or immutable checkpoint")
 			}
 		})
 	}

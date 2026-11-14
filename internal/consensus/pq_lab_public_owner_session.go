@@ -26,7 +26,8 @@ type PQLabPublicOwnerSessionOptions struct {
 // MAC, nonce/current checks and durable UNKNOWN record. Each owner has its own
 // single-flight gate, no worker/queue and no two-owner rotation/lost denominator.
 // No witness is exported, persisted, transferred between processes or accepted
-// from callers. First-sign bootstrap work remains inside its measured call.
+// from callers. Static preparation is optional and explicitly measured; without
+// it the first-sign bootstrap work remains inside its measured call.
 type PQLabPublicOwnerSession struct {
 	mu          sync.Mutex
 	publicMu    sync.Mutex
@@ -186,6 +187,37 @@ func (s *PQLabPublicOwnerSession) Close() error {
 	return closeErr
 }
 
+// PrepareSource establishes the same session-owned static witness before the
+// command stream starts. It reads no sender key or current checkpoint, consumes
+// no owner command budget, and grants no signing eligibility. Close joins this
+// read just like an admitted command; cancellation/retirement never emits READY.
+func (s *PQLabPublicOwnerSession) PrepareSource(ctx context.Context, metrics *PQLabMetrics) error {
+	defer pqLabMeasure(metrics, "publicOwner.prepareSource")()
+	if s == nil {
+		return errors.New("original public owner session required")
+	}
+	s.mu.Lock()
+	if err := s.alive(ctx); err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	s.active.Add(1)
+	s.mu.Unlock()
+	defer s.active.Done()
+	if err := s.currentPublic(); err != nil {
+		return err
+	}
+	if err := s.checkpoints.Prepare(s.options.RootDir, s.options.PlanSHA256, s.options.ActivationSHA256, metrics); err != nil {
+		return err
+	}
+	if err := s.currentPublic(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.alive(ctx)
+}
+
 func (s *PQLabPublicOwnerSession) Stats() PQLabPublicOwnerSessionStats {
 	if s == nil {
 		return PQLabPublicOwnerSessionStats{}
@@ -266,6 +298,25 @@ func (s *PQLabPublicOwnerSession) beginOwner(ctx context.Context, request PQLabS
 		return fail(err)
 	}
 	return sender, done, nil
+}
+
+// PrepareOwner opens one explicitly selected synthetic owner without choosing a
+// checkpoint or creating an operation. The caller can sample current state
+// after the original key import and use the unchanged Sign checks.
+func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, metrics *PQLabMetrics) error {
+	if s == nil {
+		return errors.New("original public owner session required")
+	}
+	request := PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OwnerIndex: index}
+	_, done, err := s.beginOwner(ctx, request, metrics)
+	if err != nil {
+		return err
+	}
+	defer done()
+	if err := s.currentPublic(); err != nil {
+		return err
+	}
+	return s.alive(ctx)
 }
 
 func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderRequest, height int64, appHash string, metrics *PQLabMetrics) (PQLabSenderResult, error) {
