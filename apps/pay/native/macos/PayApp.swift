@@ -82,6 +82,9 @@ enum PayBridge {
                         ? "Wallet Source connected. Pay service availability has not been verified."
                         : "Original Wallet / Source unavailable"
                 }
+                if value["outcomeUnknown"] as? Bool == true {
+                    status = "Payment or refund is awaiting verification. Check the original invoice before requesting another review."
+                }
                 if let raw = (value["code"] as? String) ?? (value["reason"] as? String) {
                     switch raw {
                     case "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED", "NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE":
@@ -100,6 +103,14 @@ enum PayBridge {
         guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.ynxweb4.wallet.macos") else { status = "Original YNX Wallet is not installed."; return }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
     }
+    func returnToShop() {
+        // Navigation hint only: Shop reopens its own original pending order
+        // under its existing session. This callback conveys no payment state.
+        guard let url = URL(string: "ynxshop://orders"), NSWorkspace.shared.open(url) else {
+            status = "Open the original Shop to check your order."
+            return
+        }
+    }
 }
 
 struct PayHome: View {
@@ -115,6 +126,7 @@ struct PayHome: View {
                 Spacer()
                 if model.busy { ProgressView().controlSize(.small) }
                 Button("Open original Wallet") { model.openWallet() }
+                Button("Return to Shop") { model.returnToShop() }
             }
             HStack {
                 Image(systemName: model.sourceReady ? "link" : "lock.shield")
