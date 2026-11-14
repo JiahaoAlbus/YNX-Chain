@@ -200,13 +200,22 @@ def proof_publication(load, files, prefix, *, tail_seconds):
     """Join archived publication replies to the original operation and parent clock."""
     if load is None:
         return None
+    pipeline = load.get('pipeline') or {}
+    cutoff = None
+    if 'workerRetirementObservedNs' in pipeline:
+        cutoff = load['observationCutoffNs']
+        require(type(cutoff) is int and type(pipeline['workerRetirementObservedNs']) is int
+                and 0 <= cutoff <= min(pipeline['workerRetirementObservedNs'],
+                                      load['windowNs'] + tail_seconds * 1_000_000_000),
+                'original business cutoff or retirement boundary differs')
     late = {}
-    for event in (load.get('pipeline') or {}).get('lateEvidence', []):
+    for event in pipeline.get('lateEvidence', []):
         if event['kind'] != 'normal_stage' or event['stage'] not in ('live_publish', 'live_capture'):
             continue
         key = (event['index'], event['id'], event['stage'])
         require(key not in late and type(event['atNs']) is int
-                and event['atNs'] >= load['windowNs'] + tail_seconds * 1_000_000_000,
+                and event['atNs'] >= (cutoff if cutoff is not None
+                                      else load['windowNs'] + tail_seconds * 1_000_000_000),
                 'original late proof publication boundary differs')
         late[key] = event['atNs']
     records = []

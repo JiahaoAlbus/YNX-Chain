@@ -121,6 +121,18 @@ class HeldReadbackTests(unittest.TestCase):
         result = reader.proof_publication(dict(rows=[dict(row, id='row0', stageTimes=[])],
             windowNs=40, pipeline=dict(lateEvidence=[late])), files, '', tail_seconds=30)
         self.assertEqual((result['published'], result['latePublished']), (0, 1))
+        early = dict(rows=[dict(row, id='row0', stageTimes=[])], windowNs=5_000_000_000,
+                     observationCutoffNs=30_650_000_000,
+                     pipeline=dict(workerRetirementObservedNs=40_599_000_000,
+                                   lateEvidence=[dict(late, atNs=30_651_000_000)]))
+        result = reader.proof_publication(early, files, '', tail_seconds=30)
+        self.assertEqual((result['published'], result['latePublished']), (0, 1))
+        with self.assertRaisesRegex(RuntimeError, 'late proof publication boundary differs'):
+            reader.proof_publication(dict(early, observationCutoffNs=30_652_000_000),
+                                     files, '', tail_seconds=30)
+        with self.assertRaisesRegex(RuntimeError, 'cutoff or retirement boundary differs'):
+            reader.proof_publication(dict(early, observationCutoffNs=40_600_000_000),
+                                     files, '', tail_seconds=30)
 
     def test_pipeline_pressure_uses_sampled_queue_and_active_worker_boundaries(self):
         workers = dict(publish=2, observe=2, finalize=4)
