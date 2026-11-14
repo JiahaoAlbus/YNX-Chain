@@ -33,6 +33,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
     origin=time.monotonic_ns() if origin is None else origin;deadline=origin+plan['windowNs']+plan['tailNs'];clock=s.ArrivalClock(plan,origin,stop)
     def notify(row,payload):events.put(dict(payload,index=row['index'],id=row['id'],atNs=time.monotonic_ns()-origin))
     current_operations={}
+    observation_deadline=deadline
     def worker(stage):
         while not stop.is_set():
             try:row,account,handle=queues[stage].get(timeout=.02)
@@ -67,7 +68,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
             try:event=events.get_nowait()
             except queue.Empty:return
             if event['kind']!='_phase_done':
-                if event['atNs']>=plan['windowNs']+plan['tailNs']:
+                if event['atNs']>=observation_deadline-origin:
                     s.require(len(late_evidence)<n*48,'late original evidence bound exceeded; preserve first cause')
                     late_evidence.append(event)
                     if event['kind'] in ('qualified','failed','unknown'):late_terminal.add(event['index'])
@@ -109,6 +110,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
             stop.wait(.001)
     except BaseException as error:failure=str(error)
     finally:
+        observation_deadline=min(deadline,time.monotonic_ns())
         stop.set()
         # The resource monitor may have set stop between iterations. Read its
         # original failure before cleanup can report a secondary timeout.
@@ -137,7 +139,8 @@ def run(plan,backend,emit,check_resources,stop,origin=None,ledger_module=None):
                 ledger.event(dict(kind='unknown',index=row['index'],id=row['id'],atNs=time.monotonic_ns()-origin,error='original staged operation incomplete at cutoff; preserve original pending, never retry/re-sign'))
         try:check_resources()
         except BaseException as error:failure=failure or str(error)
-    result=ledger.report(time.monotonic_ns()-origin,failure)
+    retired_ns=time.monotonic_ns()-origin
+    result=ledger.report(observation_deadline-origin,failure)
     result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan['windowNs']),clockMeaning='same original parent monotonic clock; publication/inclusion/final-proof queues separated')
-    result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after configured window+tail; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
+    result['pipeline']=dict(stageWorkers=dict(WORKERS),queueCapacity=dict(config['queueCapacity']),queuePeak=peak,queueAtCutoff=queue_at_cutoff,queueAtRetirement={k:q.qsize() for k,q in queues.items()},completedByStage=done,completedByStageMeaning='worker calls returned or raised; not successful business counts',workerThreadsRetired=not worker_timeouts,workerRetirementTimeouts=worker_timeouts,workerRetirementObservedNs=retired_ns,retainedUnfinishedHandles=list(retained.values()),lateEvidence=late_evidence,lateEvidenceMeaning='original events observed at/after the actual observation cutoff; retained for same-operation reconciliation, never cutoff qualification or nonce release',queueSamples=samples,queueSamplingAtomic=False,extraNodeOrSignerPIDStartedByScheduler=False,fullDemandUnchanged=n,chainSaturationProven=False)
     return result
