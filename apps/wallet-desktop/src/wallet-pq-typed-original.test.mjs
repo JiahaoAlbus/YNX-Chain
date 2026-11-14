@@ -13,6 +13,7 @@ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-poli
 import {encodePQActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport';
 import {preparePQTypedActionReview,signPQReviewedTypedAction} from './features/pq-transaction/typed-action-caller.mjs';
 import {FileTransactionIntentStore} from './transaction-intent-store.mjs';
+import {TRANSACTION_JOURNAL_MAX_BYTES} from './bounded-private-file-read.mjs';
 import {TransactionSubmissions} from './transaction-submissions.mjs';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
@@ -288,7 +289,7 @@ test('typed save preserves another outstanding protected output budget before wr
  const state=JSON.parse(await fs.readFile(f.filePath,'utf8'));
  // Controlled disk state models an older unresolved operation; its reservation
  // is not permission to sign and cannot be consumed by this account's save.
- state.preparations.push({account:other,kind:record.kind,maxBytes:1048576});
+ state.preparations.push({account:other,kind:record.kind,maxBytes:TRANSACTION_JOURNAL_MAX_BYTES});
  await fs.writeFile(f.filePath,JSON.stringify(state),{mode:0o600});const before=await fs.readFile(f.filePath,'utf8');
  await assert.rejects(f.store.saveOriginal(record.account,record.hash,()=>{}),e=>e.data?.code==='PQ_ORIGINAL_STORAGE_CAPACITY');
  assert.equal(await fs.readFile(f.filePath,'utf8'),before);assert.equal(f.store.localOriginal(record.account).pq.wire,record.wire);
@@ -296,10 +297,10 @@ test('typed save preserves another outstanding protected output budget before wr
  assert.equal(f.store.localOriginal(record.account).storageCausePresent,true);
 });
 test('typed pre-sign reservation persists exact output budget and rejects an oversized concurrent claim',async t=>{
- const f=await setup(t),budget=700000,other='0x'+'ab'.repeat(20);
+ const f=await setup(t),budget=7_000_000,other='0x'+'ab'.repeat(20);
  await f.store.reserveOriginal(record.account,record.kind,{reserveBytes:budget});
  assert.deepEqual(await f.store.unresolvedPreparation(record.account),{account:record.account,kind:record.kind,maxBytes:budget});
- await assert.rejects(f.store.reserveOriginal(other,record.kind,{reserveBytes:350000}));
+ await assert.rejects(f.store.reserveOriginal(other,record.kind,{reserveBytes:1_500_000}));
  assert.equal(f.store.localOriginal(other),null);assert.equal(await f.store.unresolvedPreparation(other),null);
  assert.deepEqual(await new FileTransactionIntentStore({filePath:f.filePath}).unresolvedPreparation(record.account),{account:record.account,kind:record.kind,maxBytes:budget});
 });
@@ -427,7 +428,7 @@ test('invalid UTF8 typed result is held before decoding failure and original byt
 });
 test('typed observation and explicit flush preserve another signer reserved output capacity',async t=>{
  const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
- const other='0x'+'b3'.repeat(20),budget=1048576-Buffer.byteLength(await fs.readFile(f.filePath,'utf8'))-1024;
+ const other='0x'+'b3'.repeat(20),budget=TRANSACTION_JOURNAL_MAX_BYTES-Buffer.byteLength(await fs.readFile(f.filePath,'utf8'))-1024;
  await f.store.reserveOriginal(other,record.kind,{reserveBytes:budget});const before=await fs.readFile(f.filePath,'utf8');
  const query=new TransactionSubmissions({intentStore:f.store,pqReadTypedOriginal:capturingRead(async()=>nodeResponse('committed'))});
  await assert.rejects(query.checkPQ(record.hash,record.account,{account:record.account,assert(){}}),e=>e.data?.code==='PQ_SUBMISSION_STORAGE_CAPACITY');
