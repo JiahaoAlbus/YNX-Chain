@@ -905,7 +905,7 @@ jobs:
             /scripts/verify/wire-live-matching-source-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: bb17a8be228933c945316b2a77f36f2add9eb191
+          ref: 961205644e9c27e806827e62fdb4adf40c41893d
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -961,7 +961,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: bb17a8be228933c945316b2a77f36f2add9eb191
+          ref: 961205644e9c27e806827e62fdb4adf40c41893d
           path: tools
           filter: blob:none
           persist-credentials: false
