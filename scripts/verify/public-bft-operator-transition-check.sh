@@ -602,12 +602,15 @@ start = local.index('transition_action=run', barrier)
 for role in ('primary', 'singapore', 'silicon-valley', 'seoul'):
     assert 'dispatch_operator_transition '+role+' ' in local[barrier:start]
 assert '$role.signer-preflight.json' in local[barrier:start]
+assert 'YNX_DEPLOY_CONNECTION_ATTEMPTS=1 ynx_ops_ssh' in local[local.index('dispatch_operator_transition()'):barrier]
 mode = remote.index('if [[ "$action" == signer-preflight ]]')
 attempt = remote.index('attempt="$root/$phase-attempt"', mode)
 assert 'operator_transition_cold_custody signer-installation' in remote[mode:attempt]
 assert 'systemctl start' not in remote[mode:attempt]
-loaded = remote.index('operator_transition_require_loaded_signer || return')
-assert remote.index('operator_transition_cold_custody signer-installation || return', attempt) < loaded
+runner = remote.index('operator_transition_start()')
+loaded = remote.index('operator_transition_require_loaded_signer || return', runner)
+assert remote.index('startup_limit="$(operator_transition_cold_custody signer-installation)"', runner) < loaded
 assert loaded < remote.index('30 systemctl start "$unit"', loaded)
+assert 'operator_transition_start "$comet_pin" >"$attempt/process.json" || return $?' in remote[attempt:]
 PYSIGNER
 python3 -B "$repo/scripts/ops/test_public_bft_cold_custody.py"

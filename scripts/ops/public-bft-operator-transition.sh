@@ -210,7 +210,7 @@ PY
     # success receipt reached this host. No phase retries or automatic undo.
     (set -o noclobber; printf '%s\n' "$archive_pin" >"$phase_root/$role.$transition_action.dispatched") || return $?
     operator_transition_sync "$phase_root/$role.$transition_action.dispatched" "$phase_root" || return $?
-    (set -o noclobber; ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; $extract_command sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin' '$transition_action'" >"$phase_root/$receipt.partial" 2>"$phase_root/$role.$transition_action.error.txt") || return $?
+    (set -o noclobber; YNX_DEPLOY_CONNECTION_ATTEMPTS=1 ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; $extract_command sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin' '$transition_action'" >"$phase_root/$receipt.partial" 2>"$phase_root/$role.$transition_action.error.txt") || return $?
     if [[ "$transition_action" == signer-preflight ]]; then
       cmp "$phase_root/$role.binding.json" "$phase_root/$receipt.partial" >/dev/null || return $?
       ln "$phase_root/$receipt.partial" "$phase_root/$receipt.json" || return $?

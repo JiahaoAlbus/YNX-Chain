@@ -198,12 +198,13 @@ operator_transition_publish() {
 
 operator_transition_running() {
   local wanted="$1" pid before after group
-  systemctl is-active --quiet "$unit"
-  pid="$(systemctl show --property MainPID --value "$unit")"; [[ "$pid" =~ ^[1-9][0-9]*$ ]]
-  before="$(cat "/proc/$pid/stat")"
-  [[ "$(operator_transition_sha "/proc/$pid/exe")" == "$wanted" ]]
-  [[ "$(readlink "/proc/$pid/exe")" == "$candidate/bin/ynx-comet" ]]
-  python3 -B - "$candidate/scripts/start-operator.sh" "/proc/$pid/cmdline" "/proc/$pid/environ" <<'PY'
+  systemctl is-active --quiet "$unit" || return $?
+  pid="$(systemctl show --property MainPID --value "$unit")" || return $?
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+  before="$(cat "/proc/$pid/stat")" || return $?
+  [[ "$(operator_transition_sha "/proc/$pid/exe")" == "$wanted" ]] || return 1
+  [[ "$(readlink "/proc/$pid/exe")" == "$candidate/bin/ynx-comet" ]] || return 1
+  python3 -B - "$candidate/scripts/start-operator.sh" "/proc/$pid/cmdline" "/proc/$pid/environ" <<'PY' || return $?
 import pathlib,shlex,sys
 lines=[v for v in pathlib.Path(sys.argv[1]).read_text().splitlines() if v.startswith('exec ')]
 assert len(lines)==1
@@ -212,13 +213,13 @@ argv=pathlib.Path(sys.argv[2]).read_bytes().split(b'\0'); assert argv[-1]==b''
 assert argv[:-1]==[s.encode() for s in tokens[4:]]
 assert pathlib.Path(sys.argv[3]).read_bytes()==b'PATH=/usr/bin:/bin\0'
 PY
-  after="$(cat "/proc/$pid/stat")"
+  after="$(cat "/proc/$pid/stat")" || return $?
   # startTicks, unlike the full stat line, is immutable while CPU counters run.
-  [[ "$(printf '%s\n' "$before" | sed 's/^.*) //' | awk '{print $20}')" == "$(printf '%s\n' "$after" | sed 's/^.*) //' | awk '{print $20}')" ]]
-  [[ "$(systemctl show --property MainPID --value "$unit")" == "$pid" ]]
-  group="$(systemctl show --property ControlGroup --value "$unit")"
-  [[ "$group" == /* && "$group" != *..* && -f "/sys/fs/cgroup$group/cgroup.procs" ]]
-  grep -Fxq "$pid" "/sys/fs/cgroup$group/cgroup.procs"
+  [[ "$(printf '%s\n' "$before" | sed 's/^.*) //' | awk '{print $20}')" == "$(printf '%s\n' "$after" | sed 's/^.*) //' | awk '{print $20}')" ]] || return 1
+  [[ "$(systemctl show --property MainPID --value "$unit")" == "$pid" ]] || return 1
+  group="$(systemctl show --property ControlGroup --value "$unit")" || return $?
+  [[ "$group" == /* && "$group" != *..* && -f "/sys/fs/cgroup$group/cgroup.procs" ]] || return 1
+  grep -Fxq "$pid" "/sys/fs/cgroup$group/cgroup.procs" || return $?
   printf '{"mainPid":"%s","startTicks":"%s","runningExecutableSHA256":"%s"}\n' "$pid" "$(printf '%s\n' "$before" | sed 's/^.*) //' | awk '{print $20}')" "$wanted"
 }
 
@@ -762,6 +763,7 @@ def signer_installation(b, install, source_path, paths=None):
          'complete exact installed signer file set required')
     pins={'binary':source['binaries'][daemon]['sha256'],'launcher':source['operator'][daemon+'-launch.sh']['sha256'],
           'config':r['renderedConfigSHA256'],'unit':r['unitSHA256'],'credential':r['encryptedCredentialSHA256']}
+    startup_seconds=30
     for name,expected_pin in pins.items():
         file=P(paths[name]);before=file.lstat()
         need(before.st_uid==os.geteuid() and stat.S_IMODE(before.st_mode)=={'binary':0o755,'launcher':0o755,'config':0o640,'unit':0o644,'credential':0o600}[name],
@@ -785,7 +787,14 @@ def signer_installation(b, install, source_path, paths=None):
             need(config['legacyKey']==b['custodyHandoff']['legacyKeyPath'] and config['legacyState']==b['originalRole']['legacyStatePath']
                  and config['abciState']==b['originalRole']['abciState'] and config['scheduleHash']==b['scheduleHash'],
                  'installed signer configuration differs from original custody or schedule')
+            if config.get('checkpointAccessMode')=='unix-fd-v1':
+                bound=config.get('checkpointStartupTimeoutSeconds')
+                need(type(bound) is str and bound.isascii() and bound.isdecimal()
+                     and len(bound)<=3 and bound[0]!='0' and 1<=int(bound)<=600,
+                     'installed signer lacks a bounded pinned readiness timeout')
+                startup_seconds=int(bound)+5
     need(original_evidence('receipt.json')==raw,'signer installation receipt changed while verifying')
+    return startup_seconds
 def main():
     need(sys.platform=='linux' and os.geteuid()==0,'normal original Linux root operator required')
     mode,bpath,qroot,install,binary,oldmanifest,newmanifest=sys.argv[1:]
@@ -798,7 +807,7 @@ def main():
     b=decode(raw)
     if mode=='transfer':transfer(b,P(qroot),P(install),P(binary),P(oldmanifest),P(newmanifest),Host())
     elif mode=='verify':verify(b,P(qroot),P(install),P(binary),P(newmanifest),Host())
-    elif descriptor(b) is not None:signer_installation(b,P(install),P(install)/'operator-runtime-SOURCE.json')
+    elif descriptor(b) is not None:print(signer_installation(b,P(install),P(install)/'operator-runtime-SOURCE.json'))
 if __name__=='__main__':main()
 PYCUSTODY
 }
@@ -814,6 +823,29 @@ operator_transition_require_loaded_signer() {
      "$(systemctl show --property User --value "$signer")" == ynx-pq-signer &&
      "$(systemctl show --property ExecStart --value "$signer")" == *'path=/usr/local/libexec/ynx-consensus-pq-remote-signer-launch ;'* ]] ||
     operator_transition_fail 'original signer unit was not loaded exactly from its verified installation'
+}
+
+operator_transition_start() {
+  local wanted="$1" startup_limit readback attempt_number
+  startup_limit="$(operator_transition_cold_custody signer-installation)" || return $?
+  if [[ -n "$startup_limit" ]]; then
+    operator_transition_require_loaded_signer || return $?
+    [[ "$startup_limit" =~ ^[1-9][0-9]{0,2}$ ]] && (( startup_limit <= 605 )) || return 1
+    # Allow the verified Type=notify unit to finish its own startup deadline.
+    # There is one mutating dispatch; a timed-out job stays UNKNOWN.
+    timeout --signal=TERM --kill-after=5 "$startup_limit" systemctl start ynx-consensus-pq-remote-signer.service || return $?
+  fi
+  timeout --signal=TERM --kill-after=5 30 systemctl start "$unit" || return $?
+  # Type=simple can report started before the launcher execs the verified
+  # binary. Retry only its original readback, never the start request.
+  for (( attempt_number=0; attempt_number<30; attempt_number++ )); do
+    if readback="$(operator_transition_running "$wanted" 2>>"$attempt/process-readback.error.txt")"; then
+      printf '%s\n' "$readback"
+      return
+    fi
+    if (( attempt_number < 29 )); then sleep 1; fi
+  done
+  operator_transition_fail 'original newly started engine identity was not observed; preserve UNKNOWN'
 }
 
 operator_transition_receipt() {
@@ -1179,7 +1211,7 @@ operator_transition_remote() {
     binding=-
     # Pass the exact verified projection through an already opened descriptor;
     # this read-only barrier must not reserve or create a start attempt.
-    operator_transition_cold_custody signer-installation 8< <(printf '%s\n' "$preflight_binding") || return $?
+    operator_transition_cold_custody signer-installation 8< <(printf '%s\n' "$preflight_binding") >/dev/null || return $?
     printf '%s\n' "$preflight_binding"
     return
   fi
@@ -1308,14 +1340,7 @@ for k,v in b['checkpoint'].items(): assert r['checkpoint'][k]==v
 PY
       operator_transition_installed "$new_package" "$comet_pin" "$keycheck_pin"
       operator_transition_cold_custody verify || return $?
-      operator_transition_cold_custody signer-installation || return $?
-      if operator_transition_value signerInstallReceiptSHA256 >/dev/null 2>&1; then
-        operator_transition_require_loaded_signer || return $?
-      fi
-      # The normal factory, remote SecretConnection and durable signer acquire
-      # their ORIGINAL leases. Failure never falls back to the old Ed profile.
-      timeout --signal=TERM --kill-after=5 30 systemctl start "$unit"
-      operator_transition_running "$comet_pin" >"$attempt/process.json"
+      operator_transition_start "$comet_pin" >"$attempt/process.json" || return $?
       operator_transition_receipt started_activation_unproven "$attempt/checkpoint.json" "$(operator_transition_value backupSHA256)" "$attempt/process.json" >"$attempt/result.json"
     fi
   fi

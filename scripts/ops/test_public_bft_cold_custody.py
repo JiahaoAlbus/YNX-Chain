@@ -208,7 +208,7 @@ class OriginalColdCustodyTests(unittest.TestCase):
             write(intent_file,intent)
             if bind:b['signerInstallReceiptSHA256']=receipt_pin
         publish(receipt)
-        f.m.signer_installation(b,f.install,source,paths)
+        self.assertEqual(f.m.signer_installation(b,f.install,source,paths), 30)
         for name,mutated,bind in (
             ('actual pin',dict(receipt,originalConfigSHA256='c'*64),False),
             ('role',dict(receipt,role='seoul'),True),
@@ -229,6 +229,70 @@ class OriginalColdCustodyTests(unittest.TestCase):
                 file.unlink();write(file,bodies[leaf]);file.chmod(mode)
         intent_file.unlink()
         with self.assertRaises(FileNotFoundError):f.m.signer_installation(b,f.install,source,paths)
+        for timeout in ('120', '601', '01', None):
+            with self.subTest(startup_timeout=timeout):
+                cfg['checkpointAccessMode']='unix-fd-v1'
+                cfg['checkpointStartupTimeoutSeconds']=timeout
+                config_file=Path(paths['config'])
+                config_file.unlink()
+                body=raw(cfg)
+                config_pin=write(config_file,body)
+                config_file.chmod(0o640)
+                records=[dict(path=row['path'],bytes=len(body),sha256=config_pin)
+                         if row['path']==str(config_file) else row for row in receipt['installedFiles']]
+                publish(dict(receipt,renderedConfigSHA256=config_pin,installedFiles=records))
+                if timeout=='120':
+                    self.assertEqual(f.m.signer_installation(b,f.install,source,paths), 125)
+                else:
+                    with self.assertRaisesRegex(ValueError,'bounded pinned readiness timeout'):
+                        f.m.signer_installation(b,f.install,source,paths)
+
+    def test_original_start_waits_for_verified_signer_ready_and_exec_readback(self):
+        script = r'''
+source "$1"
+operator_transition_cold_custody() {
+    [[ "$1" == signer-installation ]] || return 1
+    if [[ "$control" != legacy ]]; then printf '125\n'; fi
+}
+operator_transition_require_loaded_signer() { printf 'verify\n' >>"$log"; }
+timeout() {
+    printf '%s\n' "$*" >>"$log"
+    if [[ "$control" == signer-failed && "$*" == *remote-signer.service ]]; then return 124; fi
+}
+operator_transition_running() {
+    printf 'readback\n' >>"$log"
+    if [[ "$(grep -c readback "$log")" == 1 ]]; then return 1; fi
+    printf 'original-engine-verified\n'
+}
+sleep() { :; }
+log="$2" control="$3" attempt="${2%/*}"
+unit=ynx-consensus-operator-candidate.service
+operator_transition_start 'fixed-comet-pin'
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / 'start.log'
+            command = ['bash', '-Eeuo', 'pipefail', '-c', script, 'start-control', str(SOURCE), str(log)]
+            process = subprocess.run([*command, 'ready'], capture_output=True, text=True, timeout=10)
+            self.assertEqual(process.returncode, 0, process.stderr)
+            self.assertEqual(process.stdout, 'original-engine-verified\n')
+            signer_start = '--signal=TERM --kill-after=5 125 systemctl start ynx-consensus-pq-remote-signer.service'
+            self.assertEqual(log.read_text().splitlines(), [
+                'verify', signer_start,
+                '--signal=TERM --kill-after=5 30 systemctl start ynx-consensus-operator-candidate.service',
+                'readback', 'readback',
+            ])
+            log.unlink()
+            process = subprocess.run([*command, 'signer-failed'], capture_output=True, text=True, timeout=10)
+            self.assertEqual(process.returncode, 124, process.stderr)
+            self.assertFalse(process.stdout)
+            self.assertEqual(log.read_text().splitlines(), ['verify', signer_start])
+            log.unlink()
+            process = subprocess.run([*command, 'legacy'], capture_output=True, text=True, timeout=10)
+            self.assertEqual(process.returncode, 0, process.stderr)
+            self.assertEqual(log.read_text().splitlines(), [
+                '--signal=TERM --kill-after=5 30 systemctl start ynx-consensus-operator-candidate.service',
+                'readback', 'readback',
+            ])
 
     def test_actual_same_inode_rename_two_locks_and_readonly_start_verification(self):
         f = self.fixture()
