@@ -16,7 +16,9 @@ final class DeviceApprovalReviewDialog {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable expire;
     private final Activity activity;
+    private final Runnable finished;
     private boolean listening, shown;
+    private boolean notified;
     private final Application.ActivityLifecycleCallbacks lifecycle = new Application.ActivityLifecycleCallbacks() {
         public void onActivityCreated(Activity target, Bundle state) { }
         public void onActivityStarted(Activity target) { }
@@ -27,9 +29,10 @@ final class DeviceApprovalReviewDialog {
         public void onActivityDestroyed(Activity target) { if (target == activity) close(); }
     };
 
-    DeviceApprovalReviewDialog(Activity activity, DeviceApprovalReview review) {
+    DeviceApprovalReviewDialog(Activity activity, DeviceApprovalReview review, Runnable finished) {
         this.review = Objects.requireNonNull(review);
         this.activity = Objects.requireNonNull(activity);
+        this.finished = Objects.requireNonNull(finished);
         expire = () -> { this.review.expire(System.currentTimeMillis()); close(); };
         if (Looper.myLooper() != Looper.getMainLooper() || activity.isFinishing()
                 || activity.isDestroyed()) throw new IllegalStateException("Review activity unavailable");
@@ -42,7 +45,7 @@ final class DeviceApprovalReviewDialog {
             .setPositiveButton("Confirm", (ignored, which) -> review.confirm(System.currentTimeMillis()))
             .setNegativeButton("Reject", (ignored, which) -> review.reject(System.currentTimeMillis()))
             .setOnCancelListener(ignored -> review.cancel())
-            .setOnDismissListener(ignored -> { stopListening(); review.cancel(); })
+            .setOnDismissListener(ignored -> finish())
             .create();
     }
 
@@ -52,19 +55,24 @@ final class DeviceApprovalReviewDialog {
         }
         shown = true;
         long remaining = review.expiresAtMillis() - System.currentTimeMillis();
-        if (remaining <= 0) { review.expire(System.currentTimeMillis()); return; }
+        if (remaining <= 0) { review.expire(System.currentTimeMillis()); finish(); return; }
         if (dialog.getWindow() != null) dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         activity.getApplication().registerActivityLifecycleCallbacks(lifecycle);
         listening = true;
-        try { dialog.show(); } catch (RuntimeException error) { stopListening(); review.cancel(); throw error; }
+        try { dialog.show(); } catch (RuntimeException error) { finish(); throw error; }
         handler.postDelayed(expire, remaining);
     }
 
     // The original actor calls this on lock, account change, or activity loss.
     void close() {
+        finish();
+        dialog.dismiss();
+    }
+
+    private void finish() {
         stopListening();
         review.cancel();
-        dialog.dismiss();
+        if (!notified) { notified = true; finished.run(); }
     }
 
     private void stopListening() {

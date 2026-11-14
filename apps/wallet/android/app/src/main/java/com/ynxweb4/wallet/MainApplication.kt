@@ -15,6 +15,15 @@ import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ExpoReactHostFactory
 
 class MainApplication : Application(), ReactApplication {
+  // Only the verified in-process DEVICE actor can supply an Original review.
+  // There is no Binder or JavaScript entry point for creating one.
+  internal val deviceApprovalReviews = DeviceApprovalReviewCoordinator()
+
+  @Suppress("DEPRECATION")
+  override fun onTrimMemory(level: Int) {
+    super.onTrimMemory(level)
+    if (level >= TRIM_MEMORY_UI_HIDDEN) deviceApprovalReviews.cancel()
+  }
 
   override val reactHost: ReactHost by lazy {
     ExpoReactHostFactory.getDefaultReactHost(
