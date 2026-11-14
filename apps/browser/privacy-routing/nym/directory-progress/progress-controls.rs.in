@@ -1,0 +1,27 @@
+#[path="@DIAGNOSTICS@"] mod diagnostics;
+#[path="@DEADLINE@"] mod deadline;
+use diagnostics::{BodyProgress,Failure};
+use deadline::{AbsolutePolicyDeadline,DeadlineFailure};
+use std::{io::{Read,Write},net::TcpListener,sync::{Arc,atomic::{AtomicBool,Ordering}},thread,time::{Duration,SystemTime,UNIX_EPOCH,Instant}};
+fn expiry(seconds:u64)->AbsolutePolicyDeadline {AbsolutePolicyDeadline::from_unix_seconds(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()+seconds).unwrap()}
+fn drip()->(String,thread::JoinHandle<()>) {
+ let server=TcpListener::bind("127.0.0.1:0").unwrap();let address=server.local_addr().unwrap();
+ let handle=thread::spawn(move || {let (mut socket,_)=server.accept().unwrap();socket.set_nodelay(true).unwrap();socket.set_read_timeout(Some(Duration::from_secs(2))).unwrap();let mut request=Vec::new();let mut byte=[0];while !request.ends_with(b"\r\n\r\n") {if socket.read(&mut byte).unwrap_or(0)==0{return}request.push(byte[0]);if request.len()>4096{return}}
+  if socket.write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\nConnection: close\r\n\r\n").is_err(){return}
+  for b in b"test" {thread::sleep(Duration::from_millis(25));if socket.write_all(&[*b]).is_err(){return}}
+ });(format!("http://{address}/synthetic"),handle)
+}
+struct Cancelled(Arc<AtomicBool>);impl Drop for Cancelled {fn drop(&mut self){self.0.store(true,Ordering::SeqCst);}}
+fn main(){let rt=tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();rt.block_on(async {
+ let cap=Duration::from_millis(60);
+ let (url,server)=drip();let client=reqwest::Client::builder().no_proxy().timeout(cap).read_timeout(cap).build().unwrap();
+ let mut response=client.get(&url).send().await.unwrap();let mut timed=false;
+ loop {match response.chunk().await {Ok(Some(_))=>{},Ok(None)=>break,Err(e)=>{assert!(e.is_timeout());timed=true;break}}}assert!(timed);drop(response);server.join().unwrap();println!("PASS legacy_whole_body_cap_rejects_continuous_progress");
+ let (url,server)=drip();let d=expiry(3);let mut request=client.get(&url).build().unwrap();*request.timeout_mut()=Some(d.remaining().unwrap());assert!(request.timeout().unwrap()> &cap);
+ let start=Instant::now();let mut response=d.run(cap,||client.execute(request)).await.unwrap().unwrap();let mut progress=BodyProgress::new(4,cap);let mut data=Vec::new();
+ loop {let next=d.run(progress.remaining().unwrap(),||response.chunk()).await.unwrap().unwrap();let Some(chunk)=next else {break};progress.advance(chunk.len()).unwrap();data.extend_from_slice(&chunk)}
+ assert_eq!(data,b"test");assert!(start.elapsed()>cap);drop(response);server.join().unwrap();println!("PASS actual_reqwest_request_absolute_override_and_progress_idle");
+ let d=expiry(3);let progress=BodyProgress::new(4,Duration::from_millis(20));let r=d.run(progress.remaining().unwrap(),||std::future::pending::<()>()).await;assert_eq!(r,Err(DeadlineFailure::StepTimedOut));assert_eq!(progress.remaining(),Err(Failure::BodyIdleTimedOut));println!("PASS body_idle_pending_rejected");
+ let d=expiry(1);let cancelled=Arc::new(AtomicBool::new(false));let guard=cancelled.clone();let r=d.run(Duration::from_secs(2),||async move {let _drop=Cancelled(guard);loop {tokio::time::sleep(Duration::from_millis(5)).await;}}).await;assert_eq!(r,Err(DeadlineFailure::PolicyExpired));assert!(cancelled.load(Ordering::SeqCst));println!("PASS absolute_expiry_cancels_continuous_future");
+ let d=expiry(3);let r=d.run(Duration::from_millis(20),||std::future::pending::<()>()).await;assert_eq!(r,Err(DeadlineFailure::StepTimedOut));println!("PASS header_pending_retains_step_cap");
+});}

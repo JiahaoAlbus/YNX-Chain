@@ -1,0 +1,30 @@
+#[path=__HELPER_PATH_AS_RUST_STRING__] mod epoch;
+use serde_json::{json,Value};
+use time::{OffsetDateTime,Duration,format_description::well_known::Rfc3339};
+fn base(now:OffsetDateTime)->Value {json!({"current_epoch_id":320,"total_elapsed_epochs":34880,"current_epoch_start":(now-Duration::seconds(60)).format(&Rfc3339).unwrap(),"epoch_length":{"secs":3600,"nanos":0}})}
+fn check(value:&Value,now:OffsetDateTime,refresh:OffsetDateTime,reason:&str) {
+ let result=epoch::inspect(34880,refresh,value,now);assert_eq!(result.reason,reason);
+ let data=result.data("qa-dir-11111111111111111111111111111111");
+ assert_eq!(data["NoProductionAuthority"],true);assert!(data.get("nodes").is_none());assert!(data.get("entryNodeIDs").is_none());
+}
+fn main(){
+ let now=OffsetDateTime::parse("2026-11-08T02:00:00Z",&Rfc3339).unwrap();let fresh=now-Duration::seconds(1);let good=base(now);let mut cases=0;
+ macro_rules! c {($v:expr,$r:expr,$reason:expr)=>{{check(&$v,now,$r,$reason);cases+=1;}}}
+ c!(good.clone(),fresh,"epoch_and_metadata_predicates_passed");
+ let mut v=good.clone();v["epoch_length"]["secs"]=json!(599);c!(v,fresh,"epoch_length_out_of_range");
+ let mut v=good.clone();v["epoch_length"]["secs"]=json!(86401);c!(v,fresh,"epoch_length_out_of_range");
+ let mut v=good.clone();v["epoch_length"]["nanos"]=json!(1);c!(v,fresh,"epoch_nanos_not_zero");
+ let mut v=good.clone();v["total_elapsed_epochs"]=Value::Null;c!(v,fresh,"epoch_id_mismatch_or_missing");
+ let mut v=good.clone();v["total_elapsed_epochs"]=json!(320);c!(v,fresh,"epoch_id_mismatch_or_missing");
+ let mut v=good.clone();v["current_epoch_start"]=json!((now+Duration::nanoseconds(1)).format(&Rfc3339).unwrap());c!(v,fresh,"epoch_start_in_future");
+ let mut v=good.clone();v["current_epoch_start"]=json!((now-Duration::seconds(3300)).format(&Rfc3339).unwrap());c!(v.clone(),fresh,"epoch_remaining_not_above_300s");
+ v["current_epoch_start"]=json!((now-Duration::seconds(3300)+Duration::milliseconds(1)).format(&Rfc3339).unwrap());c!(v,fresh,"epoch_and_metadata_predicates_passed");
+ c!(good.clone(),now+Duration::seconds(5),"epoch_and_metadata_predicates_passed");
+ c!(good.clone(),now+Duration::seconds(5)+Duration::nanoseconds(1),"metadata_refresh_in_future");
+ c!(good.clone(),now-Duration::seconds(3600),"epoch_and_metadata_predicates_passed");
+ c!(good.clone(),now-Duration::seconds(3600)-Duration::nanoseconds(1),"metadata_refresh_older_than_epoch_length");
+ let mut v=good.clone();v["current_epoch_start"]=json!("malformed");c!(v,fresh,"epoch_start_invalid");
+ let mut v=good.clone();v["epoch_length"]["secs"]=Value::Null;c!(v,fresh,"epoch_length_missing_or_type");
+ let data=epoch::inspect(34880,fresh,&good,now).data("qa-dir-11111111111111111111111111111111");assert_eq!(data["basicAbsoluteEpochID"],34880);assert_eq!(data["remainingMilliseconds"],"3540000");assert_eq!(data["epochLengthSeconds"],3600);cases+=1;
+ println!("new_epoch_cases={cases}");assert_eq!(cases,16);
+}

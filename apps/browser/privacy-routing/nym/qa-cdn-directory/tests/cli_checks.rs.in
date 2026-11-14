@@ -1,0 +1,56 @@
+
+pub fn offline_checks(root:&std::path::Path) -> usize {
+    let zero="11111111111111111111111111111111";
+    let other="3bgffBYcfFkTTXc2npNNn9MkddFZ3H2LrPjXDmnJzrqd";
+    let public:nym_crypto::asymmetric::ed25519::PublicKey=zero.parse().unwrap();
+    let exit_key:nym_crypto::asymmetric::ed25519::PublicKey=other.parse().unwrap();
+    let encryption=nym_crypto::asymmetric::x25519::PublicKey::from_bytes(&[0;32]).unwrap();
+    let recipient=nym_sphinx::addressing::Recipient::new(public,encryption,exit_key).to_string();
+    let wrong_gateway=nym_sphinx::addressing::Recipient::new(public,encryption,public).to_string();
+    let now=time::OffsetDateTime::now_utc();let timestamp=now.format(&time::format_description::well_known::Rfc3339).unwrap();
+    let mut basics=Vec::new();let mut descriptions=Vec::new();
+    for (id,key,ip,entry) in [(1,zero,"1.1.1.1",true),(2,other,"8.8.8.8",false)] {
+        let role=if entry {"EntryGateway"} else {"ExitGateway"};
+        let entry_info=if entry {serde_json::json!({"hostname":"gateway.fixture.invalid","ws_port":9000,"wss_port":9001})} else {serde_json::Value::Null};
+        let roles=serde_json::json!({"mixnode":false,"entry":entry,"exit_nr":!entry,"exit_ipr":false});
+        basics.push(serde_json::json!({"node_id":id,"ed25519_identity_pubkey":key,"ip_addresses":[ip],"mix_port":1789,"x25519_sphinx_pubkey":zero,"role":role,"supported_roles":roles,"entry":entry_info,"performance":"1"}));
+        let requester=if entry {serde_json::Value::Null} else {serde_json::json!({"address":recipient,"uses_exit_policy":true})};
+        descriptions.push(serde_json::json!({"node_id":id,"contract_node_type":"nym_node","description":{"last_polled":timestamp,"host_information":{"ip_address":[ip],"hostname":if entry {Some("gateway.fixture.invalid")} else {None},"keys":{"ed25519":key,"x25519":zero,"current_x25519_sphinx_key":{"rotation_id":0,"public_key":zero}}},"declared_role":roles,"build_information":{"binary_name":"fixture","build_timestamp":"fixture","build_version":"fixture","commit_sha":"fixture","commit_timestamp":"fixture","commit_branch":"fixture","rustc_version":"fixture","rustc_channel":"fixture","cargo_profile":"fixture","cargo_triple":"fixture"},"network_requester":requester,"mixnet_websockets":{"ws_port":9000,"wss_port":if entry {Some(9001)} else {None}}}}));
+    }
+    let basic=serde_json::json!({"metadata":{"status":null,"absolute_epoch_id":1,"rotation_id":0,"refreshed_at":timestamp},"nodes":{"pagination":{"total":2,"size":2,"page":0},"data":basics}});
+    let described=serde_json::json!({"pagination":{"total":2,"size":2,"page":0},"data":descriptions});
+    let epoch=serde_json::json!({"total_elapsed_epochs":1,"current_epoch_start":(now-time::Duration::seconds(1)).format(&time::format_description::well_known::Rfc3339).unwrap(),"epoch_length":{"secs":3600,"nanos":0}});
+    fn checked(b:serde_json::Value,d:serde_json::Value,e:serde_json::Value)->bool {
+        let Ok(b)=serde_json::from_value::<PaginatedCachedNodesResponseV2<SkimmedNodeV1>>(b) else {return false};
+        let Ok(d)=serde_json::from_value::<PaginatedResponse<NymNodeDescriptionV2>>(d) else {return false};
+        validate_snapshot(&b,&d,&e).is_ok()
+    }
+    let mut count=0;assert!(checked(basic.clone(),described.clone(),epoch.clone()));count+=1;
+    for n in 0..13 {
+        let mut b=basic.clone();let mut d=described.clone();let mut e=epoch.clone();
+        match n {
+            0=>{d["data"].as_array_mut().unwrap().pop();},
+            1=>{d["data"][1]["node_id"]=1.into();},
+            2=>{d["data"][1]["description"]["host_information"]["keys"]["ed25519"]=zero.into();},
+            3=>{b["nodes"]["data"][1]["role"]="Inactive".into();},
+            4=>{b["nodes"]["data"][1]["supported_roles"]["exit_nr"]=false.into();},
+            5=>{d["data"][1]["description"]["network_requester"]["address"]="not-a-recipient".into();},
+            6=>{d["data"][1]["description"]["network_requester"]["address"]=wrong_gateway.clone().into();},
+            7=>{d["data"][1]["description"]["network_requester"]["uses_exit_policy"]=false.into();},
+            8=>{d["data"][0]["description"]["host_information"]["ip_address"]=serde_json::json!(["8.8.8.8"]);},
+            9=>{e["total_elapsed_epochs"]=2.into();},
+            10=>{e["current_epoch_start"]=(now-time::Duration::hours(2)).format(&time::format_description::well_known::Rfc3339).unwrap().into();},
+            11=>{b["metadata"]["refreshed_at"]=(now+time::Duration::hours(2)).format(&time::format_description::well_known::Rfc3339).unwrap().into();},
+            _=>{b["nodes"]["data"][0]["entry"]["hostname"]="user:secret@gateway.fixture.invalid".into();},
+        }
+        assert!(!checked(b,d,e),"case{n}");count+=1;
+    }
+    use std::os::unix::fs::PermissionsExt;
+    let plan=root.join("plan");std::fs::write(&plan,b"synthetic invalid plan").unwrap();std::fs::set_permissions(&plan,std::fs::Permissions::from_mode(0o644)).unwrap();
+    let args=Args{plan:plan.clone(),plan_sha256:"0".repeat(64),run_id:"qa-dir-0123456789abcdef0123456789abcdef".into()};
+    assert!(install(&args).unwrap_err().to_string().contains("unsafe-plan"));count+=1;
+    std::fs::set_permissions(&plan,std::fs::Permissions::from_mode(0o600)).unwrap();assert!(install(&args).unwrap_err().to_string().contains("plan-sha"));count+=1;
+    let link=root.join("link");std::os::unix::fs::symlink(&plan,&link).unwrap();let args=Args{plan:link.clone(),..args};assert!(install(&args).unwrap_err().to_string().contains("unsafe-plan"));count+=1;
+    std::fs::remove_file(link).unwrap();std::fs::remove_file(plan).unwrap();
+    println!("PASS qa_directory_complete_types_identity_roles_epoch_file_boundary checks={count}");count
+}

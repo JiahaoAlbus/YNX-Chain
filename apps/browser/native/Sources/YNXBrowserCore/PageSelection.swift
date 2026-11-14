@@ -82,6 +82,9 @@ public enum BrowserPageSelectionError: String, Error, Equatable, LocalizedError,
     private struct Entry { let source: BrowserPageSource; let bytes: Data }
     private var entries: [UUID: Entry] = [:]
     private var invalidated: Set<UUID> = []
+    private var invalidatedOrder: [UUID] = []
+    private var invalidatedSources: [UUID: BrowserPageSource] = [:] // Metadata only, never snapshot bytes.
+    private var pageBorrows: [UUID: WeakBrowserPageSelectionBorrow] = [:]
     private static let fields: Set<String> = ["url", "title", "text"]
 
     public init() {}
@@ -105,6 +108,49 @@ public enum BrowserPageSelectionError: String, Error, Equatable, LocalizedError,
         }
         for entry in proposed { entries[entry.source.selectionID] = entry }
         return proposed.map(\.source)
+    }
+
+    /// Internal whole-batch preflight/final fence; returns no content and adds no authority.
+    func requireSelectedPageSource(_ source: BrowserPageSource) throws {
+        guard !invalidated.contains(source.selectionID) else { throw BrowserPageSelectionError.stale }
+        guard let entry = entries[source.selectionID], entry.source == source else { throw BrowserPageSelectionError.denied }
+    }
+
+    func resolvePageReference(_ reference: BrowserPageSelectionReference, taskID: String, profileID: String, includeInvalidated: Bool) throws -> BrowserPageSource {
+        guard let id = reference.parsedID else { throw BrowserPageSelectionError.invalid }
+        guard let source = entries[id]?.source ?? invalidatedSources[id] else {
+            if invalidated.contains(id) { throw BrowserPageSelectionError.stale }
+            throw BrowserPageSelectionError.denied
+        }
+        guard !source.document.isPrivate, source.taskID.utf8.elementsEqual(taskID.utf8), source.document.profileID.utf8.elementsEqual(profileID.utf8) else { throw BrowserPageSelectionError.denied }
+        guard source.binding.sha512 == reference.version else { throw BrowserPageSelectionError.stale }
+        if !includeInvalidated { try requireSelectedPageSource(source) }
+        return source
+    }
+    func trackPageBorrow(_ borrow: BrowserPageSelectionBorrow) throws {
+        pageBorrows = pageBorrows.filter { $0.value.value != nil }
+        guard pageBorrows.count < Self.maximumPageBorrows else { throw BrowserPageSelectionError.limit }
+        pageBorrows[borrow.registryID] = WeakBrowserPageSelectionBorrow(borrow)
+    }
+    func forgetPageBorrow(_ borrow: BrowserPageSelectionBorrow) { pageBorrows.removeValue(forKey: borrow.registryID) }
+    private func revokePageBorrows(tabID: UUID? = nil) {
+        let live = pageBorrows.values.compactMap(\.value)
+        for borrow in live where tabID == nil || borrow.affected(tabID: tabID!) { borrow.end(.stale) }
+        pageBorrows = pageBorrows.filter { $0.value.value != nil }
+    }
+    private func trimInvalidatedMetadata() {
+        if invalidatedOrder.count > 256 {
+            let old = invalidatedOrder.prefix(invalidatedOrder.count - 256)
+            for id in old { invalidated.remove(id); invalidatedSources.removeValue(forKey: id) }
+            invalidatedOrder.removeFirst(invalidatedOrder.count - 256)
+        }
+        invalidatedSources = invalidatedSources.filter { invalidated.contains($0.key) }
+        // Source metadata can itself contain user-chosen strings; bound total retained bytes too.
+        var total = 0
+        for (id, source) in invalidatedSources {
+            total += source.document.origin.utf8.count + source.document.profileID.utf8.count + source.taskID.utf8.count + 512
+            if total > 262144 { invalidatedSources.removeValue(forKey: id) }
+        }
     }
 
     /// Compare a fresh extraction of the SAME selected fields; return only the original snapshot.
@@ -141,15 +187,21 @@ public enum BrowserPageSelectionError: String, Error, Equatable, LocalizedError,
     /// Call before allowing main-document navigation, on close, process termination, or profile change.
     public func invalidate(tabID: UUID) {
         let ids = entries.values.filter { $0.source.document.tabID == tabID }.map { $0.source.selectionID }
-        for id in ids { entries.removeValue(forKey: id); invalidated.insert(id) }
+        for id in ids {
+            if let entry = entries.removeValue(forKey: id) { invalidatedSources[id] = entry.source }
+            if invalidated.insert(id).inserted { invalidatedOrder.append(id) }
+        }
         // Tombstones retain no content and are bounded. Older missing selections remain denied.
-        if invalidated.count > 256 { invalidated = Set(invalidated.prefix(256)) }
+        trimInvalidatedMetadata(); revokePageBorrows(tabID: tabID)
     }
 
     public func removeAll() {
-        invalidated.formUnion(entries.keys)
+        for (id, entry) in entries {
+            if invalidated.insert(id).inserted { invalidatedOrder.append(id) }
+            invalidatedSources[id] = entry.source
+        }
         entries.removeAll()
-        if invalidated.count > 256 { invalidated = Set(invalidated.prefix(256)) }
+        trimInvalidatedMetadata(); revokePageBorrows()
     }
 
     private static func snapshotBytes(document: BrowserPageDocument, taskID: String, fields: [String], content: BrowserPageContent) throws -> Data {
@@ -237,16 +289,26 @@ public enum BrowserPageSelectionError: String, Error, Equatable, LocalizedError,
 // https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf
 enum BrowserSHA3_512 {
     static func hash(_ data: Data) -> String {
+        BrowserSHA3.digest(data, rate: 72, output: 64).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+enum BrowserSHA3 {
+    static func hash256(_ data: Data) -> [UInt8] {
+        digest(data, rate: 136, output: 32)
+    }
+
+    fileprivate static func digest(_ data: Data, rate: Int, output: Int) -> [UInt8] {
         var state = [UInt64](repeating: 0, count: 25)
         var padded = [UInt8](data)
         padded.append(0x06)
-        while padded.count % 72 != 0 { padded.append(0) }
+        while padded.count % rate != 0 { padded.append(0) }
         padded[padded.count - 1] |= 0x80
-        for offset in stride(from: 0, to: padded.count, by: 72) {
-            for byte in 0..<72 { state[byte / 8] ^= UInt64(padded[offset + byte]) << UInt64(8 * (byte % 8)) }
+        for offset in stride(from: 0, to: padded.count, by: rate) {
+            for byte in 0..<rate { state[byte / 8] ^= UInt64(padded[offset + byte]) << UInt64(8 * (byte % 8)) }
             permute(&state)
         }
-        return (0..<64).map { String(format: "%02x", UInt8(truncatingIfNeeded: state[$0 / 8] >> UInt64(8 * ($0 % 8)))) }.joined()
+        return (0..<output).map { UInt8(truncatingIfNeeded: state[$0 / 8] >> UInt64(8 * ($0 % 8))) }
     }
 
     private static func rotate(_ value: UInt64, _ count: Int) -> UInt64 {
@@ -264,11 +326,7 @@ enum BrowserSHA3_512 {
             0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008
         ]
         for constant in constants {
-            let c: [UInt64] = (0..<5).map { x in
-                let first = a[x] ^ a[x+5]
-                let second = a[x+10] ^ a[x+15]
-                return first ^ second ^ a[x+20]
-            }
+            let c = (0..<5).map { x in a[x] ^ a[x+5] ^ a[x+10] ^ a[x+15] ^ a[x+20] }
             let d = (0..<5).map { x in c[(x+4)%5] ^ rotate(c[(x+1)%5], 1) }
             for y in 0..<5 { for x in 0..<5 { a[x+5*y] ^= d[x] } }
             var b = [UInt64](repeating: 0, count: 25)

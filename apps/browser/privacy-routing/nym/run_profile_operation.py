@@ -36,9 +36,12 @@ def sanitize_log(line):
 
 
 def validate_directory(args):
-    basic = json.loads(args.directory_basic.read_bytes())
-    described = json.loads(args.directory_described.read_bytes())
-    epoch = json.loads(args.directory_epoch.read_bytes())
+    basic_bytes = args.directory_basic.read_bytes()
+    described_bytes = args.directory_described.read_bytes()
+    epoch_bytes = args.directory_epoch.read_bytes()
+    basic = json.loads(basic_bytes)
+    described = json.loads(described_bytes)
+    epoch = json.loads(epoch_bytes)
     def page(value):
         rows = value['data']; pagination = value['pagination']
         if pagination['page'] != 0 or pagination['total'] != len(rows):
@@ -79,8 +82,9 @@ def validate_directory(args):
             'entryNodeID': args.entry_node_id, 'requesterNodeID': args.requester_node_id,
             'entryIdentitySHA256': hashlib.sha256(entry['ed25519_identity_pubkey'].encode()).hexdigest(),
             'requesterSHA256': hashlib.sha256(args.provider.encode()).hexdigest(),
-            'basicSHA256': digest(args.directory_basic), 'describedSHA256': digest(args.directory_described),
-            'epochSHA256': digest(args.directory_epoch)}
+            'basicSHA256': hashlib.sha256(basic_bytes).hexdigest(),
+            'describedSHA256': hashlib.sha256(described_bytes).hexdigest(),
+            'epochSHA256': hashlib.sha256(epoch_bytes).hexdigest()}
 
 
 def main():
@@ -98,6 +102,10 @@ def main():
     parser.add_argument('--directory-epoch', type=Path, required=True)
     parser.add_argument('--entry-node-id', type=int, required=True)
     parser.add_argument('--requester-node-id', type=int, required=True)
+    parser.add_argument('--reviewed-network', type=Path)
+    parser.add_argument('--reviewed-network-sha256')
+    parser.add_argument('--reviewed-run-id')
+    parser.add_argument('--max-seconds', type=float, help='Bound this owned QA run, then SIGINT and reap its original child')
     args = parser.parse_args()
     if not re.fullmatch(r'ynx-route-[a-z0-9-]{1,64}', args.profile_id) or not 1 <= args.port <= 65535:
         raise SystemExit('Invalid controlled profile/port')
@@ -110,17 +118,36 @@ def main():
     if config.is_symlink() or digest(config) != args.config_sha256:
         raise SystemExit('Existing profile configuration mismatch')
     directory_binding = validate_directory(args)
+    protected = [args.reviewed_network, args.reviewed_network_sha256, args.reviewed_run_id]
+    if any(protected):
+        if not all(protected) or args.reviewed_network.is_symlink() or digest(args.reviewed_network) != args.reviewed_network_sha256:
+            raise SystemExit('Incomplete or changed reviewed network policy')
+        policy = json.loads(args.reviewed_network.read_bytes())
+        if (policy.get('schema') != 'YNX_NYM_REVIEWED_NETWORK_V1' or policy.get('stage') != 'route-runtime'
+            or policy.get('runID') != args.reviewed_run_id or policy.get('directoryEpoch') != directory_binding['epoch']
+            or policy.get('directorySHA256') != [directory_binding[k] for k in ['basicSHA256', 'describedSHA256', 'epochSHA256']]
+            or policy.get('expiresAt', 0) <= time.time() or not -5 <= time.time() - policy.get('issuedAt', 0) <= 120):
+            raise SystemExit('Policy is not bound to the current directory/operation')
+    if args.max_seconds is not None and not 1 <= args.max_seconds <= 300:
+        raise SystemExit('QA time limit must be within1..300seconds')
     keys_before = binding(profile)
     args.operation_root.mkdir(parents=True, exist_ok=False)
     # A local process lock is not route readiness; it only prevents duplicate owned runners.
     lock_fd = os.open(profile / '.ynx-run.lock', os.O_CREAT | os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
     with os.fdopen(lock_fd, 'a+b') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if binding(profile) != keys_before or digest(config) != args.config_sha256:
+            raise SystemExit('Original profile changed before exclusive ownership')
         with socket.socket() as reservation:
             reservation.bind(('127.0.0.1', args.port))
         command = [str(args.binary), 'run', '--ynx-runtime-contract', 'ynx-mixnet-v1', '--id', args.profile_id,
                    '--provider', args.provider, '--host', '127.0.0.1', '--port', str(args.port),
                    '--use-anonymous-replies', 'true', '--enabled-credentials-mode', 'false']
+        if all(protected):
+            command[command.index('ynx-mixnet-v1')] = 'ynx-protected-numeric-v2'
+            command[1:1] = ['--no-banner', '--ynx-reviewed-network', str(args.reviewed_network),
+                            '--ynx-reviewed-network-sha256', args.reviewed_network_sha256,
+                            '--ynx-reviewed-run-id', args.reviewed_run_id]
         receipt_path = args.operation_root / 'operation.json'
         receipt = {'command': command, 'binarySHA256': args.sha256, 'profileID': args.profile_id,
                    'createdAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -150,7 +177,12 @@ def main():
             reader = threading.Thread(target=drain, daemon=True); reader.start()
             receipt.update(pid=child.pid, supervisorPID=os.getpid(), state='running_unverified'); save()
             print(json.dumps({'pid': child.pid, 'supervisorPID': os.getpid(), 'receipt': str(receipt_path)}), flush=True)
+            started = time.monotonic()
             while child.poll() is None and not stopping:
+                if args.max_seconds is not None and time.monotonic() - started >= args.max_seconds:
+                    stopping = True
+                    receipt['deadlineReached'] = True
+                    break
                 time.sleep(0.2)
             if child.poll() is None:
                 child.send_signal(signal.SIGINT)

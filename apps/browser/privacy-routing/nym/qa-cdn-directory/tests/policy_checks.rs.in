@@ -1,0 +1,42 @@
+
+pub async fn offline_checks() -> usize {
+    use reqwest::dns::Resolve;
+    let run="qa-dir-0123456789abcdef0123456789abcdef";
+    let base=serde_json::json!({"schema":"YNX_NYM_QA_CDN_DIRECTORY_V1","purpose":"fresh-complete-directory-only","runID":run,"issuedAt":1000,"expiresAt":1120,"networkDefaultsSHA256":SOURCE_SHA256,"origin":ORIGIN,"addresses":[IP]});
+    let mut count=0;
+    assert!(validate(&serde_json::to_vec(&base).unwrap(),run,1000).is_ok());count+=1;
+    for (field,changed) in [
+        ("schema",serde_json::json!("YNX_NYM_REVIEWED_NETWORK_V1")),
+        ("purpose",serde_json::json!("route-runtime")),
+        ("origin",serde_json::json!("https://validator.nymtech.net")),
+        ("origin",serde_json::json!("https://nym-frontdoor.global.ssl.fastly.net")),
+        ("origin",serde_json::json!("https://user:secret@cdn1.media-platform.net")),
+        ("origin",serde_json::json!("http://cdn1.media-platform.net")),
+        ("origin",serde_json::json!("https://cdn1.media-platform.net/extra")),
+        ("addresses",serde_json::json!(["127.0.0.1"])),
+        ("addresses",serde_json::json!([IP,"92.39.63.14"])),
+        ("issuedAt",serde_json::json!(1006)),
+        ("expiresAt",serde_json::json!(1121)),
+        ("expiresAt",serde_json::json!(999)),
+        ("networkDefaultsSHA256",serde_json::json!("0".repeat(64))),
+        ("profileID",serde_json::json!("no-profile-permitted")),
+        ("frontHosts",serde_json::json!(["pypi.global.ssl.fastly.net"])),
+        ("paths",serde_json::json!(["/user-url"])),
+    ] {let mut value=base.clone();value[field]=changed;assert!(validate(&serde_json::to_vec(&value).unwrap(),run,1000).is_err());count+=1;}
+    assert!(validate(&serde_json::to_vec(&base).unwrap(),"other",1000).is_err());count+=1;
+    assert!(validate(&vec![0;4097],run,1000).is_err());count+=1;
+    let clock=now().unwrap();let mut live=base.clone();live["issuedAt"]=clock.into();live["expiresAt"]=(clock+110).into();
+    let old_policy=serde_json::json!({"schema":"YNX_NYM_REVIEWED_NETWORK_V1","runID":run,"stage":"directory-bootstrap","issuedAt":clock,"expiresAt":clock+110,"networkDefaultsSHA256":SOURCE_SHA256,"endpoints":[{"purpose":"directoryHTTPS","scheme":"https","host":HOST,"port":443,"addresses":[IP]},{"purpose":"chainRPC","scheme":"https","host":"rpc.nymtech.net","port":443,"addresses":["194.182.169.49","91.92.200.116","2a04:c43:e00:6f28:400:d8ff:fe00:1483","2a04:c46:e00:6f28:4b3:68ff:fe00:460"]}]});
+    let denied=crate::reviewed_network::install(&serde_json::to_vec(&old_policy).unwrap(),run,crate::reviewed_policy::Stage::DirectoryBootstrap).unwrap_err();
+    assert!(denied.contains("unreviewed infrastructure origin"));assert!(!crate::reviewed_network::active());count+=1;
+    install(&serde_json::to_vec(&live).unwrap(),run).unwrap();let mut session=take_session().unwrap();
+    assert!(take_session().is_err());count+=1;
+    assert!(session.fetch(Resource::Epoch).await.unwrap_err().contains("resource-order"));count+=1;
+    session.consumed.insert(Resource::Basic(0));assert!(session.fetch(Resource::Basic(0)).await.is_err());count+=1;
+    let resolver=ClosedResolver{deadline:session.plan.deadline};
+    assert!(resolver.resolve("duckduckgo.com".parse().unwrap()).await.is_err());count+=1;
+    let peers:Vec<_>=resolver.resolve(HOST.parse().unwrap()).await.unwrap().collect();assert_eq!(peers,vec![SocketAddr::new(IP.parse().unwrap(),443)]);count+=1;
+    assert!(install(&serde_json::to_vec(&live).unwrap(),run).is_err());count+=1;
+    assert!(!crate::reviewed_network::active());count+=1;
+    println!("PASS qa_directory_policy_closed_resolver_and_one_shot_no_network checks={count}");count
+}

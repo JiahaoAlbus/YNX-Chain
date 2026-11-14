@@ -1,0 +1,21 @@
+# Normal Tor qualification composition delta
+
+The real normal `authorizeStartup` previously called unqualified `preflight`, which read global `RoutedPlatformIsolationAdmission.current=false`. That unconditionally rejected startup before consulting a supplied, independently owned normal qualification. A source-slice counterexample preserved this behavior. The diagnostic global baseline remains false and its legacy preflight remains denied; it is no longer the actual normal startup callee.
+
+Normal startup now verifies launch identity, reuses or acquires and retains a normal `BrowserRouteProtection`, then calls its non-returning `requireBackendStartupQualification(mode: .tor)` check. This happens before bundled supply reads, profile creation, Root preparation or any child. The rest of startup reuses that exact owner. C owns the check: sticky first qualification failure, closed/invalidated state, exact typed mode and the original opaque owner's current/installation validation. A synthetic owner, Boolean, copied admission/snapshot or diagnostic JSON cannot satisfy it. Typed synthetic startup remains separately compiled and unchanged.
+
+`TorCoordinatorFailure` now distinguishes missing issuer (`qualificationNotSupplied`) and lost/changed/expired/closed qualification (`qualificationLost`). Signature, helper and mode errors keep their specific categories. Startup/status preserve the first original `RoutedQualificationFailure` in `firstQualificationFailure`, alongside the original first general failure. Cleanup and later errors cannot overwrite it. Website refusal is not involved in these categories.
+
+The new tests compile the actual authorization, identity, classification and failure-recording declarations with PUBLIC control-flow/rejection doubles. They check same-owner use, live recheck, no replacement, identity checks before owner checks, missing issuer/mode/expiry/revocation refusal before the test's offline side-effect boundary and sticky first causes. A no-throw test double does not construct real qualification, grant, Root, NE or a ready backend. The affected production startup/status catch sites are explicitly bound to the actual recording declaration. C separately verifies the real Native seam and normal/QA boundary.
+
+Observed focused checks: startup11 in each normal/acceptance path; qualification32 in each path. Two earlier fixture compilation failures (non-instantiable fixture enum, then a missing fixture `cancelled` case) are preserved separately with their original stderr and exits. The source-slice legacy counterexample and fixed runs are separate directories. No old backend, route, signing or classifier groups were rerun. Existing worker/readiness/diagnostic drivers only gain the new classifier's enum dependency; their old tests are not replayed for this delivery.
+
+One CI entry, run from the worktree root with a fresh absolute output path:
+
+```sh
+/bin/sh apps/browser/privacy-routing/tor/tests/test-production-startup-module.sh "$RUNNER_TEMP/ynx-tor-production-startup-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+```
+
+It runs `test_production_startup_admission.py <output>/startup` and `test_qualification_failure_delta.py <output>/qualification` sequentially with jobs1. Each driver selects `platform.machine()+-apple-macosx14.0`, snapshots its actual declarations, records exact commands/PIDs/exits/reaping and preserves failures in `RESULT.json` and stdout/stderr. Architecture-selection and wrapper syntax are checked without replaying already-passed flow tests. The actual observed arm64 commands remain in the original receipts. `--legacy-counterexample` is only for archived pre-fix source, not fixed-source CI.
+
+Integration21's normal/QA/helper compile and local ordinary installation are retained evidence for its old exact bytes. Integration21 does not contain this new provider/C seam. This delivery proves focused source composition and rejection behavior only; whole-app rebuilding/installing and genuine issuer/Team/NE/whole-window qualification remain separate. Current normal acquisition still throws its actual missing-issuer/signing failure before profile or backend work. No vendor, network, GUI, new profile or system policy was touched.

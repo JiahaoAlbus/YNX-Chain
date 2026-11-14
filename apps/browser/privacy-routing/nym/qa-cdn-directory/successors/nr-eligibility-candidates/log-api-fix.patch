@@ -1,0 +1,14 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -111,9 +111,8 @@
+             else {ineligible_requesters+=1}
+         }
+     }
+-    tracing::info!(target:"ynx_qa_directory", basic_rows=basic.nodes.data.len(), described_rows=described.data.len(),
+-        tls_eligible_entries=entries, qa_eligible_requesters=exits, unjoined_basics, ineligible_requesters,
+-        "qa_directory_complete_data_candidate_capabilities");
++    log::info!(target:"ynx_qa_directory", "qa_directory_complete_data_candidate_capabilities basic_rows={} described_rows={} tls_eligible_entries={} qa_eligible_requesters={} unjoined_basics={} ineligible_requesters={}",
++        basic.nodes.data.len(),described.data.len(),entries,exits,unjoined_basics,ineligible_requesters);
+     if entries==0 || exits==0 {return Err("qa-directory-no-current-entry-exit".into())}
+     Ok(())
+ }

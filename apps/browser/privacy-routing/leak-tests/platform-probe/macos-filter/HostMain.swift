@@ -7,18 +7,108 @@ import AppKit
 
 private func privateData(_ path: String, limit: Int) throws -> Data {
     guard path.hasPrefix("/") else { throw FilterFailure.rejected("Absolute owned review path required") }
-    let fd = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC); guard fd >= 0 else { throw FilterFailure.rejected("Review open failed: \(errno)") }; defer { close(fd) }
-    var info = stat(); guard fstat(fd, &info) == 0, (info.st_mode & S_IFMT) == S_IFREG, info.st_uid == getuid(), info.st_mode & 0o022 == 0, info.st_size > 0, info.st_size <= limit else { throw FilterFailure.rejected("Review must be a bounded current-user owned regular non-writable file") }
-    let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false); let bytes = try handle.readToEnd() ?? Data(); guard bytes.count <= limit else { throw FilterFailure.rejected("Review grew beyond limit") }; return bytes
+    let fd = Darwin.open(path, O_RDONLY | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC)
+    guard fd >= 0 else { throw FilterFailure.rejected("Review open failed: \(errno)") }
+    defer { Darwin.close(fd) }
+    var before = stat(), after = stat(), atPath = stat()
+    guard fstat(fd, &before) == 0, before.st_mode & S_IFMT == S_IFREG, before.st_uid == getuid(),
+          before.st_mode & 0o022 == 0, before.st_size > 0, before.st_size <= limit
+    else { throw FilterFailure.rejected("Review must be a bounded current-user owned regular non-writable file") }
+    let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: false)
+    var bytes = Data()
+    let size = Int(before.st_size)
+    while bytes.count < size {
+        let count = min(size - bytes.count, 16_384)
+        guard let chunk = try handle.read(upToCount: count), !chunk.isEmpty, chunk.count <= count
+        else { throw FilterFailure.rejected("Review ended before its observed size") }
+        bytes.append(chunk)
+    }
+    let extra = try handle.read(upToCount: 1)
+    guard extra?.isEmpty != false, fstat(fd, &after) == 0, lstat(path, &atPath) == 0,
+          sameReviewFile(before, after), sameReviewFile(before, atPath)
+    else { throw FilterFailure.rejected("Review changed during read") }
+    return bytes
+}
+
+private func sameReviewFile(_ before: stat, _ after: stat) -> Bool {
+    before.st_dev == after.st_dev && before.st_ino == after.st_ino &&
+        before.st_mode == after.st_mode && before.st_uid == after.st_uid &&
+        before.st_size == after.st_size &&
+        before.st_mtimespec.tv_sec == after.st_mtimespec.tv_sec &&
+        before.st_mtimespec.tv_nsec == after.st_mtimespec.tv_nsec &&
+        before.st_ctimespec.tv_sec == after.st_ctimespec.tv_sec &&
+        before.st_ctimespec.tv_nsec == after.st_ctimespec.tv_nsec
 }
 private func digest(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
 private func emit(_ dictionary: [String: Any]) { if let data = try? JSONSerialization.data(withJSONObject: dictionary, options: [.sortedKeys]), let text = String(data: data, encoding: .utf8) { print(text); fflush(stdout) } }
 private func spin(until predicate: () -> Bool, seconds: TimeInterval = 30) throws { let until = Date().addingTimeInterval(seconds); while !predicate() && Date() < until { RunLoop.current.run(until: Date().addingTimeInterval(0.05)) }; guard predicate() else { throw FilterFailure.rejected("Bounded system operation timed out") } }
 
+enum ReviewedFilterHostEvidence {
+    enum PreferenceAction: String { case create, alreadyConfigured, refuse }
+    enum ActivationState: String {
+        case completed
+        case pendingReboot = "pending-reboot"
+        case unknown
+
+        init(_ result: OSSystemExtensionRequest.Result) {
+            switch result {
+            case .completed: self = .completed
+            case .willCompleteAfterReboot: self = .pendingReboot
+            @unknown default: self = .unknown
+            }
+        }
+
+        func receipt(result: OSSystemExtensionRequest.Result) -> [String: Any] {
+            [
+                "activationResult": result.rawValue,
+                "activationState": rawValue,
+                "acceptedByOS": self != .unknown,
+                "activationCompleted": self == .completed,
+                "requiresReboot": self == .pendingReboot,
+                "networkAcceptance": "NOT_RUN",
+                "productionRouteAdmission": false,
+            ]
+        }
+    }
+
+    static let filterDescription = "YNX dedicated Browser route fence"
+
+    static func preferenceAction(
+        _ configuration: NEFilterProviderConfiguration?,
+        enabled: Bool,
+        grade: NEFilterManager.Grade,
+        description: String?,
+        disablesEncryptedDNS: Bool,
+        providerIdentifier: String
+    ) -> PreferenceAction {
+        guard !disablesEncryptedDNS else { return .refuse }
+        guard let configuration else { return enabled ? .refuse : .create }
+        guard configuration.filterDataProviderBundleIdentifier == providerIdentifier,
+              configuration.filterSockets, !configuration.filterPackets,
+              configuration.filterPacketProviderBundleIdentifier == nil,
+              configuration.vendorConfiguration?.isEmpty != false,
+              configuration.serverAddress == nil,
+              configuration.username == nil,
+              configuration.organization == nil,
+              configuration.passwordReference == nil,
+              configuration.identityReference == nil,
+              enabled, grade == .firewall, description == filterDescription
+        else { return .refuse }
+        return .alreadyConfigured
+    }
+}
+
 private final class Activation: NSObject, OSSystemExtensionRequestDelegate {
     var done = false, error: Error?
     func request(_ request: OSSystemExtensionRequest, didFailWithError error: Error) { self.error = error; done = true }
-    func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) { emit(["activationResult": result.rawValue, "acceptedByOS": true, "networkAcceptance": "NOT_RUN"]); done = true }
+    func request(_ request: OSSystemExtensionRequest, didFinishWithResult result: OSSystemExtensionRequest.Result) {
+        let state = ReviewedFilterHostEvidence.ActivationState(result)
+        emit(state.receipt(result: result))
+        if state == .unknown {
+            error = FilterFailure.rejected("Unrecognized activation result")
+        }
+        done = true
+    }
     func requestNeedsUserApproval(_ request: OSSystemExtensionRequest) { emit(["systemUserApprovalRequired": true, "provider": FilterBuild.providerIdentifier]) }
     func request(_ request: OSSystemExtensionRequest, actionForReplacingExtension existing: OSSystemExtensionProperties, withExtension ext: OSSystemExtensionProperties) -> OSSystemExtensionRequest.ReplacementAction { .cancel } // Never silently replace an installed owner version.
 }
@@ -77,28 +167,30 @@ private final class ReviewedController {
         if command == "--configure-reviewed-filter", args == [command, FilterBuild.providerIdentifier] {
             let manager = NEFilterManager.shared(); var loaded = false, failure: Error?
             manager.loadFromPreferences { error in failure = error; loaded = true }; try spin(until: { loaded }); if let failure { throw failure }
-            if let old = manager.providerConfiguration?.filterDataProviderBundleIdentifier, old != FilterBuild.providerIdentifier { throw FilterFailure.rejected("Existing owner filter configuration differs; do not overwrite") }
-            let configuration = NEFilterProviderConfiguration(); configuration.filterSockets = true; configuration.filterPackets = false; configuration.filterDataProviderBundleIdentifier = FilterBuild.providerIdentifier
-            manager.providerConfiguration = configuration; manager.localizedDescription = "YNX dedicated Browser route fence"; manager.grade = .firewall; manager.isEnabled = true
-            var saved = false; manager.saveToPreferences { error in failure = error; saved = true }; try spin(until: { saved }); if let failure { throw failure }
-            emit(["configurationSaved": true, "systemUserAuthorizationMayBeRequired": true, "productionRouteAdmission": false]); return
-        }
-        if command == "--serve-reviewed", args.count == 4 {
-            let bytes = try privateData(args[1], limit: 131072); guard digest(bytes) == args[2] else { throw FilterFailure.rejected("Review SHA256 mismatch") }
-            let review = try JSONDecoder().decode(ReviewedFilterRun.self, from: bytes); try review.validate(); try review.verifyLive()
-            guard URL(fileURLWithPath: args[3]).deletingLastPathComponent() == URL(fileURLWithPath: args[1]).deletingLastPathComponent() else { throw FilterFailure.rejected("State file must share the owned private manifest directory") }
-            let controller = try ReviewedController(); let enrolled = try controller.invoke { controller.proxy.enroll(bytes, withReply: $0) }; print(String(data: enrolled, encoding: .utf8)!); fflush(stdout)
-            var previous: Data?
-            while Date().timeIntervalSince1970 < review.expiresAt && !controller.lost {
-                if FileManager.default.fileExists(atPath: args[3]) {
-                    let state = try privateData(args[3], limit: 4096)
-                    if state != previous { let value = try JSONDecoder().decode(RouteStateRequest.self, from: state); guard value.runID == review.runID, value.epoch == review.epoch else { throw FilterFailure.rejected("State file run/epoch mismatch") }; let result = try controller.invoke { controller.proxy.routeState(state, withReply: $0) }; print(String(data: result, encoding: .utf8)!); fflush(stdout); previous = state }
-                }
-                RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            var disablesEncryptedDNS = false
+            if #available(macOS 15.0, *) {
+                disablesEncryptedDNS = manager.disableEncryptedDNSSettings
             }
-            // Controller teardown invalidates the enrolled session; provider blocks retained flows.
-            throw FilterFailure.rejected("Reviewed lifetime expired or authenticated provider lost; Browser must close its protected data store")
+            switch ReviewedFilterHostEvidence.preferenceAction(
+                manager.providerConfiguration, enabled: manager.isEnabled, grade: manager.grade,
+                description: manager.localizedDescription, disablesEncryptedDNS: disablesEncryptedDNS,
+                providerIdentifier: FilterBuild.providerIdentifier
+            ) {
+            case .refuse:
+                throw FilterFailure.rejected("Existing owner filter configuration differs; do not overwrite")
+            case .alreadyConfigured:
+                emit(["configurationState": "already-configured", "configurationSaved": false,
+                      "networkAcceptance": "NOT_RUN", "productionRouteAdmission": false]); return
+            case .create:
+                break
+            }
+            let configuration = NEFilterProviderConfiguration(); configuration.filterSockets = true; configuration.filterPackets = false; configuration.filterDataProviderBundleIdentifier = FilterBuild.providerIdentifier
+            manager.providerConfiguration = configuration; manager.localizedDescription = ReviewedFilterHostEvidence.filterDescription; manager.grade = .firewall; manager.isEnabled = true
+            var saved = false; manager.saveToPreferences { error in failure = error; saved = true }; try spin(until: { saved }); if let failure { throw failure }
+            emit(["configurationState": "saved", "configurationSaved": true, "systemUserAuthorizationMayBeRequired": true,
+                  "networkAcceptance": "NOT_RUN", "productionRouteAdmission": false]); return
         }
+        if command == "--serve-reviewed" { throw FilterFailure.rejected("Legacy state-file permission removed; use the routed app's authenticated V2 client. Host only activates/configures the filter.") }
         throw FilterFailure.rejected("Exact reviewed command/arguments required; no system action performed")
     }
 }

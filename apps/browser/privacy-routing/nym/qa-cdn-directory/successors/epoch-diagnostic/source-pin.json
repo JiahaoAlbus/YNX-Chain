@@ -1,0 +1,21 @@
+{
+  "schema": "P05_NYM_QA_EPOCH_DIAGNOSTIC_SOURCE_V1",
+  "beforeBinarySHA256": "331afc307bd38c5a8adcddc25f0e333790bf332a61661ce1d800412917a9cb00",
+  "beforeSourceManifestSHA256": "4f0eab68be0fa772fae47fa4cee3a9ed9ab5373cd38d30367df1f24431deab01",
+  "afterSourceManifestSHA256": "9a76e3b68884c8a6a03690fc8d1be898d631fc01af71ede8ec39a3d47c83f114",
+  "officialReadbackSHA256": "995be94e05cdd3fc600a77b5b9dbd93c5f431400a214229022fe4383071bd69a",
+  "after": {
+    "clients/socks5/src/commands/qa_epoch_diagnostic.rs": "f680ddcc10f72ce6cbe26576791659126f366f8b82332237b3e94ceb1803a293",
+    "clients/socks5/src/commands/qa_directory.rs": "5ca086b3a427414781e3d8efe119266dbcc970967e89fd8ca0d29872dd7292bf"
+  },
+  "patchSHA256": "5c42324a376b6da4f8a91d56bb0529c99c6b1a2daf2e696b50363b0823d212bf",
+  "NoProductionAuthority": true,
+  "unchanged": [
+    "all network resources/origin/IP/TLS/closed resolver/no proxy/no redirects",
+    "120s absolute network policy",
+    "300s epoch remaining guard",
+    "all full snapshot completeness/identity/IP/WSS/NR predicates",
+    "normal root qualification"
+  ],
+  "newMetadataOutput": "No node/identity/IP/token/candidate data; only public epoch fields/finite reason/source type hashes; same closed three-resource fetch sequence"
+}

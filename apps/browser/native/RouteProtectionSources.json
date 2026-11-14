@@ -1,0 +1,28 @@
+{
+  "sourceDirectory": "apps/browser/privacy-routing/leak-tests/platform-probe/macos-filter",
+  "nativeTarget": "YNXBrowserCore",
+  "files": {
+    "ControlProtocol.swift": "28e34d374f1ef2be53146fb1f7fabc78ce6a014695454a63d3b94db60f0dfa60",
+    "ProtectionLease.swift": "62b2453b5f407312c629756a3855cb4941922fb7af1bd2bf89d1a8f01b65eeac",
+    "RoutedIsolationClient.swift": "d4263771de33a5764c3854b9359a8323922119cb4a3478e2b0e2b693972667c2",
+    "OwnedBackendAuditReader.swift": "1fcc9ece772f0fee5bc58c22a70cea87d2a9c6d31c380d858cff142ffa2fb256",
+    "RootPreparationClient.swift": "b79303d9f56e455bee8a5e959c53e2ccd02a59ebd3cc1f811babee747f50ce13",
+    "OwnedBackendStartGate.swift": "f710076852ce7684cb759c33d8c760504b8e0642b69c6ee0863414db969b70da",
+    "RootClosureObserver.swift": "6f6360b584eaabb4236f2f8686248be5bb93d25531357b5af8a6aff62d50b723",
+    "SyntheticCanaryProtocol.swift": "1d099396b43d3a7b1ef37519aa32166264691ca250e96d155b8c8759b7d7bf93",
+    "SyntheticTrialAuthority.swift": "2bce6cf236325e0775a61acca1b10b473fc1528962a416362b5c97969e5d0128",
+    "SyntheticProofProtocol.swift": "1bee2d4de5664d38d76136ef6a8679e028c762f5f1da8430d90e85987863b3e6",
+    "SyntheticProofAuthority.swift": "abd3bd5a614bd30e7e441e13454e4a518be7e0e496505a9606201ab888180a83",
+    "RoutedNormalProofProtocol.swift": "efc5dd0cdab0e69c6848ffdb571825387360c9bf91bb0a37ea32f36646118f22",
+    "RoutedNormalProofAuthority.swift": "18c2a14ae59ac8ea4019fcf92c6a0a9d8f0f72339f7cfed4b474eb6989aadbe0",
+    "NormalCaptureProtocol.swift": "4802a9595c46e451e0608d29b4724a8a70914e30c4106890b3e3bdc5d64943e3",
+    "SyntheticProviderFaultProtocol.swift": "86b09164b48be70cf460c9b80c35242f96536a3eb0a4ab51b689847a1994ecfb",
+    "SyntheticProviderFaultAuthority.swift": "efe31d21a7ecf31ed75501e05cb41ce3cd486fd83d088c58ea691bc06931eff9"
+  },
+  "authority": "health lease only; production platform admission independent and false",
+  "helperSources": {
+    "BackendStartGate.m": "7e4bda15c90b196af317a652d13111ff7ce9ffac69ad1f1071d92d6016929e49",
+    "IdentityBridge.c": "623ea0cc4d5bd80cdbb5190ca5b378d4c2b89f61c4884fa671592b1fb2040008",
+    "IdentityBridge.h": "ff56826d743286cd39ec9586a72acf229a84b43d21338eed2e01b83efccb2615"
+  }
+}

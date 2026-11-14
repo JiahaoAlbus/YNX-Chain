@@ -1,0 +1,23 @@
+{
+  "schema": "YNX_NYM_QA_CANDIDATE_LOG_API_FIX_SOURCE_V1",
+  "UTC": "2026-11-08T01:52:28.248953+00:00",
+  "previousCandidateSourcePinSHA256": "90297df55d40dc55c80a2e3aeaea2a038428e181cb0ee1ea401c772414cb9a72",
+  "file": {
+    "path": "clients/socks5/src/commands/qa_directory.rs",
+    "beforeSHA256": "0745dad9f88aa2e467deb2a19d0d9239a786193bdf9cf60c30a712cf644ee679",
+    "afterSHA256": "5d50cda5939a50afde9d9793e7a8a61d6d045833c08b02c83f3bbbeede49c73b"
+  },
+  "patchSHA256": "7b0118b49b8ecdec58ce34bd4bc6b4af693682d60a1dfb5f4bee16ec6c64437d",
+  "actualCargo101ReceiptSHA256": "57f441d20011e4244ef33ff5ec785fe4aa8b88cac1078a0ba22d81c2a490016f",
+  "failure": "E0433 tracing not declared by CLI; replace only fixedcounts emitter with existing log API, no new dependency",
+  "loggerProof": {
+    "oldStatement": "    tracing::info!(target:\"ynx_qa_directory\", basic_rows=basic.nodes.data.len(), described_rows=described.data.len(),\n        tls_eligible_entries=entries, qa_eligible_requesters=exits, unjoined_basics, ineligible_requesters,\n        \"qa_directory_complete_data_candidate_capabilities\");\n",
+    "newStatement": "    log::info!(target:\"ynx_qa_directory\", \"qa_directory_complete_data_candidate_capabilities basic_rows={} described_rows={} tls_eligible_entries={} qa_eligible_requesters={} unjoined_basics={} ineligible_requesters={}\",\n        basic.nodes.data.len(),described.data.len(),entries,exits,unjoined_basics,ineligible_requesters);\n",
+    "oldSHA256": "69fc1dc7cb69603cdca943a77fdab411aab02d139f4cc4ba30cb9e4c66fedb0d",
+    "newSHA256": "2ba7aac3c929d990111a506f97434c0d7b6d886ec8bd0ea83bb5b6a730c8c2d7",
+    "predicateRegionWithoutLoggerSHA256": "0b63afa41a43aef09ed2d8e04aa640cf180751a25e31c139e7077379df48d0e3"
+  },
+  "actual14ValidationLogicUnchanged": true,
+  "actual14NotRerun": true,
+  "Frame_HTTP_DNS_TLS_120_Args_Dispatch_NormalGate": "UNCHANGED"
+}

@@ -1,0 +1,241 @@
+diff --git a/common/http-api-client/src/qa_directory.rs b/common/http-api-client/src/qa_directory.rs
+--- a/common/http-api-client/src/qa_directory.rs
++++ b/common/http-api-client/src/qa_directory.rs
+@@ -3,6 +3,8 @@
+ use std::{collections::BTreeSet, future::Future, net::{IpAddr, SocketAddr}, sync::{Arc, OnceLock, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
+ use serde::Deserialize;
+ use crate::expiry_deadline::{AbsolutePolicyDeadline, DeadlineFailure};
++#[path = "qa_cache_observation.rs"]
++mod qa_cache_observation;
+ 
+ pub const SOURCE_SHA256: &str = "596d541b58fdfe26082f858437165969a3933316482c279efbd21f5494b55a7b";
+ pub const ORIGIN: &str = "https://cdn1.media-platform.net";
+@@ -125,6 +127,7 @@
+             .map_err(|e|deadline_error(e,"qa-directory-header-timeout"))?
+             .map_err(|_|"qa-directory-transport")?;
+         self.require_live()?;
++        qa_cache_observation::emit(self.run_id(), resource, &response, started.elapsed().as_millis() as u64);
+         if response.status().as_u16()!=200 {return Err("qa-directory-http-status".into())}
+         if response.headers().get_all(reqwest::header::CONTENT_TYPE).iter().count()!=1 {return Err("qa-directory-mime".into())}
+         let mime=response.headers().get(reqwest::header::CONTENT_TYPE).and_then(|x|x.to_str().ok()).filter(|x|x.len()<=64)
+diff --git a/common/http-api-client/src/qa_cache_observation.rs b/common/http-api-client/src/qa_cache_observation.rs
+new file mode 100644
+--- /dev/null
++++ b/common/http-api-client/src/qa_cache_observation.rs
+@@ -0,0 +1,216 @@
++//! Finite cache diagnostics for the compile-time QA directory transport.
++use reqwest::header::{HeaderMap, AGE, CACHE_CONTROL, DATE};
++use serde::Serialize;
++use std::time::{SystemTime, UNIX_EPOCH};
++
++const MAX_CACHE_HEADER_BYTES: usize = 1024;
++const MAX_DIRECTIVES: usize = 32;
++
++#[derive(Debug, PartialEq, Serialize)]
++#[serde(tag = "state", content = "value", rename_all = "kebab-case")]
++enum Header<T> {
++    Missing,
++    Invalid,
++    Observed(T),
++}
++
++#[derive(Debug, Default, PartialEq, Serialize)]
++#[serde(rename_all = "camelCase")]
++struct CachePolicy {
++    public: bool,
++    private: bool,
++    no_cache: bool,
++    no_store: bool,
++    must_revalidate: bool,
++    proxy_revalidate: bool,
++    immutable: bool,
++    max_age: Option<u32>,
++    shared_max_age: Option<u32>,
++    stale_while_revalidate: Option<u32>,
++    stale_if_error: Option<u32>,
++}
++
++fn singleton<T>(headers: &HeaderMap, name: reqwest::header::HeaderName, parse: impl Fn(&str) -> Option<T>) -> Header<T> {
++    let values = headers.get_all(name);
++    let mut values = values.iter();
++    let Some(first) = values.next() else { return Header::Missing };
++    if values.next().is_some() {
++        return Header::Invalid;
++    }
++    first.to_str().ok().and_then(parse).map_or(Header::Invalid, Header::Observed)
++}
++
++/// Accept only canonical IMF-fixdate. The consumer also checks calendar validity
++/// and weekday against the normalized UTC time; it never saves arbitrary text.
++fn canonical_date(raw: &str) -> Option<&str> {
++    let b = raw.as_bytes();
++    if b.len() != 29
++        || !matches!(&b[..3], b"Mon" | b"Tue" | b"Wed" | b"Thu" | b"Fri" | b"Sat" | b"Sun")
++        || !matches!(&b[8..11], b"Jan" | b"Feb" | b"Mar" | b"Apr" | b"May" | b"Jun" | b"Jul" | b"Aug" | b"Sep" | b"Oct" | b"Nov" | b"Dec")
++        || &b[3..5] != b", " || b[7] != b' ' || b[11] != b' ' || b[16] != b' '
++        || b[19] != b':' || b[22] != b':' || &b[25..] != b" GMT"
++        || [5..7, 12..16, 17..19, 20..22, 23..25].into_iter()
++            .any(|range| !b[range].iter().all(u8::is_ascii_digit))
++    {
++        return None;
++    }
++    Some(raw)
++}
++
++fn seconds(raw: &str) -> Option<u32> {
++    if raw.is_empty() || raw.len() > 10 || !raw.bytes().all(|b| b.is_ascii_digit()) {
++        return None;
++    }
++    raw.parse().ok()
++}
++
++/// Split only outside quoted arguments. Unknown extension arguments are dropped;
++/// commas within those arguments cannot smuggle an allowlisted directive.
++fn directives(raw: &str) -> Option<Vec<&str>> {
++    let mut result = Vec::new();
++    let (mut start, mut quoted, mut escaped) = (0, false, false);
++    for (i, byte) in raw.bytes().enumerate() {
++        if escaped {
++            escaped = false;
++        } else if quoted && byte == b'\\' {
++            escaped = true;
++        } else if byte == b'"' {
++            quoted = !quoted;
++        } else if !quoted && byte == b',' {
++            result.push(&raw[start..i]);
++            start = i + 1;
++        }
++    }
++    if quoted || escaped {
++        return None;
++    }
++    result.push(&raw[start..]);
++    Some(result)
++}
++
++fn cache_policy(headers: &HeaderMap) -> Header<CachePolicy> {
++    let values = headers.get_all(CACHE_CONTROL);
++    let mut values = values.iter().peekable();
++    if values.peek().is_none() {
++        return Header::Missing;
++    }
++    let mut result = CachePolicy::default();
++    let (mut bytes, mut count) = (0, 0);
++    for value in values {
++        bytes += value.as_bytes().len();
++        if bytes > MAX_CACHE_HEADER_BYTES {
++            return Header::Invalid;
++        }
++        let Some(parts) = value.to_str().ok().and_then(directives) else { return Header::Invalid };
++        for part in parts {
++            count += 1;
++            if count > MAX_DIRECTIVES {
++                return Header::Invalid;
++            }
++            let part = part.trim();
++            let (name, argument) = part.split_once('=').map_or((part, None), |(name, arg)| (name.trim(), Some(arg.trim())));
++            let name = name.to_ascii_lowercase();
++            let flag = match (name.as_str(), argument) {
++                ("public", None) => Some(&mut result.public),
++                ("private", _) => Some(&mut result.private),
++                ("no-cache", _) => Some(&mut result.no_cache),
++                ("no-store", None) => Some(&mut result.no_store),
++                ("must-revalidate", None) => Some(&mut result.must_revalidate),
++                ("proxy-revalidate", None) => Some(&mut result.proxy_revalidate),
++                ("immutable", None) => Some(&mut result.immutable),
++                _ => None,
++            };
++            if let Some(flag) = flag {
++                *flag = true;
++                continue;
++            }
++            let target = match name.as_str() {
++                "max-age" => &mut result.max_age,
++                "s-maxage" => &mut result.shared_max_age,
++                "stale-while-revalidate" => &mut result.stale_while_revalidate,
++                "stale-if-error" => &mut result.stale_if_error,
++                _ => continue,
++            };
++            let limit = argument.and_then(|arg| seconds(arg.strip_prefix('"').and_then(|x| x.strip_suffix('"')).unwrap_or(arg)));
++            if target.is_some() || limit.is_none() {
++                return Header::Invalid;
++            }
++            *target = limit;
++        }
++    }
++    Header::Observed(result)
++}
++
++#[derive(Serialize)]
++#[serde(rename_all = "camelCase")]
++struct Observation<'a> {
++    schema: &'static str,
++    #[serde(rename = "runID")]
++    run_id: &'a str,
++    resource: &'static str,
++    page: Option<u8>,
++    status: u16,
++    response_utc_unix_seconds: Option<u64>,
++    response_elapsed_ms: u64,
++    date: Header<String>,
++    age_seconds: Header<u32>,
++    cache_control: Header<CachePolicy>,
++}
++
++pub(super) fn emit(run_id: &str, resource: super::Resource, response: &reqwest::Response, elapsed_ms: u64) {
++    let fields = Observation {
++        schema: "YNX_NYM_QA_DIRECTORY_HTTP_V1",
++        run_id,
++        resource: resource.label(),
++        page: resource.page(),
++        status: response.status().as_u16(),
++        response_utc_unix_seconds: SystemTime::now().duration_since(UNIX_EPOCH).ok().map(|now| now.as_secs()),
++        response_elapsed_ms: elapsed_ms,
++        date: singleton(response.headers(), DATE, |raw| canonical_date(raw).map(str::to_owned)),
++        age_seconds: singleton(response.headers(), AGE, seconds),
++        cache_control: cache_policy(response.headers()),
++    };
++    // Known fields only; no raw headers, arbitrary directives or response body.
++    if let Ok(line) = serde_json::to_string(&fields) {
++        eprintln!("YNX_NYM_QA_DIRECTORY_HTTP_V1 {line}");
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use reqwest::header::HeaderValue;
++
++    #[test]
++    fn canonical_date_is_finite_and_duplicates_are_rejected() {
++        let mut headers = HeaderMap::new();
++        assert_eq!(singleton(&headers, DATE, |s| canonical_date(s).map(str::to_owned)), Header::Missing);
++        headers.insert(DATE, HeaderValue::from_static("Sat, 14 Nov 2026 04:32:27 GMT"));
++        assert_eq!(singleton(&headers, DATE, |s| canonical_date(s).map(str::to_owned)),
++            Header::Observed("Sat, 14 Nov 2026 04:32:27 GMT".to_owned()));
++        headers.append(DATE, HeaderValue::from_static("Sat, 14 Nov 2026 04:32:28 GMT"));
++        assert_eq!(singleton(&headers, DATE, |s| canonical_date(s).map(str::to_owned)), Header::Invalid);
++    }
++
++    #[test]
++    fn bounded_age_distinguishes_missing_malformed_and_zero() {
++        let mut headers = HeaderMap::new();
++        assert_eq!(singleton(&headers, AGE, seconds), Header::Missing);
++        headers.insert(AGE, HeaderValue::from_static("0"));
++        assert_eq!(singleton(&headers, AGE, seconds), Header::Observed(0));
++        headers.insert(AGE, HeaderValue::from_static("4294967296"));
++        assert_eq!(singleton(&headers, AGE, seconds), Header::Invalid);
++    }
++
++    #[test]
++    fn ignores_extensions_and_unknown_values_without_faking_directives() {
++        let mut headers = HeaderMap::new();
++        headers.append(CACHE_CONTROL, HeaderValue::from_static("public, MAX-AGE=\"60\", x-test=\"private, no-store\""));
++        headers.append(CACHE_CONTROL, HeaderValue::from_static("must-revalidate, stale-if-error=20"));
++        assert_eq!(cache_policy(&headers), Header::Observed(CachePolicy {
++            public: true, max_age: Some(60), must_revalidate: true, stale_if_error: Some(20), ..CachePolicy::default()
++        }));
++        headers.append(CACHE_CONTROL, HeaderValue::from_static("max-age=61"));
++        assert_eq!(cache_policy(&headers), Header::Invalid);
++    }
++}

@@ -1,0 +1,122 @@
+[package]
+name = "nym-validator-client"
+description = "Client for interacting with Nyx Cosmos SDK blockchain"
+version.workspace = true
+authors = ["Jędrzej Stuczyński <andrew@nymtech.net>"]
+edition = "2021"
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+rust-version = "1.85"
+readme.workspace = true
+publish = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+base64 = { workspace = true }
+colored = { workspace = true }
+
+nym-coconut-dkg-common = { workspace = true }
+nym-contracts-common = { workspace = true }
+nym-mixnet-contract-common = { workspace = true }
+nym-vesting-contract-common = { workspace = true }
+nym-ecash-contract-common = { workspace = true }
+nym-multisig-contract-common = { workspace = true }
+nym-group-contract-common = { workspace = true }
+nym-performance-contract-common = { workspace = true }
+nym-network-monitors-contract-common = { workspace = true }
+nym-node-families-contract-common = { workspace = true }
+nym-contract-attestation = { workspace = true }
+nym-directory-contract-common = { workspace = true }
+nym-geolocation-contract-common = { workspace = true }
+nym-serde-helpers = { workspace = true, features = ["hex", "base64"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+nym-http-api-client = { workspace = true, features = ["network-defaults"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+url = { workspace = true, features = ["serde"] }
+tokio = { workspace = true, features = ["sync", "time"] }
+time = { workspace = true, features = ["formatting"] }
+futures = { workspace = true }
+
+nym-compact-ecash = { workspace = true }
+nym-network-defaults = { workspace = true }
+nym-api-requests = { workspace = true }
+
+async-trait = { workspace = true }
+bip39 = { workspace = true, features = ["rand"] }
+nym-config = { workspace = true }
+cosmrs = { workspace = true, features = ["bip32", "cosmwasm"] }
+# note that this has the same version as used by cosmrs
+
+# import it just for the `Client` trait
+tendermint-rpc = { workspace = true }
+
+# this is an extremely nasty import. we're explicitly bringing in bip32 so that via the magic (or curse, pick your poison)
+# of cargo's feature unification we'd get `bip32/std` meaning we'd get `std::error::Error` for the re-exported (via cosmrs) bip32::Error type
+bip32 = { workspace = true, default-features = false, features = ["std"] }
+
+eyre = { workspace = true }
+cw-utils = { workspace = true }
+cw2 = { workspace = true }
+cw3 = { workspace = true }
+cw4 = { workspace = true }
+cw-controllers = { workspace = true }
+prost = { workspace = true, default-features = false }
+flate2 = { workspace = true }
+sha2 = { workspace = true }
+itertools = { workspace = true }
+zeroize = { workspace = true, features = ["zeroize_derive"] }
+cosmwasm-std = { workspace = true }
+
+# required for polling for broadcast result
+[target."cfg(target_arch = \"wasm32\")".dependencies.wasmtimer]
+workspace = true
+features = ["tokio"]
+
+[target."cfg(target_arch = \"wasm32\")".dependencies.reqwest]
+workspace = true
+features = ["json"]
+
+[target."cfg(not(target_arch = \"wasm32\"))".dependencies.reqwest]
+workspace = true
+features = ["json", "rustls"]
+
+[dev-dependencies]
+anyhow = { workspace = true }
+bip39 = { workspace = true }
+cosmrs = { workspace = true, features = ["bip32"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+ts-rs = { workspace = true }
+
+[[example]]
+name = "offline_signing"
+# it should only really require the "signing" feature,
+# but that would require another round of refactoring to make it possible
+# (traits would need to be moved around and refactored themselves)
+required-features = ["http-client"]
+
+[features]
+ynx-qa-directory = ["nym-http-api-client/ynx-qa-directory"]
+default = ["http-client"]
+http-client = ["cosmrs/rpc"]
+mocks = []
+generate-ts = []
+contract-testing = ["nym-mixnet-contract-common/contract-testing"]
+# Features below are added to make clippy happy, it seems like they're unused we should remove them
+tendermint-rpc-http-client = ["tendermint-rpc/http-client"]
+tendermint-rpc-websocket-client = ["tendermint-rpc/websocket-client"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.reqwest_011]
+package="reqwest"
+version="=0.11.27"
+default-features=false
+features=["rustls-tls-native-roots"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.hyper_014]
+package="hyper"
+version="=0.14.32"
+features=["client"]

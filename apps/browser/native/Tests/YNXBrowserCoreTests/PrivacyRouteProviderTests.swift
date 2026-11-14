@@ -17,6 +17,12 @@ import Foundation
     func stop() async { current = .blocked("stopped") }
 }
 @Suite @MainActor struct PrivacyRouteProviderTests {
+    private func qualifiedFixture() -> RoutedPlatformIsolationAdmission {
+        let ready = PrivacyRouteReadiness.Check(state: .ready, reason: "Synthetic qualification fixture; no actual NE admission")
+        return .init(permitsWebContent: true, reason: "Isolated state-machine fixture only",
+                     leakSafety: .init(checks: Dictionary(uniqueKeysWithValues: PrivacyRouteReadiness.LeakSurface.allCases.map { ($0, ready) })),
+                     releaseApproved: ready)
+    }
     @Test func unverifiedPlatformNeverStartsOrLoads() async throws {
         let backend = TestRoute(); let session = PrivacyRouteSession(provider: backend)
         await session.start()
@@ -26,8 +32,9 @@ import Foundation
     }
     @Test func routeDropStopsAndNeverFallsBack() async throws {
         let backend = TestRoute()
-        let session = PrivacyRouteSession(provider: backend, admission: .init(permitsWebContent: true, reason: "isolated state-machine fixture only"))
+        let session = PrivacyRouteSession(provider: backend, admission: qualifiedFixture())
         await session.start(); #expect(session.state == .connected)
+        try session.confirmBrowserRouteBinding()
         try session.authorize(URL(string: "https://example.org/")!)
         #expect(throws: PrivacyRouteError.unsafeTarget) { try session.authorize(URL(string: "http://example.org/")!) }
         backend.current = .blocked("process exited")
@@ -37,14 +44,14 @@ import Foundation
         #expect(backend.starts == 1)
     }
     @Test func stopCancelsAuthorityWithoutChangingMode() async throws {
-        let session = PrivacyRouteSession(provider: TestRoute(), admission: .init(permitsWebContent: true, reason: "fixture only"))
+        let session = PrivacyRouteSession(provider: TestRoute(), admission: qualifiedFixture())
         await session.start(); await session.stop()
         #expect(session.mode == .tor); #expect(session.endpoint == nil)
         #expect(throws: PrivacyRouteError.blocked) { try session.resolveOmnibox("synthetic query") }
     }
     @Test func cancelledLateStartupCannotReopenRoute() async throws {
         let backend = TestRoute(); backend.delayStart = true
-        let session = PrivacyRouteSession(provider: backend, admission: .init(permitsWebContent: true, reason: "fixture only"))
+        let session = PrivacyRouteSession(provider: backend, admission: qualifiedFixture())
         let operation = Task { await session.start() }
         while backend.pending == nil { await Task.yield() }
         await session.stop()

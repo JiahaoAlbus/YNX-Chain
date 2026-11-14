@@ -1,0 +1,15 @@
+
+pub fn pagination_checks() -> usize {
+    fn page(index:u32,total:usize,size:usize,rows:Vec<u32>)->PaginatedResponse<u32>{PaginatedResponse{pagination:nym_validator_client::pagination::Pagination{page:index,total,size},data:rows}}
+    let mut count=0;let mut pages=CompletePages::new();assert!(!pages.push(page(0,3,2,vec![1,2])).unwrap());assert!(pages.push(page(1,3,2,vec![3])).unwrap());let joined=pages.finish().unwrap();assert_eq!(joined.data,vec![1,2,3]);assert_eq!(joined.pagination.size,3);assert_eq!(joined.pagination.page,0);count+=1;
+    let mut whole=CompletePages::new();assert!(whole.push(page(0,3,3,vec![1,2,3])).unwrap());assert_eq!(whole.finish().unwrap().pagination.total,3);count+=1;
+    let mut incomplete=CompletePages::new();incomplete.push(page(0,3,2,vec![1,2])).unwrap();assert!(incomplete.finish().is_err());count+=1;
+    for bad in [page(0,3,2,vec![3]),page(2,3,2,vec![3]),page(1,4,2,vec![3]),page(1,3,2,vec![]),page(1,3,2,vec![3,4]),page(1,3,0,vec![3])] {
+        let mut pages=CompletePages::new();pages.push(page(0,3,2,vec![1,2])).unwrap();assert!(pages.push(bad).is_err());count+=1;
+    }
+    let mut capped=CompletePages{total:Some(81),rows:(0..79).collect::<Vec<u32>>(),next:79};assert!(!capped.push(page(79,81,1,vec![79])).unwrap());assert!(capped.push(page(80,81,1,vec![80])).is_err());count+=1;
+    let mut too_many=CompletePages::new();assert!(too_many.push(page(0,20001,1,vec![1])).is_err());count+=1;
+    let now=time::OffsetDateTime::now_utc();let meta=nym_validator_client::nym_nodes::NodesResponseMetadata{status:None,absolute_epoch_id:1,rotation_id:0,refreshed_at:now.into()};assert!(same_metadata(&None,&meta));assert!(same_metadata(&Some(meta.clone()),&meta));count+=1;
+    for mut changed in [meta.clone(),meta.clone(),meta.clone()] {match count {12=>changed.absolute_epoch_id+=1,13=>changed.rotation_id+=1,_=>changed.refreshed_at=(now+time::Duration::seconds(1)).into()};assert!(!same_metadata(&Some(meta.clone()),&changed));count+=1;}
+    println!("PASS qa_complete_page_assembly_metadata_and_size_normalization checks={count} network=NOT_RUN");count
+}

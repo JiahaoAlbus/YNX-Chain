@@ -1,0 +1,24 @@
+{
+  "schema": "YNX_NYM_ENCODING_OBSERVATION_SOURCE_V1",
+  "class": "YNX overlay source-only successor, not official originalbytes or runtime7412",
+  "previousRuntimeSHA256": "741215707542f74a2a63ad1ce09c192f7b8cdffa0b14a839526eac8972a3b5b0",
+  "previousPinSHA256": "d087edf1cf6e11b066879c7a65f785e188ecd6980503de4bd24bb34e2ae76f90",
+  "cargoLockSHA256": "29275bf9e41f6d6acad87f4737b5640e89ada39e0d7752a9211d04fec7871558",
+  "files": {
+    "common/http-api-client/src/reviewed_network.rs": {
+      "before": "4965954723918b9bb0916daaedd83d527de5851f15137af15e6efbfacb8def6e",
+      "after": "0dcb1b866211c44e5c89f89c610b3cd71f2be6fd60d896280f5edd5e9f9d3227"
+    },
+    "clients/socks5/src/commands/reviewed.rs": {
+      "before": "a49e7b7cb59d95390794e077b888216edbe0496a4ec74f680d2f0d1a65fe60aa",
+      "after": "a309442f7966b05418962a73a169d6aa28c302d2e53a375967345c4928f60b79"
+    }
+  },
+  "patchSHA256": "fb8e29940c204836c910f96718d172830e54ac4613eab51063baccf46634c861",
+  "behavior": "Fixedvocabularybeforemiddleware/afterdecompressionheaderdiagnostics only; rawwire explicitnotobservable; no semanticrequest/decode/policychange",
+  "actualComponent": "SDK HTTPdecoder only, notprotectedconstructor/NE/clientnetwork",
+  "supportSources": {
+    "clients/socks5/src/commands/directory_diagnostics.rs": "c798c047604ec3235b84e9ea0c419d63feaff987bfdd0d891eea52371c4c72f4",
+    "common/http-api-client/src/expiry_deadline.rs": "30ad633a3f4a5a3dd1258d14b82801898f1faddbdc0ad16b3ff88018227bad95"
+  }
+}

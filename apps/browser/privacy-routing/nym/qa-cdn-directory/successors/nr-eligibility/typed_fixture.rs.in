@@ -1,0 +1,91 @@
+// Actual official DTOs and immutable raw tables; no keypairs, profile, network or policy.
+fn snapshot() -> (serde_json::Value,serde_json::Value,serde_json::Value) {
+    let zero="11111111111111111111111111111111";
+    let other="3bgffBYcfFkTTXc2npNNn9MkddFZ3H2LrPjXDmnJzrqd";
+    let public:nym_crypto::asymmetric::ed25519::PublicKey=zero.parse().unwrap();
+    let exit_key:nym_crypto::asymmetric::ed25519::PublicKey=other.parse().unwrap();
+    let encryption=nym_crypto::asymmetric::x25519::PublicKey::from_bytes(&[0;32]).unwrap();
+    let recipient=nym_sphinx::addressing::Recipient::new(public,encryption,exit_key).to_string();
+    let mut keys=vec![zero.to_string(),other.to_string()];
+    for byte in 2u8..=255 {
+        if let Ok(key)=nym_crypto::asymmetric::ed25519::PublicKey::from_bytes(&[byte;32]) {
+            let encoded=key.to_base58_string();if !keys.contains(&encoded) {keys.push(encoded)}
+        }
+        if keys.len()==5 {break}
+    }
+    assert_eq!(keys.len(),5);
+    let now=time::OffsetDateTime::now_utc();let timestamp=now.format(&time::format_description::well_known::Rfc3339).unwrap();
+    let mut basics=Vec::new();let mut descriptions=Vec::new();
+    for index in 0..5 {
+        let id=index+1;let key=&keys[index];let is_entry=index==0 || index==2;let is_exit=index==1 || index==4;
+        let hostname=if index==0 {Some("gateway.fixture.invalid")} else if index==2 {Some("legacy.fixture.invalid")} else {None};
+        let wss=if index==0 {Some(9001)} else {None};
+        let role=if is_entry {serde_json::to_value(actual_validator::nym_nodes::NodeRole::EntryGateway).unwrap()}
+            else if is_exit {serde_json::to_value(actual_validator::nym_nodes::NodeRole::ExitGateway).unwrap()}
+            else {serde_json::to_value(actual_validator::nym_nodes::NodeRole::Mixnode{layer:1}).unwrap()};
+        let roles=serde_json::json!({"mixnode":index==3,"entry":is_entry,"exit_nr":is_exit,"exit_ipr":false});
+        let entry=if is_entry {serde_json::json!({"hostname":hostname,"ws_port":9000,"wss_port":wss})} else {serde_json::Value::Null};
+        let ip=["1.1.1.1","8.8.8.8","9.9.9.9","4.4.4.4","208.67.222.222"][index];
+        basics.push(serde_json::json!({"node_id":id,"ed25519_identity_pubkey":key,"ip_addresses":[ip],"mix_port":1789,
+            "x25519_sphinx_pubkey":zero,"role":role,"supported_roles":roles,"entry":entry,"performance":"1"}));
+        let requester=if is_exit {let gateway:nym_crypto::asymmetric::ed25519::PublicKey=key.parse().unwrap();let nr=nym_sphinx::addressing::Recipient::new(public.clone(),encryption.clone(),gateway).to_string();serde_json::json!({"address":nr,"uses_exit_policy":index==1})} else {serde_json::Value::Null};
+        descriptions.push(serde_json::json!({"node_id":id,"contract_node_type":"nym_node","description":{
+            "last_polled":timestamp,"host_information":{"ip_address":[ip],"hostname":hostname,
+                "keys":{"ed25519":key,"x25519":zero,"current_x25519_sphinx_key":{"rotation_id":0,"public_key":zero}}},
+            "declared_role":roles,"build_information":{"binary_name":"fixture","build_timestamp":"fixture","build_version":"fixture",
+                "commit_sha":"fixture","commit_timestamp":"fixture","commit_branch":"fixture","rustc_version":"fixture",
+                "rustc_channel":"fixture","cargo_profile":"fixture","cargo_triple":"fixture"},
+            "network_requester":requester,"mixnet_websockets":{"ws_port":9000,"wss_port":wss}}}));
+    }
+    let basic=serde_json::json!({"metadata":{"status":null,"absolute_epoch_id":1,"rotation_id":0,"refreshed_at":timestamp},
+        "nodes":{"pagination":{"total":5,"size":5,"page":0},"data":basics}});
+    let described=serde_json::json!({"pagination":{"total":5,"size":5,"page":0},"data":descriptions});
+    let epoch=serde_json::json!({"total_elapsed_epochs":1,"current_epoch_start":(now-time::Duration::seconds(1)).format(&time::format_description::well_known::Rfc3339).unwrap(),"epoch_length":{"secs":3600,"nanos":0}});
+    (basic,described,epoch)
+}
+fn check(b:serde_json::Value,d:serde_json::Value,e:&serde_json::Value,old:bool)->Result<(),String> {
+    let b_count=b["nodes"]["data"].as_array().unwrap().len();let d_count=d["data"].as_array().unwrap().len();
+    let basic:actual_validator::nym_nodes::PaginatedCachedNodesResponseV2<actual_validator::nym_nodes::SkimmedNodeV1>=serde_json::from_value(b).unwrap();
+    let described:actual_validator::pagination::PaginatedResponse<actual_validator::models::described::v2::NymNodeDescriptionV2>=serde_json::from_value(d).unwrap();
+    let before=serde_json::to_value((&basic,&described)).unwrap();
+    let result=if old {before_fix::verify(&basic,&described,e)} else {after_fix::verify(&basic,&described,e)};
+    assert_eq!(serde_json::to_value((&basic,&described)).unwrap(),before,"all supplied complete records must remain unchanged");
+    assert_eq!(basic.nodes.data.len(),b_count);assert_eq!(described.data.len(),d_count);result
+}
+fn omit_description(d:&mut serde_json::Value,index:usize) {
+    // This fixture models a FULL scraped API response that honestly declares a
+    // smaller total than Basic, not deletion or promotion of a partial network body.
+    d["data"].as_array_mut().unwrap().remove(index);let count=d["data"].as_array().unwrap().len();
+    d["pagination"]["total"]=count.into();d["pagination"]["size"]=count.into();
+}
+fn main() {
+    let (basic,described,epoch)=snapshot();
+    assert_eq!(check(basic.clone(),described.clone(),&epoch,true).unwrap_err(),"qa-directory-requester-binding");
+    println!("OLD_TYPED_NR_COUNTEREXAMPLE complete5rows contains legitimate uses_exit_policy_false");
+    assert!(check(basic.clone(),described.clone(),&epoch,false).is_ok());let mut count=1;
+    for case in 0..13 {
+        let mut b=basic.clone();let mut d=described.clone();
+        let foreign_gateway:nym_crypto::asymmetric::ed25519::PublicKey="11111111111111111111111111111111".parse().unwrap();
+        let encryption=nym_crypto::asymmetric::x25519::PublicKey::from_bytes(&[0;32]).unwrap();
+        let foreign=nym_sphinx::addressing::Recipient::new(foreign_gateway.clone(),encryption,foreign_gateway).to_string();
+        let expected=match case {
+            0=>{d["data"][4]["description"]["network_requester"]=serde_json::Value::Null;None},
+            1=>{d["data"][4]["description"]["network_requester"]["uses_exit_policy"]=true.into();d["data"][4]["description"]["network_requester"]["address"]="malformed-public-address".into();None},
+            2=>{d["data"][4]["description"]["network_requester"]["uses_exit_policy"]=true.into();d["data"][4]["description"]["network_requester"]["address"]=foreign.clone().into();None},
+            3=>{d["data"][1]["description"]["network_requester"]["uses_exit_policy"]=false.into();Some("qa-directory-no-current-entry-exit")},
+            4=>{d["data"][1]["description"]["network_requester"]=serde_json::Value::Null;d["data"][4]["description"]["network_requester"]["uses_exit_policy"]=true.into();d["data"][4]["description"]["network_requester"]["address"]=foreign.clone().into();Some("qa-directory-no-current-entry-exit")},
+            5=>{d["data"][1]["description"]["network_requester"]=serde_json::Value::Null;d["data"][4]["description"]["network_requester"]["uses_exit_policy"]=true.into();d["data"][4]["description"]["network_requester"]["address"]="malformed-public-address".into();Some("qa-directory-no-current-entry-exit")},
+            6=>{omit_description(&mut d,3);None},
+            7=>{omit_description(&mut d,4);None},
+            8=>{omit_description(&mut d,1);Some("qa-directory-no-current-entry-exit")},
+            9=>{omit_description(&mut d,0);Some("qa-directory-no-current-entry-exit")},
+            10=>{b["nodes"]["data"][4]["node_id"]=55.into();Some("qa-directory-node-id-identity-conflict")},
+            11=>{d["data"][4]["description"]["host_information"]["ip_address"]=serde_json::json!(["8.8.8.8"]);Some("qa-directory-address-mismatch")},
+            _=>{omit_description(&mut d,4);b["nodes"]["data"][4]["ip_addresses"]=serde_json::json!([]);Some("qa-directory-address-mismatch")},
+        };
+        let result=check(b,d,&epoch,false);
+        match expected {Some(e)=>assert_eq!(result.unwrap_err(),e,"case{case}"),None=>assert!(result.is_ok(),"case{case}")}
+        count+=1;
+    }
+    println!("PASS requester_eligibility_actual_DTO_new_cases={count} old_counterexample=1 complete_tables_unchanged no_socket_no_profile");
+}

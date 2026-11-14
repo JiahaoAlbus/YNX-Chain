@@ -31,11 +31,14 @@ import CryptoKit
         let entry = FilterEndpoint(host: "127.0.0.1", port: 19050, transport: 6), peer = FilterEndpoint(host: "192.0.2.23", port: 443, transport: 6), mix = FilterEndpoint(host: "2001:db8::23", port: 1789, transport: 17)
         let backendPin = BackendPin(role: "reviewed-route", process: pin(backend, 103), responsibleAppTokens: [root.hex, backend.hex], destinations: [peer, mix])
         let review = ReviewedFilterRun(schema: "P05_REVIEWED_FILTER_RUN_V1", runID: "filter-policy-test", epoch: UUID().uuidString, expiresAt: Date().timeIntervalSince1970 + 120, browser: pin(root, 101), entryOwner: backendPin.process, entries: [entry], backends: [backendPin]); try review.validate()
-        var rules = ScopedRunRules(review: review)
+        var rules = ScopedRunRules(review: review, mode: .tor)
         let live: (ProcessPin) -> Bool = { _ in true }, webKit: (Data) -> Bool = { $0 == wk }
-        func verdict(_ rules: ScopedRunRules, app: Data?, process: Data?, endpoint: FilterEndpoint?) -> ScopedRunRules.Verdict { rules.decision(sourceApp: app, sourceProcess: process, endpoint: endpoint, live: live, webKit: webKit) }
+        func verdict(_ rules: ScopedRunRules, app: Data?, process: Data?, endpoint: FilterEndpoint?) -> ScopedRunRules.Verdict {
+            var rules = rules
+            return rules.decision(sourceApp: app, sourceProcess: process, endpoint: endpoint, live: live, listenerGeneration: { _, _ in 1 }, webKit: webKit)
+        }
         precondition(verdict(rules, app: root, process: wk, endpoint: entry) == .ownedDrop)
-        try rules.setConnected(sequence: 1, userActionReference: UUID().uuidString, live: live, listener: { _, _ in true })
+        try rules.setConnected(sequence: 1, userActionReference: UUID().uuidString, live: live, listenerGeneration: { _, _ in 1 })
         precondition(verdict(rules, app: root, process: wk, endpoint: entry) == .browserProxyAllow)
         precondition(verdict(rules, app: root, process: root, endpoint: entry) == .browserProxyAllow)
         precondition(verdict(rules, app: root, process: nil, endpoint: entry) == .ownedDrop)
@@ -48,7 +51,7 @@ import CryptoKit
         precondition(verdict(rules, app: other, process: backend, endpoint: peer) == .ownedDrop)
         precondition(verdict(rules, app: root, process: backend, endpoint: .init(host: peer.host, port: 444, transport: 6)) == .ownedDrop)
         precondition(verdict(rules, app: root, process: backend, endpoint: .init(host: peer.host, port: 443, transport: 17)) == .ownedDrop)
-        precondition(rules.decision(sourceApp: root, sourceProcess: backend, endpoint: .init(host: "127.0.0.1", port: 30000, transport: 6), localEndpoint: entry, direction: .inbound, live: live, webKit: webKit) == .backendEntryAcceptAllow)
+        precondition(rules.decision(sourceApp: root, sourceProcess: backend, endpoint: .init(host: "127.0.0.1", port: 30000, transport: 6), localEndpoint: entry, direction: .inbound, live: live, listenerGeneration: { _, _ in 1 }, webKit: webKit) == .backendEntryAcceptAllow)
         var unownedResolverCalled = false
         precondition(rules.decision(sourceApp: other, sourceProcess: other, endpoint: nil, live: { _ in unownedResolverCalled = true; return false }, webKit: { _ in unownedResolverCalled = true; return false }) == .unownedAllow && !unownedResolverCalled)
         // A Standard LS instance can share product identity or an Apple XPC executable with the
@@ -58,9 +61,9 @@ import CryptoKit
         try rules.disconnected(sequence: 2)
         precondition(verdict(rules, app: root, process: wk, endpoint: entry) == .ownedDrop)
         precondition(verdict(rules, app: root, process: backend, endpoint: peer) == .backendExactEndpointAllow) // Backend can reconnect only to its explicit transport peers.
-        do { try rules.setConnected(sequence: 3, userActionReference: UUID().uuidString, live: { $0 != review.entryOwner }, listener: { _, _ in true }); preconditionFailure("Dead route owner must not reconnect") } catch {}
+        do { try rules.setConnected(sequence: 3, userActionReference: UUID().uuidString, live: { $0 != review.entryOwner }, listenerGeneration: { _, _ in 1 }); preconditionFailure("Dead route owner must not reconnect") } catch {}
         precondition(!rules.connected)
-        try rules.setConnected(sequence: 3, userActionReference: UUID().uuidString, live: live, listener: { _, _ in true })
+        try rules.setConnected(sequence: 3, userActionReference: UUID().uuidString, live: live, listenerGeneration: { _, _ in 1 })
         do { try rules.disconnected(sequence: 2); preconditionFailure("Old generation accepted") } catch {}
         rules.block(); precondition(!rules.connected)
 
@@ -72,8 +75,8 @@ import CryptoKit
             let planBytes = try Data(contentsOf: URL(fileURLWithPath: capture["directory"] as! String).appendingPathComponent("capture-plan.json"))
             precondition(digest(planBytes) == capture["planSHA256"] as! String)
             let listeners = (try JSONSerialization.jsonObject(with: planBytes) as! [String: Any])["listeners"] as! [[String: Any]]
-            var baselineRules = ScopedRunRules(review: review)
-            try baselineRules.setConnected(sequence: 1, userActionReference: UUID().uuidString, live: live, listener: { _, _ in true })
+            var baselineRules = ScopedRunRules(review: review, mode: .tor)
+            try baselineRules.setConnected(sequence: 1, userActionReference: UUID().uuidString, live: live, listenerGeneration: { _, _ in 1 })
             var dropped = 0
             for record in records {
                 let family = record["addressFamily"] as! String

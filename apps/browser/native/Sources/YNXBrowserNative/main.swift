@@ -13,6 +13,20 @@ final class TabButton: NSButton { var tabID: UUID? }
 final class TabCloseButton: NSButton { var tabID: UUID? }
 final class LibraryPageButton: NSButton { var pageURL: String = "" }
 
+/// Keep navigation content inset while the native button's background and hit area
+/// span the sidebar. Drawing only the interior preserves normal NSButton actions.
+final class SidebarNavigationButtonCell: NSButtonCell {
+    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
+        super.drawInterior(withFrame: cellFrame.insetBy(dx: 14, dy: 0), in: controlView)
+    }
+}
+
+/// A library's scroll origin is its first row, including when the content is shorter
+/// than the viewport. The inner stack keeps its natural content height.
+final class LibraryDocumentView: NSView {
+    override var isFlipped: Bool { true }
+}
+
 @MainActor final class BrowserController: NSObject, NSApplicationDelegate, NSWindowDelegate, WKNavigationDelegate, WKUIDelegate, WKDownloadDelegate, NSTextFieldDelegate {
     private var window: NSWindow!
     private var ownedWindows: [BrowserController] = []
@@ -21,6 +35,10 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     private var privateStore: WKWebsiteDataStore?
     private var closedWindow = false
     private var terminatingApp = false
+    private var launchCompleted = false
+    private var queuedExternalNavigations: [URL] = []
+    private var sessionPersistence = BrowserSessionPersistenceSelection()
+    private(set) var originalPagesProducer: BrowserNativePageReadoutProducer?
 
     init(privateWindow: Bool = false, coordinator: BrowserController? = nil) {
         isPrivateWindow = privateWindow; self.coordinator = coordinator
@@ -38,6 +56,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     private var failedTargets: [UUID: String] = [:]
     private var activeNavigationIDs: [UUID: ObjectIdentifier] = [:]
     private var downloadNavigationIDs: [UUID: ObjectIdentifier] = [:]
+    private var pageResponses: [UUID: (url: URL, status: Int)] = [:]
     private var showingLibrary = false
     private var homeViews: [UUID: BrowserHomeView] = [:]
     private var homeView: BrowserHomeView {
@@ -49,10 +68,25 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     private let libraryBoundary = NSTextField(wrappingLabelWithString: "History is stored on this Mac. Private tabs never appear here.")
     private var webViews: [UUID: WKWebView] = [:]
     private var documentURLObservers: [ObjectIdentifier: NSKeyValueObservation] = [:]
+    private var documentTitleObservers: [ObjectIdentifier: NSKeyValueObservation] = [:]
     private var observedDocumentURLs: [UUID: String] = [:]
-    private var downloadContexts: [ObjectIdentifier: BrowserDownloadContext] = [:]
+    private let downloadDecisions = BrowserDownloadDecisionLedger()
+    private let pendingSaveQuitShortcut = BrowserPendingSaveQuitShortcut()
+    private let windowEvidenceWriter = BrowserEvidenceFileWriter()
+    private var savePanelEvidence: [[String: Any]] = []
+    private lazy var savePanelStateObservation = BrowserSavePanelStateObservation(owner: window, application: NSApp) { [weak self] event, state in
+        self?.recordSavePanelEvidence(event, state: state)
+    }
+    private lazy var savePanelValidationObservation = BrowserSavePanelValidationObservation { [weak self] event, panel in
+        guard let self, self.downloadPanels.values.contains(where: { $0.panel === panel }) else { return }
+        self.recordSavePanelEvidence(event, panel: panel)
+    }
+    private var activeDownloads: [ObjectIdentifier: (download: WKDownload, activity: BrowserDownloadActivity)] = [:]
+    private var downloadActivities: [BrowserDownloadActivity] = []
+    private var downloadProgressObservers: [ObjectIdentifier: NSKeyValueObservation] = [:]
+    private var downloadPanels: [ObjectIdentifier: (ticket: BrowserDownloadDecision, panel: NSSavePanel)] = [:]
+    private var downloadRecoveryPanels: [UUID: NSSavePanel] = [:]
     private var downloadFiles: [ObjectIdentifier: (staging: URL, destination: URL)] = [:]
-    private var cancelledDownloads = Set<ObjectIdentifier>()
     private var backButton: NSButton?
     private var forwardButton: NSButton?
     private var tabs: [TabRecord] = []
@@ -62,6 +96,8 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     private var documentGenerations: [UUID: UInt64] = [:]
     private let pageSelections = BrowserPageSelectionStore()
     private let localPageSetID = "browser-local:\(UUID().uuidString)"
+    private var selectedPageTaskID: String?
+    private var pageSelectionTaskID: String { selectedPageTaskID ?? localPageSetID }
     private var selectedSources: [BrowserPageSource] = []
     private var selectionReviewGeneration: UInt64 = 0
     private var searchProvider: BrowserSearchProvider {
@@ -103,8 +139,27 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         if coordinator == nil && !isPrivateWindow { restoreTabs() }
         if tabs.isEmpty { openHomeTab(isPrivate: isPrivateWindow) } else { activate(tabs.last!.id) }
         if coordinator == nil { applyEvidenceState() }
+        if !isPrivateWindow {
+            originalPagesProducer = BrowserNativePageReadoutProducer(
+                profileID: environment["YNX_BROWSER_PROFILE_SUITE"] ?? "ordinary", store: pageSelections,
+                taskID: { [weak self] in self?.pageSelectionTaskID },
+                windowCurrent: { [weak self] in
+                    guard let self, !self.closedWindow, !self.isPrivateWindow else { throw BrowserPageSelectionError.unavailable }
+                },
+                currentDocument: { [weak self] id in self?.pageDocument(for: id) },
+                extract: { [weak self] source in
+                    guard let self, !self.closedWindow, !self.isPrivateWindow,
+                          let view = self.webViews[source.document.tabID],
+                          self.pageDocument(for: source.document.tabID) == source.document else { throw BrowserPageSelectionError.unavailable }
+                    return try await self.extractPage(view, fields: source.fields)
+                })
+        }
         BrowserChromeTheme.refreshAll()
         beginLaunchFrameGuard()
+        launchCompleted = true
+        let externalTargets = queuedExternalNavigations
+        queuedExternalNavigations.removeAll()
+        for target in externalTargets { openExternalNavigation(target) }
     }
 
     private func clearLegacyWindowFrames() {
@@ -155,10 +210,37 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
             "minimumWidth": Int(minimumWindowSize.width),
             "minimumHeight": Int(minimumWindowSize.height),
             "usable": frame.width >= minimumWindowSize.width && frame.height >= minimumWindowSize.height,
-            "appearance": appearanceMode
+            "appearance": appearanceMode,
+            "appActive": NSApp.isActive,
+            "ownerKey": window.isKeyWindow,
+            "ownerMain": window.isMainWindow,
+            "savePanelEvents": savePanelEvidence
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]) else { return }
-        try? data.write(to: URL(fileURLWithPath: path), options: .atomic)
+        windowEvidenceWriter.submit(data, to: URL(fileURLWithPath: path))
+    }
+
+    private func recordSavePanelEvidence(_ phase: BrowserSavePanelStateObservation.Event, state: BrowserSavePanelStateObservation.State? = nil, panel: NSSavePanel? = nil) {
+        guard environment["YNX_BROWSER_WINDOW_EVIDENCE_FILE"] != nil else { return }
+        let snapshot = state ?? .init(appActive: NSApp.isActive, ownerKey: window.isKeyWindow,
+            ownerMain: window.isMainWindow, ownerVisible: window.isVisible,
+            ownerMiniaturized: window.isMiniaturized, attachedSheet: window.attachedSheet != nil)
+        var event: [String: Any] = snapshot.evidence
+        event["phase"] = phase.rawValue
+        event["pid"] = ProcessInfo.processInfo.processIdentifier
+        if let panel {
+            // Public host-proxy properties do not establish the remote process's key window.
+            event["hostPanelVisible"] = panel.isVisible
+            event["hostPanelKey"] = panel.isKeyWindow
+            event["hostPanelAttachedToOwner"] = panel.sheetParent === window
+            event["panelHasURL"] = panel.url != nil
+            event["panelHasDirectory"] = panel.directoryURL != nil
+            event["panelNameEmpty"] = panel.nameFieldStringValue.isEmpty
+            event["panelAllowsAllContentTypes"] = panel.allowedContentTypes.isEmpty
+        }
+        savePanelEvidence.append(event)
+        if savePanelEvidence.count > 48 { savePanelEvidence.removeFirst(savePanelEvidence.count - 48) }
+        writeWindowEvidenceIfRequested()
     }
 
     func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
@@ -204,7 +286,8 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         appMenu.addItem(withTitle: "Clear Browsing Data…", action: #selector(clearData), keyEquivalent: "")
         appMenu.addItem(withTitle: "Check for Signed Updates…", action: #selector(checkUpdates), keyEquivalent: "")
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit YNX Browser", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = appMenu.addItem(withTitle: "Quit YNX Browser", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        BrowserPendingSaveQuitShortcut.configureQuitItem(quitItem, application: NSApp)
         app.submenu = appMenu
         let file = NSMenuItem(); menu.addItem(file)
         let fileMenu = NSMenu(title: "File")
@@ -218,6 +301,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         fileMenu.addItem(withTitle: "New Tab", action: #selector(newTabAction), keyEquivalent: "t")
         let privateItem = fileMenu.addItem(withTitle: "New Private Window", action: #selector(privateTabAction), keyEquivalent: "n"); privateItem.keyEquivalentModifierMask = [.command, .shift]
         fileMenu.addItem(withTitle: "Close Tab", action: #selector(closeTabAction), keyEquivalent: "w")
+        let closeWindow = fileMenu.addItem(withTitle: "Close Window", action: #selector(closeWindowAction), keyEquivalent: "w"); closeWindow.keyEquivalentModifierMask = [.command, .shift]
         fileMenu.addItem(withTitle: "Save Current URL…", action: #selector(saveDownload), keyEquivalent: "s")
         file.submenu = fileMenu
         let edit = NSMenuItem(); menu.addItem(edit)
@@ -303,12 +387,12 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         let nav = NSStackView(); nav.orientation = .vertical; nav.alignment = .width; nav.spacing = 8; nav.translatesAutoresizingMaskIntoConstraints = false
         let entries: [(String, String, String, Selector)] = [("home", "Home", "house.fill", #selector(showHomeAction)), ("search", "Search", "magnifyingglass", #selector(showSearchAction)), ("spaces", "Spaces", "square.grid.2x2", #selector(showSpaces)), ("downloads", "Downloads", "arrow.down.to.line", #selector(showDownloads)), ("history", "History", "clock", #selector(showHistory)), ("bookmarks", "Bookmarks", "star", #selector(showBookmarks)), ("settings", "Settings", "gearshape", #selector(showSettings))]
         for (id, title, symbol, action) in entries {
-            let item = libraryButton(title, symbol, action); item.heightAnchor.constraint(equalToConstant: 44).isActive = true; item.wantsLayer = true; item.layer?.cornerRadius = 10
+            let item = libraryButton(title, symbol, action); item.heightAnchor.constraint(equalToConstant: 44).isActive = true; item.wantsLayer = true; item.layer?.cornerRadius = 0
             sidebarButtons[id] = item; nav.addArrangedSubview(item)
         }
         nav.fillColumnWidth()
         sidebar.addSubview(heading); sidebar.addSubview(nav)
-        NSLayoutConstraint.activate([heading.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 27), heading.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 62), nav.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 14), nav.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor, constant: -14), nav.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 30)])
+        NSLayoutConstraint.activate([heading.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor, constant: 27), heading.topAnchor.constraint(equalTo: sidebar.topAnchor, constant: 62), nav.leadingAnchor.constraint(equalTo: sidebar.leadingAnchor), nav.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor), nav.topAnchor.constraint(equalTo: heading.bottomAnchor, constant: 30)])
         return sidebar
     }
     private func buildLibraryPanel() -> NSView {
@@ -316,9 +400,20 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         libraryTitle.font = .systemFont(ofSize: 26, weight: .semibold); libraryTitle.textColor = BrowserChromeTheme.text
         libraryBoundary.font = .systemFont(ofSize: 12); libraryBoundary.textColor = BrowserChromeTheme.secondary
         libraryList.orientation = .vertical; libraryList.alignment = .leading; libraryList.spacing = 16; libraryList.translatesAutoresizingMaskIntoConstraints = false
-        let scroll = NSScrollView(); scroll.drawsBackground = false; scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.documentView = libraryList
+        let scroll = NSScrollView(); scroll.drawsBackground = false; scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true
+        let document = LibraryDocumentView(); document.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(libraryList); scroll.documentView = document
+        let viewportHeight = document.heightAnchor.constraint(equalTo: scroll.contentView.heightAnchor)
+        viewportHeight.priority = .defaultLow
         for child in [libraryTitle, libraryBoundary, scroll] { child.translatesAutoresizingMaskIntoConstraints = false; panel.addSubview(child) }
-        NSLayoutConstraint.activate([libraryTitle.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 36), libraryTitle.topAnchor.constraint(equalTo: panel.topAnchor, constant: 32), libraryBoundary.leadingAnchor.constraint(equalTo: libraryTitle.leadingAnchor), libraryBoundary.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -36), libraryBoundary.topAnchor.constraint(equalTo: libraryTitle.bottomAnchor, constant: 14), scroll.leadingAnchor.constraint(equalTo: libraryTitle.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -36), scroll.topAnchor.constraint(equalTo: libraryBoundary.bottomAnchor, constant: 24), scroll.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -24), libraryList.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor, constant: -12)])
+        NSLayoutConstraint.activate([
+            libraryTitle.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 36), libraryTitle.topAnchor.constraint(equalTo: panel.topAnchor, constant: 32),
+            libraryBoundary.leadingAnchor.constraint(equalTo: libraryTitle.leadingAnchor), libraryBoundary.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -36), libraryBoundary.topAnchor.constraint(equalTo: libraryTitle.bottomAnchor, constant: 14),
+            scroll.leadingAnchor.constraint(equalTo: libraryTitle.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -36), scroll.topAnchor.constraint(equalTo: libraryBoundary.bottomAnchor, constant: 24), scroll.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -24),
+            document.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor), document.topAnchor.constraint(equalTo: scroll.contentView.topAnchor), document.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor),
+            document.heightAnchor.constraint(greaterThanOrEqualTo: scroll.contentView.heightAnchor), viewportHeight,
+            libraryList.leadingAnchor.constraint(equalTo: document.leadingAnchor), libraryList.topAnchor.constraint(equalTo: document.topAnchor), libraryList.trailingAnchor.constraint(equalTo: document.trailingAnchor, constant: -12), libraryList.bottomAnchor.constraint(lessThanOrEqualTo: document.bottomAnchor)
+        ])
         return panel
     }
     private func selectSidebar(_ section: String) {
@@ -400,7 +495,9 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     }
     private func accent() -> NSColor { BrowserChromeTheme.blue }
     private func libraryButton(_ title: String, _ symbol: String, _ action: Selector) -> NSButton {
-        let value = NSButton(title: "  " + title, image: BrowserChromeTheme.symbol(symbol, size: 18), target: self, action: action)
+        let value = NSButton(frame: .zero)
+        value.cell = SidebarNavigationButtonCell(textCell: "  " + title)
+        value.image = BrowserChromeTheme.symbol(symbol, size: 18); value.target = self; value.action = action
         value.isBordered = false; value.imagePosition = .imageLeading; value.alignment = .left; value.font = .systemFont(ofSize: 14, weight: .medium); value.contentTintColor = BrowserChromeTheme.text
         return value
     }
@@ -432,6 +529,21 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
                 }
             }
         }
+        documentTitleObservers[ObjectIdentifier(view)] = view.observe(\.title, options: [.new]) { [weak self] view, _ in
+            Task { @MainActor [weak self, weak view] in
+                guard let self, let view, let i = self.index(for: view),
+                      let url = view.url, let rawTitle = view.title else { return }
+                let id = self.tabs[i].id, title = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty, self.tabs[i].url == url.absoluteString,
+                      self.pendingTargets[id] == nil, self.failedTargets[id] == nil,
+                      !self.homeTabIDs.contains(id), self.tabs[i].title != title else { return }
+                self.tabs[i].title = title
+                if (self.coordinator ?? self).sessionPersistence.allowsRecording {
+                    BrowserLocalProfile.refreshLatestVisitTitle(self.tabs[i], defaults: self.defaults)
+                }
+                self.persistTabs(); self.refreshChrome(); self.refreshLibrary(); self.updateHomeData()
+            }
+        }
         return view
     }
     private func openTab(url: URL, isPrivate: Bool) {
@@ -441,12 +553,14 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         view.load(URLRequest(url: url))
     }
     private func attachTab(_ view: WKWebView, pendingURL url: URL, isPrivate: Bool) {
+        if !isPrivate { beginOrdinarySessionActivity() }
         let id = UUID()
         documentGenerations[id] = 0; pendingTargets[id] = url; webViews[id] = view
         tabs.append(TabRecord(id: id, url: url.absoluteString, title: url.host ?? "New Tab", isPrivate: isPrivate, crashed: false))
         persistTabs(); activate(id)
     }
     private func openHomeTab(isPrivate: Bool) {
+        if !isPrivate { beginOrdinarySessionActivity() }
         let id = UUID(); homeTabIDs.insert(id); documentGenerations[id] = 0
         tabs.append(TabRecord(id: id, url: BrowserLocalProfile.homeURL, title: isPrivate ? "Private Window" : "New Tab", isPrivate: isPrivate, crashed: false))
         activate(id); persistTabs()
@@ -471,7 +585,12 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
                 homeView.updateNavigationFeedback(title: "Connecting to " + (pending.host ?? "page"), detail: pending.absoluteString, isLoading: true)
             } else { homeView.clearNavigationFeedback() }
         } else if let view = webViews[id] { attachToPageHost(view); selectSidebar("") }
-        security.stringValue = failedTargets[id] ?? (tab.isPrivate ? "Private · local records are not saved · direct IP is not hidden" : pendingTargets[id].map { "Connecting to \($0.host ?? "page")…" } ?? "\(providerDisplayName) search · Standard direct connection")
+        if let failure = failedTargets[id] { security.stringValue = failure }
+        else if tab.isPrivate { security.stringValue = "Private · local records are not saved · direct IP is not hidden" }
+        else if let pending = pendingTargets[id] { security.stringValue = "Connecting to \(pending.host ?? "page")…" }
+        else if !homeTabIDs.contains(id), let view = webViews[id], let url = view.url {
+            security.stringValue = view.isLoading ? "Loading \(url.host ?? "page")…" : connectionDescription(for: id, url: url)
+        } else { security.stringValue = "\(providerDisplayName) search · Standard direct connection" }
     }
     private func refreshChrome() {
         refreshSearchPresentation()
@@ -491,11 +610,21 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
             pill.widthAnchor.constraint(equalToConstant: 205).isActive = true; close.widthAnchor.constraint(equalToConstant: 18).isActive = true; tabStrip.addArrangedSubview(pill)
         }
     }
+    private func openOrdinarySessionWindows() -> [[TabRecord]] {
+        let root = coordinator ?? self
+        return ([root] + root.ownedWindows).filter { !$0.isPrivateWindow && !$0.closedWindow }.map { $0.tabs }
+    }
+    private func beginOrdinarySessionActivity() {
+        guard !isPrivateWindow else { return }
+        let root = coordinator ?? self
+        root.sessionPersistence.beginOrdinarySession()
+    }
     private func persistTabs() {
         guard !isPrivateWindow else { return }
         let root = coordinator ?? self
-        let records = (root.closedWindow ? [] : root.tabs) + root.ownedWindows.filter { !$0.isPrivateWindow && !$0.closedWindow }.flatMap { $0.tabs }
-        BrowserLocalProfile.persistTabs(records, defaults: root.defaults)
+        if let records = root.sessionPersistence.update(openOrdinaryWindows: openOrdinarySessionWindows()) {
+            BrowserLocalProfile.persistTabs(records, defaults: root.defaults)
+        }
     }
     private func restoreTabs() {
         for tab in BrowserLocalProfile.restoreBrowserSession(defaults: defaults) {
@@ -503,9 +632,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
                 homeTabIDs.insert(tab.id); documentGenerations[tab.id] = 0; tabs.append(tab); continue
             }
             guard let url = URL(string: tab.url), BrowserOmnibox.isNavigable(url) else { continue }
-            let config = WKWebViewConfiguration(); config.websiteDataStore = .default()
-            let view = WKWebView(frame: .zero, configuration: config); view.navigationDelegate = self; view.uiDelegate = self
-            view.allowsBackForwardNavigationGestures = true; view.translatesAutoresizingMaskIntoConstraints = false
+            let view = makeWebView(isPrivate: false)
             webViews[tab.id] = view; documentGenerations[tab.id] = 0; pendingTargets[tab.id] = url; tabs.append(tab); view.load(URLRequest(url: url))
         }
     }
@@ -532,7 +659,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         do {
             let target = try BrowserOmnibox.resolveOmnibox(input, provider: searchProvider)
             if target.host == searchProvider.destinationHost { security.stringValue = "Search terms are sent to \(searchProvider.destinationHost). Change provider in YNX Browser menu." }
-            navigateTab(target)
+            beginOrdinarySessionActivity(); navigateTab(target)
         } catch { security.stringValue = "Address rejected. Enter a valid HTTP(S) URL or ordinary search words." }
     }
     private func navigateTab(_ target: URL) {
@@ -545,7 +672,11 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         address.stringValue = target.absoluteString; renderActivePage(); refreshChrome()
         view.load(URLRequest(url: target))
     }
-    @objc private func submitAddress() { navigate(address.stringValue); window.makeFirstResponder(activeWebView()) }
+    @objc private func submitAddress() {
+        navigate(address.stringValue)
+        if let view = activeWebView(), view.window === window { window.makeFirstResponder(view) }
+        else { window.makeFirstResponder(nil) }
+    }
     @objc private func focusAddress() { guard window.isKeyWindow else { return }; window.makeFirstResponder(address); address.selectText(nil) }
     @objc private func showOrdinaryWindow() {
         let root = coordinator ?? self
@@ -560,14 +691,28 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         root.ownedWindows.append(child)
         child.applicationDidFinishLaunching(Notification(name: NSApplication.didFinishLaunchingNotification))
     }
+    private func retireWindowWebContent() {
+        launchFrameGuard?.invalidate(); launchFrameGuard = nil
+        documentURLObservers.removeAll(); documentTitleObservers.removeAll(); observedDocumentURLs.removeAll()
+        for view in webViews.values {
+            view.navigationDelegate = nil; view.uiDelegate = nil
+            view.stopLoading(); view.removeFromSuperview()
+        }
+        // The controller retains its closed NSWindow; leaving a WKWebView in pageHost would
+        // retain its document/network tasks even after the tab dictionary was cleared.
+        for child in pageHost.subviews { child.removeFromSuperview() }
+        webViews.removeAll(); homeViews.removeAll(); privateStore = nil; pageResponses.removeAll()
+    }
     func windowWillClose(_ notification: Notification) {
         let root = coordinator ?? self
         guard !root.terminatingApp else { return }
-        closedWindow = true; selectionReviewGeneration &+= 1; pageSelections.removeAll(); selectedSources.removeAll()
-        for view in webViews.values { view.stopLoading() }
-        documentURLObservers.removeAll(); observedDocumentURLs.removeAll()
-        webViews.removeAll(); homeViews.removeAll(); privateStore = nil
-        if !isPrivateWindow { persistTabs() }
+        closedWindow = true; closeOwnedDownloads(); selectionReviewGeneration &+= 1; pageSelections.removeAll(); selectedSources.removeAll()
+        originalPagesProducer?.close(); originalPagesProducer = nil
+        retireWindowWebContent()
+        if !isPrivateWindow, let records = root.sessionPersistence.windowClosed(
+            tabs: tabs, isPrivate: false, survivingOrdinaryWindows: openOrdinarySessionWindows()) {
+            BrowserLocalProfile.persistTabs(records, defaults: root.defaults)
+        }
         if coordinator != nil { root.ownedWindows.removeAll { $0 === self } }
     }
     @objc private func newTorRouteWindow() { openRoutedWindow(mode: .tor) }
@@ -614,6 +759,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
 
     private func refreshLibrary() {
         for view in libraryList.arrangedSubviews { libraryList.removeArrangedSubview(view); view.removeFromSuperview() }
+        if selectedLibrary == "downloads" { refreshDownloadsList(); return }
         let values: [(String,String)]
         if isPrivateWindow && selectedLibrary != "bookmarks" {
             let empty = BrowserChromeTheme.label("Private window records are not saved.", size: 13, color: BrowserChromeTheme.secondary)
@@ -621,7 +767,6 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         }
         switch selectedLibrary {
         case "bookmarks": values = (defaults.array(forKey: "bookmarks") as? [[String:String]] ?? []).prefix(30).map { ($0["title"] ?? "Untitled", $0["url"] ?? "") }
-        case "downloads": values = BrowserDownloadPersistence.decodeRecords(from: defaults.data(forKey: BrowserDownloadPersistence.defaultsKey)).prefix(30).map { ($0.filename, $0.source) }
         case "permissions": values = ((try? JSONDecoder().decode([PermissionRecord].self, from: defaults.data(forKey: "permissions") ?? Data())) ?? []).prefix(30).map { ("\($0.permission) · \($0.decision)", $0.origin) }
         default: values = ((try? JSONDecoder().decode([VisitRecord].self, from: defaults.data(forKey: "history") ?? Data())) ?? []).prefix(30).map { ($0.title, $0.url) }
         }
@@ -637,6 +782,65 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
             let item = NSStackView(views: [titleView, detailField]); item.orientation = .vertical; item.alignment = .leading; item.spacing = 1; libraryList.addArrangedSubview(item)
         }
     }
+    private func refreshDownloadsList() {
+        let activities = downloadActivities.filter { activity in
+            activity.isPrivate == isPrivateWindow && (isPrivateWindow || activity.phase != .completed)
+        }
+        for activity in activities {
+            let name = BrowserChromeTheme.label(String(activity.title.prefix(80)), size: 13, weight: .medium)
+            let status = BrowserChromeTheme.label(activity.status, size: 12, color: BrowserChromeTheme.secondary)
+            let text = NSStackView(views: [name, status]); text.orientation = .vertical; text.alignment = .leading; text.spacing = 3
+            let row = NSStackView(views: [text]); row.orientation = .horizontal; row.alignment = .centerY; row.spacing = 16
+            if activity.canCancel {
+                let exactID = activity.id
+                let cancel = BrowserChromeTextButton("Cancel", symbol: "xmark") { [weak self] in
+                    guard let self, let key = self.activeDownloads.first(where: { $0.value.activity.id == exactID })?.key else { return }
+                    self.cancelOwnedDownload(key, exactActivityID: exactID)
+                }
+                cancel.setAccessibilityLabel("Cancel download \(activity.title)")
+                row.addArrangedSubview(cancel)
+            } else if activity.canSaveAgain {
+                let save = BrowserChromeTextButton("Save As…", symbol: "square.and.arrow.down") { [weak self, weak activity] in
+                    guard let activity else { return }
+                    self?.saveDownloadAgain(activity)
+                }
+                save.setAccessibilityLabel("Save download \(activity.title) again")
+                row.addArrangedSubview(save)
+            }
+            libraryList.addArrangedSubview(row)
+        }
+        // Private activities are transient, confined to this window and never backed by
+        // the ordinary profile's completed-download records.
+        let records = isPrivateWindow ? [] : Array(BrowserDownloadPersistence.decodeRecords(
+            from: defaults.data(forKey: BrowserDownloadPersistence.defaultsKey)).prefix(30))
+        for record in records {
+            let name = BrowserChromeTheme.label(String(record.filename.prefix(80)), size: 13, weight: .medium)
+            let status = BrowserChromeTheme.label("Completed", size: 12, color: BrowserChromeTheme.secondary)
+            let source = BrowserChromeTheme.label(String(record.source.prefix(90)), size: 11, color: BrowserChromeTheme.secondary)
+            let row = NSStackView(views: [name, status, source]); row.orientation = .vertical; row.alignment = .leading; row.spacing = 3
+            libraryList.addArrangedSubview(row)
+        }
+        if activities.isEmpty && records.isEmpty {
+            libraryList.addArrangedSubview(BrowserChromeTheme.label(isPrivateWindow
+                ? "Downloads in this private window appear here temporarily. No download history is saved."
+                : "No downloads yet.", size: 13, color: BrowserChromeTheme.secondary))
+        }
+    }
+    private func refreshDownloadActivityList() {
+        guard !closedWindow, !terminatingApp else { return }
+        // Retain all in-flight activities and only the latest 30 terminal rows.
+        var terminalCount = 0
+        downloadActivities = downloadActivities.filter { activity in
+            if !activity.isTerminal { return true }
+            terminalCount += 1
+            if terminalCount > 30, downloadRecoveryPanels[activity.id] == nil {
+                activity.discardSaveRecovery()
+                return false
+            }
+            return true
+        }
+        if showingLibrary && selectedLibrary == "downloads" { refreshLibrary() }
+    }
     @objc private func openLibraryPage(_ sender: LibraryPageButton) { navigate(sender.pageURL) }
     private func selectLibrary(_ value: String, title: String, boundary: String) { selectedLibrary = value; libraryTitle.stringValue = title; libraryBoundary.stringValue = boundary; showingLibrary = true; refreshLibrary(); selectSidebar(value); if libraryPanel != nil { attachToPageHost(libraryPanel) } }
 
@@ -647,12 +851,12 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
             security.stringValue = "Search sends your words to \(searchProvider.destinationHost). Change provider in YNX Browser menu."
         }
     }
-    @objc private func goBack() { guard window.isKeyWindow else { return }; activeWebView()?.goBack() }
-    @objc private func goForward() { guard window.isKeyWindow else { return }; activeWebView()?.goForward() }
+    @objc private func goBack() { guard window.isKeyWindow, activeWebView()?.canGoBack == true else { return }; beginOrdinarySessionActivity(); activeWebView()?.goBack() }
+    @objc private func goForward() { guard window.isKeyWindow, activeWebView()?.canGoForward == true else { return }; beginOrdinarySessionActivity(); activeWebView()?.goForward() }
     @objc private func reload() {
         guard window.isKeyWindow, let id = activeID else { return }
-        if let target = pendingTargets[id] { navigateTab(target) }
-        else if let url = webViews[id]?.url { navigateTab(url) }
+        if let target = pendingTargets[id] { beginOrdinarySessionActivity(); navigateTab(target) }
+        else if let url = webViews[id]?.url { beginOrdinarySessionActivity(); navigateTab(url) }
         else { homeView.focusSearch() }
     }
     @objc private func saveDownload() {
@@ -662,9 +866,27 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         }
         guard let view = activeWebView(), let url = view.url, BrowserOmnibox.isNavigable(url), let i = index(for: view) else { return }
         let context = BrowserDownloadContext(source: url.absoluteString, isPrivate: tabs[i].isPrivate)
-        view.startDownload(using: URLRequest(url: url)) { download in
-            self.downloadContexts[ObjectIdentifier(download)] = context
-            download.delegate = self
+        view.startDownload(using: URLRequest(url: url)) { [weak self] download in
+            guard let self, !self.closedWindow, !self.terminatingApp else { download.cancel { _ in }; return }
+            self.registerDownload(download, context: context)
+        }
+    }
+    private func saveDownloadAgain(_ activity: BrowserDownloadActivity) {
+        guard !closedWindow, !terminatingApp, !isPrivateWindow, activity.canSaveAgain,
+              downloadRecoveryPanels[activity.id] == nil else { return }
+        let panel = NSSavePanel()
+        panel.preventsApplicationTerminationWhenModal = false
+        panel.nameFieldStringValue = activity.title
+        downloadRecoveryPanels[activity.id] = panel
+        panel.beginSheetModal(for: window) { [weak self, weak activity] result in
+            guard let self, let activity, !self.closedWindow, !self.terminatingApp,
+                  self.downloadRecoveryPanels[activity.id] === panel else { return }
+            self.downloadRecoveryPanels.removeValue(forKey: activity.id)
+            if result == .OK, let destination = panel.url {
+                let saved = activity.saveAgain(to: destination, defaults: self.defaults)
+                self.security.stringValue = saved ? "Download completed to the user-selected file." : "Could not save the download to that location."
+            }
+            self.refreshDownloadActivityList()
         }
     }
     @objc private func newTabAction() { guard window.isKeyWindow else { return }; openHomeTab(isPrivate: isPrivateWindow) }
@@ -672,11 +894,16 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     @objc private func selectTab(_ sender: TabButton) { if let id = sender.tabID { activate(id) } }
     @objc private func closeSpecifiedTab(_ sender: TabCloseButton) { if let id = sender.tabID { closeTab(id) } }
     @objc private func closeTabAction() { guard window.isKeyWindow, let id = activeID else { return }; closeTab(id) }
+    @objc private func closeWindowAction() { guard window.isKeyWindow, !closedWindow else { return }; window.performClose(nil) }
     private func closeTab(_ id: UUID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
         let wasActive = activeID == id
+        pageResponses.removeValue(forKey: id)
         pageSelections.invalidate(tabID: id); documentGenerations.removeValue(forKey: id); pendingTargets.removeValue(forKey: id); failedTargets.removeValue(forKey: id); activeNavigationIDs.removeValue(forKey: id); downloadNavigationIDs.removeValue(forKey: id); homeTabIDs.remove(id)
-        if let view = webViews[id] { documentURLObservers.removeValue(forKey: ObjectIdentifier(view)) }
+        if let view = webViews[id] {
+            documentURLObservers.removeValue(forKey: ObjectIdentifier(view))
+            documentTitleObservers.removeValue(forKey: ObjectIdentifier(view))
+        }
         observedDocumentURLs.removeValue(forKey: id)
         webViews[id]?.stopLoading(); webViews[id]?.removeFromSuperview(); webViews.removeValue(forKey: id); tabs.remove(at: index)
         homeViews.removeValue(forKey: id)
@@ -742,45 +969,82 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         }
         guard !document.isPrivate else { showBoundary(title: "Private page", message: "Private pages cannot be selected for a task. Ordinary browsing remains available."); return }
         let alert = NSAlert(); alert.messageText = "Select this page"
-        alert.informativeText = "Page: \(view.title ?? document.origin)\nOrigin: \(document.origin)\n\nChoose fields for a local snapshot. Nothing is sent to a provider. Hidden content, forms and subframes are excluded. Navigation requires a new selection."
+        alert.informativeText = "Page: \(view.title ?? document.origin)\nOrigin: \(document.origin)\n\nChoose fields for a local snapshot. Nothing is sent to a provider. Hidden content, forms and subframes are excluded. Navigation requires a new selection.\n\nTo prepare pages for an existing AI task, enter its task reference before selecting. Changing the reference clears the previous selections. Access is checked separately by AI."
         let title = NSButton(checkboxWithTitle: "Page title", target: nil, action: nil); title.state = .on
         let url = NSButton(checkboxWithTitle: "Page URL (including query)", target: nil, action: nil); url.state = .on
         let text = NSButton(checkboxWithTitle: "Visible page text", target: nil, action: nil); text.state = .on
-        let choices = NSStackView(views: [title, url, text]); choices.orientation = .vertical; choices.alignment = .leading; choices.frame = NSRect(x: 0, y: 0, width: 440, height: 78); alert.accessoryView = choices
+        let taskReference = NSTextField(string: selectedPageTaskID ?? "")
+        taskReference.placeholderString = "Task reference (optional; blank keeps pages local)"
+        taskReference.setAccessibilityLabel("Selected pages task reference")
+        taskReference.widthAnchor.constraint(equalToConstant: 440).isActive = true
+        let choices = NSStackView(views: [title, url, text, taskReference]); choices.orientation = .vertical; choices.alignment = .leading; choices.frame = NSRect(x: 0, y: 0, width: 440, height: 114); alert.accessoryView = choices
         alert.addButton(withTitle: "Select Page"); alert.addButton(withTitle: "Cancel")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         let fields = [("title", title), ("url", url), ("text", text)].filter { $0.1.state == .on }.map { $0.0 }
         guard !fields.isEmpty else { return }
+        let requestedReference = taskReference.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard requestedReference.utf8.count <= 1024, !requestedReference.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) }) else {
+            showBoundary(title: "Invalid task reference", message: "Use the reference shown by the existing AI task, or leave it blank to keep pages local."); return
+        }
+        let requestedTask = requestedReference.isEmpty ? localPageSetID : requestedReference
+        selectionReviewGeneration &+= 1
+        let selectionOperation = selectionReviewGeneration
         Task { @MainActor in
             do {
                 let content = try await extractPage(view, fields: fields)
+                guard !closedWindow, selectionReviewGeneration == selectionOperation else { return }
                 guard pageDocument(for: id) == document else { security.stringValue = "Page changed. Select it again."; return }
+                if !requestedTask.utf8.elementsEqual(pageSelectionTaskID.utf8) {
+                    pageSelections.removeAll(); selectedSources.removeAll()
+                    selectedPageTaskID = requestedReference.isEmpty ? nil : requestedReference
+                }
                 pageSelections.invalidate(tabID: id)
-                let sources = try pageSelections.selectPages([BrowserPageConfirmation(document: document, taskID: localPageSetID, allowedFields: fields, content: content, confirmed: true)])
+                let sources = try pageSelections.selectPages([BrowserPageConfirmation(document: document, taskID: requestedTask, allowedFields: fields, content: content, confirmed: true)])
                 selectedSources.removeAll { $0.document.tabID == id }; selectedSources.append(contentsOf: sources)
                 security.stringValue = "\(selectedSources.count) page(s) selected locally. Review in Navigate menu. No content has been sent."
             } catch { security.stringValue = "Page selection failed: \(error.localizedDescription)" }
         }
     }
+    /// Local producer read port. The original task authority must independently authorize
+    /// the AI task/profile and disclosure before it can consume this detached readout.
+    private func readSelectedPageBatch(_ sources: [BrowserPageSource]) async throws -> BrowserPageReadBatch {
+        guard !closedWindow, !isPrivateWindow else { throw BrowserPageSelectionError.denied }
+        let selectedTask = pageSelectionTaskID
+        let batch = try await pageSelections.readSelectedPageBatch(sources,
+            taskID: selectedTask, profileID: environment["YNX_BROWSER_PROFILE_SUITE"] ?? "ordinary",
+            currentDocument: { [self] id in pageDocument(for: id) },
+            extract: { [self] source in
+                guard !closedWindow, let view = webViews[source.document.tabID],
+                      pageDocument(for: source.document.tabID) == source.document else { throw BrowserPageSelectionError.unavailable }
+                return try await extractPage(view, fields: source.fields)
+            })
+        guard !closedWindow, !isPrivateWindow, pageSelectionTaskID.utf8.elementsEqual(selectedTask.utf8) else { throw BrowserPageSelectionError.denied }
+        return batch
+    }
     @objc private func reviewSelectedPages() {
         guard window.isKeyWindow else { return }
+        guard !selectedSources.isEmpty else { showBoundary(title: "Selected pages", message: "No pages selected."); return }
         selectionReviewGeneration &+= 1; let expected = selectionReviewGeneration
         Task { @MainActor in
             var results: [String] = []
-            for source in selectedSources {
-                let id = source.document.tabID
-                do {
-                    let document = pageDocument(for: id)
-                    var content: BrowserPageContent?
-                    if let view = webViews[id], document == source.document { content = try await extractPage(view, fields: source.fields) }
-                    guard !closedWindow, selectionReviewGeneration == expected else { return }
-                    let bytes = try pageSelections.readSelectedPage(source, currentDocument: pageDocument(for: id), currentContent: content)
-                    let values = try BrowserPageSelectionStore.previewFields(bytes, source: source)
-                    let labels = ["url": "Page URL", "title": "Page title", "text": "Visible page text"]
-                    let fields = source.fields.map { "\(labels[$0] ?? $0):\n\(values[$0] ?? "")" }.joined(separator: "\n\n")
-                    results.append("\(source.document.origin) · AVAILABLE at read time · \(bytes.count) bytes\n\(fields)")
-                } catch let error as BrowserPageSelectionError { results.append("\(source.document.origin) · \(error.rawValue) · select this page again") }
-                catch { results.append("\(source.document.origin) · UNAVAILABLE · the page could not be read") }
+            do {
+                let batch = try await readSelectedPageBatch(selectedSources)
+                guard !closedWindow, selectionReviewGeneration == expected else { return }
+                for result in batch.pages {
+                    let source = result.source
+                    if let bytes = result.snapshotBytes {
+                        let values = try BrowserPageSelectionStore.previewFields(bytes, source: source)
+                        let labels = ["url": "Page URL", "title": "Page title", "text": "Visible page text"]
+                        let fields = source.fields.map { "\(labels[$0] ?? $0):\n\(values[$0] ?? "")" }.joined(separator: "\n\n")
+                        results.append("\(source.document.origin) · AVAILABLE · \(bytes.count) bytes\n\(fields)")
+                    } else {
+                        results.append("\(source.document.origin) · \(result.state.rawValue) · select this page again")
+                    }
+                }
+            } catch let error as BrowserPageSelectionError {
+                results = ["Selected pages · \(error.rawValue) · no page content was released"]
+            } catch {
+                results = ["Selected pages · UNAVAILABLE · no page content was released"]
             }
             guard !closedWindow, selectionReviewGeneration == expected else { return }
             let alert = NSAlert(); alert.messageText = "Selected pages · human review"
@@ -798,7 +1062,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     }
     @objc private func clearSelectedPages() {
         guard window.isKeyWindow else { return }
-        selectionReviewGeneration &+= 1; pageSelections.removeAll(); selectedSources.removeAll()
+        selectionReviewGeneration &+= 1; pageSelections.removeAll(); selectedSources.removeAll(); selectedPageTaskID = nil
         security.stringValue = "Local page selections cleared. Browsing, bookmarks and downloaded files remain."
     }
     @objc private func startWalletSignIn() {
@@ -869,14 +1133,15 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         selectionReviewGeneration &+= 1; pageSelections.removeAll(); selectedSources.removeAll()
         if isPrivateWindow {
             privateStore?.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {}
-            for view in webViews.values { view.stopLoading() }
-            documentURLObservers.removeAll(); observedDocumentURLs.removeAll()
-            webViews.removeAll(); homeViews.removeAll(); privateStore = nil; tabs.removeAll(); homeTabIDs.removeAll(); pendingTargets.removeAll(); failedTargets.removeAll()
+            retireWindowWebContent()
+            tabs.removeAll(); homeTabIDs.removeAll(); pendingTargets.removeAll(); failedTargets.removeAll()
             openHomeTab(isPrivate: true); return
         }
         WKWebsiteDataStore.default().removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast) {}
         defaults.removeObject(forKey: "history")
         defaults.removeObject(forKey: "permissions")
+        let root = coordinator ?? self
+        _ = root.sessionPersistence.clear()
         defaults.removeObject(forKey: "tabs")
         BrowserWalletCallbackPolicy.clearPending(defaults: defaults)
         auditLogger.notice("local_data_cleared code=BR-DATA-CLEAR")
@@ -887,7 +1152,7 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping @MainActor (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
-        if ["ynxwallet", "ynx-wallet"].contains(url.scheme) { decisionHandler(.cancel); reviewWalletURL(url); return }
+        if ["ynxwallet", "ynx-wallet"].contains(url.scheme?.lowercased() ?? "") { decisionHandler(.cancel); reviewWalletURL(url, initiatingOrigin: navigationAction.sourceFrame.securityOrigin); return }
         if navigationAction.shouldPerformDownload, navigationAction.sourceFrame.isMainFrame,
            BrowserOmnibox.isSameOriginBlobDownload(url, documentURL: webView.url) { markDownloadNavigation(webView); decisionHandler(.download); return }
         let sandboxedSubframe = navigationAction.targetFrame?.isMainFrame == false && ["about", "data", "blob"].contains(url.scheme?.lowercased() ?? "")
@@ -905,16 +1170,19 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
             pendingTargets[id] = url; failedTargets.removeValue(forKey: id); homeTabIDs.remove(id)
             if activeID == id { renderActivePage(); refreshChrome() }
         }
+        if navigationAction.navigationType != .other { beginOrdinarySessionActivity() }
         decisionHandler(.allow)
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping @MainActor (WKNavigationResponsePolicy) -> Void) {
+        if navigationResponse.isForMainFrame, let response = navigationResponse.response as? HTTPURLResponse,
+           let url = response.url, let i = index(for: webView) { pageResponses[tabs[i].id] = (url, response.statusCode) }
         if !navigationResponse.canShowMIMEType, navigationResponse.isForMainFrame { markDownloadNavigation(webView) }
         decisionHandler(navigationResponse.canShowMIMEType ? .allow : .download)
     }
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         guard let i = index(for: webView) else { return }
         let id = tabs[i].id
-        downloadNavigationIDs.removeValue(forKey: id)
+        downloadNavigationIDs.removeValue(forKey: id); pageResponses.removeValue(forKey: id)
         if let navigation { activeNavigationIDs[id] = ObjectIdentifier(navigation) }
         documentGenerations[id] = (documentGenerations[id] ?? 0) + 1
         pageSelections.invalidate(tabID: id)
@@ -936,7 +1204,25 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         // WebKit loads the original navigation, including form method and body.
         return view
     }
-    private func reviewWalletURL(_ url: URL) { let components = URLComponents(url: url, resolvingAgainstBaseURL: false); let fields = Dictionary(uniqueKeysWithValues: (components?.queryItems ?? []).map { ($0.name, $0.value ?? "") }); let detail = ["Requester: \(fields["requestingProduct"] ?? activeWebView()?.url?.host ?? "unavailable")", "Callback: \(fields["callback"] ?? "must be reviewed in Wallet")", "Scopes: \(fields["scopes"] ?? "must be reviewed in Wallet")", "Recipient: \(fields["recipient"] ?? "not supplied")", "YNXT amount: \(fields["amount"] ?? "not supplied")", "Fee: \(fields["fee"] ?? "not supplied")", "Contract data: \(fields["data"] ?? "not supplied")", "Network: ynx_6423-1", "Expiry: \(fields["expiresAt"] ?? "must be reviewed in Wallet")"].joined(separator: "\n"); showBoundary(title: "Wallet signing review", message: "\(detail)\n\nContinue only after YNX Wallet verifies exact bindings. This browser never signs or reports a completed transaction.") }
+    private func reviewWalletURL(_ url: URL, initiatingOrigin: WKSecurityOrigin) {
+        do {
+            let fields = try BrowserWalletReviewQuery.parse(url)
+            let origin = "\(initiatingOrigin.protocol)://\(initiatingOrigin.host):\(initiatingOrigin.port)"
+            let detail = ["Initiating frame origin: \(origin)",
+                          "Claimed requester (unverified): \(fields["requestingProduct"] ?? "not supplied")",
+                          "Claimed callback (unverified): \(fields["callback"] ?? "not supplied")",
+                          "Scopes: \(fields["scopes"] ?? "must be reviewed in Wallet")",
+                          "Recipient: \(fields["recipient"] ?? "not supplied")",
+                          "YNXT amount: \(fields["amount"] ?? "not supplied")",
+                          "Fee: \(fields["fee"] ?? "not supplied")",
+                          "Contract data: \(fields["data"] ?? "not supplied")",
+                          "Network: ynx_6423-1",
+                          "Expiry: \(fields["expiresAt"] ?? "must be reviewed in Wallet")"].joined(separator: "\n")
+            showBoundary(title: "Wallet signing review", message: "\(detail)\n\nThese URL fields are untrusted review data. Continue only after YNX Wallet verifies exact bindings. This browser never signs or reports a completed transaction.")
+        } catch {
+            showBoundary(title: "Wallet review rejected", message: "The request URL contains ambiguous, unsupported or unsafe review fields. Nothing was sent to Wallet.")
+        }
+    }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let i = index(for: webView) else { return }
         let id = tabs[i].id
@@ -945,10 +1231,17 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
         tabs[i].url = webView.url?.absoluteString ?? tabs[i].url
         let title = webView.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         tabs[i].title = title.isEmpty ? (webView.url?.host ?? "Untitled") : title; tabs[i].crashed = false
-        BrowserLocalProfile.recordVisit(tabs[i], defaults: defaults)
+        if (coordinator ?? self).sessionPersistence.allowsRecording { BrowserLocalProfile.recordVisit(tabs[i], defaults: defaults) }
         persistTabs(); refreshChrome(); refreshLibrary(); updateHomeData()
         if activeID == id { renderActivePage() }
-        if activeID == tabs[i].id { security.stringValue = tabs[i].isPrivate ? "Private · no YNX history, recovery, permission persistence or AI context" : webView.url?.scheme == "https" ? "HTTPS · WebKit system trust · certificate validity does not prove site identity" : "Not HTTPS · connection is not encrypted" }
+        if activeID == tabs[i].id { security.stringValue = tabs[i].isPrivate ? "Private · no YNX history, recovery, permission persistence or AI context" : webView.url.map { connectionDescription(for: id, url: $0) } ?? "Connection status unavailable" }
+    }
+    private func connectionDescription(for id: UUID, url: URL) -> String {
+        let transport = url.scheme == "https" ? "HTTPS · WebKit system trust · certificate validity does not prove site identity" : "Not HTTPS · connection is not encrypted"
+        if let response = pageResponses[id], response.url.absoluteString == url.absoluteString, response.status >= 400 {
+            return "HTTP \(response.status) · \(url.host ?? "Site") refused this request. \(transport). No other search engine or route was used."
+        }
+        return transport
     }
     private func reportNavigationFailure(_ error: Error, from webView: WKWebView, navigation: WKNavigation?) {
         guard let i = index(for: webView) else { return }
@@ -984,80 +1277,221 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     }
     func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping @MainActor @Sendable (WKPermissionDecision) -> Void) { let permission=type == .camera ? "camera" : type == .microphone ? "microphone" : "camera and microphone";let exactOrigin="\(origin.protocol)://\(origin.host):\(origin.port)";let alert=NSAlert();alert.messageText="Site permission";alert.informativeText="Allow \(permission) once for exact origin \(exactOrigin)? Persistent allow is not offered in this preview.";alert.addButton(withTitle:"Allow once");alert.addButton(withTitle:"Deny");let granted=alert.runModal() == .alertFirstButtonReturn;if let i=index(for:webView),!tabs[i].isPrivate{var values=(try? JSONDecoder().decode([PermissionRecord].self,from:defaults.data(forKey:"permissions") ?? Data())) ?? [];values.insert(PermissionRecord(origin:exactOrigin,permission:permission,decision:granted ? "allow-once" : "deny",decidedAt:Date()),at:0);if let data=try? JSONEncoder().encode(Array(values.prefix(500))){defaults.set(data,forKey:"permissions")};refreshLibrary()};decisionHandler(granted ? .grant : .deny) }
     func webView(_ webView: WKWebView, runOpenPanelWith parameters: WKOpenPanelParameters, initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping @MainActor @Sendable ([URL]?) -> Void) { let panel=NSOpenPanel();panel.canChooseFiles=true;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;panel.beginSheetModal(for:window){completionHandler($0 == .OK ? panel.urls : nil)} }
+    private func registerDownload(_ download: WKDownload, context: BrowserDownloadContext) {
+        let key = ObjectIdentifier(download)
+        guard !closedWindow, !terminatingApp else { download.cancel { _ in }; return }
+        let activity = BrowserDownloadActivity(context: context) { [weak self] in self?.refreshDownloadActivityList() }
+        activeDownloads[key] = (download, activity)
+        downloadActivities.insert(activity, at: 0)
+        let exactID = activity.id
+        downloadProgressObservers[key] = download.progress.observe(\.fractionCompleted, options: [.initial, .new]) { [weak self] progress, _ in
+            let completed = progress.completedUnitCount, total = progress.totalUnitCount, indeterminate = progress.isIndeterminate
+            Task { @MainActor [weak self] in
+                guard let current = self?.activeDownloads[key]?.activity, current.id == exactID else { return }
+                current.updateProgress(completed: completed, total: total, indeterminate: indeterminate)
+            }
+        }
+        download.delegate = self
+        refreshDownloadActivityList()
+    }
+    private func endOwnedDownloadPanel(_ key: ObjectIdentifier) {
+        guard let item = downloadPanels.removeValue(forKey: key) else { return }
+        savePanelStateObservation.end(item.ticket); pendingSaveQuitShortcut.end(item.ticket)
+        item.ticket.cancel()
+        if let parent = item.panel.sheetParent { parent.endSheet(item.panel, returnCode: .cancel) }
+        item.panel.orderOut(nil)
+    }
+    private func cancelOwnedDownload(_ key: ObjectIdentifier, exactActivityID: UUID? = nil) {
+        guard let (download, activity) = activeDownloads[key], exactActivityID == nil || activity.id == exactActivityID else { return }
+        let staging = downloadFiles.removeValue(forKey: key)?.staging
+        let cleanup: @MainActor () -> Void = { if let staging { BrowserDownloadFile.discardOrdinaryStaging(staging) } }
+        let cancelled = activity.cancel(revokePanel: { self.endOwnedDownloadPanel(key) }, cancelTransport: { completion in
+            self.activeDownloads.removeValue(forKey: key)
+            self.downloadProgressObservers.removeValue(forKey: key)
+            download.cancel { _ in completion() } // Opaque resume data is neither retained nor logged.
+        }, cleanupOwnPartial: cleanup)
+        if cancelled, !closedWindow, !terminatingApp { security.stringValue = "Download cancelled. No completion was recorded." }
+        refreshDownloadActivityList()
+    }
     func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
         let tab = index(for: webView).map { tabs[$0] }
-        downloadContexts[ObjectIdentifier(download)] = BrowserDownloadContext(
+        let context = BrowserDownloadContext(
             source: navigationResponse.response.url?.absoluteString ?? webView.url?.absoluteString ?? "unknown",
             isPrivate: tab?.isPrivate ?? true,
             destinationFilename: nil
         )
         restorePageAfterDownloadConversion(webView)
-        download.delegate = self
+        registerDownload(download, context: context)
     }
     func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
         let tab = index(for: webView).map { tabs[$0] }
-        downloadContexts[ObjectIdentifier(download)] = BrowserDownloadContext(source: navigationAction.request.url?.absoluteString ?? "unknown", isPrivate: tab?.isPrivate ?? true)
+        let context = BrowserDownloadContext(source: navigationAction.request.url?.absoluteString ?? "unknown", isPrivate: tab?.isPrivate ?? true)
         restorePageAfterDownloadConversion(webView)
-        download.delegate = self
+        registerDownload(download, context: context)
+    }
+    private func closeOwnedDownloads() {
+        // Revoke before ending sheets/cancelling WebKit: either can reenter callbacks.
+        for activity in downloadActivities { activity.prepareCancellation() }
+        downloadDecisions.close()
+        let recoveryPanels = Array(downloadRecoveryPanels.values); downloadRecoveryPanels.removeAll()
+        for panel in recoveryPanels { if let parent = panel.sheetParent { parent.endSheet(panel, returnCode: .cancel) }; panel.orderOut(nil) }
+        for activity in downloadActivities { activity.discardSaveRecovery() }
+        savePanelStateObservation.stop()
+        pendingSaveQuitShortcut.stop()
+        let panels = Array(downloadPanels.values); downloadPanels.removeAll()
+        for item in panels { if let parent = item.panel.sheetParent { parent.endSheet(item.panel, returnCode: .cancel) }; item.panel.orderOut(nil) }
+        for key in Array(activeDownloads.keys) { cancelOwnedDownload(key) }
+        activeDownloads.removeAll(); downloadProgressObservers.removeAll()
+        for files in downloadFiles.values { BrowserDownloadFile.discardOrdinaryStaging(files.staging) }
+        downloadFiles.removeAll()
+        downloadActivities.removeAll()
     }
     func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping @MainActor @Sendable (URL?) -> Void) {
         let identifier = ObjectIdentifier(download)
-        let panel = NSSavePanel(); panel.nameFieldStringValue = BrowserDownloadFile.safeFilename(suggestedFilename)
-        panel.beginSheetModal(for: window) { result in
+        guard let active = activeDownloads[identifier], active.download === download else { completionHandler(nil); return }
+        let activity = active.activity
+        let ticket = downloadDecisions.begin(downloadID: identifier, completion: completionHandler)
+        guard ticket.isPending, !closedWindow, !terminatingApp else { ticket.cancel(); return }
+        guard activity.attachDecision(ticket,
+            suggestedFilename: BrowserDownloadFile.safeFilename(suggestedFilename)) else { ticket.cancel(); return }
+        if let previous = downloadPanels.removeValue(forKey: identifier) {
+            savePanelStateObservation.end(previous.ticket)
+            pendingSaveQuitShortcut.end(previous.ticket)
+            if let parent = previous.panel.sheetParent { parent.endSheet(previous.panel, returnCode: .cancel) }
+        }
+        let panel = NSSavePanel()
+        // A pending new download has no unsaved user document. Permit normal Quit;
+        // the existing owner revokes its destination and cancels the sheet first.
+        panel.preventsApplicationTerminationWhenModal = false
+        panel.nameFieldStringValue = BrowserDownloadFile.safeFilename(suggestedFilename)
+        panel.delegate = savePanelValidationObservation
+        downloadPanels[identifier] = (ticket, panel)
+        savePanelStateObservation.begin(ticket)
+        pendingSaveQuitShortcut.begin(ticket)
+        panel.beginSheetModal(for: window) { [weak self, ticket] result in
+            self?.recordSavePanelEvidence(result == .OK ? .panelAccepted : .panelCancelled, panel: panel)
+            self?.savePanelStateObservation.end(ticket)
+            self?.pendingSaveQuitShortcut.end(ticket)
+            guard let self, ticket.isPending, !self.closedWindow, !self.terminatingApp else { ticket.cancel(); return }
+            if self.downloadPanels[identifier]?.ticket === ticket { self.downloadPanels.removeValue(forKey: identifier) }
             guard result == .OK, let destination = panel.url else {
-                self.cancelledDownloads.insert(identifier)
-                self.downloadContexts.removeValue(forKey: identifier)
-                completionHandler(nil)
+                self.cancelOwnedDownload(identifier, exactActivityID: activity.id)
                 return
             }
-            var context = self.downloadContexts[identifier] ?? BrowserDownloadContext(source: response.url?.absoluteString ?? "unknown", isPrivate: true, destinationFilename: nil)
-            context.destinationFilename = destination.lastPathComponent
-            self.downloadContexts[identifier] = context
-            let staging = BrowserDownloadFile.stagingURL(for: destination)
+            guard activity.destinationChosen(filename: destination.lastPathComponent) else { ticket.cancel(); return }
+            let staging: URL
+            do { staging = try BrowserDownloadFile.makeOrdinaryStagingURL() }
+            catch {
+                activity.fail("Could not prepare the download destination")
+                self.activeDownloads.removeValue(forKey: identifier)
+                self.downloadProgressObservers.removeValue(forKey: identifier)
+                ticket.cancel()
+                return
+            }
             self.downloadFiles[identifier] = (staging, destination)
-            // Finish the Save panel's ViewBridge callback before WebKit requests its sandbox
-            // extension. Reentering that system operation here can block the UI main thread.
-            DispatchQueue.main.async { completionHandler(staging) }
+            // Leave ViewBridge before WebKit requests its sandbox extension, retaining the
+            // exact revocable decision so a queued callback cannot outlive this window.
+            DispatchQueue.main.async { [weak self, ticket] in
+                guard let self, !self.closedWindow, !self.terminatingApp, activity.canFinish else { ticket.cancel(); return }
+                ticket.resolve(staging)
+            }
+        }
+        recordSavePanelEvidence(.sheetBeginReturned, panel: panel)
+        DispatchQueue.main.async { [weak self, weak panel] in
+            guard let panel, ticket.isPending else { return }
+            self?.recordSavePanelEvidence(.sheetNextMainTurn, panel: panel)
         }
     }
     func downloadDidFinish(_ download: WKDownload) {
         let identifier = ObjectIdentifier(download)
-        guard let context = downloadContexts.removeValue(forKey: identifier) else {
-            security.stringValue = "Download completed, but no auditable source context was available. No browser record was written."
+        guard let active = activeDownloads[identifier], active.download === download else { return }
+        activeDownloads.removeValue(forKey: identifier)
+        downloadProgressObservers.removeValue(forKey: identifier)
+        let activity = active.activity
+        guard !closedWindow, !terminatingApp, activity.canFinish else {
+            if let files = downloadFiles.removeValue(forKey: identifier) { BrowserDownloadFile.discardOrdinaryStaging(files.staging) }
             return
         }
-        guard let files = downloadFiles.removeValue(forKey: identifier) else { security.stringValue = "Download destination unavailable. No completion was recorded."; return }
-        do { try BrowserDownloadFile.commit(staging: files.staging, destination: files.destination) }
-        catch { security.stringValue = "Could not save completed download. Partial file retained at \(files.staging.path). No completion was recorded."; return }
-        let outcome = BrowserDownloadPersistence.persistFinishedDownload(context: context, defaults: defaults)
-        if outcome == .omittedPrivate {
+        guard let files = downloadFiles.removeValue(forKey: identifier) else {
+            security.stringValue = "Download destination unavailable. No completion was recorded."
+            activity.fail("Failed · destination unavailable, no completion recorded"); return
+        }
+        guard activity.finishSave(staging: files.staging, destination: files.destination, defaults: defaults) else {
+            security.stringValue = activity.canSaveAgain ? "Could not save. Choose Save As in Downloads to try another location." : activity.status
+            return
+        }
+        if activity.isPrivate {
             security.stringValue = "Private download completed. The selected file remains on disk; no YNX Downloads record was written."
+            refreshDownloadActivityList()
             return
         }
         security.stringValue = "Download completed to the user-selected file."
         refreshLibrary()
     }
     func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
-        if cancelledDownloads.remove(ObjectIdentifier(download)) != nil { security.stringValue = "Download cancelled. No completion was recorded."; return }
-        if let files = downloadFiles.removeValue(forKey: ObjectIdentifier(download)) { try? FileManager.default.removeItem(at: files.staging) }
-        let context = downloadContexts.removeValue(forKey: ObjectIdentifier(download))
-        security.stringValue = context?.isPrivate == true ? "Private download failed. No YNX Downloads record was written." : "Download failed: \(error.localizedDescription)"
+        let identifier = ObjectIdentifier(download)
+        guard let active = activeDownloads[identifier], active.download === download else { return }
+        activeDownloads.removeValue(forKey: identifier)
+        downloadProgressObservers.removeValue(forKey: identifier)
+        let activity = active.activity
+        activity.fail("Failed · no completion recorded")
+        endOwnedDownloadPanel(identifier)
+        if let files = downloadFiles.removeValue(forKey: identifier) { BrowserDownloadFile.discardOrdinaryStaging(files.staging) }
+        guard !closedWindow, !terminatingApp else { return }
+        if activity.phase == .cancelling || activity.phase == .cancelled {
+            security.stringValue = "Download cancelled. No completion was recorded."; refreshDownloadActivityList(); return
+        }
+        guard activity.phase == .failed else { return } // Ignore late failure after a terminal completion.
+        security.stringValue = activity.isPrivate ? "Private download failed. No YNX Downloads record was written." : "Download failed: \(error.localizedDescription)"
+        refreshDownloadActivityList()
     }
     private func showBoundary(title: String, message: String) { let alert=NSAlert();alert.messageText=title;alert.informativeText=message;alert.alertStyle = .informational;alert.addButton(withTitle:"Close");alert.runModal() }
 
     private func applyEvidenceState() { guard let state = environment["YNX_BROWSER_EVIDENCE_STATE"] else { return }; if state == "private" { privateTabAction() }; if state == "crash", let id=activeID, let i=tabs.firstIndex(where:{$0.id==id}){tabs[i].crashed=true;refreshChrome();security.stringValue="Web content process crashed · session recovery preserved · press Reload to continue"}; if state == "permissions" { showPermissions() }; if state == "downloads" { showDownloads() } }
     func application(_ application: NSApplication, open urls: [URL]) {
-        guard let value = urls.first else { return }
-        if value.scheme?.lowercased() == BrowserWalletCallbackBindings.macOS.scheme {
+        // LaunchServices may deliver several links in one event. Bound the batch without
+        // silently dropping every ordinary link after the first. Wallet callbacks retain
+        // their original single-callback boundary and never consume a mixed URL batch.
+        if urls.contains(where: { $0.scheme?.lowercased() == BrowserWalletCallbackBindings.macOS.scheme }) {
+            guard urls.count == 1, let value = urls.first else {
+                auditLogger.error("external_link_rejected code=BR-DEEPLINK-MIXED-CALLBACK")
+                return
+            }
             handleWalletCallback(value)
             return
         }
-        if let scheme = value.scheme?.lowercased(), ["http", "https"].contains(scheme) {
-            activeWebView()?.load(URLRequest(url: value))
-            return
+        for value in urls.prefix(16) {
+            guard let scheme = value.scheme?.lowercased(), ["http", "https"].contains(scheme),
+                  BrowserOmnibox.isNavigable(value) else {
+                auditLogger.error("external_link_rejected code=BR-DEEPLINK-TARGET")
+                continue
+            }
+            // No restore, home-tab or closed-window dependency on an existing WKWebView.
+            if !launchCompleted {
+                if queuedExternalNavigations.count < 16 { queuedExternalNavigations.append(value) }
+            } else { openExternalNavigation(value) }
         }
-        auditLogger.error("external_link_rejected code=BR-DEEPLINK-SCHEME")
-        security.stringValue = "External link rejected [BR-DEEPLINK-SCHEME]. Only HTTPS/HTTP navigation and the exact Wallet callback route are accepted."
+    }
+    private func ordinaryNavigationController() -> BrowserController? {
+        let root = coordinator ?? self
+        if !root.closedWindow { return root }
+        if let existing = root.ownedWindows.last(where: { !$0.isPrivateWindow && !$0.closedWindow }) { return existing }
+        root.createWindow(privateMode: false)
+        return root.ownedWindows.last(where: { !$0.isPrivateWindow && !$0.closedWindow })
+    }
+    private func openExternalNavigation(_ url: URL) {
+        guard BrowserOmnibox.isNavigable(url), let target = ordinaryNavigationController() else { return }
+        if target.window.isMiniaturized { target.window.deminiaturize(nil) }
+        target.window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        target.openTab(url: url, isPrivate: false)
+    }
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        if launchCompleted, !hasVisibleWindows, let target = ordinaryNavigationController() {
+            if target.window.isMiniaturized { target.window.deminiaturize(nil) }
+            target.window.makeKeyAndOrderFront(nil)
+        }
+        return true
     }
     private func handleWalletCallback(_ url: URL) {
         do {
@@ -1121,23 +1555,180 @@ final class LibraryPageButton: NSButton { var pageURL: String = "" }
     }
     func applicationWillTerminate(_ notification: Notification) {
         terminatingApp = true
-        if !isPrivateWindow { persistTabs(); defaults.synchronize() }
-        pageSelections.removeAll()
-        for controller in ownedWindows { controller.pageSelections.removeAll(); for view in controller.webViews.values { view.stopLoading() } }
+        closeOwnedDownloads()
+        originalPagesProducer?.close(); originalPagesProducer = nil
+        if !isPrivateWindow {
+            if let records = sessionPersistence.willQuit(openOrdinaryWindows: openOrdinarySessionWindows()) {
+                BrowserLocalProfile.persistTabs(records, defaults: defaults)
+            }
+            defaults.synchronize()
+        }
+        pageSelections.removeAll(); retireWindowWebContent()
+        for controller in ownedWindows { controller.closeOwnedDownloads(); controller.originalPagesProducer?.close(); controller.originalPagesProducer = nil; controller.pageSelections.removeAll(); controller.retireWindowWebContent() }
     }
 }
 
+// Immutable, headless proof-helper role is handled before AppKit startup, ordinary profile
+// restoration or Wallet callbacks. A marker on another role is rejected by the helper preflight.
+let publicDiagnosticArgumentRequested = ProcessInfo.processInfo.arguments.dropFirst().contains {
+    $0.hasPrefix("--public-nym") || $0.hasPrefix("--public-snowflake")
+        || $0.hasPrefix("--check-public-nym") || $0.hasPrefix("--check-public-snowflake")
+}
+let publicDiagnosticRoleRequested = Bundle.main.bundleIdentifier == "com.ynxweb4.browser.qa.tor.public-search"
+    || Bundle.main.bundleIdentifier == "com.ynxweb4.browser.qa.tor.public-search.snowflake"
+    || Bundle.main.bundleIdentifier == "com.ynxweb4.browser.qa.nym.public-search"
+    || ["YNXPublicSearchDiagnostic", "YNXPublicSnowflakeSearchDiagnostic", "YNXPublicNymSearchDiagnostic",
+        "YNXPublicSnowflakeLaunchSHA256", "YNXPublicArtiChannelTimeoutExperiment"].contains {
+        Bundle.main.object(forInfoDictionaryKey: $0) != nil
+    }
+// Experimental browser roles are separately bundled QA applications. Merely
+// attaching their identifier or marker must never fall through to normal startup.
+let interactiveExperimentRoleRequested = ["com.ynxweb4.browser.qa.interactive",
+                                          "com.ynxweb4.browser.qa.tor.interactive",
+                                          "com.ynxweb4.browser.qa.nym.interactive"].contains(Bundle.main.bundleIdentifier ?? "")
+    || Bundle.main.object(forInfoDictionaryKey: "YNXInteractiveRouteExperiment") != nil
+#if !YNX_PRIVACY_ACCEPTANCE
+if publicDiagnosticRoleRequested || publicDiagnosticArgumentRequested {
+    FileHandle.standardError.write(Data("Public-search diagnostics are unavailable in this production build.\n".utf8))
+    exit(78)
+}
+if interactiveExperimentRoleRequested {
+    FileHandle.standardError.write(Data("Interactive route experiments are unavailable in this production build.\n".utf8))
+    exit(78)
+}
+if let code = NymProofHelper.runIfRequested() { exit(code) }
+#endif
+#if YNX_PRIVACY_ACCEPTANCE
+let interactiveExperiment = BrowserInteractiveRouteExperimentApplicationDelegate.claims()
+if interactiveExperimentRoleRequested && !interactiveExperiment {
+    FileHandle.standardError.write(Data("Interactive route experiment role rejected before ordinary startup.\n".utf8))
+    exit(78)
+}
+let publicSearchDiagnostic = TorPublicSearchDiagnosticApplicationDelegate.claims()
+if interactiveExperiment && (publicDiagnosticRoleRequested || publicDiagnosticArgumentRequested || publicSearchDiagnostic) {
+    FileHandle.standardError.write(Data("Mixed route experiment roles rejected before ordinary startup.\n".utf8))
+    exit(78)
+}
+if interactiveExperiment && ProcessInfo.processInfo.arguments.dropFirst().contains(where: { $0.hasPrefix("--") }) {
+    FileHandle.standardError.write(Data("Interactive route experiment options are unavailable.\n".utf8))
+    exit(78)
+}
+if !publicSearchDiagnostic && (publicDiagnosticRoleRequested || publicDiagnosticArgumentRequested) {
+    FileHandle.standardError.write(Data("Public-search diagnostic role rejected before ordinary startup.\n".utf8))
+    exit(78)
+}
+if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--public-snowflake-check-only") }) {
+    guard ProcessInfo.processInfo.arguments.count == 2,
+          ProcessInfo.processInfo.arguments[1] == "--public-snowflake-check-only",
+          TorPublicSearchDiagnosticApplicationDelegate.claimsSnowflake() else {
+        FileHandle.standardError.write(Data("Snowflake input check rejected before ordinary startup.\n".utf8))
+        exit(78)
+    }
+    do {
+        let launch = try TorSnowflakePublicBrowserBackend.load()
+        try launch.requireLaunchBudget()
+        let result: [String: Any] = [
+            "status": "FIXED_PUBLIC_INPUTS_VERIFIED_NO_NETWORK",
+            "runID": launch.runID,
+            "helperSHA256": TorSnowflakePublicBrowserBackend.helperSHA256,
+            "sourceInputsSHA256": TorSnowflakePublicBrowserBackend.sourceInputsSHA256,
+            "scopeSHA256": launch.scopeSHA256,
+            "attemptClaimed": false, "normalPrivacyAdmission": false
+        ]
+        FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]))
+        FileHandle.standardOutput.write(Data("\n".utf8))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("Snowflake input check failed; no backend or window created.\n".utf8))
+        exit(78)
+    }
+}
+if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("--public-nym-check-only") }) {
+    guard ProcessInfo.processInfo.arguments.count == 2,
+          ProcessInfo.processInfo.arguments[1] == "--public-nym-check-only",
+          TorPublicSearchDiagnosticApplicationDelegate.claimsNym() else {
+        FileHandle.standardError.write(Data("Nym input check rejected before ordinary startup.\n".utf8))
+        exit(78)
+    }
+    do {
+        try NymPublicSearchRole.require(.main)
+        _ = try NymPublicExecutableSupply.load(bundle: .main)
+        let result: [String: Any] = [
+            "status": "FIXED_PUBLIC_NYM_SUPPLY_VERIFIED_NO_NETWORK",
+            "directorySHA256": NymPublicExecutableSupply.directorySHA256,
+            "runtimeSHA256": NymPublicExecutableSupply.runtimeSHA256,
+            "profileCreated": false, "normalPrivacyAdmission": false
+        ]
+        FileHandle.standardOutput.write(try JSONSerialization.data(withJSONObject: result, options: [.sortedKeys]))
+        FileHandle.standardOutput.write(Data("\n".utf8))
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("Nym input check failed; no backend or window created.\n".utf8))
+        exit(78)
+    }
+}
+if publicSearchDiagnostic && ProcessInfo.processInfo.arguments.dropFirst().contains(where: { $0.hasPrefix("--") }) {
+    // Recognized checks have already exited above. A mistyped check must not
+    // silently open a window and wait for input.
+    FileHandle.standardError.write(Data("Unknown public diagnostic argument rejected before AppKit startup.\n".utf8))
+    exit(78)
+}
+if !publicSearchDiagnostic && !interactiveExperiment, let code = NymProofHelper.runIfRequested() { exit(code) }
+let protectedAcceptanceLaunch: ProtectedAcceptanceDispatcher.Launch?
+do { protectedAcceptanceLaunch = try ProtectedAcceptanceDispatcher.parse(ProcessInfo.processInfo.arguments) }
+catch {
+    FileHandle.standardError.write(Data("Protected acceptance rejected before ordinary startup, input or WebKit admission: \(String(describing: type(of: error))).\n".utf8))
+    exit(78)
+}
+#else
+if ProcessInfo.processInfo.arguments.contains(where: {
+    $0.hasPrefix("--p05-synthetic-run") || $0.hasPrefix("--p05-probe-manifest") ||
+    $0.hasPrefix("--p05-protected-acceptance") || $0.hasPrefix("--ynx-nym-synthetic-proof")
+}) {
+    FileHandle.standardError.write(Data("Synthetic acceptance is unavailable in this production build.\n".utf8))
+    exit(78)
+}
+#endif
 let app = NSApplication.shared
 let delegate: any NSApplicationDelegate
 let role: BrowserProcessRole
-do { role = try BrowserProcessRole.resolve(arguments: ProcessInfo.processInfo.arguments, bundleMode: Bundle.main.object(forInfoDictionaryKey: "YNXPrivacyRouteMode") as? String) }
+do {
+    #if YNX_PRIVACY_ACCEPTANCE
+    if publicSearchDiagnostic || interactiveExperiment { role = .ordinary }
+    else if let protectedAcceptanceLaunch { role = .routed(protectedAcceptanceLaunch.mode) }
+    else {
+        role = try BrowserProcessRole.resolve(arguments: ProcessInfo.processInfo.arguments,
+            bundleMode: Bundle.main.object(forInfoDictionaryKey: "YNXPrivacyRouteMode") as? String,
+            bundleProofRole: Bundle.main.object(forInfoDictionaryKey: "YNXNymProofHelper") as? Bool ?? false)
+    }
+    #else
+    role = try BrowserProcessRole.resolve(arguments: ProcessInfo.processInfo.arguments,
+    bundleMode: Bundle.main.object(forInfoDictionaryKey: "YNXPrivacyRouteMode") as? String,
+    bundleProofRole: Bundle.main.object(forInfoDictionaryKey: "YNXNymProofHelper") as? Bool ?? false)
+    #endif
+}
 catch { FileHandle.standardError.write(Data("Routed launch rejected before ordinary startup.\n".utf8)); exit(78) }
 if case .routed(let mode) = role {
+    #if YNX_PRIVACY_ACCEPTANCE
+    if let protectedAcceptanceLaunch { delegate = RoutedBrowserApplicationDelegate(acceptanceLaunch: protectedAcceptanceLaunch) }
+    else { delegate = RoutedBrowserApplicationDelegate(mode: mode) }
+    #else
     delegate = RoutedBrowserApplicationDelegate(mode: mode)
-} else if BrowserSyntheticProbe.requested(ProcessInfo.processInfo.arguments) {
-    do { delegate = try BrowserSyntheticProbe(arguments: ProcessInfo.processInfo.arguments) }
-    catch { FileHandle.standardError.write(Data("Synthetic probe rejected before ordinary startup.\n".utf8)); exit(78) }
-} else { delegate = BrowserController() }
+    #endif
+} else {
+    #if YNX_PRIVACY_ACCEPTANCE
+    if interactiveExperiment {
+        delegate = BrowserInteractiveRouteExperimentApplicationDelegate()
+    } else if publicSearchDiagnostic {
+        delegate = TorPublicSearchDiagnosticApplicationDelegate()
+    } else if BrowserSyntheticProbe.requested(ProcessInfo.processInfo.arguments) {
+        do { delegate = try BrowserSyntheticProbe(arguments: ProcessInfo.processInfo.arguments) }
+        catch { FileHandle.standardError.write(Data("Synthetic probe rejected before ordinary startup.\n".utf8)); exit(78) }
+    } else { delegate = BrowserController() }
+    #else
+    delegate = BrowserController()
+    #endif
+}
 app.delegate = delegate
 app.run()
 

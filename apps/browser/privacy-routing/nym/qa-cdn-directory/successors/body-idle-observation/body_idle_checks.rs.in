@@ -1,0 +1,103 @@
+
+#[cfg(test)]
+mod body_idle_checks {
+    use super::*;
+    use std::{io::{Read, Write}, net::TcpListener, thread};
+
+    fn serve(frames: Vec<(u64, &'static [u8])>, size: usize) -> (String, thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let handle = thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket.set_read_timeout(Some(Duration::from_secs(2))).unwrap();
+            let mut request = Vec::new();
+            let mut byte = [0_u8; 1];
+            while request.len() < 4096 && !request.ends_with(b"\r\n\r\n") {
+                socket.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            write!(socket, "HTTP/1.1 200 OK\r\nContent-Length: {size}\r\nConnection: close\r\n\r\n").unwrap();
+            for (wait, bytes) in frames {
+                thread::sleep(Duration::from_millis(wait));
+                if socket.write_all(bytes).is_err() { break; }
+            }
+        });
+        (format!("http://{address}"), handle)
+    }
+
+    async fn fetch(frames: Vec<(u64, &'static [u8])>, size: usize, read_timeout: Duration)
+        -> (reqwest::Response, thread::JoinHandle<()>) {
+        let (url, server) = serve(frames, size);
+        let response = reqwest::Client::builder().no_proxy().http1_only().read_timeout(read_timeout)
+            .build().unwrap().get(url).send().await.unwrap();
+        assert_eq!(response.status().as_u16(), 200);
+        (response, server)
+    }
+
+    fn deadline() -> AbsolutePolicyDeadline {
+        AbsolutePolicyDeadline::from_unix_seconds(now().unwrap() + 4).unwrap()
+    }
+
+    fn frame(reason: BodyReadError, progress: &BodyReadProgress, received: usize) -> serde_json::Value {
+        let value = BodyReadFailure::new("qa-dir-11111111111111111111111111111111", Resource::Described(3),
+            reason, Some(4), progress, received, received + 16);
+        serde_json::to_value(value).unwrap()
+    }
+
+    pub(super) async fn control() {
+        let fast = Duration::from_millis(85);
+        let slow = Duration::from_millis(500);
+        let (mut response, server) = fetch(vec![(170, b"abcd")], 4, slow).await;
+        let progress = BodyReadProgress::new();
+        assert_eq!(progress.next(deadline(), fast, || response.chunk()).await.unwrap_err(), BodyReadError::Idle);
+        let report = frame(BodyReadError::Idle, &progress, 0);
+        assert_eq!(report["resource"], "described");
+        assert_eq!(report["page"], 3);
+        assert_eq!(report["receivedBodyBytes"], 0);
+        assert_eq!(report["nonemptyChunks"], 0);
+        println!("YNX_NYM_QA_BODY_FAILURE_V1 {report}");
+        drop(response);
+        server.join().unwrap();
+
+        let (mut response, server) = fetch(vec![(0, b"ab"), (170, b"cd")], 4, slow).await;
+        let mut progress = BodyReadProgress::new();
+        let d = deadline();
+        let first = progress.next(d, fast, || response.chunk()).await.unwrap().unwrap();
+        assert_eq!(&first[..], b"ab");
+        progress.accept_chunk();
+        assert_eq!(progress.next(d, fast, || response.chunk()).await.unwrap_err(), BodyReadError::Idle);
+        let report = frame(BodyReadError::Idle, &progress, first.len());
+        assert_eq!(report["receivedBodyBytes"], 2);
+        assert_eq!(report["sessionBodyBytes"], 18);
+        assert_eq!(report["nonemptyChunks"], 1);
+        println!("YNX_NYM_QA_BODY_FAILURE_V1 {report}");
+        drop(response);
+        server.join().unwrap();
+
+        let (mut response, server) = fetch(vec![(0, b"ab"), (30, b"cd")], 4, slow).await;
+        let mut progress = BodyReadProgress::new();
+        let d = deadline();
+        let mut bytes = Vec::new();
+        while let Some(chunk) = progress.next(d, fast, || response.chunk()).await.unwrap() {
+            if !chunk.is_empty() { progress.accept_chunk(); bytes.extend_from_slice(&chunk); }
+        }
+        assert_eq!(bytes, b"abcd");
+        server.join().unwrap();
+
+        let (mut response, server) = fetch(vec![(170, b"abcd")], 4, Duration::from_millis(40)).await;
+        let progress = BodyReadProgress::new();
+        assert_eq!(progress.next(deadline(), fast, || response.chunk()).await.unwrap_err(), BodyReadError::Transport);
+        drop(response);
+        server.join().unwrap();
+
+        let d = AbsolutePolicyDeadline::from_unix_seconds(now().unwrap() + 1).unwrap();
+        tokio::time::sleep(Duration::from_millis(1050)).await;
+        let progress = BodyReadProgress::new();
+        let expired = progress.next::<Vec<u8>, _>(d, fast, || async { panic!("expired read was polled") }).await;
+        assert_eq!(expired.unwrap_err(), BodyReadError::Expired);
+    }
+
+}
+
+#[cfg(test)]
+pub async fn body_idle_fixture() { body_idle_checks::control().await; }

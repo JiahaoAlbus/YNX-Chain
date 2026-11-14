@@ -1,0 +1,16 @@
+{
+  "schema": "P05_NYM_QA_BODY_FAILURE_SOURCE_SUCCESSOR_V1",
+  "originalDirectoryArtifactSHA256": "6dce5c8d32932b8968f4a4e2db65db52c48aaf049ad75dad7c4f249f1e8ffda4",
+  "originalSourceManifestSHA256": "0704783948054fc2c8f6ba8f82a12ab06bda85910c642a9374c509670a1773cf",
+  "files": {
+    "common/http-api-client/src/qa_directory.rs": {
+      "before": "70767b79c258e8c90d1f7575b1c08db546080cf6da040ef2f0d9ef991e573532",
+      "after": "3f728e516cf12a6b69dd1039e71f583a4a99897aa5b31b7cd846ae88548bde69"
+    }
+  },
+  "patchSHA256": "83c1f2d009d67506570608a55e36283e3eef712eeadaafea89f37d59d6584d68",
+  "normalGuardsOrTTLChanged": false,
+  "networkUsed": "numeric-loopback fixture only",
+  "fullCargoBuild": "NOT_RUN",
+  "consumer": "apps/browser/privacy-routing/nym/qa-glue/qa_directory_body_failure.py"
+}

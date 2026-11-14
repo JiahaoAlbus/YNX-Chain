@@ -1,4 +1,4 @@
-native/.build/
+native/.build
 android/.gradle/
 android/app/build/
 android/.manual-build/

@@ -1,0 +1,67 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -59,6 +59,16 @@
+     Ok(matches!((&entry.hostname,&described.hostname,entry.wss_port,described.wss_port),
+         (Some(a),Some(b),Some(port),Some(other)) if a==b && port==other && port!=0))
+ }
++/// Directory completeness is not a promise that every public service is a
++/// usable requester. The upstream SDK skips absent/unparseable NR candidates.
++/// This QA deliberately narrows selection further to the official exit policy
++/// and the embedded same-node gateway contract, without removing any raw row.
++fn qa_requester_eligible(requester:Option<&nym_validator_client::models::described::v2::NetworkRequesterDetailsV2>,
++    identity:nym_crypto::asymmetric::ed25519::PublicKey) -> bool {
++    let Some(requester)=requester else {return false};
++    let Ok(address)=requester.address.parse::<nym_sphinx::addressing::Recipient>() else {return false};
++    requester.uses_exit_policy && address.gateway()==identity
++}
+ fn validate_snapshot(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>, described:&PaginatedResponse<NymNodeDescriptionV2>, epoch:&serde_json::Value) -> Result<(),String> {
+     if !complete(&basic.nodes) || !complete(described) || basic.metadata.status.is_some() {return Err("qa-directory-incomplete-or-no-updates".into())}
+     let now=time::OffsetDateTime::now_utc();
+@@ -70,19 +80,25 @@
+     {return Err("qa-directory-stale-epoch".into())}
+     let refreshed=basic.metadata.refreshed_at();
+     if refreshed>now+time::Duration::seconds(5) || now-refreshed>time::Duration::seconds(seconds) {return Err("qa-directory-stale-metadata".into())}
+-    let mut full=BTreeMap::new();let mut identities=BTreeSet::new();
++    let mut full=BTreeMap::new();let mut identities=BTreeMap::new();
+     for node in &described.data {
+         let key=node.ed25519_identity_key().to_base58_string();
+-        if full.insert(node.node_id,node).is_some() || !identities.insert(key) {return Err("qa-directory-ambiguous-description".into())}
++        if full.insert(node.node_id,node).is_some() || identities.insert(key,node.node_id).is_some() {return Err("qa-directory-ambiguous-description".into())}
+     }
+     let mut ids=BTreeSet::new();let mut keys=BTreeSet::new();let mut entries=0;let mut exits=0;
++    let mut unjoined_basics=0;let mut ineligible_requesters=0;
+     for node in &basic.nodes.data {
+         let identity=node.ed25519_identity_pubkey.to_base58_string();
+         if !ids.insert(node.node_id) || !keys.insert(identity.clone()) {return Err("qa-directory-ambiguous-basic".into())}
+-        let description=full.get(&node.node_id).ok_or("qa-directory-missing-described-node")?;
++        if node.ip_addresses.is_empty() {return Err("qa-directory-address-mismatch".into())}
++        // Do not hide a known cross-key/id conflict as an absent description.
++        if identities.get(&identity).is_some_and(|id|*id!=node.node_id) {return Err("qa-directory-node-id-identity-conflict".into())}
++        // The official SDK documents described nodes as a scraped subset. An
++        // absent join cannot be selected; the complete Basic row remains intact.
++        let Some(description)=full.get(&node.node_id) else {unjoined_basics+=1;continue};
+         if description.ed25519_identity_key()!=node.ed25519_identity_pubkey {return Err("qa-directory-identity-mismatch".into())}
+         let host=&description.description.host_information;
+-        if node.ip_addresses.is_empty() || node.ip_addresses.iter().collect::<BTreeSet<_>>()!=host.ip_address.iter().collect::<BTreeSet<_>>() {
++        if node.ip_addresses.iter().collect::<BTreeSet<_>>()!=host.ip_address.iter().collect::<BTreeSet<_>>() {
+             return Err("qa-directory-address-mismatch".into())
+         }
+         if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry {
+@@ -91,12 +107,13 @@
+             entries+=usize::from(tls_entry_eligible(node.entry.as_ref(),&description.entry_information())?);
+         }
+         if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr {
+-            let requester=description.description.network_requester.as_ref().ok_or("qa-directory-missing-requester")?;
+-            let address: nym_sphinx::addressing::Recipient=requester.address.parse().map_err(|_|"qa-directory-requester-type")?;
+-            if !requester.uses_exit_policy || address.gateway()!=node.ed25519_identity_pubkey {return Err("qa-directory-requester-binding".into())}
+-            exits+=1;
++            if qa_requester_eligible(description.description.network_requester.as_ref(),node.ed25519_identity_pubkey) {exits+=1}
++            else {ineligible_requesters+=1}
+         }
+     }
++    tracing::info!(target:"ynx_qa_directory", basic_rows=basic.nodes.data.len(), described_rows=described.data.len(),
++        tls_eligible_entries=entries, qa_eligible_requesters=exits, unjoined_basics, ineligible_requesters,
++        "qa_directory_complete_data_candidate_capabilities");
+     if entries==0 || exits==0 {return Err("qa-directory-no-current-entry-exit".into())}
+     Ok(())
+ }

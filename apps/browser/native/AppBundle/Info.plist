@@ -8,10 +8,12 @@
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>YNX Browser</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>0.4.0</string>
-  <key>CFBundleVersion</key><string>6</string>
+  <key>CFBundleShortVersionString</key><string>0.4.3</string>
+  <key>CFBundleVersion</key><string>11</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>NSCameraUsageDescription</key><string>Allow websites you approve to use the camera for calls or recording.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Allow websites you approve to use the microphone for calls or recording.</string>
   <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>YNX Browser callback</string><key>CFBundleURLSchemes</key><array><string>ynxbrowser</string></array></dict></array>
 </dict></plist>

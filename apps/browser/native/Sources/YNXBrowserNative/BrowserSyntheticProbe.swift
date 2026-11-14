@@ -1,3 +1,4 @@
+#if YNX_PRIVACY_ACCEPTANCE
 import AppKit
 import WebKit
 import CryptoKit
@@ -113,6 +114,7 @@ import YNXBrowserCore
                 configuration.allowsAirPlayForMediaPlayback = false
                 record("negativeControl", "Explicit synthetic-only WebKit without product proxy; not protected browsing")
             } else { configuration = try TorRoutedWebViewFactory.configurationForControlledProbe(port: plan.routePort) }
+            record("nativePolicy", "WebKit Lockdown Mode: \(configuration.defaultWebpagePreferences.isLockdownModeEnabled); no JavaScript networking API replacement")
             let rules: [[String: Any]] = [["trigger": ["url-filter": ".*"], "action": ["type": "block"]]] + plan.allowedHosts.flatMap { host in
                 ["https", "wss"].map { scheme in
                     let isPublic = self.plan.publicFixture?.origins.contains(where: { $0.host == host }) == true
@@ -224,3 +226,4 @@ import YNXBrowserCore
         ruleStore.removeContentRuleList(forIdentifier: "p05-synthetic-\(plan.runID)") { _ in }
     }
 }
+#endif

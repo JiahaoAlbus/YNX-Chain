@@ -1,0 +1,179 @@
+--- a/clients/socks5/src/commands/reviewed.rs
++++ b/clients/socks5/src/commands/reviewed.rs
+@@ -2,6 +2,8 @@
+ use nym_crypto::{Digest, sha2::Sha256};
+ use nym_validator_client::reviewed_network::{self, current};
+ use nym_validator_client::reviewed_policy::Stage;
++#[path="directory_diagnostics.rs"] mod directory_diagnostics;
++use directory_diagnostics::{Attempt, Phase, Failure};
+ 
+ pub fn install(path:&PathBuf, digest:&str, run_id:&str, stage:Stage)->Result<(),Box<dyn Error+Send+Sync>> {
+     use std::os::unix::fs::MetadataExt;
+@@ -20,20 +22,55 @@
+     Ok(())
+ }
+ async fn get(path:&str,page:Option<u64>)->Result<serde_json::Value,Box<dyn Error+Send+Sync>> {
+-    let mut url=url::Url::parse(&format!("https://validator.nymtech.net/api/{path}"))?;
+-    if let Some(page)=page {url.query_pairs_mut().append_pair("page",&page.to_string()).append_pair("per_page","250");}
+-    let client=reviewed_network::direct_http_client(&url)?;
++    // One cap covers preparation, headers, body and JSON. It is never renewed per chunk.
++    let endpoint=match path {"v2/unstable/nym-nodes/skimmed"=>"basic","v2/nym-nodes/described"=>"described","v1/epoch/current"=>"epoch",_=>return Err("Unreviewed directory endpoint".into())};
++    let attempt=Attempt::new(endpoint,page,std::time::Duration::from_secs(20));
+     let policy=current().ok_or("Missing protected directory deadline")?;
+-    let mut request=client.get(url).build()?;reviewed_network::clamp_request(&mut request)?;
+-    policy.deadline.run(std::time::Duration::from_secs(20),||async {
+-    let mut response=client.execute(request).await?;
+-    if response.status().as_u16()!=200 {return Err("Directory HTTPS did not return 200".into())}
+-    let mut bytes=Vec::new();
+-    while let Some(chunk)=response.chunk().await? {
+-        if bytes.len()+chunk.len()>4_194_304 {return Err("Oversized directory page".into())};bytes.extend_from_slice(&chunk);
+-    }
+-    Ok::<serde_json::Value,Box<dyn Error+Send+Sync>>(serde_json::from_slice(&bytes)?)
+-    }).await.map_err(|_|"Directory policy deadline")?
++    let result=policy.deadline.run(std::time::Duration::from_secs(20),||async {
++        attempt.phase(Phase::ClientBuild); log::info!("{}",attempt.record());
++        let mut url=url::Url::parse(&format!("https://validator.nymtech.net/api/{path}"))
++            .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
++        if let Some(page)=page {url.query_pairs_mut().append_pair("page",&page.to_string()).append_pair("per_page","250");}
++        let client=reviewed_network::direct_http_client(&url)
++            .map_err(|e|attempt.failure(Failure::ClientBuild,Some(e.into())))?;
++        attempt.phase(Phase::RequestBuild); log::info!("{}",attempt.record());
++        let mut request=client.get(url).build()
++            .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
++        reviewed_network::clamp_request(&mut request)
++            .map_err(|e|attempt.failure(Failure::PolicyExpired,Some(e.into())))?;
++        // Synchronous client construction cannot be preempted. Recheck both clocks before
++        // any execute/socket work and subtract construction time from the request budget.
++        log::info!("{} event=request_prepared",attempt.record());
++        let budget=attempt.remaining().map_err(|e|attempt.failure(e,None))?;
++        policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
++        *request.timeout_mut()=Some(request.timeout().copied().unwrap_or(budget).min(budget));
++        attempt.phase(Phase::AwaitHeaders);
++        let mut response=client.execute(request).await.map_err(|e| {
++            let kind=Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()};
++            attempt.failure(kind,Some(Box::new(e)))
++        })?;
++        attempt.status(response.status().as_u16());
++        if response.status().as_u16()!=200 {return Err(attempt.failure(Failure::Status,None))}
++        attempt.phase(Phase::Body); log::info!("{}",attempt.record());
++        let mut bytes=Vec::new();
++        while let Some(chunk)=response.chunk().await.map_err(|e| {
++            let kind=Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()};
++            attempt.failure(kind,Some(Box::new(e)))
++        })? {
++            if bytes.len()+chunk.len()>4_194_304 {return Err(attempt.failure(Failure::BodyLimit,None))}
++            bytes.extend_from_slice(&chunk);attempt.bytes(bytes.len());
++        }
++        attempt.phase(Phase::Json); log::info!("{}",attempt.record());
++        let value=serde_json::from_slice(&bytes).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?;
++        attempt.remaining().map_err(|e|attempt.failure(e,None))?;
++        policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
++        attempt.phase(Phase::Complete);log::info!("{}",attempt.record());
++        Ok::<serde_json::Value,directory_diagnostics::DirectoryFailure>(value)
++    }).await.map_err(|e|attempt.failure(match e {
++        reviewed_network::DeadlineFailure::PolicyExpired=>Failure::PolicyExpired,
++        reviewed_network::DeadlineFailure::StepTimedOut=>Failure::StepTimedOut,
++    },None))?;
++    result.map_err(|e|Box::new(e) as Box<dyn Error+Send+Sync>)
+ }
+ async fn pages(path:&str,wrapped:bool)->Result<serde_json::Value,Box<dyn Error+Send+Sync>> {
+     let mut first=get(path,Some(0)).await?;
+--- a/common/http-api-client/src/reviewed_network.rs
++++ b/common/http-api-client/src/reviewed_network.rs
+@@ -4,6 +4,7 @@
+ use reqwest::dns::{Addrs, Name, Resolve, Resolving};
+ use crate::reviewed_policy::{ExpectedPolicy, InstalledPolicy, Purpose, Stage};
+ use crate::reviewed_map::{GatewayBinding, ReviewedGatewayMap};
++pub use crate::expiry_deadline::DeadlineFailure;
+ 
+ pub const NETWORK_DEFAULTS_SHA256: &str = "596d541b58fdfe26082f858437165969a3933316482c279efbd21f5494b55a7b";
+ pub struct Context {
+@@ -83,6 +84,9 @@
+         let url=url::Url::parse(&format!("https://{}/",name.as_str()));
+         Box::pin(async move {
+             let peers=url.ok().and_then(|url|http_map(&url).ok().flatten()).map(|map|map.peers);
++            // This is only a reviewed numeric-map lookup, not a system DNS query. Do not
++            // log the requested hostname, peer addresses, policy or client identity.
++            tracing::info!(target:"ynx_reviewed_directory", accepted=peers.is_some(), peer_count=peers.as_ref().map_or(0,Vec::len), "reviewed_numeric_resolution");
+             match peers {Some(peers)=>Ok(Box::new(peers.into_iter()) as Addrs),None=>Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied,"Unreviewed or expired control-plane DNS").into())}
+         })
+     }
+@@ -96,8 +100,10 @@
+     let _ = ctx;
+     builder
+ }
+-pub fn direct_http_client(url:&url::Url)->Result<reqwest::Client,String> {
+-    guard_http(url)?; closed_builder(reqwest::Client::builder()).build().map_err(|_|invalid("HTTP client build"))
++pub fn direct_http_client(url:&url::Url)->Result<reqwest::Client,Box<dyn std::error::Error+Send+Sync>> {
++    guard_http(url)?;
++    // Keep the typed source for the fixed-vocabulary caller, never format a URL/error here.
++    closed_builder(reqwest::Client::builder()).build().map_err(|e|Box::new(e) as Box<dyn std::error::Error+Send+Sync>)
+ }
+ 
+ /// Exact wall-clock remainder, not an integer second snapshot. No caller can renew it.
+--- /dev/null
++++ b/clients/socks5/src/commands/directory_diagnostics.rs
+@@ -0,0 +1,63 @@
++//! Fixed-vocabulary diagnostics: never format a URL, peer, identity, body or raw error.
++use std::{cell::Cell, error::Error, fmt, time::{Duration, Instant}};
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum Phase { Policy, ClientBuild, RequestBuild, AwaitHeaders, Body, Json, Complete }
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum Failure { PolicyExpired, StepTimedOut, ClientBuild, RequestBuild, Transport { timeout: bool, connect: bool, body: bool, decode: bool }, Status, BodyLimit, Json }
++
++pub struct Attempt {
++    endpoint: &'static str, page: Option<u64>, started: Instant, cap: Duration,
++    phase: Cell<Phase>, bytes: Cell<usize>, status: Cell<Option<u16>>,
++}
++impl Attempt {
++    pub fn new(endpoint: &'static str, page: Option<u64>, cap: Duration) -> Self {
++        Self { endpoint, page, started: Instant::now(), cap, phase: Cell::new(Phase::Policy), bytes: Cell::new(0), status: Cell::new(None) }
++    }
++    pub fn phase(&self, value: Phase) { self.phase.set(value); }
++    pub fn status(&self, value: u16) { self.status.set(Some(value)); }
++    pub fn bytes(&self, value: usize) { self.bytes.set(value); }
++    pub fn remaining(&self) -> Result<Duration, Failure> {
++        self.cap.checked_sub(self.started.elapsed()).filter(|v| !v.is_zero()).ok_or(Failure::StepTimedOut)
++    }
++    pub fn record(&self) -> String {
++        format!("directory endpoint={} page={:?} phase={:?} elapsed_ms={} status={:?} body_bytes={}", self.endpoint, self.page, self.phase.get(), self.started.elapsed().as_millis(), self.status.get(), self.bytes.get())
++    }
++    pub fn failure(&self, kind: Failure, source: Option<Box<dyn Error + Send + Sync>>) -> DirectoryFailure {
++        DirectoryFailure { record: self.record(), kind, source }
++    }
++}
++pub struct DirectoryFailure { record: String, kind: Failure, source: Option<Box<dyn Error + Send + Sync>> }
++impl fmt::Display for DirectoryFailure {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{} failure={:?}", self.record, self.kind) }
++}
++impl fmt::Debug for DirectoryFailure {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { fmt::Display::fmt(self, f) }
++}
++impl Error for DirectoryFailure {
++    fn source(&self) -> Option<&(dyn Error + 'static)> { self.source.as_ref().map(|e| e.as_ref() as &(dyn Error + 'static)) }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test] fn body_timeout_retains_phase_and_partial_count() {
++        let a=Attempt::new("basic",Some(0),Duration::from_secs(20)); a.phase(Phase::Body); a.status(200); a.bytes(261800);
++        let s=a.failure(Failure::StepTimedOut,None).to_string();
++        assert!(s.contains("phase=Body") && s.contains("body_bytes=261800") && s.contains("status=Some(200)"));
++    }
++    #[test] fn policy_expiry_is_not_step_timeout() {
++        let a=Attempt::new("epoch",None,Duration::from_secs(20));
++        assert_ne!(a.failure(Failure::PolicyExpired,None).to_string(), a.failure(Failure::StepTimedOut,None).to_string());
++    }
++    #[test] fn retained_source_is_not_formatted() {
++        let a=Attempt::new("described",Some(1),Duration::from_secs(20));
++        let e=a.failure(Failure::Transport{timeout:true,connect:false,body:true,decode:false},Some("secret URL or payload".into()));
++        assert!(e.source().is_some()); assert!(!format!("{e} {e:?}").contains("secret"));
++    }
++    #[test] fn preparation_time_consumes_same_budget() {
++        let mut a=Attempt::new("basic",Some(0),Duration::from_millis(20));
++        a.started=Instant::now()-Duration::from_millis(21);
++        assert_eq!(a.remaining(),Err(Failure::StepTimedOut));
++    }
++}

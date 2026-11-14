@@ -1,0 +1,380 @@
+--- a/common/http-api-client/Cargo.toml
++++ b/common/http-api-client/Cargo.toml
+@@ -15,6 +15,7 @@
+ # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+ 
+ [features]
++ynx-qa-directory = []
+ default=["tunneling"]
+ tunneling=[]
+ network-defaults = ["nym-network-defaults/network"]
+--- a/common/client-libs/validator-client/Cargo.toml
++++ b/common/client-libs/validator-client/Cargo.toml
+@@ -100,6 +100,7 @@
+ required-features = ["http-client"]
+ 
+ [features]
++ynx-qa-directory = ["nym-http-api-client/ynx-qa-directory"]
+ default = ["http-client"]
+ http-client = ["cosmrs/rpc"]
+ mocks = []
+--- a/clients/socks5/Cargo.toml
++++ b/clients/socks5/Cargo.toml
+@@ -52,5 +52,6 @@
+ ] }
+ 
+ [features]
++ynx-qa-directory = ["nym-validator-client/ynx-qa-directory"]
+ default = []
+ eth = []
+--- a/common/http-api-client/src/lib.rs
++++ b/common/http-api-client/src/lib.rs
+@@ -148,6 +148,7 @@
+ #[cfg(target_arch = "wasm32")]
+ use wasmtimer::std::Instant;
+ 
++#[cfg(all(feature="ynx-qa-directory", not(target_arch="wasm32")))] pub mod qa_directory;
+ pub mod registry;
+ #[cfg(not(target_arch = "wasm32"))] pub mod reviewed_map;
+ #[cfg(not(target_arch = "wasm32"))] pub mod reviewed_policy;
+--- a/common/client-libs/validator-client/src/lib.rs
++++ b/common/client-libs/validator-client/src/lib.rs
+@@ -1,6 +1,7 @@
+ // Copyright 2021-2023 - Nym Technologies SA <contact@nymtech.net>
+ // SPDX-License-Identifier: Apache-2.0
+ 
++#[cfg(all(feature="ynx-qa-directory", not(target_arch="wasm32")))] pub use nym_http_api_client::qa_directory;
+ pub mod client;
+ pub mod coconut;
+ #[cfg(feature = "http-client")]
+--- a/clients/socks5/src/commands/mod.rs
++++ b/clients/socks5/src/commands/mod.rs
+@@ -27,6 +27,7 @@
+ pub(crate) mod run;
+ mod switch_gateway;
+ pub(crate) mod reviewed;
++#[cfg(feature="ynx-qa-directory")] mod qa_directory;
+ 
+ pub(crate) struct CliSocks5Client;
+ 
+@@ -71,6 +72,9 @@
+ pub(crate) enum Commands {
+     /// Initialise a Nym client. Do this first!
+     Init(init::Init),
++    /// QA-only public complete directory, never a normal client/profile command.
++    #[cfg(feature="ynx-qa-directory")]
++    #[clap(hide=true)] YnxQaCdnDirectory(qa_directory::Args),
+     /// Fetch only the pinned official public directory, with no profile/key operations.
+     #[clap(hide=true)] YnxReviewedDirectory,
+ 
+@@ -117,6 +121,13 @@
+ impl Cli {
+     pub(crate) fn install_reviewed(&self)->Result<(),Box<dyn std::error::Error+Send+Sync>> {
+         use nym_validator_client::reviewed_policy::Stage;
++        #[cfg(feature="ynx-qa-directory")]
++        if let Commands::YnxQaCdnDirectory(ref qa) = self.command {
++            if self.config_env_file.is_some() || self.ynx_reviewed_network.is_some()
++                || self.ynx_reviewed_network_sha256.is_some() || self.ynx_reviewed_run_id.is_some()
++            { return Err("QA directory forbids normal policy or environment arguments".into()) }
++            return qa_directory::install(qa);
++        }
+         match (&self.ynx_reviewed_network,&self.ynx_reviewed_network_sha256,&self.ynx_reviewed_run_id) {
+             (None,None,None)=>{ if matches!(self.command,Commands::YnxReviewedDirectory) {return Err("Directory requires reviewed policy".into())} Ok(()) },
+             (Some(path),Some(hash),Some(run))=>{
+@@ -134,6 +145,7 @@
+     match args.command {
+         Commands::Init(m) => init::execute(m).await?,
+         Commands::YnxReviewedDirectory => reviewed::directory().await?,
++        #[cfg(feature="ynx-qa-directory")] Commands::YnxQaCdnDirectory(_) => qa_directory::execute().await?,
+         Commands::Run(m) => run::execute(m).await?,
+         Commands::Ecash(ecash) => ecash.execute().await?,
+         Commands::ListGateways(args) => list_gateways::execute(args).await?,
+--- /dev/null
++++ b/common/http-api-client/src/qa_directory.rs
+@@ -0,0 +1,148 @@
++//! Explicit, compile-time QA-only directory successor. Never installs the normal reviewed
++//! network context, provisions a profile, or grants Root/Browser/release qualification.
++use std::{collections::BTreeSet, net::{IpAddr, SocketAddr}, sync::{Arc, OnceLock, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
++use serde::Deserialize;
++use crate::expiry_deadline::{AbsolutePolicyDeadline, DeadlineFailure};
++
++pub const SOURCE_SHA256: &str = "596d541b58fdfe26082f858437165969a3933316482c279efbd21f5494b55a7b";
++pub const ORIGIN: &str = "https://cdn1.media-platform.net";
++const HOST: &str = "cdn1.media-platform.net";
++const IP: &str = "172.104.178.252";
++const MAX_BODY: usize = 4_194_304;
++
++#[derive(Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Input {
++    schema: String, purpose: String,
++    #[serde(rename="runID")] run_id: String,
++    #[serde(rename="issuedAt")] issued_at: u64,
++    #[serde(rename="expiresAt")] expires_at: u64,
++    #[serde(rename="networkDefaultsSHA256")] source_sha256: String,
++    origin: String, addresses: Vec<IpAddr>,
++}
++struct Plan { input: Input, deadline: AbsolutePolicyDeadline }
++static INSTALLED: OnceLock<Plan> = OnceLock::new();
++static CLAIMED: AtomicBool = AtomicBool::new(false);
++
++fn now() -> Result<u64, String> {SystemTime::now().duration_since(UNIX_EPOCH).map(|v|v.as_secs()).map_err(|_|"qa-directory-clock".into())}
++fn validate(bytes:&[u8], expected_run:&str, clock:u64) -> Result<Input,String> {
++    if bytes.len()>4096 {return Err("qa-directory-plan-size".into())}
++    let input:Input=serde_json::from_slice(bytes).map_err(|_|"qa-directory-plan-schema")?;
++    if input.schema!="YNX_NYM_QA_CDN_DIRECTORY_V1" || input.purpose!="fresh-complete-directory-only"
++        || input.run_id!=expected_run || !input.run_id.starts_with("qa-dir-") || input.run_id.len()!=39
++        || !input.run_id[7..].bytes().all(|v|v.is_ascii_digit() || (b'a'..=b'f').contains(&v))
++        || input.source_sha256!=SOURCE_SHA256 || input.origin!=ORIGIN
++        || input.addresses!=vec![IP.parse::<IpAddr>().unwrap()]
++        || input.issued_at>clock.saturating_add(5) || clock.saturating_sub(input.issued_at)>120
++        || input.expires_at<=clock || input.expires_at<=input.issued_at || input.expires_at-input.issued_at>120
++        || input.expires_at>clock.saturating_add(120)
++    {return Err("qa-directory-plan-binding".into())}
++    Ok(input)
++}
++/// Bytes/SHA/uid/mode/file-identity are verified by the dedicated CLI before this call.
++/// No ordinary policy schema or normal init/run command can consume this purpose.
++pub fn install(bytes:&[u8], expected_run:&str) -> Result<(),String> {
++    if crate::reviewed_network::active() || INSTALLED.get().is_some() {return Err("qa-directory-mixed-context".into())}
++    let input=validate(bytes,expected_run,now()?)?;
++    let deadline=AbsolutePolicyDeadline::from_unix_seconds(input.expires_at).map_err(|_|"qa-directory-expired")?;
++    INSTALLED.set(Plan{input,deadline}).map_err(|_|"qa-directory-repeated-install".into())
++}
++
++#[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord)]
++pub enum Resource { Basic(u8), Described(u8), Epoch }
++impl Resource {
++    pub fn label(self) -> &'static str {match self {Self::Basic(_)=>"basic",Self::Described(_)=>"described",Self::Epoch=>"epoch"}}
++    fn target(self) -> String {match self {
++        Self::Basic(page)=>format!("https://cdn1.media-platform.net/api/v2/unstable/nym-nodes/skimmed?page={page}&per_page=250"),
++        Self::Described(page)=>format!("https://cdn1.media-platform.net/api/v2/nym-nodes/described?page={page}&per_page=250&output=bincode"),
++        Self::Epoch=>"https://cdn1.media-platform.net/api/v1/epoch/current".into(),
++    }}
++    fn follows(self, previous:Option<Self>) -> bool {match (previous,self) {
++        (None,Self::Basic(0))=>true,
++        (Some(Self::Basic(old)),Self::Basic(next)) | (Some(Self::Described(old)),Self::Described(next))=>next<80 && next==old.saturating_add(1),
++        (Some(Self::Basic(_)),Self::Described(0)) | (Some(Self::Described(_)),Self::Epoch)=>true,
++        _=>false,
++    }}
++}
++struct ClosedResolver { deadline: AbsolutePolicyDeadline }
++impl reqwest::dns::Resolve for ClosedResolver {
++    fn resolve(&self,name:reqwest::dns::Name)->reqwest::dns::Resolving {
++        let allowed=name.as_str()==HOST && self.deadline.remaining().is_ok();
++        let deadline=self.deadline;
++        Box::pin(async move {
++            if !allowed || deadline.remaining().is_err() {return Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied,"qa-directory-unreviewed-dns").into())}
++            Ok(Box::new(std::iter::once(SocketAddr::new(IP.parse().unwrap(),443))) as reqwest::dns::Addrs)
++        })
++    }
++}
++pub struct Session { plan: &'static Plan, consumed: BTreeSet<Resource>, last: Option<Resource>, failed: bool, received: usize }
++pub fn take_session() -> Result<Session,String> {
++    let plan=INSTALLED.get().ok_or("qa-directory-not-installed")?;
++    plan.deadline.remaining().map_err(|_|"qa-directory-expired")?;
++    if CLAIMED.swap(true,Ordering::SeqCst) {return Err("qa-directory-repeated-session".into())}
++    Ok(Session{plan,consumed:BTreeSet::new(),last:None,failed:false,received:0})
++}
++impl Session {
++    pub fn require_live(&self) -> Result<(),String> {self.plan.deadline.remaining().map(|_|()).map_err(|_|"qa-directory-expired".into())}
++    pub fn run_id(&self) -> &str {&self.plan.input.run_id}
++    fn record_chunk(&mut self, page_bytes:usize, amount:usize) -> Result<(),String> {
++        if page_bytes.checked_add(amount).is_none_or(|x|x>MAX_BODY) {return Err("qa-directory-body-size".into())}
++        let next=self.received.checked_add(amount).filter(|x|*x<=16_777_216).ok_or("qa-directory-session-size")?;
++        self.received=next;Ok(())
++    }
++    /// No arbitrary URL/path/host option, retries, reissue, cross-origin rotation or fallback.
++    pub async fn fetch(&mut self, resource:Resource) -> Result<Vec<u8>,String> {
++        self.require_live()?;
++        if self.failed {return Err("qa-directory-failed-session".into())}
++        // Cancellation or any failed request poisons this one session. A different page is
++        // not permission to continue after failure, retry a resource, or renew this lease.
++        self.failed=true;
++        let result=self.fetch_once(resource).await;
++        if result.is_ok() {self.failed=false}
++        result
++    }
++    async fn fetch_once(&mut self, resource:Resource) -> Result<Vec<u8>,String> {
++        if !resource.follows(self.last) {return Err("qa-directory-resource-order".into())}
++        if !self.consumed.insert(resource) {return Err("qa-directory-repeated-resource".into())}
++        self.last=Some(resource);
++        let started=Instant::now();
++        let remaining=self.plan.deadline.remaining().map_err(|_|"qa-directory-expired")?;
++        // Same official rustls Mozilla roots/provider as the strict production HTTP factory.
++        // The independent resolver is closed to one source-pinned numeric HTTPS peer.
++        let client=reqwest::Client::builder().use_preconfigured_tls((*crate::tls::rustls_client_config()).clone())
++            .https_only(true).http1_only().no_proxy().redirect(reqwest::redirect::Policy::none())
++            .retry(reqwest::retry::never()).connect_timeout(remaining.min(Duration::from_secs(8)))
++            .read_timeout(Duration::from_secs(20)).pool_max_idle_per_host(0)
++            .dns_resolver(Arc::new(ClosedResolver{deadline:self.plan.deadline}))
++            .build().map_err(|_|"qa-directory-client-build")?;
++        let mut request=client.get(resource.target()).build().map_err(|_|"qa-directory-request-build")?;
++        let headers=Duration::from_secs(20).checked_sub(started.elapsed()).filter(|x|!x.is_zero()).ok_or("qa-directory-header-timeout")?;
++        *request.timeout_mut()=Some(self.plan.deadline.remaining().map_err(|_|"qa-directory-expired")?);
++        let mut response=self.plan.deadline.run(headers,||client.execute(request)).await
++            .map_err(|e|deadline_error(e,"qa-directory-header-timeout"))?
++            .map_err(|_|"qa-directory-transport")?;
++        self.require_live()?;
++        if response.status().as_u16()!=200 {return Err("qa-directory-http-status".into())}
++        if response.headers().get_all(reqwest::header::CONTENT_TYPE).iter().count()!=1 {return Err("qa-directory-mime".into())}
++        let mime=response.headers().get(reqwest::header::CONTENT_TYPE).and_then(|x|x.to_str().ok()).filter(|x|x.len()<=64)
++            .map(|x|x.split(';').next().unwrap_or("").trim());
++        let expected=if matches!(resource,Resource::Described(_)) {"application/bincode"} else {"application/json"};
++        if mime!=Some(expected) {return Err("qa-directory-mime".into())}
++        if response.content_length().is_some_and(|x|x>MAX_BODY as u64 || x>16_777_216usize.saturating_sub(self.received) as u64) {return Err("qa-directory-body-size".into())}
++        let mut bytes=Vec::new();let mut progress=Instant::now();let mut logged=Instant::now();let mut logs=0;
++        loop {
++            let idle=Duration::from_secs(20).checked_sub(progress.elapsed()).filter(|x|!x.is_zero()).ok_or("qa-directory-body-idle")?;
++            let chunk=self.plan.deadline.run(idle,||response.chunk()).await.map_err(|e|deadline_error(e,"qa-directory-body-idle"))?
++                .map_err(|_|"qa-directory-body-transport")?;
++            self.require_live()?;
++            let Some(chunk)=chunk else {break};
++            self.record_chunk(bytes.len(),chunk.len())?;
++            if !chunk.is_empty() {progress=Instant::now();bytes.extend_from_slice(&chunk);}
++            if logs<24 && logged.elapsed()>=Duration::from_secs(5) {
++                tracing::info!(target:"ynx_qa_directory", resource=resource.label(), bytes=bytes.len(), "qa_directory_progress");logs+=1;logged=Instant::now();
++            }
++        }
++        self.require_live()?;Ok(bytes)
++    }
++}
++fn deadline_error(failure:DeadlineFailure, step:&str) -> String {match failure {DeadlineFailure::PolicyExpired=>"qa-directory-expired".into(),DeadlineFailure::StepTimedOut=>step.into()}}
+--- /dev/null
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -0,0 +1,135 @@
++//! No profile argument, key access, init, gateway registration or normal readiness output.
++use std::{collections::{BTreeMap,BTreeSet}, error::Error, fs::File, io::Read, path::PathBuf};
++use nym_crypto::{Digest,sha2::Sha256};
++use nym_validator_client::{qa_directory as transport, nym_nodes::{PaginatedCachedNodesResponseV2,SkimmedNodeV1,NodeRole}, pagination::PaginatedResponse, models::described::v2::NymNodeDescriptionV2};
++
++#[derive(clap::Args)]
++pub(crate) struct Args {
++    #[clap(long)] plan: PathBuf,
++    #[clap(long)] plan_sha256: String,
++    #[clap(long)] run_id: String,
++}
++pub(crate) fn install(args:&Args) -> Result<(),Box<dyn Error+Send+Sync>> {
++    use std::os::unix::fs::MetadataExt;
++    unsafe extern "C" {fn geteuid()->u32;}
++    let before=std::fs::symlink_metadata(&args.plan)?;
++    if !before.is_file() || before.uid()!=unsafe{geteuid()} || before.nlink()!=1 || before.mode()&0o777!=0o600 || before.len()>4096 {
++        return Err("qa-directory-unsafe-plan-file".into())
++    }
++    let mut file=File::open(&args.plan)?;let actual=file.metadata()?;
++    if actual.ino()!=before.ino() || actual.dev()!=before.dev() || actual.uid()!=before.uid() || actual.mode()!=before.mode() || actual.nlink()!=1 {
++        return Err("qa-directory-changed-plan-file".into())
++    }
++    let mut bytes=Vec::new();file.by_ref().take(4097).read_to_end(&mut bytes)?;
++    let digest=Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>();
++    if bytes.len()>4096 || args.plan_sha256.len()!=64 || digest!=args.plan_sha256 {return Err("qa-directory-plan-sha".into())}
++    transport::install(&bytes,&args.run_id)?;Ok(())
++}
++
++fn complete<T>(page:&PaginatedResponse<T>) -> bool {
++    page.pagination.page==0 && page.pagination.total>0 && page.pagination.total<=20_000
++        && page.pagination.total==page.data.len() && page.pagination.size==page.data.len()
++}
++fn validate_snapshot(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>, described:&PaginatedResponse<NymNodeDescriptionV2>, epoch:&serde_json::Value) -> Result<(),String> {
++    if !complete(&basic.nodes) || !complete(described) || basic.metadata.status.is_some() {return Err("qa-directory-incomplete-or-no-updates".into())}
++    let now=time::OffsetDateTime::now_utc();
++    let start=epoch["current_epoch_start"].as_str().and_then(|v|time::OffsetDateTime::parse(v,&time::format_description::well_known::Rfc3339).ok()).ok_or("qa-directory-epoch-start")?;
++    let seconds=epoch["epoch_length"]["secs"].as_i64().ok_or("qa-directory-epoch-length")?;
++    if !(600..=86400).contains(&seconds) || epoch["epoch_length"]["nanos"].as_u64()!=Some(0)
++        || epoch["total_elapsed_epochs"].as_u64()!=Some(basic.metadata.absolute_epoch_id as u64)
++        || start>now || start+time::Duration::seconds(seconds)<=now+time::Duration::seconds(300)
++    {return Err("qa-directory-stale-epoch".into())}
++    let refreshed=basic.metadata.refreshed_at();
++    if refreshed>now+time::Duration::seconds(5) || now-refreshed>time::Duration::seconds(seconds) {return Err("qa-directory-stale-metadata".into())}
++    let mut full=BTreeMap::new();let mut identities=BTreeSet::new();
++    for node in &described.data {
++        let key=node.ed25519_identity_key().to_base58_string();
++        if full.insert(node.node_id,node).is_some() || !identities.insert(key) {return Err("qa-directory-ambiguous-description".into())}
++    }
++    let mut ids=BTreeSet::new();let mut keys=BTreeSet::new();let mut entries=0;let mut exits=0;
++    for node in &basic.nodes.data {
++        let identity=node.ed25519_identity_pubkey.to_base58_string();
++        if !ids.insert(node.node_id) || !keys.insert(identity.clone()) {return Err("qa-directory-ambiguous-basic".into())}
++        let description=full.get(&node.node_id).ok_or("qa-directory-missing-described-node")?;
++        if description.ed25519_identity_key()!=node.ed25519_identity_pubkey {return Err("qa-directory-identity-mismatch".into())}
++        let host=&description.description.host_information;
++        if node.ip_addresses.is_empty() || node.ip_addresses.iter().collect::<BTreeSet<_>>()!=host.ip_address.iter().collect::<BTreeSet<_>>() {
++            return Err("qa-directory-address-mismatch".into())
++        }
++        if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry {
++            let entry=node.entry.as_ref().ok_or("qa-directory-missing-entry")?;
++            let hostname=entry.hostname.as_deref().ok_or("qa-directory-missing-wss-hostname")?;
++            let hostname_url=url::Url::parse(&format!("https://{hostname}/")).map_err(|_|"qa-directory-wss-hostname")?;
++            if !hostname.is_ascii() || hostname.len()>253 || hostname!=hostname.to_ascii_lowercase()
++                || hostname_url.host_str()!=Some(hostname) || hostname.parse::<std::net::IpAddr>().is_ok()
++                || !hostname_url.username().is_empty() || hostname_url.password().is_some() || hostname_url.query().is_some() || hostname_url.fragment().is_some()
++            {return Err("qa-directory-wss-hostname".into())}
++            if entry.hostname!=host.hostname || entry.wss_port.is_none_or(|x|x==0)
++                || entry.wss_port!=description.description.mixnet_websockets.wss_port {return Err("qa-directory-entry-wss-mismatch".into())}
++            entries+=1;
++        }
++        if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr {
++            let requester=description.description.network_requester.as_ref().ok_or("qa-directory-missing-requester")?;
++            let address: nym_sphinx::addressing::Recipient=requester.address.parse().map_err(|_|"qa-directory-requester-type")?;
++            if !requester.uses_exit_policy || address.gateway()!=node.ed25519_identity_pubkey {return Err("qa-directory-requester-binding".into())}
++            exits+=1;
++        }
++    }
++    if entries==0 || exits==0 {return Err("qa-directory-no-current-entry-exit".into())}
++    Ok(())
++}
++/// A response's `size` is page-local. Normalize it only after every declared row has
++/// arrived; never rewrite total or promote a partial page to a complete directory.
++struct CompletePages<T> { total:Option<usize>, rows:Vec<T>, next:u8 }
++impl<T> CompletePages<T> {
++    fn new() -> Self {Self{total:None,rows:Vec::new(),next:0}}
++    fn push(&mut self,page:PaginatedResponse<T>) -> Result<bool,String> {
++        if self.next>=80 || page.pagination.page!=self.next as u32 || page.pagination.total==0 || page.pagination.total>20_000
++            || page.data.is_empty() || page.pagination.size<page.data.len() || page.pagination.size>page.pagination.total
++            || self.total.is_some_and(|total|total!=page.pagination.total)
++            || self.rows.len().checked_add(page.data.len()).is_none_or(|length|length>page.pagination.total)
++        {return Err("qa-directory-page-contract".into())}
++        self.total=Some(page.pagination.total);self.rows.extend(page.data);self.next+=1;
++        Ok(self.rows.len()==self.total.unwrap())
++    }
++    fn finish(self) -> Result<PaginatedResponse<T>,String> {
++        if self.total!=Some(self.rows.len()) || self.rows.is_empty() {return Err("qa-directory-incomplete-pages".into())}
++        Ok(PaginatedResponse{pagination:nym_validator_client::pagination::Pagination{total:self.rows.len(),size:self.rows.len(),page:0},data:self.rows})
++    }
++}
++async fn fetch_basic(session:&mut transport::Session) -> Result<PaginatedCachedNodesResponseV2<SkimmedNodeV1>,Box<dyn Error+Send+Sync>> {
++    let mut pages=CompletePages::new();let mut metadata=None;
++    for page in 0..80 {
++        let bytes=session.fetch(transport::Resource::Basic(page)).await?;
++        let value:PaginatedCachedNodesResponseV2<SkimmedNodeV1>=serde_json::from_slice(&bytes).map_err(|_|"qa-directory-basic-type")?;
++        if !same_metadata(&metadata,&value.metadata) {return Err("qa-directory-page-metadata-changed".into())}
++        if metadata.is_none() {metadata=Some(value.metadata)}
++        if pages.push(value.nodes)? {return Ok(PaginatedCachedNodesResponseV2{metadata:metadata.unwrap(),nodes:pages.finish()?})}
++    }
++    Err("qa-directory-page-count".into())
++}
++fn same_metadata(previous:&Option<nym_validator_client::nym_nodes::NodesResponseMetadata>, next:&nym_validator_client::nym_nodes::NodesResponseMetadata) -> bool {
++    previous.as_ref().is_none_or(|old|serde_json::to_value(old).ok()==serde_json::to_value(next).ok())
++}
++async fn fetch_described(session:&mut transport::Session) -> Result<PaginatedResponse<NymNodeDescriptionV2>,Box<dyn Error+Send+Sync>> {
++    let mut pages=CompletePages::new();
++    for page in 0..80 {
++        let bytes=session.fetch(transport::Resource::Described(page)).await?;
++        let value:PaginatedResponse<NymNodeDescriptionV2>=nym_validator_client::reviewed_network::decode_directory_bincode(&bytes)?;
++        if pages.push(value)? {return Ok(pages.finish()?)}
++    }
++    Err("qa-directory-page-count".into())
++}
++pub(crate) async fn execute() -> Result<(),Box<dyn Error+Send+Sync>> {
++    let mut session=transport::take_session()?;
++    let basic=fetch_basic(&mut session).await?;
++    let described=fetch_described(&mut session).await?;
++    let epoch_bytes=session.fetch(transport::Resource::Epoch).await?;
++    let epoch:serde_json::Value=serde_json::from_slice(&epoch_bytes).map_err(|_|"qa-directory-epoch-type")?;
++    validate_snapshot(&basic,&described,&epoch)?;session.require_live()?;
++    // Exact original DATA envelope; never a proof of route/NE/normal authorization.
++    let bytes=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_DIRECTORY_V1","basic":basic,"described":described,"epoch":epoch}))?;
++    if bytes.len()>16_777_216 {return Err("qa-directory-envelope-size".into())}
++    session.require_live()?;
++    use std::io::Write;let mut stdout=std::io::stdout().lock();stdout.write_all(&bytes)?;stdout.write_all(b"\n")?;Ok(())
++}

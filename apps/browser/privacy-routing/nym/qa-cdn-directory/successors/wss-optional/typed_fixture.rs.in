@@ -1,0 +1,81 @@
+// New optional-WSS controls only. All public-key bytes are synthetic public DTO
+// inputs; no private key/keypair/profile, sockets or live policy is created.
+fn snapshot() -> (serde_json::Value,serde_json::Value,serde_json::Value) {
+    let zero="11111111111111111111111111111111";
+    let other="3bgffBYcfFkTTXc2npNNn9MkddFZ3H2LrPjXDmnJzrqd";
+    let public:nym_crypto::asymmetric::ed25519::PublicKey=zero.parse().unwrap();
+    let exit_key:nym_crypto::asymmetric::ed25519::PublicKey=other.parse().unwrap();
+    let encryption=nym_crypto::asymmetric::x25519::PublicKey::from_bytes(&[0;32]).unwrap();
+    let recipient=nym_sphinx::addressing::Recipient::new(public,encryption,exit_key).to_string();
+    let mut keys=vec![zero.to_string(),other.to_string()];
+    for byte in 2u8..=255 {
+        if let Ok(key)=nym_crypto::asymmetric::ed25519::PublicKey::from_bytes(&[byte;32]) {
+            let encoded=key.to_base58_string();if !keys.contains(&encoded) {keys.push(encoded)}
+        }
+        if keys.len()==4 {break}
+    }
+    assert_eq!(keys.len(),4);
+    let now=time::OffsetDateTime::now_utc();let timestamp=now.format(&time::format_description::well_known::Rfc3339).unwrap();
+    let mut basics=Vec::new();let mut descriptions=Vec::new();
+    for index in 0..4 {
+        let id=index+1;let key=&keys[index];let is_entry=index==0 || index==2;let is_exit=index==1;
+        let hostname=if index==0 {Some("gateway.fixture.invalid")} else if index==2 {Some("legacy.fixture.invalid")} else {None};
+        let wss=if index==0 {Some(9001)} else {None};
+        let role=if is_entry {serde_json::to_value(actual_validator::nym_nodes::NodeRole::EntryGateway).unwrap()}
+            else if is_exit {serde_json::to_value(actual_validator::nym_nodes::NodeRole::ExitGateway).unwrap()}
+            else {serde_json::to_value(actual_validator::nym_nodes::NodeRole::Mixnode{layer:1}).unwrap()};
+        let roles=serde_json::json!({"mixnode":index==3,"entry":is_entry,"exit_nr":is_exit,"exit_ipr":false});
+        let entry=if is_entry {serde_json::json!({"hostname":hostname,"ws_port":9000,"wss_port":wss})} else {serde_json::Value::Null};
+        let ip=["1.1.1.1","8.8.8.8","9.9.9.9","4.4.4.4"][index];
+        basics.push(serde_json::json!({"node_id":id,"ed25519_identity_pubkey":key,"ip_addresses":[ip],"mix_port":1789,
+            "x25519_sphinx_pubkey":zero,"role":role,"supported_roles":roles,"entry":entry,"performance":"1"}));
+        let requester=if is_exit {serde_json::json!({"address":recipient,"uses_exit_policy":true})} else {serde_json::Value::Null};
+        descriptions.push(serde_json::json!({"node_id":id,"contract_node_type":"nym_node","description":{
+            "last_polled":timestamp,"host_information":{"ip_address":[ip],"hostname":hostname,
+                "keys":{"ed25519":key,"x25519":zero,"current_x25519_sphinx_key":{"rotation_id":0,"public_key":zero}}},
+            "declared_role":roles,"build_information":{"binary_name":"fixture","build_timestamp":"fixture","build_version":"fixture",
+                "commit_sha":"fixture","commit_timestamp":"fixture","commit_branch":"fixture","rustc_version":"fixture",
+                "rustc_channel":"fixture","cargo_profile":"fixture","cargo_triple":"fixture"},
+            "network_requester":requester,"mixnet_websockets":{"ws_port":9000,"wss_port":wss}}}));
+    }
+    let basic=serde_json::json!({"metadata":{"status":null,"absolute_epoch_id":1,"rotation_id":0,"refreshed_at":timestamp},
+        "nodes":{"pagination":{"total":4,"size":4,"page":0},"data":basics}});
+    let described=serde_json::json!({"pagination":{"total":4,"size":4,"page":0},"data":descriptions});
+    let epoch=serde_json::json!({"total_elapsed_epochs":1,"current_epoch_start":(now-time::Duration::seconds(1)).format(&time::format_description::well_known::Rfc3339).unwrap(),"epoch_length":{"secs":3600,"nanos":0}});
+    (basic,described,epoch)
+}
+fn check(b:serde_json::Value,d:serde_json::Value,e:&serde_json::Value,old:bool)->Result<(),String> {
+    let basic:actual_validator::nym_nodes::PaginatedCachedNodesResponseV2<actual_validator::nym_nodes::SkimmedNodeV1>=serde_json::from_value(b).unwrap();
+    let described:actual_validator::pagination::PaginatedResponse<actual_validator::models::described::v2::NymNodeDescriptionV2>=serde_json::from_value(d).unwrap();
+    let before=serde_json::to_value((&basic,&described)).unwrap();
+    let result=if old {before_fix::verify(&basic,&described,e)} else {after_fix::verify(&basic,&described,e)};
+    assert_eq!(serde_json::to_value((&basic,&described)).unwrap(),before,"no row, key or field may be rewritten/dropped");
+    assert_eq!(basic.nodes.data.len(),4);assert_eq!(described.data.len(),4);result
+}
+fn main() {
+    let (basic,described,epoch)=snapshot();
+    assert_eq!(check(basic.clone(),described.clone(),&epoch,true).unwrap_err(),"qa-directory-entry-wss-mismatch");
+    println!("OLD_TYPED_COUNTEREXAMPLE rejected optional WSS in complete4row snapshot");
+    assert!(check(basic.clone(),described.clone(),&epoch,false).is_ok());let mut count=1;
+    for case in 0..11 {
+        let mut b=basic.clone();let mut d=described.clone();let expected=match case {
+            0=>{b["nodes"]["data"][0]["entry"]["wss_port"]=serde_json::Value::Null;d["data"][0]["description"]["mixnet_websockets"]["wss_port"]=serde_json::Value::Null;Some("qa-directory-no-current-entry-exit")},
+            1=>{d["data"][0]["description"]["mixnet_websockets"]["wss_port"]=serde_json::Value::Null;Some("qa-directory-no-current-entry-exit")},
+            2=>{b["nodes"]["data"][2]["entry"]=serde_json::Value::Null;d["data"][2]["description"]["mixnet_websockets"]["wss_port"]=0.into();Some("qa-directory-entry-wss-zero")},
+            3=>{d["data"][2]["description"]["host_information"]["hostname"]="conflict.fixture.invalid".into();Some("qa-directory-entry-hostname-mismatch")},
+            4=>{d["data"][2]["description"]["mixnet_websockets"]["ws_port"]=9002.into();Some("qa-directory-entry-ws-port-mismatch")},
+            5=>{b["nodes"]["data"][2]["entry"]["hostname"]="user:synthetic@gateway.fixture.invalid".into();Some("qa-directory-entry-wss-hostname")},
+            6=>{b["nodes"]["data"][2]["entry"]["hostname"]=serde_json::Value::Null;d["data"][2]["description"]["host_information"]["hostname"]=serde_json::Value::Null;
+                b["nodes"]["data"][2]["entry"]["wss_port"]=9001.into();d["data"][2]["description"]["mixnet_websockets"]["wss_port"]=9002.into();Some("qa-directory-entry-wss-port-mismatch")},
+            7=>{d["data"][3]["description"]["mixnet_websockets"]["wss_port"]=0.into();d["data"][3]["description"]["host_information"]["hostname"]="nonentry:unused".into();None},
+            8=>{d["data"][2]["description"]["host_information"]["ip_address"]=serde_json::json!(["8.8.8.8"]);Some("qa-directory-address-mismatch")},
+            9=>{d["data"][0]["description"]["mixnet_websockets"]["wss_port"]=serde_json::Value::Null;
+                b["nodes"]["data"][2]["entry"]["wss_port"]=9001.into();d["data"][2]["description"]["mixnet_websockets"]["wss_port"]=9001.into();None},
+            _=>{b["nodes"]["data"][0]["role"]=serde_json::to_value(actual_validator::nym_nodes::NodeRole::Mixnode{layer:1}).unwrap();Some("qa-directory-no-current-entry-exit")},
+        };
+        let result=check(b,d,&epoch,false);
+        match expected {Some(expected)=>assert_eq!(result.unwrap_err(),expected,"case{case}"),None=>assert!(result.is_ok(),"case{case}")}
+        count+=1;
+    }
+    println!("PASS optional_WSS_actual_DTO_new_cases={count} old_counterexample=1 all_rows_preserved=4 no_socket_no_profile");
+}

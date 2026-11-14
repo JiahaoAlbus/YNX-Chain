@@ -111,11 +111,30 @@ The first actual installation run used source `99331e0873e320c34a0cc07969eda308e
 
 ```sh
 node apps/browser/privacy-routing/leak-tests/platform-matrix-runner.mjs \
+  --purpose native-loopback-capability \
   --candidate /absolute/reviewed/candidate.json \
   --output-directory /absolute/owned-receipts \
   --identity-tool /absolute/public-process-identity-helper \
   --local-routed-only
 ```
+
+The purpose is now mandatory. This legacy runner preserves local direct negative
+controls and local SOCKS capability diagnostics only. Neither installed WebKit,
+an `approvalReference` string nor a caller `ready`/`protectionInstalled` object
+authorizes protected traffic. `--purpose protected-acceptance` rejects before
+candidate IO, output mutation, certificates, listeners or children; the existing
+Native `ProtectedAcceptanceDispatcher` must obtain its real same-owner signed
+Root/canary/lease capability before any protected target phase. Missing installed
+protection therefore cannot be replaced by matrix input DATA. The local purpose
+does not establish that protection is installed and never grants privacy admission.
+Omit `--local-routed-only` to include the original direct loopback negative control
+before the local SOCKS diagnostic; both remain in this explicit local purpose.
+
+Automatic public-tunnel provisioning has been removed from this legacy entry.
+`--public-only` and `--approval-reference` reject rather than consume a new budget.
+Historical public runs and their exhausted four allocations remain unchanged.
+Any future public-resource operation needs its separately reviewed concrete scope
+and owner; this command does not implement a new authorization supplier.
 
 The public helper compiles with `xcrun clang -fobjc-arc platform-probe/ProcessIdentity.m -framework Foundation -framework Security -o /absolute/helper`. It uses public audit-token/self task APIs, proc start/path data and SecCode checks; no process-name guessing or private responsibility API. An endpoint-selected `lsof` query matches the accepted SOCKS peer source port and this run's exact domain handshake, then verifies the actual Apple WebKit Networking process identity. This establishes only those controlled 5-tuples. UDP FD queries additionally require a previously verified owned SOCKS-peer PID and source ports learned from the owned STUN server, with exact connected destinations distinguished from weaker unconnected-port correlation. No other sockets of a shared XPC PID are collected.
 

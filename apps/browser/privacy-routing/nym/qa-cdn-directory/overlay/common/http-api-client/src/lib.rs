@@ -1,0 +1,2072 @@
+// Copyright 2023 - Nym Technologies SA <contact@nymtech.net>
+// SPDX-License-Identifier: Apache-2.0
+
+#![allow(deprecated)]
+// silences clippy warning: use of deprecated tuple variant `HttpClientError::GenericRequestFailure`: use another more strongly typed variant - this variant is only left for compatibility reasons - TODO
+
+//! Nym HTTP API Client
+//!
+//! Centralizes and implements the core API client functionality. This crate provides custom,
+//! configurable middleware for a re-usable HTTP client that takes advantage of connection pooling
+//! and other benefits provided by the [`reqwest`] `Client`.
+//!
+//! ## Making GET requests
+//!
+//! Create an HTTP `Client` and use it to make a GET request.
+//!
+//! ```rust
+//! # use url::Url;
+//! # use nym_http_api_client::{ApiClient, NO_PARAMS, HttpClientError};
+//!
+//! # type Err = HttpClientError;
+//! # async fn run() -> Result<(), Err> {
+//! let url: Url = "https://nymvpn.com".parse()?;
+//! let client = nym_http_api_client::Client::new(url, None);
+//!
+//! // Send a get request to the `/v1/status` path with no query parameters.
+//! let resp = client.send_get_request(&["v1", "status"], NO_PARAMS).await?;
+//! let body = resp.text().await?;
+//!
+//! println!("body = {body:?}");
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## JSON
+//!
+//! There are also json helper methods that assist in executing requests that send or receive json.
+//! It can take any value that can be serialized into JSON.
+//!
+//! ```rust
+//! # use std::collections::HashMap;
+//! # use std::time::Duration;
+//! use nym_http_api_client::{ApiClient, HttpClientError, NO_PARAMS};
+//!
+//! # use serde::{Serialize, Deserialize};
+//! #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+//! pub struct ApiHealthResponse {
+//!     pub status: ApiStatus,
+//!     pub uptime: u64,
+//! }
+//!
+//! #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+//! pub enum ApiStatus {
+//!     Up,
+//! }
+//!
+//! # type Err = HttpClientError;
+//! # async fn run() -> Result<(), Err> {
+//! // This will POST a body of `{"lang":"rust","body":"json"}`
+//! let mut map = HashMap::new();
+//! map.insert("lang", "rust");
+//! map.insert("body", "json");
+//!
+//! // Create a client using the ClientBuilder and set a custom timeout.
+//! let client = nym_http_api_client::Client::builder("https://nymvpn.com")?
+//!     .with_timeout(Duration::from_secs(10))
+//!     .build()?;
+//!
+//! // Send a POST request with our json `map` as the body and attempt to parse the body
+//! // of the response as an ApiHealthResponse from json.
+//! let res: ApiHealthResponse = client.post_json(&["v1", "status"], NO_PARAMS, &map)
+//!     .await?;
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! ## Creating an ApiClient Wrapper
+//!
+//! An example API implementation that relies on this crate for managing the HTTP client.
+//!
+//! ```rust
+//! # use async_trait::async_trait;
+//! use nym_http_api_client::{ApiClient, HttpClientError, NO_PARAMS};
+//!
+//! mod routes {
+//!     pub const API_VERSION: &str = "v1";
+//!     pub const API_STATUS_ROUTES: &str = "api-status";
+//!     pub const HEALTH: &str = "health";
+//! }
+//!
+//! mod responses {
+//!     # use serde::{Serialize, Deserialize};
+//!     #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+//!     pub struct ApiHealthResponse {
+//!         pub status: ApiStatus,
+//!         pub uptime: u64,
+//!     }
+//!
+//!     #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+//!     pub enum ApiStatus {
+//!         Up,
+//!     }
+//! }
+//!
+//! mod error {
+//!     # use serde::{Serialize, Deserialize};
+//!     # use core::fmt::{Display, Formatter, Result as FmtResult};
+//!     #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+//!     pub struct RequestError {
+//!         message: String,
+//!     }
+//!
+//!     impl Display for RequestError {
+//!         fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+//!             Display::fmt(&self.message, f)
+//!         }
+//!     }
+//! }
+//!
+//! pub type SpecificAPIError = HttpClientError;
+//!
+//! #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+//! #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+//! pub trait SpecificApi: ApiClient {
+//!     async fn health(&self) -> Result<responses::ApiHealthResponse, SpecificAPIError> {
+//!         self.get_json(
+//!             &[
+//!                 routes::API_VERSION,
+//!                 routes::API_STATUS_ROUTES,
+//!                 routes::HEALTH,
+//!             ],
+//!             NO_PARAMS,
+//!         )
+//!         .await
+//!     }
+//! }
+//!
+//! impl<T: ApiClient> SpecificApi for T {}
+//! ```
+#![warn(missing_docs)]
+
+pub use inventory;
+pub use reqwest::{self, ClientBuilder as ReqwestClientBuilder, StatusCode};
+use std::error::Error;
+use std::sync::Mutex;
+#[cfg(not(target_arch = "wasm32"))]
+use std::time::Instant;
+#[cfg(target_arch = "wasm32")]
+use wasmtimer::std::Instant;
+
+#[cfg(all(feature="ynx-qa-directory", not(target_arch="wasm32")))] pub mod qa_directory;
+pub mod registry;
+#[cfg(not(target_arch = "wasm32"))] pub mod reviewed_map;
+#[cfg(not(target_arch = "wasm32"))] pub mod reviewed_policy;
+#[cfg(not(target_arch = "wasm32"))] pub mod reviewed_network;
+#[cfg(not(target_arch="wasm32"))] pub mod expiry_deadline;
+#[cfg(not(target_arch="wasm32"))] pub use rustls;
+
+// re-exported (not merely `use`d) because it appears as a bound on the public
+// `ApiClientCore::create_request`, so external crates cannot implement that public trait
+// without being able to name it (e.g. to provide a test double).
+pub use crate::path::RequestPath;
+use async_trait::async_trait;
+use bytes::Bytes;
+use cfg_if::cfg_if;
+use http::{
+    HeaderMap,
+    header::{ACCEPT, CONTENT_TYPE, RETRY_AFTER, USER_AGENT},
+};
+use itertools::Itertools;
+use mime::Mime;
+use reqwest::{RequestBuilder, Response, header::HeaderValue};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::ErrorKind;
+use std::{
+    fmt::Display,
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
+};
+use thiserror::Error;
+use tracing::{debug, instrument, warn};
+
+use std::sync::{Arc, LazyLock};
+
+#[cfg(feature = "tunneling")]
+mod fronted;
+#[cfg(feature = "tunneling")]
+pub use fronted::{FrontPolicy, FrontingConfig};
+#[cfg(feature = "tunneling")]
+mod rotation;
+#[cfg(feature = "tunneling")]
+use rotation::RotationManager;
+mod host_header;
+mod url;
+pub use url::{IntoUrl, Url};
+mod user_agent;
+pub use user_agent::UserAgent;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub mod dns;
+mod path;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod tls;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub use dns::{HickoryDnsResolver, ResolveError};
+
+// helper for generating user agent based on binary information
+#[cfg(not(target_arch = "wasm32"))]
+use crate::registry::default_builder;
+#[doc(hidden)]
+pub use nym_bin_common::bin_info;
+#[cfg(not(target_arch = "wasm32"))]
+use nym_http_api_client_macro::client_defaults;
+
+/// Default HTTP request connection timeout.
+///
+/// The timeout is relatively high as we are often making requests over the mixnet, where latency is
+/// high and chatty protocols take a while to complete.
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_secs(30);
+
+const NYM_OUTER_SNI_HEADER: &str = "NYM-ORIGINAL-OUTER-SNI";
+
+#[cfg(not(target_arch = "wasm32"))]
+client_defaults!(
+    priority = -100;
+    gzip = true,
+    deflate = true,
+    brotli = true,
+    zstd = true,
+    timeout = DEFAULT_TIMEOUT,
+    user_agent = format!("nym-http-api-client/{}", env!("CARGO_PKG_VERSION"))
+);
+
+static SHARED_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
+    tracing::info!("Initializing shared HTTP client");
+    cfg_if! {
+        if #[cfg(target_arch = "wasm32")] {
+            reqwest::ClientBuilder::new().build()
+                .expect("failed to initialize shared http client")
+        } else {
+            let mut builder = default_builder();
+
+            if !reviewed_network::active() { builder = builder.dns_resolver(Arc::new(HickoryDnsResolver::new())); }
+            builder = reviewed_network::closed_builder(builder);
+
+            builder
+                .build()
+                .expect("failed to initialize shared http client")
+        }
+    }
+});
+
+pub(crate) static SHARED_NETWORK_RECONFIGURATION: LazyLock<Arc<Mutex<Option<Instant>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(None)));
+
+/// Indicate to the shared marker that a network reconfiguration happened.
+pub fn network_reconfigured() {
+    *SHARED_NETWORK_RECONFIGURATION.lock().unwrap() = Some(Instant::now());
+}
+
+/// Collection of URL Path Segments
+pub type PathSegments<'a> = &'a [&'a str];
+/// Collection of HTTP Request Parameters
+pub type Params<'a, K, V> = &'a [(K, V)];
+
+/// Empty collection of HTTP Request Parameters.
+pub const NO_PARAMS: Params<'_, &'_ str, &'_ str> = &[];
+
+/// Serialization format for API requests and responses
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SerializationFormat {
+    /// Use JSON serialization (default, always works)
+    Json,
+    /// Use bincode serialization (must be explicitly opted into)
+    Bincode,
+    /// Use YAML serialization
+    Yaml,
+    /// Use Text serialization
+    Text,
+}
+
+impl Display for SerializationFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SerializationFormat::Json => write!(f, "json"),
+            SerializationFormat::Bincode => write!(f, "bincode"),
+            SerializationFormat::Yaml => write!(f, "yaml"),
+            SerializationFormat::Text => write!(f, "text"),
+        }
+    }
+}
+
+impl SerializationFormat {
+    #[allow(missing_docs)]
+    pub fn content_type(&self) -> String {
+        match self {
+            SerializationFormat::Json => "application/json".to_string(),
+            SerializationFormat::Bincode => "application/bincode".to_string(),
+            SerializationFormat::Yaml => "application/yaml".to_string(),
+            SerializationFormat::Text => "text/plain".to_string(),
+        }
+    }
+}
+
+#[allow(missing_docs)]
+#[derive(Debug)]
+pub struct ReqwestErrorWrapper(reqwest::Error);
+
+impl Display for ReqwestErrorWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        cfg_if::cfg_if! {
+            if #[cfg(not(target_arch = "wasm32"))] {
+                if self.0.is_connect() {
+                    write!(f, "failed to connect: ")?;
+                }
+            }
+        }
+
+        if self.0.is_timeout() {
+            write!(f, "timed out: ")?;
+        }
+        if self.0.is_redirect()
+            && let Some(final_stop) = self.0.url()
+        {
+            write!(f, "redirect loop at {final_stop}: ")?;
+        }
+
+        self.0.fmt(f)?;
+        if let Some(status_code) = self.0.status() {
+            write!(f, " status: {status_code}")?;
+        } else {
+            write!(f, " unknown status code")?;
+        }
+
+        if let Some(source) = self.0.source() {
+            write!(f, " source: {source:?}")?;
+        } else {
+            write!(f, " unknown lower-level error source")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl std::error::Error for ReqwestErrorWrapper {}
+
+/// The Errors that may occur when creating or using an HTTP client.
+#[derive(Debug, Error)]
+#[allow(missing_docs)]
+pub enum HttpClientError {
+    #[error("Protected network rejected: {0}")]
+    ReviewedNetworkRejected(String),
+    #[error("did not provide any valid client URLs")]
+    NoUrlsProvided,
+
+    #[error("failed to construct inner reqwest client: {source}")]
+    ReqwestBuildError {
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[deprecated(
+        note = "use another more strongly typed variant - this variant is only left for compatibility reasons"
+    )]
+    #[error("request failed with error message: {0}")]
+    GenericRequestFailure(String),
+
+    #[deprecated(
+        note = "use another more strongly typed variant - this variant is only left for compatibility reasons"
+    )]
+    #[error("there was an issue with the REST request: {source}")]
+    ReqwestClientError {
+        #[from]
+        source: reqwest::Error,
+    },
+
+    #[error("failed to parse {raw} as a valid URL: {source}")]
+    MalformedUrl {
+        raw: String,
+        #[source]
+        source: reqwest::Error,
+    },
+
+    #[error("failed to parse header value: {source}")]
+    InvalidHeaderValue {
+        #[source]
+        source: http::Error,
+    },
+
+    #[error("failed to send request for {url}: {source}")]
+    RequestSendFailure {
+        url: Box<reqwest::Url>,
+        #[source]
+        source: ReqwestErrorWrapper,
+    },
+
+    #[error("failed to read response body from {url}: {source}")]
+    ResponseReadFailure {
+        url: Box<reqwest::Url>,
+        headers: Box<HeaderMap>,
+        status: StatusCode,
+        #[source]
+        source: ReqwestErrorWrapper,
+    },
+
+    #[error("failed to deserialize received response: {source}")]
+    ResponseDeserialisationFailure { source: serde_json::Error },
+
+    #[error("provided url is malformed: {source}")]
+    UrlParseFailure {
+        #[from]
+        source: url::ParseError,
+    },
+
+    #[error("the requested resource could not be found at {url}")]
+    NotFound { url: Box<reqwest::Url> },
+
+    #[error("attempted to use domain fronting and clone a request containing stream data")]
+    AttemptedToCloneStreamRequest,
+
+    // #[error("request failed with error message: {0}")]
+    // GenericRequestFailure(String),
+    //
+    #[error(
+        "the request for {url} failed with status '{status}'. no additional error message provided. response headers: {headers:?}"
+    )]
+    RequestFailure {
+        url: Box<reqwest::Url>,
+        status: StatusCode,
+        headers: Box<HeaderMap>,
+    },
+
+    #[error(
+        "the returned response from {url} was empty. status: '{status}'. response headers: {headers:?}"
+    )]
+    EmptyResponse {
+        url: Box<reqwest::Url>,
+        status: StatusCode,
+        headers: Box<HeaderMap>,
+    },
+
+    #[error(
+        "failed to resolve request for {url}. status: '{status}'. response headers: {headers:?}. additional error message: {error}"
+    )]
+    EndpointFailure {
+        url: Box<reqwest::Url>,
+        status: StatusCode,
+        headers: Box<HeaderMap>,
+        error: String,
+    },
+
+    #[error("failed to decode response body: {message} from {content}")]
+    ResponseDecodeFailure { message: String, content: String },
+
+    #[error("failed to resolve request to {url} due to data inconsistency: {details}")]
+    InternalResponseInconsistency { url: ::url::Url, details: String },
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error("encountered dns failure: {inner}")]
+    DnsLookupFailure {
+        #[from]
+        inner: ResolveError,
+    },
+
+    #[error("Failed to encode bincode: {0}")]
+    Bincode(#[from] bincode::Error),
+
+    #[error("Failed to json: {0}")]
+    Json(#[from] serde_json::Error),
+
+    #[error("Failed to yaml: {0}")]
+    Yaml(#[from] serde_yaml::Error),
+
+    #[error("Failed to plain: {0}")]
+    Plain(#[from] serde_plain::Error),
+
+    #[cfg(target_arch = "wasm32")]
+    #[error("the request has timed out")]
+    RequestTimeout,
+}
+
+#[allow(missing_docs)]
+#[allow(deprecated)]
+impl HttpClientError {
+    /// Returns true if the error is a timeout.
+    pub fn is_timeout(&self) -> bool {
+        match self {
+            HttpClientError::ReqwestClientError { source } => source.is_timeout(),
+            HttpClientError::RequestSendFailure { source, .. } => source.0.is_timeout(),
+            HttpClientError::ResponseReadFailure { source, .. } => source.0.is_timeout(),
+            #[cfg(not(target_arch = "wasm32"))]
+            HttpClientError::DnsLookupFailure { inner } => inner.is_timeout(),
+            #[cfg(target_arch = "wasm32")]
+            HttpClientError::RequestTimeout => true,
+            _ => false,
+        }
+    }
+
+    /// Returns the HTTP status code if available.
+    pub fn status_code(&self) -> Option<StatusCode> {
+        match self {
+            HttpClientError::ResponseReadFailure { status, .. } => Some(*status),
+            HttpClientError::RequestFailure { status, .. } => Some(*status),
+            HttpClientError::EmptyResponse { status, .. } => Some(*status),
+            HttpClientError::EndpointFailure { status, .. } => Some(*status),
+            _ => None,
+        }
+    }
+
+    pub fn reqwest_client_build_error(source: reqwest::Error) -> Self {
+        HttpClientError::ReqwestBuildError { source }
+    }
+
+    pub fn request_send_error(url: reqwest::Url, source: reqwest::Error) -> Self {
+        HttpClientError::RequestSendFailure {
+            url: Box::new(url),
+            source: ReqwestErrorWrapper(source),
+        }
+    }
+
+    pub fn is_data_inconsistency(&self) -> bool {
+        matches!(self, HttpClientError::InternalResponseInconsistency { .. })
+    }
+}
+
+/// Core functionality required for types acting as API clients.
+///
+/// This trait defines the "skinny waist" of behaviors that are required by an API client. More
+/// likely downstream libraries should use functions from the [`ApiClient`] interface which provide
+/// a more ergonomic set of functionalities.
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait ApiClientCore {
+    /// Create an HTTP request using the host configured in this client.
+    fn create_request<P, B, K, V>(
+        &self,
+        method: reqwest::Method,
+        path: P,
+        params: Params<'_, K, V>,
+        body: Option<&B>,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        B: Serialize + ?Sized,
+        K: AsRef<str>,
+        V: AsRef<str>;
+
+    /// Create an HTTP request using the host configured in this client and an API endpoint (i.e.
+    /// `"/api/v1/mixnodes?since=12345"`). If the provided endpoint fails to parse as path (and
+    /// optionally query parameters).
+    ///
+    /// Endpoint Examples
+    /// - `"/api/v1/mixnodes?since=12345"`
+    /// - `"/api/v1/mixnodes"`
+    /// - `"/api/v1/mixnodes/img.png"`
+    /// - `"/api/v1/mixnodes/img.png?since=12345"`
+    /// - `"/"`
+    /// - `"/?since=12345"`
+    /// - `""`
+    /// - `"?since=12345"`
+    ///
+    /// for more information about URL percent encodings see [`url::Url::set_path()`]
+    fn create_request_endpoint<B, S>(
+        &self,
+        method: reqwest::Method,
+        endpoint: S,
+        body: Option<&B>,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        B: Serialize + ?Sized,
+        S: AsRef<str>,
+    {
+        // Use a stand-in url to extract the path and queries from the provided endpoint string
+        // which could potentially fail.
+        //
+        // This parse cannot fail
+        let mut standin_url: Url = "http://example.com".parse().unwrap();
+
+        match endpoint.as_ref().split_once("?") {
+            Some((path, query)) => {
+                standin_url.set_path(path);
+                standin_url.set_query(Some(query));
+            }
+            // There is no query in the provided endpoint
+            None => standin_url.set_path(endpoint.as_ref()),
+        }
+
+        let path: Vec<&str> = match standin_url.path_segments() {
+            Some(segments) => segments.collect(),
+            None => Vec::new(),
+        };
+        let params: Vec<(String, String)> = standin_url.query_pairs().into_owned().collect();
+
+        self.create_request(method, path.as_slice(), &params, body)
+    }
+
+    /// Send a created HTTP request.
+    ///
+    /// A [`RequestBuilder`] can be created with [`ApiClientCore::create_request`] or
+    /// [`ApiClientCore::create_request_endpoint`] or if absolutely necessary, using reqwest
+    /// tooling directly.
+    async fn send(&self, request: RequestBuilder) -> Result<Response, HttpClientError>;
+
+    /// Create and send a created HTTP request.
+    async fn send_request<P, B, K, V>(
+        &self,
+        method: reqwest::Method,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: Option<&B>,
+    ) -> Result<Response, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        B: Serialize + ?Sized + Sync,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        let req = self.create_request(method, path, params, json_body)?;
+        self.send(req).await
+    }
+
+    /// If multiple base urls are available rotate to next (e.g. when the current one resulted in an error)
+    ///
+    /// Takes an optional URL argument. If this is none, the current host will be updated automatically.
+    /// If a url is provided first check that the CURRENT host matches the hostname in the URL before
+    /// triggering a rotation. This is meant to prevent parallel requests that fail from rotating the host
+    /// multiple times.
+    fn maybe_rotate_hosts(&self, offending_url: Option<Url>);
+
+    /// If the fronting policy for the client is set to `OnRetry` or `ConfiguredRetry` this
+    /// function will enable fronting if not already enabled. `domain` should be the host of the
+    /// URL that triggered the failure, and is used by `ConfiguredRetry` to track failures per
+    /// domain.
+    #[cfg(feature = "tunneling")]
+    fn maybe_enable_fronting(&self, domain: Option<&str>, context: impl std::fmt::Debug);
+}
+
+/// A `ClientBuilder` can be used to create a [`Client`] with custom configuration applied consistently
+/// and state tracked across subsequent requests.
+pub struct ClientBuilder {
+    urls: Vec<Url>,
+
+    timeout: Option<Duration>,
+    custom_user_agent: Option<HeaderValue>,
+    reqwest_client_builder: Option<reqwest::ClientBuilder>,
+    #[allow(dead_code)] // not dead code, just unused in wasm
+    use_secure_dns: bool,
+
+    #[cfg(feature = "tunneling")]
+    front: fronted::Front,
+
+    retry_limit: usize,
+    serialization: SerializationFormat,
+
+    error: Option<HttpClientError>,
+}
+
+impl ClientBuilder {
+    /// Constructs a new `ClientBuilder`.
+    ///
+    /// This is the same as `Client::builder()`.
+    pub fn new<U>(url: U) -> Result<Self, HttpClientError>
+    where
+        U: IntoUrl,
+    {
+        let str_url = url.as_str();
+
+        // a naive check: if the provided URL does not start with http(s), add that scheme
+        if !str_url.starts_with("http") {
+            let alt = format!("http://{str_url}");
+            warn!(
+                "the provided url ('{str_url}') does not contain scheme information. Changing it to '{alt}' ..."
+            );
+            // TODO: or should we maybe default to https?
+            Self::new(alt)
+        } else {
+            let url = url.to_url()?;
+            Self::new_with_urls(vec![url])
+        }
+    }
+
+    /// Create a client builder from network details with sensible defaults
+    #[cfg(feature = "network-defaults")]
+    // deprecating function since it's not clear from its signature whether the client
+    // would be constructed using `nym_api_urls` or `nym_vpn_api_urls`
+    #[deprecated(note = "use explicit Self::new_with_fronted_urls instead")]
+    pub fn from_network(
+        network: &nym_network_defaults::v2::NymNetworkDetails,
+    ) -> Result<Self, HttpClientError> {
+        let urls = network.nym_api_urls();
+        Self::new_with_fronted_urls(urls.clone())
+    }
+
+    /// Create a client builder using the provided set of domain-fronted URLs
+    #[cfg(feature = "network-defaults")]
+    pub fn new_with_fronted_urls(
+        urls: Vec<nym_network_defaults::ApiUrl>,
+    ) -> Result<Self, HttpClientError> {
+        #[cfg(not(target_arch="wasm32"))]
+        if reviewed_network::active() {
+            let approved = urls.into_iter().filter_map(|item| { let url = ::url::Url::parse(&item.url).ok()?; if reviewed_network::guard_http(&url).is_ok() { Url::parse(&item.url).ok() } else { None } }).collect::<Vec<_>>();
+            return Self::new_with_urls(approved);
+        }
+        let urls = urls
+            .into_iter()
+            .map(|api_url| {
+                // Convert ApiUrl to our Url type with fronting support
+                let mut url = Url::parse(&api_url.url)?;
+
+                // Add fronting domains if available
+                #[cfg(feature = "tunneling")]
+                if let Some(ref front_hosts) = api_url.front_hosts {
+                    let fronts: Vec<String> = front_hosts
+                        .iter()
+                        .map(|host| format!("https://{}", host))
+                        .collect();
+                    url = Url::new(api_url.url.clone(), Some(fronts)).map_err(|source| {
+                        HttpClientError::MalformedUrl {
+                            raw: api_url.url.clone(),
+                            source,
+                        }
+                    })?;
+                }
+
+                Ok(url)
+            })
+            .collect::<Result<Vec<_>, HttpClientError>>()?;
+
+        let mut builder = Self::new_with_urls(urls)?;
+
+        // Enable domain fronting using the shared fronting policy
+        #[cfg(feature = "tunneling")]
+        {
+            builder = builder.with_fronting(None);
+        }
+
+        Ok(builder)
+    }
+
+    /// Constructs a new http `ClientBuilder` from a valid url.
+    pub fn new_with_urls(urls: Vec<Url>) -> Result<Self, HttpClientError> {
+        if urls.is_empty() {
+            return Err(HttpClientError::NoUrlsProvided);
+        }
+
+        let urls = Self::check_urls(urls);
+
+        Ok(ClientBuilder {
+            urls,
+            timeout: None,
+            custom_user_agent: None,
+            reqwest_client_builder: None,
+            use_secure_dns: true,
+            #[cfg(feature = "tunneling")]
+            front: fronted::Front::off(),
+
+            retry_limit: 0,
+            serialization: SerializationFormat::Json,
+            error: None,
+        })
+    }
+
+    /// Configure use of an independent HTTP request executor. This prevents use of beneficial
+    /// features like connection pooling under the hood.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn non_shared(mut self) -> Self {
+        if self.reqwest_client_builder.is_none() {
+            self.reqwest_client_builder = Some(default_builder());
+        }
+        self
+    }
+
+    /// Add an additional URL to the set usable by this constructed `Client`
+    pub fn add_url(mut self, url: Url) -> Self {
+        self.urls.push(url);
+        self
+    }
+
+    fn check_urls(mut urls: Vec<Url>) -> Vec<Url> {
+        // remove any duplicate URLs
+        urls = urls.into_iter().unique().collect();
+
+        // warn about any invalid URLs
+        urls.iter()
+            .filter(|url| !url.scheme().contains("http") && !url.scheme().contains("https"))
+            .for_each(|url| {
+                warn!("the provided url ('{url}') does not use HTTP / HTTPS scheme");
+            });
+
+        urls
+    }
+
+    /// Enables a total request timeout other than the default.
+    ///
+    /// The timeout is applied from when the request starts connecting until the response body has finished. Also considered a total deadline.
+    ///
+    /// Default is [`DEFAULT_TIMEOUT`].
+    #[must_use]
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = Some(timeout);
+        self
+    }
+
+    /// Sets the maximum number of retries for a request. This defaults to 0, indicating no retries.
+    ///
+    /// Note that setting a retry limit of 3 (for example) will result in 4 attempts to send the
+    /// request in the case that all are unsuccessful.
+    ///
+    /// If multiple urls (or fronting configurations if enabled) are available, retried requests
+    /// will be sent to the next URL in the list.
+    #[must_use]
+    pub fn with_retries(mut self, retry_limit: usize) -> Self {
+        self.retry_limit = retry_limit;
+        self
+    }
+
+    /// Provide a pre-configured [`reqwest::ClientBuilder`]
+    #[must_use]
+    pub fn with_reqwest_builder(mut self, reqwest_builder: reqwest::ClientBuilder) -> Self {
+        self.reqwest_client_builder = Some(reqwest_builder);
+        self
+    }
+
+    /// Sets the `User-Agent` header to be used by this client.
+    #[must_use]
+    pub fn with_user_agent<V>(mut self, value: V) -> Self
+    where
+        V: TryInto<HeaderValue>,
+        V::Error: Into<http::Error>,
+    {
+        match value.try_into() {
+            Ok(v) => self.custom_user_agent = Some(v),
+            Err(err) => {
+                self.error = Some(HttpClientError::InvalidHeaderValue { source: err.into() })
+            }
+        }
+        self
+    }
+
+    /// Set the serialization format for API requests and responses
+    #[must_use]
+    pub fn with_serialization(mut self, format: SerializationFormat) -> Self {
+        self.serialization = format;
+        self
+    }
+
+    /// Configure the client to use bincode serialization
+    #[must_use]
+    pub fn with_bincode(self) -> Self {
+        self.with_serialization(SerializationFormat::Bincode)
+    }
+
+    /// Returns a Client that uses this ClientBuilder configuration.
+    pub fn build(mut self) -> Result<Client, HttpClientError> {
+        #[cfg(not(target_arch = "wasm32"))]
+        if reviewed_network::active() {
+            for url in &self.urls { reviewed_network::guard_http(&::url::Url::parse(url.as_str())?).map_err(HttpClientError::ReviewedNetworkRejected)?; }
+            self.reqwest_client_builder = Some(reviewed_network::closed_builder(self.reqwest_client_builder.take().unwrap_or_else(default_builder)));
+            self.use_secure_dns = false; self.retry_limit = 0;
+            #[cfg(feature="tunneling")] { self.front = fronted::Front::off(); }
+        }
+        if let Some(err) = self.error {
+            return Err(err);
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        let reqwest_client = Some(reqwest::ClientBuilder::new().build()?);
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let reqwest_client = self
+            .reqwest_client_builder
+            .map(|mut builder| {
+                // unless explicitly disabled use the DoT/DoH enabled resolver
+                if self.use_secure_dns {
+                    builder = builder.dns_resolver(Arc::new(HickoryDnsResolver::new()));
+                }
+
+                // reqwest builds its TLS config from the process-wide default provider
+                tls::install_default_crypto_provider();
+                builder
+                    .build()
+                    .map_err(HttpClientError::reqwest_client_build_error)
+            })
+            .transpose()?;
+
+        #[cfg(feature = "tunneling")]
+        let rotation = RotationManager::new(self.urls.len());
+
+        let client = Client {
+            base_urls: self.urls,
+            current_idx: Arc::new(AtomicUsize::new(0)),
+            reqwest_client,
+            custom_user_agent: self.custom_user_agent,
+
+            #[cfg(feature = "tunneling")]
+            front: self.front,
+            #[cfg(feature = "tunneling")]
+            rotation,
+
+            #[cfg(target_arch = "wasm32")]
+            request_timeout: self.timeout.unwrap_or(DEFAULT_TIMEOUT),
+            retry_limit: self.retry_limit,
+            serialization: self.serialization,
+        };
+
+        Ok(client)
+    }
+}
+
+/// A simple extendable client wrapper for http request with extra url sanitization.
+#[derive(Debug, Clone)]
+pub struct Client {
+    base_urls: Vec<Url>,
+    current_idx: Arc<AtomicUsize>,
+    reqwest_client: Option<reqwest::Client>,
+    custom_user_agent: Option<HeaderValue>,
+
+    #[cfg(feature = "tunneling")]
+    front: fronted::Front,
+    /// Per-host front-rotation state for `base_urls`, kept out of `FrontedUrl` itself so that
+    /// type stays a plain value. Shared across clones like `current_idx`.
+    #[cfg(feature = "tunneling")]
+    rotation: RotationManager,
+
+    #[cfg(target_arch = "wasm32")]
+    request_timeout: Duration,
+
+    retry_limit: usize,
+    serialization: SerializationFormat,
+}
+
+impl Client {
+    /// Create a new http `Client`
+    // no timeout until https://github.com/seanmonstar/reqwest/issues/1135 is fixed
+    //
+    // In order to prevent interference in API requests at the DNS phase we default to a resolver
+    // that uses DoT and DoH.
+    pub fn new(base_url: ::url::Url, timeout: Option<Duration>) -> Self {
+        Self::new_url(base_url, timeout).expect(
+            "we provided valid url and we were unwrapping previous construction errors anyway",
+        )
+    }
+
+    /// Attempt to create a new http client from a something that can be converted to a URL
+    pub fn new_url<U>(url: U, timeout: Option<Duration>) -> Result<Self, HttpClientError>
+    where
+        U: IntoUrl,
+    {
+        let builder = Self::builder(url)?;
+        match timeout {
+            Some(timeout) => builder.with_timeout(timeout).build(),
+            None => builder.build(),
+        }
+    }
+
+    /// Creates a [`ClientBuilder`] to configure a [`Client`].
+    ///
+    /// This is the same as [`ClientBuilder::new()`].
+    pub fn builder<U>(url: U) -> Result<ClientBuilder, HttpClientError>
+    where
+        U: IntoUrl,
+    {
+        ClientBuilder::new(url)
+    }
+
+    /// Update the set of hosts that this client uses when sending API requests.
+    pub fn change_base_urls(&mut self, new_urls: Vec<Url>) {
+        self.current_idx.store(0, Ordering::Relaxed);
+        #[cfg(feature = "tunneling")]
+        {
+            self.rotation = RotationManager::new(new_urls.len());
+            // failures recorded against the old hosts must not count towards the new set
+            self.front.reset_failures();
+        }
+        self.base_urls = new_urls
+    }
+
+    /// Create new instance of `Client` using the provided base url and existing client config
+    pub fn clone_with_new_url(&self, new_url: Url) -> Self {
+        Client {
+            base_urls: vec![new_url],
+            current_idx: Arc::new(Default::default()),
+            reqwest_client: None,
+            custom_user_agent: None,
+
+            #[cfg(feature = "tunneling")]
+            front: self.front.clone(),
+            #[cfg(feature = "tunneling")]
+            rotation: RotationManager::new(1),
+            retry_limit: self.retry_limit,
+
+            #[cfg(target_arch = "wasm32")]
+            request_timeout: self.request_timeout,
+            serialization: self.serialization,
+        }
+    }
+
+    /// Get the currently configured host that this client uses when sending API requests.
+    pub fn current_url(&self) -> &Url {
+        &self.base_urls[self.current_idx.load(std::sync::atomic::Ordering::Relaxed)]
+    }
+
+    /// The wire-level request target this client is currently pointed at: the active host's own
+    /// URL, or - while fronting has selected one - that front's URL instead. See
+    /// [`Self::current_front_host`] for just the front's host.
+    #[cfg(feature = "tunneling")]
+    pub fn current_url_str(&self) -> &str {
+        let idx = self.current_idx.load(Ordering::Relaxed);
+        let url = &self.base_urls[idx];
+        if self.front.is_enabled() {
+            self.rotation
+                .as_str(idx, url, self.front.include_non_fronted_in_rotation())
+        } else {
+            url.inner_url().as_str()
+        }
+    }
+
+    /// The front host (domain or IP) currently selected for the active base url, if fronting has
+    /// selected one for it.
+    #[cfg(feature = "tunneling")]
+    pub fn current_front_host(&self) -> Option<&str> {
+        let idx = self.current_idx.load(Ordering::Relaxed);
+        self.dynamic_front_str(idx, &self.base_urls[idx])
+    }
+
+    /// Get the currently configured host that this client uses when sending API requests.
+    pub fn base_urls(&self) -> &[Url] {
+        &self.base_urls
+    }
+
+    /// Get a mutable reference to the hosts that this client uses when sending API requests.
+    pub fn base_urls_mut(&mut self) -> &mut [Url] {
+        &mut self.base_urls
+    }
+
+    /// Change the currently configured limit on the number of retries for a request.
+    pub fn change_retry_limit(&mut self, limit: usize) {
+        self.retry_limit = limit;
+    }
+
+    /// The front host currently selected for host `idx`, according to whichever of
+    /// [`RotationManager::front_str`] / [`RotationManager::active_rotation_front_str`] applies
+    /// under the configured fronting policy, or `None` if fronting is currently disabled.
+    ///
+    /// The `None`-when-disabled check happens here rather than relying on every caller to check
+    /// [`Front::is_enabled`] first: the rotation slot is only reset by [`Self::update_host`]
+    /// while fronting is enabled, so once fronting is turned off it keeps pointing at whatever
+    /// front was last selected until the next successful rotation - callers must not mistake
+    /// that stale slot for an active front.
+    ///
+    /// Takes `idx`/`url` explicitly (rather than re-reading `current_idx`) so that callers can
+    /// pin a single consistent snapshot of the active host - see the comment on
+    /// [`Self::apply_hosts_to_req`] about avoiding TOCTOU races across rotations.
+    #[cfg(feature = "tunneling")]
+    fn dynamic_front_str<'a>(&self, idx: usize, url: &'a Url) -> Option<&'a str> {
+        if !self.front.is_enabled() {
+            return None;
+        }
+        if self.front.include_non_fronted_in_rotation() {
+            self.rotation.active_rotation_front_str(idx, url)
+        } else {
+            self.rotation.front_str(idx, url)
+        }
+    }
+
+    #[cfg(feature = "tunneling")]
+    fn matches_current_host(&self, url: &Url) -> bool {
+        let idx = self.current_idx.load(Ordering::Relaxed);
+        let current = &self.base_urls[idx];
+
+        // Only compare against the front host if the current url actually has one configured -
+        // otherwise requests to it go out unfronted, so the offending host will be the real one.
+        if self.front.is_enabled() && current.has_front() {
+            let active_front = self.dynamic_front_str(idx, current);
+
+            match active_front {
+                Some(_) => url.host_str() == active_front,
+                None => url.host_str() == current.host_str(),
+            }
+        } else {
+            url.host_str() == current.host_str()
+        }
+    }
+
+    #[cfg(not(feature = "tunneling"))]
+    fn matches_current_host(&self, url: &Url) -> bool {
+        url.host_str() == self.current_url().host_str()
+    }
+
+    /// If multiple base urls are available rotate to next (e.g. when the current one resulted in an error)
+    ///
+    /// Takes an optional URL argument. If this is none, the current host will be updated automatically.
+    /// If a url is provided first check that the CURRENT host matches the hostname in the URL before
+    /// triggering a rotation. This is meant to prevent parallel requests that fail from rotating the host
+    /// multiple times.
+    fn update_host(&self, maybe_url: Option<Url>) {
+        // If a causal url is provided and it doesn't match the hostname currently in use, skip update.
+        if let Some(err_url) = maybe_url
+            && !self.matches_current_host(&err_url)
+        {
+            return;
+        }
+
+        #[cfg(feature = "tunneling")]
+        if self.front.is_enabled() {
+            let idx = self.current_idx.load(Ordering::Relaxed);
+            let url = &self.base_urls[idx];
+
+            if self.front.include_non_fronted_in_rotation() {
+                // each host gets a turn shown directly before cycling through its fronts one at
+                // a time - only rotate away once the direct turn and every front are exhausted.
+                if url.has_front() && self.rotation.take_rotation_turn(idx, url) {
+                    return;
+                }
+            } else if url.has_front() && !self.rotation.update(idx, url) {
+                // if we are using fronting, try updating to the next front. If one is available
+                // we swapped to it for the current host, otherwise we move on and try the next
+                // base url (if one is available)
+                return;
+            }
+        }
+
+        if self.base_urls.len() > 1 {
+            let orig = self.current_idx.load(Ordering::Relaxed);
+
+            #[allow(unused_mut)]
+            let mut next = (orig + 1) % self.base_urls.len();
+
+            // if fronting is enabled we want to update to a host that has fronts configured,
+            // unless the policy explicitly allows non-fronted domains into the rotation.
+            #[cfg(feature = "tunneling")]
+            if self.front.is_enabled() && !self.front.include_non_fronted_in_rotation() {
+                while next != orig {
+                    if self.base_urls[next].has_front() {
+                        // we have a front for the next host, so we can use it
+                        break;
+                    }
+
+                    next = (next + 1) % self.base_urls.len();
+                }
+            }
+
+            self.current_idx.store(next, Ordering::Relaxed);
+            debug!(
+                "http client rotating host {} -> {}",
+                self.base_urls[orig], self.base_urls[next]
+            );
+        }
+    }
+
+    /// Make modifications to the request to apply the current state of this client i.e. the
+    /// currently configured host. This is required as a caller may use this client to create a
+    /// request, but then have the state of the client change before the caller uses the client to
+    /// send their request.
+    ///
+    /// This enures that the outgoing requests benefit from the configured fallback mechanisms, even
+    /// for requests that were created before the state of the client changed.
+    ///
+    /// This method assumes that any updates to the state of the client are made before the call to
+    /// this method. For example, if the client is configured to rotate hosts after each error, this
+    /// method should be called after the host has been updated -- i.e. as part of the subsequent
+    /// send.
+    pub(crate) fn apply_hosts_to_req(
+        &self,
+        r: &mut reqwest::Request,
+    ) -> (Option<&str>, Option<&str>) {
+        // Read `current_idx` exactly once and derive everything below - including any rotation
+        // state lookups - from this pinned `(idx, url)` snapshot. Reading it again later could
+        // observe a different host if a rotation is interleaved in between.
+        let idx = self.current_idx.load(Ordering::Relaxed);
+        let url = &self.base_urls[idx];
+        let domain = url.host_str();
+        r.url_mut().set_host(domain).unwrap();
+
+        // A caller-supplied `Host` header takes priority: we must not clobber it, nor simply
+        // strip it (that would just let the underlying HTTP client fall back to a `Host` header
+        // of its own choosing, derived from the request URL -- which may be the front's host).
+        let caller_overrode_host = host_header::overridden_by_caller(r);
+
+        #[cfg(feature = "tunneling")]
+        if self.front.is_enabled() {
+            let front_host = self.dynamic_front_str(idx, url);
+
+            if let Some(front_host) = front_host {
+                if let Some(actual_host) = url.host_str() {
+                    tracing::debug!(
+                        "Domain fronting enabled: routing via CDN {} to actual host {}",
+                        front_host,
+                        actual_host
+                    );
+
+                    // this should never fail as we are transplanting the host from one url to another
+                    r.url_mut().set_host(Some(front_host)).unwrap();
+
+                    if caller_overrode_host {
+                        warn!(
+                            front = front_host,
+                            actual_host,
+                            "caller supplied a Host header on a fronted request; domain fronting \
+                             relies on the Host header matching the actual backend host, so this \
+                             request will likely fail to route through the CDN",
+                        );
+                        host_header::collapse_override(r);
+                    } else {
+                        host_header::set(r, Some(actual_host));
+                    }
+
+                    // Set a custom header to capture the outer host (used in the SNI) of the request
+                    let front_host_header: HeaderValue =
+                        front_host.parse().unwrap_or(HeaderValue::from_static(""));
+                    _ = r
+                        .headers_mut()
+                        .insert(NYM_OUTER_SNI_HEADER, front_host_header);
+
+                    return (domain, Some(front_host));
+                } else {
+                    tracing::debug!(
+                        "Domain fronting is enabled, but no host_url is defined for current URL"
+                    )
+                }
+            } else {
+                tracing::debug!(
+                    "Domain fronting is enabled, but current URL has no front_hosts configured"
+                )
+            }
+        }
+
+        // Ensure no stale fronting headers survive from a prior fronted attempt on this
+        // (possibly cloned/retried) request -- e.g. after a host rotation or a recovery to
+        // fronting-disabled. The caller's own `Host` header is left untouched.
+        if caller_overrode_host {
+            host_header::collapse_override(r);
+        } else {
+            host_header::set(r, None);
+        }
+        r.headers_mut().remove(NYM_OUTER_SNI_HEADER);
+
+        (domain, None)
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl ApiClientCore for Client {
+    #[instrument(level = "debug", skip_all, fields(path=?path))]
+    fn create_request<P, B, K, V>(
+        &self,
+        method: reqwest::Method,
+        path: P,
+        params: Params<'_, K, V>,
+        body: Option<&B>,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        B: Serialize + ?Sized,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        let url = self.current_url();
+        let url = sanitize_url(url, path, params);
+
+        let mut req = reqwest::Request::new(method, url.into());
+
+        self.apply_hosts_to_req(&mut req);
+        #[cfg(not(target_arch="wasm32"))] reviewed_network::guard_http(req.url()).map_err(HttpClientError::ReviewedNetworkRejected)?;
+
+        let client = if let Some(client) = &self.reqwest_client {
+            client.clone()
+        } else {
+            SHARED_CLIENT.clone()
+        };
+        let mut rb = RequestBuilder::from_parts(client, req);
+
+        rb = rb
+            .header(ACCEPT, self.serialization.content_type())
+            .header(CONTENT_TYPE, self.serialization.content_type());
+
+        if let Some(user_agent) = &self.custom_user_agent {
+            rb = rb.header(USER_AGENT, user_agent.clone());
+        }
+
+        if let Some(body) = body {
+            match self.serialization {
+                SerializationFormat::Json => {
+                    rb = rb.json(body);
+                }
+                SerializationFormat::Bincode => {
+                    let body = bincode::serialize(body)?;
+                    rb = rb.body(body);
+                }
+                SerializationFormat::Yaml => {
+                    let mut body_bytes = Vec::new();
+                    serde_yaml::to_writer(&mut body_bytes, &body)?;
+                    rb = rb.body(body_bytes);
+                }
+                SerializationFormat::Text => {
+                    let body = serde_plain::to_string(&body)?.as_bytes().to_vec();
+                    rb = rb.body(body);
+                }
+            }
+        }
+
+        Ok(rb)
+    }
+
+    async fn send(&self, request: RequestBuilder) -> Result<Response, HttpClientError> {
+        let mut attempts = 0;
+        loop {
+            // try_clone may fail if the body is a stream in which case using retries is not advised.
+            let r = request
+                .try_clone()
+                .ok_or(HttpClientError::AttemptedToCloneStreamRequest)?;
+
+            // apply any changes based on the current state of the client wrt. hosts,
+            // fronting domains, etc.
+            let mut req = r
+                .build()
+                .map_err(HttpClientError::reqwest_client_build_error)?;
+            let (domain, _front_used) = self.apply_hosts_to_req(&mut req);
+            #[cfg(not(target_arch="wasm32"))] reviewed_network::guard_http(req.url()).map_err(HttpClientError::ReviewedNetworkRejected)?;
+            let domain = domain.map(str::to_owned);
+            let url: Url = req.url().clone().into();
+            // internal bookkeeping only -- never sent on the wire.
+            req.headers_mut().remove(host_header::MANAGED_MARKER_HEADER);
+
+            let request_start = Instant::now();
+
+            #[cfg(target_arch = "wasm32")]
+            let response: Result<Response, HttpClientError> = {
+                let client = self
+                    .reqwest_client
+                    .as_ref()
+                    .unwrap_or_else(|| &*SHARED_CLIENT);
+                Ok(
+                    wasmtimer::tokio::timeout(self.request_timeout, client.execute(req))
+                        .await
+                        .map_err(|_timeout| HttpClientError::RequestTimeout)??,
+                )
+            };
+
+            #[cfg(not(target_arch = "wasm32"))]
+            let response = {
+                let client = self
+                    .reqwest_client
+                    .as_ref()
+                    .unwrap_or_else(|| &*SHARED_CLIENT);
+                if let Some(policy)=reviewed_network::current() {
+                    reviewed_network::clamp_request(&mut req).map_err(HttpClientError::ReviewedNetworkRejected)?;
+                    match policy.deadline.run(Duration::from_secs(20),||client.execute(req)).await { Ok(result)=>result, Err(_)=>return Err(HttpClientError::ReviewedNetworkRejected("policy deadline expired".into())) }
+                } else { client.execute(req).await }
+            };
+
+            match response {
+                Ok(resp) => {
+                    // Check if the response indicates that we are being rate limited
+                    if is_http_rate_limit_err(&resp) {
+                        warn!("encountered rate limit error for {}", url.as_str());
+                        // if we have multiple urls, update to the next
+                        self.maybe_rotate_hosts(Some(url.clone()));
+                    } else {
+                        // If fronting is enabled and we rotate through a non-fronted SNI that
+                        // succeeds it means that an API endpoint is working when accessed directly.
+                        // We then reset counters for fronting enable and begin state tracking anew.
+                        //
+                        // While HTTP failures (e.g. 400 404, 502, etc.) to non-fronted API calls
+                        // still indicate that the request "succeeded" from the point of view of
+                        // domain fronting this check requires that the HTTP request itself
+                        // succeeded (e.g. 2XX response).
+                        #[cfg(feature = "tunneling")]
+                        if _front_used.is_none()
+                            && self.front.is_enabled()
+                            && self.front.should_recover_on_non_fronted_success()
+                            && resp.status().is_success()
+                        {
+                            debug!(
+                                "non-fronted request to {} succeeded while fronting was enabled; disabling fronting and resetting retry counters",
+                                url.as_str()
+                            );
+                            self.front.recover();
+                        }
+                    }
+
+                    return Ok(resp);
+                }
+                Err(err) => {
+                    let last_network_reconfiguration =
+                        *SHARED_NETWORK_RECONFIGURATION.lock().unwrap();
+                    let network_reconfigured =
+                        last_network_reconfiguration.is_some_and(|last| last > request_start);
+
+                    #[cfg(target_arch = "wasm32")]
+                    let is_network_err = err.is_timeout();
+                    #[cfg(not(target_arch = "wasm32"))]
+                    let is_network_err = might_be_network_interference(&err);
+
+                    if is_network_err & !network_reconfigured {
+                        // if we have multiple urls, update to the next
+                        self.maybe_rotate_hosts(Some(url.clone()));
+
+                        #[cfg(feature = "tunneling")]
+                        self.maybe_enable_fronting(
+                            domain.as_deref(),
+                            ("network", url.as_str(), &err),
+                        );
+                    }
+
+                    if attempts < self.retry_limit {
+                        attempts += 1;
+                        warn!(
+                            "Retrying request due to http error on attempt ({attempts}/{}): {err}",
+                            self.retry_limit
+                        );
+                        continue;
+                    }
+
+                    // if we have exhausted our attempts, return the error
+                    cfg_if::cfg_if! {
+                        if #[cfg(target_arch = "wasm32")] {
+                            return Err(err);
+                        } else {
+                            return Err(HttpClientError::request_send_error(url.into(), err));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn maybe_rotate_hosts(&self, offending: Option<Url>) {
+        self.update_host(offending);
+    }
+
+    #[cfg(feature = "tunneling")]
+    fn maybe_enable_fronting(&self, domain: Option<&str>, context: impl std::fmt::Debug) {
+        // If fronting is set to be OnRetry or ConfiguredRetry, enable domain fronting as we
+        // have encountered an error.
+        let was_enabled = self.front.is_enabled();
+        self.front.retry_enable(domain);
+        if !was_enabled && self.front.is_enabled() {
+            tracing::debug!("Domain fronting activated after failure: {context:?}",);
+        }
+    }
+}
+
+/// Check for a rate limit response: a plain HTTP 429, a 503 with a `Retry-After` header, or a
+/// rate limit challenge response from the vercel API.
+pub(crate) fn is_http_rate_limit_err(resp: &Response) -> bool {
+    is_rate_limit_response(resp.status(), resp.headers())
+}
+
+fn is_rate_limit_response(status: StatusCode, headers: &HeaderMap) -> bool {
+    let too_many_reqs = status == StatusCode::TOO_MANY_REQUESTS;
+    let rate_limit_503 = is_throttled_service_unavailable(status, headers);
+    let vercel_backoff = is_vercel_rate_limit_challenge(status, headers);
+
+    too_many_reqs || rate_limit_503 || vercel_backoff
+}
+
+/// A 503 accompanied by `Retry-After` indicates the server is asking us to back off, as opposed
+/// to a plain 503 which may just mean the service is down.
+// One of the hosts that we use implements rate-limiting by sending responses with 429 status-code
+// initially, but then uses 503 with a `Retry-After` header. Using this check allows us to pivot
+// away from those API endpoints and hopefully escape the rate-limit related error state.
+//
+// This is not meant to handle the `Retry-After` and is only checked to determine if we might
+// benefit from rotating hosts (if there is more than one available).
+fn is_throttled_service_unavailable(status: StatusCode, headers: &HeaderMap) -> bool {
+    status == StatusCode::SERVICE_UNAVAILABLE && headers.contains_key(RETRY_AFTER)
+}
+
+const VERCEL_CHALLENGE_HEADER: &str = "x-vercel-mitigated";
+const VERCEL_CHALLENGE_VALUE: &[u8] = b"challenge";
+
+/// Check for a Rate Limit challenge response from the vercel API
+fn is_vercel_rate_limit_challenge(status: StatusCode, headers: &HeaderMap) -> bool {
+    let status = status == StatusCode::FORBIDDEN;
+    let header = headers
+        .get(VERCEL_CHALLENGE_HEADER)
+        .is_some_and(|v| v.as_bytes() == VERCEL_CHALLENGE_VALUE);
+    let content_type = headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<Mime>().ok())
+        .is_some_and(|mime_type| {
+            mime_type.type_() == mime::TEXT && mime_type.subtype() == mime::HTML
+        });
+
+    status && header && content_type
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+const MAX_ERR_SOURCE_ITERATIONS: usize = 6;
+
+/// This functions attempts to check the error returned by reqwest to see if rotating host
+/// information (for clients with multiple hosts defined) could be helpful. This looks for
+/// situations where the error could plausibly be caused by a network adversary, or where rotating
+/// to an equivalent hostname might help.
+///
+/// For example --> NetworkUnreachable will not be helped by rotating domains, but ConnectionReset
+/// might be caused by a network adversary blocking by SNI which could possibly benefit from
+/// rotating domains.
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn might_be_network_interference(err: &reqwest::Error) -> bool {
+    if err.is_timeout() {
+        return true;
+    }
+
+    if !(err.is_connect() || err.is_request()) {
+        return false;
+    }
+
+    // The io::Error source is several layers deep, for clarity this is done as a loop
+    // * reqwest::Error -> hyper_util::Error
+    // * hyper_util::Error -> hyper_util::ClientError
+    // * hyper_util::ClientError -> io::Error
+    let mut inner = err.source();
+    for _ in 0..MAX_ERR_SOURCE_ITERATIONS {
+        if let Some(e) = inner {
+            if let Some(io_err) = e.downcast_ref::<std::io::Error>() {
+                // try downcast to io::Error from <dyn std::error:Error>
+                match io_err.kind() {
+                    // device not connected to the internet
+                    ErrorKind::NetworkUnreachable | ErrorKind::NetworkDown => return false,
+                    // connection errors can indicate connection interference
+                    ErrorKind::ConnectionReset
+                    | ErrorKind::HostUnreachable
+                    | ErrorKind::ConnectionRefused => return true,
+                    // TLS errors get wrapped in custom io::Errors
+                    ErrorKind::Other | ErrorKind::InvalidData => {
+                        // io::Error get_ref works while source doesn't here -_-
+                        //   if you don't like it take it up with the rust devs https://users.rust-lang.org/t/question-about-implementation-of-std-source/121117
+                        inner = io_err.get_ref().map(|e| e as &dyn std::error::Error);
+                    }
+                    _ => return false,
+                }
+            } else if let Some(_tls_err) = e.downcast_ref::<rustls::Error>() {
+                // try downcast to TLS error
+                return true;
+            } else if let Some(resolve_err) = e.downcast_ref::<hickory_resolver::net::NetError>() {
+                // try downcast to DNS error. NXDOMAIN means the domain doesn't exist, SERVFAIL
+                // indicates a recurive lookup failure and is likely ephemeral but given that it is
+                // a failure within (expected reliable DoH/DoT) we rotate the domain.
+                return resolve_err.is_nx_domain()
+                    || matches!(
+                        resolve_err,
+                        hickory_resolver::net::NetError::Dns(
+                            hickory_resolver::net::DnsError::ResponseCode(
+                                hickory_resolver::proto::op::ResponseCode::ServFail
+                            )
+                        )
+                    );
+            } else if let Some(h2_err) = e.downcast_ref::<h2::Error>() {
+                // try downcast to a h2 (HTTP/2) error. hyper only wraps these as io::Error
+                // when they are actually backed by one (see `hyper::Error::new_h2`), so if we
+                // get here it's a protocol-level RST_STREAM or GOAWAY. TLS integrity protection
+                // means this can only have been sent by whichever party actually terminates the
+                // TLS connection - for a fronted request that's the front's CDN edge. So it
+                // indicates that host/front may have actively rejected the connection (e.g.
+                // detected fronting, rate limiting, or its own backend failing). This has enough
+                // potentially to continue breaking things that we should rotate hosts if we can.
+                return h2_err.is_remote() && (h2_err.is_reset() || h2_err.is_go_away());
+            } else {
+                inner = e.source();
+            }
+        } else {
+            break;
+        }
+    }
+
+    false
+}
+
+/// Common usage functionality for the http client.
+///
+/// These functions allow for cleaner downstream usage free of type parameters and unneeded imports.
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+pub trait ApiClient: ApiClientCore {
+    /// Create an HTTP GET Request with the provided path and parameters
+    fn create_get_request<P, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.create_request(reqwest::Method::GET, path, params, None::<&()>)
+    }
+
+    /// Create an HTTP POST Request with the provided path, parameters, and json body
+    fn create_post_request<P, B, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        B: Serialize + ?Sized,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.create_request(reqwest::Method::POST, path, params, Some(json_body))
+    }
+
+    /// Create an HTTP DELETE Request with the provided path and parameters
+    fn create_delete_request<P, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.create_request(reqwest::Method::DELETE, path, params, None::<&()>)
+    }
+
+    /// Create an HTTP PATCH Request with the provided path, parameters, and json body
+    fn create_patch_request<P, B, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<RequestBuilder, HttpClientError>
+    where
+        P: RequestPath,
+        B: Serialize + ?Sized,
+        K: AsRef<str>,
+        V: AsRef<str>,
+    {
+        self.create_request(reqwest::Method::PATCH, path, params, Some(json_body))
+    }
+
+    /// Create and send an HTTP GET Request with the provided path and parameters
+    #[instrument(level = "debug", skip_all, fields(path=?path))]
+    async fn send_get_request<P, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<Response, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        self.send_request(reqwest::Method::GET, path, params, None::<&()>)
+            .await
+    }
+
+    /// Create and send an HTTP POST Request with the provided path, parameters, and json data
+    async fn send_post_request<P, B, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<Response, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        B: Serialize + ?Sized + Sync,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        self.send_request(reqwest::Method::POST, path, params, Some(json_body))
+            .await
+    }
+
+    /// Create and send an HTTP DELETE Request with the provided path and parameters
+    async fn send_delete_request<P, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<Response, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        self.send_request(reqwest::Method::DELETE, path, params, None::<&()>)
+            .await
+    }
+
+    /// Create and send an HTTP PATCH Request with the provided path, parameters, and json data
+    async fn send_patch_request<P, B, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<Response, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        B: Serialize + ?Sized + Sync,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        self.send_request(reqwest::Method::PATCH, path, params, Some(json_body))
+            .await
+    }
+
+    /// 'get' json data from the segment-defined path, e.g. `["api", "v1", "mixnodes"]`, with tuple
+    /// defined key-value parameters, e.g. `[("since", "12345")]`. Attempt to parse the response
+    /// into the provided type `T`.
+    #[instrument(level = "debug", skip_all, fields(path=?path))]
+    // TODO: deprecate in favour of get_response that works based on mime type in the response
+    async fn get_json<P, T, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<T, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        for<'a> T: Deserialize<'a>,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        self.get_response(path, params).await
+    }
+
+    /// Attempt to parse a response object from an HTTP response
+    async fn parse_response<T>(
+        &self,
+        res: Response,
+        allow_empty: bool,
+    ) -> Result<T, HttpClientError>
+    where
+        T: DeserializeOwned,
+    {
+        let url = Url::from(res.url());
+        parse_response(res, allow_empty).await.inspect_err(|e| {
+            if matches!(
+                // if we encounter a read error while we attempt to parse it could be caused by censorship and we should
+                // rotate hosts / enable fronting.
+                e,
+                HttpClientError::ResponseReadFailure {
+                    url: _,
+                    headers: _,
+                    status: _,
+                    source: _,
+                }
+            ) {
+                self.maybe_rotate_hosts(Some(url.clone()));
+                #[cfg(feature = "tunneling")]
+                self.maybe_enable_fronting(url.host_str(), ("parse/read", url.as_str(), e));
+            }
+        })
+    }
+
+    /// 'get' data from the segment-defined path, e.g. `["api", "v1", "mixnodes"]`, with tuple
+    /// defined key-value parameters, e.g. `[("since", "12345")]`. Attempt to parse the response
+    /// into the provided type `T` based on the content type header
+    #[instrument(level = "debug", skip_all, fields(path=?path))]
+    async fn get_response<P, T, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<T, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        for<'a> T: Deserialize<'a>,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        let res = self
+            .send_request(reqwest::Method::GET, path, params, None::<&()>)
+            .await?;
+
+        self.parse_response(res, false).await
+    }
+
+    /// 'post' json data to the segment-defined path, e.g. `["api", "v1", "mixnodes"]`, with tuple
+    /// defined key-value parameters, e.g. `[("since", "12345")]`. Attempt to parse the response
+    /// into the provided type `T`.
+    async fn post_json<P, B, T, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<T, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        B: Serialize + ?Sized + Sync,
+        for<'a> T: Deserialize<'a>,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        let res = self
+            .send_request(reqwest::Method::POST, path, params, Some(json_body))
+            .await?;
+        self.parse_response(res, false).await
+    }
+
+    /// 'delete' json data from the segment-defined path, e.g. `["api", "v1", "mixnodes"]`, with
+    /// tuple defined key-value parameters, e.g. `[("since", "12345")]`. Attempt to parse the
+    /// response into the provided type `T`.
+    async fn delete_json<P, T, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+    ) -> Result<T, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        for<'a> T: Deserialize<'a>,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        let res = self
+            .send_request(reqwest::Method::DELETE, path, params, None::<&()>)
+            .await?;
+        self.parse_response(res, false).await
+    }
+
+    /// 'patch' json data at the segment-defined path, e.g. `["api", "v1", "mixnodes"]`, with tuple
+    /// defined key-value parameters, e.g. `[("since", "12345")]`. Attempt to parse the response
+    /// into the provided type `T`.
+    async fn patch_json<P, B, T, K, V>(
+        &self,
+        path: P,
+        params: Params<'_, K, V>,
+        json_body: &B,
+    ) -> Result<T, HttpClientError>
+    where
+        P: RequestPath + Send + Sync,
+        B: Serialize + ?Sized + Sync,
+        for<'a> T: Deserialize<'a>,
+        K: AsRef<str> + Sync,
+        V: AsRef<str> + Sync,
+    {
+        let res = self
+            .send_request(reqwest::Method::PATCH, path, params, Some(json_body))
+            .await?;
+        self.parse_response(res, false).await
+    }
+
+    /// `get` json data from the provided absolute endpoint, e.g. `"/api/v1/mixnodes?since=12345"`.
+    /// Attempt to parse the response into the provided type `T`.
+    async fn get_json_from<T, S>(&self, endpoint: S) -> Result<T, HttpClientError>
+    where
+        for<'a> T: Deserialize<'a>,
+        S: AsRef<str> + Sync + Send,
+    {
+        let req = self.create_request_endpoint(reqwest::Method::GET, endpoint, None::<&()>)?;
+        let res = self.send(req).await?;
+        self.parse_response(res, false).await
+    }
+
+    /// `post` json data to the provided absolute endpoint, e.g. `"/api/v1/mixnodes?since=12345"`.
+    /// Attempt to parse the response into the provided type `T`.
+    async fn post_json_data_to<B, T, S>(
+        &self,
+        endpoint: S,
+        json_body: &B,
+    ) -> Result<T, HttpClientError>
+    where
+        B: Serialize + ?Sized + Sync,
+        for<'a> T: Deserialize<'a>,
+        S: AsRef<str> + Sync + Send,
+    {
+        let req = self.create_request_endpoint(reqwest::Method::POST, endpoint, Some(json_body))?;
+        let res = self.send(req).await?;
+        self.parse_response(res, false).await
+    }
+
+    /// `delete` json data from the provided absolute endpoint, e.g.
+    /// `"/api/v1/mixnodes?since=12345"`. Attempt to parse the response into the provided type `T`.
+    async fn delete_json_from<T, S>(&self, endpoint: S) -> Result<T, HttpClientError>
+    where
+        for<'a> T: Deserialize<'a>,
+        S: AsRef<str> + Sync + Send,
+    {
+        let req = self.create_request_endpoint(reqwest::Method::DELETE, endpoint, None::<&()>)?;
+        let res = self.send(req).await?;
+        self.parse_response(res, false).await
+    }
+
+    /// `patch` json data at the provided absolute endpoint, e.g. `"/api/v1/mixnodes?since=12345"`.
+    /// Attempt to parse the response into the provided type `T`.
+    async fn patch_json_data_at<B, T, S>(
+        &self,
+        endpoint: S,
+        json_body: &B,
+    ) -> Result<T, HttpClientError>
+    where
+        B: Serialize + ?Sized + Sync,
+        for<'a> T: Deserialize<'a>,
+        S: AsRef<str> + Sync + Send,
+    {
+        let req =
+            self.create_request_endpoint(reqwest::Method::PATCH, endpoint, Some(json_body))?;
+        let res = self.send(req).await?;
+        self.parse_response(res, false).await
+    }
+}
+
+#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
+#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
+impl<C> ApiClient for C where C: ApiClientCore + Sync {}
+
+/// utility function that should solve the double slash problem in API urls forever.
+fn sanitize_url<K: AsRef<str>, V: AsRef<str>>(
+    base: &Url,
+    request_path: impl RequestPath,
+    params: Params<'_, K, V>,
+) -> Url {
+    let mut url = base.clone();
+    let mut path_segments = url
+        .path_segments_mut()
+        .expect("provided validator url does not have a base!");
+
+    path_segments.pop_if_empty();
+
+    for segment in request_path.to_sanitized_segments() {
+        path_segments.push(segment);
+    }
+
+    // I don't understand why compiler couldn't figure out that it's no longer used
+    // and can be dropped
+    drop(path_segments);
+
+    if !params.is_empty() {
+        url.query_pairs_mut().extend_pairs(params);
+    }
+
+    url
+}
+
+fn decode_as_text(bytes: &bytes::Bytes, headers: &HeaderMap) -> String {
+    use encoding_rs::{Encoding, UTF_8};
+
+    let content_type = try_get_mime_type(headers);
+
+    let encoding_name = content_type
+        .as_ref()
+        .and_then(|mime| mime.get_param("charset").map(|charset| charset.as_str()))
+        .unwrap_or("utf-8");
+
+    let encoding = Encoding::for_label(encoding_name.as_bytes()).unwrap_or(UTF_8);
+
+    let (text, _, _) = encoding.decode(bytes);
+    text.into_owned()
+}
+
+/// Attempt to parse a response object from an HTTP response
+#[instrument(level = "debug", skip_all)]
+pub async fn parse_response<T>(res: Response, allow_empty: bool) -> Result<T, HttpClientError>
+where
+    T: DeserializeOwned,
+{
+    let status = res.status();
+    let headers = res.headers().clone();
+    let url = res.url().clone();
+
+    tracing::trace!("status: {status} (success: {})", status.is_success());
+    tracing::trace!("headers: {headers:?}");
+
+    if !allow_empty && let Some(0) = res.content_length() {
+        return Err(HttpClientError::EmptyResponse {
+            url: Box::new(url),
+            status,
+            headers: Box::new(headers),
+        });
+    }
+
+    if res.status().is_success() {
+        // internally reqwest is first retrieving bytes and then performing parsing via serde_json
+        // (and similarly does the same thing for text())
+        let full = res
+            .bytes()
+            .await
+            .map_err(|source| HttpClientError::ResponseReadFailure {
+                url: Box::new(url),
+                headers: Box::new(headers.clone()),
+                status,
+                source: ReqwestErrorWrapper(source),
+            })?;
+        decode_raw_response(&headers, full)
+    } else if res.status() == StatusCode::NOT_FOUND {
+        Err(HttpClientError::NotFound { url: Box::new(url) })
+    } else if is_http_rate_limit_err(&res) {
+        Err(HttpClientError::EndpointFailure {
+            url: Box::new(url),
+            status,
+            headers: Box::new(headers),
+            error: String::from("received rate limit response"),
+        })
+    } else {
+        let Ok(plaintext) = res.text().await else {
+            return Err(HttpClientError::RequestFailure {
+                url: Box::new(url),
+                status,
+                headers: Box::new(headers),
+            });
+        };
+
+        Err(HttpClientError::EndpointFailure {
+            url: Box::new(url),
+            status,
+            headers: Box::new(headers),
+            error: plaintext,
+        })
+    }
+}
+
+fn decode_as_json<T>(headers: &HeaderMap, content: Bytes) -> Result<T, HttpClientError>
+where
+    T: DeserializeOwned,
+{
+    match serde_json::from_slice(&content) {
+        Ok(data) => Ok(data),
+        Err(err) => {
+            let content = decode_as_text(&content, headers);
+            Err(HttpClientError::ResponseDecodeFailure {
+                message: err.to_string(),
+                content,
+            })
+        }
+    }
+}
+
+fn decode_as_bincode<T>(headers: &HeaderMap, content: Bytes) -> Result<T, HttpClientError>
+where
+    T: DeserializeOwned,
+{
+    use bincode::Options;
+
+    let opts = nym_http_api_common::make_bincode_serializer();
+    match opts.deserialize(&content) {
+        Ok(data) => Ok(data),
+        Err(err) => {
+            let content = decode_as_text(&content, headers);
+            Err(HttpClientError::ResponseDecodeFailure {
+                message: err.to_string(),
+                content,
+            })
+        }
+    }
+}
+
+fn decode_raw_response<T>(headers: &HeaderMap, content: Bytes) -> Result<T, HttpClientError>
+where
+    T: DeserializeOwned,
+{
+    // if content type header is missing, fallback to our old default, json
+    let mime = try_get_mime_type(headers).unwrap_or(mime::APPLICATION_JSON);
+
+    debug!("attempting to parse response as {mime}");
+
+    // unfortunately we can't use stronger typing for subtype as "bincode" is not a defined mime type
+    match (mime.type_(), mime.subtype().as_str()) {
+        (mime::APPLICATION, "json") => decode_as_json(headers, content),
+        (mime::APPLICATION, "bincode") => decode_as_bincode(headers, content),
+        (_, _) => {
+            debug!("unrecognised mime type {mime}. falling back to json decoding...");
+            decode_as_json(headers, content)
+        }
+    }
+}
+
+fn try_get_mime_type(headers: &HeaderMap) -> Option<Mime> {
+    headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<Mime>().ok())
+}
+
+#[cfg(test)]
+mod tests;

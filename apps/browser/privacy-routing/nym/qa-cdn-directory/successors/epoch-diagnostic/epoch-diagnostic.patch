@@ -1,0 +1,143 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -2,12 +2,16 @@
+ use std::{collections::{BTreeMap,BTreeSet}, error::Error, fs::File, io::Read, path::PathBuf};
+ use nym_crypto::{Digest,sha2::Sha256};
+ use nym_validator_client::{qa_directory as transport, nym_nodes::{BasicEntryInformation,PaginatedCachedNodesResponseV2,SkimmedNodeV1,NodeRole}, pagination::PaginatedResponse, models::described::v2::NymNodeDescriptionV2};
++
++#[path="qa_epoch_diagnostic.rs"] mod qa_epoch_diagnostic;
++static EPOCH_METADATA_ONLY: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+ 
+ #[derive(clap::Args)]
+ pub(crate) struct Args {
+     #[clap(long)] plan: PathBuf,
+     #[clap(long)] plan_sha256: String,
+     #[clap(long)] run_id: String,
++    #[clap(long, hide=true)] epoch_metadata_only: bool,
+ }
+ pub(crate) fn install(args:&Args) -> Result<(),Box<dyn Error+Send+Sync>> {
+     use std::os::unix::fs::MetadataExt;
+@@ -23,7 +27,8 @@
+     let mut bytes=Vec::new();file.by_ref().take(4097).read_to_end(&mut bytes)?;
+     let digest=Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>();
+     if bytes.len()>4096 || args.plan_sha256.len()!=64 || digest!=args.plan_sha256 {return Err("qa-directory-plan-sha".into())}
+-    transport::install(&bytes,&args.run_id)?;Ok(())
++    transport::install(&bytes,&args.run_id)?;
++    EPOCH_METADATA_ONLY.set(args.epoch_metadata_only).map_err(|_|"qa-directory-repeated-mode")?;Ok(())
+ }
+ 
+ fn complete<T>(page:&PaginatedResponse<T>) -> bool {
+@@ -71,15 +76,10 @@
+ }
+ fn validate_snapshot(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>, described:&PaginatedResponse<NymNodeDescriptionV2>, epoch:&serde_json::Value) -> Result<(),String> {
+     if !complete(&basic.nodes) || !complete(described) || basic.metadata.status.is_some() {return Err("qa-directory-incomplete-or-no-updates".into())}
+-    let now=time::OffsetDateTime::now_utc();
+-    let start=epoch["current_epoch_start"].as_str().and_then(|v|time::OffsetDateTime::parse(v,&time::format_description::well_known::Rfc3339).ok()).ok_or("qa-directory-epoch-start")?;
+-    let seconds=epoch["epoch_length"]["secs"].as_i64().ok_or("qa-directory-epoch-length")?;
+-    if !(600..=86400).contains(&seconds) || epoch["epoch_length"]["nanos"].as_u64()!=Some(0)
+-        || epoch["total_elapsed_epochs"].as_u64()!=Some(basic.metadata.absolute_epoch_id as u64)
+-        || start>now || start+time::Duration::seconds(seconds)<=now+time::Duration::seconds(300)
+-    {return Err("qa-directory-stale-epoch".into())}
+-    let refreshed=basic.metadata.refreshed_at();
+-    if refreshed>now+time::Duration::seconds(5) || now-refreshed>time::Duration::seconds(seconds) {return Err("qa-directory-stale-metadata".into())}
++    let observation=qa_epoch_diagnostic::inspect(basic.metadata.absolute_epoch_id as u64,basic.metadata.refreshed_at(),epoch,time::OffsetDateTime::now_utc());
++    // Only finite public time/ID fields, never arbitrary errors or node data.
++    eprintln!("YNX_NYM_QA_EPOCH_DIAGNOSTIC_V1 {}",observation.data("not-a-permit"));
++    if let Some(error)=observation.legacy_error {return Err(error.into())}
+     let mut full=BTreeMap::new();let mut identities=BTreeMap::new();
+     for node in &described.data {
+         let key=node.ed25519_identity_key().to_base58_string();
+@@ -180,6 +180,17 @@
+     let described=fetch_described(&mut session).await?;
+     let epoch_bytes=session.fetch(transport::Resource::Epoch).await?;
+     let epoch:serde_json::Value=serde_json::from_slice(&epoch_bytes).map_err(|_|"qa-directory-epoch-type")?;
++    if EPOCH_METADATA_ONLY.get().copied().unwrap_or(false) {
++        let observation=qa_epoch_diagnostic::inspect(basic.metadata.absolute_epoch_id as u64,basic.metadata.refreshed_at(),&epoch,time::OffsetDateTime::now_utc());
++        let bytes=serde_json::to_vec(&observation.data(session.run_id()))?;
++        if bytes.len()>4096 {return Err("qa-directory-epoch-diagnostic-size".into())}
++        session.require_live()?;
++        use std::io::Write;
++        let mut stdout=std::io::stdout().lock();stdout.write_all(&bytes)?;stdout.write_all(b"\n")?;stdout.flush()?;
++        session.require_live()?;
++        if let Some(error)=observation.legacy_error {return Err(error.into())}
++        return Ok(())
++    }
+     validate_snapshot(&basic,&described,&epoch)?;session.require_live()?;
+     let (entries,exits)=typed_candidate_ids(&basic,&described)?;
+     // Exact original DATA envelope; never a proof of route/NE/normal authorization.
+--- /dev/null
++++ b/clients/socks5/src/commands/qa_epoch_diagnostic.rs
+@@ -0,0 +1,73 @@
++//! Public epoch DATA only. No identity, IP, token, profile, node or admission fields.
++use serde_json::{json, Value};
++use time::{Duration, OffsetDateTime, format_description::well_known::Rfc3339};
++
++pub(super) struct Observation {
++    pub reason: &'static str,
++    pub legacy_error: Option<&'static str>,
++    values: Value,
++}
++fn utc(value: OffsetDateTime) -> String {
++    value.format(&Rfc3339).unwrap_or_else(|_| "NOT_FORMATTABLE".into())
++}
++impl Observation {
++    pub fn data(&self, run_id: &str) -> Value {
++        let mut value = self.values.clone();
++        let fields = value.as_object_mut().unwrap();
++        fields.insert("schema".into(), json!("YNX_NYM_QA_EPOCH_DIAGNOSTIC_V1"));
++        fields.insert("NoProductionAuthority".into(), json!(true));
++        fields.insert("diagnosticOnly".into(), json!(true));
++        fields.insert("runID".into(), json!(run_id));
++        fields.insert("reason".into(), json!(self.reason));
++        fields.insert("legacyError".into(), json!(self.legacy_error));
++        value
++    }
++}
++
++/// Same old ordered predicates and exact boundaries. Source hashes refer to the
++/// fixed official Interval and NodesResponseMetadata types, not to a self hash.
++pub(super) fn inspect(basic_id: u64, refreshed: OffsetDateTime, epoch: &Value, now: OffsetDateTime) -> Observation {
++    let start = epoch["current_epoch_start"].as_str()
++        .and_then(|v| OffsetDateTime::parse(v, &Rfc3339).ok());
++    let seconds = epoch["epoch_length"]["secs"].as_i64();
++    let nanos = epoch["epoch_length"]["nanos"].as_u64();
++    let epoch_id = epoch["total_elapsed_epochs"].as_u64();
++    let end = start.zip(seconds.filter(|s| (600..=86400).contains(s)))
++        .and_then(|(s, length)| s.checked_add(Duration::seconds(length)));
++    let remaining_ms = end.map(|end| (end-now).whole_milliseconds().to_string());
++    let (reason, legacy_error) = if start.is_none() {
++        ("epoch_start_invalid", Some("qa-directory-epoch-start"))
++    } else if seconds.is_none() {
++        ("epoch_length_missing_or_type", Some("qa-directory-epoch-length"))
++    } else if !(600..=86400).contains(&seconds.unwrap()) {
++        ("epoch_length_out_of_range", Some("qa-directory-stale-epoch"))
++    } else if nanos != Some(0) {
++        ("epoch_nanos_not_zero", Some("qa-directory-stale-epoch"))
++    } else if epoch_id != Some(basic_id) {
++        ("epoch_id_mismatch_or_missing", Some("qa-directory-stale-epoch"))
++    } else if start.unwrap() > now {
++        ("epoch_start_in_future", Some("qa-directory-stale-epoch"))
++    } else if end.is_none() {
++        // Reject a representable start whose end overflows, rather than panic.
++        ("epoch_end_out_of_range", Some("qa-directory-stale-epoch"))
++    } else if end.unwrap() <= now+Duration::seconds(300) {
++        ("epoch_remaining_not_above_300s", Some("qa-directory-stale-epoch"))
++    } else if refreshed > now+Duration::seconds(5) {
++        ("metadata_refresh_in_future", Some("qa-directory-stale-metadata"))
++    } else if now-refreshed > Duration::seconds(seconds.unwrap()) {
++        ("metadata_refresh_older_than_epoch_length", Some("qa-directory-stale-metadata"))
++    } else {
++        ("epoch_and_metadata_predicates_passed", None)
++    };
++    Observation { reason, legacy_error, values: json!({
++        "sourceHash":"3958eb64c35bbb69a8fbad0754554d1d4a2dcfd634f1c170b17eaab8e16d243c",
++        "metadataSourceHash":"6571bfabcefe7d274bc02e01a993d4656cd8d8c534f7693d748450b87cbafcce",
++        "basicAbsoluteEpochID":basic_id,"totalElapsedEpochs":epoch_id,
++        "epochLengthSeconds":seconds,"epochLengthNanos":nanos,
++        "currentEpochStartUTC":start.map(utc),"epochEndUTC":end.map(utc),
++        "nowUTC":utc(now),"nowUnixMilliseconds":now.unix_timestamp_nanos().div_euclid(1_000_000).to_string(),
++        "remainingMilliseconds":remaining_ms,"minimumRemainingSeconds":300,
++        "refreshedAtUTC":utc(refreshed),
++        "metadataAgeMilliseconds":(now-refreshed).whole_milliseconds().to_string()
++    }) }
++}

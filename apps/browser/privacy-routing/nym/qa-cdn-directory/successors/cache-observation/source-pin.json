@@ -1,0 +1,19 @@
+{
+  "schema": "P05_NYM_QA_CACHE_OBSERVATION_SUCCESSOR_V1",
+  "originalReleaseSHA256": "855806ef6f5d22ad00ca5f144f4b5fb1a06f21e5a082e44984d02642cecc5798",
+  "originalSourceManifestSHA256": "65838e1371153c3ac7a497bf628082115c5b1a7fbe87426effe0a9d9c0951055",
+  "cargoLockSHA256": "29275bf9e41f6d6acad87f4737b5640e89ada39e0d7752a9211d04fec7871558",
+  "files": {
+    "common/http-api-client/src/qa_directory.rs": {
+      "before": "3f728e516cf12a6b69dd1039e71f583a4a99897aa5b31b7cd846ae88548bde69",
+      "after": "26229b535bb5249c124b588126a126d520432ec2337160e726305e6b9507fc4b"
+    },
+    "common/http-api-client/src/qa_cache_observation.rs": {
+      "before": null,
+      "after": "f0b554213674279709176cbd4d8f28cebbf55e61f5565b07f6234862c9a50696"
+    }
+  },
+  "patchSHA256": "5b9112e8061de894fde4ad9537e752601f44d5f68aab3d837d633c2c96896a2f",
+  "observerSHA256": "cd7a9bebd2d557242502eaa3ddd0cb2bbc0a00398f3c37fe4c7efae9f4226a39",
+  "networkAndProductionPolicyChanged": false
+}

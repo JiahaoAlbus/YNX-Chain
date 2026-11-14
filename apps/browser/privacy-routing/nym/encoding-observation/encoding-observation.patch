@@ -1,0 +1,67 @@
+--- a/common/http-api-client/src/reviewed_network.rs
++++ b/common/http-api-client/src/reviewed_network.rs
+@@ -109,6 +109,46 @@
+         .build().map_err(|e|Box::new(e) as Box<dyn std::error::Error+Send+Sync>)
+ }
+ 
++/// Fixed vocabulary only. Reqwest adds its automatic Accept-Encoding later, inside
++/// tower-http's request middleware, so absence here is NOT absence on the wire.
++pub fn directory_request_header_diagnostics(request:&reqwest::Request)->String {
++    use reqwest::header::ACCEPT_ENCODING;
++    let values=request.headers().get_all(ACCEPT_ENCODING);
++    let mut iter=values.iter();
++    let value=match (iter.next(),iter.next()) {
++        (None,_)=>"absent_before_middleware",
++        (Some(value),None) if value.as_bytes().len()<=128=>"explicit_bounded",
++        _=>"multiple_or_oversized",
++    };
++    format!("view=request_before_middleware accept_encoding={value} wire_accept_encoding=not_observed")
++}
++
++/// Decompression can remove Content-Encoding/Content-Length before this response
++/// reaches us. Never label these application-visible fields as original wire headers.
++pub fn directory_response_header_diagnostics(response:&reqwest::Response)->String {
++    use reqwest::header::{CONTENT_ENCODING,CONTENT_LENGTH,CONTENT_TYPE,VARY};
++    let headers=response.headers();
++    let mut values=headers.get_all(CONTENT_ENCODING).iter();
++    let encoding=match (values.next(),values.next()) {
++        (None,_)=>"absent_after_middleware",
++        (Some(value),None)=>match value.to_str().ok().filter(|x|x.len()<=32) {
++            Some("gzip")=>"gzip",Some("br")=>"br",Some("zstd")=>"zstd",Some("deflate")=>"deflate",Some("identity")=>"identity",_=>"other",
++        },
++        _=>"multiple",
++    };
++    let mut values=headers.get_all(CONTENT_LENGTH).iter();
++    let length=match (values.next(),values.next()) {
++        (Some(value),None)=>value.to_str().ok().filter(|x|!x.is_empty() && x.len()<=20 && x.bytes().all(|v|v.is_ascii_digit())).and_then(|x|x.parse::<u64>().ok()),
++        _=>None,
++    };
++    let mime=match headers.get(CONTENT_TYPE).and_then(|x|x.to_str().ok()).filter(|x|x.len()<=64).map(|x|x.split(';').next().unwrap_or("").trim()) {
++        Some("application/bincode")=>"bincode",Some("application/json")=>"json",None=>"missing_or_invalid",_=>"other",
++    };
++    let vary=if headers.get_all(VARY).iter().filter_map(|x|x.to_str().ok()).filter(|x|x.len()<=512)
++        .any(|x|x.split(',').any(|x|x.trim().eq_ignore_ascii_case("accept-encoding"))) {"accept_encoding"} else {"not_observed"};
++    format!("view=response_after_decompression wire_headers=not_observable content_encoding={encoding} header_length={length:?} decoded_length_hint={:?} mime={mime} vary={vary}",response.content_length())
++}
++
+ /// Official versioned API bincode uses little-endian varints. Reject over-budget input
+ /// before decoding, and reject trailing bytes rather than accepting a valid prefix.
+ pub fn decode_directory_bincode<T:serde::de::DeserializeOwned>(bytes:&[u8])->Result<T,String> {
+--- a/clients/socks5/src/commands/reviewed.rs
++++ b/clients/socks5/src/commands/reviewed.rs
+@@ -37,6 +37,7 @@
+     attempt.phase(Phase::RequestBuild); log::info!("{}",attempt.record());
+     let mut request=client.get(url).build()
+         .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
++    log::info!("{} event=request_headers {}",attempt.record(),reviewed_network::directory_request_header_diagnostics(&request));
+     log::info!("{} event=request_prepared",attempt.record());
+     let header_budget=attempt.remaining().map_err(|e|attempt.failure(e,None))?;
+     let absolute_budget=policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
+@@ -53,6 +54,7 @@
+         .map_err(|e|attempt.failure(Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()},Some(Box::new(e))))?;
+     attempt.status(response.status().as_u16());
+     attempt.length_hint(response.content_length());
++    log::info!("{} event=response_headers {}",attempt.record(),reviewed_network::directory_response_header_diagnostics(&response));
+     if response.status().as_u16()!=200 {return Err(attempt.failure(Failure::Status,None).into())}
+     if response.content_length().is_some_and(|x|x>4_194_304) {return Err(attempt.failure(Failure::BodyLimit,None).into())}
+     if compact && !response.headers().get("content-type").and_then(|x|x.to_str().ok())

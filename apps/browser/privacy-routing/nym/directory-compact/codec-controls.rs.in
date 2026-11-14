@@ -1,0 +1,18 @@
+extern crate self as nym_validator_client;
+pub use actual_validator::{models,pagination};
+pub use original_http::{reviewed_policy,reviewed_map,expiry_deadline,tls};
+#[path="@NETWORK@"] pub mod reviewed_network;
+#[path="@REVIEWED@"] mod reviewed;
+
+use nym_http_api_common::BincodeOptions;
+type Described=actual_validator::pagination::PaginatedResponse<actual_validator::models::described::v2::NymNodeDescriptionV2>;
+fn main(){
+ let key="11111111111111111111111111111111";
+ let model:Described=serde_json::from_value(serde_json::json!({"pagination":{"total":1,"page":0,"size":1},"data":[{"node_id":1,"contract_node_type":"nym_node","description":{"host_information":{"ip_address":["127.0.0.1"],"hostname":"fixture.invalid","keys":{"ed25519":key,"x25519":key,"current_x25519_sphinx_key":{"rotation_id":0,"public_key":key}}},"build_information":{"binary_name":"fixture","build_timestamp":"fixture","build_version":"fixture","commit_sha":"fixture","commit_timestamp":"fixture","commit_branch":"fixture","rustc_version":"fixture","rustc_channel":"fixture","cargo_profile":"fixture","cargo_triple":"fixture"},"mixnet_websockets":{"ws_port":80,"wss_port":443}}}]})).unwrap();
+ let bytes=nym_http_api_common::make_bincode_serializer().serialize(&model).unwrap();let value:Described=reviewed_network::decode_directory_bincode(&bytes).unwrap();assert_eq!(serde_json::to_value(value).unwrap(),serde_json::to_value(&model).unwrap());println!("PASS full_official_v2_node_roundtrip_to_original_json");
+ let mut trailing=bytes.clone();trailing.push(0);assert!(reviewed_network::decode_directory_bincode::<Described>(&trailing).is_err());println!("PASS trailing_bytes_rejected");
+ assert!(reviewed_network::decode_directory_bincode::<Described>(&vec![0;4194305]).is_err());println!("PASS oversize_input_rejected_before_decode");
+ assert!(reviewed_network::decode_directory_bincode::<Described>(&bytes[..bytes.len()-1]).is_err());println!("PASS truncated_schema_rejected");
+ assert!(reviewed_network::decode_directory_bincode::<Described>(&[1,0,1,1,1,99]).is_err());println!("PASS invalid_official_enum_rejected");
+ assert!(reviewed_network::decode_directory_bincode::<Described>(b"{\"data\":[]}").is_err());println!("PASS_json_not_silently_accepted_as_bincode");
+}

@@ -1,0 +1,17 @@
+
+pub async fn pagination_checks() -> usize {
+    let allowed=[(None,Resource::Basic(0)),(Some(Resource::Basic(0)),Resource::Basic(1)),(Some(Resource::Basic(79)),Resource::Described(0)),(Some(Resource::Described(0)),Resource::Described(1)),(Some(Resource::Described(79)),Resource::Epoch)];
+    let denied=[(None,Resource::Described(0)),(Some(Resource::Basic(0)),Resource::Basic(0)),(Some(Resource::Basic(0)),Resource::Basic(2)),(Some(Resource::Basic(79)),Resource::Basic(80)),(Some(Resource::Described(0)),Resource::Basic(1)),(Some(Resource::Described(79)),Resource::Described(80)),(Some(Resource::Epoch),Resource::Epoch)];
+    let mut count=0;for (before,next) in allowed {assert!(next.follows(before));count+=1}for (before,next) in denied {assert!(!next.follows(before));count+=1}
+    let clock=now().unwrap();let run="qa-dir-0123456789abcdef0123456789abcdef";
+    let value=serde_json::json!({"schema":"YNX_NYM_QA_CDN_DIRECTORY_V1","purpose":"fresh-complete-directory-only","runID":run,"issuedAt":clock,"expiresAt":clock+110,"networkDefaultsSHA256":SOURCE_SHA256,"origin":ORIGIN,"addresses":[IP]});
+    let input=validate(&serde_json::to_vec(&value).unwrap(),run,clock).unwrap();let plan=Box::leak(Box::new(Plan{deadline:AbsolutePolicyDeadline::from_unix_seconds(input.expires_at).unwrap(),input}));
+    let mut session=Session{plan,consumed:BTreeSet::new(),last:None,failed:false,received:0};
+    assert!(session.fetch(Resource::Epoch).await.is_err());assert!(session.failed);count+=1;
+    assert!(session.fetch(Resource::Basic(0)).await.unwrap_err().contains("failed-session"));assert!(session.consumed.is_empty());count+=1;
+    session.received=16_777_215;assert!(session.record_chunk(0,2).unwrap_err().contains("session-size"));assert_eq!(session.received,16_777_215);count+=1;
+    session.received=0;assert!(session.record_chunk(MAX_BODY,1).unwrap_err().contains("body-size"));assert_eq!(session.received,0);count+=1;
+    session.record_chunk(0,4).unwrap();assert_eq!(session.received,4);count+=1;
+    assert!(Resource::Basic(1).target().ends_with("?page=1&per_page=250"));assert!(Resource::Described(1).target().ends_with("?page=1&per_page=250&output=bincode"));count+=1;
+    println!("PASS qa_distinct_page_transport_and_cumulative_bound checks={count} network=NOT_RUN");count
+}

@@ -1,0 +1,32 @@
+#[path="@DIAGNOSTICS@"] mod diagnostics;
+#[path="@DEADLINE@"] mod deadline;
+use std::{time::{Duration,SystemTime,UNIX_EPOCH},cell::Cell};
+use diagnostics::{Attempt,Phase,Failure};
+use deadline::{AbsolutePolicyDeadline,DeadlineFailure};
+fn main() {
+ let rt=tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
+ rt.block_on(async {
+  let expiry=SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()+20;
+  let d=AbsolutePolicyDeadline::from_unix_seconds(expiry).unwrap();
+  let a=Attempt::new("basic",Some(0),Duration::from_millis(20));a.phase(Phase::AwaitHeaders);
+  let e=d.run(Duration::from_millis(20),||std::future::pending::<()>()).await;
+  assert_eq!(e,Err(DeadlineFailure::StepTimedOut));assert!(a.failure(Failure::StepTimedOut,None).to_string().contains("phase=AwaitHeaders"));
+  println!("PASS pending_headers_step_timeout");
+  let a=Attempt::new("basic",Some(0),Duration::from_millis(20));a.phase(Phase::Body);a.status(200);a.bytes(261800);
+  let e=d.run(Duration::from_millis(20),||std::future::pending::<()>()).await;
+  assert_eq!(e,Err(DeadlineFailure::StepTimedOut));let message=a.failure(Failure::StepTimedOut,None).to_string();assert!(message.contains("phase=Body") && message.contains("body_bytes=261800"));
+  println!("PASS partial_body_step_timeout");
+  let a=Attempt::new("basic",Some(0),Duration::from_millis(5));let requests=Cell::new(0);
+  let result=d.run(Duration::from_millis(20),||async {
+   std::thread::sleep(Duration::from_millis(8));
+   a.remaining()?;requests.set(requests.get()+1);Ok::<(),Failure>(())
+  }).await;
+  assert_eq!(result,Ok(Err(Failure::StepTimedOut)));assert_eq!(requests.get(),0);
+  println!("PASS preparation_overrun_zero_request");
+  let expires=SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()+1;
+  let d=AbsolutePolicyDeadline::from_unix_seconds(expires).unwrap();
+  let result=d.run(Duration::from_secs(2),||std::future::pending::<()>()).await;
+  assert_eq!(result,Err(DeadlineFailure::PolicyExpired));
+  println!("PASS absolute_expiry_distinct_from_step");
+ });
+}

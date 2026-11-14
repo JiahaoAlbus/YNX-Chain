@@ -1,0 +1,25 @@
+{
+  "schema": "YNX_NYM_DIRECTORY_COMPACT_SOURCE_V1",
+  "class": "YNX overlay successor candidate, not original official bytes",
+  "previousRuntimeSHA256": "e769b4e3c40a1b729dc0ab803570e93875014c6a80b87e032c53898dfc5949ef",
+  "baseCommit": "f92749c5f45bf1fdaacb824f9796bca2d641c6f9",
+  "cargoLockSHA256": "29275bf9e41f6d6acad87f4737b5640e89ada39e0d7752a9211d04fec7871558",
+  "files": {
+    "clients/socks5/src/commands/reviewed.rs": {
+      "before": "8a486fc7930f335e5115a8c6a9379c7394dcc8c094975e0a367ef0643120389f",
+      "after": "a49e7b7cb59d95390794e077b888216edbe0496a4ec74f680d2f0d1a65fe60aa"
+    },
+    "common/http-api-client/src/reviewed_network.rs": {
+      "before": "537b459b976922d0df6bfecccfc4b3d0ee42fa7f5eb6a6313dc0d17856170623",
+      "after": "4965954723918b9bb0916daaedd83d527de5851f15137af15e6efbfacb8def6e"
+    },
+    "clients/socks5/src/commands/directory_diagnostics.rs": {
+      "before": "9a73b0c433b325e0884d5ea1885f24827b848af9fbb0d2150ae7240baebfa18b",
+      "after": "c798c047604ec3235b84e9ea0c419d63feaff987bfdd0d891eea52371c4c72f4"
+    }
+  },
+  "patchSHA256": "aedd50715fbe1afd6bbdd1b2107e614163488da2307c92ce221f5921a0d68ad0",
+  "wire": "Onlydescribed: officialoutput=bincode/PaginatedResponse<NymNodeDescriptionV2>, littleendian+varint+4MiBlimit+rejecttrailing, exactMIME, convertoriginalJSONenvelope",
+  "networkRootsTLSAndBudgets": "unchanged8connect/20headers/20positivebodyidle/immutable110policy/4MiBbody16MiBenvelope",
+  "normalSupplyOrQualificationChanged": false
+}

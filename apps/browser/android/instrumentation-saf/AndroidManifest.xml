@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.ynxweb4.browser.qa.safinstrumentation">
+    <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="36" />
+    <application android:label="YNX Browser SAF QA" android:allowBackup="false" android:hasCode="true" />
+    <instrumentation android:name="com.ynxweb4.browser.qa.safinstrumentation.BrowserSafInstrumentation"
+        android:targetPackage="com.ynxweb4.browser.qa" android:functionalTest="true"
+        android:label="Synthetic Browser SAF acceptance" />
+</manifest>

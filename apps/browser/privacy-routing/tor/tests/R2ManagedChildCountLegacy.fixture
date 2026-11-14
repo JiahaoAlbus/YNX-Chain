@@ -1,0 +1,13 @@
+func observeManagedTransport() {
+        guard let pid = originalArtiPID, let path = transportPath, let start = artiStart,
+              let parent = Self.identity(pid), parent.info.pbi_start_tvsec == start.0, parent.info.pbi_start_tvusec == start.1 else { return }
+        var children = [Int32](repeating: 0, count: 64)
+        let size = proc_listchildpids(pid, &children, Int32(children.count * MemoryLayout<Int32>.size))
+        guard size > 0 else { return }
+        for child in children.prefix(min(children.count, Int(size) / MemoryLayout<Int32>.size)) where child > 0 {
+            guard let value = Self.identity(child), value.info.pbi_ppid == pid, value.path == path,
+                  let after = Self.identity(child), after.info.pbi_start_tvsec == value.info.pbi_start_tvsec, after.info.pbi_start_tvusec == value.info.pbi_start_tvusec, after.path == path else { continue }
+            let key = "\(child):\(value.info.pbi_start_tvsec):\(value.info.pbi_start_tvusec)"
+            if seenPT.insert(key).inserted { record("managedPTObserved", ["pid": child, "ppid": pid, "startSeconds": value.info.pbi_start_tvsec, "startMicroseconds": value.info.pbi_start_tvusec, "exactTransportPathMatched": true, "observationNotWaitpid": true]) }
+        }
+    }

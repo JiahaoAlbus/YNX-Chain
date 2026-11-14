@@ -1,0 +1,34 @@
+{
+  "schema": "YNX_NYM_DIRECTORY_PROGRESS_SOURCE_V1",
+  "class": "YNX overlay successor candidate, not official original bytes",
+  "baseCommit": "f92749c5f45bf1fdaacb824f9796bca2d641c6f9",
+  "previousRuntimeSHA256": "f3202bb115132bdfcad2d6ba144f4925bde23481b313b99e43c83b3085342390",
+  "originalRuntimeSHA256": "9cf0324880bdb8d8b8909581c81b91f750174b6ff0569e4f5270426c0dacb5a6",
+  "cargoLockSHA256": "29275bf9e41f6d6acad87f4737b5640e89ada39e0d7752a9211d04fec7871558",
+  "files": {
+    "clients/socks5/src/commands/reviewed.rs": {
+      "before": "6c0424b91b8a66e7b6983412c8d4d71d47f65768e818dda0e1ec4025d7aeb737",
+      "after": "8a486fc7930f335e5115a8c6a9379c7394dcc8c094975e0a367ef0643120389f"
+    },
+    "common/http-api-client/src/reviewed_network.rs": {
+      "before": "ab1e6dd2e179b210079e81b4d5f1b52ea78ea1d260e3d7b476833776e52fd71a",
+      "after": "537b459b976922d0df6bfecccfc4b3d0ee42fa7f5eb6a6313dc0d17856170623"
+    },
+    "clients/socks5/src/commands/directory_diagnostics.rs": {
+      "before": "fa6a5c8bec54e41775741b658eb80ccbffc8f4c10251654f57f7f40d10721d09",
+      "after": "9a73b0c433b325e0884d5ea1885f24827b848af9fbb0d2150ae7240baebfa18b"
+    }
+  },
+  "patchSHA256": "8ad46f7b54417b8127fe8bb649f5187c7bb44c4cfc127ed1156351294d293397",
+  "directoryOnlyBudgets": {
+    "connectSeconds": 8,
+    "headersIncludingPreparationSeconds": 20,
+    "bodyPositiveProgressIdleSeconds": 20,
+    "bodyMaximumBytes": 4194304,
+    "totalRequest": "fresh immutable absolute policy remainder; no chunk extends absolute expiry",
+    "sameFreshPolicyTTLSeconds": 110,
+    "driverTotalSeconds": 100
+  },
+  "unrelatedGenericClampRPCOrRuntimeBudgetsChanged": false,
+  "normalQualificationChanged": false
+}

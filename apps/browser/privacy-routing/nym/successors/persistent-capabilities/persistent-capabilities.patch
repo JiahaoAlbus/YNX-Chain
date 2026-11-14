@@ -1,0 +1,83 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -74,6 +74,16 @@
+     let Ok(address)=requester.address.parse::<nym_sphinx::addressing::Recipient>() else {return false};
+     requester.uses_exit_policy && address.gateway()==identity
+ }
++/// SDK-default capability selection DATA, not epoch rewarded-set assignment.
++/// Persistent ingress/egress uses these official defaults, while the runtime
++/// still independently requires both gateways present in its actual topology.
++fn capability_role_allowed(role:&NodeRole, supported_mixnode:bool, ingress:bool, ignore_epoch_role:bool) -> bool {
++    ignore_epoch_role || if ingress {!supported_mixnode} else {!matches!(role,NodeRole::Mixnode{..})}
++}
++fn sdk_capability_flags() -> (bool,bool) {
++    let topology=nym_client_core::config::Topology::default();
++    (topology.ignore_ingress_epoch_role,topology.ignore_egress_epoch_role)
++}
+ fn validate_snapshot(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>, described:&PaginatedResponse<NymNodeDescriptionV2>, epoch:&serde_json::Value) -> Result<(),String> {
+     if !complete(&basic.nodes) || !complete(described) || basic.metadata.status.is_some() {return Err("qa-directory-incomplete-or-no-updates".into())}
+     let observation=qa_epoch_diagnostic::inspect(basic.metadata.absolute_epoch_id as u64,basic.metadata.refreshed_at(),epoch,time::OffsetDateTime::now_utc());
+@@ -87,6 +97,7 @@
+     }
+     let mut ids=BTreeSet::new();let mut keys=BTreeSet::new();let mut entries=0;let mut exits=0;
+     let mut unjoined_basics=0;let mut ineligible_requesters=0;
++    let (ignore_ingress,ignore_egress)=sdk_capability_flags();
+     for node in &basic.nodes.data {
+         let identity=node.ed25519_identity_pubkey.to_base58_string();
+         if !ids.insert(node.node_id) || !keys.insert(identity.clone()) {return Err("qa-directory-ambiguous-basic".into())}
+@@ -101,19 +112,19 @@
+         if node.ip_addresses.iter().collect::<BTreeSet<_>>()!=host.ip_address.iter().collect::<BTreeSet<_>>() {
+             return Err("qa-directory-address-mismatch".into())
+         }
+-        if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry {
++        if node.supported_roles.entry && capability_role_allowed(&node.role,node.supported_roles.mixnode,true,ignore_ingress) {
+             // Official constructor copies the exact described hostname/WS/WSS fields.
+             // Do not fill missing Basic fields from it or remove any node from output.
+             entries+=usize::from(tls_entry_eligible(node.entry.as_ref(),&description.entry_information())?);
+         }
+-        if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr {
++        if node.supported_roles.exit_nr && capability_role_allowed(&node.role,node.supported_roles.mixnode,false,ignore_egress) {
+             if qa_requester_eligible(description.description.network_requester.as_ref(),node.ed25519_identity_pubkey) {exits+=1}
+             else {ineligible_requesters+=1}
+         }
+     }
+-    log::info!(target:"ynx_qa_directory", "qa_directory_complete_data_candidate_capabilities basic_rows={} described_rows={} tls_eligible_entries={} qa_eligible_requesters={} unjoined_basics={} ineligible_requesters={}",
++    log::info!(target:"ynx_qa_directory", "qa_directory_complete_data_candidate_capabilities basic_rows={} described_rows={} tls_capable_entries={} qa_capable_requesters={} unjoined_basics={} ineligible_requesters={}",
+         basic.nodes.data.len(),described.data.len(),entries,exits,unjoined_basics,ineligible_requesters);
+-    if entries==0 || exits==0 {return Err("qa-directory-no-current-entry-exit".into())}
++    if entries==0 || exits==0 {return Err("qa-directory-no-capable-entry-exit".into())}
+     Ok(())
+ }
+ /// A response's `size` is page-local. Normalize it only after every declared row has
+@@ -154,12 +165,13 @@
+ fn typed_candidate_ids(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>,described:&PaginatedResponse<NymNodeDescriptionV2>) -> Result<(Vec<u32>,Vec<u32>),String> {
+     let full:BTreeMap<_,_>=described.data.iter().map(|node|(node.node_id,node)).collect();
+     let mut entries=Vec::new();let mut exits=Vec::new();
++    let (ignore_ingress,ignore_egress)=sdk_capability_flags();
+     for node in &basic.nodes.data {
+         let Some(description)=full.get(&node.node_id) else {continue};
+         if description.ed25519_identity_key()!=node.ed25519_identity_pubkey {return Err("qa-directory-identity-mismatch".into())}
+-        if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry
++        if node.supported_roles.entry && capability_role_allowed(&node.role,node.supported_roles.mixnode,true,ignore_ingress)
+             && tls_entry_eligible(node.entry.as_ref(),&description.entry_information())? {entries.push(node.node_id)}
+-        if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr
++        if node.supported_roles.exit_nr && capability_role_allowed(&node.role,node.supported_roles.mixnode,false,ignore_egress)
+             && qa_requester_eligible(description.description.network_requester.as_ref(),node.ed25519_identity_pubkey) {exits.push(node.node_id)}
+     }
+     if entries.is_empty() || exits.is_empty() || entries.len().checked_add(exits.len()).is_none_or(|n|n>20_000) {return Err("qa-directory-candidate-count".into())}
+@@ -197,13 +209,13 @@
+     let bytes=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_DIRECTORY_V1","basic":basic,"described":described,"epoch":epoch}))?;
+     if bytes.len()>16_777_216 {return Err("qa-directory-envelope-size".into())}
+     let digest=Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>();
+-    let frame=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_QA_DIRECTORY_CANDIDATES_V1",
++    let frame=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_QA_CAPABILITY_CANDIDATES_V2",
+         "runID":session.run_id(),"payloadSHA256":digest,"entryNodeIDs":entries,"exitNodeIDs":exits}))?;
+     if frame.len()>262_144 {return Err("qa-directory-candidate-frame-size".into())}
+     session.require_live()?;
+     use std::io::Write;
+     let mut stdout=std::io::stdout().lock();stdout.write_all(&bytes)?;stdout.write_all(b"\n")?;stdout.flush()?;
+     session.require_live()?;
+-    let mut stderr=std::io::stderr().lock();stderr.write_all(b"YNX_NYM_QA_DIRECTORY_CANDIDATES_V1 ")?;stderr.write_all(&frame)?;stderr.write_all(b"\n")?;stderr.flush()?;
++    let mut stderr=std::io::stderr().lock();stderr.write_all(b"YNX_NYM_QA_CAPABILITY_CANDIDATES_V2 ")?;stderr.write_all(&frame)?;stderr.write_all(b"\n")?;stderr.flush()?;
+     session.require_live()?;Ok(())
+ }

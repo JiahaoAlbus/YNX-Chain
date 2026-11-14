@@ -1,0 +1,107 @@
+--- a/clients/socks5/src/commands/reviewed.rs
++++ b/clients/socks5/src/commands/reviewed.rs
+@@ -30,6 +30,8 @@
+     let mut url=url::Url::parse(&format!("https://validator.nymtech.net/api/{path}"))
+         .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
+     if let Some(page)=page {url.query_pairs_mut().append_pair("page",&page.to_string()).append_pair("per_page","250");}
++    let compact=endpoint=="described";
++    if compact {url.query_pairs_mut().append_pair("output","bincode");}
+     let client=reviewed_network::direct_http_client(&url)
+         .map_err(|e|attempt.failure(Failure::ClientBuild,Some(e)))?;
+     attempt.phase(Phase::RequestBuild); log::info!("{}",attempt.record());
+@@ -50,10 +52,17 @@
+         },None))?
+         .map_err(|e|attempt.failure(Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()},Some(Box::new(e))))?;
+     attempt.status(response.status().as_u16());
++    attempt.length_hint(response.content_length());
+     if response.status().as_u16()!=200 {return Err(attempt.failure(Failure::Status,None).into())}
++    if response.content_length().is_some_and(|x|x>4_194_304) {return Err(attempt.failure(Failure::BodyLimit,None).into())}
++    if compact && !response.headers().get("content-type").and_then(|x|x.to_str().ok())
++        .is_some_and(|x|x.len()<=64 && x.split(';').next().unwrap_or("").trim().eq_ignore_ascii_case("application/bincode")) {
++        return Err(attempt.failure(Failure::Representation,None).into())
++    }
+     let mut progress=directory_diagnostics::BodyProgress::new(4_194_304,std::time::Duration::from_secs(20));
+     attempt.phase(Phase::Body); log::info!("{}",attempt.record());
+     let mut bytes=Vec::new();
++    let mut last_progress_log=std::time::Instant::now();let mut next_progress_bytes=1_048_576;let mut progress_logs=0;
+     loop {
+         let idle_budget=progress.remaining().map_err(|e|attempt.failure(e,None))?;
+         let chunk=policy.deadline.run(idle_budget,||response.chunk()).await
+@@ -65,9 +74,18 @@
+         let Some(chunk)=chunk else {break};
+         let count=progress.advance(chunk.len()).map_err(|e|attempt.failure(e,None))?;
+         bytes.extend_from_slice(&chunk);attempt.bytes(count);
++        if !chunk.is_empty() && progress_logs<32 && (count>=next_progress_bytes || last_progress_log.elapsed()>=std::time::Duration::from_secs(5)) {
++            log::info!("{} event=body_progress",attempt.record());progress_logs+=1;
++            next_progress_bytes=(count/1_048_576+1)*1_048_576;last_progress_log=std::time::Instant::now();
++        }
+     }
+     attempt.phase(Phase::Json); log::info!("{}",attempt.record());
+-    let value=serde_json::from_slice(&bytes).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?;
++    let value=if compact {
++        type Described=nym_validator_client::pagination::PaginatedResponse<nym_validator_client::models::described::v2::NymNodeDescriptionV2>;
++        let decoded:Described=reviewed_network::decode_directory_bincode(&bytes)
++            .map_err(|e|attempt.failure(Failure::Bincode,Some(e.into())))?;
++        serde_json::to_value(decoded).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?
++    } else {serde_json::from_slice(&bytes).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?};
+     policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
+     attempt.phase(Phase::Complete);log::info!("{}",attempt.record());
+     Ok(value)
+--- a/common/http-api-client/src/reviewed_network.rs
++++ b/common/http-api-client/src/reviewed_network.rs
+@@ -109,6 +109,15 @@
+         .build().map_err(|e|Box::new(e) as Box<dyn std::error::Error+Send+Sync>)
+ }
+ 
++/// Official versioned API bincode uses little-endian varints. Reject over-budget input
++/// before decoding, and reject trailing bytes rather than accepting a valid prefix.
++pub fn decode_directory_bincode<T:serde::de::DeserializeOwned>(bytes:&[u8])->Result<T,String> {
++    use nym_http_api_common::BincodeOptions;
++    if bytes.len()>4_194_304 {return Err(invalid("oversized directory bincode"))}
++    nym_http_api_common::make_bincode_serializer().with_limit(4_194_304)
++        .reject_trailing_bytes().deserialize(bytes).map_err(|_|invalid("directory bincode decode"))
++}
++
+ /// Exact wall-clock remainder, not an integer second snapshot. No caller can renew it.
+ pub fn remaining_budget(maximum: Duration)->Result<Duration,String> {
+     let Some(context)=current() else {return Ok(maximum)};
+--- a/clients/socks5/src/commands/directory_diagnostics.rs
++++ b/clients/socks5/src/commands/directory_diagnostics.rs
+@@ -4,7 +4,7 @@
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub enum Phase { Policy, ClientBuild, RequestBuild, AwaitHeaders, Body, Json, Complete }
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+-pub enum Failure { PolicyExpired, StepTimedOut, BodyIdleTimedOut, ClientBuild, RequestBuild, Transport { timeout: bool, connect: bool, body: bool, decode: bool }, Status, BodyLimit, Json }
++pub enum Failure { PolicyExpired, StepTimedOut, BodyIdleTimedOut, ClientBuild, RequestBuild, Transport { timeout: bool, connect: bool, body: bool, decode: bool }, Status, BodyLimit, Json, Representation, Bincode }
+ 
+ /// An empty chunk is not progress. Only positive, size-checked bytes renew the idle clock;
+ /// this clock never changes the separately held absolute policy deadline.
+@@ -25,7 +25,7 @@
+ 
+ pub struct Attempt {
+     endpoint: &'static str, page: Option<u64>, started: Instant, cap: Duration,
+-    phase: Cell<Phase>, bytes: Cell<usize>, status: Cell<Option<u16>>,
++    phase: Cell<Phase>, bytes: Cell<usize>, status: Cell<Option<u16>>, length_hint: Cell<Option<u64>>,
+ }
+ 
+ #[cfg(test)]
+@@ -51,16 +51,17 @@
+ }
+ impl Attempt {
+     pub fn new(endpoint: &'static str, page: Option<u64>, cap: Duration) -> Self {
+-        Self { endpoint, page, started: Instant::now(), cap, phase: Cell::new(Phase::Policy), bytes: Cell::new(0), status: Cell::new(None) }
++        Self { endpoint, page, started: Instant::now(), cap, phase: Cell::new(Phase::Policy), bytes: Cell::new(0), status: Cell::new(None), length_hint: Cell::new(None) }
+     }
+     pub fn phase(&self, value: Phase) { self.phase.set(value); }
+     pub fn status(&self, value: u16) { self.status.set(Some(value)); }
+     pub fn bytes(&self, value: usize) { self.bytes.set(value); }
++    pub fn length_hint(&self, value: Option<u64>) { self.length_hint.set(value); }
+     pub fn remaining(&self) -> Result<Duration, Failure> {
+         self.cap.checked_sub(self.started.elapsed()).filter(|v| !v.is_zero()).ok_or(Failure::StepTimedOut)
+     }
+     pub fn record(&self) -> String {
+-        format!("directory endpoint={} page={:?} phase={:?} elapsed_ms={} status={:?} body_bytes={}", self.endpoint, self.page, self.phase.get(), self.started.elapsed().as_millis(), self.status.get(), self.bytes.get())
++        format!("directory endpoint={} page={:?} phase={:?} elapsed_ms={} status={:?} body_bytes={} body_length_hint={:?}", self.endpoint, self.page, self.phase.get(), self.started.elapsed().as_millis(), self.status.get(), self.bytes.get(), self.length_hint.get())
+     }
+     pub fn failure(&self, kind: Failure, source: Option<Box<dyn Error + Send + Sync>>) -> DirectoryFailure {
+         DirectoryFailure { record: self.record(), kind, source }

@@ -1,0 +1,127 @@
+--- a/common/http-api-client/src/qa_directory.rs
++++ b/common/http-api-client/src/qa_directory.rs
+@@ -1,6 +1,6 @@
+ //! Explicit, compile-time QA-only directory successor. Never installs the normal reviewed
+ //! network context, provisions a profile, or grants Root/Browser/release qualification.
+-use std::{collections::BTreeSet, net::{IpAddr, SocketAddr}, sync::{Arc, OnceLock, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
++use std::{collections::BTreeSet, future::Future, net::{IpAddr, SocketAddr}, sync::{Arc, OnceLock, atomic::{AtomicBool, Ordering}}, time::{Duration, Instant, SystemTime, UNIX_EPOCH}};
+ use serde::Deserialize;
+ use crate::expiry_deadline::{AbsolutePolicyDeadline, DeadlineFailure};
+ 
+@@ -52,6 +52,9 @@
+ pub enum Resource { Basic(u8), Described(u8), Epoch }
+ impl Resource {
+     pub fn label(self) -> &'static str {match self {Self::Basic(_)=>"basic",Self::Described(_)=>"described",Self::Epoch=>"epoch"}}
++    fn page(self) -> Option<u8> {
++        match self { Self::Basic(page) | Self::Described(page) => Some(page), Self::Epoch => None }
++    }
+     fn target(self) -> String {match self {
+         Self::Basic(page)=>format!("https://cdn1.media-platform.net/api/v2/unstable/nym-nodes/skimmed?page={page}&per_page=250"),
+         Self::Described(page)=>format!("https://cdn1.media-platform.net/api/v2/nym-nodes/described?page={page}&per_page=250&output=bincode"),
+@@ -129,15 +132,31 @@
+         let expected=if matches!(resource,Resource::Described(_)) {"application/bincode"} else {"application/json"};
+         if mime!=Some(expected) {return Err("qa-directory-mime".into())}
+         if response.content_length().is_some_and(|x|x>MAX_BODY as u64 || x>16_777_216usize.saturating_sub(self.received) as u64) {return Err("qa-directory-body-size".into())}
+-        let mut bytes=Vec::new();let mut progress=Instant::now();let mut logged=Instant::now();let mut logs=0;
++        let content_length = response.content_length();
++        let mut body = BodyReadProgress::new();
++        let mut bytes=Vec::new();let mut logged=Instant::now();let mut logs=0;
+         loop {
+-            let idle=Duration::from_secs(20).checked_sub(progress.elapsed()).filter(|x|!x.is_zero()).ok_or("qa-directory-body-idle")?;
+-            let chunk=self.plan.deadline.run(idle,||response.chunk()).await.map_err(|e|deadline_error(e,"qa-directory-body-idle"))?
+-                .map_err(|_|"qa-directory-body-transport")?;
++            // This is the same 20s positive-byte progress budget. An empty
++            // chunk does not reset it, and the absolute plan still wins.
++            let chunk = match body.next(self.plan.deadline, Duration::from_secs(20), || response.chunk()).await {
++                Ok(chunk) => chunk,
++                Err(reason) => {
++                    let report = BodyReadFailure::new(self.run_id(), resource, reason, content_length, &body, bytes.len(), self.received);
++                    // Use a bounded, typed stderr frame like the existing epoch
++                    // diagnostic. Progress tracing is optional and may be filtered.
++                    if let Ok(line) = serde_json::to_string(&report) {
++                        eprintln!("YNX_NYM_QA_BODY_FAILURE_V1 {line}");
++                    }
++                    return Err(reason.label().into());
++                }
++            };
+             self.require_live()?;
+             let Some(chunk)=chunk else {break};
+             self.record_chunk(bytes.len(),chunk.len())?;
+-            if !chunk.is_empty() {progress=Instant::now();bytes.extend_from_slice(&chunk);}
++            if !chunk.is_empty() {
++                body.accept_chunk();
++                bytes.extend_from_slice(&chunk);
++            }
+             if logs<24 && logged.elapsed()>=Duration::from_secs(5) {
+                 tracing::info!(target:"ynx_qa_directory", resource=resource.label(), bytes=bytes.len(), "qa_directory_progress");logs+=1;logged=Instant::now();
+             }
+@@ -146,3 +165,69 @@
+     }
+ }
+ fn deadline_error(failure:DeadlineFailure, step:&str) -> String {match failure {DeadlineFailure::PolicyExpired=>"qa-directory-expired".into(),DeadlineFailure::StepTimedOut=>step.into()}}
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum BodyReadError { Idle, Transport, Expired }
++
++impl BodyReadError {
++    fn label(self) -> &'static str {
++        match self {
++            Self::Idle => "qa-directory-body-idle",
++            Self::Transport => "qa-directory-body-transport",
++            Self::Expired => "qa-directory-expired",
++        }
++    }
++}
++
++struct BodyReadProgress {
++    last: Instant,
++    chunks: usize,
++}
++
++impl BodyReadProgress {
++    fn new() -> Self { Self { last: Instant::now(), chunks: 0 } }
++
++    fn accept_chunk(&mut self) {
++        self.last = Instant::now();
++        self.chunks += 1;
++    }
++
++    async fn next<T, F>(&self, deadline: AbsolutePolicyDeadline, idle: Duration, read: impl FnOnce() -> F)
++        -> Result<Option<T>, BodyReadError>
++    where F: Future<Output = Result<Option<T>, reqwest::Error>> {
++        let remaining = idle.checked_sub(self.last.elapsed()).filter(|left| !left.is_zero())
++            .ok_or(BodyReadError::Idle)?;
++        deadline.run(remaining, read).await
++            .map_err(|failure| match failure {
++                DeadlineFailure::PolicyExpired => BodyReadError::Expired,
++                DeadlineFailure::StepTimedOut => BodyReadError::Idle,
++            })?
++            .map_err(|_| BodyReadError::Transport)
++    }
++}
++
++#[derive(serde::Serialize)]
++#[serde(rename_all = "camelCase")]
++struct BodyReadFailure<'a> {
++    schema: &'static str,
++    #[serde(rename = "runID")]
++    run_id: &'a str,
++    resource: &'static str,
++    page: Option<u8>,
++    reason: &'static str,
++    expected_body_bytes: Option<u64>,
++    received_body_bytes: usize,
++    session_body_bytes: usize,
++    nonempty_chunks: usize,
++}
++
++impl<'a> BodyReadFailure<'a> {
++    fn new(run_id: &'a str, resource: Resource, reason: BodyReadError, expected_body_bytes: Option<u64>,
++           body: &BodyReadProgress, received_body_bytes: usize, session_body_bytes: usize) -> Self {
++        Self {
++            schema: "YNX_NYM_QA_BODY_FAILURE_V1", run_id, resource: resource.label(), page: resource.page(),
++            reason: reason.label(), expected_body_bytes, received_body_bytes, session_body_bytes,
++            nonempty_chunks: body.chunks,
++        }
++    }
++}

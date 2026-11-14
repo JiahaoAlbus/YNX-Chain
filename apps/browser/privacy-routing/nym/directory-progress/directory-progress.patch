@@ -1,0 +1,172 @@
+--- a/clients/socks5/src/commands/reviewed.rs
++++ b/clients/socks5/src/commands/reviewed.rs
+@@ -22,55 +22,55 @@
+     Ok(())
+ }
+ async fn get(path:&str,page:Option<u64>)->Result<serde_json::Value,Box<dyn Error+Send+Sync>> {
+-    // One cap covers preparation, headers, body and JSON. It is never renewed per chunk.
++    // Header cap includes synchronous preparation. Body progress never renews policy TTL.
+     let endpoint=match path {"v2/unstable/nym-nodes/skimmed"=>"basic","v2/nym-nodes/described"=>"described","v1/epoch/current"=>"epoch",_=>return Err("Unreviewed directory endpoint".into())};
+     let attempt=Attempt::new(endpoint,page,std::time::Duration::from_secs(20));
+     let policy=current().ok_or("Missing protected directory deadline")?;
+-    let result=policy.deadline.run(std::time::Duration::from_secs(20),||async {
+-        attempt.phase(Phase::ClientBuild); log::info!("{}",attempt.record());
+-        let mut url=url::Url::parse(&format!("https://validator.nymtech.net/api/{path}"))
+-            .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
+-        if let Some(page)=page {url.query_pairs_mut().append_pair("page",&page.to_string()).append_pair("per_page","250");}
+-        let client=reviewed_network::direct_http_client(&url)
+-            .map_err(|e|attempt.failure(Failure::ClientBuild,Some(e.into())))?;
+-        attempt.phase(Phase::RequestBuild); log::info!("{}",attempt.record());
+-        let mut request=client.get(url).build()
+-            .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
+-        reviewed_network::clamp_request(&mut request)
+-            .map_err(|e|attempt.failure(Failure::PolicyExpired,Some(e.into())))?;
+-        // Synchronous client construction cannot be preempted. Recheck both clocks before
+-        // any execute/socket work and subtract construction time from the request budget.
+-        log::info!("{} event=request_prepared",attempt.record());
+-        let budget=attempt.remaining().map_err(|e|attempt.failure(e,None))?;
+-        policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
+-        *request.timeout_mut()=Some(request.timeout().copied().unwrap_or(budget).min(budget));
+-        attempt.phase(Phase::AwaitHeaders);
+-        let mut response=client.execute(request).await.map_err(|e| {
+-            let kind=Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()};
+-            attempt.failure(kind,Some(Box::new(e)))
+-        })?;
+-        attempt.status(response.status().as_u16());
+-        if response.status().as_u16()!=200 {return Err(attempt.failure(Failure::Status,None))}
+-        attempt.phase(Phase::Body); log::info!("{}",attempt.record());
+-        let mut bytes=Vec::new();
+-        while let Some(chunk)=response.chunk().await.map_err(|e| {
+-            let kind=Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()};
+-            attempt.failure(kind,Some(Box::new(e)))
+-        })? {
+-            if bytes.len()+chunk.len()>4_194_304 {return Err(attempt.failure(Failure::BodyLimit,None))}
+-            bytes.extend_from_slice(&chunk);attempt.bytes(bytes.len());
+-        }
+-        attempt.phase(Phase::Json); log::info!("{}",attempt.record());
+-        let value=serde_json::from_slice(&bytes).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?;
+-        attempt.remaining().map_err(|e|attempt.failure(e,None))?;
+-        policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
+-        attempt.phase(Phase::Complete);log::info!("{}",attempt.record());
+-        Ok::<serde_json::Value,directory_diagnostics::DirectoryFailure>(value)
+-    }).await.map_err(|e|attempt.failure(match e {
+-        reviewed_network::DeadlineFailure::PolicyExpired=>Failure::PolicyExpired,
+-        reviewed_network::DeadlineFailure::StepTimedOut=>Failure::StepTimedOut,
+-    },None))?;
+-    result.map_err(|e|Box::new(e) as Box<dyn Error+Send+Sync>)
++    attempt.phase(Phase::ClientBuild); log::info!("{}",attempt.record());
++    let mut url=url::Url::parse(&format!("https://validator.nymtech.net/api/{path}"))
++        .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
++    if let Some(page)=page {url.query_pairs_mut().append_pair("page",&page.to_string()).append_pair("per_page","250");}
++    let client=reviewed_network::direct_http_client(&url)
++        .map_err(|e|attempt.failure(Failure::ClientBuild,Some(e)))?;
++    attempt.phase(Phase::RequestBuild); log::info!("{}",attempt.record());
++    let mut request=client.get(url).build()
++        .map_err(|e|attempt.failure(Failure::RequestBuild,Some(Box::new(e))))?;
++    log::info!("{} event=request_prepared",attempt.record());
++    let header_budget=attempt.remaining().map_err(|e|attempt.failure(e,None))?;
++    let absolute_budget=policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
++    // Request total includes body in reqwest. Explicit request config overrides the
++    // generic builder's20s total; only this directory request gets the policy remainder.
++    // Never call generic clamp_request here: it would restore a whole-body20s timeout.
++    *request.timeout_mut()=Some(absolute_budget);
++    attempt.phase(Phase::AwaitHeaders);
++    let mut response=policy.deadline.run(header_budget,||client.execute(request)).await
++        .map_err(|e|attempt.failure(match e {
++            reviewed_network::DeadlineFailure::PolicyExpired=>Failure::PolicyExpired,
++            reviewed_network::DeadlineFailure::StepTimedOut=>Failure::StepTimedOut,
++        },None))?
++        .map_err(|e|attempt.failure(Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()},Some(Box::new(e))))?;
++    attempt.status(response.status().as_u16());
++    if response.status().as_u16()!=200 {return Err(attempt.failure(Failure::Status,None).into())}
++    let mut progress=directory_diagnostics::BodyProgress::new(4_194_304,std::time::Duration::from_secs(20));
++    attempt.phase(Phase::Body); log::info!("{}",attempt.record());
++    let mut bytes=Vec::new();
++    loop {
++        let idle_budget=progress.remaining().map_err(|e|attempt.failure(e,None))?;
++        let chunk=policy.deadline.run(idle_budget,||response.chunk()).await
++            .map_err(|e|attempt.failure(match e {
++                reviewed_network::DeadlineFailure::PolicyExpired=>Failure::PolicyExpired,
++                reviewed_network::DeadlineFailure::StepTimedOut=>Failure::BodyIdleTimedOut,
++            },None))?
++            .map_err(|e|attempt.failure(Failure::Transport{timeout:e.is_timeout(),connect:e.is_connect(),body:e.is_body(),decode:e.is_decode()},Some(Box::new(e))))?;
++        let Some(chunk)=chunk else {break};
++        let count=progress.advance(chunk.len()).map_err(|e|attempt.failure(e,None))?;
++        bytes.extend_from_slice(&chunk);attempt.bytes(count);
++    }
++    attempt.phase(Phase::Json); log::info!("{}",attempt.record());
++    let value=serde_json::from_slice(&bytes).map_err(|e|attempt.failure(Failure::Json,Some(Box::new(e))))?;
++    policy.deadline.remaining().map_err(|_|attempt.failure(Failure::PolicyExpired,None))?;
++    attempt.phase(Phase::Complete);log::info!("{}",attempt.record());
++    Ok(value)
+ }
+ async fn pages(path:&str,wrapped:bool)->Result<serde_json::Value,Box<dyn Error+Send+Sync>> {
+     let mut first=get(path,Some(0)).await?;
+--- a/common/http-api-client/src/reviewed_network.rs
++++ b/common/http-api-client/src/reviewed_network.rs
+@@ -103,7 +103,10 @@
+ pub fn direct_http_client(url:&url::Url)->Result<reqwest::Client,Box<dyn std::error::Error+Send+Sync>> {
+     guard_http(url)?;
+     // Keep the typed source for the fixed-vocabulary caller, never format a URL/error here.
+-    closed_builder(reqwest::Client::builder()).build().map_err(|e|Box::new(e) as Box<dyn std::error::Error+Send+Sync>)
++    // Only the reviewed-directory caller uses this client. Its explicit request total
++    // timeout is the immutable policy remainder, with a separate per-read stall bound.
++    closed_builder(reqwest::Client::builder()).read_timeout(Duration::from_secs(20))
++        .build().map_err(|e|Box::new(e) as Box<dyn std::error::Error+Send+Sync>)
+ }
+ 
+ /// Exact wall-clock remainder, not an integer second snapshot. No caller can renew it.
+--- a/clients/socks5/src/commands/directory_diagnostics.rs
++++ b/clients/socks5/src/commands/directory_diagnostics.rs
+@@ -4,11 +4,50 @@
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+ pub enum Phase { Policy, ClientBuild, RequestBuild, AwaitHeaders, Body, Json, Complete }
+ #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+-pub enum Failure { PolicyExpired, StepTimedOut, ClientBuild, RequestBuild, Transport { timeout: bool, connect: bool, body: bool, decode: bool }, Status, BodyLimit, Json }
++pub enum Failure { PolicyExpired, StepTimedOut, BodyIdleTimedOut, ClientBuild, RequestBuild, Transport { timeout: bool, connect: bool, body: bool, decode: bool }, Status, BodyLimit, Json }
++
++/// An empty chunk is not progress. Only positive, size-checked bytes renew the idle clock;
++/// this clock never changes the separately held absolute policy deadline.
++pub struct BodyProgress { maximum: usize, bytes: usize, idle: Duration, last: Instant }
++impl BodyProgress {
++    pub fn new(maximum: usize, idle: Duration) -> Self { Self { maximum, bytes: 0, idle, last: Instant::now() } }
++    pub fn remaining(&self) -> Result<Duration, Failure> {
++        self.idle.checked_sub(self.last.elapsed()).filter(|v| !v.is_zero()).ok_or(Failure::BodyIdleTimedOut)
++    }
++    pub fn advance(&mut self, amount: usize) -> Result<usize, Failure> {
++        self.remaining()?;
++        let next=self.bytes.checked_add(amount).filter(|v| *v<=self.maximum).ok_or(Failure::BodyLimit)?;
++        self.bytes=next;
++        if amount>0 { self.last=Instant::now(); }
++        Ok(next)
++    }
++}
+ 
+ pub struct Attempt {
+     endpoint: &'static str, page: Option<u64>, started: Instant, cap: Duration,
+     phase: Cell<Phase>, bytes: Cell<usize>, status: Cell<Option<u16>>,
++}
++
++#[cfg(test)]
++mod body_progress_tests {
++    use super::*;
++    #[test] fn positive_bytes_renew_idle_only() {
++        let mut b=BodyProgress::new(10,Duration::from_millis(20));
++        b.last=Instant::now()-Duration::from_millis(19);
++        assert_eq!(b.advance(1),Ok(1));assert!(b.remaining().unwrap()>Duration::from_millis(10));
++    }
++    #[test] fn empty_bytes_do_not_renew_idle() {
++        let mut b=BodyProgress::new(10,Duration::from_millis(20));b.last=Instant::now()-Duration::from_millis(21);
++        assert_eq!(b.advance(0),Err(Failure::BodyIdleTimedOut));assert_eq!(b.remaining(),Err(Failure::BodyIdleTimedOut));
++    }
++    #[test] fn oversize_does_not_update_count_or_clock() {
++        let mut b=BodyProgress::new(2,Duration::from_millis(20));b.advance(2).unwrap();let last=b.last;
++        assert_eq!(b.advance(1),Err(Failure::BodyLimit));assert_eq!(b.bytes,2);assert_eq!(b.last,last);
++    }
++    #[test] fn count_overflow_is_rejected() {
++        let mut b=BodyProgress::new(usize::MAX,Duration::from_secs(20));b.advance(usize::MAX).unwrap();
++        assert_eq!(b.advance(1),Err(Failure::BodyLimit));
++    }
+ }
+ impl Attempt {
+     pub fn new(endpoint: &'static str, page: Option<u64>, cap: Duration) -> Self {

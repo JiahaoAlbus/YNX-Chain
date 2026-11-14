@@ -1,0 +1,50 @@
+{
+  "schema": "YNX_NYM_QA_CDN_OPTIONAL_WSS_SUCCESSOR_SOURCE_V1",
+  "UTC": "2026-11-07T19:16:07.308096+00:00",
+  "baseN1SourcePinSHA256": "d40e3cc78866798644f66ecee5645d62dc2eed226b1deb1a3d17e722977a1d7f",
+  "baseCompleteBinarySHA256": "668534466f2558db71f6e7d3813bde694df46eca80efb3bba2d60fc410a4807c",
+  "liveCounterexample": {
+    "receiptSHA256": "b240c9d997ef60c7fd75c44890f1747a7f085494faaa175385b3523453b57e5e",
+    "error": "qa-directory-entry-wss-mismatch",
+    "exactORBranch": "UNKNOWN_DO_NOT_INFER",
+    "fullDATAEmitted": false,
+    "liveTableRows": "UNKNOWN"
+  },
+  "files": [
+    {
+      "path": "clients/socks5/src/commands/qa_directory.rs",
+      "beforeSHA256": "9cb4b0878d69213dd872a54a3796e9927a1d73d092b82de21f553c49908ff2a7",
+      "afterSHA256": "70ea16cbfd38bcdd7a8c593058f2b96d2e9a1284cab1b2550cc82acc0c91d3a4"
+    }
+  ],
+  "patchSHA256": "210c75ab9771bd54f6160abe8e5e78449b4e5c16aa5af74cbbd742e4a24076d3",
+  "newTypedFixtureSHA256": "4d2e688ed496d16c547b163424916c205ca4cf7a20a42adb00f6093155752d4c",
+  "officialSources": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P05/privacy-routing/nym-qa-cdn-fullfeature-20261108/source/common/topology/src/node.rs",
+      "SHA256": "e96ea22058b9c212628dca939a0aa597e379d113154d066bda310139549d7be4",
+      "lines": [
+        75,
+        82
+      ]
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P05/privacy-routing/nym-qa-cdn-fullfeature-20261108/source/nym-api/nym-api-requests/src/nym_nodes.rs",
+      "SHA256": "6571bfabcefe7d274bc02e01a993d4656cd8d8c534f7693d748450b87cbafcce",
+      "lines": [
+        223,
+        229
+      ]
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P05/privacy-routing/nym-qa-cdn-fullfeature-20261108/source/nym-api/nym-api-requests/src/models/described/v2.rs",
+      "SHA256": "b918d6e0c2d1cf514e7eebb040b21e3eaba4c5d71491cad2080faad9ef947e10",
+      "lines": [
+        53,
+        59
+      ]
+    }
+  ],
+  "semantics": "Keep all complete typed rows. Actual EntryGateway+supported.entry only: known0/illegalhost/conflicts first reject; missing optional or one-sidedNone notmatched/noteligible. Atleastone matched canonicalhostname+nonzeroWSS required. No WSfallback. Fullidentity/IP/NR/epoch/TTL/TLS/origin remain unchanged.",
+  "scope": "QA-purpose singleCLIleaf, not applied tooriginalvendor/normalRoot/old8pins/668artifact. NewfixturesNOT_RUN_atfreeze."
+}

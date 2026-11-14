@@ -1,0 +1,272 @@
+// Copyright 2021-2023 - Nym Technologies SA <contact@nymtech.net>
+// SPDX-License-Identifier: Apache-2.0
+
+use crate::commands::ecash::Ecash;
+use crate::config::old_config_v1_1_54::ConfigV1_1_54;
+use crate::config::{BaseClientConfig, Config};
+use crate::error::Socks5ClientError;
+use clap::CommandFactory;
+use clap::{Parser, Subcommand};
+use log::{error, info};
+use nym_bin_common::bin_info;
+use nym_bin_common::completions::{fig_generate, ArgShell};
+use nym_client_core::cli_helpers::CliClient;
+use nym_client_core::config::ForgetMe;
+use nym_config::OptionalSet;
+use nym_sphinx::addressing::Recipient;
+use nym_sphinx::params::{PacketSize, PacketType};
+use std::error::Error;
+use std::net::IpAddr;
+use std::sync::OnceLock;
+
+mod add_gateway;
+pub(crate) mod build_info;
+pub mod ecash;
+pub mod init;
+mod list_gateways;
+pub(crate) mod run;
+mod switch_gateway;
+pub(crate) mod reviewed;
+#[cfg(feature="ynx-qa-directory")] mod qa_directory;
+
+pub(crate) struct CliSocks5Client;
+
+impl CliClient for CliSocks5Client {
+    const NAME: &'static str = "socks5";
+    type Error = Socks5ClientError;
+    type Config = Config;
+
+    async fn try_upgrade_outdated_config(id: &str) -> Result<(), Self::Error> {
+        try_upgrade_config(id).await
+    }
+
+    async fn try_load_current_config(id: &str) -> Result<Self::Config, Self::Error> {
+        try_load_current_config(id).await
+    }
+}
+
+fn pretty_build_info_static() -> &'static str {
+    static PRETTY_BUILD_INFORMATION: OnceLock<String> = OnceLock::new();
+    PRETTY_BUILD_INFORMATION.get_or_init(|| bin_info!().pretty_print())
+}
+
+#[derive(Parser)]
+#[clap(author = "Nymtech", version, long_version = pretty_build_info_static(), about)]
+pub(crate) struct Cli {
+    /// Path pointing to an env file that configures the client.
+    #[clap(short, long)]
+    pub(crate) config_env_file: Option<std::path::PathBuf>,
+
+    /// Flag used for disabling the printed banner in tty.
+    #[clap(long)]
+    pub(crate) no_banner: bool,
+    #[clap(long)] pub(crate) ynx_reviewed_network: Option<std::path::PathBuf>,
+    #[clap(long)] pub(crate) ynx_reviewed_network_sha256: Option<String>,
+    #[clap(long)] pub(crate) ynx_reviewed_run_id: Option<String>,
+
+    #[clap(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+pub(crate) enum Commands {
+    /// Initialise a Nym client. Do this first!
+    Init(init::Init),
+    /// QA-only public complete directory, never a normal client/profile command.
+    #[cfg(feature="ynx-qa-directory")]
+    #[clap(hide=true)] YnxQaCdnDirectory(qa_directory::Args),
+    /// Fetch only the pinned official public directory, with no profile/key operations.
+    #[clap(hide=true)] YnxReviewedDirectory,
+
+    /// Run the Nym client with provided configuration client optionally overriding set parameters
+    Run(run::Run),
+
+    /// Ecash-related functionalities
+    Ecash(Ecash),
+
+    /// List all registered with gateways
+    ListGateways(list_gateways::Args),
+
+    /// Add new gateway to this client
+    AddGateway(add_gateway::Args),
+
+    /// Change the currently active gateway. Note that you must have already registered with the new gateway!
+    SwitchGateway(switch_gateway::Args),
+
+    /// Show build information of this binary
+    BuildInfo(build_info::BuildInfo),
+
+    /// Generate shell completions
+    Completions(ArgShell),
+
+    /// Generate Fig specification
+    GenerateFigSpec,
+}
+
+// Configuration that can be overridden.
+pub(crate) struct OverrideConfig {
+    nym_apis: Option<Vec<url::Url>>,
+    ip: Option<IpAddr>,
+    port: Option<u16>,
+    use_anonymous_replies: Option<bool>,
+    fastmode: bool,
+    no_cover: bool,
+    medium_toggle: bool,
+    nyxd_urls: Option<Vec<url::Url>>,
+    enabled_credentials_mode: Option<bool>,
+    stats_reporting_address: Option<Recipient>,
+    forget_me: ForgetMe,
+}
+
+impl Cli {
+    pub(crate) fn install_reviewed(&self)->Result<(),Box<dyn std::error::Error+Send+Sync>> {
+        use nym_validator_client::reviewed_policy::Stage;
+        #[cfg(feature="ynx-qa-directory")]
+        if let Commands::YnxQaCdnDirectory(ref qa) = self.command {
+            if self.config_env_file.is_some() || self.ynx_reviewed_network.is_some()
+                || self.ynx_reviewed_network_sha256.is_some() || self.ynx_reviewed_run_id.is_some()
+            { return Err("QA directory forbids normal policy or environment arguments".into()) }
+            return qa_directory::install(qa);
+        }
+        match (&self.ynx_reviewed_network,&self.ynx_reviewed_network_sha256,&self.ynx_reviewed_run_id) {
+            (None,None,None)=>{ if matches!(self.command,Commands::YnxReviewedDirectory) {return Err("Directory requires reviewed policy".into())} Ok(()) },
+            (Some(path),Some(hash),Some(run))=>{
+                if self.config_env_file.is_some() {return Err("Protected network forbids custom environment file".into())}
+                let stage=match self.command { Commands::YnxReviewedDirectory=>Stage::DirectoryBootstrap, Commands::Init(_)|Commands::Run(_)|Commands::AddGateway(_)|Commands::SwitchGateway(_)|Commands::ListGateways(_)=>Stage::RouteRuntime, _=>return Err("Unsupported protected command".into()) };
+                reviewed::install(path,hash,run,stage)
+            },
+            _=>Err("Incomplete reviewed network arguments".into()),
+        }
+    }
+}
+pub(crate) async fn execute(args: Cli) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let bin_name = "nym-socks5-client";
+
+    match args.command {
+        Commands::Init(m) => init::execute(m).await?,
+        Commands::YnxReviewedDirectory => reviewed::directory().await?,
+        #[cfg(feature="ynx-qa-directory")] Commands::YnxQaCdnDirectory(_) => qa_directory::execute().await?,
+        Commands::Run(m) => run::execute(m).await?,
+        Commands::Ecash(ecash) => ecash.execute().await?,
+        Commands::ListGateways(args) => list_gateways::execute(args).await?,
+        Commands::AddGateway(args) => add_gateway::execute(args).await?,
+        Commands::SwitchGateway(args) => switch_gateway::execute(args).await?,
+        Commands::BuildInfo(m) => build_info::execute(m),
+        Commands::Completions(s) => s.generate(&mut Cli::command(), bin_name),
+        Commands::GenerateFigSpec => fig_generate(&mut Cli::command(), bin_name),
+    }
+    Ok(())
+}
+
+pub(crate) fn override_config(config: Config, args: OverrideConfig) -> Config {
+    let disable_cover_traffic_with_keepalive = args.medium_toggle;
+    let secondary_packet_size = args.medium_toggle.then_some(PacketSize::ExtendedPacket16);
+    let no_per_hop_delays = args.medium_toggle;
+
+    let packet_type = PacketType::Mix;
+    config
+        .with_base(
+            BaseClientConfig::with_high_default_traffic_volume,
+            args.fastmode,
+        )
+        .with_base(
+            // NOTE: This interacts with disabling cover traffic fully, so we want to this to be set before
+            BaseClientConfig::with_disabled_cover_traffic_with_keepalive,
+            disable_cover_traffic_with_keepalive,
+        )
+        .with_base(
+            BaseClientConfig::with_secondary_packet_size,
+            secondary_packet_size,
+        )
+        .with_base(BaseClientConfig::with_no_per_hop_delays, no_per_hop_delays)
+        // NOTE: see comment above about the order of the other disble cover traffic config
+        .with_base(BaseClientConfig::with_disabled_cover_traffic, args.no_cover)
+        .with_base(BaseClientConfig::with_packet_type, packet_type)
+        .with_base(BaseClientConfig::with_forget_me, args.forget_me)
+        .with_optional(Config::with_anonymous_replies, args.use_anonymous_replies)
+        .with_optional(Config::with_port, args.port)
+        .with_optional(Config::with_ip, args.ip)
+        .with_optional_base_custom_env(
+            BaseClientConfig::with_custom_nym_apis,
+            args.nym_apis,
+            nym_network_defaults::var_names::NYM_API,
+            nym_config::parse_urls,
+        )
+        .with_optional_base_custom_env(
+            BaseClientConfig::with_custom_nyxd,
+            args.nyxd_urls,
+            nym_network_defaults::var_names::NYXD,
+            nym_config::parse_urls,
+        )
+        .with_optional_base(
+            BaseClientConfig::with_disabled_credentials,
+            args.enabled_credentials_mode.map(|b| !b),
+        )
+        .with_optional_base_env(
+            BaseClientConfig::with_enabled_stats_reporting_address,
+            args.stats_reporting_address,
+            nym_network_defaults::var_names::CLIENT_STATS_COLLECTION_PROVIDER,
+        )
+}
+
+async fn try_upgrade_v1_1_54_config(id: &str) -> Result<bool, Socks5ClientError> {
+    // explicitly load it as v1.1.54 (which is incompatible with the current one, i.e. +1.1.55)
+    let Ok(old_config) = ConfigV1_1_54::read_from_default_path(id) else {
+        // if we failed to load it, there might have been nothing to upgrade
+        // or maybe it was an even older file. in either way. just ignore it and carry on with our day
+        return Ok(false);
+    };
+    info!("It seems the client is using <= v1.1.54 config template.");
+    info!("It is going to get updated to the current specification.");
+
+    let updated = old_config.try_upgrade()?;
+
+    updated.save_to_default_location()?;
+    Ok(true)
+}
+
+async fn try_upgrade_config(id: &str) -> Result<(), Socks5ClientError> {
+    if try_upgrade_v1_1_54_config(id).await? {
+        return Ok(());
+    }
+
+    Ok(())
+}
+
+async fn try_load_current_config(id: &str) -> Result<Config, Socks5ClientError> {
+    // try to load the config as is
+    if let Ok(cfg) = Config::read_from_default_path(id) {
+        return if !cfg.validate() {
+            Err(Socks5ClientError::ConfigValidationFailure)
+        } else {
+            Ok(cfg)
+        };
+    }
+
+    // we couldn't load it - try upgrading it from older revisions
+    try_upgrade_config(id).await?;
+
+    let config = match Config::read_from_default_path(id) {
+        Ok(cfg) => cfg,
+        Err(err) => {
+            error!("Failed to load config for {id}. Are you sure you have run `init` before? (Error was: {err})");
+            return Err(Socks5ClientError::FailedToLoadConfig(id.to_string()));
+        }
+    };
+
+    if !config.validate() {
+        return Err(Socks5ClientError::ConfigValidationFailure);
+    }
+
+    Ok(config)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn verify_cli() {
+        Cli::command().debug_assert();
+    }
+}

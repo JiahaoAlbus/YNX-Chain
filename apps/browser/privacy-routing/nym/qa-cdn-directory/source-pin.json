@@ -1,0 +1,45 @@
+{
+  "schema": "YNX_NYM_QA_CDN_DIRECTORY_OVERLAY_V1",
+  "baseCommit": "f92749c5f45bf1fdaacb824f9796bca2d641c6f9",
+  "base": "Currentfrozenencoding2sourcecandidate; doesnotapplytooroverwrite7412artifact",
+  "defaultFeature": "OFF; explicitynx-qa-directory only",
+  "files": {
+    "common/http-api-client/Cargo.toml": {
+      "before": "ec94173dbd585fc9f7a9af89249b9bd8c3617509663203337887bde2a8f0fd24",
+      "after": "4d43354df0be685b0ef6ee98137a62bb55a9a523d7c1858f6e0e52a43a54d310"
+    },
+    "common/client-libs/validator-client/Cargo.toml": {
+      "before": "d1e50263b74e24e32b5dc8c9d66fce74fa21f5f7b699defc2b11a7e5ac659323",
+      "after": "65fcd8812b3375afecd8ae31f95a97251bdcf91a3a554565e588d406271865ea"
+    },
+    "clients/socks5/Cargo.toml": {
+      "before": "2475d3e475d7bdfb503e46cfe25ba8de7c88f0511f6fe11e1acbce7ce545fdf0",
+      "after": "8fda34121c76e92ab27d98d2ac55f71a1e6647cd78bd8a8adaeb7febcc47e102"
+    },
+    "common/http-api-client/src/lib.rs": {
+      "before": "6bcc3383e79eb6d155b8d417a2490d694062b35af2572f5b9adee23f50bba157",
+      "after": "aac8b06dabeeb8d1c6d27033e812f9c3782393ae61b14892b916416dfc91aca4"
+    },
+    "common/client-libs/validator-client/src/lib.rs": {
+      "before": "4c8bc001a291223aebb48496a0aba0361ae3d01119b425124b9030569375dd62",
+      "after": "0582e36c357ea28b4c522e68d5c3c3f4317b73ccbd0a8a4f422e355656f4a848"
+    },
+    "clients/socks5/src/commands/mod.rs": {
+      "before": "a03a7adbc2298aa602364f680f6a002dd0db06939da8b7bfa72822c82eb741cd",
+      "after": "7f11389e0dcfec69e9dfee4d3235c6d8c40e1133412c9e7ae5fbff404652a66a"
+    },
+    "common/http-api-client/src/qa_directory.rs": {
+      "before": null,
+      "after": "70767b79c258e8c90d1f7575b1c08db546080cf6da040ef2f0d9ef991e573532"
+    },
+    "clients/socks5/src/commands/qa_directory.rs": {
+      "before": null,
+      "after": "9cb4b0878d69213dd872a54a3796e9927a1d73d092b82de21f553c49908ff2a7"
+    }
+  },
+  "patchSHA256": "250870c9000f7e1fe021ebefd9c9dab5fe71dbc1618ca122407f42ae907ee0a4",
+  "lockSHA256": "29275bf9e41f6d6acad87f4737b5640e89ada39e0d7752a9211d04fec7871558",
+  "normalGuardsOrTTLChanged": false,
+  "executedNetwork": false,
+  "paginationContract": "BasicandDescribed distinctpages0..79, max80perresource, oneimmutable120deadline, exacttotal/metadata/pageorder, max4MiB/page+16MiBdecodedcumulative, failedsessionpoisoned; page-local size normalizedonlyafterexacttotal"
+}

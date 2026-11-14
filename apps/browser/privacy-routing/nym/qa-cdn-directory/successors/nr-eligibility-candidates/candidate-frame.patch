@@ -1,0 +1,45 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -150,6 +150,22 @@
+ fn same_metadata(previous:&Option<nym_validator_client::nym_nodes::NodesResponseMetadata>, next:&nym_validator_client::nym_nodes::NodesResponseMetadata) -> bool {
+     previous.as_ref().is_none_or(|old|serde_json::to_value(old).ok()==serde_json::to_value(next).ok())
+ }
++/// A DATA-only codec result for the same complete snapshot, never a route/Root
++/// capability. The Python QA bridge must not substitute a regex crypto codec.
++fn typed_candidate_ids(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>,described:&PaginatedResponse<NymNodeDescriptionV2>) -> Result<(Vec<u32>,Vec<u32>),String> {
++    let full:BTreeMap<_,_>=described.data.iter().map(|node|(node.node_id,node)).collect();
++    let mut entries=Vec::new();let mut exits=Vec::new();
++    for node in &basic.nodes.data {
++        let Some(description)=full.get(&node.node_id) else {continue};
++        if description.ed25519_identity_key()!=node.ed25519_identity_pubkey {return Err("qa-directory-identity-mismatch".into())}
++        if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry
++            && tls_entry_eligible(node.entry.as_ref(),&description.entry_information())? {entries.push(node.node_id)}
++        if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr
++            && qa_requester_eligible(description.description.network_requester.as_ref(),node.ed25519_identity_pubkey) {exits.push(node.node_id)}
++    }
++    if entries.is_empty() || exits.is_empty() || entries.len().checked_add(exits.len()).is_none_or(|n|n>20_000) {return Err("qa-directory-candidate-count".into())}
++    entries.sort_unstable();exits.sort_unstable();Ok((entries,exits))
++}
+ async fn fetch_described(session:&mut transport::Session) -> Result<PaginatedResponse<NymNodeDescriptionV2>,Box<dyn Error+Send+Sync>> {
+     let mut pages=CompletePages::new();
+     for page in 0..80 {
+@@ -166,9 +182,18 @@
+     let epoch_bytes=session.fetch(transport::Resource::Epoch).await?;
+     let epoch:serde_json::Value=serde_json::from_slice(&epoch_bytes).map_err(|_|"qa-directory-epoch-type")?;
+     validate_snapshot(&basic,&described,&epoch)?;session.require_live()?;
++    let (entries,exits)=typed_candidate_ids(&basic,&described)?;
+     // Exact original DATA envelope; never a proof of route/NE/normal authorization.
+     let bytes=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_DIRECTORY_V1","basic":basic,"described":described,"epoch":epoch}))?;
+     if bytes.len()>16_777_216 {return Err("qa-directory-envelope-size".into())}
++    let digest=Sha256::digest(&bytes).iter().map(|b|format!("{b:02x}")).collect::<String>();
++    let frame=serde_json::to_vec(&serde_json::json!({"schema":"YNX_NYM_QA_DIRECTORY_CANDIDATES_V1",
++        "runID":session.run_id(),"payloadSHA256":digest,"entryNodeIDs":entries,"exitNodeIDs":exits}))?;
++    if frame.len()>262_144 {return Err("qa-directory-candidate-frame-size".into())}
+     session.require_live()?;
+-    use std::io::Write;let mut stdout=std::io::stdout().lock();stdout.write_all(&bytes)?;stdout.write_all(b"\n")?;Ok(())
++    use std::io::Write;
++    let mut stdout=std::io::stdout().lock();stdout.write_all(&bytes)?;stdout.write_all(b"\n")?;stdout.flush()?;
++    session.require_live()?;
++    let mut stderr=std::io::stderr().lock();stderr.write_all(b"YNX_NYM_QA_DIRECTORY_CANDIDATES_V1 ")?;stderr.write_all(&frame)?;stderr.write_all(b"\n")?;stderr.flush()?;
++    session.require_live()?;Ok(())
+ }

@@ -11,12 +11,37 @@ export function dnsQuestion(packet) {
   const labels = []; let offset = 12;
   while (offset < packet.length) {
     const length = packet[offset++];
-    if (!length) break;
-    if (length > 63 || offset + length > packet.length) return null;
-    labels.push(packet.subarray(offset, offset + length).toString('ascii')); offset += length;
+    if (!length) {
+      if (!labels.length || offset + 4 > packet.length) return null;
+      return { name: labels.join('.').toLowerCase(), type: packet.readUInt16BE(offset), end: offset + 4 };
+    }
+    if (length > 63 || offset + length > packet.length || offset + length >= 12 + 255) return null;
+    const label = packet.subarray(offset, offset + length);
+    if (!/^[a-z0-9-]+$/i.test(label.toString('latin1'))) return null;
+    labels.push(label.toString('ascii')); offset += length;
   }
-  if (offset + 4 > packet.length) return null;
-  return { name: labels.join('.').toLowerCase(), type: packet.readUInt16BE(offset), end: offset + 4 };
+  return null;
+}
+
+function isDNSQuery(packet, question) {
+  // Only standard, complete IN questions. RD, AD and CD are valid query flags.
+  if ((packet.readUInt16BE(2) & ~0x0130) !== 0 || packet.readUInt16BE(6) !== 0 ||
+      packet.readUInt16BE(8) !== 0 || packet.readUInt16BE(question.end - 2) !== 1 ||
+      question.type === 0) return false;
+  const additional = packet.readUInt16BE(10);
+  if (additional === 0) return question.end === packet.length;
+  const offset = question.end;
+  // A resolver may send one EDNS0 OPT record. The target never acts on its options.
+  if (additional !== 1 || offset + 11 > packet.length || packet[offset] !== 0 ||
+      packet.readUInt16BE(offset + 1) !== 41 || packet.readUInt16BE(offset + 5) !== 0) return false;
+  const end = offset + 11 + packet.readUInt16BE(offset + 9);
+  if (end !== packet.length) return false;
+  for (let option = offset + 11; option < end;) {
+    if (option + 4 > end) return false;
+    option += 4 + packet.readUInt16BE(option + 2);
+    if (option > end) return false;
+  }
+  return true;
 }
 
 function dnsReply(packet, question) {
@@ -33,6 +58,13 @@ function dnsReply(packet, question) {
 
 export function stunBindingResponse(packet, peer) {
   if (packet.length < 20 || packet.readUInt16BE(0) !== 1 || packet.readUInt32BE(4) !== 0x2112a442 || packet.readUInt16BE(2) + 20 !== packet.length) return null;
+  if (packet.length % 4 !== 0) return null;
+  for (let offset = 20; offset < packet.length;) {
+    if (offset + 4 > packet.length) return null;
+    const length = packet.readUInt16BE(offset + 2);
+    offset += 4 + Math.ceil(length / 4) * 4;
+    if (offset > packet.length) return null;
+  }
   if (peer.family === 'IPv6' && peer.address === '::1') {
     const response = Buffer.alloc(44); response.writeUInt16BE(0x0101, 0); response.writeUInt16BE(24, 2); response.writeUInt32BE(0x2112a442, 4); packet.copy(response, 8, 8, 20);
     response.writeUInt16BE(0x0020, 20); response.writeUInt16BE(20, 22); response[25] = 2; response.writeUInt16BE(peer.port ^ 0x2112, 26);
@@ -94,8 +126,10 @@ export async function startSyntheticEndpoints({ tls, runID = randomBytes(8).toSt
   const dns = dgram.createSocket('udp4'), stun = dgram.createSocket('udp4');
   const handleDNS = socket => (packet, peer) => {
     const question = dnsQuestion(packet);
-    if (!question || question.name !== hostname) return; // Never collect unrelated DNS questions.
-    record({ kind: 'dns', actor: 'target', protocol: 'dns', hostname, queryType: question.type, addressFamily: peer.family === 'IPv6' ? 'ipv6' : 'ipv4' });
+    if (!question || question.name !== hostname || !isDNSQuery(packet, question)) return;
+    const local = socket.address();
+    record({ kind: 'dns', actor: 'target', protocol: 'dns', hostname, queryType: question.type, peerPort: peer.port,
+      targetHost: local.address, targetPort: local.port, transactionID: packet.readUInt16BE(0), addressFamily: peer.family === 'IPv6' ? 'ipv6' : 'ipv4' });
     socket.send(dnsReply(packet, question), peer.port, peer.address);
   };
   const handleSTUN = socket => (packet, peer) => {

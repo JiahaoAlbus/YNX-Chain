@@ -1,0 +1,57 @@
+[package]
+name = "nym-socks5-client"
+description = "A SOCKS5 localhost proxy that converts incoming messages to Sphinx and sends them to a Nym address"
+version = "1.1.88"
+authors = ["Dave Hrycyszyn <futurechimp@users.noreply.github.com>"]
+edition = "2021"
+license.workspace = true
+rust-version = "1.85"
+publish = false
+
+[dependencies]
+bs58 = { workspace = true }
+clap = { workspace = true, features = ["cargo", "derive"] }
+log = { workspace = true }
+serde = { workspace = true, features = [
+    "derive",
+] } # for config serialization/deserialization
+serde_json = { workspace = true }
+tap = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "signal"] }
+time = { workspace = true }
+url = { workspace = true }
+zeroize = { workspace = true }
+
+# internal
+nym-bin-common = { workspace = true, features = [
+    "output_format",
+    "clap",
+    "basic_tracing",
+] }
+nym-client-core = { workspace = true, features = [
+    "fs-credentials-storage",
+    "fs-surb-storage",
+    "fs-gateways-storage",
+    "cli",
+] }
+nym-config = { workspace = true }
+nym-credential-storage = { workspace = true }
+nym-credentials = { workspace = true }
+nym-crypto = { workspace = true }
+nym-gateway-requests = { workspace = true }
+nym-id = { workspace = true }
+nym-network-defaults = { workspace = true }
+nym-ordered-buffer = { workspace = true }
+nym-pemstore = { workspace = true }
+nym-socks5-client-core = { workspace = true }
+nym-sphinx = { workspace = true }
+nym-topology = { workspace = true }
+nym-validator-client = { workspace = true, features = [
+    "http-client",
+] }
+
+[features]
+ynx-qa-directory = ["nym-validator-client/ynx-qa-directory"]
+default = []
+eth = []

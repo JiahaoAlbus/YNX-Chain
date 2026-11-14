@@ -22,6 +22,19 @@ bool YNXCopyOwnAuditToken(uint8_t *output, size_t length) {
     if (task_info(mach_task_self(), TASK_AUDIT_TOKEN, (task_info_t)&token, &count) != KERN_SUCCESS) return false;
     memcpy(output, &token, length); return true;
 }
+int YNXCopyAuditViaTaskName(int32_t pid, uint8_t *output, size_t length, int32_t *taskNameStatus, int32_t *taskInfoStatus) {
+    if (pid < 2 || !output || length != sizeof(audit_token_t) || !taskNameStatus || !taskInfoStatus) return KERN_INVALID_ARGUMENT;
+    memset(output, 0, length); *taskNameStatus = KERN_FAILURE; *taskInfoStatus = KERN_FAILURE;
+    mach_port_t name = MACH_PORT_NULL;
+    *taskNameStatus = task_name_for_pid(mach_task_self(), pid, &name);
+    if (*taskNameStatus != KERN_SUCCESS) return *taskNameStatus;
+    audit_token_t token; mach_msg_type_number_t count = TASK_AUDIT_TOKEN_COUNT;
+    *taskInfoStatus = task_info(name, TASK_AUDIT_TOKEN, (task_info_t)&token, &count);
+    mach_port_deallocate(mach_task_self(), name);
+    if (*taskInfoStatus != KERN_SUCCESS) return *taskInfoStatus;
+    if (count != TASK_AUDIT_TOKEN_COUNT || audit_token_to_pid(token) != pid) return KERN_INVALID_ARGUMENT;
+    memcpy(output, &token, length); return KERN_SUCCESS;
+}
 static int digest_file(const char *path, char output[65]) {
     int fd = open(path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC); if (fd < 0) return errno;
     struct stat before, after; if (fstat(fd, &before) || !S_ISREG(before.st_mode)) { close(fd); return EINVAL; }
@@ -33,7 +46,19 @@ static int digest_file(const char *path, char output[65]) {
     for (size_t index = 0; index < 32; index++) snprintf(output + index * 2, 3, "%02x", digest[index]);
     return 0;
 }
-int YNXInspectAuditIdentity(const uint8_t *bytes, size_t length, const char *requirement, YNXProcessIdentity *output) {
+int YNXMatchesCodeForPID(int32_t pid, const char *requirement) {
+    if (pid < 2 || !requirement || !*requirement) return EINVAL;
+    CFNumberRef number = CFNumberCreate(NULL, kCFNumberSInt32Type, &pid);
+    const void *keys[] = { kSecGuestAttributePid }, *values[] = { number };
+    CFDictionaryRef attributes = CFDictionaryCreate(NULL, keys, values, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    SecCodeRef code = NULL; OSStatus status = SecCodeCopyGuestWithAttributes(NULL, attributes, kSecCSDefaultFlags, &code);
+    CFRelease(number); CFRelease(attributes); if (status) return status;
+    CFStringRef string = CFStringCreateWithCString(NULL, requirement, kCFStringEncodingUTF8); SecRequirementRef rule = NULL;
+    status = SecRequirementCreateWithString(string, kSecCSDefaultFlags, &rule); CFRelease(string);
+    if (!status) status = SecCodeCheckValidity(code, kSecCSStrictValidate, rule);
+    if (rule) CFRelease(rule); CFRelease(code); return status;
+}
+static int inspect_identity(const uint8_t *bytes, size_t length, const char *requirement, YNXProcessIdentity *output, bool hashFile) {
     if (!bytes || !output || length != sizeof(audit_token_t) || !requirement || !*requirement) return EINVAL;
     memset(output, 0, sizeof(*output)); audit_token_t token; memcpy(&token, bytes, length);
     output->pid = audit_token_to_pid(token); output->pidVersion = audit_token_to_pidversion(token);
@@ -52,15 +77,29 @@ int YNXInspectAuditIdentity(const uint8_t *bytes, size_t length, const char *req
     CFStringRef string = CFStringCreateWithCString(NULL, requirement, kCFStringEncodingUTF8); SecRequirementRef rule = NULL;
     status = SecRequirementCreateWithString(string, kSecCSDefaultFlags, &rule); CFRelease(string);
     output->requirementStatus = status == errSecSuccess ? SecCodeCheckValidity(code, kSecCSStrictValidate, rule) : status;
-    if (rule) CFRelease(rule); CFRelease(code);
+    if (rule) CFRelease(rule);
+    CFDictionaryRef information = NULL;
+    if (SecCodeCopySigningInformation(code, kSecCSSigningInformation | kSecCSDynamicInformation, &information) == errSecSuccess) {
+        CFDataRef unique = CFDictionaryGetValue(information, kSecCodeInfoUnique);
+        if (unique && CFGetTypeID(unique) == CFDataGetTypeID() && CFDataGetLength(unique) > 0 && CFDataGetLength(unique) <= 64) {
+            const UInt8 *digest = CFDataGetBytePtr(unique);
+            for (CFIndex i = 0; i < CFDataGetLength(unique); i++) snprintf(output->codeDirectoryHash + i*2, 3, "%02x", digest[i]);
+        }
+        CFRelease(information);
+    }
+    CFRelease(code);
     if (output->signatureStatus || output->requirementStatus) return output->signatureStatus ?: output->requirementStatus;
-    int failure = digest_file(output->path, output->sha256); if (failure) return failure;
+    if (!output->codeDirectoryHash[0]) return EINVAL;
+    int failure = hashFile ? digest_file(output->path, output->sha256) : 0; if (failure) return failure;
     char rechecked[4096];
     if (proc_pidpath_audittoken(&token, rechecked, sizeof(rechecked)) <= 0 || strcmp(rechecked, output->path)) return ESTALE;
     if (proc_pidinfo(output->pid, PROC_PIDTBSDINFO, 0, &after, sizeof(after)) != sizeof(after) || before.pbi_start_tvsec != after.pbi_start_tvsec || before.pbi_start_tvusec != after.pbi_start_tvusec) return ESTALE;
     return 0;
 }
-int YNXOwnsLoopbackTCPListener(const uint8_t *bytes, size_t length, const char *host, uint16_t port) {
+int YNXInspectAuditIdentity(const uint8_t *bytes, size_t length, const char *requirement, YNXProcessIdentity *output) { return inspect_identity(bytes, length, requirement, output, true); }
+int YNXInspectAuditCodeIdentity(const uint8_t *bytes, size_t length, const char *requirement, YNXProcessIdentity *output) { return inspect_identity(bytes, length, requirement, output, false); }
+static int inspect_loopback_tcp_listener(const uint8_t *bytes, size_t length, const char *host, uint16_t port, uint64_t *generation) {
+    if (generation) *generation = 0;
     if (!bytes || length != sizeof(audit_token_t) || !host || (strcmp(host,"127.0.0.1") && strcmp(host,"::1")) || port < 1024) return -EINVAL;
     audit_token_t token; memcpy(&token, bytes, length); pid_t pid = audit_token_to_pid(token);
     char path[4096]; if (proc_pidpath_audittoken(&token, path, sizeof(path)) <= 0) return -(errno ?: ESRCH);
@@ -69,6 +108,7 @@ int YNXOwnsLoopbackTCPListener(const uint8_t *bytes, size_t length, const char *
     struct proc_fdinfo *fds = calloc(1, size); if (!fds) return -ENOMEM;
     int actual = proc_pidinfo(pid, PROC_PIDLISTFDS, 0, fds, size), result = 0;
     if (actual <= 0) { free(fds); return -(errno ?: ESRCH); }
+    uint64_t observed = 0;
     for (int index = 0; index < actual / sizeof(*fds); index++) {
         if (fds[index].proc_fdtype != PROX_FDTYPE_SOCKET) continue;
         struct socket_fdinfo info;
@@ -76,10 +116,29 @@ int YNXOwnsLoopbackTCPListener(const uint8_t *bytes, size_t length, const char *
         if (info.psi.soi_kind != SOCKINFO_TCP || info.psi.soi_protocol != IPPROTO_TCP || info.psi.soi_proto.pri_tcp.tcpsi_state != TSI_S_LISTEN) continue;
         struct in_sockinfo *address = &info.psi.soi_proto.pri_tcp.tcpsi_ini;
         if (ntohs((uint16_t)address->insi_lport) != port) continue;
-        if (!strcmp(host,"127.0.0.1") && (address->insi_vflag & INI_IPV4) && address->insi_laddr.ina_46.i46a_addr4.s_addr == htonl(INADDR_LOOPBACK)) result = 1;
         struct in6_addr loopback = IN6ADDR_LOOPBACK_INIT;
-        if (!strcmp(host,"::1") && (address->insi_vflag & INI_IPV6) && !memcmp(&address->insi_laddr.ina_6, &loopback, sizeof(loopback))) result = 1;
+        bool matches =
+            (!strcmp(host,"127.0.0.1") && (address->insi_vflag & INI_IPV4) && address->insi_laddr.ina_46.i46a_addr4.s_addr == htonl(INADDR_LOOPBACK)) ||
+            (!strcmp(host,"::1") && (address->insi_vflag & INI_IPV6) && !memcmp(&address->insi_laddr.ina_6, &loopback, sizeof(loopback)));
+        if (!matches) continue;
+        if (generation) {
+            uint64_t candidate = address->insi_gencnt;
+            if (candidate == 0 || (observed != 0 && observed != candidate)) {
+                result = -ESTALE;
+                break;
+            }
+            observed = candidate;
+        }
+        result = 1;
     }
     free(fds); if (proc_pidpath_audittoken(&token, path, sizeof(path)) <= 0) return -(errno ?: ESTALE);
+    if (generation && result == 1) *generation = observed;
     return result;
+}
+int YNXOwnsLoopbackTCPListener(const uint8_t *bytes, size_t length, const char *host, uint16_t port) {
+    return inspect_loopback_tcp_listener(bytes, length, host, port, NULL);
+}
+int YNXLoopbackTCPListenerGeneration(const uint8_t *bytes, size_t length, const char *host, uint16_t port, uint64_t *generation) {
+    if (!generation) return -EINVAL;
+    return inspect_loopback_tcp_listener(bytes, length, host, port, generation);
 }

@@ -1,0 +1,21 @@
+{
+  "schema": "YNX_NYM_QA_CDN_NR_ELIGIBILITY_SOURCE_V1",
+  "UTC": "2026-11-08T01:18:53.993274+00:00",
+  "baseWSSSourcePinSHA256": "3435e5d8e5bee3c4b6f8ef6621906b3c5aeb85030121129843c4565b1247d271",
+  "baseArtifactSHA256": "49e680282821398aa1060d8da8a0a0f5b81697fafc153311081a4c4f38c26356",
+  "actualFailureReceiptSHA256": "738d22021f849cfb1d423f59bbb92804aaa245c9328d609f606c7ccdc12044c5",
+  "actualORBranch": "UNKNOWN_NOT_INFERRED",
+  "file": {
+    "path": "clients/socks5/src/commands/qa_directory.rs",
+    "beforeSHA256": "70ea16cbfd38bcdd7a8c593058f2b96d2e9a1284cab1b2550cc82acc0c91d3a4",
+    "afterSHA256": "fed9f037a2435fd532ea8c1df0cd61228d2394244ae71b1706d5dcc6d8939b23"
+  },
+  "patchSHA256": "32288aa2f55276145b506110dd02584d8bcd406dc8ef1cf3a15f00f3c931b796",
+  "fixtureSHA256": "5abdb4c9fbb918eeaab6332ee20db82fa939f17fe4c2323faf912888f3062487",
+  "invariantsSHA256": "eff4cca7149f0a873b318ce90a5245685b465026cfc6f80b7d7bf8f2f688e0e8",
+  "officialArchiveSourceReadbackSHA256": "f9c48e8cd32f5512c06d3923f00aa0a0b9bb2f6ebda739c9addb66e48113e131",
+  "strictSelectedQAExit": "ActualExit+supportedNR+strictjoinedidentity/IP+typedRecipient+usesofficialpolicy+sameNodegateway; no promotion of generic unavailable records.",
+  "completeRawTables": "All rows and fields preserved, including independently complete scraped subsets. KnowncrossID/identity/IP conflicts and emptyBasicIPs still deny.",
+  "HTTP_TLS_DNS_120_NormalQualification": "UNCHANGED",
+  "newFixtureExecution": "NOT_RUN_AT_FREEZE"
+}

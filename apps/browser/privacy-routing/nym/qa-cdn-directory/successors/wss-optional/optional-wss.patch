@@ -1,0 +1,67 @@
+--- a/clients/socks5/src/commands/qa_directory.rs
++++ b/clients/socks5/src/commands/qa_directory.rs
+@@ -1,7 +1,7 @@
+ //! No profile argument, key access, init, gateway registration or normal readiness output.
+ use std::{collections::{BTreeMap,BTreeSet}, error::Error, fs::File, io::Read, path::PathBuf};
+ use nym_crypto::{Digest,sha2::Sha256};
+-use nym_validator_client::{qa_directory as transport, nym_nodes::{PaginatedCachedNodesResponseV2,SkimmedNodeV1,NodeRole}, pagination::PaginatedResponse, models::described::v2::NymNodeDescriptionV2};
++use nym_validator_client::{qa_directory as transport, nym_nodes::{BasicEntryInformation,PaginatedCachedNodesResponseV2,SkimmedNodeV1,NodeRole}, pagination::PaginatedResponse, models::described::v2::NymNodeDescriptionV2};
+ 
+ #[derive(clap::Args)]
+ pub(crate) struct Args {
+@@ -30,6 +30,35 @@
+     page.pagination.page==0 && page.pagination.total>0 && page.pagination.total<=20_000
+         && page.pagination.total==page.data.len() && page.pagination.size==page.data.len()
+ }
++fn canonical_wss_hostname(hostname:&str) -> bool {
++    let Ok(parsed)=url::Url::parse(&format!("https://{hostname}/")) else {return false};
++    hostname.is_ascii() && hostname.len()<=253 && hostname==hostname.to_ascii_lowercase()
++        && parsed.host_str()==Some(hostname) && matches!(parsed.host(),Some(url::Host::Domain(_)))
++        && hostname.parse::<std::net::IpAddr>().is_err() && parsed.username().is_empty()
++        && parsed.password().is_none() && parsed.query().is_none() && parsed.fragment().is_none()
++}
++/// Official BasicEntryInformation and RoutingNode::ws_entry_address_tls describe
++/// absent hostname/WSS as no TLS capability. Preserve every original row; absence
++/// is not a matched endpoint and never grants eligibility or a WS downgrade.
++fn tls_entry_eligible(entry:Option<&BasicEntryInformation>, described:&BasicEntryInformation) -> Result<bool,String> {
++    for info in [entry,Some(described)].into_iter().flatten() {
++        if info.wss_port==Some(0) {return Err("qa-directory-entry-wss-zero".into())}
++        if info.hostname.as_deref().is_some_and(|h|!canonical_wss_hostname(h)) {
++            return Err("qa-directory-entry-wss-hostname".into())
++        }
++    }
++    let Some(entry)=entry else {return Ok(false)};
++    // Known conflicts must not be masked by another optional field being absent.
++    if entry.ws_port!=described.ws_port {return Err("qa-directory-entry-ws-port-mismatch".into())}
++    if let (Some(a),Some(b))=(&entry.hostname,&described.hostname) {
++        if a!=b {return Err("qa-directory-entry-hostname-mismatch".into())}
++    }
++    if let (Some(a),Some(b))=(entry.wss_port,described.wss_port) {
++        if a!=b {return Err("qa-directory-entry-wss-port-mismatch".into())}
++    }
++    Ok(matches!((&entry.hostname,&described.hostname,entry.wss_port,described.wss_port),
++        (Some(a),Some(b),Some(port),Some(other)) if a==b && port==other && port!=0))
++}
+ fn validate_snapshot(basic:&PaginatedCachedNodesResponseV2<SkimmedNodeV1>, described:&PaginatedResponse<NymNodeDescriptionV2>, epoch:&serde_json::Value) -> Result<(),String> {
+     if !complete(&basic.nodes) || !complete(described) || basic.metadata.status.is_some() {return Err("qa-directory-incomplete-or-no-updates".into())}
+     let now=time::OffsetDateTime::now_utc();
+@@ -57,16 +86,9 @@
+             return Err("qa-directory-address-mismatch".into())
+         }
+         if matches!(node.role,NodeRole::EntryGateway) && node.supported_roles.entry {
+-            let entry=node.entry.as_ref().ok_or("qa-directory-missing-entry")?;
+-            let hostname=entry.hostname.as_deref().ok_or("qa-directory-missing-wss-hostname")?;
+-            let hostname_url=url::Url::parse(&format!("https://{hostname}/")).map_err(|_|"qa-directory-wss-hostname")?;
+-            if !hostname.is_ascii() || hostname.len()>253 || hostname!=hostname.to_ascii_lowercase()
+-                || hostname_url.host_str()!=Some(hostname) || hostname.parse::<std::net::IpAddr>().is_ok()
+-                || !hostname_url.username().is_empty() || hostname_url.password().is_some() || hostname_url.query().is_some() || hostname_url.fragment().is_some()
+-            {return Err("qa-directory-wss-hostname".into())}
+-            if entry.hostname!=host.hostname || entry.wss_port.is_none_or(|x|x==0)
+-                || entry.wss_port!=description.description.mixnet_websockets.wss_port {return Err("qa-directory-entry-wss-mismatch".into())}
+-            entries+=1;
++            // Official constructor copies the exact described hostname/WS/WSS fields.
++            // Do not fill missing Basic fields from it or remove any node from output.
++            entries+=usize::from(tls_entry_eligible(node.entry.as_ref(),&description.entry_information())?);
+         }
+         if matches!(node.role,NodeRole::ExitGateway) && node.supported_roles.exit_nr {
+             let requester=description.description.network_requester.as_ref().ok_or("qa-directory-missing-requester")?;
