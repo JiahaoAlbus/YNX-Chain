@@ -532,6 +532,8 @@ jobs:
         with:
           name: ynx-shop-android-debug
           path: ${{ runner.temp }}/shop-android
+          run-id: 43584648127
+          github-token: ${{ github.token }}
       - name: Enable hosted emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-shop-kvm.rules
@@ -548,6 +550,7 @@ jobs:
             set -euo pipefail
             apk="$RUNNER_TEMP/shop-android/outputs/apk/debug/app-debug.apk"
             test -f "$apk"
+            test "$(sha256sum "$apk" | cut -d' ' -f1)" = 318137706973fa9b888ebc75a853f9eb08ab4e9f188c41a460e3b387432cab9e
             shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
             adb install "$apk"
             path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
