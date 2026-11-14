@@ -52,6 +52,7 @@ type walletStatusFixture struct {
 	build            buildinfo.Info
 	server           *httptest.Server
 	lastCacheControl string
+	advanceAt        string
 }
 
 func newWalletStatusFixture(t *testing.T) *walletStatusFixture {
@@ -79,6 +80,25 @@ func (f *walletStatusFixture) serve(w http.ResponseWriter, r *http.Request) {
 		f.t.Error("status observation attempted a mutation")
 		http.Error(w, "GET required", 405)
 		return
+	}
+	if r.URL.Path == f.advanceAt {
+		f.advanceAt = ""
+		current, err := f.f.app.Info(r.Context(), &abci.RequestInfo{})
+		if err != nil {
+			f.t.Error(err)
+			http.Error(w, "application Info unavailable", 500)
+			return
+		}
+		if _, err := f.f.app.FinalizeBlock(r.Context(), &abci.RequestFinalizeBlock{Height: current.LastBlockHeight + 1, Time: f.f.commit.Header.Time, NextValidatorsHash: f.f.set.Hash()}); err != nil {
+			f.t.Error(err)
+			http.Error(w, "application finalize unavailable", 500)
+			return
+		}
+		if _, err := f.f.app.Commit(r.Context(), &abci.RequestCommit{}); err != nil {
+			f.t.Error(err)
+			http.Error(w, "application commit unavailable", 500)
+			return
+		}
 	}
 	info, err := f.f.app.Info(r.Context(), &abci.RequestInfo{})
 	if err != nil {
@@ -338,6 +358,45 @@ func TestGatewayStatusRejectsUnknownOrInconsistentObservations(t *testing.T) {
 			code, raw := f.read(t, "/status")
 			if code != http.StatusBadGateway || originalWalletStatusHealthy(raw, f.build) {
 				t.Fatalf("unverified status became healthy: %d %s", code, raw)
+			}
+		})
+	}
+}
+
+func TestGatewayStatusResamplesOneObservedForwardCommit(t *testing.T) {
+	for _, stage := range []string{"/abci_info", "/abci_query"} {
+		t.Run(stage, func(t *testing.T) {
+			f := newWalletStatusFixture(t)
+			before, err := f.f.app.Info(context.Background(), &abci.RequestInfo{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			f.mu.Lock()
+			f.advanceAt = stage
+			f.mu.Unlock()
+			code, raw := f.read(t, "/status")
+			if code != http.StatusOK || !originalWalletStatusHealthy(raw, f.build) {
+				t.Fatalf("one forward commit made the Wallet status unavailable: %d %s", code, raw)
+			}
+			var observed struct {
+				Height int64                                `json:"height"`
+				View   consensus.ApplicationPersistenceView `json:"persistenceObservation"`
+			}
+			after, err := f.f.app.Info(context.Background(), &abci.RequestInfo{})
+			if err != nil || json.Unmarshal(raw, &observed) != nil || after.LastBlockHeight != before.LastBlockHeight+1 ||
+				observed.Height != after.LastBlockHeight || observed.View.StateHeight != after.LastBlockHeight ||
+				observed.View.StateAppHash != hex.EncodeToString(after.LastBlockAppHash) {
+				t.Fatal("status did not return the newly matched persistent height and hash", observed, err)
+			}
+			f.mu.Lock()
+			defer f.mu.Unlock()
+			want := "/status,/validators,/abci_info,"
+			if stage == "/abci_query" {
+				want += "/abci_query,"
+			}
+			want += "/status,/validators,/abci_info,/abci_query"
+			if strings.Join(f.reads, ",") != want {
+				t.Fatal("non-bounded or unexpected status resampling", f.reads)
 			}
 		})
 	}

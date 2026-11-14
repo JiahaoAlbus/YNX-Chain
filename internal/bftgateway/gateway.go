@@ -631,26 +631,53 @@ func (g *Gateway) handleStatus(w http.ResponseWriter, r *http.Request) {
 // These are configured-RPC storage observations, never consensus finality or a
 // replacement for the Wallet's independently supplied network/build pins.
 func (g *Gateway) walletStatus(ctx context.Context) (Status, error) {
+	// Bound the whole observation, including a resample, to the configured
+	// upstream time budget. A shorter caller deadline still takes precedence.
+	if budget := g.client.httpClient.Timeout; budget > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, budget)
+		defer cancel()
+	}
+	status, advancedTo, err := g.walletStatusObservation(ctx)
+	if advancedTo == 0 || ctx.Err() != nil {
+		return status, err
+	}
+	// Status uses only GET. If a single commit landed between the original
+	// reads, collect one complete replacement observation on the same request
+	// context. Never join fields from two observations or retry a submission.
+	replacement, _, retryErr := g.walletStatusObservation(ctx)
+	if retryErr != nil {
+		return Status{}, errors.Join(err, retryErr)
+	}
+	if replacement.Height < advancedTo {
+		return Status{}, err
+	}
+	return replacement, nil
+}
+
+// The second return value is set only for a well-formed, single-height forward
+// advance. Invalid or backward observations never trigger a new sample.
+func (g *Gateway) walletStatusObservation(ctx context.Context) (Status, uint64, error) {
 	raw, err := g.identityRPCResult(ctx, "/status", nil, 64<<10)
 	if err != nil {
-		return Status{}, err
+		return Status{}, 0, err
 	}
 	var upstream cometStatus
 	if err = json.Unmarshal(raw, &upstream.Result); err != nil {
-		return Status{}, errors.New("invalid CometBFT status observation")
+		return Status{}, 0, errors.New("invalid CometBFT status observation")
 	}
 	if upstream.Result.SyncInfo.CatchingUp == nil {
-		return Status{}, errors.New("CometBFT status lacks explicit synchronization state")
+		return Status{}, 0, errors.New("CometBFT status lacks explicit synchronization state")
 	}
 	status, err := g.mapStatus(ctx, upstream)
 	if err != nil {
-		return Status{}, err
+		return Status{}, 0, err
 	}
 	// /status.latest_app_hash belongs to the latest block HEADER (H-1 state).
 	// /abci_info reports the application's current committed H/hash instead.
 	infoRaw, err := g.identityRPCResult(ctx, "/abci_info", nil, 64<<10)
 	if err != nil {
-		return Status{}, err
+		return Status{}, 0, err
 	}
 	var info struct {
 		Response struct {
@@ -662,28 +689,37 @@ func (g *Gateway) walletStatus(ctx context.Context) (Status, error) {
 		} `json:"response"`
 	}
 	if err = json.Unmarshal(infoRaw, &info); err != nil {
-		return Status{}, errors.New("invalid ABCI Info observation")
+		return Status{}, 0, errors.New("invalid ABCI Info observation")
 	}
 	infoHeight, err := strconv.ParseInt(info.Response.LastBlockHeight, 10, 64)
-	if err != nil || infoHeight <= 0 || strconv.FormatInt(infoHeight, 10) != info.Response.LastBlockHeight || uint64(infoHeight) != status.Height || len(info.Response.LastBlockAppHash) != 32 || info.Response.Data != consensus.ApplicationName {
-		return Status{}, errors.New("CometBFT and ABCI Info observations disagree")
+	if err != nil || infoHeight <= 0 || strconv.FormatInt(infoHeight, 10) != info.Response.LastBlockHeight || len(info.Response.LastBlockAppHash) != 32 || info.Response.Data != consensus.ApplicationName {
+		return Status{}, 0, errors.New("CometBFT and ABCI Info observations disagree")
+	}
+	if uint64(infoHeight) != status.Height {
+		advancedTo := uint64(0)
+		if uint64(infoHeight) > status.Height && uint64(infoHeight)-status.Height == 1 {
+			advancedTo = uint64(infoHeight)
+		}
+		return Status{}, advancedTo, errors.New("CometBFT and ABCI Info observations disagree")
 	}
 	view, height, err := g.queryApplicationPersistence(ctx)
 	if err != nil {
-		return Status{}, err
+		return Status{}, 0, err
 	}
 	if err = consensus.ValidateApplicationPersistenceView(view); err != nil {
-		return Status{}, err
+		return Status{}, 0, err
 	}
 	if height != view.StateHeight || view.StateHeight != infoHeight || view.StateAppHash != fmt.Sprintf("%x", info.Response.LastBlockAppHash) {
-		// The sequential reads may straddle a commit. Refuse this observation;
-		// do not combine different heights, retry a transaction, or call it durable.
-		return Status{}, errors.New("CometBFT and ABCI persistence observations disagree")
+		advancedTo := uint64(0)
+		if height == view.StateHeight && height > infoHeight && height-infoHeight == 1 {
+			advancedTo = uint64(height)
+		}
+		return Status{}, advancedTo, errors.New("CometBFT and ABCI persistence observations disagree")
 	}
 	status.Persistence = view.Persistence
 	status.PersistenceError = view.PersistenceError
 	status.PersistenceObservation = &view
-	return status, nil
+	return status, 0, nil
 }
 
 func (g *Gateway) queryApplicationPersistence(ctx context.Context) (consensus.ApplicationPersistenceView, int64, error) {
