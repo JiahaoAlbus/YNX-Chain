@@ -7,6 +7,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest import mock
 import zipfile
@@ -22,6 +23,7 @@ def module(name):
 reader = module('pq-same-runner-pair-readback')
 fixtures = module('test_pq_first100_held_readback')
 scheduler = module('pq-independent-scheduler')
+transport = module('pq-public-owner-transport')
 
 
 def encode(value):
@@ -119,6 +121,18 @@ class PairFixture:
                 journalSegments=[dict(path='load-events-00000.jsonl', bytes=len(journal), sha256=sha(journal))],
                 loadConditions=dict(accounts=500, rate=100, seconds=5, tailSeconds=30),
                 caps=dict(rssBytes=4 << 30), normalHelperLifecycle=dict(cleanupDebt=[]))
+            # Reuse the actual transport report serializer with explicit unit
+            # boundaries. Do not construct a session, open credentials or run
+            # a callee. New normal readers require this original report shape.
+            Session = transport.session_class(object, None, None)
+            session = object.__new__(Session)
+            session.trace_lock = threading.Lock()
+            session.attempts = 1
+            session.traces = [dict(ownerIndex=row['ownerIndex'], operationId=row['operationId'],
+                operation='sign', code='ORIGINAL_SAVED', requestedMonotonicNs=start+100,
+                streamAcquiredMonotonicNs=start+100, commandRequestedMonotonicNs=start+100,
+                replyReceivedMonotonicNs=start+101, returnedMonotonicNs=start+101)]
+            receipt['normalPublicOwnerTransport'] = session.transport_report()
             for group in (receipt['processes'], receipt['normalNodeCleanExit']['records']):
                 for proc in group:
                     proc['startTicks'] += j * 1000
@@ -180,6 +194,40 @@ def read(raws, metadata, expected):
 
 
 class SameRunnerPairReadbackTests(unittest.TestCase):
+    def test_original_archive_migration_role_limit_keeps_legacy_refusal(self):
+        raw = b'{"CONTROL synthetic migration":"'+b'x'*(8 << 20)+b'"}'
+        digest = sha(raw)
+        prefix = 'pq-independent-load-control1/public/'
+        blob = prefix+'proof-public-blobs/'+digest+'.json'
+        path = prefix+'load-operations/00000/original-public-proof-manifest.json'
+        manifest = dict(schema='YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1',
+            syntheticOnly=True, authorityGranted=False, actualNetworkExecutionClaim=False,
+            entries=dict(migration=dict(sha256=digest, bytes=len(raw),
+                publicRelativePath='proof-public-blobs/'+digest+'.json')))
+        files = {path: encode(manifest), blob: raw}
+        zipped = archive(files)
+        original = reader.held.prior.original.public_archive
+        if 'proof_migration_limit' not in reader.signature_inspection.signature(original).parameters:
+            # This candidate was branched before the normal role-aware API.
+            # Keep that old API strict; the current Tools integration executes
+            # the positive branch below, with no monkeypatch or new parser.
+            with self.assertRaises(RuntimeError): reader.original_archive(zipped, sha(zipped))
+            return
+        found, inventory, total = reader.original_archive(zipped, sha(zipped))
+        self.assertEqual(found, files)
+        self.assertEqual(inventory[blob]['sha256'], digest)
+        self.assertEqual(total, sum(map(len, files.values())))
+        for defect in ('role', 'bytes', 'hash', 'ordinary'):
+            with self.subTest(defect=defect):
+                changed, declaration = dict(files), copy.deepcopy(manifest)
+                if defect == 'role': declaration['entries']['state'] = declaration['entries'].pop('migration')
+                elif defect == 'bytes': declaration['entries']['migration']['bytes'] += 1
+                elif defect == 'hash': changed[blob] = b'y'+raw[1:]
+                else: changed[prefix+'ordinary.json'] = changed.pop(blob)
+                changed[path] = encode(declaration)
+                zipped = archive(changed)
+                with self.assertRaises(RuntimeError): reader.original_archive(zipped, sha(zipped))
+
     def test_real_reducers_keep_unknown_full500_missing_timings_and_four_node_separation(self):
         result = PairFixture().read()
         self.assertTrue(result['sameActionsJobAndRunnerBound'])
@@ -327,6 +375,7 @@ class SameRunnerPairReadbackTests(unittest.TestCase):
         operation = fixture.get('before', 'receipt.json')['loadResult']['rows'][0]['operationId']
         receipt = fixture.get('after', 'receipt.json')
         receipt['loadResult']['rows'][0]['operationId'] = operation
+        receipt['normalPublicOwnerTransport']['records'][0]['operationId'] = operation
         fixture.put('after', 'receipt.json', receipt)
         intent = fixture.get('after', 'load-operations/00000/submission-intent.json')
         intent['operationId'] = operation

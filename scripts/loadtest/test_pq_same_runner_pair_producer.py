@@ -248,6 +248,53 @@ class SameRunnerProducerTests(unittest.TestCase):
 
 
 class PublicSnapshotSafetyTests(unittest.TestCase):
+    def migration(self, root, *, changes=None, role='migration', prefix=''):
+        raw = b'{"CONTROL synthetic migration":"' + b'x'*(8 << 20) + b'"}'
+        pin = producer.sha(raw)
+        blob = root/prefix/'proof-public-blobs'/(pin+'.json')
+        blob.parent.mkdir(parents=True); blob.write_bytes(raw)
+        entry = dict(publicRelativePath='proof-public-blobs/'+pin+'.json', sha256=pin, bytes=len(raw))
+        if changes: entry.update(changes)
+        manifest = root/prefix/'load-operations/00000/original-public-proof-manifest.json'
+        manifest.parent.mkdir(parents=True)
+        manifest.write_bytes(producer.encode(dict(schema='YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1',
+            syntheticOnly=True, authorityGranted=False, actualNetworkExecutionClaim=False, entries={role:entry})))
+        return blob, manifest, raw
+
+    def test_large_content_addressed_migration_requires_exact_role_hash_size_and_prefix(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            blob, manifest, raw = self.migration(root, prefix='pq-independent-load-control1/public')
+            snapshot = producer.snapshot_tree(root)
+            self.assertEqual(snapshot[str(blob.relative_to(root))], raw)
+            self.assertEqual(snapshot[str(manifest.relative_to(root))], manifest.read_bytes())
+        for defect in ('role','hash','size','path','prefix','scope','unbound'):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve(); blob, manifest, _ = self.migration(root)
+                value = json.loads(manifest.read_bytes())
+                if defect == 'role': value['entries']['state'] = value['entries'].pop('migration')
+                elif defect == 'hash': value['entries']['migration']['sha256'] = 'f'*64
+                elif defect == 'size': value['entries']['migration']['bytes'] += 1
+                elif defect == 'path': value['entries']['migration']['publicRelativePath'] = '../'+blob.name
+                elif defect == 'scope': value['authorityGranted'] = True
+                if defect == 'unbound': manifest.unlink()
+                elif defect == 'prefix':
+                    other = root/'other/load-operations/00000/original-public-proof-manifest.json'
+                    other.parent.mkdir(parents=True); manifest.rename(other)
+                else: manifest.write_bytes(producer.encode(value))
+                with self.assertRaises(RuntimeError): producer.snapshot_tree(root)
+
+    def test_large_migration_does_not_relax_regular_hardlink_hash_or_size_guards(self):
+        for defect in ('ordinary','hardlink','bytes','oversize'):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve(); blob, _, raw = self.migration(root)
+                if defect == 'ordinary': blob.rename(root/'arbitrary.json')
+                elif defect == 'hardlink': os.link(blob, root/'private-link')
+                elif defect == 'bytes': blob.write_bytes(b'y'+raw[1:])
+                else:
+                    with blob.open('r+b') as out: out.truncate((128 << 20)+1)
+                with self.assertRaises(RuntimeError): producer.snapshot_tree(root)
+
     def layout(self, name):
         root = Path(name).resolve(strict=True)
         work = root/'pq-independent-load-controls'
