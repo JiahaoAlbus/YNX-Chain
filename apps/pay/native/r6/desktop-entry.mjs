@@ -21,7 +21,7 @@ try{
   try{
    const raw=fs.readFileSync(0);if(!raw.length||raw.length>4096)throw Object.assign(Error(),{code:'NATIVE_PAY_MAIN_INPUT_INVALID'});
    const request=JSON.parse(new TextDecoder('utf8',{fatal:true}).decode(raw));
-   const result=request.action==='status'?await entry.status():await entry.invoke(request);write(result);
+   const result=request.action==='status'?await entry.status():typeof entry.invokeResult==='function'?await entry.invokeResult(request):await entry.invoke(request);write(result);
   }finally{if(typeof entry.close==='function')await entry.close();}
  }
 }catch(error){write({phase:'unavailable',code:nativePayFailureCode(error,'NATIVE_PAY_NORMAL_MAIN_SOURCE_UNAVAILABLE'),mainApproval:false,submission:false});process.exitCode=2;}
