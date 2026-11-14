@@ -802,11 +802,13 @@ jobs:
           PY
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.26.10'
+          go-version-file: go.mod
           cache: true
       - name: Execute every new Commit case and affected original stop cases
         run: |
           set -euo pipefail
+          required_go="$(awk '$1 == "go" && NF == 2 { print $2; count++ } END { if (count != 1) exit 1 }' go.mod)"
+          test "$(go env GOVERSION)" = "go$required_go"
           if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s \
             -run '^(TestOperatorCommitObservation.*|TestOperatorWireObservation(NormalStopOneOutputAndPublicSchema|FailureAndUnknownPreserveOriginal))$' \
             ./cmd/ynx-comet > "$RUNNER_TEMP/commit-consumer-tests.jsonl"; then
@@ -911,7 +913,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
         with:
-          go-version: "1.26.10"
+          go-version-file: go.mod
           cache: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -929,7 +931,8 @@ jobs:
           printf 'GOCACHE=%s\n' "$RUNNER_TEMP/securelink-go-cache" >> "$GITHUB_ENV"
           printf 'OPENSSL_PREFIX=%s\n' "$RUNNER_TEMP/securelink-openssl" >> "$GITHUB_ENV"
           go version | tee "$RUNNER_TEMP/securelink-evidence/go-version.txt"
-          test "$(go env GOVERSION)" = go1.26.10
+          required_go="$(awk '$1 == "go" && NF == 2 { print $2; count++ } END { if (count != 1) exit 1 }' go.mod)"
+          test "$(go env GOVERSION)" = "go$required_go"
           cc --version > "$RUNNER_TEMP/securelink-evidence/compiler.txt"
       - name: Exercise original Node callers and actual OS peer bindings
         run: |
