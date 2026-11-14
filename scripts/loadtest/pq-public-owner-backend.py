@@ -77,7 +77,10 @@ def backend_class(Base, Session, normal, lab):
                 notify(dict(kind='normal_stage',stage='sender_checkpoint_sign'))
                 return normal.sender_command_data('sign',request,current['height'],current['appHash'])
             command=normal.sender_command_data('sign',request)
-            return self.public_session.exchange(command,case/'original-sign-reply.json',stop,prepare_command=prepare)
+            options=dict(prepare_command=prepare)
+            if getattr(self.c,'consumer_source',None) == '0b515124bda8ff7efaf3ec03456d69dee2c6ad18':
+                options['prepare_owner_path']=case/'original-prepare-owner-reply.json'
+            return self.public_session.exchange(command,case/'original-sign-reply.json',stop,**options)
 
         def confirm_original(self,row,request,proof,case,notify,stop):
             command=normal.sender_command_data('confirm',request,materials=proof['materials']['path'],

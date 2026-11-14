@@ -383,6 +383,42 @@ class TransportControls(unittest.TestCase):
             s.exchange(command(),None,threading.Event(),prepare_command=lambda:command(5))
         self.assertEqual(s.proc.stdin.getvalue(),b'')
 
+    def test_owner_preparation_precedes_checkpoint_and_sign_under_same_stream_lock(self):
+        replies=iter([dict(response(identity='',code='OWNER_PREPARED'),result=None), response()])
+        s=session(lambda:next(replies))
+        selected=[]
+        def checkpoint():
+            self.assertTrue(s.lock.locked())
+            self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
+            selected.append(True)
+            return n.sender_command_data('sign',command()['request'],22,'c'*64)
+        result=s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
+                          prepare_owner_path=Path('/PUBLIC-TEST'))
+        self.assertEqual(result['code'],'ORIGINAL_SAVED')
+        self.assertEqual(selected,[True])
+        first,second=map(json.loads,s.proc.stdin.getvalue().splitlines())
+        self.assertEqual(first,n.sender_command_data('prepare-owner',dict(
+            version='YNX-PQ-LAB-SENDER-REQUEST/v1',operationId='',ownerIndex=4,firstNonce='0',members=0)))
+        self.assertEqual(second['checkpointHeight'],'22')
+        self.assertEqual(second['request'],command()['request'])
+
+    def test_uncertain_owner_preparation_poisoned_without_checkpoint_or_sign(self):
+        for bad in (dict(response(identity='',code='OWNER_PREPARED'),result={'unexpected':1}),
+                    dict(response(identity='',code='UNKNOWN'),result=None),
+                    dict(response(owner=5,identity='',code='OWNER_PREPARED'),result=None),
+                    dict(response(identity='',code='OWNER_PREPARED'),result=None,failure={})):
+            with self.subTest(bad=bad):
+                s=session(lambda:bad)
+                checkpoint=unittest.mock.Mock()
+                with self.assertRaisesRegex(RuntimeError,'preparation did not return'):
+                    s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
+                               prepare_owner_path=Path('/PUBLIC-TEST'))
+                checkpoint.assert_not_called()
+                self.assertTrue(s.poisoned)
+                self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
+                with self.assertRaisesRegex(RuntimeError,'never replay'):
+                    s.exchange(command(),None,threading.Event())
+
     def test_real_backend_preserves_shared_process_and_original_proof_arguments(self):
         class Callee:
             def __init__(self,ceremony,indices):self.owners=indices;self.calls=[]

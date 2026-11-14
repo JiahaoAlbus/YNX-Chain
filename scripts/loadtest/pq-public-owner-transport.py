@@ -156,7 +156,7 @@ def session_class(Base, normal, lab):
             self.ready=dict(reply)
             return dict(reply)
 
-        def exchange(self, command, path, stop, prepare_command=None):
+        def exchange(self, command, path, stop, prepare_command=None, prepare_owner_path=None):
             lab.require(self.ready is not None,'original public scope READY required')
             operation=command.get('operation');request=command.get('request',{})
             owner=request.get('ownerIndex');identity=request.get('operationId')
@@ -176,6 +176,22 @@ def session_class(Base, normal, lab):
                 trace['streamAcquiredMonotonicNs']=time.monotonic_ns()
                 lab.require(not self.poisoned and self.proc.poll() is None,
                             'original stream unavailable; recover originals, never replay')
+                if prepare_owner_path is not None:
+                    lab.require(operation == 'sign' and prepare_command is not None,
+                                'original owner preparation requires a sign and current checkpoint')
+                    owner_request=dict(version='YNX-PQ-LAB-SENDER-REQUEST/v1',operationId='',
+                                       ownerIndex=owner,firstNonce='0',members=0)
+                    owner_command=normal.sender_command_data('prepare-owner',owner_request)
+                    lab.require(not stop.is_set(),'canceled before owner preparation; preserve UNKNOWN')
+                    self.poisoned=True
+                    raw=json.dumps(owner_command,separators=(',',':')).encode()+b'\n'
+                    self.proc.stdin.write(raw);self.proc.stdin.flush()
+                    prepared=self.receive(prepare_owner_path,stop,'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1')
+                    lab.require(prepared.get('ownerIndex') == owner and type(prepared.get('ownerIndex')) is int
+                                and prepared.get('operationId') == '' and prepared.get('code') == 'OWNER_PREPARED'
+                                and 'result' in prepared and prepared['result'] is None and 'failure' not in prepared,
+                                'original owner preparation did not return its exact successful reply; preserve UNKNOWN')
+                    self.poisoned=False
                 if prepare_command is not None:
                     command=prepare_command()
                     lab.require(command.get('operation')==operation and command.get('request')==request,
