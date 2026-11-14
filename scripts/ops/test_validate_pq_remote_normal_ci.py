@@ -501,6 +501,7 @@ NORMAL_STEP_NAMES = (
     "Verify normal single-App operator package and original deployment caller",
     "Upload only public operator inputs and normal CLI receipt",
     "Verify original public cutover caller preserves independent operator and runtime pins",
+    "Verify original cutover transaction and registration continuation",
     "Verify normal proof CLI with exact public interoperability fixture",
     "Verify normal transaction proof CLI with exact public two-header fixture",
     "Verify stopped-source publication and original Host ABI through normal binaries",
@@ -2040,6 +2041,42 @@ def assert_native_compatibility_classification_contract(raw):
     need("continue-on-error:" not in job and "provider: 'portable'" not in job and "if: false" not in job)
 
 
+
+CUTOVER_CALLER_STEPS = ('Verify original public cutover caller preserves independent operator and runtime pins', 'Verify original cutover transaction and registration continuation')
+CUTOVER_CALLER_PROGRAMS = (
+    ['YNX_OLD_SNAPSHOT_HELPER="$RUNNER_TEMP/ynx-old-final-snapshot-59185090a.sh"', 'YNX_OLD_SNAPSHOT_LOG="$RUNNER_TEMP/ynx-old-final-snapshot-59185090a.log"', 'git show 59185090aab3e4eaa6f8c9a0b29e975a2917e8b1:scripts/ops/remote/public-bft-final-snapshot.sh > "$YNX_OLD_SNAPSHOT_HELPER"', 'if PUBLIC_BFT_SNAPSHOT_HELPER="$YNX_OLD_SNAPSHOT_HELPER" bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only > "$YNX_OLD_SNAPSHOT_LOG" 2>&1; then', '  cat "$YNX_OLD_SNAPSHOT_LOG"', "  echo 'old snapshot helper unexpectedly preserved the retained partial' >&2", '  exit 1', 'fi', 'cat "$YNX_OLD_SNAPSHOT_LOG"', 'test "$(grep -c \'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED\' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1', 'bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only', 'bash scripts/verify/public-bft-production-driver-check.sh --preflight-ports-only', 'bash scripts/verify/public-bft-native-identity-check.sh', 'timeout 90s python3 -B scripts/verify/test_public_bft_capture_snapshot_source.py -v', 'bash scripts/verify/owner-handover-check.sh', 'timeout 90s node scripts/verify/public-bft-same-owner-check.mjs', 'bash scripts/verify/production-service-signer-ceremony-check.sh', 'bash scripts/verify/production-custody-review-check.sh', 'bash scripts/verify/public-bft-production-candidate-check.sh'],
+    ['bash scripts/verify/public-bft-production-driver-check.sh', 'bash scripts/verify/public-bft-cutover-transaction-check.sh', 'bash scripts/verify/public-bft-gateway-dependencies-check.sh', 'bash scripts/verify/public-bft-validator-registration-check.sh "$RUNNER_TEMP/ynx-pq-linux-runtime-candidate/ynx-comet" "$RUNNER_TEMP/ynx-pq-consensus-light-proof-public.json"'],
+)
+
+def assert_cutover_caller_partition_contract(raw):
+    """Preserve the original ordered shell programs under two fixed budgets."""
+    _, steps = workflow_steps(raw, "protocol-delivery")
+    selected = []
+    for name, program in zip(CUTOVER_CALLER_STEPS, CUTOVER_CALLER_PROGRAMS):
+        marker = "      - name: " + name + "\n"
+        matches = [step for step in steps if step.startswith(marker)]
+        if len(matches) != 1 or raw.count(marker) != 1:
+            raise AssertionError("each original caller partition must execute exactly once")
+        step = matches[0]
+        actual_header, body = step.split("        run: |\n", 1)
+        expected_header = marker + "        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}\n        timeout-minutes: 3\n"
+        if actual_header != expected_header:
+            raise AssertionError("original success scope and three-minute partition budget required")
+        actual = [line[10:] for line in body.splitlines()
+                  if line.strip() and not line.lstrip().startswith("#")]
+        if actual != program:
+            raise AssertionError("complete original caller program and exact order required")
+        selected.append(step)
+    indexes = [steps.index(step) for step in selected]
+    if indexes[1] != indexes[0] + 1:
+        raise AssertionError("original caller partitions must remain adjacent and ordered")
+    proof = next(step for step in steps if step.startswith(
+        "      - name: Verify normal proof CLI with exact public interoperability fixture\n"))
+    if steps.index(proof) != indexes[1] + 1:
+        raise AssertionError("original proof consumer must still follow both caller partitions")
+    return "".join(selected)
+
+
 def assert_workflow_contract(raw):
     assert_native_compatibility_classification_contract(raw)
     assert_browser_verification_workflow_contract(raw)
@@ -2274,7 +2311,7 @@ def assert_workflow_contract(raw):
     need(large.count("go test ") == 1 and "-timeout=180s -v -run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$' ./internal/consensus" in large)
     need("--- PASS: TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery (" in large)
     need("grep -F -c 'COMET_MIGRATION_REFERENCE_LARGE_CANONICAL_RECOVERY_PASS'" in large and '" -eq 1' in large)
-    cutover = by_name("Verify original public cutover caller preserves independent operator and runtime pins")[0]
+    cutover = assert_cutover_caller_partition_contract(raw)
     for script in ("public-bft-production-driver-check.sh --snapshot-only", "owner-handover-check.sh",
                    "production-service-signer-ceremony-check.sh", "production-custody-review-check.sh",
                    "public-bft-production-candidate-check.sh", "public-bft-cutover-transaction-check.sh",
@@ -2480,6 +2517,40 @@ def assert_legacy_snapshot_stream_contract(raw):
     need(pull_request.count("      - 'internal/api/ethereum_ethers_test.go'\n") == 1)
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+
+    def test_cutover_caller_partitions_keep_exact_program_order_scope_and_deadlines(self):
+        raw = (Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml").read_text()
+        joined = assert_cutover_caller_partition_contract(raw)
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        first, second = [next(step for step in steps if step.startswith("      - name: " + name + "\n"))
+                         for name in CUTOVER_CALLER_STEPS]
+        self.assertIn("PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED", first)
+        self.assertNotIn("PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED", second)
+        self.assertEqual(joined.count("          bash scripts/verify/public-bft-production-driver-check.sh\n"), 1)
+        mutations = [raw.replace(first + second, second + first, 1),
+                     raw.replace(second, "", 1),
+                     raw.replace(second, second + second, 1),
+                     raw.replace(first + second, first + "      - name: Interposed action\n        run: true\n" + second, 1)]
+        for step in (first, second):
+            mutations.extend([
+                raw.replace(step, step.replace("timeout-minutes: 3", "timeout-minutes: 4", 1), 1),
+                raw.replace(step, step.replace("(success() && github.event_name == 'push')", "(always())", 1), 1),
+                raw.replace(step, step.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1), 1),
+            ])
+            for line in step.splitlines(keepends=True):
+                if line.startswith("          bash ") or line.startswith("          timeout "):
+                    mutations.extend([raw.replace(step, step.replace(line, "", 1), 1),
+                                      raw.replace(step, step.replace(line, line + line, 1), 1),
+                                      raw.replace(step, step.replace(line, line.rstrip() + " || true\n", 1), 1)])
+        marker = """test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1"""
+        mutations.append(raw.replace(marker, "true", 1))
+        # The original one-step program is complete but no longer a valid
+        # bounded partition after its actual three-minute timeout.
+        mutations.append(raw.replace(second.split("        run: |\n", 1)[0] + "        run: |\n", "", 1))
+        for index, changed in enumerate(mutations):
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_cutover_caller_partition_contract(changed)
+
     def test_native_codec_and_bridge_events_keep_original_file_and_package(self):
         # Execute the actual two collector preludes, with the same duplicated
         # codec events caused by the new complete two-package native suite.
