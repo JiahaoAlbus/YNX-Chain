@@ -11,6 +11,11 @@ on:
         description: 'Exact Android preview artifact name from that run'
         required: false
         type: string
+      android_only:
+        description: 'Build and check only the current Android source'
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [codex/ecosystem-ai]
     paths:
@@ -27,7 +32,7 @@ permissions:
 
 jobs:
   ios-simulator:
-    if: ${{ inputs.artifact_run == '' || inputs.artifact_run == null }}
+    if: ${{ (inputs.artifact_run == '' || inputs.artifact_run == null) && !inputs.android_only }}
     runs-on: macos-15
     timeout-minutes: 45
     defaults:
