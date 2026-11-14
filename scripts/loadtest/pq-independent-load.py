@@ -371,7 +371,7 @@ class NormalBackend:
     def __init__(self,ceremony,owners,stop,open_persistent=True):
         self.c=ceremony;self.w=ceremony.w;self.stop_event=stop
         self.pool_started_ns=time.monotonic_ns();self.pool_ready=None
-        self.sessions={};self.attempted=set();self.submit_lock=threading.Lock();self.checkpoint_lock=threading.Lock();self.cached_checkpoint=None;self.fingerprint=None
+        self.sessions={};self.attempted=set();self.submit_lock=threading.Lock();self.checkpoint_lock=threading.Lock();self.checkpoint_points={}
         # Online originals are signed only after an account claim; the normal
         # Go producer serializes its absent pre-signed slice as JSON null.
         # Validate mode-specific data before opening persistent sender handles.
@@ -503,6 +503,7 @@ class NormalBackend:
         return reply
     def checkpoint(self,stop):
         paths=[Path(n["statePath"]) for n in self.c.plan["nodes"]]
+        lab.require(len(paths)==4 and len(set(paths))==4,'four distinct original node state paths required')
         def identities():
             result = []
             for path in paths:
@@ -512,12 +513,19 @@ class NormalBackend:
         while not stop.is_set():
             with self.checkpoint_lock:
                 fingerprint=identities()
-                if fingerprint==self.fingerprint and self.cached_checkpoint is not None:return dict(self.cached_checkpoint)
-                values=[json.loads(lab.guard.bounded(p,128<<20)) for p in paths]
-                points={(v["height"],v["appHash"]) for v in values}
-                if len(points)==1 and all(v["initialized"] for v in values) and fingerprint==identities():
-                    height,app=next(iter(points));self.fingerprint=fingerprint;self.cached_checkpoint=dict(height=height,appHash=app)
-                    return dict(self.cached_checkpoint)
+                readings={}
+                for path, identity in zip(paths,fingerprint):
+                    cached=self.checkpoint_points.get(path)
+                    if cached is None or cached[0]!=identity:
+                        value=json.loads(lab.guard.bounded(path,128<<20))
+                        cached=(identity,value["height"],value["appHash"],value["initialized"])
+                    readings[path]=cached
+                if fingerprint==identities():
+                    self.checkpoint_points=readings
+                    points={(height,app) for _,height,app,_ in readings.values()}
+                    if len(points)==1 and all(row[3] for row in readings.values()):
+                        height,app=next(iter(points))
+                        return dict(height=height,appHash=app)
             stop.wait(.01)
         raise RuntimeError("no current common original checkpoint before interruption")
     def original(self,row,account,case,notify,stop):

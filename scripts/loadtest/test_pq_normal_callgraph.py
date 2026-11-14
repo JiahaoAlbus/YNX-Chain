@@ -34,7 +34,7 @@ class NormalCallgraphControls(unittest.TestCase):
     def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
         b = object.__new__(driver.NormalBackend)
         b.checkpoint_lock = threading.Lock()
-        b.fingerprint = b.cached_checkpoint = None
+        b.checkpoint_points = {}
         with tempfile.TemporaryDirectory() as temp:
             paths = [Path(temp) / f'node-{i}.json' for i in range(4)]
             for path in paths:
@@ -50,6 +50,29 @@ class NormalCallgraphControls(unittest.TestCase):
                 replacement.replace(path)
                 self.assertEqual(path.stat().st_size, before.st_size)
             self.assertEqual(b.checkpoint(stop), dict(height=2, appHash='b'*64))
+
+    def test_checkpoint_reuses_only_unchanged_nodes_while_heights_converge(self):
+        b=object.__new__(driver.NormalBackend)
+        b.checkpoint_lock=threading.Lock()
+        b.checkpoint_points={}
+        with tempfile.TemporaryDirectory() as temp:
+            paths=[Path(temp)/f'node-{i}.json' for i in range(4)]
+            b.c=SimpleNamespace(plan=dict(nodes=[dict(statePath=str(p)) for p in paths]))
+            def write(path,height):
+                replacement=path.with_suffix('.new')
+                replacement.write_text(json.dumps(dict(height=height, appHash=str(height)*64, initialized=True)))
+                replacement.replace(path)
+            for path in paths:
+                write(path,1)
+            stop=mock.Mock()
+            stop.is_set.return_value=False
+            with mock.patch.object(driver.lab.guard,'bounded',wraps=driver.lab.guard.bounded) as read:
+                self.assertEqual(b.checkpoint(stop)['height'],1)
+                write(paths[0],2)
+                pending=iter(paths[1:])
+                stop.wait.side_effect=lambda _: write(next(pending),2)
+                self.assertEqual(b.checkpoint(stop),dict(height=2,appHash='2'*64))
+                self.assertEqual([call.args[0] for call in read.call_args_list],paths+paths)
 
     def test_all_four_original_engine_and_app_successors_required_before_publication(self):
         b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();rounds=[]
