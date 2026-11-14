@@ -7,7 +7,12 @@
   if(_deviceV4NativeReadLoans.count>=256){if(error)*error=[NSError errorWithDomain:@"YNXDeviceV4NativeBorrow" code:73006 userInfo:nil];return nil;}
   id token=[NSObject new];[_deviceV4NativeReadLoans addObject:token];
   // Token remains adopted even when this late fence supplies NSError(code0).
-  [self assertOriginalProductSessionDeviceV4SourceCurrent:error];return token;
+  try {@try {[self assertOriginalProductSessionDeviceV4SourceCurrent:error];}
+   @catch(id){if(error&&!*error)*error=[NSError errorWithDomain:@"YNXDeviceV4NativeBorrow" code:73013 userInfo:nil];}}
+  catch(...){if(error&&!*error)*error=[NSError errorWithDomain:@"YNXDeviceV4NativeBorrow" code:73013 userInfo:nil];}
+  // The already registered SAME token is returned even after a thrown late
+  // fence; callers adopt it before NSError and can release actual child debt.
+  return token;
  }
 }
 - (BOOL)releaseOriginalDeviceV4NativeReadLoan:(id)token released:(BOOL*)released error:(NSError**)error {
