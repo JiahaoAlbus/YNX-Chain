@@ -10,6 +10,12 @@ const NATIVE_COMMANDS = new Set([
   'workbench.action.debug.start', 'workbench.action.debug.run', 'workbench.action.debug.stop', 'workbench.action.debug.restart', 'debug.configurations.open',
   'terminal:new', 'workbench.action.terminal.toggleTerminal', 'terminal:split', 'terminal:clear', 'task:run:build', 'workbench.action.tasks.runTask',
 ]);
+// Keep the native Run menu and its shortcuts on the workbench's language-aware
+// route. The route honors an explicit launch configuration before choosing a runner.
+const RUN_COMMANDS = new Map([
+  ['workbench.action.debug.start', 'ynx.workbench.debugCurrentFile'],
+  ['workbench.action.debug.run', 'ynx.workbench.runCurrentFile'],
+]);
 class NativeWorkbenchCommands {
   constructor(commands, target = window, locale = 'en') { Object.assign(this, { commands, target, locale }); }
   onStart() {
@@ -20,8 +26,9 @@ class NativeWorkbenchCommands {
       let result;
       try {
         if (!NATIVE_COMMANDS.has(commandId)) throw Error('This menu command is not supported.');
-        if (!this.commands.getCommand(commandId) || !this.commands.isEnabled(commandId)) throw Error('This command is unavailable in the current editor.');
-        await this.commands.executeCommand(commandId);
+        const command = RUN_COMMANDS.get(commandId) ?? commandId;
+        if (!this.commands.getCommand(command) || !this.commands.isEnabled(command)) throw Error('This command is unavailable in the current editor.');
+        await this.commands.executeCommand(command);
         result = { action: 'command-result', requestId, accepted: true };
       } catch (error) {
         // Do not forward backend exception text (which may contain file paths).
@@ -43,10 +50,10 @@ async function selectNativeGoToolchain(target, ...args) {
   let result;
   try { result=await bridge.selectToolchain(); }
   catch(error) {
-    // Keep an ordinary OS-panel cancel out of the extension RPC error path.
-    // Error custom properties do not reliably survive that boundary; a plain
-    // result cancels configuration without reporting a toolchain failure.
-    if(error?.cancelled===true)return {cancelled:true};
+    // The native picker marks explicit cancellation with its own DATA field.
+    // Preserve every other failure, including identical error text and getters.
+    try { if(error && Object.getOwnPropertyDescriptor(error,'cancelled')?.value===true)return {cancelled:true}; }
+    catch { /* An unreadable marker cannot replace the original failure. */ }
     throw error;
   }
   if(result?.effective!=='after-reopen' || typeof result.version!=='string')throw Error('Go toolchain selection did not return a verified selection.');

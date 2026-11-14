@@ -9,13 +9,13 @@ const { EN, ZH } = require('./native-wallet-localization');
 const t = key => nls.localize('ynx/nativeWallet/' + key, EN[key] || key);
 function element(document, tag, text) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node; }
 class NativeWalletService {
-  constructor(target = window, admission = MISSING_WALLET_ADMISSION) {
-    this.target = target; this.listeners = new Set();
+  constructor(target = window, admission = MISSING_WALLET_ADMISSION, projectContracts) {
+    this.target = target; this.listeners = new Set(); this.projectContracts=projectContracts;
     this.controller = new NativeWalletController(api, state => { for (const fn of this.listeners) fn(state); }, admission);
-    this.pagehide = () => { void this.controller.cancel(); };
+    this.pagehide = () => { void this.controller.cancel(); void this.projectContracts?.call('cancel',{}).catch(()=>{}); };
   }
   onStart() { this.target.addEventListener('pagehide', this.pagehide); }
-  onStop() { this.target.removeEventListener('pagehide', this.pagehide); return this.controller.dispose(); }
+  onStop() { this.target.removeEventListener('pagehide', this.pagehide); void this.projectContracts?.call('cancel',{}).catch(()=>{}); return this.controller.dispose(); }
 }
 class NativeWalletWidget extends BaseWidget {
   constructor(service) {
@@ -26,22 +26,77 @@ class NativeWalletWidget extends BaseWidget {
     this.session = element(document, 'p'); this.detail = element(document, 'p'); this.source = element(document, 'small');
     const details = element(document, 'details'); details.append(element(document, 'summary', t('details')), this.source);
     this.node.append(element(document, 'h3', t('title')), this.status, this.session, this.detail, element(document, 'p', t('project')), element(document, 'p', t('standard')), element(document, 'p', t('closed')), details);
-    this.buttons = {}; let live = true;
+    this.buttons = {}; let live=true;
+    // Current-project operations use the retained backend owner, not the
+    // product-session bridge. Rendering this section never initializes Relay.
+    const projectStatus=element(document,'p',t('projectContractIdle'));projectStatus.setAttribute('role','status');
+    const reference=element(document,'input');reference.type='text';reference.value='';reference.placeholder=t('projectReference');reference.setAttribute('aria-label',t('projectReference'));reference.maxLength=36;
+    const pairing=element(document,'textarea');pairing.readOnly=true;pairing.setAttribute('aria-label',t('projectPairing'));pairing.hidden=true;
+    const result=element(document,'pre');result.setAttribute('aria-live','polite');
+    this.node.append(element(document,'h4',t('projectContractTitle')),projectStatus,reference,pairing,result);
+    let projectEpoch=0,projectConnecting=false,projectConfigured=false,projectTimer;
+    const projectButtons={};
+    const showProjectConnection=value=>{
+      const configured=value?.onlineConfigured===true;
+      projectConfigured=configured;
+      projectStatus.textContent=t(projectConnecting?'projectContractPairing':configured?'projectContractIdle':'projectContractUnavailable');
+      projectButtons.connect.disabled=projectConnecting||!configured;projectButtons.query.disabled=projectConnecting||!configured;
+      projectButtons.read.disabled=projectConnecting;
+      pairing.value=typeof value?.pairingURI==='string'?value.pairingURI:'';pairing.hidden=!pairing.value;
+    };
+    const refreshProjectConnection=async(epoch,pendingOnly=false)=>{
+      const value=await service.projectContracts.call('inspect',{});
+      if(live&&epoch===projectEpoch&&(!pendingOnly||projectConnecting))showProjectConnection(value);
+    };
+    const projectCall=async(action,body={})=>{
+      if(action==='inspect'&&projectConnecting){try{await refreshProjectConnection(projectEpoch,true);}catch{}return;}
+      const epoch=++projectEpoch;let cancellationConfirmed=false;
+      clearTimeout(projectTimer);projectTimer=undefined;
+      try{
+        if(!service.projectContracts)throw Error('Project service unavailable');
+        if(action==='connect'){
+          projectConnecting=true;projectButtons.connect.disabled=true;projectButtons.query.disabled=true;projectButtons.read.disabled=true;
+          projectStatus.textContent=t('projectContractPairing');
+        }else if(action==='cancel'){projectConnecting=false;for(const key of ['connect','query','read','inspect','cancel'])projectButtons[key].disabled=true;}
+        const operation=service.projectContracts.call(action,body);
+        if(action==='connect'){
+          let observations=0;
+          const observe=async()=>{
+            if(!live||epoch!==projectEpoch||!projectConnecting||observations++>=120)return;
+            try{await refreshProjectConnection(epoch,true);}catch{}
+            if(live&&epoch===projectEpoch&&projectConnecting&&observations<120)projectTimer=setTimeout(observe,1000);
+          };
+          // Inspect only the original pending connection. Never re-connect,
+          // approve or send an RPC to make the pairing URI become visible.
+          void observe();
+        }
+        const value=await operation;
+        if(!live||epoch!==projectEpoch)return;
+        cancellationConfirmed=action==='cancel'&&value?.state==='cancelled';
+        if(action==='cancel'&&!cancellationConfirmed)throw Error('Project cancellation was not confirmed');
+        if(action==='inspect'){
+          showProjectConnection(value);
+        }else if(action==='read'||action==='query'){
+          result.textContent=value===null?t('projectReferenceMissing'):JSON.stringify(value,null,2);
+          projectStatus.textContent=t('projectQueryOnly');
+        }else{projectStatus.textContent=t(action==='cancel'?'projectContractCancelled':'projectContractConnected');pairing.value='';pairing.hidden=true;}
+      }catch{if(live&&epoch===projectEpoch)projectStatus.textContent=t('projectContractUnavailable');}
+      finally{if(epoch===projectEpoch){clearTimeout(projectTimer);projectTimer=undefined;if(action==='connect'||action==='cancel'){projectConnecting=false;projectButtons.read.disabled=action==='cancel'&&!cancellationConfirmed;projectButtons.connect.disabled=action==='cancel'&&!cancellationConfirmed||!projectConfigured;projectButtons.query.disabled=action==='cancel'&&!cancellationConfirmed||!projectConfigured;if(action==='cancel'){projectButtons.inspect.disabled=false;projectButtons.cancel.disabled=false;}pairing.value='';pairing.hidden=true;}}}
+    };
+    for(const [action,key] of [['connect','projectContractConnect'],['inspect','projectContractRefresh'],['read','projectReferenceRead'],['query','projectReferenceQuery'],['cancel','projectContractCancel']]){
+      const button=element(document,'button',t(key));button.type='button';button.className='theia-button secondary';if(action==='connect'||action==='query')button.disabled=true;
+      button.addEventListener('click',()=>{if(!live)return;void projectCall(action,action==='read'?{referenceId:reference.value.trim()}:action==='query'?{referenceId:reference.value.trim(),refresh:true}:{});});projectButtons[action]=button;this.node.append(button);
+    }
+    this.toDispose.push({dispose:()=>{const cancel=projectConnecting;projectEpoch++;projectConnecting=false;clearTimeout(projectTimer);pairing.value='';if(cancel)void service.projectContracts?.call('cancel',{}).catch(()=>{});}});
+    void projectCall('inspect');
+
     const operations = { connect: 'connect', restore: 'restore', returned: 'resumeCallback', disconnect: 'disconnect', cancel: 'cancel', guest: 'guest' };
     for (const [key, operation] of Object.entries(operations)) {
       const button = element(document, 'button', t(key)); button.type = 'button'; button.className = 'theia-button secondary';
-      button.addEventListener('click', () => {
-        if (!live) return;
-        // Bind before invocation: state listeners can start a newer generation.
-        const controller = service.controller, epoch = controller.epoch + 1;
-        void controller[operation]().catch(error => {
-          if (live && service.controller === controller && !controller.disposed && controller.epoch === epoch)
-            controller.publish({ phase: 'error', message: error.message });
-        });
-      });
+      button.addEventListener('click', () => { void service.controller[operation]().catch(error => service.controller.publish({ phase: 'error', message: error.message })); });
       this.buttons[key] = button; this.node.append(button);
     }
-    const update = state => this.renderState(state); service.listeners.add(update); this.toDispose.push({ dispose: () => { live = false; service.listeners.delete(update); void service.controller.cancel(); } });
+    const update = state => this.renderState(state); service.listeners.add(update); this.toDispose.push({ dispose: () => { live=false; service.listeners.delete(update); void service.controller.cancel(); } });
     this.renderState(service.controller.state); void service.controller.inspect();
   }
   renderState(state) {

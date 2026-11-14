@@ -1,4 +1,4 @@
-const { ContainerModule } = require('@theia/core/shared/inversify');
+const { ContainerModule, decorate, injectable } = require('@theia/core/shared/inversify');
 require('./reconnection-lifecycle').install();
 require('./native-startup-frame').install();
 require('./native-terminal-frame').install();
@@ -6,10 +6,6 @@ require('./terminal-ui-trace').install();
 require('./task-terminal-attachment').install();
 require('./tree-cycle-guard').install();
 require('./debug-variable-fetch-adapter').install();
-require('./problem-marker-lifecycle').install();
-require('./filesystem-move-widget-owner').install();
-require('./filesystem-save-as-owner').install();
-require('./model-save-version').install();
 const debugStatePersistence = require('./debug-state-persistence');
 debugStatePersistence.install();
 require('./test-range-adapter').install();
@@ -58,7 +54,6 @@ const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { WindowService } = require('@theia/core/lib/browser/window/window-service');
 const { NativeWindowClose } = require('./native-window-close');
-require('./native-window-close').installCloseSaveGuard();
 const { NativeWorkbenchCommands, selectNativeGoToolchain } = require('./native-workbench-commands');
 const { LocalWorkspaceContext } = require('./local-workspace-context');
 const { LocalTerminalDefaults } = require('./local-terminal-defaults');
@@ -102,9 +97,11 @@ const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-lay
 const { LocalWorkbenchStorage } = require('./local-workbench-storage');
 const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
 const { NativeWalletService, NativeWalletWidget, NativeWalletContribution, NATIVE_WALLET_ID } = require('./native-wallet-view');
+const {ContractDeploymentWidget,ContractDeploymentContribution,CONTRACT_DEPLOYMENT_ID}=require('./contract-deployment-view');
 const { EcosystemSidebarWidget, EcosystemSidebarContribution, ECOSYSTEM_ID } = require('./ecosystem-sidebar');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
+require('./native-paste-adapter').install();
 require('./quick-input-keybinding-label-adapter').install();
 require('./dialog-accept-adapter').install();
 require('./review-preview-adapter').install();
@@ -151,37 +148,34 @@ const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key,
   nls.locale?.toLowerCase().startsWith('zh') ? ({ ecosystemAI: 'AI 开发', ecosystemOpenAI: '打开 AI 构建助手' }[key] || text) : text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 const nativeFilePicker = require('./native-file-picker');
+const { bindNativeCreateFileService } = require('./native-create-file-service');
+const { FileStat } = require('@theia/filesystem/lib/common/files');
 const NativeFileURI = require('@theia/core/lib/common/uri').default;
-let nativeFilePickerEditors;
-require('./native-file-keybindings').install({
-  WorkspaceContribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
-  SymbolContribution: require('@theia/monaco/lib/browser/workspace-symbol-command').WorkspaceSymbolCommand,
-  commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
-  target: window,
-});
 nativeFilePicker.install({
   Contribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
+  WorkspaceContribution: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommandContribution,
+  SymbolContribution: require('@theia/monaco/lib/browser/workspace-symbol-command').WorkspaceSymbolCommand,
+  UriAwareCommandHandler: require('@theia/core/lib/common/uri-command-handler').UriAwareCommandHandler,
   URI: NativeFileURI, open: require('@theia/core/lib/browser').open,
   parse: require('jsonc-parser').parse, target: window, localize: translateWorkbench,
   fileOpenMenu: require('@theia/core/lib/browser').CommonMenus.FILE_OPEN,
   commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
-  getCurrentEditor: () => nativeFilePickerEditors?.currentEditor,
-});
-nativeFilePicker.installNativeNewFile({
-  Contribution: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommandContribution,
-  command: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands.NEW_FILE,
-  target: window, open: require('@theia/core/lib/browser').open,
-  uniqueResource: require('@theia/filesystem/lib/common').FileSystemUtils.generateUniqueResourceURI,
-  getCurrentEditor: () => nativeFilePickerEditors?.currentEditor,
+  fileStatFromNative(uri, stat, kind) {
+    const type = kind === 'create-folder' ? 2 : 1;
+    if (stat?.type !== type || ['ctime', 'mtime', 'size'].some(field => !Number.isFinite(stat[field]) || stat[field] < 0)) {
+      throw Error('The confirmed creation metadata is invalid.');
+    }
+    return FileStat.fromStat(uri, { type, ctime: stat.ctime, mtime: stat.mtime, size: stat.size });
+  },
 });
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bindNativeCreateFileService(rebind, FileService, { decorate, injectable });
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() {
-      nativeFilePickerEditors = context.container.get(EditorManager);
       nativeFilePicker.installProjectSaveDefault({
-        dialogs: context.container.get(FileDialogService), editors: nativeFilePickerEditors,
-        workspace: context.container.get(WorkspaceService), fileService: context.container.get(FileService),
         target: window, URI: NativeFileURI,
+        dialogs: context.container.get(FileDialogService), editors: context.container.get(EditorManager),
+        workspace: context.container.get(WorkspaceService), fileService: context.container.get(FileService),
       });
     },
   }));
@@ -240,6 +234,24 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     commands.registerCommand({ id: 'ynx.internal.publicChainCancel' }, { execute: id => rpc.cancel(id) });
   } }));
   bind(CommandContribution).toDynamicValue(context => ({ registerCommands(commands) {
+    const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-project-services');
+    const pending = new Set();
+    window.addEventListener('pagehide', () => { for (const id of pending) rpc.cancel(id); pending.clear(); });
+    commands.registerCommand({ id: 'ynx.project.current', label: 'YNX: Inspect current project services' }, { execute: async () => {
+      const id = window.crypto.randomUUID(); pending.add(id);
+      try {
+        const value = await rpc.read(id, 'project', {});
+        if (!pending.has(id)) return;
+        const project = value.project.project;
+        await context.container.get(MessageService).info(`YNX project: ${value.selection.projectId} · Read: ${project.read ? 'allowed' : 'unavailable'} · Publish: ${project.publish ? 'allowed' : 'unavailable'}`);
+        return value;
+      } catch (error) { if (pending.has(id)) await context.container.get(MessageService).error(`Project services unavailable: ${error?.message || 'request cancelled'}`); }
+      finally { pending.delete(id); }
+    } });
+    commands.registerCommand({ id: 'ynx.internal.projectServiceRead' }, { execute: (id, action, input) => rpc.read(id, action, input) });
+    commands.registerCommand({ id: 'ynx.internal.projectServiceCancel' }, { execute: id => rpc.cancel(id) });
+  } }));
+  bind(CommandContribution).toDynamicValue(context => ({ registerCommands(commands) {
     const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-ai');
     const caller = createLocalAICommandCaller(rpc, async (review, signal) => {
       const { ConfirmDialog } = require('@theia/core/lib/browser/dialogs');
@@ -256,8 +268,12 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     commands.registerCommand({ id: 'ynx.internal.localAICancel' }, { execute: id => caller.cancel(id) });
   } }));
   bind(NativeWalletService).toDynamicValue(context => new NativeWalletService(window,
-    require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')))).inSingletonScope();
+    require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')),
+    require('./project-contracts-rpc').createProjectContractsRPC(WebSocketConnectionProvider.createProxy(context.container,'/services/ynx-project-services'),window))).inSingletonScope();
   bind(FrontendApplicationContribution).toService(NativeWalletService);
+  bind(WidgetFactory).toDynamicValue(context=>({id:CONTRACT_DEPLOYMENT_ID,createWidget:()=>new ContractDeploymentWidget(context.container.get(NativeWalletService).projectContracts,window,context.container.get(CommandRegistry),translateWorkbench)}));
+  bind(ContractDeploymentContribution).toDynamicValue(context=>new ContractDeploymentContribution(context.container.get(WidgetManager),context.container.get(ApplicationShell),translateWorkbench)).inSingletonScope();
+  bind(CommandContribution).toService(ContractDeploymentContribution);bind(MenuContribution).toService(ContractDeploymentContribution);
   bind(WidgetFactory).toDynamicValue(context => ({ id: NATIVE_WALLET_ID, createWidget: () => new NativeWalletWidget(context.container.get(NativeWalletService)) }));
   bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();
   bind(CommandContribution).toService(NativeWalletContribution);
@@ -338,6 +354,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(MenuContribution).toService(KeyboardShortcutsContribution);
   bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
     context.container.get(CommandRegistry), context.container.get(EditorManager), context.container.get(DebugConfigurationManager),
+    context.container.get(DebugFrontendApplicationContribution),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     async onStart() {
@@ -351,13 +368,6 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       });
     },
   })).inSingletonScope();
-  bind(FrontendApplicationContribution).toDynamicValue(context => {
-    let disconnect;
-    return {
-      onStart() { disconnect = require('./model-save-version').connectSaveErrors(context.container.get(MessageService)); },
-      onStop() { if (disconnect) disconnect(); },
-    };
-  }).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new DraftRecoveryContribution(
     context.container.get(EditorManager), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-draft-recovery'),
     context.container.get(MessageService), context.container.get(FrontendApplicationStateService),

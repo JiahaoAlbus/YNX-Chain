@@ -136,7 +136,7 @@ test("native menu targets, all mounted editor surfaces and modified-diff persist
 test("compiled native forwarding gate rejects handled, blocked, failed and changed-focus results", { skip: process.platform !== "darwin", timeout: 60000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), "ynx-desktop-edit-")); t.after(() => rm(root, { recursive: true, force: true }));
   const binary = join(root, "edit-routing-proof"), exec = promisify(execFile);
-  await exec("/usr/bin/clang", ["-fobjc-arc", `-fmodules-cache-path=${root}/module-cache`, fileURLToPath(new URL("./fixtures/macos-edit-routing.m", import.meta.url)), "-o", binary, "-framework", "Cocoa", "-framework", "Security", "-framework", "WebKit"], { timeout: 45000 });
+  await exec("/usr/bin/clang", ["-fobjc-arc", `-fmodules-cache-path=${root}/module-cache`, fileURLToPath(new URL("./fixtures/macos-edit-routing.m", import.meta.url)), fileURLToPath(new URL("../desktop/macos/ynx-wallet-admission-parent.m", import.meta.url)), "-o", binary, "-framework", "Cocoa", "-framework", "Security", "-framework", "WebKit"], { timeout: 45000 });
   const { stdout } = await exec(binary);
   assert.match(stdout, /Native Edit selectors and no-fallback forwarding gates passed/);
 });

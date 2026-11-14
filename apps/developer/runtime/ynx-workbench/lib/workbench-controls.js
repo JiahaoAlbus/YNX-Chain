@@ -92,6 +92,18 @@ class WorkbenchControlsContribution {
     if (!state.enabled) throw new Error(state.reason);
     return this.commands.executeCommand(id);
   }
+  projectCommand(action) {
+    // Discover the existing project compiler; do not manufacture a task or
+    // fall back to an unrelated task when this compiler is unavailable.
+    const editor = this.editors.currentEditor;
+    return action.id === 'task:run:build' && editor && !editor.isDisposed
+      && editor.editor?.document?.languageId === 'solidity'
+      ? 'ynx.compileSolidity' : action.id;
+  }
+  async runProject(action) {
+    if (this.stopped) throw new Error(this.translate('currentlyUnavailable', 'Currently unavailable'));
+    return this.run(this.projectCommand(action));
+  }
   viewWidget(view) {
     if (view.key === 'terminal') return ['bottom', 'main', 'left', 'right'].flatMap(area => this.shell.getWidgets(area)).find(w => typeof w.id === 'string' && w.id.startsWith('terminal'));
     const native = this.views[view.key];
@@ -222,19 +234,34 @@ class WorkbenchControlsContribution {
     this.popupEditor = undefined; this.popupDocument = undefined;
     access?.dispose();
   }
+  async runEditor(widget) {
+    if (this.stopped || !widget || widget.isDisposed || this.editors.currentEditor !== widget)
+      throw new Error(this.translate('currentlyUnavailable', 'Currently unavailable'));
+    this.closeRunMenu();
+    // Keep language selection, trust, toolchain configuration and execution in
+    // the existing current-file command. The triangle never opens its menu.
+    return this.run('ynx.workbench.runEditorFile');
+  }
   registerToolbarItems(toolbar) {
     const React = require('react');
     this.disposables.push(toolbar.registerItem({
       id: 'ynx.workbench.run-menu', group: 'navigation', priority: 90, onDidChange: this.changed.event,
       isVisible: widget => this.editors.all.includes(widget),
-      render: widget => React.createElement('button', { type: 'button', className: 'ynx-run-controls',
+      render: widget => React.createElement('div', { className: 'ynx-run-controls' },
+        React.createElement('button', { type: 'button',
+          title: this.translate('runWithoutDebugging', 'Run Without Debugging'),
+          'aria-label': this.translate('runWithoutDebugging', 'Run Without Debugging'),
+          disabled: !this.state('ynx.workbench.runEditorFile').enabled,
+          onMouseDown: event => event.preventDefault(),
+          onClick: () => this.runEditor(widget).catch(error => this.report(error)),
+        }, React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true })),
+        React.createElement('button', { type: 'button',
         title: this.translate('runToolbar', 'Run and Debug'),
         'aria-label': this.translate('runActionsAria', 'Run and Debug actions'), 'aria-haspopup': 'menu',
         disabled: !this.contextMenus,
         onMouseDown: event => event.preventDefault(),
         onClick: event => { try { this.openRunMenu(event.currentTarget, widget); } catch (error) { this.report(error); } },
-      }, React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true }),
-         React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true })),
+      }, React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true }))),
     }));
   }
   onStart() {
@@ -251,7 +278,7 @@ class WorkbenchControlsContribution {
       const icon = document.createElement('span'); icon.className = `codicon codicon-${action.icon}`; icon.setAttribute('aria-hidden', 'true');
       button.append(icon, document.createTextNode(label));
       button.addEventListener('mousedown', event => event.preventDefault());
-      button.addEventListener('click', () => this.run(action.id).catch(error => this.report(error)));
+      button.addEventListener('click', () => this.runProject(action).catch(error => this.report(error)));
       actions.appendChild(button); this.projectButtons.push({ button, action, label });
     }
     const run = document.createElement('button'); run.type = 'button';
@@ -289,14 +316,14 @@ class WorkbenchControlsContribution {
       || this.editors.currentEditor !== this.popupEditor
       || this.popupEditor.editor?.document !== this.popupDocument)) this.closeRunMenu();
     for (const { button, action, label } of this.projectButtons || []) {
-      const state = this.state(action.id); button.disabled = !state.enabled;
+      const state = this.state(this.projectCommand(action)); button.disabled = !state.enabled;
       button.title = state.enabled ? label : `${label}: ${state.reason}`;
     }
     if (this.projectRun) this.projectRun.disabled = !this.editors.currentEditor || !this.contextMenus;
     if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
-    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...TS_ACTIONS, ...GO_ACTIONS, ...PYTHON_ACTIONS].map(action => this.state(action.id).enabled).join('|');
+    const runState = [{id:'ynx.workbench.runEditorFile'}, ...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...TS_ACTIONS, ...GO_ACTIONS, ...PYTHON_ACTIONS].map(action => this.state(action.id).enabled).join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';

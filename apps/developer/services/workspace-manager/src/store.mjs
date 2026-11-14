@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { isWorkspacePath as safePath } from "../../workspace-agent/src/workspace-path.mjs";
 
 const REVISION_RETENTION = 50;
 
@@ -153,6 +154,38 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
       rollback();
       throw error;
     }
+  }
+
+  function saveFile(ownerId, projectId, { expectedRevision, idempotencyKey, path, contents, writerToken }) {
+    validateId(ownerId, "owner"); validateId(projectId, "project");
+    validateRevision(expectedRevision); validateIdempotencyKey(idempotencyKey);
+    if (!safePath(path) || typeof contents !== "string")
+      throw fault("A normalized relative text file is required.", "invalid_workspace_file", 400);
+    // Hash only the original intent in a separate domain. Merging into a later
+    // snapshot must not change the identity of a retry after a lost response.
+    const requestHash = sha(JSON.stringify({ domain: "YNX_WORKSPACE_FILE_SAVE_V1", expectedRevision, path, contents }));
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      assertWritable(ownerId, projectId, writerToken);
+      const replay = replayedMutation(ownerId, projectId, idempotencyKey, requestHash);
+      if (replay) { db.exec("COMMIT"); return replay; }
+      const current = read.get(ownerId, projectId);
+      if (!current) throw fault("Workspace was not found.", "workspace_not_found", 404);
+      const revision = Number(current.revision);
+      if (revision !== expectedRevision)
+        throw fault("Workspace revision changed. Reload before saving.", "revision_conflict", 409, { currentRevision: revision });
+      const payload = JSON.parse(current.payload), parts = path.split("/"), parents = [];
+      for (let index = 1; index < parts.length; index++) parents.push(parts.slice(0, index).join("/"));
+      if (parents.some(parent => Object.hasOwn(payload.files, parent)) || payload.folders.includes(path) ||
+          [...Object.keys(payload.files), ...payload.folders].some(existing => existing.startsWith(path + "/")))
+        throw fault("A file and directory cannot occupy the same workspace path.", "workspace_path_conflict", 409);
+      const next = { ...payload, files: { ...payload.files, [path]: contents }, folders: [...new Set([...payload.folders, ...parents])] };
+      validatePayload(next);
+      const saved = writeRevision({ ownerId, projectId, current, payload: JSON.stringify(next), source: "file-save", restoredFrom: null });
+      record.run(ownerId, projectId, idempotencyKey, requestHash, saved.revision);
+      prune(ownerId, projectId); db.exec("COMMIT");
+      return { ...saved, replayed: false };
+    } catch (error) { rollback(); throw error; }
   }
 
   function restore(
@@ -326,6 +359,7 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
   }) {
     const revision = Number(current?.revision || 0) + 1,
       now = new Date().toISOString();
+    if (!Number.isSafeInteger(revision)) throw fault("Workspace revision cannot advance safely.", "revision_exhausted", 409);
     if (current) {
       const result = update.run(
         revision,
@@ -382,6 +416,7 @@ export function createWorkspaceStore({ filename, guardWrite = () => {} }) {
       return db.prepare("SELECT project_id,revision,payload FROM workspaces WHERE owner_id=? ORDER BY updated_at DESC").all(owner).map(row => ({ projectId: row.project_id, revision: row.revision, name: JSON.parse(row.payload).name }));
     },
     put,
+    saveFile,
     assertWritable,
     claimWriter,
     claimWriterInTransaction,
@@ -428,7 +463,7 @@ function validateId(value, label) {
 }
 
 function validateRevision(value) {
-  if (!Number.isInteger(value) || value < 0)
+  if (!Number.isSafeInteger(value) || value < 0)
     throw fault(
       "A non-negative expected revision is required.",
       "invalid_revision",
@@ -496,18 +531,6 @@ function validatePayload(value) {
       "invalid_workspace_snapshot",
       400,
     );
-}
-
-function safePath(value) {
-  return (
-    typeof value === "string" &&
-    value.length > 0 &&
-    value.length <= 240 &&
-    !value.startsWith("/") &&
-    !value.includes("\\") &&
-    !value.split("/").some((part) => !part || part === "." || part === "..") &&
-    /^[A-Za-z0-9_./ +@-]+$/.test(value)
-  );
 }
 
 function sha(value) {

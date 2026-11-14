@@ -97,7 +97,8 @@ test('actual native compile and bridge source contract retain exact origin/mainf
 test('actual async boundary scheduler rejects queue-window replacement and late completion',async()=>{
  const start=mainSource.indexOf('- (void)beginLocalTrashBoundaryForRoot:'),end=mainSource.indexOf('- (void)captureLocalTrashBoundary {',start);
  assert.ok(start>0&&end>start);const methods=mainSource.slice(start,end);
- assert.match(mainSource,/applicationWillTerminate:\(NSNotification \*\)note\{\[self invalidateLocalTrashBoundary\]/);
+ const termination=mainSource.slice(mainSource.indexOf('- (void)applicationWillTerminate:'),mainSource.indexOf('- (BOOL)applicationShouldTerminateAfterLastWindowClosed:'));
+ assert.match(termination,/\[self invalidateLocalTrashBoundary\]/);
  const file=join(scratch,'scheduler.m'),program=join(scratch,'scheduler');
  await writeFile(file,`#import "${header}"
 #import <dispatch/dispatch.h>

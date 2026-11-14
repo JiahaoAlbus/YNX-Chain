@@ -17,7 +17,7 @@ export function compareVersions(left, right) {
 }
 
 export function parseLoadCommands(output) {
-  const result = { minimumOS: null, sdk: null, platform: null, dependencies: [] };
+  const result = { minimumOS: null, sdk: null, platform: null, dependencies: [], rpaths: [] };
   for (const block of output.split(/(?:^|\n)Load command \d+\n/)) {
     const command = block.match(/^\s*cmd (LC_[A-Z_]+)/m)?.[1];
     if (command === "LC_BUILD_VERSION") {
@@ -28,6 +28,10 @@ export function parseLoadCommands(output) {
       result.minimumOS = block.match(/\bversion ([\d.]+)/)?.[1] || null;
       result.sdk = block.match(/\bsdk ([\d.]+)/)?.[1] || null;
       result.platform = "1";
+    } else if (command === "LC_RPATH") {
+      const name = block.match(/\bpath (.+) \(offset \d+\)/)?.[1];
+      if (!name) throw new Error("Missing path in LC_RPATH");
+      result.rpaths.push(name);
     } else if (["LC_LOAD_DYLIB", "LC_LOAD_WEAK_DYLIB", "LC_REEXPORT_DYLIB", "LC_LOAD_UPWARD_DYLIB", "LC_LAZY_LOAD_DYLIB"].includes(command)) {
       const name = block.match(/\bname (.+) \(offset \d+\)/)?.[1];
       if (!name) throw new Error(`Missing dependency name in ${command}`);
@@ -48,6 +52,31 @@ export function inspectBinary(filename) {
   return architectures.map(architecture => ({ architecture, ...parseLoadCommands(execFileSync("/usr/bin/otool", ["-arch", architecture, "-l", filename], { encoding: "utf8" })) }));
 }
 
+// Resolve only load commands actually recorded in this image. No host DYLD
+// environment, external paths or guesses based on a library basename are used.
+function bundledCandidates(binary, slice, dependency) {
+  const clean = suffix => suffix && !suffix.includes('\\') && !suffix.includes('\0') && !suffix.split('/').some(part => !part || part === '.' || part === '..');
+  if (dependency.path.startsWith('@loader_path/')) {
+    const suffix=dependency.path.slice('@loader_path/'.length);
+    return clean(suffix)?[path.posix.join(path.posix.dirname(binary.path),suffix)]:[];
+  }
+  if (!dependency.path.startsWith('@rpath/') || !clean(dependency.path.slice(7)) || !Array.isArray(slice.rpaths) || !slice.rpaths.length) return [];
+  const candidates=[];
+  for(const rpath of slice.rpaths){
+    // swiftc emits this system-owned search directory even without Swift objects.
+    if(rpath==='/usr/lib/swift')continue;
+    if(typeof rpath!=='string'||rpath.includes('\\')||rpath.includes('\0'))return [];
+    const anchor=rpath.startsWith('@executable_path/')?'Contents/MacOS':rpath.startsWith('@loader_path/')?path.posix.dirname(binary.path):null;
+    if(!anchor)return [];
+    const suffix=rpath.slice(rpath.indexOf('/')+1);
+    if(!suffix||suffix.split('/').some(part=>!part||part==='.'))return [];
+    const target=path.posix.join(anchor,suffix,dependency.path.slice(7));
+    if(!target.startsWith('Contents/'))return [];
+    candidates.push(target);
+  }
+  return [...new Set(candidates)];
+}
+
 export function inspectApp(appPath) {
   const root = fs.realpathSync(appPath), binaries = [];
   function walk(directory) {
@@ -66,16 +95,16 @@ export function inspectApp(appPath) {
   }
   walk(root);
   for (const binary of binaries) for (const slice of binary.slices) for (const dependency of slice.dependencies) {
-    if (!dependency.path.startsWith('@loader_path/')) continue;
-    const suffix = dependency.path.slice('@loader_path/'.length);
-    if (!suffix || suffix.split('/').some(part => !part || part === '.' || part === '..') || suffix.includes('\\') || suffix.includes('\0')) continue;
-    const filename = path.join(root, path.dirname(binary.path), suffix);
-    try {
-      const resolved = fs.realpathSync(filename);
-      if (resolved !== filename || !resolved.startsWith(root + path.sep) || !fs.lstatSync(resolved).isFile()) continue;
-      const target = path.relative(root, resolved);
-      if (binaries.some(item => item.path === target)) dependency.bundledPath = target;
-    } catch (error) { if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error; }
+    const targets=[];
+    for(const candidate of bundledCandidates(binary,slice,dependency)){
+      const filename=path.join(root,candidate);
+      try {
+        const resolved=fs.realpathSync(filename);
+        if(resolved!==filename||!resolved.startsWith(root+path.sep)||!fs.lstatSync(resolved).isFile())continue;
+        if(binaries.some(item=>item.path===candidate&&item.slices.some(target=>target.architecture===slice.architecture)))targets.push(candidate);
+      }catch(error){if(!['ENOENT','ENOTDIR'].includes(error.code))throw error;}
+    }
+    if(targets.length===1)dependency.bundledPath=targets[0];
   }
   const declaredMinimumOS = execFileSync("/usr/libexec/PlistBuddy", ["-c", "Print LSMinimumSystemVersion", path.join(root, "Contents/Info.plist")], { encoding: "utf8" }).trim();
   return { declaredMinimumOS, binaries };
@@ -99,10 +128,8 @@ export function validateCompatibility(inventory, minimumOS, architecture) {
     if (binary.path === requiredBinaries[0] && compareVersions(slice.minimumOS, minimumOS)) errors.push(`Native shell target ${slice.minimumOS} must equal declared ${minimumOS}`);
     for (const dependency of slice.dependencies) {
       if (/^\/(System\/Library|usr\/lib)\//.test(dependency.path)) continue;
-      const suffix = dependency.path.startsWith('@loader_path/') ? dependency.path.slice('@loader_path/'.length) : '';
-      const validSuffix = suffix && !suffix.includes('\\') && !suffix.includes('\0') && !suffix.split('/').some(part => !part || part === '.' || part === '..');
-      const expected = validSuffix ? path.join(path.dirname(binary.path), suffix) : null;
-      const target = inventory.binaries.find(item => item.path === expected && item.path === dependency.bundledPath);
+      const targets=bundledCandidates(binary,slice,dependency).map(expected=>inventory.binaries.find(item=>item.path===expected&&item.slices.some(targetSlice=>targetSlice.architecture===slice.architecture))).filter(Boolean);
+      const target=targets.length===1&&targets[0].path===dependency.bundledPath?targets[0]:null;
       if (!target?.slices.some(targetSlice => targetSlice.architecture === slice.architecture)) errors.push(`Non-system load dependency requires an explicit bundled resolution: ${label}: ${dependency.path}`);
     }
   }

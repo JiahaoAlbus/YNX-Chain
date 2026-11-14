@@ -91,6 +91,7 @@ test('document replacement and command revocation between down and up cannot run
 });
 function fixture() {
   const commands = new CommandRegistry(), calls = [], views = {}, editor = {};
+  commands.registerCommand({id:'ynx.workbench.runEditorFile'},{execute:(...args)=>calls.push(['ynx.workbench.runEditorFile',args])});
   for (const action of RUN_ACTIONS) commands.registerCommand({ id: action.id }, { execute: (...args) => calls.push([action.id, args]) });
   for (const view of VIEWS) {
     commands.registerCommand({ id: view.command }, { execute: () => calls.push([view.command]) });
@@ -100,6 +101,22 @@ function fixture() {
   const shell = { getWidgets: () => [], getTabBarFor: () => undefined };
   return { commands, calls, views, editor, shell, controls: new WorkbenchControlsContribution({ commands, shell, views, editors: { all: [editor] } }) };
 }
+test('editor triangle runs the current file directly while only the adjacent arrow opens the menu',async()=>{
+ const f=fixture();f.controls.editors.currentEditor=f.editor;let item,menus=0;
+ f.controls.contextMenus={};f.controls.openRunMenu=()=>{menus++;};
+ f.controls.registerToolbarItems({registerItem(value){item=value;return {dispose(){}};}});
+ const buttons=item.render(f.editor).props.children;
+ assert.equal(buttons.length,2);assert.equal(buttons[0].props['aria-haspopup'],undefined);
+ assert.equal(buttons[1].props['aria-haspopup'],'menu');assert.equal(buttons[0].props.disabled,false);
+ await buttons[0].props.onClick();
+ assert.deepEqual(f.calls.map(call=>call[0]),['ynx.workbench.runEditorFile']);assert.equal(menus,0);
+ buttons[1].props.onClick({currentTarget:{}});assert.equal(menus,1);assert.equal(f.calls.length,1);
+ f.controls.editors.currentEditor={};await assert.rejects(f.controls.runEditor(f.editor),/Currently unavailable/);
+ f.controls.editors.currentEditor=f.editor;f.commands.unregisterCommand('ynx.workbench.runEditorFile');
+ assert.equal(item.render(f.editor).props.children[0].props.disabled,true);
+ await assert.rejects(f.controls.runEditor(f.editor),/Unavailable in this runtime/);assert.equal(f.calls.length,1);
+ f.controls.dispose();await assert.rejects(f.controls.runEditor(f.editor),/Currently unavailable/);
+});
 test('project toolbar dispatches registered commands without manufacturing runtime or chain authority', async () => {
   const f = fixture();
   for (const action of PROJECT_ACTIONS) {
@@ -224,7 +241,7 @@ test('toolbar opens native context-menu overlay at button coordinates and dispos
   const f = fixture(); let item, options, disposed = 0;
   f.controls.contextMenus = { render: value => { options = value; return { dispose: () => { disposed++; value.onHide(); } }; } };
   f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  const rendered = item.render(f.editor); assert.equal(rendered.type, 'button'); assert.equal(rendered.props['aria-haspopup'], 'menu'); assert.ok(rendered.props['aria-label']);
+  const rendered = item.render(f.editor).props.children[1]; assert.equal(rendered.type, 'button'); assert.equal(rendered.props['aria-haspopup'], 'menu'); assert.ok(rendered.props['aria-label']);
   const button = { getBoundingClientRect: () => ({ left: 100, bottom: 60 }) };
   rendered.props.onClick({ currentTarget: button });
   assert.deepEqual(Array.from(options.menuPath), Array.from(RUN_MENU)); assert.equal(options.anchor.x, 100); assert.equal(options.anchor.y, 60);
@@ -235,7 +252,8 @@ test('toolbar opens native context-menu overlay at button coordinates and dispos
 test('missing native popup renderer is explicitly unavailable and empty translation retains toolbar label', () => {
   const f = fixture(); const controls = new WorkbenchControlsContribution({ commands: f.commands, shell: f.shell, editors: { all: [f.editor] }, translate: () => undefined }); let item;
   controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  const rendered = item.render(f.editor); assert.equal(rendered.props.disabled, true); assert.ok(rendered.props['aria-label'].trim());
+  const [run,rendered] = item.render(f.editor).props.children; assert.equal(rendered.props.disabled, true); assert.ok(rendered.props['aria-label'].trim());
+  assert.equal(run.props.disabled,false,'current-file command does not require a menu renderer');
   assert.throws(() => controls.openRunMenu({}), /Unavailable in this runtime/); controls.dispose();
 });
 
@@ -355,4 +373,39 @@ test('Python direct menu click uses installed framework dispatch once and is ret
  const f=popupFixture('python.execInTerminal');f.commands.registerCommand({id:'python.execInTerminal'},{execute:(...args)=>{assert.deepEqual(args,[]);f.calls.push(['python.execInTerminal']);}});
  let popup=f.open();f.down(popup);f.up(popup);f.up(popup);await Promise.all(f.pending);assert.deepEqual(f.calls,[['python.execInTerminal']]);
  popup=f.open();f.controls.editors.currentEditor={};f.controls.refresh();f.down(popup);f.up(popup);await Promise.all(f.pending);assert.equal(f.calls.length,1);f.controls.dispose();
+});
+
+test('project Build discovers Solidity compiler and preserves native tasks for other targets', async () => {
+  const f = fixture(), build = PROJECT_ACTIONS.find(action => action.id === 'task:run:build');
+  f.controls.editors.currentEditor = f.editor;
+  f.editor.editor = { document: { languageId: 'solidity' } };
+  f.commands.registerCommand({ id: 'ynx.compileSolidity' }, { execute: () => f.calls.push(['compile-solidity']) });
+  await f.controls.runProject(build);
+  assert.deepEqual(f.calls.map(call => call[0]), ['compile-solidity']);
+  f.editor.editor.document = { languageId: 'cpp' };
+  await f.controls.runProject(build);
+  assert.equal(f.calls[1][0], 'task:run:build');
+  f.controls.dispose();
+});
+test('Solidity Build refuses missing/disabled compiler and disposed contribution', async () => {
+  const f = fixture(), build = PROJECT_ACTIONS.find(action => action.id === 'task:run:build');
+  f.controls.editors.currentEditor = f.editor;
+  f.editor.editor = { document: { languageId: 'solidity' } };
+  const button = {};
+  f.controls.projectButtons = [{button, action:build, label:'Build'}];
+  f.controls.refresh(); assert.equal(button.disabled, true);
+  await assert.rejects(f.controls.runProject(build), /Unavailable in this runtime/);
+  f.commands.registerCommand({ id: 'ynx.compileSolidity' }, { isEnabled: () => false, execute: () => assert.fail('disabled compiler') });
+  await assert.rejects(f.controls.runProject(build), /Currently unavailable/);
+  f.controls.refresh(); assert.equal(button.disabled, true);
+  assert.equal(f.calls.length, 0);
+  f.editor.editor.document = { languageId: 'cpp' };
+  f.controls.refresh(); assert.equal(button.disabled, false);
+  f.controls.dispose();
+  await assert.rejects(f.controls.runProject(build), /Currently unavailable/);
+});
+
+test('normal production prebuild runs the workbench interaction regressions', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.match(manifest.scripts.prebuild, /(?:^|\s)scripts\/workbench-controls\.test\.mjs(?:\s|$)/);
 });

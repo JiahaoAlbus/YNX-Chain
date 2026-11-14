@@ -107,20 +107,7 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   }
   let pendingOperation: { method: string } | undefined;
   let expirationTimer: ReturnType<typeof setTimeout> | undefined;
-  let nativeRelease: Promise<void> | undefined;
-  const releaseNativeOperation = () => {
-    if (nativeRelease) return nativeRelease;
-    if (!active) return Promise.resolve();
-    active = false; clearTimeout(expirationTimer);
-    // Claim the shared cleanup before invoking a possibly reentrant bridge.
-    // Unknown failure remains the same rejection for every waiter: it is not
-    // confirmation that a later cancellation may release the UI pending slot.
-    nativeRelease = Promise.resolve().then(async () => {
-      try { await bridge.endConnection!(); }
-      finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; finishNativeOperation(); }
-    });
-    return nativeRelease;
-  };
+  const releaseNativeOperation = async () => { if (!active) return; active = false; clearTimeout(expirationTimer); try { await bridge.endConnection!(); } finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; finishNativeOperation(); } };
   const endNativeOperation = async () => { if (active && pendingOperation) sdk.setNetworkAvailable(false); await releaseNativeOperation(); };
   const sdk = createProductWalletConnection({
     registry,
@@ -208,18 +195,6 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   // too, so an abandoned review cannot permanently block explicit reconnect.
   if (active) expirationTimer = setTimeout(() => { void endNativeOperation().catch(() => {}); }, 300_000);
   return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation, finished });
-}
-
-/** Public request correlation only; no approval parsing, clock or authorization. */
-export function classifyDeveloperWalletV2Return(runtime: DeveloperWalletV2Runtime, callbackURL: string): "current" | "mismatch" | "pending" {
-  const request = runtime.connection.current?.request;
-  if (!request) return "pending";
-  try {
-    const target = request.callback;
-    const url = new URL(callbackURL), nonce = url.searchParams.getAll("nonce"), state = url.searchParams.getAll("state");
-    url.search = "";
-    return typeof target === "string" && url.toString() === target && nonce.length === 1 && state.length === 1 && nonce[0] === request.nonce && state[0] === request.state ? "current" : "mismatch";
-  } catch { return "mismatch"; }
 }
 
 export async function inspectDeveloperWalletV2Runtime() {

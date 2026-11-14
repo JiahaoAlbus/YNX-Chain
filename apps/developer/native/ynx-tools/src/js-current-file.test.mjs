@@ -13,8 +13,10 @@ async function fixture(fn){
  await writeFile(document.uri.fsPath,'console.log(42);\n');
  const folder={uri:uri(root)},calls=[];
  const vscode={workspace:{isTrusted:true,getWorkspaceFolder:()=>folder},window:{activeTextEditor:{document}},extensions:{getExtension:()=>({activate:async()=>{}})},debug:{startDebugging:async(...args)=>{calls.push(args);return true;}}};
- const run=createJsCurrentFile(vscode,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root});
- try{await fn({root,document,folder,calls,vscode,run});}finally{await rm(root,{recursive:true,force:true});}
+ const context={subscriptions:[]};
+ const environment={YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root};
+ const run=createJsCurrentFile(vscode,environment,context);
+ try{await fn({root,document,folder,calls,vscode,run,context,environment});}finally{await rm(root,{recursive:true,force:true});}
 }
 test('current-file Run and Debug hand literal file/cwd to official extension without writing project configuration',()=>fixture(async f=>{
  await f.run(true);await f.run(false);
@@ -49,3 +51,43 @@ test('editing during asynchronous debugger activation cannot run stale disk cont
  await assert.rejects(f.run(),/changed after saving/);assert.equal(f.calls.length,0);
  f.vscode.extensions.getExtension=()=>({activate:async()=>{}});f.document.isDirty=false;assert.equal(await f.run(),true);
 }));
+
+for(const phase of ['save','activation'])test('disposed JavaScript runner cannot resume a late '+phase+' reply into launch',()=>fixture(async f=>{
+ let enter,reply;const entered=new Promise(resolve=>enter=resolve),waiting=new Promise(resolve=>reply=resolve);
+ if(phase==='save')f.document.save=()=>{enter();return waiting;};else f.vscode.extensions.getExtension=()=>({activate:()=>{enter();return waiting;}});
+ const work=f.run(true),rejected=assert.rejects(work,/retired|disposed/i);await entered;
+ assert.ok(f.context.subscriptions.length,'production runner must own a disposal guard');
+ for(const item of f.context.subscriptions)item.dispose();
+ await rejected;reply(true);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(f.calls.length,0);assert.equal(await f.run(true),false,'disposed owner cannot restart');
+}));
+test('already disposed JavaScript owner never saves or activates on a new click',()=>fixture(async f=>{
+ let saves=0;f.document.save=async()=>{saves++;return true;};assert.ok(f.context.subscriptions.length);for(const item of f.context.subscriptions)item.dispose();assert.equal(await f.run(),false);assert.equal(saves,0);assert.equal(f.calls.length,0);
+}));
+
+test('late debugger activation after owner disposal never enters the official launcher',()=>fixture(async f=>{
+ let enter,reply;const entered=new Promise(resolve=>enter=resolve),waiting=new Promise(resolve=>reply=resolve);
+ f.vscode.extensions.getExtension=()=>({activate:()=>{enter();return waiting;}});
+ const work=f.run(true),observed=work.then(value=>value,error=>error);await entered;for(const item of f.context.subscriptions)item.dispose();reply();await observed;
+ assert.equal(f.calls.length,0,'disposed owner must not start a new debug/terminal process');
+}));
+
+for(const [name,change]of [
+ ['runtime root',f=>{f.environment.YNX_LOCAL_WORKSPACE=f.root+'-other';}],
+ ['project identity',f=>{f.environment.YNX_LOCAL_PROJECT_ID='00000000-0000-4000-8000-000000000002';}],
+ ['workspace folder instance',f=>{f.vscode.workspace.getWorkspaceFolder=()=>({uri:f.folder.uri});}],
+ ['folder URI path',f=>{f.folder.uri.fsPath=f.root+'-other';}],
+ ['document URI path',f=>{f.document.uri={...f.document.uri,fsPath:join(f.root,'other.js')};}],
+])test('JavaScript never launches after '+name+' changes during activation and allows valid retry',()=>fixture(async f=>{
+ const file=f.document.uri,folderPath=f.folder.uri.fsPath;await writeFile(join(f.root,'other.js'),'console.log(99);\n');
+ f.vscode.extensions.getExtension=()=>({activate:async()=>change(f)});
+ await assert.rejects(f.run(true),/changed|active local project/);assert.equal(f.calls.length,0);
+ f.environment.YNX_LOCAL_WORKSPACE=f.root;delete f.environment.YNX_LOCAL_PROJECT_ID;f.document.uri=file;f.folder.uri.fsPath=folderPath;
+ f.vscode.workspace.getWorkspaceFolder=()=>f.folder;f.vscode.extensions.getExtension=()=>({activate:async()=>{}});
+ assert.equal(await f.run(true),true);assert.equal(f.calls.length,1);assert.equal(f.calls[0][1].console,'integratedTerminal');
+}));
+
+test('extension activation gives the runner its lifecycle owner', async () => {
+ const source = await (await import('node:fs/promises')).readFile(new URL('./extension.cjs', import.meta.url), 'utf8');
+ assert.match(source, /createJsCurrentFile\(vscode,\s*process\.env,\s*context\)/);
+});

@@ -12,9 +12,9 @@ test('source receiver uses precise lazy entry and running server location withou
   const server = await readFile(join(developer, 'desktop/code-server.mjs'), 'utf8');
   const receipt = await verifyIdentityAdmissionSource();
   assert.equal(receipt.files.filter(pin => pin.nullPath).length, 2);
-  assert.match(startup, /from '\.\.\/vendor\/identity-admission\/scripts\/ynx-ide-service-admission-supplier\.mjs'/);
-  assert.match(startup, /await openOriginalIDEServiceAdmissionSupplier\(runningBackendModuleURL\)/);
-  assert.doesNotMatch(startup, /process\.env|from.*protected-startup|\/src\/|consumerProvenancePath/);
+  assert.match(startup, /await loadBundledIdentitySDK\('scripts\/ynx-ide-service-admission-supplier\.mjs'\)/);
+  assert.match(startup, /await supplier\.openOriginalIDEServiceAdmissionSupplier\(runningBackendModuleURL\)/);
+  assert.doesNotMatch(startup, /process\.env|from.*protected-startup|consumerProvenancePath/);
   assert.match(server, /await openBundledWalletAdmission\(import\.meta\.url\)/);
   const selection = await readFile(join(developer, 'vendor/identity-admission/scripts/original-ide-service-admission-native-selection.mjs'), 'utf8');
   assert.match(selection, /export const originalIDEServiceAdmissionStartupSelection=null;/);

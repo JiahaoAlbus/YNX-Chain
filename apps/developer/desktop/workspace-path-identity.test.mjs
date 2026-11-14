@@ -1,7 +1,7 @@
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, realpath, rename, symlink, chmod } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, realpath, rename, symlink, chmod, rm } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -11,6 +11,14 @@ const exec = promisify(execFile), helper = '/private/tmp/ynx-workspace-path-iden
 const native = process.platform === 'darwin';
 if (native) await exec('/usr/bin/clang', ['-Wall', '-Wextra', '-Werror', fileURLToPath(new URL('./macos/workspace-path-identity.c', import.meta.url)), '-o', helper]);
 const quote = p => JSON.stringify(p);
+test('group-writable ancestor refusal identifies the exact root without relaxing the project check', { skip: !native }, async t => {
+ const root = await mkdtemp('/private/tmp/ynx-unsafe-ancestor-');t.after(()=>rm(root,{recursive:true,force:true}));
+ const parent=join(root,'shared-volume'),project=join(parent,'private-project');await mkdir(parent);await mkdir(project,{mode:0o700});await chmod(parent,0o775);
+ await assert.rejects(inspectWorkspacePathIdentity({helper,path:project}),error=>{
+  assert.equal(error.code,'YNX_PATH_UNSAFE_ANCESTOR');assert.equal(error.ancestor,parent);assert.equal(error.selectedPath,project);return true;
+ });
+ await chmod(parent,0o755);const proof=await inspectWorkspacePathIdentity({helper,path:project});await assertWorkspacePathIdentity(proof);
+});
 test('actual devfs signed dev_t matches Node bigint identity', { skip: !native }, async () => {
  const proof = await inspectWorkspacePathIdentity({ helper, path: '/dev' });
  const actual = await (await import('node:fs/promises')).lstat('/dev', { bigint: true });

@@ -1,5 +1,5 @@
-import { randomBytes } from "node:crypto";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { loadWorkspaceSessionKey } from '../services/workspace-agent/src/session-key.mjs';
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -43,6 +43,8 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   const { openBundledWalletAdmission } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
+  const {createBundledProjectContractRuntime}=await import(pathToFileURL(join(applicationRoot,'desktop','bundled-contract-runtime.mjs')));
+  const contractRuntime=await createBundledProjectContractRuntime({context,serverModuleURL:import.meta.url});
   // Retire service capability before child shutdown; late four-op results may
   // not reopen a cancelled native parent epoch. This is separate from Tools.
   const retireWallet = () => { walletAdmission.close?.(); };
@@ -76,13 +78,20 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     retireTools();
     console.error('YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED');
   }
+  const startupCancellation = new AbortController();
+  const cancelStartup = () => startupCancellation.abort();
+  process.once('SIGTERM', cancelStartup); process.once('SIGINT', cancelStartup);
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    walletAdmission, aiTools, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
+    signal: startupCancellation.signal, walletAdmission, aiTools, contractRuntime, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
+      process.removeListener('SIGTERM', cancelStartup); process.removeListener('SIGINT', cancelStartup);
+      let contractCleanupFailed=false,contractCleanupError;
+      try{await contractRuntime.close();}catch(cause){contractCleanupFailed=true;contractCleanupError=cause;}
       retireWallet();
       await finishWalletCleanup();
       retireTools();
       await finishToolsCleanup();
+      if(contractCleanupFailed)throw new AggregateError([error,contractCleanupError],'Original project startup cleanup remains uncertain.',{cause:error});
       // startLocalWorkbench has already stopped its own child before rejecting.
       // Preserve the lock refusal across the launcher/native-host boundary.
       if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
@@ -95,30 +104,22 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
       }
       throw error;
     });
-  const { createNativeParentControl, attachUnavailableOriginalServiceChannel } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
-  const parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error.message).slice(0,240))});
-  let goChannel, originalServiceChannel;
-  if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
-    try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
-      goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
-      // The fixed original service producer is still absent. This channel only
-      // reports pre-entry unavailability, without blocking local coding/Go.
-      originalServiceChannel=attachUnavailableOriginalServiceChannel({control:parentControl,instance,context,directory,onError:error=>console.error('YNX_ORIGINAL_SERVICE_CONTROL '+String(error.message).slice(0,240))});
-    }
-    catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
-  }
-  delete process.env.YNX_NATIVE_GO_INSTANCE;
-  console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
-  let stopping;
+  // Transfer signals synchronously once the child exists: subsequent module
+  // imports/control-directory I/O must not leave a live child unowned.
+  let stopping, parentControl, goChannel, originalServiceChannel;
   const stop = () => {
     if (stopping) return stopping;
-    parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); retireWallet(); retireTools();
+    parentControl?.close(); goChannel?.close(); originalServiceChannel?.close(); workbench.retireProjectServices(); retireTools();
     stopping = (async () => {
       try { await workbench.stop(); }
       finally {
-        const parentCleanup = await parentControl.finishCleanup();
-        if (parentCleanup.firstFailure) process.exitCode = 1;
-        if (!await finishWalletCleanup()) process.exitCode = 1;
+        const parentCleanup = await parentControl?.finishCleanup();
+        if (parentCleanup?.firstFailure) process.exitCode = 1;
+        try {
+          await workbench.finishProjectServicesCleanup();
+          retireWallet();
+          if (!await finishWalletCleanup()) process.exitCode = 1;
+        } catch { process.exitCode=1;console.error('YNX_PROJECT_SERVICES_CLEANUP_INCOMPLETE'); }
         if (!await finishToolsCleanup()) process.exitCode = 1;
       }
     })();
@@ -127,26 +128,42 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const requestStop = () => { void stop().catch(() => { process.exitCode = 1; console.error('YNX_LOCAL_WORKBENCH_STOP_FAILED'); }); };
   const parent = process.ppid;
   const monitor = setInterval(() => { if (process.ppid !== parent) requestStop(); }, 250);
-  process.once('SIGTERM', requestStop); process.once('SIGINT', requestStop);
-  const result = await workbench.exited;
-  clearInterval(monitor); await stop();
+  process.on('SIGTERM', requestStop); process.on('SIGINT', requestStop);
+  process.removeListener('SIGTERM', cancelStartup); process.removeListener('SIGINT', cancelStartup);
+  if (startupCancellation.signal.aborted) requestStop();
+  let result;
+  try {
+    await (async () => {
+      if (stopping) return;
+      const { createNativeParentControl, attachUnavailableOriginalServiceChannel } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
+      if (stopping) return;
+      parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error.message).slice(0,240))});
+      if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
+        try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
+          if (stopping) return;
+          goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
+          // The fixed original service producer is still absent. This channel only
+          // reports pre-entry unavailability, without blocking local coding/Go.
+          originalServiceChannel=attachUnavailableOriginalServiceChannel({control:parentControl,instance,context,directory,onError:error=>console.error('YNX_ORIGINAL_SERVICE_CONTROL '+String(error.message).slice(0,240))});
+        }
+        catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
+      }
+      delete process.env.YNX_NATIVE_GO_INSTANCE;
+      console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
+    })();
+    result = await workbench.exited;
+  } finally {
+    clearInterval(monitor);
+    try { await stop(); } finally {
+      process.removeListener('SIGTERM', requestStop); process.removeListener('SIGINT', requestStop);
+    }
+  }
   process.exitCode = process.exitCode || (result.error ? 1 : result.code === null ? 0 : result.code);
 } else {
 const sessionKeyPath = join(supportRoot, "workspace-session.key");
 
 await mkdir(supportRoot, { recursive: true, mode: 0o700 });
-let sessionKey;
-try {
-  sessionKey = (await readFile(sessionKeyPath, "utf8")).trim();
-} catch (error) {
-  if (error?.code !== "ENOENT") throw error;
-  const candidate = randomBytes(32).toString("hex");
-  try { await writeFile(sessionKeyPath, `${candidate}\n`, { flag: "wx", mode: 0o600 }); }
-  catch (writeError) { if (writeError?.code !== "EEXIST") throw writeError; }
-  sessionKey = (await readFile(sessionKeyPath, "utf8")).trim();
-}
-if (!/^[0-9a-f]{64}$/.test(sessionKey)) throw new Error("Desktop workspace session key is invalid.");
-await chmod(sessionKeyPath, 0o600);
+const sessionKey = await loadWorkspaceSessionKey(sessionKeyPath);
 
 process.env.NODE_ENV = "production";
 process.env.HOST = "127.0.0.1";

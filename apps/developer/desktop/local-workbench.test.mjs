@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, realpath, lstat, chmod, link } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, realpath, lstat, chmod, link, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
@@ -12,6 +12,8 @@ import { localProjectContext, prepareLocalRuntime, prepareLocalPlugins, findTrus
 import { createRequire } from 'node:module';
 const { cppProjectRoot } = createRequire(import.meta.url)('../native/ynx-cpp/src/project-root.cjs');
 import { composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
+import { runtimeCacheSupportRoot } from './bundled-execution-runtime.mjs';
+import { withRuntimeCacheBudget } from './runtime-cache-budget.mjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 async function fixture(task) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'ynx-local-workbench-test-')));
@@ -24,7 +26,7 @@ async function payload(root, unsafe = false) {
   await writeFile(join(source, 'plugins/example/extension.js'), 'module.exports = {};');
   if (process.platform === 'darwin') {
     await mkdir(join(source, 'lib/backend'), { recursive: true });
-    execFileSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk', '-Wall', '-Wextra', '-Werror', fileURLToPath(new URL('../runtime/ynx-workbench/native/process-tree.c', import.meta.url)), '-o', join(source, 'lib/backend/ynx-process-tree')]);
+    execFileSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', '-Wall', '-Wextra', '-Werror', fileURLToPath(new URL('../runtime/ynx-workbench/native/process-tree.c', import.meta.url)), '-o', join(source, 'lib/backend/ynx-process-tree')]);
   }
   if (unsafe) await symlink('/etc/passwd', join(source, 'escape'));
   const pin = { kind: 'ynx-theia', version: '1.76.0', architecture: `darwin-${process.arch}`, lockSha256: digest('{}'), treeSha256: unsafe ? 'a'.repeat(64) : await composedTreeDigest(source) };
@@ -44,6 +46,31 @@ test('real sealed tar extracts, verifies immutable cache and rejects later cache
     await writeFile(metadata, JSON.stringify({ ...original, localWorkspace }));
     await assert.rejects(prepareLocalRuntime(input), /distribution is invalid/);
   }
+}));
+test('two QA candidates reuse the actual verified tar tree without sharing project profiles or replacing corrupt bytes', async () => fixture(async root => {
+  const home = join(root, 'home'), qa = join(home, 'Library/Application Support/YNXDeveloper-QA');
+  await mkdir(qa, { recursive: true, mode: 0o700 });
+  const profile = n => join(qa, 'a'.repeat(40) + `-00000000-0000-0000-0000-${String(n).padStart(12, '0')}`);
+  const a = profile(1), b = profile(2), artifact = await payload(root);
+  const cacheRoot = await runtimeCacheSupportRoot(a, { home });
+  const extract = reserveAllocation => prepareLocalRuntime({ payload: artifact, supportRoot: cacheRoot, reserveAllocation });
+  await assert.rejects(withRuntimeCacheBudget(cacheRoot, extract, { limitBytes: 64 * 1024 ** 2 }), { code: 'YNX_RUNTIME_CACHE_LIMIT' });
+  assert.deepEqual(await readdir(join(cacheRoot, 'workbench-runtimes')), [], 'Refused allocation must not create an extraction staging directory.');
+  const first = await withRuntimeCacheBudget(cacheRoot, extract);
+  const inode = (await lstat(join(first.root, 'package-lock.json'))).ino;
+  assert.equal(await runtimeCacheSupportRoot(b, { home }), cacheRoot);
+  const second = await withRuntimeCacheBudget(cacheRoot, extract, { limitBytes: 1 });
+  assert.equal(first.root, second.root);
+  assert.equal((await lstat(join(second.root, 'package-lock.json'))).ino, inode);
+  const workspace = join(root, 'project'); await mkdir(workspace);
+  const contextA = await localProjectContext({ supportRoot: a, projectDirectory: workspace });
+  const contextB = await localProjectContext({ supportRoot: b, projectDirectory: workspace });
+  assert.notEqual(contextA.profile, contextB.profile);
+  await writeFile(join(contextA.profile, 'settings.json'), 'A only');
+  await assert.rejects(lstat(join(contextB.profile, 'settings.json')), { code: 'ENOENT' });
+  await writeFile(join(first.root, 'unexpected'), 'preserve failed evidence');
+  await assert.rejects(prepareLocalRuntime({ payload: artifact, supportRoot: await runtimeCacheSupportRoot(b, { home }) }), /reviewed artifact/);
+  assert.equal(await readFile(join(first.root, 'unexpected'), 'utf8'), 'preserve failed evidence');
 }));
 test('local Git selector refuses arbitrary tool roots and never executes a project Git substitute', async () => fixture(async root => {
   const marker = join(root, 'executed');

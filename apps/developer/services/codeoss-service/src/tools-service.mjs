@@ -12,7 +12,7 @@ const selectedPrompt = proposal => `${proposal.prompt}\n\nUSER-SELECTED CONTEXT 
 // This service runs on the trusted product host, outside the project runtime.
 // Extension commands can open it, but no extension message authorizes a request.
 export function createNativeToolsService({ coreService, modelRouter, aiStore, chainHandler, walletHandler,
-  admittedOwners, compiler = createSolidityCompiler(), origin = 'https://developer.ynxweb4.com', now = Date.now } = {}) {
+  admittedOwners, buildCollection, buildBindingForAdmission, compiler = createSolidityCompiler(), origin = 'https://developer.ynxweb4.com', now = Date.now } = {}) {
   const approved = new URL(origin); if (approved.origin !== origin || approved.pathname !== '/' || approved.protocol !== 'https:') throw new Error('Tools require an exact trusted HTTPS origin.');
   const tickets = new Map(), proposals = new Map();
   function configuredModel() {
@@ -79,12 +79,44 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         exact(body, analysis ? ['csrf', 'snapshot'] : ['csrf', 'name', snapshot ? 'snapshot' : 'source']);
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(2147483647, admission.expiresAt - now())));
+        let buildBinding, buildHandle, collectedJob;
         try {
+          if (!analysis && buildCollection && typeof buildBindingForAdmission === 'function') {
+            // Source identity is captured before worker execution. The original
+            // project owner supplies project generation separately from Wallet
+            // identity generation; neither comes from this request body.
+            buildBinding = await buildBindingForAdmission(admission, {
+              sourceSha256: createHash('sha256').update(JSON.stringify(snapshot ? body.snapshot : { name: body.name, source: body.source })).digest('hex'),
+              snapshot: snapshot ? body.snapshot : undefined, name: body.name, source: snapshot ? undefined : body.source,
+            });
+            if (typeof buildBinding?.assertCurrentSource !== 'function') throw fault('Original source revalidation is not configured.', 'build_source_unavailable', 503);
+            const beforeBuild = await authorize();
+            if (binding(beforeBuild) !== bound || beforeBuild.expiresAt <= now()) throw fault('Project changed before build collection.', 'tools_identity_changed', 401);
+            buildHandle = await buildCollection.begin(buildBinding.ctx, buildBinding);
+          }
           const result = await (analysis ? compiler.analyze({ owner: admission.context.owner, snapshot: body.snapshot, sessionId, signal: controller.signal }) : compiler.compile({ owner: admission.context.owner, name: body.name, ...(snapshot ? { snapshot: body.snapshot, sessionId } : { source: body.source }), signal: controller.signal }));
+          if (buildHandle) {
+            // A worker result is not evidence that its original project/source
+            // still exists. Re-read the original session and source before any
+            // successful artifact bytes are persisted, not just before output.
+            await buildBinding.assertCurrentSource();
+            const beforeSeal = await authorize();
+            if (controller.signal.aborted || binding(beforeSeal) !== bound || beforeSeal.expiresAt <= now() || admission.expiresAt <= now())
+              throw fault('Wallet project changed before build sealing.', 'tools_identity_changed', 401);
+            const handle = buildHandle; buildHandle = undefined;
+            await buildCollection.complete(handle, { exit: result.ok === true && !controller.signal.aborted ? 0 : 1,
+              cancelled: controller.signal.aborted, artifact: result, toolchain: result.compiler, logs: result.diagnostics || [] });
+            collectedJob = handle.job;
+          }
           const latest = await authorize();
           if (controller.signal.aborted || binding(latest) !== bound || latest.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet project changed during compilation. Build again from the current project.', 'tools_identity_changed', 401);
-          json(response, result.status || (result.ok ? 200 : 503), { ...result, projectId: admission.context.projectId, signed: false, submitted: false });
+          const build = buildBinding && result.ok === true ? await buildCollection.collectBuild(buildBinding.ctx, collectedJob, buildBinding.project, buildBinding.gen) : undefined;
+          json(response, result.status || (result.ok ? 200 : 503), { ...result, ...(build ? { build } : {}), projectId: admission.context.projectId, signed: false, submitted: false });
+        } catch (error) {
+          if (buildHandle) await buildCollection.complete(buildHandle, { exit: 1, cancelled: controller.signal.aborted,
+            logs: [{ code: error.code || 'compiler_failed', message: error.message }] });
+          throw error;
         } finally { clearTimeout(timer); }
         return true;
       }
@@ -235,7 +267,29 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
       return result;
     } finally { signal?.removeEventListener('abort', abort); }
   }
-  return { handler: (request, response) => execute(request, response), dispatchRetained };
+  // Internal original-service entry: the collection's authorization callback
+  // must resolve the real product session. A generation is job attribution,
+  // never a replacement for that authorization. Reuse the pinned compiler.
+  async function compileBuild(ctx, { project, gen, commit, job, compileArgs }) {
+    if (!buildCollection) throw fault('Build collection is not configured.', 'build_unavailable', 503);
+    const handle = await buildCollection.begin(ctx, { project, gen, commit, job });
+    let result;
+    try { result = await compiler.compile(compileArgs); }
+    catch (error) {
+      await buildCollection.complete(handle, { exit: 1, cancelled: !!compileArgs?.signal?.aborted,
+        logs: [{ code: error.code || 'compiler_failed', message: error.message }] });
+      throw error;
+    }
+    const cancelled = !!compileArgs?.signal?.aborted;
+    await buildCollection.complete(handle, { exit: result.ok === true && !cancelled ? 0 : 1, cancelled,
+      artifact: result, toolchain: result.compiler, logs: result.diagnostics || [] });
+    return buildCollection.collectBuild(ctx, handle.job, project, gen);
+  }
+  return { handler: (request, response) => execute(request, response), dispatchRetained, compileBuild,
+    collectBuild: (...args) => {
+      if (!buildCollection) throw fault('Build collection is not configured.', 'build_unavailable', 503);
+      return buildCollection.collectBuild(...args);
+    } };
 }
 function exact(body, keys) { if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join() !== keys.sort().join()) throw fault('Unexpected tool request fields.', 'tools_schema', 400); }
 async function readBody(request, limit = 80 * 1024) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) throw fault('The tool request body exceeds its size limit.', 'tools_body_limit', 413); chunks.push(chunk); } try { return JSON.parse(Buffer.concat(chunks)); } catch { throw fault('Tool request must be JSON.', 'tools_json', 400); } }

@@ -1,4 +1,5 @@
 #import "ynx-wallet-admission-parent.h"
+#import "original-ide-cocoa-parent-producer.h"
 #import <Security/Security.h>
 #import <libproc.h>
 #import <sys/proc_info.h>
@@ -160,25 +161,29 @@ static NSDictionary *YNXCodeObservation(pid_t pid) {
 @end
 
 @interface YNXIDEAdmissionAcquireOutcome ()
-- (instancetype)initWithCause:(id)cause debt:(YNXIDEParentObservation *)debt cleanupError:(NSError *)cleanupError;
+- (instancetype)initWithCause:(id)cause debt:(id)debt cleanupError:(NSError *)cleanupError;
+- (instancetype)initWithQualified:(id<YNXWalletAdmissionParentGuard>)guard;
 - (BOOL)finishCleanup:(NSError **)error;
 @end
 @implementation YNXIDEAdmissionAcquireOutcome {
     id _firstCause;
     NSError *_cleanupError;
-    YNXIDEParentObservation *_cleanupDebt;
+    id _cleanupDebt;
+    id<YNXWalletAdmissionParentGuard> _qualified;
 }
-- (instancetype)initWithCause:(id)cause debt:(YNXIDEParentObservation *)debt cleanupError:(NSError *)cleanupError {
+- (instancetype)initWithQualified:(id<YNXWalletAdmissionParentGuard>)guard {if((self=[super init]))_qualified=guard;return self;}
+- (instancetype)initWithCause:(id)cause debt:(id)debt cleanupError:(NSError *)cleanupError {
     if((self=[super init])){_firstCause=cause;_cleanupDebt=debt;_cleanupError=cleanupError;}return self;
 }
-- (YNXIDEAdmissionAcquireKind)kind {return _cleanupDebt ? YNXIDEAdmissionCleanupIncomplete : YNXIDEAdmissionCleanRefusal;}
-- (id<YNXWalletAdmissionParentGuard>)guard {return nil;}
-- (id)firstCause {return _firstCause;}
-- (NSError *)cleanupError {return _cleanupError;}
+- (YNXIDEAdmissionAcquireKind)kind {return _cleanupDebt ? YNXIDEAdmissionCleanupIncomplete : _qualified ? YNXIDEAdmissionQualified : YNXIDEAdmissionCleanRefusal;}
+- (id<YNXWalletAdmissionParentGuard>)guard {return _qualified;}
+- (id)firstCause {return _firstCause?:[(YNXOriginalIDECocoaParentProducer*)_qualified firstCause];}
+- (NSError *)cleanupError {return _cleanupError?:[(YNXOriginalIDECocoaParentProducer*)_qualified cleanupError];}
 - (BOOL)finishCleanup:(NSError **)error {
     // The getter already selected close. This reads that exact object's status;
     // its once gate prevents retries or new resource/authority acquisition.
-    return !_cleanupDebt || [_cleanupDebt finishCleanup:error];
+    if(_cleanupDebt)return [_cleanupDebt finishCleanup:error];
+    YNXOriginalIDECocoaParentProducer*p=(id)_qualified;return !p||!p.cleanupSelected||[p finishCleanup:error];
 }
 @end
 BOOL YNXFinishIDEAdmissionAcquireCleanup(YNXIDEAdmissionAcquireOutcome *outcome,NSError **error) {
@@ -186,26 +191,9 @@ BOOL YNXFinishIDEAdmissionAcquireCleanup(YNXIDEAdmissionAcquireOutcome *outcome,
 }
 
 YNXIDEAdmissionAcquireOutcome *YNXOriginalAcquireIDEAdmissionParent(NSURL *resources,pid_t parent,NSError **error) {
-    YNXIDEParentObservation *observation=[YNXIDEParentObservation new]; NSError *failure=nil;
-    id firstCause=nil;
-    BOOL observed=NO;
-    @try { observed=[observation captureResources:resources parent:parent error:&failure]; }
-    @catch(id exception){ firstCause=exception;failure=YNXParentError(@"IDE_PARENT_OS_OBSERVATION_FAILED",1); }
-    if(observed){
-        // Existing Auth's frozen normal contract supplies no native qualification
-        // carrier. OS observations above establish provenance only. No existing
-        // receipt schema authorizes an OS parent/executor/IDE-child relationship.
-        // Do not construct a guard, renew a deadline, or turn fd4 into a grant.
-        failure=YNXParentError(@"IDE_ORIGINAL_REGISTERED_PARENT_EXECUTOR_QUALIFICATION_NOT_SUPPLIED",1);
-    }
-    if(!firstCause)firstCause=failure;
-    NSError *cleanupFailure=nil;
-    if(![observation finishCleanup:&cleanupFailure]){
-        if(error)*error=[NSError errorWithDomain:@"YNXOriginalIDEAdmissionParent" code:2
-            userInfo:@{NSLocalizedDescriptionKey:cleanupFailure.localizedDescription,
-                NSUnderlyingErrorKey:failure ?: YNXParentError(@"IDE_PARENT_ACQUIRE_FAILED",1)}];
-        return [[YNXIDEAdmissionAcquireOutcome alloc]initWithCause:firstCause debt:observation cleanupError:cleanupFailure];
-    }
-    if(error)*error=failure;
-    return [[YNXIDEAdmissionAcquireOutcome alloc]initWithCause:firstCause debt:nil cleanupError:nil];
+    NSError*failure=nil;YNXOriginalIDECocoaParentProducer*owner=[YNXOriginalIDECocoaParentProducer acquireOriginalResources:resources parent:parent error:&failure];
+    if(owner&&!failure&&owner.qualified)return [[YNXIDEAdmissionAcquireOutcome alloc]initWithQualified:(id)owner];
+    id cause=owner.firstCause?:failure;NSError*cleanup=nil;
+    if(owner&&![owner finishCleanup:&cleanup]){if(error)*error=failure?:cleanup;return [[YNXIDEAdmissionAcquireOutcome alloc]initWithCause:cause debt:owner cleanupError:cleanup];}
+    if(error)*error=failure;return [[YNXIDEAdmissionAcquireOutcome alloc]initWithCause:cause debt:nil cleanupError:nil];
 }

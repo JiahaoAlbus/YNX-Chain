@@ -81,7 +81,7 @@ function activate(context) {
   register('ynx.configureChainProject', () => projectChain().configure());
   register('ynx.chainProjectHistory', () => projectChain().saved());
   register('ynx.trackChainTransaction', () => projectChain().track());
-  const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env);
+  const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env, context);
   register('ynx.js.runActive', () => jsCurrentFile(true));
   register('ynx.js.debugActive', () => jsCurrentFile(false));
   const tsCurrentFile = require('./ts-current-file.cjs').createTsCurrentFile(vscode, context, process.env);

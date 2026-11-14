@@ -56,6 +56,15 @@ if (buildReceipt.workbenchTreeSha256 !== await composedTreeDigest(join(developer
   throw Error('Owned source/cache/build receipt differs. Run the owned offline build before packaging.');
 }
 if (process.platform === 'darwin') {
+  // An ignore-scripts install can compile JS successfully while omitting the
+  // drive enumerator used by the real native workspace. Never seal that as a
+  // complete runtime; build the pinned addon explicitly before the JS bundle.
+  const driveEnumerator = join(application, 'lib/backend/native/drivelist.node');
+  let driveStat;
+  try { driveStat = await lstat(driveEnumerator); }
+  catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (!driveStat?.isFile() || driveStat.isSymbolicLink())
+    throw Error('The compiled drivelist native addon is missing. Build the pinned dependency offline and rebuild the workbench before packaging.');
   const { verifyProcessHelper } = await import('./process-helper-build.mjs');
   await verifyProcessHelper();
 }
@@ -225,6 +234,7 @@ if (process.platform === 'darwin') {
     nativeArchitectureComplete: foreignArchitectureBinaries.length === 0, foreignArchitectureBinaries, binaries };
 }
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
+  workbenchSourceTreeSha256:buildReceipt.workbenchTreeSha256,
   ...macosCompatibility ? { macosCompatibility } : {},
   ...nativeTrash ? { nativeTrash: { ...nativeTrash, path: 'lib/backend/macos-trash',
     receipt: 'lib/backend/macos-trash.receipt.json', sandboxQualification: 'Separate exact-sandbox QA required; no permission expansion' } } : {},

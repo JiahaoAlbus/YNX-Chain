@@ -70,6 +70,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   const publicChainRpc = require('./chain-public-channel').createPublicChainRpc(require('./chain-public-channel').inheritedPublicChain());
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-public-chain', () => publicChainRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => publicChainRpc.close() });
+  const projectServices = require('./project-services-channel').rpc(require('./project-services-channel').inherited());
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-project-services', () => projectServices));
+  bind(BackendApplicationContribution).toConstantValue({ onStop: () => projectServices.close() });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-wallet-admission', () => walletAdmissionRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => walletAdmission.close() });
   const aiRpc = require('./local-ai-tools-channel').rpc(require('./local-ai-tools-channel').inherited());
@@ -104,6 +107,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       delete env.YNX_EXTENSION_ARTIFACT_PIPE;
       delete env.YNX_PUBLIC_CHAIN_PIPE;
       delete env.YNX_LOCAL_AI_PIPE;
+      delete env.YNX_PROJECT_SERVICES_PIPE;
       if (Number(process.versions.node.split('.')[0]) >= 21)
         env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
     },

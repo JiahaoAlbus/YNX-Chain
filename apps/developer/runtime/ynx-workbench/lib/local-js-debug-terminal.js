@@ -48,31 +48,20 @@ class LocalJsDebugTerminalContribution {
       if (record.ended) throw Error('Local JavaScript terminal launch has ended');
       const { title, cwd, args, env } = request.arguments;
       const terminal = await this.terminalServer.newTerminal({ title, cwd, env, kind: 'debug', useServerTitle: false });
-      const current = () => !record.ended && !owner.stopped && !terminal.isDisposed;
-      if (!current()) { terminal.dispose(); throw Error('Local JavaScript terminal launch has ended'); }
+      if (record.ended || owner.stopped) { terminal.dispose(); throw Error('Local JavaScript terminal launch has ended'); }
       retainTerminalOutput(terminal);
       record.terminals.add(terminal);
       let result;
       try {
         await terminal.start();
-        if (!current()) throw Error('Local JavaScript terminal launch has ended');
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
         await this.terminalServer.open(terminal);
-        if (!current()) throw Error('Local JavaScript terminal launch has ended');
         await terminal.executeCommand({ cwd, args });
-        if (!current()) throw Error('Local JavaScript terminal launch has ended');
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
         result = { processId: await terminal.processId };
-        if (!current()) throw Error('Local JavaScript terminal launch has ended');
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
         if (!Number.isSafeInteger(result.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
-      } catch (error) {
-        try { await owner.closeTerminal(terminal); record.terminals.delete(terminal); }
-        catch (cleanup) {
-          // Preserve the user's actual launch failure. Unknown cleanup remains
-          // owned so the existing session teardown can retry that exact shell.
-          try { session.logger?.error?.('Local JavaScript shell cleanup failed after terminal launch failure', cleanup); }
-          catch { /* A diagnostic sink must not replace the launch failure. */ }
-        }
-        throw error;
-      }
+      } catch (error) { await owner.closeTerminal(terminal); record.terminals.delete(terminal); throw error; }
       if (!Number.isSafeInteger(result?.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
       const { processId, ...remaining } = result;
       // No-debug targets have no Inspector telemetry. Their authenticated host

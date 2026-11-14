@@ -42,3 +42,30 @@ test('installed environment extension is preserved', async t => {
   const f = await fixture(t); f.api.extensions.getExtension = () => ({});
   await configurePython(f.api, f.env); assert.deepEqual(f.updates, ['languageServer']);
 });
+
+for(const [label,change]of [
+ ['trust is revoked',f=>{f.api.workspace.isTrusted=false;}],
+ ['workspace instance changes',f=>{f.api.workspace.workspaceFolders=[{uri:{...f.api.workspace.workspaceFolders[0].uri}}];}],
+ ['runtime project changes',f=>{f.env.YNX_LOCAL_WORKSPACE+='-retired';}],
+])test('no stale configuration writes when '+label+' during asynchronous path checks',async t=>{
+ const f=await fixture(t);let picked=false,scheduled=false,trusted=true;
+ Object.defineProperty(f.api.workspace,'isTrusted',{get(){
+  if(picked&&!scheduled){scheduled=true;queueMicrotask(()=>change(f));}
+  return trusted;
+ },set(value){trusted=value;}});
+ f.api.window.showQuickPick=async items=>{picked=true;return items[0];};
+ await assert.rejects(configurePython(f.api,f.env),/trusted/);
+ assert.equal(scheduled,true);assert.deepEqual(f.updates,[]);assert.deepEqual(f.commands,[]);
+ assert.equal(f.settings.unrelated,'preserved');
+});
+
+test('trust revoked at the validation caller continuation prevents the first write',async t=>{
+ const f=await fixture(t);let picked=false,checks=0,trusted=true;
+ Object.defineProperty(f.api.workspace,'isTrusted',{get(){
+  if(picked&&++checks===2)queueMicrotask(()=>{trusted=false;});
+  return trusted;
+ }});
+ f.api.window.showQuickPick=async items=>{picked=true;return items[0];};
+ await assert.rejects(configurePython(f.api,f.env),/trusted/);
+ assert.deepEqual(f.updates,[]);assert.deepEqual(f.commands,[]);
+});

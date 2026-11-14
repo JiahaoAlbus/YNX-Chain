@@ -4,6 +4,7 @@
   "private": true,
   "description": "Owned YNX Developer workbench and VS Code extension runtime composition",
   "scripts": {
+    "prebuild": "node --test scripts/workbench-controls.test.mjs scripts/current-file-debug-routing.test.mjs scripts/native-workbench-commands.test.mjs ../../native/ynx-tools/src/js-current-file.test.mjs ../../native/ynx-go/src/go-task-execution.test.mjs scripts/native-paste-keybinding.test.mjs scripts/native-open-keybinding.test.mjs scripts/native-new-file.test.mjs scripts/native-create-lifecycle.test.mjs scripts/native-save-as-default.test.mjs scripts/native-paste-data-transfer.test.mjs ../../scripts/workbench-source-binding.test.mjs ../../desktop/project-services-host.test.mjs",
     "build": "node scripts/sync-owned-workbench.mjs && theia build --mode production && node scripts/sync-owned-workbench.mjs --seal-build",
     "start": "theia start --hostname 127.0.0.1"
   },

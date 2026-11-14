@@ -45,7 +45,12 @@ function createSolidityBuild(api, language, environment, t = value => value) {
       // trust and source lifetime checks without mistaking that focus change
       // for a different project after a successful build.
       await assertProject(false);
-      await api.window.showInformationMessage(t(configureOnly ? 'Solidity build configured for this project. Run Compile Solidity Project to produce ABI and bytecode.' : 'Solidity compilation completed. ABI and bytecode are open. Deployment and contract calls require an admitted Chain and Wallet connection; compilation does not submit a transaction.'));
+      // An ordinary completion notice is not approval to finish the command.
+      // Keep compiler/project failures authoritative even if notification UI
+      // stays open, has been disposed, or rejects its transport promise.
+      try {
+        Promise.resolve(api.window.showInformationMessage(t(configureOnly ? 'Solidity build configured for this project. Run Compile Solidity Project to produce ABI and bytecode.' : 'Solidity compilation completed. ABI and bytecode are open. Deployment and contract calls require an admitted Chain and Wallet connection; compilation does not submit a transaction.'))).catch(() => {});
+      } catch { /* Completed compilation does not depend on notification UI. */ }
     }
     return result;
   }

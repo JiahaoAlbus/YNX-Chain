@@ -60,3 +60,13 @@ export function loadPinnedCompiler() {
   assertCompilerPin();
   return require(inputPaths(process.env.YNX_IDE_SOLC_INPUT).entry);
 }
+
+// The task runtime and the Tools worker consume the same reviewed package.
+// Return a JS entry for the already-held Node runtime, never an ambient CLI.
+export function pinnedCompilerCLI() {
+  assertCompilerPin();
+  const cli = join(dirname(inputPaths(process.env.YNX_IDE_SOLC_INPUT).entry), 'solc.js');
+  const info = lstatSync(cli);
+  if (!info.isFile() || info.isSymbolicLink()) throw Object.assign(new Error('The reviewed Solidity CLI is unavailable.'), {status:503,code:'compiler_unavailable'});
+  return cli;
+}

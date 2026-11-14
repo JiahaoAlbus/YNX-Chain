@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { identityActivity } from './identityActivity';
-import { createRequestEpoch } from './requestEpoch';
+import { createProjectRequestEpoch } from './requestEpoch';
 import { editorEntry, workspaceStatus, type NativeSession as Session } from './sessionNavigation';
 import { readWorkspaceResponse } from './workspaceResponse';
 type Catalog = { account: string; generation: number; identityKey: string; configured: boolean; kernel: string; license?: string; nativeProjects: string[]; sessions: Session[]; walletProjectExists: boolean; projectRevision: number; walletProjects: { projectId: string; name: string; revision: number }[] };
@@ -26,8 +26,8 @@ export function NativeIDEPanel(props: PanelProps) {
   return <WalletIDEPanel {...props} />;
 }
 function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admitted, onOwnershipChange, guestProjectAvailable = true }: PanelProps) {
-  const [projectId, selectProject] = useState(guestProjectId);
-  const requests = useRef(createRequestEpoch()).current;
+  const [projectId, setProjectId] = useState(guestProjectId);
+  const requests = useRef(createProjectRequestEpoch(guestProjectId)).current;
   const mounted = useRef(false), verified = useRef(false), actor = useRef("");
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; requests.invalidate(); }; }, [requests]);
   useEffect(() => { requests.invalidate(); selectProject(guestProjectId); }, [guestProjectId, requests]);
@@ -38,7 +38,11 @@ function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admi
   const progress = useRef({ key: "", attempts: 0 });
   const [newProjectName, setNewProjectName] = useState(''), [createReviewed, setCreateReviewed] = useState(false);
   const createIntent = useRef<{ name: string; identityKey: string; approvalId: string } | undefined>(undefined);
-  const currentProject = useRef(projectId); currentProject.current = projectId;
+  const selectProject = (nextProject: string) => {
+    requests.activate(nextProject);
+    verified.current = false;
+    setProjectId(nextProject);
+  };
   const query = `?projectId=${encodeURIComponent(projectId)}`;
   const current = (captured: number) => mounted.current && requests.current(captured);
   const retire = (cause: unknown) => {
@@ -51,7 +55,7 @@ function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admi
     const selected = projectId, captured = requests.invalidate(); verified.current = false;
     setLoading(true); setBusy(false); setReviewed(false); setError(message);
     try {
-      const value: Catalog = await coreRequest(query); if (!current(captured) || currentProject.current !== selected) return;
+      const value: Catalog = await coreRequest(query); if (!current(captured) || requests.project() !== selected) return;
       if (actor.current !== value.identityKey) { identityActivity.reset(); setCreateReviewed(false); createIntent.current = undefined; }
       if ((!guestProjectAvailable || selected !== guestProjectId) && !value.walletProjects.some(project => project.projectId === selected) && (guestProjectAvailable || value.walletProjects.length > 0)) {
         actor.current = value.identityKey; setCatalog(value); selectProject(value.walletProjects[0]?.projectId || guestProjectId); return;
@@ -166,7 +170,7 @@ function WalletIDEPanel({ projectId: guestProjectId, projectName, revision, admi
     {!exitPending && <Button disabled={loading} onClick={() => void reload()}>{loading ? "Loading Wallet projects…" : "Refresh Wallet projects"}</Button>}
     {(account || exitPending) && <Button disabled={busy} onClick={() => void signOut()}>{exitPending ? 'Retry sign-out' : 'Sign out on this device'}</Button>}
     {account && <Button disabled={disabled} onClick={event => { const captured = requests.capture(); void identityActivity.attest(event.nativeEvent, 'edit').then(ok => { if (current(captured) && !ok) setError('Sign in again if this session has reached its fixed end. Your project files are preserved.'); }).catch(() => { if (current(captured)) setError('The connection is unavailable. Your project files are preserved.'); }); }}>Continue editing</Button>}
-    {account && (guestProjectAvailable || Boolean(catalog?.walletProjects.length)) && <label>Wallet projects<select aria-label="Native Wallet projects" value={projectId} disabled={disabled} onChange={event => { verified.current = false; requests.invalidate(); selectProject(event.target.value); }}>{guestProjectAvailable && !catalog?.walletProjects.some(row => row.projectId === guestProjectId) && <option value={guestProjectId}>Current guest project — copy to Wallet</option>}{catalog?.walletProjects.map(row => <option key={row.projectId} value={row.projectId}>{row.name}</option>)}</select></label>}
+    {account && (guestProjectAvailable || Boolean(catalog?.walletProjects.length)) && <label>Wallet projects<select aria-label="Native Wallet projects" value={projectId} disabled={disabled} onChange={event => { selectProject(event.target.value); }}>{guestProjectAvailable && !catalog?.walletProjects.some(row => row.projectId === guestProjectId) && <option value={guestProjectId}>Current guest project — copy to Wallet</option>}{catalog?.walletProjects.map(row => <option key={row.projectId} value={row.projectId}>{row.name}</option>)}</select></label>}
     {account && !guestProjectAvailable && catalog && !catalog.walletProjects.length && <p>No Wallet projects yet. Create your first project below.</p>}
     {account && <details><summary>New Wallet project</summary><label>New project name<input value={newProjectName} maxLength={160} disabled={disabled} onChange={event => { setNewProjectName(event.target.value); setCreateReviewed(false); createIntent.current = undefined; }} /></label><label className="native-review"><input type="checkbox" checked={createReviewed} disabled={disabled} onChange={event => setCreateReviewed(event.target.checked)} /> Create an empty project for {account}.</label><Button disabled={disabled || !createReviewed || !newProjectName.trim() || /[\u0000-\u001f\u007f]/.test(newProjectName)} onClick={() => void createProject()}>Create Wallet project</Button></details>}
     {account && guestProjectAvailable && catalog && projectId === guestProjectId && !catalog.walletProjectExists && <><p>Copy this saved project into your Wallet workspace. The original project stays available.</p><label className="native-review"><input type="checkbox" checked={reviewed} disabled={disabled} onChange={event => setReviewed(event.target.checked)} /> Copy this project to the account shown above.</label><Button disabled={disabled || !admitted || !reviewed} onClick={() => void copy()}>Copy project</Button></>}

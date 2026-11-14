@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { CommandRegistry } = require('@theia/core/lib/common/command');
 const { NativeWorkbenchCommands } = require('../../ynx-workbench/lib/native-workbench-commands');
+const { DebugSelectionContribution } = require('../../ynx-workbench/lib/debug-selection');
 const requestId = 'fbcf6585-a642-40b7-bc06-57d8f7aff876';
 function fixture() {
   const commands = new CommandRegistry({ getContributions: () => [] });
@@ -36,4 +37,31 @@ test('disabled, absent, unknown and failed commands do not report completion or 
 test('ordinary browser receives no native hook', () => {
   const target = {}; new NativeWorkbenchCommands({}, target).onStart();
   assert.equal(target.__ynxLocalWorkbenchCommand, undefined);
+});
+
+test('macOS Run menu uses the current-file runner unless a launch configuration was selected', async () => {
+  const {commands, target, messages} = fixture();
+  const editor = { uri: { scheme: 'file' }, document: { languageId: 'python' } };
+  const configurations = {};
+  const executions = [];
+  for (const id of ['python.execInTerminal', 'debugpy.debugInTerminal', 'ynx.go.run',
+    'workbench.action.debug.run', 'workbench.action.debug.start', 'select.debug.configuration']) {
+    commands.registerCommand({id}, {execute: () => executions.push(id)});
+  }
+  new DebugSelectionContribution(commands, {currentEditor: {editor}}, configurations).registerCommands(commands);
+  const native = command => target.__ynxLocalWorkbenchCommand(command, requestId);
+
+  await native('workbench.action.debug.run');
+  await native('workbench.action.debug.start');
+  editor.document.languageId = 'go';
+  await native('workbench.action.debug.run');
+  await native('workbench.action.debug.start');
+  configurations.current = {name: 'Configured project launch'};
+  await native('workbench.action.debug.run');
+  await native('workbench.action.debug.start');
+
+  assert.deepEqual(executions, ['python.execInTerminal', 'debugpy.debugInTerminal', 'ynx.go.run',
+    'select.debug.configuration', 'workbench.action.debug.run', 'workbench.action.debug.start']);
+  assert.equal(messages.length, 6);
+  assert.ok(messages.every(({accepted}) => accepted));
 });

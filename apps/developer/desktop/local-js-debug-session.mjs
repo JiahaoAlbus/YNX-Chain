@@ -1,3 +1,4 @@
+import { createReadStream } from 'node:fs';
 import { createServer } from 'node:net';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
 import { readFile, realpath, lstat, chmod, unlink } from 'node:fs/promises';
@@ -31,23 +32,28 @@ export function jsDebugSessionPolicy(base,port) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535 || !base.includes('(deny network*)')) throw Error('Invalid JavaScript debug endpoint allocation');
   return base + `\n(allow network-bind (local ip "localhost:${port}"))\n(allow network-inbound (local ip "localhost:${port}"))\n(allow network-outbound (remote ip "localhost:${port}"))`;
 }
-export async function createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy, pathIdentities = [], deadlineMs = 30*60*1000, warn = console.error }) {
+export async function inspectJsExecutionNode(node = process.execPath) {
+  const alias = join(dirname(node),'ynx-js-node');
+  const aliasStat=await canonical(alias),executionStat=await canonical(node);
+  if(aliasStat.uid!==executionStat.uid||![0,process.getuid()].includes(executionStat.uid)||(aliasStat.mode&0o022)||(executionStat.mode&0o022)||!(aliasStat.mode&0o111)||!(executionStat.mode&0o111))throw Error('The sealed JavaScript Node entry is not trusted');
+  for(let directory=dirname(alias);;directory=dirname(directory)){
+    const stat=await lstat(directory);if(!trustedJsNodeAncestor(directory,stat))throw Error('The sealed JavaScript Node entry has a writable ancestor');if(directory==='/')break;
+  }
+  const sha=async path=>{const h=createHash('sha256');for await(const b of createReadStream(path))h.update(b);return h.digest('hex');};
+  const originalHash=await sha(process.execPath);
+  if(await sha(alias)!==originalHash||await sha(node)!==originalHash)throw Error('The JavaScript Node entry differs from the sealed runtime');
+  const version=await exec(alias,['--version'],{env:{OPENSSL_CONF:'/dev/null',PATH:dirname(node)},timeout:5000,maxBuffer:1024});
+  if(version.stdout.trim()!==process.version)throw Error('The JavaScript Node entry version differs');
+  for(const [path,before] of [[alias,aliasStat],[node,executionStat]]){const after=await lstat(path);if(after.dev!==before.dev||after.ino!==before.ino||after.size!==before.size||after.mtimeMs!==before.mtimeMs)throw Error('The JavaScript Node entry changed during validation');}
+  return alias;
+}
+export async function createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy, pathIdentities = [], node = process.execPath, deadlineMs = 30*60*1000, warn = console.error }) {
   await canonical(context.workspace,true);await canonical(context.ipcTemporary,true);
   const extension = join(plugins,'ms-vscode.js-debug-1.140.0');await canonical(extension,true);
   const metadata = JSON.parse(await readFile(join(extension,'package.json'),'utf8'));
   if(metadata.publisher!=='ms-vscode'||metadata.name!=='js-debug'||metadata.version!=='1.140.0')throw Error('Unsupported official JavaScript debugger identity');
   for(const [name,pin] of Object.entries(JS_DEBUG_PINS)) {await canonical(join(extension,name));if(createHash('sha256').update(await readFile(join(extension,name))).digest('hex')!==pin)throw Error('Official JavaScript debugger bytes changed');}
-  const alias = join(dirname(process.execPath),'ynx-js-node');
-  const aliasStat=await canonical(alias),nodeStat=await canonical(process.execPath);
-  if(aliasStat.uid!==nodeStat.uid||(aliasStat.mode&0o022)||!(aliasStat.mode&0o111))throw Error('The sealed JavaScript Node entry is not trusted');
-  for(let directory=dirname(alias);;directory=dirname(directory)){
-    const stat=await lstat(directory);if(!trustedJsNodeAncestor(directory,stat))throw Error('The sealed JavaScript Node entry has a writable ancestor');if(directory==='/')break;
-  }
-  const sha=async path=>createHash('sha256').update(await readFile(path)).digest('hex');
-  if(await sha(alias)!==await sha(process.execPath))throw Error('The JavaScript Node entry differs from the sealed runtime');
-  const version=await exec(alias,['--version'],{env:{OPENSSL_CONF:'/dev/null',PATH:dirname(process.execPath)},timeout:5000,maxBuffer:1024});
-  if(version.stdout.trim()!==process.version)throw Error('The JavaScript Node entry version differs');
-  const aliasAfter=await lstat(alias);if(aliasAfter.dev!==aliasStat.dev||aliasAfter.ino!==aliasStat.ino||aliasAfter.size!==aliasStat.size||aliasAfter.mtimeMs!==aliasStat.mtimeMs)throw Error('The JavaScript Node entry changed during validation');
+  const alias = await inspectJsExecutionNode(node);
   const workspaceProof=pathIdentities.find(proof=>proof.canonical===context.workspace);if(!workspaceProof)throw Error('JavaScript debugging requires verified project paths');await assertWorkspacePathIdentity(workspaceProof);
   const sourceMapping=workspaceProof.paths.length===2?{localRoot:context.workspace,remoteRoot:workspaceProof.paths[1]}:undefined;
   const pty = await loadSealedDebugPty();
@@ -89,7 +95,7 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
         if(!entry && message.op!=='input' && message.op!=='resize' && message.op!=='stop') {
           if(message.credential!==credential||message.projectId!==context.id||stopped)throw Error('JavaScript debug project admission was refused');
           if(message.op==='guard'){
-            entry=launches.get(message.launchId);if(!entry||entry.phase!=='running'||entry.guard||entry.child?.pid!==message.pid)throw Error('JavaScript guardian binding was refused');entry.guard=socket;guard=true;reply({kind:'target',args:entry.targetArgs,cwd:entry.targetCwd,env:entry.targetEnv,executable:entry.noDebug?process.execPath:alias});return;
+            entry=launches.get(message.launchId);if(!entry||entry.phase!=='running'||entry.guard||entry.child?.pid!==message.pid)throw Error('JavaScript guardian binding was refused');entry.guard=socket;guard=true;reply({kind:'target',args:entry.targetArgs,cwd:entry.targetCwd,env:entry.targetEnv,executable:entry.noDebug?node:alias});return;
           }
           if(message.op==='observe'){const selected=launches.get(message.launchId);if(!selected||selected.stopping||!selected.noDebug||selected.consoleMode!=='integratedTerminal'||selected.observers?.size)throw Error('JavaScript launch observation was refused');selected.observers ||= new Set();selected.observers.add(socket);socket.once('close',()=>selected.observers.delete(socket));reply({kind:'observing'});return;}
           if(message.op==='cancel'){const selected=launches.get(message.launchId);if(selected)await retire(selected);reply({kind:'cancelled'});return;}
@@ -109,17 +115,13 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           }
           if(message.op!=='start')throw Error('Invalid JavaScript debug request');
           entry=launches.get(message.launchId);if(!entry||entry.phase!=='prepared')throw Error('JavaScript launch request expired or was replayed');
-          // Path and IPC validation yield. The requester can disconnect, or
-          // cancellation/stop can retire this exact entry during any await.
-          // Never let a late continuation recreate its process or timer.
-          const assertStartCurrent=()=>{if(stopped||faulted||socket.destroyed||entry.stopping||launches.get(entry.id)!==entry||entry.phase!=='prepared')throw Error('JavaScript launch request was cancelled or retired');};
-          assertStartCurrent();let cwd=await realpath(message.cwd);assertStartCurrent();
-          if(workspaceProof){await assertWorkspacePathIdentity(workspaceProof);assertStartCurrent();const alias=workspaceProof.paths.find(path=>inside(path,cwd));if(alias)cwd=join(context.workspace,relative(alias,cwd));}
-          if(!inside(context.workspace,cwd))throw Error('JavaScript target working directory is outside its project');await canonical(cwd,true);assertStartCurrent();
+          let cwd=await realpath(message.cwd);
+          if(workspaceProof){await assertWorkspacePathIdentity(workspaceProof);const alias=workspaceProof.paths.find(path=>inside(path,cwd));if(alias)cwd=join(context.workspace,relative(alias,cwd));}
+          if(!inside(context.workspace,cwd))throw Error('JavaScript target working directory is outside its project');await canonical(cwd,true);
           if(!Array.isArray(message.args)||message.args.length>1024||message.args.some(x=>typeof x!=='string'||x.includes('\0'))||Buffer.byteLength(JSON.stringify(message.args))>128*1024)throw Error('Invalid JavaScript target arguments');
           const env=message.env;if(!env||typeof env!=='object'||Array.isArray(env)||Object.keys(env).length>256||Object.entries(env).some(([k,v])=>!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)||typeof v!=='string'||v.includes('\0')||v.length>65536))throw Error('Invalid JavaScript target environment');
           if(message.args.some(x=>/^--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|$)/.test(x))||/(?:^|\s)--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|\s|$)/.test(env.NODE_OPTIONS||''))throw Error('A user-specified Inspector endpoint conflicts with supervised local debugging');
-          if(!entry.noDebug){const options=JSON.parse((env.VSCODE_INSPECTOR_OPTIONS||'').split(':::').reverse().find(value=>value)||'null');if(!options||typeof options.inspectorIpc!=='string'||!inside(context.ipcTemporary,options.inspectorIpc)||!String(env.NODE_OPTIONS||'').includes(join(extension,'src/bootloader.js')))throw Error('The official JavaScript bootloader is required');const socketStat=await lstat(options.inspectorIpc);assertStartCurrent();const inspectorPath=await realpath(options.inspectorIpc);assertStartCurrent();if(inspectorPath!==options.inspectorIpc||socketStat.isSymbolicLink()||!socketStat.isSocket()||socketStat.uid!==process.getuid())throw Error('Official Inspector IPC is not an owned socket');}
+          if(!entry.noDebug){const options=JSON.parse((env.VSCODE_INSPECTOR_OPTIONS||'').split(':::').reverse().find(value=>value)||'null');if(!options||typeof options.inspectorIpc!=='string'||!inside(context.ipcTemporary,options.inspectorIpc)||!String(env.NODE_OPTIONS||'').includes(join(extension,'src/bootloader.js')))throw Error('The official JavaScript bootloader is required');const socketStat=await lstat(options.inspectorIpc);if(await realpath(options.inspectorIpc)!==options.inspectorIpc||socketStat.isSymbolicLink()||!socketStat.isSocket()||socketStat.uid!==process.getuid())throw Error('Official Inspector IPC is not an owned socket');}
           const targetEnv={...env};
           if(entry.noDebug){
             // The official adapter injects its bootloader even for noDebug.
@@ -131,15 +133,14 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
               if(targetEnv.NODE_OPTIONS?.startsWith(preload)){targetEnv.NODE_OPTIONS=targetEnv.NODE_OPTIONS.slice(preload.length);break;}
             }
             delete targetEnv.VSCODE_INSPECTOR_OPTIONS;
-          }else{const parts=env.VSCODE_INSPECTOR_OPTIONS.split(':::');const last=parts.findLastIndex(value=>value);const options=JSON.parse(parts[last]);options.execPath=join(resolve(process.execPath,'..'),'local-js-debug-launcher.sh');parts[last]=JSON.stringify(options);targetEnv.VSCODE_INSPECTOR_OPTIONS=parts.join(':::');}
+          }else{const parts=env.VSCODE_INSPECTOR_OPTIONS.split(':::');const last=parts.findLastIndex(value=>value);const options=JSON.parse(parts[last]);options.execPath=join(dirname(node),'local-js-debug-launcher.sh');parts[last]=JSON.stringify(options);targetEnv.VSCODE_INSPECTOR_OPTIONS=parts.join(':::');}
           for(const key of Object.keys(targetEnv))if(key.startsWith('YNX_JS_DEBUG_')||key==='YNX_JS_ORIGINAL_NODE_OPTIONS')delete targetEnv[key];
           for(const key of ['TMPDIR','TMP','TEMP','XDG_RUNTIME_DIR'])targetEnv[key]=context.ipcTemporary;
-          for(const proof of pathIdentities){await assertWorkspacePathIdentity(proof);assertStartCurrent();}
-          assertStartCurrent();
+          for(const proof of pathIdentities)await assertWorkspacePathIdentity(proof);
           clearTimeout(entry.timer);entry.phase='running';entry.timer=setTimeout(()=>retire(entry).catch(warn),deadlineMs);entry.timer.unref();
           entry.targetArgs=[...(entry.noDebug?[]:[`--inspect=127.0.0.1:${entry.port}`]),...message.args];entry.targetEnv=targetEnv;entry.targetCwd=cwd;
           const guardianEnv={...targetEnv,YNX_JS_DEBUG_SOCKET:path,YNX_JS_DEBUG_CREDENTIAL:credential,YNX_JS_DEBUG_LAUNCH:entry.id,YNX_LOCAL_PROJECT_ID:context.id};delete guardianEnv.NODE_OPTIONS;delete guardianEnv.VSCODE_INSPECTOR_OPTIONS;
-          const argv=['-p',entry.noDebug?basePolicy:jsDebugSessionPolicy(basePolicy,entry.port),process.execPath,join(resolve(process.execPath,'..'),'local-js-debug-launcher.mjs'),'--ynx-guardian'];
+          const argv=['-p',entry.noDebug?basePolicy:jsDebugSessionPolicy(basePolicy,entry.port),node,join(dirname(node),'local-js-debug-launcher.mjs'),'--ynx-guardian'];
           const output=(stream,data)=>reply({kind:'output',stream,data:Buffer.from(data).toString('base64')});
           let resolveDone;entry.done=new Promise(ok=>resolveDone=ok);
           const ended=(code,signal)=>{if(entry.closed)return;entry.closed=true;resolveDone();reply({kind:'exit',code:entry.targetExit?.code??undefined,signal:entry.targetExit?.signal??signal});retire(entry).catch(warn);};

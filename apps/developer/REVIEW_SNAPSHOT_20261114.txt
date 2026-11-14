@@ -1,0 +1,22 @@
+Review-only source snapshot from local ead01fee8f5b96a037be6eee064ab50de2715c76, over public 5427941. The two source histories do not have a locally available common ancestor; this is an overlay for inspection, not a verified integration or build. Paths redacted in 14 files. 3 files skipped for binary, size or possible sensitive content. Differences involving deletions in unrelated histories were not applied.
+
+Skipped files:
+apps/developer/desktop/native-file-picker.test.mjs
+apps/developer/runtime/theia/scripts/native-new-file.test.mjs
+apps/developer/services/workspace-agent/test/runtime.test.mjs
+
+Redacted files:
+apps/developer/scripts/build-native-macos.mjs
+apps/developer/scripts/c6-control-matched-input.mjs
+apps/developer/scripts/c6-scope-phase-input.mjs
+apps/developer/scripts/current-product-supplier-qa.mjs
+apps/developer/scripts/current-source-projection-input.mjs
+apps/developer/scripts/finish-current-projection-package.mjs
+apps/developer/scripts/isolated-cocoa-supplier-qa.mjs
+apps/developer/scripts/isolated-cocoa-supplier-qa.test.mjs
+apps/developer/scripts/next-product-supplier-input.mjs
+apps/developer/scripts/r21-cocoa-product.mjs
+apps/developer/scripts/root63-native-completion.mjs
+apps/developer/scripts/root63-product.mjs
+apps/developer/scripts/verify-current-package-source-roles.mjs
+apps/developer/services/codeoss-service/test/service.test.mjs

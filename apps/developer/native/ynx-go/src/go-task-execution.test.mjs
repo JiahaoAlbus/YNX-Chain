@@ -41,6 +41,13 @@ test('native Go selection preserves real errors instead of interpreting their te
  const failure=Error('Go toolchain selection cancelled.');
  await assert.rejects(selectNativeGoToolchain({ynxDesktopGo:{selectToolchain:async()=>{throw failure;}}}),error=>error===failure);
 });
+test('native Go cancellation requires its own true DATA marker and preserves every other original failure',async()=>{
+ const getter=Object.defineProperty({},'cancelled',{get(){throw Error('PRIVATE getter');}});
+ const computed=Object.defineProperty({},'cancelled',{get(){return true;}});
+ for(const failure of [undefined,null,false,0,{cancelled:false},{cancelled:'true'},Object.create({cancelled:true}),getter,computed]){
+  await assert.rejects(selectNativeGoToolchain({ynxDesktopGo:{selectToolchain:async()=>{throw failure;}}}),error=>error===failure);
+ }
+});
 test('actual injected native Go bridge cancellation becomes a serializable result, then selects on retry',async()=>{
  const source=await readFile(new URL('../../../desktop/macos/main.m',import.meta.url),'utf8');
  const injected=source.match(/NSString \*goScript=@"(.*)";/)[1];const posted=[];let sequence=0;
@@ -59,9 +66,9 @@ async function requestFixture() {
  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-request-'))),require=createRequire(import.meta.url),module={exports:{}};
  const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'},helpers=require('./go-toolchain.cjs'),hooks={buildExit:0};
  const originalFS=require('node:fs/promises'),observedFS={...originalFS,async open(...args){const handle=await originalFS.open(...args);const read=handle.read.bind(handle);handle.read=async(...values)=>{await hooks.headerRead?.();return read(...values);};return handle;}};
- vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
+ vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async saved=>{if(hooks.verify)return hooks.verify(saved,toolchain);if(saved?.root!==toolchain.root)return helpers.verifyToolchain(saved,{YNX_IDE_GO_ROOT:toolchain.root});return toolchain;}}:require(name)});
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
- const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
+ const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),startListeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
  const executions=[],submitted=[];
  class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
@@ -69,15 +76,16 @@ async function requestFixture() {
  const api={workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;await hooks.update?.();}})},
   window:{activeTextEditor:{document},onDidChangeActiveTextEditor:fn=>{editorListeners.add(fn);return{dispose:()=>editorListeners.delete(fn)};},showQuickPick:async items=>{picks++;return hooks.pick?hooks.pick(items):items[0];},showInformationMessage:()=>{notices++;hooks.notice?.();return new Promise(()=>{});}},
   CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},Task,ProcessExecution,TaskGroup:{Build:'build',Test:'test'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1},
-  tasks:{registerTaskProvider:()=>({dispose(){}}),onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{
+  tasks:{registerTaskProvider:()=>({dispose(){}}),onDidStartTask:fn=>{startListeners.add(fn);return{dispose:()=>startListeners.delete(fn)};},onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{
    executions.push(task.definition.stage);submitted.push(task);const execution={task,terminate(){}};
+   if(hooks.signalStart)for(const fn of startListeners)fn({execution});
    if(hooks.execute)return hooks.execute(task,execution,listeners);
    if(task.definition.stage==='build' && hooks.buildExit===0){const output=task.execution.args[task.execution.args.indexOf('-o')+1];await writeFile(output,Buffer.from('cffaedfe','hex'));await chmod(output,0o700);}
    setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:task.definition.stage==='build'?hooks.buildExit:task.definition.stage==='test'?(hooks.testExit??0):0});});return execution;
   }} };
  const environment={YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'};
  const open=()=>workflow=module.exports.createGoTasks(api,{subscriptions:[]},environment);open();
- return {api,hooks,executions,submitted,get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
+ return {api,hooks,environment,executions,submitted,get saved(){return saved;},set saved(value){saved=value;},get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
 }
 
 test('Go Project Test first configuration continues once with its notice open and uses the offline task terminal',{timeout:2000},async()=>{
@@ -340,7 +348,7 @@ test('switching editor during a pending save cancels the old request without wai
  }finally{await f.close();}
 });
 
-// R36 joins the real generic Run handler, real Go extension registration and
+// Join the real toolbar method/current-editor handler, Go registration and
 // retained requestFixture's original Go workflow/task callbacks. Toolchain and
 // task-process boundaries stay fixture controls, not a real compiler or App run.
 async function currentGoButtonFixture() {
@@ -355,34 +363,61 @@ async function currentGoButtonFixture() {
  const editors={currentEditor:{editor:{uri:{scheme:'file'},document:{languageId:'go'}}}},configurations={};
  const contribution=new DebugSelectionContribution(api.commands,editors,configurations);
  contribution.registerCommands({registerCommand:(command,handler)=>handlers.set(command.id,handler)});
- return {...f,api,handlers,calls,warnings,errors,editors,configurations,contribution,workflow:f.workflow};
+ const {WorkbenchControlsContribution}=require('../../../runtime/ynx-workbench/lib/workbench-controls.js');
+ const clickTriangle=()=>WorkbenchControlsContribution.prototype.runEditor.call({editors,run:id=>api.commands.executeCommand(id),closeRunMenu(){},translate:(_key,text)=>text},editors.currentEditor);
+ return {...f,api,handlers,calls,warnings,errors,editors,configurations,contribution,clickTriangle,workflow:f.workflow};
 }
-test('R36 normal generic Run reaches original Go task terminal, cwd and repeat result with first notice open',{timeout:2000},async()=>{
+test('normal toolbar triangle reaches original Go task terminal, cwd and repeat result with first notice open',{timeout:2000},async()=>{
  const f=await currentGoButtonFixture();try {
-  const run=f.handlers.get('ynx.workbench.runCurrentFile');assert.equal(run.isEnabled(),true);
-  assert.equal((await run.execute()).exitCode,0);assert.deepEqual(f.executions,['build','run']);assert.deepEqual(f.counts(),{picks:1,notices:1});
+  const run=f.handlers.get('ynx.workbench.runEditorFile');assert.equal(run.isEnabled(),true);
+  assert.equal((await f.clickTriangle()).exitCode,0);assert.deepEqual(f.executions,['build','run']);assert.deepEqual(f.counts(),{picks:1,notices:1});
   for(const task of f.submitted){assert.equal(task.execution.options.cwd,join(f.document.uri.fsPath,'..'));assert.equal(task.presentationOptions.reveal,f.api.TaskRevealKind.Always);assert.equal(task.presentationOptions.panel,f.api.TaskPanelKind.Shared);}
-  const first=f.submitted[0].definition.runId;assert.equal((await run.execute()).exitCode,0);assert.deepEqual(f.executions,['build','run','build','run']);assert.notEqual(f.submitted[2].definition.runId,first);
-  assert.deepEqual(f.counts(),{picks:1,notices:1});assert.deepEqual(f.errors,[]);assert.deepEqual(f.warnings,[]);assert.equal(f.workflow.status().running,false);assert.deepEqual(f.calls,['ynx.go.run','ynx.go.run']);
+  const first=f.submitted[0].definition.runId;assert.equal((await f.clickTriangle()).exitCode,0);assert.deepEqual(f.executions,['build','run','build','run']);assert.notEqual(f.submitted[2].definition.runId,first);
+  assert.deepEqual(f.counts(),{picks:1,notices:1});assert.deepEqual(f.errors,[]);assert.deepEqual(f.warnings,[]);assert.equal(f.workflow.status().running,false);assert.deepEqual(f.calls,['ynx.workbench.runEditorFile','ynx.go.run','ynx.workbench.runEditorFile','ynx.go.run']);
  }finally{await f.close();}
 });
-test('R36 generic Run retains owned cancel, terminal exit and retry instead of starting stale run',{timeout:2000},async()=>{
+test('toolbar triangle retains owned cancel, terminal exit and retry instead of starting stale run',{timeout:2000},async()=>{
  const f=await currentGoButtonFixture();try {
+  // A stale C++ debugger must not steal the current Go Run or its cancel.
+  const selected={configuration:{name:'TEST_ONLY_cpp_launch',type:'lldb-dap'}};
+  f.configurations.current=selected;
   let deliver,terminated=0,entered;
   const entry=new Promise(resolve=>{entered=resolve;});
   f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{execution.terminate=()=>{terminated++;for(const fn of listeners)fn({execution,exitCode:143});};deliver=()=>resolve(execution);entered();});
-  const pending=f.handlers.get('ynx.workbench.runCurrentFile').execute();
+  const pending=f.clickTriangle();
   // Abort quickly on the old incorrect fallback, without a timeout polling loop.
   await Promise.race([pending.then(()=>{throw Error('Run returned before Go task entry');}),entry]);
   assert.equal(await f.handlers.get('ynx.go.cancel').execute(),true);deliver();assert.equal((await pending).cancelled,true);assert.equal(terminated,1);assert.deepEqual(f.executions,['build']);assert.equal(f.workflow.status().running,false);
-  delete f.hooks.execute;assert.equal((await f.handlers.get('ynx.workbench.runCurrentFile').execute()).exitCode,0);assert.deepEqual(f.executions,['build','build','run']);assert.deepEqual(f.errors,[]);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;assert.equal((await f.clickTriangle()).exitCode,0);assert.deepEqual(f.executions,['build','build','run']);assert.deepEqual(f.errors,[]);assert.equal(f.workflow.status().running,false);assert.equal(f.configurations.current,selected);
  }finally{await f.close();}
 });
-test('R36 generic Go Run preserves explicit launch ownership and unconfigured debug selection',async()=>{
+test('current Go triangle owns its real task while explicit project Run and Debug preserve launch selection',async()=>{
  const f=await currentGoButtonFixture();try {
   assert.equal(f.contribution.currentFileCommand(true),'select.debug.configuration');
-  f.configurations.current={name:'TEST_ONLY_user_launch'};
-  assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');assert.deepEqual(f.executions,[]);
+  const selected={configuration:{name:'TEST_ONLY_user_launch',type:'lldb-dap'}};
+  f.configurations.current=selected;
+  assert.equal(f.contribution.fileCommands()[0],'ynx.go.run');assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');
+  assert.equal((await f.clickTriangle()).exitCode,0);
+  assert.deepEqual(f.executions,['build','run']);assert.equal(f.workflow.status().running,false);
+  assert.equal(f.configurations.current,selected);
+  assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');
+  let debugCalls=0;f.handlers.set('workbench.action.debug.start',{execute:()=>{debugCalls++;return 'explicit-project-debug';}});
+  assert.equal(await f.handlers.get('ynx.workbench.debugCurrentFile').execute(),'explicit-project-debug');
+  assert.equal(debugCalls,1);assert.deepEqual(f.executions,['build','run']);assert.equal(f.configurations.current,selected);
+  // A debug-source tab is not a saved current file. The current-file triangle
+  // must not run a stale project launcher; explicit project commands remain
+  // available through their own framework command IDs and saved selection.
+  f.editors.currentEditor.editor.uri.scheme='debug';
+  assert.equal(f.contribution.fileCommands(),undefined);
+  assert.equal(f.handlers.get('ynx.workbench.runEditorFile').isEnabled(),false);
+  await assert.rejects(f.clickTriangle(),/No current-file runner/);
+  let projectRuns=0;f.handlers.set('workbench.action.debug.run',{execute:()=>{projectRuns++;return 'explicit-project-run';}});
+  assert.equal(await f.api.commands.executeCommand('workbench.action.debug.run'),'explicit-project-run');
+  assert.equal(projectRuns,1);
+  assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');
+  assert.equal(await f.handlers.get('ynx.workbench.debugCurrentFile').execute(),'explicit-project-debug');
+  assert.equal(debugCalls,2);assert.equal(f.configurations.current,selected);
+  assert.deepEqual(f.executions,['build','run']);
  }finally{await f.close();}
 });
 
@@ -402,4 +437,148 @@ test('Go final launch refuses source, editor or permission changes during execut
    assert.deepEqual(f.executions,['build','build','run']);assert.equal(f.counts().picks,1);
   }finally{await f.close();}
  }
+});
+
+test('stale saved Go root reconfigures from admitted toolchain and continues the original Run once', {timeout:2000}, async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;
+  f.saved={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};
+  assert.equal((await f.workflow.run()).exitCode,0);assert.deepEqual(f.executions,['build','run']);
+  assert.equal(f.saved.toolchain.root,'/fixture/go');assert.equal(f.counts().picks,2);
+  await f.workflow.run();assert.equal(f.counts().picks,2);assert.equal(f.executions.length,4);
+ }finally{await f.close();}
+});
+test('stale Go recovery cancellation preserves the old setting and does not run, then retries', {timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;
+  const stale={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};f.saved=stale;
+  f.hooks.pick=async()=>undefined;await f.workflow.run();assert.equal(f.saved,stale);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.pick;await f.workflow.run();assert.deepEqual(f.executions,['build','run']);
+ }finally{await f.close();}
+});
+test('stale Go recovery cannot revive a cancelled or switched original request', {timeout:2000},async()=>{
+ for(const change of ['cancel','file','trust']){const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;const stale={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};f.saved=stale;
+  f.hooks.pick=async items=>{if(change==='cancel')f.workflow.cancel();if(change==='file')f.switchEditor({uri:{scheme:'file',fsPath:f.document.uri.fsPath+'other.go'}});if(change==='trust')f.api.workspace.isTrusted=false;return items[0];};
+  if(change==='trust')await assert.rejects(f.workflow.run(),/changed/);else await f.workflow.run();
+  assert.equal(f.saved,stale);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}}
+});
+test('runtime Go verification failure is not mistaken for stale project configuration', {timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;const saved=f.saved,picks=f.counts().picks;
+  f.hooks.verify=async()=>{throw Error('runtime metadata does not match installed binary');};
+  await assert.rejects(f.workflow.run(),/metadata does not match/);assert.equal(f.saved,saved);assert.equal(f.counts().picks,picks);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+
+test('persisted Go choice without current runtime admission uses native selection, preserving settings until reopen',async()=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-stale-no-admission-')));
+ try {
+  const {createGoTasks}=createRequire(import.meta.url)('./go-tasks.cjs');let selections=0,launches=0,writes=0;
+  const old={mode:'package',target:'.',toolchain:{root:'/old/runtime/go'}};
+  const api={workspace:{isTrusted:true,workspaceFolders:[{uri:{scheme:'file',fsPath:root}}],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:old}),update:()=>{writes++;}})},
+   CancellationTokenSource:class{token={};cancel(){}dispose(){}},
+   commands:{executeCommand:async id=>{assert.equal(id,'ynx.workbench.selectGoToolchain');selections++;return{effective:'after-reopen'};}},
+   tasks:{registerTaskProvider:()=>({dispose(){}}),executeTask:()=>{launches++;}}};
+  const workflow=createGoTasks(api,{subscriptions:[]},{YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'});
+  await workflow.run();assert.equal(selections,1);assert.equal(launches,0);assert.equal(writes,0);assert.equal(workflow.status().running,false);workflow.dispose();
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('a started Go task with a lost reply keeps ownership, terminates once and releases only on its own end',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  let end,foreignEnd,terminations=0;const failure=Error('accepted task reply lost');f.hooks.signalStart=true;
+  f.hooks.execute=async(task,execution,listeners)=>{execution.terminate=()=>{terminations++;};end=()=>{for(const fn of listeners)fn({execution,exitCode:143});};foreignEnd=()=>{for(const fn of listeners)fn({execution:{task:{definition:{...task.definition,runId:'foreign'}}},exitCode:0});};throw failure;};
+  await assert.rejects(f.workflow.run(),error=>error===failure);assert.equal(terminations,1);assert.equal(f.workflow.status().running,true);
+  await assert.rejects(f.workflow.run(),/already running/);foreignEnd();assert.equal(f.workflow.status().running,true);
+  assert.equal(f.workflow.cancel(),true);assert.equal(terminations,1);end();assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;await f.workflow.run();assert.deepEqual(f.executions,['build','build','run']);assert.equal(terminations,1);
+ }finally{await f.close();}
+});
+test('cancellation after observed start stops once before a late reply and never revives the old request',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  let reply,terminations=0;f.hooks.signalStart=true;
+  f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{reply=()=>resolve(execution);execution.terminate=()=>{terminations++;for(const fn of listeners)fn({execution,exitCode:143});};});
+  const pending=f.workflow.run();while(!reply)await new Promise(resolve=>setImmediate(resolve));assert.equal(f.workflow.cancel(),true);
+  assert.equal((await pending).cancelled,true);assert.equal(terminations,1);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;await f.workflow.run();reply();await new Promise(resolve=>setImmediate(resolve));assert.equal(terminations,1);assert.deepEqual(f.executions,['build','build','run']);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+test('a started task missing its reply handle retains first failure when owned termination also fails',async()=>{
+ const task={definition:{runId:'owned',stage:'build'}},operation={cancelled:false},ends=new Set();let start,terminated=0;
+ const api={tasks:{onDidStartTask:fn=>{start=fn;return{dispose(){}};},onDidEndTaskProcess:fn=>{ends.add(fn);return{dispose:()=>ends.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async()=>{start({execution:{task,terminate(){terminated++;throw Error('cleanup refused');}}});return undefined;}}};
+ await assert.rejects(executeGoTask(api,task,operation),/did not return a live execution/);
+ assert.match(operation.failure.message,/did not return/);assert.equal(operation.cleanupFailure.message,'cleanup refused');assert.equal(operation.cleanupPending,true);assert.equal(terminated,1);
+ operation.execution.terminate();assert.equal(terminated,1);for(const fn of ends)fn({execution:{task},exitCode:143});assert.equal(operation.cleanupPending,false);assert.equal(ends.size,0);
+});
+
+async function commandFixture(workflow,window,l10n) {
+ const module={exports:{}},commands=new Map(),require=createRequire(import.meta.url);
+ vm.runInNewContext(await readFile(new URL('./extension.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,require:name=>name==='vscode'?{l10n,window,commands:{registerCommand:(id,fn)=>{commands.set(id,fn);return{dispose(){}};}}}:name==='./go-tasks.cjs'?{createGoTasks:()=>workflow}:require(name)});
+ module.exports.activate({subscriptions:[]});return commands;
+}
+test('Go command failure notices do not hold completion or prevent another run',async()=>{
+ const warnings=[],result={exitCode:1};let runs=0;
+ const commands=await commandFixture({run:async()=>{runs++;return result;}},{showWarningMessage:message=>{warnings.push(message);return new Promise(()=>{});},showErrorMessage:()=>{throw Error('unexpected error notice');}});
+ for(let i=0;i<2;i++){
+  const pending=commands.get('ynx.go.run')();
+  const outcome=await Promise.race([pending,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+  assert.equal(outcome,result);
+ }
+ assert.equal(runs,2);assert.equal(warnings.length,2);
+});
+test('unknown Go task result is returned while warning remains open',async()=>{
+ const result={unknown:true};let notices=0;
+ const commands=await commandFixture({test:async()=>result},{showWarningMessage:()=>{notices++;return new Promise(()=>{});}});
+ const outcome=await Promise.race([commands.get('ynx.go.test')(),new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+ assert.equal(outcome,result);assert.equal(notices,1);
+});
+test('Go command preserves failure presentation for falsy and unreadable causes without secondary rejection',async()=>{
+ const fallback='The Go command failed. Check the task terminal and project configuration, then retry.';
+ for(const cause of [undefined,null,false,0,'PUBLIC failure',Object.defineProperty({},'message',{get(){throw Error('unreadable');}})]){
+  const errors=[];const commands=await commandFixture({run:async()=>{throw cause;}},{showErrorMessage:message=>{errors.push(message);return new Promise(()=>{});}});
+  const outcome=await Promise.race([commands.get('ynx.go.run')(),new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+  assert.equal(outcome,undefined);assert.deepEqual(errors,[fallback]);
+ }
+});
+test('Go notification transport throws or rejects without changing the original command result',async()=>{
+ for(const kind of ['throw','reject']){
+  const notice=()=>{if(kind==='throw')throw Error('disposed notification');return Promise.reject(Error('disposed notification'));};
+  const result={exitCode:2};const commands=await commandFixture({run:async()=>result,cancel:()=>{throw Error('PUBLIC original stop failure');}},{showWarningMessage:notice,showErrorMessage:notice});
+  assert.equal(await commands.get('ynx.go.run')(),result);assert.equal(await commands.get('ynx.go.cancel')(),undefined);
+ }
+});
+test('Go fallback command failure is localized by the shipped Chinese bundle',async()=>{
+ const bundle=JSON.parse(await readFile(new URL('../l10n/bundle.l10n.zh-cn.json',import.meta.url),'utf8')),errors=[];
+ const commands=await commandFixture({run:async()=>{throw undefined;}},{showErrorMessage:message=>errors.push(message)},{t:message=>bundle[message]||message});
+ await commands.get('ynx.go.run')();assert.deepEqual(errors,['Go 命令失败。请检查任务终端和项目配置，然后重试。']);
+});
+
+test('saved first Go configuration continues when its completion notification is disposed',async()=>{
+ for(const cause of [undefined,Error('notification disposed')]){
+  const f=await requestFixture();try{
+   f.hooks.notice=()=>{throw cause;};
+   assert.equal((await f.workflow.run()).exitCode,0);
+   assert.deepEqual(f.executions,['build','run']);assert.deepEqual(f.counts(),{picks:1,notices:1});
+   assert.equal(f.workflow.status().running,false);assert.equal(f.workflow.status().configuring,false);
+   delete f.hooks.notice;await f.workflow.run();assert.equal(f.counts().picks,1);assert.deepEqual(f.executions,['build','run','build','run']);
+  }finally{await f.close();}
+ }
+});
+
+for(const [name,change,pattern]of [
+ ['trust revoked',f=>{f.api.workspace.isTrusted=false;},/changed/],
+ ['workspace instance replaced',f=>{f.api.workspace.workspaceFolders=[{uri:{...f.api.workspace.workspaceFolders[0].uri}}];},/changed/],
+ ['folder URI retargeted',f=>{f.api.workspace.workspaceFolders[0].uri.fsPath+='-other';},/changed/],
+ ['project identity replaced',f=>{f.environment.YNX_LOCAL_PROJECT_ID='00000000-0000-4000-8000-000000000099';},/changed/],
+ ['saved source changed',f=>{f.document.version++;f.document.isDirty=true;},/Save the Go sources/],
+])test('queued Go task never launches after '+name+' and permits an explicit valid retry',{timeout:3000},async()=>{
+ const f=await requestFixture();const folder=f.api.workspace.workspaceFolders[0],folderPath=folder.uri.fsPath,projectId=f.environment.YNX_LOCAL_PROJECT_ID,register=f.api.tasks.onDidStartTask;let queued=false;
+ try{
+  f.api.tasks.onDidStartTask=callback=>{const subscription=register(callback);if(!queued){queued=true;queueMicrotask(()=>change(f));}return subscription;};
+  await assert.rejects(f.workflow.run(),pattern);assert.equal(queued,true);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  f.api.tasks.onDidStartTask=register;f.api.workspace.isTrusted=true;f.api.workspace.workspaceFolders=[folder];folder.uri.fsPath=folderPath;f.environment.YNX_LOCAL_PROJECT_ID=projectId;f.document.isDirty=false;
+  await f.workflow.run();assert.deepEqual(f.executions,['build','run']);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
 });

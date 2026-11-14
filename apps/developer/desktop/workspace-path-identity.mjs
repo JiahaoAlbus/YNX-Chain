@@ -18,7 +18,9 @@ async function snapshots(path, installationParent) {
     // A different OS user must not be able to replace a path component. Sticky
     // system temporary directories preserve owner-only unlink semantics.
     if (p !== path && (Number(stat.mode) & 0o022) && !(stat.uid === 0n && (Number(stat.mode) & 0o1000)) &&
-        !(installationParent && stat.uid === 0n && stat.gid === 80n && (Number(stat.mode) & 0o7777) === 0o775 && same(identity(stat), installationParent))) throw Error('Workspace path has an unsafe writable ancestor.');
+        !(installationParent && stat.uid === 0n && stat.gid === 80n && (Number(stat.mode) & 0o7777) === 0o775 && same(identity(stat), installationParent))) throw Object.assign(Error(`Workspace path has an unsafe writable ancestor: ${p}`), {
+          code: 'YNX_PATH_UNSAFE_ANCESTOR', ancestor: p, selectedPath: path,
+        });
     entries.push({ path: p, ...identity(stat), gid: Number(stat.gid) });
     if (p === '/') break;
   }

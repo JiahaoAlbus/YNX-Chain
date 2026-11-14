@@ -1,4 +1,3 @@
-import { inspectBundledNodeVersion } from './local-startup-process.mjs';
 import localAIChannel from '../runtime/ynx-workbench/lib/local-ai-tools-channel.js';
 import { createLocalAIToolsHost } from './local-ai-tools-host.mjs';
 import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
@@ -7,6 +6,9 @@ import artifactChannel from '../runtime/ynx-workbench/lib/marketplace-artifact-c
 import { createArtifactDownloader } from './marketplace-artifact-transport.mjs';
 import publicChainChannel from '../runtime/ynx-workbench/lib/chain-public-channel.js';
 import { createPublicChainHost } from './chain-public-reader.mjs';
+import projectServicesChannel from '../runtime/ynx-workbench/lib/project-services-channel.js';
+import {createProjectContractsHost} from './project-contracts-host.mjs';
+import { createProjectServicesHost } from './project-services-host.mjs';
 import marketplaceDiagnostics from '../runtime/ynx-workbench/lib/marketplace-diagnostics.js';
 import { fetchCatalog } from './marketplace-catalog-transport.mjs';
 import { createHash, randomUUID } from 'node:crypto';
@@ -23,6 +25,8 @@ import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
 import { copyPrivatePluginTree, preparePrivatePluginCopy, verifiedPluginSessionExit } from './local-plugin-copy.mjs';
 import { inspectWorkspacePathIdentity, inspectBundledRuntimePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
+import { prepareBundledExecutionRuntime, runtimeCacheSupportRoot } from './bundled-execution-runtime.mjs';
+import { withRuntimeCacheBudget } from './runtime-cache-budget.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -114,7 +118,7 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
   return { PATH: `${go ? dirname(go.entry) + ':' : ''}${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', LANG: 'en_US.UTF-8', LC_CTYPE: 'en_US.UTF-8', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6', YNX_LOCAL_AI_PIPE: '7',
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6', YNX_LOCAL_AI_PIPE: '7', YNX_PROJECT_SERVICES_PIPE:'8',
     ...(python ? { YNX_IDE_PYTHON_ENTRY: python.executable } : {}),
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
@@ -160,14 +164,20 @@ export async function localWorkbenchPathIdentities({ helper, node, lockHelper, r
   // Validate every data role strictly before adding read-only installation
   // evidence. A caller cannot relabel the same path as a runtime read root.
   for (const path of new Set([dirname(node), lockHelper])) {
-    if (!proofs.some(proof => proof.canonical === path)) proofs.push(await inspectBundledRuntimePathIdentity({ helper, path }));
+    if (!proofs.some(proof => proof.canonical === path)) {
+      try { proofs.push(await inspectWorkspacePathIdentity({ helper, path })); }
+      catch (error) {
+        if (error.code !== 'YNX_PATH_UNSAFE_ANCESTOR') throw error;
+        proofs.push(await inspectBundledRuntimePathIdentity({ helper, path }));
+      }
+    }
   }
   return proofs;
 }
 
 // Only producer-sealed distribution bytes select executable content. Failed
 // extractions remain available for recovery; an existing cache is never replaced.
-export async function prepareLocalRuntime({ payload, supportRoot }) {
+export async function prepareLocalRuntime({ payload, supportRoot, reserveAllocation }) {
   if (!exact(payload) || await realpath(payload) !== payload) throw Error('Invalid bundled workbench location.');
   for (const name of ['distribution.json', 'workbench.pin.json', 'workbench.tar']) await regular(join(payload, name));
   const distribution = JSON.parse(await readFile(join(payload, 'distribution.json'), 'utf8'));
@@ -185,13 +195,24 @@ export async function prepareLocalRuntime({ payload, supportRoot }) {
     if (!existing.isDirectory() || existing.isSymbolicLink() || await realpath(root) !== root || existing.uid !== process.getuid() || (existing.mode & 0o022)) throw Error('Local runtime cache changed ownership or location.');
     await verifyComposedRuntime(root, pin); return { root, pin, distribution };
   }
-  const staging = await mkdtemp(join(caches, '.pending-'));
   // Reject absolute/traversing names and all links/device entries before tar
   // sees the destination. The archive hash and final tree must both match.
   const archive = join(payload, 'workbench.tar');
   const names = (await exec('/usr/bin/tar', ['-tf', archive], { maxBuffer: 32 * 1024 * 1024 })).stdout.split('\n').filter(Boolean);
-  const details = (await exec('/usr/bin/tar', ['-tvf', archive], { maxBuffer: 64 * 1024 * 1024 })).stdout.split('\n').filter(Boolean);
+  const details = (await exec('/usr/bin/tar', ['-tvf', archive], { env: { PATH: '/usr/bin:/bin', LC_ALL: 'C' }, maxBuffer: 64 * 1024 * 1024 })).stdout.split('\n').filter(Boolean);
   if (names.length > 100000 || names.some(name => name.startsWith('/') || name.includes('\\') || name.split('/').includes('..')) || details.some(line => !['-', 'd'].includes(line[0]))) throw Error('Bundled archive contains unsupported paths or entries.');
+  if (reserveAllocation) {
+    // BSD tar's C-locale verbose listing reports the expanded logical sizes,
+    // including sparse files, rather than assuming archive bytes equal disk use.
+    let bytes = 0;
+    for (const line of details) {
+      const fields = line.match(/^[-d][rwxStTs-]{9}\s+\d+\s+\S+\s+\S+\s+(\d+)\s/);
+      if (!fields || !Number.isSafeInteger(bytes += Number(fields[1]))) throw Error('Expanded runtime archive size could not be bounded.');
+    }
+    if (details.length !== names.length) throw Error('Runtime archive member count is inconsistent.');
+    await reserveAllocation(bytes, names.length + 1);
+  }
+  const staging = await mkdtemp(join(caches, '.pending-'));
   await exec('/usr/bin/tar', ['-xpf', archive, '-C', staging], { env: { PATH: '/usr/bin:/bin', COPYFILE_DISABLE: '1' }, maxBuffer: 1024 * 1024 });
   await verifyComposedRuntime(staging, pin);
   // Another local launch may finish the same immutable version first.
@@ -253,35 +274,30 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
-  const startupOrigin = performance.now();
-  let phaseOrigin = startupOrigin;
-  const startupPhase = phase => {
-    const now = performance.now();
-    const entry = { phase, elapsedMs: Math.round(now - startupOrigin), stepMs: Math.round(now - phaseOrigin) };
-    phaseOrigin = now;
-    // Fixed phase names and durations only: never include workspace paths,
-    // account data or tool configuration. Diagnostics cannot qualify readiness
-    // or replace an original startup/cleanup failure.
-    try { log.write(`YNX_LOCAL_STARTUP_PHASE ${JSON.stringify(entry)}\n`); } catch {}
-  };
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, contractRuntime = null, port = 0, log = process.stderr, readinessTimeoutMs = 30000, signal }) {
+  signal?.throwIfAborted();
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
   await regular(node);
   if (!exact(lockHelper)) throw Error('The bundled local profile lock helper is required.');
   await regular(lockHelper);
-  const version = await inspectBundledNodeVersion(node);
-  if (!isSupportedLocalNodeVersion(version)) throw Error('The sealed macOS workbench requires an exact reviewed bundled Node runtime.');
-  startupPhase('node-version-verified');
-  const runtime = await prepareLocalRuntime({ payload, supportRoot });
-  if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
-  startupPhase('sealed-runtime-verified');
+  const cacheSupportRoot = await runtimeCacheSupportRoot(supportRoot);
+  const prepare = async reserveAllocation => {
+    const executionInputs = await prepareBundledExecutionRuntime({ node, lockHelper, supportRoot: cacheSupportRoot, reserveAllocation, signal, onVerification: record => log.write('YNX_SIGNATURE_STAGE '+JSON.stringify(record)+'\n') });
+    const version = (await exec(executionInputs.node, ['--version'], { timeout: 5000 })).stdout.trim();
+    if (!isSupportedLocalNodeVersion(version)) throw Error('The sealed macOS workbench requires an exact reviewed bundled Node runtime.');
+    const runtime = await prepareLocalRuntime({ payload, supportRoot: cacheSupportRoot, reserveAllocation });
+    if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
+    return { executionInputs, runtime };
+  };
+  const prepared = cacheSupportRoot === supportRoot ? await prepare() : await withRuntimeCacheBudget(cacheSupportRoot, prepare);
+  const { runtime, executionInputs } = prepared;
+  node = executionInputs.node; lockHelper = executionInputs.lockHelper;
   const context = await localProjectContext({ supportRoot, projectDirectory });
   if (goToolchain !== undefined) await admitLocalGoReadScope(goToolchain, context);
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
-  startupPhase('project-and-ipc-prepared');
-  let debugSupervisor, jsDebugSupervisor, pluginCopy;
+  let debugSupervisor, jsDebugSupervisor, pluginCopy, projectServices, projectPipe;
   try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
@@ -290,34 +306,46 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const python = await inspectTrustedLocalPython();
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
-  startupPhase('local-toolchains-inspected');
   pluginCopy = await prepareLocalPlugins({ runtime, context, lifecycle: true }).catch(error => {
     if (error.code === 'ENOSPC' || error.code === 'YNX_PLUGIN_COPY_SPACE') error.pluginPreparationSpace = true;
     throw error;
   });
   const plugins = pluginCopy.plugins;
-  startupPhase('private-plugins-prepared');
   const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
   const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities });
-  startupPhase('sandbox-paths-verified');
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
-    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
-  jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
+    pathIdentities, pathIdentityHelper, ...(executionInputs.bootstrap ? { bootstrap: executionInputs.bootstrap } : {}), warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
+  jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, node, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
   const workspaceProof = pathIdentities.find(proof => proof.canonical === context.workspace);
+  const assertProjectPathCurrent=async()=>{
+    await assertWorkspacePathIdentity(workspaceProof);
+    // Profile identity is part of the original project selection, not a path
+    // supplied by a frontend read request.
+    const profileProof=pathIdentities.find(proof=>proof.canonical===context.profile);
+    if(!profileProof)throw Error('Original project profile identity is unavailable.');
+    await assertWorkspacePathIdentity(profileProof);
+  };
+  const contracts=createProjectContractsHost({context,assertPathCurrent:assertProjectPathCurrent,
+    openClient:contractRuntime?project=>contractRuntime.openClient(project):undefined,
+    openDeployment:contractRuntime?project=>contractRuntime.openDeployment(project):undefined,
+    assertNetworkApproved:contractRuntime?()=>contractRuntime.assertNetworkApproved():undefined,
+    resetContractAuthority:contractRuntime?()=>contractRuntime.reset():undefined,
+    closeContractAuthority:contractRuntime?()=>contractRuntime.close():undefined});
+  projectServices=createProjectServicesHost(context,{assertPathCurrent:assertProjectPathCurrent,contracts});
   const publicChainHost = createPublicChainHost(context, {
     expectedIdentity: workspaceProof?.identity, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof),
   });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
-  startupPhase('debug-and-launch-fences-ready');
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
+  signal?.throwIfAborted();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
-  child.once('spawn', () => startupPhase('backend-process-spawned'));
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
+  projectPipe=projectServicesChannel.serve(child.stdio[8],projectServices);
   const aiHost = createLocalAIToolsHost(context, { client: aiTools, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof) });
   const aiPipe = localAIChannel.serve(child.stdio[7], aiHost);
   child.once('close', () => aiPipe.close());
@@ -348,7 +376,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.once('error', () => catalogPipe.close());
   const retireAdmission = () => {
     admissionPipe.close();
-    walletAdmission?.close?.();
+    projectServices.retire();
   };
   child.once('close', retireAdmission);
   child.once('error', retireAdmission);
@@ -356,6 +384,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
   const stop = () => stopping ||= (async () => { retireAdmission(); aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout;
+    try {
     try { await retireArtifacts(); } catch (error) { cleanupError = error; }
     if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
@@ -372,6 +401,12 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
     // A backend close alone does not prove detached PTY descendants exited.
     if (!await pluginCopy.cleanup({ confirmedSessionExited: verifiedPluginSessionExit({ backendClosed: ended, cleanupStdout }) })) log.write('YNX_LOCAL_PLUGIN_COPY_RETAINED: descendant exit was not verified.\n');
+    } finally {
+      // Held read children drain before the original Wallet parent may close.
+      // An uncertain child close retains debt and prevents this parent call.
+      await projectPipe.close();
+      walletAdmission?.close?.();
+    }
   })();
   try { if (child.pid) await ipc.attach(child.pid); } catch (error) { await stop(); throw error; }
   // Unexpected backend exit follows the same process/session cleanup as Stop.
@@ -380,12 +415,13 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   try {
     const deadline = Date.now() + readinessTimeoutMs;
     while (Date.now() < deadline) {
+      signal?.throwIfAborted();
       if (ended) {
         const error = failure || Error(exitCode === 73 ? 'This local project is already open in another YNX Developer window.' : 'Local workbench exited before becoming ready.');
         if (!failure && exitCode === 73) error.code = 'YNX_LOCAL_PROJECT_ALREADY_OPEN';
         throw error;
       }
-      try { const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(1000) }); if (response.ok) { startupPhase('backend-http-ready'); return { ...runtime, ...context, url, port, pid: child.pid, stop, exited }; } } catch {}
+      try { const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(1000) }); if (response.ok && !signal?.aborted) return { ...runtime, ...context, url, port, pid: child.pid, stop, exited, retireProjectServices:()=>projectServices.retire(), finishProjectServicesCleanup:()=>projectPipe.close() }; } catch {}
       await new Promise(ok => setTimeout(ok, 150));
     }
     throw Error('Local workbench did not become ready. Project and profile were retained.');
@@ -393,7 +429,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   } catch (error) {
     // Setup failures precede spawn, or the inner stop has already confirmed
     // exit. Unknown in-flight launch residue is deliberately retained.
-    try { const results = await Promise.allSettled([debugSupervisor?.stop(), jsDebugSupervisor?.stop()]); const failures = results.filter(result => result.status === 'rejected').map(result => result.reason); if (failures.length) throw new AggregateError(failures, 'Local debug setup cleanup failed'); await ipc.cleanup(); await pluginCopy?.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
+    try { const results = await Promise.allSettled([debugSupervisor?.stop(), jsDebugSupervisor?.stop()]); const failures = results.filter(result => result.status === 'rejected').map(result => result.reason); if (failures.length) throw new AggregateError(failures, 'Local debug setup cleanup failed'); await ipc.cleanup(); await pluginCopy?.cleanup(); await projectServices?.close(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError?.message || 'original cleanup unconfirmed'}\n`); }
     throw error;
   }
 }

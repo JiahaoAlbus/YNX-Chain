@@ -36,9 +36,9 @@ async function admittedToolchain(environment) {
 }
 async function verifyToolchain(saved, environment) {
   // A workspace setting records a choice; it cannot grant a new OS read root.
-  if (!saved || saved.root !== environment.YNX_IDE_GO_ROOT) throw Error('This Go toolchain is not admitted by the local runtime. Choose an available local Go toolchain.');
+  if (!saved || saved.root !== environment.YNX_IDE_GO_ROOT) throw Object.assign(Error('This Go toolchain is not admitted by the local runtime. Choose an available local Go toolchain.'), {code:'YNX_GO_CONFIGURATION_STALE'});
   const actual = await admittedToolchain(environment);
-  if (JSON.stringify(saved)!==JSON.stringify(actual)) throw Error('The installed Go toolchain changed. Configure Go for this project again.');
+  if (JSON.stringify(saved)!==JSON.stringify(actual)) throw Object.assign(Error('The installed Go toolchain changed. Configure Go for this project again.'), {code:'YNX_GO_CONFIGURATION_STALE'});
   return actual;
 }
 async function privateDirectory(directory, root) {

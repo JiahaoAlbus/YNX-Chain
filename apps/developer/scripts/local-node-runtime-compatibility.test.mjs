@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { reviewedMacNodeVersion, inspectReviewedNodeInput, reviewedNodeInputs, validateReviewedNodeLicense } from './bundle-local-node-runtime.mjs';
 import { isSupportedLocalNodeVersion } from '../desktop/local-workbench.mjs';
+import {inspectBinary} from './verify-macos-compatibility.mjs';
 const developer = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const official = '/usr/local/bin/node';
 const run = (program, args) => execFileSync(program, args, { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, env: { PATH: '/usr/bin:/bin', OPENSSL_CONF: '/dev/null' } });
@@ -66,13 +67,24 @@ test('exact runtime binding, legal gating and build provenance remain wired in r
   const bundle = await readFile(join(developer, 'scripts/bundle-composed-core.mjs'), 'utf8');
   assert.match(bundle, /requiredNodeVersion: manifest\.nodeVersion/);
 });
-test('actual packager admission measures legacy runtime and archived core at 27 without rebuilding', async () => {
+test('actual legacy runtime retains its measured floor and current packager refuses its missing sealed JS entry', async () => {
   const shell = await readFile(join(developer, 'scripts/package-local-macos.sh'), 'utf8');
   const script = shell.match(/<<'NODE'\n([\s\S]*?)\nNODE/)[1];
-  const candidates = join(developer, '.ynx-developer-candidates'), core = join(candidates, 'ynx-test-tree-state-core-20261005');
-  const value = execFileSync(process.execPath, ['--input-type=module', '-', join(candidates, 'portable-local-node26-floor-20261005'), candidates, '13.5'], {
+  // Isolated source checkouts do not copy old retained binary fixtures. Read
+  // their explicit original root; the real packager still verifies every
+  // original runtime/core byte and floor, without recreating or relabelling it.
+  const candidates = process.env.YNX_LEGACY_MACOS_FIXTURE_ROOT || join(developer, '.ynx-developer-candidates'), core = join(candidates, 'ynx-test-tree-state-core-20261005');
+  const legacy=join(candidates,'portable-local-node26-floor-20261005');
+  const record=JSON.parse(await readFile(join(legacy,'distribution.json')));
+  const floors=record.files.flatMap(entry=>inspectBinary(join(legacy,entry.path))?.filter(slice=>slice.architecture===process.arch).map(slice=>slice.minimumOS)||[]);
+  assert.equal(floors.sort((a,b)=>Number(a.split('.')[0])-Number(b.split('.')[0])||Number(a.split('.')[1])-Number(b.split('.')[1])).at(-1),'27.0');
+  assert.equal(inspectBinary(join(legacy,'node')).find(slice=>slice.architecture===process.arch).minimumOS,'13.5');
+  assert.equal(record.minimumOS,'27.0');
+  assert.equal(record.files.some(entry=>entry.path==='ynx-js-node'),false);
+  // Do not rewrite the old receipt or synthesize the now-required JS alias.
+  // The production admission added this binding after the original floor QA.
+  assert.throws(()=>execFileSync(process.execPath, ['--input-type=module', '-', legacy, candidates, '13.5'], {
     input: script, encoding: 'utf8', cwd: developer, maxBuffer: 1024 * 1024,
     env: { PATH: '/usr/bin:/bin', YNX_DEVELOPER_COMPOSED_ARTIFACT: core, YNX_DEVELOPER_COMPOSED_PIN: core + '.pin.json' }
-  });
-  assert.equal(value.trim(), '27.0');
+  }),error=>error.stderr?.includes('Exact sealed JavaScript Node entry is required.'));
 });

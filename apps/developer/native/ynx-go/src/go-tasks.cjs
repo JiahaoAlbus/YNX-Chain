@@ -5,16 +5,25 @@ const validTarget=value=>typeof value==='string' && value.length<=240 && !/[\\:\
 function createGoTasks(api,context,environment,t=text=>text) {
  let active,disposed=false,configuring=false,configurationAbort;
  async function project() {
-  const root=environment.YNX_LOCAL_WORKSPACE,id=environment.YNX_LOCAL_PROJECT_ID,folder=api.workspace.workspaceFolders?.[0];
-  if(disposed || environment.YNX_WORKSPACE_MODE!=='local' || !root || !/^[a-f0-9-]{36}$/.test(id||'') || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || !api.workspace.isTrusted || api.workspace.workspaceFolders?.length!==1 || folder?.uri.scheme!=='file' || await fs.realpath(root)!==root || await fs.realpath(folder.uri.fsPath)!==root)throw Error(t('Open one trusted local Go project.'));
-  const stat=await fs.lstat(root),binding={root,id,folder,dev:stat.dev,ino:stat.ino};
+  const root=environment.YNX_LOCAL_WORKSPACE,id=environment.YNX_LOCAL_PROJECT_ID,folder=api.workspace.workspaceFolders?.[0],folderPath=folder?.uri?.fsPath;
+  const assertCurrent=(message='The Go project changed. Configure or run it again.')=>{
+   if(disposed || environment.YNX_LOCAL_WORKSPACE!==root || environment.YNX_LOCAL_PROJECT_ID!==id || environment.YNX_WORKSPACE_MODE!=='local' || !root || !/^[a-f0-9-]{36}$/.test(id||'') || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || !api.workspace.isTrusted || api.workspace.workspaceFolders?.length!==1 || api.workspace.workspaceFolders[0]!==folder || folder?.uri?.scheme!=='file' || typeof folderPath!=='string' || folder.uri.fsPath!==folderPath)throw Error(t(message));
+  };
+  assertCurrent('Open one trusted local Go project.');
+  const [realRoot,realFolder]=await Promise.all([fs.realpath(root),fs.realpath(folderPath)]);
+  assertCurrent('Open one trusted local Go project.');
+  if(realRoot!==root || realFolder!==root)throw Error(t('Open one trusted local Go project.'));
+  const stat=await fs.lstat(root);assertCurrent('Open one trusted local Go project.');
+  const binding={root,id,folder,dev:stat.dev,ino:stat.ino,assertCurrent};
   binding.verify=async()=>{
-   const current=await fs.lstat(root);
-   if(disposed || environment.YNX_LOCAL_WORKSPACE!==root || environment.YNX_LOCAL_PROJECT_ID!==id || environment.YNX_WORKSPACE_MODE!=='local' || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || !api.workspace.isTrusted || api.workspace.workspaceFolders?.length!==1 || api.workspace.workspaceFolders[0]!==folder || await fs.realpath(root)!==root || current.dev!==stat.dev || current.ino!==stat.ino)throw Error(t('The Go project changed. Configure or run it again.'));
+   assertCurrent();
+   const [current,physical]=await Promise.all([fs.lstat(root),fs.realpath(root)]);
+   assertCurrent();
+   if(physical!==root || current.dev!==stat.dev || current.ino!==stat.ino)throw Error(t('The Go project changed. Configure or run it again.'));
   };
   return binding;
  }
- const settings=binding=>api.workspace.getConfiguration('ynx.go',binding.folder.uri);
+ const settings=binding=>{binding.assertCurrent();return api.workspace.getConfiguration('ynx.go',binding.folder.uri);};
  function readConfiguration(binding) {
   const value=settings(binding).inspect('project')?.workspaceFolderValue;
   if(value===undefined)return;
@@ -61,7 +70,8 @@ function createGoTasks(api,context,environment,t=text=>text) {
    await verify();
    // A notification without actions may remain unresolved until dismissed.
    // It must not hold configuration ownership or delay the first Run.
-   void Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined);
+   try { Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined); }
+   catch { /* A disposed notification cannot undo the saved configuration. */ }
    return config;
   } catch(error) {if(!abort.signal.aborted)throw error;}
   finally {abort.signal.removeEventListener('abort',stopPicker);pickerCancellation.dispose();if(configurationAbort===abort)configurationAbort=undefined;configuring=false;}
@@ -111,13 +121,24 @@ function createGoTasks(api,context,environment,t=text=>text) {
   operation.onCleanup=()=>{if(active===operation)active=undefined;};active=operation;
   try {
    const binding=await project();
-   operation.verify=async()=>{
-    await binding.verify();
+   operation.assertCurrent=()=>{
+    binding.assertCurrent();
     if(active!==operation || operation.cancelled || api.window?.activeTextEditor?.document!==operation.document)throw Error(t('The Go project changed. Configure or run it again.'));
     for(const saved of operation.savedSources)if(saved.document.isClosed || saved.document.isDirty || saved.document.version!==saved.version || saved.document.uri.scheme!=='file' || saved.document.uri.fsPath!==saved.path)throw Error(t('Save the Go sources before running.'));
    };
+   operation.verify=async()=>{await binding.verify();operation.assertCurrent();};
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    let config=readConfiguration(binding);
+   if(config) {
+    try {await verifyToolchain(config.toolchain,environment);}
+    catch(error) {
+     // Persisted choices are not runtime admission. Recover only a typed stale
+     // choice through the normal picker, retaining the original request owner.
+     // Runtime metadata, permissions and unsafe binary failures remain errors.
+     if(error.code!=='YNX_GO_CONFIGURATION_STALE')throw error;
+     await operation.verify();config=undefined;
+    }
+   }
    if(!config){config=await configure(operation,binding);if(!config)return;}
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    const prepared=await tasks(binding,config);
@@ -174,21 +195,42 @@ function waitForSignal(start,signal) {
 }
 function executeGoTask(api,task,operation) {
   return new Promise((resolve,reject)=>{
-   let done=false,execution;const matches=event=>event?.execution?.task?.definition?.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
-   const cleanup=()=>{processEnd.dispose();taskEnd.dispose();if(operation.execution===execution)operation.execution=undefined;};
+   let done=false,execution,terminationRequested=false,startListener;
+   const matches=event=>event?.execution?.task?.definition?.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
+   const ownedExecution={task,terminate:()=>terminateOwned()};
+   const cleanup=()=>{processEnd.dispose();taskEnd.dispose();startListener?.dispose();if(operation.execution===ownedExecution)operation.execution=undefined;};
    const finish=(error,code)=>{
-    if(done){if(!error && operation.cleanupPending){operation.cleanupPending=false;cleanup();operation.onCleanup?.();}return;}
+    if(error && !operation.failure)operation.failure=error;
+    if(done){
+     if(error){operation.cleanupFailure ||= error;return;}
+     if(operation.cleanupPending){operation.cleanupPending=false;cleanup();operation.onCleanup?.();}
+     return;
+    }
     done=true;
-    if(error && execution){operation.cleanupPending=true;reject(error);return;}
+    if(error && execution){operation.cleanupPending=true;reject(error);terminateOwned();return;}
     cleanup();error?reject(error):resolve(code);
    };
+   function terminateOwned(){
+    if(!execution || terminationRequested)return;
+    terminationRequested=true;
+    try {Promise.resolve(execution.terminate()).catch(error=>finish(error));}
+    catch(error){finish(error);}
+   }
    const processEnd=api.tasks.onDidEndTaskProcess(event=>{if(matches(event))finish(undefined,event.exitCode);});
    const taskEnd=api.tasks.onDidEndTask(event=>{if(matches(event))finish(undefined,undefined);});
-   Promise.resolve().then(()=>{if(operation.cancelled){finish(undefined,undefined);return;}return api.tasks.executeTask(task);}).then(value=>{
-    execution=value;if(done)return;
-    if(!value || typeof value.terminate!=='function'){execution=undefined;finish(Error('Go task did not return a live execution. Check its task terminal before retrying.'));return;}
-    operation.execution=value;if(operation.cancelled)value.terminate();
+   // The framework start event can precede the executeTask RPC reply. Retain
+   // this exact handle even if that reply fails; it is not proof of no process.
+   startListener=api.tasks.onDidStartTask?.(event=>{
+    if(done || !matches(event) || typeof event.execution.terminate!=='function')return;
+    execution ||= event.execution;operation.execution=ownedExecution;
+    if(operation.cancelled)terminateOwned();
+   });
+   Promise.resolve().then(()=>{if(operation.cancelled){finish(undefined,undefined);return;}operation.assertCurrent?.();return api.tasks.executeTask(task);}).then(value=>{
+    if(done)return;
+    if(!value || typeof value.terminate!=='function'){finish(Error('Go task did not return a live execution. Check its task terminal before retrying.'));return;}
+    execution ||= value;operation.execution=ownedExecution;if(operation.cancelled)terminateOwned();
    }).catch(error=>finish(error));
   });
  }
+
 module.exports={createGoTasks,validTarget,executeGoTask};

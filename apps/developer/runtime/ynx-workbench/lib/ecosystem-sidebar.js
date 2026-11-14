@@ -5,6 +5,7 @@ const ID = 'ynx-ecosystem-sidebar';
 const COMMAND = 'ynx.workbench.ecosystem';
 const ACTION_ICONS = Object.freeze({
   'ynx.contracts.focus': 'symbol-class',
+  'ynx.deploy.open':'rocket',
   'ynx.network.focus': 'globe',
   'ynx.workbench.wallet': 'account',
   'ynx.chainResults.focus': 'history',
@@ -17,6 +18,7 @@ const ACTION_ICONS = Object.freeze({
 const SECTIONS = Object.freeze([
   { key: 'ecosystemContracts', label: 'Contract development', actions: [
     ['ynx.contracts.focus', 'ecosystemOpenContracts', 'Open project contracts'],
+    ['ynx.deploy.open','deployTitle','Review testnet deployment'],
   ] },
   { key: 'ecosystemNetwork', label: 'Network and account', actions: [
     ['ynx.network.focus', 'ecosystemOpenNetwork', 'Project network'],

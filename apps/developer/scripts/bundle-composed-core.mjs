@@ -5,6 +5,8 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { verifyComposedRuntime, validateRuntimeArtifact } from '../services/codeoss-service/src/composed-runtime.mjs';
 import { reviewedMacNodeVersion } from './bundle-local-node-runtime.mjs';
+import { verifyOwnedWorkbenchBinding } from './workbench-source-binding.mjs';
+import { fileURLToPath } from 'node:url';
 
 // Distribution payload only. The normal gateway continues to require the
 // protected registered driver and canonical parent before any execution.
@@ -14,6 +16,7 @@ if (await realpath(source) !== source || !(await lstat(source)).isDirectory() ||
 const pinBytes = await readFile(pinPath), pin = validateRuntimeArtifact(JSON.parse(pinBytes));
 if (pin.architecture !== `darwin-${process.arch}`) throw Error('Composed artifact architecture does not match this macOS package.');
 const manifest = await verifyComposedRuntime(source, pin);
+if(process.env.YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD==='1')await verifyOwnedWorkbenchBinding(manifest,fileURLToPath(new URL('../runtime/ynx-workbench',import.meta.url)));
 if (pin.architecture.startsWith('darwin-') && !reviewedMacNodeVersion(manifest.nodeVersion)) throw Error('Composed macOS payload has no exact reviewed Node version.');
 await mkdir(output, { mode: 0o755 }); // Never replace an existing payload.
 const archive = join(output, 'workbench.tar');

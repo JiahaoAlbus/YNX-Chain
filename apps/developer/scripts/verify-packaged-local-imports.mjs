@@ -4,12 +4,13 @@ import { fileURLToPath } from 'node:url';
 
 // Resolve the actual packaged relative module graph without starting services,
 // executing imports, contacting a registry, or changing the signed payload.
-export async function verifyPackagedLocalImports(root) {
+export async function verifyPackagedLocalImports(root,{serverEntry}={}) {
   const result = await build({
     // The native server loads Go/control modules through computed file URLs.
     // Explicit entries make those real runtime imports part of this guard.
     entryPoints: ['desktop/local-workbench.mjs', 'desktop/wallet-admission-startup.mjs',
-      'desktop/local-go-selection.mjs', 'desktop/native-parent-control.mjs'].map(entry => resolve(root, entry)),
+      'desktop/local-go-selection.mjs', 'desktop/native-parent-control.mjs',
+      'desktop/native-tools-client.mjs', 'desktop/admitted-local-project.mjs'].map(entry => resolve(root, entry)).concat(serverEntry?[resolve(serverEntry)]:[]),
     outdir: resolve(root, '.import-verification'),
     absWorkingDir: resolve(root), bundle: true, write: false,
     platform: 'node', format: 'esm', packages: 'external',
@@ -19,5 +20,5 @@ export async function verifyPackagedLocalImports(root) {
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   if (!process.argv[2]) throw Error('An exact packaged Developer root is required');
-  console.log(JSON.stringify(await verifyPackagedLocalImports(process.argv[2])));
+  console.log(JSON.stringify(await verifyPackagedLocalImports(process.argv[2],{serverEntry:process.argv[3]})));
 }

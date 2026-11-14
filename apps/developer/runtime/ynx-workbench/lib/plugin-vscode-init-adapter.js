@@ -24,24 +24,43 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
   const register = debug.registerDebugAdapterDescriptorFactory;
   debug.registerDebugAdapterDescriptorFactory = function (type, factory) {
     if (!['debugpy', 'python'].includes(type)) return register.call(this, type, factory);
-    return register.call(this, type, {
+    let retired = false;
+    const launches = new Set();
+    const registration = register.call(this, type, {
       async createDebugAdapterDescriptor(session, executable) {
-        // Stop can arrive while the official factory is still resolving.
-        // Keep one exact session observer through preparation and adapter life.
-        let ended = false, transferred = false, terminateSession;
-        const termination = debug.onDidTerminateDebugSession?.(event => {
-          if (event.id === session.id) { ended = true; terminateSession?.(); }
-        });
+        if (retired) throw Error('Python debug adapter factory was retired');
+        if (session.configuration?.request !== 'launch') return factory.createDebugAdapterDescriptor(session, executable);
+        let abortDescriptor, stopTransport, stopError;
+        const cancelled = new Promise((_, reject) => { abortDescriptor = reject; });
+        const stop = force => {
+          if (stopTransport) stopTransport(force);
+          else {
+            stopError ||= Error(force ? 'Python debug adapter factory was retired' : 'Python debug session was cancelled');
+            abortDescriptor(stopError);
+          }
+        };
+        const termination = debug.onDidTerminateDebugSession?.(ended => { if (ended.id === session.id) stop(false); });
+        const cleanup = () => { launches.delete(stop); termination?.dispose(); };
+        launches.add(stop);
+        let descriptor;
         try {
-        const descriptor = await factory.createDebugAdapterDescriptor(session, executable);
-        if (session.configuration?.request !== 'launch') return descriptor;
-        if (ended) throw Error('Python debug session was cancelled');
-        if (!descriptor?.command || !Array.isArray(descriptor.args)) throw Error('Local Python launch requires the reviewed debugpy executable');
-        if (session.configuration.console === 'externalTerminal') throw Error('External Python debug terminals are not supported by the local sandbox; select internalConsole or integratedTerminal');
+          descriptor = await Promise.race([cancelled, Promise.resolve().then(() => {
+            if (stopError) throw stopError;
+            return factory.createDebugAdapterDescriptor(session, executable);
+          })]);
+          if (stopError) throw stopError;
+          if (!descriptor?.command || !Array.isArray(descriptor.args)) throw Error('Local Python launch requires the reviewed debugpy executable');
+          if (session.configuration.console === 'externalTerminal') throw Error('External Python debug terminals are not supported by the local sandbox; select internalConsole or integratedTerminal');
+        } catch (error) {
+          cleanup();
+          throw error;
+        }
         const { connect } = require('node:net');
         const { randomUUID } = require('node:crypto');
         const emitter = new api.EventEmitter(), writes = new api.EventEmitter(), exits = new api.EventEmitter();
-        const socket = connect(environment.YNX_DEBUG_SOCKET); socket.setEncoding('utf8');
+        let socket;
+        try { socket = connect(environment.YNX_DEBUG_SOCKET); socket.setEncoding('utf8'); }
+        catch (error) { cleanup(); socket?.destroy(); throw error; }
         let ready = false, disposed = false, graceful = false, buffer = '', terminal, terminalExited = false, terminalRequest;
         let terminalCapability, terminalClosed = false, terminalResultPublished = false, terminalAbandonment, deferredTermination, drainTimer, processing = Promise.resolve();
         const pending = new Map();
@@ -66,7 +85,7 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
           }
           if (disposed) return; send({ op: 'stop' }); disposed = true;
           if (!graceful) testDebugAttempts.get(session.configuration.__ynxTestAdapterRequest)?.cancel();
-          clearTimeout(timeout); clearTimeout(drainTimer); termination?.dispose(); socket.end();
+          clearTimeout(timeout); clearTimeout(drainTimer); cleanup(); socket.end();
           // Result widgets are user-owned after process completion. Disposing
           // the adapter must not discard their transcript or actual exit code.
           if (!terminal || terminalClosed) releaseTerminal();
@@ -165,17 +184,19 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
             }).catch(fail);
           }
         });
-        terminateSession = () => { if (!ready) reject(Error('Python debug session was cancelled')); dispose(); };
-        transferred = true;
-        if (ended) terminateSession();
+        stopTransport = force => {
+          if (!ready) reject(Error(force ? 'Python debug adapter factory was retired' : 'Python debug session was cancelled'));
+          dispose(force);
+        };
         return preparation;
-        } finally {
-          // Attach, failed/cancelled factory and invalid descriptors never own
-          // an adapter; retain no listener once those paths leave this wrapper.
-          if (!transferred) termination?.dispose();
-        }
       },
     });
+    return { dispose() {
+      if (retired) return;
+      retired = true;
+      try { registration.dispose(); }
+      finally { for (const stop of launches) stop(true); }
+    } };
   };
 };
 const localJsApis = new WeakSet();
@@ -189,7 +210,6 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
       !debug?.registerDebugConfigurationProvider || localJsApis.has(debug)) return;
   localJsApis.add(debug);
   const launches = new Map(), pendingCleanup = new Set(), cleanupErrors = [], register = debug.registerDebugConfigurationProvider;
-  let stopped = false;
   const request = message => new Promise((ok, bad) => {
     const socket = require('node:net').connect(environment.YNX_JS_DEBUG_SOCKET); socket.setEncoding('utf8'); let buffer = '', settled = false;
     const timer = setTimeout(() => { socket.destroy(); bad(Error('Local JavaScript supervisor did not admit this launch')); }, 5000);
@@ -240,7 +260,6 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   }
   async function configure(configuration, choice) {
     if (!configuration || configuration.request !== 'launch' || configuration.__pendingTargetId) return configuration;
-    if (stopped) throw Error('Local JavaScript launch has ended');
     if (configuration.__ynxJsLaunch) { if (!launches.has(configuration.__ynxJsLaunch)) throw Error('Unknown local JavaScript launch correlation'); return configuration; }
     const runtime = configuration.runtimeExecutable;
     if (runtime && runtime !== 'node' && runtime !== environment.YNX_JS_DEBUG_NODE) throw Error('Select the bundled Node runtime for supervised local JavaScript debugging. Custom runtime configuration was retained.');
@@ -256,12 +275,6 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     const timer = setTimeout(() => { release(prepared.launchId)?.catch(error => console.error('JavaScript launch expiry:', error)); }, 30000); timer.unref?.();
     const record = { timer };
     launches.set(prepared.launchId, record);
-    if (stopped) {
-      // A prepare response may outlive disposal. Retire exactly the launch it
-      // actually admitted; never return an executable late configuration.
-      await release(prepared.launchId)?.catch(() => {});
-      throw Error('Local JavaScript launch has ended');
-    }
     if (configuration.noDebug === true && configuration.console === 'integratedTerminal') {
       try {
         record.observation = await require('./local-js-launch-observer').observeLocalJsLaunch(environment, prepared.launchId, result => {
@@ -270,13 +283,6 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
           finishObservedLaunch(prepared.launchId, record);
         });
       } catch (error) { await release(prepared.launchId); throw error; }
-    }
-    if (stopped || launches.get(prepared.launchId) !== record) {
-      // An observer can acknowledge after disposal already removed its record.
-      // Close that late subscription even though release is now a no-op.
-      record.observation?.dispose();
-      await release(prepared.launchId)?.catch(() => {});
-      throw Error('Local JavaScript launch has ended');
     }
     const mapping = prepared.sourceMapping;
     if (mapping && (configuration.localRoot || configuration.remoteRoot) && (configuration.localRoot !== mapping.localRoot || configuration.remoteRoot !== mapping.remoteRoot)) { await release(prepared.launchId); throw Error('Existing localRoot/remoteRoot conflicts with this verified local project alias. Configuration was retained.'); }
@@ -295,7 +301,6 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
       const choice = childChoice(args[1]);
       const result = provider.resolveDebugConfiguration ? await provider.resolveDebugConfiguration.apply(provider, args) : args[1];
       if (!result || result.request !== 'launch' || result.__pendingTargetId) return result;
-      if (stopped) throw Error('Local JavaScript launch has ended');
       if (choice.explicit && choice.value !== undefined && typeof choice.value !== 'boolean') throw Error('Invalid explicit child-process debugging configuration');
       if (choice.explicit && choice.value === true) throw Error('Child-process debugging requires separate supervised endpoints; use a single Node launch in this local profile.');
       if (!choice.explicit && result.autoAttachChildProcesses === true) await notifySingleTarget();
@@ -315,15 +320,8 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     if (!['node', 'pwa-node'].includes(type)) return registerFactory.call(this, type, factory);
     const wrapper = Object.create(factory);
     wrapper.createDebugAdapterDescriptor = async (...args) => {
-      const launchId = args[0]?.configuration?.__ynxJsLaunch;
-      const record = launchId && launches.get(launchId);
-      try {
-        if (launchId && !record) throw Error('Local JavaScript launch has ended');
-        const descriptor = await factory.createDebugAdapterDescriptor.apply(factory, args);
-        if (launchId && launches.get(launchId) !== record) throw Error('Local JavaScript launch has ended');
-        return descriptor;
-      }
-      catch (error) { await release(launchId)?.catch(cleanup => console.error('JavaScript descriptor cleanup:', cleanup)); throw error; }
+      try { return await factory.createDebugAdapterDescriptor.apply(factory, args); }
+      catch (error) { await release(args[0]?.configuration?.__ynxJsLaunch)?.catch(cleanup => console.error('JavaScript descriptor cleanup:', cleanup)); throw error; }
     };
     return registerFactory.call(this, type, wrapper);
   };
@@ -336,7 +334,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   });
   return {
     async whenIdle() { while (pendingCleanup.size) await Promise.allSettled([...pendingCleanup]); if (cleanupErrors.length) throw new AggregateError(cleanupErrors.splice(0), 'Local JavaScript debug cleanup failed'); },
-    async dispose() { stopped = true; for (const id of [...launches.keys()]) release(id); await this.whenIdle(); }
+    async dispose() { for (const id of [...launches.keys()]) release(id); await this.whenIdle(); }
   };
 };
 let debugRequestId = 0;

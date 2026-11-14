@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, readFile, writeFile, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
+import { assertBuildOutputDirectory } from '../../../scripts/build-output-root.mjs';
 const require = createRequire(import.meta.url);
 const { CancellationTokenSource } = require('../../../runtime/theia/node_modules/@theia/core/lib/common/cancellation');
 const { createSolidityLanguage } = require('../../../native/ynx-tools/src/solidity-language.cjs');
@@ -10,7 +11,14 @@ const { createSolidityBuild, validBuild } = require('../../../native/ynx-tools/s
 async function fixture(t) {
   assert.ok(process.env.YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT, 'Supply the retained compiler bundle; this suite must not skip actual compilation.');
   const extensionPath = await realpath(process.env.YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT);
-  assert.ok(extensionPath.includes('/apps/developer/.ynx-developer-candidates/'));
+  if (!extensionPath.includes('/apps/developer/.ynx-developer-candidates/')) {
+    // The normal App producer also exercises the compiler it just packaged.
+    // Keep its existing owned-output claim checks; arbitrary external paths
+    // cannot supply replacement test inputs.
+    await assertBuildOutputDirectory(extensionPath);
+    assert.deepEqual(await readFile(join(extensionPath,'src/solidity-build.cjs')),
+      await readFile(new URL('../../../native/ynx-tools/src/solidity-build.cjs',import.meta.url)));
+  }
   const root = await mkdtemp('/private/tmp/ynx-solidity-build-'), docs = [], subscriptions = [];
   const uri = fsPath => ({scheme:'file',fsPath,toString:()=>`file://${fsPath}`});
   const rows = {Main:'pragma solidity 0.8.24; import "./Lib.sol"; contract Main { function value() public pure returns(uint) {return Lib.value();} } contract Other {}',Lib:'pragma solidity 0.8.24; library Lib { function value() internal pure returns(uint) {return 9;} }'};
@@ -105,4 +113,24 @@ test('observed concurrent project setting edits are retained and stop the artifa
 test('progress transport exceptions observe real Worker termination and permit retry',async t=>{
  const h=await fixture(t);h.progressThrows=true;await assert.rejects(h.build.compile(),/Progress transport failed/);assert.equal(h.language.status().active,0);assert.equal(h.artifact.length,0);
  h.progressThrows=false;assert.equal((await h.build.compile()).ok,true);
+});
+
+test('real build and saved configuration finish while completion notices remain open', {timeout:10000}, async t=>{
+ const h=await fixture(t);
+ h.api.window.showInformationMessage=message=>{h.messages.push(message);return new Promise(()=>{});};
+ const configured=await h.build.configure();
+ assert.equal(configured.contractName,'Main');assert.equal(h.language.status().active,0);
+ assert.equal(JSON.parse(await readFile(h.settingsPath,'utf8'))['ynx.solidity.build'].contractName,'Main');
+ const built=await h.build.compile();
+ assert.equal(built.ok,true);assert.ok(built.bytecode.length>20);assert.equal(h.language.status().active,0);
+ await h.reopen();assert.equal((await h.build.compile()).ok,true);assert.equal(h.pickCount,1);
+});
+
+test('failed completion notifications cannot replace real compiler success or block retry',async t=>{
+ const h=await fixture(t);
+ for(const notify of [()=>{throw Error('PUBLIC disposed notification');},()=>Promise.reject(Error('PUBLIC notification transport rejected'))]){
+  h.api.window.showInformationMessage=notify;
+  assert.equal((await h.build.compile()).ok,true);assert.equal(h.language.status().active,0);
+ }
+ assert.equal(h.artifact.length,2);assert.equal(h.pickCount,1);
 });

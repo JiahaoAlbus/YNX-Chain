@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createCodeOSSService } from "../src/service.mjs";
 import { CORE_LIMITS } from "../src/upstream.mjs";
+import { createHash } from "node:crypto";
+import { createBuildCollection } from "../src/build-collection.mjs";
 import { consumerIdentityBinding } from "../src/identity-consumer-binding.mjs";
 import { createDeveloperCoreAdmission } from "../src/admission.mjs";
 import { OPENVSCODE_X64 } from "../src/upstream.mjs";
@@ -516,7 +518,7 @@ test('retained periodic current remains counted after outer cancellation until i
 async function r6Receiver() {
   const { readFile } = await import('node:fs/promises');
   const { createHash } = await import('node:crypto');
-  const path = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-completed-project-receiver-lifecycle-repair-r6-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  const path = '/REDACTED_USER/ynx-social-qa-authority/ide-protected-completed-project-receiver-lifecycle-repair-r6-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
   assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'), '82f82003030ef058219ba20e1ed9db9591016801e6713883c959214cd409bfd6');
   return (await import((await import('node:url')).pathToFileURL(path))).createDeveloperCoreAdmission;
 }
@@ -589,7 +591,7 @@ test('R6 global drain owns orphan receiver cleanup and close refuses incomplete 
   let complete = false, drainCalls = 0;
   const state = () => ({ complete, pending: 0, retained: complete ? 0 : 1, unknown: true });
   const f = await fixture(t, { completedProjectLifecycle: Object.freeze({ retireOriginal() {}, retireSession() {},
-    finishSessionCleanup: async () => state(), drain: async () => { drainCalls++; return state(); }, cleanupStatus: state }) });
+    finishSessionCleanup: async () => state(), drain: async joinRows => { drainCalls++; await joinRows(); return state(); }, cleanupStatus: state }) });
   await assert.rejects(f.service().drain(), { code: 'core_drain_incomplete' });
   assert.throws(() => f.service().close(), /cleanup|Drain/i);
   assert.equal(drainCalls, 1);
@@ -655,7 +657,7 @@ test('R6 completed receiver cleanup never substitutes for exact driver stop proo
 async function n1ReceiverConstructor() {
   const { readFile } = await import('node:fs/promises');
   const { createHash } = await import('node:crypto');
-  const path = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-completed-project-cleanup-pass-repair-r7-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  const path = '/REDACTED_USER/ynx-social-qa-authority/ide-protected-completed-project-cleanup-pass-repair-r7-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
   assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'), 'b57d7dddceb483df5669b7785290014ce907e676b3c2323f7ed1f87ed869f2e3');
   return (await import((await import('node:url')).pathToFileURL(path))).createDeveloperCoreAdmission;
 }
@@ -720,7 +722,7 @@ test('N1 normal drain waits for row join and keeps writer when genuine driver pr
 
 async function r8StandaloneFixture(t, { kind = 'POST', badProof = false } = {}) {
   const { createHash } = await import('node:crypto');
-  const operatorPath = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  const operatorPath = '/REDACTED_USER/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
   assert.equal(createHash('sha256').update(await readFile(operatorPath)).digest('hex'), '2f905ebd6f1736b1611888d7f50ed067f118b35a6c65b176c964965d83d8809f');
   const { createDeveloperCoreAdmission: constructor } = await import((await import('node:url')).pathToFileURL(operatorPath));
   const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
@@ -804,7 +806,7 @@ test('R8 normal standalone DELETE wrong driver proof keeps late UNKNOWN owner an
 
 test('R8 normal standalone DELETE retains a late acquired owner while original launch settles', async t => {
   const { createHash } = await import('node:crypto');
-  const operatorPath = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  const operatorPath = '/REDACTED_USER/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
   assert.equal(createHash('sha256').update(await readFile(operatorPath)).digest('hex'), '2f905ebd6f1736b1611888d7f50ed067f118b35a6c65b176c964965d83d8809f');
   const { createDeveloperCoreAdmission: constructor } = await import((await import('node:url')).pathToFileURL(operatorPath));
   let acquired, releaseAcquisition, driverEntered, releaseDriver, retired, original, carrier, closeCount = 0, acquires = 0, starts = 0;
@@ -850,4 +852,87 @@ test('R8 normal standalone DELETE retains a late acquired owner while original l
   assert.equal(retained.records[0].primary, carrier.primary); assert.ok(retained.errors.includes(closeFailure));
   assert.equal(retry.status, 200); assert.equal(closeCount, 2); assert.equal(acquires, 1); assert.equal(starts, 1);
   assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+});
+
+
+test('production build binding uses original admission and a persistent project generation independent of Wallet epoch', async t => {
+  const f = await fixture(t, { verifyIdentity: async () => ({owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 7, expiresAt: Date.now()+3600000}) });
+  assert.equal((await f.launch()).status,201);
+  const service = f.service(), sessionId = f.context().sessionId;
+  const admission = await service.authorizeConnection({headers:{}},sessionId);
+  const source = 'pragma solidity ^0.8.24; contract Hello {}';
+  await writeFile(join(f.context().projectDirectory,'workspace','Hello.sol'),source);
+  const input = {name:'Hello',source};
+  input.sourceSha256 = createHash('sha256').update(JSON.stringify(input)).digest('hex');
+  const binding = await service.buildBindingForAdmission(admission,input);
+  assert.equal(binding.ctx.actorEpoch,'7');
+  assert.equal(binding.gen,'1');
+  assert.equal(binding.project.id,project);
+  assert.equal((await service.buildBindingForAdmission(await service.authorizeConnection({headers:{}},sessionId),input)).gen,'1');
+  await assert.rejects(service.buildBindingForAdmission({...admission},input),{code:'build_admission'});
+  const collector = createBuildCollection({directory:join(f.root,'builds'),authorize:service.authorizeBuild});
+  const handle = await collector.begin(binding.ctx,binding);
+  await binding.assertCurrentSource();
+  await collector.complete(handle,{exit:0,artifact:{bytecode:'0x6000'},toolchain:{name:'fixture'},logs:[]});
+  assert.equal((await collector.collectBuild(binding.ctx,handle.job,binding.project,binding.gen)).commit,input.sourceSha256);
+  await assert.rejects(collector.collectBuild(binding.ctx,handle.job,{...binding.project,id:'other'},binding.gen),{code:'build_admission'});
+  f.restart();
+  const next = f.service();
+  const rebound = await next.buildBindingForAdmission(await next.authorizeConnection({headers:{}},sessionId),input);
+  assert.equal(rebound.gen,binding.gen);
+  const restartedCollector = createBuildCollection({directory:join(f.root,'builds'),authorize:next.authorizeBuild});
+  assert.equal((await restartedCollector.collectBuild(rebound.ctx,handle.job,rebound.project,rebound.gen)).commit,input.sourceSha256);
+});
+
+test('production build binding rejects saved-source changes and revoked original identity before artifact sealing', async t => {
+  let permitted = true;
+  const f = await fixture(t, {verifyIdentity:async () => {
+    if (!permitted) throw Object.assign(new Error('revoked'),{status:401});
+    return {owner:ownerA,workspaceOwner:ownerA,account:'ynx-a',generation:3,expiresAt:Date.now()+3600000};
+  }});
+  assert.equal((await f.launch()).status,201);
+  const service=f.service(), admission=await service.authorizeConnection({headers:{}},f.context().sessionId);
+  const source='pragma solidity ^0.8.24; contract Hello {}';
+  const file=join(f.context().projectDirectory,'workspace','Hello.sol');
+  await writeFile(file,source);
+  const input={name:'Hello',source};input.sourceSha256=createHash('sha256').update(JSON.stringify(input)).digest('hex');
+  const binding=await service.buildBindingForAdmission(admission,input);
+  const collector=createBuildCollection({directory:join(f.root,'builds'),authorize:service.authorizeBuild});
+  const handle=await collector.begin(binding.ctx,binding);
+  await writeFile(file,source+' // changed');
+  await assert.rejects(binding.assertCurrentSource(),{code:'build_source_changed'});
+  await collector.complete(handle,{exit:1,logs:[{code:'build_source_changed'}]});
+  await assert.rejects(collector.collectBuild(binding.ctx,handle.job,binding.project,binding.gen),{code:'build_failed'});
+  await writeFile(file,source);
+  permitted=false;
+  await assert.rejects(binding.assertCurrentSource(),/revoked/);
+  await assert.rejects(service.authorizeBuild(binding.ctx,binding.project,'read-build'),/revoked/);
+});
+
+test('production build binding composes the original compile route, real pinned Worker and saved project source', async t => {
+  const {Readable}=await import('node:stream');
+  const f=await fixture(t);assert.equal((await f.launch()).status,201);
+  const service=f.service(), sessionId=f.context().sessionId;
+  const source='pragma solidity 0.8.24; contract Hello { function value() public pure returns(uint) { return 7; } }';
+  await writeFile(join(f.context().projectDirectory,'workspace','Hello.sol'),source);
+  const collector=createBuildCollection({directory:join(f.root,'builds'),authorize:service.authorizeBuild});
+  const tools=createNativeToolsService({coreService:service,buildCollection:collector,buildBindingForAdmission:service.buildBindingForAdmission});
+  async function send(path,body) {
+    const request=Readable.from(body?[Buffer.from(JSON.stringify(body))]:[]);
+    Object.assign(request,{url:`/runtime/native-tools/${path}?sessionId=${sessionId}`,method:body?'POST':'GET',headers:{host:'developer.ynxweb4.com',origin:'https://developer.ynxweb4.com','content-type':'application/json'}});
+    let status,result;
+    const response={writeHead(value){status=value;},end(bytes){result=JSON.parse(bytes);this.writableEnded=true;}};
+    await tools.handler(request,response);return {status,result};
+  }
+  const context=await send('context');assert.equal(context.status,200);
+  const result=await send('chain/compile',{csrf:context.result.csrf,name:'Hello',source});
+  assert.equal(result.status,200,JSON.stringify(result.result));
+  assert.equal(result.result.build.project.id,project);
+  assert.equal(result.result.build.exit,0);
+  assert.equal(result.result.compiler.version,'0.8.24');
+  assert.ok(result.result.abi.some(item=>item.name==='value'));
+  assert.equal(result.result.signed,false);assert.equal(result.result.submitted,false);
+  const folders=await readdir(join(f.root,'builds'));
+  const sealed=JSON.parse(await readFile(join(f.root,'builds',folders[0],'artifact.json'),'utf8'));
+  assert.equal(sealed.bytecode,result.result.bytecode);
 });

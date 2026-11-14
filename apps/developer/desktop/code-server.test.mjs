@@ -5,16 +5,19 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { copyFileSync } from 'node:fs';
+import {createHash} from 'node:crypto';
+import {packageDesktopEntry} from '../scripts/package-desktop-entry.mjs';
+async function resourcesFixture(template){const parent=await realpath(await mkdtemp(template));const root=join(parent,'Resources');await mkdir(root);const desktop=join(root,'code/apps/developer/desktop');await mkdir(desktop,{recursive:true});await copyFile(new URL('./native-parent-control.mjs',import.meta.url),join(desktop,'native-parent-control.mjs'));await writeFile(join(desktop,'bundled-contract-runtime.mjs'),"export async function createBundledProjectContractRuntime(){return {async close(){}};}");return root;}
 
 const sourceCommit = 'a'.repeat(40), sourceTree = 'b'.repeat(40);
 const valid = { schemaVersion: 1, productId: 'ynx-developer-v1', version: '0.2.0', sourceDirty: false,
   platform: `macos-${process.arch}`, sourceCommit, sourceTree, runtimeCheckpoint: sourceCommit };
 async function launch(record, inspect, bundledTools = false) {
-  const root = await mkdtemp(join(tmpdir(), 'ynx-desktop-provenance-'));
+  const root = await resourcesFixture(join(tmpdir(), 'ynx-desktop-provenance-'));
   try {
     const gateway = join(root, 'code/apps/developer/services/gateway/src');
     await mkdir(gateway, { recursive: true });
-    await copyFile(new URL('./code-server.mjs', import.meta.url), join(root, 'code-server.mjs'));
+    await packageDesktopEntry(join(root,'server.mjs'));
     if (record !== undefined) await writeFile(join(root, 'build-provenance.json'), JSON.stringify(record));
     // Exercise the actual launcher through its normal bundled gateway import.
     // This stub observes startup inputs; it does not claim native runtime health.
@@ -24,7 +27,7 @@ async function launch(record, inspect, bundledTools = false) {
       await writeFile(join(gateway, 'server.mjs'), `import {execFileSync} from 'node:child_process';console.log(JSON.stringify({toolPath:process.env.PATH.split(':').slice(0,2),probe:execFileSync('ynx-bundled-language-probe',[],{encoding:'utf8'}).trim()}));`);
     } else await writeFile(join(gateway, 'server.mjs'), `console.log(JSON.stringify({sourceCommit:process.env.YNX_CODE_SOURCE_COMMIT,sourceTree:process.env.YNX_CODE_SOURCE_TREE,release:process.env.YNX_CODE_RELEASE,host:process.env.HOST}));`);
     const support = join(root, 'support');
-    const result = spawnSync(process.execPath, [join(root, 'code-server.mjs')], { encoding: 'utf8', timeout: 10000,
+    const result = spawnSync(process.execPath, [join(root, 'server.mjs')], { encoding: 'utf8', timeout: 10000,
       env: { ...process.env, PATH: '/usr/bin:/bin:/usr/sbin:/sbin', YNX_CODE_DESKTOP_SUPPORT_DIR: support, YNX_CODE_SOURCE_COMMIT: 'c'.repeat(40),
         YNX_CODE_SOURCE_TREE: 'd'.repeat(40), YNX_CODE_RELEASE: 'spoofed' } });
     await inspect(result, support);
@@ -39,7 +42,7 @@ test('actual bundled launcher binds source and release, overriding inherited lab
 });
 
 for (const outcome of ['normal-exit', 'startup-failure']) test(`PUBLIC inherited admission normal server retires and finishes ${outcome}`, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'ynx-public-admission-normal-caller-'));
+  const root = await resourcesFixture(join(tmpdir(), 'ynx-public-admission-normal-caller-'));
   const desktop = join(root, 'code/apps/developer/desktop');
   const events = [], oldMode = process.env.YNX_DEVELOPER_DESKTOP_MODE, oldSupport = process.env.YNX_CODE_DESKTOP_SUPPORT_DIR;
   const oldExit = process.exitCode;
@@ -47,18 +50,18 @@ for (const outcome of ['normal-exit', 'startup-failure']) test(`PUBLIC inherited
     await mkdir(desktop, { recursive: true });
     // Optional source path is ONLY a PUBLIC parent behavioral control in this
     // test. It never selects the production supplier, authority or App entry.
-    copyFileSync(process.env.YNX_PUBLIC_PARENT_CONTROL_SOURCE || new URL('./code-server.mjs', import.meta.url), join(root, 'server.mjs'));
+    if(process.env.YNX_PUBLIC_PARENT_CONTROL_SOURCE)copyFileSync(process.env.YNX_PUBLIC_PARENT_CONTROL_SOURCE,join(root,'server.mjs'));else await packageDesktopEntry(join(root,'server.mjs'));
     await writeFile(join(root, 'build-provenance.json'), JSON.stringify(valid));
     globalThis.__ynxPublicAdmissionEvents = events;
     await writeFile(join(desktop, 'local-go-selection.mjs'), 'export async function createLocalGoSelectionStore(){return {async load(){return null;}}} export function attachNativeGoSelectionChannel(){}');
     await writeFile(join(desktop, 'wallet-admission-startup.mjs'), `let retired=false;export async function openBundledWalletAdmission(){return {assertCurrent(){if(retired)throw Error('PUBLIC_RETIRED');},close(){if(!retired){retired=true;globalThis.__ynxPublicAdmissionEvents.push('retire');}},async finishCleanup(){if(!retired)throw Error('PUBLIC_NOT_RETIRED');globalThis.__ynxPublicAdmissionEvents.push('finish');return {complete:true};}};}`);
     await writeFile(join(desktop, 'native-tools-client.mjs'), 'export function createNativeToolsClient(){return null;}');
     await writeFile(join(desktop, 'admitted-local-project.mjs'), 'export function createAdmittedLocalProjectMapping(){return null;}');
-    await writeFile(join(desktop, 'local-workbench.mjs'), `export async function localProjectContext(){return {id:'PUBLIC',workspace:'/PUBLIC'};}export async function startLocalWorkbench({walletAdmission}){await walletAdmission.assertCurrent();globalThis.__ynxPublicAdmissionEvents.push('start');${outcome === 'startup-failure' ? "throw Error('PUBLIC_STARTUP_FAILURE');" : "return {exited:Promise.resolve({code:0}),async stop(){globalThis.__ynxPublicAdmissionEvents.push('stop');await Promise.resolve();await Promise.resolve().then(()=>walletAdmission.assertCurrent()).then(()=>{throw Error('PUBLIC_LATE_CAPABILITY');},()=>{});}};"}}`);
+    await writeFile(join(desktop, 'local-workbench.mjs'), `export async function localProjectContext(){return {id:'PUBLIC',workspace:'/PUBLIC'};}export async function startLocalWorkbench({walletAdmission}){await walletAdmission.assertCurrent();globalThis.__ynxPublicAdmissionEvents.push('start');${outcome === 'startup-failure' ? "throw Error('PUBLIC_STARTUP_FAILURE');" : "return {exited:Promise.resolve({code:0}),retireProjectServices(){globalThis.__ynxPublicAdmissionEvents.push('retire-services');},async finishProjectServicesCleanup(){globalThis.__ynxPublicAdmissionEvents.push('drain-services');},async stop(){globalThis.__ynxPublicAdmissionEvents.push('stop');await Promise.resolve();await walletAdmission.assertCurrent();}};"}}`);
     process.env.YNX_DEVELOPER_DESKTOP_MODE = 'local-workbench'; process.env.YNX_CODE_DESKTOP_SUPPORT_DIR = join(root, 'PUBLIC-support');
     const call = import(new URL('file://' + join(root, 'server.mjs')).href);
     if (outcome === 'startup-failure') await assert.rejects(call, /PUBLIC_STARTUP_FAILURE/); else await call;
-    assert.deepEqual(events, outcome === 'startup-failure' ? ['start', 'retire', 'finish'] : ['start', 'retire', 'stop', 'finish']);
+    assert.deepEqual(events, outcome === 'startup-failure' ? ['start', 'retire', 'finish'] : ['start', 'retire-services', 'stop', 'drain-services', 'retire', 'finish']);
   } finally {
     if (oldMode === undefined) delete process.env.YNX_DEVELOPER_DESKTOP_MODE; else process.env.YNX_DEVELOPER_DESKTOP_MODE = oldMode;
     if (oldSupport === undefined) delete process.env.YNX_CODE_DESKTOP_SUPPORT_DIR; else process.env.YNX_CODE_DESKTOP_SUPPORT_DIR = oldSupport;
@@ -85,28 +88,28 @@ for (const [name, record] of [
   });
 });
 for (const supplied of [true,false]) test('normal local launcher ' + (supplied ? 'injects independent supply and closes it' : 'keeps local development available with malformed AI supply'), async () => {
-  const root=await mkdtemp(join(tmpdir(),'ynx-public-native-tools-startup-'));
+  const root=await resourcesFixture(join(tmpdir(),'ynx-public-native-tools-startup-'));
   try {
     const desktop=join(root,'code/apps/developer/desktop');await mkdir(desktop,{recursive:true});
-    await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'code-server.mjs'));
+    await packageDesktopEntry(join(root,'server.mjs'));
     await copyFile(new URL('./native-tools-client.mjs',import.meta.url),join(desktop,'native-tools-client.mjs'));
     await copyFile(new URL('./admitted-local-project.mjs',import.meta.url),join(desktop,'admitted-local-project.mjs'));
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go selection");} export function attachNativeGoSelectionChannel(){}');
     await writeFile(join(desktop,'wallet-admission-startup.mjs'),`const deadline=Date.now()+60000;const canonical={owner:'a'.repeat(64),workspaceOwner:'a'.repeat(64),account:'PUBLIC',generation:1,identityReference:'a'.repeat(43),localProjectId:'PUBLIC-canonical',workspace:'/PUBLIC/project',launch:'22222222-1234-1234-1234-123456789abc',sessionId:'22222222-1234-1234-1234-123456789abc',expiresAt:deadline};export async function openBundledWalletAdmission(){return {assertCurrent(){throw Error('four-op must not authorize tools');},admittedProject:{assertCurrent:async()=>canonical,request(){throw Error('Tools authority must own dispatch');},close(){console.log('PUBLIC_PROJECT_CLOSED');}},nativeTools:{async openProject(binding){if(binding.projectId!=='PUBLIC-canonical')throw Error('Local id must not be used as canonical');return {assertCurrent:async()=>({...canonical,generation:'1'}),request:async request=>{console.log('PUBLIC_ROUTE '+request.path);return {};},close(){console.log('PUBLIC_CLOSED');}};}}};}`);
     if (!supplied) await writeFile(join(desktop,'wallet-admission-startup.mjs'),`export async function openBundledWalletAdmission(){return {nativeTools:{}};}`);
-    await writeFile(join(desktop,'local-workbench.mjs'),`export async function localProjectContext(){return {id:'PUBLIC-project',workspace:'/PUBLIC/project'};} export async function startLocalWorkbench({aiTools}){if(!aiTools){console.log('PUBLIC_AI_UNAVAILABLE');return {exited:Promise.resolve({code:0}),stop:async()=>{}};}await aiTools.assertCurrent({projectId:'PUBLIC-project',workspace:'/PUBLIC/project',launch:'12345678-1234-1234-1234-123456789abc'});await aiTools.request('context',{});return {url:'http://127.0.0.1:0',id:'PUBLIC-project',workspace:'/PUBLIC/project',exited:Promise.resolve({code:0}),stop:async()=>{}};}`);
-    const result=spawnSync(process.execPath,[join(root,'code-server.mjs')],{encoding:'utf8',timeout:10000,env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
+    await writeFile(join(desktop,'local-workbench.mjs'),`export async function localProjectContext(){return {id:'PUBLIC-project',workspace:'/PUBLIC/project'};} export async function startLocalWorkbench({aiTools}){if(!aiTools){console.log('PUBLIC_AI_UNAVAILABLE');return {exited:Promise.resolve({code:0}),retireProjectServices(){},async finishProjectServicesCleanup(){},stop:async()=>{}};}await aiTools.assertCurrent({projectId:'PUBLIC-project',workspace:'/PUBLIC/project',launch:'12345678-1234-1234-1234-123456789abc'});await aiTools.request('context',{});return {url:'http://127.0.0.1:0',id:'PUBLIC-project',workspace:'/PUBLIC/project',exited:Promise.resolve({code:0}),retireProjectServices(){},async finishProjectServicesCleanup(){},stop:async()=>{}};}`);
+    const result=spawnSync(process.execPath,[join(root,'server.mjs')],{encoding:'utf8',timeout:10000,env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
     assert.equal(result.status,0,result.stderr);if(!supplied){assert.match(result.stdout,/PUBLIC_AI_UNAVAILABLE/);assert.match(result.stderr,/YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED/);assert.doesNotMatch(result.stdout,/PUBLIC_ROUTE/);return;}assert.match(result.stdout,/PUBLIC_ROUTE \/runtime\/native-tools\/context\?sessionId=/);assert.match(result.stdout,/PUBLIC_CLOSED/);
   } finally {await rm(root,{recursive:true,force:true});}
 });
 
 for (const scenario of ['incomplete', 'async-close', 'missing-tools', 'launch-failure', 'cleanup-failure', 'launch-and-cleanup-failure']) test(`normal local launcher retains cleanup through ${scenario}`, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'ynx-public-cleanup-launcher-'));
+  const root = await resourcesFixture(join(tmpdir(), 'ynx-public-cleanup-launcher-'));
   try {
     const desktop = join(root, 'code/apps/developer/desktop');
     await mkdir(desktop, { recursive: true });
-    await copyFile(new URL('./code-server.mjs', import.meta.url), join(root, 'code-server.mjs'));
+    await packageDesktopEntry(join(root,'server.mjs'));
     for (const file of ['native-tools-client.mjs', 'admitted-local-project.mjs']) await copyFile(new URL(`./${file}`, import.meta.url), join(desktop, file));
     await writeFile(join(root, 'build-provenance.json'), JSON.stringify(valid));
     await writeFile(join(desktop, 'local-go-selection.mjs'), 'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go selection");} export function attachNativeGoSelectionChannel(){}');
@@ -123,9 +126,9 @@ for (const scenario of ['incomplete', 'async-close', 'missing-tools', 'launch-fa
     `);
     await writeFile(join(desktop, 'local-workbench.mjs'), `
       export async function localProjectContext(){return {id:'PUBLIC-project',workspace:'/PUBLIC/project'};}
-      export async function startLocalWorkbench(){${scenario.startsWith('launch-') ? "throw Object.assign(Error('PUBLIC_PRIMARY_LAUNCH_FAILURE'),{code:'PUBLIC_PRIMARY'});" : "return {exited:Promise.resolve({code:0}),stop:async()=>{console.log('PUBLIC_STOP');}};"}}
+      export async function startLocalWorkbench(){${scenario.startsWith('launch-') ? "throw Object.assign(Error('PUBLIC_PRIMARY_LAUNCH_FAILURE'),{code:'PUBLIC_PRIMARY'});" : "return {exited:Promise.resolve({code:0}),retireProjectServices(){},async finishProjectServicesCleanup(){},stop:async()=>{console.log('PUBLIC_STOP');}};"}}
     `);
-    const result = spawnSync(process.execPath, [join(root, 'code-server.mjs')], {encoding:'utf8',timeout:10000,
+    const result = spawnSync(process.execPath, [join(root, 'server.mjs')], {encoding:'utf8',timeout:10000,
       env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
     assert.equal(result.error, undefined);
     if (scenario.startsWith('launch-')) { assert.notEqual(result.status,0); assert.match(result.stderr,/PUBLIC_PRIMARY_LAUNCH_FAILURE/); }
@@ -140,19 +143,25 @@ for (const scenario of ['incomplete', 'async-close', 'missing-tools', 'launch-fa
 });
 
 for (const cleanup of ['false-rejection','incomplete-result','clean']) test('P2 repair actual normal startup and server retain partial cleanup ' + cleanup, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'ynx-public-partial-owner-'));
+  const root = await resourcesFixture(join(tmpdir(), 'ynx-public-partial-owner-'));
   const oldMode=process.env.YNX_DEVELOPER_DESKTOP_MODE, oldSupport=process.env.YNX_CODE_DESKTOP_SUPPORT_DIR, oldExit=process.exitCode, oldError=console.error;
   const events=[], logs=[]; globalThis.__ynxP2Events=events;
   try {
     const desktop=join(root,'code/apps/developer/desktop'), vendor=join(root,'code/apps/developer/vendor/identity-admission/scripts');
     await mkdir(desktop,{recursive:true});await mkdir(vendor,{recursive:true});
-    await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
-    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','native-tools-client.mjs','admitted-local-project.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
+    await packageDesktopEntry(join(root,'server.mjs'));
+    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','identity-sdk-loader.mjs','native-tools-client.mjs','admitted-local-project.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),"export async function createLocalGoSelectionStore(){throw Error('PUBLIC no Go');}export function attachNativeGoSelectionChannel(){}");
     await writeFile(join(vendor,'ynx-ide-service-admission-supplier.mjs'),
       "export function acquireOriginalIDEAdmissionParentDelivery(){return {descriptor:4,assertCurrent(){throw Error('PUBLIC_FIRST');},close(){globalThis.__ynxP2Events.push('close');"+(cleanup==='false-rejection'?"return Promise.reject(false);":cleanup==='incomplete-result'?"return {complete:false};":"")+"}};}export function openOriginalIDEServiceAdmissionSupplier(){throw Error('must not reacquire');}");
-    await writeFile(join(desktop,'local-workbench.mjs'),"export function localProjectContext(){return {id:'PUBLIC',workspace:'/PUBLIC'};}export async function startLocalWorkbench({walletAdmission}){try{walletAdmission.assertCurrent();throw Error('must refuse');}catch(e){if(e.message!=='PUBLIC_FIRST')throw e;}globalThis.__ynxP2Events.push('local');return {exited:Promise.resolve({code:0}),stop(){globalThis.__ynxP2Events.push('stop');}};}");
+    const sdkRoot=dirname(vendor);const exports={};
+    for(const name of ['original-ide-held-session-read','original-ide-admission','original-ide-deployment-v2','original-ide-contract-relay-guard'])exports['./'+name]={node:'./src/'+name+'.js',browser:null,default:null};
+    for(const name of ['walletconnect-dapp-connection','pq-contract-deployment-material','pq-native-action'])exports['./'+name]={import:'./src/'+name+'.js',default:'./src/'+name+'.js',types:'./src/'+name+'.d.ts'};
+    await writeFile(join(sdkRoot,'package.json'),JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',exports}));
+    const files=[];for(const rel of ['package.json','scripts/ynx-ide-service-admission-supplier.mjs']){const body=await readFile(join(sdkRoot,rel));files.push({path:rel,bytes:body.length,sha256:createHash('sha256').update(body).digest('hex')});}
+    await writeFile(join(desktop,'../identity-sdk-pins.json'),JSON.stringify({schema:'YNX_IDE_SDK_CODE_PINS/v1',files}));
+    await writeFile(join(desktop,'local-workbench.mjs'),"export function localProjectContext(){return {id:'PUBLIC',workspace:'/PUBLIC'};}export async function startLocalWorkbench({walletAdmission}){try{walletAdmission.assertCurrent();throw Error('must refuse');}catch(e){if(e.message!=='PUBLIC_FIRST')throw e;}globalThis.__ynxP2Events.push('local');return {exited:Promise.resolve({code:0}),retireProjectServices(){},async finishProjectServicesCleanup(){},stop(){globalThis.__ynxP2Events.push('stop');}};}");
     console.error=(...a)=>logs.push(a.join(' '));process.env.YNX_DEVELOPER_DESKTOP_MODE='local-workbench';process.env.YNX_CODE_DESKTOP_SUPPORT_DIR=join(root,'support');
     await import(new URL('file://'+join(root,'server.mjs')).href);
     assert.equal(events.filter(x=>x==='close').length,1);assert.ok(events.includes('local'));assert.ok(events.includes('stop'));
@@ -164,4 +173,27 @@ for (const cleanup of ['false-rejection','incomplete-result','clean']) test('P2 
     if(oldSupport===undefined)delete process.env.YNX_CODE_DESKTOP_SUPPORT_DIR;else process.env.YNX_CODE_DESKTOP_SUPPORT_DIR=oldSupport;
     await rm(root,{recursive:true,force:true});
   }
+});
+
+for (const phase of ['parent-import', 'control-directory']) test(`SIGTERM during ${phase} drains ready workbench and forbids late channel`, async () => {
+  const root = await resourcesFixture(join(tmpdir(), 'ynx-ready-cancel-'));
+  try {
+    const desktop = join(root, 'code/apps/developer/desktop');
+    await packageDesktopEntry(join(root, 'server.mjs'));
+    await writeFile(join(root, 'build-provenance.json'), JSON.stringify(valid));
+    const delay = "setTimeout(()=>process.kill(process.pid,'SIGTERM'),10);await new Promise(r=>setTimeout(r,50));";
+    await writeFile(join(desktop, 'native-parent-control.mjs'), `${phase === 'parent-import' ? delay : ''}export function createNativeParentControl(){console.log('PARENT');return {close(){console.log('PARENT_CLOSE');},async finishCleanup(){console.log('PARENT_DRAIN');return {};}}}export function attachUnavailableOriginalServiceChannel(){throw Error('LATE_CHANNEL');}`);
+    await writeFile(join(desktop, 'local-go-selection.mjs'), `export async function createLocalGoSelectionStore(){return {async load(){},async controlDirectory(){${phase === 'control-directory' ? delay : ''}return '/PUBLIC';}}}export function attachNativeGoSelectionChannel(){throw Error('LATE_CHANNEL');}`);
+    await writeFile(join(desktop, 'wallet-admission-startup.mjs'), "export async function openBundledWalletAdmission(){return {close(){console.log('WALLET_CLOSE');},async finishCleanup(){console.log('WALLET_DRAIN');return {complete:true};}}}");
+    await writeFile(join(desktop, 'native-tools-client.mjs'), 'export function createNativeToolsClient(){}');
+    await writeFile(join(desktop, 'admitted-local-project.mjs'), 'export function createAdmittedLocalProjectMapping(){}');
+    await writeFile(join(desktop, 'local-workbench.mjs'), "export function localProjectContext(){return {id:'PUBLIC',workspace:'/PUBLIC'};}export async function startLocalWorkbench(){let end;const exited=new Promise(r=>end=r);return {exited,retireProjectServices(){console.log('RETIRE');},async finishProjectServicesCleanup(){console.log('DRAIN');},async stop(){console.log('STOP');await new Promise(r=>setTimeout(r,5));end({code:0});}};}");
+    const result = spawnSync(process.execPath, [join(root, 'server.mjs')], { encoding:'utf8', timeout:5000, env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support'),YNX_NATIVE_GO_INSTANCE:'12345678-1234-1234-1234-123456789abc'} });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.split('STOP').length - 1, 1, result.stdout);
+    assert.match(result.stdout, /RETIRE\nSTOP\n/);
+    assert.match(result.stdout, /DRAIN\nWALLET_CLOSE\nWALLET_DRAIN/);
+    assert.doesNotMatch(result.stdout + result.stderr, /LATE_CHANNEL|YNX_LOCAL_WORKBENCH /);
+    if (phase === 'control-directory') assert.match(result.stdout, /PARENT_CLOSE[\s\S]*PARENT_DRAIN/);
+  } finally { await rm(root, {recursive:true,force:true}); }
 });

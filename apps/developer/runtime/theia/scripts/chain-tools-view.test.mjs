@@ -11,15 +11,18 @@ async function fixture(locale) {
   const root = await mkdtemp('/private/tmp/ynx-chain-tools-'), commands = new Map(), errors = [], calls = [], documents = [];
   const uri = fsPath => ({ scheme: 'file', fsPath, toString: () => 'file://' + fsPath });
   const environment = { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: root, YNX_LOCAL_PROJECT_ID: '12345678-1234-1234-1234-123456789012' };
-  let tree, beforeApply;
+  const trees = new Map(); let beforeApply;
   class WorkspaceEdit { operations = []; createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } }
   const api = {
+    EventEmitter: class { event = () => ({ dispose() {} }); fire() {} dispose() {} },
     ...(locale ? { l10n: { t: (message, ...args) => (locale[message] || message).replace(/\{(\d+)\}/g, (match, index) => args[index] === undefined ? match : String(args[index])) } } : {}),
+    debug: { onDidTerminateDebugSession() { return {dispose(){}}; }, onDidStartDebugSession() { return {dispose(){}}; } },
+    tasks: { onDidEndTaskProcess() { return {dispose(){}}; }, onDidEndTask() { return { dispose() {} }; }, executeTask() { assert.fail('tree fixture must not execute an EVM task'); } },
     commands: { registerCommand: (id, fn) => { commands.set(id, fn); return { dispose() {} }; }, executeCommand: async (...args) => { if (args[0] !== 'setContext') calls.push(args); } },
-    window: { registerTreeDataProvider: (id, provider) => { tree = provider; return {}; }, onDidChangeActiveTextEditor: () => ({}), onDidChangeTextEditorSelection: () => ({}), showErrorMessage: error => errors.push(error), showInformationMessage: async text => calls.push(['info', text]), showTextDocument: async target => calls.push(['editor', target.fsPath]) },
+    window: { showQuickPick: async (items, options) => { calls.push(['picker', options, items]); return undefined; }, registerTreeDataProvider: (id, provider) => { trees.set(id, provider); return {}; }, onDidChangeActiveTextEditor: () => ({}), onDidChangeTextEditorSelection: () => ({}), showErrorMessage: error => errors.push(error), showInformationMessage: async text => calls.push(['info', text]), showTextDocument: async target => calls.push(['editor', target.fsPath]) },
     env: { openExternal: () => assert.fail('network/external navigation') },
     Uri: { joinPath: (root, name) => uri(join(root.fsPath, name)) }, WorkspaceEdit, Position: class {},
-    workspace: { workspaceFolders: [{ uri: uri(root) }], textDocuments: documents, applyEdit: async edit => {
+    workspace: { registerTextDocumentContentProvider() { return {dispose(){}}; }, isTrusted: true, getConfiguration: () => ({ inspect: () => ({}) }), workspaceFolders: [{ uri: uri(root) }], textDocuments: documents, applyEdit: async edit => {
       await beforeApply?.(); const create = edit.operations[0], insert = edit.operations[1];
       assert.equal(create.options.overwrite, false); assert.equal(create.options.ignoreIfExists, false);
       try { await writeFile(create.uri.fsPath, '', { flag: 'wx' }); } catch (error) { if (error.code === 'EEXIST') return false; throw error; }
@@ -37,16 +40,19 @@ async function fixture(locale) {
     return require(name);
   } });
   module.exports.activate({ subscriptions: [] });
-  return { root, commands, errors, calls, documents, environment, api, tree, beforeApply: fn => { beforeApply = fn; } };
+  return { root, commands, errors, calls, documents, environment, api, trees, beforeApply: fn => { beforeApply = fn; } };
 }
 test('actual extension grouped tree exposes local Chain tools and honest connection/configuration status', async () => {
-  const f = await fixture(), groups = f.tree.getChildren();
-  assert.deepEqual(Array.from(groups, x => x.label), ['Project', 'Network', 'Wallet and AI']);
-  assert.ok(groups.every(x => f.tree.getTreeItem(x).collapsibleState === 2));
-  assert.equal(f.tree.getChildren(groups[0])[0].command, 'ynx.createSolidityTemplate');
-  assert.match(f.tree.getChildren(groups[2])[0].label, /not connected/);
-  await f.commands.get('ynx.openTools')(); assert.deepEqual(f.calls, [['ynx.tools.focus']]);
-  await f.commands.get('ynx.testnetConfiguration')(); assert.match(f.calls[1][1], /6423.*current network availability has not been checked/);
+  const f = await fixture();
+  assert.deepEqual([...f.trees.keys()], ['ynx.chainResults', 'ynx.contracts', 'ynx.network', 'ynx.review']);
+  const contracts = f.trees.get('ynx.contracts'), network = f.trees.get('ynx.network'), review = f.trees.get('ynx.review');
+  assert.equal(contracts.getChildren()[0].command, 'ynx.createSolidityTemplate');
+  assert.match(review.getChildren()[0].label, /not connected/);
+  assert.equal(network.getChildren()[0].description, 'Configured; not live checked');
+  assert.ok(network.getChildren().some(item => item.command === 'ynx.chain.capabilities'));
+  await f.commands.get('ynx.openTools')(); assert.deepEqual(f.calls, [['ynx.contracts.focus']]);
+  f.api.window.activeTextEditor = { document: { uri: { scheme: 'file', fsPath: join(f.root, 'Counter.sol') } } };
+  await f.commands.get('ynx.testnetConfiguration')(); assert.deepEqual(f.errors, []); assert.equal(f.calls[1][0], 'picker'); assert.match(f.calls[1][1].placeHolder, /editable data, not identity or connection permission/);
   await f.commands.get('ynx.compileSolidity')(); await f.commands.get('ynx.importSolidityDiagnostics')();
   assert.ok(f.calls.some(x => x[0] === 'compile')); assert.ok(f.calls.some(x => x[0] === 'diagnostics'));
   assert.deepEqual(f.errors, []);
@@ -93,14 +99,14 @@ test('created contract compiles with the actual retained pinned compiler worker'
 test('actual Chinese bundle localizes tree, configuration and refusal while manifest keys resolve without network', async () => {
   const root = new URL('../../../native/ynx-tools/', import.meta.url);
   const [bundle, manifest, english, chinese] = await Promise.all(['l10n/bundle.l10n.zh-cn.json', 'package.json', 'package.nls.json', 'package.nls.zh-cn.json'].map(async path => JSON.parse(await readFile(new URL(path, root), 'utf8'))));
-  const f = await fixture(bundle), groups = f.tree.getChildren();
-  assert.deepEqual(Array.from(groups, group => group.label), ['项目', '网络', '钱包与 AI']);
-  assert.equal(f.tree.getChildren(groups[2])[0].label, '钱包尚未连接');
-  await f.commands.get('ynx.testnetConfiguration')(); assert.match(f.calls[0][1], /尚未检查当前网络/);
+  const f = await fixture(bundle);
+  assert.equal(f.trees.get('ynx.contracts').getChildren()[0].label, '创建 Counter.sol 合约');
+  assert.equal(f.trees.get('ynx.review').getChildren()[0].label, '钱包尚未连接');
+  await f.commands.get('ynx.testnetConfiguration')(); assert.deepEqual(f.errors, []); assert.equal(f.calls[0][0], 'picker'); assert.match(f.calls[0][1].placeHolder, /可编辑数据，不是身份或连接权限/);
   await writeFile(join(f.root, 'Counter.sol'), 'user bytes'); await f.commands.get('ynx.createSolidityTemplate')();
   assert.equal(f.errors[0], 'Counter.sol 已存在，未修改任何文件。');
   assert.equal(await readFile(join(f.root, 'Counter.sol'), 'utf8'), 'user bytes');
-  assert.equal(manifest.version, '0.2.22'); assert.equal(manifest.l10n, './l10n');
-  const texts = [manifest.displayName, manifest.description, ...manifest.contributes.commands.map(command => command.title), ...manifest.contributes.views.ynx.map(view => view.name)];
+  assert.equal(manifest.version, '0.2.35'); assert.equal(manifest.l10n, './l10n');
+  const texts = [manifest.displayName, manifest.description, ...manifest.contributes.commands.map(command => command.title), ...Object.values(manifest.contributes.views).flat().map(view => view.name)];
   for (const text of texts) { assert.match(text, /^%.*%$/); const key = text.slice(1, -1); assert.ok(english[key]); assert.ok(chinese[key]); }
 });

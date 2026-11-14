@@ -80,7 +80,7 @@ export function sandboxLaunch({
       toolReads = readOnlyBinds
         .map(({ host }) => `(allow file-read* (subpath "${escape(host)}"))`)
         .join("\n"),
-      toolMetadata = [...new Set(readOnlyBinds.flatMap(({ host }) => {
+      toolMetadata = [...new Set([{host:workspace},{host:command},{host:process.execPath}, ...readOnlyBinds, ...writableBinds].flatMap(({ host }) => {
         const parents = [];
         for (let path = dirname(host); path !== "/"; path = dirname(path))
           parents.push(path);
@@ -88,7 +88,20 @@ export function sandboxLaunch({
       }))]
         .map((path) => `(allow file-read-metadata (literal "${escape(path)}"))`)
         .join("\n"),
-      profile = `(version 1)\n(allow default)\n(deny network*)\n(deny file-read* (subpath "${escape(originalHome)}"))\n(allow file-read* (subpath "${escape(workspace)}"))\n${extraReads}\n(deny file-write*)\n(allow file-write* (subpath "${escape(workspace)}") (subpath "/private/tmp") (subpath "/dev"))\n${extraWrites}`;
+      projectReads = sandbox.restrictProjectReads ? [
+        '(deny file-read*)',
+        ...['/System','/bin','/sbin','/usr/bin','/usr/sbin','/usr/lib','/usr/libexec','/usr/share','/usr/include',
+          '/usr/local/go','/usr/local/lib','/usr/local/Cellar','/usr/local/opt','/usr/local/share',
+          '/Applications/Xcode.app/Contents/Developer','/Library/Developer','/Library/Frameworks','/Library/Java','/opt/homebrew/Cellar','/opt/homebrew/opt','/opt/homebrew/lib']
+          .map(path=>`(allow file-read* (subpath "${escape(path)}"))`),
+        ...['/',command,process.execPath,'/dev/null','/dev/zero','/dev/random','/dev/urandom','/private/etc/localtime',
+          '/private/etc/passwd','/private/etc/group','/private/var/db/xcode_select_link','/private/var/select/developer_dir','/var/select/developer_dir'].map(path=>`(allow file-read* (literal "${escape(path)}"))`),
+        '(allow file-read* (subpath "/dev/fd"))',
+        ...['/var','/var/select','/private','/private/var','/private/var/select','/Applications/Xcode.app','/Applications/Xcode.app/Contents','/Applications/Xcode.app/Contents/Developer'].map(path=>`(allow file-read-metadata (literal "${escape(path)}"))`),
+      ].join("\n") : '',
+      privateReads = (sandbox.protectedReadRoots || [])
+        .map(path => `(deny file-read* (subpath "${escape(path)}"))`).join("\n"),
+      profile = `(version 1)\n(allow default)\n(deny network*)\n${projectReads}\n(deny file-read* (subpath "${escape(originalHome)}"))\n${privateReads}\n(allow file-read* (subpath "${escape(workspace)}"))\n${extraReads}\n(deny file-write*)\n(allow file-write* (subpath "${escape(workspace)}") (subpath "/private/tmp") (subpath "/dev"))\n${extraWrites}`;
     return {
       command: "/usr/bin/sandbox-exec",
       args: ["-p", `${profile}\n${toolMetadata}\n${toolReads}`, command, ...args],

@@ -5,7 +5,7 @@ import { desktopEditorReady } from "../editor/native-edit";
 import { EditorTabs } from "../editor/EditorTabs";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, PackagePlus, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { QuickPicker } from "../components/QuickPicker";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -25,6 +25,7 @@ import type { EditorProblem } from "../editor/CodeEditor";
 import { installDesktopEditBridge } from "../editor/native-edit";
 import { OutlinePanel } from "../outline/OutlinePanel";
 import { NativeIDEPanel } from "../codeoss/NativeIDEPanel";
+import { captureTaskSource, ownsTaskSource } from "../runtime/taskSource";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -203,6 +204,11 @@ export function Workbench() {
   workspaceKeyRef.current = workspaceKey;
   const workspaceProjectRef = useRef(project.id);
   workspaceProjectRef.current = project.id;
+  const projectSourceRef = useRef(project); projectSourceRef.current = project;
+  const taskGeneration = useRef({ projectId:project.id, value:0 });
+  if (taskGeneration.current.projectId !== project.id) { taskGeneration.current.projectId=project.id; taskGeneration.current.value++; }
+  useLayoutEffect(() => { setRunning(false); },[project.id]);
+  useEffect(() => () => { taskGeneration.current.value++; },[]);
   const languageOf = useCallback(
     (path: string) => {
       const lower = path.toLowerCase();
@@ -623,6 +629,8 @@ export function Workbench() {
       return { ...current, [project.active]: next };
     });
   const execute = async () => {
+    const captured=captureTaskSource(project), generation=++taskGeneration.current.value;
+    const currentTask=()=>taskGeneration.current.value===generation&&workspaceProjectRef.current===captured.id;
     setRunReview(false);
     setRunning(true);
     setBottom("task");
@@ -630,57 +638,67 @@ export function Workbench() {
     try {
       if (selectedRuntime?.startsWith("ssh-")) throw new Error("Remote SSH is open as an editable terminal workspace. Start this task in the remote terminal; one-click remote task execution has not been approved yet.");
       const result = selectedRuntime
-        ? await runContainerActive(selectedRuntime, project.id, project.active, project.files)
-        : await runActive(project.id, project.active, project.files, (event) => {
+        ? await runContainerActive(selectedRuntime, captured.id, project.active, captured.files)
+        : await runActive(captured.id, project.active, captured.files, (event) => {
+            if (!currentTask()) return;
             if (event.type === "phase" && event.status === "started") setOutput((current) => `${current}${event.phase}> `);
             if (event.type === "output") setOutput((current) => `${current}${event.data}`);
           });
+      if (!currentTask()) return;
       if (selectedRuntime) setOutput((current) => `${current}${result.output}`);
       setOutput((current) => `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`);
       if (result.ok && result.artifacts?.length) {
         const materialized = await verifiedBuildArtifacts(result.artifacts);
         const sourceDigests = Object.fromEntries(
           await Promise.all(
-            Object.entries(project.files)
+            Object.entries(captured.files)
               .filter(([path]) => path.endsWith(".sol"))
               .map(async ([path, content]) => [path, await sha256Text(content)]),
           ),
         );
         materialized[".ynx-build/manifest.json"] = `${JSON.stringify({ protocolVersion: "ynx-code-artifact/v1", taskId: result.taskId, language: result.language, compiler: result.compiler, sourceDigests, artifacts: result.artifacts.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })) }, null, 2)}\n`;
-        const candidate = { ...project.files, ...materialized },
+        const candidate = { ...captured.files, ...materialized },
           candidateBytes = Object.values(candidate).reduce((total, content) => total + new TextEncoder().encode(content).byteLength, 0);
         if (Object.keys(candidate).length > 256 || candidateBytes > 2 * 1024 * 1024) throw new Error("Verified artifacts exceed the persistent workspace's 256-file or 2 MiB boundary. The build remains successful, but the artifacts were not saved.");
+        if (!currentTask() || !ownsTaskSource(projectSourceRef.current,captured)) return;
         setProject((current) => {
+          if (!currentTask() || !ownsTaskSource(current,captured)) return current;
           const files = { ...current.files, ...materialized },
             paths = Object.keys(materialized),
             folders = [...new Set([...current.folders, ...foldersFromFiles(paths)])].sort();
           return { ...current, revision: current.revision + 1, files, folders };
         });
         setDirty((current) => new Set([...current, ...Object.keys(materialized)]));
-        setOutput((current) => `${current}[artifacts] verified and saved ${Object.keys(materialized).length} file(s) under .ynx-build\n`);
+        setOutput((current) => `${current}[artifacts] verified for this source ${Object.keys(materialized).length} file(s) under .ynx-build\n`);
       }
     } catch (error) {
+      if (!currentTask()) return;
       setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
     } finally {
-      setRunning(false);
+      if (currentTask()) setRunning(false);
     }
   };
   const executeTests = async () => {
+    const captured=captureTaskSource(project), generation=++taskGeneration.current.value;
+    const currentTask=()=>taskGeneration.current.value===generation&&workspaceProjectRef.current===captured.id;
     setTestReview(false);
     setRunning(true);
     setBottom("task");
     setOutput((current) => `${current}\n$ ynx task test-project · ${testCandidates.length} discovered files\n`);
     try {
       if (selectedRuntime) throw new Error("Project test execution is currently approved only for the authenticated local workspace sandbox. Deselect the remote runtime or run tests explicitly in its terminal.");
-      const result = await runProjectTests(project.id, project.files, (event) => {
+      const result = await runProjectTests(captured.id, captured.files, (event) => {
+        if (!currentTask()) return;
         if (event.type === "phase" && event.status === "started") setOutput((current) => `${current}${event.phase}> `);
         if (event.type === "output") setOutput((current) => `${current}${event.data}`);
       });
+      if (!currentTask()) return;
       setOutput((current) => `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`);
     } catch (error) {
+      if (!currentTask()) return;
       setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
     } finally {
-      setRunning(false);
+      if (currentTask()) setRunning(false);
     }
   };
   const installDependency = async () => {

@@ -1,9 +1,90 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, existsSync, readdirSync, lstatSync, realpathSync, readlinkSync } from "node:fs";
-import { join, dirname, resolve, relative, sep } from "node:path";
+import { join, dirname, resolve, relative, sep, basename, isAbsolute } from "node:path";
+import { isDeepStrictEqual } from "node:util";
 
 import { fileURLToPath } from "node:url";
+import {CONTROL_MATCHED_VARIANT,matchedNodePackageSourceRoles} from './c6-control-matched-input.mjs';
+export function addMatchedNodeSBOMComponent(components,roles){
+ if(roles?.sourceVariant!==CONTROL_MATCHED_VARIANT)return;
+ const checked=matchedNodePackageSourceRoles({schema:'YNX_IDE_CONTROL_MATCHED_WHOLE_NORMAL_PRODUCT/v1',NativeBuildOrRelinkRequested:false,SDKResourceOnlySuccessor:true,roles:{CocoaCompiledSDK:roles.CocoaCompiledSDK,CocoaCPPBase:roles.compiledCocoaNativeSourceCommit},matchedNode:{sourceRoles:roles.matchedNodeSourceRoles,record:roles.matchedNodeRecord,image:roles.matchedNodeImage}});
+ components.push({type:'library','bom-ref':'ynx:wallet-control-node:sha256:'+checked.matchedNodeImage.sha256,name:'YNX matched Wallet Control Node composite',version:checked.matchedNodeImage.sha256,scope:'required',hashes:[{alg:'SHA-256',content:checked.matchedNodeImage.sha256}],properties:[...Object.entries(checked.matchedNodeSourceRoles).map(([name,value])=>({name:'ynx:'+name,value:String(value)})),{name:'ynx:originalMatchingRecordSHA256',value:checked.matchedNodeRecord.sha256},{name:'ynx:recordedObjectCount',value:'87'},{name:'ynx:inheritedCocoaCompiledSDK',value:checked.CocoaCompiledSDK}]});
+}
+const R21_VARIANT='R21_COCOA_SUCCESSOR_NORMAL_PRODUCT';
+const cocoaRevision = variant => ({ [R21_VARIANT]:'R21', R22_COCOA_SUCCESSOR_NORMAL_PRODUCT:'R22', R23_COCOA_SUCCESSOR_NORMAL_PRODUCT:'R23', R579_COCOA_SUCCESSOR_NORMAL_PRODUCT:'579' })[variant];
+const R21_GO_ARCHIVE='packages/wallet-auth/native/vendor/link/libynx_artifact_release.a';
+const R21_OBJECTS=[1,10,11,12,13,14,18,19,22,24,25].map(n=>`original-auth-common.arm64.${n}.o`);
+const R21_COMMANDS=['compile-new-main','strict-c6-Cocoa-napi-free-closure-relink','normal-c6-Cocoa-relative-libssl.3.dylib','normal-c6-Cocoa-relative-libcrypto.3.dylib'];
+const isSHA256=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+const isCommit=value=>typeof value==='string'&&/^[a-f0-9]{40}$/.test(value);
+const isPin=row=>typeof row?.path==='string'&&isAbsolute(row.path)&&resolve(row.path)===row.path&&Number.isSafeInteger(row.bytes)&&row.bytes>0&&isSHA256(row.sha256);
+const equal=isDeepStrictEqual;
+const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
+
+function readR21CocoaReceipt(pin){
+ if(!isPin(pin))throw Error('R21 Cocoa SBOM execution receipt pin differs');
+ const stat=lstatSync(pin.path);
+ if(!stat.isFile()||stat.size!==pin.bytes||realpathSync(pin.path)!==pin.path)throw Error('R21 Cocoa SBOM execution receipt path differs');
+ const bytes=readFileSync(pin.path);
+ if(bytes.length!==pin.bytes||digest(bytes)!==pin.sha256)throw Error('R21 Cocoa SBOM execution receipt bytes differ');
+ return JSON.parse(bytes);
+}
+
+function assertR21CocoaSBOM(native,sourceCommit,plan,roles,execution,receipt){
+ const refuse=()=>{throw Error('R21 Cocoa SBOM source roles or linked roster differ');};
+ const revision=cocoaRevision(native.sourceVariant);
+ const receiptRoles = revision === '579' ? receipt?.roles : receipt?.sourceRoles;
+ const receiptSchema = revision === '579' ? 'YNX_IDE_579_COCOA_INPUT_PREFLIGHT/v1' : `YNX_IDE_${revision}_COCOA_EXECUTION/v1`;
+ if(plan?.schema!==`YNX_IDE_${revision}_COCOA_PRODUCT_PLAN/v1`||plan.variant!==native.sourceVariant||
+    !isCommit(sourceCommit)||plan.sourceCommit!==sourceCommit||native.sourceCommit!==sourceCommit||execution?.sourceCommit!==sourceCommit||
+    roles?.applicationSourceCommit!==sourceCommit||roles.assembledSourceCommit!==sourceCommit||roles.originalNativeReceiptsPreserved!==true||
+    roles.sourceVariant!==CONTROL_MATCHED_VARIANT||plan.SDKSourceCommit!==native.SDKSourceCommit||roles.SDKResourceSourceCommit!==native.SDKSourceCommit||
+    native.objects!==13||plan.objectCount!==13||native.commandCount!==0||!equal(plan.commands,[])||
+    execution.complete!==true||!equal(execution.ownedUndefined,[])||!isPin(plan.cocoaExecution)||
+    !equal(execution.cocoaExecution,plan.cocoaExecution)||!equal(roles.compiledCocoaReceipt,plan.cocoaExecution)||
+    receipt?.schema!==receiptSchema||receipt.complete!==true||receipt.error!==null||
+    !isPin(receipt.output)||execution.binarySHA256!==receipt.output.sha256||
+    native.linkedBinarySHA256BeforeAdhocSigning!==receipt.output.sha256||
+    !equal(plan.sourceRoles,receiptRoles)||!equal(execution.sourceRoles,receiptRoles))refuse();
+ const r=receiptRoles;
+ if(!r||!isCommit(receipt.sourceCommit)||!isCommit(receipt.sourceTree)||
+    r.compiledCocoaApplication!==receipt.sourceCommit||r.compiledCocoaApplicationTree!==receipt.sourceTree||
+    roles.compiledCocoaApplication!==receipt.sourceCommit||roles.compiledCocoaApplicationTree!==receipt.sourceTree||
+    roles.compiledSDKSourceCommit!==r.compiledCocoaSDK||roles.CocoaCompiledSDK!==r.compiledCocoaSDK||
+    roles.compiledNativeSourceCommit!==r.compiledCocoaCPP||roles.compiledCocoaNativeSourceCommit!==r.compiledCocoaCPP||
+    !equal(roles.matchedNodeSourceRoles,r.NodeComposite)||r.SDKResource!==native.SDKSourceCommit||
+    r.NodeComposite?.projectControlSource!==r.SDKResource)refuse();
+ const inputs=receipt.retainedLinkInputs, main=receipt.mainObject;
+ if(!Array.isArray(inputs)||inputs.length!==13||inputs.some(row=>!isPin(row))||!isPin(main)||
+    !equal(inputs.map(row=>basename(row.path)),[...R21_OBJECTS,'ynx-wallet-admission-parent.m.o','libynx_artifact_release.a'])||
+    basename(main.path)!=='main.m.o'||new Set([...inputs,main].map(row=>row.path)).size!==14||
+    !equal(plan.retainedLinkInputs,inputs)||!equal(plan.mainObject,main))refuse();
+ const archive=inputs.at(-1), archiveFields={bytes:archive.bytes,sha256:archive.sha256};
+ if(!equal(plan.inputs,[{...archive,relativePath:R21_GO_ARCHIVE}])||
+    !equal(native.originalCoreArchives,[{path:R21_GO_ARCHIVE,...archiveFields}]))refuse();
+ const commands=receipt.commands;
+ if(!Array.isArray(commands)||!equal(commands.map(command=>command?.name),R21_COMMANDS)||
+    commands.some(command=>!Array.isArray(command.argv)||command.argv.some(value=>typeof value!=='string'))||
+    !equal(plan.compiledCommands,commands)||
+    !equal(receipt.results,R21_COMMANDS.map(name=>({name,status:0,signal:null}))))refuse();
+ const linkInputs=commands[1].argv.filter(value=>/\.(?:o|a)$/.test(value));
+ if(!equal(linkInputs,[...inputs.slice(0,11).map(row=>row.path),main.path,...inputs.slice(11).map(row=>row.path)])||
+    !equal(commands[0].argv.filter(value=>value.endsWith('.o')),[main.path]))refuse();
+}
+
+export function assertNativeSBOMSourceShape(native,sourceCommit,plan,roles,execution,cocoaReceipt){
+ if(native.schema!=='YNX_IDE_NORMAL_COCOA_LINK_DISTRIBUTION/v1'||!/^[a-f0-9]{40}$/.test(native.SDKSourceCommit))throw Error('Native SBOM closure identity differs');
+ if(cocoaRevision(native.sourceVariant)){assertR21CocoaSBOM(native,sourceCommit,plan,roles,execution,cocoaReceipt);return;}
+ if(!plan){if(native.sourceCommit!==sourceCommit||native.objects!==36)throw Error('Native SBOM closure identity differs');return;}
+ if(native.sourceVariant==='C6_DIAGNOSTIC_NORMAL_PRODUCT'){
+  const cocoa=plan.CocoaPlan;
+  const commandCustody=plan.reusedCocoaExecution ? plan.commands?.length===0&&Array.isArray(cocoa?.commands)&&cocoa.commands.length>0&&JSON.stringify(roles?.compiledCocoaReceipt)===JSON.stringify(plan.reusedCocoaExecution)&&roles?.compiledSDKSourceCommit==='98956ed2bbac8bb5c86de83c4f1df24314e19bf0' : JSON.stringify(plan.commands)===JSON.stringify(cocoa?.commands);
+  if(plan.schema!=='YNX_IDE_C6_PRODUCT_PLAN/v1'||plan.variant!==native.sourceVariant||!Array.isArray(plan.commands)||!Array.isArray(cocoa?.qualifiedObjects)||!Array.isArray(cocoa.retainedRootObjects)||cocoa.retainedRootObjects.length!==2||!cocoa.qualifiedObjects.length||plan.objectCount!==cocoa.qualifiedObjects.length+cocoa.retainedRootObjects.length||cocoa.objectCount!==plan.objectCount||native.objects!==plan.objectCount||native.commandCount!==plan.commands.length||!commandCustody||plan.sourceCommit!==sourceCommit||native.sourceCommit!==sourceCommit||roles?.applicationSourceCommit!==sourceCommit||roles.assembledSourceCommit!==sourceCommit||roles.compiledNativeSourceCommit!==cocoa.sourceRoles?.CPP||roles.SDKResourceSourceCommit!==native.SDKSourceCommit||plan.SDKSourceCommit!==native.SDKSourceCommit||roles.originalNativeReceiptsPreserved!==true)throw Error('C6 native SBOM source roles differ');
+  return;
+ }
+ if(plan.schema!=='YNX_IDE_CURRENT_PRODUCT_QA_LINK_PLAN/v1'||!Array.isArray(plan.commands)||native.objects!==plan.commands.length||roles?.applicationSourceCommit!==sourceCommit||roles.assembledSourceCommit!==native.sourceCommit||roles.compiledNativeSourceCommit!==plan.compiledSource?.commit||roles.SDKResourceSourceCommit!==native.SDKSourceCommit||roles.originalNativeReceiptsPreserved!==true)throw Error('Current native SBOM source roles differ');
+}
 
 export function generateCodeSbom(output, runtimeNode, npmPackagePath, sourceCommit) {
 if (!output || !runtimeNode || !npmPackagePath || !/^[0-9a-f]{40}$/.test(sourceCommit || "")) throw new Error("SBOM output, runtime, npm package and source commit are required.");
@@ -48,6 +129,49 @@ if (existsSync(compilerReceipt)) {
   }
 }
 addPackagedServiceComponents(components, join(dirname(output), 'code/apps/developer'));
+const nativeReceiptPath=join(dirname(output),'native-link/distribution.json');
+if(existsSync(nativeReceiptPath)) {
+  const native=JSON.parse(readFileSync(nativeReceiptPath,'utf8'));
+  let currentPlan,currentRoles,currentExecution,cocoaReceipt;
+  const binding=join(dirname(output),'code/apps/developer/identity-sdk-projection-binding.json');
+  if(existsSync(binding)){
+    const tree=execFileSync('/usr/bin/git',['rev-parse','HEAD^{tree}'],{cwd:fileURLToPath(new URL('../',import.meta.url)),encoding:'utf8'}).trim();
+    currentRoles=JSON.parse(execFileSync(process.execPath,[fileURLToPath(new URL('./verify-current-package-source-roles.mjs',import.meta.url)),resolve(dirname(output),'../..'),sourceCommit,tree],{encoding:'utf8'}));
+    const raw=readFileSync(join(dirname(output),'native-link/plan.json')),execution=readFileSync(join(dirname(output),'native-link/execution.json'));
+    if(createHash('sha256').update(raw).digest('hex')!==native.planSHA256||createHash('sha256').update(execution).digest('hex')!==native.executionSHA256)throw Error('Native SBOM original receipts changed');
+    currentPlan=JSON.parse(raw);
+    if(cocoaRevision(native.sourceVariant)){
+      currentExecution=JSON.parse(execution);
+      if(!equal(currentPlan.cocoaExecution,currentRoles.compiledCocoaReceipt))throw Error('R21 Cocoa SBOM execution custody differs');
+      cocoaReceipt=readR21CocoaReceipt(currentPlan.cocoaExecution);
+    }
+  }
+  assertNativeSBOMSourceShape(native,sourceCommit,currentPlan,currentRoles,currentExecution,cocoaReceipt);
+  addMatchedNodeSBOMComponent(components,currentRoles);
+  components.push({type:'library','bom-ref':`ynx:wallet-auth-native:${native.SDKSourceCommit}`,name:'YNX Wallet/Auth native Cocoa source',version:native.SDKSourceCommit,scope:'required',properties:[{name:'ynx:linkPlanSHA256',value:native.planSHA256},{name:'ynx:redistributionNoticeStatus',value:native.redistributionNoticeStatus}]});
+  if(cocoaRevision(native.sourceVariant)){
+    const properties=components.at(-1).properties;
+    const retained=cocoaReceipt.retainedLinkInputs.slice(0,-1);
+    const objectRoster=[...retained.slice(0,11).map(row=>({role:'retained CPP object',...row})),
+      {role:'compiled Cocoa main',...cocoaReceipt.mainObject},{role:'retained Cocoa parent',...retained[11]}];
+    properties.push(
+      {name:'ynx:compiledNativeSourceCommit',value:currentRoles.compiledNativeSourceCommit},
+      {name:'ynx:compiledCocoaApplication',value:currentRoles.compiledCocoaApplication},
+      {name:'ynx:compiledCocoaApplicationTree',value:currentRoles.compiledCocoaApplicationTree},
+      {name:'ynx:compiledCocoaSDK',value:currentRoles.CocoaCompiledSDK},
+      {name:'ynx:assemblyProducerCommit',value:currentRoles.assembledSourceCommit},
+      {name:'ynx:recordedProducerCommands',value:'0'},
+      {name:'ynx:recordedCocoaExecutionCommands',value:String(cocoaReceipt.commands.length)},
+      {name:'ynx:recordedObjects',value:String(objectRoster.length)},
+      {name:'ynx:recordedObjectsFieldMeaning',value:'Eleven retained CPP objects, retained Cocoa parent, and newly compiled Cocoa main; archive recorded separately'},
+      {name:'ynx:compiledCocoaReceiptSHA256',value:currentPlan.cocoaExecution.sha256},
+      {name:'ynx:linkedObjectRoster',value:JSON.stringify(objectRoster.map(({path,...row})=>({name:basename(path),...row})))});
+  } else if(currentRoles)components.at(-1).properties.push({name:'ynx:compiledNativeSourceCommit',value:currentRoles.compiledNativeSourceCommit},{name:'ynx:assemblyProducerCommit',value:currentRoles.assembledSourceCommit},{name:'ynx:recordedProducerCommands',value:String(native.sourceVariant==='C6_DIAGNOSTIC_NORMAL_PRODUCT'?native.commandCount:native.objects)},{name:'ynx:recordedObjects',value:String(native.objects)},{name:'ynx:recordedObjectsFieldMeaning',value:native.sourceVariant==='C6_DIAGNOSTIC_NORMAL_PRODUCT'?'Exact reused object count; actual compiler/link commands recorded separately':'Legacy field name; exact original plan command count, not a claim of translation-unit count'});
+  for(const archive of native.originalCoreArchives) {
+    if(!/^[a-f0-9]{64}$/.test(archive.sha256))throw Error('Native Core archive identity differs');
+    components.push({type:'library','bom-ref':`ynx:artifact-release-core:sha256:${archive.sha256}`,name:'YNX original artifact release Core archive',scope:'required',hashes:[{alg:'SHA-256',content:archive.sha256}]});
+  }
+}
 components.sort((a, b) => a["bom-ref"].localeCompare(b["bom-ref"]));
 const serialSeed = createHash("sha256").update(`${sourceCommit}\n${nodeVersion}\n${npmPackage.version}\n${components.map(value => value["bom-ref"]).join("\n")}`).digest("hex");
 const sbom = {

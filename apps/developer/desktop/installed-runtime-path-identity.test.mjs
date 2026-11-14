@@ -19,7 +19,7 @@ test('installed read-only runtime admits standard Applications; projects and wri
   await mkdir(runtime, { recursive: true }); await mkdir(join(resources, 'code/apps/developer/desktop'), { recursive: true });
   await mkdir(join(installed, 'Contents/MacOS'));
   const helper = join(runtime, 'workspace-path-identity');
-  await exec('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk','-Wall','-Wextra','-Werror',fileURLToPath(new URL('./macos/workspace-path-identity.c', import.meta.url)), '-o', helper]);
+  await exec('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk','-Wall','-Wextra','-Werror',fileURLToPath(new URL('./macos/workspace-path-identity.c', import.meta.url)), '-o', helper]);
   await copyFile(helper, join(runtime, 'ynx-local-workbench-lock'));
   await copyFile(helper, join(installed, 'Contents/MacOS/Fixture'));
   await copyFile(fileURLToPath(new URL('./workspace-path-identity.mjs', import.meta.url)), modulePath);

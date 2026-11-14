@@ -1,3 +1,19 @@
+const { explorerCreateTransaction } = require('./explorer-create-transaction');
+const workspaceSave = Symbol('workspaceSave');
+
+function trackWorkspace(workspace) {
+  const roots = [...workspace.tryGetRoots()];
+  let retired = false;
+  const retire = () => { retired = true; };
+  const subscriptions = [workspace.onWorkspaceChanged?.(retire), workspace.onWorkspaceLocationChanged?.(retire)];
+  return {
+    current() {
+      const live = workspace.tryGetRoots();
+      return !retired && roots.length === live.length && roots.every((root, index) => root === live[index]);
+    },
+    dispose() { for (const subscription of subscriptions) subscription?.dispose(); },
+  };
+}
 // Override only the workbench's open commands. Extension dialogs retain their
 // existing scope, and an OS selection never widens the current backend root.
 function workspaceMatchesRoot(data, fileUri, rootUri) {
@@ -12,10 +28,33 @@ function workspaceMatchesRoot(data, fileUri, rootUri) {
   // Do not normalize arbitrary ../ or symlink-containing paths into authority.
   return folder.path === rootPath || (folder.path === '.' && parent === rootPath);
 }
-function install({ Contribution, URI, open, parse, target, localize, fileOpenMenu, commands, getCurrentEditor = () => undefined }) {
+// Adapt only the framework's DEFAULT contributions. WKWebView is a browser
+// target to Theia, whose CmdO workspace-symbol binding otherwise consumes the
+// native menu shortcut. User/workspace remaps still resolve above these defaults.
+function installNativeOpenKeybindings({ Contribution, SymbolContribution, target, commands }) {
+  for (const [Type, transform] of [
+    [Contribution, binding => binding.command === commands.OPEN.id && binding.keybinding === 'ctrlcmd+alt+o'
+      ? { ...binding, command: commands.OPEN_FILE.id, keybinding: 'ctrlcmd+o' } : binding],
+    [SymbolContribution, binding => binding.command === 'languages.workspace.symbol' && binding.keybinding === 'ctrlcmd+o'
+      ? { ...binding, keybinding: 'ctrlcmd+t' } : binding],
+  ]) {
+    if (!Type || Object.hasOwn(Type.prototype, '__ynxNativeOpenKeybindings')) continue;
+    const original = Type.prototype.registerKeybindings;
+    if (typeof original !== 'function') continue;
+    Object.defineProperty(Type.prototype, '__ynxNativeOpenKeybindings', { value: true });
+    Type.prototype.registerKeybindings = function (registry) {
+      if (!target.ynxDesktopFiles) return original.call(this, registry);
+      const defaults = Object.create(registry);
+      defaults.registerKeybinding = binding => registry.registerKeybinding(transform(binding));
+      return original.call(this, defaults);
+    };
+  }
+}
+function install({ Contribution, WorkspaceContribution, SymbolContribution, URI, UriAwareCommandHandler, open, parse, target, localize, fileOpenMenu, commands, fileStatFromNative }) {
+  installNativeOpenKeybindings({ Contribution, SymbolContribution, target, commands });
+  installNativeExplorerCreation({ WorkspaceContribution, URI, UriAwareCommandHandler, open, target, localize, commands, fileStatFromNative });
   const prototype = Contribution.prototype;
   if (prototype.__ynxNativeFilePicker) return;
-  const requests = new WeakMap();
   Object.defineProperty(prototype, '__ynxNativeFilePicker', { value: true });
   const registerMenus = prototype.registerMenus;
   prototype.registerMenus = function (menus) {
@@ -25,24 +64,39 @@ function install({ Contribution, URI, open, parse, target, localize, fileOpenMen
       menus.registerMenuAction(fileOpenMenu, { commandId: commands.OPEN_FOLDER.id, label: localize('openFolder', 'Open Folder…'), order: 'a02' });
     }
   };
+  const saveWorkspaceAs = prototype.saveWorkspaceAs;
+  if (saveWorkspaceAs) prototype.saveWorkspaceAs = async function (...args) {
+    if (!target.ynxDesktopFiles) return saveWorkspaceAs.apply(this, args);
+    const workspace = this.workspaceService;
+    const scope = trackWorkspace(workspace);
+    let saved = false;
+    // Scope the original method's dependencies to this invocation. Its normal
+    // extension selection and overwrite confirmation still run unchanged.
+    const invocation = Object.create(this, {
+      fileDialogService: { value: { showSaveDialog: (props, folder) => scope.current()
+        ? this.fileDialogService.showSaveDialog(props, folder, workspaceSave) : undefined } },
+      workspaceService: { value: { save: async uri => {
+        if (!scope.current()) return;
+        await workspace.save(uri);
+        saved = true;
+      } } },
+    });
+    try {
+      await saveWorkspaceAs.apply(invocation, args);
+      return saved;
+    } finally {
+      scope.dispose();
+    }
+  };
   for (const [method, kind] of Object.entries({ doOpen: 'any', doOpenFile: 'file', doOpenFolder: 'folder', doOpenWorkspace: 'workspace' })) {
     const original = prototype[method];
     prototype[method] = async function (...args) {
       const bridge = target.ynxDesktopFiles;
       if (!bridge) return original.apply(this, args);
-      const request = {}, workspace = this.workspaceService.workspace;
-      const roots = this.workspaceService.tryGetRoots?.();
-      const widget = getCurrentEditor(), document = widget?.editor?.document;
-      const version = document?.textEditorModel?.getVersionId();
-      requests.set(this, request);
-      const current = () => requests.get(this) === request && target.ynxDesktopFiles === bridge &&
-        this.workspaceService.workspace === workspace && getCurrentEditor() === widget && !widget?.isDisposed &&
-        widget?.editor?.document === document && !document?.isDisposed?.() && document?.textEditorModel?.getVersionId() === version &&
-        (!roots || (() => { const now = this.workspaceService.tryGetRoots(); return now.length === roots.length && now.every((root, index) => root === roots[index]); })());
+      const { current, dispose } = trackWorkspace(this.workspaceService);
       try {
         const result = await bridge.open({ kind });
-        if (!current()) return undefined;
-        if (result.cancelled || result.openedInNewWindow || !result.uris?.length) return undefined;
+        if (!current() || result.cancelled || result.openedInNewWindow || !result.uris?.length) return undefined;
         const uri = new URI(result.uris[0]);
         if (kind === 'workspace') {
           const info = await this.fileService.resolve(uri);
@@ -64,12 +118,115 @@ function install({ Contribution, URI, open, parse, target, localize, fileOpenMen
         await open(this.openerService, uri);
         return [uri];
       } catch (error) {
-        if (!current()) return undefined;
-        await this.messageService.error(error.message || localize('nativeOpenFailed', 'The selected file could not be opened.'));
+        if (current()) {
+          try { void Promise.resolve(this.messageService.error(error.message || localize('nativeOpenFailed', 'The selected file could not be opened.'))).catch(() => {}); }
+          catch { /* The failed Open has already finished. */ }
+        }
         return undefined;
+      } finally {
+        dispose();
       }
     };
   }
+}
+function localExplorerFileUri(uri) {
+  if (uri?.scheme !== 'file' || uri.authority || uri.query || uri.fragment) return undefined;
+  const path = uri.path.toString();
+  if (!path.startsWith('/') || path.split('/').some(part => part === '.' || part === '..')) return undefined;
+  // Foundation's directory file URLs include a terminal slash; Theia may
+  // represent the same Explorer directory without one.
+  return uri.withPath(path.replace(/\/+$/, '') || '/');
+}
+// The bridge performs the exclusive filesystem create. A successful Explorer
+// reply only reveals or opens the resource; the renderer must not write it again.
+function installNativeExplorerCreation({ WorkspaceContribution, URI, UriAwareCommandHandler, open, target, localize, commands, fileStatFromNative }) {
+  const prototype = WorkspaceContribution?.prototype;
+  if (!prototype || Object.hasOwn(prototype, '__ynxNativeExplorerCreation')) return;
+  const register = prototype.registerCommands, active = new WeakSet();
+  Object.defineProperty(prototype, '__ynxNativeExplorerCreation', { value: true });
+  prototype.registerCommands = function (registry) {
+    const contribution = this, adapted = Object.create(registry);
+    adapted.registerCommand = (command, handler, ...rest) => {
+      const folder = command.id === commands.NEW_FOLDER?.id;
+      if (!folder && command.id !== commands.NEW_FILE?.id) return registry.registerCommand(command, handler, ...rest);
+      // Keep the framework's selection extraction before its workspace handler
+      // can replace an out-of-workspace URI with the current root.
+      const selectionHandler = UriAwareCommandHandler.MonoSelect(contribution.selectionService, {});
+      const create = async selected => {
+        if (active.has(contribution)) return undefined;
+        active.add(contribution);
+        const subscriptions = [];
+        try {
+          const workspace = contribution.workspaceService, root = workspace.tryGetRoots()[0];
+          const workspaceRoot = localExplorerFileUri(root?.resource);
+          if (!workspaceRoot) return undefined;
+          let invalidated = false;
+          for (const event of ['onWorkspaceChanged', 'onWorkspaceLocationChanged']) {
+            if (typeof workspace[event] === 'function') subscriptions.push(workspace[event](() => { invalidated = true; }));
+          }
+          const current = () => !invalidated && workspace.tryGetRoots()[0] === root;
+          const selection = localExplorerFileUri(selected ?? root.resource);
+          if (!selection || !workspaceRoot.isEqualOrParent(selection)) return undefined;
+          // The upstream helper falls back to the parent even after a failed
+          // resolve. Only a confirmed existing file may select its parent here.
+          let parent;
+          try {
+            const item = await contribution.fileService.resolve(selection);
+            if (!current()) return undefined;
+            if (item?.isDirectory) parent = item;
+            else if (item?.isFile) parent = await contribution.fileService.resolve(selection.parent);
+          } catch (error) {
+            if (!current()) return undefined;
+            throw error;
+          }
+          const directory = localExplorerFileUri(parent?.resource);
+          if (!current() || !parent?.isDirectory || !directory || !workspaceRoot.isEqualOrParent(directory)) return undefined;
+          const defaults = folder ? { fileName: 'Untitled', fileExtension: '' } : contribution.getDefaultFileConfig();
+          const uri = await explorerCreateTransaction(target.ynxDesktopFiles, contribution.fileService, {
+            kind: folder ? 'create-folder' : 'create', name: defaults.fileName + defaults.fileExtension,
+            directoryUri: directory.toString(),
+          }, {
+            current,
+            toFileStat: fileStatFromNative,
+            decode(result, phase) {
+              if (result?.[phase] !== true || result.openedInNewWindow || !Array.isArray(result.uris) ||
+                  result.uris.length !== 1 || typeof result.uris[0] !== 'string' || typeof result.rootUri !== 'string') {
+                throw Error(localize('nativeExplorerCreateResponse', 'The IDE could not confirm creation of the selected item.'));
+              }
+              const uri = localExplorerFileUri(new URI(result.uris[0]));
+              const receiptRoot = localExplorerFileUri(new URI(result.rootUri));
+              if (!uri || !receiptRoot?.isEqual(workspaceRoot) || !workspaceRoot.isEqualOrParent(uri) ||
+                  uri.isEqual(workspaceRoot) || (folder && !uri.parent.isEqual(directory))) {
+                throw Error(localize('nativeExplorerCreateScope', 'Create the item inside the current project.'));
+              }
+              return uri;
+            },
+          });
+          if (!uri || !current()) return undefined;
+          if (folder) contribution.fireCreateNewFolder({ parent: uri.parent, uri });
+          else {
+            contribution.fireCreateNewFile({ parent: uri.parent, uri });
+            if (current()) await open(contribution.openerService, uri);
+          }
+          return current() ? uri : undefined;
+        } catch (error) {
+          const fallback = folder
+            ? localize('nativeExplorerCreateFolderFailed', 'The new folder could not be created.')
+            : localize('nativeNewFileFailed', 'The new file could not be created or opened.');
+          // Error reporting cannot keep the picker operation indefinitely busy.
+          try { Promise.resolve(contribution.messageService.error(error?.message || fallback)).catch(() => {}); } catch {}
+          return undefined;
+        } finally {
+          for (const subscription of subscriptions) { try { subscription?.dispose(); } catch {} }
+          active.delete(contribution);
+        }
+      };
+      const replacement = Object.create(handler);
+      replacement.execute = (...args) => target.ynxDesktopFiles ? create(selectionHandler.getUri(...args)) : handler.execute(...args);
+      return registry.registerCommand(command, replacement, ...rest);
+    };
+    return register.call(this, adapted);
+  };
 }
 class NativeInitialFile {
   constructor(editors, workspace, messages, target, URI, localize = (_, text) => text) { Object.assign(this, { editors, workspace, messages, target, URI, localize }); }
@@ -78,48 +235,52 @@ class NativeInitialFile {
     if (!uri) return;
     await this.workspace.ready;
     try { await this.editors.open(new this.URI(uri), { mode: 'activate' }); }
-    catch {
-      // A notification is not a startup authorization step. Its promise waits
-      // for dismissal, which is impossible while the native window is hidden.
-      try { Promise.resolve(this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.'))).catch(() => {}); } catch {}
-    }
+    catch { await this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.')); }
   }
 }
-// Native panels select a destination; the existing saveable still owns the
-// write and its overwrite checks. Browser mode keeps its normal dialog.
-function installProjectSaveDefault({ dialogs, editors, workspace, fileService, target = {}, URI }) {
+// Only supply a missing Save As start folder; the standard dialog still owns
+// destination selection, cancellation, overwrite confirmation and saving.
+function installProjectSaveDefault({ dialogs, editors, workspace, fileService, target, URI }) {
   const original = dialogs.showSaveDialog.bind(dialogs);
-  let active;
-  dialogs.showSaveDialog = async (props, folder) => {
-    const bridge = target.ynxDesktopFiles;
-    if (typeof bridge?.save === 'function') {
-      // A duplicate Save must not replace the owner of an already visible
-      // system panel, nor reuse its destination for another saveable.
-      if (active) return undefined;
-      const request = {}, roots = workspace.tryGetRoots(), binding = workspace.workspace;
-      const editor = editors.currentEditor, document = editor?.editor?.document;
-      const version = document?.textEditorModel?.getVersionId();
-      active = request;
-      const current = () => active === request && target.ynxDesktopFiles === bridge && workspace.workspace === binding &&
-        editors.currentEditor === editor && !editor?.isDisposed && editor?.editor?.document === document &&
-        !document?.isDisposed?.() && document?.textEditorModel?.getVersionId() === version &&
-        (() => { const now = workspace.tryGetRoots(); return now.length === roots.length && now.every((root, index) => root === roots[index]); })();
+  dialogs.showSaveDialog = async (props, folder, purpose) => {
+    if (target?.ynxDesktopFiles && URI) {
+      const workspaceRequest = purpose === workspaceSave;
+      const root = workspace.tryGetRoots()[0], editor = workspaceRequest ? undefined : editors.currentEditor;
+      const document = editor?.editor?.document;
+      if (!root || (!workspaceRequest && (!editor || editor.isDisposed))) return undefined;
+      let retired = false;
+      const retire = () => { retired = true; };
+      const subscriptions = [];
+      const current = () => !retired && workspace.tryGetRoots()[0] === root && (workspaceRequest ||
+        (editors.currentEditor === editor && editor.editor?.document === document && !editor.isDisposed));
       try {
-        const options = { name: props?.inputValue || '' };
-        // The selected Explorer directory is a starting-location hint only;
-        // the native side independently checks it against the admitted root.
-        if (folder?.resource?.scheme === 'file' && roots.some(root => root.resource.isEqualOrParent(folder.resource))) {
-          options.directoryUri = folder.resource.toString();
+        subscriptions.push(workspace.onWorkspaceChanged?.(retire));
+        subscriptions.push(workspace.onWorkspaceLocationChanged?.(retire));
+        if (!workspaceRequest) subscriptions.push(editors.onCurrentEditorChanged?.(retire));
+        const workspaceRoot = localExplorerFileUri(root.resource);
+        const source = localExplorerFileUri(editor?.editor?.uri);
+        let directory = folder;
+        if (!directory && source && workspaceRoot?.isEqualOrParent(source) && !source.isEqual(workspaceRoot)) {
+          try { directory = await fileService.resolve(source.parent); } catch { /* Let the native dialog use its project root. */ }
         }
-        const result = await bridge.save(options);
-        if (!current() || result.cancelled || typeof result.uri !== 'string' || typeof result.rootUri !== 'string' || !roots.length) return undefined;
-        const selected = new URI(result.uri);
-        if (selected.scheme !== 'file' || !roots.some(root => root.resource.toString().replace(/\/$/, '') === result.rootUri.replace(/\/$/, '') && root.resource.isEqualOrParent(selected))) return undefined;
-        return selected;
+        if (!current()) return undefined;
+        const start = directory?.isDirectory && localExplorerFileUri(directory.resource);
+        const result = await target.ynxDesktopFiles.open({
+          kind: 'save',
+          name: typeof props.inputValue === 'string' ? props.inputValue : 'Untitled',
+          ...(start && workspaceRoot?.isEqualOrParent(start) ? { directoryUri: start.toString() } : {}),
+        });
+        if (!current()) return undefined;
+        if (result.cancelled || !result.uris?.length) return undefined;
+        const uri = new URI(result.uris[0]);
+        if (uri.scheme !== 'file' || !root.resource.isEqualOrParent(uri) || uri.isEqual(root.resource)) throw Error('Save the file inside the current project.');
+        return uri;
       } catch (error) {
         if (current()) throw error;
-        return undefined;
-      } finally { if (active === request) active = undefined; }
+      } finally {
+        for (const subscription of subscriptions) subscription?.dispose();
+      }
+      return undefined;
     }
     if (folder) return original(props, folder);
     const roots = workspace.tryGetRoots();
@@ -138,43 +299,4 @@ function installProjectSaveDefault({ dialogs, editors, workspace, fileService, t
     return original(props, start);
   };
 }
-// Explorer's upstream New File command constructs an HTML input dialog
-// directly. Route this desktop entry through the same native destination
-// picker as Save As; filesystem creation still belongs to the project backend.
-function installNativeNewFile({ Contribution, command, target, open, uniqueResource, getCurrentEditor }) {
-  if (!target.ynxDesktopFiles || Contribution.prototype.__ynxNativeNewFile) return;
-  const prototype = Contribution.prototype, register = prototype.registerCommands;
-  const pending = new WeakSet();
-  Object.defineProperty(prototype, '__ynxNativeNewFile', { value: true });
-  prototype.registerCommands = function (registry) {
-    register.call(this, registry);
-    registry.registerHandler(command.id, this.newWorkspaceRootUriAwareCommandHandler({
-      execute: async uri => {
-        if (pending.has(this)) return;
-        const bridge = target.ynxDesktopFiles, binding = this.workspaceService.workspace;
-        const roots = this.workspaceService.tryGetRoots(), editor = getCurrentEditor();
-        const current = () => target.ynxDesktopFiles === bridge && this.workspaceService.workspace === binding &&
-          getCurrentEditor() === editor && !editor?.isDisposed &&
-          (() => { const now = this.workspaceService.tryGetRoots(); return now.length === roots.length && now.every((root, i) => root === roots[i]); })();
-        pending.add(this);
-        try {
-          const parent = await this.getDirectory(uri);
-          if (!current() || !parent || !roots.some(root => root.resource.isEqualOrParent(parent.resource))) return;
-          const { fileName, fileExtension } = this.getDefaultFileConfig();
-          const suggested = uniqueResource(parent, parent.resource.resolve(fileName + fileExtension), false);
-          const selected = await this.fileDialogService.showSaveDialog({ inputValue: suggested.path.base }, parent);
-          if (!current() || !selected || selected.scheme !== 'file' || !roots.some(root => root.resource.isEqualOrParent(selected))) return;
-          // create() defaults to overwrite:false: native replacement consent
-          // must never turn New File into truncating an existing project file.
-          await this.fileService.create(selected, undefined, { overwrite: false });
-          this.fireCreateNewFile({ parent: selected.parent, uri: selected });
-          if (current()) await open(this.openerService, selected);
-          return selected;
-        } catch (error) {
-          if (current()) await this.messageService.error(error?.message || 'The new file could not be created.');
-        } finally { pending.delete(this); }
-      },
-    }));
-  };
-}
-module.exports = { installNativeNewFile, install, workspaceMatchesRoot, NativeInitialFile, installProjectSaveDefault };
+module.exports = { install, installNativeOpenKeybindings, workspaceMatchesRoot, NativeInitialFile, installProjectSaveDefault };

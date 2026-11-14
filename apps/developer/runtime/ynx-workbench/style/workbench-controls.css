@@ -1,7 +1,8 @@
-.ynx-run-controls { display: flex; align-items: center; border: 0; background: transparent; color: var(--theia-foreground); cursor: pointer; padding: 3px 5px; }
-.ynx-run-controls:hover { background: var(--theia-toolbar-hoverBackground); }
-.ynx-run-controls:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
-.ynx-run-controls:disabled { opacity: .45; cursor: default; }
+.ynx-run-controls { display: flex; align-items: center; }
+.ynx-run-controls button { display: flex; align-items: center; border: 0; background: transparent; color: var(--theia-foreground); cursor: pointer; padding: 3px 5px; }
+.ynx-run-controls button:hover { background: var(--theia-toolbar-hoverBackground); }
+.ynx-run-controls button:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
+.ynx-run-controls button:disabled { opacity: .45; cursor: default; }
 .ynx-workbench-discovery button { border: 0; background: transparent; color: var(--theia-foreground); padding: 6px 8px; cursor: pointer; font: inherit; }
 .ynx-workbench-discovery button:hover { background: var(--theia-toolbar-hoverBackground); }
 .ynx-workbench-discovery button:disabled { opacity: .45; cursor: default; }
@@ -29,3 +30,29 @@
 .ynx-ecosystem-navigation-action:disabled { opacity: .45; cursor: default; }
 .ynx-ecosystem-navigation-action .codicon { color: var(--theia-textLink-foreground); flex: 0 0 18px; }
 .ynx-ecosystem-navigation p { margin: 20px 8px 0; line-height: 1.6; color: var(--theia-descriptionForeground); font-size: 12px; }
+
+/* Project-owned deployment workflow, including narrow left-side docks. */
+.ynx-contract-deployment { box-sizing: border-box; min-width: 0; padding: 16px 12px; overflow: auto; color: var(--theia-foreground); font-family: var(--theia-ui-font-family); font-size: 13px; line-height: 1.5; }
+.ynx-contract-deployment *, .ynx-contract-deployment *::before, .ynx-contract-deployment *::after { box-sizing: border-box; min-width: 0; }
+.ynx-contract-deployment [hidden] { display: none !important; }
+.ynx-contract-deployment .ynx-contract-section { display: flex; flex-direction: column; gap: 12px; margin: 0 0 20px; padding: 0 0 20px; border-bottom: 1px solid var(--theia-panel-border); }
+.ynx-contract-deployment h3 { margin: 0; font-size: 13px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
+.ynx-contract-deployment label { display: flex; flex-direction: column; gap: 6px; width: 100%; font-weight: 500; overflow-wrap: anywhere; }
+.ynx-contract-deployment input.theia-input, .ynx-contract-deployment select.theia-select { display: block; width: 100%; max-width: 100%; min-height: 34px; margin: 0; padding: 6px 8px; font: inherit; font-weight: 400; color: var(--theia-input-foreground); background: var(--theia-input-background); border: 1px solid var(--theia-input-border, var(--theia-panel-border)); border-radius: 5px; }
+.ynx-contract-deployment input[readonly] { font-family: var(--theia-code-font-family); font-size: 12px; }
+.ynx-contract-deployment input:focus-visible, .ynx-contract-deployment select:focus-visible, .ynx-contract-deployment button:focus-visible, .ynx-contract-deployment summary:focus-visible { outline: 2px solid var(--theia-focusBorder); outline-offset: 2px; }
+.ynx-contract-deployment button.theia-button { display: block; width: 100%; max-width: 100%; min-height: 34px; height: auto; margin: 0; padding: 8px 10px; font: inherit; line-height: 1.4; white-space: normal; overflow-wrap: anywhere; text-align: left; border-radius: 5px; }
+.ynx-contract-deployment button.theia-button:disabled { opacity: 1; color: var(--theia-foreground); background: var(--theia-editor-background); border: 1px dashed var(--theia-panel-border); cursor: not-allowed; }
+.ynx-contract-deployment p { margin: 0; font-weight: 400; overflow-wrap: anywhere; }
+.ynx-contract-deployment .ynx-contract-hint { padding: 9px 10px; border-left: 3px solid var(--theia-textLink-foreground); background: var(--theia-editor-background); }
+.ynx-contract-deployment .ynx-contract-details { margin: 16px 0; max-width: 100%; }
+.ynx-contract-deployment summary { padding: 8px 0; cursor: pointer; font-weight: 600; overflow-wrap: anywhere; }
+.ynx-contract-deployment pre { width: 100%; max-height: 280px; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; background: var(--theia-editor-background); border: 1px solid var(--theia-panel-border); border-radius: 5px; font-family: var(--theia-code-font-family); font-size: 12px; }
+
+.ynx-contract-deployment { --ynx-contract-accent: #002fa7; }
+.ynx-contract-deployment button.theia-button:not(:disabled) { background: var(--ynx-contract-accent); color: #fff; border: 1px solid var(--ynx-contract-accent); }
+.ynx-contract-deployment button.theia-button:not(:disabled):hover { background: #00288e; border-color: #00288e; }
+.ynx-contract-deployment button.theia-button:not(:disabled):active { background: #002276; border-color: #002276; }
+.ynx-contract-deployment button.theia-button:focus-visible, .ynx-contract-deployment select.theia-select:focus-visible { outline-color: var(--ynx-contract-accent); }
+.ynx-contract-deployment select.theia-select { border-color: var(--ynx-contract-accent); }
+.ynx-contract-deployment .ynx-contract-disabled-reason { font-size: 12px; line-height: 1.45; color: var(--theia-foreground); font-weight: 400; }

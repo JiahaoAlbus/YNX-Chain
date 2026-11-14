@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { stripTypeScriptTypes } from "node:module";
+import { build } from "esbuild";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-const source = stripTypeScriptTypes(await readFile(new URL("../frontend/src/state/workspace.ts", import.meta.url), "utf8"));
+// Resolve the real dependency graph, including trusted identity activity. A
+// stripped data-URL module cannot resolve relative imports after that addition.
+const compiled=await build({entryPoints:[fileURLToPath(new URL("../frontend/src/state/workspace.ts",import.meta.url))],bundle:true,write:false,format:'esm',platform:'browser',target:'es2022'});
+const source=compiled.outputFiles[0].text;
 let sequence = 0;
 const loadModule = () => import(`data:text/javascript;base64,${Buffer.from(`${source}\n// context ${sequence++}`).toString("base64")}`);
 const browserStorage = () => {

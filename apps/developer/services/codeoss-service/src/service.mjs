@@ -7,6 +7,7 @@ import { OPENVSCODE, CORE_LIMITS } from "./upstream.mjs";
 import { createCentralIdentityVerifier, fault } from "./central-identity.mjs";
 import { consumerIdentityBinding, assertExpectedIdentity } from "./identity-consumer-binding.mjs";
 import { validateRuntimeArtifact } from './composed-runtime.mjs';
+import { createProjectBuildBinding } from './project-build-binding.mjs';
 
 const ID = /^[A-Za-z0-9_-]{1,160}$/;
 const LIVE = "'preparing','running','stopping','recovery-required'";
@@ -79,7 +80,14 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     catch (error) { result = Promise.reject(error); }
     return Promise.resolve(result).finally(() => { entry.active = false; retainedPending.delete(entry); });
   }
-  const retainedAdmissions = new WeakMap();
+  const retainedAdmissions = new WeakMap(), connectionAdmissions = new WeakMap();
+  const projectBuilds = createProjectBuildBinding({ db, now,
+    resolveAdmission: async admission => {
+      const verify = connectionAdmissions.get(admission) || retainedAdmissions.get(admission);
+      if (!verify) throw fault('An original project admission is required.', 'build_admission', 403);
+      return verify();
+    },
+  });
   function requireCompletedCleanup(status) {
     // UNKNOWN is retained outcome history, not proof of an outstanding owner.
     if (status?.complete !== true || status.pending !== 0 || status.retained !== 0)
@@ -331,7 +339,9 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     if (row.status !== "running") throw fault("Native IDE is not running.", "core_not_running");
     // The proxy's fixed socket timer is the runtime ceiling. Its existing
     // repeated backend checks enforce each current identity lease independently.
-    return { context: runtimeContext(row), expiresAt: row.hard_deadline, identity: id };
+    const admission = Object.freeze({ context: runtimeContext(row), expiresAt: row.hard_deadline, identity: id });
+    connectionAdmissions.set(admission, () => authorizeConnection(request, sessionId));
+    return admission;
   }
   // Protected composition only. These locators select a durable approved launch;
   // they cannot turn a guest directory or a desktop nonce into canonical identity.
@@ -485,7 +495,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     return results;
   }
   // Workspace store owns this shared connection and closes it after draining.
-  return { handler, guardWorkspaceWrite, authorizeConnection, acquireProject, authorizeRetainedAdmission, runRetainedOperation: retainedOperation, expireSessions, drain, drainOwner, close: () => {
+  return { buildBindingForAdmission: projectBuilds.bind, authorizeBuild: projectBuilds.authorize, handler, guardWorkspaceWrite, authorizeConnection, acquireProject, authorizeRetainedAdmission, runRetainedOperation: retainedOperation, expireSessions, drain, drainOwner, close: () => {
     if (tasks.size || launches.size || retainedPending.size) throw new Error("Drain the native IDE broker before closing its admission lease.");
     if (completedProjectLifecycle) requireCompletedCleanup(completedProjectLifecycle.cleanupStatus());
     brokerClosed = true;

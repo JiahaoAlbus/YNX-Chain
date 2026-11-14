@@ -1,3 +1,5 @@
+export { createWorkspaceFileSave, resumeWorkspaceFileSave } from './fileSave';
+export type { FileSaveIntent, FileSaveStatus } from './fileSave';
 import { createChainReader } from '../../../services/chain-service/src/chain-reader.mjs';
 export type TaskResult = {
   protocolVersion: string;

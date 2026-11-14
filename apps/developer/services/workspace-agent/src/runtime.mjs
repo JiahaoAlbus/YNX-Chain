@@ -1,18 +1,20 @@
 import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, join, normalize, relative, sep } from "node:path";
-import { tmpdir } from "node:os";
+import { basename, dirname, extname, isAbsolute, join, normalize, relative, sep } from "node:path";
+import { tmpdir, constants as osConstants } from "node:os";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { detectSandbox, resolveExecutable as resolveCommand, sandboxLaunch } from "./sandbox.mjs";
+import { detectSandbox, resolveExecutable, sandboxLaunch } from "./sandbox.mjs";
 import { createGuestAdmission } from "./guest-admission.mjs";
+import { isWorkspacePath as safePath } from "./workspace-path.mjs";
+import { createTaskHistory } from "./task-history.mjs";
+import { pinnedCompilerCLI, compilerReadiness, COMPILER_VERSION } from "../../../scripts/compiler-pin.mjs";
 
 const PROTOCOL = "ynx-code/v1",
   COOKIE = "ynx_code_session",
   MAX_FILES = 256,
   MAX_SOURCE_BYTES = 2 * 1024 * 1024,
   MAX_OUTPUT_BYTES = 1024 * 1024;
-const SAFE_PATH = /^[A-Za-z0-9_./ +@-]+$/;
 
 export function createWorkspaceRuntime(options = {}) {
   const sessionKey = Buffer.from(options.sessionKey || process.env.YNX_CODE_WORKSPACE_SESSION_KEY || randomBytes(32));
@@ -23,6 +25,7 @@ export function createWorkspaceRuntime(options = {}) {
   }
   const root = options.root || join(tmpdir(), "ynx-code-runtime");
   const workspaceStore = options.workspaceStore || null;
+  const taskHistory = workspaceStore?.nativeJournalDatabase ? createTaskHistory({ db: workspaceStore.nativeJournalDatabase(), instanceId: randomUUID() }) : null;
   const release = publicRelease(options.release ?? process.env.YNX_CODE_RELEASE);
   const languageRequests = options.languageRequests || (options.languageRequest ? { cpp: options.languageRequest } : {});
   const environmentResolver = options.environmentResolver;
@@ -31,7 +34,10 @@ export function createWorkspaceRuntime(options = {}) {
   let active = 0;
   const queue = [],
     activities = new Map();
-  const sandbox = detectSandbox(options);
+  const privateRoots = options.protectedReadRoots || [];
+  if (!Array.isArray(privateRoots) || privateRoots.some(path => typeof path !== 'string' || !isAbsolute(path) || /[\u0000-\u001f\u007f]/.test(path)))
+    throw Object.assign(new Error('Private workspace state roots are invalid.'),{code:'invalid_private_state_root'});
+  const sandbox = Object.freeze({...detectSandbox(options),protectedReadRoots:Object.freeze([...privateRoots]),restrictProjectReads:true});
   async function handler(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
     if (url.pathname === "/runtime/codeoss" || url.pathname.startsWith("/runtime/codeoss/")) return false;
@@ -54,6 +60,15 @@ export function createWorkspaceRuntime(options = {}) {
       return true;
     }
     const stopTaskMatch = url.pathname.match(/^\/runtime\/tasks\/([0-9a-f-]{36})$/);
+    if (stopTaskMatch && request.method === "GET") {
+      const session = readSession(request, sessionKey);
+      if (!session) { json(response,401,{code:"workspace_session_required",error:"A signed workspace session is required."}); return true; }
+      if (!taskHistory) { json(response,503,{code:"task_history_unavailable",error:"Durable task history is not configured."}); return true; }
+      const task = taskHistory.read(ownerId(session,sessionKey),stopTaskMatch[1]);
+      if (!task) { json(response,404,{code:"task_not_found",error:"Task was not found."}); return true; }
+      if (["queued","running"].includes(task.status) && !activities.has(task.taskId)) task.status = "unknown";
+      json(response,200,{protocolVersion:PROTOCOL,task}); return true;
+    }
     if (stopTaskMatch && request.method === "DELETE") {
       const session = readSession(request, sessionKey);
       if (!session) {
@@ -75,6 +90,7 @@ export function createWorkspaceRuntime(options = {}) {
         const [item] = queue.splice(index, 1);
         finishActivity(activity.taskId);
         const error = Object.assign(new Error("Task cancelled before execution."), { status: 409, code: "task_cancelled" });
+        recordFailure(activity.taskId,error);
         if (item.internal) item.reject(error);
         else {
           json(item.response, error.status, { error: error.message, code: error.code });
@@ -166,7 +182,7 @@ export function createWorkspaceRuntime(options = {}) {
       return true;
     }
     const workspaceMatch = url.pathname.match(/^\/runtime\/workspaces\/([-A-Za-z0-9_]{1,160})$/);
-    if (workspaceMatch && (request.method === "GET" || request.method === "PUT" || request.method === "POST")) {
+    if (workspaceMatch && ["GET", "PUT", "POST", "PATCH"].includes(request.method)) {
       const session = readSession(request, sessionKey);
       if (!session) {
         const next = newSession();
@@ -192,6 +208,12 @@ export function createWorkspaceRuntime(options = {}) {
         projectId = workspaceMatch[1];
       try {
         if (request.method === "GET") {
+          if (url.searchParams.get("view") === "mutation") {
+            const receipt = workspaceStore.mutationReceipt(owner, projectId, url.searchParams.get("idempotencyKey"));
+            if (!receipt) json(response, 404, { error: "Workspace mutation was not found.", code: "workspace_mutation_not_found" });
+            else json(response, 200, { protocolVersion: PROTOCOL, receipt });
+            return true;
+          }
           if (url.searchParams.get("view") === "history") {
             const value = workspaceStore.history(owner, projectId, url.searchParams.get("cursor"), url.searchParams.get("limit"));
             json(response, 200, { protocolVersion: PROTOCOL, history: value });
@@ -226,7 +248,19 @@ export function createWorkspaceRuntime(options = {}) {
           return true;
         }
         const body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8"));
-        if (body.protocolVersion !== PROTOCOL) throw Object.assign(new Error("Workspace protocol version is required."), { status: 400, code: "protocol_mismatch" });
+        if (body?.protocolVersion !== PROTOCOL) throw Object.assign(new Error("Workspace protocol version is required."), { status: 400, code: "protocol_mismatch" });
+        if (readSession(request, sessionKey) !== session)
+          throw Object.assign(new Error("Workspace admission changed while reading the mutation."), {status:401,code:"workspace_session_expired"});
+        if (request.method === "PATCH") {
+          if (!body || typeof body !== "object" || Array.isArray(body) ||
+              Object.keys(body).sort().join() !== ["protocolVersion", "expectedRevision", "idempotencyKey", "path", "contents"].sort().join())
+            throw Object.assign(new Error("Save-file accepts only the versioned original file intent."), { status: 400, code: "workspace_file_schema" });
+          const value = workspaceStore.saveFile(owner, projectId, {
+            expectedRevision: body.expectedRevision, idempotencyKey: body.idempotencyKey, path: body.path, contents: body.contents,
+          });
+          json(response, 200, { protocolVersion: PROTOCOL, workspace: value });
+          return true;
+        }
         if (request.method === "POST") {
           if (body.action !== "restore" || body.approval !== "restore-workspace-once") throw Object.assign(new Error("An explicit one-time workspace restore approval is required."), { status: 403, code: "restore_approval_required" });
           const value = workspaceStore.restore(owner, projectId, {
@@ -274,6 +308,7 @@ export function createWorkspaceRuntime(options = {}) {
       try {
         body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8"));
         validateTask(body);
+        if (readSession(request,sessionKey) !== session) throw Object.assign(new Error("Workspace admission changed while reading the task."),{status:401,code:"workspace_session_expired"});
       } catch (error) {
         json(response, error.status || 400, {
           error: error.message || "Invalid workspace task.",
@@ -301,23 +336,43 @@ export function createWorkspaceRuntime(options = {}) {
         );
         return true;
       }
-      await new Promise((resolve) => {
-        const item = { taskId: randomUUID(), session, owner: ownerId(session, sessionKey), body, response, resolve, streaming };
-        queue.push(item);
+      try { await new Promise((resolve) => {
+        const item = { taskId: randomUUID(), session, owner: ownerId(session, sessionKey), body, response, resolve, streaming,
+          assertCurrent: () => { if (readSession(request,sessionKey) !== session) throw Object.assign(new Error("Workspace session expired or was revoked."),{status:401,code:"workspace_session_expired"}); } };
         queueActivity(item);
+        queue.push(item);
         pump();
-      });
+      }); } catch (error) {
+        if (!response.writableEnded && !response.destroyed) json(response,503,{code:"task_admission_persistence_failed",error:"Task admission could not be saved. No new process was started."});
+      }
       return true;
     }
     return false;
+  }
+  function taskError(error) {
+    return { code: error?.name === "AbortError" ? "task_cancelled" : error?.code || "task_failed", name:error?.name, message: error?.publicMessage || error?.message || "Workspace task failed.", status: error?.status || 400 };
+  }
+  function recordFailure(taskId,error) {
+    try { taskHistory?.complete(taskId,{error:taskError(error)}); }
+    catch (persistence) { if (error && typeof error === "object") error.taskHistoryFailure = persistence; }
+  }
+  function trackedExecution(item, execution) {
+    return execution.then(value => { if (taskHistory && !taskHistory.complete(item.taskId,{result:value})) throw Object.assign(new Error("Original task result could not be finalized."),{code:"task_history_write_failed"}); return value; },
+      error => { recordFailure(item.taskId,error); throw error; });
   }
   function pump() {
     while (active < concurrency && queue.length) {
       const item = queue.shift();
       active++;
-      startActivity(item);
+      try { startActivity(item); }
+      catch (error) {
+        active--; recordFailure(item.taskId,error); finishActivity(item.taskId);
+        if (item.internal) item.reject(error);
+        else { if (!item.response.destroyed && !item.response.writableEnded) json(item.response,503,{code:"task_admission_persistence_failed",error:"Task start could not be saved. No process was started."}); item.resolve(); }
+        continue;
+      }
       if (item.internal) {
-        execute(item.session, item.body, {
+        trackedExecution(item, execute(item.session, item.body, {
           root,
           sandbox,
           onEvent: item.onEvent,
@@ -327,7 +382,7 @@ export function createWorkspaceRuntime(options = {}) {
           onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision),
           signal: item.controller.signal,
           assertCurrent: item.operation?.assertCurrent,
-        })
+        }))
           .then(item.resolve, item.reject)
           .finally(() => {
             active--;
@@ -344,7 +399,7 @@ export function createWorkspaceRuntime(options = {}) {
           "x-accel-buffering": "no",
         });
         const send = (value) => item.response.write(`${JSON.stringify(value)}\n`);
-        execute(item.session, item.body, { root, sandbox, onEvent: send, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal })
+        trackedExecution(item, execute(item.session, item.body, { root, sandbox, onEvent: send, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal, assertCurrent: item.assertCurrent }))
           .then(
             (value) => send({ type: "result", value }),
             (error) =>
@@ -362,7 +417,7 @@ export function createWorkspaceRuntime(options = {}) {
             pump();
           });
       } else
-        execute(item.session, item.body, { root, sandbox, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal })
+        trackedExecution(item, execute(item.session, item.body, { root, sandbox, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal, assertCurrent: item.assertCurrent }))
           .then(
             (value) => json(item.response, 200, value),
             (error) =>
@@ -380,13 +435,22 @@ export function createWorkspaceRuntime(options = {}) {
     }
   }
   function runTaskForOwner(owner, body, onEvent, operation = {}) {
-    operation.signal?.throwIfAborted();
+    const capturedOperation = Object.freeze({ signal: operation.signal, assertCurrent: operation.assertCurrent });
+    capturedOperation.signal?.throwIfAborted();
     if (typeof owner !== "string" || !owner)
       throw Object.assign(new Error("A workspace owner is required."), {
         status: 401,
         code: "workspace_owner_required",
       });
-    validateTask(body);
+    // Capture only the execution contract, then validate exactly the snapshot
+    // that will enter the queue. Neither a caller's nested file map nor its
+    // mutable cancellation/authorization options remain live queue inputs.
+    const inputFiles = body?.files;
+    const capturedBody = Object.freeze({ protocolVersion: body?.protocolVersion, task: body?.task,
+      projectId: body?.projectId, activePath: body?.activePath, approval: body?.approval,
+      files: inputFiles && typeof inputFiles === "object" && !Array.isArray(inputFiles)
+        ? Object.freeze(Object.fromEntries(Object.entries(inputFiles))) : inputFiles });
+    validateTask(capturedBody);
     if (!sandbox.ready) throw Object.assign(new Error("No approved workspace sandbox is installed."), { status: 503, code: "sandbox_unavailable" });
     if (active >= concurrency && queue.length >= queueLimit)
       throw Object.assign(new Error("Workspace runtime queue is full."), {
@@ -398,30 +462,33 @@ export function createWorkspaceRuntime(options = {}) {
         taskId: randomUUID(),
         session: `internal:${owner}`,
         owner,
-        body,
+        body: capturedBody,
         onEvent,
-        resolve: value => { operation.signal?.removeEventListener("abort", cancel); resolve(value); },
-        reject: error => { operation.signal?.removeEventListener("abort", cancel); reject(error); },
-        operation,
+        resolve: value => { capturedOperation.signal?.removeEventListener("abort", cancel); resolve(value); },
+        reject: error => { capturedOperation.signal?.removeEventListener("abort", cancel); reject(error); },
+        operation: capturedOperation,
         internal: true,
       };
       const cancel = () => {
         const index = queue.indexOf(item);
         if (index >= 0) {
-          queue.splice(index, 1); finishActivity(item.taskId);
-          item.reject(operation.signal.reason); pump();
-        } else item.controller?.abort(operation.signal.reason);
+          queue.splice(index, 1); recordFailure(item.taskId,capturedOperation.signal.reason); finishActivity(item.taskId);
+          item.reject(capturedOperation.signal.reason); pump();
+        } else item.controller?.abort(capturedOperation.signal.reason);
       };
-      operation.signal?.addEventListener("abort", cancel, { once: true });
+      capturedOperation.signal?.addEventListener("abort", cancel, { once: true });
+      try { queueActivity(item); }
+      catch (error) { item.reject(error); return; }
       queue.push(item);
-      queueActivity(item);
       pump();
     });
   }
   function queueActivity(item) {
-    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "queued", queuedAt: new Date().toISOString(), startedAt: null, environmentRevision: null, controller: null });
+    taskHistory?.begin({taskId:item.taskId,owner:item.owner,projectId:item.body.projectId,kind:item.body.task,files:item.body.files});
+    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, guestSession:item.internal?undefined:item.session, status: "queued", queuedAt: new Date().toISOString(), startedAt: null, environmentRevision: null, controller: null });
   }
   function startActivity(item) {
+    if (taskHistory && !taskHistory.start(item.taskId)) throw Object.assign(new Error("Original task could not enter running state."),{code:"task_history_write_failed"});
     item.controller = new AbortController();
     const activity = activities.get(item.taskId);
     if (activity) Object.assign(activity, { status: "running", startedAt: new Date().toISOString(), controller: item.controller });
@@ -437,7 +504,7 @@ export function createWorkspaceRuntime(options = {}) {
     const error = Object.assign(new Error("Compilation cancelled for maintenance. Saved source is retained; run it again after service returns."),
       { status: 503, code: "service_maintenance", retryable: true });
     for (const item of queue.splice(0)) {
-      finishActivity(item.taskId);
+      recordFailure(item.taskId,error); finishActivity(item.taskId);
       if (item.internal) item.reject(error);
       else {
         if (!item.response.destroyed && !item.response.writableEnded) json(item.response, error.status, { error: error.message, code: error.code, retryable: true });
@@ -449,7 +516,18 @@ export function createWorkspaceRuntime(options = {}) {
   return {
     handler,
     closeAdmission: () => guestAdmission.close(),
-    revokeGuestAdmission(request) { const id = readSignedSession(request, sessionKey); if (id) guestAdmission.revoke(id); },
+    revokeGuestAdmission(request) {
+      const id = readSignedSession(request, sessionKey); if (!id) return;
+      guestAdmission.revoke(id);
+      const error=Object.assign(new Error("Workspace session was revoked."),{status:401,code:"workspace_session_expired"});
+      for (let index=queue.length-1;index>=0;index--) {
+        const item=queue[index];if(item.internal||item.session!==id)continue;
+        queue.splice(index,1);recordFailure(item.taskId,error);finishActivity(item.taskId);
+        if(!item.response.destroyed&&!item.response.writableEnded)json(item.response,401,{code:error.code,error:error.message});item.resolve();
+      }
+      for(const activity of activities.values())if(activity.guestSession===id){activity.status="stopping";activity.controller?.abort(error);}
+      pump();
+    },
     cancelAll,
     runTaskForOwner,
     ownerForRequest(request) {
@@ -537,9 +615,6 @@ function json(response, status, value, headers = {}) {
   });
   response.end(JSON.stringify(value));
 }
-function safePath(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 240 && !value.startsWith("/") && !value.includes("\\") && !value.split("/").some((part) => !part || part === "." || part === "..") && SAFE_PATH.test(value);
-}
 function validateTask(value) {
   const build = value?.task === "build-run-active",
     test = value?.task === "test-project";
@@ -572,7 +647,7 @@ async function compilerInventory() {
     solidity: ["solcjs"],
   };
   const output = {};
-  for (const [id, candidates] of Object.entries(specs)) output[id] = Boolean(await resolveCommand(candidates));
+  for (const [id, candidates] of Object.entries(specs)) output[id] = (id === "solidity" && process.env.YNX_IDE_SOLC_INPUT) ? compilerReadiness().available : Boolean(await resolveCommand(candidates));
   return output;
 }
 
@@ -620,7 +695,12 @@ async function execute(session, task, { root, sandbox, onEvent, owner, environme
         readOnlyBinds: phase.readOnlyBinds,
         onChunk: phase.materialize ? undefined : (channel, data) => emit({ type: "output", phase: phase.label, channel, data }),
       });
-      if (assertCurrent) await checkCurrent();
+      if (assertCurrent) {
+        // A normal Stop still returns its real exit130. Revalidate authority
+        // independently so a revoked owner cannot receive that result.
+        if (signal?.aborted && result.code === 130) await assertCurrent();
+        else await checkCurrent();
+      }
       if (phase.materialize) result = await phase.materialize(result);
       const append = `${phase.label}> ${result.output}`;
       if (Buffer.byteLength(output + append) > MAX_OUTPUT_BYTES) {
@@ -670,6 +750,10 @@ async function execute(session, task, { root, sandbox, onEvent, owner, environme
   }
 }
 function safeJoin(root, path) {
+  // dirname("main.py") is the internal root marker; task inputs themselves
+  // already require a non-dot normalized relative path.
+  if (path !== "." && !safePath(path))
+    throw Object.assign(new Error("Workspace path is not normalized and relative."), { code: "workspace_escape" });
   const target = normalize(join(root, path));
   if (target !== root && !target.startsWith(`${root}${sep}`))
     throw Object.assign(new Error("Workspace path escaped its root."), {
@@ -692,7 +776,7 @@ async function taskSpec(path, workspace, files) {
         {
           label: "build",
           command: compiler,
-          args: ["-std=c17", "-Wall", "-Wextra", "-pedantic", file, "-o", build],
+          args: [...await appleCompilerArguments(compiler), "-std=c17", "-Wall", "-Wextra", "-pedantic", file, "-o", build],
         },
         { label: "run", command: build, args: [] },
       ],
@@ -709,7 +793,7 @@ async function taskSpec(path, workspace, files) {
         {
           label: "build",
           command: compiler,
-          args: ["-std=c++20", "-Wall", "-Wextra", "-pedantic", file, "-o", build],
+          args: [...await appleCompilerArguments(compiler), "-std=c++20", "-Wall", "-Wextra", "-pedantic", file, "-o", build],
         },
         { label: "run", command: build, args: [] },
       ],
@@ -807,7 +891,8 @@ async function taskSpec(path, workspace, files) {
     };
   }
   if (extension === ".sol") {
-    const compiler = await resolveCommand(["solcjs"]);
+    const pinned = Boolean(process.env.YNX_IDE_SOLC_INPUT);
+    const compiler = pinned ? pinnedCompilerCLI() : await resolveCommand(["solcjs"]);
     if (!compiler) return null;
     const artifactRoot = join(workspace, ".ynx-build", "solidity"),
       readOnlyBinds = await solidityToolBinds(compiler),
@@ -829,9 +914,10 @@ async function taskSpec(path, workspace, files) {
     return {
       language: "solidity",
       compiler,
-      version: await version(compiler),
+      version: pinned ? COMPILER_VERSION : await version(compiler),
       compilerEvidence: {
         input: "standard-json",
+        ...(pinned ? { artifactSha256: compilerReadiness().artifactSha256 } : {}),
         abi: true,
         bytecode: true,
         sourceMaps: true,
@@ -840,8 +926,8 @@ async function taskSpec(path, workspace, files) {
       phases: [
         {
           label: "compile",
-          command: compiler,
-          args: ["--standard-json"],
+          command: pinned ? process.execPath : compiler,
+          args: pinned ? [compiler, "--standard-json"] : ["--standard-json"],
           stdin: input,
           maxOutputBytes: 8 * 1024 * 1024,
           addressSpaceBytes: null,
@@ -937,7 +1023,7 @@ async function projectTestSpec(workspace, files) {
         {
           label: `build-test:c:${path}`,
           command,
-          args: ["-std=c17", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
+          args: [...await appleCompilerArguments(command), "-std=c17", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
           timeout: 20_000,
         },
         {
@@ -965,7 +1051,7 @@ async function projectTestSpec(workspace, files) {
         {
           label: `build-test:cpp:${path}`,
           command,
-          args: ["-std=c++20", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
+          args: [...await appleCompilerArguments(command), "-std=c++20", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
           timeout: 20_000,
         },
         {
@@ -1188,6 +1274,31 @@ async function materializeSolidityArtifacts(result, artifactRoot) {
     output: `${messages.length ? `${messages.join("\n")}\n` : ""}${hasErrors ? "Compilation failed." : `Compiled ${count} integrity-addressed Solidity artifacts.`}\n`,
   };
 }
+// Apple /usr/bin compiler entries are xcrun launchers, not the selected
+// compiler. Resolve only those known stubs before entering the project sandbox;
+// never let them invoke tool installation or use the user's global temp cache.
+async function resolveCommand(candidates) {
+  const command = await resolveExecutable(candidates);
+  if (process.platform !== 'darwin' || !['/usr/bin/clang','/usr/bin/clang++','/usr/bin/gcc','/usr/bin/g++'].includes(command)) return command;
+  const result = await spawnBounded('/usr/bin/xcrun', ['--find', basename(command)], {
+    cwd: tmpdir(), env: { PATH: '/usr/bin:/bin' }, timeout: 10000,
+  });
+  if (result.code !== 0) return null;
+  const selected = result.output.trim();
+  if (!isAbsolute(selected) || selected.includes('\n')) return null;
+  try { await realpath(selected); return selected; } catch { return null; }
+}
+
+async function appleCompilerArguments(command) {
+  if (process.platform !== 'darwin' || !/(?:\.xctoolchain|\/Library\/Developer)\//.test(command)) return [];
+  const sdk = await spawnBounded('/usr/bin/xcrun', ['--sdk', 'macosx', '--show-sdk-path'], {
+    cwd: tmpdir(), env: { PATH: '/usr/bin:/bin' }, timeout: 10000,
+  });
+  const path = sdk.output.trim();
+  if (sdk.code !== 0 || !isAbsolute(path) || path.includes('\n')) throw Object.assign(new Error('The selected Apple compiler has no available macOS SDK.'), {status:503,code:'toolchain_unavailable'});
+  return ['-isysroot', await realpath(path)];
+}
+
 async function version(command) {
   const result = await spawnBounded(command, ["--version"], {
     cwd: tmpdir(),
@@ -1270,12 +1381,12 @@ function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes 
         else child.kill("SIGKILL");
       } catch {}
     };
-    let cancelled = false;
+    let cancelled = false, timedOut = false;
     const abort = () => {
         cancelled = true;
         killGroup();
       },
-      timer = setTimeout(killGroup, timeout);
+      timer = setTimeout(() => { timedOut = true; killGroup(); }, timeout);
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) abort();
     child.once("error", (error) => {
@@ -1288,12 +1399,12 @@ function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes 
         }),
       );
     });
-    child.once("close", (code) => {
+    child.once("close", (code, terminationSignal) => {
       clearTimeout(timer);
       signal?.removeEventListener("abort", abort);
       resolve({
-        code: cancelled ? 130 : (code ?? 124),
-        output: cancelled ? `${output}Task cancelled.\n` : output || "Process completed without output.\n",
+        code: cancelled ? 130 : timedOut ? 124 : (code ?? (128 + (osConstants.signals[terminationSignal] || 0))),
+        output: cancelled ? `${output}Task cancelled.\n` : timedOut ? `${output}Process timed out.\n` : terminationSignal ? `${output}Process terminated by ${terminationSignal}.\n` : output || "Process completed without output.\n",
         truncated,
       });
     });

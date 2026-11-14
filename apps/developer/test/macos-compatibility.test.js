@@ -79,18 +79,37 @@ test("packaging derives clang target from plist and seals the independently repl
   const [plist, build, verify] = await Promise.all(["../desktop/macos/Info.plist", "../scripts/package-local-macos.sh", "../scripts/verify-local-macos-package.sh"].map(p => readFile(new URL(p, import.meta.url), "utf8")));
   assert.match(plist, /LSMinimumSystemVersion<\/key><string>13\.5<\/string>/);
   assert.match(build, /macos_min_version=.*PlistBuddy/);
-  assert.match(build, /-mmacosx-version-min="\$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new/);
+  assert.match(build, /build-native-macos\.mjs --execute.*"\$macos_min_version"/);
+  const planner = await readFile(new URL('../scripts/native-macos-link-plan.mjs', import.meta.url), 'utf8');
+  assert.match(planner, /-mmacosx-version-min=/);
+  assert.match(planner, /-Werror=unguarded-availability/);
+  assert.match(planner, /-Werror=unguarded-availability-new/);
   assert.match(build, /node scripts\/verify-macos-compatibility\.mjs/);
   assert.match(build, /macosCompatibilitySha256/);
   assert.match(verify, /node scripts\/verify-macos-compatibility\.mjs/);
   assert.match(verify, /cmp "\$app\/Contents\/Resources\/macos-compatibility\.json"/);
 });
 
-test("production native shell compiles with 13.5 availability errors and records that exact Mach-O target", { skip: process.platform !== "darwin", timeout: 60000 }, async t => {
+test("production native shell translation unit compiles with 13.5 availability errors and records that exact Mach-O target", { skip: process.platform !== "darwin", timeout: 60000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), "ynx-macos-target-")); t.after(() => rm(root, { recursive: true, force: true }));
-  const binary = join(root, "YNXDeveloper"), exec = promisify(execFile);
-  await exec("/usr/bin/clang", ["-fobjc-arc", "-mmacosx-version-min=13.5", "-Werror=unguarded-availability", "-Werror=unguarded-availability-new", `-fmodules-cache-path=${root}/module-cache`, fileURLToPath(new URL("../desktop/macos/main.m", import.meta.url)), "-o", binary, "-framework", "Cocoa", "-framework", "Security", "-framework", "WebKit"], { timeout: 45000 });
+  // The shell now links the real SDK/Core/Swift whole through original A.
+  // This focused test keeps its availability/target check on the actual App
+  // translation unit; complete-image compatibility stays in the package gate.
+  const binary = join(root, "YNXDeveloper.o"), exec = promisify(execFile);
+  await exec("/usr/bin/clang", ["-fobjc-arc", "-mmacosx-version-min=13.5", "-Werror=unguarded-availability", "-Werror=unguarded-availability-new", `-fmodules-cache-path=${root}/module-cache`, "-c", fileURLToPath(new URL("../desktop/macos/main.m", import.meta.url)), "-o", binary], { timeout: 45000 });
   const slices = inspectBinary(binary);
   assert.ok(slices.length > 0);
   for (const slice of slices) { assert.equal(compareVersions(slice.minimumOS, "13.5"), 0); assert.equal(slice.platform, "1"); }
+});
+
+test('actual Cocoa rpaths resolve only one inspected in-bundle image of the same architecture',()=>{
+ const value=inventory(),main=value.binaries[0].slices[0],folder='Contents/Resources/code/apps/developer/apps/wallet-desktop/native/original-auth-runtime-libs',target=folder+'/libssl.3.dylib';
+ main.rpaths=['/usr/lib/swift','@executable_path/../Resources/code/apps/developer/apps/wallet-desktop/native/original-auth-runtime-libs'];
+ const dependency={command:'LC_LOAD_DYLIB',path:'@rpath/libssl.3.dylib',bundledPath:target};main.dependencies.push(dependency);value.binaries.push({path:target,slices:[slice()]});
+ assert.deepEqual(validateCompatibility(value,'13.5','arm64'),[]);
+ for(const mutate of [v=>{v.binaries[0].slices[0].rpaths=[];},v=>{v.binaries[0].slices[0].rpaths=['/opt/homebrew/lib'];},v=>{v.binaries[0].slices[0].rpaths=['@executable_path/../../../outside'];},v=>{v.binaries[0].slices[0].rpaths.push('/tmp/injected');},v=>{v.binaries[0].slices[0].rpaths.push('/usr/lib/swift/../../../tmp');},v=>{v.binaries.at(-1).slices[0].architecture='x86_64';},v=>{v.binaries[0].slices[0].dependencies[0].bundledPath='Contents/Resources/unrelated.dylib';},v=>{v.binaries.pop();},v=>{v.binaries[0].slices[0].rpaths.push('@executable_path/../Resources/another');v.binaries.push({path:'Contents/Resources/another/libssl.3.dylib',slices:[slice()]});}]){
+  const changed=structuredClone(value);mutate(changed);assert.match(validateCompatibility(changed,'13.5','arm64').join('\n'),/explicit bundled resolution/);
+ }
+ const parsed=parseLoadCommands('fixture:\nLoad command 0\n cmd LC_RPATH\n cmdsize 80\n path @executable_path/../Resources/runtime/lib (offset 12)\n');
+ assert.deepEqual(parsed.rpaths,['@executable_path/../Resources/runtime/lib']);
 });

@@ -17,6 +17,7 @@ export function createWalletReadinessService({
   ideActionPublicReady = process.env.YNX_CODE_IDE_ACTION_PUBLIC_READY === "true",
   maxOwnerRequests = 2,
   maxGlobalRequests = 32,
+  now = Date.now,
 } = {}) {
   const upstream = approvedUpstream(gatewayURL), chain = approvedChain(chainURL), owners = new Map();
   let active = 0;
@@ -88,7 +89,7 @@ export function createWalletReadinessService({
         body: upstreamBody,
       }, controller.signal);
       if (deploymentRoute) {
-        const deployment = await broadcastDeployment(value.response, completed.result, chainFetcher, chain, controller.signal);
+        const deployment = await broadcastDeployment(value.response, completed.result, chainFetcher, chain, controller.signal, now);
         json(response, 200, { protocolVersion: PROTOCOL, deployment });
       } else json(response, 200, { protocolVersion: PROTOCOL, ...(introspectionRoute ? { introspection: completed.result } : { session: completed.result }) });
       return true;
@@ -160,13 +161,23 @@ function approvedChain(value) {
   return url;
 }
 
-async function broadcastDeployment(response, introspection, fetcher, chain, signal) {
+async function broadcastDeployment(response, introspection, fetcher, chain, signal, now) {
   if (introspection?.active !== true || !introspection.session) throw fault("Developer Product Session is inactive.", "deployment_session_inactive", 403);
   const session = introspection.session;
   const responseFields = ["version", "requestDigest", "productClientId", "bundleId", "callback", "sessionBinding", "account", "action", "artifactDigest", "signedTransaction", "canonicalPayloadHex", "transactionHash", "issuedAt", "expiresAt"];
   if (!plainExact(response, responseFields) || response.version !== "1" || response.productClientId !== "ynx-developer-v1" || response.bundleId !== "com.ynxweb4.developer.testnetpreview" || response.callback !== "ynxdeveloper://deployment/callback" || response.action !== "ide_contract_deploy" || response.sessionBinding !== session.sessionBinding || response.account !== session.account || !Array.isArray(session.scopes) || !session.scopes.includes("developer:deploy") || !hex64(response.requestDigest) || !hex64(response.artifactDigest) || !/^0x[0-9a-f]{64}$/.test(response.transactionHash || "") || !/^0x[0-9a-f]+$/.test(response.canonicalPayloadHex || "") || response.canonicalPayloadHex.length % 2) {
     throw fault("Developer deployment binding is invalid.", "deployment_binding_mismatch", 403);
   }
+  const assertApprovalTime = () => {
+    const issued = typeof response.issuedAt === "string" ? Date.parse(response.issuedAt) : NaN;
+    const expires = typeof response.expiresAt === "string" ? Date.parse(response.expiresAt) : NaN;
+    const current = now();
+    if (!Number.isFinite(current)) throw fault("The local approval clock is unavailable.", "deployment_clock_unavailable", 503);
+    if (!Number.isFinite(issued) || !Number.isFinite(expires) || new Date(issued).toISOString() !== response.issuedAt ||
+      new Date(expires).toISOString() !== response.expiresAt || issued > current || expires <= current || expires <= issued)
+      throw fault("The Wallet response has expired or has an invalid approval time. Review a current request in Wallet.", "deployment_approval_expired", 403);
+  };
+  assertApprovalTime();
   const raw = Buffer.from(response.canonicalPayloadHex.slice(2), "hex");
   if (raw.length < 2 || raw.length > 16 * 1024 || `0x${sha256(raw)}` !== response.transactionHash) throw fault("Developer deployment bytes or hash are invalid.", "deployment_hash_mismatch", 400);
   let transaction;
@@ -181,6 +192,8 @@ async function broadcastDeployment(response, introspection, fetcher, chain, sign
   if (!plainExact(transaction, envelopeFields) || !plainExact(payload, payloadFields) || canonicalJSON(transaction) !== canonicalJSON(response.signedTransaction) || transaction.version !== 1 || transaction.chainId !== 6423 || transaction.type !== "application_action" || !/^0x[0-9a-f]{40}$/.test(transaction.signer || "") || !Number.isSafeInteger(transaction.nonce) || transaction.nonce < 1 || transaction.action !== "ide_contract_deploy" || transaction.fee !== 1 || transaction.aiUnits !== 0 || transaction.payUnits !== 0 || !/^(02|03)[0-9a-f]{64}$/.test(transaction.publicKey || "") || !/^[0-9a-f]{136,144}$/.test(transaction.signature || "") || transaction.payloadHash !== sha256(JSON.stringify(payload)) || payload.requestHash !== requestHash || response.artifactDigest !== artifactDigest) {
     throw fault("Developer signed transaction was widened.", "deployment_transaction_mismatch", 403);
   }
+  signal?.throwIfAborted();
+  assertApprovalTime(); // Check at dispatch, after the original session introspection.
   await chainRead(fetcher, new URL("ide/deploy", chain), { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: raw }, signal);
   let receipt = null;
   for (let attempt = 0; attempt < 10 && !receipt; attempt++) {

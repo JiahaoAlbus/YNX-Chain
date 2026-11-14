@@ -13,7 +13,7 @@ const MISSING_WALLET_ADMISSION = Object.freeze({ assertCurrent() { const error =
 const PAUSED_WALLET_ADMISSION = Object.freeze({ assertCurrent() { const error = Error('Wallet online connection is not open yet. Local development remains available.'); error.code = 'WALLET_ONLINE_ADMISSION_PAUSED'; throw error; } });
 class NativeWalletController {
   constructor(api, emit = () => {}, admission = MISSING_WALLET_ADMISSION) {
-    this.api = api; this.admission = admission; this.emit = emit; this.epoch = 0; this.disposed = false; this.runtime = undefined; this.inFlight = undefined; this.callback = undefined; this.callbackQueue = []; this.returningCallback = undefined;
+    this.api = api; this.admission = admission; this.emit = emit; this.epoch = 0; this.disposed = false; this.runtime = undefined; this.inFlight = undefined; this.callback = undefined;
     this.state = Object.freeze({ phase: 'idle', serviceConfiguration: admission === MISSING_WALLET_ADMISSION ? 'not-supplied' : 'unverified', busy: false, awaitingCallback: false, session: { status: 'disconnected', message: '' }, sessionCurrent: false, message: '', projectCapability: 'not-supplied' });
     this.unsubscribe = api.subscribeDeveloperWalletCallbacks(url => this.receiveCallback(url), url => this.receiveResourceCallback(url));
   }
@@ -28,11 +28,10 @@ class NativeWalletController {
   disconnect() { return this.run('disconnect'); }
   resumeCallback() { if (!this.callback) return Promise.resolve(); return this.run('return'); }
   run(action, existingRuntime) {
-    if (this.disposed || this.inFlight || this.cancelling || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
+    if (this.disposed || this.inFlight || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
     const epoch = ++this.epoch;
+    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, sessionCurrent: false, message: '', failureCode: undefined });
     let runtime = existingRuntime;
-    const returnURL = action === 'return' ? this.callback : undefined;
-    if (action === 'return') this.returningCallback = returnURL;
     const method = action === 'connect' ? 'beginYNX' : action === 'return' ? 'handleReturn' : action;
     const admit = async () => {
       // This interface must be supplied by a trusted owner-bound service, never
@@ -54,11 +53,7 @@ class NativeWalletController {
       await admit();
       if (this.disposed || epoch !== this.epoch) return;
       let result;
-      if (action === 'return') {
-        if (!returnURL) throw Error('No Wallet return is pending.');
-        if (this.classifyCallback(returnURL) === 'mismatch') throw Error('Wallet return does not match the current SDK request.');
-        result = await runtime.connection.handleReturn(returnURL);
-      }
+      if (action === 'return') { const url = this.callback; if (!url) throw Error('No Wallet return is pending.'); result = await runtime.connection.handleReturn(url); }
       else if (action === 'restore') result = await runtime.connection.restore();
       else if (action === 'disconnect') result = await runtime.connection.disconnect();
       else result = await runtime.connection.beginYNX();
@@ -67,39 +62,21 @@ class NativeWalletController {
       if (this.disposed || epoch !== this.epoch) return;
       const awaitingCallback = result?.status === 'wallet-opened';
       this.publish({ phase: awaitingCallback ? 'wallet-opened' : 'ready', busy: false, awaitingCallback, session: publicSessionState(result, runtime), sessionCurrent: true, message: result?.message || '' });
-      if (awaitingCallback && typeof runtime.finished?.then === 'function') {
-        const observedRuntime = runtime;
-        // Local lifetime is presentation, never Session truth or a grant.
-        // Let the original request drain before retiring only its waiting UI.
-        void Promise.resolve(observedRuntime.finished).then(() => operation).then(() => {
-          if (this.disposed || epoch !== this.epoch || this.runtime !== observedRuntime || !this.state.awaitingCallback || this.inFlight) return;
-          this.runtime = undefined;
-          this.publish({ phase: 'cancelled', busy: false, awaitingCallback: false, sessionCurrent: false, message: 'Local Wallet review ended. Protected pending/session records were preserved; connect or restore explicitly.' });
-          if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
-        }).catch(() => { /* Unknown completion is not evidence that waiting UI can be retired. */ });
-      }
-      if (action === 'return') { this.callbackQueue = this.callbackQueue.filter(url => url !== returnURL); this.callback = this.callbackQueue[0]; this.publish({ hasPendingReturn: Boolean(this.callback) }); }
+      if (action === 'return') { this.callback = undefined; this.publish({ hasPendingReturn: false }); }
       if (!awaitingCallback) { await runtime.endNativeOperation(); if (this.runtime === runtime) this.runtime = undefined; }
     }).catch(async error => {
       if (runtime) await runtime.endNativeOperation().catch(() => {});
       if (this.runtime === runtime) this.runtime = undefined;
       if (epoch === this.epoch) {
-        const missing = error?.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error?.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
-        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error?.code === 'string' ? error.code : undefined, message: error?.message || 'Wallet operation failed.' });
+        const missing = error.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
+        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error.code === 'string' ? error.code : undefined, message: error.message || 'Wallet operation failed.' });
       }
     }).finally(() => {
-      if (this.inFlight !== operation) return;
-      if (action === 'return' && this.returningCallback === returnURL) this.returningCallback = undefined;
-      this.inFlight = undefined;
-      if (!this.disposed && epoch !== this.epoch) this.publish({ busy: Boolean(this.cancelling) });
-      if (!this.disposed && !this.returningCallback) this.selectCurrentCallback();
-      if (!this.disposed && this.state.awaitingCallback && this.callback && this.runtime && this.classifyCallback(this.callback) === 'current') void this.run('return', this.runtime);
+      if (this.inFlight === operation) this.inFlight = undefined;
+      if (!this.disposed && epoch !== this.epoch) this.publish({ busy: false });
+      if (!this.disposed && this.state.awaitingCallback && this.callback && this.runtime) void this.run('return', this.runtime);
     });
-    // Render/dispose listeners may re-enter. Claim this exact request before
-    // publishing so a cancelled old caller cannot overwrite a retry's owner.
-    this.inFlight = operation;
-    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, sessionCurrent: false, message: '', failureCode: undefined });
-    return operation;
+    this.inFlight = operation; return operation;
   }
   // Called only by the original request producer before review, never a return.
   setResourcePending(snapshot) {
@@ -117,62 +94,27 @@ class NativeWalletController {
       this.publish({ resourceReturnStatus: result.status, resourceReturnError: result.verification === 'supplier-unavailable' ? 'Resource signature verification is unavailable.' : '', resourceEffectAllowed: false });
     } catch { this.publish({ resourceReturnStatus: 'rejected', resourceReturnError: 'Resource return does not match the original operation.', resourceEffectAllowed: false }); }
   }
-  classifyCallback(url) {
-    if (!this.runtime || typeof this.api.classifyDeveloperWalletV2Return !== 'function') return 'pending';
-    return this.api.classifyDeveloperWalletV2Return(this.runtime, url);
-  }
-  selectCurrentCallback() {
-    // Bounded unentered UI observations only; protected requests remain in SDK.
-    const candidates = this.callbackQueue.map(url => ({ url, status: this.classifyCallback(url) }));
-    this.callbackQueue = candidates.filter(item => item.status !== 'mismatch').map(item => item.url);
-    const current = candidates.find(item => item.status === 'current');
-    this.callback = current?.url || this.callbackQueue[0];
-    this.publish({ hasPendingReturn: Boolean(this.callback) });
-    return Boolean(current);
-  }
   receiveCallback(url) {
     if (this.api.isDeveloperResourceReturn?.(url)) { this.receiveResourceCallback(url); return; }
     if (this.disposed || typeof url !== 'string' || url.length > 4096 || !url.length) return;
-    // Original SDK owns full validation; its current request only routes observations.
-    // An unrelated callback must not select or release the active capability.
-    if (this.classifyCallback(url) === 'mismatch') return;
-    if (!this.callbackQueue.includes(url)) {
-      if (this.callbackQueue.length >= 8) this.callbackQueue.shift();
-      this.callbackQueue.push(url);
-    }
-    // Keep an already-entered return immutable; a later URL is only an observation.
-    if (this.returningCallback) return;
-    const current = this.selectCurrentCallback();
-    if (!this.inFlight && this.runtime && this.state.awaitingCallback && current) void this.run('return', this.runtime);
-    else if (!this.inFlight && this.callback) this.publish({ message: 'A Wallet return is waiting. Review it explicitly; no connection approval was inferred.' });
+    // Never decode an approval or infer identity in the UI. The SDK owns the
+    // exact registered route, nonce, binding, expiry and signature checks.
+    if (this.callback && this.callback !== url) { this.publish({ message: 'A different Wallet return is already pending. Restore explicitly to reconcile protected state.' }); return; }
+    this.callback = url; this.publish({ hasPendingReturn: true });
+    if (!this.inFlight && this.runtime && this.state.awaitingCallback) void this.run('return', this.runtime);
+    else if (!this.inFlight) this.publish({ message: 'A Wallet return is waiting. Review it explicitly; no connection approval was inferred.' });
   }
   async cancel() {
-    const epoch = ++this.epoch, operation = this.inFlight;
+    ++this.epoch;
     const runtime = this.runtime; this.runtime = undefined;
-    // Widget close/pagehide may cancel again while this exact cleanup awaits.
-    // Ownership follows the native cleanup, not the latest UI epoch.
-    const cleanup = runtime ? { runtime, operation } : this.cancelling;
-    if (runtime) this.cancelling = cleanup;
-    this.callbackQueue = []; this.callback = undefined;
-    this.publish({ phase: 'cancelled', hasPendingReturn: false, busy: Boolean(this.inFlight || this.cancelling), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
-    if (runtime) {
-      let released = false;
-      try { await runtime.endNativeOperation(); released = true; } catch { /* Unknown cleanup keeps the pending slot owned. */ }
-      if (released && this.cancelling === cleanup && (!this.inFlight || this.inFlight === operation) && !this.runtime) {
-        // Only confirmed retirement of this exact native capability permits a
-        // retry while its old SDK response drains. Protected records stay SDK-owned.
-        this.cancelling = undefined; this.inFlight = undefined; this.returningCallback = undefined;
-        this.publish({ busy: false });
-        if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
-      }
-    }
+    this.publish({ phase: 'cancelled', busy: Boolean(this.inFlight), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
+    if (runtime) await runtime.endNativeOperation().catch(() => {});
   }
   async guest() {
-    const epoch = this.epoch + 1;
     await this.cancel();
-    if (this.disposed || epoch !== this.epoch) return;
+    const epoch = this.epoch;
     const result = await this.api.enterDeveloperWalletV2Guest();
-    if (!this.disposed && epoch === this.epoch && result.available) this.publish({ phase: 'guest', session: publicSessionState(result), message: result.sessionState.message, source: result.source });
+    if (epoch === this.epoch && result.available) this.publish({ phase: 'guest', session: publicSessionState(result), message: result.sessionState.message, source: result.source });
   }
   dispose() { if (this.disposed) return Promise.resolve(); const cleanup = this.cancel(); this.disposed = true; this.unsubscribe(); this.callback = undefined; return cleanup; }
 }

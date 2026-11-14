@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 repo_root=$(/usr/bin/git -C "$PWD" rev-parse --show-toplevel)
-tracked_changes=$(/usr/bin/git -C "$repo_root" status --porcelain --untracked-files=no -- apps/developer packages/developer-client packages/wallet-auth apps/wallet-desktop/native)
+tracked_changes=$(/usr/bin/git -C "$repo_root" status --porcelain --untracked-files=no -- apps/developer packages/developer-client)
 if [[ -n "$tracked_changes" ]]; then
   echo "Refusing to package tracked Developer changes that are not committed." >&2
   printf '%s\n' "$tracked_changes" >&2
@@ -13,6 +13,24 @@ source_commit=$(/usr/bin/git -C "$repo_root" rev-parse HEAD)
 source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 runtime_checkpoint="$source_commit"
+native_link_input="${YNX_DEVELOPER_NATIVE_LINK_INPUT:-}"
+[[ -n "$native_link_input" ]] || { echo "The exact matching normal Cocoa whole-link handoff is required for this source." >&2; exit 1; }
+if [[ "${native_link_input##*/}" == "R22_ACTUAL_PACKAGE_SUPPLIER.json" || "${native_link_input##*/}" == "R23_ACTUAL_PACKAGE_SUPPLIER.json" || "${native_link_input##*/}" == "579_ACTUAL_PACKAGE_SUPPLIER.json" ]]; then
+  node scripts/r21-cocoa-product.mjs --verify-core "${YNX_DEVELOPER_COMPOSED_ARTIFACT:-}" "${YNX_DEVELOPER_COMPOSED_PIN:-}" "$native_link_input"
+fi
+node --test scripts/native-sbom-source-shape.test.mjs scripts/c6-diagnostic-product.test.mjs scripts/native-macos-link-plan.test.mjs scripts/normal-sdk-prefix.test.mjs scripts/product-consumer-compatibility.test.mjs scripts/normal-product-resource-copy.test.mjs scripts/native-runtime-seal.test.mjs scripts/current-cold-completion.test.mjs test/normal-provenance-shell.test.js desktop/bundled-execution-runtime.test.mjs desktop/bundled-signature-verification.test.mjs desktop/native-signature-budget.test.mjs desktop/runtime-cache-budget.test.mjs desktop/local-js-execution-node.test.mjs
+# These small fixtures model a private macOS home directory. The packaging
+# volume can have writable ancestors which the production cache must reject.
+TMPDIR=/private/tmp node --test desktop/runtime-cache-support.test.mjs
+TMPDIR=/private/tmp node --test --test-name-pattern='two QA candidates reuse' desktop/local-workbench.test.mjs
+node --test desktop/wallet-admission-startup.test.mjs desktop/native-file-picker.test.mjs
+node --test desktop/code-server.test.mjs
+qa_profile="${YNX_DEVELOPER_QA_PROFILE:-0}"
+[[ "$qa_profile" == 0 || "$qa_profile" == 1 ]] || { echo "YNX_DEVELOPER_QA_PROFILE must be 0 or 1" >&2; exit 1; }
+qa_profile_identifier=""
+if [[ "$qa_profile" == 1 ]]; then
+  qa_profile_identifier="$source_commit-$(/usr/bin/uuidgen | /usr/bin/tr '[:upper:]' '[:lower:]')"
+fi
 # One deployment target for the native shell, bundle declaration and all bundled
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
 macos_min_version=$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' desktop/macos/Info.plist)
@@ -23,6 +41,7 @@ if [[ -n "$local_node_runtime" ]]; then
   macos_min_version=$(node --input-type=module - "$local_node_runtime" "$PWD/.ynx-developer-candidates" "$macos_min_version" <<'NODE'
 import {readFile,realpath,lstat,readdir} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
 import {verifyComposedRuntime,validateRuntimeArtifact} from './services/codeoss-service/src/composed-runtime.mjs';
+import {verifyOwnedWorkbenchBinding} from './scripts/workbench-source-binding.mjs';
 import {inspectBinary,compareVersions} from './scripts/verify-macos-compatibility.mjs';
 const [input,candidates,baseline]=process.argv.slice(2),root=await realpath(input);
 if(root!==input||!root.startsWith(candidates+'/'))throw Error('Use the exact retained owned Node runtime.');
@@ -38,6 +57,7 @@ if(execFileSync(join(root,'node'),['--version'],{encoding:'utf8'}).trim()!==reco
 const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
 if(!runtimeFloors.length||record.minimumOS!==runtimeFloors.sort(compare).at(-1))throw Error('Runtime floor differs from its actual Mach-O bytes.');
 const core=await verifyComposedRuntime(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT,validateRuntimeArtifact(JSON.parse(await readFile(process.env.YNX_DEVELOPER_COMPOSED_PIN))));
+await verifyOwnedWorkbenchBinding(core,join(process.cwd(),'runtime/ynx-workbench'));
 // A local development App must retain the reviewed language extension closure.
 // Runtime adapters alone cannot provide Python commands or language detection.
 const pluginRoot=join(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT,'plugins');
@@ -88,31 +108,46 @@ branding_root="$root/branding"
 node scripts/package-macos-branding.mjs assets "$branding_root"
 cp "$branding_root/YNXDeveloper.icns" "$branding_root/installer-background.png" "$branding_root/branding-manifest.json" "$app/Contents/Resources/"
 branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest.json" | awk '{print $1}')
-# Keep the mature shell in Objective-C; the original parent supplier is ObjC++.
-# The old refusal implementation defines the same ABI and must not be linked.
-/usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" -c desktop/macos/main.m -o "$root/main.o"
-/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$repo_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$repo_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$repo_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-observation.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -lbsm
+node scripts/build-native-macos.mjs --execute "$native_link_input" "$root/native-build" "$app/Contents/MacOS/YNXDeveloper" "$macos_min_version"
+mkdir "$app/Contents/Resources/native-link"
+cp "$root/native-build/plan.json" "$root/native-build/execution.json" "$root/native-build/undefined.txt" "$app/Contents/Resources/native-link/"
+node --input-type=module - "$app/Contents/Resources/native-link" <<'NODE'
+import {readFile,writeFile} from 'node:fs/promises';import{join}from'node:path';import{createHash}from'node:crypto';
+const root=process.argv[2],raw=await readFile(join(root,'plan.json')),plan=JSON.parse(raw),executionRaw=await readFile(join(root,'execution.json')),execution=JSON.parse(executionRaw),sha=b=>createHash('sha256').update(b).digest('hex');
+if(execution.complete!==true||execution.sourceCommit!==plan.sourceCommit||execution.ownedUndefined?.length!==0)throw Error('Native whole link is incomplete');
+const record={schema:'YNX_IDE_NORMAL_COCOA_LINK_DISTRIBUTION/v1',sourceCommit:plan.sourceCommit,SDKSourceCommit:plan.SDKSourceCommit,sourceVariant:plan.variant,objects:plan.objectCount??plan.commands.length,commandCount:plan.commands.length,planSHA256:sha(raw),executionSHA256:sha(executionRaw),linkedBinarySHA256BeforeAdhocSigning:execution.binarySHA256,originalCoreArchives:plan.inputs.filter(p=>p.relativePath.endsWith('.a')).map(p=>({path:p.relativePath,bytes:p.bytes,sha256:p.sha256})),redistributionNoticeStatus:'NOT_SUPPLIED_BY_WHOLELINK_HANDOFF',RootAdmission:false,SourceAdmission:false,NativeAdmission:false};
+await writeFile(join(root,'distribution.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+NODE
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
+if [[ -n "$qa_profile_identifier" ]]; then
+  /usr/libexec/PlistBuddy -c "Add YNXQAProfileIdentifier string $qa_profile_identifier" "$app/Contents/Info.plist"
+fi
 if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
   /usr/libexec/PlistBuddy -c 'Add YNXDesktopMode string local-workbench' "$app/Contents/Info.plist"
   /usr/bin/clang -mmacosx-version-min="$macos_min_version" desktop/macos/local-workbench-lock.c -o "$app/Contents/Resources/runtime/ynx-local-workbench-lock"
   /usr/bin/clang -Wall -Wextra -Werror -mmacosx-version-min="$macos_min_version" desktop/macos/workspace-path-identity.c -o "$app/Contents/Resources/runtime/workspace-path-identity"
 fi
-cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
+node scripts/package-desktop-entry.mjs "$app/Contents/Resources/server.mjs" > "$app/Contents/Resources/desktop-entry.json"
 cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
 cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
-cp desktop/local-workbench.mjs desktop/local-startup-process.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs desktop/wallet-admission-delivery.mjs desktop/native-parent-control.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/local-workbench.mjs desktop/runtime-cache-budget.mjs desktop/bundled-execution-runtime.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs desktop/wallet-admission-delivery.mjs desktop/native-parent-control.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admitted-local-project.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
-node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
-node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
+cp desktop/project-services-host.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/bundled-contract-runtime.mjs desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-execution.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/identity-sdk-loader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
+cp runtime/ynx-workbench/lib/project-services-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
+cp runtime/ynx-workbench/lib/contract-request-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
+node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code/apps/developer/vendor/identity-admission" "$root/native-build/plan.json" > "$app/Contents/Resources/native-link/sdk-prefix.json"
+# Original contract lifecycle and normal composed-pipe regressions, fixed DATA codec.
+YNX_IDE_PQ_ACTION_SOURCE="$app/Contents/Resources/code/apps/developer/vendor/identity-admission/src/pq-native-action.js" node --test desktop/contract-relay-scope.test.mjs desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs desktop/project-contract-runtime.test.mjs desktop/project-contract-deployment.test.mjs desktop/project-contract-execution.test.mjs desktop/project-contracts-host.test.mjs desktop/project-contracts-rpc.test.mjs desktop/project-contracts-view.test.mjs desktop/contract-deployment-view.test.mjs desktop/project-services-host.test.mjs
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/marketplace-channel.js runtime/ynx-workbench/lib/marketplace-diagnostics.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
@@ -136,6 +171,9 @@ cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs scripts/solidity-semanti
 if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
   node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
   node scripts/bundle-solidity-language-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/native/ynx-tools"
+  # Real pinned compiler, saved settings, cancellation and nonblocking notices
+  # must work with this candidate's copied extension before it can ship.
+  YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT="$app/Contents/Resources/code/apps/developer/native/ynx-tools" node --test services/codeoss-service/test/solidity-build.test.mjs
 fi
 if [[ "${YNX_DEVELOPER_SOLIDITY_FORMAT_INPUT:-}" == retained ]]; then
   node scripts/bundle-solidity-format-runtime.mjs "$app/Contents/Resources/code/apps/developer/native/ynx-tools"
@@ -157,7 +195,7 @@ if ! COPYFILE_DISABLE=1 cp -cR node_modules "$app/Contents/Resources/code/apps/d
   COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
 fi
 if [[ -n "$local_node_runtime" ]]; then
-  node scripts/verify-packaged-local-imports.mjs "$app/Contents/Resources/code/apps/developer"
+  node scripts/verify-packaged-local-imports.mjs "$app/Contents/Resources/code/apps/developer" "$app/Contents/Resources/server.mjs"
   node scripts/package-node-pty-distribution.mjs prepare "$app/Contents/Resources"
 fi
 
@@ -212,7 +250,7 @@ node scripts/generate-code-sbom.mjs "$app/Contents/Resources/sbom.cdx.json" "$no
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");
-const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform, minimumOS, macosCompatibilitySha256, brandingSha256] = process.argv.slice(1);
+const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform, minimumOS, macosCompatibilitySha256, brandingSha256, qaProfileIdentifier] = process.argv.slice(1);
 const record = {
   schemaVersion: 1,
   productId: "ynx-developer-v1",
@@ -234,16 +272,47 @@ const record = {
   branding: {path: "Contents/Resources/branding-manifest.json", sha256: brandingSha256}
 };
 const coreReceipt = require("path").join(require("path").dirname(output), "composed-core/distribution.json");
+record.desktopEntry = JSON.parse(fs.readFileSync(require("path").join(require("path").dirname(output), "desktop-entry.json"), "utf8"));
+const nativeLinkPath=require("path").join(require("path").dirname(output),"native-link/distribution.json"),nativeLinkBytes=fs.readFileSync(nativeLinkPath),nativeLink=JSON.parse(nativeLinkBytes);
+if(nativeLink.sourceCommit!==sourceCommit||["ROOT63_RESOURCE8","C6_DIAGNOSTIC_NORMAL_PRODUCT","R21_COCOA_SUCCESSOR_NORMAL_PRODUCT","R22_COCOA_SUCCESSOR_NORMAL_PRODUCT","R23_COCOA_SUCCESSOR_NORMAL_PRODUCT","R579_COCOA_SUCCESSOR_NORMAL_PRODUCT"].includes(nativeLink.sourceVariant)){
+ const app=require("path").resolve(require("path").dirname(output),"../..");
+ const roles=JSON.parse(require("child_process").execFileSync(process.execPath,["scripts/verify-current-package-source-roles.mjs",app,sourceCommit,sourceTree],{encoding:"utf8"}));
+ if(roles.applicationSourceCommit!==sourceCommit||roles.assembledSourceCommit!==nativeLink.sourceCommit||roles.originalNativeReceiptsPreserved!==true)throw Error("Native link and App source roles differ");
+ record.currentPackageSourceRoles=roles;
+}
+record.nativeLink={path:"Contents/Resources/native-link/distribution.json",sha256:require("crypto").createHash("sha256").update(nativeLinkBytes).digest("hex"),SDKSourceCommit:nativeLink.SDKSourceCommit};
+if (qaProfileIdentifier) record.qaProfile = {identifier:qaProfileIdentifier,isolated:true,defaultLaunch:"finder-launchservices",supportDirectory:`~/Library/Application Support/YNXDeveloper-QA/${qaProfileIdentifier}`};
+const sdkProjectionBinding=require("path").join(require("path").dirname(output),"code/apps/developer/identity-sdk-projection-binding.json");
+if(fs.existsSync(sdkProjectionBinding)){
+  const binding=fs.readFileSync(sdkProjectionBinding),metadata=JSON.parse(binding);
+  if(metadata.schema!=="YNX_IDE_SDK_PROJECTION_BINDING/v1"||!["SDK49-IDE-R2-SOURCE-ARCHIVE-RUNTIME/v1","SDK49-IDE-ROOT63-SOURCE-ARCHIVE-RUNTIME/v1","SDK49-IDE-ROOT63-CURRENT-PRODUCTION-SOURCE-ARCHIVE-RUNTIME/v1","SDK49-IDE-C6-DIAGNOSTIC-PRODUCTION-SOURCE-ARCHIVE-RUNTIME/v1","SDK49-IDE-C6-SCOPE-PHASE-SOURCE-ARCHIVE-RUNTIME/v1","SDK49-IDE-CONTROL-MATCHED-WHOLE-SOURCE-ARCHIVE-RUNTIME/v1"].includes(metadata.sourceVariant))throw Error("Exact current SDK projection binding required");
+  record.packagedSDKSourceProjection={path:"Contents/Resources/code/apps/developer/identity-sdk-projection-binding.json",bytes:binding.length,sha256:require("crypto").createHash("sha256").update(binding).digest("hex"),sourceVariant:metadata.sourceVariant};
+}
 if (fs.existsSync(coreReceipt)) record.composedCoreDistribution = JSON.parse(fs.readFileSync(coreReceipt, "utf8"));
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
-' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha" "$branding_sha"
+' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha" "$branding_sha" "$qa_profile_identifier"
+# A projected SDK must have its independent binding sealed in build provenance
+# before the same production loader executes its pinned artifact IO verifier.
+node scripts/verify-packaged-sdk-resolution.mjs "$app/Contents/Resources/code/apps/developer" > "$app/Contents/Resources/native-link/sdk-public-resolution.json"
 /usr/bin/xattr -cr "$app"
 # The reviewed portable Node binary may retain its distributor signature while
 # native npm modules are locally ad-hoc signed. macOS library validation rejects
 # that mixed-Team process. This entire unsigned Preview must therefore use one
 # explicit no-Team-ID ad-hoc class for every bundled Mach-O before sealing the
 # outer app.
+c6_preserved_signatures=""
+native_variant="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1])).variant' "$root/native-build/plan.json")"
+if [[ "$native_variant" == "C6_DIAGNOSTIC_NORMAL_PRODUCT" || "$native_variant" == "R21_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R22_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R23_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R579_COCOA_SUCCESSOR_NORMAL_PRODUCT" ]]; then
+  c6_preserved_signatures="$root/c6-preserved-signatures.json"
+  node scripts/c6-diagnostic-product.mjs --preserved-signatures "$app" > "$c6_preserved_signatures"
+fi
 while IFS= read -r bundled_binary; do
+  # Only this frozen cohort's exact previously signed components may retain
+  # their bytes. They passed pins, strict signatures and no-Team checks above;
+  # the supplier rechecks original bytes again after all nested signing.
+  if [[ -n "$c6_preserved_signatures" ]] && node -e 'const fs=require("fs");process.exit(JSON.parse(fs.readFileSync(process.argv[1])).some(row=>row.path===process.argv[2])?0:1)' "$c6_preserved_signatures" "$bundled_binary"; then
+    continue
+  fi
   # Signing the alias separately derives a filename-specific CodeDirectory and
   # breaks the debug supervisor's exact-runtime check. Seal Node once, then
   # derive its launcher alias from those signed bytes before recording hashes.
@@ -308,9 +377,24 @@ NODE
 if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs seal "$app/Contents/Resources"
 fi
-node scripts/package-identity-admission-source.mjs --seal-native "$app/Contents/Resources"
-/usr/bin/codesign --force --deep --sign - "$app"
-node scripts/package-identity-admission-source.mjs --verify-native "$app/Contents/Resources"
+# The matching current-product adapter must first regenerate the original
+# component record and strong gate AFTER nested signing. This extra record is
+# artifact data only; it cannot replace that SDK/Auth image or Source guard.
+node scripts/current-product-post-nested.mjs "$native_link_input" "$app" > "$root/native-post-nested-current.json"
+node scripts/native-runtime-seal.mjs capture "$app" > "$root/native-runtime-seal.json"
+node --input-type=module - "$app/Contents/Resources/build-provenance.json" "$root/native-runtime-seal.json" <<'NODE'
+import {readFile,writeFile} from 'node:fs/promises';
+const [path,seal]=process.argv.slice(2),record=JSON.parse(await readFile(path));
+record.packagedNativeRuntime=JSON.parse(await readFile(seal));
+await writeFile(path,JSON.stringify(record,null,2)+'\n');
+NODE
+# Resource Mach-O files were individually signed above. Seal the outer bundle
+# without recursively re-signing the already recorded Native image/libraries.
+/usr/bin/codesign --force --sign - "$app"
+node scripts/native-runtime-seal.mjs verify "$app" > "$root/native-runtime-seal-postouter.json"
+if [[ "$native_variant" == "R21_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R22_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R23_COCOA_SUCCESSOR_NORMAL_PRODUCT" || "$native_variant" == "R579_COCOA_SUCCESSOR_NORMAL_PRODUCT" ]]; then
+  node scripts/r21-cocoa-product.mjs --post-outer "$app" "$root/native-post-nested-current.json" > "$root/r21-cocoa-post-outer.json"
+fi
 if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs verify "$app/Contents/Resources"
 fi

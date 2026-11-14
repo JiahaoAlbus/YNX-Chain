@@ -30,6 +30,7 @@ import { createCodeOSSService } from "../../codeoss-service/src/service.mjs";
 import { createCodeOSSProxy } from "../../codeoss-service/src/proxy.mjs";
 import { loadCoreAdmissionAdapter } from "../../codeoss-service/src/configuration.mjs";
 import { createNativeToolsService } from "../../codeoss-service/src/tools-service.mjs";
+import { createBuildCollection } from "../../codeoss-service/src/build-collection.mjs";
 import { createDeveloperSSO } from "../../codeoss-service/src/developer-sso.mjs";
 
 if (process.env.NODE_ENV === "production" && !process.env.YNX_CODE_WORKSPACE_SESSION_KEY) throw new Error("YNX_CODE_WORKSPACE_SESSION_KEY is required in production.");
@@ -174,7 +175,9 @@ codeossService = createCodeOSSService({
 });
 const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission,
   recordActivity: developerSSO.recordCoreActivity }) : null;
-nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
+const nativeBuildCollection = createBuildCollection({ directory: join(stateDir, 'native-builds'), authorize: codeossService.authorizeBuild });
+nativeTools = createNativeToolsService({ coreService: codeossService, buildCollection: nativeBuildCollection,
+  buildBindingForAdmission: codeossService.buildBindingForAdmission, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
 hostedGenerationSupply = coreAdmission.hostedGeneration || null;
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({
