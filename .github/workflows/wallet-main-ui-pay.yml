@@ -54,7 +54,7 @@ jobs:
       - name: WalletConnect disconnect race
         run: node --test test/walletconnect-disconnect-race.test.mjs
       - name: Asset refresh scope and failure recovery
-        run: node --test test/asset-refresh-race.test.mjs
+        run: node --test test/asset-refresh-race.test.mjs test/invoice-reference-locale.test.mjs
       # Ethers and its locked dependencies are already tracked in this normal
       # source image and materialized by checkout. No install or scripts run.
       - name: Original source proof readback and Main canonical identity controls

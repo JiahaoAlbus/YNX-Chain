@@ -179,12 +179,12 @@ const invoiceUI=createInvoiceReferenceUI({
   applyReference:id=>{document.querySelector("#invoice-reference").value=id;document.querySelector("#invoice-reference").focus()},
   render:({busy,result,error,notice})=>{
     document.querySelector("#check-invoice").disabled=busy;
-    document.querySelector("#invoice-status").textContent=notice??(busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":""));
+    copyUI(document.querySelector("#invoice-status"),notice??(busy?"Checking the invoice reference…":error??(result?"Service response received. This is not a trusted signed invoice or payment receipt.":"")));
     const facts=document.querySelector("#invoice-facts");facts.replaceChildren();
     if(!result)return;
     const invoice=result.invoice;
     for(const [label,value] of [["Invoice",invoice.id],["Selected account",nativeAccountLabel(result.account)],["Reported merchant",invoice.merchant],["Reported recipient",invoice.payoutAddress],["Reported amount",`${invoice.amount} YNXT`],["Expires",invoice.dueAt],["Service status",invoice.status],["Source",result.source]]){
-      const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=label;dd.textContent=value;facts.append(dt,dd);
+      const dt=document.createElement("dt"),dd=document.createElement("dd");copyUI(dt,label);dd.dir="ltr";dd.textContent=value;facts.append(dt,dd);
     }
   },
 });
@@ -1065,7 +1065,7 @@ async function refreshAssets() {
     lastBalanceCheckedAt = value.checkedAt;
     copyUI(document.querySelector("#balance-status"),value.transferEnabled===false?"Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network.":"YNX Testnet · Updated {time}",{time:new Date(value.checkedAt).toLocaleTimeString()});
   } catch { if (current()) {
-    if (lastBalanceCheckedAt) document.querySelector("#balance-status").textContent = `Update pending · Last updated ${new Date(lastBalanceCheckedAt).toLocaleTimeString()} / 更新待确认 · 上次更新 ${new Date(lastBalanceCheckedAt).toLocaleTimeString()}`;
+    if (lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Update pending · Last updated {time}",{time:new Date(lastBalanceCheckedAt).toLocaleTimeString()});
     else copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing.");
   }} finally {
     balanceFlight = null;

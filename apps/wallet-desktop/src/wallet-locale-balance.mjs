@@ -14,6 +14,9 @@ const rows={
   ar:["جارٍ التحقق من YNX Testnet…","الرصيد غير متاح. حاول التحديث مجددًا.","YNX Testnet · تم التحديث {time}","تم التحقق من الرصيد القديم بوحدات YNXT الصحيحة. تحويلات Ethereum غير مفعلة على هذه الشبكة."],
   id:["Memeriksa YNX Testnet…","Saldo tidak tersedia. Coba segarkan lagi.","YNX Testnet · Diperbarui {time}","Saldo lama dalam YNXT bulat terverifikasi. Transfer Ethereum tidak diaktifkan di jaringan ini."]
 };
+keys.push('Update pending · Last updated {time}');
+const pending={"zh-Hans":"更新待确认 · 上次更新 {time}","zh-Hant":"更新待確認 · 上次更新 {time}",ja:"更新を確認できません · 最終更新 {time}",ko:"업데이트 확인 대기 · 마지막 업데이트 {time}",es:"Actualización pendiente · Última actualización {time}",fr:"Actualisation en attente · Dernière mise à jour {time}",de:"Aktualisierung ausstehend · Zuletzt aktualisiert {time}",pt:"Atualização pendente · Última atualização {time}",ru:"Обновление ожидается · Последнее обновление {time}",ar:"التحديث قيد الانتظار · آخر تحديث {time}",id:"Pembaruan tertunda · Terakhir diperbarui {time}"};
+for(const [locale,value] of Object.entries(pending))rows[locale].push(value);
 export const BALANCE_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,values])=>{
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete balance copy: ${locale}`);
   return[locale,Object.freeze(Object.fromEntries(keys.map((key,index)=>[key,values[index]])))];
