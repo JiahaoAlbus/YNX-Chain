@@ -480,12 +480,14 @@ class Window:
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None):
+    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False, *, private_log=False, stop=None, original_pidfd=False):
         with self.lock:
-            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop)
+            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop, original_pidfd)
 
-    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None):
+    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe, private_log, stop=None, original_pidfd=False):
         require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
+        require(type(original_pidfd) is bool and (not original_pidfd or (persistent and thread_safe and stdin_pipe)),
+                'original pidfd only for one persistent owned stdin stream')
         self.sample()
         require(stop is None or not stop.is_set(), "normal helper cancelled before launch; preserve UNKNOWN")
         log = open(self.work / (".private" if private_log else "public") / (name + ".log"),
@@ -509,12 +511,23 @@ class Window:
             if source_input is not None:
                 source_input.close()
         row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=time.monotonic_ns())
-        self.children.append(row)
+        if not original_pidfd:self.children.append(row) # Original default ordering.
+        else:proc._ynx_original_pidfd_required=True
         try:
-            row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
-            self.known[proc.pid] = row["startTicks"]
-        except FileNotFoundError:
-            row["startTicks"] = None
+            try:
+                row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
+                self.known[proc.pid] = row["startTicks"]
+            except FileNotFoundError:
+                row["startTicks"] = None
+            if original_pidfd:
+                # Before publishing this child the observer cannot poll/reap it.
+                spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
+                identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
+                proc._ynx_original_pidfd=identity.OriginalOwnerPidfd(proc)
+        except BaseException:
+            if original_pidfd:self.children.append(row) # Preserve explicit debt; never numeric fallback.
+            raise
+        if original_pidfd:self.children.append(row)
         return proc
 
     def wait(self, proc, allow_failure=False):
@@ -586,6 +599,13 @@ class Window:
         return len(rows)
 
     def stop(self):
+        # No concurrent launch may leave an unpublished child while stop's
+        # final waitpid(-1) reaps. In particular pidfd attachment completes
+        # under this same lock before any stop/reaper can begin.
+        with self.lock:
+            return self._stop_locked()
+
+    def _stop_locked(self):
         try:
             return self._stop()
         except BaseException:

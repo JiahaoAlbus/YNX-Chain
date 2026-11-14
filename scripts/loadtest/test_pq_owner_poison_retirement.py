@@ -190,4 +190,85 @@ class PoisonControls(unittest.TestCase):
                 Session(ceremony,(0,),poison_retirement=True)
         ceremony.w.launch.assert_not_called()
 
+    def test_window_publishes_child_only_after_original_identity_bound(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            process=SimpleNamespace(pid=12345,returncode=None)
+            handle=SimpleNamespace(send=lambda sig:None)
+            def bind(original):
+                self.assertIs(original,process);self.assertEqual(w.children,[])
+                self.assertTrue(original._ynx_original_pidfd_required)
+                return handle
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
+            mod=SimpleNamespace(OriginalOwnerPidfd=bind)
+            with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(driver.lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(driver.lab.importlib.util,'module_from_spec',return_value=mod):
+                try:
+                    result=w.launch('load-public-owners',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                    self.assertIs(result,process);self.assertEqual(len(w.children),1)
+                    self.assertIs(w.children[0]['process']._ynx_original_pidfd,handle)
+                finally:
+                    for _,log in w.logs:log.close()
+
+    def test_failed_identity_binding_retains_child_without_numeric_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            process=SimpleNamespace(pid=12345,returncode=None)
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
+            def refused(original):raise OSError('pidfd refused')
+            mod=SimpleNamespace(OriginalOwnerPidfd=refused)
+            with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(driver.lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(driver.lab.importlib.util,'module_from_spec',return_value=mod), \
+                 mock.patch.object(driver.lab.os,'killpg',side_effect=AssertionError('numeric signal forbidden')):
+                try:
+                    with self.assertRaisesRegex(OSError,'pidfd refused'):
+                        w.launch('load-public-owners',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                    self.assertEqual(len(w.children),1);self.assertIs(w.children[0]['process'],process)
+                    with self.assertRaisesRegex(RuntimeError,'pidfd missing'):
+                        driver.lab.signal_original_child(process,driver.signal.SIGTERM)
+                finally:
+                    for _,log in w.logs:log.close()
+
+    def test_window_stop_cannot_reap_unpublished_child_during_binding(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'public').mkdir()
+            w=driver.lab.Window.__new__(driver.lab.Window)
+            w.lock=threading.Lock();w.children=[];w.known={};w.logs=[];w.work=root;w.source=root;w.env={};w.cpus=[0];w.sample=lambda:None
+            entered=threading.Event();release=threading.Event();reaper=threading.Event();errors=[]
+            process=SimpleNamespace(pid=12345,returncode=None);handle=SimpleNamespace(send=lambda sig:None)
+            def bind(original):
+                entered.set()
+                if not release.wait(2):raise RuntimeError('test binding timeout')
+                return handle
+            def finish_stop():
+                self.assertIs(w.children[0]['process']._ynx_original_pidfd,handle)
+                reaper.set();return True
+            w._stop_locked=finish_stop
+            spec=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda m:None))
+            mod=SimpleNamespace(OriginalOwnerPidfd=bind)
+            def launch():
+                try:w.launch('load-public-owners',['no-exec'],True,stdin_pipe=True,thread_safe=True,original_pidfd=True)
+                except BaseException as e:errors.append(e)
+            with mock.patch.object(driver.lab.subprocess,'Popen',return_value=process), \
+                 mock.patch.object(driver.lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(driver.lab.guard,'parse_stat',return_value=dict(startTicks=123)), \
+                 mock.patch.object(driver.lab.importlib.util,'spec_from_file_location',return_value=spec), \
+                 mock.patch.object(driver.lab.importlib.util,'module_from_spec',return_value=mod):
+                a=threading.Thread(target=launch);a.start();self.assertTrue(entered.wait(2))
+                b=threading.Thread(target=w.stop);b.start()
+                try:self.assertFalse(reaper.wait(.05))
+                finally:release.set();a.join(2);b.join(2)
+                self.assertFalse(a.is_alive() or b.is_alive());self.assertTrue(reaper.is_set());self.assertEqual(errors,[])
+                for _,log in w.logs:log.close()
+
 if __name__=='__main__':unittest.main()

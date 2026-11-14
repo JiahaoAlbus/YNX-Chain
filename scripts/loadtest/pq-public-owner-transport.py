@@ -5,8 +5,6 @@ write/read pair, rather than allowing concurrent Python readers to steal an
 owner's reply. EOF/cancellation never retries a command or releases a nonce.
 """
 import json
-import importlib.util
-from pathlib import Path
 import signal
 import os
 import stat
@@ -148,13 +146,9 @@ def session_class(Base, normal, lab):
                       '--activation-sha256',ceremony.activation_pin,'--workload-sha256',ceremony.workload_pin,
                       '--owners',','.join(map(str,indices)),'--ready','--timings','--credential-fd','3']
                 if prepare_source:args.append('--prepare-source')
+                launch_options=dict(original_pidfd=True) if poison_retirement else {}
                 self.proc=ceremony.w.launch(name,normal.fd3_command(args,fd),True,
-                                           pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
-                if poison_retirement:
-                    self.proc._ynx_original_pidfd_required=True
-                    spec=importlib.util.spec_from_file_location('original_owner_pidfd',Path(__file__).with_name('pq-experimental-owner-pidfd.py'))
-                    identity=importlib.util.module_from_spec(spec);spec.loader.exec_module(identity)
-                    self.proc._ynx_original_pidfd=identity.OriginalOwnerPidfd(self.proc)
+                                           pass_fds=(fd,),stdin_pipe=True,thread_safe=True,**launch_options)
             finally:
                 os.close(fd)
             self.path=ceremony.w.work/'public'/(name+'.log')
