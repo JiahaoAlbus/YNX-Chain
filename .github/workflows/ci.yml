@@ -40,7 +40,7 @@ jobs:
       - run: make mainnet-readiness
 
   pay-original-recovery:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay' && github.event.head_commit.message != 'Gate unqualified Comet QA inputs'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay' && github.event.head_commit.message != 'Gate unqualified Comet QA inputs' && github.event.head_commit.message != 'Prepare isolated OpenSSL QA inputs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,4 +69,4 @@ jobs:
         with:
           node-version: '24'
       - name: Test distinct Comet input gate
-        run: node --test apps/pay/native/scripts/qa-comet-input.test.mjs
+        run: node --test apps/pay/native/scripts/qa-comet-input.test.mjs apps/pay/native/scripts/qa-openssl-input.test.mjs

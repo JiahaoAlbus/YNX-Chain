@@ -1,0 +1,7 @@
+openssl_conf = init
+[init]
+providers = providers
+[providers]
+default = default_section
+[default_section]
+activate = 1
