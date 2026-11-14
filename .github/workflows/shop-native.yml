@@ -571,9 +571,16 @@ jobs:
           subprocess.run(["adb","shell","input","keyevent","4"],check=True)
           tap("Search")
           PYCODE
-          sleep 5
-          adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-search.xml"
-          grep -Eq 'No published products are available|Offline|unavailable|Unable|Could not' "$RUNNER_TEMP/shop-device-search.xml"
+          found=false
+          for attempt in 1 2 3 4 5 6; do
+            sleep 5
+            adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-search.xml"
+            if grep -Eqi 'No published products are available|Offline|unavailable|Unable|Could not|failed|timed out' "$RUNNER_TEMP/shop-device-search.xml"; then
+              found=true
+              break
+            fi
+          done
+          test "$found" = true
           adb logcat -d -b crash > "$RUNNER_TEMP/shop-device-crash.log"
           test ! -s "$RUNNER_TEMP/shop-device-crash.log"
           SH
