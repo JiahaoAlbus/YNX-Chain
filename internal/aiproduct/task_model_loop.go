@@ -804,7 +804,9 @@ func (s *Server) handleTaskModelRunRead(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusNotFound, "task run not found")
 		return
 	}
-	if task.Holder != session.DeviceID || run.Generation != task.Generation || run.Holder != task.Holder {
+	// A replacement product session can recover run metadata, but the answer
+	// remains bound to the session that passed the original disclosure check.
+	if task.Holder != session.DeviceID || run.Generation != task.Generation || run.Holder != task.Holder || run.SessionID != session.ID {
 		w.Header().Set("Cache-Control", "no-store")
 		writeJSON(w, http.StatusOK, taskRunView{ID: run.ID, RunID: run.RunID, TaskID: run.TaskID, Status: run.Status, Steps: append([]string(nil), run.Steps...), FirstCause: run.FirstCause, Cancelled: run.Cancelled, RecoveryOnly: true})
 		return

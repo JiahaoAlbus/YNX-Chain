@@ -410,3 +410,31 @@ func TestP08ModelReturnShopEffectsAndCheckpointPreserved(t *testing.T) {
 		t.Fatalf("blocked Shop restore re-entered grant/tool/provider/checkpoint: %+v %v", retry, err)
 	}
 }
+
+func TestP08ModelRunReadWithDifferentSessionIsMetadataOnly(t *testing.T) {
+	f, gate := newP08ReturnFixture(t, false, nil)
+	request := f.request()
+	run, err := f.server.runTaskModel(context.Background(), f.session, f.task.ID, request)
+	if err != nil || run.Content != p08ReturnAnswer {
+		t.Fatalf("original return: status=%q err=%v", run.Status, err)
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{store: cold}
+	reopened := f.session
+	reopened.ID += "-different-session"
+	for _, id := range []string{run.ID, run.RunID} {
+		history := p08ReturnRead(t, server, reopened, f.task.ID, id)
+		if !history.RecoveryOnly || history.Content != "" || history.ID != run.ID {
+			t.Fatal("same device with different session received the original answer")
+		}
+	}
+	if original := p08ReturnRead(t, server, f.session, f.task.ID, run.RunID); original.Content != p08ReturnAnswer || original.RecoveryOnly {
+		t.Fatal("original session lost the verified answer after restart")
+	}
+	if f.requests.Load() != 1 || len(gate.snapshots()) != 2 {
+		t.Fatal("readback re-entered the model or disclosure gate")
+	}
+}
