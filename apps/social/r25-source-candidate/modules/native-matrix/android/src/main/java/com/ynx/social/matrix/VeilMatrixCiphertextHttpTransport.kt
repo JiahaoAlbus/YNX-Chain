@@ -707,4 +707,3 @@ internal class VeilMatrixCiphertextHttpTransport private constructor(
         internal fun control(baseUrl: String, token: CharArray, http: OkHttpClient) = construct(baseUrl, token, http)
     }
 }
-

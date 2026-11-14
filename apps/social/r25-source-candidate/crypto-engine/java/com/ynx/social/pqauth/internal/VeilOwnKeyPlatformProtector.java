@@ -571,4 +571,3 @@ final class VeilOwnKeyPlatformProtector implements AutoCloseable {
         if(first!=null){closePrimary=first;VeilOwnKeyPlatformProtector.<RuntimeException>rethrow(first);}
     }
 }
-
