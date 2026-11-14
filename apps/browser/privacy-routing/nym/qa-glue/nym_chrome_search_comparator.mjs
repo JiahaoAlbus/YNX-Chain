@@ -266,7 +266,10 @@ export async function runBrowserComparator({ profile, url = QUERY, upstream, abs
     });
     let topFrame;
     const rootCall = (m, p, sessionId, timeoutMs) => cdp.call(m, p, sessionId, timeoutMs);
-    const { targetId } = await rootCall('Target.createTarget', { url: 'about:blank' });
+    // Chrome cold start can exceed the ordinary CDP command budget. Keep this
+    // independently bounded by the existing absolute route deadline.
+    const startupBudget = Math.max(1, Math.min(12_000, workRemaining()));
+    const { targetId } = await rootCall('Target.createTarget', { url: 'about:blank' }, undefined, startupBudget);
     ({ sessionId: pageSession } = await rootCall('Target.attachToTarget', { targetId, flatten: true }));
     const call = (m, p, timeoutMs) => rootCall(m, p, pageSession, timeoutMs);
     const { frameTree } = await call('Page.getFrameTree');
