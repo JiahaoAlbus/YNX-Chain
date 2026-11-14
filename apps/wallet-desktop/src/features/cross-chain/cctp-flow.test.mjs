@@ -216,6 +216,31 @@ test('T-P01-07 lookup errors or an absent cold original cannot create a replacem
   assert.equal(h.calls.send.length, 0);
 });
 
+for (const originalState of ['unknown', 'submitted']) test(`original mint ${originalState} remains queryable when destination finalizes before the journal lookup`, async t => {
+  const h = await harness(t, {allowanceUnits: '1000000'});
+  const {record} = await h.mintReady();
+  const mint = await h.flow.prepareStep(record.id);
+  await h.confirm(record, mint);
+  Object.assign(h.original.get(mint.id), {state: originalState, hash: TX.mint});
+  h.current.destination = {state: 'finalized', receipt: {hash: TX.mint, blockHash: `0x${'ef'.repeat(32)}`, blockNumber: '20', status: 1, confirmationScope: 'rpc-finalized-block', finalizedBlockHash: `0x${'fe'.repeat(32)}`, finalizedBlockNumber: '25'}, balanceUnits: '1000000'};
+  const cold = h.createFlow(new CctpStore({filePath: h.filePath}));
+  const first = await cold.check(record.id);
+  assert.equal(first.state, 'mint-pending');
+  assert.equal(first.operations.at(-1).state, originalState);
+  assert.equal(first.destination.receipt.hash, TX.mint);
+  // Older versions could persist completion before Main's original journal
+  // observed inclusion. Keep those records recoverable after a cold restart.
+  await h.store.update(first.id, first.revision, value => {value.state = 'completed';});
+  h.included(mint);
+  const final = await h.createFlow(new CctpStore({filePath: h.filePath})).check(record.id);
+  assert.equal(final.state, 'completed');
+  assert.equal(final.operations.at(-1).state, 'included');
+  assert.equal(final.operations.at(-1).id, mint.id);
+  assert.equal(final.proof.nonce, NONCE);
+  assert.equal(h.calls.send.filter(id => id === mint.id).length, 1);
+  assert.deepEqual(h.calls.check.slice(-2).map(call => call.id), [mint.id, mint.id]);
+});
+
 test('quote → exact approve → burn → attestation → mint requires a finalized target receipt and survives a new disk reader', async t => {
   const h = await harness(t);
   const quote = await h.flow.quote(copy(INPUT));
