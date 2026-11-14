@@ -1808,16 +1808,18 @@ const maxPQLabProofCanonicalMigrationBytes = 128 << 20
 
 // DecodePQLabProofMaterials requires a distinct exact operator pin. Canonical
 // typed JSON rejects aliases, missing/extra fields, duplicates and trailing data.
+// Its fixed schema contains no attacker-selected arrays or opaque subtrees. The
+// byte-for-byte check also avoids running a generic token scan that copies large
+// base64 strings before decoding them.
 func DecodePQLabProofMaterials(raw []byte, pin string) (PQLabProofMaterials, error) {
 	var value PQLabProofMaterials
-	if len(raw) == 0 || len(raw) > MaxPQLabProofMaterialsBytes || pqLabFile("", raw).SHA256 != pin || pqLightUniqueJSON(raw) != nil {
+	if len(raw) == 0 || len(raw) > MaxPQLabProofMaterialsBytes || pqLabFile("", raw).SHA256 != pin {
 		return value, errors.New("independently pinned bounded lab proof materials required")
 	}
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return value, errors.New("invalid lab material encoding")
 	}
-	canonical, err := json.Marshal(value)
-	if err != nil || !bytes.Equal(raw, canonical) || value.Version != PQLabProofMaterialsVersion {
+	if value.Version != PQLabProofMaterialsVersion || !validPQLabProofMaterialFrame(raw, value) {
 		return PQLabProofMaterials{}, errors.New("noncanonical lab proof materials")
 	}
 	return value, nil

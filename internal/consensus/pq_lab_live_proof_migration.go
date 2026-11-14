@@ -7,7 +7,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"io"
 	"path/filepath"
@@ -92,52 +91,10 @@ func (m *pqLabProofMigration) checkPlan(p ProofHostSourcePlan, chainID string) e
 	return m.original.unchanged()
 }
 
-// Keep the v1 JSON field order and its original base64 encoding. Only the
-// history-sized base64 value is streamed; smaller fields use encoding/json.
-func pqLabProofMaterialFrame(m PQLabProofMaterials) ([]byte, []byte, error) {
-	n := len(m.Migration)
-	if n == 0 || n > maxPQLabProofCanonicalMigrationBytes {
-		return nil, nil, errors.New("canonical migration exceeds the original lab proof frame")
-	}
-	m.Migration = nil
-	raw, err := json.Marshal(m)
-	if err != nil {
-		return nil, nil, err
-	}
-	const prefix = `,"migration":`
-	at := bytes.Index(raw, []byte(prefix+"null,"))
-	if at < 0 {
-		return nil, nil, errors.New("lab proof frame lacks its original migration field")
-	}
-	at += len(prefix)
-	if len(raw)-4+2+base64.StdEncoding.EncodedLen(n) > MaxPQLabProofMaterialsBytes {
-		return nil, nil, errors.New("public live proof materials exceed transport bound")
-	}
-	return raw[:at], raw[at+4:], nil
-}
-
 func writePQLabProofMaterialFrame(path string, head, migration, tail []byte) (PQLabWorkloadFile, error) {
 	digest := sha256.New()
 	err := pqLabWritePublicFile(path, func(file io.Writer) error {
-		output := io.MultiWriter(file, digest)
-		if _, err := output.Write(head); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(output, "\""); err != nil {
-			return err
-		}
-		encoder := base64.NewEncoder(base64.StdEncoding, output)
-		if _, err := encoder.Write(migration); err != nil {
-			return err
-		}
-		if err := encoder.Close(); err != nil {
-			return err
-		}
-		if _, err := io.WriteString(output, "\""); err != nil {
-			return err
-		}
-		_, err := output.Write(tail)
-		return err
+		return writePQLabProofMaterialBytes(io.MultiWriter(file, digest), head, migration, tail)
 	})
 	if err != nil {
 		return PQLabWorkloadFile{}, err

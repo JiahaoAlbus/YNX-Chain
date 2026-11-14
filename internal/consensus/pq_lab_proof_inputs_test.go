@@ -11,6 +11,62 @@ import (
 	"time"
 )
 
+func TestPQLabProofMaterialsCanonicalReadback(t *testing.T) {
+	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: []byte{1, 2, 3, 4}}
+	if path := os.Getenv("YNX_PQ_PROOF_HOST_MIGRATION_PUBLIC_FIXTURE"); path != "" {
+		var err error
+		m.Migration, err = os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	raw, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decode := func(in []byte) (PQLabProofMaterials, error) {
+		return DecodePQLabProofMaterials(in, pqLabSHA(in))
+	}
+	got, err := decode(raw)
+	if err != nil || !reflect.DeepEqual(m, got) {
+		t.Fatal("valid original v1 proof material changed", err)
+	}
+	if len(m.Migration) >= 64<<20 {
+		t.Logf("same v1 material frame readback: migration=%d bytes frame=%d bytes", len(m.Migration), len(raw))
+		return
+	}
+	for name, invalid := range map[string][]byte{
+		"root duplicate":    bytes.Replace(raw, []byte(`"migration":`), []byte(`"migration":null,"migration":`), 1),
+		"escaped duplicate": bytes.Replace(raw, []byte(`"migration":`), []byte(`"migr\u0061tion":null,"migration":`), 1),
+		"alias":             bytes.Replace(raw, []byte(`"migration":`), []byte(`"Migration":`), 1),
+		"nested unknown":    bytes.Replace(raw, []byte(`"Index":0`), []byte(`"Index":0,"Unknown":true`), 1),
+		"nested duplicate":  bytes.Replace(raw, []byte(`"Index":0`), []byte(`"Index":1,"Index":0`), 1),
+		"whitespace":        append([]byte(" "), raw...),
+		"base64 escape":     bytes.Replace(raw, []byte(`"AQIDBA=="`), []byte(`"\u0041QIDBA=="`), 1),
+		"trailing bytes":    append(bytes.Clone(raw), []byte("{}")...),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if bytes.Equal(raw, invalid) {
+				t.Fatal("counterexample did not change the material frame")
+			}
+			if _, err := decode(invalid); err == nil {
+				t.Fatal("changed material frame was accepted with a fresh hash")
+			}
+		})
+	}
+	for _, empty := range [][]byte{nil, {}} {
+		m.Migration = empty
+		encoded, err := json.Marshal(m)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := decode(encoded)
+		if err != nil || !reflect.DeepEqual(m, got) {
+			t.Fatal("original v1 null/empty syntax changed", err)
+		}
+	}
+}
+
 func TestPQLabProofInputsSameOriginalParityAndCost(t *testing.T) {
 	m, proof := pqLabProofFixture(t)
 	now := time.Now().UTC()
