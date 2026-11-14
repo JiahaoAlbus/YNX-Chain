@@ -1252,7 +1252,8 @@ verify_public_phase() {
   local rpc="${PUBLIC_RPC_URL:-https://rpc.ynxweb4.com}" evm="${PUBLIC_EVM_RPC_URL:-https://evm.ynxweb4.com}"
   rpc="${rpc%/}"; evm="${evm%/}"
   [[ "$rpc" =~ ^https://[A-Za-z0-9.-]+$ && "$evm" =~ ^https://[A-Za-z0-9.-]+$ ]] || exit 1
-  (umask 077; mkdir -m 0700 "$evidence") || { echo "original public observation exists; retain UNKNOWN" >&2; exit 1; }
+  umask 077
+  mkdir -m 0700 "$evidence" || { echo "original public observation exists; retain UNKNOWN" >&2; exit 1; }
   if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
     node - "$candidate_binding" >"$evidence/result.json" <<'NODE'
 const fs=require("fs"),crypto=require("crypto"),p=process.argv[2],raw=fs.readFileSync(p),b=JSON.parse(raw);
@@ -1268,17 +1269,22 @@ NODE
     node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" "$evidence/gateway-pq-identity.json" public >"$evidence/observation.json"
     curl --noproxy '*' --max-time 10 -fsS -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$evm" >"$evidence/evm-chain-id.json"
     node scripts/verify/public-bft-candidate-binding.mjs --public-read-targets "$candidate_binding" "$candidate_migration" "$evidence/gateway-status.json" >"$evidence/read-targets.txt"
-    local account height
+    local account height retained_height retained_quantity retained_request
     read -r account height <"$evidence/read-targets.txt"
+    retained_height=$((height - 1))
+    printf -v retained_quantity '0x%x' "$retained_height"
+    printf -v retained_request '{"jsonrpc":"2.0","id":2,"method":"eth_getBlockByNumber","params":["%s",false]}' "$retained_quantity"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/accounts/$account" >"$evidence/account.json"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/blocks/$height" >"$evidence/block.json"
+    curl --disable --noproxy '*' --max-time 10 --max-filesize 33554432 -fsS "$rpc/blocks/$retained_height" >"$evidence/retained-native-block.json"
+    curl --disable --noproxy '*' --max-time 10 --max-filesize 67108864 -fsS -H 'content-type: application/json' -d "$retained_request" "$evm" >"$evidence/retained-evm-block.json"
     local mutation_code
     mutation_code="$(curl --noproxy '*' --max-time 10 -sS -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -d '{}' "$rpc/__ynx_mutation_freeze_probe__")"
     [[ "$mutation_code" =~ ^[0-9]{3}$ ]] || exit 1
     printf '{"httpStatus":%s}\n' "$mutation_code" >"$evidence/mutation-freeze.json"
     node scripts/verify/public-bft-candidate-binding.mjs --public-readback "$candidate_binding" "$evidence" >"$evidence/result.json"
   fi
-  node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$evidence/result.json" "${DEPLOY_DRY_RUN:-0}"
+  node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$evidence/result.json" "${DEPLOY_DRY_RUN:-0}" "$evidence"
   ln "$evidence/result.json" "$ingress_root/public-result.json"
 }
 release_ref="$(git symbolic-ref --quiet HEAD)" || { echo "production driver requires an original named release checkout" >&2; exit 1; }
@@ -1404,7 +1410,7 @@ mutation_freeze_phase() {
     prepare_candidate_package
     quiet_forward_gate
     ingress_context
-    node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$ingress_root/public-result.json" "${DEPLOY_DRY_RUN:-0}"
+    node scripts/verify/public-bft-candidate-binding.mjs --public-result-check "$candidate_binding" "$ingress_root/public-result.json" "${DEPLOY_DRY_RUN:-0}" "$ingress_root/public-continuity"
     # Removing the shared mutation marker never removes the independent native
     # producer pause marker or resumes the old writer.
   fi

@@ -346,18 +346,45 @@ if (rawArgs[0] === "--ingress-check") {
   if (v.gatewaySHA256 !== rawArgs[5] || v.publicCutoverReady !== (forward && !dry) || (!dry && (!hash(v.authoritativeChecksumsSha256) || !hash(v.candidateChecksumsSha256)))) fail("RPC ingress lacks original runtime/config byte identities");
   process.exit(0);
 }
+function retainedBlockObservation(b, root) {
+  const native = hashOriginalFile(path.join(root, "retained-native-block.json"), 32 << 20, true, true);
+  const evm = hashOriginalFile(path.join(root, "retained-evm-block.json"), 64 << 20, true, true);
+  const block = JSON.parse(native.raw), response = JSON.parse(evm.raw), result = response?.result;
+  const height = b.finalSnapshotHeight, blockHash = b.finalSnapshotBlockHash.replace(/^0x/, "").toLowerCase();
+  const matchesAnchor = value => value?.version === "ynx-migration-history-v1" && value.source === "source_import" &&
+    value.sourceAnchor === b.finalSnapshotStateHash && value.originalGenesisHash === b.originalGenesisHash &&
+    value.migrationBlockHash === blockHash && value.nativeChainId === "6423" && value.migrationHeight === String(height);
+  if (!hash(blockHash) || !matchesAnchor(block) || block.independentFinality !== false || block.height !== height ||
+      block.hash !== blockHash || !hash(block.parentHash) || response?.jsonrpc !== "2.0" || response.id !== 2 ||
+      Object.hasOwn(response, "error") || result?.independentFinality !== false || result.ynxEncoding !== "native-source-block" ||
+      result.number !== `0x${height.toString(16)}` || result.hash !== `0x${blockHash}` || !matchesAnchor(result.ynxSourceHistory)) fail("public retained block differs from the frozen original history boundary");
+  const source = result.ynxSourceBlock;
+  // The original Go Block encodes an empty nil transaction slice as null.
+  const transactions = block.transactions === null ? [] : block.transactions;
+  const sourceTransactions = source?.transactions === null ? [] : source?.transactions;
+  if (source?.height !== height || source.hash !== blockHash || source.parentHash !== block.parentHash ||
+      !Array.isArray(transactions) || !Array.isArray(sourceTransactions) || !Array.isArray(result.transactions) ||
+      transactions.length !== sourceTransactions.length || transactions.length !== result.transactions.length ||
+      transactions.some((tx, i) => typeof tx?.hash !== "string" || !hash(tx.hash.replace(/^0x/, "")) ||
+        tx.blockNumber !== height || tx.blockHash !== blockHash || sourceTransactions[i]?.hash !== tx.hash ||
+        sourceTransactions[i]?.blockNumber !== height || sourceTransactions[i]?.blockHash !== blockHash ||
+        result.transactions[i] !== `0x${tx.hash.replace(/^0x/, "")}`)) fail("public retained block transaction identity or order disagrees across the two endpoints");
+  return {retainedBlockHeight:height,retainedBlockHash:blockHash,retainedNativeBlockSHA256:native.sha256,retainedEVMBlockSHA256:evm.sha256};
+}
+
 if (rawArgs[0] === "--public-result-check") {
-  if (rawArgs.length !== 4 || !["0","1"].includes(rawArgs[3])) fail("exact public result arguments required");
+  if (rawArgs.length !== 5 || !["0","1"].includes(rawArgs[3])) fail("exact public result arguments required");
   const b=gatewayBinding(rawArgs[1]),v=readJSON(rawArgs[2],"public result"),dry=rawArgs[3]==="1";
   identityObservation(v, dry);
   if (!gatewayIdentity(v,b) || v.version!=="YNX-SINGLE-APP-GATEWAY-PUBLIC/v1" || v.bindingSHA256!==sha256(rawArgs[1]) || v.verified!==!dry || v.dryRun!==dry || v.publicIngressChanged!==!dry || v.RPCOnly!==true || v.ecosystemContinuityVerified!==false || v.independentFinalityVerified!==false) fail("public result is not an original qualified RPC-only observation");
   if(!dry && (v.source!=="configured-comet-rpc" || !/^0x[0-9a-f]{40}$/.test(v.accountIdentityRead||"") || v.historyBlockHeight!==b.finalSnapshotHeight+1 || !hash(String(v.historyBlockHash||"").replace(/^0x/,"").toLowerCase()))) fail("public result lacks account/history readback");
+  if (!dry && Object.entries(retainedBlockObservation(b, rawArgs[4])).some(([key, value]) => v[key] !== value)) fail("retained block receipts differ from the bytes originally observed");
   process.exit(0);
 }
 if (rawArgs[0] === "--public-read-targets") {
   if (rawArgs.length !== 4) fail("exact public read target arguments required");
   const b=gatewayBinding(rawArgs[1]),m=verifiedMigrationSummary(rawArgs[2],b.runtimeCommit,b.runtimeManifestSha256),s=readJSON(rawArgs[3],"gateway status");
-  if (m.sourceSHA256 !== b.finalSnapshotSha256 || m.height !== String(b.finalSnapshotHeight) || m.stateHash !== b.finalSnapshotStateHash || s.earliestBlockHeight !== b.finalSnapshotHeight+1 || !hash(String(s.earliestBlockHash||"").replace(/^0x/,""))) fail("original account/history read boundary mismatch");
+  if (m.sourceSHA256 !== b.finalSnapshotSha256 || m.height !== String(b.finalSnapshotHeight) || m.lastBlockHash !== b.finalSnapshotBlockHash || m.stateHash !== b.finalSnapshotStateHash || s.earliestBlockHeight !== b.finalSnapshotHeight+1 || !hash(String(s.earliestBlockHash||"").replace(/^0x/,""))) fail("original account/history read boundary mismatch");
   if (!m.firstCanonicalAccount) fail("original migration contains no canonical account for readback");
   process.stdout.write(`${m.firstCanonicalAccount} ${s.earliestBlockHeight}\n`);process.exit(0);
 }
@@ -369,7 +396,9 @@ if (rawArgs[0] === "--public-readback") {
   const targets=fs.readFileSync(path.join(root,"read-targets.txt"),"utf8").trim().split(" ");
   if (readJSON(path.join(root,"mutation-freeze.json"),"shared mutation freeze").httpStatus !== 503) fail("shared mutation freeze was removed before the qualified public readback");
   if (!gatewayIdentity(o,b) || o.verified !== true || o.dryRun !== false || o.publicCutoverReady !== true || o.publicIngressChanged !== true || o.source !== "configured-comet-rpc" || o.bindingSHA256 !== sha256(rawArgs[1]) || o.ecosystemContinuityVerified !== false || o.independentFinalityVerified !== false || targets.length !== 2 || a.address !== targets[0] || block.height !== Number(targets[1]) || block.height !== b.finalSnapshotHeight+1 || !hash(String(block.hash).replace(/^0x/,"").toLowerCase()) || String(block.hash).replace(/^0x/,"").toLowerCase() !== String(s.earliestBlockHash).replace(/^0x/,"").toLowerCase() || evm.jsonrpc !== "2.0" || evm.id !== 1 || evm.error !== undefined || evm.result !== "0x1917") fail("public account/history/EVM readback does not match the original observed source");
-  process.stdout.write(`${JSON.stringify({...o,version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",RPCOnly:true,publicIngressChanged:true,accountIdentityRead:a.address,historyBlockHeight:block.height,historyBlockHash:block.hash,accountBalanceVerified:false,allNativeHistoryVerified:false})}\n`);process.exit(0);
+  const retained = retainedBlockObservation(b, root);
+  if (block.parentHash !== retained.retainedBlockHash) fail("public first candidate block does not continue the original native block");
+  process.stdout.write(`${JSON.stringify({...o,version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",RPCOnly:true,publicIngressChanged:true,accountIdentityRead:a.address,historyBlockHeight:block.height,historyBlockHash:block.hash,...retained,accountBalanceVerified:false,allNativeHistoryVerified:false})}\n`);process.exit(0);
 }
 function pinnedOperator(file, pin) {
   if (!path.isAbsolute(file || "") || !hash(pin)) fail("absolute operator plan and independent nonzero SHA256 are required");

@@ -576,15 +576,45 @@ try {
   const summaryEnv={...f.env,PUBLIC_BFT_MIGRATION_VERIFIER:f.env.SYNTHETIC_METADATA_ELF};
   const publicTargets=node([bindingCLI,'--public-read-targets',binding,path.join(f.transaction,'final-snapshot/migration.json'),path.join(proofDir,'gateway-status.json')],0,summaryEnv).stdout;
   node([...observeArgs,'public'],1);for(const file of ['before.json','after.json','gateway-status.json']){const p=path.join(proofDir,file);write(p,{...JSON.parse(fs.readFileSync(p)),publicCutoverReady:true});}node(observeArgs,1);const publicObservation=node([...observeArgs,'public']).stdout;
-  write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),{address:'0x'+'1'.repeat(40),balance:100,nonce:0});write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
+  write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),{address:'0x'+'1'.repeat(40),balance:100,nonce:0});write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64),parentHash:'b'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
   write(path.join(proofDir,'mutation-freeze.json'),{httpStatus:503});
-  const publicArgs=[bindingCLI,'--public-readback',binding,proofDir],publicSource=JSON.parse(node(publicArgs).stdout);assert.equal(publicSource.accountBalanceVerified,false);assert.equal(publicSource.allNativeHistoryVerified,false);assert.equal(publicSource.ecosystemContinuityVerified,false);
+  const publicArgs=[bindingCLI,'--public-readback',binding,proofDir];
+  node(publicArgs,1); // The replacement-chain first block alone proves no original history read.
+  const retainedBlock={height:41,hash:'b'.repeat(64),parentHash:'1'.repeat(64),transactions:[{hash:'8'.repeat(64),blockNumber:41,blockHash:'b'.repeat(64)},{hash:'0x'+'9'.repeat(64),blockNumber:41,blockHash:'b'.repeat(64)}]};
+  const retainedAnchor={version:'ynx-migration-history-v1',source:'source_import',sourceAnchor:b.finalSnapshotStateHash,originalGenesisHash:b.originalGenesisHash,migrationBlockHash:retainedBlock.hash,nativeChainId:'6423',migrationHeight:'41'};
+  const retainedNative={...retainedBlock,...retainedAnchor,independentFinality:false};
+  const retainedEVM={jsonrpc:'2.0',id:2,result:{number:'0x29',hash:'0x'+retainedBlock.hash,ynxEncoding:'native-source-block',independentFinality:false,transactions:['0x'+'8'.repeat(64),'0x'+'9'.repeat(64)],ynxSourceHistory:retainedAnchor,ynxSourceBlock:retainedBlock}};
+  write(path.join(proofDir,'retained-native-block.json'),retainedNative);
+  write(path.join(proofDir,'retained-evm-block.json'),retainedEVM);
+  const publicSource=JSON.parse(node(publicArgs).stdout);assert.equal(publicSource.accountBalanceVerified,false);assert.equal(publicSource.allNativeHistoryVerified,false);assert.equal(publicSource.ecosystemContinuityVerified,false);
+  assert.equal(publicSource.retainedBlockHeight,41);assert.equal(publicSource.retainedBlockHash,retainedBlock.hash);
+  assert.equal(publicSource.retainedNativeBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-native-block.json'))));
+  assert.equal(publicSource.retainedEVMBlockSHA256,digest(fs.readFileSync(path.join(proofDir,'retained-evm-block.json'))));
+  for(const [name,changed] of [
+    ['retained-native-block.json',{...retainedNative,sourceAnchor:'f'.repeat(64)}],
+    ['retained-native-block.json',{...retainedNative,originalGenesisHash:'f'.repeat(64)}],
+    ['retained-native-block.json',{...retainedNative,transactions:retainedBlock.transactions.toReversed()}],
+    ['retained-evm-block.json',{...retainedEVM,result:{...retainedEVM.result,ynxSourceBlock:{...retainedBlock,parentHash:'2'.repeat(64)}}}],
+    ['retained-evm-block.json',{...retainedEVM,result:{...retainedEVM.result,transactions:retainedEVM.result.transactions.toReversed()}}],
+    ['retained-evm-block.json',{...retainedEVM,error:{code:-32603}}],
+    ['retained-evm-block.json',{...retainedEVM,result:null}],
+  ]){const p=path.join(proofDir,name),original=fs.readFileSync(p);write(p,changed);node(publicArgs,1);fs.writeFileSync(p,original);}
+  const nativePath=path.join(proofDir,'retained-native-block.json'),evmPath=path.join(proofDir,'retained-evm-block.json');
+  write(nativePath,{...retainedNative,transactions:null});
+  write(evmPath,{...retainedEVM,result:{...retainedEVM.result,transactions:[],ynxSourceBlock:{...retainedBlock,transactions:null}}});
+  node(publicArgs);
+  write(nativePath,{...retainedNative,transactions:undefined});node(publicArgs,1);
+  write(nativePath,retainedNative);write(evmPath,retainedEVM);
   assert.equal(publicSource.pqIdentityObserved,true);assert.equal(publicSource.pqIdentitySHA256,digest(identityRaw));
   // Even harmless reformatting must not replace the original observed bytes.
   fs.appendFileSync(identityPath,'\n');node(publicArgs,1);fs.writeFileSync(identityPath,identityRaw);
-  const publicSourcePath=path.join(proofDir,'public-result.json');write(publicSourcePath,publicSource);const publicCheck=[bindingCLI,'--public-result-check',binding,publicSourcePath,'0'];node(publicCheck);
-  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
-  for(const [file,field,value]of [['account.json','address','0x'+'2'.repeat(40)],['block.json','hash','f'.repeat(64)],['evm-chain-id.json','result','0x1'],['mutation-freeze.json','httpStatus',404]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});node(publicArgs,1);fs.writeFileSync(p,old);}
+  const publicSourcePath=path.join(proofDir,'public-result.json');write(publicSourcePath,publicSource);const publicCheck=[bindingCLI,'--public-result-check',binding,publicSourcePath,'0',proofDir];node(publicCheck);
+  for(const name of ['native','evm']){
+    const file=path.join(proofDir,'retained-'+name+'-block.json'),original=fs.readFileSync(file);
+    fs.appendFileSync(file,'\n');node(publicCheck,1);fs.writeFileSync(file,original);
+  }
+  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true],['retainedBlockHash','f'.repeat(64)],['retainedNativeBlockSHA256',null],['retainedEVMBlockSHA256',null]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
+  for(const [file,field,value]of [['account.json','address','0x'+'2'.repeat(40)],['block.json','hash','f'.repeat(64)],['block.json','parentHash','f'.repeat(64)],['evm-chain-id.json','result','0x1'],['mutation-freeze.json','httpStatus',404]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});node(publicArgs,1);fs.writeFileSync(p,old);}
   // Exercise the original public caller and its real ingress receipt reader.
   // Other admission remains isolated: this synthetic public receipt does not
   // confer ingress/candidate authority or prove a real service was switched.
@@ -599,7 +629,7 @@ try {
   const retainedPublic=['HRS','ledger','UNKNOWN','mutation-freeze.json'].map(name=>[path.join(failedPublic,name),fs.readFileSync(path.join(failedPublic,name))]);
   write(failedHarness,'#!/usr/bin/env bash\nset -Eeuo pipefail\n'+extract('validated_ingress_result')+'\n'+extract('verify_public_phase')+String.raw`
 prepare_candidate_package(){ :; }
-ingress_context(){ ingress_root="$CASE_ROOT/ingress"; dependency_root="$CASE_ROOT/dependencies"; candidate_binding="$CASE_ROOT/binding.json"; gateway_binary_sha="$CASE_GATEWAY_SHA"; ingress_mode=single-app-gateway; }
+ingress_context(){ ingress_root="$CASE_ROOT/ingress"; dependency_root="$CASE_ROOT/dependencies"; candidate_binding="$CASE_ROOT/binding.json"; candidate_migration="$CASE_MIGRATION"; gateway_binary_sha="$CASE_GATEWAY_SHA"; ingress_mode=single-app-gateway; }
 validated_candidate_result(){ :; }
 validated_gateway_start(){ :; }
 validated_continuity_result(){ :; }
@@ -609,8 +639,29 @@ systemctl(){ printf 'forbidden systemctl %s\n' "$*" >>"$CASE_LOG"; return 93; }
 ynx_ops_ssh(){ printf 'forbidden SSH %s\n' "$*" >>"$CASE_LOG"; return 94; }
 curl(){
   printf 'curl %s\n' "$*" >>"$CASE_LOG"
-  local target
+  local target fixture
   for target; do :; done
+  if [[ -n "$CASE_PUBLIC_FIXTURE" ]]; then
+    case "$target" in
+      https://rpc.test.invalid/health)
+        if [[ ! -s "$ingress_root/public-continuity/gateway-before-health.json" ]]; then fixture=before.json; else fixture=after.json; fi ;;
+      https://rpc.test.invalid/status) fixture=gateway-status.json ;;
+      https://rpc.test.invalid/node/pq-identity) fixture=gateway-pq-identity.json ;;
+      https://rpc.test.invalid/accounts/*) fixture=account.json ;;
+      https://rpc.test.invalid/blocks/42) fixture=block.json ;;
+      https://rpc.test.invalid/blocks/41) fixture=retained-native-block.json ;;
+      https://evm.test.invalid)
+        case "$*" in
+          *'"method":"eth_chainId"'*) fixture=evm-chain-id.json ;;
+          *'"method":"eth_getBlockByNumber","params":["0x29",false]'*) fixture=retained-evm-block.json ;;
+          *) echo 'unexpected EVM request' >&2; return 92 ;;
+        esac ;;
+      https://rpc.test.invalid/__ynx_mutation_freeze_probe__) printf 503; return ;;
+      *) echo 'unexpected request or mutation' >&2; return 92 ;;
+    esac
+    cat "$CASE_PUBLIC_FIXTURE/$fixture"
+    return
+  fi
   case "$target" in
     https://rpc.test.invalid/health|https://rpc.test.invalid/status) printf '{"sourceFixtureOnly":true}\n' ;;
     https://rpc.test.invalid/node/pq-identity) printf 'Method Not Allowed\n'; echo 'fixture: HTTP 405' >&2; return 22 ;;
@@ -619,7 +670,7 @@ curl(){
 }
 verify_public_phase
 `,0o700);
-  const failedEnv={...process.env,CASE_ROOT:failedPublic,CASE_LOG:failedLog,CASE_NODE:process.execPath,CASE_GATEWAY_SHA:gateway.gatewaySHA256,PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'yes',PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:'2',DEPLOY_DRY_RUN:'0',PUBLIC_RPC_URL:'https://rpc.test.invalid',PUBLIC_EVM_RPC_URL:'https://evm.test.invalid'};
+  const failedEnv={...process.env,CASE_ROOT:failedPublic,CASE_LOG:failedLog,CASE_NODE:process.execPath,CASE_GATEWAY_SHA:gateway.gatewaySHA256,CASE_MIGRATION:'',CASE_PUBLIC_FIXTURE:'',PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'yes',PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:'2',DEPLOY_DRY_RUN:'0',PUBLIC_RPC_URL:'https://rpc.test.invalid',PUBLIC_EVM_RPC_URL:'https://evm.test.invalid'};
   const failedRun=()=>spawnSync('bash',[failedHarness],{cwd:root,env:failedEnv,encoding:'utf8',maxBuffer:4<<20});
   const failedEvidence=path.join(failedPublic,'ingress/public-continuity');
   const noPublicObservation=()=>{
@@ -651,6 +702,18 @@ verify_public_phase
   const repeatedFailed=failedRun();assert.notEqual(repeatedFailed.status,0);assert.ok(repeatedFailed.stderr.includes('retain UNKNOWN'));
   assert.equal(fs.readFileSync(failedLog,'utf8').split('\n').filter(line=>line.startsWith('curl ')).length,requestLines.length,'UNKNOWN public observation resent a request');
   unchanged(failedBytes);unchanged(retainedPublic);assert.deepEqual(fs.readFileSync(failedReceiptPath),failedReceiptRaw);assert.deepEqual(fs.readFileSync(path.join(failedPublic,'binding.json')),raw);
+  const checkedPublic=path.join(f.dir,'public-retained-reads'),checkedLog=path.join(checkedPublic,'calls.log');
+  write(path.join(checkedPublic,'binding.json'),raw.toString());
+  write(path.join(checkedPublic,'ingress/switch-result.json'),failedReceiptRaw.toString());
+  write(path.join(checkedPublic,'dependencies/start-result.json'),realStart);
+  const checked=spawnSync('bash',[failedHarness],{cwd:root,env:{...failedEnv,...summaryEnv,
+    CASE_ROOT:checkedPublic,CASE_LOG:checkedLog,CASE_PUBLIC_FIXTURE:proofDir,
+    CASE_MIGRATION:path.join(f.transaction,'final-snapshot/migration.json')},encoding:'utf8',maxBuffer:4<<20});
+  assert.equal(checked.status,0,checked.stderr);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(checkedPublic,'ingress/public-result.json'))),publicSource);
+  const checkedCalls=fs.readFileSync(checkedLog,'utf8');
+  assert.match(checkedCalls,/^curl .*https:\/\/rpc\.test\.invalid\/blocks\/41$/m);
+  assert.match(checkedCalls,/^curl .*"method":"eth_getBlockByNumber","params":\["0x29",false\].*https:\/\/evm\.test\.invalid$/m);
   const unknown=fixture('unknown');run(unknown);const ub=fs.readFileSync(path.join(unknown.transaction,'candidate/binding.json'));write(path.join(unknown.transaction,'candidate/deploy-result.json'),{...deploy,transactionId:path.basename(unknown.transaction),bindingSha256:digest(ub)});write(path.join(unknown.transaction,'candidate/initialize-attempt/result.json'),{...JSON.parse(initRaw),bindingSha256:digest(ub)});
   run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes',FAIL_TRANSPORT:'partial'},1);const intent=path.join(unknown.transaction,'candidate/start-attempt/intent.json');assert.equal(JSON.parse(fs.readFileSync(intent)).status,'unknown');assert.equal(fs.existsSync(path.join(unknown.transaction,'candidate/start-attempt/result.json')),false);const failedCalls=fs.readFileSync(unknown.log+'.transport');assert.equal((failedCalls.toString().match(/timeout 30s systemctl start/g)||[]).length,2);run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes'},1);assert.deepEqual(fs.readFileSync(unknown.log+'.transport'),failedCalls);
   const rollback=fixture('rollback'),rollbackBefore=originals(rollback);run(rollback,'rollback',{DEPLOY_DRY_RUN:'0'},1);assert.equal(fs.existsSync(rollback.log+'.transport'),false);assert.equal(fs.existsSync(path.join(rollback.transaction,'candidate/rollback-result.json')),false);
