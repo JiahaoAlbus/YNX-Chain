@@ -37,15 +37,15 @@ func openOriginalShopInvoiceReadAuthority(ctx context.Context) (originalShopInvo
 func acquireOriginalShopProductReadSource(ctx context.Context) (originalShopProductReadSource, error) {
 	owner, err := productsource.OpenOriginalProductReadAuthority(ctx)
 	if owner == nil {
-		if err != nil {
-			return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, err)
+		if errors.Is(err, productsource.ErrNotSupplied) {
+			return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, ErrShopInvoiceReadAuthReleaseNotSupplied, err)
 		}
-		return nil, ErrShopInvoiceReadSourceNotSupplied
+		return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, err)
 	}
 	// Always retain a nonnull partial before classifying the original failure.
 	source := &originalAuthShopProductReadSource{owner: owner}
 	if err != nil {
-		return source, errors.Join(ErrShopInvoiceReadSourceNotSupplied, err)
+		return source, errors.Join(ErrShopInvoiceReadSourceNotSupplied, ErrShopInvoiceReadAuthBootstrap, err)
 	}
 	return source, nil
 }

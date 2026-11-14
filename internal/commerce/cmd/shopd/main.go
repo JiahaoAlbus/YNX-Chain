@@ -121,6 +121,8 @@ func main() {
 	// Dedicated Source read plane borrows this SAME Store. Its normal factory
 	// owns qualified Auth/SDK/LINK registration; no flags/ENV enroll a Source.
 	invoiceRead, invoiceReadErr := commerce.OpenOriginalShopInvoiceReadService(context.Background(), func() (*commerce.Store, error) { return store, nil })
+	log.Printf("Shop Seller readiness: seller_http=%s v4_listener=%s wallet_v4_borrow=request_verification_required shopd_expected_process=external_registration",
+		sellerHTTPReadiness(sellerPrivate), shopV4ListenerReadiness(invoiceReadErr))
 	closeInvoiceRead := func() error {
 		if invoiceRead == nil {
 			return nil
@@ -147,6 +149,7 @@ func main() {
 		}()
 		go func() {
 			if err := invoiceRead.Serve(); err != nil {
+				log.Print("Shop Seller readiness: v4_listener=stopped")
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 				closeErr := invoiceRead.Close(ctx)
@@ -171,6 +174,28 @@ func main() {
 	log.Printf("ynx-shopd listening on %s", *addr)
 	serveErr := srv.ListenAndServe()
 	log.Fatal(errors.Join(serveErr, closeInvoiceRead()))
+}
+
+func sellerHTTPReadiness(seller http.Handler) string {
+	if seller == nil {
+		return "original_authority_not_supplied"
+	}
+	return "handler_configured"
+}
+
+func shopV4ListenerReadiness(err error) string {
+	switch {
+	case err == nil:
+		return "bound"
+	case errors.Is(err, commerce.ErrShopInvoiceReadAuthReleaseNotSupplied):
+		return "auth_release_not_supplied"
+	case errors.Is(err, commerce.ErrShopInvoiceReadAuthBootstrap):
+		return "auth_bootstrap_failed"
+	case errors.Is(err, commerce.ErrShopInvoiceReadListenerIdentity):
+		return "listener_identity_unavailable"
+	default:
+		return "source_unavailable"
+	}
 }
 
 // Each complete original canonical handler is fixed at composition, never chosen

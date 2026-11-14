@@ -187,7 +187,8 @@ func sourceReadCall(t *testing.T, c *securelink.LocalCallerClient, body []byte) 
 func TestShopInvoiceSourceNormalFactoryMissingDoesNotOpenStore(t *testing.T) {
 	opens := 0
 	svc, err := OpenOriginalShopInvoiceReadService(t.Context(), func() (*Store, error) { opens++; return nil, nil })
-	if !errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || !errors.Is(err, productsource.ErrNotSupplied) || opens != 0 {
+	if !errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || !errors.Is(err, ErrShopInvoiceReadAuthReleaseNotSupplied) ||
+		!errors.Is(err, productsource.ErrNotSupplied) || opens != 0 {
 		t.Fatal("ordinary data/ENV activated Source", err, opens)
 	}
 	if svc != nil {

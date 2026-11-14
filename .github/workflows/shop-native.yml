@@ -87,8 +87,9 @@ jobs:
                   changed = raw.decode().rstrip("\0").split("\0") if raw else []
               except (subprocess.SubprocessError, UnicodeError):
                   changed = []  # uncertain comparison keeps the full checks
+          shop_source_startup = {"internal/commerce/cmd/shopd/main.go", "internal/commerce/shop_session_v4.go"}
           def source_path(path):
-              return path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
+              return path in shop_source_startup or path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
               return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
           receipt_files = {"internal/commerce/business_effect.go", "internal/commerce/business_effect_http.go", "internal/commerce/business_effect_plans.go", "internal/commerce/business_native_invoice_boundary_test.go", "internal/commerce/model.go", "internal/commerce/return_receipt.go", "internal/commerce/return_receipt_test.go", "internal/commerce/service.go", "internal/commerce/store.go"}

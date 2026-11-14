@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -45,7 +46,7 @@ func (s *Store) captureOriginalShopSessionForSourceRead(ctx context.Context, r *
 	// constructor. PUBLIC profile DATA and arbitrary permission callbacks cannot.
 	h, ok := held.(*originalShopProductReadHold)
 	if !ok || h == nil {
-		return nil, ErrShopInvoiceReadSourceNotSupplied
+		return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, errShopInvoiceReadBorrowNotSupplied)
 	}
 	v, err := h.verifyOriginalShopSessionV4(ctx)
 	if err != nil {
@@ -60,7 +61,7 @@ func (h *originalShopProductReadHold) verifyOriginalShopSessionV4(ctx context.Co
 	}
 	p, ok := h.permission.(*originalAuthShopProductPermission)
 	if !ok || p == nil || p.owner == nil {
-		return nil, ErrShopInvoiceReadSourceNotSupplied
+		return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, errShopInvoiceReadBorrowNotSupplied)
 	}
 	// The original Source Hold owns every nonnull partial and drains it when
 	// closed, even when verification fails before an OriginalShopSession exists.
@@ -69,7 +70,7 @@ func (h *originalShopProductReadHold) verifyOriginalShopSessionV4(ctx context.Co
 		return nil, err
 	}
 	if owner == nil {
-		return nil, ErrUnauthorized
+		return nil, errors.Join(ErrShopInvoiceReadSourceNotSupplied, errShopInvoiceReadBorrowNotSupplied)
 	}
 	data, err := owner.DATA(ctx)
 	if err != nil {

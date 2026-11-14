@@ -19,6 +19,10 @@ import (
 const OriginalShopInvoiceReadPath = "/v5/shop/source/shop.order/invoice-intents/"
 
 var ErrShopInvoiceReadSourceNotSupplied = errors.New("SHOP_ORIGINAL_NATIVE_INVOICE_READ_SOURCE_NOT_SUPPLIED")
+var ErrShopInvoiceReadAuthReleaseNotSupplied = errors.New("SHOP_V4_AUTH_RELEASE_NOT_SUPPLIED")
+var ErrShopInvoiceReadAuthBootstrap = errors.New("SHOP_V4_AUTH_BOOTSTRAP_FAILED")
+var ErrShopInvoiceReadListenerIdentity = errors.New("SHOP_V4_LISTENER_IDENTITY_UNAVAILABLE")
+var errShopInvoiceReadBorrowNotSupplied = errors.New("SHOP_V4_ORIGINAL_BORROW_NOT_SUPPLIED")
 var errShopInvoiceReadDenied = errors.New("SHOP_ORIGINAL_NATIVE_INVOICE_READ_DENIED")
 
 // Private consumer projection of the EXISTING Auth/SDK qualification. These
@@ -152,10 +156,16 @@ func prepareOriginalShopInvoiceReadServiceMode(ctx context.Context, a originalSh
 		s.link, err = securelink.NewLocalCallerServer(cfg)
 	}
 	if err != nil {
+		if sessionRequired {
+			err = errors.Join(ErrShopInvoiceReadListenerIdentity, err)
+		}
 		return s, err
 	}
 	s.listener, err = securelink.ListenPrivate(p.socket, p.uid)
 	if err != nil {
+		if sessionRequired {
+			err = errors.Join(ErrShopInvoiceReadListenerIdentity, err)
+		}
 		return s, err
 	}
 	if err = a.current(ctx); err != nil {
@@ -310,6 +320,10 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 	w.Header().Set("Content-Type", "application/json")
 	deny := func(err error) {
 		code := status(err)
+		if errors.Is(err, errShopInvoiceReadBorrowNotSupplied) {
+			write(w, http.StatusServiceUnavailable, map[string]string{"code": errShopInvoiceReadBorrowNotSupplied.Error()})
+			return
+		}
 		if errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || (s != nil && s.retired.Load()) {
 			code = 503
 		} else if isOriginalShopInvoiceReadDenied(err) {

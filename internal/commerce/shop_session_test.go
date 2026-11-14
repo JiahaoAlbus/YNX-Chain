@@ -390,7 +390,7 @@ func TestShopSessionInventoryFailedNormalBindingCannotServe(t *testing.T) {
 	if root == "" {
 		t.Skip("explicit owned short Unix socket root required")
 	}
-	for _, mode := range []string{"unmapped", "domain-conflict"} {
+	for _, mode := range []string{"unmapped", "domain-conflict", "listener-identity"} {
 		t.Run(mode, func(t *testing.T) {
 			s, buyer, order, _ := publicSourceInvoiceRecord(t)
 			dir, e := os.MkdirTemp(root, "ps-")
@@ -405,16 +405,25 @@ func TestShopSessionInventoryFailedNormalBindingCannotServe(t *testing.T) {
 			var original *originalShopSessionDomain
 			if mode == "unmapped" {
 				tenant = "PUBLIC-unmapped-tenant"
-			} else {
+			} else if mode == "domain-conflict" {
 				original = &originalShopSessionDomain{realm: realm, tenant: tenant, current: func(context.Context) error { return nil }}
 				s.shopSessionDomain = original
 			}
 			a := &publicInvoiceReadAuthority{p: originalShopInvoiceReadProfile{realm: realm, tenant: tenant, purpose: "PUBLIC-original-purpose", epoch: 7, socket: filepath.Join(dir, "s"), service: "PUBLIC-shop-session-constructor", orders: []string{order.ID}, uid: uint32(os.Geteuid()), pid: os.Getpid()}}
 			a.selected = originalShopInvoiceReadScope{realm: realm, tenant: tenant, purpose: a.p.purpose, epoch: 7, actor: buyer, role: "buyer", storeID: order.StoreID, productID: "shop.order", sourceOrder: order.ID}
 			a.hold = &publicInvoiceReadHold{owner: a}
+			if mode == "listener-identity" {
+				// An existing path cannot be replaced by normal startup.
+				if err := os.WriteFile(a.p.socket, []byte("original"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
 			service, acquireErr := prepareOriginalShopSessionReadService(t.Context(), a, func() (*Store, error) { return s, nil })
 			if service == nil || acquireErr == nil {
 				t.Fatal("normal failed binding did not return owned partial", acquireErr)
+			}
+			if errors.Is(acquireErr, ErrShopInvoiceReadListenerIdentity) != (mode == "listener-identity") {
+				t.Fatal("listener failure was confused with Store binding failure", acquireErr)
 			}
 			done := make(chan error, 1)
 			go func() { done <- service.Serve() }()
@@ -433,6 +442,12 @@ func TestShopSessionInventoryFailedNormalBindingCannotServe(t *testing.T) {
 			}
 			if a.closed.Load() != 1 {
 				t.Fatal("Source parent not closed exactly once")
+			}
+			if mode == "listener-identity" {
+				raw, err := os.ReadFile(a.p.socket)
+				if err != nil || string(raw) != "original" {
+					t.Fatal("failed startup changed existing path", err)
+				}
 			}
 			if original != nil && (original.retired.Load() || s.shopSessionDomain != original) {
 				t.Fatal("failed partial retired a different service domain")
@@ -492,10 +507,11 @@ func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) 
 		name   string
 		fields string
 		want   int
+		code   string
 	}{
-		{"missing", "", http.StatusBadRequest},
-		{"mixed", securelink.ProductSessionProofV4Header + ": Aa\r\n" + securelink.ProductSessionProofV2Header + ": Aa\r\n", http.StatusBadRequest},
-		{"full-sized without Auth", securelink.ProductSessionProofV4Header + ": " + strings.Repeat("A", securelink.MaxProductSessionProofV4HeaderBytes) + "\r\n", http.StatusServiceUnavailable},
+		{"missing", "", http.StatusBadRequest, ""},
+		{"mixed", securelink.ProductSessionProofV4Header + ": Aa\r\n" + securelink.ProductSessionProofV2Header + ": Aa\r\n", http.StatusBadRequest, ""},
+		{"full-sized without Auth", securelink.ProductSessionProofV4Header + ": " + strings.Repeat("A", securelink.MaxProductSessionProofV4HeaderBytes) + "\r\n", http.StatusServiceUnavailable, "SHOP_V4_ORIGINAL_BORROW_NOT_SUPPLIED"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			conn, err := net.DialTimeout("unix", a.p.socket, time.Second)
@@ -514,8 +530,15 @@ func TestShopSessionInventoryMappedNormalServiceStillRequiresAuth(t *testing.T) 
 				t.Fatal(err)
 			}
 			defer res.Body.Close()
-			if _, err := io.Copy(io.Discard, res.Body); err != nil || res.StatusCode != tc.want {
+			raw, err := io.ReadAll(io.LimitReader(res.Body, 4096))
+			if err != nil || res.StatusCode != tc.want {
 				t.Fatalf("got status %d, want %d, body read error %v", res.StatusCode, tc.want, err)
+			}
+			if tc.code != "" {
+				var failure map[string]string
+				if err := json.Unmarshal(raw, &failure); err != nil || len(failure) != 1 || failure["code"] != tc.code {
+					t.Fatalf("wrong failure body: %q", raw)
+				}
 			}
 		})
 	}
