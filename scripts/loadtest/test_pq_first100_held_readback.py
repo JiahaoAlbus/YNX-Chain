@@ -25,6 +25,27 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_checkpoint_refusal_counters_are_original_and_not_inferred(self):
+        checkpoint = {name: dict(calls=1, elapsedNs=7) for name in (
+            'checkpoint.preSignReadRejected', 'checkpoint.refused.heightHigher')}
+        reply = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=4,
+                     operationId='a'*64, code='REJECTED',
+                     failure=dict(errorClass='CHECKPOINT_REJECTED', failurePhase='SIGN'),
+                     timings=dict(stages={**checkpoint, 'sender.signTotal': dict(calls=1, elapsedNs=50)}))
+        original = dict(operation='sign', ownerIndex=4, operationId='a'*64, code='REJECTED')
+        owner = dict(firstOperationalFailure=dict(index=3, returnedAttempts=[dict(originalRecord=original)]))
+        path = 'load-operations/00003/original-sign-reply.json'
+        result = reader.first_signer_failure(owner, {'public/'+path: encode(reply)}, 'public/')
+        self.assertEqual(result['checkpointStages'], checkpoint)
+        self.assertFalse(result['missingStagesFilled'])
+        self.assertEqual(result['failure'], reply['failure'])
+        legacy = dict(reply, timings=dict(stages={'sender.signTotal': dict(calls=1, elapsedNs=50)}))
+        self.assertEqual(reader.first_signer_failure(owner, {'public/'+path: encode(legacy)}, 'public/')
+                         ['checkpointStages'], {})
+        with self.assertRaisesRegex(RuntimeError, 'identity differs'):
+            reader.first_signer_failure(owner, {'public/'+path: encode(dict(reply, operationId='b'*64))},
+                                        'public/')
+
     def test_original_verifier_boundaries_keep_censored_and_reject_mismatch(self):
         load = dict(originMonotonicNs='1000', observationCutoffNs=100,
                     rows=[dict(index=0, stageTimes=[('live_capture', 10), ('live_read', 40)]),
