@@ -236,9 +236,9 @@ func publicShopConsumerFixture(t *testing.T) (*OriginalShopTaskOrderConsumer, na
 	}
 	op := strings.Repeat("a", 64)
 	broker := &publicShopConsumerBroker{t: t, registration: originalclient.OriginalLocalCallerRegistration{LocalService: "PUBLIC-shop-task", PeerUID: uint32(os.Geteuid()), PeerPID: os.Getpid(), Actions: []string{"effect", "query"}, Effect: originalclient.OriginalLocalCallerRoute{Method: "POST", Path: "/task/effect", ContentType: "application/json", MaxBodyBytes: maxBody}, Query: originalclient.OriginalLocalCallerRoute{Method: "POST", Path: "/task/query", ContentType: "application/json", MaxBodyBytes: maxBody}}, result: originalclient.TaskAuthorityResult{State: "COMMITTED", OriginalOperation: op, Original: "opaque-original-not-json", Resource: &originalclient.TaskResourceResult{OperationID: op, RemoteRef: "PUBLIC-original-ref", AuthScope: string(policy.EgressOnlyReadFence), Source: b.Sources[0], ResponseBinding: taskOrderBytesBinding(frozen.ResponseOriginal), ResponseOriginal: bytes.Clone(frozen.ResponseOriginal), SourceBytes: bytes.Clone(frozen.SourceBytes)}}}
-	base := "/Volumes/西部数据/YNX-large-work/.p07-caller-public"
-	if err := os.MkdirAll(base, 0700); err != nil {
-		t.Fatal(err)
+	base := os.Getenv("SHOP_SOURCE_READ_SOCKET_ROOT")
+	if base == "" {
+		base = os.TempDir()
 	}
 	parent, err := os.MkdirTemp(base, "t-")
 	if err != nil {
