@@ -323,7 +323,7 @@ for (const options of [
     account: h.record.binding.account, network: h.original.network, recordedState: h.original.state, hash: h.original.hash, view: 'query-only', routeOutcome: 'unknown'}};
   for (let restart = 0; restart < 2; restart++) {
     const {wallet, store, flow} = h.cold();
-    const originalView = await wallet.checkCctpStep({id: h.operation.id, network: h.original.network, account: h.original.account});
+    const originalView = await wallet.checkCctpStep({id: h.operation.id, network: h.original.network, account: h.original.account, intentId:h.record.id, step:h.operation.step});
     const {raw, ...publicOriginal} = h.original;
     assert.deepEqual(originalView, publicOriginal, 'the real Main query retains its original terminal state and strips raw bytes');
     const observed = await flow.check(h.record.id);

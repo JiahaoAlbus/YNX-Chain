@@ -574,7 +574,7 @@ async function terminalObservationFixture(t, { step = 'burn', knownHash = false,
     assert.deepEqual(await coldStore.get(record.id), before);
     assert.deepEqual(await Promise.all([record.binding.sourceNetwork.id, record.binding.destinationNetwork.id].map(id => coldStore.pendingNetwork(id))), reservations);
     for (const name of ['prepare', 'send', 'cancel', 'quote', 'attestation', 'destination']) assert.deepEqual(h.calls[name], calls[name], name + ' must remain untouched');
-    for (const input of h.calls.check.slice(calls.check.length)) assert.deepEqual(input, { id: review.id, network, account: ACCOUNT });
+    for (const input of h.calls.check.slice(calls.check.length)) assert.deepEqual(input, { id: review.id, network, account: ACCOUNT, intentId: record.id, step: review.step });
   };
   return { ...h, cold, coldStore, record, review, response, before, unchanged };
 }

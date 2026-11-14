@@ -61,6 +61,8 @@ jobs:
         run: node --test --test-name-pattern 'canonical .*recovery|canonical reader|source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
       - name: Cross-chain original terminal observation and timeout controls
         run: node --test --test-name-pattern 'original (Main terminal|terminal|) ?observation|terminal recovery from|confirm times out|timed-out start' src/features/cross-chain/cctp-flow.test.mjs src/features/cross-chain/cctp-reconcile-delta.test.mjs src/features/cross-chain/cctp-ui-wait.test.mjs
+      - name: CCTP original journal binding before query
+        run: node --test --test-name-pattern 'PUBLIC cold lookup' test/cctp-journal-integration.test.mjs
       - name: Wallet cross-chain dialog recovery controls
         run: node --test test/cross-chain-dialog-reopen.test.mjs
       - name: WalletConnect session approval and revocation controls

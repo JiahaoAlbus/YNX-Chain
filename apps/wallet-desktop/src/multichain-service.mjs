@@ -121,14 +121,15 @@ export class MultichainService{
   }
   async history(){const {context,config,network}=await this.selected(),records=await this.journal.list(network.id,context.account);for(const held of this.#heldSigned.values()){if(held.network.id===network.id&&held.account===context.account){const index=records.findIndex(r=>r.id===held.id);if(index<0)records.push(structuredClone(held));else records[index]=structuredClone(held)}}await this.assert(context,config.revision);return {account:context.account,networkId:network.id,configRevision:config.revision,records:records.map(publicRecord).reverse()}}
   async checkCctpStep(input){
-    exactObject(input,['id','network','account']);
+    exactObject(input,['id','network','account','intentId','step']);
+    if(typeof input.intentId!=='string'||!/^[-0-9a-f]{36}$/.test(input.intentId)||!['approve','burn','mint'].includes(input.step))throw multiError('MULTICHAIN_INVALID_INPUT','Original CCTP intent and step are required.');
     if(this.sending)throw multiError('MULTICHAIN_BUSY','Wait until the original send is recorded.');
     const context=await this.context(),config=await this.config.read();await this.assert(context,config.revision);
     if(input.account!==context.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','Select the original account.');
     const held=this.#heldSigned.get(input.id);
-    if(held){if(!held.cctp||held.account!==context.account||JSON.stringify(held.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');await this.#retainUnknown(held);await this.assert(context,config.revision);}
+    if(held){if(!held.cctp||held.cctp.version!==1||held.cctp.intentId!==input.intentId||held.cctp.step!==input.step||held.account!==context.account||JSON.stringify(held.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');await this.#retainUnknown(held);await this.assert(context,config.revision);}
     const record=(await this.journal.list(input.network.id,context.account)).find(r=>r.id===input.id);
-    if(!record?.cctp||JSON.stringify(record.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');
+    if(!record?.cctp||record.cctp.version!==1||record.cctp.intentId!==input.intentId||record.cctp.step!==input.step||JSON.stringify(record.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');
     await this.assert(context,config.revision);
     if(['cancelled','local-cancelled-before-broadcast','signing-unknown'].includes(record.state))return publicRecord(record);
     let next;

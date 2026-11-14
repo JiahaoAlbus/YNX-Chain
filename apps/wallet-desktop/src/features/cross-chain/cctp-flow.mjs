@@ -214,7 +214,7 @@ export class CctpFlow {
       // Even dispatching/UNKNOWN after restart only reaches the original lookup.
       const network = op.step === 'mint' ? r.binding.destinationNetwork : r.binding.sourceNetwork;
       const account = r.binding.account;
-      const observed = await this.wallet.checkCctpStep({id: op.id, network, account});
+      const observed = await this.wallet.checkCctpStep({id: op.id, network, account, intentId:r.id, step:op.step});
       await this.#live(current);
       if(observed?.id!==op.id||op.hash&&observed.hash!==op.hash||observed.hash!==null&&!hash(observed.hash)||['included','reverted','submitted'].includes(observed.state)&&!hash(observed.hash))fail('RESULT_MISMATCH','Original transaction identity changed.');
       const recordedState = observed.state;

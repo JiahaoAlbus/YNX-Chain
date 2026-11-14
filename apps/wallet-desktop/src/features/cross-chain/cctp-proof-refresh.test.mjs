@@ -55,7 +55,7 @@ async function fixture(t) {
   // The source inclusion/events are controlled verified observations. The actual
   // reader still enforces intent/nonce/expiry and performs its real bounded GET
   // response decoding; the scope here is whether flow re-queries that reader.
-  reader.receipt = async () => ({ status: '0x1' });
+  reader.receipt = async () => ({ transactionHash:SOURCE_HASH, blockHash:`0x${'44'.repeat(32)}`, blockNumber:'0x64', transactionIndex:'0x0', from:ACCOUNT, to:ROUTE.source.tokenMessenger, status:'0x1', logs:[] });
   reader.events = (_receipt, _contract, _abi, name) => name === 'MessageSent' ? [{ message: message(binding, 0, NONCE, true) }] : [{ burnToken: ROUTE.source.usdc, amount: 1000000n, depositor: ACCOUNT, mintRecipient: padded(RECIPIENT), destinationDomain: 6n, destinationTokenMessenger: padded(ROUTE.destination.tokenMessenger), destinationCaller: padded(ACCOUNT), maxFee: 0n, minFinalityThreshold: 2000n, hookData: '0x' }];
   reader.destination = async input => { calls.destination.push(copy(input)); return { state: 'pending' }; };
   const flow = new CctpFlow({ wallet, reader, store: new CctpStore({ filePath }), now: () => now, id: forbidden('id-allocation') });

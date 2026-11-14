@@ -46,7 +46,7 @@ test('CCTP main service retains original marker before single outward effect; re
  await assert.rejects(()=>f.service.send(review.id,f.guard),{code:'CCTP_ORIGINAL_COORDINATOR_REQUIRED'});
  const result=await f.service.sendCctpStep(review.id,f.guard);assert.equal(result.state,'unknown');
  const record=(await f.journal.list(review.network.id,account))[0];assert.deepEqual(record.cctp,f.marker);assert.ok(record.raw);
- const checked=await f.service.checkCctpStep({id:review.id,network:review.network,account});assert.equal(checked.state,'unknown');
+ const checked=await f.service.checkCctpStep({id:review.id,network:review.network,account,intentId:f.marker.intentId,step:f.marker.step});assert.equal(checked.state,'unknown');
  assert.deepEqual(f.effects(),{signs:1,posts:1,readNetwork:review.network.id});
  await assert.rejects(()=>f.service.send(review.id,f.guard));
 });
@@ -55,4 +55,10 @@ test('CCTP original account/config binding cannot be supplied by a changed revie
  f.marker.binding.configRevision=2;
  const {version,...input}=f.marker;
  await assert.rejects(()=>f.service.prepareCctpStep(input));assert.equal(f.effects().signs,0);
+});
+test('PUBLIC cold lookup refuses another intent or step before journal transition and transport',async t=>{
+ const f=await serviceFixture(t),r=original();await f.journal.reserve(r);
+ const before=await f.journal.list(r.network.id,account),input={id:r.id,network:r.network,account,intentId:r.cctp.intentId,step:r.cctp.step};
+ for(const invalid of [{...input,intentId:'dddddddd-dddd-4ddd-dddd-dddddddddddd'},{...input,step:'mint'}]){await assert.rejects(()=>f.service.checkCctpStep(invalid),{code:'MULTICHAIN_UNKNOWN_INTENT'});assert.deepEqual(await f.journal.list(r.network.id,account),before);assert.deepEqual(f.effects(),{signs:0,posts:0,readNetwork:undefined});}
+ const checked=await f.service.checkCctpStep(input);assert.equal(checked.state,'signing-unknown');assert.equal(checked.cctp.intentId,r.cctp.intentId);
 });
