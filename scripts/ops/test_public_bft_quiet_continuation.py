@@ -671,6 +671,85 @@ class OriginalLightCaptureTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'Linux NOREPLACE'):q.retain_consumed_halt(b,capture,str(checkpoint))
             self.assertEqual(halt.read_bytes(),b'ORIGINAL_PUBLIC_HALT')
 
+    def resume_budget_fixture(self):
+        b,attempt,hrs,halt=self.cold_control();capture=q.finish_capture(b,attempt);b['phase']='resume'
+        role=b['originalRole'];s=b['sourcePlan']
+        config=dict(schema='ynx-pq-remote-service-v1',binary='/usr/local/libexec/ynx-consensus-pq-remote-signer',
+            binarySHA256=b['binarySHA256']['ynx-consensus-pq-remote-signer'],abciState=role['abciState'],
+            legacyKey=role['legacyKeyPath'],legacyState=role['legacyStatePath'],pqState=s['signingStatePath'],
+            listen=role['remoteSigner'],scheduleHash=s['scheduleHash'],cometGenesisSHA256=s['consensusGenesisSHA256'],
+            originalGenesisHash=s['originalGenesisHash'],migrationStateHash=s['migrationStateHash'],runtimePlanHash=s['runtimePlanHash'])
+        path=self.parent/'signer-public-config.json';write(path,config)
+        observed=dict(configSHA256=q.sha(path.read_bytes()),unitSHA256='1'*64,launcherSHA256='2'*64,
+                      binarySHA256=config['binarySHA256'])
+        return b,capture,config,path,observed,halt
+
+    def resume_budget(self,b,capture,path,captured,current=None):
+        from unittest import mock
+        from types import SimpleNamespace
+        real_lstat=Path.lstat
+        def projected_lstat(p,*args,**kwargs):
+            st=real_lstat(p,*args,**kwargs)
+            if p==path:
+                # Synthetic root ownership only. File bytes, descriptor,
+                # inode, size and timestamps are actual temporary originals.
+                st=SimpleNamespace(**{k:getattr(st,k) for k in dir(st) if k.startswith('st_')})
+                st.st_uid=0
+            return st
+        with mock.patch.object(q,'SIGNER_CONFIG_PATH',str(path)),mock.patch.object(Path,'lstat',projected_lstat):
+            return q.resume_signer_startup_limit(b,capture,captured,captured if current is None else current)
+
+    def test_resume_budget_uses_original_captured_config_and_current_plan(self):
+        b,capture,config,path,observed,halt=self.resume_budget_fixture()
+        before=halt.read_bytes();self.assertEqual(self.resume_budget(b,capture,path,observed),30)
+        fields=dict(checkpointAccessMode='unix-fd-v1',checkpointAccessSocket='@ynx-pq-checkpoint-original',
+            checkpointEngineUID='1001',checkpointSignerUID='1002',checkpointAccessTimeoutSeconds='10',checkpointStartupTimeoutSeconds='120')
+        config.update(fields)
+        access=dict(mode='unix-fd-v1',socket=fields['checkpointAccessSocket'],engineUID='1001',signerUID='1002',
+                    timeoutSeconds='10',startupTimeoutSeconds='120')
+        b['originalRole']['checkpointAccess']=access
+        for budget in ('1','120','600'):
+            with self.subTest(budget=budget):
+                config['checkpointStartupTimeoutSeconds']=budget;access['startupTimeoutSeconds']=budget
+                observed['configSHA256']=write(path,config)
+                self.assertEqual(self.resume_budget(b,capture,path,observed),int(budget)+5)
+        self.assertEqual(halt.read_bytes(),before)
+        source=(HERE/'remote/public-bft-operator-transition.sh').read_text()
+        block=source.split('startup_limit="$(python3 -B - "$stage/quiet.py"',1)[1].split('# New explicit resume action',1)[0]
+        self.assertLess(block.index('q.finish_capture'),block.index('q.resume_signer_startup_limit'))
+        self.assertLess(block.index('q.resume_signer_startup_limit'),block.index('q.retain_consumed_halt'))
+        self.assertIn(')" || return $?',block)
+
+    def test_resume_budget_refuses_changed_scope_installation_and_unbounded_config(self):
+        b,capture,config,path,observed,halt=self.resume_budget_fixture();before=halt.read_bytes()
+        for key in observed:
+            with self.subTest(changedInstallation=key):
+                current=dict(observed);current[key]='f'*64
+                with self.assertRaises(ValueError):self.resume_budget(b,capture,path,observed,current)
+        for key in ('role','runtimeCommit','operatorPlanSHA256','sourcePlanSHA256','inputSHA256','captureRoot'):
+            with self.subTest(changedScope=key):
+                changed=copy.deepcopy(b);changed[key]='wrong'
+                with self.assertRaises(ValueError):self.resume_budget(changed,capture,path,observed)
+        path.write_bytes(path.read_bytes()+b' ')
+        with self.assertRaisesRegex(ValueError,'configuration changed'):self.resume_budget(b,capture,path,observed)
+        fields=dict(checkpointAccessMode='unix-fd-v1',checkpointAccessSocket='@ynx-pq-checkpoint-original',
+            checkpointEngineUID='1001',checkpointSignerUID='1002',checkpointAccessTimeoutSeconds='10',checkpointStartupTimeoutSeconds='120')
+        config.update(fields)
+        access=dict(mode='unix-fd-v1',socket=fields['checkpointAccessSocket'],engineUID='1001',signerUID='1002',
+                    timeoutSeconds='10',startupTimeoutSeconds='120')
+        b['originalRole']['checkpointAccess']=access
+        for budget in ('0','601','060','-1','1.5',120,True):
+            with self.subTest(invalidBudget=budget):
+                config['checkpointStartupTimeoutSeconds']=budget;access['startupTimeoutSeconds']=budget
+                observed['configSHA256']=write(path,config)
+                with self.assertRaises(ValueError):self.resume_budget(b,capture,path,observed)
+        config['checkpointStartupTimeoutSeconds']='120';access['startupTimeoutSeconds']='119'
+        observed['configSHA256']=write(path,config)
+        with self.assertRaisesRegex(ValueError,'access group differs'):self.resume_budget(b,capture,path,observed)
+        del config['checkpointAccessSocket'];observed['configSHA256']=write(path,config)
+        with self.assertRaisesRegex(ValueError,'access group differs'):self.resume_budget(b,capture,path,observed)
+        self.assertEqual(halt.read_bytes(),before)
+
     def republish_control(self,case,public,cap,operation='light-files'):
         # Re-pin only synthetic public DATA so the path negative reaches the
         # real closed-path validator, not an earlier incidental hash failure.
@@ -793,6 +872,81 @@ class OriginalLightCaptureTests(unittest.TestCase):
             self.assertNotIn(forbidden,reconcile)
         self.assertIn('q.retain_capture_result',reconcile);self.assertIn('os.O_NOFOLLOW',reconcile)
         self.assertIn('phase-attempt/result.json',reconcile)
+
+class ResumeStartupTests(unittest.TestCase):
+    """Original shell caller with synthetic systemd/clock, never a service."""
+    def control(self, case, budget='125'):
+        with tempfile.TemporaryDirectory(dir='/private/tmp', prefix='ynx-resume-') as directory:
+            p=Path(directory);script=HERE/'remote/public-bft-operator-transition.sh'
+            # Run the previous actual resume body as well, so the regression
+            # proves its 30s cutoff and immediate engine readback first cause.
+            text=script.read_text()
+            legacy=text.split('# New explicit resume action, not replay of the old transition start.',1)[1].split('    python3 -B -',1)[0]
+            fallback='operator_light_resume_start() {\n'+legacy+'\n}\n' if 'operator_light_resume_start() {' not in text else ''
+            program=r'''
+set -euo pipefail
+source "$1"
+eval "$2"
+attempt="$3"; unit=ynx-comet.service; signer_unit=ynx-consensus-pq-remote-signer.service; comet_pin=pinned
+case_name="$4"; budget="$5"
+operator_light_recheck_phase() { printf 'recheck\n' >>"$attempt/calls"; }
+operator_transition_fail() { printf '%s\n' "$*" >&2; return 1; }
+timeout() {
+  printf 'start:%s:%s\n' "$3" "$6" >>"$attempt/calls"
+  if [[ "$6" == "$signer_unit" ]]; then
+    [[ "$case_name" != signer-timeout ]] || return 124
+    [[ "$case_name" != long || "$3" == 125 ]] || return 124
+  else
+    [[ "$case_name" != engine-timeout ]] || return 124
+  fi
+}
+operator_light_signer_identity() {
+  printf 'signer-read\n' >>"$attempt/calls"
+  [[ "$case_name" != signer-identity ]] || return 1
+  printf '{"originalSignerIdentity":true}\n'
+}
+operator_transition_running() {
+  printf 'engine-read\n' >>"$attempt/calls"
+  local n=0; [[ ! -f "$attempt/reads" ]] || n="$(cat "$attempt/reads")"
+  n=$((n+1)); printf '%s' "$n" >"$attempt/reads"
+  [[ "$case_name" != engine-identity ]] || return 1
+  [[ "$case_name" != delayed || "$n" -ge 3 ]] || return 1
+  printf '{"originalEngineIdentity":true}\n'
+}
+sleep() { printf 'wait:%s\n' "$1" >>"$attempt/calls"; }
+if operator_light_resume_start "$budget" "$comet_pin"; then
+  printf 'completed\n' >>"$attempt/calls"
+else
+  status=$?; printf 'unknown:%s\n' "$status" >>"$attempt/calls"; exit "$status"
+fi
+'''
+            result=subprocess.run(['bash','-c',program,'control',str(script),fallback,str(p),case,budget],capture_output=True,text=True,timeout=10)
+            calls=(p/'calls').read_text().splitlines() if (p/'calls').exists() else []
+            files={name:(p/name).read_bytes() for name in ('process.json','signer-process.json') if (p/name).exists()}
+            return result,calls,files
+
+    def test_resume_uses_pinned_signer_budget_and_waits_for_actual_engine(self):
+        for case in ('long','delayed'):
+            with self.subTest(case=case):
+                result,calls,files=self.control(case)
+                self.assertEqual(result.returncode,0,result.stderr+'\n'+repr(calls))
+                self.assertEqual([v for v in calls if v.startswith('start:')],
+                    ['start:125:ynx-consensus-pq-remote-signer.service','start:30:ynx-comet.service'])
+                self.assertEqual(json.loads(files['process.json']),dict(originalEngineIdentity=True))
+                self.assertEqual(calls.count('engine-read'),3 if case=='delayed' else 1)
+
+    def test_resume_failures_remain_unknown_without_repeated_start(self):
+        for case in ('signer-timeout','signer-identity','engine-timeout','engine-identity'):
+            with self.subTest(case=case):
+                result,calls,files=self.control(case)
+                self.assertNotEqual(result.returncode,0,repr(calls))
+                self.assertNotIn('completed',calls)
+                self.assertEqual(sum(v.endswith(':ynx-consensus-pq-remote-signer.service') for v in calls),1)
+                self.assertEqual(sum(v.endswith(':ynx-comet.service') for v in calls),0 if case.startswith('signer-') else 1)
+                if case=='engine-identity':self.assertEqual(calls.count('engine-read'),30)
+                self.assertFalse(files.get('process.json'))
+        result,calls,_=self.control('long','606')
+        self.assertNotEqual(result.returncode,0);self.assertFalse([v for v in calls if v.startswith('start:')])
 
 class TerminalIncarnationTests(unittest.TestCase):
     """Actual shell functions; synthetic systemd/proc only, never a service."""

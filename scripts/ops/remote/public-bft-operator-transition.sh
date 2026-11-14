@@ -836,7 +836,7 @@ operator_transition_require_loaded_signer() {
 }
 
 operator_transition_start() {
-  local wanted="$1" startup_limit readback attempt_number
+  local wanted="$1" startup_limit
   startup_limit="$(operator_transition_cold_custody signer-installation)" || return $?
   if [[ -n "$startup_limit" ]]; then
     operator_transition_require_loaded_signer || return $?
@@ -846,6 +846,11 @@ operator_transition_start() {
     timeout --signal=TERM --kill-after=5 "$startup_limit" systemctl start ynx-consensus-pq-remote-signer.service || return $?
   fi
   timeout --signal=TERM --kill-after=5 30 systemctl start "$unit" || return $?
+  operator_transition_wait_running "$wanted"
+}
+
+operator_transition_wait_running() {
+  local wanted="$1" readback attempt_number
   # Type=simple can report started before the launcher execs the verified
   # binary. Retry only its original readback, never the start request.
   for (( attempt_number=0; attempt_number<30; attempt_number++ )); do
@@ -856,6 +861,19 @@ operator_transition_start() {
     if (( attempt_number < 29 )); then sleep 1; fi
   done
   operator_transition_fail 'original newly started engine identity was not observed; preserve UNKNOWN'
+}
+
+operator_light_resume_start() {
+  local startup_limit="$1" wanted="$2"
+  [[ "$startup_limit" =~ ^[1-9][0-9]{0,2}$ ]] && (( startup_limit <= 605 )) || return 1
+  # Resume uses the same pinned installation observed at capture, not the
+  # initial installation receipt or a new daemon-reload/install operation.
+  operator_light_recheck_phase || return $?
+  timeout --signal=TERM --kill-after=5 "$startup_limit" systemctl start "$signer_unit" || return $?
+  operator_light_signer_identity running >"$attempt/signer-process.json" || return $?
+  operator_light_recheck_phase || return $?
+  timeout --signal=TERM --kill-after=5 30 systemctl start "$unit" || return $?
+  operator_transition_wait_running "$wanted" >"$attempt/process.json" || return $?
 }
 
 operator_transition_receipt() {
@@ -1491,20 +1509,19 @@ PY
     cmp "$root/capture-attempt/signer-stopped.json" "$attempt/signer-before.json" >/dev/null
     operator_light_inspect "$attempt/checkpoint.json"
     operator_light_recheck_phase
-    python3 -B - "$stage/quiet.py" "$binding" "$root/capture-attempt" "$attempt" <<'PY'
+    local startup_limit
+    startup_limit="$(python3 -B - "$stage/quiet.py" "$binding" "$root/capture-attempt" "$attempt" <<'PY'
 import importlib.util,json,pathlib,sys
 s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)
 b=json.load(open(sys.argv[2]));cap=pathlib.Path(sys.argv[3]);attempt=pathlib.Path(sys.argv[4]);r,raw=q.load(cap/'result.json',b['captureSHA256'],1<<20)
 q.need(r==q.finish_capture(json.load(open(cap/'binding.json')),cap),'completed original capture changed')
+startup=q.resume_signer_startup_limit(b,r,q.load(cap/'signer-stopped.json',limit=16<<10)[0],q.load(attempt/'signer-before.json',limit=16<<10)[0])
 retained=q.retain_consumed_halt(b,r,attempt/'checkpoint.json');q.publish(attempt/'retained-request.json',dict(path=retained,sha256=r['haltRequestSHA256']))
+print(startup)
 PY
+    )" || return $?
     # New explicit resume action, not replay of the old transition start.
-    operator_light_recheck_phase
-    timeout --signal=TERM --kill-after=5 30 systemctl start "$signer_unit"
-    operator_light_signer_identity running >"$attempt/signer-process.json"
-    operator_light_recheck_phase
-    timeout --signal=TERM --kill-after=5 30 systemctl start "$unit"
-    operator_transition_running "$comet_pin" >"$attempt/process.json"
+    operator_light_resume_start "$startup_limit" "$comet_pin" || return $?
     python3 -B - "$stage/quiet.py" "$binding" "$attempt" <<'PY'
 import importlib.util,json,pathlib,sys
 s=importlib.util.spec_from_file_location('q',sys.argv[1]);q=importlib.util.module_from_spec(s);s.loader.exec_module(q)

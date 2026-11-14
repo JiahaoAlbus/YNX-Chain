@@ -799,10 +799,72 @@ def retain_capture_result(binding_path, raw_path, target_path):
     finally:os.close(fd)
     fsync_dir(target.parent)
 
+SIGNER_CONFIG_PATH = '/etc/ynx/consensus-pq-remote-signer.conf'
+
+def signer_config_expected(binding):
+    role=binding['originalRole'];source=binding['sourcePlan']
+    return dict(schema='ynx-pq-remote-service-v1',binary='/usr/local/libexec/ynx-consensus-pq-remote-signer',
+                binarySHA256=binding['binarySHA256']['ynx-consensus-pq-remote-signer'],
+                abciState=role['abciState'],legacyKey=role['legacyKeyPath'],legacyState=role['legacyStatePath'],
+                pqState=source['signingStatePath'],listen=role['remoteSigner'],scheduleHash=source['scheduleHash'],
+                cometGenesisSHA256=source['consensusGenesisSHA256'],originalGenesisHash=source['originalGenesisHash'],
+                migrationStateHash=source['migrationStateHash'],runtimePlanHash=source['runtimePlanHash'])
+
+def resume_signer_startup_limit(binding, capture, captured_identity, current_identity):
+    """Read the same installed configuration recorded by the original capture.
+
+    Called after the original phase/start-receipt and cold capture checks, but
+    before consuming the halt request. This is not another signer installation.
+    """
+    need(binding['phase']=='resume' and set(capture)==CAPTURE_FIELDS and
+         capture['phase']=='capture' and capture['status']=='stopped_exported', 'completed original capture required for resume')
+    keys=('transitionId','cutoverTransactionId','role','runtimeCommit','runtimeManifestSHA256',
+          'operatorPlanSHA256','inputSHA256','sourcePlanSHA256','captureRoot','output')
+    need(all(capture[k]==binding[k] for k in keys), 'resume original capture scope changed')
+    pins={'configSHA256','unitSHA256','launcherSHA256','binarySHA256'}
+    need(type(captured_identity) is dict and type(current_identity) is dict and
+         set(captured_identity)==pins and set(current_identity)==pins and
+         captured_identity==current_identity and all(pin(v) for v in current_identity.values()),
+         'resume original stopped signer installation changed')
+    need(current_identity['binarySHA256']==binding['binarySHA256']['ynx-consensus-pq-remote-signer'],
+         'resume signer differs from exact SOURCE')
+    path=Path(SIGNER_CONFIG_PATH);before=path.lstat()
+    need(str(path.resolve(strict=True))==SIGNER_CONFIG_PATH and stat.S_ISREG(before.st_mode) and
+         before.st_nlink==1 and before.st_uid==0 and not before.st_mode&0o022,
+         'original root-owned signer public installation required')
+    config,raw=load(path,limit=16<<10)
+    need(sha(raw)==current_identity['configSHA256'] and identity(before)==identity(path.lstat()),
+         'resume original signer configuration changed')
+    need(all(config.get(k)==v for k,v in signer_config_expected(binding).items()),
+         'original signer/current operator configuration differs')
+    fields=(('mode','checkpointAccessMode'),('socket','checkpointAccessSocket'),('engineUID','checkpointEngineUID'),
+            ('signerUID','checkpointSignerUID'),('timeoutSeconds','checkpointAccessTimeoutSeconds'),
+            ('startupTimeoutSeconds','checkpointStartupTimeoutSeconds'))
+    present=set(config)&{field for _,field in fields}
+    if not present:
+        need(binding['originalRole'].get('checkpointAccess') is None, 'original checkpoint access configuration missing')
+        return 30  # Preserve the original file-mode service budget.
+    need(present=={field for _,field in fields} and
+         binding['originalRole'].get('checkpointAccess')=={key:config[field] for key,field in fields},
+         'original pinned checkpoint access group differs')
+    need(config['checkpointAccessMode']=='unix-fd-v1' and type(config['checkpointAccessSocket']) is str and
+         re.fullmatch(r'@ynx-pq-checkpoint-[a-z0-9-]{8,64}',config['checkpointAccessSocket']), 'original checkpoint access mode differs')
+    for field in ('checkpointEngineUID','checkpointSignerUID'):
+        v=config[field]
+        need(type(v) is str and re.fullmatch(r'[1-9][0-9]{0,9}',v) and int(v)<=4294967295,
+             'original nonroot checkpoint UID required')
+    need(config['checkpointEngineUID']!=config['checkpointSignerUID'], 'distinct original checkpoint UIDs required')
+    v=config['checkpointAccessTimeoutSeconds']
+    need(type(v) is str and re.fullmatch(r'[1-9][0-9]?',v) and int(v)<=60, 'original checkpoint access timeout required')
+    v=config['checkpointStartupTimeoutSeconds']
+    need(type(v) is str and re.fullmatch(r'[1-9][0-9]{0,2}',v) and int(v)<=600,
+         'original bounded signer readiness timeout required')
+    return int(v)+5  # Same bounded systemd-notify allowance as original start.
+
 def capture_signer_identity(binding, running):
     import subprocess
     unit='ynx-consensus-pq-remote-signer.service'
-    config='/etc/ynx/consensus-pq-remote-signer.conf'
+    config=SIGNER_CONFIG_PATH
     launcher='/usr/local/libexec/ynx-consensus-pq-remote-signer-launch'
     binary='/usr/local/libexec/ynx-consensus-pq-remote-signer'
     unit_file='/etc/systemd/system/'+unit
@@ -816,11 +878,7 @@ def capture_signer_identity(binding, running):
          'path='+launcher+' ;' in show('ExecStart') and show('User')=='ynx-pq-signer', 'original signer service identity differs')
     c, confraw=load(config,limit=16<<10)
     role=binding['originalRole'];source=binding['sourcePlan']
-    expected=dict(schema='ynx-pq-remote-service-v1',binary=binary,binarySHA256=binding['binarySHA256']['ynx-consensus-pq-remote-signer'],
-                  abciState=role['abciState'],legacyKey=role['legacyKeyPath'],legacyState=role['legacyStatePath'],
-                  pqState=source['signingStatePath'],listen=role['remoteSigner'],scheduleHash=source['scheduleHash'],
-                  cometGenesisSHA256=source['consensusGenesisSHA256'],originalGenesisHash=source['originalGenesisHash'],
-                  migrationStateHash=source['migrationStateHash'],runtimePlanHash=source['runtimePlanHash'])
+    expected=signer_config_expected(binding)
     need(all(c.get(k)==v for k,v in expected.items()), 'original signer/current operator configuration differs')
     need(digest_original(binary,128<<20)==expected['binarySHA256'],'installed signer binary differs from exact SOURCE')
     result=dict(configSHA256=sha(confraw),unitSHA256=digest_original(unit_file,1<<20),
