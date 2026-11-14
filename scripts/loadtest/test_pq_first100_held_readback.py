@@ -25,6 +25,34 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_proof_publication_binds_projection_and_preserves_missing_parent_timing(self):
+        row = dict(index=0, operationId='a'*64, hash='b'*64, nativeHash='c'*64,
+                   stageTimes=[('live_publish', 10), ('live_capture', 30)], terminalNs=50)
+        attempt = dict(node=2, sequence=1, policySHA256='d'*64, operationId=row['operationId'],
+                       transactionSHA256=row['hash'], nativeWireHash=row['nativeHash'])
+        frame = dict(schema='YNX-PERF-LIVE-REPLY-PUBLIC-PROJECTION/v1', operation='request', sequence=1,
+                     sourceReplyVersion='YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1', calleeElapsedNs=10,
+                     session=dict(nodeIndex=2, policySHA256='d'*64), outcome='request_published',
+                     originalReplySHA256='e'*64, originalReplyBytes=400, syntheticOnly=True,
+                     authorityGranted=False, independentFinality=False, rawReplyIncluded=False,
+                     pathsAndPayloadsIncluded=False, timingsIncluded=False)
+        stem = 'load-00000-live-session-request'
+        files = {stem+'-reply.json': encode(frame), 'load-operations/00000/live-proof-attempt.json': encode(attempt)}
+        load = dict(rows=[row])
+        result = reader.proof_publication(load, files, '')
+        self.assertIsNone(result['records'][0]['parentElapsedNs'])
+        self.assertFalse(result['independentFinality'])
+        timing = dict(node=2, policySHA256='d'*64, sequence=1, calleeElapsedNs=10,
+                      parentElapsedNs=15, replyProjectionWriteNs=2)
+        files[stem+'.json'] = encode(timing)
+        self.assertEqual(reader.proof_publication(load, files, '')['records'][0]['replyProjectionWriteNs'], 2)
+        files[stem+'.json'] = encode(dict(timing, parentElapsedNs=21))
+        with self.assertRaisesRegex(RuntimeError, 'clock or timing identity differs'):
+            reader.proof_publication(load, files, '')
+        files[stem+'-reply.json'] = encode(dict(frame, sequence=2))
+        with self.assertRaisesRegex(RuntimeError, 'projection identity differs'):
+            reader.proof_publication(load, files, '')
+
     def test_pipeline_pressure_uses_sampled_queue_and_active_worker_boundaries(self):
         workers = dict(publish=2, observe=2, finalize=4)
         capacity = dict(publish=4, observe=500, finalize=500)

@@ -139,6 +139,7 @@ def compare_business(before, after):
                     firstSignerFailure=report.get('firstSignerFailure'),
                     observationRPC=report.get('observationRPC'),
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
+                    proofPublication=report.get('proofPublication'),
                     proofCaptureProgress=report.get('proofCaptureProgress'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
@@ -166,6 +167,57 @@ def proof_capture_progress(load):
                              terminatedWithoutRead=row['error'] if read is None else None))
     return dict(captures=captures, withoutResultRead=sum(not row['resultReadStarted'] for row in captures),
                 finalityInferred=False)
+
+
+def proof_publication(load, files, prefix):
+    """Join archived publication replies to the original operation and parent clock."""
+    if load is None:
+        return None
+    records = []
+    for row in load['rows']:
+        stem = f"load-{row['index']:05d}-live-session-request"
+        projection_path = prefix + stem + '-reply.json'
+        original = files.get(projection_path)
+        if original is None:
+            continue
+        frame = strict(original)
+        attempt_path = prefix + f"load-operations/{row['index']:05d}/live-proof-attempt.json"
+        attempt = strict(files[attempt_path])
+        session = frame['session']
+        require(frame['schema'] == 'YNX-PERF-LIVE-REPLY-PUBLIC-PROJECTION/v1'
+                and frame['sourceReplyVersion'] == 'YNX-PQ-LAB-LIVE-MATERIALS-REPLY/v1'
+                and frame['operation'] == 'request' and frame['sequence'] == attempt['sequence']
+                and session['nodeIndex'] == attempt['node'] and session['policySHA256'] == attempt['policySHA256']
+                and all(attempt[key] == row[field] for key, field in
+                        (('operationId', 'operationId'), ('transactionSHA256', 'hash'), ('nativeWireHash', 'nativeHash')))
+                and type(frame['originalReplyBytes']) is int and 0 < frame['originalReplyBytes'] <= 2 << 20
+                and re.fullmatch('[0-9a-f]{64}', frame['originalReplySHA256'])
+                and frame['syntheticOnly'] is True and all(frame[key] is False for key in
+                    ('authorityGranted', 'independentFinality', 'rawReplyIncluded', 'pathsAndPayloadsIncluded', 'timingsIncluded')),
+                'original proof publication projection identity differs')
+        outcome = frame['outcome']
+        require(outcome in ('request_published', 'REFUSED_OR_UNKNOWN_NO_RETRY'), 'original proof publication outcome differs')
+        callee = frame['calleeElapsedNs']
+        stages.integer(callee, 'proof publication callee time')
+        parent = overhead = None
+        points = dict(row['stageTimes'])
+        timing_bytes = files.get(prefix + stem + '.json')
+        require('live_publish' in points and (outcome == 'request_published' or timing_bytes is None),
+                'original proof publication boundary differs')
+        if timing_bytes is not None:
+            timing = strict(timing_bytes)
+            parent, overhead = (timing[key] for key in ('parentElapsedNs', 'replyProjectionWriteNs'))
+            end = points.get('live_capture', row['terminalNs'])
+            require(all(timing[key] == attempt[key] for key in ('node', 'sequence', 'policySHA256'))
+                    and timing['calleeElapsedNs'] == callee and type(parent) is int and type(overhead) is int
+                    and 0 <= overhead <= parent and 0 <= callee <= parent
+                    and type(end) is int and parent <= end - points['live_publish'],
+                    'original proof publication clock or timing identity differs')
+        records.append(dict(index=row['index'], node=attempt['node'], sequence=attempt['sequence'], outcome=outcome,
+                            originalReplySHA256=frame['originalReplySHA256'], projectionPath=projection_path,
+                            calleeElapsedNs=callee, parentElapsedNs=parent, replyProjectionWriteNs=overhead))
+    return dict(records=records, published=sum(row['outcome'] == 'request_published' for row in records),
+                rawReplyReverified=False, independentFinality=False)
 
 
 def stopped_proof_failures(receipt, load, files, prefix):
@@ -602,6 +654,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
+                proofPublication=proof_publication(load, files, prefix),
                 proofCaptureProgress=proof_capture_progress(load) if load is not None else None,
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
