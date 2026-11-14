@@ -110,6 +110,12 @@ class PublicProofClosureControls(unittest.TestCase):
             ref = self.export(f)
             _, values, _ = p.read_original_closure(f[0]/ref['path'], ref['sha256'])
             self.assertEqual(values['migration'], original)
+            manifest, values, paths = p.read_original_closure(f[0]/ref['path'], ref['sha256'], retain_blobs=False)
+            self.assertEqual(values, {})
+            self.assertEqual(manifest['entries']['migration']['sha256'], p.sha(original))
+            paths['migration'].write_bytes(b'x' + original[1:])
+            with self.assertRaisesRegex(RuntimeError, 'blob pin/size differs'):
+                p.read_original_closure(f[0]/ref['path'], ref['sha256'], retain_blobs=False)
         with tempfile.TemporaryDirectory() as temp, mock.patch.object(p, 'FILE_LIMIT', 4096):
             f = self.fixture(Path(temp).resolve())
             (f[2]/'genesis.json').write_bytes(b'g' * 4097)

@@ -115,23 +115,29 @@ def public_file_limit(role):
     return MIGRATION_FILE_LIMIT if role in ('migration', 'context/migration.json') else FILE_LIMIT
 
 
-def matches_existing_blob(path, expected):
+def scan_existing_blob(path, size, *, expected=None):
     require(path.resolve(strict=True) == path, 'canonical non-symlink public input required')
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
         before = os.fstat(fd)
-        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size == len(expected),
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size == size,
                 'existing public blob differs; never overwrite')
-        view = memoryview(expected)
+        view = memoryview(expected) if expected is not None else None
+        digest = hashlib.sha256()
         with os.fdopen(fd, 'rb', closefd=False) as stream:
-            for offset in range(0, len(view), 1 << 20):
-                chunk = view[offset:offset + (1 << 20)]
-                require(stream.read(len(chunk)) == chunk, 'existing public blob differs; never overwrite')
+            for offset in range(0, size, 1 << 20):
+                length = min(1 << 20, size - offset)
+                chunk = stream.read(length)
+                require(len(chunk) == length and (view is None or chunk == view[offset:offset + length]),
+                        'existing public blob differs; never overwrite')
+                if view is None:
+                    digest.update(chunk)
             require(not stream.read(1), 'existing public blob differs; never overwrite')
         after = os.fstat(fd)
         require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
                 == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns),
                 'existing public blob differs; never overwrite')
+        return digest.hexdigest() if view is None else None
     finally:
         os.close(fd)
 
@@ -155,7 +161,7 @@ def store_originals(public,originals,values=None):
         require(blobs.resolve(strict=True)==blobs,'public blob directory may not be redirected')
         for role,raw in values.items():
             pin=sha(raw);target=blobs/(pin+'.json')
-            if target.exists():matches_existing_blob(target,raw)
+            if target.exists():scan_existing_blob(target,len(raw),expected=raw)
             else:write_new(target,raw)
             entries[role]=dict(originalAbsolutePath=str(originals[role]),publicRelativePath=str(target.relative_to(public)),sha256=pin,bytes=len(raw))
     return entries,values
@@ -184,22 +190,30 @@ def export_original_public_proof(public,case,directory,context,proof,source_comm
     path=case/'original-public-proof-manifest.json';raw=json_bytes(manifest);write_new(path,raw)
     return dict(path=str(path.relative_to(public)),sha256=sha(raw),bytes=len(raw),independentReverification=False,authorityGranted=False)
 
-def read_original_closure(manifest_path,manifest_sha256):
+def read_original_closure(manifest_path,manifest_sha256,*,retain_blobs=True):
     manifest_path=Path(manifest_path);raw=read_original(manifest_path,256<<10);require(sha(raw)==manifest_sha256,'external original manifest pin differs')
     manifest=strict(raw);require(manifest.get('schema')==SCHEMA and manifest.get('syntheticOnly') is True and manifest.get('authorityGranted') is False and manifest.get('actualNetworkExecutionClaim') is False,'public closure scope differs')
     require(manifest_path.name=='original-public-proof-manifest.json' and manifest_path.parent.parent.name=='load-operations','fixed public manifest location required')
     public=manifest_path.parent.parent.parent;entries=manifest['entries'];require(set(entries) in (set(FILES),set(FILES)|{'runtimePlan'}),'exact original public allowlist required')
-    values={};paths={}
+    values={};paths={};total=0
     for role,entry in entries.items():
         pin=entry['sha256'];require(type(pin) is str and re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','public blob path differs from exact hash')
-        path=public/entry['publicRelativePath'];value=read_original(path,public_file_limit(role));require(sha(value)==pin and type(entry['bytes']) is int and len(value)==entry['bytes'],'original public blob pin/size differs')
-        values[role]=value;paths[role]=path
-    require(sum(map(len,values.values()))<=TOTAL_LIMIT and sha(values['context'])==manifest['originalContextSHA256'] and sha(values['request'])==manifest['originalRequestSHA256'],'original closure/context/request differs')
+        path=public/entry['publicRelativePath'];size=entry['bytes'];limit=public_file_limit(role)
+        require(type(size) is int and 0<size<=limit and total+size<=TOTAL_LIMIT,'original public blob pin/size differs')
+        total+=size
+        if retain_blobs:
+            value=read_original(path,limit)
+            require(sha(value)==pin and len(value)==size,'original public blob pin/size differs')
+            values[role]=value
+        else:
+            require(scan_existing_blob(path,size)==pin,'original public blob pin/size differs')
+        paths[role]=path
+    require(entries['context']['sha256']==manifest['originalContextSHA256'] and entries['request']['sha256']==manifest['originalRequestSHA256'],'original closure/context/request differs')
     return manifest,values,paths
 
 def finalize_portable_catalog(public,case,closure_ref,row):
     public,case=Path(public),Path(case)
-    initial,_,_=read_original_closure(public/closure_ref['path'],closure_ref['sha256'])
+    initial,_,_=read_original_closure(public/closure_ref['path'],closure_ref['sha256'],retain_blobs=False)
     require(case==public/'load-operations'/('%05d'%row['index']),'original operation case differs')
     originals={
         'finalReceipt':case/'qualified-receipt.json',
