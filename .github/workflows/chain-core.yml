@@ -99,7 +99,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version-file: pay-qa.mod
+          go-version-file: go.mod
           cache: false
       - name: Build pinned private OpenSSL
         shell: bash
@@ -261,6 +261,7 @@ jobs:
     # events use the strict owned-closure job below; mixed candidates fail there.
     if: >-
       (github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration') &&
+      !(github.event_name == 'push' && github.ref == 'refs/heads/codex/pay-core-qa') &&
       !(github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-link-native-ci') &&
       !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
     runs-on: ubuntu-latest
