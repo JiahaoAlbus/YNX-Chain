@@ -8,6 +8,7 @@ import test from "node:test";
 import { createWorkspaceRuntime } from "../src/runtime.mjs";
 import { resolveExecutable } from "../src/sandbox.mjs";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
+import { COMPILER_VERSION, COMPILER_SHA256 } from "../../../scripts/compiler-pin.mjs";
 
 async function fixture(t, runtimeOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), "ynx-code-test-")),
@@ -371,7 +372,7 @@ test("Java is compiled and executed when the reviewed JDK is installed", { skip:
   assert.match(value.output, /YNX-JAVA-42/);
   assert.equal(value.sandbox.network, false);
 });
-test("Solidity is really compiled into integrity-addressed ABI, bytecode and source-map artifacts", { skip: !(await resolveExecutable(["solcjs"])) }, async (t) => {
+test("Solidity is really compiled into integrity-addressed ABI, bytecode and source-map artifacts", { skip: !process.env.YNX_IDE_SOLC_INPUT && !(await resolveExecutable(["solcjs"])) }, async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),
     source = "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\ncontract Counter { uint256 public value; function set(uint256 next) external { value = next; } }",
@@ -384,9 +385,11 @@ test("Solidity is really compiled into integrity-addressed ABI, bytecode and sou
   assert.equal(response.status, 200, JSON.stringify(value));
   assert.equal(value.ok, true, value.output);
   assert.equal(value.language, "solidity");
-  assert.match(value.compiler.version, /0\.8\.36/);
+  if (process.env.YNX_IDE_SOLC_INPUT) assert.equal(value.compiler.version,COMPILER_VERSION);
+  else assert.match(value.compiler.version,/0\.8\.36/);
   assert.deepEqual(value.compiler.evidence, {
     input: "standard-json",
+    ...(process.env.YNX_IDE_SOLC_INPUT ? { artifactSha256: COMPILER_SHA256 } : {}),
     abi: true,
     bytecode: true,
     sourceMaps: true,
