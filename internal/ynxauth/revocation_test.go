@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"reflect"
 	"sort"
@@ -401,4 +402,77 @@ func TestRevocationStateRejectsMissingRewrittenAndUnorderedTombstones(t *testing
 	bad := both.Clone()
 	bad.Revocations[0], bad.Revocations[1] = bad.Revocations[1], bad.Revocations[0]
 	authReject(t, bad.Validate(state.NetworkID))
+}
+
+func TestRevocationStateChecksMixedSortedOwnerHistories(t *testing.T) {
+	s := mixedRevocationPolicy(9)
+	if err := s.Validate(s.NetworkID); err != nil {
+		t.Fatal(err)
+	}
+	for _, owner := range s.Revocations {
+		for _, value := range []struct {
+			height uint64
+			active uint64
+		}{{2, 0}, {5, 1}, {8, 2}} {
+			got, exists := s.PolicyAt(owner.Owner, value.height)
+			if exists != (value.active != 0) || got.Revision != value.active {
+				t.Fatalf("revision at height %d: got %d, want %d", value.height, got.Revision, value.active)
+			}
+		}
+		if _, err := s.TrustedRegistration(owner.Owner, TransactionPurpose, 5); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.TrustedRegistration(owner.Owner, TransactionPurpose, 6); !errors.Is(err, ErrPolicy) {
+			t.Fatalf("terminal revocation did not invalidate signing: %v", err)
+		}
+	}
+	for index := range s.Revocations {
+		for _, corrupt := range []func(*RevocationRecord){
+			func(r *RevocationRecord) { r.AuthorizingRevision = 2 },
+			func(r *RevocationRecord) { r.ThroughRevision = 1 },
+			func(r *RevocationRecord) { r.LedgerNonce = 3 },
+			func(r *RevocationRecord) { r.RegisteredAt, r.RevokedFrom = 3, 4 },
+			func(r *RevocationRecord) { r.Owner = r.Owner[:41] + "f" },
+		} {
+			bad := s
+			bad.Revocations = append([]RevocationRecord(nil), s.Revocations...)
+			corrupt(&bad.Revocations[index])
+			if err := bad.Validate(s.NetworkID); err == nil {
+				t.Fatalf("accepted invalid sorted owner history at tombstone %d", index)
+			}
+		}
+	}
+}
+
+func BenchmarkValidateMixedRevocationPolicy(b *testing.B) {
+	for _, owners := range []int{128, 1024, 4096} {
+		b.Run(fmt.Sprint(owners), func(b *testing.B) {
+			s := mixedRevocationPolicy(owners)
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				if err := s.Validate(s.NetworkID); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
+}
+
+func mixedRevocationPolicy(owners int) State {
+	s := State{Version: PolicyRevocationVersion, NetworkID: make([]byte, 32), EnableAt: 1}
+	pkA, pkB := make([]byte, ynxbatch.PublicKeyASize), make([]byte, ynxbatch.PublicKeyBSize)
+	for i := 1; i <= owners; i++ {
+		owner := fmt.Sprintf("0x%040x", i)
+		record := Record{Owner: owner, AlgorithmVersion: ynxbatch.Version, PKA: pkA, PKB: pkB,
+			Revision: 1, RegisteredAt: 2, ActiveFrom: 3, LedgerNonce: 1}
+		s.Records = append(s.Records, record)
+		record.Revision, record.RegisteredAt, record.ActiveFrom, record.LedgerNonce = 2, 4, 8, 3
+		s.Records = append(s.Records, record)
+		if i%2 == 1 {
+			s.Revocations = append(s.Revocations, RevocationRecord{Owner: owner, AuthorizingRevision: 1,
+				ThroughRevision: 2, RegisteredAt: 5, RevokedFrom: 6, LedgerNonce: 5})
+		}
+	}
+	return s
 }

@@ -66,6 +66,10 @@ func (s State) validateRevocations() error {
 	if s.Version != PolicyRevocationVersion || len(s.Revocations) == 0 {
 		return errors.New("v2 account policy requires a revocation tombstone")
 	}
+	// Validate has already checked owner and revision order for Records. Walk
+	// those records and the sorted tombstones together, keeping the active
+	// revision at revocation height separate from the latest admitted revision.
+	next := 0
 	for i, revoked := range s.Revocations {
 		if !accountaddress.IsCanonical(revoked.Owner) || revoked.AuthorizingRevision == 0 || revoked.ThroughRevision < revoked.AuthorizingRevision || revoked.RegisteredAt < s.EnableAt || revoked.RegisteredAt == math.MaxUint64 || revoked.RevokedFrom != revoked.RegisteredAt+1 || revoked.LedgerNonce == 0 {
 			return errors.New("invalid account revocation")
@@ -73,17 +77,22 @@ func (s State) validateRevocations() error {
 		if i > 0 && s.Revocations[i-1].Owner >= revoked.Owner {
 			return errors.New("account revocations are not unique and sorted")
 		}
-		var latest Record
-		for _, r := range s.Records {
-			if r.Owner == revoked.Owner {
-				if r.RegisteredAt > revoked.RegisteredAt {
-					return errors.New("registration after terminal revocation")
-				}
-				latest = r
-			}
+		for next < len(s.Records) && s.Records[next].Owner < revoked.Owner {
+			next++
 		}
-		authority, active := s.PolicyAt(revoked.Owner, revoked.RegisteredAt)
-		if !active || authority.Revision != revoked.AuthorizingRevision || latest.Revision != revoked.ThroughRevision || latest.LedgerNonce >= revoked.LedgerNonce {
+		var authorityRevision, latestRevision, latestNonce uint64
+		for next < len(s.Records) && s.Records[next].Owner == revoked.Owner {
+			record := s.Records[next]
+			if record.RegisteredAt > revoked.RegisteredAt {
+				return errors.New("registration after terminal revocation")
+			}
+			if record.ActiveFrom <= revoked.RegisteredAt {
+				authorityRevision = record.Revision
+			}
+			latestRevision, latestNonce = record.Revision, record.LedgerNonce
+			next++
+		}
+		if authorityRevision != revoked.AuthorizingRevision || latestRevision != revoked.ThroughRevision || latestNonce >= revoked.LedgerNonce {
 			return errors.New("revocation differs from its complete registration history")
 		}
 	}
