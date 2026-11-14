@@ -168,18 +168,20 @@ export class NativePayBusinessClient {
  async reconcileOriginalOrderOperation(productId,sourceOrder,nativeHash){const reference={productId,sourceOrder,nativeHash};return this.#run(reference,'recovering',async current=>{
   if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))throw failure('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');
   const {binding}=await this.#originalOrder(reference,current);
-  if(typeof this.#pay.reconcileOperation!=='function')throw failure('NATIVE_PAY_ORIGINAL_RECONCILER_UNAVAILABLE');
-  const before=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
-  const original=nativeInvoiceOrderOperationDATA(before,binding,nativeHash);
-  if(original.kind==='invoice_terms')reference.kind='invoice_terms';
-  // Existing original-operation reconciliation reads independent Core proof.
-  // It never submits a Member, chooses another nonce or recreates an intent.
-  const result=await this.#pay.reconcileOperation(binding.merchant,binding.terms.invoiceId,nativeHash,current);current();
-  assertNativeInvoiceOriginalOperationDATA(result,original);
-  const reconciled=Object.freeze({...original,status:Object.getOwnPropertyDescriptor(result,'status').value});
-  const bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
-  const observed=nativeInvoiceOrderOperationDATA(bill,binding,nativeHash);
-  assertNativeInvoiceOriginalOperationDATA(observed,reconciled);
+  let bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
+  let observed=nativeInvoiceOrderOperationDATA(bill,binding,nativeHash);
+  if(observed.kind==='invoice_terms')reference.kind='invoice_terms';
+  // A lost reconcile response can leave an already terminal original. Read
+  // its archive directly. Only an unresolved original needs a proof request.
+  if(!['confirmed','confirmed_failed'].includes(observed.status)){
+   if(typeof this.#pay.reconcileOperation!=='function')throw failure('NATIVE_PAY_ORIGINAL_RECONCILER_UNAVAILABLE');
+   const result=await this.#pay.reconcileOperation(binding.merchant,binding.terms.invoiceId,nativeHash,current);current();
+   assertNativeInvoiceOriginalOperationDATA(result,observed);
+   const reconciled={...observed,status:Object.getOwnPropertyDescriptor(result,'status').value};
+   bill=await this.#pay.readInvoice(binding.merchant,binding.terms.invoiceId,current);current();
+   observed=nativeInvoiceOrderOperationDATA(bill,binding,nativeHash);
+   assertNativeInvoiceOriginalOperationDATA(observed,reconciled);
+  }
   let archiveReceipt;
   if(['invoice_settle','invoice_refund'].includes(observed.kind)&&['confirmed','confirmed_failed'].includes(observed.status)){
    if(typeof this.#runtime.readOriginalArchiveReceipt!=='function')throw failure('NATIVE_PAY_ARCHIVE_READER_UNAVAILABLE');

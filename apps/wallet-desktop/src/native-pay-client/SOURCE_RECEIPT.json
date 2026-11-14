@@ -1,9 +1,7 @@
 {
   "owner": "P06 original; P01 exact whole9 consumer projection",
-  "sourceCommit": "b275fd0675151934d1728944436ebef72811d0e0",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/protected-late-review-retirement-20261113/HANDOFF.json",
-  "handoffBytes": 4522,
-  "handoffSha256": "08987ea4f75690ab37b0f378da3eee923426ca5abe0015d00f2d396d639bf006",
+  "sourceCommit": "063c2966facb7207fae8a5579cdd228f78e43944",
+  "handoff": "git:063c2966facb7207fae8a5579cdd228f78e43944",
   "productionModules": 9,
   "productionDocumentsPreservedFromR5": true,
   "files": [
@@ -19,8 +17,8 @@
     },
     {
       "path": "pay-business-client.mjs",
-      "bytes": 32030,
-      "sha256": "30db5124d4b4efe749501c7381a200ce2ffffb358b6621c3b6a2e64ac3ecbdfc"
+      "bytes": 32071,
+      "sha256": "8f4da75a8a28288bb9cab8eeedbc81b72ea1008a1ffbdd521e4f6e64486ea1ea"
     },
     {
       "path": "merchant-invoice-approval.mjs",
