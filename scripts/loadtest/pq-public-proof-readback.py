@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import stat
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -115,7 +116,7 @@ def public_file_limit(role):
     return MIGRATION_FILE_LIMIT if role in ('migration', 'context/migration.json') else FILE_LIMIT
 
 
-def scan_existing_blob(path, size, *, expected=None):
+def scan_existing_blob(path, size, *, expected=None, output=None):
     require(path.resolve(strict=True) == path, 'canonical non-symlink public input required')
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
@@ -132,6 +133,8 @@ def scan_existing_blob(path, size, *, expected=None):
                         'existing public blob differs; never overwrite')
                 if view is None:
                     digest.update(chunk)
+                if output is not None:
+                    output.write(chunk)
             require(not stream.read(1), 'existing public blob differs; never overwrite')
         after = os.fstat(fd)
         require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
@@ -140,6 +143,36 @@ def scan_existing_blob(path, size, *, expected=None):
         return digest.hexdigest() if view is None else None
     finally:
         os.close(fd)
+
+
+def store_migration_blob(public, path, available):
+    """Copy the held public migration without materializing its bytes in Python."""
+    size = path.stat().st_size
+    require(0 < size <= min(available, MIGRATION_FILE_LIMIT), 'bounded regular public input required')
+    with _export_lock:
+        blobs = public/'proof-public-blobs'
+        blobs.mkdir(mode=0o700, exist_ok=True)
+        require(blobs.resolve(strict=True) == blobs, 'public blob directory may not be redirected')
+        with tempfile.TemporaryDirectory(dir=public.parent) as temporary:
+            staged = Path(temporary)/'migration'
+            with staged.open('xb') as output:
+                os.fchmod(output.fileno(), 0o600)
+                pin = scan_existing_blob(path, size, output=output)
+                output.flush()
+                os.fsync(output.fileno())
+            target = blobs/(pin+'.json')
+            try:
+                os.link(staged, target)
+            except FileExistsError:
+                require(scan_existing_blob(target, size) == pin, 'existing public blob differs; never overwrite')
+            staged.unlink()
+            fd = os.open(blobs, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+    return dict(originalAbsolutePath=str(path), publicRelativePath=str(target.relative_to(public)),
+                sha256=pin, bytes=size)
 
 # These legacy carrier labels are the existing normal importer's CLOSED
 # transport names. They never assert that an actual operation belongs to owner4.
@@ -181,11 +214,17 @@ def export_original_public_proof(public,case,directory,context,proof,source_comm
     if light.get('runtimePlanFile'):
         require(light['runtimePlanFile']==str(directory/'runtime-plan.json'),'runtime plan outside closed original path')
         originals['runtimePlan']=directory/'runtime-plan.json'
+    migration = originals.pop('migration')
     values={role:read_original(path,public_file_limit(role)) for role,path in originals.items()}
     for role,ref in [('request',context['request']),('context',context['context']),('proof',proof)]:
         require(sha(values[role])==ref['sha256'] and len(values[role])==int(ref['bytes']),'original public proof external pin differs')
     require(sha(values['trustedLightBlock'])==light['trustedLightBlockSHA256'],'original trusted LightBlock pin differs')
+    # Reject an unsafe original before exporting any other role.
+    require(migration.resolve(strict=True) == migration and migration.stat().st_nlink == 1,
+            'canonical single-link public migration required')
+    migration_entry = store_migration_blob(public, migration, TOTAL_LIMIT - sum(map(len, values.values())))
     entries,values=store_originals(public,originals,values)
+    entries['migration'] = migration_entry
     manifest=dict(schema=SCHEMA,sourceCommit=source_commit,verifierBinarySHA256=verifier_sha256,entries=entries,originalContextSHA256=sha(values['context']),originalRequestSHA256=sha(values['request']),syntheticOnly=True,authorityGranted=False,actualNetworkExecutionClaim=False,independentReverification=False,meaning='Original public bytes only. Missing original result files cannot be invented. Only the normal portable-import may map context paths; no keys/custody/HRS are selected.')
     path=case/'original-public-proof-manifest.json';raw=json_bytes(manifest);write_new(path,raw)
     return dict(path=str(path.relative_to(public)),sha256=sha(raw),bytes=len(raw),independentReverification=False,authorityGranted=False)
