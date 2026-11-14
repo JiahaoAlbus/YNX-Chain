@@ -76,6 +76,7 @@ func (p *PreparedOriginalShopTaskOrders) OpenOriginalLINK(ctx context.Context, o
 		if err != nil {
 			if e := service.Close(); e != nil {
 				err = errors.Join(err, e)
+				return
 			}
 			service = nil
 		}

@@ -14,7 +14,8 @@ import (
 // OpenOriginalShopTaskOrders uses the sole original zero-input Source factory.
 // Registered target/kind and the SDK/response operands are deployment inputs,
 // never request data. No environment enrollment or alternate Source is tried.
-// The original caller must Close the returned prepared runtime after serving.
+// The original caller must retain a nonnil partial even on failure and Close
+// the returned runtime after serving.
 func OpenOriginalShopTaskOrders(ctx context.Context, codec OriginalShopTaskOrderCodec, responses OriginalShopTaskOrderResponseAuthority, target authgrant.Sink, orderKind string) (prepared *PreparedOriginalShopTaskOrders, err error) {
 	if ctx == nil {
 		return nil, ErrUnavailable
@@ -38,8 +39,13 @@ func OpenOriginalShopTaskOrders(ctx context.Context, codec OriginalShopTaskOrder
 	}
 	defer func() {
 		if err != nil {
-			err = errors.Join(err, closeOwner())
 			prepared = nil
+			if cleanupErr := closeOwner(); cleanupErr != nil {
+				// Retain the original owner and first cleanup failure. This
+				// partial has no reader and cannot open a serving endpoint.
+				prepared = &PreparedOriginalShopTaskOrders{close: closeOwner}
+				err = errors.Join(err, cleanupErr)
+			}
 		}
 	}()
 	if err != nil {

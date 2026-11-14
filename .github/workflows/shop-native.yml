@@ -87,7 +87,7 @@ jobs:
                   changed = raw.decode().rstrip("\0").split("\0") if raw else []
               except (subprocess.SubprocessError, UnicodeError):
                   changed = []  # uncertain comparison keeps the full checks
-          shop_source_startup = {"internal/commerce/cmd/shopd/main.go", "internal/commerce/shop_session_v4.go", "internal/commerce/task_order_consumer_ipc_test.go"}
+          shop_source_startup = {"internal/commerce/cmd/shopd/main.go", "internal/commerce/shop_session_v4.go", "internal/commerce/task_order_consumer_ipc_test.go", "internal/commerce/task_order_native_runtime.go", "internal/commerce/task_order_link.go"}
           def source_path(path):
               return path.startswith("internal/commerce/cmd/shopd/task_order_runtime") or path in shop_source_startup or path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
