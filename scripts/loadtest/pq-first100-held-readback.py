@@ -68,11 +68,28 @@ def readiness_resources(receipt):
     require(len(identities) == len(rows) and all(type(value) is int and value >= 0 for value in observed)
             and sum(observed) == rss == peak['rssBytes'], 'original peak RSS samples do not reconcile')
     cap = receipt['caps']['rssBytes']
+    groups = {}
+    for row in rows:
+        name = row.get('name', '')
+        if re.fullmatch(r'pq-node-[0-3]', name):
+            role = 'validators'
+        elif re.fullmatch(r'load-live-session-[0-3]', name):
+            role = 'proofClients'
+        elif name == 'load-public-owners':
+            role = 'signer'
+        else:
+            role = 'otherOwned'
+        group = groups.setdefault(role, dict(processes=0, observed=0, observedRSSBytes=None))
+        group['processes'] += 1
+        if row['rssBytes'] is not None:
+            group['observed'] += 1
+            group['observedRSSBytes'] = (group['observedRSSBytes'] or 0) + row['rssBytes']
     pool = receipt.get('senderPoolPreparation') or {}
     lanes = pool.get('liveMaterialsPreparation', [])
     require([lane['node'] for lane in lanes] == list(range(len(lanes))) and len(lanes) <= 4,
             'original proof READY lane order differs')
     return dict(peakRSSBytes=rss, rssCapBytes=cap, rssHeadroomBytes=cap-rss,
+                observedRSSByRole=groups,
                 unmeasuredProcessCount=len(rows)-len(observed), readyProofLaneCount=len(lanes),
                 signerLaunchToReadyNs=pool.get('sourcePreparation', {}).get('parentLaunchToReadyNs'),
                 proofLaunchToReadyNs={str(lane['node']): lane.get('parentLaunchToReadyNs') for lane in lanes},
@@ -127,6 +144,8 @@ def compare_business(before, after):
         return dict(origin=report['actionsOrigin'], source=report['source'], tools=report['tools'],
                     controller=report['controller'], archiveSHA256=report['archiveSHA256'],
                     firstCause=report['firstCause'], peakRSSBytes=report['peakRSSBytes'],
+                    peakRSSByRole=(report.get('readinessResources') or {}).get('observedRSSByRole'),
+                    networkAccountingStatus=report.get('networkAccountingStatus'),
                     configuredDemand=cohort['configuredDemand'],
                     submittedWithinWindow=cohort['submittedWithinWindow'],
                     submissionAttemptWindowTPS=cohort['submissionAttemptWindowTPS'],
@@ -692,6 +711,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                            fourNodeJoinObserved=not missing_nodes, independentFinality=False)
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
     owner_timing = public_owner_timing(receipt, load) if load is not None else None
+    network = receipt.get('networkAccounting') or {}
     return dict(report, status=status,
                 preparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
                 senderPoolPreparation=receipt.get('senderPoolPreparation'),
@@ -703,6 +723,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 readinessResources=readiness_resources(receipt),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
+                networkAccountingStatus=network.get('status') or (network.get('tcp') or {}).get('status'),
                 publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
                 signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
                 observationRPC=observation_rpc(receipt),

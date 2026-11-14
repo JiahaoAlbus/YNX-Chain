@@ -229,10 +229,16 @@ class HeldReadbackTests(unittest.TestCase):
 
     def test_peak_rss_preserves_overage_and_missing_process_samples(self):
         receipt = dict(peakRSSBytes=12, caps=dict(rssBytes=10), peakRSSSample=dict(rssBytes=12, processes=[
-            dict(pid=1, startTicks=10, rssBytes=12), dict(pid=2, startTicks=11, rssBytes=None)]))
+            dict(pid=1, startTicks=10, rssBytes=8, name='pq-node-0'),
+            dict(pid=2, startTicks=11, rssBytes=None, name='load-live-session-0'),
+            dict(pid=3, startTicks=12, rssBytes=4, name='load-public-owners')]))
         resources = reader.readiness_resources(receipt)
         self.assertEqual(resources['rssHeadroomBytes'], -2)
         self.assertEqual(resources['unmeasuredProcessCount'], 1)
+        self.assertEqual(resources['observedRSSByRole'], dict(
+            validators=dict(processes=1, observed=1, observedRSSBytes=8),
+            proofClients=dict(processes=1, observed=0, observedRSSBytes=None),
+            signer=dict(processes=1, observed=1, observedRSSBytes=4)))
         receipt['peakRSSSample']['rssBytes'] = 13
         with self.assertRaisesRegex(RuntimeError, 'do not reconcile'):
             reader.readiness_resources(receipt)
