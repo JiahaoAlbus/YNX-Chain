@@ -4,7 +4,7 @@ import junit.framework.TestCase;
 
 public final class DeviceApprovalReviewTest extends TestCase {
     private static final class Original implements DeviceApprovalReview.Original {
-        boolean current = true, failConfirm, failReject;
+        boolean current = true, failConfirm, failReject, switchDuringCheck;
         String account = "account A";
         int confirmations, rejections;
         public String peer() { return "verified app"; }
@@ -12,7 +12,7 @@ public final class DeviceApprovalReviewTest extends TestCase {
         public String network() { return "network A"; }
         public String requestDigest() { return "original digest"; }
         public long expiresAtMillis() { return 200; }
-        public boolean current() { return current; }
+        public boolean current() { if (switchDuringCheck) account = "account B"; return current; }
         public void confirmOnce() { confirmations++; if (failConfirm) throw new IllegalStateException(); }
         public void reject() { rejections++; if (failReject) throw new IllegalStateException(); }
     }
@@ -38,6 +38,17 @@ public final class DeviceApprovalReviewTest extends TestCase {
         original.account = "account B";
         assertEquals(DeviceApprovalReview.State.UNAVAILABLE, review.confirm(100));
         assertEquals(0, original.confirmations);
+    }
+    public void testAccountSwitchDuringCurrentAndSuccessfulConfirmation() {
+        Original changed = new Original(); changed.switchDuringCheck = true;
+        DeviceApprovalReview rejected = new DeviceApprovalReview(changed);
+        assertEquals(DeviceApprovalReview.State.UNAVAILABLE, rejected.confirm(100));
+        assertEquals(0, changed.confirmations);
+        Original valid = new Original();
+        DeviceApprovalReview accepted = new DeviceApprovalReview(valid);
+        assertEquals(DeviceApprovalReview.State.CONFIRMING, accepted.confirm(100));
+        assertEquals(DeviceApprovalReview.State.CONFIRMING, accepted.confirm(101));
+        assertEquals(1, valid.confirmations);
     }
     public void testExpiryCancelAndRejectDoNotConfirm() {
         Original original = new Original();
