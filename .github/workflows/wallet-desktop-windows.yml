@@ -3475,6 +3475,22 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
 
+  cloud-v4-original-holder-denial:
+    name: Cloud V4 original holder denial
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/cloud-v4-original-denial-20261114'
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Original locked SDK dependencies
+        working-directory: packages/wallet-auth
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify missing-holder denial and unchanged nonce ledger
+        run: node --test packages/wallet-auth/test/cloud-v4-original-receiver-denial.test.mjs
+
   auth49-pq-device-session:
     name: Auth49 dual-PQ device and current consumer
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-pq-device-session-20261026'
