@@ -1056,7 +1056,8 @@ function clearAssetBalance() {
   document.querySelector("#balance-status").textContent = "";
 }
 let balanceFlight = null, lastBalanceCheckedAt = null;
-const balanceFlights = new Map();
+const balanceFlights = new Map(), balanceUnderlying = new Set();
+const BALANCE_WAIT_MS = 75000, BALANCE_MAX_UNDERLYING = 2;
 async function refreshAssets() {
   const revision = balanceRevision, account = activeAccount;
   if (!account) { balanceFlight = null; return; }
@@ -1065,6 +1066,11 @@ async function refreshAssets() {
   const existing = balanceFlights.get(account);
   if (existing) { balanceFlight = existing; existing.queued = true; return existing.promise; }
   const current = () => revision === balanceRevision && account === activeAccount;
+  if (balanceUnderlying.size >= BALANCE_MAX_UNDERLYING) {
+    balanceFlight = null;
+    copyUI(document.querySelector("#balance-status"),"Balance checks are still waiting for earlier requests to finish. Try refreshing after they complete.");
+    return;
+  }
   if (!lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
   // Normalize a synchronous bridge throw into a rejected promise before
   // assigning the flight. Otherwise finally can clear the slot before the
@@ -1072,9 +1078,15 @@ async function refreshAssets() {
   let request;
   try { request = window.ynxWallet.balance(); } catch (error) { request = Promise.reject(error); }
   const flight = {account, queued:false, promise:null};
-  balanceFlight = flight; balanceFlights.set(account,flight);
+  balanceFlight = flight; balanceFlights.set(account,flight); balanceUnderlying.add(flight);
+  const underlying = Promise.resolve(request);
+  // A renderer deadline does not cancel IPC. Only actual settlement releases
+  // this slot; timed-out reads therefore cannot accumulate without bound.
+  underlying.then(()=>balanceUnderlying.delete(flight),()=>balanceUnderlying.delete(flight));
+  let timer;
+  const deadline = new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Balance check timed out"),{code:"BALANCE_VIEW_TIMEOUT"})),BALANCE_WAIT_MS);timer?.unref?.();});
   flight.promise = (async () => { try {
-    const result = await request;
+    const result = await Promise.race([underlying,deadline]);
     if (!current()) return;
     if (!result.ok) throw new Error("Balance unavailable");
     const value=result.value;
@@ -1083,10 +1095,12 @@ async function refreshAssets() {
     document.querySelector("#asset-balance").textContent = `${value.formatted} YNXT`;
     lastBalanceCheckedAt = value.checkedAt;
     copyUI(document.querySelector("#balance-status"),value.transferEnabled===false?"Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network.":"YNX Testnet · Updated {time}",{time:new Date(value.checkedAt).toLocaleTimeString()});
-  } catch { if (current()) {
-    if (lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Update pending · Last updated {time}",{time:new Date(lastBalanceCheckedAt).toLocaleTimeString()});
+  } catch (error) { if (current()) {
+    if(error?.code === "BALANCE_VIEW_TIMEOUT") copyUI(document.querySelector("#balance-status"),"Balance check timed out. The earlier request may still be running.");
+    else if (lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Update pending · Last updated {time}",{time:new Date(lastBalanceCheckedAt).toLocaleTimeString()});
     else copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing.");
   }} finally {
+    clearTimeout(timer);
     if (balanceFlights.get(account) === flight) balanceFlights.delete(account);
     if (balanceFlight === flight) {
       balanceFlight = null;

@@ -17,6 +17,55 @@ const rows={
 keys.push('Update pending · Last updated {time}');
 const pending={"zh-Hans":"更新待确认 · 上次更新 {time}","zh-Hant":"更新待確認 · 上次更新 {time}",ja:"更新を確認できません · 最終更新 {time}",ko:"업데이트 확인 대기 · 마지막 업데이트 {time}",es:"Actualización pendiente · Última actualización {time}",fr:"Actualisation en attente · Dernière mise à jour {time}",de:"Aktualisierung ausstehend · Zuletzt aktualisiert {time}",pt:"Atualização pendente · Última atualização {time}",ru:"Обновление ожидается · Последнее обновление {time}",ar:"التحديث قيد الانتظار · آخر تحديث {time}",id:"Pembaruan tertunda · Terakhir diperbarui {time}"};
 for(const [locale,value] of Object.entries(pending))rows[locale].push(value);
+const deadlineKeys=["Balance check timed out. The earlier request may still be running.","Balance checks are still waiting for earlier requests to finish. Try refreshing after they complete."];
+const deadlineRows={
+  "zh-Hans": [
+    "余额查询超时，先前请求可能仍在运行。",
+    "余额查询仍在等待先前请求结束，请在其完成后重新刷新。"
+  ],
+  "zh-Hant": [
+    "餘額查詢逾時，先前請求可能仍在執行。",
+    "餘額查詢仍在等待先前請求結束，請在其完成後重新整理。"
+  ],
+  "ja": [
+    "残高照会がタイムアウトしました。以前の要求はまだ実行中の可能性があります。",
+    "以前の残高照会の完了を待っています。完了後に再読み込みしてください。"
+  ],
+  "ko": [
+    "잔액 조회 시간이 초과되었습니다. 이전 요청이 아직 실행 중일 수 있습니다.",
+    "이전 잔액 요청이 끝나기를 기다리는 중입니다. 완료된 후 새로고침하세요."
+  ],
+  "es": [
+    "La consulta del saldo agotó el tiempo. La solicitud anterior podría seguir activa.",
+    "Las consultas de saldo esperan a que terminen solicitudes anteriores. Actualiza cuando finalicen."
+  ],
+  "fr": [
+    "La consultation du solde a expiré. La demande précédente peut être encore en cours.",
+    "Les consultations du solde attendent la fin des demandes précédentes. Actualisez après leur fin."
+  ],
+  "de": [
+    "Die Guthabenabfrage hat das Zeitlimit erreicht. Die vorherige Anfrage läuft möglicherweise noch.",
+    "Guthabenabfragen warten auf frühere Anfragen. Aktualisiere nach deren Abschluss."
+  ],
+  "pt": [
+    "A consulta de saldo expirou. A solicitação anterior ainda pode estar em andamento.",
+    "As consultas de saldo aguardam solicitações anteriores terminarem. Atualize após a conclusão."
+  ],
+  "ru": [
+    "Время запроса баланса истекло. Предыдущий запрос может ещё выполняться.",
+    "Запросы баланса ожидают завершения предыдущих запросов. Обновите после их завершения."
+  ],
+  "ar": [
+    "انتهت مهلة فحص الرصيد. قد يظل الطلب السابق قيد التنفيذ.",
+    "تنتظر فحوص الرصيد انتهاء الطلبات السابقة. حدّث بعد اكتمالها."
+  ],
+  "id": [
+    "Pemeriksaan saldo melewati batas waktu. Permintaan sebelumnya mungkin masih berjalan.",
+    "Pemeriksaan saldo menunggu permintaan sebelumnya selesai. Segarkan setelah selesai."
+  ]
+};
+keys.push(...deadlineKeys);
+for(const [locale,values] of Object.entries(deadlineRows))rows[locale].push(...values);
 export const BALANCE_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,values])=>{
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete balance copy: ${locale}`);
   return[locale,Object.freeze(Object.fromEntries(keys.map((key,index)=>[key,values[index]])))];
