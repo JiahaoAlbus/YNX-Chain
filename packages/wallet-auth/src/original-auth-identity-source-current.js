@@ -1,3 +1,4 @@
+import {isOriginalSocialJointSourceService} from '../native/original-social-joint-profile-source-service-private.mjs';
 import {createPublicKey,createPrivateKey,sign,KeyObject,randomBytes} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
@@ -187,7 +188,7 @@ export async function loadOriginalPublicationApprovalIssuer(){
 // or reconstruct a Host credential from a response DTO. Only the existing
 // release-selected service inventory may dispatch to its owned protected body.
 export function assertOriginalSocialDeviceDirectoryPrincipalSourceV4(service){
- if(!services.has(service)||typeof service.assertSocialDeviceDirectoryPrincipalPurposeV4!=='function'||typeof service.existingSocialDeviceDirectoryPrincipalV4!=='function'||typeof service.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4!=='function')fail('SOCIAL_DIRECTORY_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ if(!(services.has(service)||isOriginalSocialJointSourceService(service))||typeof service.assertSocialDeviceDirectoryPrincipalPurposeV4!=='function'||typeof service.existingSocialDeviceDirectoryPrincipalV4!=='function'||typeof service.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4!=='function')fail('SOCIAL_DIRECTORY_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
  service.assertSocialDeviceDirectoryPrincipalPurposeV4();
 }
 export async function handleOriginalSocialDeviceDirectoryPrincipalCurrentV4(service,credential){
