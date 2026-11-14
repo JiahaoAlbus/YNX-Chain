@@ -6,6 +6,13 @@ import {execFileSync} from 'node:child_process';
 import {runtimeModules,snapshotApplication} from './package-integrity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),args=process.argv.slice(2),macApp=args.includes('--mac-app');
 const generation=args.includes('--r6')?'r6':'r5',moduleRoot=generation==='r6'?path.join(root,'r6'):root;
+if(args.includes('--plan')){
+ if(args.some(a=>!['--plan','--r6','--mac-app'].includes(a)))throw Error('Plan only accepts --r6 and --mac-app.');
+ const names=[...runtimeModules[generation].map(name=>path.join(moduleRoot,name)),path.join(root,'README.md'),path.join(root,'scripts/build-qa.mjs'),path.join(root,'scripts/package-integrity.mjs'),...(macApp?[path.join(root,'macos/PayApp.swift'),path.join(root,'macos/PayReconnectState.swift'),path.join(root,'scripts/install-mac-qa.mjs')]:[])];
+ const inputs=[];for(const file of names){const stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('QA plan input must be a regular file.');const raw=await fs.readFile(file);inputs.push({path:path.relative(root,file),bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')});}
+ const node=await fs.realpath(process.execPath),nodeRaw=await fs.readFile(node);
+ console.log(JSON.stringify({version:'ynx.pay.qa-build-plan/v1',head:execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),generation,macApp,inputs,node:{path:node,sha256:createHash('sha256').update(nodeRaw).digest('hex')},mainBridge:'NOT_SUPPLIED',authority:false,willWrite:false,installed:false},null,2));process.exit(0);
+}
 const manifestAt=args.indexOf('--main-runtime-manifest'),runtimeManifest=manifestAt>=0?args[manifestAt+1]:null;
 const cometAt=args.indexOf('--comet-runtime-manifest'),cometManifest=cometAt>=0?args[cometAt+1]:null;
 if(manifestAt>=0&&!runtimeManifest)throw Error('Original owner bridge manifest path required.');

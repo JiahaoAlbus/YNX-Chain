@@ -78,8 +78,26 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - name: Check Pay GUI lifecycle and stale return
         run: |
           xcrun swiftc -frontend -parse apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayApp.swift
           xcrun swiftc apps/pay/native/macos/PayReconnectState.swift apps/pay/native/macos/PayReconnectStateTests.swift -o "$RUNNER_TEMP/pay-reconnect-state-test"
           "$RUNNER_TEMP/pay-reconnect-state-test"
+      - name: Plan and build unconnected local QA app
+        run: |
+          test "$(uname -m)" = arm64
+          mkdir -p "$RUNNER_TEMP/pay-tmp" "$RUNNER_TEMP/pay-clang" "$RUNNER_TEMP/pay-swift"
+          node apps/pay/native/scripts/build-qa.mjs --plan --r6 --mac-app > "$RUNNER_TEMP/pay-plan.json"
+          TMPDIR="$RUNNER_TEMP/pay-tmp" CLANG_MODULE_CACHE_PATH="$RUNNER_TEMP/pay-clang" SWIFT_MODULECACHE_PATH="$RUNNER_TEMP/pay-swift" node apps/pay/native/scripts/build-qa.mjs --r6 --mac-app "$RUNNER_TEMP/pay-qa"
+          "$RUNNER_TEMP/pay-qa/YNX Pay QA.app/Contents/MacOS/YNXPay" --self-check > "$RUNNER_TEMP/pay-self-check.json"
+          node -e 'const r=require(process.argv[1]); if(r.code!=="NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED" || r.mainApproval!==false || r.submission!==false) process.exit(1)' "$RUNNER_TEMP/pay-self-check.json"
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/pay-unconnected-qa.tar.gz" pay-qa pay-plan.json pay-self-check.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pay-unconnected-local-qa-${{ github.sha }}
+          path: ${{ runner.temp }}/pay-unconnected-qa.tar.gz
+          if-no-files-found: error
+          retention-days: 7
