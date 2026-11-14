@@ -83,19 +83,7 @@ enum PayBridge {
                         ? "Wallet Source connected. Pay service availability has not been verified."
                         : "Original Wallet / Source unavailable"
                 }
-                if value["outcomeUnknown"] as? Bool == true {
-                    status = "Payment or refund is awaiting verification. Check the original invoice before requesting another review."
-                }
-                if let raw = (value["code"] as? String) ?? (value["reason"] as? String) {
-                    switch raw {
-                    case "NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED", "NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE":
-                        status = "Pay connection unavailable. Open YNX Wallet and use Pay there."
-                    case "NATIVE_PAY_AUTHORITY_UNAVAILABLE", "PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED":
-                        status = "Pay service authorization is unavailable. Check the original order again when it is restored."
-                    default:
-                        status = raw
-                    }
-                }
+                if let guidance = PayStatusMessage.text(code: (value["code"] as? String) ?? (value["reason"] as? String), outcomeUnknown: value["outcomeUnknown"] as? Bool == true) { status = guidance }
             }
             busy = false
             if lifecycle.completed() { perform("status") }
