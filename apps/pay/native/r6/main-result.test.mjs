@@ -30,6 +30,13 @@ test('normal result shows exact known totals beside pending original without gra
  const r=await entry.invokeResult({action:'invoice',merchant,invoiceId:'invoice-original'});
  assert.equal(r.ok,true);assert.equal(r.bill.paidAtoms,amount);assert.equal(r.bill.netPaidAtoms,'9007199254740963');assert.deepEqual(r.pendingOriginals,[nativeHash]);assert.equal(r.outcomeUnknown,true);assert.equal(r.clientIndependentFinality,false);assert.equal(r.canRetry,false);assert.doesNotMatch(JSON.stringify(r),/PRIVATE_MEMBER/);
 });
+test('invoice and refund UNKNOWN remain visible even when the operation list is absent',async()=>{
+ for(const [status,refundStatus] of [['unknown','none'],['committed_paid','unknown']]){
+  let reads=0;const entry=boot({async readInvoice(m,id){reads++;assert.equal(m,merchant);assert.equal(id,'invoice-original');return {merchant,invoiceId:id,status,refundStatus,paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'};}});
+  const result=await entry.invokeResult({action:'invoice',merchant,invoiceId:'invoice-original'});
+  assert.equal(result.ok,true);assert.equal(result.outcomeUnknown,true);assert.equal(result.bill.refundedAtoms,'30');assert.equal(result.bill.netPaidAtoms,'70');assert.equal(result.canRetry,false);assert.deepEqual(result.recoveryActions,[{action:'invoice',merchant,invoiceId:'invoice-original'}]);assert.equal(reads,1);
+ }
+});
 test('rejected or unavailable review is UNKNOWN DATA; original invoke preserves primitive first cause',async()=>{
  const error=false,entry=boot({async readInvoice(){throw error;}});
  await assert.rejects(entry.invoke({action:'invoice',merchant,invoiceId:'invoice-original'}),e=>e===error);
