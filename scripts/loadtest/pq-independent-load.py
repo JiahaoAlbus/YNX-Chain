@@ -611,17 +611,26 @@ class NormalBackend:
         # absent. Wait on original observations BEFORE publishing that request.
         # This readiness record grants no finality; the normal proof still must
         # authenticate exact H/H+1 and the original sender must confirm it.
-        until=time.monotonic()+self.c.proof_timeout
-        while time.monotonic()<until and not stop.is_set():
+        until=time.monotonic_ns()+int(self.c.proof_timeout*1e9)
+        required=height+1
+        while time.monotonic_ns()<until and not stop.is_set():
             try:
                 observed=[]
                 for node in self.c.plan["nodes"]:
                     status=self.observed_rpc(node,"status")
-                    info=self.observed_rpc(node,"abci_info")["response"]
                     lab.require(status["node_info"]["network"]==self.c.plan["chainId"],"normal successor chain identity differs")
-                    observed.append(dict(node=node["index"],engineHeight=int(status["sync_info"]["latest_block_height"]),applicationHeight=int(info["last_block_height"])))
-                if all(min(o["engineHeight"],o["applicationHeight"])>=height+1 for o in observed):
-                    lab.write_new(case/"successor-availability.json",dict(transactionHeight=height,minimumSuccessorHeight=height+1,observations=observed,observedMonotonicNs=time.monotonic_ns(),qualifiedFinal=False))
+                    engine=int(status["sync_info"]["latest_block_height"])
+                    if engine<required or stop.is_set() or time.monotonic_ns()>=until:
+                        break
+                    info=self.observed_rpc(node,"abci_info")["response"]
+                    application=int(info["last_block_height"])
+                    if application<required:
+                        break
+                    observed.append(dict(node=node["index"],engineHeight=engine,applicationHeight=application))
+                at=time.monotonic_ns()
+                if (len(observed)==4 and {o["node"] for o in observed}==set(range(4))
+                        and not stop.is_set() and at<until):
+                    lab.write_new(case/"successor-availability.json",dict(transactionHeight=height,minimumSuccessorHeight=required,observations=observed,observedMonotonicNs=at,qualifiedFinal=False))
                     return
             except (OSError,ValueError,KeyError):pass
             except RuntimeError as error:

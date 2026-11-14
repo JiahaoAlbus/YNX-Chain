@@ -99,7 +99,11 @@ class NormalCallgraphControls(unittest.TestCase):
             result=json.loads((path/'successor-availability.json').read_text())
             self.assertEqual(len(rounds),3);self.assertFalse(result['qualifiedFinal'])
             self.assertEqual(result['minimumSuccessorHeight'],11);self.assertEqual(len(result['observations']),4)
-            timing=b.rpc_measurements.report();self.assertEqual(len(timing['groups']),8);self.assertEqual(sum(g['attempted'] for g in timing['groups']),24);self.assertTrue(all(g['returned']==3 and g['inFlight']==0 for g in timing['groups']));self.assertFalse(timing['independentFinality'])
+            timing=b.rpc_measurements.report()
+            self.assertEqual(len(timing['groups']),8)
+            self.assertEqual(sum(g['attempted'] for g in timing['groups']),17)
+            self.assertTrue(all(g['returned']==g['attempted'] and g['inFlight']==0 for g in timing['groups']))
+            self.assertFalse(timing['independentFinality'])
     def test_cancelled_or_foreign_chain_readiness_cannot_publish_or_claim_finality(self):
         b=object.__new__(driver.NormalBackend);b.rpc_measurements=driver.rpc_measurements.RPCMeasurements();b.c=SimpleNamespace(proof_timeout=1,plan={'chainId':'original-chain','nodes':[{'index':0,'rpcAddress':'rpc0'}]})
         b.w=SimpleNamespace(rpc=mock.Mock());stop=threading.Event();stop.set()
