@@ -507,7 +507,33 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   for(const id of ['native-node-read','native-part-read','native-resource-read'])$(id).addEventListener('click',()=>load(id.includes('resource')?'resource':id.includes('part')?'part':'node'));
   for(const action of ['install','start','stop'])$('native-node-'+action).addEventListener('click',()=>{if($('native-node-'+action).disabled)return;return run('node',async current=>{if(nodeCaps[action]!==true||nodeCaps.visibleConsent!==true)throw Object.assign(new Error('UNSUPPORTED'),{code:'UNSUPPORTED',outcome:'NOT_SENT'});const hash=action==='install'?$('native-node-artifact').value.trim():'';if(action==='install'&&!/^[a-f0-9]{64}$/.test(hash))throw Object.assign(new Error('INVALID_ARTIFACT_SHA256'),{code:'INVALID_ARTIFACT_SHA256',outcome:'NOT_SENT'});const value=(await request('node_prepare',{action,artifactSHA256:hash})).payload;if(!current())return;authority(value,'productionGrant');const intent=value.node;if(value.code==='PREPARED'&&object(intent)&&Object.keys(intent).length===5&&ref(intent.managerId)&&intent.nodeId==='ordinary-node'&&intent.action===action&&intent.generation===node?.generation&&intent.artifactSHA256===(hash||node?.artifactSHA256)){nodeIntent=intent;}else{nodeIntent=null;if(value.code==='PREPARED')throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});}state('native-node-operation',value.code);});});
   $('native-node-cancel').addEventListener('click',()=>{nodeIntent=null;state('native-node-operation','CANCELLED');render();});
-  $('native-node-confirm').addEventListener('click',()=>{const intent=nodeIntent;if(!intent||nodeCaps[intent.action]!==true||nodeCaps.visibleConsent!==true)return;nodeIntent=null;run('node',async current=>{const value=(await request('node_'+intent.action,intent)).payload;if(!current())return;authority(value,'productionGrant');state('native-node-operation',value.code);nodeCaps={};},true);});
+  $('native-node-confirm').addEventListener('click',()=>{
+    const intent=nodeIntent;
+    if(!intent||nodeCaps[intent.action]!==true||nodeCaps.visibleConsent!==true)return;
+    nodeIntent=null;
+    return run('node',async current=>{
+      const value=(await request('node_'+intent.action,intent)).payload;
+      if(!current())return;
+      authority(value,'productionGrant');
+      state('native-node-operation',value.code);
+      nodeCaps={};
+      if(value.code!=='CANCELLED')return;
+      node=null;
+      for(const id of ['managed-node-state','local-node-recovery','local-node-code','local-node-bytes','local-node-logs-state','local-node-stdout','local-node-stderr'])raw(id,null);
+      render();
+      // Read the current device state once through the existing native bridge.
+      // Loss of the observation does not change the returned cancellation.
+      try{
+        const observed=(await request('node_status',{})).payload;
+        if(current()&&observed?.code==='OK'){
+          nodeStatus(observed);
+          if(!node||nodeCaps.read!==true||node.diagnostics?.recovery?.priorEffectUnknown===true)nodeCaps={};
+        }
+      }catch{
+        if(current()){node=null;nodeCaps={};}
+      }
+    },true);
+  });
   $('native-node-restart').addEventListener('click',()=>{if(nodeCaps.restart!==true||nodeCaps.visibleConsent!==true||node?.processOwned!==true)return;run('node',async current=>{const value=(await request('node_restart',{})).payload;if(!current())return;authority(value,'productionGrant');nodeIntent=null;nodeCaps={};state('native-node-operation',value.code);},true);});
   function canSelectProposal(){return !busy&&unresolved.size===0&&!['UNKNOWN','AWAITING_WALLET'].includes(entry?.state);}
   function draftChanged(){formVersion++;review=null;entry=null;recoveredDifference=false;render();}

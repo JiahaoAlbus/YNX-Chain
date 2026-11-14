@@ -32,6 +32,59 @@ test('native business UI keeps an ordinary browser NATIVE_REQUIRED despite HTTP 
  assert.match(s.node('native-node-notice').textContent,/原生 App/);assert.match(s.node('native-node-operation').textContent,/NATIVE_REQUIRED/);
 });
 
+test('public node prompt cancellation refreshes the current status without repeating an effect',async t=>{
+ const cancel=(capabilities)=>response({code:'CANCELLED',node:null,productionGrant:false,capabilities});
+ const status=(n,capabilities,code='OK')=>response({code,node:n,productionGrant:false,capabilities});
+ const running={...node(),stage:'running',processOwned:true,productionSupported:false,mode:'isolated-lifecycle-fixture',runId:'b'.repeat(48)};
+ const stopCaps={...nodeCaps,start:false,stop:true};
+ const stopped={...running,stage:'stopped',processOwned:false,generation:'9'};
+ const stoppedCaps={...stopCaps,stop:false};
+ for(const mode of ['fresh-running','changed','unavailable','transport','old-session','unknown','start'])await t.test(mode,async()=>{
+  let reads=0,resolveRead,rejectRead;
+  const action=mode==='start'?'start':'stop';
+  const original=action==='start'?node():running;
+  const capabilities=action==='start'?nodeCaps:stopCaps;
+  const prepared={...intent(),action};
+  const s=setup((op,payload)=>{
+   if(op==='node_status'){
+    if(++reads===1)return status(original,capabilities);
+    if(reads===2)return new Promise((resolve,reject)=>{resolveRead=resolve;rejectRead=reject;});
+    return status(stopped,stoppedCaps);
+   }
+   if(op==='node_prepare'){
+    assert.deepEqual(JSON.parse(JSON.stringify(payload)),{action,artifactSHA256:''});
+    return status(prepared,capabilities,'PREPARED');
+   }
+   if(op==='node_'+action){assert.deepEqual(JSON.parse(JSON.stringify(payload)),prepared);return cancel(capabilities);}
+  });
+  await s.load();await s.emit('native-node-'+action,'click');
+  const confirmed=s.emit('native-node-confirm','click');await settle();
+  const notice=()=>s.node('native-node-operation').textContent;
+  const stage=()=>s.node('native-node-stage').textContent;
+  assert.match(notice(),/CANCELLED/);
+  assert.equal(reads,2,'a dismissed prompt requires one fresh status read');
+  assert.equal(stage(),'—');
+  assert.equal(s.node('native-node-'+action).disabled,true);
+  if(mode==='old-session'){
+   s.native.ready=false;s.nativeState();await s.load();resolveRead(status(running,stopCaps));await confirmed;await settle();
+   assert.match(notice(),/OK/);assert.equal(stage(),'已停止');
+  }else{
+   if(mode==='transport')rejectRead(Object.assign(Error('status unavailable'),{code:'NATIVE_UNAVAILABLE',outcome:'NOT_SENT'}));
+   else if(mode==='unavailable')resolveRead(status(null,capabilities,'UNAVAILABLE'));
+   else if(mode==='changed')resolveRead(status(stopped,stoppedCaps));
+   else if(mode==='unknown')resolveRead(status({...running,diagnostics:{authority:false,recovery:{priorEffectUnknown:true}}},stopCaps));
+   else resolveRead(status(original,capabilities));
+   await confirmed;await settle();
+   assert.match(notice(),/CANCELLED/);
+   assert.equal(stage(),['fresh-running','unknown'].includes(mode)?'运行中':mode==='start'?'已安装':mode==='changed'?'已停止':'—');
+  }
+  assert.equal(s.node('native-node-'+action).disabled,!['fresh-running','start'].includes(mode));
+  assert.equal(s.node('native-node-confirm').disabled,true);
+  assert.equal(s.calls.filter(call=>call.operation==='node_'+action).length,1);
+  assert.equal(s.calls.filter(call=>call.operation==='node_prepare').length,1);
+ });
+});
+
 test('native business UI requires complete explicit caps and never promotes productionSupported false',async()=>{
  const s=setup(op=>op==='node_status'?response({code:'OK',node:{...node(),productionSupported:false},productionGrant:false,capabilities:{...nodeCaps,install:true,stop:true,restart:true}}):undefined);await s.load();
  for(const id of ['native-node-install','native-node-start','native-node-stop','native-node-restart'])assert.equal(s.node(id).disabled,true,id);
