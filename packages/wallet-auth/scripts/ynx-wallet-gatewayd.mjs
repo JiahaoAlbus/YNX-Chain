@@ -217,7 +217,7 @@ function stopOriginalDaemon(reason){
  if(originalShutdown){
   // A later normal shutdown signal explicitly continues only the same Social
   // debt. The first shutdown promise and original failure remain immutable.
-  if(originalSocialSourceStartup)void continueOriginalSocialParentDrain().then(()=>emitEvent({event:'social_source_parent_drain_completed',level:'info',service:'ynx-wallet-gatewayd'}),cause=>emitEvent({event:'social_source_parent_drain_pending',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'SOCIAL_SOURCE_PARENT_DRAIN_UNKNOWN'}));
+  if(originalSocialSourceStartup&&(reason==='SIGINT'||reason==='SIGTERM'))void continueOriginalSocialParentDrain().then(()=>emitEvent({event:'social_source_parent_drain_completed',level:'info',service:'ynx-wallet-gatewayd'}),cause=>emitEvent({event:'social_source_parent_drain_pending',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'SOCIAL_SOURCE_PARENT_DRAIN_UNKNOWN'}));
   return originalShutdown;
  }
  if(originalReturnPublisher)originalReturnPublisher.retire();
