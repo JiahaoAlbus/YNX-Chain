@@ -42,7 +42,8 @@ func openShopTaskOrderRuntime(ctx context.Context, store *commerce.Store, cfg co
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if publisher == nil || publisher.listen == nil || publisher.link.Gate == nil ||
+	if publisher == nil || publisher.channels == nil || publisher.responses == nil ||
+		publisher.listen == nil || publisher.link.Gate == nil ||
 		publisher.link.EdgeID == "" || !publisher.link.TLS.Server {
 		return nil, errShopTaskOrderPublisherNotSupplied
 	}
