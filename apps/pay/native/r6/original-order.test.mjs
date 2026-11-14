@@ -416,6 +416,7 @@ test('protected Shop order requires the fixed original Shop reader and never use
 });
 
 test('the fixed Shop loan and Pay read use the same live protected order',async t=>{
+ if(process.env.P06_RESTORED_INVOICE!==undefined)assert.equal(process.env.P06_RESTORED_INVOICE,terms.invoiceId);
  const shopPath=`/v5/shop/source/shop.order/invoice-intents/${ref.sourceOrder}`;
  const intentPath=`/v5/pay/invoice-intents/${intentId}`;
  const calls=[];
@@ -450,13 +451,17 @@ test('the fixed Shop loan and Pay read use the same live protected order',async 
   }};
  const source=await composeNativePayProductSource(entry,{acquireOriginalProductSource:()=>loan,isOriginalProductSource:value=>value===loan});
  try{
-  for(scenario of ['ready','denied','retired']){
+  for(scenario of ['ready','unknown-refund','wrong-merchant','wrong-network','denied','retired']){
+   responses.set(`/v5/pay/invoices/${merchant}/${terms.invoiceId}`,scenario==='wrong-merchant'?{...bill(),merchant:'0x'+'9'.repeat(40)}:scenario==='wrong-network'?{...bill(),nativeChainId:'9999'}:scenario==='unknown-refund'?{...bill(),status:'committed_paid',refundStatus:'unknown',paidAtoms:'100',refundedAtoms:'30',netPaidAtoms:'70'}:bill());
    const before=calls.length;
    const result=await entry.invokeOriginalOrderResult({action:'order-invoice',...ref},intentId,()=>{if(revoked)throw expired;});
-   if(scenario==='ready'){
+   if(scenario==='ready'||scenario==='unknown-refund'){
     assert.equal(result.ok,true);assert.equal(result.bill.sourceOrder,ref.sourceOrder);
+    if(scenario==='unknown-refund'){assert.equal(result.outcomeUnknown,true);assert.equal(result.bill.refundedAtoms,'30');assert.equal(result.bill.netPaidAtoms,'70');assert.equal(result.canRetry,false);}
     assert.deepEqual(result.recoveryActions,[protectedRead]);
     assert.deepEqual(calls.slice(before),[['GET',shopPath],['GET',intentPath],['GET',`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]]);
+   }else if(scenario==='wrong-merchant'||scenario==='wrong-network'){
+    assert.equal(result.ok,false);assert.equal(result.code,scenario==='wrong-merchant'?'NATIVE_PAY_ACTION_BILL_MISMATCH':'NATIVE_PAY_ORIGINAL_ORDER_BINDING');assert.deepEqual(calls.slice(before),[['GET',shopPath],['GET',intentPath],['GET',`/v5/pay/invoices/${merchant}/${terms.invoiceId}`]]);assert.equal(result.bill,undefined);
    }else{
     assert.equal(result.code,scenario==='denied'?refusal.code:expired.code);
     assert.deepEqual(result.recoveryActions,[]);

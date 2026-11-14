@@ -6,7 +6,7 @@ import Foundation
             guard let defaults = UserDefaults(suiteName: suite) else { fatalError("isolated defaults unavailable") }
             let store = PayInvoiceReferenceStore(defaults: defaults)
             if CommandLine.arguments[1] == "write" { try store.save("invoice-original"); return }
-            if CommandLine.arguments[1] == "verify" { let saved = try store.read(); precondition(saved == "invoice-original"); defaults.removePersistentDomain(forName: suite); return }
+            if CommandLine.arguments[1] == "verify" { let saved = try store.read(); precondition(saved == "invoice-original"); print(saved!); defaults.removePersistentDomain(forName: suite); return }
             fatalError("invalid test mode")
         }
         let suite = "ynx.pay.test." + UUID().uuidString

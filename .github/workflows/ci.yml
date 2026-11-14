@@ -92,7 +92,8 @@ jobs:
           "$RUNNER_TEMP/pay-invoice-reference-test"
           p06_suite="ynx.pay.test.$(uuidgen)"
           "$RUNNER_TEMP/pay-invoice-reference-test" write "$p06_suite"
-          "$RUNNER_TEMP/pay-invoice-reference-test" verify "$p06_suite"
+          p06_invoice=$("$RUNNER_TEMP/pay-invoice-reference-test" verify "$p06_suite")
+          P06_RESTORED_INVOICE="$p06_invoice" node --test --test-name-pattern='the fixed Shop loan and Pay read use the same live protected order' apps/pay/native/r6/original-order.test.mjs
       - name: Plan and build unconnected local QA app
         run: |
           test "$(uname -m)" = arm64
