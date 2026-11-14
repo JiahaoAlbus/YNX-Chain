@@ -522,6 +522,56 @@ jobs:
             apps/shop/native/android/app/build/test-results/testDebugUnitTest/*.xml
             apps/shop/native/android/app/build/generated/commerce-native-r9/assets/native-session/sdk-manifest.json
 
+  android-device-smoke:
+    needs: android-app-candidate
+    if: needs.android-app-candidate.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ynx-shop-android-debug
+          path: ${{ runner.temp }}/shop-android
+      - name: Enable hosted emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-shop-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install exact candidate and inspect the original entry
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: |
+            set -euo pipefail
+            apk="$RUNNER_TEMP/shop-android/outputs/apk/debug/app-debug.apk"
+            test -f "$apk"
+            shasum -a 256 "$apk" | tee "$RUNNER_TEMP/shop-device-apk.sha256"
+            adb install "$apk"
+            path="$(adb shell pm path com.ynxweb4.shop.debug | tr -d '\r' | sed -n 's/^package://p')"
+            test "$(adb exec-out cat "$path" | sha256sum | cut -d' ' -f1)" = "$(sha256sum "$apk" | cut -d' ' -f1)"
+            for attempt in 1 2; do
+              adb shell am force-stop com.ynxweb4.shop.debug
+              adb shell am start -W -n com.ynxweb4.shop.debug/com.ynxweb4.shop.MainActivity | tee "$RUNNER_TEMP/shop-device-launch-$attempt.log"
+              grep -q 'Status: ok' "$RUNNER_TEMP/shop-device-launch-$attempt.log"
+              sleep 3
+              adb exec-out uiautomator dump /dev/tty > "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
+              grep -q 'Search products and categories' "$RUNNER_TEMP/shop-device-catalog-$attempt.xml"
+            done
+            adb logcat -d -b crash > "$RUNNER_TEMP/shop-device-crash.log"
+            test ! -s "$RUNNER_TEMP/shop-device-crash.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ynx-shop-android-device-smoke
+          path: |
+            ${{ runner.temp }}/shop-device-*.log
+            ${{ runner.temp }}/shop-device-*.xml
+            ${{ runner.temp }}/shop-device-apk.sha256
+          if-no-files-found: warn
+
   language-regression:
     needs: change-scope
     if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.notification-only != 'true' && needs.change-scope.outputs.listing-only != 'true'
