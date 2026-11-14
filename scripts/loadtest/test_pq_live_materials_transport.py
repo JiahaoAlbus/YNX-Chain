@@ -1,5 +1,6 @@
 """Offline controls for the original Go proof-lane stream."""
 import importlib.util
+import hashlib
 import io
 import json
 import tempfile
@@ -167,6 +168,103 @@ class Transport(unittest.TestCase):
             lane.exchange('result', 1, retain_original=fail)
         self.assertTrue(lane.poisoned)
         self.assertEqual(len(stream.getvalue().splitlines()), 2)
+
+    def test_public_reply_projection_binds_request_and_result_without_private_payloads(self):
+        frames=[reply('request',1,requestPath='/private/DO-NOT-EXPORT/request.json'),
+                reply('result',1,result={'private': 'DO-NOT-EXPORT', 'nestedPath': '/private/material'})]
+        records=[];raws=[];originals=[]
+        def receive(*,include_original=False):
+            self.assertTrue(include_original)
+            frame=frames.pop(0)
+            frame['timings']={'private-label-DO-NOT-EXPORT': 'DO-NOT-EXPORT'}
+            raw=json.dumps(frame).encode()+b'\n';raws.append(raw)
+            return frame,raw
+        stream=io.BytesIO();lane=open_lane(stream,receive)
+        lane.exchange('request',1,retain_public_reply=records.append,**REQUEST)
+        lane.exchange('result',1,retain_public_reply=records.append,retain_original=originals.append)
+        self.assertEqual(len(records),2);self.assertEqual(originals,[raws[1]])
+        for i,record in enumerate(records):
+            self.assertEqual(record['originalReplySHA256'],hashlib.sha256(raws[i]).hexdigest())
+            self.assertEqual(record['originalReplyBytes'],len(raws[i]))
+            self.assertEqual(record['operation'],('request','result')[i])
+            self.assertEqual(record['session'],stats(i+1))
+            self.assertNotIn('DO-NOT-EXPORT',json.dumps(record));self.assertNotIn('/private/',json.dumps(record))
+            for field in ('authorityGranted','independentFinality','rawReplyIncluded',
+                          'pathsAndPayloadsIncluded','timingsIncluded'):
+                self.assertIs(record[field],False)
+        self.assertFalse(lane.poisoned);self.assertEqual(lane.commands,2)
+
+    def test_public_refusal_projection_preserves_original_outcome_and_no_replay(self):
+        for phase in ('request','result'):
+            with self.subTest(phase=phase):
+                frame=reply(phase,1,outcome='REFUSED_OR_UNKNOWN_NO_RETRY',
+                            failureClass='CONTEXT_ENDED',firstCausePresent=True)
+                frame.pop('requestPath',None);frame.pop('result',None)
+                frame['session']['retired']=True
+                raw=json.dumps(frame).encode()+b'\n';records=[]
+                def receive(*,include_original=False):
+                    return (frame,raw) if include_original else reply('request',1)
+                stream=io.BytesIO();lane=open_lane(stream,receive)
+                if phase=='result':lane.exchange('request',1,**REQUEST)
+                with self.assertRaises(transport.OriginalRefusal) as caught:
+                    lane.exchange(phase,1,retain_public_reply=records.append,
+                                  **(REQUEST if phase=='request' else {}))
+                self.assertEqual(caught.exception.failure_class,'CONTEXT_ENDED')
+                self.assertEqual(len(records),1);self.assertEqual(records[0]['outcome'],frame['outcome'])
+                self.assertTrue(records[0]['firstCausePresent']);self.assertTrue(lane.poisoned)
+                self.assertEqual(lane.commands,int(phase=='result'))
+                before=stream.getvalue()
+                with self.assertRaises(RuntimeError):lane.exchange(phase,1)
+                self.assertEqual(stream.getvalue(),before)
+
+    def test_public_projection_uses_exact_original_file_receiver_bytes(self):
+        driver=load_driver();frame=reply('request',1,requestPath='/private/原始/request.json')
+        raw=json.dumps(frame,ensure_ascii=False).encode()+b'\n'
+        with tempfile.TemporaryDirectory() as temporary:
+            receiver=driver.SenderSession.__new__(driver.SenderSession)
+            receiver.path=Path(temporary)/'original-private-stream.log';receiver.path.write_bytes(raw)
+            receiver.partial=b'';receiver.offset=0;receiver.proc=SimpleNamespace(poll=lambda:None)
+            def receive(**options):
+                return receiver.receive(None,threading.Event(),frame['version'],**options)
+            records=[];lane=open_lane(io.BytesIO(),receive)
+            self.assertEqual(lane.exchange('request',1,retain_public_reply=records.append,**REQUEST),frame)
+            self.assertEqual(receiver.path.read_bytes(),raw)
+            self.assertEqual(receiver.offset,len(raw))
+            self.assertEqual(records[0]['originalReplySHA256'],hashlib.sha256(raw).hexdigest())
+            self.assertNotIn('/private/',json.dumps(records[0]));self.assertNotIn('原始',json.dumps(records[0],ensure_ascii=False))
+            self.assertEqual(list(Path(temporary).iterdir()),[receiver.path])
+
+    def test_public_projection_rejects_unbound_or_unclosed_raw_without_export(self):
+        original=reply('request',1)
+        raw=json.dumps(original).encode()+b'\n'
+        changed=dict(original,calleeElapsedNs=13)
+        wrong_stats=dict(original,session=dict(stats(1),policySHA256='e'*64))
+        extra=dict(original,privateError='/private/DO-NOT-EXPORT')
+        cases=[(original,raw+raw),(changed,raw),(wrong_stats,json.dumps(wrong_stats).encode()+b'\n'),
+               (extra,json.dumps(extra).encode()+b'\n'),
+               (original,raw.replace(b'"sequence": "1"',b'"sequence": "1", "sequence": "1"'))]
+        for frame,data in cases:
+            with self.subTest(data=data[:70]):
+                records=[];stream=io.BytesIO()
+                lane=open_lane(stream,lambda **kw:(frame,data))
+                with self.assertRaises(RuntimeError):
+                    lane.exchange('request',1,retain_public_reply=records.append,**REQUEST)
+                self.assertEqual(records,[]);self.assertTrue(lane.poisoned)
+                self.assertEqual(lane.commands,0);self.assertEqual(len(stream.getvalue().splitlines()),1)
+
+    def test_projection_write_failure_keeps_refusal_primary_and_does_not_replay(self):
+        frame=reply('request',1,outcome='REFUSED_OR_UNKNOWN_NO_RETRY',
+                    failureClass='BUSY',firstCausePresent=True);del frame['requestPath']
+        raw=json.dumps(frame).encode()+b'\n';stream=io.BytesIO()
+        lane=open_lane(stream,lambda **kw:(frame,raw))
+        def fail(_):raise OSError('projection storage unavailable')
+        with self.assertRaises(transport.OriginalRefusal) as caught:
+            lane.exchange('request',1,retain_public_reply=fail,**REQUEST)
+        self.assertEqual(caught.exception.failure_class,'BUSY')
+        self.assertIsInstance(caught.exception.__cause__,OSError)
+        self.assertTrue(lane.poisoned);self.assertEqual(lane.commands,0)
+        with self.assertRaises(RuntimeError):lane.exchange('request',1,**REQUEST)
+        self.assertEqual(len(stream.getvalue().splitlines()),1)
 
     def test_wrong_ready_policy_refuses_before_any_command(self):
         stream = io.BytesIO()

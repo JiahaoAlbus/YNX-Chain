@@ -1,5 +1,6 @@
 """Original Core live-materials session frames for an isolated proof lane."""
 import json
+import hashlib
 import re
 
 
@@ -76,11 +77,54 @@ class Lane:
         self.awaiting_result = False
         self.poisoned = False
 
-    def exchange(self, operation, sequence, *, retain_original=None, **transaction):
+    def public_reply_projection(self, reply, raw, operation, sequence):
+        """Bind validated public scalar DATA to the original, without paths/payloads."""
+        require(type(raw) is bytes and 0 < len(raw) <= 2 << 20
+                and raw.endswith(b'\n') and raw.count(b'\n') == 1,
+                'one bounded original live reply required for public projection')
+        def fields(items):
+            value = {}
+            for key, item in items:
+                require(key not in value, 'duplicate original live reply field')
+                value[key] = item
+            return value
+        def constant(_):
+            raise RuntimeError('nonfinite original live reply number')
+        original = json.loads(raw, object_pairs_hook=fields, parse_constant=constant)
+        require(type(original) is dict and original == reply,
+                'original live reply bytes differ from decoded reply')
+        common = {'version', 'operation', 'sequence', 'outcome', 'firstCausePresent',
+                  'calleeElapsedNs', 'startupElapsedNs', 'session', 'syntheticOnly', 'authorityGranted'}
+        extra = ('failureClass' if reply['outcome'] == 'REFUSED_OR_UNKNOWN_NO_RETRY'
+                 else 'requestPath' if operation == 'request' else 'result')
+        require(set(original) in (common | {extra}, common | {extra, 'timings'}),
+                'closed original live reply required for public projection')
+        stats = reply['session']
+        require(type(stats) is dict and set(stats) == {
+            'policySHA256', 'nodeIndex', 'maxOperations', 'commands', 'commandLimit', 'retired', 'closed'
+        } and stats['policySHA256'] == self.policy_sha256
+            and all(type(stats[key]) is int and stats[key] == expected for key, expected in (
+                ('nodeIndex', self.node), ('maxOperations', self.max_operations),
+                ('commandLimit', 4 * self.max_operations + 16)))
+            and type(stats['commands']) is int and stats['commands'] in (self.commands, self.commands + 1)
+            and stats['commands'] <= stats['commandLimit']
+            and type(stats['retired']) is bool and type(stats['closed']) is bool,
+            'original live refusal/session identity differs')
+        return dict(schema='YNX-PERF-LIVE-REPLY-PUBLIC-PROJECTION/v1',
+                    originalReplySHA256=hashlib.sha256(raw).hexdigest(), originalReplyBytes=len(raw),
+                    sourceReplyVersion=reply['version'], operation=operation, sequence=sequence,
+                    outcome=reply['outcome'], firstCausePresent=reply['firstCausePresent'],
+                    failureClass=reply.get('failureClass'), session=dict(stats),
+                    calleeElapsedNs=reply['calleeElapsedNs'], startupElapsedNs=reply['startupElapsedNs'],
+                    syntheticOnly=True, authorityGranted=False, independentFinality=False,
+                    rawReplyIncluded=False, pathsAndPayloadsIncluded=False, timingsIncluded=False)
+
+    def exchange(self, operation, sequence, *, retain_original=None, retain_public_reply=None, **transaction):
         expected = self.sequence if self.awaiting_result else self.sequence + 1
         require(not self.poisoned and sequence == expected and sequence <= self.max_operations
                 and operation == ('result' if self.awaiting_result else 'request')
-                and (retain_original is None or (operation == 'result' and callable(retain_original))),
+                and (retain_original is None or (operation == 'result' and callable(retain_original)))
+                and (retain_public_reply is None or callable(retain_public_reply)),
                 'original live lane sequence or operation differs; preserve original')
         raw = command(operation, sequence, **transaction)
         # Lost writes and replies leave the original operation unresolved. No
@@ -88,7 +132,7 @@ class Lane:
         self.poisoned = True
         require(self.stdin.write(raw) == len(raw), 'original live command short write')
         self.stdin.flush()
-        if retain_original is None:
+        if retain_original is None and retain_public_reply is None:
             reply = self.receive()
         else:
             reply, original = self.receive(include_original=True)
@@ -106,7 +150,13 @@ class Lane:
                     and reply.get('firstCausePresent') is True
                     and 'requestPath' not in reply and 'result' not in reply,
                     'unqualified original live refusal; preserve original without retry')
-            raise OriginalRefusal(failure_class)
+            failure = OriginalRefusal(failure_class)
+            if retain_public_reply is not None:
+                try:
+                    retain_public_reply(self.public_reply_projection(reply, original, operation, sequence))
+                except Exception as error:
+                    raise failure from error  # Retain the original refusal as the primary outcome.
+            raise failure
         require(reply.get('outcome') == outcome and 'failureClass' not in reply
                 and reply.get('firstCausePresent') is False,
                 'original live success scope differs; preserve original without retry')
@@ -118,6 +168,8 @@ class Lane:
                     'original result reply differs')
         session_stats(reply.get('session'), self.policy_sha256, self.node, self.max_operations,
                       self.commands + 1)
+        if retain_public_reply is not None:
+            retain_public_reply(self.public_reply_projection(reply, original, operation, sequence))
         if retain_original is not None:
             retain_original(original)
         self.commands += 1
