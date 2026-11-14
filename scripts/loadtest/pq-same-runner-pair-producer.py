@@ -168,7 +168,8 @@ def mkdir_new(path):
             os.close(child)
 
 
-def read_regular(parent, name, expected):
+def read_regular(parent, name, expected, *, limit=8 << 20):
+    require(limit in (8 << 20, reader.MIGRATION_FILE_LIMIT), 'original PUBLIC role bound differs')
     require(stat.S_ISREG(expected.st_mode), 'original regular PUBLIC file required')
     require(expected.st_nlink == 1, 'original PUBLIC hard-link refused; single-link file required')
     # NONBLOCK prevents a swapped FIFO/device from blocking before fstat rejects it.
@@ -179,10 +180,10 @@ def read_regular(parent, name, expected):
                 and file_identity(opened) == file_identity(expected)
                 == file_identity(os.stat(name, dir_fd=parent, follow_symlinks=False)),
                 'original PUBLIC file replaced before read')
-        require(opened.st_size <= 8 << 20, 'original public file exceeds bound')
+        require(opened.st_size <= limit, 'original public file exceeds bound')
         chunks, size = [], 0
-        while size <= 8 << 20:
-            chunk = os.read(fd, min(65536, (8 << 20) + 1 - size))
+        while size <= limit:
+            chunk = os.read(fd, min(65536, limit + 1 - size))
             if not chunk: break
             chunks.append(chunk); size += len(chunk)
         final = os.fstat(fd)
@@ -193,6 +194,32 @@ def read_regular(parent, name, expected):
         return b''.join(chunks) # Empty original logs remain empty.
     finally:
         os.close(fd)
+
+
+def declared_migration(files, path, size):
+    """Original closure role/path/hash/bytes binding, never a general big-file grant."""
+    match = re.fullmatch(r'((?:[^/]+/)*?)proof-public-blobs/([0-9a-f]{64})\.json', path)
+    require(match is not None and 0 < size <= reader.MIGRATION_FILE_LIMIT,
+            'bounded declared original migration required')
+    prefix, digest = match.groups()
+    declared = False
+    for name, raw in files.items():
+        if not re.fullmatch(re.escape(prefix)+r'load-operations/[0-9]{5}/original-public-proof-manifest\.json', name):
+            continue
+        require(len(raw) <= 256 << 10, 'bounded original public proof manifest required')
+        value = strict(raw)
+        require(type(value) is dict and value.get('schema') == 'YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1'
+                and value.get('syntheticOnly') is True and value.get('authorityGranted') is False
+                and value.get('actualNetworkExecutionClaim') is False,
+                'original public proof manifest scope differs')
+        entry = value.get('entries', {}).get('migration')
+        if type(entry) is dict and entry.get('sha256') == digest:
+            require(entry.get('publicRelativePath') == 'proof-public-blobs/'+digest+'.json'
+                    and type(entry.get('bytes')) is int and entry['bytes'] == size,
+                    'original migration role/path/bytes differs')
+            declared = True
+    require(declared, 'large original blob lacks its migration closure role')
+    return digest
 
 
 def snapshot_tree(root):
@@ -215,10 +242,19 @@ def snapshot_tree(root):
                 finally: os.close(child)
             else:
                 require(len(files) < 8192, 'bounded original public files required')
-                raw = read_regular(fd, name, observed)
+                require(observed.st_size <= reader.PUBLIC_TOTAL_LIMIT-total,
+                        'original public snapshot exceeds bound')
+                path, pin = prefix+name, None
+                if observed.st_size > 8 << 20:
+                    # Lexical traversal visits load-operations before
+                    # proof-public-blobs in the SAME original public subtree.
+                    pin = declared_migration(files, path, observed.st_size)
+                raw = read_regular(fd, name, observed,
+                    limit=reader.MIGRATION_FILE_LIMIT if pin else 8 << 20)
+                require(pin is None or sha(raw) == pin, 'original migration content hash differs')
                 total += len(raw)
-                require(total <= 256 << 20, 'original public snapshot exceeds bound')
-                files[prefix+name] = raw
+                require(total <= reader.PUBLIC_TOTAL_LIMIT, 'original public snapshot exceeds bound')
+                files[path] = raw
         require(file_identity(before) == file_identity(os.fstat(fd)), 'original PUBLIC directory changed during snapshot')
     with directory_fd(root) as fd: walk(fd, '', 0)
     return files
