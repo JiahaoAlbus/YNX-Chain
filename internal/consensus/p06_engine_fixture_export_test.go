@@ -23,6 +23,7 @@ func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node
 	t.Helper()
 	f := newValidatorRegistryFixture(t)
 	c := bootstrapNodeConfig(t, f.raw)
+	c.P2P.ListenAddress = "tcp://127.0.0.1:0"
 	statePath := filepath.Join(c.RootDir, "application.state")
 	lease, e := AcquireApplicationStateWriterLease(statePath)
 	if e != nil {
@@ -48,8 +49,16 @@ func OpenP06OriginalBootstrapNodeFixture(t *testing.T) (*Application, *node.Node
 	}
 	t.Cleanup(func() {
 		if n != nil {
-			n.OnStop()
-			_ = n.ProxyApp().Stop()
+			select {
+			case <-n.Quit():
+			default:
+				if n.IsRunning() {
+					_ = n.Stop()
+				} else {
+					n.OnStop()
+					_ = n.ProxyApp().Stop()
+				}
+			}
 		}
 	})
 	env, err := n.ConfigureRPC()

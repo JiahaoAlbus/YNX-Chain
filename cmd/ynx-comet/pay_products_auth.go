@@ -47,6 +47,11 @@ func openOperatorPayProducts(ctx context.Context, app *consensus.Application, n 
 		closeOperatorPayProducts(h, logger)
 		return nil
 	}
+	if err = n.RegisterPayProductBorrower(h); err != nil {
+		logger.Error("pay_product_unavailable", "reason", "PAY_NODE_LIFETIME_REGISTRATION_FAILED")
+		closeOperatorPayProducts(h, logger)
+		return nil
+	}
 	if sourceErr := h.NativeSourceStatus(); sourceErr != nil {
 		reason := "PAY_AUTH_SOURCE_NOT_READY"
 		switch sourceErr.Error() {

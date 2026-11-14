@@ -262,14 +262,56 @@ func TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained(t *testing.T) {
 	if e != nil || payResponse.StatusCode != 503 {
 		t.Fatal("cold Root0 entry promoted authority", e)
 	}
-	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
-	e = cold.Shutdown(ctx)
+	if e = node.RegisterPayProductBorrower(cold); e != nil {
+		t.Fatal(e)
+	}
+	if e = node.Start(); e != nil {
+		t.Fatal("original node start", e)
+	}
+	borrowed, e := cold.CloudHandler()
+	if e != nil {
+		t.Fatal(e)
+	}
+	heldStop := &payCoreHeldBody{entered: make(chan struct{}), release: make(chan struct{})}
+	defer heldStop.unblock()
+	stoppedRequest := make(chan struct{})
+	go func() {
+		defer close(stoppedRequest)
+		borrowed.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("POST", "/api/v1/session", heldStop))
+	}()
+	select {
+	case <-heldStop.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stop test request not held")
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 20*time.Millisecond)
+	first := cold.Shutdown(ctx)
 	cancel()
-	if e != nil || !cold.CoreReleased() {
-		t.Fatal("normal cold attachment close", e)
+	if !errors.Is(first, context.DeadlineExceeded) || cold.CoreReleased() {
+		t.Fatal("stop test did not retain borrower", first)
+	}
+	stopped := make(chan error, 1)
+	go func() { stopped <- node.Stop() }()
+	select {
+	case e = <-stopped:
+		t.Fatal("Node stopped before Pay drain", e)
+	case <-time.After(100 * time.Millisecond):
 	}
 	if _, e = view.LoadState(); e != nil {
-		t.Fatal("product factory closed borrowed original Node", e)
+		t.Fatal("Node store closed before Pay drain", e)
+	}
+	heldStop.unblock()
+	<-stoppedRequest
+	select {
+	case e = <-stopped:
+		if e != nil {
+			t.Fatal("node stop", e)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Node did not stop after Pay drain")
+	}
+	if !cold.CoreReleased() || cold.Err() != first {
+		t.Fatal("node stop lost release or first failure", cold.Err())
 	}
 	// No signed Member broadcast, independent trusted anchor or H/H+1 proof claim.
 }

@@ -88,6 +88,7 @@ type Node struct {
 	pprofSrv          *http.Server
 
 	proofSourceConsumer proofSourceConsumerLifetime // optional read-only consumer, joined before closing stores
+	payProductBorrower  payProductBorrowerLifetime  // isolated typed product borrower, joined before closing stores
 }
 
 // Option sets a parameter for the node.
@@ -599,12 +600,17 @@ func newNodeWithAuthorityRole(ctx context.Context, config *cfg.Config, privValid
 
 // OnStart starts the Node. It implements service.Service.
 func (n *Node) OnStart() (startErr error) {
+	if err := n.payProductBorrower.start(); err != nil {
+		return err
+	}
 	if err := n.proofSourceConsumer.start(); err != nil {
+		n.payProductBorrower.retireAndJoin()
 		return err
 	}
 	n.heightHalt.start()
 	defer func() {
 		if startErr != nil {
+			n.payProductBorrower.retireAndJoin()
 			_ = n.proofSourceConsumer.retireAndJoin()
 			n.heightHalt.close()
 		}
@@ -678,6 +684,7 @@ func (n *Node) OnStart() (startErr error) {
 // OnStop stops the Node. It implements service.Service.
 func (n *Node) OnStop() {
 	n.BaseService.OnStop()
+	n.payProductBorrower.retireAndJoin()
 	// BaseService closes Quit only AFTER OnStop. Retire/join readers here,
 	// before any original store can close, including non-operator Stop callers.
 	if err := n.proofSourceConsumer.retireAndJoin(); err != nil {
