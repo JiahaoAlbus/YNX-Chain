@@ -29,24 +29,25 @@ type PQLabPublicOwnerSessionOptions struct {
 // from callers. Static preparation is optional and explicitly measured; without
 // it the first-sign bootstrap work remains inside its measured call.
 type PQLabPublicOwnerSession struct {
-	mu          sync.Mutex
-	publicMu    sync.Mutex
-	active      sync.WaitGroup
-	retired     atomic.Bool
-	ctx         context.Context
-	options     PQLabPublicOwnerSessionOptions
-	public      *pqLabLiveUncachedReads
-	checkpoints *PQLabSenderCheckpointSource
-	credential  []byte
-	manifest    PQLabWorkloadManifest
-	owners      map[int]*PQLabSender
-	gates       map[int]*pqLabPublicOwnerGate
-	commands    uint64
-	budget      uint64
-	closed      bool
-	closing     bool
-	closeDone   chan struct{}
-	closeErr    error
+	mu                   sync.Mutex
+	publicMu             sync.Mutex
+	active               sync.WaitGroup
+	retired              atomic.Bool
+	ctx                  context.Context
+	options              PQLabPublicOwnerSessionOptions
+	public               *pqLabLiveUncachedReads
+	checkpoints          *PQLabSenderCheckpointSource
+	credential           []byte
+	experimentalKDFCache *pqLabExperimentalKDFCache
+	manifest             PQLabWorkloadManifest
+	owners               map[int]*PQLabSender
+	gates                map[int]*pqLabPublicOwnerGate
+	commands             uint64
+	budget               uint64
+	closed               bool
+	closing              bool
+	closeDone            chan struct{}
+	closeErr             error
 }
 
 type pqLabPublicOwnerGate struct {
@@ -137,6 +138,9 @@ func OpenPQLabPublicOwnerSession(ctx context.Context, options PQLabPublicOwnerSe
 func (s *PQLabPublicOwnerSession) Retire() {
 	if s != nil {
 		s.retired.Store(true)
+		if s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.seal()
+		}
 	}
 }
 
@@ -177,6 +181,9 @@ func (s *PQLabPublicOwnerSession) Close() error {
 	closeErr = errors.Join(closeErr, s.checkpoints.Close())
 	if s.public != nil {
 		closeErr = errors.Join(closeErr, s.public.close())
+	}
+	if s.experimentalKDFCache != nil {
+		s.experimentalKDFCache.clear()
 	}
 	clear(s.credential)
 	s.credential = nil
@@ -282,7 +289,7 @@ func (s *PQLabPublicOwnerSession) beginOwner(ctx context.Context, request PQLabS
 	s.mu.Unlock()
 	if sender == nil {
 		var err error
-		sender, err = OpenPQLabSenderMeasured(filepath.Join(s.options.RootDir, "workload"), s.options.WorkloadSHA256, request.OwnerIndex, s.credential, metrics)
+		sender, err = openPQLabSenderMeasured(filepath.Join(s.options.RootDir, "workload"), s.options.WorkloadSHA256, request.OwnerIndex, s.credential, metrics, s.experimentalKDFCache)
 		if err != nil {
 			return fail(err)
 		}
@@ -303,7 +310,12 @@ func (s *PQLabPublicOwnerSession) beginOwner(ctx context.Context, request PQLabS
 // PrepareOwner opens one explicitly selected synthetic owner without choosing a
 // checkpoint or creating an operation. The caller can sample current state
 // after the original key import and use the unchanged Sign checks.
-func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, metrics *PQLabMetrics) error {
+func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, metrics *PQLabMetrics) (resultErr error) {
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	if s == nil {
 		return errors.New("original public owner session required")
 	}
@@ -319,7 +331,12 @@ func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, m
 	return s.alive(ctx)
 }
 
-func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderRequest, height int64, appHash string, metrics *PQLabMetrics) (PQLabSenderResult, error) {
+func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderRequest, height int64, appHash string, metrics *PQLabMetrics) (_ PQLabSenderResult, resultErr error) {
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	defer pqLabMeasure(metrics, "publicOwner.signTotal")()
 	if s == nil {
 		return PQLabSenderResult{}, errors.New("original public owner session required")
@@ -353,7 +370,12 @@ func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderR
 	return result, err
 }
 
-func (s *PQLabPublicOwnerSession) Recover(ctx context.Context, request PQLabSenderRequest, metrics *PQLabMetrics) (PQLabSenderResult, error) {
+func (s *PQLabPublicOwnerSession) Recover(ctx context.Context, request PQLabSenderRequest, metrics *PQLabMetrics) (_ PQLabSenderResult, resultErr error) {
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	if s == nil {
 		return PQLabSenderResult{}, errors.New("original public owner session required")
 	}
@@ -369,7 +391,12 @@ func (s *PQLabPublicOwnerSession) Recover(ctx context.Context, request PQLabSend
 	return result, err
 }
 
-func (s *PQLabPublicOwnerSession) Confirm(ctx context.Context, request PQLabSenderRequest, materials PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time, metrics *PQLabMetrics) (PQLabProofExport, error) {
+func (s *PQLabPublicOwnerSession) Confirm(ctx context.Context, request PQLabSenderRequest, materials PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time, metrics *PQLabMetrics) (_ PQLabProofExport, resultErr error) {
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	if s == nil {
 		return PQLabProofExport{}, errors.New("original public owner session required")
 	}
@@ -388,7 +415,12 @@ func (s *PQLabPublicOwnerSession) Confirm(ctx context.Context, request PQLabSend
 // CloseOwner retires only the selected original custody. It does not clear its
 // durable UNKNOWN, acquire another nonce, close public inputs or touch peers.
 // Reopening a retired owner requires a new explicitly pinned session.
-func (s *PQLabPublicOwnerSession) CloseOwner(ctx context.Context, index int) error {
+func (s *PQLabPublicOwnerSession) CloseOwner(ctx context.Context, index int) (resultErr error) {
+	defer func() {
+		if resultErr != nil && s != nil && s.experimentalKDFCache != nil {
+			s.experimentalKDFCache.clear()
+		}
+	}()
 	if s == nil {
 		return errors.New("original public owner session required")
 	}

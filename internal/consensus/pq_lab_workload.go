@@ -896,7 +896,24 @@ func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLa
 }
 
 func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte, metrics *PQLabMetrics) (*PQLabSender, error) {
+	return openPQLabSenderMeasured(directory, pin, index, credential, metrics, nil)
+}
+
+// cache is a private, experimental synthetic-session capability; the public
+// constructor always passes nil. It is never populated before an actual open.
+func openPQLabSenderMeasured(directory, pin string, index int, credential []byte, metrics *PQLabMetrics, cache *pqLabExperimentalKDFCache) (_ *PQLabSender, resultErr error) {
 	defer pqLabMeasure(metrics, "sender.openTotal")()
+	if cache != nil {
+		endWait := pqLabMeasure(metrics, "sender.pbkdf2_cache_lock_wait")
+		cache.mu.Lock()
+		endWait()
+		defer cache.mu.Unlock()
+		defer func() {
+			if resultErr != nil {
+				cache.clearLocked()
+			}
+		}()
+	}
 	if err := requireInspectionPath(directory); err != nil {
 		return nil, err
 	}
@@ -918,7 +935,14 @@ func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte
 	if err = requireInspectionPath(private); err != nil {
 		return nil, err
 	}
-	vault, err := pqLabRead(filepath.Join(private, "keys.vault"), 8<<20)
+	vaultPath := filepath.Join(private, "keys.vault")
+	var vault []byte
+	var vaultIdentity os.FileInfo
+	if cache == nil {
+		vault, err = pqLabRead(vaultPath, 8<<20)
+	} else {
+		vault, vaultIdentity, err = readExperimentalOriginalVault(vaultPath, 8<<20)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -934,9 +958,14 @@ func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte
 	if err != nil {
 		return nil, err
 	}
-	endKDF := pqLabMeasure(metrics, "sender.pbkdf2_600000")
-	aead, err := pqLabSenderAEAD(credential, f[5])
-	endKDF()
+	var aead cipher.AEAD
+	if cache == nil {
+		endKDF := pqLabMeasure(metrics, "sender.pbkdf2_600000")
+		aead, err = pqLabSenderAEAD(credential, f[5])
+		endKDF()
+	} else {
+		aead, err = cache.aeadLocked(credential, f[5], vault, vaultIdentity, metrics)
+	}
 	if err != nil {
 		return nil, err
 	}
