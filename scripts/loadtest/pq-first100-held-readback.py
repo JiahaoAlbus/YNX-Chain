@@ -20,6 +20,7 @@ stages = module('pq-first100-stage-summary.py')
 finalize = module('pq-finalize-observation.py')
 preload = module('pq-preload-initialization.py')
 leg_stages = module('pq-normal-leg-stages.py')
+proof_readback = module('pq-public-proof-readback.py')
 require, strict = prior.require, prior.strict
 
 
@@ -231,7 +232,17 @@ def stopped_proof_failures(receipt, load, files, prefix):
             require(status in ('FAILURE_NOT_SUPPLIED', 'ORIGINAL_FAILURE_UNAVAILABLE')
                     or (status == 'REQUEST_NOT_SUPPLIED' and index in attempts and index not in requests),
                     'original stopped proof status differs')
-        output.append(dict(record, originalFailure=data, originalCohortStatus=cohort[index]['status']))
+        pre_output = record.get('preOutputFailure')
+        pre_output_data = None
+        if pre_output is not None:
+            path = f'load-operations/{index:05d}/original-live-proof-pre-output-failure.json'
+            raw = files.get(prefix + path)
+            require(pre_output['path'] == path and raw is not None and len(raw) <= 4096
+                    and hashlib.sha256(raw).hexdigest() == pre_output['sha256'],
+                    'original pre-output proof failure digest differs')
+            pre_output_data = proof_readback.pre_output_failure(raw, request['policySHA256'], request['sequence'])
+        output.append(dict(record, originalFailure=data, originalPreOutputFailure=pre_output_data,
+                           originalCohortStatus=cohort[index]['status']))
     return dict(records=output, altersLoadResult=False)
 
 

@@ -21,9 +21,26 @@ FIELDS={'migration':'migrationFile','genesis':'genesisFile','state':'stateFile',
 FILE_LIMIT=64<<20
 TOTAL_LIMIT=256<<20
 _export_lock=threading.Lock()
+PRE_OUTPUT_FAILURE_VERSION = 'YNX-PQ-LAB-LIVE-MATERIALS-PRE-OUTPUT-FAILURE/v1'
+PRE_OUTPUT_PHASES = frozenset((
+    'request-stat', 'current-source', 'request-read', 'request-decode', 'request-sequence',
+    'transaction-replay', 'request-cancelled', 'transaction-validation', 'output-cancelled', 'output-create',
+))
 
 def require(ok,message):
     if not ok:raise RuntimeError(message)
+
+def pre_output_failure(raw, pin, sequence):
+    value = strict(raw)
+    require(type(value) is dict
+            and set(value) == {'version', 'policySHA256', 'sequence', 'phase', 'outcome', 'firstCauseSHA256'}
+            and value['version'] == PRE_OUTPUT_FAILURE_VERSION and value['policySHA256'] == pin
+            and type(value['sequence']) is int and value['sequence'] == sequence
+            and type(value['phase']) is str and value['phase'] in PRE_OUTPUT_PHASES
+            and value['outcome'] == 'unknown' and type(value['firstCauseSHA256']) is str
+            and re.fullmatch('[0-9a-f]{64}', value['firstCauseSHA256']),
+            'original pre-output proof failure record differs')
+    return value
 def sha(raw):return hashlib.sha256(raw).hexdigest()
 def strict(raw):
     def pairs(items):

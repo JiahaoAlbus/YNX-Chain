@@ -810,6 +810,18 @@ class NormalBackend:
                                stoppedOutputEntries=progress)
                 if request_digest is not None:
                     context['originalRequestSHA256'] = request_digest
+                pre_output = output.parent / f'failure-{sequence:06d}.json'
+                if pre_output.exists():
+                    raw = proof_readback.read_original(pre_output, limit=4096)
+                    proof_readback.pre_output_failure(raw, lane['pin'], sequence)
+                    target = case / 'original-live-proof-pre-output-failure.json'
+                    if target.exists():
+                        lab.require(proof_readback.read_original(target, limit=4096) == raw,
+                                    'retained pre-output proof failure differs from stopped original')
+                    else:
+                        proof_readback.write_new(target, raw)
+                    context['preOutputFailure'] = dict(path=str(target.relative_to(public)),
+                                                       sha256=hashlib.sha256(raw).hexdigest())
                 original = output / 'failure.json'
                 if not original.exists():
                     records.append(dict(context, status='FAILURE_NOT_SUPPLIED'))
@@ -832,7 +844,20 @@ class NormalBackend:
         return dict(records=records, altersLoadResult=False)
 
     def wait_live_capture(self, output, case, lane, sequence, stop, until):
+        pre_output = output.parent / f'failure-{sequence:06d}.json'
         while not stop.is_set() and time.monotonic() < until:
+            if pre_output.exists():
+                try:
+                    raw = proof_readback.read_original(pre_output, limit=4096, allow_empty=True)
+                    failure = proof_readback.pre_output_failure(raw, lane['pin'], sequence)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+                except RuntimeError as error:
+                    if str(error) != 'original public input changed during read':
+                        raise
+                else:
+                    proof_readback.write_new(case / 'original-live-proof-pre-output-failure.json', raw)
+                    raise RuntimeError(f"original live proof admission is UNKNOWN ({failure['phase']})")
             available = (output / 'result.json').exists()
             if (output / 'failure.json').exists():
                 try:

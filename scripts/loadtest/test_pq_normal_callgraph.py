@@ -241,6 +241,19 @@ class NormalCallgraphControls(unittest.TestCase):
             record = backend.retain_stopped_live_proof_failures(load)['records'][0]
             self.assertEqual(record['status'], 'RETAINED_AFTER_STOP')
             self.assertEqual(record['originalRequestSHA256'], driver.lab.guard.digest(persisted))
+            original.unlink()
+            marker = output.parent/'failure-000001.json'
+            raw_marker = json.dumps(dict(version=driver.proof_readback.PRE_OUTPUT_FAILURE_VERSION,
+                policySHA256=lane['pin'], sequence=1, phase='current-source', outcome='unknown',
+                firstCauseSHA256='b'*64)).encode()
+            marker.write_bytes(raw_marker)
+            with self.assertRaisesRegex(RuntimeError, r'UNKNOWN \(current-source\)'):
+                backend.wait_live_capture(output, case, lane, 1, threading.Event(), time.monotonic()+1)
+            stopped = backend.retain_stopped_live_proof_failures(load)['records'][0]
+            self.assertEqual((public/stopped['preOutputFailure']['path']).read_bytes(), raw_marker)
+            marker.write_bytes(raw_marker.replace(b'current-source', b'unauthorized'))
+            self.assertEqual(backend.retain_stopped_live_proof_failures(load)['records'][0]['status'],
+                             'ORIGINAL_FAILURE_UNAVAILABLE')
 
     def test_live_capture_prioritizes_original_failure_over_result(self):
         backend = object.__new__(driver.NormalBackend)
@@ -261,6 +274,7 @@ class NormalCallgraphControls(unittest.TestCase):
         backend = object.__new__(driver.NormalBackend)
         stop = threading.Event()
         output = mock.MagicMock()
+        output.parent.__truediv__.return_value.exists.return_value = False
         result, failure = mock.Mock(), mock.Mock()
         output.__truediv__.side_effect = {'result.json': result, 'failure.json': failure}.__getitem__
         result.exists.return_value = True
