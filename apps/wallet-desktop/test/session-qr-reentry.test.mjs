@@ -63,7 +63,7 @@ for(const cancel of [false,true])for(const fail of [false,true])test(`newer stat
 });
 test('current status read failure after pair keeps initiation disabled and permits a fresh status check',async()=>{
  const h=pairingFixture(false),job=h.button.click();h.pending.resolve({ok:true,value:{submitted:true}});await new Promise(resolve=>setImmediate(resolve));h.status.reject(Error('status unavailable'));await job;
- assert.equal(h.button.disabled,true);assert.match(h.context.walletConnectDetail.textContent,/status could not be confirmed/i);
+ assert.equal(h.button.disabled,true);assert.equal(h.nodes.rendered.ok,false);
 });
 for(const fail of [false,true])test(`pair ${fail?'failure':'success'} cannot overwrite a newer proposal event before status read`,async()=>{
  const h=pairingFixture(false),job=h.button.click();h.context.walletConnectStatusRevision++;h.context.walletConnectDetail.textContent='new proposal';

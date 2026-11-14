@@ -21,7 +21,7 @@ test("normal connection title and detail distinguish Relay proof from startup fa
     runInNewContext(source.slice(start,source.indexOf("async function refreshWalletConnectSessions",start))+"\nrenderWalletConnect(payload)",context);
     return context;
   };
-  const waiting="The Relay connection is not yet confirmed. Your wallet and accounts remain accessible.";
+  const waiting="The Relay connection is not yet confirmed. Reopen Connections to check its status; existing sessions may still be active.";
   const unavailable="The connection service is unavailable. Your wallet and accounts remain accessible.";
   const cases=[
     [{configured:true,started:true,relayConnected:false,code:"WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED"},"Connecting to WalletConnect…",waiting,true],
@@ -101,4 +101,25 @@ test('late real transport proposal replaces submitted copy without approval or a
  const visible=[],transport=new WalletConnectTransport({projectId:'synthetic',metadata:{name:'Synthetic',url:'https://wallet.example'},walletKitFactory:async()=>kit,clock:()=>now});await transport.start({onPairState:render,onSessionProposal:p=>visible.push(p.id)});await transport.pair(uri);assert.match(ui.walletConnectDetail.textContent,/Waiting for a connection proposal/);
  await handlers.get('session_proposal')({id:101,params:{id:101,pairingTopic:topic,expiryTimestamp:now/1000+600,proposer:{metadata:{name:'Synthetic DApp',url:'https://dapp.example'}},requiredNamespaces:{},optionalNamespaces:{eip155:{chains:['eip155:6423'],methods:['personal_sign'],events:[]}}}});
  assert.deepEqual(visible,[101]);assert.equal(transport.status().pair.phase,'proposal-received');assert.match(ui.walletConnectDetail.textContent,/proposal received/i);assert.deepEqual(calls,['pair']);
+});
+test('a failed Main status read never claims WalletConnect is disabled in this build',async()=>{
+ const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8'),start=source.indexOf('function renderWalletConnect(payload)'),end=source.indexOf('async function refreshWalletConnectSessions',start);
+ const ui={pairCancel:{hidden:false},pairButton:{disabled:false},walletConnectTitle:{textContent:'old'},walletConnectDetail:{textContent:''},copyUI:(node,text)=>{node.textContent=text},payload:{ok:false,error:{code:'READ_FAILED'}}};
+ runInNewContext(source.slice(start,end)+'\nrenderWalletConnect(payload)',ui);
+ assert.equal(ui.pairButton.disabled,true);assert.equal(ui.pairCancel.hidden,false);assert.match(ui.walletConnectDetail.textContent,/status could not be confirmed/i);assert.doesNotMatch(ui.walletConnectDetail.textContent,/not enabled/i);
+});
+test('actual relay loss and restored Connections status preserve an existing session without pairing',async()=>{
+ const {WalletConnectTransport}=await import('../src/walletconnect-transport.mjs');const relayerHandlers=[],active={},calls=[];
+ const kit={core:{relayer:{connected:true,on:(_event,fn)=>relayerHandlers.push(fn)},pairing:{getPairings:()=>[],disconnect:async()=>calls.push('disconnect-pair')}},on(){},pair:async()=>calls.push('pair'),disconnectSession:async()=>calls.push('disconnect-session'),getActiveSessions:()=>active,getPendingSessionProposals:()=>[],getPendingSessionRequests:()=>[]};
+ const transport=new WalletConnectTransport({projectId:'synthetic',metadata:{name:'Synthetic',url:'https://wallet.example'},walletKitFactory:async()=>kit});
+ const main=await readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),first=main.indexOf('async function safeIPC('),last=main.indexOf('function safeErrorClass(',first),routes=new Map(),registration=main.split('\n').find(line=>line.startsWith('handleWalletIPC("wallet:walletconnect-status"'));
+ runInNewContext(main.slice(first,last)+'\n'+registration,{walletConnect:transport,handleWalletIPC:(name,fn)=>routes.set(name,fn)});
+ const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8'),a=source.indexOf('function renderWalletConnect(payload)'),b=source.indexOf('function invalidateWalletConnectSessions()',a),c=source.indexOf('async function refreshWalletConnectConnectionView()'),d=source.indexOf('window.ynxWallet.onWalletConnectStatus',c);
+ let reads=0;const ui={pairCancel:{},pairButton:{},walletConnectTitle:{},walletConnectDetail:{},walletConnectStatusRevision:0,walletConnectViewCurrent:()=>()=>true,refreshWalletConnectSessions:async()=>{},copyUI:(node,text)=>node.textContent=text,window:{ynxWallet:{walletConnectStatus:()=>{reads++;return routes.get('wallet:walletconnect-status')()}}}};
+ runInNewContext(source.slice(a,b)+'\n'+source.slice(c,d),ui);
+ await transport.start({onPairState:status=>{ui.walletConnectStatusRevision++;ui.renderWalletConnect(status)}});active['original']={topic:'original',pairingTopic:'public-topic'};
+ ui.renderWalletConnect(transport.status());assert.equal(ui.pairButton.disabled,false);assert.match(ui.walletConnectDetail.textContent,/1 connected app/);
+ kit.core.relayer.connected=false;for(const notify of relayerHandlers)notify();assert.equal(ui.pairButton.disabled,true);assert.match(ui.walletConnectDetail.textContent,/not yet confirmed/);assert.match(ui.walletConnectDetail.textContent,/Reopen Connections/);assert.equal(active.original.topic,'original');
+ await ui.refreshWalletConnectConnectionView();assert.equal(reads,1);assert.equal(ui.pairButton.disabled,true);assert.equal(active.original.topic,'original');
+ kit.core.relayer.connected=true;for(const notify of relayerHandlers)notify();assert.equal(ui.pairButton.disabled,false);assert.match(ui.walletConnectDetail.textContent,/1 connected app/);assert.equal(active.original.topic,'original');assert.deepEqual(calls,[]);
 });

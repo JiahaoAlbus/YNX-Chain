@@ -128,9 +128,73 @@ const pairRows={
     "Status WalletConnect tidak dapat dikonfirmasi. Segarkan status koneksi sebelum mencoba lagi."
   ]
 };
+const relayHelpKeys=["WalletConnect status unavailable","WalletConnect status could not be confirmed. Reopen Connections to refresh; existing sessions may still be active.","The Relay connection is not yet confirmed. Reopen Connections to check its status; existing sessions may still be active."];
+const relayHelpRows={
+  "en": [
+    "WalletConnect status unavailable",
+    "WalletConnect status could not be confirmed. Reopen Connections to refresh; existing sessions may still be active.",
+    "The Relay connection is not yet confirmed. Reopen Connections to check its status; existing sessions may still be active."
+  ],
+  "zh-Hans": [
+    "无法获取 WalletConnect 状态",
+    "无法确认 WalletConnect 状态。请重新打开“连接”页面刷新；已有会话可能仍然有效。",
+    "Relay 连接尚未确认。请重新打开“连接”页面查看状态；已有会话可能仍然有效。"
+  ],
+  "zh-Hant": [
+    "無法取得 WalletConnect 狀態",
+    "無法確認 WalletConnect 狀態。請重新開啟「連線」頁面重新整理；既有工作階段可能仍然有效。",
+    "Relay 連線尚未確認。請重新開啟「連線」頁面查看狀態；既有工作階段可能仍然有效。"
+  ],
+  "ja": [
+    "WalletConnect の状態を取得できません",
+    "WalletConnect の状態を確認できません。「接続」を開き直して更新してください。既存のセッションは有効な可能性があります。",
+    "Relay 接続はまだ確認されていません。「接続」を開き直して状態を確認してください。既存のセッションは有効な可能性があります。"
+  ],
+  "ko": [
+    "WalletConnect 상태를 확인할 수 없음",
+    "WalletConnect 상태를 확인할 수 없습니다. 연결 화면을 다시 열어 새로고침하세요. 기존 세션은 여전히 활성 상태일 수 있습니다.",
+    "Relay 연결이 아직 확인되지 않았습니다. 연결 화면을 다시 열어 상태를 확인하세요. 기존 세션은 여전히 활성 상태일 수 있습니다."
+  ],
+  "es": [
+    "Estado de WalletConnect no disponible",
+    "No se pudo confirmar el estado de WalletConnect. Vuelve a abrir Conexiones para actualizarlo; las sesiones existentes podrían seguir activas.",
+    "La conexión con Relay aún no está confirmada. Vuelve a abrir Conexiones para consultar el estado; las sesiones existentes podrían seguir activas."
+  ],
+  "fr": [
+    "État WalletConnect indisponible",
+    "L’état WalletConnect n’a pas pu être confirmé. Rouvrez Connexions pour l’actualiser ; les sessions existantes peuvent être encore actives.",
+    "La connexion Relay n’est pas encore confirmée. Rouvrez Connexions pour vérifier son état ; les sessions existantes peuvent être encore actives."
+  ],
+  "de": [
+    "WalletConnect-Status nicht verfügbar",
+    "Der WalletConnect-Status konnte nicht bestätigt werden. Öffne Verbindungen erneut zum Aktualisieren; bestehende Sitzungen könnten noch aktiv sein.",
+    "Die Relay-Verbindung ist noch nicht bestätigt. Öffne Verbindungen erneut, um den Status zu prüfen; bestehende Sitzungen könnten noch aktiv sein."
+  ],
+  "pt": [
+    "Estado do WalletConnect indisponível",
+    "Não foi possível confirmar o estado do WalletConnect. Reabra Conexões para atualizar; sessões existentes ainda podem estar ativas.",
+    "A conexão com Relay ainda não foi confirmada. Reabra Conexões para verificar o estado; sessões existentes ainda podem estar ativas."
+  ],
+  "ru": [
+    "Состояние WalletConnect недоступно",
+    "Не удалось подтвердить состояние WalletConnect. Откройте раздел подключений заново для обновления; существующие сеансы могут оставаться активными.",
+    "Соединение с Relay ещё не подтверждено. Откройте раздел подключений заново для проверки; существующие сеансы могут оставаться активными."
+  ],
+  "ar": [
+    "حالة WalletConnect غير متاحة",
+    "تعذر تأكيد حالة WalletConnect. أعد فتح صفحة الاتصالات للتحديث؛ قد تظل الجلسات الحالية نشطة.",
+    "لم يُؤكّد اتصال Relay بعد. أعد فتح صفحة الاتصالات للتحقق من الحالة؛ قد تظل الجلسات الحالية نشطة."
+  ],
+  "id": [
+    "Status WalletConnect tidak tersedia",
+    "Status WalletConnect tidak dapat dikonfirmasi. Buka kembali Koneksi untuk menyegarkan; sesi yang ada mungkin masih aktif.",
+    "Koneksi Relay belum dikonfirmasi. Buka kembali Koneksi untuk memeriksa status; sesi yang ada mungkin masih aktif."
+  ]
+};
 export const SESSION_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,values])=>{
  if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete session copy: ${locale}`);
+ if(relayHelpRows[locale]?.length!==relayHelpKeys.length||relayHelpRows[locale].some(value=>!value))throw Error(`Incomplete Relay guidance: ${locale}`);
  if(pairRows[locale]?.length!==pairKeys.length||pairRows[locale].some(value=>!value))throw Error(`Incomplete pairing copy: ${locale}`);
  if(waitingRows[locale]?.length!==waitingKeys.length||waitingRows[locale].some(value=>!value))throw Error(`Incomplete Relay copy: ${locale}`);
- return[locale,Object.freeze(Object.fromEntries([...keys.map((key,index)=>[key,values[index]]),...waitingKeys.map((key,index)=>[key,waitingRows[locale][index]]),...pairKeys.map((key,index)=>[key,pairRows[locale][index]])]))];
+ return[locale,Object.freeze(Object.fromEntries([...keys.map((key,index)=>[key,values[index]]),...waitingKeys.map((key,index)=>[key,waitingRows[locale][index]]),...pairKeys.map((key,index)=>[key,pairRows[locale][index]]),...relayHelpKeys.map((key,index)=>[key,relayHelpRows[locale][index]])]))];
 })));

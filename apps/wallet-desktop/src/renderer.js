@@ -647,6 +647,12 @@ pairCancel.addEventListener("click",async()=>{
 });
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
+  if(payload?.ok === false || !status || typeof status.configured !== "boolean" || typeof status.started !== "boolean" || typeof status.relayConnected !== "boolean") {
+    pairButton.disabled = true;
+    copyUI(walletConnectTitle,"WalletConnect status unavailable");
+    copyUI(walletConnectDetail,"WalletConnect status could not be confirmed. Reopen Connections to refresh; existing sessions may still be active.");
+    return;
+  }
   const pairPhase = status?.pair?.phase;
   const pairPending = status?.pairing === true || pairPhase === "submitted";
   pairCancel.hidden = !pairPending;
@@ -661,7 +667,7 @@ function renderWalletConnect(payload) {
   }else if(status?.configured){
     if(status.started)walletConnectTitle.textContent="Connecting to WalletConnect…";
     else copyUI(walletConnectTitle,"WalletConnect not started");
-    copyUI(walletConnectDetail,"The Relay connection is not yet confirmed. Your wallet and accounts remain accessible.");
+    copyUI(walletConnectDetail,"The Relay connection is not yet confirmed. Reopen Connections to check its status; existing sessions may still be active.");
   }else{
     walletConnectTitle.textContent="Cross-device connections are coming";
     walletConnectDetail.textContent="WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.";
@@ -758,7 +764,7 @@ async function refreshWalletConnectConnectionView() {
     const status = await window.ynxWallet.walletConnectStatus();
     if(current() && revision === walletConnectStatusRevision)renderWalletConnect(status);
   } catch {
-    if(current() && revision === walletConnectStatusRevision)copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying.");
+    if(current() && revision === walletConnectStatusRevision)renderWalletConnect({ok:false});
   }
 }
 window.ynxWallet.onWalletConnectStatus(payload=>{walletConnectStatusRevision++;renderWalletConnect(payload);});
@@ -784,7 +790,7 @@ pairButton.addEventListener("click", async () => {
     if (!result.ok && initialStatusRevision===walletConnectStatusRevision) walletConnectDetail.textContent = errorText(result);
     else if(result.ok && initialStatusRevision===walletConnectStatusRevision)copyUI(walletConnectDetail,"Pairing request submitted. Waiting for a connection proposal; you can cancel this attempt.");
   } catch { if(current() && initialStatusRevision===walletConnectStatusRevision)copyUI(walletConnectDetail,"The pairing attempt did not finish. Request a fresh QR code before retrying."); }
-  finally {if(current()){const revision=++walletConnectStatusRevision;try{const status=await window.ynxWallet.walletConnectStatus();if(current()&&revision===walletConnectStatusRevision)renderWalletConnect(status);}catch{if(current()&&revision===walletConnectStatusRevision){copyUI(walletConnectDetail,"WalletConnect status could not be confirmed. Refresh the connection status before trying again.");pairButton.disabled=true;}}}}
+  finally {if(current()){const revision=++walletConnectStatusRevision;try{const status=await window.ynxWallet.walletConnectStatus();if(current()&&revision===walletConnectStatusRevision)renderWalletConnect(status);}catch{if(current()&&revision===walletConnectStatusRevision){renderWalletConnect({ok:false});}}}}
 });
 function invalidateWalletConnectInput() {
   walletConnectInputRevision++;
