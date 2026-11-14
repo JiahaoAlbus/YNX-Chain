@@ -438,3 +438,57 @@ func TestP08ModelRunReadWithDifferentSessionIsMetadataOnly(t *testing.T) {
 		t.Fatal("readback re-entered the model or disclosure gate")
 	}
 }
+
+// The V6 observation adapter must preserve the HTTP read handler's session
+// fence while returning a read-only observation from the reopened Store.
+func TestP08V6ColdRunReadPreservesOriginalSessionFence(t *testing.T) {
+	f, gate := newP08ReturnFixture(t, false, nil)
+	ctx := context.Background()
+	run, err := f.server.runTaskModel(ctx, f.session, f.task.ID, f.request())
+	if err != nil || run.Content != p08ReturnAnswer {
+		t.Fatalf("original return: status=%q err=%v", run.Status, err)
+	}
+	cold, err := NewStore(f.server.store.path, f.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := NewTaskStoreSource(cold)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &Server{store: cold}
+	before, err := os.ReadFile(cold.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	call := p08ReadCall("/api/tasks/" + f.task.ID + "/runs/" + run.RunID)
+	for _, replaced := range []bool{true, false} {
+		session := f.session
+		if replaced {
+			session.ID += "-replacement"
+		}
+		observation, err := source.ObserveOriginalTaskRead(ctx, server, session, call)
+		if observation != nil {
+			defer observation.Close()
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		view, err := observation.View()
+		if err != nil || view.Decision != "OBSERVED" || view.Kind != "task-run-read" {
+			t.Fatalf("unexpected readback decision: %+v %v", view, err)
+		}
+		raw, err := observation.Body()
+		var result taskRunView
+		if err != nil || json.Unmarshal(raw, &result) != nil || result.ID != run.ID || result.RecoveryOnly != replaced {
+			t.Fatalf("invalid readback for original run (replacement=%t): %v", replaced, err)
+		}
+		if (replaced && result.Content != "") || (!replaced && result.Content != p08ReturnAnswer) {
+			t.Fatalf("wrong answer visibility (replacement=%t)", replaced)
+		}
+	}
+	after, err := os.ReadFile(cold.path)
+	if err != nil || !bytes.Equal(before, after) || f.requests.Load() != 1 || len(gate.snapshots()) != 2 {
+		t.Fatal("readback changed Store or triggered execution/disclosure")
+	}
+}
