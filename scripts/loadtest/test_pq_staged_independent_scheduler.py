@@ -193,6 +193,20 @@ class StagedIndependentSchedulerControls(unittest.TestCase):
                 self.assertGreaterEqual(pipeline["queueAtCutoff"][stage], 0)
                 self.assertLessEqual(pipeline["queueAtCutoff"][stage], capacity)
 
+    def test_owner_prepare_stage_crosses_normal_staged_ledger(self):
+        class PreparedBackend(StructuralBackend):
+            def publish(self, row, account, notify, stop):
+                notify(dict(kind='normal_stage', stage='owner_prepare'))
+                notify(dict(kind='normal_stage', stage='sender_ready_checkpoint'))
+                return super().publish(row, account, notify, stop)
+
+        result, _ = self.run_control(plan(1, 1), PreparedBackend())
+        self.assertIsNone(result['firstCause'])
+        self.assertEqual(result['qualified'], 1)
+        names = [name for name, _ in result['rows'][0]['stageTimes']]
+        self.assertLess(names.index('owner_prepare'), names.index('sender_ready_checkpoint'))
+        self.assertIn('owner_prepare', result['completedStageIntervals'])
+
     def test_configure_deep_copies_demand_and_fixes_eight_worker_bounds(self):
         raw = staged.original.make_plan(
             "a" * 64, "b" * 64, "online",
