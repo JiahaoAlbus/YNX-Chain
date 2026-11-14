@@ -131,6 +131,7 @@ def compare_business(before, after):
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
                     observationRPC=report.get('observationRPC'),
+                    stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
@@ -139,6 +140,53 @@ def compare_business(before, after):
                 sameReportedConditions=not differences and not hardware_differences,
                 identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
                 throughputGainAttributed=False, sustainedTPSQualified=False)
+
+
+def stopped_proof_failures(receipt, load, files, prefix):
+    evidence = receipt.get('stoppedLiveProofFailures')
+    if evidence is None:
+        return None
+    require(load is not None and receipt['cleanupComplete'] is True
+            and evidence['altersLoadResult'] is False, 'original stopped proof boundary differs')
+    requests = {}
+    for path, raw in files.items():
+        match = re.fullmatch(r'load-([0-9]{5})-live-session-request\.json', path.removeprefix(prefix))
+        if path.startswith(prefix) and match:
+            requests[int(match[1])] = strict(raw)
+    cohort = {row['index']: row for row in load['rows']}
+    rows = evidence['records']
+    require(type(rows) is list and len(rows) == len(requests)
+            and all(type(row['index']) is int for row in rows)
+            and {row['index'] for row in rows} == requests.keys() <= cohort.keys(),
+            'original stopped proof request coverage differs')
+    output = []
+    for record in rows:
+        index, status = record['index'], record['status']
+        request = requests[index]
+        require(type(request['node']) is int and 0 <= request['node'] < 4
+                and type(request['sequence']) is int and 1 <= request['sequence'] <= load['configuredDemand']
+                and re.fullmatch(r'[0-9a-f]{64}', request['policySHA256']),
+                'original stopped proof request scope differs')
+        data = None
+        if status in ('ALREADY_RETAINED', 'RETAINED_AFTER_STOP'):
+            path = f'load-operations/{index:05d}/original-live-proof-failure.json'
+            require(record['path'] == path and record['node'] == request['node']
+                    and record['sequence'] == request['sequence'], 'original stopped proof request binding differs')
+            raw = files.get(prefix + path)
+            require(raw is not None and len(raw) <= 4096 and hashlib.sha256(raw).hexdigest() == record['sha256'],
+                    'original stopped proof failure digest differs')
+            data = strict(raw)
+            require(set(data) == {'Version', 'PolicySHA256', 'Outcome', 'FirstCauseSHA256', 'Sequence'}
+                    and data['Version'] == 'YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1'
+                    and data['PolicySHA256'] == request['policySHA256'] and data['Outcome'] == 'unknown'
+                    and type(data['Sequence']) is int and data['Sequence'] == request['sequence']
+                    and re.fullmatch(r'[0-9a-f]{64}', data['FirstCauseSHA256']),
+                    'original stopped proof failure payload differs')
+        else:
+            require(status in ('FAILURE_NOT_SUPPLIED', 'ORIGINAL_FAILURE_UNAVAILABLE'),
+                    'original stopped proof status differs')
+        output.append(dict(record, originalFailure=data, originalCohortStatus=cohort[index]['status']))
+    return dict(records=output, altersLoadResult=False)
 
 
 def observation_rpc(receipt):
@@ -420,6 +468,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 publicOwnerTiming=public_owner_timing(receipt, load) if load is not None else None,
                 observationRPC=observation_rpc(receipt),
+                stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,

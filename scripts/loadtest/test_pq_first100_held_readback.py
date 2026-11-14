@@ -66,6 +66,28 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'outside the cohort'):
             reader.public_owner_timing(receipt, dict(load, firstOperationalFailure=dict(first, id='other')))
 
+    def test_stopped_proof_failure_requires_bound_request_and_exact_original_bytes(self):
+        prefix = 'public/'
+        path = 'load-operations/00000/original-live-proof-failure.json'
+        failure = dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', Sequence=1,
+                       PolicySHA256='a'*64, Outcome='unknown', FirstCauseSHA256='b'*64)
+        raw = encode(failure)
+        files = {prefix + path: raw,
+                 prefix + 'load-00000-live-session-request.json':
+                     encode(dict(node=0, sequence=1, policySHA256='a'*64))}
+        record = dict(index=0, node=0, sequence=1, status='RETAINED_AFTER_STOP', path=path, sha256=sha(raw))
+        receipt = dict(cleanupComplete=True, stoppedLiveProofFailures=dict(records=[record], altersLoadResult=False))
+        load = dict(configuredDemand=500, rows=[dict(index=0, status='unknown')])
+        output = reader.stopped_proof_failures(receipt, load, files, prefix)
+        self.assertEqual(output['records'][0]['originalFailure'], failure)
+        self.assertEqual(output['records'][0]['originalCohortStatus'], 'unknown')
+        self.assertIsNone(reader.stopped_proof_failures({}, load, files, prefix))
+        with self.assertRaisesRegex(RuntimeError, 'digest differs'):
+            reader.stopped_proof_failures(receipt, load, dict(files, **{prefix + path: b'{}'}), prefix)
+        record['node'] = 2
+        with self.assertRaisesRegex(RuntimeError, 'request binding differs'):
+            reader.stopped_proof_failures(receipt, load, files, prefix)
+
     def test_observation_rpc_preserves_counts_and_keeps_elapsed_intervals_separate(self):
         first = dict(node=0, method='tx', attempted=4, returned=1, raised=2, completed=3, inFlight=1)
         second = dict(node=1, method='tx', attempted=1, returned=1, raised=0, completed=1, inFlight=0)
