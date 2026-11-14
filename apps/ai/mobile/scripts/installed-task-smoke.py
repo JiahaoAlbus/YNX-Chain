@@ -8,8 +8,8 @@ import xml.etree.ElementTree as ET
 
 apk = sys.argv[1]
 
-def adb(*args):
-    return subprocess.run(["adb", *args], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30).stdout
+def adb(*args, timeout=60):
+    return subprocess.run(["adb", *args], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout).stdout
 
 def find_node(labels):
     output = adb("exec-out", "uiautomator", "dump", "/dev/tty")
@@ -41,7 +41,7 @@ def tap(node):
     x1, y1, x2, y2 = map(int, bounds.groups())
     adb("shell", "input", "tap", str((x1+x2)//2), str((y1+y2)//2))
 
-adb("install", "-r", apk)
+adb("install", "-r", apk, timeout=180)
 adb("shell", "monkey", "-p", "com.ynxweb4.ai", "1")
 tap(wait_node({"Task workspace", "任务工作区"}))
 wait_node({"Task authorization unavailable", "正式任务登录不可用"})
