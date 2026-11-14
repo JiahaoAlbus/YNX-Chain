@@ -91,6 +91,48 @@ def compare_readiness(before, after):
                 successfulBusinessComparison=False)
 
 
+def compare_business(before, after):
+    """Compare original observed cohorts and expose condition differences."""
+    for report in (before, after):
+        require(report.get('archiveOriginIndependentlyVerified') is True
+                and report.get('status') == 'OBSERVED' and report.get('fullCohort') is not None,
+                'independently bound original business runs required')
+    require(before['actionsOrigin']['run'] != after['actionsOrigin']['run']
+            and before['archiveSHA256'] != after['archiveSHA256'],
+            'two distinct original business runs required')
+    differences = [key for key in ('toolchain', 'caps', 'conditions')
+                   if before.get(key) is None or before[key] != after.get(key)]
+    host_fields = ('system', 'machine', 'cpuModels', 'kernelRelease', 'effectiveAffinity', 'hostMemTotalBytes')
+    left, right = (report.get('hardware') or {} for report in (before, after))
+    hardware_differences = [key for key in host_fields
+                            if left.get(key) is None or left.get(key) != right.get(key)]
+    for key in ('type', 'fragmentBytes'):
+        a, b = ((host.get('filesystem') or {}).get(key) for host in (left, right))
+        if a is None or a != b:
+            hardware_differences.append('filesystem.' + key)
+    if left.get('status') != 'OBSERVED' or right.get('status') != 'OBSERVED':
+        hardware_differences.append('status')
+
+    def arm(report):
+        cohort = report['fullCohort']
+        return dict(origin=report['actionsOrigin'], source=report['source'], tools=report['tools'],
+                    controller=report['controller'], archiveSHA256=report['archiveSHA256'],
+                    firstCause=report['firstCause'], peakRSSBytes=report['peakRSSBytes'],
+                    configuredDemand=cohort['configuredDemand'],
+                    submittedWithinWindow=cohort['submittedWithinWindow'],
+                    submissionAttemptWindowTPS=cohort['submissionAttemptWindowTPS'],
+                    counts=cohort['originalCohort']['counts'], latencies=cohort['originalCohort']['latencies'],
+                    terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
+                    pipelinePressure=cohort['pipelinePressure'],
+                    businessBlockCommitStages=report['businessBlockCommitStages'])
+
+    return dict(before=arm(before), after=arm(after), configurationDifferences=differences,
+                hardwareDifferences=hardware_differences,
+                sameReportedConditions=not differences and not hardware_differences,
+                identicalPhysicalHostProven=False, canonicalInputEqualityProven=False,
+                throughputGainAttributed=False, sustainedTPSQualified=False)
+
+
 def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
     pool = receipt['senderPoolPreparation']
     transport = receipt['normalPublicOwnerTransport']
@@ -336,5 +378,9 @@ if __name__ == '__main__':
         with args.before_readback.open('rb') as baseline:
             original = baseline.read((32 << 20) + 1)
         require(len(original) <= 32 << 20, 'original before readback exceeds bound')
-        result['readinessComparison'] = compare_readiness(strict(original), result)
+        before = strict(original)
+        if result['fullCohort'] is None:
+            result['readinessComparison'] = compare_readiness(before, result)
+        else:
+            result['businessComparison'] = compare_business(before, result)
     print(json.dumps(result, indent=2, sort_keys=True))

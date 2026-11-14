@@ -84,6 +84,40 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'conditions differ'):
             reader.compare_readiness(before, dict(after, caps=dict(rssBytes=20)))
 
+    def test_business_comparison_preserves_measured_counts_and_condition_differences(self):
+        hardware = dict(status='OBSERVED', system='Linux', machine='x86_64', cpuModels=['AMD'],
+                        kernelRelease='fixture', effectiveAffinity=[0, 1], hostMemTotalBytes=32,
+                        filesystem=dict(type='ext4', fragmentBytes=4096))
+        counts = dict(successfulInclusion=dict(windowTPS=0.2), qualifiedReceipt=dict(windowTPS=0.0))
+        latencies = dict(submitToInclusionObserved=dict(p95Ns=100), submitToQualifiedReceiptObserved=None)
+        cohort = dict(configuredDemand=500, submittedWithinWindow=1, submissionAttemptWindowTPS=0.2,
+                      originalCohort=dict(counts=counts, latencies=latencies), terminalCounts=dict(unknown=1),
+                      backlogGrowing=True, pipelinePressure=None)
+        before = dict(status='OBSERVED', archiveOriginIndependentlyVerified=True, actionsOrigin=dict(run=1),
+                      archiveSHA256='a'*64, controller=self.controller, source=dict(commit='b'*40),
+                      tools=dict(commit='c'*40), hardware=hardware, toolchain='go1.26.11',
+                      caps=dict(rssBytes=10), conditions=dict(accounts=500), fullCohort=cohort,
+                      firstCause='original reply missing', peakRSSBytes=8, businessBlockCommitStages=None)
+        after = dict(before, actionsOrigin=dict(run=2), archiveSHA256='d'*64)
+        same = reader.compare_business(before, after)
+        self.assertTrue(same['sameReportedConditions'])
+        self.assertFalse(same['identicalPhysicalHostProven'])
+        self.assertFalse(same['throughputGainAttributed'])
+        self.assertFalse(same['sustainedTPSQualified'])
+        self.assertEqual(same['before']['counts'], counts)
+        self.assertEqual(same['before']['latencies'], latencies)
+        self.assertEqual(same['before']['firstCause'], 'original reply missing')
+
+        changed = dict(after, hardware=dict(hardware, cpuModels=['Intel']), conditions=None)
+        difference = reader.compare_business(before, changed)
+        self.assertFalse(difference['sameReportedConditions'])
+        self.assertEqual(difference['configurationDifferences'], ['conditions'])
+        self.assertEqual(difference['hardwareDifferences'], ['cpuModels'])
+        with self.assertRaisesRegex(RuntimeError, 'two distinct original'):
+            reader.compare_business(before, dict(after, archiveSHA256=before['archiveSHA256']))
+        with self.assertRaisesRegex(RuntimeError, 'independently bound'):
+            reader.compare_business(before, dict(after, archiveOriginIndependentlyVerified=False))
+
     def fixture(self, with_receipt=True, accounts=500, prefix='fixture/public/', confirmed=None,
                 ready_lanes=None, replaced_node=False):
         source = dict(commit='a' * 40, tree='b' * 40)
