@@ -39,7 +39,7 @@ export class WalletConnectTransport {
     this.sessionOrigins = new Map();
     this.disconnectedTopics = new Set();
     this.tombstoneWrites = Promise.resolve();
-    this.starting=null;this.clientPromise=null;this.pairDeadlineMs=pairDeadlineMs;this.pairOperation=null;this.pairRevision=0;this.pairings=new Map();this.sdkPairPending=new Set();this.pairWrites=Promise.resolve();this.pairState={phase:"idle",cleanup:"none"};
+    this.starting=null;this.clientPromise=null;this.pairDeadlineMs=pairDeadlineMs;this.pairOperation=null;this.lastPairOperation=null;this.pairRevision=0;this.pairings=new Map();this.sdkPairPending=new Set();this.pairWrites=Promise.resolve();this.pairState={phase:"idle",cleanup:"none"};
   }
   status() {
     const started = this.walletKit !== null;
@@ -78,7 +78,7 @@ export class WalletConnectTransport {
         await this.#captureProposal(proposal);
         if(this.pairings.get(topic)?.canceled)throw transportError("WALLETCONNECT_PAIR_CANCELED","The original pairing ended");
         this.proposals.set(String(proposal.id), proposal);
-        if(this.pairOperation&&this.pairOperation.topic===proposal.params.pairingTopic){this.pairOperation.proposal=true;this.pairOperation.resolveProposal({proposalReceived:true});}
+        const operation=this.lastPairOperation;if(operation&&operation.topic===proposal.params.pairingTopic){operation.proposal=true;if(this.pairOperation===operation)operation.resolveProposal({proposalReceived:true});else if(!operation.canceled&&operation.revision===this.pairRevision){this.pairState={phase:"proposal-received",cleanup:"none"};this.#notifyPair();}}
         handlers.onSessionProposal?.(proposal);
       } catch (error) {
         void Promise.resolve(this.walletKit.rejectSession?.({id:proposal?.id,reason:getSdkError("USER_REJECTED")})).catch(()=>{});
@@ -129,22 +129,25 @@ export class WalletConnectTransport {
     if(this.pairOperation)throw transportError("WALLETCONNECT_PAIR_BUSY","Cancel the current pairing before retrying");
     if(this.sdkPairPending.size>=100)throw transportError("WALLETCONNECT_PAIR_LIMIT","Existing SDK pair attempts have not finished yet");
     if(this.pairings.has(topic))throw transportError("WALLETCONNECT_FRESH_PAIR_REQUIRED","Request a fresh QR code from the app");
-    const operation={topic,revision:++this.pairRevision,canceled:false,cancel:null,proposal:false,resolveProposal:null};const received=new Promise(resolve=>operation.resolveProposal=resolve);this.pairOperation=operation;this.pairState={phase:"pairing",cleanup:"none"};this.#notifyPair();
+    // A submitted attempt remains eligible for a late proposal after pair()
+    // resolves. Retire that exact unreviewed attempt before replacing it.
+    if(this.lastPairOperation&&!this.lastPairOperation.canceled&&!this.lastPairOperation.proposal)this.lastPairOperation.cancel("WALLETCONNECT_PAIR_CANCELED");
+    const operation={topic,revision:++this.pairRevision,canceled:false,cancel:null,proposal:false,resolveProposal:null};const received=new Promise(resolve=>operation.resolveProposal=resolve);this.pairOperation=operation;this.lastPairOperation=operation;this.pairState={phase:"pairing",cleanup:"none"};this.#notifyPair();
     this.pairings.set(topic,{topic,expiresAt:(parsed.expiryTimestamp??this.#nowSeconds()+300)*1000,canceled:false});
-    let timer;const interrupted=new Promise((_,reject)=>{operation.cancel=code=>{if(operation.canceled)return;operation.canceled=true;this.pairings.get(topic).canceled=true;this.pairState={phase:code==="WALLETCONNECT_PAIR_TIMEOUT"?"timed-out":code==="WALLETCONNECT_PAIR_FAILED"?"failed":"canceled",cleanup:"pending"};reject(transportError(code,"Pairing ended. Request a fresh QR code; remote cleanup is not confirmed."));void this.#cleanPair(operation);};timer=setTimeout(()=>operation.cancel("WALLETCONNECT_PAIR_TIMEOUT"),this.pairDeadlineMs);});interrupted.catch(()=>{});
+    let timer;const interrupted=new Promise((_,reject)=>{operation.cancel=code=>{if(operation.canceled)return;operation.canceled=true;const pairing=this.pairings.get(topic);if(pairing)pairing.canceled=true;this.pairState={phase:code==="WALLETCONNECT_PAIR_TIMEOUT"?"timed-out":code==="WALLETCONNECT_PAIR_FAILED"?"failed":"canceled",cleanup:"pending"};reject(transportError(code,"Pairing ended. Request a fresh QR code; remote cleanup is not confirmed."));void this.#cleanPair(operation);};timer=setTimeout(()=>operation.cancel("WALLETCONNECT_PAIR_TIMEOUT"),this.pairDeadlineMs);});interrupted.catch(()=>{});
     const sdk=Promise.resolve().then(async()=>{await this.#persistPairings();if(operation.canceled)throw transportError("WALLETCONNECT_PAIR_CANCELED","Pairing canceled before transport");this.sdkPairPending.add(topic);try{return await this.walletKit.pair({uri});}finally{this.sdkPairPending.delete(topic);}});
     sdk.then(()=>{if(operation.canceled)void this.#cleanPair(operation);},()=>{if(operation.canceled)void this.#cleanPair(operation);});
     try{const result=await Promise.race([sdk,interrupted,received]);if(this.pairOperation===operation)this.pairState={phase:operation.proposal?"proposal-received":"submitted",cleanup:"none"};return result??{submitted:true};}
     catch(error){if(!operation.canceled)operation.cancel("WALLETCONNECT_PAIR_FAILED");throw error;}
     finally{clearTimeout(timer);if(this.pairOperation===operation)this.pairOperation=null;this.#notifyPair();}
   }
-  cancelPair(preserveReviewedProposal=false){if(this.pairOperation&&!(preserveReviewedProposal&&this.pairOperation.proposal))this.pairOperation.cancel("WALLETCONNECT_PAIR_CANCELED");this.#notifyPair();return this.status();}
+  cancelPair(preserveReviewedProposal=false){const operation=this.pairOperation??this.lastPairOperation;if(operation&&!operation.canceled&&!(preserveReviewedProposal&&operation.proposal))operation.cancel("WALLETCONNECT_PAIR_CANCELED");this.#notifyPair();return this.status();}
   #notifyPair(){this.handlers?.onPairState?.(this.status());}
   pendingRequestKeys(){return (this.walletKit?.getPendingSessionRequests?.()??[]).map(event=>JSON.stringify([event.topic,event.id]));}
   reviewStorage(){return this.walletKit?.core?.storage??null;}
   async #restorePairings(){const storage=this.reviewStorage();if(!storage?.getItem)return;const state=await storage.getItem(PAIRING_STORAGE_KEY);if(state!=null){if(state.version!==1||!Array.isArray(state.records)||state.records.length>100||state.records.some(item=>!item||!/^[a-f0-9]{64}$/.test(item.topic)||!Number.isSafeInteger(item.expiresAt)))throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety records cannot be verified");for(const item of state.records)if(item.expiresAt>this.clock())this.pairings.set(item.topic,{...item,canceled:item.canceled!==false||item.review!==true});}}
   async #persistPairings(){const work=this.pairWrites.catch(()=>{}).then(async()=>{for(const [topic,item]of this.pairings)if(item.expiresAt<=this.clock()&&this.pairOperation?.topic!==topic&&!this.sdkPairPending.has(topic))this.pairings.delete(topic);if(this.pairings.size>100)throw transportError("WALLETCONNECT_PAIR_LIMIT","Wait for existing pairing requests to expire before retrying");const storage=this.reviewStorage();if(!storage?.setItem){if(this.walletKitFactory===defaultFactory)throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety storage is unavailable");return;}const state={version:1,records:[...this.pairings.values()]};await storage.setItem(PAIRING_STORAGE_KEY,state);if(JSON.stringify(await storage.getItem(PAIRING_STORAGE_KEY))!==JSON.stringify(state))throw transportError("WALLETCONNECT_PAIR_STORAGE_UNAVAILABLE","Pairing safety write could not be verified");});this.pairWrites=work;return work;}
-  async #cleanPair(operation){let timer;try{await this.#persistPairings();if(!this.walletKit.core?.pairing?.disconnect)throw new Error();await Promise.race([this.walletKit.core.pairing.disconnect({topic:operation.topic}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error()),1500);})]);const pairings=this.walletKit.core.pairing.getPairings?.();if(!pairings||pairings.some(item=>item.topic===operation.topic))throw new Error();if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"sdk-confirmed"};}catch{if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"unconfirmed"};}finally{clearTimeout(timer);this.#notifyPair();}}
+  async #cleanPair(operation){let timer;try{await this.#persistPairings();if(Object.values(this.walletKit.getActiveSessions?.()??{}).some(session=>session.pairingTopic===operation.topic))throw new Error();if(!this.walletKit.core?.pairing?.disconnect)throw new Error();await Promise.race([this.walletKit.core.pairing.disconnect({topic:operation.topic}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error()),1500);})]);const pairings=this.walletKit.core.pairing.getPairings?.();if(!pairings||pairings.some(item=>item.topic===operation.topic))throw new Error();if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"sdk-confirmed"};}catch{if(operation.revision===this.pairRevision)this.pairState={...this.pairState,cleanup:"unconfirmed"};}finally{clearTimeout(timer);this.#notifyPair();}}
   async #restoreProposalRecords(){const storage=this.reviewStorage();if(!storage?.getItem)return;const state=await storage.getItem(PROPOSAL_STORE);if(state==null)return;
     if(state.version!==1||!Array.isArray(state.records)||state.records.length>256||JSON.stringify(state).length>262144||state.records.some(record=>!record||!Number.isSafeInteger(record.id)||!/^[a-f0-9]{64}$/.test(record.digest)||!Number.isSafeInteger(record.deadline)||typeof record.eligible!=="boolean"||record.account!==null&&typeof record.account!=="string"||!["undecided","decided"].includes(record.state))||new Set(state.records.map(record=>record.id)).size!==state.records.length)throw transportError("WALLETCONNECT_REVIEW_STORAGE_INVALID","Connection review safety records cannot be verified");
     const pending=new Set(Object.values(this.walletKit.getPendingSessionProposals?.()??{}).map(proposal=>proposal.id));for(const record of state.records)if(record.deadline>this.clock()||pending.has(record.id))this.proposalRecords.set(String(record.id),JSON.parse(JSON.stringify(record)));
@@ -183,6 +186,7 @@ export class WalletConnectTransport {
       } });
       try{assertCurrent();}catch(error){await this.#tombstoneTopic(session.topic);await this.walletKit.disconnectSession({topic:session.topic,reason:getSdkError("USER_DISCONNECTED")}).catch(()=>{});throw error;}
       this.proposals.delete(key);
+      if(this.lastPairOperation?.topic===proposal.params.pairingTopic)this.lastPairOperation=null;
       this.#rememberSession(session);
       return session;
     } finally {
@@ -211,6 +215,7 @@ export class WalletConnectTransport {
       const record=this.proposalRecords.get(key);if(record){record.state="decided";record.decision="reject";this.proposalDecisionLeases.delete(key);await this.#persistProposalRecords();}else if(this.reviewStorage())throw transportError("WALLETCONNECT_ORIGINAL_PROPOSAL_UNAVAILABLE","The original review is missing");
       await this.walletKit.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
       this.proposals.delete(key);
+      if(this.lastPairOperation?.topic===proposal.params.pairingTopic)this.lastPairOperation=null;
     } finally {
       this.proposalActions.delete(key);
     }

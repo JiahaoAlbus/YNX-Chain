@@ -195,6 +195,34 @@ test("unsupported required namespaces and proposals without Testnet never reach 
   assert.deepEqual(invalid, Array(4).fill("UNSUPPORTED_WALLETCONNECT_NAMESPACE"));
 });
 const pairUri=topic=>`wc:${topic}@2?relay-protocol=irn&symKey=${"d".repeat(64)}`;
+test('cancel after SDK pair resolves quarantines the original topic across late proposal and restart',async()=>{
+ const store=storage(),visible=[],f=await fixture({sessions:[],store,handlers:{onSessionProposal:v=>visible.push(v.id)}}),value=proposal(809,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+ await f.transport.pair(pairUri('c'.repeat(64)));f.transport.cancelPair();await new Promise(r=>setImmediate(r));
+ await f.handlers.get('session_proposal')(value);assert.deepEqual(visible,[]);assert.equal(f.approvals.length,0);
+ const restored=[],cold=await fixture({sessions:[],store,pendingProposals:[value.params],handlers:{onSessionProposal:v=>restored.push(v.id)}});assert.deepEqual(restored,[]);assert.equal(cold.approvals.length,0);
+});
+test('replacing a submitted pairing never permits its late original proposal after canceling the next pair',async()=>{
+ const visible=[],f=await fixture({sessions:[],handlers:{onSessionProposal:v=>visible.push(v.id)}}),first=proposal(816,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+ await f.transport.pair(pairUri('c'.repeat(64)));const deferred=Promise.withResolvers();f.kit.pair=()=>deferred.promise;
+ const second=f.transport.pair(pairUri('e'.repeat(64))),rejected=assert.rejects(second,code('WALLETCONNECT_PAIR_CANCELED'));await new Promise(r=>setImmediate(r));f.transport.cancelPair();deferred.resolve();await rejected;
+ await f.handlers.get('session_proposal')(first);assert.deepEqual(visible,[]);assert.equal(f.approvals.length,0);
+ await new Promise(r=>setImmediate(r));const persisted=f.store.records.get('ynx-wallet:walletconnect-pairing-quarantine:v1');assert.equal(persisted.records.find(r=>r.topic==='c'.repeat(64)).canceled,true);
+ const restored=[],cold=await fixture({sessions:[],store:f.store,pendingProposals:[first.params],handlers:{onSessionProposal:v=>restored.push(v.id)}});assert.deepEqual(restored,[]);assert.equal(cold.approvals.length,0);
+});
+test('retiring an abandoned pairing does not disconnect an existing session on that topic',async()=>{
+ const existing={...session('existing'),pairingTopic:'c'.repeat(64)},f=await fixture({sessions:[existing]});let oldDisconnects=0;
+ f.kit.core.pairing.disconnect=async({topic})=>{if(topic==='c'.repeat(64))oldDisconnects++;};
+ await f.transport.pair(pairUri('c'.repeat(64)));await f.transport.pair(pairUri('e'.repeat(64)));await new Promise(r=>setImmediate(r));
+ assert.equal(oldDisconnects,0);assert.equal(f.transport.sessionOrigin('existing'),ORIGIN);
+});
+test('lock preserves a received proposal for its original account and completed sessions are not canceled',async()=>{
+ const store=storage(),f=await fixture({sessions:[],store}),value=proposal(810,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+ await f.transport.pair(pairUri('c'.repeat(64)));await f.handlers.get('session_proposal')(value);await f.transport.bindProposalAccount(810,ACCOUNT_A);f.transport.cancelPair(true);
+ const visible=[],cold=await fixture({sessions:[],store,pendingProposals:[value.params],handlers:{onSessionProposal:v=>visible.push(v.id)}});assert.deepEqual(visible,[810]);
+ await assert.rejects(cold.transport.bindProposalAccount(810,ACCOUNT_B),code('ACCOUNT_CHANGED'));await cold.transport.bindProposalAccount(810,ACCOUNT_A);await cold.transport.approveSession(810,ACCOUNT_A);assert.equal(cold.approvals.length,1);
+ const live=await fixture({sessions:[]}),another=proposal(815,{}, {eip155:{chains:[WALLETCONNECT_CHAIN],methods:['personal_sign'],events:[]}});
+ await live.transport.pair(pairUri('c'.repeat(64)));await live.handlers.get('session_proposal')(another);await live.transport.bindProposalAccount(815,ACCOUNT_A);await live.transport.approveSession(815,ACCOUNT_A);live.transport.cancelPair();assert.equal(live.transport.sessionOrigin('approved-topic'),ORIGIN);
+});
 test("Desktop hung SDK Pair is bounded and cancel/late relay response cannot revive an old approval",async()=>{
  const deferred=Promise.withResolvers(),visible=[],f=await fixture({pair:()=>deferred.promise,pairDeadlineMs:8,handlers:{onSessionProposal:value=>visible.push(value)}});
  await assert.rejects(f.transport.pair(pairUri("c".repeat(64))),code("WALLETCONNECT_PAIR_TIMEOUT"));assert.equal(f.transport.status().pairing,false);assert.equal(f.transport.status().pair.phase,"timed-out");assert.equal(f.transport.sessions().length,2);
