@@ -3,11 +3,14 @@
 package consensus
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,11 +24,11 @@ func TestPQLabLiveMaterialsCancelledBeforeCapture(t *testing.T) {
 	c := &PQLabLiveMaterialsControl{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := c.capture(ctx, PQLabLiveMaterialsRequest{}, nil, "", nil, "", time.Now()); !errors.Is(err, context.Canceled) {
+	if _, err := c.capture(ctx, PQLabLiveMaterialsRequest{}, nil, "", nil, "", time.Now(), nil); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled capture reached source instead of retiring: %v", err)
 	}
 	// Cancellation must not turn a real unavailable-source failure into success.
-	if _, err := c.capture(context.Background(), PQLabLiveMaterialsRequest{}, nil, "", nil, "", time.Now()); err == nil {
+	if _, err := c.capture(context.Background(), PQLabLiveMaterialsRequest{}, nil, "", nil, "", time.Now(), nil); err == nil {
 		t.Fatal("active capture accepted missing original source")
 	}
 }
@@ -70,11 +73,14 @@ func TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal(t *testing.T) {
 					app.mu.Unlock()
 				}
 			}()
+			trace := newPQLabProofCaptureObservation(1, 2, strings.Repeat("a", 64), strings.Repeat("b", 64))
+			trace.beginDeadline(30 * time.Second)
+			trace.begin("proof.checkpoint")
 			read := make(chan error, 1)
 			c.wg.Add(1)
 			go func() {
 				defer c.wg.Done()
-				_, err := c.captureCommitted(ctx, actual)
+				_, err := c.captureCommitted(ctx, actual, trace)
 				read <- err
 			}()
 			<-ctx.entered
@@ -95,6 +101,11 @@ func TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal(t *testing.T) {
 			if !valid && (err == nil || errors.Is(err, context.Canceled)) {
 				t.Fatalf("cancellation replaced original App failure: %v", err)
 			}
+			timings := trace.metrics.Snapshot().Stages
+			if timings["proof.appReadLockWait"].Calls != 1 || timings["proof.appLockedCheckpoint"].Calls != 1 ||
+				(timings["proof.appEncodeCheckpoint"].Calls == 1) != valid {
+				t.Fatalf("original wait/locked/encode intervals differ: %#v", timings)
+			}
 			if err := <-closed; err != nil {
 				t.Fatal(err)
 			}
@@ -105,6 +116,61 @@ func TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal(t *testing.T) {
 				t.Fatal("retired original owner restarted")
 			}
 		})
+	}
+}
+
+func TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure(t *testing.T) {
+	pin, request := strings.Repeat("a", 64), strings.Repeat("b", 64)
+	cause := context.DeadlineExceeded
+	wantDigest := pqLabSHA([]byte(cause.Error()))
+	plain, observed := t.TempDir(), t.TempDir()
+	if err := retainPQLabProofCaptureFailure(plain, pin, 2, cause, nil); !errors.Is(err, cause) {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(plain, "capture-observation.json")); !os.IsNotExist(err) {
+		t.Fatal("observation unexpectedly enabled", err)
+	}
+	trace := newPQLabProofCaptureObservation(1, 2, pin, request)
+	trace.beginDeadline(30 * time.Second)
+	trace.begin("proof.checkpoint")
+	trace.measure("proof.engineRead")()
+	trace.noteCrossing()
+	trace.begin("proof.stateDecode")
+	if err := retainPQLabProofCaptureFailure(observed, pin, 2, cause, trace); !errors.Is(err, cause) {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(filepath.Join(plain, "failure.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(filepath.Join(observed, "failure.json"))
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("observation changed the original v1 failure", err)
+	}
+	path := filepath.Join(observed, "capture-observation.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got pqLabProofCaptureFailureObservation
+	if err = json.Unmarshal(raw, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Outcome != "unknown" || got.PolicySHA256 != pin || got.RequestSHA256 != request || got.FirstCauseSHA256 != wantDigest ||
+		got.OwningNodeIndex != 1 || got.Sequence != 2 || got.LastEnteredPhase != "proof.stateDecode" ||
+		got.CaptureBudgetNS != int64(30*time.Second) || got.SinceCaptureStartNS < 0 || got.TypedCrossings != 1 ||
+		got.Timings.Stages["proof.engineRead"].Calls != 1 || got.Timings.Stages["proof.stateDecode"].Calls != 1 {
+		t.Fatalf("incomplete bounded observation: %#v", got)
+	}
+	if err = trace.failureSnapshot(request).write(observed); err == nil {
+		t.Fatal("second observation overwrote the original")
+	}
+	reopened, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(raw, reopened) {
+		t.Fatal("original observation changed", err)
+	}
+	if _, err := os.Stat(filepath.Join(observed, "result.json")); !os.IsNotExist(err) {
+		t.Fatal("observation supplied a fabricated result", err)
 	}
 }
 

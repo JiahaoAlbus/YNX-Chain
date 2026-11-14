@@ -2733,6 +2733,7 @@ jobs:
           required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
           required += ['TestPQLabLiveMaterialsPreOutputFailureOriginalCurrent', 'TestPQLabLiveMaterialsPreOutputFailureExclusiveAndNoPhantom', 'TestMigrationHistoryLogInventoryRangeAndMetadataBounds']
+          required += ['TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure', 'TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal']
           required += ['TestPQLabLiveMaterialsCaptureOnlyOriginalCommitCrossings', 'TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase']
           required += ['TestPQOriginalSourceLaunchVersionsDATA', 'TestPQFreshScopeBrokerWireDATA', 'TestPQFreshScopeBrokerPartialCustodyDATA']
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']

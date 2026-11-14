@@ -78,9 +78,14 @@ type PQLabLiveMaterialsControl struct {
 	wg                     sync.WaitGroup
 	done                   chan struct{}
 	finish, close          sync.Once
+	observeCapture         bool
 }
 
 func NewPQLabLiveMaterialsControl(n *node.Node, app *Application, path, pin string) (c *PQLabLiveMaterialsControl, err error) {
+	return NewPQLabLiveMaterialsControlWithCaptureObservation(n, app, path, pin, false)
+}
+
+func NewPQLabLiveMaterialsControlWithCaptureObservation(n *node.Node, app *Application, path, pin string, observe bool) (c *PQLabLiveMaterialsControl, err error) {
 	if n == nil || app == nil {
 		return nil, errors.New("original owning Node/Application required")
 	}
@@ -135,7 +140,7 @@ func NewPQLabLiveMaterialsControl(n *node.Node, app *Application, path, pin stri
 			return nil, errors.New("unexpected original live session entry")
 		}
 	}
-	c = &PQLabLiveMaterialsControl{in: in, node: n, app: app, view: view, next: 1, seen: make(map[string]bool), done: make(chan struct{})}
+	c = &PQLabLiveMaterialsControl{in: in, node: n, app: app, view: view, next: 1, seen: make(map[string]bool), done: make(chan struct{}), observeCapture: observe}
 	if err = app.attachWalletPolicyProofLab(n, c); err != nil {
 		return nil, err
 	}
@@ -265,30 +270,29 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 		return true, c.failBeforeOutput(sequence, PQLabLiveFailureOutputCreate, err)
 	}
 	c.seen[request.TransactionSHA256] = true
-	defer func() {
-		if err != nil {
-			failure := struct {
-				Version, PolicySHA256, Outcome, FirstCauseSHA256 string
-				Sequence                                         uint32
-			}{"YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1", c.in.pin, "unknown", pqLabSHA([]byte(err.Error())), sequence}
-			err = errors.Join(err, pqLabWriteJSON(filepath.Join(output, "failure.json"), failure))
-		}
-	}()
+	var trace *pqLabProofCaptureObservation
+	if c.observeCapture {
+		trace = newPQLabProofCaptureObservation(c.in.policy.NodeIndex, sequence, c.in.pin, pqLabSHA(r.raw))
+	}
+	defer func() { err = retainPQLabProofCaptureFailure(output, c.in.pin, sequence, err, trace) }()
 	if err = pqLabWrite(filepath.Join(output, "intent.json"), r.raw); err != nil {
 		return true, err
 	}
+	trace.beginDeadline(c.in.policy.CaptureTimeout)
 	ctx, cancel := context.WithTimeout(parent, c.in.policy.CaptureTimeout)
 	defer cancel()
-	result, err := c.capture(ctx, request, tx.raw, kind, wire, output, time.Now().UTC())
+	result, err := c.capture(ctx, request, tx.raw, kind, wire, output, time.Now().UTC(), trace)
 	if err != nil {
 		return true, err
 	}
+	trace.begin("proof.finalInputCurrent")
 	if err = errors.Join(ctx.Err(), r.unchanged(), tx.unchanged()); err != nil {
 		return true, err
 	}
 	if err = c.current(ctx); err != nil {
 		return true, err
 	}
+	trace.begin("proof.resultWrite")
 	if err = pqLabWriteJSON(filepath.Join(output, "result.json"), result); err != nil {
 		return true, err
 	}
@@ -312,13 +316,17 @@ func (c *PQLabLiveMaterialsControl) current(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func (c *PQLabLiveMaterialsControl) captureCommitted(ctx context.Context, actual sm.State) ([]byte, error) {
+func (c *PQLabLiveMaterialsControl) captureCommitted(ctx context.Context, actual sm.State, trace *pqLabProofCaptureObservation) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	// The owning App lock and complete encoder remain uninterruptible. Close
 	// waits for them; cancellation only prevents the following decode/validate.
-	raw, err := c.app.captureProofHostCommittedJSON(actual)
+	var measure func(string) func()
+	if trace != nil {
+		measure = trace.measure
+	}
+	raw, err := c.app.captureProofHostMeasuredCheckpoint(actual, measure)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +341,7 @@ func (c *PQLabLiveMaterialsControl) captureCommitted(ctx context.Context, actual
 // validation, proof construction or any capture output. A completed encoding
 // freezes the exact engine/App pair; no later failure retries this helper.
 // The sole production caller supplies the original c.view.LoadState method.
-func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadActual func() (sm.State, error)) (sm.State, []byte, error) {
+func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadActual func() (sm.State, error), trace *pqLabProofCaptureObservation) (sm.State, []byte, error) {
 	const attempts = 3
 	if ctx == nil || c == nil || c.in == nil || c.app == nil || loadActual == nil {
 		return sm.State{}, nil, errors.New("original live checkpoint capture input required")
@@ -364,7 +372,9 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 		if err := ctx.Err(); err != nil {
 			return fail(err)
 		}
+		finishRead := trace.measure("proof.engineRead")
 		actual, err := loadActual()
+		finishRead()
 		if err == nil {
 			if err = ctx.Err(); err != nil {
 				return fail(err)
@@ -387,7 +397,7 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 			prior.LastBlockID.Hash = bytes.Clone(actual.LastBlockID.Hash)
 			prior.LastBlockID.PartSetHeader.Hash = bytes.Clone(actual.LastBlockID.PartSetHeader.Hash)
 			var raw []byte
-			raw, err = c.captureCommitted(ctx, actual)
+			raw, err = c.captureCommitted(ctx, actual, trace)
 			if err == nil {
 				return actual, raw, nil
 			}
@@ -400,6 +410,7 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 		if !crossing(err) {
 			return fail(err)
 		}
+		trace.noteCrossing()
 		if firstCrossing == nil {
 			firstCrossing = err
 		}
@@ -417,7 +428,7 @@ func (c *PQLabLiveMaterialsControl) captureCheckpoint(ctx context.Context, loadA
 	return fail(errors.New("original live checkpoint crossing budget exhausted"))
 }
 
-func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMaterialsRequest, envelope []byte, kind string, wire []byte, output string, now time.Time) (out PQLabLiveMaterialsResult, err error) {
+func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMaterialsRequest, envelope []byte, kind string, wire []byte, output string, now time.Time, trace *pqLabProofCaptureObservation) (out PQLabLiveMaterialsResult, err error) {
 	defer func() {
 		if recover() != nil {
 			out = PQLabLiveMaterialsResult{}
@@ -428,18 +439,21 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	p, a := c.in.plan, c.in.activation
-	actual, stateRaw, err := c.captureCheckpoint(ctx, c.view.LoadState)
+	trace.begin("proof.checkpoint")
+	actual, stateRaw, err := c.captureCheckpoint(ctx, c.view.LoadState, trace)
 	if err != nil {
 		return out, err
 	}
 	var state CommittedState
+	trace.begin("proof.stateDecode")
 	if err = json.Unmarshal(stateRaw, &state); err != nil {
 		return out, err
 	}
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	_, _, b, err := loadPQLab(p.RootDir, c.in.policy.PlanSHA256)
+	trace.begin("proof.loadPQLab")
+	_, _, b, err := loadPQLabMeasured(p.RootDir, c.in.policy.PlanSHA256, trace.collector())
 	if err != nil {
 		return out, err
 	}
@@ -447,6 +461,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.stateValidate")
 	if err = state.Validate(c.in.migration); err != nil {
 		return out, err
 	}
@@ -457,6 +472,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	var anchorState CommittedState
+	trace.begin("proof.anchorAndRegistry")
 	if json.Unmarshal(c.in.anchor.CommittedState, &anchorState) != nil || anchorState.ValidatorRegistry == nil || state.ValidatorRegistry == nil {
 		return out, errors.New("original registry anchor unavailable")
 	}
@@ -492,6 +508,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	}
 	ledger := proofHostLedger{load: c.view.LoadState, validators: c.view.LoadValidators, results: c.view.LoadFinalizeBlockResponse, blocks: c.view, committed: c.app.captureProofHostCommittedJSON}
 	height, index := int64(0), int64(-1)
+	trace.begin("proof.retainedBlockSearch")
 	for h := a.ActivationHeight; h <= actual.LastBlockHeight; h++ {
 		if err = ctx.Err(); err != nil {
 			return out, err
@@ -515,6 +532,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.advanceAnchor")
 	trusted, err := c.in.advanceAnchor(ledger, snapshot, height, now)
 	if err != nil {
 		return out, err
@@ -522,6 +540,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.lightBlocks")
 	block, err := ledger.lightBlock(height)
 	if err != nil {
 		return out, err
@@ -538,6 +557,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.migrationCanonical")
 	migrationRaw, err := c.in.migration.CanonicalJSON()
 	if err != nil {
 		return out, err
@@ -547,6 +567,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.migrationOriginalRead")
 	migrationOriginal, err := readProofHostOriginal(p.MigrationFile, "", 1<<30)
 	if err != nil {
 		return out, err
@@ -554,6 +575,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	defer func() { err = errors.Join(err, migrationOriginal.unchanged(), migrationOriginal.file.Close()) }()
 	n := p.Nodes[c.in.policy.NodeIndex]
 	policy := c.in.policy
+	trace.begin("proof.derivedPlanWrite")
 	plan := ProofHostSourcePlan{Version: ProofHostSourcePlanVersion, SourceID: "pq-lab-" + p.SessionID, Epoch: "1", OperationID: r.TransactionSHA256, Account: owner, NetworkID: p.OriginalGenesisHash, OriginalHash: "0x" + r.NativeWireHash, MigrationFile: p.MigrationFile, MigrationSHA256: pqLabSHA(migrationOriginal.raw), GenesisFile: p.GenesisFile, ConsensusGenesisSHA256: p.CometGenesisSHA256, OriginalGenesisHash: p.OriginalGenesisHash, MigrationStateHash: p.MigrationStateHash, StateFile: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.SignerStateFile, SigningLockKind: "pq-signer", ScheduleFile: a.ScheduleFile, ScheduleHash: a.ScheduleHash, ScheduleSHA256: pqLabSHA(c.in.schedule), EngineHeight: strconv.FormatInt(actual.LastBlockHeight, 10), EngineAppHash: hex.EncodeToString(actual.AppHash), TrustedHeight: strconv.FormatInt(trusted.Height, 10), TrustedBlockHash: hex.EncodeToString(trusted.Hash()), TrustingPeriodNanoseconds: strconv.FormatInt(int64(policy.TrustingPeriod), 10), MaxClockDriftNanoseconds: strconv.FormatInt(int64(policy.MaxClockDrift), 10), TrustLevelNumerator: strconv.FormatUint(policy.TrustNumerator, 10), TrustLevelDenominator: strconv.FormatUint(policy.TrustDenominator, 10), ExpectedTransaction: expected}
 	planRaw, err := json.Marshal(plan)
 	if err != nil {
@@ -568,6 +590,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.derivedPlanInputs")
 	in, err := loadProofHostInputs(planRaw, pqLabSHA(planRaw))
 	if err != nil {
 		return out, err
@@ -601,6 +624,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		}
 		return bytes.Clone(stateRaw), nil
 	}
+	trace.begin("proof.sourceContextCapture")
 	captured, err := in.capture(ledger, filepath.Join(output, "source-context"), now)
 	if err != nil {
 		return out, err
@@ -619,6 +643,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.materialsEncode")
 	materialRaw, err := json.Marshal(m)
 	if err != nil {
 		return out, err
@@ -633,6 +658,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
+	trace.begin("proof.verifierInputs")
 	verified, err := WritePQLabProofInputs(filepath.Join(output, "verifier"), m, proof, now)
 	if err != nil {
 		return out, err
@@ -641,6 +667,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	materialPath, proofPath, statePath := filepath.Join(output, "materials.json"), filepath.Join(output, "proof.json"), filepath.Join(output, "committed-state.json")
+	trace.begin("proof.materialsWrite")
 	for _, f := range []struct {
 		path string
 		raw  []byte

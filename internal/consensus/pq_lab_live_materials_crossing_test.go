@@ -107,7 +107,7 @@ func TestPQLabLiveMaterialsCaptureOnlyOriginalCommitCrossings(t *testing.T) {
 				}
 				return actual, nil
 			}
-			actual, raw, err := control.captureCheckpoint(ctx, load)
+			actual, raw, err := control.captureCheckpoint(ctx, load, nil)
 			passed := scenario == "stable" || scenario == "engine-crossing" || scenario == "two-engine-crossings" || scenario == "app-crossing"
 			wantedCalls := 1
 			if scenario == "engine-crossing" || scenario == "app-crossing" {
@@ -206,7 +206,7 @@ func TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase(t *testing.T) {
 				}
 				return sm.State{}, errors.New("unexpected extra capture")
 			}
-			actual, raw, err := control.captureCheckpoint(context.Background(), load)
+			actual, raw, err := control.captureCheckpoint(context.Background(), load, nil)
 			if err == nil || calls != 2 || len(raw) != 0 || actual.LastBlockHeight != 0 || !errors.Is(err, errProofHostCheckpointCrossing) {
 				t.Fatal("known-coordinate refusal retried or lost first crossing", calls, err)
 			}

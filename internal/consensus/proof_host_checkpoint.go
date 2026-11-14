@@ -14,11 +14,23 @@ import (
 var errProofHostCheckpointCrossing = errors.New("live engine/application checkpoint changed before capture")
 
 func (app *Application) captureProofHostCommittedJSON(actual sm.State) ([]byte, error) {
+	return app.captureProofHostMeasuredCheckpoint(actual, nil)
+}
+
+func (app *Application) captureProofHostMeasuredCheckpoint(actual sm.State, measure func(string) func()) ([]byte, error) {
 	if app == nil {
 		return nil, errors.New("original application checkpoint unavailable")
 	}
+	var finishWait func()
+	if measure != nil {
+		finishWait = measure("proof.appReadLockWait")
+	}
 	app.mu.RLock()
 	defer app.mu.RUnlock()
+	if finishWait != nil {
+		finishWait()
+		defer measure("proof.appLockedCheckpoint")()
+	}
 	if app.bootstrap == nil || app.bootstrap.record.ChainID != actual.ChainID {
 		return nil, errors.New("live engine/application checkpoint chain differs")
 	}
@@ -36,5 +48,8 @@ func (app *Application) captureProofHostCommittedJSON(actual sm.State) ([]byte, 
 	// held, then release before decoding, validation, hashing and cryptography.
 	// Large-checkpoint lock latency requires operator measurement; no claim of
 	// production live latency or permission to invoke this on a public node.
+	if measure != nil {
+		defer measure("proof.appEncodeCheckpoint")()
+	}
 	return encodeCommittedStateJSON(app.committed)
 }
