@@ -13,6 +13,15 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+#include "cloud-finite-get-control-c.h"
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+extern "C" int fixture_cloud_c_receive(ynx_cloud_finite_get_control **, int, int,
+    const ynx_cloud_control_expected_process *, uint8_t, int);
+extern "C" int fixture_cloud_c_close(ynx_cloud_finite_get_control **, int, int, int, int);
+#endif
 
 #if !defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_TEST)
 #error This fixture requires explicit PUBLIC test compilation.
@@ -22,6 +31,13 @@ namespace ynx::cloud_finite_get_detail {
 namespace {
 bool inject_close_error = false;
 unsigned close_calls = 0;
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+enum class WakeTest { off, blocked, both_ready };
+std::mutex wake_mutex;
+std::condition_variable wake_changed;
+WakeTest wake_test = WakeTest::off;
+bool receive_waiting = false, wake_written = false;
+#endif
 }
 int fixture_cloud_control_close(int fd) {
     ++close_calls;
@@ -31,6 +47,15 @@ int fixture_cloud_control_close(int fd) {
     errno = EIO;
     return -1;
 }
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+void fixture_cloud_control_before_wait(int) {
+    std::unique_lock<std::mutex> lock(wake_mutex);
+    if (wake_test == WakeTest::off) return;
+    receive_waiting = true;
+    wake_changed.notify_one();
+    if (wake_test == WakeTest::both_ready) wake_changed.wait(lock, [] { return wake_written; });
+}
+#endif
 }
 
 namespace {
@@ -39,7 +64,8 @@ namespace peer = ynx::resource_current_detail;
 using Clock = std::chrono::steady_clock;
 using namespace std::chrono_literals;
 
-enum class Case { complete, partial, foreign_control, foreign_binding, close_unknown, extra_rights, before_binding };
+enum class Case { complete, partial, foreign_control, foreign_binding, close_unknown, extra_rights, before_binding,
+    c_bridge, c_bridge_canceled, c_bridge_both_ready, c_bridge_unknown };
 const std::vector<uint8_t> inbound{0, 8, 0, 19, 27};
 const std::vector<uint8_t> outbound{0, 5, 0, 12};
 constexpr uint8_t fixture_marker = 0xf3;
@@ -145,12 +171,25 @@ void child_exchange(const sockaddr_un &endpoint, Case mode, int foreign, int lis
     FD data(::socket(AF_UNIX, SOCK_STREAM, 0));
     require(data.get() >= 0 && ::connect(data.get(), reinterpret_cast<const sockaddr *>(&endpoint), sizeof(endpoint)) == 0,
             "fixture child data dial failed");
+    if (mode == Case::c_bridge_canceled) {
+        require(read_bytes(pipe_read, 1) == std::vector<uint8_t>{'Q'}, "fixture cancellation quit barrier differs");
+        data.close();
+        require(::close(pipe_read) == 0, "fixture cancellation barrier close failed");
+        return;
+    }
     int pair[2];
     require(::socketpair(AF_UNIX, SOCK_STREAM, 0, pair) == 0, "fixture child control pair failed");
     FD control(pair[0]), sent(pair[1]);
     const int fds[2] = {mode == Case::foreign_control ? foreign : sent.get(), control.get()};
     transfer(data.get(), fds, mode == Case::extra_rights ? 2 : 1);
     sent.close();
+    if (mode == Case::c_bridge_both_ready) {
+        require(read_bytes(pipe_read, 1) == std::vector<uint8_t>{'Q'}, "fixture simultaneous readiness quit barrier differs");
+        control.close();
+        data.close();
+        require(::close(pipe_read) == 0, "fixture simultaneous readiness barrier close failed");
+        return;
+    }
     if (mode == Case::complete || mode == Case::close_unknown) {
         send_bytes(control.get(), inbound.data(), inbound.size());
         require(read_bytes(control.get(), outbound.size()) == outbound, "fixture child response differs");
@@ -168,6 +207,57 @@ void child_exchange(const sockaddr_un &endpoint, Case mode, int foreign, int lis
     data.close();
     require(::close(pipe_read) == 0, "fixture child barrier close failed");
 }
+
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+// UNKNOWN means this exact handle remains owned until process exit.
+ynx_cloud_finite_get_control *retained_unknown = nullptr;
+
+void c_bridge_exchange(int data, const peer::ExpectedProcess &expected, Case mode) {
+    ynx_cloud_control_expected_process profile{expected.uid, expected.pid, expected.start.kind, expected.start.a,
+        expected.start.b, expected.image_path.data(), expected.image_path.size(), expected.image_bytes, {}};
+    std::memcpy(profile.image_sha256, expected.image_sha256.data(), expected.image_sha256.size());
+    const bool both_ready = mode == Case::c_bridge_both_ready;
+    const bool canceled = mode == Case::c_bridge_canceled || both_ready, unknown = mode == Case::c_bridge_unknown;
+    int wake[2] = {-1, -1};
+    if (canceled) require(::pipe(wake) == 0, "fixture listener wake pipe failed");
+    FD wake_read(wake[0]), wake_write(wake[1]);
+    std::thread signal;
+    bool write_ok = false;
+    if (both_ready) ready(data);
+    if (canceled) {
+        cloud::wake_test = both_ready ? cloud::WakeTest::both_ready : cloud::WakeTest::blocked;
+        cloud::receive_waiting = false;
+        cloud::wake_written = false;
+        signal = std::thread([&] {
+            std::unique_lock<std::mutex> lock(cloud::wake_mutex);
+            if (!cloud::wake_changed.wait_for(lock, 1500ms, [] { return cloud::receive_waiting; })) return;
+            const uint8_t stop = 'X';
+            ssize_t count;
+            do { count = ::write(wake_write.get(), &stop, 1); } while (count < 0 && errno == EINTR);
+            write_ok = count == 1;
+            cloud::wake_written = true;
+            cloud::wake_changed.notify_one();
+        });
+    }
+    ynx_cloud_finite_get_control *owner = nullptr;
+    const bool received = fixture_cloud_c_receive(&owner, data, wake_read.get(), &profile, fixture_marker, canceled);
+    if (signal.joinable()) signal.join();
+    cloud::wake_test = cloud::WakeTest::off;
+    require(received, "C11 original descriptor or cancellation contract failed");
+    auto *accepted = cloud::borrow_accepted_control(owner);
+    require(canceled ? accepted == nullptr : accepted && accepted == cloud::borrow_accepted_control(owner), "C11 bridge detached original C++ owner");
+    const auto before = cloud::close_calls;
+    if (unknown) cloud::inject_close_error = true;
+    require(fixture_cloud_c_close(&owner, data, wake_read.get(), canceled, unknown), "C11 immutable first or physical close contract failed");
+    require(cloud::close_calls == before + (canceled ? 1 : 2), "C11 original descriptors closed more than once");
+    if (canceled) {
+        require(write_ok && read_bytes(wake_read.get(), 1) == std::vector<uint8_t>{'X'}, "C11 consumed the original wake byte");
+        wake_write.close();
+        wake_read.close();
+    }
+    if (unknown) retained_unknown = owner;
+}
+#endif
 
 void exchange(const sockaddr_un &endpoint, int listener, const std::string &image, Case mode) {
     int foreign_pair[2];
@@ -198,6 +288,17 @@ void exchange(const sockaddr_un &endpoint, int listener, const std::string &imag
     ready(listener);
     FD data(::accept(listener, nullptr, nullptr));
     require(data.get() >= 0, "fixture child data accept failed");
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+    if (mode == Case::c_bridge || mode == Case::c_bridge_canceled || mode == Case::c_bridge_both_ready || mode == Case::c_bridge_unknown) {
+        c_bridge_exchange(data.get(), expected, mode);
+        const uint8_t quit = 'Q';
+        send_bytes(pipe_write.get(), &quit, 1);
+        pipe_write.close();
+        child.wait();
+        data.close();
+        return;
+    }
+#endif
     cloud::OriginalBinding binding{std::make_shared<int>(1), std::make_shared<int>(2), {}, {}};
     binding.channel_sha256[0] = 18;
     binding.proof_sha256[0] = 19;
@@ -260,7 +361,11 @@ void exchange(const sockaddr_un &endpoint, int listener, const std::string &imag
 
 int main(int argc, char **argv) {
     try {
-        require(argc == 2 && argv[1][0] == '/' && std::strlen(argv[1]) < 104, "absolute owned Unix fixture socket required");
+        bool c_bridge = false;
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+        c_bridge = argc == 3 && std::strcmp(argv[2], "--c-bridge") == 0;
+#endif
+        require((argc == 2 || c_bridge) && argv[1][0] == '/' && std::strlen(argv[1]) < 104, "absolute owned Unix fixture socket required");
         sockaddr_un address{};
         address.sun_family = AF_UNIX;
         std::strcpy(address.sun_path, argv[1]);
@@ -269,11 +374,17 @@ int main(int argc, char **argv) {
             ::listen(listener.get(), 1) == 0, "fixture listener setup failed");
         std::unique_ptr<char, decltype(&std::free)> image(::realpath(argv[0], nullptr), std::free);
         require(static_cast<bool>(image), "fixture image path unavailable");
-        for (auto mode : {Case::complete, Case::partial, Case::foreign_control, Case::foreign_binding, Case::close_unknown, Case::extra_rights, Case::before_binding})
-            exchange(address, listener.get(), image.get(), mode);
+        if (c_bridge) {
+            for (auto mode : {Case::c_bridge, Case::c_bridge_canceled, Case::c_bridge_both_ready, Case::c_bridge_unknown})
+                exchange(address, listener.get(), image.get(), mode);
+        } else {
+            for (auto mode : {Case::complete, Case::partial, Case::foreign_control, Case::foreign_binding, Case::close_unknown, Case::extra_rights, Case::before_binding})
+                exchange(address, listener.get(), image.get(), mode);
+        }
         listener.close();
         require(::unlink(argv[1]) == 0, "fixture listener path cleanup failed");
-        std::puts("{\"kernel\":true,\"independentChild\":true,\"samePeerDataAndSCMControl\":true,\"frameIO\":true,\"physicalClose\":true,\"transportOnly\":true,\"partialRetained\":true,\"foreignControlRejected\":true,\"transcriptSubstitutionRejected\":true,\"closeUnknownRetained\":true,\"extraRightsRejected\":true}");
+        if (c_bridge) std::puts("{\"c11Bridge\":true,\"borrowedWakeCancellation\":true,\"firstCauseRetained\":true,\"unknownFreeRefused\":true,\"localClose\":true,\"transportOnly\":true}");
+        else std::puts("{\"kernel\":true,\"independentChild\":true,\"samePeerDataAndSCMControl\":true,\"frameIO\":true,\"physicalClose\":true,\"transportOnly\":true,\"partialRetained\":true,\"foreignControlRejected\":true,\"transcriptSubstitutionRejected\":true,\"closeUnknownRetained\":true,\"extraRightsRejected\":true}");
         return 0;
     } catch (const std::exception &e) {
         std::fprintf(stderr, "%s\n", e.what());

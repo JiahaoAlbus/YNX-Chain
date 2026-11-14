@@ -56,7 +56,10 @@ public:
     Control(const Control &) = delete;
     Control &operator=(const Control &) = delete;
 
-    bool receive_descriptor(int data_fd, const resource_current_detail::ExpectedProcess &expected, Deadline deadline, uint8_t &marker);
+    // The accept worker may borrow its listener wake-read FD for this call.
+    // Wake readiness wins over data, and the wake FD is neither read nor closed here.
+    bool receive_descriptor(int data_fd, const resource_current_detail::ExpectedProcess &expected,
+                            Deadline deadline, uint8_t &marker, int wake_fd = -1);
     bool bind_original(const OriginalBinding &binding);
     bool current(const OriginalBinding &binding);
     bool read_frame(const OriginalBinding &binding, size_t size, Deadline deadline, std::vector<uint8_t> &original);

@@ -15,23 +15,42 @@ namespace ynx::cloud_finite_get_detail {
 #if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_TEST)
 int fixture_cloud_control_close(int fd);
 #endif
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+void fixture_cloud_control_before_wait(int wake_fd);
+#endif
 namespace {
 using Clock = std::chrono::steady_clock;
 
-bool wait_ready(int fd, short events, Control::Deadline deadline) {
+bool wait_ready(int fd, short events, Control::Deadline deadline, int wake_fd = -1) {
     for (;;) {
         const auto now = Clock::now();
         if (now >= deadline) { errno = ETIMEDOUT; return false; }
         const auto left = std::chrono::ceil<std::chrono::milliseconds>(deadline - now).count();
-        pollfd event{fd, events, 0};
-        const int result = ::poll(&event, 1, static_cast<int>(left));
+        pollfd observed[] = {{fd, events, 0}, {wake_fd, POLLIN, 0}};
+#if defined(YNX_LINK_PUBLIC_CLOUD_CONTROL_C_TEST)
+        if (wake_fd >= 0) fixture_cloud_control_before_wait(wake_fd);
+#endif
+        const int result = ::poll(observed, wake_fd >= 0 ? 2 : 1, static_cast<int>(left));
         if (result < 0 && errno == EINTR) continue;
         if (result < 0) return false;
         if (!result) { errno = ETIMEDOUT; return false; }
-        if (event.revents & (events | POLLHUP)) return true; // Read a pending prefix or observe EOF.
-        errno = event.revents & POLLNVAL ? EBADF : EIO;
+        if (observed[1].revents) {
+            errno = observed[1].revents & POLLNVAL ? EBADF : ECANCELED;
+            return false;
+        }
+        if (observed[0].revents & (events | POLLHUP)) return true; // Read a pending prefix or observe EOF.
+        errno = observed[0].revents & POLLNVAL ? EBADF : EIO;
         return false;
     }
+}
+
+bool wake_clear(int wake_fd) {
+    if (wake_fd < 0) return true;
+    pollfd wake{wake_fd, POLLIN, 0};
+    const int result = ::poll(&wake, 1, 0);
+    if (!result) return true;
+    if (result > 0) errno = wake.revents & POLLNVAL ? EBADF : ECANCELED;
+    return false;
 }
 
 bool nonzero(const std::array<uint8_t, 32> &digest) {
@@ -92,14 +111,14 @@ struct Control::Impl {
         if (original >= 0 && close_socket(original)) close_error(errno);
     }
 
-    bool receive_rights(Deadline deadline, uint8_t &marker) {
+    bool receive_rights(Deadline deadline, uint8_t &marker, int wake_fd) {
         uint8_t received_marker = 0;
         alignas(cmsghdr) unsigned char ancillary[CMSG_SPACE(4 * sizeof(int))]{};
         iovec payload{&received_marker, 1};
         msghdr message{};
         ssize_t count;
         for (;;) {
-            if (!wait_ready(data, POLLIN, deadline)) return fail("Cloud control descriptor receive unavailable", errno);
+            if (!wait_ready(data, POLLIN, deadline, wake_fd)) return fail("Cloud control descriptor receive unavailable", errno);
             message.msg_iov = &payload;
             message.msg_iovlen = 1;
             message.msg_control = ancillary;
@@ -182,21 +201,23 @@ Control::~Control() {
 }
 
 bool Control::receive_descriptor(int fd, const resource_current_detail::ExpectedProcess &expected,
-                                 Deadline deadline, uint8_t &marker) {
+                                 Deadline deadline, uint8_t &marker, int wake_fd) {
     marker = 0;
     auto &s = *state;
     if (s.owner != ::getpid()) return false;
     if (s.receive_selected || s.life.retired) return s.fail("original Cloud control descriptor already selected or retired");
     s.receive_selected = true;
-    if (fd < 0) return s.fail("original Cloud data socket required");
+    if (fd < 0 || wake_fd < -1 || wake_fd == fd) return s.fail("original Cloud data and optional distinct wake descriptor required");
     if (!s.bounded(deadline)) return false;
+    if (!wake_clear(wake_fd)) return s.fail("Cloud control descriptor receive unavailable", errno);
     std::string failure;
     if (!s.peer.prepare(expected, failure)) return s.fail(std::move(failure));
     s.data = ::fcntl(fd, F_DUPFD_CLOEXEC, 0);
     if (s.data < 0) return s.fail("Cloud original data socket duplication failed", errno);
     uint8_t observed_marker;
-    if (!s.receive_rights(deadline, observed_marker)) return false;
+    if (!s.receive_rights(deadline, observed_marker, wake_fd)) return false;
     if (!s.peer.bind(s.data, s.control, failure)) return s.fail(std::move(failure));
+    if (!wake_clear(wake_fd)) return s.fail("Cloud control descriptor receive unavailable", errno);
     s.life.peer_bound = true;
     marker = observed_marker;
     return true;
