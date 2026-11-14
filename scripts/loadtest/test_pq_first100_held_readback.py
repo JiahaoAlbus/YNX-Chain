@@ -404,7 +404,10 @@ class HeldReadbackTests(unittest.TestCase):
                       tools=dict(commit='c'*40), hardware=hardware, toolchain='go1.26.11',
                       caps=dict(rssBytes=10), conditions=dict(accounts=500), fullCohort=cohort,
                       firstCause='original reply missing', peakRSSBytes=8, businessBlockCommitStages=None)
-        after = dict(before, actionsOrigin=dict(run=2), archiveSHA256='d'*64)
+        lifecycle = dict(observationCutoffNs=35, records=[dict(index=0, launchReturnedToWaitNs=None)],
+                         finalityInferred=False)
+        after = dict(before, actionsOrigin=dict(run=2), archiveSHA256='d'*64,
+                     originalVerifierLifecycle=lifecycle)
         same = reader.compare_business(before, after)
         self.assertTrue(same['sameReportedConditions'])
         self.assertFalse(same['identicalPhysicalHostProven'])
@@ -417,6 +420,8 @@ class HeldReadbackTests(unittest.TestCase):
             submitToQualifiedReceiptObserved=dict(observed=0, missingOrCensored=500, minNs=None)))
         self.assertEqual(same['before']['stages'], cohort['stages'])
         self.assertEqual(same['before']['firstCause'], 'original reply missing')
+        self.assertIsNone(same['before']['originalVerifierLifecycle'])
+        self.assertEqual(same['after']['originalVerifierLifecycle'], lifecycle)
 
         changed = dict(after, hardware=dict(hardware, cpuModels=['Intel']), conditions=None)
         difference = reader.compare_business(before, changed)

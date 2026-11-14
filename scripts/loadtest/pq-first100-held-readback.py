@@ -169,6 +169,7 @@ def compare_business(before, after):
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
                     proofPublication=report.get('proofPublication'),
                     proofCaptureProgress=report.get('proofCaptureProgress'),
+                    originalVerifierLifecycle=report.get('originalVerifierLifecycle'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
                     businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
