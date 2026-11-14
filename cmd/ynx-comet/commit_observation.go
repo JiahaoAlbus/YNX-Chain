@@ -177,6 +177,11 @@ func (o *operatorCommitObservation) bind(app *consensus.Application, m chain.Con
 	o.app = app
 	o.result.ChainID, o.result.OriginalGenesisHash = fmt.Sprintf("ynx_%d-1", m.Network.ChainID), m.OriginalGenesisHash
 	app.SetCommitTimingEnabled(true)
+	if err := app.SetCommitValidationTimingEnabled(true); err != nil {
+		app.SetCommitTimingEnabled(false)
+		o.app = nil
+		return err
+	}
 	return nil
 }
 
@@ -245,12 +250,12 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 	if app == nil {
 		return nil, "original-application-unavailable"
 	}
-	first, ok := app.LastCommitTiming()
+	first, ok, reason := observedCommitAttempt(app)
 	if !ok {
 		return nil, "timing-unavailable"
 	}
-	if !validObservedCommitTiming(first) {
-		return nil, "timing-malformed"
+	if reason != "" {
+		return nil, reason
 	}
 	if !first.Durable || first.Height != height {
 		return nil, "notification-does-not-match-durable-attempt"
@@ -259,8 +264,8 @@ func observedCommitSample(app *consensus.Application, height int64) (*operatorCo
 	if err != nil || point.Height != height {
 		return nil, "checkpoint-does-not-match-attempt"
 	}
-	second, ok := app.LastCommitTiming()
-	if !ok || !equalCommitTiming(first, second) {
+	second, ok, reason := observedCommitAttempt(app)
+	if !ok || reason != "" || !equalCommitTiming(first, second) {
 		return nil, "attempt-changed-during-capture"
 	}
 	return &operatorCommitSample{Height: height, AppHash: point.AppHash, Persistence: first}, ""
@@ -309,7 +314,12 @@ func (o *operatorCommitObservation) failure() {
 	f := &operatorCommitFailure{NotificationObserved: true}
 	if o.app != nil {
 		f.CommittedCheckpoint, _ = commitPoint(o.app)
-		if sample, ok := o.app.LastCommitTiming(); ok {
+		if sample, ok, reason := observedCommitAttempt(o.app); ok {
+			if reason != "" {
+				o.reject(reason)
+				o.result.LastFailure = f
+				return
+			}
 			if sample.Durable {
 				o.reject("error-notification-does-not-match-failed-attempt")
 				return

@@ -793,6 +793,7 @@ jobs:
           raw = path.read_bytes()
           rows = [json.loads(line) for line in raw.splitlines()]
           required = ['TestOperatorCommitObservationSchemaFixture',
+              'TestOperatorCommitObservationValidationProjection',
               'TestOperatorCommitObservationDefaultAndClosedFlags',
               'TestOperatorCommitObservationRejectsPublicMigrationAndNetworkBeforeEnable',
               'TestOperatorCommitObservationLoggerModuleOwnershipAndUntrustedPayloads',

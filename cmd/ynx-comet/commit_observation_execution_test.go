@@ -291,12 +291,24 @@ func TestOperatorCommitObservationRealBlockExecutorStateFeesAndJournalEquivalent
 					t.Fatal("original account nonce did not advance exactly once")
 				}
 				if enabled {
+					detail, available := app.LastCommitValidationTiming()
+					if !available || !detail.Valid || detail.Height != next.LastBlockHeight {
+						t.Fatal("normal synthetic bind did not opt into original validation detail")
+					}
 					if len(o.result.Samples) != 1 {
 						t.Fatal("normal synchronous engine event was not consumed", o.result.RejectedNotifications)
 					}
 					sample := o.result.Samples[0]
 					if sample.Height != next.LastBlockHeight || sample.AppHash != hex.EncodeToString(next.AppHash) || sample.AppHash == hex.EncodeToString(block.AppHash) || sample.Persistence.Height != sample.Height || !sample.Persistence.Durable || len(sample.Persistence.StagesNs) == 0 {
 						t.Fatal("sample was not tied to actual new committed checkpoint", sample)
+					}
+					for _, name := range []string{"validator_registry", "engine_schedule", "engine_snapshot", "pq_state", "ledger_records", "app_hash"} {
+						if ns, ok := sample.Persistence.StagesNs["validate_child_"+name]; !ok || ns != detail.PhaseNs[name] {
+							t.Fatal("normal observer lost an actual validator phase", name)
+						}
+					}
+					if sample.Persistence.StagesNs["validate_child_hash_document"] != detail.HashDocumentNs || sample.Persistence.StagesNs["validate_child_hash_encode_digest"] != detail.HashEncodeDigestNs || detail.HashDocumentNs <= 0 || detail.HashEncodeDigestNs <= 0 {
+						t.Fatal("actual changed-state hash child intervals not captured")
 					}
 					o.started()
 					if err = o.writeAfterStop(); err != nil {
@@ -310,8 +322,19 @@ func TestOperatorCommitObservationRealBlockExecutorStateFeesAndJournalEquivalent
 					if err = o.writeAfterStop(); err == nil {
 						t.Fatal("normal output was overwritten/replayed")
 					}
-				} else if _, ok := app.LastCommitTiming(); ok {
-					t.Fatal("default-off common application enabled timing")
+					if err = o.close(); err != nil {
+						t.Fatal(err)
+					}
+					if _, available := app.LastCommitValidationTiming(); available {
+						t.Fatal("normal observer close retained validation timing")
+					}
+				} else {
+					if _, ok := app.LastCommitTiming(); ok {
+						t.Fatal("default-off common application enabled timing")
+					}
+					if _, ok := app.LastCommitValidationTiming(); ok {
+						t.Fatal("default-off common application enabled validation timing")
+					}
 				}
 				cold, coldErr := newOperatorApplication(f.migration, path, f.bootstrap, nil, pqOptions{stateLayout: layout, recoveryFD: -1})
 				if coldErr != nil || !bytes.Equal(cometJournalQuery(t, cold, "/state", nil), checkpoints[len(checkpoints)-1]) || !bytes.Equal(cometJournalQuery(t, cold, "/economics/fees", nil), fees[len(fees)-1]) {

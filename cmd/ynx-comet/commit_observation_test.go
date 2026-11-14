@@ -279,6 +279,20 @@ func TestOperatorCommitObservationMissingFailureAndReplayRemainUnknown(t *testin
 			if kind == "persistence-failure" && (r.LastFailure == nil || r.LastFailure.Timing == nil || r.LastFailure.CommittedCheckpoint == nil || r.LastFailure.Timing.Durable || r.LastFailure.AttemptAppHash != nil || r.LastFailure.CommittedCheckpoint.Height == r.LastFailure.Timing.Height) {
 				t.Fatal("failed persistence reused the old hash as its new checkpoint")
 			}
+			if kind == "persistence-failure" {
+				detail, available := app.LastCommitValidationTiming()
+				if !available || !detail.Valid || detail.Height != r.LastFailure.Timing.Height || !r.LastFailure.NotificationObserved {
+					t.Fatal("failed write lost its original successful validation or notification")
+				}
+				if ns, ok := r.LastFailure.Timing.StagesNs["validate_child_pq_state"]; !ok || ns != detail.PhaseNs["pq_state"] {
+					t.Fatal("real failed persistence lost its measured validation child")
+				}
+				if detail.HashDocumentNs == 0 {
+					if _, ok := r.LastFailure.Timing.StagesNs["validate_child_hash_document"]; ok {
+						t.Fatal("unchanged-genesis path fabricated a zero hash document probe")
+					}
+				}
+			}
 			if kind == "unobserved-replay-latest" && (r.UnobservedLatest == nil || !r.UnobservedLatest.Persistence.Durable || r.UnobservedLatest.Height != f.doc.InitialHeight) {
 				t.Fatal("actual unobserved final timing was discarded or relabelled as notification")
 			}
