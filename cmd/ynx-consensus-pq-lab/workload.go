@@ -358,17 +358,26 @@ func readPQLabWorkloadFile(path string, maximum int64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	size := before.Size()
 	var st unix.Stat_t
-	if unix.Fstat(fd, &st) != nil || !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || st.Nlink != 1 || before.Size() <= 0 || before.Size() > maximum {
+	if unix.Fstat(fd, &st) != nil || !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || st.Nlink != 1 || size <= 0 || size > maximum || int64(int(size)) != size {
 		return nil, errors.New("bounded immutable regular public input required")
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, maximum+1))
-	if err != nil {
+	raw := make([]byte, int(size))
+	if _, err := io.ReadFull(f, raw); err != nil {
 		return nil, err
+	}
+	var trailing [1]byte
+	n, err := f.Read(trailing[:])
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	if n != 0 || err != io.EOF {
+		return nil, errors.New("public input changed during read")
 	}
 	after, err := f.Stat()
 	current, pathErr := os.Lstat(path)
-	if err != nil || pathErr != nil || len(raw) != int(before.Size()) || !os.SameFile(before, after) || !os.SameFile(before, current) || current.Mode()&os.ModeSymlink != 0 || after.Size() != before.Size() || current.Size() != before.Size() || !after.ModTime().Equal(before.ModTime()) || !current.ModTime().Equal(before.ModTime()) {
+	if err != nil || pathErr != nil || !os.SameFile(before, after) || !os.SameFile(before, current) || current.Mode()&os.ModeSymlink != 0 || after.Size() != size || current.Size() != size || !after.ModTime().Equal(before.ModTime()) || !current.ModTime().Equal(before.ModTime()) {
 		return nil, errors.New("public input changed during read")
 	}
 	return raw, nil

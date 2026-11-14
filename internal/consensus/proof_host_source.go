@@ -358,14 +358,23 @@ func readProofHostOriginal(path, pin string, limit int64) (_ *proofHostOriginal,
 			_ = r.file.Close()
 		}
 	}()
-	r.raw, err = io.ReadAll(io.LimitReader(r.file, limit+1))
-	if err != nil || int64(len(r.raw)) != r.info.Size() {
+	size := r.info.Size()
+	if int64(int(size)) != size {
+		return nil, errors.New("source exceeds addressable byte range")
+	}
+	r.raw = make([]byte, int(size))
+	if _, err = io.ReadFull(r.file, r.raw); err != nil {
 		return nil, errors.New("source read changed or exceeded bound")
 	}
-	if err = r.unchanged(); err != nil {
+	var trailing [1]byte
+	if n, readErr := r.file.Read(trailing[:]); n != 0 || readErr != io.EOF {
+		return nil, errors.New("source read changed or exceeded bound")
+	}
+	digest := proofHostSHA(r.raw)
+	if err = r.matchesDigest(digest); err != nil {
 		return nil, err
 	}
-	if pin != "" && proofHostSHA(r.raw) != pin {
+	if pin != "" && digest != pin {
 		return nil, errors.New("original source differs from independent SHA256")
 	}
 	return r, nil
