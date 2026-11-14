@@ -312,8 +312,8 @@ func proofHostChangeStamp(stat unix.Stat_t) (string, error) {
 	}
 	return "", errors.New("original source change identity unavailable")
 }
-func readProofHostOriginal(path, pin string, limit int64) (*proofHostOriginal, error) {
-	if err := requireInspectionPath(path); err != nil {
+func openProofHostOriginal(path string, limit int64) (_ *proofHostOriginal, err error) {
+	if err = requireInspectionPath(path); err != nil {
 		return nil, err
 	}
 	before, err := os.Lstat(path)
@@ -328,9 +328,8 @@ func readProofHostOriginal(path, pin string, limit int64) (*proofHostOriginal, e
 		return nil, err
 	}
 	f := os.NewFile(uintptr(fd), "held-public-host-source")
-	ok := false
 	defer func() {
-		if !ok {
+		if err != nil {
 			_ = f.Close()
 		}
 	}()
@@ -346,21 +345,37 @@ func readProofHostOriginal(path, pin string, limit int64) (*proofHostOriginal, e
 	if err != nil {
 		return nil, err
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, limit+1))
-	if err != nil || int64(len(raw)) != before.Size() {
+	return &proofHostOriginal{path: path, info: before, file: f, changed: stamp}, nil
+}
+
+func readProofHostOriginal(path, pin string, limit int64) (_ *proofHostOriginal, err error) {
+	r, err := openProofHostOriginal(path, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			_ = r.file.Close()
+		}
+	}()
+	r.raw, err = io.ReadAll(io.LimitReader(r.file, limit+1))
+	if err != nil || int64(len(r.raw)) != r.info.Size() {
 		return nil, errors.New("source read changed or exceeded bound")
 	}
-	r := &proofHostOriginal{path: path, info: before, raw: raw, file: f, changed: stamp}
 	if err = r.unchanged(); err != nil {
 		return nil, err
 	}
-	if pin != "" && proofHostSHA(raw) != pin {
+	if pin != "" && proofHostSHA(r.raw) != pin {
 		return nil, errors.New("original source differs from independent SHA256")
 	}
-	ok = true
 	return r, nil
 }
+
 func (r *proofHostOriginal) unchanged() error {
+	return r.matchesDigest(proofHostSHA(r.raw))
+}
+
+func (r *proofHostOriginal) matchesDigest(pin string) error {
 	now, err := os.Lstat(r.path)
 	if err != nil || !samePQStateFile(r.info, now) {
 		return errors.New("original source changed during publication")
@@ -375,7 +390,7 @@ func (r *proofHostOriginal) unchanged() error {
 		return errors.New("original source change epoch changed")
 	}
 	h := sha256.New()
-	if _, err = io.Copy(h, io.NewSectionReader(r.file, 0, r.info.Size())); err != nil || hex.EncodeToString(h.Sum(nil)) != proofHostSHA(r.raw) {
+	if n, err := io.Copy(h, io.NewSectionReader(r.file, 0, r.info.Size())); err != nil || n != r.info.Size() || hex.EncodeToString(h.Sum(nil)) != pin {
 		return errors.New("held original bytes changed")
 	}
 	after, err := os.Lstat(r.path)
@@ -391,6 +406,21 @@ func (r *proofHostOriginal) unchanged() error {
 		return errors.New("held source changed during final hash read")
 	}
 	return nil
+}
+
+// Receipt readback needs only the exact size and hash of the original file.
+func verifyProofHostOriginalReceipt(receipt PQLabWorkloadFile, limit int64) error {
+	if _, err := proofHostHash(receipt.SHA256); err != nil {
+		return err
+	}
+	r, err := openProofHostOriginal(receipt.Path, limit)
+	if err != nil {
+		return err
+	}
+	if strconv.FormatInt(r.info.Size(), 10) != receipt.Bytes {
+		return errors.Join(errors.New("live original length mismatch"), r.file.Close())
+	}
+	return errors.Join(r.matchesDigest(receipt.SHA256), r.file.Close())
 }
 
 // Retain the exact already-captured state bytes and a held descriptor without
