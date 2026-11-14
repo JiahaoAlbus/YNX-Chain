@@ -1,11 +1,11 @@
 import {createWorkspaceLifecycle} from './workspace-lifecycle.js';
 import {privateCopy} from '../../seller-console/private-copy.js';
-import{createRequestContext,contextChanged,merchantFailureMessage}from'./request-context.js';
+import{createRequestContext,contextChanged,merchantFailureMessage,preserveOriginalMutationFailure}from'./request-context.js';
 import{createFormState,localDateTime}from'./form-state.js';
 const formState=createFormState();
 import {createMutationRecovery} from './mutation-recovery.js';
 const mutationRecovery=createMutationRecovery();
-function merchantMutation(name,input,send,recoverOnly=false,discardOnly=false){const subject={account:session.account,merchantId:session.merchantId},assertCurrent=requests.capture();const path=name==="invoice-form"?"/v1/merchant/invoices":name==="catalog-form"?"/v1/merchant/catalog":name==="recurring-form"?"/v1/merchant/recurring-drafts":name.startsWith("webhook-retry-")?"/v1/merchant/webhooks/"+encodeURIComponent(name.slice(14))+"/retry":null;if(!path)throw new Error("Original recovery route unavailable");if(discardOnly)return mutationRecovery.discardPrepared(subject,name,assertCurrent).then(()=>({discardedUnsent:true}));return mutationRecovery.execute(subject,name,input,assertCurrent,send,value=>api().lookupMutation(subject,"POST",path,value),recoverOnly)}
+function merchantMutation(name,input,send,recoverOnly=false,discardOnly=false){const subject={account:session.account,merchantId:session.merchantId},assertCurrent=requests.capture();const path=name==="invoice-form"?"/v1/merchant/invoices":name==="catalog-form"?"/v1/merchant/catalog":name==="recurring-form"?"/v1/merchant/recurring-drafts":name.startsWith("webhook-retry-")?"/v1/merchant/webhooks/"+encodeURIComponent(name.slice(14))+"/retry":null;if(!path)throw new Error("Original recovery route unavailable");if(discardOnly)return mutationRecovery.discardPrepared(subject,name,assertCurrent).then(()=>({discardedUnsent:true}));let dispatched=false,readback=false;return mutationRecovery.execute(subject,name,input,assertCurrent,(value,mark)=>send(value,()=>{mark();dispatched=true}),value=>{readback=true;return api().lookupMutation(subject,"POST",path,value)},recoverOnly).catch(error=>{throw preserveOriginalMutationFailure(error,{dispatched,readback})})}
 import {merchantInvoiceInput,currentMerchantInvoice} from "./invoice-presentation.js";
 import { PayAPI, realRecords, merchantAnalytics } from "./api.js";
 import { applyLocale, formatDate, formatNumber, invoiceCount, localeNames, locales, t } from "./i18n.js";

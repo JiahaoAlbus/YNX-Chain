@@ -9,7 +9,8 @@ export const contextChanged = error => error?.code === 'COMMERCE_CONTEXT_CHANGED
 export function merchantFailureMessage(error, locale = 'en') {
   const localized = (en, zh, zhHant) => locale === 'zh-Hans' ? zh : locale === 'zh-Hant' ? zhHant : en;
   switch (error?.code) {
-    case 'MERCHANT_MUTATION_UNRESOLVED': return error.message;
+    case 'MERCHANT_MUTATION_UNRESOLVED':
+      return localized('The original request outcome is unconfirmed. Keep its original inputs and check the same request.', '原请求结果尚未确认。请保留原始输入并查询同一请求。', '原請求結果尚未確認。請保留原始輸入並查詢同一請求。');
     case 'ORIGINAL_AUTHORITY_REQUIRED':
     case 'ORIGINAL_ACTOR_REQUIRED':
     case 'AUTHORITY_SNAPSHOT_REQUIRED':
@@ -29,6 +30,10 @@ export function merchantFailureMessage(error, locale = 'en') {
       return localized('The original request outcome is unconfirmed. Keep its original inputs and check the same request.', '原请求结果尚未确认。请保留原始输入并查询同一请求。', '原請求結果尚未確認。請保留原始輸入並查詢同一請求。');
     default: return null;
   }
+}
+export function preserveOriginalMutationFailure(error, { dispatched = false, readback = false } = {}) {
+  if ((!dispatched && !readback) || contextChanged(error) || merchantFailureMessage(error) !== null) return error;
+  return Object.assign(new Error('The original merchant request outcome is unconfirmed.'), { code: 'MERCHANT_MUTATION_UNRESOLVED', cause: error });
 }
 export function createRequestContext(identity, { timeoutMs = 15000 } = {}) {
   let revision = 0;

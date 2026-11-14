@@ -1,4 +1,4 @@
-import test from'node:test';import assert from'node:assert/strict';import{createRequestContext,contextChanged,merchantFailureMessage}from'../src/request-context.js';
+import test from'node:test';import assert from'node:assert/strict';import{createRequestContext,contextChanged,ContextChangedError,merchantFailureMessage,preserveOriginalMutationFailure}from'../src/request-context.js';
 globalThis.YNX_PAY_API_URL='https://commerce-qa.invalid';
 const{PayAPI}=await import('../src/api.js?boundary');
 // Controlled authorizer verifies transport ordering only, not actual approval.
@@ -29,6 +29,21 @@ test('merchant refusal messages distinguish missing authority, invalid session a
  assert.match(merchantFailureMessage({code:'AUTHORITY_SNAPSHOT_REQUIRED'},'zh-Hans'),/商户授权暂不可用/);
  assert.match(merchantFailureMessage({code:'INVALID_SESSION'},'zh-Hant'),/工作階段無權/);
  assert.equal(merchantFailureMessage({code:'UNREVIEWED_SERVER_CODE'}),null);
+});
+
+test('lost dispatch and readback report the original as unconfirmed without masking authority failures',()=>{
+ const network=new Error('network failed');
+ assert.equal(preserveOriginalMutationFailure(network),network);
+ for(const state of [{dispatched:true},{readback:true}]){
+  const unresolved=preserveOriginalMutationFailure(network,state);
+  assert.equal(unresolved.code,'MERCHANT_MUTATION_UNRESOLVED');
+  assert.equal(unresolved.cause,network);
+  assert.match(merchantFailureMessage(unresolved,'zh-Hans'),/查询同一请求/);
+  const authority=Object.assign(new Error('missing'),{code:'ORIGINAL_AUTHORITY_REQUIRED'});
+  assert.equal(preserveOriginalMutationFailure(authority,state),authority);
+  const changed=new ContextChangedError();
+  assert.equal(preserveOriginalMutationFailure(changed,state),changed);
+ }
 });
 
 test('noncanonical or oversized response codes are not promoted to local error codes',async()=>{
