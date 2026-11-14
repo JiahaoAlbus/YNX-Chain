@@ -29,6 +29,7 @@ class ProductDeviceV4Once final {
  [[noreturn]]void fail(const char*code){phase_=Phase::unknown;if(first_.empty())first_=code;throw std::runtime_error(first_);}
  void thread()const{if(thread_!=std::this_thread::get_id())throw std::runtime_error("DEVICE_V4_ONCE_THREAD");}
 public:
+ struct RecoveredOutcomeDATA {bool terminalPresent=false;int32_t status=0;uint32_t cleanup=0;std::vector<unsigned char>member;};
  ProductDeviceV4Once(HostDirfdJournal&journal,const std::array<unsigned char,32>&network,
   const std::array<unsigned char,32>&session,const std::array<unsigned char,32>&registration,
   const std::string&nonce,const std::vector<unsigned char>&e5):journal_(journal),thread_(std::this_thread::get_id()){
@@ -62,6 +63,32 @@ public:
   std::string terminal="YNX-PRODUCT-DEVICE-HTTP-OUTCOME/v4";const auto binding=digest(entered_);field(terminal,binding.data(),binding.size());u32(terminal,(uint32_t)status);u32(terminal,cleanup);field(terminal,member.data(),member.size());
   try{journal_.writeProductDeviceV4OnceExclusive(key_+".terminal",terminal);if(journal_.read(key_+".terminal",131072)!=terminal)fail("DEVICE_V4_ONCE_TERMINAL_READBACK");
    if(status!=0||cleanup!=2||member.empty())fail("DEVICE_V4_ONCE_OUTCOME_UNKNOWN");phase_=Phase::terminal;
+  }catch(const std::exception&e){fail(e.what());}
+ }
+ // Read the SAME already-retained operation. The caller must derive this
+ // instance from the original Source-held request/nonce/E5, never a new
+ // request or a newly selected identity. This exposes DATA only: even a
+ // complete record does not establish Source current or authorize HTTP.
+ // A missing/partial/malformed terminal stays UNKNOWN and cannot re-arm the
+ // same object or cause a private primitive to be entered again.
+ RecoveredOutcomeDATA recoverOriginalOutcomeDATA(){
+  thread();if(phase_!=Phase::fresh)fail("DEVICE_V4_ONCE_RECOVERY_ALREADY_SELECTED");phase_=Phase::unknown;
+  try{
+   auto names=journal_.list();bool entered=false,terminal=false;
+   for(const auto&n:names){if(n==key_+".entered")entered=true;if(n==key_+".terminal")terminal=true;}
+   if(!entered)fail("DEVICE_V4_ONCE_ORIGINAL_ENTERED_NOT_SUPPLIED");
+   if(journal_.read(key_+".entered",131072)!=entered_)fail("DEVICE_V4_ONCE_ORIGINAL_ENTERED_CHANGED");
+   if(!terminal)return {};
+   const auto raw=journal_.read(key_+".terminal",131072);const std::string prefix="YNX-PRODUCT-DEVICE-HTTP-OUTCOME/v4";
+   if(raw.size()<prefix.size()||raw.compare(0,prefix.size(),prefix)!=0)fail("DEVICE_V4_ONCE_ORIGINAL_TERMINAL_INVALID");
+   size_t pos=prefix.size();
+   auto word=[&]()->uint32_t{if(pos>raw.size()||raw.size()-pos<4)fail("DEVICE_V4_ONCE_ORIGINAL_TERMINAL_INVALID");uint32_t n=0;for(unsigned i=0;i<4;i++)n=(n<<8)|(unsigned char)raw[pos++];return n;};
+   const auto length=word();const auto expected=digest(entered_);
+   if(length!=expected.size()||pos>raw.size()||raw.size()-pos<length||std::memcmp(raw.data()+pos,expected.data(),length)!=0)fail("DEVICE_V4_ONCE_ORIGINAL_TERMINAL_BINDING");pos+=length;
+   const uint32_t statusBits=word(),cleanup=word(),memberLength=word();
+   if(memberLength>98304||pos>raw.size()||raw.size()-pos!=memberLength)fail("DEVICE_V4_ONCE_ORIGINAL_TERMINAL_INVALID");
+   RecoveredOutcomeDATA out;out.terminalPresent=true;std::memcpy(&out.status,&statusBits,sizeof(out.status));out.cleanup=cleanup;
+   out.member.assign(raw.begin()+pos,raw.end());retained_=out.member;return out;
   }catch(const std::exception&e){fail(e.what());}
  }
  std::vector<unsigned char>copyRetainedOutcomeDATA()const{if(thread_!=std::this_thread::get_id())throw std::runtime_error("DEVICE_V4_ONCE_THREAD");return retained_;}
