@@ -19,7 +19,7 @@ import (
 // signal handling and original sender session, not a simulated Go responder.
 func TestPQLabExperimentalPoisonGoHelper(t *testing.T) {
 	if os.Getenv("YNX_POISON_GO_CHILD") != "1" {
-		return
+		t.Skip("subprocess helper only; not standalone validation")
 	}
 	var args []string
 	if err := json.Unmarshal([]byte(os.Getenv("YNX_POISON_GO_ARGS")), &args); err != nil {

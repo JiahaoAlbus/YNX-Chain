@@ -21,7 +21,7 @@ import (
 // lease and Close APIs. It is not the production CLI framing implementation.
 func TestPQLabExperimentalPoisonCacheGoHelper(t *testing.T) {
 	if os.Getenv("YNX_POISON_GO_CHILD") != "1" {
-		return
+		t.Skip("subprocess helper only; not standalone validation")
 	}
 	var opts PQLabPublicOwnerSessionOptions
 	if err := json.Unmarshal([]byte(os.Getenv("YNX_OWNER_SESSION_OPTIONS")), &opts); err != nil {
