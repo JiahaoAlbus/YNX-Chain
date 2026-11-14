@@ -69,14 +69,14 @@ export class NativePayBusinessClient {
  }
  snapshot(){return clone(this.#state);}
  invalidate(reason='NATIVE_PAY_SOURCE_UNAVAILABLE'){this.#revision++;this.#state={phase:'unavailable',reason,reference:null,bill:null};return this.snapshot();}
- #fence(revision){this.#runtime.current();if(revision!==this.#revision)throw failure('NATIVE_PAY_SELECTION_CHANGED');}
+ #fence(revision){if(this.#runtime.current()!==undefined)throw failure('NATIVE_PAY_PRODUCT_CURRENT_RESULT');if(revision!==this.#revision)throw failure('NATIVE_PAY_SELECTION_CHANGED');}
  async #run(reference,phase,work){
   const revision=++this.#revision,current=()=>this.#fence(revision);
   const signal=types.isProxy(this.#runtime.current)?undefined:Object.getOwnPropertyDescriptor(this.#runtime.current,'signal')?.value;
   if(signal!==undefined)Object.defineProperty(current,'signal',{value:signal});
   this.#state={phase,reason:null,reference:clone(reference),bill:null};
   try{current();const result=await work(current);current();this.#state={phase:'ready',reason:null,reference:clone(reference),...result};return this.snapshot();}
-  catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:nativePayFailureCode(error),reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
+  catch(error){if(revision===this.#revision){let recovery;try{if(this.#runtime.current()===undefined)recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:nativePayFailureCode(error),reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
  }
  async #originalProductIntent(productId,sourceOrder,current){
   if(typeof productId!=='string'||typeof sourceOrder!=='string'||![productId,sourceOrder].every(v=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v)))throw failure('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
