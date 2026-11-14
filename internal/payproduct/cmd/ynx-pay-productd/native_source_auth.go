@@ -17,7 +17,7 @@ func normalNativePayHandler(parent *payproduct.Service, build buildinfo.Info, lo
 	// the same host's mutually exclusive Native or BFT boot composition.
 	runtime, err := nativehost.New(parent, nativehost.Resources{}, nil, build, logger)
 	if err != nil {
-		logger.Info("native_source_unavailable", "source_linked", true, "source_ready", false)
+		logger.Info("native_source_unavailable", "source_linked", true, "source_ready", false, "reason", nativeSourceFailureCode(err))
 		return payproduct.NewClosedProductionServerWithLogger(parent, build, logger).Handler(), runtime.Retire, runtime.Close
 	}
 	return runtime.Handler(), runtime.Retire, runtime.Close

@@ -5,9 +5,29 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"testing"
 	"time"
 )
+
+func TestNativeSourceFailureCodeDoesNotLeakUnknownErrors(t *testing.T) {
+	for _, code := range []string{
+		"PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED",
+		"PAY_ORIGINAL_TYPED_PARENT_RESOURCES_NOT_SUPPLIED",
+		"PAY_ORIGINAL_STORE_IDENTITY_MISMATCH",
+		"PAY_ORIGINAL_SOURCE_COMPOSITION_INCOMPLETE",
+	} {
+		if got := nativeSourceFailureCode(errors.New(code)); got != code {
+			t.Fatalf("failure code %q: got %q", code, got)
+		}
+	}
+	if got := nativeSourceFailureCode(errors.New("secret path or credential")); got != "NATIVE_PAY_SOURCE_UNKNOWN" {
+		t.Fatalf("unknown error leaked: %q", got)
+	}
+	if got := nativeSourceFailureCode(nil); got != "NATIVE_PAY_SOURCE_UNKNOWN" {
+		t.Fatalf("nil error: got %q", got)
+	}
+}
 
 func TestDecodeVerifierMapAcceptsExactEd25519PublicKeys(t *testing.T) {
 	publicOne := ed25519.NewKeyFromSeed(make([]byte, ed25519.SeedSize)).Public().(ed25519.PublicKey)

@@ -156,6 +156,23 @@ func closeNativePayAfterDrain(drainErr error, closeSource func() error) error {
 	return closeSource()
 }
 
+// Only stable, non-sensitive commissioning codes are suitable for service
+// logs. Other errors may include configuration, paths, or credentials.
+func nativeSourceFailureCode(err error) string {
+	if err == nil {
+		return "NATIVE_PAY_SOURCE_UNKNOWN"
+	}
+	switch err.Error() {
+	case "PAY_ORIGINAL_BUSINESS_SOURCE_COMMISSIONING_NOT_SUPPLIED",
+		"PAY_ORIGINAL_TYPED_PARENT_RESOURCES_NOT_SUPPLIED",
+		"PAY_ORIGINAL_STORE_IDENTITY_MISMATCH",
+		"PAY_ORIGINAL_SOURCE_COMPOSITION_INCOMPLETE":
+		return err.Error()
+	default:
+		return "NATIVE_PAY_SOURCE_UNKNOWN"
+	}
+}
+
 func positiveInt(name string) int64 {
 	v, err := strconv.ParseInt(required(name), 10, 64)
 	if err != nil || v <= 0 {
