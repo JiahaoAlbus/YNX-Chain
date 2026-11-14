@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -361,6 +363,90 @@ func TestP08AuthorityBrokerModelRevocationBeforeShopCommit(t *testing.T) {
 		len(c.news) != 1 || len(c.queries) != 1 || f.providerRequests.Load() != 2 {
 		t.Fatalf("model continuation: status=%q NEW=%d QUERY=%d provider=%d err=%v",
 			result.Status, len(c.news), len(c.queries), f.providerRequests.Load(), err)
+	}
+}
+
+func TestP08ShopOrderCancelAtBrokerReturnColdHTTPRecovery(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, false)
+	ctx := context.Background()
+	request := taskRunRequest{
+		RunID: "PUBLIC-shop-cancel-at-return", TaskRevision: f.task.Revision, Generation: f.task.Generation,
+		Prompt: "Read the selected order.", AuthorizationRef: "PUBLIC-original-proof-ref", ToolIDs: []string{shopOrderToolID},
+	}
+	pending, err := f.server.runTaskModel(ctx, f.session, f.task.ID, request)
+	if err != nil || len(pending.Steps) != 1 || pending.Status != "NEEDS_APPROVAL" {
+		t.Fatalf("proposal: %+v %v", pending, err)
+	}
+	var found bool
+	f.step, found = f.store.Action(f.session.Account, pending.Steps[0])
+	if !found {
+		t.Fatal("proposed Shop step is missing")
+	}
+	f.approve(t)
+	c.result = p08BrokerResult(t, f)
+	c.afterEffect = func() {
+		task := f.store.state.Tasks[f.task.ID]
+		body, _ := json.Marshal(map[string]uint64{"revision": task.Revision, "generation": task.Generation})
+		r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+task.ID+"/cancel", bytes.NewReader(body))
+		r.SetPathValue("id", task.ID)
+		w := httptest.NewRecorder()
+		f.server.handleTaskCancel(w, r, f.session)
+		if w.Code != http.StatusOK || f.store.state.Tasks[task.ID].Status != "RECONCILING" {
+			t.Fatalf("cancel did not retain effect debt: %d %s", w.Code, w.Body.String())
+		}
+	}
+	request.Resume, request.Prompt = true, ""
+	view, err := f.server.runTaskModel(ctx, f.session, f.task.ID, request)
+	step := p08BrokerStored(f)
+	if !errors.Is(err, context.Canceled) || !view.Cancelled || view.Status != "UNKNOWN" || view.Content != "" ||
+		step.Status != "UNKNOWN" || step.ToolStep.AuthorityOperationID != c.result.OriginalOperation ||
+		step.ToolStep.ResultCipher != "" || len(c.news) != 1 || f.providerRequests.Load() != 1 {
+		t.Fatalf("cancelled run accepted late result: run=%q step=%q dispatches=%d provider=%d err=%v",
+			view.Status, step.Status, len(c.news), f.providerRequests.Load(), err)
+	}
+
+	a.currentErr = errors.New("PUBLIC effect authority revoked")
+	f.prepared.owners = &originalTaskRuntimeOwners{}
+	f.prepared.recoveryOnly = a.currentErr
+	p08BrokerRestart(t, f)
+	path := "/api/tasks/" + f.task.ID + "/tool-steps/" + f.step.ID
+	read := func() *httptest.ResponseRecorder {
+		return conversationResultRead(f.server, f.session, f.task.ID, f.step.ID)
+	}
+	if w := read(); w.Code != http.StatusConflict || bytes.Contains(w.Body.Bytes(), []byte("processing")) {
+		t.Fatalf("unsettled result was readable: %d", w.Code)
+	}
+
+	body, _ := json.Marshal(map[string]string{"authorizationRef": request.AuthorizationRef})
+	r := httptest.NewRequest(http.MethodPost, path+"/reconcile", bytes.NewReader(body))
+	r.SetPathValue("id", f.task.ID)
+	r.SetPathValue("stepId", f.step.ID)
+	w := httptest.NewRecorder()
+	f.server.handleTaskToolReconcile(w, r, f.session)
+	if w.Code != http.StatusOK || f.store.state.Tasks[f.task.ID].Status != "CANCELLED" {
+		t.Fatalf("historical query did not settle cancelled task: %d %s", w.Code, w.Body.String())
+	}
+	p08BrokerRestart(t, f)
+	got := read()
+	var receipt taskReadReceipt
+	var expectedProjection struct {
+		Projection json.RawMessage `json:"projection"`
+	}
+	if err := json.Unmarshal(c.result.Resource.ResponseOriginal, &expectedProjection); err != nil {
+		t.Fatal(err)
+	}
+	if got.Code != http.StatusOK || got.Header().Get("Cache-Control") != "no-store" ||
+		json.Unmarshal(got.Body.Bytes(), &receipt) != nil || receipt.AuthorityOperationID != c.result.OriginalOperation ||
+		receipt.RemoteRef != c.result.Resource.RemoteRef || !bytes.Equal(receipt.Result, expectedProjection.Projection) ||
+		receipt.WireBinding == nil || *receipt.WireBinding != bindTaskBytes(c.result.Resource.ResponseOriginal) {
+		t.Fatalf("cold GET lost original result: %d %s", got.Code, got.Body.String())
+	}
+	if _, err := f.server.runTaskModel(ctx, f.session, f.task.ID, request); err == nil {
+		t.Fatal("cancelled run resumed model disclosure")
+	}
+	if len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != c.result.OriginalOperation ||
+		!bytes.Equal(c.queries[0].RawInput, c.news[0].RawInput) || f.providerRequests.Load() != 1 {
+		t.Fatal("historical recovery replayed the order tool or disclosed its result to the model")
 	}
 }
 
