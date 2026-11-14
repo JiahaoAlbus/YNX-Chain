@@ -230,7 +230,8 @@ class HeldReadbackTests(unittest.TestCase):
         rows = [dict(index=i, ownerIndex=i, stageTimes=[('owner_prepare', 10)]) for i in range(2)]
         reply = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=0, operationId='',
                      code='OWNER_PREPARED', result=None, calleeElapsedNs=30,
-                     timings=dict(stages={'sender.pbkdf2_600000': dict(calls=1, elapsedNs=20)}))
+                     timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',clock='monotonic_elapsed_wall_ns',
+                                  intervalsOverlap=True,stages={'sender.pbkdf2_600000': dict(calls=1, elapsedNs=20)}))
         path = 'public/load-operations/00000/original-prepare-owner-reply.json'
         output = reader.owner_preparation_timing(dict(rows=rows), {path: encode(reply)}, 'public/')
         self.assertEqual((output['attempted'], output['observedReplies']), (2, 1))

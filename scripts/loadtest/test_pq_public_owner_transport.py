@@ -426,7 +426,7 @@ class TransportControls(unittest.TestCase):
                         timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',clock='monotonic_elapsed_wall_ns',
                                      intervalsOverlap=True,stages={}))
         s=session(lambda:prepared)
-        s.c.measurements=d.CalleeMeasurements(2,2)
+        s.c.measurements=d.CalleeMeasurements(2,2,source=n.PREPARED_OWNER_SOURCE)
         checkpoint=unittest.mock.Mock()
         with self.assertRaises(RuntimeError):
             s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,

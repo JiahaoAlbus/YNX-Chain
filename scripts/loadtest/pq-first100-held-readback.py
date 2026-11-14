@@ -498,11 +498,18 @@ def owner_preparation_timing(load, files, prefix):
             require((reply.get('failure') or {}).get('failurePhase') == 'PREPARE_OWNER',
                     'original owner preparation failure phase differs')
         elapsed = reply.get('calleeElapsedNs')
-        require(elapsed is None or type(elapsed) is int and elapsed >= 0,
+        require(type(elapsed) is int and 0 <= elapsed < 1 << 63,
                 'invalid original owner preparation elapsed time')
-        measured = (reply.get('timings') or {}).get('stages', {})
-        for value in measured.values():
-            require(all(type(value[field]) is int and value[field] >= 0 for field in ('calls', 'elapsedNs')),
+        timing = reply.get('timings')
+        require(type(timing) is dict and timing.get('version') == 'YNX-PQ-LAB-CALLEE-ELAPSED/v1'
+                and timing.get('clock') == 'monotonic_elapsed_wall_ns' and timing.get('intervalsOverlap') is True
+                and type(timing.get('stages')) is dict and len(timing['stages']) <= 128,
+                'original owner preparation timing schema differs')
+        measured = timing['stages']
+        for name, value in measured.items():
+            require(type(name) is str and 0 < len(name) <= 128 and type(value) is dict
+                    and type(value.get('calls')) is int and 0 < value['calls'] < 1 << 64
+                    and type(value.get('elapsedNs')) is int and 0 <= value['elapsedNs'] < 1 << 63,
                     'invalid original owner preparation stage counters')
         records.append(dict(index=row['index'], ownerIndex=row['ownerIndex'], replyObserved=True,
                             code=reply['code'], replySHA256=hashlib.sha256(raw).hexdigest(),
