@@ -52,6 +52,20 @@ export function nativeArchiveReconciliationData(value,original,ref){
  const out=data(value,[...common,'receipts','pendingOriginals','completeKnownOriginals'],['storeId']);bound(out,original,ref);
  if(out.version!=='ynx.pay.native.archive-reconciliation/v1'||out.principalAtoms!==original.amountAtoms)fail();
  const receipts=arrayData(out.receipts).map(row=>{const safe=data(row,receiptFields,receiptOptional);return nativeArchiveReceiptData(safe,original,{...ref,nativeHash:safe.nativeHash});}),pending=arrayData(out.pendingOriginals);
- if(new Set(receipts.map(row=>row.nativeHash)).size!==receipts.length||pending.some(value=>!nativeHash(value))||new Set(pending).size!==pending.length||out.completeKnownOriginals!==(pending.length===0))fail();
+ const hashes=new Set(receipts.map(row=>row.nativeHash));
+ if(hashes.size!==receipts.length||pending.some(value=>!nativeHash(value)||hashes.has(value))||new Set(pending).size!==pending.length||out.completeKnownOriginals!==(pending.length===0))fail();
+ let settlement='',paid=0n,refunded=0n;
+ for(const receipt of receipts){
+  if(receipt.status!=='confirmed')continue;
+  if(receipt.kind==='invoice_settle'){
+   if(settlement)fail();
+   settlement=receipt.nativeHash;paid=BigInt(receipt.principalAtoms);
+  }else{
+   if(!settlement||receipt.settlementNativeHash!==settlement)fail();
+   refunded+=BigInt(receipt.principalAtoms);
+   if(refunded>paid||BigInt(receipt.refundedAtoms)!==refunded||BigInt(receipt.netPaidAtoms)!==paid-refunded)fail();
+  }
+ }
+ if(BigInt(out.paidAtoms)!==paid||BigInt(out.refundedAtoms)!==refunded||BigInt(out.netPaidAtoms)!==paid-refunded)fail();
  return Object.freeze({...out,receipts:Object.freeze(receipts),pendingOriginals:Object.freeze(pending)});
 }

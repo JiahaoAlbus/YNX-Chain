@@ -44,4 +44,13 @@ test('merchant reconciliation retains known original receipts and pending refere
  const result=await new NativePayBusinessClient(r).reconcileArchivedInvoice(original.productId,original.sourceOrder,merchant,reference.invoiceId);assert.equal(result.reconciliation.receipts.length,2);assert.equal(result.reconciliation.completeKnownOriginals,false);assert.equal(result.reconciliation.netPaidAtoms,'70');
  let getters=0;const trap=[receipt()];Object.defineProperty(trap,'0',{enumerable:true,get(){getters++;return receipt();}});
  assert.throws(()=>nativeArchiveReconciliationData({...value,receipts:trap},original,reference),{code:'NATIVE_PAY_ARCHIVE_RECEIPT_BINDING'});assert.equal(getters,0);
+ for(const change of [
+  v=>{v.refundedAtoms='20';v.netPaidAtoms='80';},
+  v=>{v.receipts[1].settlementNativeHash='0x'+'9'.repeat(64);},
+  v=>{v.pendingOriginals=[refund];},
+  v=>{v.receipts.reverse();}
+ ]){
+  const altered=structuredClone(value);change(altered);
+  assert.throws(()=>nativeArchiveReconciliationData(altered,original,reference),{code:'NATIVE_PAY_ARCHIVE_RECEIPT_BINDING'});
+ }
 });
