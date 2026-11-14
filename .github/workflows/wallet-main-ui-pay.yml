@@ -61,6 +61,8 @@ jobs:
         run: node --test --test-name-pattern 'canonical .*recovery|canonical reader|source proof|late source proof loss|desktop canonical transaction identity|cold cached mint proof|reader attestation completion' test/cross-chain.test.mjs
       - name: Cross-chain original terminal observation and timeout controls
         run: node --test --test-name-pattern 'original (Main terminal|terminal|) ?observation|terminal recovery from|confirm times out|timed-out start' src/features/cross-chain/cctp-flow.test.mjs src/features/cross-chain/cctp-reconcile-delta.test.mjs src/features/cross-chain/cctp-ui-wait.test.mjs
+      - name: Cross-chain original history on reopen
+        run: node --test src/features/cross-chain/cctp-ui-wait.test.mjs test/cctp-open-entry.test.mjs
       - name: PQ operator trust, original query, and submission controls
         run: node --test test/operator-deployment-identity.test.mjs test/original-policy-raw-bytes.test.mjs test/operator-query-http-observation.test.mjs src/features/pq-transaction/node-transport.test.mjs src/features/pq-transaction/node-finality-transport.test.mjs src/features/pq-transaction/typed-action-query-node.test.mjs src/features/pq-transaction/submission-adversarial.test.mjs
       - name: Pay original order binding through the normal client
