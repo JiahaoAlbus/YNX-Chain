@@ -47,6 +47,11 @@ export declare class ProductSessionGatewayNodeHost {
   authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   /** Separate Social Source/principal capability; no developer permission reuse. */
+  supplyOriginalSocialDirectorySourceV4():Promise<Readonly<{configured:boolean;firstCausePresent:boolean;firstCause:unknown;closeSelected:boolean;closed:boolean;RootAdmission:false;SourceAdmission:false}>>;
+  retireOriginalSocialDirectorySourceV4():void;
+  closeOriginalSocialDirectorySourceV4():Promise<void>;
+  drainOriginalSocialDirectorySourceV4():Promise<void>;
+  originalSocialDirectorySourceStatusV4():Readonly<{configured:boolean;closed:boolean;RootAdmission:false;SourceAdmission:false}>;
   assertOriginalSocialDeviceDirectoryPrincipalDeliveryV4(result:import('./original-social-device-directory-principal-dispatch-private.js').OriginalSocialDirectoryRootResponse):void;
   currentExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   recheckExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;

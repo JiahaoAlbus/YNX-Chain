@@ -1,3 +1,4 @@
+import {openOriginalSocialJointSourceBeforeHost,originalSocialJointSourceForHost,originalSocialJointSourceStartupStatus,retireOriginalSocialJointSource,closeOriginalSocialJointSourceAfterHost,drainOriginalSocialJointSourcePartial} from '../scripts/original-social-joint-source-startup.mjs';
 import {withOriginalPendingQueryHTTPHeaderBudget} from './original-pending-query-http-header-budget-private.js';
 import{acquireOriginalBinaryV5AccountPolicyRunner,assertOriginalBinaryV5AccountPolicyOwner}from'./original-binary-http-account-policy-v5.js';
 import {assertProductSessionControlSessionAllowed,productSessionControlClockFloor} from './product-session-control-intent.js';
@@ -118,6 +119,7 @@ export class ProductSessionGatewayNodeHost {
   #privateTransactions=new Map(); #privateActive=null; #privateFailurePresent=false; #privateFirstCause;
   #privateTerminalJournal; #privateTerminalOriginal; #privateRetainedOwners=new WeakMap();
   #authSourceCurrent=null;
+  #socialSourceRef=null;#socialSourceOpen=null;#socialSourceRetired=false;
   #deviceCurrent=null;
   #accountPolicy=null;#binaryAccountPolicyOwner=null;#binaryPolicyAcquiring=false;
 
@@ -464,10 +466,21 @@ export class ProductSessionGatewayNodeHost {
   // Source. No session DTO, restored credential or caller Source is accepted.
   // Separate fixed Social GET principal dispatch. The independent Social Source
   // must exist BEFORE the same Host SQL nonce/opaque V4 credential is consumed.
+  // Fixed zero-input independent Social Source; no caller-provided authority.
+  supplyOriginalSocialDirectorySourceV4(){
+    if(arguments.length)fail('SOCIAL_SOURCE_STARTUP_ZERO_INPUT','Original Social Source takes no input');
+    if(this.#socialSourceRetired)fail('SOCIAL_SOURCE_STARTUP_RETIRED','Original Social Source retired');
+    if(this.#socialSourceOpen)return this.#socialSourceOpen;
+    this.#socialSourceOpen=(async()=>{const ref=await openOriginalSocialJointSourceBeforeHost();this.#socialSourceRef=ref;if(this.#socialSourceRetired)retireOriginalSocialJointSource(ref);return originalSocialJointSourceStartupStatus(ref)})();return this.#socialSourceOpen;
+  }
+  retireOriginalSocialDirectorySourceV4(){this.#socialSourceRetired=true;if(this.#socialSourceRef)retireOriginalSocialJointSource(this.#socialSourceRef);}
+  async closeOriginalSocialDirectorySourceV4(){this.retireOriginalSocialDirectorySourceV4();if(this.#socialSourceOpen)await this.#socialSourceOpen;if(this.#socialSourceRef)return closeOriginalSocialJointSourceAfterHost(this.#socialSourceRef);}
+  async drainOriginalSocialDirectorySourceV4(){if(this.#socialSourceRef)return drainOriginalSocialJointSourcePartial(this.#socialSourceRef);}
+  originalSocialDirectorySourceStatusV4(){return this.#socialSourceRef?originalSocialJointSourceStartupStatus(this.#socialSourceRef):Object.freeze({configured:false,closed:!this.#socialSourceOpen,RootAdmission:false,SourceAdmission:false});}
   // Same Host credential remains private. Capture response cleanup before interpreting errors.
   async openOriginalSocialDirectoryResponseLoanV4(input,operation){
-    assertOriginalSocialDeviceDirectoryPrincipalSourceV4(this.#authSourceCurrent);
-    const source=this.#authSourceCurrent;
+    const source=this.#socialSourceRef&&!this.#socialSourceRetired?originalSocialJointSourceForHost(this.#socialSourceRef):null;
+    assertOriginalSocialDeviceDirectoryPrincipalSourceV4(source);
     if(typeof source.retainOriginalSocialDeviceDirectoryPrincipalResponseV4!=='function'||typeof source.originalSocialDeviceDirectoryPrincipalResponseCleanupV4!=='function')fail('SOCIAL_DIRECTORY_RESPONSE_LOAN_NOT_SUPPLIED','Original response cleanup required');
     if(operation!=='currentExistingSocialDeviceDirectoryPrincipalV4'&&operation!=='recheckExistingSocialDeviceDirectoryPrincipalV4')fail('SOCIAL_DIRECTORY_PRIVATE_DISPATCH_REQUIRED','Original operation required');
     const credential=operation==='currentExistingSocialDeviceDirectoryPrincipalV4'?await this.authenticateOriginalSocialDirectoryHTTPRequestV4(input):await this.revalidateOriginalSocialDirectoryHTTPRequestV4(input);
@@ -485,7 +498,7 @@ export class ProductSessionGatewayNodeHost {
     const retained=originalSocialDirectoryPrincipalResults.get(result);
     if(!retained||retained.host!==this)fail('SOCIAL_DIRECTORY_PRINCIPAL_ORIGINAL_REQUIRED','Original Social principal result required');
     this.#assertStateIdentity();
-    this.#authSourceCurrent.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(retained.credential,result);
+    const source=this.#socialSourceRef&&!this.#socialSourceRetired?originalSocialJointSourceForHost(this.#socialSourceRef):null;assertOriginalSocialDeviceDirectoryPrincipalSourceV4(source);source.assertOriginalSocialDeviceDirectoryPrincipalCompletionV4(retained.credential,result);
     assertOriginalSocialDirectoryHTTPCredentialCompletion(retained.credential);
   }
   async currentExistingDeveloperPrincipalV5(input){

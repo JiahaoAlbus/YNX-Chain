@@ -144,6 +144,9 @@ server.maxHeadersCount=36864; // Preserve complete raw duplicate detection withi
 }catch(cause){let cleanupCausePresent=false,cleanupCause;try{await closeOriginalProductPairSessionV4Daemon(originalPairSessionV4);}catch(error){cleanupCausePresent=true;cleanupCause=error;}throw Object.assign(new Error('PAIR_V4_ORIGINAL_SERVER_STARTUP_FAILED',{cause}),{partial:originalPairSessionV4,cleanupCausePresent,cleanupCause});}
 let originalReturnPublisher=null; // Main-only original Host binding, never a public metadata route.
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
+// Independent fixed Social Source; a missing reviewed row degrades only Social.
+const originalSocialSourceStartup=productSessionStateVersion==='2'?await productHost.supplyOriginalSocialDirectorySourceV4():null;
+if(originalSocialSourceStartup&&!originalSocialSourceStartup.configured)emitEvent({event:'social_directory_source_unavailable',level:'info',service:'ynx-wallet-gatewayd',configured:false});
 // The fixed original Native acquisition owns its actual service-role Source.
 // No borrowed joint, fd4 discovery, ENV/provider selector or caller DTO is used.
 let originalPrivateDispatch=null;
@@ -161,6 +164,23 @@ function retireOriginalHTTP(){
  server.removeListener('request',originalRequestListener);
  server.on('request',(_request,response)=>{response.writeHead(503,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({ok:false,error:{code:'SERVICE_RETIRED',message:'Wallet Gateway is retiring'}}));});
 }
+let originalDependentParentClose=null;
+function closeOriginalDependentParents(){
+ if(originalDependentParentClose)return originalDependentParentClose;
+ originalDependentParentClose=Promise.resolve().then(async()=>{
+  if(originalServerDeviceCurrent)await closeOriginalDeviceV4ServerCurrentAfterHost(originalServerDeviceCurrent);
+  if(originalAuthSourceCurrent){originalAuthSourceCurrent.retire();await originalAuthSourceCurrent.join();await originalAuthSourceCurrent.close();}
+ });return originalDependentParentClose;
+}
+// Explicit continuation only: same Social owner, then the original parents.
+// The first shutdown Promise and its original failure are never rewritten.
+async function continueOriginalSocialParentDrain(){
+ if(!originalShutdown||!originalOwnerDrain||!originalSocialSourceStartup)throw Object.assign(Error('SOCIAL_SOURCE_CONTINUATION_UNAVAILABLE'),{code:'SOCIAL_SOURCE_CONTINUATION_UNAVAILABLE'});
+ try{await originalOwnerDrain;}catch{}
+ try{await productHost.drainOriginalSocialDirectorySourceV4();}catch(cause){if(!productHost.originalSocialDirectorySourceStatusV4().closed)throw cause;}
+ if(!productHost.originalSocialDirectorySourceStatusV4().closed)throw Object.assign(Error('SOCIAL_SOURCE_PARENT_DRAIN_PENDING'),{code:'SOCIAL_SOURCE_PARENT_DRAIN_PENDING'});
+ await closeOriginalDependentParents();
+}
 function drainOriginalOwners(){
  if(originalOwnerDrain)return originalOwnerDrain;
  originalOwnerDrain=Promise.resolve().then(async()=>{
@@ -171,16 +191,22 @@ function drainOriginalOwners(){
   await cleanup(()=>{if(originalPrivateDispatch)originalPrivateDispatch.retire();});
   await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.join();});
   await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.close();});
-  await cleanup(()=>{if(originalServerDeviceCurrent)return closeOriginalDeviceV4ServerCurrentAfterHost(originalServerDeviceCurrent);});
-  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.retire();});
   await cleanup(async()=>{if(originalPrivateDispatch)await originalPrivateDispatch.join();});
   await cleanup(()=>closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition));
   originalPrivateTerminalUnknown=true;
   await cleanup(()=>{const status=originalWalletServicePrivateDispatchAcquisitionStatus(originalPrivateAcquisition);originalPrivateTerminalUnknown=status.unknown;if(status.businessFailurePresent&&!originalStartupFailure)originalStartupFailure=true;});
   await cleanup(()=>originalRuntimeLifetime.join());
   await cleanup(()=>originalRuntimeLifetime.close());
-  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.join();});
-  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.close();});
+  // Social response loans drain before the original device/Auth parents.
+  let socialPhysicalDone=true;
+  await cleanup(async()=>{
+   if(!originalSocialSourceStartup)return;
+   try{await productHost.closeOriginalSocialDirectorySourceV4();}
+   catch(cause){const status=productHost.originalSocialDirectorySourceStatusV4();if(!(status.closed&&!originalSocialSourceStartup.configured&&cause===originalSocialSourceStartup.firstCause))throw cause;}
+   finally{socialPhysicalDone=productHost.originalSocialDirectorySourceStatusV4().closed===true;}
+  });
+  if(!socialPhysicalDone){if(!privateFailure){privateFailure=true;privateCause=Object.assign(Error('SOCIAL_SOURCE_PARENT_DRAIN_PENDING'),{code:'SOCIAL_SOURCE_PARENT_DRAIN_PENDING'});}}
+  else await cleanup(()=>closeOriginalDependentParents());
   await cleanup(()=>{if(originalBinaryV5Policy)closeOriginalBinaryV5PolicyAfterHost(originalBinaryV5Policy);});
   await cleanup(()=>joinOriginalProductPairSessionV4Daemon(originalPairSessionV4));
   await cleanup(()=>closeOriginalProductPairSessionV4Daemon(originalPairSessionV4));
@@ -188,10 +214,16 @@ function drainOriginalOwners(){
  });return originalOwnerDrain;
 }
 function stopOriginalDaemon(reason){
- if(originalShutdown)return originalShutdown;
+ if(originalShutdown){
+  // A later normal shutdown signal explicitly continues only the same Social
+  // debt. The first shutdown promise and original failure remain immutable.
+  if(originalSocialSourceStartup)void continueOriginalSocialParentDrain().then(()=>emitEvent({event:'social_source_parent_drain_completed',level:'info',service:'ynx-wallet-gatewayd'}),cause=>emitEvent({event:'social_source_parent_drain_pending',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'SOCIAL_SOURCE_PARENT_DRAIN_UNKNOWN'}));
+  return originalShutdown;
+ }
  if(originalReturnPublisher)originalReturnPublisher.retire();
  try{retireOriginalProductPairSessionV4Daemon(originalPairSessionV4);}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
  try{if(originalPrivateDispatch)originalPrivateDispatch.retire();}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
+ try{if(originalSocialSourceStartup)productHost.retireOriginalSocialDirectorySourceV4();}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
  originalRuntimeLifetime.retire();retireOriginalHTTP();
  // Reserve both independent completions before any foreign callback.
  originalShutdown=Promise.resolve().then(async()=>{
