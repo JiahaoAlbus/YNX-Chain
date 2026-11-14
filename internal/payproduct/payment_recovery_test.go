@@ -133,4 +133,27 @@ func TestPaymentOutcomeHTTPRequiresFreshOriginalPayerProof(t *testing.T) {
 	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &outcome) != nil || outcome.Status != "committed" || p.writes != 1 {
 		t.Fatal("HTTP original readback failed or resubmitted", w.Code, w.Body)
 	}
+	refund, err := s.CreateRefundRequest(WalletSession{Account: account}, invoice.ID, 30, "original partial refund", "original-http-refund")
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor := MerchantPrincipal{Merchant: m, Account: m.PayoutAddress, Role: "finance"}
+	auth := signedRefundAuthorization(now, refund, invoice, actor, secp256k1.PrivKeyFromBytes(bytes32(5)), "0x"+strings.Repeat("c", 64))
+	lost := &refundLostPay{&fakeAuthorizedRefundPay{fakePay: p.fakePay}}
+	s.pay = lost
+	if _, err = s.SubmitRefundAuthorization(context.Background(), actor, refund.ID, auth, "original-http-refund-submit"); err == nil {
+		t.Fatal("lost refund acknowledgement reported success")
+	}
+	cold, err := OpenStore(s.store.path, s.key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.store = cold
+	req = httptest.NewRequest("GET", "/v1/invoices/"+invoice.ID+"/payment-outcome", nil)
+	signPayGatewayRequest(t, req, nil, account, now, "fresh-refund-outcome-nonce")
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+	if w.Code != 200 || json.Unmarshal(w.Body.Bytes(), &outcome) != nil || outcome.InvoiceID != invoice.ID || outcome.TransactionHash != result.TransactionHash || outcome.Financials.RefundStatus != "unknown" || outcome.Financials.RefundedPrincipal != 0 || outcome.Financials.NetPrincipal != 100 || lost.createCalls != 1 {
+		t.Fatal("original HTTP payment outcome hid unknown refund or changed money", w.Code, w.Body)
+	}
 }

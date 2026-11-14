@@ -51,7 +51,7 @@ jobs:
         with:
           node-version: "24"
       - name: Test Source liveness and original invoice lookup
-        run: go test ./internal/payproduct -run '^Test(LivenessDoesNotClaimNativePaySourceReadiness|MerchantInvoiceLookupKeepsOriginalAcrossAuthorityRefusals|RefundUnknownColdStoreCannotBeReleasedOrResent|MerchantHTTPPartialRefundUsesScopedProviderAndColdSeventyReadback)$' -count=1
+        run: go test ./internal/payproduct -run '^Test(LivenessDoesNotClaimNativePaySourceReadiness|MerchantInvoiceLookupKeepsOriginalAcrossAuthorityRefusals|RefundUnknownColdStoreCannotBeReleasedOrResent|MerchantHTTPPartialRefundUsesScopedProviderAndColdSeventyReadback|PaymentOutcomeHTTPRequiresFreshOriginalPayerProof)$' -count=1
       - name: Test normal Pay Source status and original recovery
         run: node --test apps/pay/native/r6/main-result.test.mjs
       - name: Install exact original merchant dependencies
