@@ -3289,6 +3289,20 @@ jobs:
           test "$(grep -F -c 'actual Gateway response fails the existing Wallet contract' "$YNX_WALLET_STATUS_CASE/original-red.log")" -eq 1
           grep -F -- '=== RUN   TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage' "$YNX_WALLET_STATUS_CASE/original-red.log"
           grep -F -- '--- FAIL: TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage (' "$YNX_WALLET_STATUS_CASE/original-red.log"
+          # Reproduce the later race on the complete previously healthy handler.
+          # Both cases must reach the real ABCI Commit and fail through /status.
+          git show f3091d2d5cf02ba5fa3cd68e3f991818fc8c2240:internal/bftgateway/gateway.go > "$YNX_WALLET_STATUS_CASE/forward-original-gateway.go"
+          cp "$YNX_WALLET_STATUS_CASE/forward-original-gateway.go" internal/bftgateway/gateway.go
+          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go' EXIT
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayStatusResamplesOneObservedForwardCommit$' ./internal/bftgateway > "$YNX_WALLET_STATUS_CASE/forward-red.log" 2>&1
+          YNX_WALLET_FORWARD_RED=$?
+          set -e
+          cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
+          trap - EXIT
+          cat "$YNX_WALLET_STATUS_CASE/forward-red.log"
+          test "$YNX_WALLET_FORWARD_RED" -ne 0
+          test "$(grep -F -c 'one forward commit made the Wallet status unavailable: 502' "$YNX_WALLET_STATUS_CASE/forward-red.log")" -eq 2
           # The following unchanged whole-suite step executes the fixed handler.
       - name: Verify Whole BFT gateway and native container readback
         id: pqgateway
