@@ -30,6 +30,7 @@ type shopTaskOrderRuntime struct {
 	reader                *commerce.PreparedOriginalShopTaskOrders
 	link                  *securelink.HTTPServer
 	listener              net.Listener
+	served                bool
 	closeMu               sync.Mutex
 	closed                bool
 	listenerCloseSelected bool
@@ -66,6 +67,13 @@ func openShopTaskOrderRuntime(ctx context.Context, store *commerce.Store, cfg co
 }
 
 func (r *shopTaskOrderRuntime) serve() error {
+	r.closeMu.Lock()
+	if r.closed || r.listenerCloseSelected {
+		r.closeMu.Unlock()
+		return net.ErrClosed
+	}
+	r.served = true
+	r.closeMu.Unlock()
 	return r.link.Serve(r.listener)
 }
 
@@ -86,7 +94,9 @@ func (r *shopTaskOrderRuntime) close(ctx context.Context) error {
 			return err
 		}
 	}
-	if r.listener != nil {
+	// LINK/http owns listener closure after Serve starts. For a failed
+	// bootstrap the listener was never handed to it and remains ours.
+	if r.listener != nil && !r.served {
 		r.listenerCloseSelected = true
 		if err := r.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
 			r.closeErr = err
