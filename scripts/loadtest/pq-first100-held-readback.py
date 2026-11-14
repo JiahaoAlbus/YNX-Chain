@@ -130,6 +130,7 @@ def compare_business(before, after):
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
+                    firstSignerFailure=report.get('firstSignerFailure'),
                     observationRPC=report.get('observationRPC'),
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
                     businessBlockCommitStages=report['businessBlockCommitStages'],
@@ -223,6 +224,32 @@ def observation_rpc(receipt):
         method: {key: sum(group[key] for group in nodes.values()) for key in fields}
         for method, nodes in by_method.items()
     }, elapsedIntervalsAdded=False)
+
+
+def first_signer_failure(owner_timing, files, prefix):
+    if owner_timing is None or owner_timing['firstOperationalFailure'] is None:
+        return None
+    first = owner_timing['firstOperationalFailure']
+    attempts = [value['originalRecord'] for value in first['returnedAttempts']
+                if value['originalRecord']['operation'] == 'sign'
+                and value['originalRecord'].get('code') in ('UNKNOWN', 'REJECTED')]
+    if not attempts:
+        return None
+    require(len(attempts) == 1, 'duplicate original failed signing attempt')
+    path = f"load-operations/{first['index']:05d}/original-sign-reply.json"
+    raw = files.get(prefix + path)
+    require(raw is not None and len(raw) <= 2 << 20, 'bounded original failed signing reply required')
+    reply = strict(raw)
+    require(reply['version'] == 'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
+            and all(reply[key] == attempts[0][key] for key in ('ownerIndex', 'operationId', 'code')),
+            'original failed signing reply identity differs')
+    measured = (reply.get('timings') or {}).get('stages', {})
+    return dict(index=first['index'], path=path, sha256=hashlib.sha256(raw).hexdigest(),
+                code=reply['code'], failure=reply.get('failure'),
+                checkpointStages={key: value for key, value in measured.items() if key.startswith('checkpoint.')},
+                senderPersistenceStages={key: value for key, value in measured.items()
+                                         if key.startswith('sender.persistence.')},
+                missingStagesFilled=False)
 
 
 def public_owner_timing(receipt, load):
@@ -463,6 +490,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                            observedNodes=observed_nodes, missingNodes=missing_nodes,
                            fourNodeJoinObserved=not missing_nodes, independentFinality=False)
     status = 'READY_ONLY_OBSERVED' if ready else 'OBSERVED' if load is not None else 'LOAD_RESULT_MISSING'
+    owner_timing = public_owner_timing(receipt, load) if load is not None else None
     return dict(report, status=status,
                 preparationOnlyDemandAccounting=receipt.get('preparationOnlyDemandAccounting'),
                 senderPoolPreparation=receipt.get('senderPoolPreparation'),
@@ -474,7 +502,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 readinessResources=readiness_resources(receipt),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
-                publicOwnerTiming=public_owner_timing(receipt, load) if load is not None else None,
+                publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
                 originalSuccessorAvailability=successor,
