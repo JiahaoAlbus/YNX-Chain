@@ -63,6 +63,34 @@ def _finalize_summary(observation, denominator=None):
                           for name in sorted(finalize.CHILDREN)})
 
 
+def _fee_history_materialization(records):
+    stage = 'seal.fee_materialize'
+    rows = []
+    for row in records:
+        sample = row['finalize']
+        elapsed, count = None, None
+        if sample is not None:
+            elapsed = sample['childrenNs'].get(stage)
+            counts = sample.get('counts', {})
+            require(type(counts) is dict, 'original fee materialization counts map required')
+            if stage in counts:
+                count = counts[stage]
+                require(type(count) is int and 0 <= count < 1 << 64,
+                        'original fee materialization count must be uint64')
+        rows.append(dict(height=row['height'], elapsedNs=elapsed, materializedEventCount=count))
+    counts = [row['materializedEventCount'] for row in rows if row['materializedEventCount'] is not None]
+    return dict(stage=stage, records=rows,
+                timing=stages.samples([row['elapsedNs'] for row in rows], len(rows)),
+                eventCounts=dict(denominator=len(rows), observed=len(counts), missing=len(rows)-len(counts),
+                                 minEvents=min(counts) if counts else None, maxEvents=max(counts) if counts else None),
+                pairedObservationCount=sum(row['elapsedNs'] is not None and row['materializedEventCount'] is not None for row in rows),
+                copyOnlyElapsedNs=None, allocationOnlyElapsedNs=None, instrumentationOverheadNs=None,
+                overheadSubtracted=False, perEventCostInferred=False,
+                meaning='Original seal materialization span includes allocation, committed-base copy and pending-chain materialization. '
+                        'Count is full returned history length, not incremental fee work. Copy/allocation components and measurement '
+                        'overhead were not separately timed; this span is already inside seal, never added to it.')
+
+
 def business_stage_costs(commit_snapshot, finalize_observation, heights):
     """Reduce already validated originals for one node and selected business heights.
 
@@ -84,6 +112,7 @@ def business_stage_costs(commit_snapshot, finalize_observation, heights):
                 observedCommitHeights=sorted(committed), missingCommitHeights=sorted(set(heights)-committed.keys()),
                 observedFinalizeCommitHeights=sorted(joined), missingFinalizeCommitHeights=sorted(set(heights)-joined.keys()),
                 finalizeStages=_finalize_summary(dict(samples=list(joined.values())), len(heights)),
+                feeHistoryMaterialization=_fee_history_materialization(records),
                 denominatorMeaning='Original distinct business block heights, not transaction demand; missing joins censor stage percentiles.',
                 commitStorageMeaning='Each original persistence storage is retained per height; no pooling across storage or nodes.',
                 countsMeaning='Original per-block inventories/attempt counters; fee history count is not incremental work or a per-fee timing.',
