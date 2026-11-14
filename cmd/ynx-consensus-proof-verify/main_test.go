@@ -16,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"golang.org/x/sys/unix"
 )
@@ -259,5 +260,80 @@ func TestProofVerifierPublicReadsNeverRepairOrFollowSpecialFiles(t *testing.T) {
 	}
 	if _, err = os.Stat(filepath.Join(dir, "absent.json")); !os.IsNotExist(err) {
 		t.Fatal("read path created an absent source")
+	}
+}
+
+func TestProofVerifierMigrationStreamsCompleteOriginal(t *testing.T) {
+	testFile := os.Getenv("YNX_PQ_PROOF_VERIFIER_PUBLIC_MIGRATION_FIXTURE")
+	if testFile != "" {
+		got, err := readProofMigration(testFile)
+		if err != nil || len(got.Accounts) < 504 {
+			t.Fatal("large original migration did not reach independent verifier", err)
+		}
+		t.Logf("independent verifier cold migration accounts=%d stateHash=%s", len(got.Accounts), got.StateHash)
+		return
+	}
+	d := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	if _, err := d.Faucet("ynx_proof_完整", 10); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 300; i++ {
+		d.ProduceBlock()
+	}
+	original, err := d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := original.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "migration.json")
+	verify := func(t *testing.T, raw []byte, success bool) {
+		t.Helper()
+		if err := os.WriteFile(path, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		got, err := readProofMigration(path)
+		if success {
+			if err != nil {
+				t.Fatal(err)
+			}
+			canonical, err := got.CanonicalJSON()
+			if err != nil || original.StateHash != got.StateHash || !bytes.Equal(canonical, raw) {
+				t.Fatal("cold migration changed original state or canonical bytes", err)
+			}
+		} else if err == nil || got.Runtime != nil {
+			t.Fatal("invalid cold migration returned a usable value", err)
+		}
+		after, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(after, raw) {
+			t.Fatal("read changed original migration bytes", err)
+		}
+	}
+	verify(t, raw, true)
+	for name, invalid := range map[string][]byte{
+		"duplicate":          bytes.Replace(raw, []byte(`"parentHash":`), []byte(`"parent\u0048ash":"foreign","parentHash":`), 1),
+		"unknown":            bytes.Replace(raw, []byte(`"parentHash":`), []byte(`"unknown":true,"parentHash":`), 1),
+		"trailing":           append(bytes.Clone(raw), []byte("{}")...),
+		"invalid UTF-8":      bytes.Replace(raw, []byte("完整"), []byte{0xff}, 1),
+		"changed state hash": bytes.Replace(raw, []byte(original.StateHash), []byte(strings.Repeat("0", 64)), 1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			if bytes.Equal(invalid, raw) {
+				t.Fatal("counterexample did not change the original bytes")
+			}
+			verify(t, invalid, false)
+		})
+	}
+	if err := os.Symlink(path, filepath.Join(dir, "alias.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readProofMigration(filepath.Join(dir, "alias.json")); err == nil {
+		t.Fatal("cold migration reader accepted an alias")
 	}
 }

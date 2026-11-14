@@ -692,15 +692,7 @@ func readPQLabLiveMaterialsResultOwned(in *pqLabLiveMaterialsInputs, sequence ui
 		if f.file.Path != filepath.Join(dir, f.name) {
 			return out, errors.New("live result escaped original output directory")
 		}
-		original, e := readProofHostOriginal(f.file.Path, f.file.SHA256, f.limit)
-		if e != nil {
-			return out, e
-		}
-		if pqLabFile(f.file.Path, original.raw) != f.file {
-			e = errors.New("live original length/hash mismatch")
-		}
-		e = errors.Join(e, original.file.Close())
-		if e != nil {
+		if e := verifyProofHostOriginalReceipt(f.file, f.limit); e != nil {
 			return out, e
 		}
 	}

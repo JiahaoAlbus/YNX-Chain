@@ -512,6 +512,43 @@ func TestProofHostSourceThreeLayoutsAndOriginalFailures(t *testing.T) {
 	}
 }
 
+func TestProofHostSourceReceiptReadbackChecksLengthDigestAndInode(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(root, "materials.json")
+	raw := bytes.Repeat([]byte("full public proof material"), 10000)
+	proofSourceWrite(t, path, raw)
+	receipt := pqLabFile(path, raw)
+	limit := int64(len(raw))
+	if err := verifyProofHostOriginalReceipt(receipt, limit); err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []PQLabWorkloadFile{
+		{Path: path, Bytes: receipt.Bytes, SHA256: strings.Repeat("a", 64)},
+		{Path: path, Bytes: "0" + receipt.Bytes, SHA256: receipt.SHA256},
+	} {
+		if err := verifyProofHostOriginalReceipt(bad, limit); err == nil {
+			t.Fatal("inexact original receipt passed")
+		}
+	}
+	if err := verifyProofHostOriginalReceipt(receipt, limit-1); err == nil {
+		t.Fatal("receipt bypassed original byte bound")
+	}
+	link := filepath.Join(root, "link.json")
+	if err := os.Link(path, link); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyProofHostOriginalReceipt(receipt, limit); err == nil {
+		t.Fatal("receipt used an aliased inode")
+	}
+	got, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(got, raw) {
+		t.Fatal("receipt readback touched original bytes", err)
+	}
+}
+
 func TestProofHostSourceHeldOriginalRejectsReplacementAndRestoredMtime(t *testing.T) {
 	for _, mode := range []string{"replacement", "restore-bytes-and-mtime"} {
 		t.Run(mode, func(t *testing.T) {
