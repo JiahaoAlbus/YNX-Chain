@@ -31,5 +31,14 @@ test('selecting a different task clears retained run pointer without deleting or
 
 test('legacy run query requires retained same run, never an unrelated original delivery',async()=>{const f=fixture([{...delivery,version:'2',runId:'different_run'}]);await f.c.restoreOriginalTask();assert.match(f.c.state.error,/LEGACY_ORIGINAL_DELIVERY_REQUIRED/);assert.deepEqual(f.calls,['v2.task']);assert.equal(f.c.state.run,null);assert.deepEqual(f.writes,[]);await f.c.whenClosed()});
 test('retrying cold restore clears prior displayed answer before source failure',async()=>{const f=fixture();await f.c.restoreOriginalTask();assert.ok(f.c.state.run?.content);f.api.list=async()=>{throw Error('PUBLIC Source unavailable')};await f.c.restoreOriginalTask();assert.equal(f.c.state.error,'PUBLIC Source unavailable');assert.equal(f.c.state.run,null);assert.equal(f.c.state.receipt,null);assert.equal(f.c.state.projection,null);await f.c.whenClosed()});
+test('failed task selection hides stale task details and does not send an effect',async()=>{
+ const f=fixture();await f.c.restoreOriginalTask();assert.equal(f.c.state.projection?.id,task.id);
+ const originalRead=f.api.task;f.api.task=async()=>{throw Error('PUBLIC task Source unavailable')};
+ await f.c.select(task.id);assert.match(f.c.state.error,/Source unavailable/);
+ assert.equal(f.c.state.projection,null);assert.equal(f.c.state.run,null);assert.equal(f.c.state.receipt,null);
+ assert.equal(f.c.state.record.deliveries[0]!.state,'UNKNOWN');
+ f.api.task=originalRead;await f.c.restoreOriginalTask();assert.equal(f.c.state.error,'');assert.equal(f.c.state.run?.content,run.content);
+ assert.equal(f.c.state.record.deliveries[0]!.state,'UNKNOWN');await f.c.whenClosed();
+});
 
 test('normal legacy reconcile uses original V2 query without adding a V6 delivery or changing UNKNOWN',async()=>{const f=fixture([{...delivery,version:'2'}]);const legacy=(f.api as TaskAPI&{legacyRecovery:{reconcile:(task:string,step:string,ref:string,signal:AbortSignal)=>Promise<unknown>}}).legacyRecovery;legacy.reconcile=async(taskId,stepId,ref)=>{assert.equal(taskId,task.id);assert.equal(stepId,'original_step');assert.equal(ref,'PUBLIC original ref');f.calls.push('v2.reconcile');return {}};await f.c.restoreOriginalTask();const before=structuredClone(f.c.state.record);await f.c.reconcile(f.c.state.projection!,{id:'original_step',status:'UNKNOWN',toolStep:{taskId:task.id,holder:task.holder,taskRevision:task.revision,generation:task.generation,toolId:'PUBLIC.read',toolVersion:'1'}},'PUBLIC original ref');assert.equal(f.c.state.error,'');assert.deepEqual(f.calls,['v2.task','v2.run','v2.reconcile']);assert.deepEqual(f.c.state.record,before);assert.deepEqual(f.writes,[]);await f.c.whenClosed()});
