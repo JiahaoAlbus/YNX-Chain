@@ -698,6 +698,9 @@ candidate_original_guard_command() {
 
 initialize_candidate_phase() {
   [[ "${PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED:-}" == yes ]] || { echo "PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED=yes is required for a fresh native import" >&2; exit 1; }
+  # A connection loss may follow an import or reservation. The exclusive
+  # attempt is an UNKNOWN fence, not permission for transport-level replay.
+  local -x YNX_DEPLOY_CONNECTION_ATTEMPTS=1
   prepare_candidate_package
   local binding_sha dry="${DEPLOY_DRY_RUN:-0}" candidate_guard_root="$candidate_root/initialize-attempt"
   local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${candidate_transaction_id}"
@@ -771,6 +774,9 @@ $command"
 
 start_candidate_phase() {
   [[ "${PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:-}" == yes ]] || { echo "PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED=yes is required; installation never starts the operator" >&2; exit 1; }
+  # Apply only to this write phase and its original backup/start callees;
+  # ordinary read-only verification retains its existing transport policy.
+  local -x YNX_DEPLOY_CONNECTION_ATTEMPTS=1
   prepare_candidate_package
   validated_candidate_initialization
   local binding_sha start_dir="$candidate_root/start-attempt" dry="${DEPLOY_DRY_RUN:-0}"

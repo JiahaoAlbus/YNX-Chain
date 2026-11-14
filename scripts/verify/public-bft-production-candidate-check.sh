@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 
-[[ "$#" == 0 || ( "$#" == 1 && "${1:-}" == --operator-caller-only ) ]] || { echo 'usage: public-bft-production-candidate-check.sh [--operator-caller-only]' >&2; exit 1; }
+[[ "$#" == 0 || ( "$#" == 1 && ( "${1:-}" == --operator-caller-only || "${1:-}" == --first-import-once-only ) ) ]] || { echo 'usage: public-bft-production-candidate-check.sh [--operator-caller-only|--first-import-once-only]' >&2; exit 1; }
 # The ordinary entry point and the retained selector run the same complete
 # controls. Legacy fake-go deployment is no longer an accepted production mode.
 bash -n scripts/ops/public-bft-production-driver.sh
@@ -15,7 +15,7 @@ node scripts/verify/validate-public-bft-public-continuity.mjs --self-test
   # These controls execute the production caller and binding reader. Only the
   # external already-verified runtime and SSH boundary are observed by stubs;
   # they do not claim ELF/package/ledger validity, service startup or deployment.
-  node --input-type=module <<'NODE'
+  node --input-type=module - "${1:-}" <<'NODE'
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -137,7 +137,7 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
 const harness=path.join(tmp,'caller.sh');
 // Load the same sourceable DATA adapter as the real driver. Never replace its
 // data-root, package grammar or source guards with successful fixture stubs.
-write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\nsource scripts/ops/public-bft-linux-public-tools.sh\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
+write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\nsource scripts/ops/public-bft-linux-public-tools.sh\nsource scripts/deploy/lib.sh\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
   ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','quiet_bootstrap_mode','quiet_forward_gate','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_ingress_result','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
 PRIMARY_NODE_USER=u
 PRIMARY_NODE_HOST=host
@@ -154,7 +154,31 @@ node(){
   else "$CASE_NODE" "$@"; fi
 }
 ynx_ops_each_node(){ local cb="$1"; for r in primary singapore silicon-valley seoul; do "$cb" "$r" u host key full; done; }
-ynx_ops_ssh(){ printf '%s\n' "$5" >>"$CALL_LOG.transport"; if [[ "$FAIL_TRANSPORT" == yes || ( "$FAIL_TRANSPORT" == partial && "$1" == singapore && "$5" == *'timeout 30s systemctl start'* ) ]]; then return 42; fi; }
+ynx_ops_ssh(){
+  if [[ "$(printenv FIRST_IMPORT_TRANSPORT_CONTROL)" == yes ]]; then
+    local transport_role="$1"
+    ynx_transport_ssh "$1 original phase control" "$4" "$2@$3" "$5"
+    return $?
+  fi
+  printf '%s\n' "$5" >>"$CALL_LOG.transport"; if [[ "$FAIL_TRANSPORT" == yes || ( "$FAIL_TRANSPORT" == partial && "$1" == singapore && "$5" == *'timeout 30s systemctl start'* ) ]]; then return 42; fi
+}
+ssh(){
+  [[ "$(printenv FIRST_IMPORT_TRANSPORT_CONTROL)" == yes ]] || return 99
+  local command kind=other
+  for command; do :; done
+  case "$command" in
+    *' initialize-application '*) kind=initialize ;;
+    *'timeout 30s systemctl start'*) kind=start ;;
+    *'-operator-before-start.tar.gz'*) kind=backup ;;
+  esac
+  printf '%s|%s|%s\n' "$transport_role" "$kind" "$YNX_DEPLOY_CONNECTION_ATTEMPTS" >>"$CALL_LOG.dispatch"
+  printf 'SYNTHETIC_TRANSPORT_ORIGINAL_PARTIAL:%s:%s\n' "$transport_role" "$kind"
+  if [[ "$transport_role:$kind" == "$FIRST_IMPORT_FAIL_AT" ]]; then
+    printf 'original transport first cause %s\n' "$FIRST_IMPORT_EXIT" >&2
+    return "$FIRST_IMPORT_EXIT"
+  fi
+}
+
 ynx_ops_copy(){ test -s "$5"; printf 'copy %s\n' "$6" >>"$CALL_LOG.transport"; }
 bash(){
   case "$1" in
@@ -206,8 +230,57 @@ function runtimeSourceInventoryControls(){
   }
   console.log('PUBLIC_BFT_RUNTIME_SOURCE_INVENTORY_CONTROLS_DATA_ONLY cases='+variants.length+'; summary transport double; no ELF/service/Source authority');
 }
+function firstImportSingleDispatchControls(){
+  const failures=[];
+  // Exercise the actual phase functions AND original retry/SSH wrapper. Only
+  // the final ssh executable is a synthetic boundary; no remote code runs.
+  for(const action of ['initialize','start']){
+    const cases=[...roles.map(role=>({role,code:255})),{role:'singapore',code:42},{role:'',code:0}];
+    for(const {role,code} of cases){
+      const label=`${action}-${role||'positive'}-${code}`;
+      try{
+        const x=fixture('one-dispatch-'+label);run(x);
+        const binding=fs.readFileSync(path.join(x.transaction,'candidate/binding.json'));
+        if(action==='start'){
+          write(path.join(x.transaction,'candidate/initialize-attempt/result.json'),{version:1,transactionId:path.basename(x.transaction),commit,bftRelease:release,bindingSha256:digest(binding),imported:false,dryRun:true,consensusInitialized:false,runtimeStarted:false});
+          write(path.join(x.transaction,'candidate/deploy-result.json'),{transactionId:path.basename(x.transaction),commit,bftRelease:release,bindingSha256:digest(binding),deployed:true,runtimeStarted:false,dryRun:true});
+        }
+        const originalsBefore=originals(x);
+        const env={DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED:'yes',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes',
+          FIRST_IMPORT_TRANSPORT_CONTROL:'yes',FIRST_IMPORT_FAIL_AT:role?`${role}:${action}`:'none',FIRST_IMPORT_EXIT:String(code),
+          YNX_DEPLOY_CONNECTION_ATTEMPTS:'5',YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS:'0',YNX_SSH_CONTROL_DIR:path.join(x.dir,'ssh-control')};
+        const r=run(x,action,env,code);
+        assert.equal(r.status,code,'the original transport exit must be retained');
+        const records=fs.readFileSync(x.log+'.dispatch','utf8').trim().split('\n').map(v=>v.split('|'));
+        const writes=records.filter(v=>v[1]===action);
+        assert.deepEqual(writes.map(v=>v[0]),role?roles.slice(0,roles.indexOf(role)+1):roles,'a write was repeated or a later role was dispatched after failure');
+        assert.ok(records.every(v=>v[2]==='1'),'original write phase did not override a configured retry count');
+        const attempt=path.join(x.transaction,'candidate',action==='initialize'?'initialize-attempt':'start-attempt');
+        const intent=fs.readFileSync(path.join(attempt,'intent.json'));assert.equal(JSON.parse(intent).automaticRetry,false);
+        if(code){
+          assert.equal(fs.existsSync(path.join(attempt,'result.json')),false,'UNKNOWN acquired a completed aggregate receipt');
+          const error=path.join(attempt,role,action==='initialize'?'initialize-error.txt':'start-error.txt');
+          const first=fs.readFileSync(error);assert.match(first.toString(),new RegExp(`original transport first cause ${code}`));
+          const output=path.join(attempt,role,action==='initialize'?'receipt.json':'start-output.txt');
+          const partial=fs.readFileSync(output);assert.match(partial.toString(),/SYNTHETIC_TRANSPORT_ORIGINAL_PARTIAL/);
+          const before=fs.readFileSync(x.log+'.dispatch');run(x,action,env,1);
+          assert.deepEqual(fs.readFileSync(x.log+'.dispatch'),before,'the retained attempt was resent');
+          assert.deepEqual(fs.readFileSync(error),first);assert.deepEqual(fs.readFileSync(output),partial);assert.deepEqual(fs.readFileSync(path.join(attempt,'intent.json')),intent);
+        }else{
+          const result=JSON.parse(fs.readFileSync(path.join(attempt,'result.json')));assert.equal(result.dryRun,true);
+          assert.equal(action==='initialize'?result.imported:result.started,false,'synthetic transport must not claim actual initialization/start');
+        }
+        unchanged(originalsBefore);
+      }catch(error){failures.push(label+': '+error.stack);}
+    }
+  }
+  assert.deepEqual(failures,[],'original write/UNKNOWN single-dispatch controls failed');
+  console.log('NATIVE_FIRST_IMPORT_SINGLE_DISPATCH_DATA_ONLY_PASS cases=12; actual phase/retry helper, synthetic SSH, no service or activation');
+}
 const unchanged=before=>before.forEach(([p,b])=>assert.deepEqual(fs.readFileSync(p),b,`original changed: ${p}`));
 try {
+  firstImportSingleDispatchControls();
+  if(process.argv[2]!=='--first-import-once-only'){
   {
   // The adapter is the original implementation. These real filesystem controls
   // stop before runtime preparation, transport or any package-tool boundary.
@@ -586,5 +659,6 @@ verify_public_phase
   rollback.approval.automaticRollbackRequired=false;write(path.join(rollback.transaction,'approval.json'),rollback.approval);run(rollback,'rollback',{DEPLOY_DRY_RUN:'1'},1);assert.equal(fs.existsSync(path.join(rollback.transaction,'candidate/rollback-attempt-4.txt')),false);write(path.join(rollback.transaction,'approval.json'),JSON.parse(rollbackBefore.find(([p])=>p.endsWith('/approval.json'))[1]));unchanged(rollbackBefore);
   assert.ok(!/\bgo (run|build)\b/.test(driver),'mutable-source compiler remains in driver');
   console.log('PUBLIC_BFT_OPERATOR_CALLER_BINDING_PASS (caller/binding only; no package, service or deployment claim)');
+  }
 } finally { fs.rmSync(tmp,{recursive:true,force:true}); }
 NODE
