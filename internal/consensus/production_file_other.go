@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const productionPackageHeldStreaming = false
+
 // Preserve the pre-existing reader on other platforms. The Unix descriptor and
 // change-time guarantees are not claimed by this compatibility implementation.
 func openProductionPackageFile(path string) (*os.File, func() error, error) {

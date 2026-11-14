@@ -434,7 +434,7 @@ func VerifyProductionCandidatePackage(root string) error {
 	return verifyProductionCandidatePackage(root, "")
 }
 
-func verifyProductionCandidatePackage(root, independentOperatorHash string) error {
+func verifyProductionCandidatePackage(root, independentOperatorHash string) (result error) {
 	payload, err := os.ReadFile(filepath.Join(root, "package-manifest.json"))
 	if err != nil {
 		return fmt.Errorf("read production candidate package manifest: %w", err)
@@ -471,14 +471,12 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 	if genesis.ChainID != manifest.ChainID || !genesis.GenesisTime.Equal(genesisTime) || len(genesis.Validators) != 4 {
 		return errors.New("production candidate common genesis identity is inconsistent")
 	}
-	commonMigration, err := os.ReadFile(filepath.Join(root, "common", "bound-migration.json"))
+	commonMigration, err := readProductionMigrationSource(filepath.Join(root, "common", "bound-migration.json"), genesis.AppState)
 	if err != nil {
-		return fmt.Errorf("read common production migration: %w", err)
+		return err
 	}
-	var migration chain.ConsensusMigrationState
-	if err := json.Unmarshal(commonMigration, &migration); err != nil {
-		return fmt.Errorf("decode common production migration: %w", err)
-	}
+	defer func() { result = errors.Join(result, commonMigration.close()) }()
+	migration := commonMigration.state
 	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
 		return fmt.Errorf("validate common production migration: %w", err)
 	}
@@ -540,7 +538,7 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 		if err != nil || !bytes.Equal(roleGenesis, commonGenesis) {
 			return fmt.Errorf("production candidate role %s genesis differs from common genesis", role)
 		}
-		if err := compareProductionPackageFileBytes(filepath.Join(roleRoot, "config", "bound-migration.json"), commonMigration); err != nil {
+		if err := commonMigration.compareRole(filepath.Join(roleRoot, "config", "bound-migration.json")); err != nil {
 			return fmt.Errorf("production candidate role %s migration differs from common migration", role)
 		}
 		configPayload, err := os.ReadFile(filepath.Join(roleRoot, "config", "config.toml"))
@@ -586,7 +584,13 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 		if clean != relativePath || filepath.IsAbs(clean) || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || strings.Contains(strings.ToLower(clean), "priv_validator_key") || strings.Contains(strings.ToLower(clean), "node_key.json") {
 			return fmt.Errorf("unsafe production candidate package path %q", relativePath)
 		}
-		actualHash, err := hashProductionPackageFile(filepath.Join(root, clean))
+		var actualHash string
+		var err error
+		if clean == filepath.Join("common", "bound-migration.json") {
+			actualHash, err = commonMigration.hash()
+		} else {
+			actualHash, err = hashProductionPackageFile(filepath.Join(root, clean))
+		}
 		if err != nil {
 			return fmt.Errorf("read production candidate package file %s: %w", clean, err)
 		}
@@ -940,27 +944,30 @@ func hashProductionPackageFile(path string) (string, error) {
 // validated above; do not reopen common here and compare against newer bytes.
 func compareProductionPackageFileBytes(path string, expected []byte) error {
 	return readProductionPackageFile(path, func(a io.Reader) error {
-		b := bytes.NewReader(expected)
-		x, y := make([]byte, productionPackageIOBufferBytes), make([]byte, productionPackageIOBufferBytes)
-		for {
-			n, aErr := io.ReadFull(a, x)
-			m, bErr := io.ReadFull(b, y)
-			if n != m || !bytes.Equal(x[:n], y[:m]) {
-				return errors.New("production package complete file bytes differ")
-			}
-			for _, err := range []error{aErr, bErr} {
-				if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-					return err
-				}
-			}
-			if aErr != nil || bErr != nil {
-				if aErr != bErr {
-					return errors.New("production package complete file lengths differ")
-				}
-				return nil
+		return compareProductionPackageReaders(a, bytes.NewReader(expected))
+	})
+}
+
+func compareProductionPackageReaders(a, b io.Reader) error {
+	x, y := make([]byte, productionPackageIOBufferBytes), make([]byte, productionPackageIOBufferBytes)
+	for {
+		n, aErr := io.ReadFull(a, x)
+		m, bErr := io.ReadFull(b, y)
+		if n != m || !bytes.Equal(x[:n], y[:m]) {
+			return errors.New("production package complete file bytes differ")
+		}
+		for _, err := range []error{aErr, bErr} {
+			if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+				return err
 			}
 		}
-	})
+		if aErr != nil || bErr != nil {
+			if aErr != bErr {
+				return errors.New("production package complete file lengths differ")
+			}
+			return nil
+		}
+	}
 }
 
 func writeJSON(path string, value any, mode os.FileMode) error {

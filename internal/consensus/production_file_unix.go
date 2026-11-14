@@ -11,6 +11,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const productionPackageHeldStreaming = true
+
 // Match the two Unix ABI spellings used by the existing proof source ctime
 // helper. A read may update atime; neither modification nor change time may move.
 func productionPackageModificationStamp(stat unix.Stat_t) (string, error) {
