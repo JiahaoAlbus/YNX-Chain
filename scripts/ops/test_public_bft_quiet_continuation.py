@@ -171,6 +171,7 @@ class ColdCustodyContinuationTests(unittest.TestCase):
         f.packet['currentOperatorPlanSHA256'] = current_pin
         approval_path = Path(f.packet['transitionApproval'])
         approval = json.loads(approval_path.read_bytes()); approval['nextOperatorPlanSHA256'] = current_pin
+        approval['signerInstallReceiptSHA256ByRole']={role['role']:'7'*64 for role in f.current['roles']}
         approval_pin = write(approval_path, approval)
         f.packet['transitionApprovalSHA256'] = approval_pin
         for role in f.current['roles']:
@@ -181,11 +182,12 @@ class ColdCustodyContinuationTests(unittest.TestCase):
                 value=json.loads(path.read_bytes())
                 value.update(nextOperatorPlanSHA256=current_pin,approvalSHA256=approval_pin,
                              custodyHandoff=descriptor,custodyHandoffReceiptSHA256='8'*64)
+                if phase=='start':value['signerInstallReceiptSHA256']='7'*64
                 write(path,value)
                 if phase=='start':
                     path=f.transition_root/'start-attempt'/(role['role']+'.binding.json')
                     value=json.loads(path.read_bytes()); value.update(nextOperatorPlanSHA256=current_pin,
-                        approvalSHA256=approval_pin,custodyHandoff=descriptor)
+                        approvalSHA256=approval_pin,custodyHandoff=descriptor,signerInstallReceiptSHA256='7'*64)
                     write(path,value)
         f.packet_pin=write(f.packet_path,f.packet)
         return f
@@ -198,7 +200,7 @@ class ColdCustodyContinuationTests(unittest.TestCase):
         self.assertEqual((f.root/'journal.jsonl').read_bytes(),before)
 
     def test_missing_changed_handoff_or_same_role_path_escape_refused(self):
-        for kind in ('missing','changed','path','old-key'):
+        for kind in ('missing','changed','path','old-key','missing-signer','wrong-signer','missing-signer-approval'):
             with self.subTest(kind=kind):
                 f=self.fixture()
                 if kind in ('missing','changed'):
@@ -207,6 +209,17 @@ class ColdCustodyContinuationTests(unittest.TestCase):
                     if kind=='missing':del value['custodyHandoffReceiptSHA256']
                     else:value['custodyHandoffReceiptSHA256']='9'*64
                     write(p,value)
+                elif kind in ('missing-signer','wrong-signer'):
+                    p=f.transition_root/'start-attempt/primary.result.json'
+                    value=json.loads(p.read_bytes())
+                    if kind=='missing-signer':del value['signerInstallReceiptSHA256']
+                    else:value['signerInstallReceiptSHA256']='9'*64
+                    write(p,value)
+                elif kind=='missing-signer-approval':
+                    p=Path(f.packet['transitionApproval'])
+                    value=json.loads(p.read_bytes()); del value['signerInstallReceiptSHA256ByRole']
+                    f.packet['transitionApprovalSHA256']=write(p,value)
+                    f.packet_pin=write(f.packet_path,f.packet)
                 else:
                     f.current['roles'][0]['legacyKeyPath'] = (f.plan['roles'][0]['legacyKeyPath'] if kind=='old-key'
                         else '/etc/ynx/consensus-pq-legacy/seoul/priv_validator_key.json')

@@ -599,6 +599,12 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
          a.get('oldOperatorPlanSHA256') == bootstrap_pin and a.get('nextOperatorPlanSHA256') == c['currentOperatorPlanSHA256'] and
          a.get('runtimeCommit') == c['runtimeCommit'] and a.get('runtimeManifestSHA256') == c['runtimeManifestSHA256'] and
          a.get('oldRuntimeCommit') == c['runtimeCommit'] and a.get('oldRuntimeManifestSHA256') == c['runtimeManifestSHA256'], 'original external start approval differs')
+    install_pins = a.get('signerInstallReceiptSHA256ByRole')
+    if custody_handoffs:
+        need(type(install_pins) is dict and set(install_pins) == set(custody_handoffs) and all(pin(v) for v in install_pins.values()),
+             'original start approval lacks complete signer installation pins')
+    else:
+        need('signerInstallReceiptSHA256ByRole' not in a, 'unchanged custody cannot claim signer installation pins')
     schedule_raw = base64.b64decode(new['pqSchedule'], validate=True)
     schedule = decode(schedule_raw)
     cp = a['checkpoint']
@@ -635,9 +641,13 @@ def continuation(root_path, bootstrap_path, bootstrap_pin, packet_path, packet_p
                 if phase == 'start':
                     need(entry['custodyHandoffReceiptSHA256'] == entries['install']['value']['custodyHandoffReceiptSHA256'],
                          'start did not consume original completed custody handoff')
+                    need(entry.get('signerInstallReceiptSHA256') == install_pins[role],
+                         'start did not consume the approved signer installation')
             elif phase != 'quiesce':
                 need('custodyHandoff' not in entry and 'custodyHandoffReceiptSHA256' not in entry,
                      'unchanged custody cannot claim a transfer')
+            if phase != 'start' or role not in custody_handoffs:
+                need('signerInstallReceiptSHA256' not in entry, 'only a completed cold custody start may claim signer installation')
             entries[phase] = {'sha256': sha(entry_raw), 'value': entry}
         binding, binding_raw = load(transition / 'start-attempt' / (role + '.binding.json'), limit=1 << 20)
         need(binding.get('version') == 'YNX-OPERATOR-TRANSITION-BINDING/v1' and
