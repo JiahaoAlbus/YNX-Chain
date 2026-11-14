@@ -300,6 +300,25 @@ func (s *PQLabPublicOwnerSession) beginOwner(ctx context.Context, request PQLabS
 	return sender, done, nil
 }
 
+// PrepareOwner opens one explicitly selected synthetic owner without choosing a
+// checkpoint or creating an operation. The caller can sample current state
+// after the original key import and use the unchanged Sign checks.
+func (s *PQLabPublicOwnerSession) PrepareOwner(ctx context.Context, index int, metrics *PQLabMetrics) error {
+	if s == nil {
+		return errors.New("original public owner session required")
+	}
+	request := PQLabSenderRequest{Version: "YNX-PQ-LAB-SENDER-REQUEST/v1", OwnerIndex: index}
+	_, done, err := s.beginOwner(ctx, request, metrics)
+	if err != nil {
+		return err
+	}
+	defer done()
+	if err := s.currentPublic(); err != nil {
+		return err
+	}
+	return s.alive(ctx)
+}
+
 func (s *PQLabPublicOwnerSession) Sign(ctx context.Context, request PQLabSenderRequest, height int64, appHash string, metrics *PQLabMetrics) (PQLabSenderResult, error) {
 	defer pqLabMeasure(metrics, "publicOwner.signTotal")()
 	if s == nil {

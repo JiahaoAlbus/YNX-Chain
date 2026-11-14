@@ -170,6 +170,12 @@ func runPQLabPublicOwnersInput(ctx context.Context, args []string, input io.Read
 		var result any
 		var phase pqLabPublicOwnerFailurePhase
 		switch command.Operation {
+		case "prepare-owner":
+			if command.Request.Version != "YNX-PQ-LAB-SENDER-REQUEST/v1" || command.Request.OperationID != "" || command.Request.FirstNonce != 0 || command.Request.Members != 0 || command.CheckpointHeight != 0 || command.CheckpointAppHash != "" || command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
+				return errors.New("owner preparation has no transaction or checkpoint")
+			}
+			phase = pqLabPublicOwnerPrepare
+			err = session.PrepareOwner(ctx, command.Request.OwnerIndex, metrics)
 		case "sign":
 			if command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
 				return errors.New("sign cannot select proof authority")
@@ -262,6 +268,7 @@ const (
 	pqLabPublicOwnerClose
 	pqLabPublicOwnerConfirmMaterials
 	pqLabPublicOwnerConfirm
+	pqLabPublicOwnerPrepare
 )
 
 func (p pqLabPublicOwnerFailurePhase) label() string {
@@ -276,6 +283,8 @@ func (p pqLabPublicOwnerFailurePhase) label() string {
 		return "CONFIRM_MATERIALS"
 	case pqLabPublicOwnerConfirm:
 		return "CONFIRM"
+	case pqLabPublicOwnerPrepare:
+		return "PREPARE_OWNER"
 	default:
 		return "UNSPECIFIED"
 	}
@@ -294,6 +303,8 @@ func pqLabPublicOwnerOutcome(operation string, phase pqLabPublicOwnerFailurePhas
 	}
 	code := "ORIGINAL_SAVED"
 	switch operation {
+	case "prepare-owner":
+		code = "OWNER_PREPARED"
 	case "confirm":
 		code = "PROOF_CONFIRMED_DATA"
 	case "recover":
