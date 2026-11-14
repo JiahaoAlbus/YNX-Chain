@@ -902,7 +902,7 @@ jobs:
           printf 'GOCACHE=%s\n' "$RUNNER_TEMP/securelink-go-cache" >> "$GITHUB_ENV"
           printf 'OPENSSL_PREFIX=%s\n' "$RUNNER_TEMP/securelink-openssl" >> "$GITHUB_ENV"
           go version | tee "$RUNNER_TEMP/securelink-evidence/go-version.txt"
-          test "$(go env GOVERSION)" = "go$(awk '$1 == \"go\" {print $2}' go.mod)"
+          test "$(go env GOVERSION)" = "go$(awk '$1 == "go" {print $2}' go.mod)"
           cc --version > "$RUNNER_TEMP/securelink-evidence/compiler.txt"
       - name: Exercise original Node callers and actual OS peer bindings
         run: |
