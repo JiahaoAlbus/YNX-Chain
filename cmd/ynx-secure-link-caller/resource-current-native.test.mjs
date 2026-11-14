@@ -25,16 +25,18 @@ const expected = [
 ];
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('private native process lease binds original received Unix data and control sockets', {timeout: 25000}, async t => {
+test('private native process lease binds original received Unix data and control sockets', {timeout: 65000}, async t => {
   assert.ok(['darwin', 'linux'].includes(process.platform), 'real Darwin/Linux kernel required');
   const destination = process.env.YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS;
   assert.ok(destination && path.isAbsolute(destination), 'absolute owned evidence root required');
   await mkdir(destination, {recursive: true, mode: 0o700});
   const owned = await mkdtemp(path.join(await realpath(destination), 's-'));
   const socket = path.join(owned, 's');
+  const cloudSocket = path.join(owned, 'c');
   assert.ok(Buffer.byteLength(socket) < 104, 'owned Unix socket path exceeds bound');
   const leaves = ['resource_current_client_v1.h', 'private_client_v1.h', 'resource-current-peer.hpp',
-    'resource-current-peer.cpp', 'resource-current-peer.test.cpp', 'resource-current-native.test.mjs'];
+    'resource-current-peer.cpp', 'resource-current-peer.test.cpp', 'cloud-finite-get-control.hpp',
+    'cloud-finite-get-control.cpp', 'cloud-finite-get-control.test.cpp', 'resource-current-native.test.mjs'];
   const pin = async leaf => {
     const bytes = await readFile(path.join(source, leaf));
     return {leaf, bytes: bytes.length, sha256: sha(bytes)};
@@ -64,6 +66,19 @@ test('private native process lease binds original received Unix data and control
       childExit: 0, physicalClose: true, publicTemporaryCloseFault: true, transportOnly: true});
     const image = await readFile(binary);
     await record('RESULT.json', {...result, platform: process.platform, inputs, binary: {bytes: image.length, sha256: sha(image)}});
+    const cloudBinary = path.join(owned, 'cloud-control-test');
+    await run('compile-cloud-control', 'clang++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-pedantic',
+      '-DYNX_LINK_PUBLIC_CLOUD_CONTROL_TEST',
+      ...['resource-current-peer.cpp', 'cloud-finite-get-control.cpp', 'cloud-finite-get-control.test.cpp']
+        .map(leaf => path.join(source, leaf)), ...flags, '-o', cloudBinary], 15000);
+    const cloud = JSON.parse(await run('cloud-kernel-controls', cloudBinary, [cloudSocket], 12000));
+    assert.deepEqual(cloud, {kernel: true, independentChild: true, samePeerDataAndSCMControl: true,
+      frameIO: true, physicalClose: true, transportOnly: true, partialRetained: true,
+      foreignControlRejected: true, transcriptSubstitutionRejected: true, closeUnknownRetained: true,
+      extraRightsRejected: true});
+    const cloudImage = await readFile(cloudBinary);
+    await record('CLOUD-CONTROL-RESULT.json', {...cloud, platform: process.platform, inputs,
+      binary: {bytes: cloudImage.length, sha256: sha(cloudImage)}});
   } finally {
     const after = await Promise.all(leaves.map(pin));
     await record('SOURCE-AFTER.json', after);
