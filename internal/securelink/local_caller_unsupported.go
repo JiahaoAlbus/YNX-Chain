@@ -16,9 +16,16 @@ func (*localCallerState) current(context.Context) (LocalCallerMaterial, error) {
 	return LocalCallerMaterial{}, ErrUnavailable
 }
 
+func (*localCallerState) currentOriginalCaller(*http.Request) error {
+	return ErrUnavailable
+}
+
 type LocalCallerServer struct{}
 
 func NewLocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
+	return nil, ErrUnavailable
+}
+func NewProductLocalCallerServer(LocalCallerServerConfig) (*LocalCallerServer, error) {
 	return nil, ErrUnavailable
 }
 func (*LocalCallerServer) Serve(net.Listener) error   { return ErrUnavailable }

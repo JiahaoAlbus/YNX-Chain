@@ -40,16 +40,27 @@ type LifecycleObjectStore interface {
 	Transition(context.Context, StorageTransitionRequest) (StorageTransitionResult, error)
 }
 
-type LocalObjectStore struct{ Root string }
+type LocalObjectStore struct {
+	Root          string
+	directorySync func(string) error
+}
 
 func (s LocalObjectStore) Put(_ context.Context, hash string, body []byte) (string, error) {
-	return writeBlob(s.Root, hash, body)
+	syncDirectory := s.directorySync
+	if syncDirectory == nil {
+		syncDirectory = syncObjectDirectory
+	}
+	return writeObjectBlob(s.Root, "", hash, body, syncDirectory)
 }
 func (s LocalObjectStore) PutScoped(_ context.Context, scope, hash string, body []byte) (string, error) {
 	if !validObjectScope(scope) {
 		return "", ErrInvalid
 	}
-	return writeScopedBlob(s.Root, scope, hash, body)
+	syncDirectory := s.directorySync
+	if syncDirectory == nil {
+		syncDirectory = syncObjectDirectory
+	}
+	return writeObjectBlob(s.Root, scope, hash, body, syncDirectory)
 }
 func (s LocalObjectStore) Get(_ context.Context, ref, hash string) ([]byte, error) {
 	return readBlob(ref, hash)

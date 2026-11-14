@@ -108,32 +108,39 @@ func (s *Service) endLifecycleExecution(transitionID string) {
 }
 
 func (s *Service) TransitionStorageClass(ctx context.Context, actor, product, objectID string, target StorageClass) (StorageTransition, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, err
+	}
 	if !validAccount(actor) || (product != "cloud" && product != "docs") || !validStorageClass(target) {
 		return StorageTransition{}, ErrInvalid
 	}
 	s.mu.Lock()
-	object, err := s.require(actor, objectID, 3)
-	if err != nil {
+	if err := s.objectWriteErr; err != nil {
 		s.mu.Unlock()
 		return StorageTransition{}, err
 	}
+	object, err := s.require(actor, objectID, 3)
+	if err != nil {
+		s.unlockObjectState()
+		return StorageTransition{}, err
+	}
 	if object.Owner != actor || object.Product != product || object.Kind == KindFolder || object.TrashedAt != nil || object.ScanStatus != "accepted" {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, ErrDenied
 	}
 	_, version, err := currentVersionIndex(s.state, object)
 	if err != nil {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, err
 	}
 	from := normalizedVersionStorageClass(version)
 	if from == target {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, ErrInvalid
 	}
 	for _, existing := range s.state.StorageTransitions {
 		if existing.ObjectID == objectID && existing.Version == version.Number && existing.Status == "pending" {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return StorageTransition{}, errors.New("storage lifecycle transition already pending")
 		}
 	}
@@ -160,39 +167,46 @@ func (s *Service) TransitionStorageClass(ctx context.Context, actor, product, ob
 	if err := s.persist("storage.transition.requested", actor, objectID, map[string]any{"product": object.Product, "transitionId": transition.ID, "version": version.Number, "from": from, "to": target, "hash": version.Hash}); err != nil {
 		restorePersistentState(before, &s.state)
 		delete(s.lifecycleActive, transition.ID)
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, err
 	}
-	s.mu.Unlock()
+	s.unlockObjectState()
 	return s.executeStorageTransition(ctx, transition)
 }
 
 func (s *Service) RetryStorageTransition(ctx context.Context, actor, product, transitionID string) (StorageTransition, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, err
+	}
 	if !validAccount(actor) || (product != "cloud" && product != "docs") {
 		return StorageTransition{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return StorageTransition{}, err
+	}
 	transition, ok := s.state.StorageTransitions[transitionID]
 	if !ok {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, ErrNotFound
 	}
 	if transition.Owner != actor || transition.Product != product || (transition.Status != "failed" && transition.Status != "pending") {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, ErrDenied
 	}
 	if s.lifecycleActive[transitionID] {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, errors.New("storage lifecycle transition is already executing")
 	}
 	object, ok := s.state.Objects[transition.ObjectID]
 	if !ok || object.Owner != actor || object.Product != transition.Product {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, errors.New("storage lifecycle retry no longer matches object state")
 	}
 	_, version, err := versionIndex(s.state, transition.ObjectID, transition.Version)
 	if err != nil || version.Hash != transition.Hash || version.BlobPath != transition.Ref || normalizedVersionStorageClass(version) != transition.From {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, errors.New("storage lifecycle retry no longer matches version state")
 	}
 	before, _ := json.Marshal(s.state)
@@ -205,14 +219,17 @@ func (s *Service) RetryStorageTransition(ctx context.Context, actor, product, tr
 	if err := s.persist("storage.transition.retry", actor, transition.ObjectID, map[string]any{"product": transition.Product, "transitionId": transition.ID, "version": transition.Version, "attempt": transition.Attempts}); err != nil {
 		restorePersistentState(before, &s.state)
 		delete(s.lifecycleActive, transition.ID)
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return StorageTransition{}, err
 	}
-	s.mu.Unlock()
+	s.unlockObjectState()
 	return s.executeStorageTransition(ctx, transition)
 }
 
 func (s *Service) executeStorageTransition(ctx context.Context, transition StorageTransition) (StorageTransition, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, err
+	}
 	defer s.endLifecycleExecution(transition.ID)
 	provider, ok := s.cfg.ObjectStore.(LifecycleObjectStore)
 	if !ok {
@@ -247,7 +264,11 @@ func (s *Service) executeStorageTransition(ctx context.Context, transition Stora
 	}
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return StorageTransition{}, err
+	}
+	defer s.unlockObjectState()
 	current, ok := s.state.StorageTransitions[transition.ID]
 	object, objectOK := s.state.Objects[transition.ObjectID]
 	versionPosition, version, versionErr := versionIndex(s.state, transition.ObjectID, transition.Version)
@@ -282,8 +303,15 @@ func (s *Service) executeStorageTransition(ctx context.Context, transition Stora
 }
 
 func (s *Service) failStorageTransition(transitionID string, cause error) (StorageTransition, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return StorageTransition{}, err
+	}
+	defer s.unlockObjectState()
 	transition, ok := s.state.StorageTransitions[transitionID]
 	if !ok {
 		return StorageTransition{}, ErrNotFound
@@ -301,8 +329,15 @@ func (s *Service) failStorageTransition(transitionID string, cause error) (Stora
 }
 
 func (s *Service) interruptStorageTransition(transitionID string, cause error) (StorageTransition, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return StorageTransition{}, err
+	}
+	defer s.unlockObjectState()
 	transition, ok := s.state.StorageTransitions[transitionID]
 	if !ok {
 		return StorageTransition{}, ErrNotFound
@@ -322,8 +357,15 @@ func (s *Service) interruptStorageTransition(transitionID string, cause error) (
 }
 
 func (s *Service) claimPendingStorageTransition(transitionID string) (StorageTransition, bool, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return StorageTransition{}, false, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return StorageTransition{}, false, err
+	}
+	defer s.unlockObjectState()
 	transition, ok := s.state.StorageTransitions[transitionID]
 	if !ok || transition.Status != "pending" || s.lifecycleActive[transitionID] {
 		return StorageTransition{}, false, nil

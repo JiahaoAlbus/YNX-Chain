@@ -16,18 +16,23 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	mu            sync.Mutex
-	startedAt     time.Time
-	requests      map[string]int64
-	latencyMillis map[string]int64
-	limits        ServerLimits
-	inflight      chan struct{}
-	clients       map[string]clientWindow
-	rejections    map[string]int64
-	telemetry     telemetryState
-	telemetryOK   bool
-	telemetryErr  string
+	billReaderMu       sync.Mutex
+	billReader         *IDEUsageBillReader
+	billReaderRetired  bool
+	originalIDEJournal *ideDeploymentJournal
+	ideDeployments     *ideDeploymentService
+	service            *Service
+	mu                 sync.Mutex
+	startedAt          time.Time
+	requests           map[string]int64
+	latencyMillis      map[string]int64
+	limits             ServerLimits
+	inflight           chan struct{}
+	clients            map[string]clientWindow
+	rejections         map[string]int64
+	telemetry          telemetryState
+	telemetryOK        bool
+	telemetryErr       string
 }
 
 type ServerLimits struct {
@@ -207,6 +212,7 @@ func directClient(remote, forwarded string) string {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.mountIDEDeployments(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /api/v1/health", s.auth(s.detailedHealth))
@@ -228,8 +234,11 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/direct-uploads/{upload}/complete", s.auth(s.completeDirectUpload))
 	mux.HandleFunc("DELETE /api/v1/direct-uploads/{upload}", s.auth(s.cancelDirectUpload))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
+	mux.HandleFunc("GET /api/v1/object-operations/{request}", s.auth(s.objectOperation))
 	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
+	mux.HandleFunc("PUT /api/v1/objects/{id}/content", s.auth(s.putObjectVersion))
+	mux.HandleFunc("PUT /api/v1/objects/{id}/access/{target}", s.auth(s.setShareAccess))
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))
 	mux.HandleFunc("GET /api/v1/objects/{id}/versions", s.auth(s.versions))
 	mux.HandleFunc("POST /api/v1/objects/{id}/versions/{version}/restore", s.auth(s.restoreVersion))
@@ -425,7 +434,17 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request, a Session) {
 		return
 	}
 	req.Product = a.Product
-	obj, err := s.service.Create(r.Context(), a.Account, req)
+	var obj Object
+	var err error
+	if values := r.Header.Values("Idempotency-Key"); len(values) > 0 {
+		if len(values) != 1 || !objectRequestID.MatchString(values[0]) {
+			writeError(w, 400, "one canonical Idempotency-Key required")
+			return
+		}
+		obj, err = s.service.CreateObjectOnce(r.Context(), a.Account, values[0], req)
+	} else {
+		obj, err = s.service.Create(r.Context(), a.Account, req)
+	}
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -595,14 +614,23 @@ func (s *Server) content(w http.ResponseWriter, r *http.Request, a Session) {
 	if !requireProductScope(w, a, "files.read", "documents.read") {
 		return
 	}
-	version, _ := strconv.Atoi(r.URL.Query().Get("version"))
-	obj, b, err := s.service.Content(a.Account, r.PathValue("id"), version)
+	version := 0
+	if raw := r.URL.Query().Get("version"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 {
+			writeError(w, 400, "invalid version")
+			return
+		}
+		version = parsed
+	}
+	obj, b, err := s.service.GetObjectVersion(r.Context(), a.Account, r.PathValue("id"), version)
 	if err != nil {
 		writeServiceError(w, err)
 		return
 	}
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
+	setObjectBindingHeaders(w, obj)
 	w.Header().Set("Content-Disposition", `inline; filename="`+strings.ReplaceAll(obj.Name, "\"", "")+`"`)
 	counter := &payloadCountingWriter{ResponseWriter: w}
 	http.ServeContent(counter, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
@@ -639,7 +667,18 @@ func (s *Server) restoreVersion(w http.ResponseWriter, r *http.Request, a Sessio
 		writeError(w, 400, "invalid version")
 		return
 	}
-	obj, e := s.service.RestoreVersion(a.Account, r.PathValue("id"), n)
+	var obj Object
+	var e error
+	if r.Header.Get("X-Expected-Revision") != "" {
+		revision, ok := objectExpectedRevision(w, r)
+		if !ok {
+			return
+		}
+		obj, e = s.service.RestoreObjectVersion(r.Context(), a.Account, r.PathValue("id"), n, revision)
+	} else {
+		// Preserve the existing human client. V5 callers use explicit CAS above.
+		obj, e = s.service.RestoreVersion(a.Account, r.PathValue("id"), n)
+	}
 	writeResult(w, obj, e)
 }
 func (s *Server) transitionStorageClass(w http.ResponseWriter, r *http.Request, a Session) {
@@ -782,6 +821,7 @@ func (s *Server) resolveLinkContent(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", obj.MIME)
 	w.Header().Set("X-Content-SHA256", hashBytes(b))
+	setObjectBindingHeaders(w, obj)
 	counter := &payloadCountingWriter{ResponseWriter: w}
 	http.ServeContent(counter, r, obj.Name, obj.UpdatedAt, bytes.NewReader(b))
 	if counter.bytes > 0 {
@@ -1035,9 +1075,14 @@ func writeServiceError(w http.ResponseWriter, err error) {
 	status := 400
 	var conflict ConflictError
 	switch {
+	case errors.Is(err, errObjectCommitUnknown):
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error(), "outcome": "UNKNOWN"})
+		return
 	case errors.As(err, &conflict):
 		writeJSON(w, 409, map[string]any{"error": err.Error(), "current": conflict.Current})
 		return
+	case errors.Is(err, errObjectOperationConflict), errors.Is(err, errObjectOperationRetired):
+		status = http.StatusConflict
 	case errors.Is(err, ErrDenied):
 		status = 403
 	case errors.Is(err, ErrNotFound):

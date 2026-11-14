@@ -41,27 +41,29 @@ type Encryption struct {
 }
 
 type Object struct {
-	ID                    string       `json:"id"`
-	Product               string       `json:"product"`
-	Owner                 string       `json:"owner"`
-	ParentID              string       `json:"parentId,omitempty"`
-	Kind                  ObjectKind   `json:"kind"`
-	Name                  string       `json:"name"`
-	MIME                  string       `json:"mime,omitempty"`
-	Size                  int64        `json:"size"`
-	Hash                  string       `json:"hash,omitempty"`
-	Version               int          `json:"version"`
-	Starred               bool         `json:"starred"`
-	TrashedAt             *time.Time   `json:"trashedAt,omitempty"`
-	CreatedAt             time.Time    `json:"createdAt"`
-	UpdatedAt             time.Time    `json:"updatedAt"`
-	Encryption            Encryption   `json:"encryption"`
-	ScanStatus            string       `json:"scanStatus,omitempty"`
-	Artifact              *Artifact    `json:"artifact,omitempty"`
-	StorageClass          StorageClass `json:"storageClass,omitempty"`
-	StorageClassVersion   int          `json:"storageClassVersion,omitempty"`
-	StorageReadMode       string       `json:"storageReadMode,omitempty"`
-	StorageClassUpdatedAt *time.Time   `json:"storageClassUpdatedAt,omitempty"`
+	Revision              uint64         `json:"revision,string,omitempty"`
+	Binding               *ObjectBinding `json:"binding,omitempty"`
+	ID                    string         `json:"id"`
+	Product               string         `json:"product"`
+	Owner                 string         `json:"owner"`
+	ParentID              string         `json:"parentId,omitempty"`
+	Kind                  ObjectKind     `json:"kind"`
+	Name                  string         `json:"name"`
+	MIME                  string         `json:"mime,omitempty"`
+	Size                  int64          `json:"size"`
+	Hash                  string         `json:"hash,omitempty"`
+	Version               int            `json:"version"`
+	Starred               bool           `json:"starred"`
+	TrashedAt             *time.Time     `json:"trashedAt,omitempty"`
+	CreatedAt             time.Time      `json:"createdAt"`
+	UpdatedAt             time.Time      `json:"updatedAt"`
+	Encryption            Encryption     `json:"encryption"`
+	ScanStatus            string         `json:"scanStatus,omitempty"`
+	Artifact              *Artifact      `json:"artifact,omitempty"`
+	StorageClass          StorageClass   `json:"storageClass,omitempty"`
+	StorageClassVersion   int            `json:"storageClassVersion,omitempty"`
+	StorageReadMode       string         `json:"storageReadMode,omitempty"`
+	StorageClassUpdatedAt *time.Time     `json:"storageClassUpdatedAt,omitempty"`
 }
 
 type Artifact struct {
@@ -216,18 +218,20 @@ type DirectUploadVerification struct {
 }
 
 type Version struct {
-	ObjectID              string       `json:"objectId"`
-	Number                int          `json:"number"`
-	Hash                  string       `json:"hash"`
-	Size                  int64        `json:"size"`
-	MIME                  string       `json:"mime"`
-	BlobPath              string       `json:"blobPath"`
-	Author                string       `json:"author"`
-	CreatedAt             time.Time    `json:"createdAt"`
-	StorageClass          StorageClass `json:"storageClass,omitempty"`
-	StorageClassVersion   int          `json:"storageClassVersion,omitempty"`
-	StorageReadMode       string       `json:"storageReadMode,omitempty"`
-	StorageClassUpdatedAt *time.Time   `json:"storageClassUpdatedAt,omitempty"`
+	Binding               *ObjectBinding `json:"binding,omitempty"`
+	RestoredFrom          int            `json:"restoredFrom,omitempty"`
+	ObjectID              string         `json:"objectId"`
+	Number                int            `json:"number"`
+	Hash                  string         `json:"hash"`
+	Size                  int64          `json:"size"`
+	MIME                  string         `json:"mime"`
+	BlobPath              string         `json:"blobPath"`
+	Author                string         `json:"author"`
+	CreatedAt             time.Time      `json:"createdAt"`
+	StorageClass          StorageClass   `json:"storageClass,omitempty"`
+	StorageClassVersion   int            `json:"storageClassVersion,omitempty"`
+	StorageReadMode       string         `json:"storageReadMode,omitempty"`
+	StorageClassUpdatedAt *time.Time     `json:"storageClassUpdatedAt,omitempty"`
 }
 
 type Grant struct {
@@ -377,6 +381,8 @@ type persistentState struct {
 	Versions           map[string][]Version              `json:"versions"`
 	Grants             map[string]Grant                  `json:"grants"`
 	Links              map[string]ShareLink              `json:"links"`
+	LinkTokenHashes    map[string]string                 `json:"linkTokenHashes,omitempty"`
+	ObjectOperations   map[string]objectCreateOperation  `json:"objectOperations,omitempty"`
 	AccessRequests     map[string]AccessRequest          `json:"accessRequests"`
 	Comments           map[string][]Comment              `json:"comments"`
 	Presence           map[string]Presence               `json:"presence"`

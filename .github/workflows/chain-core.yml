@@ -6,8 +6,12 @@ on:
       - codex/final-chain-core
       - codex/ynx-pq-perf-integration
       - codex/v5-link-native-ci
+      - codex/pay-core-qa
     paths:
       - ".github/workflows/chain-core.yml"
+      - "pay-qa.mod"
+      - "pay-qa.sum"
+      - "packages/auth-binary-http/**"
       - "Makefile"
       - "package.json"
       - "package-lock.json"
@@ -80,6 +84,53 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pay-core-qa:
+    name: Pay and Core isolated composition (not release)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/pay-core-qa'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+      GOWORK: "off"
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: pay-qa.mod
+          cache: false
+      - name: Build pinned private OpenSSL
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/openssl-3.6.4.tar.gz"
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 --max-time 180 --max-filesize 60000000 https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz -o "$archive"
+          printf '%s  %s\n' 9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/openssl-3.6.4"
+          ./Configure linux-x86_64 --release shared --prefix="$RUNNER_TEMP/pay-openssl" --openssldir="$RUNNER_TEMP/pay-openssl/ssl" --libdir=lib
+          make -j2 build_sw
+          make install_sw install_ssldirs
+          printf '%s\n' "$RUNNER_TEMP/pay-openssl/bin" >> "$GITHUB_PATH"
+          printf 'PKG_CONFIG_LIBDIR=%s\n' "$RUNNER_TEMP/pay-openssl/lib/pkgconfig" >> "$GITHUB_ENV"
+          printf 'PKG_CONFIG_PATH=%s\n' "$RUNNER_TEMP/pay-openssl/lib/pkgconfig" >> "$GITHUB_ENV"
+          printf 'LD_LIBRARY_PATH=%s\n' "$RUNNER_TEMP/pay-openssl/lib" >> "$GITHUB_ENV"
+      - name: Verify normal Core and Pay composition
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(pkg-config --modversion openssl)" = 3.6.4
+          export PAY_ENGINE_SOCKET_ROOT
+          PAY_ENGINE_SOCKET_ROOT=$(mktemp -d /tmp/p06qa.XXXXXX)
+          trap 'rmdir "$PAY_ENGINE_SOCKET_ROOT"' EXIT
+          tags='pay_pq pay_cloud pay_auth_source pay_engine_host_fixture pay_securelink securelink_openssl'
+          go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./internal/payproduct/nativehost ./cmd/ynx-comet -run '^Test(ReadOperatorConfigStrictAndDoesNotExposeKeys|PayWrongNetworkNormalNodeStartAndShutdown|PayOperatorUsesOriginalNodeAndRejectsWrongNetwork)$' -count=1
+          go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./internal/consensus -run '^TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained$' -count=1
+          go build -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" -o "$RUNNER_TEMP/ynx-comet-pay-qa" ./cmd/ynx-comet
+          PAY_QA_COMET_BINARY="$RUNNER_TEMP/ynx-comet-pay-qa" go test -mod=readonly -modfile=pay-qa.mod -p 1 -tags "$tags" ./cmd/ynx-comet -run '^TestPayQANormalBinaryWrongNetwork$' -count=1
+
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
@@ -840,6 +891,7 @@ jobs:
 
   link-scope:
     name: Select actual LINK changed closure
+    if: github.ref != 'refs/heads/codex/pay-core-qa'
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:

@@ -135,6 +135,11 @@ func constructRuntimeNode(config *cfg.Config, logger log.Logger, options pqOptio
 	if err != nil {
 		return nil, nil, err
 	}
+	if options.proofLiveBind != nil {
+		if err = options.proofLiveBind(app); err != nil {
+			return nil, nil, err
+		}
+	}
 	nodeKey, err := consensus.LoadPQExistingNodeKey(config.NodeKeyFile())
 	if err != nil {
 		return nil, nil, err

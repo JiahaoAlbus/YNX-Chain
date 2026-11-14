@@ -29,6 +29,7 @@ import (
 )
 
 type pqOptions struct {
+	payOperatorConfig                                                 string
 	startupTimings                                                    bool
 	startupTiming                                                     *operatorStartupTimings
 	mempoolLosslessHex                                                string
@@ -52,7 +53,7 @@ type pqOptions struct {
 }
 
 func (p pqOptions) enabled() bool {
-	return p.startupTimings || p.losslessConfigured() || p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
+	return p.payOperatorConfig != "" || p.startupTimings || p.losslessConfigured() || p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -401,7 +402,7 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	var node *nm.Node
 	var custody io.Closer
 	var liveApp *consensus.Application
-	if options.proofLiveConfigured() {
+	if options.proofLiveConfigured() || options.payOperatorConfig != "" {
 		options.proofLiveBind = func(app *consensus.Application) error {
 			if liveApp != nil || app == nil {
 				return errors.New("live source requires exactly one original owning application")
@@ -457,7 +458,9 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		_ = node.ProxyApp().Stop()
 		return err
 	}
+	products := openOperatorPayProducts(ctx, liveApp, node, options.payOperatorConfig, logger)
 	if err := timedOperatorStartupCall(options.startupTiming, "startup.nodeStart", node.Start); err != nil {
+		closeOperatorPayProducts(products, logger)
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()
@@ -476,6 +479,7 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if live != nil {
 		if err = timedOperatorStartupCall(options.startupTiming, "startup.startProofHostLive", func() error { return live.Start(ctx) }); err != nil {
 			_ = live.Close()
+			closeOperatorPayProducts(products, logger)
 			return errors.Join(err, stopPQNodeWithObservations(node, observation, commitObservation))
 		}
 		liveDone = live.Done()
@@ -522,6 +526,7 @@ waitForStop:
 	if live != nil {
 		_ = live.Close()
 	}
+	closeOperatorPayProducts(products, logger)
 	_ = observation.closeLive()
 	if options.remote() {
 		_ = custody.Close()
@@ -557,6 +562,7 @@ func main() {
 	legacyRun := start.RunE
 	options := pqOptions{recoveryFD: -1}
 	f := start.Flags()
+	f.StringVar(&options.payOperatorConfig, "pay-operator-config", "", "explicit private Pay product operator configuration")
 	registerStartupTimingFlags(f, &options)
 	registerHeightHaltFlags(f, &options)
 	registerProofHostLiveFlags(f, &options)

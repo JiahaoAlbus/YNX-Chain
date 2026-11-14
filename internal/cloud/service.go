@@ -26,19 +26,20 @@ var (
 )
 
 type Config struct {
-	StatePath      string
-	ObjectDir      string
-	QuotaBytes     int64
-	Scanner        Scanner
-	WalletVerifier WalletVerifier
-	AIProvider     AIProvider
-	ObjectStore    ObjectStore
-	TrustSink      TrustSink
-	ReleaseCommit  string
-	ReleaseVersion string
-	ExitMode       bool
-	TelemetryPath  string
-	Now            func() time.Time
+	StatePath          string
+	ObjectDir          string
+	QuotaBytes         int64
+	Scanner            Scanner
+	WalletVerifier     WalletVerifier
+	AIProvider         AIProvider
+	ObjectStore        ObjectStore
+	TrustSink          TrustSink
+	ReleaseCommit      string
+	ReleaseVersion     string
+	ExitMode           bool
+	TelemetryPath      string
+	Now                func() time.Time
+	stateDirectorySync func(string) error
 }
 
 type DeletionPendingError struct{ Count int }
@@ -48,11 +49,15 @@ func (e DeletionPendingError) Error() string {
 }
 
 type Service struct {
-	mu              sync.Mutex
-	cfg             Config
-	state           persistentState
-	cancels         map[string]context.CancelFunc
-	lifecycleActive map[string]bool
+	mu                       sync.Mutex
+	cfg                      Config
+	state                    persistentState
+	cancels                  map[string]context.CancelFunc
+	lifecycleActive          map[string]bool
+	objectWriteErr           error
+	objectPending            *objectPendingCommit
+	objectCommittedIntegrity string
+	objectCommittedSnapshot  []byte
 }
 
 func New(cfg Config) (*Service, error) {
@@ -102,9 +107,12 @@ func New(cfg Config) (*Service, error) {
 			return nil, err
 		}
 	}
+	if err := service.initializeObjectCommitJournal(); err != nil {
+		service.objectWriteErr = errors.Join(errObjectCommitUnknown, err)
+	}
 	recovered := false
 	for id, job := range service.state.AIJobs {
-		if job.Status == "queued" || job.Status == "running" {
+		if service.objectWriteErr == nil && (job.Status == "queued" || job.Status == "running") {
 			job.Status = "failed"
 			job.Error = "AI job was interrupted by service restart; retry requires fresh context consent"
 			service.state.AIJobs[id] = job
@@ -112,7 +120,7 @@ func New(cfg Config) (*Service, error) {
 		}
 	}
 	if recovered {
-		if err := saveState(cfg.StatePath, &service.state); err != nil {
+		if err := service.persist("service.recovery", "", "", nil); err != nil {
 			return nil, err
 		}
 	}
@@ -134,6 +142,9 @@ func validAccount(v string) bool { return strings.HasPrefix(v, "ynx1") && len(v)
 func usageKey(owner, product string) string { return owner + "\x00" + product }
 
 func (s *Service) settleStorageLocked(owner, product string) UsageCounters {
+	if s.objectWriteErr != nil {
+		return s.state.Usage[usageKey(owner, product)]
+	}
 	key := usageKey(owner, product)
 	usage := s.state.Usage[key]
 	now := s.cfg.Now()
@@ -156,6 +167,9 @@ func (s *Service) settleStorageLocked(owner, product string) UsageCounters {
 }
 
 func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUnits, aiJobs int64) {
+	if s.objectWriteErr != nil {
+		return
+	}
 	key := usageKey(owner, product)
 	usage := s.settleStorageLocked(owner, product)
 	usage.Owner = owner
@@ -170,6 +184,9 @@ func (s *Service) meterLocked(owner, product string, ingress, egress, scan, aiUn
 }
 
 func (s *Service) persist(action, actor, objectID string, details map[string]any) error {
+	if s.objectWriteErr != nil {
+		return s.objectWriteErr
+	}
 	if details == nil {
 		details = map[string]any{}
 	}
@@ -183,7 +200,10 @@ func (s *Service) persist(action, actor, objectID string, details map[string]any
 	if len(s.state.Audit) > 5000 {
 		s.state.Audit = append([]AuditEvent(nil), s.state.Audit[len(s.state.Audit)-5000:]...)
 	}
-	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+	if err := s.saveObjectSnapshotLocked(); err != nil {
+		if errors.Is(err, errObjectCommitUnknown) {
+			return s.freezeObjectCommitLocked(action, actor, objectID, err)
+		}
 		return err
 	}
 	trust := TrustEvent{Actor: actor, Action: action, ObjectID: objectID, At: event.At, Details: details}
@@ -216,6 +236,9 @@ func (s *Service) role(actor string, obj Object) string {
 		for _, g := range s.state.Grants {
 			if g.ObjectID != current.ID || g.Principal != actor || g.RevokedAt != nil || (g.ExpiresAt != nil && !g.ExpiresAt.After(now)) {
 				continue
+			}
+			if g.Role == "denied" {
+				return ""
 			}
 			if rank(g.Role) > rank(best) {
 				best = g.Role
@@ -304,6 +327,15 @@ func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
 }
 
 func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequest) (Object, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Object{}, err
+	}
+	if ctx == nil {
+		return Object{}, ErrInvalid
+	}
+	if err := ctx.Err(); err != nil {
+		return Object{}, err
+	}
 	if !validAccount(actor) || validateName(req.Name) != nil {
 		return Object{}, ErrInvalid
 	}
@@ -340,43 +372,86 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 		}
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	defer s.unlockObjectState()
 	if req.ParentID != "" {
 		parent, err := s.require(actor, req.ParentID, 2)
 		if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil {
 			return Object{}, ErrDenied
 		}
 	}
+	if s.objectWriteErr != nil {
+		return Object{}, s.objectWriteErr
+	}
+	if err := ctx.Err(); err != nil {
+		return Object{}, err
+	}
+	before, err := snapshotObjectState(s.state)
+	if err != nil {
+		return Object{}, err
+	}
+	operation, operationKey, err := s.prepareObjectCreateLocked(ctx, actor, req)
+	if err != nil {
+		return Object{}, err
+	}
+	if operationKey != "" && operation.ObjectID != "" {
+		obj, exists := s.state.Objects[operation.ObjectID]
+		if !exists {
+			return Object{}, errObjectOperationRetired
+		}
+		if obj.Owner != actor || obj.Product != req.Product {
+			return Object{}, ErrDenied
+		}
+		return obj, nil
+	}
 	now := s.cfg.Now()
 	storageClass, storageClassVersion, storageReadMode := initialStorageState(req.Kind)
-	obj := Object{ID: newID("obj"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact, StorageClass: storageClass, StorageClassVersion: storageClassVersion, StorageReadMode: storageReadMode}
+	obj := Object{ID: newID("obj"), Revision: 1, Product: req.Product, Owner: actor, ParentID: req.ParentID, Kind: req.Kind, Name: strings.TrimSpace(req.Name), MIME: req.MIME, CreatedAt: now, UpdatedAt: now, Encryption: req.Encryption, Artifact: req.Artifact, StorageClass: storageClass, StorageClassVersion: storageClassVersion, StorageReadMode: storageReadMode}
 	if req.Kind != KindFolder {
 		h := hashBytes(req.Content)
+		if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, int64(len(req.Content))) > s.cfg.QuotaBytes {
+			return Object{}, errors.New("storage quota exceeded")
+		}
 		path, err := s.putObjectBlob(ctx, actor, req.Product, h, req.Content)
 		if err != nil {
 			return Object{}, err
 		}
+		if err := ctx.Err(); err != nil {
+			return Object{}, err
+		}
 		obj.Hash = h
+		binding := bindObjectBytes(req.Content)
+		obj.Binding = &binding
 		obj.Size = int64(len(req.Content))
 		obj.Version = 1
 		obj.ScanStatus = "accepted"
-		if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, obj.Size) > s.cfg.QuotaBytes {
-			return Object{}, errors.New("storage quota exceeded")
-		}
 		s.settleStorageLocked(actor, obj.Product)
-		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
+		s.state.Versions[obj.ID] = []Version{{ObjectID: obj.ID, Number: 1, Hash: h, Binding: obj.Binding, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate}}
 	}
 	s.state.Objects[obj.ID] = obj
+	if operationKey != "" {
+		operation.ObjectID = obj.ID
+		if s.state.ObjectOperations == nil {
+			s.state.ObjectOperations = map[string]objectCreateOperation{}
+		}
+		s.state.ObjectOperations[operationKey] = operation
+	}
 	if obj.Kind != KindFolder {
 		s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
 	}
-	if err := s.persist("object.create", actor, obj.ID, map[string]any{"product": obj.Product, "kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
+	if err := s.persistObjectState(before, "object.create", actor, obj.ID, map[string]any{"product": obj.Product, "kind": obj.Kind, "hash": obj.Hash, "clientEncrypted": obj.Encryption.ClientSide, "artifact": obj.Artifact}); err != nil {
 		return Object{}, err
 	}
 	return obj, nil
 }
 
 func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (MultipartUpload, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return MultipartUpload{}, err
+	}
 	if !validAccount(actor) || validateName(req.Name) != nil || req.Kind != KindFile || expectedSize < 1 || expectedSize > MaxMultipartBytes || len(expectedHash) != 64 {
 		return MultipartUpload{}, ErrInvalid
 	}
@@ -402,7 +477,11 @@ func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expec
 		req.MIME = "application/octet-stream"
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return MultipartUpload{}, err
+	}
+	defer s.unlockObjectState()
 	if req.ParentID != "" {
 		p, err := s.require(actor, req.ParentID, 2)
 		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
@@ -420,12 +499,19 @@ func (s *Service) InitiateMultipart(actor string, req CreateObjectRequest, expec
 }
 
 func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number int, body []byte, claimedHash string) (MultipartPart, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return MultipartPart{}, err
+	}
 	if number < 1 || number > MaxMultipartParts || len(body) < 1 || len(body) > MaxUploadBytes || hashBytes(body) != claimedHash {
 		return MultipartPart{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return MultipartPart{}, err
+	}
 	u, ok := s.state.MultipartUploads[id]
-	s.mu.Unlock()
+	s.unlockObjectState()
 	if !ok {
 		return MultipartPart{}, ErrNotFound
 	}
@@ -440,7 +526,11 @@ func (s *Service) PutMultipartPart(ctx context.Context, actor, id string, number
 		return MultipartPart{}, err
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return MultipartPart{}, err
+	}
+	defer s.unlockObjectState()
 	u = s.state.MultipartUploads[id]
 	if u.Status != "active" {
 		return MultipartPart{}, ErrInvalid
@@ -469,8 +559,15 @@ func (s *Service) GetMultipart(actor, id string) (MultipartUpload, error) {
 }
 
 func (s *Service) CancelMultipart(actor, id string) error {
+	if err := s.objectWriteFence(); err != nil {
+		return err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	defer s.unlockObjectState()
 	u, ok := s.state.MultipartUploads[id]
 	if !ok {
 		return ErrNotFound
@@ -483,67 +580,78 @@ func (s *Service) CancelMultipart(actor, id string) error {
 }
 
 func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, ordered []int) (Object, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Object{}, err
+	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
 	u, ok := s.state.MultipartUploads[id]
 	if !ok {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrNotFound
 	}
 	if u.Owner != actor {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrDenied
 	}
 	if u.Status != "active" || len(ordered) == 0 || len(ordered) != len(u.Parts) {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrInvalid
 	}
 	u.Status = "completing"
 	s.state.MultipartUploads[id] = u
-	s.mu.Unlock()
-	failed := func() {
+	s.unlockObjectState()
+	failed := func() error {
 		s.mu.Lock()
-		v, ok := s.state.MultipartUploads[id]
-		if ok {
-			v.Status = "active"
-			s.state.MultipartUploads[id] = v
-			_ = saveState(s.cfg.StatePath, &s.state)
+		if err := s.objectWriteErr; err != nil {
+			s.mu.Unlock()
+			return err
 		}
-		s.mu.Unlock()
+		defer s.unlockObjectState()
+		v, ok := s.state.MultipartUploads[id]
+		if !ok {
+			return ErrNotFound
+		}
+		v.Status = "active"
+		s.state.MultipartUploads[id] = v
+		return s.persist("multipart.reset", actor, "", map[string]any{"product": v.Product, "uploadId": id})
 	}
 	var all bytes.Buffer
 	last := 0
 	for _, n := range ordered {
 		if n <= last {
-			failed()
-			return Object{}, ErrInvalid
+			return Object{}, errors.Join(ErrInvalid, failed())
 		}
 		p, ok := u.Parts[n]
 		if !ok {
-			failed()
-			return Object{}, ErrInvalid
+			return Object{}, errors.Join(ErrInvalid, failed())
 		}
 		b, err := s.cfg.ObjectStore.Get(ctx, p.Ref, p.Hash)
 		if err != nil {
-			failed()
-			return Object{}, err
+			return Object{}, errors.Join(err, failed())
 		}
 		all.Write(b)
 		last = n
 	}
 	body := all.Bytes()
 	if int64(len(body)) != u.ExpectedSize || hashBytes(body) != u.ExpectedHash {
-		failed()
-		return Object{}, errors.New("multipart final integrity mismatch")
+		return Object{}, errors.Join(errors.New("multipart final integrity mismatch"), failed())
 	}
 	obj, err := s.Create(ctx, actor, CreateObjectRequest{Product: u.Product, ParentID: u.ParentID, Kind: KindFile, Name: u.Name, MIME: u.MIME, Content: body, Encryption: u.Encryption, Artifact: u.Artifact})
 	if err != nil {
-		failed()
-		return Object{}, err
+		return Object{}, errors.Join(err, failed())
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
 	delete(s.state.MultipartUploads, id)
 	err = s.persist("multipart.complete", actor, obj.ID, map[string]any{"uploadId": id, "parts": len(ordered), "hash": obj.Hash})
-	s.mu.Unlock()
+	s.unlockObjectState()
 	if err != nil {
 		return Object{}, err
 	}
@@ -551,6 +659,9 @@ func (s *Service) CompleteMultipart(ctx context.Context, actor, id string, order
 }
 
 func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req CreateObjectRequest, expectedSize int64, expectedHash string) (DirectUpload, DirectUploadPlan, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
 	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
 	if !ok {
 		return DirectUpload{}, DirectUploadPlan{}, errors.New("presigned direct upload unavailable for configured object store")
@@ -580,14 +691,18 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 		return DirectUpload{}, DirectUploadPlan{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
 	if req.ParentID != "" {
 		p, err := s.require(actor, req.ParentID, 2)
 		if err != nil || p.Kind != KindFolder || p.TrashedAt != nil {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return DirectUpload{}, DirectUploadPlan{}, ErrDenied
 		}
 	}
-	s.mu.Unlock()
+	s.unlockObjectState()
 	plan, err := provider.Presign(ctx, DirectUploadRequest{Scope: objectStorageScope(actor, req.Product), Hash: expectedHash, Size: expectedSize, MIME: req.MIME})
 	if err != nil {
 		return DirectUpload{}, DirectUploadPlan{}, err
@@ -595,7 +710,11 @@ func (s *Service) InitiateDirectUpload(ctx context.Context, actor string, req Cr
 	now := s.cfg.Now()
 	u := DirectUpload{ID: newID("direct"), Product: req.Product, Owner: actor, ParentID: req.ParentID, Name: strings.TrimSpace(req.Name), MIME: req.MIME, Encryption: req.Encryption, Artifact: req.Artifact, ExpectedSize: expectedSize, ExpectedHash: expectedHash, ProviderRef: plan.Ref, Status: "awaiting-upload", CreatedAt: now, UpdatedAt: now, ExpiresAt: plan.ExpiresAt}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return DirectUpload{}, DirectUploadPlan{}, err
+	}
+	defer s.unlockObjectState()
 	s.state.DirectUploads[u.ID] = u
 	if err := s.persist("direct.initiate", actor, "", map[string]any{"product": u.Product, "directUploadId": u.ID, "size": expectedSize, "hash": expectedHash, "expiresAt": plan.ExpiresAt}); err != nil {
 		delete(s.state.DirectUploads, u.ID)
@@ -623,40 +742,55 @@ func (s *Service) GetDirectUpload(actor, id string) (DirectUpload, error) {
 }
 
 func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (Object, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Object{}, err
+	}
 	provider, ok := s.cfg.ObjectStore.(DirectUploadStore)
 	if !ok {
 		return Object{}, errors.New("presigned direct upload unavailable for configured object store")
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
 	u, ok := s.state.DirectUploads[id]
 	if !ok {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrNotFound
 	}
 	if u.Owner != actor {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrDenied
 	}
 	if u.Status != "awaiting-upload" || !u.ExpiresAt.After(s.cfg.Now()) {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, ErrInvalid
 	}
 	u.Status = "verifying"
 	u.UpdatedAt = s.cfg.Now()
 	s.state.DirectUploads[id] = u
-	s.mu.Unlock()
+	s.unlockObjectState()
 	verified, err := provider.VerifyDirect(ctx, u.ProviderRef, u.ExpectedHash, u.ExpectedSize)
 	if err != nil {
 		s.mu.Lock()
+		if err := s.objectWriteErr; err != nil {
+			s.mu.Unlock()
+			return Object{}, err
+		}
 		u.Status = "awaiting-upload"
 		u.UpdatedAt = s.cfg.Now()
 		s.state.DirectUploads[id] = u
 		_ = saveState(s.cfg.StatePath, &s.state)
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return Object{}, err
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	defer s.unlockObjectState()
 	reset := func() {
 		u.Status = "awaiting-upload"
 		u.UpdatedAt = s.cfg.Now()
@@ -699,24 +833,35 @@ func (s *Service) CompleteDirectUpload(ctx context.Context, actor, id string) (O
 }
 
 func (s *Service) CancelDirectUpload(ctx context.Context, actor, id string) (DirectUpload, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return DirectUpload{}, err
+	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return DirectUpload{}, err
+	}
 	u, ok := s.state.DirectUploads[id]
 	if !ok {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return DirectUpload{}, ErrNotFound
 	}
 	if u.Owner != actor {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return DirectUpload{}, ErrDenied
 	}
 	if u.Status == "completed" {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return DirectUpload{}, ErrInvalid
 	}
-	s.mu.Unlock()
+	s.unlockObjectState()
 	err := s.cfg.ObjectStore.Delete(ctx, u.ProviderRef, u.ExpectedHash)
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return DirectUpload{}, err
+	}
+	defer s.unlockObjectState()
 	u.UpdatedAt = s.cfg.Now()
 	if err != nil {
 		u.Status = "cancel-pending-provider-delete"
@@ -736,51 +881,7 @@ func (s *Service) CancelDirectUpload(ctx context.Context, actor, id string) (Dir
 }
 
 func (s *Service) SaveDocument(ctx context.Context, actor, id string, req SaveDocumentRequest) (Object, error) {
-	if len(req.Content) > MaxUploadBytes {
-		return Object{}, ErrInvalid
-	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	obj, err := s.require(actor, id, 2)
-	if err != nil {
-		return Object{}, err
-	}
-	if obj.Kind != KindDoc || obj.TrashedAt != nil || obj.Encryption.ClientSide {
-		return Object{}, ErrInvalid
-	}
-	if req.BaseVersion != obj.Version {
-		return Object{}, ConflictError{Current: obj}
-	}
-	if err := s.cfg.Scanner.Scan(ctx, obj.Name, "text/plain", req.Content); err != nil {
-		return Object{}, err
-	}
-	h := hashBytes(req.Content)
-	path, err := s.putObjectBlob(ctx, actor, obj.Product, h, req.Content)
-	if err != nil {
-		return Object{}, err
-	}
-	if s.usedLocked(actor)+s.additionalLocked(actor, obj.Product, h, int64(len(req.Content))) > s.cfg.QuotaBytes {
-		return Object{}, errors.New("storage quota exceeded")
-	}
-	now := s.cfg.Now()
-	s.settleStorageLocked(actor, obj.Product)
-	obj.Version++
-	obj.Hash = h
-	obj.Size = int64(len(req.Content))
-	obj.MIME = "text/plain"
-	obj.UpdatedAt = now
-	obj.ScanStatus = "accepted"
-	obj.StorageClass = StorageClassHot
-	obj.StorageClassVersion = 1
-	obj.StorageReadMode = StorageReadImmediate
-	obj.StorageClassUpdatedAt = nil
-	s.state.Objects[id] = obj
-	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: h, Size: obj.Size, MIME: obj.MIME, BlobPath: path, Author: actor, CreatedAt: now, StorageClass: StorageClassHot, StorageClassVersion: 1, StorageReadMode: StorageReadImmediate})
-	s.meterLocked(actor, obj.Product, obj.Size, 0, obj.Size, 0, 0)
-	if err := s.persist("document.save", actor, id, map[string]any{"version": obj.Version, "hash": h}); err != nil {
-		return Object{}, err
-	}
-	return obj, nil
+	return s.saveObjectContent(ctx, actor, id, nil, req.BaseVersion, bytes.NewReader(req.Content), nil, KindDoc)
 }
 
 func (s *Service) List(actor string, opt ListOptions) ([]Object, error) {
@@ -933,29 +1034,7 @@ func (s *Service) Get(actor, id string) (Object, error) {
 }
 
 func (s *Service) Content(actor, id string, version int) (Object, []byte, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	obj, err := s.require(actor, id, 1)
-	if err != nil {
-		return Object{}, nil, err
-	}
-	if obj.Kind == KindFolder {
-		return Object{}, nil, ErrInvalid
-	}
-	versions := s.state.Versions[id]
-	if version == 0 {
-		version = obj.Version
-	}
-	for _, v := range versions {
-		if v.Number == version {
-			if normalizedVersionReadMode(v) == StorageReadRestoreRequired {
-				return obj, nil, ErrArchiveRestoreRequired
-			}
-			b, err := s.cfg.ObjectStore.Get(context.Background(), v.BlobPath, v.Hash)
-			return obj, b, err
-		}
-	}
-	return Object{}, nil, ErrNotFound
+	return s.GetObjectVersion(context.Background(), actor, id, version)
 }
 
 func (s *Service) Versions(actor, id string) ([]Version, error) {
@@ -970,43 +1049,19 @@ func (s *Service) Versions(actor, id string) ([]Version, error) {
 }
 
 func (s *Service) RestoreVersion(actor, id string, number int) (Object, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	obj, err := s.require(actor, id, 2)
-	if err != nil {
-		return Object{}, err
-	}
-	var source *Version
-	for i := range s.state.Versions[id] {
-		if s.state.Versions[id][i].Number == number {
-			v := s.state.Versions[id][i]
-			source = &v
-			break
-		}
-	}
-	if source == nil {
-		return Object{}, ErrNotFound
-	}
-	obj.Version++
-	obj.Hash = source.Hash
-	obj.Size = source.Size
-	obj.MIME = source.MIME
-	obj.UpdatedAt = s.cfg.Now()
-	obj.StorageClass = normalizedVersionStorageClass(*source)
-	obj.StorageClassVersion = normalizedVersionStorageClassVersion(*source)
-	obj.StorageReadMode = normalizedVersionReadMode(*source)
-	obj.StorageClassUpdatedAt = source.StorageClassUpdatedAt
-	s.state.Objects[id] = obj
-	s.state.Versions[id] = append(s.state.Versions[id], Version{ObjectID: id, Number: obj.Version, Hash: source.Hash, Size: source.Size, MIME: source.MIME, BlobPath: source.BlobPath, Author: actor, CreatedAt: obj.UpdatedAt, StorageClass: obj.StorageClass, StorageClassVersion: obj.StorageClassVersion, StorageReadMode: obj.StorageReadMode, StorageClassUpdatedAt: obj.StorageClassUpdatedAt})
-	if err := s.persist("version.restore", actor, id, map[string]any{"sourceVersion": number, "version": obj.Version}); err != nil {
-		return Object{}, err
-	}
-	return obj, nil
+	return s.restoreObjectVersion(context.Background(), actor, id, number, nil)
 }
 
 func (s *Service) SetStar(actor, id string, value bool) (Object, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Object{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	defer s.unlockObjectState()
 	obj, err := s.require(actor, id, 2)
 	if err != nil {
 		return Object{}, err
@@ -1020,8 +1075,15 @@ func (s *Service) SetStar(actor, id string, value bool) (Object, error) {
 	return obj, nil
 }
 func (s *Service) SetTrash(actor, id string, trash bool) (Object, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Object{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Object{}, err
+	}
+	defer s.unlockObjectState()
 	obj, err := s.require(actor, id, 2)
 	if err != nil {
 		return Object{}, err
@@ -1045,8 +1107,15 @@ func (s *Service) SetTrash(actor, id string, trash bool) (Object, error) {
 }
 
 func (s *Service) DeleteObject(actor, id string) error {
+	if err := s.objectWriteFence(); err != nil {
+		return err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	defer s.unlockObjectState()
 	obj, err := s.require(actor, id, 3)
 	if err != nil {
 		return err
@@ -1080,6 +1149,7 @@ func (s *Service) DeleteObject(actor, id string) error {
 	for key, link := range s.state.Links {
 		if link.ObjectID == id {
 			delete(s.state.Links, key)
+			delete(s.state.LinkTokenHashes, key)
 		}
 	}
 	for key, request := range s.state.AccessRequests {
@@ -1164,11 +1234,18 @@ func (s *Service) BlobDeletions(actor, product string) ([]BlobDeletion, error) {
 }
 
 func (s *Service) RetryBlobDeletion(ctx context.Context, actor, product, id string) (BlobDeletion, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return BlobDeletion{}, err
+	}
 	if product != "cloud" && product != "docs" {
 		return BlobDeletion{}, ErrInvalid
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return BlobDeletion{}, err
+	}
+	defer s.unlockObjectState()
 	d, ok := s.state.BlobDeletions[id]
 	if !ok {
 		return BlobDeletion{}, ErrNotFound
@@ -1292,6 +1369,9 @@ func (s *Service) ExportOwnedData(ctx context.Context, actor, product string) ([
 	if err = zw.Close(); err != nil {
 		return nil, ExportManifest{}, err
 	}
+	if s.objectWriteErr != nil {
+		return out.Bytes(), manifest, nil
+	}
 	if err := s.persist("data.export", actor, "", map[string]any{"product": product, "objects": len(manifest.Objects), "versions": len(manifest.Versions), "bytes": out.Len()}); err != nil {
 		return nil, ExportManifest{}, err
 	}
@@ -1329,10 +1409,17 @@ func containsAccount(value any, account string) bool {
 // failures remain explicit, retryable BlobDeletion records and never turn the
 // receipt into a physical-erasure claim.
 func (s *Service) EraseProductData(ctx context.Context, actor, product string) (DataErasureReceipt, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return DataErasureReceipt{}, err
+	}
 	if !validAccount(actor) || (product != "cloud" && product != "docs") {
 		return DataErasureReceipt{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return DataErasureReceipt{}, err
+	}
 	defer s.mu.Unlock()
 	now := s.cfg.Now()
 	owned := map[string]bool{}
@@ -1412,6 +1499,7 @@ func (s *Service) EraseProductData(ctx context.Context, actor, product string) (
 	for id, link := range s.state.Links {
 		if owned[link.ObjectID] || (objectProduct(link.ObjectID) == product && link.CreatedBy == actor) {
 			delete(s.state.Links, id)
+			delete(s.state.LinkTokenHashes, id)
 			deleted["shareLinks"]++
 		}
 	}
@@ -1558,6 +1646,7 @@ func (s *Service) EraseProductData(ctx context.Context, actor, product string) (
 		}
 	}
 	receipt := DataErasureReceipt{SchemaVersion: 1, ID: receiptID, OwnerHash: ownerHash, Product: product, Status: "logical-erasure-complete-provider-deletion-pending", Source: "ynx-cloudd", Authority: "YNX control-plane logical erasure and observed provider deletion attempts", RequestedAt: now, UpdatedAt: now, Deleted: deleted, PendingBlobs: pendingBeforeAttempts, Retained: map[string]string{"erasureReceipt": "hashed owner identifier and aggregate counts retained for accountability", "securityNonces": "opaque replay-prevention digests expire independently", "pendingProviderDeletionRecords": "raw owner authorization is retained only while a known provider deletion is pending, then removed"}, Coverage: "product-scoped control-plane state and known provider references; provider-native replicas, backups, legal retention, and external systems require their own evidence"}
+	receipt.Retained["objectRequestTombstones"] = "opaque scoped request digests, input fingerprints and original object IDs retained to prevent deleted uploads being recreated by old retries; no content, filenames, account or tokens retained in these records"
 	if shared > 0 {
 		receipt.Retained["sharedContentReferences"] = fmt.Sprintf("%d content reference(s) remain because another object still uses the exact provider ref and hash", shared)
 	}
@@ -1631,8 +1720,15 @@ func (s *Service) DataErasureReceipts(actor, product string) ([]DataErasureRecei
 }
 
 func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (Grant, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Grant{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Grant{}, err
+	}
+	defer s.unlockObjectState()
 	obj, err := s.require(actor, id, 3)
 	if err != nil {
 		return Grant{}, err
@@ -1648,8 +1744,15 @@ func (s *Service) Grant(actor, id, principal, role string, expires *time.Time) (
 	return g, nil
 }
 func (s *Service) RevokeGrant(actor, id, grantID string) (Grant, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Grant{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Grant{}, err
+	}
+	defer s.unlockObjectState()
 	if _, err := s.require(actor, id, 3); err != nil {
 		return Grant{}, err
 	}
@@ -1681,25 +1784,47 @@ func (s *Service) Grants(actor, id string) ([]Grant, error) {
 }
 
 func (s *Service) CreateLink(actor, id, role string, expires time.Time) (ShareLink, string, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return ShareLink{}, "", err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return ShareLink{}, "", err
+	}
+	defer s.unlockObjectState()
 	if _, err := s.require(actor, id, 3); err != nil {
 		return ShareLink{}, "", err
 	}
 	if role != "viewer" || !expires.After(s.cfg.Now()) || expires.After(s.cfg.Now().Add(30*24*time.Hour)) {
 		return ShareLink{}, "", ErrInvalid
 	}
+	before, err := snapshotObjectState(s.state)
+	if err != nil {
+		return ShareLink{}, "", err
+	}
 	token := newID("share")
 	l := ShareLink{ID: newID("link"), ObjectID: id, TokenHash: hashBytes([]byte(token)), Role: role, ExpiresAt: expires, CreatedBy: actor, CreatedAt: s.cfg.Now()}
 	s.state.Links[l.ID] = l
-	if err := s.persist("link.create", actor, id, map[string]any{"linkId": l.ID, "expiresAt": expires}); err != nil {
+	if s.state.LinkTokenHashes == nil {
+		s.state.LinkTokenHashes = map[string]string{}
+	}
+	s.state.LinkTokenHashes[l.ID] = l.TokenHash
+	if err := s.persistObjectState(before, "link.create", actor, id, map[string]any{"linkId": l.ID, "expiresAt": expires}); err != nil {
 		return ShareLink{}, "", err
 	}
 	return l, token, nil
 }
 func (s *Service) RevokeLink(actor, id, linkID string) (ShareLink, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return ShareLink{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return ShareLink{}, err
+	}
+	defer s.unlockObjectState()
 	if _, err := s.require(actor, id, 3); err != nil {
 		return ShareLink{}, err
 	}
@@ -1707,10 +1832,14 @@ func (s *Service) RevokeLink(actor, id, linkID string) (ShareLink, error) {
 	if !ok || l.ObjectID != id {
 		return ShareLink{}, ErrNotFound
 	}
+	before, err := snapshotObjectState(s.state)
+	if err != nil {
+		return ShareLink{}, err
+	}
 	now := s.cfg.Now()
 	l.RevokedAt = &now
 	s.state.Links[linkID] = l
-	if err := s.persist("link.revoke", actor, id, map[string]any{"linkId": linkID}); err != nil {
+	if err := s.persistObjectState(before, "link.revoke", actor, id, map[string]any{"linkId": linkID}); err != nil {
 		return ShareLink{}, err
 	}
 	return l, nil
@@ -1736,7 +1865,7 @@ func (s *Service) ResolveLink(token string) (Object, error) {
 	defer s.mu.Unlock()
 	h := hashBytes([]byte(token))
 	for _, l := range s.state.Links {
-		if l.TokenHash == h && l.RevokedAt == nil && l.ExpiresAt.After(s.cfg.Now()) {
+		if s.linkTokenHashLocked(l) == h && l.RevokedAt == nil && l.ExpiresAt.After(s.cfg.Now()) {
 			o, ok := s.state.Objects[l.ObjectID]
 			if ok && o.TrashedAt == nil {
 				return o, nil
@@ -1751,7 +1880,7 @@ func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
 	defer s.mu.Unlock()
 	h := hashBytes([]byte(token))
 	for _, link := range s.state.Links {
-		if link.TokenHash != h || link.RevokedAt != nil || !link.ExpiresAt.After(s.cfg.Now()) {
+		if s.linkTokenHashLocked(link) != h || link.RevokedAt != nil || !link.ExpiresAt.After(s.cfg.Now()) {
 			continue
 		}
 		object, ok := s.state.Objects[link.ObjectID]
@@ -1760,8 +1889,7 @@ func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
 		}
 		for _, version := range s.state.Versions[object.ID] {
 			if version.Number == object.Version {
-				body, err := s.cfg.ObjectStore.Get(context.Background(), version.BlobPath, version.Hash)
-				return object, body, err
+				return s.readObjectVersionLocked(context.Background(), object, version)
 			}
 		}
 	}
@@ -1769,8 +1897,15 @@ func (s *Service) ResolveLinkContent(token string) (Object, []byte, error) {
 }
 
 func (s *Service) RequestAccess(actor, id, role, message string) (AccessRequest, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return AccessRequest{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return AccessRequest{}, err
+	}
+	defer s.unlockObjectState()
 	if !validAccount(actor) || (role != "viewer" && role != "editor") || len(message) > 500 {
 		return AccessRequest{}, ErrInvalid
 	}
@@ -1785,8 +1920,15 @@ func (s *Service) RequestAccess(actor, id, role, message string) (AccessRequest,
 	return r, nil
 }
 func (s *Service) DecideAccess(actor, product, requestID, decision string) (AccessRequest, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return AccessRequest{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return AccessRequest{}, err
+	}
+	defer s.unlockObjectState()
 	r, ok := s.state.AccessRequests[requestID]
 	if !ok {
 		return AccessRequest{}, ErrNotFound
@@ -1832,8 +1974,15 @@ func (s *Service) AccessRequests(actor, id string) ([]AccessRequest, error) {
 }
 
 func (s *Service) AddComment(actor, id string, version int, body string, mentions []string) (Comment, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return Comment{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return Comment{}, err
+	}
+	defer s.unlockObjectState()
 	obj, err := s.require(actor, id, 1)
 	if err != nil {
 		return Comment{}, err
@@ -1862,8 +2011,15 @@ func (s *Service) Comments(actor, id string) ([]Comment, error) {
 	return append([]Comment(nil), s.state.Comments[id]...), nil
 }
 func (s *Service) Presence(actor, id, label string) ([]Presence, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return nil, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return nil, err
+	}
+	defer s.unlockObjectState()
 	if _, err := s.require(actor, id, 1); err != nil {
 		return nil, err
 	}
@@ -2011,11 +2167,18 @@ func (s *Service) Usage(actor, product string) (UsageReport, error) {
 }
 
 func (s *Service) RecordEgress(actor, product, objectID string, bytes int64, channel string) error {
+	if err := s.objectWriteFence(); err != nil {
+		return err
+	}
 	if !validAccount(actor) || (product != "cloud" && product != "docs") || bytes < 0 || (channel != "session" && channel != "share" && channel != "export") {
 		return ErrInvalid
 	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	defer s.unlockObjectState()
 	s.meterLocked(actor, product, 0, bytes, 0, 0, 0)
 	return s.persist("meter.egress", actor, objectID, map[string]any{"product": product, "bytes": bytes, "channel": channel})
 }
@@ -2025,6 +2188,9 @@ func (s *Service) AIStatus(ctx context.Context) map[string]any {
 	return map[string]any{"provider": provider, "model": model, "available": ok, "boundary": "selected file versions only; encrypted content excluded"}
 }
 func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruction string, ids []string, versions []int, consent bool) (AIJob, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return AIJob{}, err
+	}
 	if product != "cloud" && product != "docs" {
 		return AIJob{}, ErrInvalid
 	}
@@ -2036,20 +2202,24 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruc
 		return AIJob{}, ErrInvalid
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return AIJob{}, err
+	}
 	contexts := []AIContext{}
 	citations := []string{}
 	for i, id := range ids {
 		obj, err := s.require(actor, id, 1)
 		if err != nil {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return AIJob{}, err
 		}
 		if obj.Product != product {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return AIJob{}, ErrDenied
 		}
 		if obj.Encryption.ClientSide {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return AIJob{}, errors.New("client-encrypted content cannot be sent to AI")
 		}
 		v := versions[i]
@@ -2065,12 +2235,12 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruc
 			}
 		}
 		if selected == nil {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return AIJob{}, ErrNotFound
 		}
 		b, err := s.cfg.ObjectStore.Get(ctx, selected.BlobPath, selected.Hash)
 		if err != nil {
-			s.mu.Unlock()
+			s.unlockObjectState()
 			return AIJob{}, err
 		}
 		contexts = append(contexts, AIContext{ObjectID: id, Version: v, Name: obj.Name, Content: string(b)})
@@ -2086,21 +2256,28 @@ func (s *Service) CreateAIJob(ctx context.Context, actor, product, mode, instruc
 	_ = s.persist("ai.consent", actor, "", map[string]any{"product": product, "jobId": job.ID, "mode": mode, "contexts": citations, "estimatedUnits": job.Estimate})
 	jobCtx, cancel := context.WithCancel(context.Background())
 	s.cancels[job.ID] = cancel
-	s.mu.Unlock()
+	s.unlockObjectState()
 	go s.runAIJob(jobCtx, job, instruction, contexts, available)
 	return job, nil
 }
 
 func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, contexts []AIContext, available bool) {
+	if err := s.objectWriteFence(); err != nil {
+		return
+	}
 	s.mu.Lock()
-	if existing := s.state.AIJobs[job.ID]; existing.Status == "canceled" {
+	if err := s.objectWriteErr; err != nil {
 		s.mu.Unlock()
+		return
+	}
+	if existing := s.state.AIJobs[job.ID]; existing.Status == "canceled" {
+		s.unlockObjectState()
 		return
 	}
 	job.Status = "running"
 	s.state.AIJobs[job.ID] = job
 	_ = s.persist("ai.started", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID})
-	s.mu.Unlock()
+	s.unlockObjectState()
 	if !available {
 		job.Status = "failed"
 		job.Error = "YNX AI Gateway provider is unavailable"
@@ -2118,6 +2295,10 @@ func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, c
 		}
 	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return
+	}
 	delete(s.cancels, job.ID)
 	if current := s.state.AIJobs[job.ID]; current.Status == "canceled" {
 		job.Status = "canceled"
@@ -2125,7 +2306,7 @@ func (s *Service) runAIJob(ctx context.Context, job AIJob, instruction string, c
 	}
 	s.state.AIJobs[job.ID] = job
 	_ = s.persist("ai.result", job.Actor, "", map[string]any{"product": job.Product, "jobId": job.ID, "status": job.Status})
-	s.mu.Unlock()
+	s.unlockObjectState()
 }
 
 func (s *Service) GetAIJob(actor, product, id string) (AIJob, error) {
@@ -2142,14 +2323,21 @@ func (s *Service) GetAIJob(actor, product, id string) (AIJob, error) {
 }
 
 func (s *Service) CancelAIJob(actor, product, id string) (AIJob, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return AIJob{}, err
+	}
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return AIJob{}, err
+	}
 	job, ok := s.state.AIJobs[id]
 	if !ok {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return AIJob{}, ErrNotFound
 	}
 	if job.Actor != actor || job.Product != product || (job.Status != "queued" && job.Status != "running") {
-		s.mu.Unlock()
+		s.unlockObjectState()
 		return AIJob{}, ErrDenied
 	}
 	job.Status = "canceled"
@@ -2157,15 +2345,22 @@ func (s *Service) CancelAIJob(actor, product, id string) (AIJob, error) {
 	s.state.AIJobs[id] = job
 	cancel := s.cancels[id]
 	_ = s.persist("ai.canceled", actor, "", map[string]any{"product": product, "jobId": id})
-	s.mu.Unlock()
+	s.unlockObjectState()
 	if cancel != nil {
 		cancel()
 	}
 	return job, nil
 }
 func (s *Service) ReviewAI(actor, product, id, decision string) (AIJob, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return AIJob{}, err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return AIJob{}, err
+	}
+	defer s.unlockObjectState()
 	j, ok := s.state.AIJobs[id]
 	if !ok {
 		return AIJob{}, ErrNotFound
@@ -2196,7 +2391,7 @@ func walletProductBinding(request WalletAuthorizationRequest) (string, error) {
 		{"cloud", "ynx-cloud-mobile-v1", "com.ynxweb4.cloud", "ynxcloud://wallet-auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
 		{"docs", "ynx-docs-mobile-v1", "com.ynxweb4.docs", "ynxdocs://wallet-auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 		{"cloud", "ynx-cloud-web-v1", "web.ynx.cloud", "https://web4.ynxweb4.com/cloud/auth/callback", []string{"ai.use", "audit.read", "data.delete", "files.read", "files.write", "permissions.manage"}},
-		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://web4.ynxweb4.com/docs-app/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
+		{"docs", "ynx-docs-web-v1", "web.ynx.docs", "https://docs.staging.ynx.network/auth/callback", []string{"ai.use", "audit.read", "comments.write", "data.delete", "documents.read", "documents.write", "sharing.manage"}},
 	}
 	for _, b := range bindings {
 		if request.RequestingProduct != b.product || request.ProductClientID != b.client || request.BundleID != b.bundle || request.Callback != b.callback || len(request.Scopes) == 0 || len(request.Scopes) > len(b.scopes) {
@@ -2259,6 +2454,9 @@ func validateWalletPair(request WalletAuthorizationRequest, approval WalletAppro
 }
 
 func (s *Service) CreateWalletChallenge(request WalletAuthorizationRequest, approval WalletApproval) (GatewayChallenge, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return GatewayChallenge{}, err
+	}
 	now := s.cfg.Now().UTC().Truncate(time.Millisecond)
 	product, approvalExpiry, err := validateWalletPair(request, approval, now)
 	if err != nil {
@@ -2270,7 +2468,11 @@ func (s *Service) CreateWalletChallenge(request WalletAuthorizationRequest, appr
 	}
 	challenge := GatewayChallenge{Version: "1", Challenge: newID("gateway"), RequestDigest: approval.RequestDigest, ProductClientID: approval.ProductClientID, BundleID: approval.BundleID, ProductDeviceAlgorithm: approval.ProductDeviceAlgorithm, ProductDeviceKey: approval.ProductDeviceKey, Account: approval.Account, Scopes: append([]string(nil), approval.GrantedScopes...), IssuedAt: now.Format("2006-01-02T15:04:05.000Z"), ExpiresAt: expires.Format("2006-01-02T15:04:05.000Z")}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return GatewayChallenge{}, err
+	}
+	defer s.unlockObjectState()
 	for id, pending := range s.state.WalletChallenges {
 		if !pending.CreatedAt.Add(5 * time.Minute).After(now) {
 			delete(s.state.WalletChallenges, id)
@@ -2284,6 +2486,9 @@ func (s *Service) CreateWalletChallenge(request WalletAuthorizationRequest, appr
 }
 
 func (s *Service) CreateSession(ctx context.Context, envelope WalletSessionEnvelope) (string, Session, error) {
+	if err := s.objectWriteFence(); err != nil {
+		return "", Session{}, err
+	}
 	now := s.cfg.Now().UTC()
 	product, expires, err := validateWalletPair(envelope.AuthorizationRequest, envelope.WalletApproval, now)
 	if err != nil {
@@ -2291,8 +2496,12 @@ func (s *Service) CreateSession(ctx context.Context, envelope WalletSessionEnvel
 	}
 	challenge := envelope.GatewayCompletion.Challenge
 	s.mu.Lock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return "", Session{}, err
+	}
 	pending, ok := s.state.WalletChallenges[challenge.Challenge]
-	s.mu.Unlock()
+	s.unlockObjectState()
 	if !ok || pending.Product != product || pending.Callback != envelope.AuthorizationRequest.Callback || pending.Nonce != envelope.AuthorizationRequest.Nonce || !reflect.DeepEqual(pending.Challenge, challenge) {
 		return "", Session{}, errors.New("canonical Wallet challenge mismatch or replay")
 	}
@@ -2311,7 +2520,11 @@ func (s *Service) CreateSession(ctx context.Context, envelope WalletSessionEnvel
 	token := newID("session")
 	session := Session{TokenHash: hashBytes([]byte(token)), SessionBinding: claims.SessionBinding, RequestDigest: claims.RequestDigest, Account: claims.Account, Product: product, ClientID: claims.ProductClientID, BundleID: claims.BundleID, Callback: envelope.AuthorizationRequest.Callback, DeviceKey: envelope.AuthorizationRequest.ProductDeviceKey, Scopes: append([]string(nil), claims.Scopes...), IssuedAt: issuedAt, ExpiresAt: expires}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return "", Session{}, err
+	}
+	defer s.unlockObjectState()
 	for nonce, expiry := range s.state.Nonces {
 		if !expiry.After(s.cfg.Now()) {
 			delete(s.state.Nonces, nonce)
@@ -2342,8 +2555,15 @@ func (s *Service) Authenticate(token string) (Session, error) {
 	return session, nil
 }
 func (s *Service) RevokeSession(token string) error {
+	if err := s.objectWriteFence(); err != nil {
+		return err
+	}
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	if err := s.objectWriteErr; err != nil {
+		s.mu.Unlock()
+		return err
+	}
+	defer s.unlockObjectState()
 	h := hashBytes([]byte(token))
 	session, ok := s.state.Sessions[h]
 	if !ok {

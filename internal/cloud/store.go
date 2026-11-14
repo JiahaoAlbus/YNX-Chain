@@ -357,6 +357,12 @@ func verifyStoredState(raw []byte, state persistentState) bool {
 }
 
 func normalize(s *persistentState) {
+	if s.LinkTokenHashes == nil {
+		s.LinkTokenHashes = map[string]string{}
+	}
+	if s.ObjectOperations == nil {
+		s.ObjectOperations = map[string]objectCreateOperation{}
+	}
 	if s.Objects == nil {
 		s.Objects = map[string]Object{}
 	}
@@ -453,6 +459,10 @@ func stateIntegrity(s persistentState) (string, error) {
 }
 
 func saveState(path string, s *persistentState) error {
+	return saveStateWithDirectorySync(path, s, syncObjectDirectory)
+}
+
+func saveStateWithDirectorySync(path string, s *persistentState, syncDirectory func(string) error) error {
 	h, err := stateIntegrity(*s)
 	if err != nil {
 		return err
@@ -490,7 +500,10 @@ func saveState(path string, s *persistentState) error {
 	if err := os.Rename(tmp, path); err != nil {
 		return err
 	}
-	return os.Chmod(path, 0o600)
+	if err := syncDirectory(dir); err != nil {
+		return errors.Join(errObjectCommitUnknown, err)
+	}
+	return nil
 }
 
 func writeBlob(root, hash string, content []byte) (string, error) {
@@ -498,43 +511,110 @@ func writeBlob(root, hash string, content []byte) (string, error) {
 }
 
 func writeScopedBlob(root, scope, hash string, content []byte) (string, error) {
-	return writeBlobInRoot(filepath.Join(root, "scoped", scope), hash, content)
+	return writeObjectBlob(root, scope, hash, content, syncObjectDirectory)
+}
+func writeBlobInRoot(root, hash string, content []byte) (string, error) {
+	return writeObjectBlob(root, "", hash, content, syncObjectDirectory)
 }
 
-func writeBlobInRoot(root, hash string, content []byte) (string, error) {
-	if len(hash) != 64 || hash != strings.ToLower(hash) {
+// The configured root has an existing parent (the service state directory by
+// default). Every new directory entry below that boundary is synced, including
+// on retries, before a blob is allowed to back a version. No ancestor is guessed.
+func makeObjectBlobDirectory(root, scope, hash string, syncDirectory func(string) error) (string, error) {
+	root, err := filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
+	parent := filepath.Dir(root)
+	info, err := os.Lstat(parent)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return "", errors.New("object root requires an existing directory parent")
+	}
+	dirs := []string{root}
+	if scope != "" {
+		if !validObjectScope(scope) {
+			return "", ErrInvalid
+		}
+		dirs = append(dirs, filepath.Join(root, "scoped"), filepath.Join(root, "scoped", scope))
+	}
+	leaf := filepath.Join(dirs[len(dirs)-1], hash[:2])
+	dirs = append(dirs, leaf)
+	for _, dir := range dirs {
+		if err := os.Mkdir(dir, 0700); err != nil && !errors.Is(err, os.ErrExist) {
+			return "", err
+		}
+		info, err := os.Lstat(dir)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return "", ErrDenied
+		}
+		// Even an existing entry may be the residue of an earlier failed sync.
+		if err := syncDirectory(filepath.Dir(dir)); err != nil {
+			return "", err
+		}
+	}
+	return leaf, nil
+}
+func writeObjectBlob(root, scope, hash string, content []byte, syncDirectory func(string) error) (string, error) {
+	if syncDirectory == nil || len(hash) != 64 || hash != strings.ToLower(hash) || hashBytes(content) != hash {
 		return "", ErrInvalid
 	}
 	if _, err := hex.DecodeString(hash); err != nil {
 		return "", ErrInvalid
 	}
-	dir := filepath.Join(root, hash[:2])
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", err
-	}
-	path := filepath.Join(dir, hash)
-	if existing, err := os.ReadFile(path); err == nil {
-		h := sha256.Sum256(existing)
-		if hex.EncodeToString(h[:]) != hash {
-			return "", errors.New("existing object integrity mismatch")
-		}
-		return path, nil
-	}
-	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	dir, err := makeObjectBlobDirectory(root, scope, hash, syncDirectory)
 	if err != nil {
 		return "", err
 	}
-	if _, err := f.Write(content); err != nil {
-		f.Close()
-		os.Remove(path)
+	path := filepath.Join(dir, hash)
+	existing := func() (string, error) {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return "", err
+		}
+		if hashBytes(b) != hash || !bytes.Equal(b, content) {
+			return "", errors.New("existing object integrity mismatch")
+		}
+		// Content verification is not durability. Complete the original publication.
+		if err = syncDirectory(dir); err != nil {
+			return "", err
+		}
+		return path, nil
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return existing()
+	} else if !errors.Is(err, os.ErrNotExist) {
 		return "", err
 	}
-	if err := f.Sync(); err != nil {
-		f.Close()
-		os.Remove(path)
+	f, err := os.CreateTemp(dir, ".cloud-blob-*")
+	if err != nil {
 		return "", err
 	}
-	return path, f.Close()
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	if err = f.Chmod(0600); err != nil {
+		f.Close()
+		return "", err
+	}
+	if _, err = f.Write(content); err != nil {
+		f.Close()
+		return "", err
+	}
+	if err = f.Sync(); err != nil {
+		f.Close()
+		return "", err
+	}
+	if err = f.Close(); err != nil {
+		return "", err
+	}
+	if err = os.Link(tmp, path); errors.Is(err, os.ErrExist) {
+		return existing()
+	} else if err != nil {
+		return "", err
+	}
+	if err = syncDirectory(dir); err != nil {
+		return "", err
+	}
+	return path, nil
 }
 
 func validLocalBlobRef(root, ref, hash string) (string, error) {

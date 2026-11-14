@@ -1,0 +1,271 @@
+//go:build pay_pq && pay_cloud && pay_auth_source && pay_engine_host_fixture && pay_securelink && securelink_openssl && cgo
+
+// External consumer: the original Core fixture exports only actual normal
+// App/Node objects. No mocked Node, callback HTTP, Root grant or extra store.
+package consensus_test
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
+	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/cloud"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/payproduct/nativehost"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink/native"
+	"io"
+	"net"
+	"net/http/httptest"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
+
+func TestPayCoreAttachmentRetainsBorrowedEngineUntilDrained(t *testing.T) {
+	app, node := consensus.OpenP06OriginalBootstrapNodeFixture(t)
+	dir := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		if out, e := exec.Command("openssl", args...).CombinedOutput(); e != nil {
+			t.Fatalf("PUBLIC TLS fixture %v %s", e, out)
+		}
+	}
+	key, cert := filepath.Join(dir, "PUBLIC.key"), filepath.Join(dir, "PUBLIC.pem")
+	rootKey, rootCert := filepath.Join(dir, "PUBLIC-root.key"), filepath.Join(dir, "PUBLIC-root.pem")
+	run("genpkey", "-algorithm", "ML-DSA-87", "-out", key)
+	run("genpkey", "-algorithm", "ML-DSA-87", "-out", rootKey)
+	run("req", "-new", "-x509", "-key", rootKey, "-subj", "/CN=PUBLIC-engine-root", "-days", "1", "-addext", "basicConstraints=critical,CA:TRUE", "-addext", "keyUsage=critical,keyCertSign,cRLSign", "-out", rootCert)
+	csr, ext := filepath.Join(dir, "PUBLIC.csr"), filepath.Join(dir, "PUBLIC.ext")
+	run("req", "-new", "-key", key, "-subj", "/CN=PUBLIC-engine-only", "-out", csr)
+	if e := os.WriteFile(ext, []byte("basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature\nextendedKeyUsage=clientAuth,serverAuth\nsubjectAltName=DNS:core.ynx.test\n"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	run("x509", "-req", "-in", csr, "-CA", rootCert, "-CAkey", rootKey, "-set_serial", "1", "-days", "1", "-extfile", ext, "-out", cert)
+	raw, e := os.ReadFile(rootCert)
+	if e != nil {
+		t.Fatal(e)
+	}
+	block, _ := pem.Decode(raw)
+	if block == nil {
+		t.Fatal("PUBLIC certificate absent")
+	}
+	digest := sha256.Sum256(block.Bytes)
+	routes := []securelink.Route{{Method: "GET", Path: "/rpc/status", Risk: "read"}, {Method: "GET", Path: "/health", Risk: "read"}, {Method: "POST", Path: "/transactions/pq/actions/broadcast", Risk: "write"}, {Method: "POST", Path: "/rpc/", Risk: "write"}}
+	for _, p := range []string{"abci_query", "tx", "block", "block_results", "commit", "validators", "consensus_params"} {
+		routes = append(routes, securelink.Route{Method: "GET", Path: "/rpc/" + p, Risk: "read"})
+	}
+	policy := securelink.Policy{Edges: []securelink.Edge{{ID: "p06-core", LocalSAN: "core.ynx.test", PeerSAN: "core.ynx.test", Epoch: 1, Roots: []securelink.Root{{Fingerprint: hex.EncodeToString(digest[:]), Until: time.Now().Add(time.Hour)}}, Routes: routes}}}
+	reservation, e := net.Listen("tcp", "127.0.0.1:0")
+	if e != nil {
+		t.Fatal(e)
+	}
+	address := reservation.Addr().String()
+	_ = reservation.Close()
+	clientTLS := native.Config{CertFile: cert, KeyFile: key, CAFile: rootCert, PeerSAN: "core.ynx.test"}
+	serverTLS := clientTLS
+	serverTLS.Server = true
+	config := map[string]any{"tls": clientTLS, "policy": policy, "edgeId": "p06-core", "address": address, "origin": "https://core.ynx.test", "timeoutSeconds": 3, "maxConnections": 2}
+	encoded, e := json.Marshal(config)
+	if e != nil {
+		t.Fatal(e)
+	}
+	file := filepath.Join(dir, "central.json")
+	if e = os.WriteFile(file, encoded, 0600); e != nil {
+		t.Fatal(e)
+	}
+	productKey := bytes.Repeat([]byte{'P'}, 32)
+	socketRoot := os.Getenv("PAY_ENGINE_SOCKET_ROOT")
+	if !filepath.IsAbs(socketRoot) {
+		t.Fatal("owned external short socket root required")
+	}
+	socketDir, e := os.MkdirTemp(socketRoot, "p06-engine-")
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(socketDir) })
+	routesPrivate := []securelink.LocalCallerRoute{{Method: "GET", Path: "/health", MaxBodyBytes: 1024, Timeout: time.Second}, {Method: "GET", Path: "/v5/pay/invoices/no/no", MaxBodyBytes: 1024, Timeout: time.Second}}
+	privateConfig := nativehost.PrivateConfig{SocketPath: filepath.Join(socketDir, "normal.sock"), Service: "pay-engine", PeerUID: uint32(os.Getuid()), PeerPID: os.Getpid(), Routes: routesPrivate}
+	cfg := nativehost.BFTPrivateProductsConfig{Endpoint: nativehost.BFTEndpointConfig{ListenAddress: address, Origin: "https://core.ynx.test", EdgeID: "p06-core", ServerTLS: serverTLS, ClientTLS: clientTLS, ServerPolicy: policy, ClientPolicy: policy}, Products: nativehost.ProductsConfig{Pay: payproduct.Config{StorePath: filepath.Join(dir, "pay.json"), IntegrityKey: productKey, GatewayKey: productKey, BootstrapKey: strings.Repeat("P", 32), PublicBaseURL: "https://pay.ynx.test"}, Central: payproduct.NormalCentralPayEndpoint{Origin: "https://core.ynx.test", APIKey: "PUBLIC-no-legacy-call", LINKConfigPath: file}, Cloud: cloud.OriginalPrivateHostConfig{Cloud: cloud.Config{StatePath: filepath.Join(dir, "cloud.json"), ObjectDir: filepath.Join(dir, "objects")}}}, Private: privateConfig}
+	host, e := nativehost.OpenBFTPrivateProducts(context.Background(), app, node, cfg, buildinfo.Info{}, nil)
+	if e != nil {
+		if host != nil {
+			_ = host.Shutdown(context.Background())
+		}
+		t.Fatal(e)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = host.Shutdown(ctx)
+		if !host.CoreReleased() {
+			t.Error("owned cleanup debt still holds original Core")
+		}
+	})
+	if host.CoreReleased() || host.NativeSourceStatus() == nil || !strings.Contains(host.NativeSourceStatus().Error(), "COMMISSIONING_NOT_SUPPLIED") {
+		t.Fatal("actual Root0/source/borrow lifetime changed", host.NativeSourceStatus())
+	}
+	gate, e := securelink.NewGate(policy)
+	if e != nil {
+		t.Fatal(e)
+	}
+	client, e := securelink.NewHTTPClient(securelink.HTTPClientConfig{TLS: clientTLS, Gate: gate, EdgeID: "p06-core", Address: address, Origin: "https://core.ynx.test", Timeout: 3 * time.Second, MaxResponseBytes: 1 << 20})
+	if e != nil {
+		t.Fatal(e)
+	}
+	t.Cleanup(func() { _ = client.Transport.(*securelink.Transport).Close() })
+	response, e := client.Get("https://core.ynx.test/rpc/status")
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, e := io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if e != nil || response.StatusCode != 200 || !bytes.Contains(body, []byte("sync_info")) {
+		t.Fatalf("same actual Node RPC failed: %d %v %s", response.StatusCode, e, body)
+	}
+	// The same original actual Node-backed gateway, not a custom fake handler.
+	response, e = client.Get("https://core.ynx.test/health")
+	if e != nil {
+		t.Fatal(e)
+	}
+	body, e = io.ReadAll(response.Body)
+	_ = response.Body.Close()
+	if e != nil || !bytes.Contains(body, []byte("ynx-bft-gateway")) {
+		t.Fatalf("actual original gateway not used: %d %v %s", response.StatusCode, e, body)
+	}
+	local, e := securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: privateConfig.SocketPath, Service: privateConfig.Service, PeerUID: uint32(os.Getuid()), PeerPID: os.Getpid(), Routes: routesPrivate, Timeout: time.Second, MaxResponseBytes: 1 << 16})
+	if e != nil {
+		t.Fatal(e)
+	}
+	cloudResponse, e := local.Call(context.Background(), "GET", "/health", "", nil)
+	if e != nil || cloudResponse.StatusCode != 200 {
+		t.Fatal("actual independent Cloud normal Unix entry", cloudResponse.StatusCode, e)
+	}
+	payResponse, e := local.Call(context.Background(), "GET", "/v5/pay/invoices/no/no", "", nil)
+	if e != nil || payResponse.StatusCode != 503 || !bytes.Contains(payResponse.Body, []byte("NATIVE_PAY_AUTHORITY_UNAVAILABLE")) {
+		t.Fatal("actual same-engine Pay normal Unix Root0 refusal", payResponse.StatusCode, e)
+	}
+
+	original, e := host.CloudHandler()
+	if e != nil {
+		t.Fatal(e)
+	}
+	held := &payCoreHeldBody{entered: make(chan struct{}), release: make(chan struct{})}
+	defer held.unblock()
+	requestDone := make(chan struct{})
+	go func() {
+		defer close(requestDone)
+		original.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("POST", "/api/v1/session", held))
+	}()
+	select {
+	case <-held.entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("actual original Cloud request body not held")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	cause := host.Shutdown(ctx)
+	cancel()
+	if !errors.Is(cause, context.DeadlineExceeded) || host.CoreReleased() {
+		t.Fatal("undrained original child released Core", cause)
+	}
+	// The actual same RPC endpoint must still borrow the original Node/App.
+	response, e = client.Get("https://core.ynx.test/rpc/status")
+	if e != nil {
+		t.Fatal("endpoint closed before held child drain", e)
+	}
+	_, _ = io.Copy(io.Discard, response.Body)
+	_ = response.Body.Close()
+	view, e := node.ProofSourceView()
+	if e != nil {
+		t.Fatal(e)
+	}
+	state, e := view.LoadState()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = app.ConsensusAuthorityForState(state.ChainID, state.LastBlockHeight, state.AppHash); e != nil {
+		t.Fatal("borrowed Core closed or changed", e)
+	}
+	held.unblock()
+	<-requestDone
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	e = host.Shutdown(ctx)
+	cancel()
+	if e != cause || !host.CoreReleased() {
+		t.Fatal("successful later drain lost first cause or retained false debt", e, host.CoreReleased())
+	}
+	if conn, dialErr := net.DialTimeout("tcp", address, time.Second); dialErr == nil {
+		_ = conn.Close()
+		t.Fatal("owned Core endpoint remained open after actual cleanup")
+	}
+	if _, e = os.Lstat(privateConfig.SocketPath); e != nil {
+		t.Fatal("shutdown deleted original endpoint", e)
+	}
+	// Same original product files and original Node, fresh explicit endpoint.
+	reservation, e = net.Listen("tcp", "127.0.0.1:0")
+	if e != nil {
+		t.Fatal(e)
+	}
+	cfg.Endpoint.ListenAddress = reservation.Addr().String()
+	_ = reservation.Close()
+	cfg.Private.SocketPath = filepath.Join(socketDir, "cold.sock")
+	cold, e := nativehost.OpenBFTPrivateProducts(context.Background(), app, node, cfg, buildinfo.Info{}, nil)
+	if e != nil {
+		if cold != nil {
+			_ = cold.Shutdown(context.Background())
+		}
+		t.Fatal(e)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = cold.Shutdown(ctx)
+		if !cold.CoreReleased() {
+			t.Error("cold attachment still holds Core")
+		}
+	})
+	local, e = securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: cfg.Private.SocketPath, Service: cfg.Private.Service, PeerUID: uint32(os.Getuid()), PeerPID: os.Getpid(), Routes: routesPrivate, Timeout: time.Second, MaxResponseBytes: 1 << 16})
+	if e != nil {
+		t.Fatal(e)
+	}
+	cloudResponse, e = local.Call(context.Background(), "GET", "/health", "", nil)
+	if e != nil || cloudResponse.StatusCode != 200 {
+		t.Fatal("same original product-file cold entry failed", e)
+	}
+	payResponse, e = local.Call(context.Background(), "GET", "/v5/pay/invoices/no/no", "", nil)
+	if e != nil || payResponse.StatusCode != 503 {
+		t.Fatal("cold Root0 entry promoted authority", e)
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	e = cold.Shutdown(ctx)
+	cancel()
+	if e != nil || !cold.CoreReleased() {
+		t.Fatal("normal cold attachment close", e)
+	}
+	if _, e = view.LoadState(); e != nil {
+		t.Fatal("product factory closed borrowed original Node", e)
+	}
+	// No signed Member broadcast, independent trusted anchor or H/H+1 proof claim.
+}
+
+type payCoreHeldBody struct {
+	entered, release         chan struct{}
+	enteredOnce, releaseOnce sync.Once
+}
+
+func (b *payCoreHeldBody) Read([]byte) (int, error) {
+	b.enteredOnce.Do(func() { close(b.entered) })
+	<-b.release
+	return 0, io.EOF
+}
+func (b *payCoreHeldBody) Close() error { return nil }
+func (b *payCoreHeldBody) unblock()     { b.releaseOnce.Do(func() { close(b.release) }) }

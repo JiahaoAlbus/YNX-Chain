@@ -1,0 +1,75 @@
+{
+  "proofType": "ynx-pay-authoritative-testnet-payment",
+  "generatedAt": "2026-07-16T17:18:45.353Z",
+  "network": "ynx_6423-1",
+  "evmChainId": 6423,
+  "asset": "YNXT",
+  "productURL": "http://127.0.0.1:16431",
+  "rpcURL": "http://127.0.0.1:16420",
+  "publicRPCURL": "https://rpc.ynxweb4.com",
+  "transport": "operator SSH tunnel to the public-testnet backend",
+  "merchant": {
+    "id": "mrc_83e49711c8235a75bd2a",
+    "payoutAddress": "ynx132d04zndz4znc6643yccg8y5xzjvnrxs7mtklu"
+  },
+  "payer": "ynx13mn60llmjqdrj90f7kmud80pcs7ds59qf9cl7m",
+  "invoice": {
+    "id": "inv_21cf3d36775cce48deb4",
+    "centralInvoiceId": "a015f6dea5c652d791dc68db",
+    "intentId": "00a0a7f9beaeb3784c4039c3",
+    "amount": 7,
+    "fee": 1,
+    "status": "committed"
+  },
+  "settlement": {
+    "id": "80e81ec0dfd045199e619eba",
+    "transactionHash": "0x046e2db6d3fa0211e104abef9c8ef419873c4944561063b48d3bc05baa553c12",
+    "blockNumber": 226048,
+    "payer": "ynx13mn60llmjqdrj90f7kmud80pcs7ds59qf9cl7m",
+    "payoutAddress": "ynx132d04zndz4znc6643yccg8y5xzjvnrxs7mtklu",
+    "amount": 7,
+    "asset": "YNXT",
+    "status": "committed",
+    "auditHash": "c136d70eb465b284f43d2cb64e1d143ba4a1448acb7c2c588e518210a4065f78",
+    "committedAt": "2026-07-16T17:18:34.275846939Z",
+    "source": "authoritative-central-pay-api"
+  },
+  "refund": {
+    "id": "rfr_acf2a991d770563f1b90",
+    "amount": 2,
+    "status": "requested"
+  },
+  "dispute": {
+    "id": "dsp_8c79282b358b30f92522",
+    "status": "open",
+    "trustEvidence": [
+      "tx:0x046e2db6d3fa0211e104abef9c8ef419873c4944561063b48d3bc05baa553c12"
+    ]
+  },
+  "webhook": {
+    "id": "whd_dd31ab83a047599f9154",
+    "attempt": 1,
+    "status": "delivered",
+    "payloadHash": "33ae63c75f0a877a5a14a3461c1d15d6093c8edb2b81a774e04cd52b1c4c8512",
+    "secretVersion": 1
+  },
+  "ai": {
+    "id": "air_7DH-Znlamqu0uiso",
+    "workflow": "anomaly_review",
+    "outputLanguage": "ar",
+    "status": "provider_failed",
+    "provider": "YNX AI Gateway",
+    "model": "gpt-4.1-mini",
+    "externalBlocker": "YNX AI Gateway did not return provider-backed output; no explanation or approval was fabricated"
+  },
+  "reconciliation": {
+    "committedCount": 1,
+    "grossYnxt": 7,
+    "csvIncludesInvoice": true,
+    "csvIncludesTransaction": true
+  },
+  "auditCount": 9,
+  "replayRejected": true,
+  "publicRPCTransactionVerifiedAt": "2026-07-16T17:19:00Z",
+  "truthfulBoundary": "paid only after authoritative central Pay API matched a committed YNX Testnet YNXT transaction"
+}

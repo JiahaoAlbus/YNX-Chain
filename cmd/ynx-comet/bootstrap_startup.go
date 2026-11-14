@@ -58,6 +58,11 @@ func constructBootstrapNode(config *cfg.Config, logger log.Logger, options pqOpt
 	if err != nil {
 		return nil, nil, errors.Join(err, custody.Close())
 	}
+	if options.proofLiveBind != nil {
+		if err = options.proofLiveBind(app); err != nil {
+			return nil, nil, errors.Join(err, custody.Close())
+		}
+	}
 	n, err := consensus.NewBootstrapConsensusNode(config, app, legacy, nodeKey, logger, losslessOptions...)
 	if err != nil {
 		return nil, nil, errors.Join(err, custody.Close())

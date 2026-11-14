@@ -1,0 +1,54 @@
+// Independent invoice schedule is authorized solely in this temporary test chain.
+invoiceAuth, invoiceSchedule := invoiceAuthorizationFor(t, app)
+invoiceSchedule.ActivationHeight = invoiceSchedule.AuthorizedAt
+invoiceAuth = invoiceAuthorizationFrom(t, invoiceSchedule)
+app, err = NewPersistentApplicationWithInvoiceAuthorization(f.migration, h.path, f.bootstrap, authorization, nil, invoiceAuth)
+if err != nil { t.Fatal(err) }
+h.app, h.source.app = app, app
+h.proxy = startEngineTestProxy(t, app)
+light := &pqLightProofFixture{harness:h, schedule:schedule, authorization:authorization}
+type row struct { Wire []byte; Data []byte; Expected PQTransactionProofExpectation; Proof PQTransactionProofRequest; View PQInvoiceView; Registration ynxbatch.Registration; Nonce, Height uint64; PriorAuthorization PQWalletAccountView; Message []byte }
+var rows []row
+terms := ynxauth.InvoiceTermsPayload{InvoiceID:"invoice-100",SessionID:"session-100",Recipient:account.owner,Payer:account.other,AssetID:"YNXT",UnitVersion:"1",FeeRule:"native-transfer-fee-one/v1",KeyEpoch:1,Revision:1,Amount:100,MaxFee:1,ExpiresAt:1000}
+var termsEffect, settlementEffect PQInvoiceEffect
+blockExpectation := func(b *cmttypes.LightBlock) PQLightProofExpectation { return PQLightProofExpectation{ChainID:b.ChainID,HeaderHeight:b.Height,BlockHash:bytes.Clone(b.Hash()),StateHeight:b.Height-1,StateAppHash:bytes.Clone(b.AppHash)} }
+for step:=0; step<3; step++ {
+  other, kind, nonce := false, ynxauth.ActionInvoiceTerms, uint64(2)
+  var payload any = terms
+  if step==1 { other,kind = true,ynxauth.ActionInvoiceSettle; payload=ynxauth.InvoiceSettlePayload{Merchant:account.owner,InvoiceID:terms.InvoiceID,TermsHash:invoiceHashBytes(t,termsEffect.TermsHash),Amount:100} }
+  if step==2 { kind,nonce=ynxauth.ActionInvoiceRefund,3; payload=ynxauth.InvoiceRefundPayload{InvoiceID:terms.InvoiceID,RefundID:"refund-30",TermsHash:invoiceHashBytes(t,termsEffect.TermsHash),SettlementHash:invoiceHashBytes(t,settlementEffect.NativeHash),Amount:30} }
+  owner,key,pub:=account.owner,account.key,account.public
+  if other { owner,key,pub=account.other,account.otherKey,account.otherPublic }
+  priorQuery,err:=h.app.Query(context.Background(),&abci.RequestQuery{Path:PQWalletAuthorizationPath+owner});if err!=nil||priorQuery.Code!=0 {t.Fatal("actual pre-action account authorization",err,priorQuery)}
+  var prior PQWalletAccountView;if err=json.Unmarshal(priorQuery.Value,&prior);err!=nil {t.Fatal(err)}
+  wire:=pqABCIContractWire(t, account,key,owner,kind,payload,nonce,1)
+  signedMember,err:=ynxbatch.DecodeMember(wire);if err!=nil {t.Fatal(err)}
+  envelope,err:=EncodePQNativeActionTransaction(wire); if err!=nil {t.Fatal(err)}
+  height:=h.app.committed.Height+1
+  check,err:=h.app.CheckTx(context.Background(),&abci.RequestCheckTx{Tx:envelope}); if err!=nil||check.Code!=0 {t.Fatal("invoice CheckTx",err,check)}
+  h.apply(t,cmttypes.Txs{envelope}); h.apply(t,nil)
+  results,err:=h.raw.LoadFinalizeBlockResponse(height); if err!=nil||len(results.TxResults)!=1||results.TxResults[0].Code!=0 {t.Fatal("actual invoice execution",err,results)}
+  var effect PQInvoiceEffect; if err=json.Unmarshal(results.TxResults[0].Data,&effect);err!=nil {t.Fatal(err)}
+  if step==0 {termsEffect=effect}; if step==1 {settlementEffect=effect}; if step==2 && (effect.Paid!=100||effect.Refunded!=30||effect.NetPaid!=70) {t.Fatal("real CORE 100/30/70 mismatch",effect)}
+  block,successor:=light.block(t,height),light.block(t,height+1)
+  txProof,err:=cmtjson.Marshal(h.blocks.LoadBlock(height).Data.Txs.Proof(0));if err!=nil {t.Fatal(err)}
+  execution,resultProof,err:=EncodePQTransactionExecutionProof(results.TxResults,0);if err!=nil {t.Fatal(err)}
+  native:=sha256.Sum256(wire)
+  expected:=PQTransactionProofExpectation{Block:blockExpectation(block),Successor:blockExpectation(successor),TransactionType:PQActionType,Envelope:envelope,NativeWire:wire,TransactionHash:cmttypes.Tx(envelope).Hash(),NativeWireHash:native[:],Index:0}
+  proof:=PQTransactionProofRequest{Version:PQTransactionProofVersion,Block:light.encode(t,block),Successor:light.encode(t,successor),TransactionProof:txProof,ExecutionResult:execution,ExecutionProof:resultProof}
+  query,err:=h.app.Query(context.Background(),&abci.RequestQuery{Path:PQInvoiceQueryPath+account.owner+"/"+terms.InvoiceID});if err!=nil||query.Code!=0 {t.Fatal(err,query)}
+  var view PQInvoiceView;if err=json.Unmarshal(query.Value,&view);err!=nil {t.Fatal(err)}
+  if err=ValidatePQInvoiceView(view,account.owner,terms.InvoiceID,query.Height);err!=nil {t.Fatal(err)}
+  rows=append(rows,row{wire,results.TxResults[0].Data,expected,proof,view,ynxbatch.Registration{AlgorithmVersion:ynxbatch.Version,Owner:owner,Purpose:"TX-BATCH",PolicyRevision:"independent-fixture-original-account",ChainID:account.network,PKA:pub.PKA,PKB:pub.PKB,Enabled:true,ActiveFrom:1},nonce-1,uint64(height),prior,signedMember.Message})
+}
+engine,err:=h.raw.Load();if err!=nil {t.Fatal(err)}
+source,err:=NewPQEngineFileSource(f.migration,h.path,f.bootstrap,authorization);if err!=nil {t.Fatal(err)}
+authority,err:=source.ConsensusAuthorityForState(engine.ChainID,engine.LastBlockHeight,engine.AppHash);if err!=nil {t.Fatal("normal independent snapshot loader",err)}
+snapshot,ok:=authority.(*PQEngineSnapshot);if !ok {t.Fatal("no real snapshot")}
+trust:=PQLightProofTrust{Snapshot:snapshot,TrustedLightBlock:light.block(t,schedule.ActivationHeight),TrustingPeriod:time.Hour,MaxClockDrift:time.Second,TrustLevel:cmtmath.Fraction{Numerator:1,Denominator:3},Now:light.block(t,engine.LastBlockHeight).Time.Add(time.Second)}
+for _,row:=range rows { result,err:=VerifyPQTransactionProof(trust,row.Expected,row.Proof);if err!=nil||!result.Finalized||!result.ExecutionSuccessful {t.Fatal("actual independently anchored invoice proof",err,result)} }
+output:=os.Getenv("PAY_CORE_WORKFLOW_DIR");if output=="" {t.Fatal("explicit fixture output required")};if err=os.MkdirAll(output,0700);err!=nil {t.Fatal(err)}
+write:=func(name string,value any) {raw,err:=json.Marshal(value);if err!=nil {t.Fatal(err)};if err=os.WriteFile(filepath.Join(output,name),raw,0600);err!=nil {t.Fatal(err)}}
+stateRaw,err:=os.ReadFile(h.path);if err!=nil {t.Fatal(err)};if err=os.WriteFile(filepath.Join(output,"engine.state"),stateRaw,0600);err!=nil {t.Fatal(err)}
+trustedRaw,err:=cmtjson.Marshal(trust.TrustedLightBlock);if err!=nil {t.Fatal(err)}
+write("manifest.json",struct {Migration chain.ConsensusMigrationState;Genesis []byte;Pins ConsensusBootstrapPins;Schedule []byte;ScheduleHash string;EngineChain string;EngineHeight int64;EngineAppHash []byte;Trusted []byte;Now time.Time;Terms ynxauth.InvoiceTermsPayload;Merchant string;Network []byte;NativeChainID uint64;Rows []row}{f.migration,f.raw,f.pins,scheduleRaw,scheduleHash,engine.ChainID,engine.LastBlockHeight,engine.AppHash,trustedRaw,trust.Now,terms,account.owner,account.network,uint64(f.migration.Network.ChainID),rows})
