@@ -702,6 +702,8 @@ class NormalBackend:
                                    transaction_sha256=normal.comet_hash(tx["abciHash"]),
                                    native_wire_hash=normal.comet_hash(tx["nativeHash"]))
             started = time.monotonic_ns()
+            projection_path = self.w.work / "public" / f"{prefix}-live-session-{operation}-reply.json"
+            transaction["retain_public_reply"] = lambda projection: lab.write_new(projection_path, projection)
             if operation == "result":
                 original_path = self.w.work / "public" / f"{prefix}-live-result.log"
                 transaction["retain_original"] = lambda raw: proof_readback.write_new(original_path, raw)

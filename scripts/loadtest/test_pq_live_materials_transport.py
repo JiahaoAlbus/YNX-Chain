@@ -146,10 +146,15 @@ class Transport(unittest.TestCase):
             self.assertEqual(len(stdin.getvalue().splitlines()), 2)
             self.assertEqual([p.name for p in (work/'.private').iterdir()], ['load-live-session-0.log'])
             self.assertEqual(sorted(p.name for p in (work/'public').iterdir()),
-                ['load-00000-live-result.log', 'load-00000-live-session-request.json',
+                ['load-00000-live-result.log', 'load-00000-live-session-request-reply.json',
+                 'load-00000-live-session-request.json', 'load-00000-live-session-result-reply.json',
                  'load-00000-live-session-result.json'])
-            original = (work/'.private/load-live-session-0.log').read_bytes().splitlines(keepends=True)[-1]
-            self.assertEqual((work/'public/load-00000-live-result.log').read_bytes(), original)
+            originals = (work/'.private/load-live-session-0.log').read_bytes().splitlines(keepends=True)
+            for operation, original in zip(('request', 'result'), originals[-2:]):
+                projection = json.loads((work/'public'/f'load-00000-live-session-{operation}-reply.json').read_bytes())
+                self.assertEqual(projection['originalReplySHA256'], hashlib.sha256(original).hexdigest())
+                self.assertFalse(projection['pathsAndPayloadsIncluded'])
+            self.assertEqual((work/'public/load-00000-live-result.log').read_bytes(), originals[-1])
 
     def test_original_result_retention_failure_poisoned_without_replay(self):
         stream = io.BytesIO()
