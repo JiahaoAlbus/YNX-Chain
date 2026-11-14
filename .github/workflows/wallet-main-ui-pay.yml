@@ -71,6 +71,8 @@ jobs:
         run: node --test test/cross-chain-dialog-reopen.test.mjs
       - name: WalletConnect session approval and revocation controls
         run: node --test test/published-walletconnect-session-binding.test.mjs test/walletconnect-session-binding.test.mjs test/walletconnect-request-inbox.test.mjs test/walletconnect-relay-status.test.mjs test/published-pair-renderer.test.mjs test/session-qr-reentry.test.mjs
+      - name: Original Native transfer late-lock custody control
+        run: node --test --test-name-pattern "normal Native TX late lock" test/password-wallet-pq.test.mjs
       - name: Original typed journal capacity and recovery controls
         run: node --test src/wallet-pq-typed-original.test.mjs
       - name: PQ operator trust, original query, and submission controls
