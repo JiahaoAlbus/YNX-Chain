@@ -1042,27 +1042,38 @@ document.querySelector("#refresh-pending-transactions").addEventListener("click"
 });
 function clearAssetBalance() {
   ++balanceRevision;
+  lastBalanceCheckedAt = null;
   document.querySelector("#balance-value").textContent = "—";
   document.querySelector("#asset-balance").textContent = "—";
   document.querySelector("#balance-status").textContent = "";
 }
+let balanceFlight = null, balanceRefreshQueued = false, lastBalanceCheckedAt = null;
 async function refreshAssets() {
-  clearAssetBalance();
+  if (balanceFlight) { balanceRefreshQueued = true; return balanceFlight; }
   const revision = balanceRevision, account = activeAccount;
   if (!account) return;
   const current = () => revision === balanceRevision && account === activeAccount;
-  copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
-  try {
+  if (!lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
+  balanceFlight = (async () => { try {
     const result = await window.ynxWallet.balance();
     if (!current()) return;
-    if (!result.ok) { document.querySelector("#balance-status").textContent = errorText(result); return; }
+    if (!result.ok) throw new Error("Balance unavailable");
     const value=result.value;
     if(value?.account!==account||typeof value.formatted!=="string"||value.formatted.length>80||!/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?$/.test(value.formatted)||typeof value.transferEnabled!=="boolean"||typeof value.checkedAt!=="string"||!Number.isFinite(Date.parse(value.checkedAt))||![new Date(value.checkedAt).toISOString(),new Date(value.checkedAt).toISOString().replace(/\.000Z$/,"Z")].includes(value.checkedAt))throw new Error("Invalid balance projection");
     document.querySelector("#balance-value").textContent = value.formatted;
     document.querySelector("#asset-balance").textContent = `${value.formatted} YNXT`;
+    lastBalanceCheckedAt = value.checkedAt;
     copyUI(document.querySelector("#balance-status"),value.transferEnabled===false?"Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network.":"YNX Testnet · Updated {time}",{time:new Date(value.checkedAt).toLocaleTimeString()});
-  } catch { if (current()) copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing."); }
+  } catch { if (current()) {
+    if (lastBalanceCheckedAt) document.querySelector("#balance-status").textContent = `Update pending · Last updated ${new Date(lastBalanceCheckedAt).toLocaleTimeString()} / 更新待确认 · 上次更新 ${new Date(lastBalanceCheckedAt).toLocaleTimeString()}`;
+    else copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing.");
+  }} finally {
+    balanceFlight = null;
+    if (balanceRefreshQueued) { balanceRefreshQueued = false; void refreshAssets(); }
+  }})();
+  return balanceFlight;
 }
+setInterval(() => { if (!balanceFlight && activeAccount) void refreshAssets(); }, 3000);
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
 document.querySelector("#copy-address").addEventListener("click",()=>void receiveShareUI.copyAddress());
