@@ -1,0 +1,57 @@
+[package]
+name = "ynx-native-operation"
+version = "0.0.1"
+edition = "2024"
+license = "AGPL-3.0-only"
+[lib]
+crate-type = ["rlib", "staticlib", "cdylib"]
+
+[dependencies]
+libc = { workspace = true }
+sha2 = { workspace = true }
+base64 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
+jni = { workspace = true }
+zeroize = { workspace = true }
+rand = { workspace = true }
+async-trait = { workspace = true }
+libsignal-protocol = { workspace = true, features = ["ynx-observer"] }
+spqr = { workspace = true, features = ["ynx-observer"] }
+rustls = { workspace = true, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = { workspace = true }
+
+[dev-dependencies]
+spqr = { workspace = true, features = ["ynx-observer", "test-utils"] }
+futures-util = { workspace = true }
+rand_core = { workspace = true }
+
+[features]
+abi3-host-required-probe = []
+
+# Explicit private normal-C linkage candidate; no factory/activation.
+abi4-final-native-link = []
+
+# Explicit ABI5 candidate selection; no ABI4 fallback.
+abi5-final-native-link = []
+
+# Existing client custody/originals bridge; this does not select a Go issuer.
+source-collector-bridge = []
+# Explicit server SIGNING journal/Go collector. Not an Android client feature.
+source-server-collector = ["source-collector-bridge"]
+# Separate PUBLIC fixture library only, never normal release feature.
+source-collector-public-controls = ["source-server-collector"]
+# Whole private C component rev3; never hot-adopt legacy allocations.
+predevice-reconciliation-v3 = []
+
+# Whole reviewed cold component only; never use with old live foreign owners.
+predevice-cold-v1 = ["predevice-reconciliation-v3"]
+
+# Fresh whole C/schema selection; not an upgrade of a held two-row owner.
+predevice-initial-prekeys-v1 = ["predevice-reconciliation-v3"]
+
+# PUBLIC fixture controls are an independent integration crate, never lib constructors.
+[[test]]
+name = "contact-custody-public"
+path = "public-controls/contact-custody/tests/contact-custody-public.rs"
+harness = true

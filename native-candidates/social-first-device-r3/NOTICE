@@ -1,0 +1,5 @@
+The included original ynx-native-operation Cargo package metadata declares
+AGPL-3.0-only. The complete corresponding license text is in LICENSE.
+The copied source retains its existing notices and comments. The Rust test
+harness uses controlled doubles; it is not a real device or signer fixture.
+No separately licensed third-party source or linked library is included.
