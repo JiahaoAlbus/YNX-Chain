@@ -604,36 +604,47 @@ class NormalBackend:
         nodes=self.c.plan["nodes"]
         lab.require(len(nodes)==4 and {n["index"] for n in nodes}==set(range(4)),
                     "four original inclusion nodes required")
+        replies = {}
+        height = None
         while time.monotonic_ns()<until and not stop.is_set():
-            try:
-                rows=[]
-                for node in nodes:
-                    if stop.is_set() or time.monotonic_ns()>=until:
-                        break
-                    rows.append(self.observed_rpc(node,"tx","?hash=0x"+expected+"&prove=true"))
-                if len(rows)!=4 or stop.is_set() or time.monotonic_ns()>=until:
+            for node in nodes:
+                if stop.is_set() or time.monotonic_ns()>=until:
                     break
-                lab.require(all(normal.comet_hash(r["hash"])==expected for r in rows),"normal included transaction identity differs")
-                heights={int(r["height"]) for r in rows}
-                lab.require(len(heights)==1 and next(iter(heights))>0
-                            and all(type(r["tx_result"].get("code")) is int and r["tx_result"]["code"]==0 for r in rows),
+                index = node["index"]
+                if index in replies:
+                    continue
+                try:
+                    reply = self.observed_rpc(node,"tx","?hash=0x"+expected+"&prove=true")
+                    reply_hash = normal.comet_hash(reply["hash"])
+                    reply_height = int(reply["height"])
+                    code = reply["tx_result"].get("code")
+                except (OSError,ValueError,KeyError):
+                    break
+                except RuntimeError as error:
+                    if "identity differs" in str(error) or "execution/height differs" in str(error):
+                        raise
+                    break
+                lab.require(reply_hash==expected,"normal included transaction identity differs")
+                lab.require(reply_height>0 and (height is None or reply_height==height)
+                            and type(code) is int and code==0,
                             "normal included execution/height differs")
+                # A hash-bound execution already returned by this node does
+                # not need a second proof RPC while another node catches up.
+                height = reply_height
+                replies[index] = reply
+            if len(replies)==4:
                 break
-            except (OSError,ValueError,KeyError):pass
-            except RuntimeError as error:
-                if "identity differs" in str(error) or "execution/height differs" in str(error):raise
             stop.wait(.02)
-        else:
-            rows=[]
         observed_at = time.monotonic_ns()
-        lab.require(len(rows)==4 and not stop.is_set() and observed_at<until,
+        lab.require(len(replies)==4 and not stop.is_set() and observed_at<until,
                     "original submitted hash unresolved at bounded inclusion cutoff; no replay")
+        rows = [replies[node["index"]] for node in nodes]
         lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,observedMonotonicNs=observed_at,
                           qualifiedFinal=False,interpretation="original hash-bound execution observations only"))
         lab.require(not stop.is_set() and time.monotonic_ns()<until,
                     "original inclusion evidence persisted after bounded inclusion cutoff; no replay")
         notify(dict(kind="included"))
-        return int(rows[0]["height"])
+        return height
     def wait_successor(self,height,case,stop):
         # The original live CLI fails once (and retires its lane) if H+1 is
         # absent. Wait on original observations BEFORE publishing that request.

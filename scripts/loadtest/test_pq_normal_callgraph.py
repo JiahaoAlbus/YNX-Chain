@@ -47,7 +47,7 @@ class NormalCallgraphControls(unittest.TestCase):
     def test_inclusion_requires_explicit_success_and_all_replies_before_cutoff(self):
         backend=object.__new__(driver.NormalBackend)
         backend.c=SimpleNamespace(proof_timeout=1,plan={'nodes':[dict(index=i) for i in range(4)]})
-        for mode in ('valid','missing_code','late_reply'):
+        for mode in ('valid','missing_code','different_height','late_reply'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temp:
                 case=Path(temp)
                 clock=[0]
@@ -57,7 +57,8 @@ class NormalCallgraphControls(unittest.TestCase):
                     if mode=='late_reply' and node['index']==3:
                         clock[0]=1_000_000_000
                     result={} if mode=='missing_code' and node['index']==3 else dict(code=0)
-                    return dict(hash='a'*64,height='19',tx_result=result)
+                    height = '20' if mode=='different_height' and node['index']==3 else '19'
+                    return dict(hash='a'*64,height=height,tx_result=result)
                 backend.observed_rpc=rpc
                 def observe():
                     return backend.observe_inclusion({},dict(abciHash='a'*64),case,events.append,threading.Event())
@@ -69,6 +70,31 @@ class NormalCallgraphControls(unittest.TestCase):
                             observe()
                 self.assertEqual(any(e['kind']=='included' for e in events),mode=='valid')
                 self.assertEqual((case/'four-node-inclusion.json').exists(),mode=='valid')
+
+    def test_inclusion_polls_only_nodes_without_validated_replies(self):
+        backend = object.__new__(driver.NormalBackend)
+        backend.c = SimpleNamespace(proof_timeout=1, plan={'nodes': [dict(index=i) for i in range(4)]})
+        calls = []
+        failures = {1: 2, 3: 1}
+
+        def observe(node, method, query):
+            index = node['index']
+            calls.append(index)
+            if failures.get(index, 0):
+                failures[index] -= 1
+                raise OSError('transaction index not ready')
+            return dict(hash='a'*64, height='19', tx_result=dict(code=0), nodeMarker=index)
+
+        backend.observed_rpc = observe
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp)
+            events = []
+            height = backend.observe_inclusion({}, dict(abciHash='a'*64), case, events.append, threading.Event())
+            self.assertEqual(height, 19)
+            self.assertEqual(calls, [0, 1, 1, 1, 2, 3, 3])
+            self.assertEqual([row['nodeMarker'] for row in json.loads(
+                (case/'four-node-inclusion.json').read_text())['rows']], [0, 1, 2, 3])
+            self.assertEqual(sum(event['kind']=='included' for event in events), 1)
 
     def test_canceled_submission_preserves_intent_without_post(self):
         backend = object.__new__(driver.NormalBackend)
