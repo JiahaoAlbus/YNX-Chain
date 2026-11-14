@@ -613,8 +613,11 @@ class Window:
             self.known[pid] = rows[pid]["startTicks"]
         # Session leaders are direct Popen children; PID remains reserved until
         # wait. Descendants are separately checked by original startTicks.
+        normal_nodes = {}
         for c in self.children:
             if c["process"].poll() is None:
+                if re.fullmatch(r"(?:bootstrap|pq)-node-[0-3]", c["name"]):
+                    normal_nodes[c["process"].pid] = c["startTicks"]
                 try: os.killpg(c["process"].pid, signal.SIGTERM)
                 except ProcessLookupError: pass
         while time.monotonic() - started < CAPS["cleanupSeconds"]:
@@ -624,8 +627,14 @@ class Window:
             live = [(pid, row) for pid, row in rows.items() if pid != os.getpid() and self.known.get(pid) == row["startTicks"] and row["state"] != "Z"]
             if not live:
                 break
-            if time.monotonic() - started > 3:
+            elapsed = time.monotonic() - started
+            if elapsed > 3:
                 for pid, expected in live:
+                    # Normal nodes retire live readers and flush stopped
+                    # observation files on SIGTERM. Keep three seconds to
+                    # reap after escalation inside the existing cleanup cap.
+                    if normal_nodes.get(pid) == expected["startTicks"] and elapsed < CAPS["cleanupSeconds"] - 3:
+                        continue
                     try:
                         current = guard.parse_stat(guard.bounded(Path("/proc") / str(pid) / "stat"), pid)
                         if current["startTicks"] == expected["startTicks"]:

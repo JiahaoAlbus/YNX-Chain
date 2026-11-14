@@ -25,7 +25,7 @@ GROUPS=[
  ('test_pq_hop_byte_accounting.py',['PreparationNetworkAccountingControls'],4),
  ('test_pq_height_vectors.py',['HeightVectorControls.test_committed_time_and_complete_history_cannot_hide_behind_equal_balances'],1),
  ('test_pq_load_escalation_conditions.py',None,4),
- ('test_resource_guard_sampling.py',None,10),
+ ('test_resource_guard_sampling.py',None,11),
  ('test_pq_normal_clean_exit.py',None,4),
  ('test_pq_normal_parent_measurements.py',None,7),
  ('test_pq_normal_live_source_data.py',None,5),

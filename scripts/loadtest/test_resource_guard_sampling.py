@@ -19,6 +19,39 @@ def original_bytes(root):
     return total
 
 class ResourceGuardSamplingControls(unittest.TestCase):
+    def test_normal_node_can_flush_observations_within_existing_cleanup_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            w=self.window(Path(tmp))
+            clock=[0]
+            killed={}
+            names={987650:'pq-node-0',987651:'pq-node-1',987652:'load-helper'}
+            def alive(pid):
+                return pid not in killed and (pid!=987650 or clock[0]<5)
+            def inventory():
+                rows=self.rows()
+                rows.update({pid:dict(pid=pid,parent=os.getpid(),startTicks=pid,state='S')
+                             for pid in names if alive(pid)})
+                return rows,[]
+            for pid,name in names.items():
+                proc=mock.Mock(pid=pid)
+                proc.poll.side_effect=lambda pid=pid: None if alive(pid) else 0
+                w.children.append(dict(name=name,process=proc,startTicks=pid))
+            def kill(pid, sig):
+                self.assertEqual(sig,lab.signal.SIGKILL)
+                killed[pid]=clock[0]
+            with mock.patch.object(lab.guard,'proc_inventory',side_effect=inventory), \
+                 mock.patch.object(lab.guard,'bounded',return_value=b''), \
+                 mock.patch.object(lab.guard,'parse_stat',side_effect=lambda _,pid: dict(startTicks=pid)), \
+                 mock.patch.object(lab.os,'killpg') as terminate, \
+                 mock.patch.object(lab.os,'kill',side_effect=kill), \
+                 mock.patch.object(lab.os,'waitpid',side_effect=ChildProcessError), \
+                 mock.patch.object(lab.time,'monotonic',side_effect=lambda: clock[0]), \
+                 mock.patch.object(lab.time,'sleep',side_effect=lambda _: clock.__setitem__(0,clock[0]+1)):
+                self.assertTrue(w._stop())
+            self.assertEqual(terminate.call_count,3)
+            self.assertEqual(killed,{987651:12,987652:4})
+            self.assertLessEqual(clock[0],lab.CAPS['cleanupSeconds'])
+
     def window(self,root):
         (root/'.private').mkdir();(root/'public').mkdir()
         with mock.patch.object(lab.os,'sched_getaffinity',return_value={0},create=True),mock.patch.object(lab.os,'sched_setaffinity',create=True):return lab.Window(root,root)
