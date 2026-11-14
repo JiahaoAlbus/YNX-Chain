@@ -844,7 +844,7 @@ jobs:
       - name: Receive the fixed successor Linux build guard
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 1a6229780a2bc577020e45dc10a78d6a2f327349
+          ref: b59687361d5651f863cac17c62bb2d61f0006275
           path: guard-tools
           fetch-depth: 1
           filter: blob:none
@@ -893,14 +893,14 @@ jobs:
             /scripts/loadtest/test_pq_first100_held_ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: a2c0ef48ec840730aabc59212c5ea891a37d45f2
+          ref: 9c222c8f7fa0501c0aa1dbd86e031c434b897ac8
           path: source
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-source-artifact-intake.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 1a6229780a2bc577020e45dc10a78d6a2f327349
+          ref: b59687361d5651f863cac17c62bb2d61f0006275
           path: tools
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -930,7 +930,7 @@ jobs:
           sparse-checkout: /scripts/loadtest/pq-first100-held-ci.py
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: a2c0ef48ec840730aabc59212c5ea891a37d45f2
+          ref: 9c222c8f7fa0501c0aa1dbd86e031c434b897ac8
           path: source
           fetch-depth: 0
           filter: blob:none
@@ -951,7 +951,7 @@ jobs:
             /packages/wallet-auth/native/source-parent/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 1a6229780a2bc577020e45dc10a78d6a2f327349
+          ref: b59687361d5651f863cac17c62bb2d61f0006275
           path: tools
           filter: blob:none
           persist-credentials: false
