@@ -19,6 +19,7 @@ const (
 	MigrationHistoryTransactionPath = "/migration/source-history/transactions/"
 	MigrationHistoryPagePath        = "/migration/source-history/page/"
 	MigrationHistoryLogsPath        = "/migration/source-history/logs/"
+	MigrationHistoryLogBlocksPath   = "/migration/source-history/log-blocks/"
 	// A bounded read response, not a change to native or Comet consensus caps.
 	MaxMigrationHistoryQueryBytes = 32 << 20
 )
@@ -67,6 +68,21 @@ type MigrationHistoryLogsView struct {
 	Logs []chain.EVMLog `json:"logs"`
 }
 
+// This bounded inventory is an observation of the same validated, immutable
+// import as the original block reader, not a receipt root or a finality proof.
+// Only nonempty blocks appear; omission of a height means its log count is zero.
+type MigrationHistoryLogBlock struct {
+	Height uint64 `json:"height,string"`
+	Count  uint64 `json:"count,string"`
+}
+
+type MigrationHistoryLogBlocksView struct {
+	MigrationHistoryAnchor
+	From   uint64                     `json:"from,string"`
+	To     uint64                     `json:"to,string"`
+	Blocks []MigrationHistoryLogBlock `json:"blocks"`
+}
+
 // Called under Application.Query's read lock. The constructor has already
 // validated and deeply copied migration.Runtime, including its original block
 // hashes and historical account policy. Never replay or relabel those records.
@@ -75,7 +91,8 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 	blockHashQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockHashPath)
 	pageQuery := strings.HasPrefix(req.Path, MigrationHistoryPagePath)
 	logsQuery := strings.HasPrefix(req.Path, MigrationHistoryLogsPath)
-	if !blockQuery && !blockHashQuery && !pageQuery && !logsQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
+	logBlocksQuery := strings.HasPrefix(req.Path, MigrationHistoryLogBlocksPath)
+	if !blockQuery && !blockHashQuery && !pageQuery && !logsQuery && !logBlocksQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
 		return false
 	}
 	fail := func(err error) { response.Code, response.Log, response.Value = 1, err.Error(), nil }
@@ -89,7 +106,35 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 	}
 	anchor := MigrationHistoryAnchor{Version: MigrationHistoryVersion, Source: "source_import", SourceAnchor: migration.StateHash, OriginalGenesisHash: migration.OriginalGenesisHash, MigrationBlockHash: migration.LastBlockHash, NativeChainID: migration.Network.ChainID, MigrationHeight: migration.Height}
 	var view any
-	if logsQuery {
+	if logBlocksQuery {
+		from, to, err := migrationHistoryLogsRange(strings.TrimPrefix(req.Path, MigrationHistoryLogBlocksPath), migration.Height)
+		if err != nil {
+			fail(err)
+			return true
+		}
+		value := MigrationHistoryLogBlocksView{MigrationHistoryAnchor: anchor, From: from, To: to, Blocks: make([]MigrationHistoryLogBlock, 0)}
+		// At most 1000 heights. Count existing slices without encoding or copying
+		// event bodies; the separate original block reader checks their bytes.
+		for height := from; height <= to; height++ {
+			if height >= uint64(len(migration.Runtime.Blocks)) || migration.Runtime.Blocks[height].Height != height {
+				fail(errors.New("source log inventory block sequence differs from validated original history"))
+				return true
+			}
+			block := migration.Runtime.Blocks[height]
+			var count uint64
+			for _, tx := range block.Transactions {
+				if tx.BlockNum != height || tx.BlockHash != block.Hash || uint64(len(tx.Logs)) > math.MaxUint64-count {
+					fail(errors.New("source log inventory transaction differs from its original block or count bound"))
+					return true
+				}
+				count += uint64(len(tx.Logs))
+			}
+			if count != 0 {
+				value.Blocks = append(value.Blocks, MigrationHistoryLogBlock{Height: height, Count: count})
+			}
+		}
+		view = value
+	} else if logsQuery {
 		from, to, err := migrationHistoryLogsRange(strings.TrimPrefix(req.Path, MigrationHistoryLogsPath), migration.Height)
 		if err != nil {
 			fail(err)

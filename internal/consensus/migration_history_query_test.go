@@ -172,9 +172,11 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 	}
 	for _, suffix := range []string{"", "0", "0/", "/0", "0/0/", "0/0/0", "00/0", "0/00", "+0/0", "-1/0", " 0/0", "1/0", "0/1000", "0/18446744073709551616", "0/0?prove=true", "0/" + strconv.FormatUint(f.migration.Height+1, 10)} {
 		requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryLogsPath + suffix})
+		requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + suffix})
 	}
 	requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Prove: true}, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Data: []byte("not query authority")}, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Height: app.committed.Height + 1})
 	requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryLogsPath + "0/0", Prove: true}, &abci.RequestQuery{Path: MigrationHistoryLogsPath + "0/0", Data: []byte("not query authority")}, &abci.RequestQuery{Path: MigrationHistoryLogsPath + "0/0", Height: -1}, &abci.RequestQuery{Path: MigrationHistoryLogsPath + "0/0", Height: app.committed.Height + 1})
+	requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Prove: true}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Data: []byte("not query authority")}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Height: -1}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Height: app.committed.Height + 1})
 	for _, req := range requests {
 		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
 		if !queryMigrationHistory(response, req, app.committed, app.migration) || response.Code == 0 || len(response.Value) != 0 {
@@ -197,7 +199,7 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 		case "missing-runtime":
 			migration.Runtime = nil
 		}
-		for _, path := range []string{valid, MigrationHistoryPagePath + "0/1", MigrationHistoryLogsPath + "0/0"} {
+		for _, path := range []string{valid, MigrationHistoryPagePath + "0/1", MigrationHistoryLogsPath + "0/0", MigrationHistoryLogBlocksPath + "0/0"} {
 			response.Code, response.Log, response.Value = 0, "", []byte("must be cleared")
 			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
 				t.Fatal("source history accepted foreign committed state", mode, path, response)
@@ -269,6 +271,34 @@ func TestMigrationHistoryLogsPreserveExecutedContractEventsAndColdBytes(t *testi
 			t.Fatal("empty original genesis log range must remain an empty JSON array")
 		}
 		originals[queryPath] = raw
+		inventoryPath := MigrationHistoryLogBlocksPath + strconv.FormatUint(window[0], 10) + "/" + strconv.FormatUint(window[1], 10)
+		inventoryRaw := migrationHistoryRead(t, app, inventoryPath)
+		var inventory MigrationHistoryLogBlocksView
+		if err := json.Unmarshal(inventoryRaw, &inventory); err != nil || inventory.From != window[0] || inventory.To != window[1] || inventory.Blocks == nil || !bytes.Equal(inventoryRaw, mustJSON(t, inventory)) {
+			t.Fatal("source log inventory lost canonical bounds or complete empty array", inventoryPath, err)
+		}
+		assertMigrationHistoryAnchor(t, inventory.MigrationHistoryAnchor, migration)
+		wanted := make([]MigrationHistoryLogBlock, 0)
+		for _, log := range want {
+			if len(wanted) == 0 || wanted[len(wanted)-1].Height != log.BlockNumber {
+				wanted = append(wanted, MigrationHistoryLogBlock{Height: log.BlockNumber})
+			}
+			wanted[len(wanted)-1].Count++
+		}
+		if !reflect.DeepEqual(inventory.Blocks, wanted) {
+			t.Fatal("source log inventory omitted, reordered or miscounted actual events", inventoryPath)
+		}
+		var inventoryFields map[string]json.RawMessage
+		if json.Unmarshal(inventoryRaw, &inventoryFields) != nil || len(inventoryFields) != 10 || string(inventoryFields["from"]) != strconv.Quote(strconv.FormatUint(window[0], 10)) || string(inventoryFields["to"]) != strconv.Quote(strconv.FormatUint(window[1], 10)) {
+			t.Fatal("inventory is not the closed source-only canonical range DTO")
+		}
+		for _, block := range inventory.Blocks {
+			var fields map[string]json.RawMessage
+			if json.Unmarshal(mustJSON(t, block), &fields) != nil || len(fields) != 2 || string(fields["height"]) != strconv.Quote(strconv.FormatUint(block.Height, 10)) || string(fields["count"]) != strconv.Quote(strconv.FormatUint(block.Count, 10)) || block.Count == 0 {
+				t.Fatal("inventory block coordinates are not positive canonical count strings")
+			}
+		}
+		originals[inventoryPath] = inventoryRaw
 	}
 	exactHeight, err := app.Query(context.Background(), &abci.RequestQuery{Path: MigrationHistoryLogsPath + "0/" + strconv.FormatUint(migration.Height, 10), Height: app.committed.Height})
 	if err != nil || exactHeight.Code != 0 || !bytes.Equal(exactHeight.Value, originals[MigrationHistoryLogsPath+"0/"+strconv.FormatUint(migration.Height, 10)]) {
@@ -311,6 +341,76 @@ func TestMigrationHistoryLogsInclusiveRangeBoundary(t *testing.T) {
 		if (err == nil) != tc.valid || tc.valid && (from != tc.from || to != tc.to) {
 			t.Fatal("source inclusive log range boundary changed", tc.raw, from, to, err)
 		}
+	}
+}
+
+func TestMigrationHistoryLogInventoryRangeAndMetadataBounds(t *testing.T) {
+	// Query-shape unit fixture only: no constructor, signer or authority is
+	// inferred from this metadata. Actual imported execution is covered above.
+	migration := chain.ConsensusMigrationState{
+		Network: chain.DefaultNetworkConfig("testnet"), Height: 1000,
+		StateHash: strings.Repeat("a", 64), OriginalGenesisHash: strings.Repeat("b", 64), LastBlockHash: strings.Repeat("c", 64),
+		Runtime: &chain.ConsensusRuntimeState{Blocks: make([]chain.Block, 1001)},
+	}
+	for height := range migration.Runtime.Blocks {
+		block := &migration.Runtime.Blocks[height]
+		block.Height, block.Hash = uint64(height), strings.Repeat("c", 64)
+		if height != 0 {
+			// This timestamp cannot be marshaled as a full transaction. The
+			// inventory must inspect counts without serializing unrequested bodies.
+			block.Transactions = []chain.Transaction{{BlockNum: uint64(height), BlockHash: block.Hash, Timestamp: time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC), Logs: []chain.EVMLog{{}}}}
+		}
+	}
+	state := CommittedState{ChainID: migration.Network.ChainID, Height: int64(migration.Height), MigrationStateHash: migration.StateHash}
+	read := func(suffix string) *abci.ResponseQuery {
+		t.Helper()
+		response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + suffix}, state, migration) {
+			t.Fatal("source log inventory query was not handled")
+		}
+		return response
+	}
+	for _, tc := range []struct {
+		suffix string
+		count  int
+	}{{"0/0", 0}, {"1/1000", 1000}, {"0/999", 999}} {
+		response := read(tc.suffix)
+		var view MigrationHistoryLogBlocksView
+		if response.Code != 0 || len(response.Value) > 128<<10 || json.Unmarshal(response.Value, &view) != nil || view.Blocks == nil || len(view.Blocks) != tc.count || !bytes.Equal(response.Value, mustJSON(t, view)) {
+			t.Fatal("bounded inventory encoded event bodies, lost empty heights or exceeded its compact shape", tc.suffix, response.Log)
+		}
+		for index, block := range view.Blocks {
+			if block.Height != uint64(index+1) || block.Count != 1 {
+				t.Fatal("inventory changed nonempty height order or counts")
+			}
+		}
+	}
+	for _, suffix := range []string{"0/1000", "1/1001", "01/2", "2/1", "-1/0", "0/18446744073709551616"} {
+		if response := read(suffix); response.Code == 0 || len(response.Value) != 0 {
+			t.Fatal("inventory accepted a noncanonical or over-budget range", suffix)
+		}
+	}
+	for _, mode := range []string{"missing-block", "block-height", "transaction-height", "transaction-block"} {
+		t.Run(mode, func(t *testing.T) {
+			blocks := migration.Runtime.Blocks
+			copyBlocks := append([]chain.Block(nil), blocks...)
+			copyBlocks[1].Transactions = append([]chain.Transaction(nil), blocks[1].Transactions...)
+			migration.Runtime.Blocks = copyBlocks
+			defer func() { migration.Runtime.Blocks = blocks }()
+			switch mode {
+			case "missing-block":
+				migration.Runtime.Blocks = copyBlocks[:1]
+			case "block-height":
+				copyBlocks[1].Height++
+			case "transaction-height":
+				copyBlocks[1].Transactions[0].BlockNum++
+			case "transaction-block":
+				copyBlocks[1].Transactions[0].BlockHash = strings.Repeat("d", 64)
+			}
+			if response := read("0/2"); response.Code == 0 || len(response.Value) != 0 {
+				t.Fatal("inventory exposed a partial response after inconsistent source coordinates", mode)
+			}
+		})
 	}
 }
 
@@ -378,7 +478,7 @@ func TestMigrationHistoryQueryKeepsOriginalBytesAcrossAllColdLayouts(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
-			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), migrationBlockHashTestPath + f.migration.LastBlockHash, MigrationHistoryTransactionPath + f.history, MigrationHistoryPagePath + "0/2", MigrationHistoryPagePath + "0/0", MigrationHistoryLogsPath + "0/" + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryLogsPath + "0/0"}
+			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), migrationBlockHashTestPath + f.migration.LastBlockHash, MigrationHistoryTransactionPath + f.history, MigrationHistoryPagePath + "0/2", MigrationHistoryPagePath + "0/0", MigrationHistoryLogsPath + "0/" + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryLogsPath + "0/0", MigrationHistoryLogBlocksPath + "0/" + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryLogBlocksPath + "0/0"}
 			originals := make(map[string][]byte)
 			for _, path := range paths {
 				originals[path] = migrationHistoryRead(t, app, path)

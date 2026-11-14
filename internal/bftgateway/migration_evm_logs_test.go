@@ -47,10 +47,14 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 		d.ProduceBlock()
 	})
 	want := make([]chain.EVMLog, 0)
+	logBlocks := map[uint64]bool{}
 	var event chain.EVMLog
 	for _, block := range f.migration.Runtime.Blocks {
 		for _, tx := range block.Transactions {
 			want = append(want, tx.Logs...)
+			if len(tx.Logs) > 0 {
+				logBlocks[block.Height] = true
+			}
 			if tx.Type == "contract_call" && len(tx.Logs) > 1 {
 				// The first source log is native provenance; the final log is
 				// the actual compiled Counter execution event.
@@ -58,7 +62,7 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 			}
 		}
 	}
-	if event.Address != address || len(event.Topics) == 0 || event.TransactionIndex == 0 || event.LogIndex == 0 {
+	if event.Address != address || len(event.Topics) == 0 || event.TransactionIndex == 0 || event.LogIndex == 0 || len(logBlocks) < 2 {
 		t.Fatal("fixture requires real executed contract events and nonzero original indexes")
 	}
 	// The postmigration event is produced by the real signed IDE action and
@@ -90,7 +94,7 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	}
 	var mode atomic.Value
 	mode.Store("")
-	var oldReads, newReads atomic.Int64
+	var oldReads, newReads, inventoryReads, blockReads atomic.Int64
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if mode.Load().(string) == "pruned" && r.URL.Path == "/status" {
 			writeJSON(w, 200, map[string]any{"result": map[string]any{
@@ -102,6 +106,67 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 		path, _ := strconv.Unquote(r.URL.Query().Get("path"))
 		if r.URL.Path == "/abci_query" && path == "/evm/logs" {
 			newReads.Add(1)
+		}
+		if r.URL.Path == "/abci_query" && strings.HasPrefix(path, consensus.MigrationHistoryBlockPath) {
+			blockReads.Add(1)
+		}
+		if r.URL.Path == "/abci_query" && strings.HasPrefix(path, consensus.MigrationHistoryLogBlocksPath) {
+			inventoryReads.Add(1)
+			current := mode.Load().(string)
+			if current == "inventory-http" {
+				w.WriteHeader(503)
+				return
+			}
+			response, err := f.app.Query(r.Context(), &abci.RequestQuery{Path: path})
+			if err != nil || response.Code != 0 {
+				t.Error("original inventory query failed", err)
+				w.WriteHeader(500)
+				return
+			}
+			var view consensus.MigrationHistoryLogBlocksView
+			if err := json.Unmarshal(response.Value, &view); err != nil {
+				t.Error(err)
+				w.WriteHeader(500)
+				return
+			}
+			switch current {
+			case "inventory-range":
+				view.From++
+			case "inventory-anchor":
+				view.SourceAnchor = strings.Repeat("a", 64)
+			case "inventory-nil":
+				view.Blocks = nil
+			case "inventory-empty":
+				view.Blocks = []consensus.MigrationHistoryLogBlock{}
+			}
+			if len(view.Blocks) > 0 {
+				switch current {
+				case "inventory-duplicate":
+					view.Blocks = append(view.Blocks, view.Blocks[0])
+				case "inventory-order":
+					view.Blocks[0], view.Blocks[len(view.Blocks)-1] = view.Blocks[len(view.Blocks)-1], view.Blocks[0]
+				case "inventory-outside":
+					view.Blocks[0].Height = view.To + 1
+				case "inventory-zero":
+					view.Blocks[0].Count = 0
+				case "inventory-count":
+					view.Blocks[0].Count++
+				case "inventory-overflow":
+					view.Blocks[0].Count = ^uint64(0)
+				case "inventory-too-many":
+					for uint64(len(view.Blocks)) <= view.To-view.From+1 {
+						view.Blocks = append(view.Blocks, view.Blocks[0])
+					}
+				}
+			}
+			response.Value, err = json.Marshal(view)
+			if err != nil {
+				t.Error(err)
+				w.WriteHeader(500)
+				return
+			}
+			writeJSON(w, 200, map[string]any{"result": map[string]any{"response": map[string]any{"code": response.Code, "height": strconv.FormatInt(response.Height, 10), "value": base64.StdEncoding.EncodeToString(response.Value)}}})
+			return
 		}
 		if r.URL.Path != "/abci_query" || !strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) {
 			if mode.Load().(string) == "block-http" && strings.HasPrefix(path, consensus.MigrationHistoryBlockPath) {
@@ -134,6 +199,19 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 			view.From++
 		case "nil":
 			view.Logs = nil
+		case "empty":
+			view.Logs = []chain.EVMLog{}
+		case "missing-block":
+			if len(view.Logs) > 0 {
+				omitted := view.Logs[0].BlockNumber
+				remaining := make([]chain.EVMLog, 0, len(view.Logs))
+				for _, log := range view.Logs {
+					if log.BlockNumber != omitted {
+						remaining = append(remaining, log)
+					}
+				}
+				view.Logs = remaining
+			}
 		case "anchor":
 			view.SourceAnchor = strings.Repeat("a", 64)
 		}
@@ -195,6 +273,7 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	if failure != "" || len(originals) != len(want) || newReads.Load() != 0 {
 		t.Fatal("source-only logs were lost or queried as new events", failure, len(originals), len(want), newReads.Load())
 	}
+	firstInventoryReads, firstBlockReads := inventoryReads.Load(), blockReads.Load()
 	for i, original := range want {
 		row := originals[i]
 		topics, topicsErr := json.Marshal(row["topics"])
@@ -210,9 +289,11 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 			t.Fatal("source event lost its original provenance")
 		}
 	}
+	beforeBlocks, beforeInventory := blockReads.Load(), inventoryReads.Load()
 	if _, empty, failure := read(`{"fromBlock":"0x0","toBlock":"0x0"}`); failure != "" || empty == nil || len(empty) != 0 || newReads.Load() != 0 {
 		t.Fatal("empty source log window is unavailable, null or forwarded", failure)
 	}
+	emptyBlockReads, emptyInventoryReads := blockReads.Load()-beforeBlocks, inventoryReads.Load()-beforeInventory
 	if _, err := g.evmCommittedAccountResult(context.Background(), "eth_getBalance", json.RawMessage(fmt.Sprintf(`[%q,"0x0"]`, owner))); err == nil {
 		t.Fatal("source log support weakened historical account state rejection")
 	}
@@ -240,6 +321,25 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	if failure != "" || len(matches) != expected {
 		t.Fatal("original/new address and OR-topic filtering diverged", failure, len(matches), expected)
 	}
+	noMatchFilter := `{"fromBlock":"earliest","toBlock":"latest","address":"0x0000000000000000000000000000000000000000"}`
+	if _, empty, failure := read(noMatchFilter); failure != "" || empty == nil || len(empty) != 0 {
+		t.Fatal("valid complete history with no matching address must remain empty", failure)
+	}
+	for _, bad := range []string{"empty", "missing-block", "inventory-http", "inventory-range", "inventory-anchor", "inventory-nil", "inventory-empty", "inventory-duplicate", "inventory-order", "inventory-outside", "inventory-zero", "inventory-count", "inventory-overflow", "inventory-too-many"} {
+		t.Run(bad, func(t *testing.T) {
+			mode.Store(bad)
+			for _, filter := range []string{sourceFilter, crossFilter, noMatchFilter} {
+				newReads.Store(0)
+				beforeBlocks := blockReads.Load()
+				if _, _, failure := read(filter); failure == "" || newReads.Load() != 0 || blockReads.Load() != beforeBlocks {
+					t.Fatal("SOURCE_LOG_COMPLETENESS: incomplete original history returned partial success or reached new history", bad, failure)
+				}
+			}
+		})
+	}
+	if firstInventoryReads != 1 || firstBlockReads != int64(len(logBlocks)) || emptyBlockReads != 0 || emptyInventoryReads != 1 {
+		t.Fatal("source completeness must use one inventory and only nonempty original blocks, including an empty range", firstInventoryReads, firstBlockReads, emptyInventoryReads, emptyBlockReads)
+	}
 	mode.Store("pruned")
 	oldReads.Store(0)
 	newReads.Store(0)
@@ -266,6 +366,14 @@ func TestGatewayOriginalEVMLogsCrossMigrationAndColdRead(t *testing.T) {
 	if afterCold, _, failure := read(crossFilter); failure != "" || !bytes.Equal(beforeCold, afterCold) {
 		t.Fatal("cold original/new log read changed event bytes", failure)
 	}
+	for _, bad := range []string{"empty", "missing-block"} {
+		mode.Store(bad)
+		newReads.Store(0)
+		if _, _, failure := read(crossFilter); failure == "" || newReads.Load() != 0 {
+			t.Fatal("cold source log completeness accepted an omitted block", bad, failure)
+		}
+	}
+	mode.Store("")
 	stateAfter, err := os.ReadFile(f.statePath)
 	if err != nil {
 		t.Fatal(err)

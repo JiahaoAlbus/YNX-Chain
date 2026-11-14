@@ -31,18 +31,42 @@ func (g *Gateway) importedEVMLogs(ctx context.Context, filter committedEVMLogFil
 	if view.From != filter.from || view.To != filter.to || view.Logs == nil {
 		return nil, errors.New("original log response differs from the complete requested range")
 	}
+	// A logs response alone cannot identify a wholly omitted block (including
+	// an incorrectly empty response). Read the compact inventory independently,
+	// then check only its nonempty blocks. Empty heights cause no block RPCs.
+	var inventory consensus.MigrationHistoryLogBlocksView
+	inventoryHeight, err := g.queryMigrationHistory(ctx, consensus.MigrationHistoryLogBlocksPath+strconv.FormatUint(filter.from, 10)+"/"+strconv.FormatUint(filter.to, 10), &inventory)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.validateMigrationHistory(ctx, inventory.MigrationHistoryAnchor, inventoryHeight); err != nil {
+		return nil, err
+	}
+	if inventory.MigrationHistoryAnchor != view.MigrationHistoryAnchor || inventory.From != filter.from || inventory.To != filter.to || inventory.Blocks == nil || uint64(len(inventory.Blocks)) > filter.to-filter.from+1 {
+		return nil, errors.New("original log inventory differs from the complete requested range or import")
+	}
+	var total, previous uint64
+	for index, block := range inventory.Blocks {
+		if block.Height < filter.from || block.Height > filter.to || index > 0 && block.Height <= previous || block.Count == 0 || block.Count > uint64(len(view.Logs))-total {
+			return nil, errors.New("original log inventory has invalid heights, counts or order")
+		}
+		total += block.Count
+		previous = block.Height
+	}
+	if total != uint64(len(view.Logs)) {
+		return nil, errors.New("original logs omit or add events from the complete source inventory")
+	}
 	result := make([]map[string]any, 0, len(view.Logs))
-	var previous uint64
-	for start := 0; start < len(view.Logs); {
-		blockHeight := view.Logs[start].BlockNumber
-		if blockHeight < filter.from || blockHeight > filter.to || start != 0 && blockHeight <= previous {
-			return nil, errors.New("original log blocks are outside the requested range or original order")
+	start := 0
+	for _, block := range inventory.Blocks {
+		// The complete count check above bounds this conversion and slice.
+		end := start + int(block.Count)
+		for _, log := range view.Logs[start:end] {
+			if log.BlockNumber != block.Height {
+				return nil, errors.New("original log blocks differ from the complete source inventory")
+			}
 		}
-		end := start + 1
-		for end < len(view.Logs) && view.Logs[end].BlockNumber == blockHeight {
-			end++
-		}
-		originals, err := g.importedLogsAtHeight(ctx, blockHeight, view.MigrationHistoryAnchor)
+		originals, err := g.importedLogsAtHeight(ctx, block.Height, view.MigrationHistoryAnchor)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +85,7 @@ func (g *Gateway) importedEVMLogs(ctx context.Context, filter committedEVMLogFil
 				"ynxSourceHistory": view.MigrationHistoryAnchor, "independentFinality": false,
 			})
 		}
-		previous, start = blockHeight, end
+		start = end
 	}
 	return result, nil
 }
