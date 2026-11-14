@@ -1,5 +1,5 @@
 import {OriginalRunReconnect,type RunCursorPersistence} from './taskReconnect';
-import {readTaskRun,readTaskReceipt,readTaskProjection,readTaskList} from './taskResults';
+import {readTaskRun,readTaskReceipt,readTaskProjection,readTaskList,TaskAPIError} from './taskResults';
 import {createTaskV6API,type NativeTaskV6} from './taskV6';
 // Native task orchestration only. Canonical proof acquisition belongs to the
 // original Wallet session; neither a legacy token nor this UI grants authority.
@@ -22,7 +22,7 @@ export type TaskReceipt={scope?:string;state:string;effectRef:string;originalOpe
 export type Delivery={version?:"2"|"6";id:string;binding:string;action:string;taskId:string;conversationId?:string;stepId?:string;runId?:string;revision?:number;generation?:number;state:"PENDING"|"UNKNOWN"|"RESPONSE_RECEIVED"|"REJECTED_RESPONSE"|"ORIGINAL_OBSERVED"};
 export type WorkspaceRecord={selectedTask:string;selectedResultStep?:string;runId:string;deliveries:Delivery[]};
 export type TaskPersistence={read:(identity:string)=>Promise<WorkspaceRecord|null>;write:(identity:string,value:WorkspaceRecord)=>Promise<void>};
-export class TaskAPIError extends Error{constructor(public status:number,public code:string){super(code||`HTTP_${status}`)}}
+export {TaskAPIError} from "./taskResults";
 const segmentOrEmpty=(id:string)=>{if(id!=="")segment(id)};
 const segment=(id:string)=>{if(!/^[A-Za-z0-9_-]{1,128}$/.test(id))throw new Error("INVALID_ORIGINAL_IDENTIFIER");return id};
 
@@ -72,7 +72,15 @@ export class TaskWorkspaceController{
  private async hydrate(){if(this.hydrated)return;const saved=await this.storage.read(this.identity);if(saved){if(!Array.isArray(saved.deliveries)||saved.deliveries.some(d=>!d||(d.version!==undefined&&d.version!=="2"&&d.version!=="6")))throw Error("TASK_JOURNAL_VERSION_INVALID");segmentOrEmpty(saved.selectedTask);segmentOrEmpty(saved.runId);if(saved.selectedResultStep!==undefined){if(!saved.selectedTask||typeof saved.selectedResultStep!=="string")throw Error("TASK_JOURNAL_INVALID");segment(saved.selectedResultStep)}this.state.record=saved;}this.hydrated=true}
  private async work<T>(fn:(signal:AbortSignal)=>Promise<T>,apply:(value:T)=>void){
   if(this.disposed||this.state.busy)return;const epoch=++this.epoch;const request=new AbortController();this.request=request;this.state.busy=true;this.state.error="";this.emit();
-  try{const value=await fn(request.signal);if(!this.disposed&&epoch===this.epoch){apply(value)}}catch(error){if(!this.disposed&&epoch===this.epoch)this.state.error=error instanceof Error?error.message:"TASK_REQUEST_FAILED"}finally{if(!this.disposed&&epoch===this.epoch){this.state.busy=false;this.request=null;this.emit()}}
+  try{const value=await fn(request.signal);if(!this.disposed&&epoch===this.epoch){apply(value)}}catch(error){
+   if(!this.disposed&&epoch===this.epoch){
+    this.state.error=error instanceof Error?error.message:"TASK_REQUEST_FAILED";
+    if(error instanceof TaskAPIError&&error.status===401){
+     this.state.projection=null;this.state.tasks=[];this.state.run=null;this.state.receipt=null;
+     this.state.hasMore=false;this.state.nextId="";
+    }
+   }
+  }finally{if(!this.disposed&&epoch===this.epoch){this.state.busy=false;this.request=null;this.emit()}}
  }
  async restore(){await this.work(async()=>{await this.hydrate();return this.state.record},record=>{this.state.record=record})}
  // Select only the original protocol retained for this task. No re-signing or
@@ -114,7 +122,7 @@ export class TaskWorkspaceController{
   else if(this.state.record.runId)await this.readRun(this.state.record.runId);
  }
  async discover(more=false){await this.work(signal=>this.api.list(signal,more?this.state.nextId:""),page=>{this.state.tasks=more?[...this.state.tasks,...page.tasks.filter(t=>!this.state.tasks.some(old=>old.id===t.id))]:page.tasks;this.state.nextId=page.nextId||"";this.state.hasMore=page.hasMore})}
- async select(id:string){await this.work(async signal=>{await this.hydrate();const legacy=this.legacyRecovery(id);const original=readTaskProjection(await this.readAPI(id).task(id,signal),id);if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");const projection=legacy?{...original,recoveryOnly:true}:original;const sameTask=this.state.record.selectedTask===id;const record={...this.state.record,selectedTask:id,selectedResultStep:sameTask?this.state.record.selectedResultStep:undefined,runId:sameTask?this.state.record.runId:""};await this.persist(record);return {projection,record}},value=>{this.state.projection=value.projection;this.state.record=value.record;this.state.run=null;this.state.receipt=null})}
+ async select(id:string){await this.work(async signal=>{this.state.receipt=null;this.state.run=null;this.emit();await this.hydrate();const legacy=this.legacyRecovery(id);const original=readTaskProjection(await this.readAPI(id).task(id,signal),id);if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");const projection=legacy?{...original,recoveryOnly:true}:original;const sameTask=this.state.record.selectedTask===id;const record={...this.state.record,selectedTask:id,selectedResultStep:sameTask?this.state.record.selectedResultStep:undefined,runId:sameTask?this.state.record.runId:""};await this.persist(record);return {projection,record}},value=>{this.state.projection=value.projection;this.state.record=value.record;this.state.run=null;this.state.receipt=null})}
  private async mutate(action:string,task:Task|null,step:string,runId:string,invoke:(signal:AbortSignal)=>Promise<unknown>,apply:(value:unknown)=>void,conversationId=""){
   await this.work(async signal=>{
    await this.hydrate();if(signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");
@@ -163,7 +171,10 @@ export class TaskWorkspaceController{
   if(this.legacyRecovery(task.id)){
    const historical=original??step;
    if(historical.toolStep.taskId!==task.id||!needsOriginalTaskQuery(historical))throw new Error("ORIGINAL_QUERY_ONLY");
-   await this.work(signal=>this.readAPI(task.id).reconcile(task.id,historical.id,ref,signal),()=>{});
+   await this.work(signal=>{
+    this.state.receipt=null;this.emit();
+    return this.readAPI(task.id).reconcile(task.id,historical.id,ref,signal);
+   },()=>{});
    return;
   }
   if(!original||!needsOriginalTaskQuery(original))throw new Error("ORIGINAL_QUERY_ONLY");
@@ -172,12 +183,13 @@ export class TaskWorkspaceController{
    this.state.receipt=null;this.emit();
    return this.api.reconcile(task.id,original.id,ref,signal);
   },()=>{observed=true});
-  if(!observed||!original.toolStep.authorityOperationId||original.toolStep.toolId!=="ai.conversation.read")return;
+  if(!observed||!["ai.conversation.read","shop.order.read"].includes(original.toolStep.toolId))return;
   await this.work(async signal=>readTaskProjection(await this.api.task(task.id,signal),task.id),
    projection=>{this.state.projection=projection});
   const recovered=this.state.projection?.steps.find(item=>item.id===original.id);
   if(!this.state.error&&this.state.projection?.id===task.id&&recovered?.status==="COMPLETED"&&
-   !needsOriginalTaskQuery(recovered)&&recovered.toolStep.authorityOperationId===original.toolStep.authorityOperationId){
+   !needsOriginalTaskQuery(recovered)&&recovered.toolStep.authorityOperationId&&
+   (!original.toolStep.authorityOperationId||recovered.toolStep.authorityOperationId===original.toolStep.authorityOperationId)){
    await this.readResult(recovered);
   }
  }
@@ -188,7 +200,7 @@ export class TaskWorkspaceController{
    this.state.receipt=null;this.emit();
    const receipt=readTaskReceipt(await this.readAPI(task.id).result(task.id,step.id,signal),step.id);
    const operation=step.toolStep.authorityOperationId;
-   if(step.toolStep.toolId==="ai.conversation.read"&&operation&&receipt.authorityOperationId!==operation)throw Error("TASK_ORIGINAL_RESULT_INVALID");
+   if(operation&&receipt.authorityOperationId!==operation)throw Error("TASK_ORIGINAL_RESULT_INVALID");
    if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");
    const record={...this.state.record,selectedTask:task.id,selectedResultStep:step.id};
    await this.persist(record);

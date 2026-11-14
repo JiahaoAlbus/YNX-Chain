@@ -25,7 +25,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  },[session?.taskRuntime,session?.taskCredentials]);
  const task=state?.projection,busy=state?.busy||false;
  const perform=(work:()=>Promise<unknown>)=>{setLocalError("");void work().catch(error=>setLocalError(error instanceof Error?error.message:"TASK_REQUEST_FAILED"))};
- const refresh=()=>{if(controller&&task)perform(()=>controller.select(task.id));else if(controller)perform(()=>controller.discover())};
+ const refresh=()=>{if(controller&&task)perform(()=>controller.select(task.id));else if(controller)perform(()=>controller.restoreOriginalTask())};
  const snapshot=(value:Task)=>({id:value.id,holder:value.holder,revision:value.revision,generation:value.generation});
  const confirm=(title:string,value:Task,work:(expected:Task)=>Promise<unknown>,extra="")=>{
   const expected={...value};const summary=snapshot(expected);
@@ -37,11 +37,14 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const start=(resume:boolean)=>{if(!controller||!task)return;const originalRun=resume?(state?.run?.runId||state?.record.runId||runId.trim()):(runId.trim()||`taskrun_${Crypto.randomUUID().replace(/-/g,"")}`);setRunId(originalRun);confirm(resume?label("继续原运行","Resume original run"):label("请求模型运行","Request model run"),task,expected=>controller.model(expected,originalRun,prompt,grantRef.trim(),resume?[]:(shopTools?["ai.conversation.read","shop.order.read"]:["ai.conversation.read"]),resume),`${originalRun}\n${label("模型披露和工具执行分别检查原权限。","Model disclosure and tool effects require their own original permissions.")}`)};
  const unavailable=!controller;
  const error=localError||state?.error||"";
+ const sessionRejected=error==="SESSION_REVOKED"||error==="HTTP_401";
+ const taskError=sessionRejected?label("任务会话已失效。请恢复原钱包授权，再刷新原任务。","Task session is no longer valid. Restore the original Wallet authorization, then refresh the original task."):
+  error.includes("503")||error.includes("AUTHORITY_UNAVAILABLE")?label("原授权或工具来源不可用。请刷新原任务核对状态，保留原操作编号。","Original authority or tool Source is unavailable. Refresh the original task to verify its state and keep the original operation ID."):error;
  return <ScrollView style={s.screen} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
   <View style={s.top}><Text accessibilityRole="header" style={s.title}>{label("任务","Tasks")}</Text><Action label={label("返回对话","Back to chat")} onPress={onBack}/></View>
   <Text style={s.body}>{label("先核对任务版本，再决定下一步。结果未知时，只查询原操作。","Review the task version before acting. For unknown results, query the original operation.")}</Text>
   {unavailable?<View style={s.card}><Text style={s.heading}>{label("正式任务登录不可用","Task authorization unavailable")}</Text><Text style={s.body}>{label("原生钱包尚未提供本会话的实时任务范围证明。旧登录令牌不能代替它；任务列表和执行操作暂不可用。现有任务与未知结果不会被清除。","The original native Wallet has not supplied a fresh scoped proof for this session. A legacy login token cannot replace it. Task access is unavailable; existing tasks and unknown outcomes are preserved.")}</Text></View>:null}
-  {error?<View accessibilityLiveRegion="assertive" style={s.card}><Text style={s.error}>{error.includes("503")||error.includes("AUTHORITY_UNAVAILABLE")?label("原授权或工具来源不可用。未确认执行成功；请查询原任务。","Original authority or tool Source is unavailable. Execution is not confirmed; inspect the original task."):error}</Text><Action label={label("刷新原任务","Refresh original task")} disabled={busy||unavailable} onPress={refresh}/></View>:null}
+  {error?<View accessibilityLiveRegion="assertive" style={s.card}><Text style={s.error}>{taskError}</Text><Action label={label("刷新原任务","Refresh original task")} disabled={busy||unavailable} onPress={refresh}/></View>:null}
   <View style={s.actions}><Action label={label("发现本人任务","Find my tasks")} disabled={busy||unavailable} onPress={()=>controller&&perform(()=>controller.discover())}/><Action label={label("为当前会话创建任务","Create task for this conversation")} disabled={busy||unavailable||!conversationId} onPress={()=>conversationId&&controller&&perform(()=>controller.create(conversationId))}/></View>
   {busy?<ActivityIndicator accessibilityLabel={label("等待原服务","Waiting for original service")} color="#002FA7"/>:null}
   {state?.tasks.map(item=><Pressable accessibilityRole="button" accessibilityLabel={`${item.id} ${item.status}`} key={item.id} disabled={busy} onPress={()=>controller&&perform(()=>controller.select(item.id))} style={[s.card,task?.id===item.id&&s.selected]}><Text selectable style={s.heading}>{item.id}</Text><Text style={s.body}>{item.status} · rev {item.revision} / gen {item.generation}</Text></Pressable>)}

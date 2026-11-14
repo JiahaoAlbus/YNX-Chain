@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {NativeTaskV6Adapter,createTaskV6API,validateV6Journal,type V6Journal,type NativeTaskV6} from './taskV6';
-import {createTaskAPI} from './tasks';
+import {createTaskAPI,TaskAPIError} from './tasks';
 import type {OriginalAITaskActionV6Intent as Intent,OriginalAITaskActionV6Client as Client,OriginalAITaskActionV6Observation as Observation} from '../contracts/sdk047/original-ai-task-action-v6-client';
 const t={id:'task_original',conversationId:'conversation_original',revision:2,generation:1,holder:'device_original',status:'READY'};
 const request=(action:Intent['action']='task.cancel')=>({action,method:'POST' as const,path:`/api/tasks/${t.id}/cancel`,bodyOriginal:new TextEncoder().encode(JSON.stringify({revision:2,generation:1})),taskId:t.id,taskRevision:'2',generation:'1',stepId:null,runId:null,creationBinding:null});
@@ -109,4 +109,18 @@ test('cold original lookups retain one context and cancellation never renews it'
  await assert.rejects(cold.lookupOriginal('operation_1',new AbortController().signal),/CONTEXT_CANCELLED_REOPEN_FOR_QUERY/);
  assert.equal(contexts.length,3);assert.equal(contexts[2],contexts[0]);
  assert.equal(f.intents.length,1);assert.equal(f.saved!.entries[0]!.state,'COMMITTED');await cold.close();
+});
+
+test('complete V6 refusal retains HTTP status without promoting its body',async()=>{
+ for(const status of [401,503]){
+  const f=fixture();
+  const send=f.client.send.bind(f.client);
+  f.client.send=async(...args)=>{
+   const observed=await send(...args);
+   return {...observed,phase:'DENIED',responseOriginal:{...observed.responseOriginal!,status,bodyOriginal:new Uint8Array([255])}};
+  };
+  const api=createTaskV6API('PUBLIC',f.original);
+  await assert.rejects(api.list(new AbortController().signal),error=>error instanceof TaskAPIError&&error.status===status);
+  assert.equal(f.saved!.entries[0]!.state,'DENIED');
+ }
 });

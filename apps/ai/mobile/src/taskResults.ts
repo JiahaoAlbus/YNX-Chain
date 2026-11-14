@@ -8,6 +8,9 @@ const identifier=(v:unknown):string=>typeof v==='string'&&/^[A-Za-z0-9_-]{1,128}
 const integer=(v:unknown,zero=false):number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=(zero?0:1)?v:fail();
 const array=(v:unknown,max:number):unknown[]=>Array.isArray(v)&&v.length<=max?v:fail();
 const bool=(v:unknown):boolean=>typeof v==='boolean'?v:fail();
+export class TaskAPIError extends Error {
+ constructor(public status:number,public code:string){super(code||`HTTP_${status}`)}
+}
 export function readTask(value:unknown,expectedId?:string,conversationId?:string):Task{
  const v=object(value);const task:Task={id:identifier(v.id),conversationId:identifier(v.conversationId),holder:text(v.holder,256),revision:integer(v.revision),generation:integer(v.generation),status:text(v.status,64)};
  if(!['DRAFT','READY','WORKING','NEEDS_APPROVAL','COMPLETED','FAILED','CANCELLED','RECONCILING'].includes(task.status)||expectedId!==undefined&&task.id!==expectedId||conversationId!==undefined&&task.conversationId!==conversationId)fail();

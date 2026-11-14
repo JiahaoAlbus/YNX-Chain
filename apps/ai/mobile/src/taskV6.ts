@@ -1,4 +1,4 @@
-import {readTask,readTaskList,readTaskProjection,readTaskRun,readTaskReceipt,readTaskAction} from './taskResults';
+import {readTask,readTaskList,readTaskProjection,readTaskRun,readTaskReceipt,readTaskAction,TaskAPIError} from './taskResults';
 // Product orchestration only. SDK owns canonical bytes, SAME held review,
 // signatures, transport, Source-current and verified original outcome custody.
 import type {OriginalAITaskActionV6Client as Client,OriginalAITaskActionV6Intent as Intent,OriginalAITaskActionV6Observation as Observation} from '../contracts/sdk047/original-ai-task-action-v6-client';
@@ -98,7 +98,9 @@ export function createTaskV6API(identity:string,original:NativeTaskV6){
   if(task)task=readTask(task);
   const request:Request={action,path,method:body===undefined?'GET':'POST',bodyOriginal:utf8.encode(body===undefined?'':JSON.stringify(body)),taskId:task?.id??null,taskRevision:task?String(task.revision):null,generation:task?String(task.generation):null,stepId,runId,creationBinding:conversationId?{conversationId}:null} as Request;
   const observed=await adapter.execute(request,signal);const response=observed.responseOriginal;
-  if(observed.phase==='DENIED'||!response||!response.complete||response.status<200||response.status>=300)throw Error('V6_ORIGINAL_RESPONSE_REJECTED');
+  if(!response||!response.complete)throw Error('V6_ORIGINAL_RESPONSE_REJECTED');
+  if(response.status<200||response.status>=300)throw new TaskAPIError(response.status,'');
+  if(observed.phase==='DENIED')throw Error('V6_ORIGINAL_RESPONSE_REJECTED');
   // This JSON is only product display DATA after the original SDK send/outcome
   // fences. Never decode a member, build a header, or infer Source from JSON.
   if(response.bodyOriginal.byteLength>1<<20)throw Error('TASK_ORIGINAL_RESULT_TOO_LARGE');

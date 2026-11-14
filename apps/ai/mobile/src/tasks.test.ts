@@ -42,7 +42,7 @@ test("cancelled task can query a locally completed step whose Auth receipt is UN
  await reopened.whenClosed();
 });
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
-function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
+function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),handoff:async()=>({task:{...task,holder:"holder_next",revision:3,generation:2}}),complete:async()=>({task:{...task,status:"COMPLETED"}}),propose:async()=>({}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,authorityOperationId:step.toolStep.authorityOperationId,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
 test("native task requests use fresh original scope proof and fixed route, no legacy bearer",async()=>{
  const scopes:string[]=[],requests:{url:string;init:RequestInit}[]=[];
  const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC-session",proof:async scope=>{scopes.push(scope);return `PUBLIC-${scopes.length}`}},async(input,init)=>{requests.push({url:String(input),init:init!});return new Response(JSON.stringify({tasks:[],hasMore:false}),{status:200})});
@@ -128,4 +128,44 @@ test("complete refuses pending original effects and uses the actual completed in
 });
 test("PENDING and SENT effects allow only original query and block replacement model work",async()=>{
  for(const status of ["PENDING","SENT"]){let queries=0,runs=0;const original={...step,status};const c=new TaskWorkspaceController("PUBLIC",mockAPI({task:async()=>({...projection,steps:[original]}),reconcile:async()=>{queries++;return {}},run:async()=>{runs++;throw Error("unexpected NEW")}}),storage().api,()=>`query_${status}`);await c.select(task.id);await c.reconcile(task,original,"ref");assert.equal(queries,1);await assert.rejects(c.model(task,"replacement","prompt","ref",["ai.conversation.read"]),/UNKNOWN_ORIGINAL_QUERY/);assert.equal(runs,0)}
+});
+
+test("Shop history recovery refreshes the original receipt and refuses stale or revoked readback",async()=>{
+ const original={...step,toolStep:{...step.toolStep,toolId:"shop.order.read"}};
+ const completed={...original,status:"COMPLETED",toolStep:{...original.toolStep,authorityReferenceState:"COMMITTED"}};
+ const saved=storage();
+ let queries=0,reads=0,denial:TaskAPIError|undefined;
+ let operation=original.toolStep.authorityOperationId;
+ const api=mockAPI({
+  task:async()=>{if(denial)throw denial;return {...projection,steps:[queries?completed:original]}},
+  reconcile:async()=>{queries++;return {}},
+  result:async()=>{reads++;return {state:"COMMITTED",effectRef:step.id,authorityOperationId:operation,result:{status:"processing"}}}
+ });
+ const c=new TaskWorkspaceController("PUBLIC",api,saved.api,()=>"query_shop");
+ await c.select(task.id);
+ await c.reconcile(task,original,"PUBLIC-ref");
+ assert.deepEqual(c.state.receipt?.result,{status:"processing"});
+ await c.whenClosed();
+ const reopened=new TaskWorkspaceController("PUBLIC",api,saved.api,()=>"reopen_shop");
+ await reopened.restoreOriginalTask();
+ assert.deepEqual(reopened.state.receipt?.result,{status:"processing"});
+ operation="wrong-original";
+ await reopened.readResult(completed);
+ assert.equal(reopened.state.error,"TASK_ORIGINAL_RESULT_INVALID");
+ assert.equal(reopened.state.receipt,null);
+ operation=original.toolStep.authorityOperationId;
+ await reopened.readResult(completed);
+ denial=new TaskAPIError(503,"AUTHORITY_UNAVAILABLE");
+ await reopened.select(task.id);
+ assert.equal(reopened.state.error,"AUTHORITY_UNAVAILABLE");
+ assert.equal(reopened.state.receipt,null);
+ assert.equal(reopened.state.record.selectedResultStep,step.id);
+ denial=new TaskAPIError(401,"SESSION_REVOKED");
+ await reopened.select(task.id);
+ assert.equal(reopened.state.error,"SESSION_REVOKED");
+ assert.equal(reopened.state.projection,null);
+ assert.equal(reopened.state.record.selectedTask,task.id);
+ assert.equal(queries,1);
+ assert.equal(reads,4);
+ await reopened.whenClosed();
 });
