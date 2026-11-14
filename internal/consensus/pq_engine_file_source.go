@@ -49,6 +49,16 @@ func NewPQEngineFileSource(migration chain.ConsensusMigrationState, statePath st
 	if err != nil {
 		return nil, err
 	}
+	return newPQEngineFileSourceOwned(witness, statePath, authorization)
+}
+
+func newPQEngineFileSourceOwned(witness *validatedMigration, statePath string, authorization *PQEngineAuthorization) (*PQEngineFileSource, error) {
+	if err := witness.valid(); err != nil {
+		return nil, err
+	}
+	if witness.bootstrap == nil || authorization == nil || strings.TrimSpace(statePath) == "" {
+		return nil, errors.New("engine authority source requires pinned bootstrap, path and independent schedule authorization")
+	}
 	path, err := filepath.Abs(statePath)
 	if err != nil {
 		return nil, err

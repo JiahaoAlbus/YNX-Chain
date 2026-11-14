@@ -3,13 +3,16 @@
 import hashlib, json, pathlib, os
 CASE=pathlib.Path(os.environ['YNX_PROOF_CLOSURE_CASE']).resolve(strict=True)
 SOURCE=CASE/'composition/source'
-OVERLAY=CASE/'observation-overlay'
+VARIANT=os.environ.get('YNX_PROOF_CLOSURE_VARIANT','original')
+assert VARIANT in ('original','prepared')
+SUFFIX='' if VARIANT=='original' else '-prepared'
+OVERLAY=CASE/('observation-overlay'+SUFFIX)
 OVERLAY.mkdir()
-replacements={}
+replacements={} if VARIANT=='original' else json.loads((CASE/'OPTIMIZATION-OVERLAY.json').read_text())['Replace']
 ledger=[]
 
 def patch(rel, changes, stages):
-    raw=(SOURCE/rel).read_bytes(); text=raw.decode()
+    raw=pathlib.Path(replacements.get(str(SOURCE/rel),SOURCE/rel)).read_bytes(); text=raw.decode()
     for old,new in changes:
         assert text.count(old)==1, (rel,old)
         text=text.replace(old,new)
@@ -23,9 +26,9 @@ def surround(line, stage, endvar):
 
 patch('cmd/ynx-consensus-proof-verify/trust.go',[
  surround('\tmigration, err := readProofMigration(c.MigrationFile)','migration.read','migrationDone'),
- surround('\tbootstrap, err := consensus.NewConsensusBootstrap(genesisRaw, pins, migration)','bootstrap.validate','bootstrapDone'),
+ surround('\tbootstrap, err := consensus.NewConsensusBootstrap(genesisRaw, pins, migration)' if VARIANT=='original' else '\tprepared, err := consensus.PreparePQEngineBootstrap(genesisRaw, pins, migration)','bootstrap.validate','bootstrapDone'),
  surround('\tengine, err := consensus.NewPQEngineAuthorization(scheduleRaw, c.ScheduleHash)','schedule.validate','scheduleDone'),
- surround('\tsource, err := consensus.NewPQEngineFileSourceWithRuntimeUpgrade(migration, c.StateFile, bootstrap, engine, runtime)','state.sourceConstruction','sourceDone'),
+ surround('\tsource, err := consensus.NewPQEngineFileSourceWithRuntimeUpgrade(migration, c.StateFile, bootstrap, engine, runtime)' if VARIANT=='original' else '\tsource, err := prepared.FileSource(c.StateFile, engine, runtime)','state.sourceConstruction','sourceDone'),
  surround('\tauthority, err := source.ConsensusAuthorityForState(c.ChainID, int64(height), appHash)','state.committedAuthority','authorityDone'),
  surround('\ttrust.TrustedLightBlock, err = consensus.DecodePQTrustedLightBlock(trustedRaw)','trust.lightBlockDecode','trustedDone'),
  ('\tif err = scanJSONDocument(decoder); err != nil {','\tshapeDone := proofClosureDiagnosticBegin("migration.strictShape")\n\terr = scanJSONDocument(decoder)\n\tshapeDone(err)\n\tif err != nil {'),
@@ -94,8 +97,11 @@ func proofClosureDiagnosticBegin(stage string) func(error) {
 '''
 for package, directory in [('main','cmd/ynx-consensus-proof-verify'),('consensus','internal/consensus')]:
     target=SOURCE/directory/'proof_closure_diagnostic_observer.go'
-    with target.open('x') as f:f.write(helper.replace('PACKAGE',package))
+    expected=helper.replace('PACKAGE',package)
+    if VARIANT=='original':
+        with target.open('x') as f:f.write(expected)
+    else:assert target.read_text()==expected, 'original observer changed'
     ledger.append(dict(path=target.relative_to(SOURCE).as_posix(),beforeSHA256=None,afterSHA256=hashlib.sha256(target.read_bytes()).hexdigest(),change='tagged test-only observer'))
-(CASE/'OBSERVATION-OVERLAY.json').write_text(json.dumps({'Replace':replacements},indent=2)+'\n')
-(CASE/'OBSERVATION-DELTA.json').write_text(json.dumps(ledger,indent=2)+'\n')
+(CASE/('OBSERVATION-OVERLAY'+SUFFIX+'.json')).write_text(json.dumps({'Replace':replacements},indent=2)+'\n')
+(CASE/('OBSERVATION-DELTA'+SUFFIX+'.json')).write_text(json.dumps(ledger,indent=2)+'\n')
 print('OBSERVATION_READY',len(replacements),'virtual replacements; original production files unchanged')

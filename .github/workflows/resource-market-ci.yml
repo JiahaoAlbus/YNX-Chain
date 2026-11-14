@@ -6361,6 +6361,13 @@ jobs:
             ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-OVERLAY.json
             ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-DELTA.json
             ${{ runner.temp }}/proof-closure-435829-diagnostic/BASELINE-BINARY.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OPTIMIZATION-SOURCE.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OPTIMIZATION-OVERLAY.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OPTIMIZATION-REGRESSIONS.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OPTIMIZATION-BINARY.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-OVERLAY-prepared.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/OBSERVATION-DELTA-prepared.json
+            ${{ runner.temp }}/proof-closure-435829-diagnostic/COMPARISON-RESULT.json
             ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.stdout
             ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.stderr
             ${{ runner.temp }}/proof-closure-435829-diagnostic/results/*.result.json

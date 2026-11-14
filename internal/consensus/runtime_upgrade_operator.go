@@ -30,6 +30,11 @@ func NewPQEngineFileSourceWithRuntimeUpgrade(migration chain.ConsensusMigrationS
 	if err != nil {
 		return nil, err
 	}
+	return bindPQEngineFileSourceRuntime(source, runtime)
+}
+
+func bindPQEngineFileSourceRuntime(source *PQEngineFileSource, runtime *RuntimeUpgradeAuthorization) (*PQEngineFileSource, error) {
+	bootstrap := source.bootstrap
 	if runtime != nil {
 		plan, err := runtime.Plan()
 		if err != nil {

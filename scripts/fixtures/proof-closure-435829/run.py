@@ -11,6 +11,68 @@ ADMISSION_STARTED=None
 TERM_SECONDS=10
 KILL_SECONDS=5
 REAP_SECONDS=2
+OPTIMIZATION_PATHS=(
+ 'cmd/ynx-consensus-proof-verify/trust.go',
+ 'internal/consensus/pq_engine_file_source.go',
+ 'internal/consensus/runtime_upgrade_operator.go',
+ 'internal/consensus/pq_engine_bootstrap_owner.go',
+ 'internal/consensus/pq_engine_bootstrap_owner_test.go',
+ 'cmd/ynx-consensus-proof-verify/trust_owner_test.go')
+OPTIMIZATION_REQUIRED={
+ 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus':[
+  'TestPQEngineBootstrapPreparationPUBLICOriginalAndDetached',
+  'TestPQEngineBootstrapPreparationPUBLICFirstCause',
+  'TestPQEngineBootstrapPreparationPUBLICDynamicStateAndRuntime'],
+ 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify':[
+  'TestProofVerifierPreparedTrustPUBLICSameInvocationAndFirstCause']}
+
+def prepare_optimization(case,source,controller,manifest):
+ assert set(manifest)=={'version','baselineSource','productionPreimage','files','globalCache','onlineFinalityQualified'}
+ assert manifest['version']=='YNX-PROOF-SAME-INVOCATION-OVERLAY/v1' and manifest['baselineSource']==SOURCE
+ assert manifest['productionPreimage']=='312043c74b5c4b60b1090c1c9126ab89c3d34000'
+ assert manifest['globalCache'] is False and manifest['onlineFinalityQualified'] is False
+ rows=manifest['files'];assert [r['path'] for r in rows]==list(OPTIMIZATION_PATHS)
+ replacements={}
+ def exact(path,row):
+  assert set(row)=={'bytes','sha256','gitBlob'} and path.is_file() and not path.is_symlink()
+  b=path.read_bytes()
+  assert len(b)==row['bytes'] and hashlib.sha256(b).hexdigest()==row['sha256']
+  assert hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()==row['gitBlob']
+ for row in rows:
+  assert set(row)=={'path','mode','before','after'} and row['mode']=='100644'
+  original=source/row['path'];replacement=controller/row['path']
+  if row['before'] is None:assert not original.exists()
+  else:exact(original,row['before'])
+  exact(replacement,row['after']);replacements[str(original)]=str(replacement)
+ overlay={'Replace':replacements}
+ with (case/'OPTIMIZATION-OVERLAY.json').open('x') as f:json.dump(overlay,f,indent=2)
+ with (case/'OPTIMIZATION-SOURCE.json').open('x') as f:json.dump(manifest,f,indent=2)
+ return overlay
+
+def collect_regressions(path):
+ rows=[json.loads(line) for line in path.read_text().splitlines()]
+ started=set();ended=set();runs={};passed={}
+ for row in rows:
+  if row.get('Action')=='build-output':
+   assert set(row)=={'ImportPath','Action','Output'} and isinstance(row['Output'],str) and row['Output']
+   assert any(row['ImportPath'] in (p+'.test',p+' ['+p+'.test]') and p not in started for p in OPTIMIZATION_REQUIRED)
+   continue
+  p=row.get('Package');a=row.get('Action');n=row.get('Test')
+  assert p in OPTIMIZATION_REQUIRED and a in ('start','run','output','pass')
+  if a=='start':assert p not in started and n is None;started.add(p);continue
+  assert p in started and p not in ended
+  if n is None:
+   if a=='pass':ended.add(p)
+   else:assert a=='output'
+   continue
+  assert n.split('/')[0] in OPTIMIZATION_REQUIRED[p]
+  key=(p,n)
+  if a=='run':assert key not in runs;runs[key]=True
+  elif a=='pass':assert key in runs and key not in passed;passed[key]=True
+ assert started==ended==set(OPTIMIZATION_REQUIRED) and runs==passed
+ for p,required in OPTIMIZATION_REQUIRED.items():
+  for n in required:assert (p,n) in runs
+ return dict(required=OPTIMIZATION_REQUIRED,topCount=4,testPassCount=len(passed),wholePackagesPassed=True)
 
 def digest(path):
  h=hashlib.sha256()
@@ -196,7 +258,7 @@ def main():
  case.mkdir(mode=0o700);(case/'evidence').mkdir();(case/'tmp').mkdir()
  with (case/'RESOURCE-ADMISSION.json').open('x') as f:json.dump(dict(platform=platform.platform(),go=version,availableMemoryBytes=mem['MemAvailable'],availableDiskBytes=ADMISSION_DISK_FREE,cpuAffinity=cpus,ownedRSSCapBytes=4<<30,newDiskCapBytes=8<<30,wholeDiagnosticSeconds=720,onlineFinalityQualified=False),f,indent=2)
  shutil.copyfile(HERE/'ORIGINAL-JOB.json',case/'evidence/JOB.json')
- env=os.environ.copy();env.update(GOMAXPROCS='2',GOMEMLIMIT='1536MiB',GOGC='50',CGO_ENABLED='1',GOTOOLCHAIN='local',GOTMPDIR=str(case/'tmp'),TMPDIR=str(case/'tmp'),YNX_PROOF_CLOSURE_CASE=str(case))
+ env=os.environ.copy();env.update(GOMAXPROCS='2',GOMEMLIMIT='1536MiB',GOGC='50',CGO_ENABLED='1',GOTOOLCHAIN='local',GOTMPDIR=str(case/'tmp'),TMPDIR=str(case/'tmp'),YNX_PROOF_CLOSURE_CASE=str(case),YNX_PROOF_CLOSURE_VARIANT='original')
  # Only the official Actions token and immutable artifact ID are accepted.
  # Token stays in process environment; no headers/credential text is logged.
  for endpoint,name in [('repos/JiahaoAlbus/YNX-Chain/actions/artifacts/14108709609','ARTIFACTS.json'),('repos/JiahaoAlbus/YNX-Chain/actions/artifacts/14108709609/zip','COMPLETE-ORIGINAL.zip')]:
@@ -221,6 +283,37 @@ def main():
   events=collect(case/'results'/('PROFILE-'+index+'.stdout'))
   with (case/('STAGES-'+index+'.json')).open('x') as f:json.dump(events,f,indent=2)
   outcomes.append(dict(index=index,result=result,profile=digest(case/('profile-'+index)/'CPU.pprof')))
+ # A separate explicit six-file source overlay changes only static ownership.
+ # The original normal executable and both original profiles above stay intact.
+ controller=HERE.parents[2]
+ manifest=json.loads((HERE/'OPTIMIZATION-SOURCE.json').read_text())
+ prepare_optimization(case,source,controller,manifest)
+ # New controls consume the existing fixed PUBLIC nine-file trace verbatim.
+ # No keys, signing, application execution or new fixture producer is used.
+ trace='scripts/loadtest/fixtures/finalize-1b-public'
+ for name in ('result.json','intent.json','migration.json','genesis.json','schedule.json','init-chain.pb','initial-state.json','final-state.json','records.jsonl'):
+  target=source/trace/name;target.parent.mkdir(parents=True,exist_ok=True)
+  with target.open('xb') as f:f.write(subprocess.check_output(['git','-C',str(root),'show',SOURCE+':'+trace+'/'+name]))
+ assert digest(source/trace/'result.json')['sha256']=='11ff25aba4aa4052f8a3062930bac41d223384ca218f460afb7c7847433fb0f6'
+ selector='^('+'|'.join(n for group in OPTIMIZATION_REQUIRED.values() for n in group)+')$'
+ regressions=bounded(case,'OPTIMIZATION-REGRESSIONS',['go','test','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-overlay',str(case/'OPTIMIZATION-OVERLAY.json'),'-count=1','-timeout=120s','-json','-run',selector,'./internal/consensus','./cmd/ynx-consensus-proof-verify'],source,env,240,cpus)
+ regression_result=collect_regressions(case/'results/OPTIMIZATION-REGRESSIONS.stdout')
+ with (case/'OPTIMIZATION-REGRESSIONS.json').open('x') as f:json.dump(dict(execution=regressions,qualification=regression_result),f,indent=2)
+ optimized_binary=case/'ynx-consensus-proof-verify-prepared'
+ optimized_build=bounded(case,'OPTIMIZATION-BUILD',['go','build','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-overlay',str(case/'OPTIMIZATION-OVERLAY.json'),'-o',str(optimized_binary),'./cmd/ynx-consensus-proof-verify'],source,env,240,cpus)
+ with (case/'OPTIMIZATION-BINARY.json').open('x') as f:json.dump(dict(actual=digest(optimized_binary),originalSHA256=BINARY_SHA,originalBinary=False,sourceOverlay=digest(case/'OPTIMIZATION-SOURCE.json'),build=optimized_build),f,indent=2)
+ env['YNX_PROOF_CLOSURE_VARIANT']='prepared'
+ subprocess.run([sys.executable,str(HERE/'make_observation_overlay.py')],check=True,env=env,timeout=30)
+ comparisons=[]
+ for index in ['00000','00001']:
+  env.update(YNX_PROOF_CLOSURE_INDEX=index,YNX_PROOF_CLOSURE_OUTPUT=str(case/('profile-prepared-'+index)))
+  result=bounded(case,'PREPARED-PROFILE-'+index,['go','test','-mod=readonly','-p','1','-trimpath','-buildvcs=false','-overlay',str(case/'OBSERVATION-OVERLAY-prepared.json'),'-tags','ynx_proof_closure_diagnostic','-count=1','-timeout=120s','-json','-run','^TestProofClosure435829HistoricalOriginal$','./cmd/ynx-consensus-proof-verify'],source,env,240,cpus)
+  events=collect(case/'results'/('PREPARED-PROFILE-'+index+'.stdout'))
+  with (case/('STAGES-PREPARED-'+index+'.json')).open('x') as f:json.dump(events,f,indent=2)
+  old=case/('profile-'+index);new=case/('profile-prepared-'+index)
+  assert (old/'NORMAL-CLI-RESULT.json').read_bytes()==(new/'NORMAL-CLI-RESULT.json').read_bytes(), 'full original normal result bytes changed'
+  comparisons.append(dict(index=index,before=json.loads((old/'PROFILE-RESULT.json').read_text()),after=json.loads((new/'PROFILE-RESULT.json').read_text()),execution=result,normalResultBytesEqual=True,profile=digest(new/'CPU.pprof')))
+ with (case/'COMPARISON-RESULT.json').open('x') as f:json.dump(dict(version='YNX-PROOF-SAME-INVOCATION-COMPARISON/v1',source=SOURCE,optimization=digest(case/'OPTIMIZATION-SOURCE.json'),independentInvocations=comparisons,clockMode='historical-test-only',onlineFinalityQualified=False,originalUnknownReplaced=False),f,indent=2)
  with (case/'DIAGNOSTIC-RESULT.json').open('x') as f:json.dump(dict(version='YNX-PROOF-CLOSURE-OFFLINE-DIAGNOSTIC/v1',source=SOURCE,originalRun=43582982073,binary=binary_pin,invocations=outcomes,historicalClock='2026-11-14T10:06:52Z',clockSource='original JOB completed_at; not original verifier clock sample',onlineFinalityQualified=False,originalUnknownReplaced=False,transactionReplayed=False,nodeStarted=False),f,indent=2)
  print('YNX_PROOF_CLOSURE_435829_OFFLINE_DIAGNOSTIC_DATA_ONLY originalUNKNOWNunchanged=true onlineFinalityQualified=false')
 

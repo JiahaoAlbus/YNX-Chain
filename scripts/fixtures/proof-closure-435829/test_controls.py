@@ -25,6 +25,68 @@ def rows():
  return r
 
 class Controls(unittest.TestCase):
+ def test_optimization_exact_closed_source_before_and_after(self):
+  manifest=json.loads((HERE/'OPTIMIZATION-SOURCE.json').read_text())
+  controller=HERE.parents[2]
+  for row in manifest['files']:
+   raw=(controller/row['path']).read_bytes()
+   self.assertEqual(len(raw),row['after']['bytes']);self.assertEqual(hashlib.sha256(raw).hexdigest(),row['after']['sha256'])
+   self.assertEqual(hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest(),row['after']['gitBlob'])
+  for kind in ['valid','before','after','unexpected-path','missing','extra','new-already-exists','authority']:
+   with self.subTest(kind=kind),tempfile.TemporaryDirectory() as d:
+    case=pathlib.Path(d);source=case/'source';owner=case/'controller';source.mkdir();owner.mkdir()
+    synthetic=copy.deepcopy(manifest)
+    def pin(b):return dict(bytes=len(b),sha256=hashlib.sha256(b).hexdigest(),gitBlob=hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest())
+    for i,row in enumerate(synthetic['files']):
+     new=('PUBLIC after '+str(i)).encode();p=owner/row['path'];p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(new);row['after']=pin(new)
+     if row['before'] is not None:
+      old=('PUBLIC before '+str(i)).encode();p=source/row['path'];p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(old);row['before']=pin(old)
+    if kind=='before':(source/synthetic['files'][0]['path']).write_bytes(b'changed')
+    if kind=='after':(owner/synthetic['files'][0]['path']).write_bytes(b'changed')
+    if kind=='unexpected-path':synthetic['files'][0]['path']='../outside'
+    if kind=='missing':synthetic['files'].pop()
+    if kind=='extra':synthetic['files'].append(copy.deepcopy(synthetic['files'][0]))
+    if kind=='new-already-exists':(source/synthetic['files'][3]['path']).write_bytes(b'existing')
+    if kind=='authority':synthetic['onlineFinalityQualified']=True
+    if kind=='valid':self.assertEqual(len(m.prepare_optimization(case,source,owner,synthetic)['Replace']),6)
+    else:
+     with self.assertRaises(AssertionError):m.prepare_optimization(case,source,owner,synthetic)
+     self.assertFalse((case/'OPTIMIZATION-OVERLAY.json').exists())
+ def test_regression_collector_requires_all_original_runs_and_children(self):
+  baseline=[]
+  for package,names in m.OPTIMIZATION_REQUIRED.items():
+   baseline.append(dict(Action='start',Package=package))
+   for name in names:
+    baseline.extend([dict(Action='run',Package=package,Test=name),dict(Action='run',Package=package,Test=name+'/PUBLIC-control'),dict(Action='pass',Package=package,Test=name+'/PUBLIC-control'),dict(Action='pass',Package=package,Test=name)])
+   baseline.append(dict(Action='pass',Package=package))
+  for kind in ['valid','missing','duplicate','foreign','child-fail','skip','early-package-end','build-middle']:
+   with self.subTest(kind=kind),tempfile.TemporaryDirectory() as d:
+    rows=copy.deepcopy(baseline)
+    if kind=='missing':rows=[r for r in rows if r.get('Test')!=m.OPTIMIZATION_REQUIRED[next(iter(m.OPTIMIZATION_REQUIRED))][0]]
+    if kind=='duplicate':rows.insert(2,copy.deepcopy(rows[1]))
+    if kind=='foreign':rows[2]['Package']='foreign'
+    if kind=='child-fail':rows[3]['Action']='fail'
+    if kind=='skip':rows[3]['Action']='skip'
+    if kind=='early-package-end':rows.insert(2,dict(Action='pass',Package=rows[0]['Package']))
+    if kind=='build-middle':rows.insert(2,dict(Action='build-output',ImportPath=rows[0]['Package']+'.test',Output='diagnostic'))
+    p=pathlib.Path(d)/'GO.jsonl';p.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    if kind=='valid':self.assertEqual(m.collect_regressions(p)['topCount'],4)
+    else:
+     with self.assertRaises(AssertionError):m.collect_regressions(p)
+ def test_comparison_keeps_original_budget_pins_and_complete_results(self):
+  source=(HERE/'run.py').read_text();observer=(HERE/'make_observation_overlay.py').read_text()
+  self.assertIn("assert binary_pin['sha256']==BINARY_SHA",source)
+  self.assertLess(source.index("assert binary_pin['sha256']==BINARY_SHA"),source.index('prepare_optimization(case,source,controller,manifest)',source.index('def main():')))
+  self.assertIn("(old/'NORMAL-CLI-RESULT.json').read_bytes()==(new/'NORMAL-CLI-RESULT.json').read_bytes()",source)
+  self.assertIn("time.monotonic()-ADMISSION_STARTED>720",source);self.assertIn('rss>4<<30',source)
+  self.assertIn("'-timeout=120s'",source);self.assertIn("YNX_PROOF_CLOSURE_VARIANT='original'",source)
+  self.assertIn("VARIANT in ('original','prepared')",observer)
+  self.assertIn("else:assert target.read_text()==expected",observer)
+  self.assertIn('consensus.PreparePQEngineBootstrap(genesisRaw, pins, migration)',observer)
+  self.assertIn('prepared.FileSource(c.StateFile, engine, runtime)',observer)
+  workflow=(HERE.parents[2]/'.github/workflows/resource-market-ci.yml').read_text()
+  for name in ['OPTIMIZATION-SOURCE.json','OPTIMIZATION-OVERLAY.json','OPTIMIZATION-REGRESSIONS.json','OPTIMIZATION-BINARY.json','OBSERVATION-OVERLAY-prepared.json','OBSERVATION-DELTA-prepared.json','COMPARISON-RESULT.json']:
+   self.assertEqual(workflow.count('${{ runner.temp }}/proof-closure-435829-diagnostic/'+name),1)
  def supervised(self,script,sampler,seconds=2):
   original_popen=subprocess.Popen;children=[];queues={};observed=set()
   original_observer=m.child_exited

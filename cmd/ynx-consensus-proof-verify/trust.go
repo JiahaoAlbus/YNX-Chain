@@ -189,7 +189,7 @@ func (c trustContext) load() (consensus.PQLightProofTrust, error) {
 		return trust, err
 	}
 	pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: c.ConsensusGenesisSHA256, OriginalGenesisHash: c.OriginalGenesisHash, MigrationStateHash: c.MigrationStateHash}
-	bootstrap, err := consensus.NewConsensusBootstrap(genesisRaw, pins, migration)
+	prepared, err := consensus.PreparePQEngineBootstrap(genesisRaw, pins, migration)
 	if err != nil {
 		return trust, err
 	}
@@ -207,6 +207,10 @@ func (c trustContext) load() (consensus.PQLightProofTrust, error) {
 		if err != nil {
 			return trust, err
 		}
+		bootstrap, err := prepared.Bootstrap()
+		if err != nil {
+			return trust, err
+		}
 		runtime, err = consensus.NewRuntimeUpgradeAuthorization(raw, c.RuntimePlanHash, bootstrap, migration)
 		if err != nil {
 			return trust, err
@@ -216,7 +220,7 @@ func (c trustContext) load() (consensus.PQLightProofTrust, error) {
 	if err != nil || resolvedState != c.StateFile {
 		return trust, errors.New("committed state may not traverse symlinks")
 	}
-	source, err := consensus.NewPQEngineFileSourceWithRuntimeUpgrade(migration, c.StateFile, bootstrap, engine, runtime)
+	source, err := prepared.FileSource(c.StateFile, engine, runtime)
 	if err != nil {
 		return trust, err
 	}
