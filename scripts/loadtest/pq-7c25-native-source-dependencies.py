@@ -4,7 +4,7 @@ Original production/optional composer bytes and six-root selection are retained.
 Only these original7c supporting source files are added; no authority or build
 permission, compiler/security flag, module descriptor, or original checkout changes.
 """
-import hashlib,json,os,re,stat,subprocess,time
+import hashlib,importlib.util,json,os,re,stat,subprocess,time
 from pathlib import Path,PurePosixPath
 SOURCE='7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
 TREE='8a90d4ceb86a3a9460648e011bfed9f2e3ac1f4a'
@@ -24,14 +24,15 @@ HELD_REGRESSION_SOURCE="a2c0ef48ec840730aabc59212c5ea891a37d45f2"
 HELD_REGRESSION_TREE="677f5b52e7251184a8680579b6f43a8c9e8f85c0"
 HELD_BUSINESS_SOURCE="9c222c8f7fa0501c0aa1dbd86e031c434b897ac8"
 HELD_BUSINESS_TREE="8bb878e0cd0fdb9cd9bb84a41f3b680d0defb932"
-HELD_PROOF_REPAIR_SOURCE='c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b'
-HELD_PROOF_REPAIR_TREE='0482f2165c8635afd3d3049776a0b88a84790d6f'
+_held_spec=importlib.util.spec_from_file_location('held_first100_source_pin',Path(__file__).with_name('pq-held-first100-source.py'))
+_held=importlib.util.module_from_spec(_held_spec)
+_held_spec.loader.exec_module(_held)
 HELD_SOURCE_TREES={HELD_SOURCE:HELD_TREE, HELD_CI_SOURCE:HELD_CI_TREE,
                    HELD_GATE_SOURCE:HELD_GATE_TREE, HELD_PATCHED_SOURCE:HELD_PATCHED_TREE,
                    HELD_GETTER_SOURCE:HELD_GETTER_TREE, HELD_RESOURCE_SOURCE:HELD_RESOURCE_TREE,
                    HELD_REGRESSION_SOURCE:HELD_REGRESSION_TREE,
                    HELD_BUSINESS_SOURCE:HELD_BUSINESS_TREE,
-                   HELD_PROOF_REPAIR_SOURCE:HELD_PROOF_REPAIR_TREE}
+                   _held.SOURCE:_held.TREE}
 SOURCE_TREES={SOURCE:TREE, **HELD_SOURCE_TREES}
 FILES={'packages/wallet-auth/go/sourceparentprofile/canonical.cpp': {'mode': '100644',
                                                                'gitBlob': 'b5bdced61b6754b088980d736bc9ca027592a9b7',

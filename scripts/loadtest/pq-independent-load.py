@@ -42,6 +42,7 @@ first_trial_source=module('original_first_trial_source','pq-first-trial-source.p
 first_trial_d24_source=module('original_first_trial_d24_source','pq-d24-source-readback.py')
 first_trial_1695_source=module('original_first_trial_1695_source','pq-1695-source-qualification.py')
 first_trial_7c25_source=module('original_first_trial_7c25_source','pq-7c25-source-qualification.py')
+held_first_trial_source=module('held_first100_source','pq-held-first100-source.py')
 held_input_footprint=module('original_held_input_footprint','pq-held-input-footprint.py')
 request_observation_readback=module('original_request_observation_readback','pq-live-request-observation-readback.py')
 owner_failure_readback=module('original_owner_failure_readback','pq-public-owner-failure-readback.py')
@@ -70,8 +71,8 @@ STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no ne
 # ABI support only. This is neither source qualification nor window permission.
 STARTUP_TIMING_ABI_SOURCES = frozenset({'eff586d429a3c18d52b7e91ed2b58c809fa6f15c','1b0ea548aca6b5260a9824d0edd3012d52e53521',first_trial_d24_source.SOURCE,first_trial_1695_source.SOURCE})
 HELD_TRIAL_PROFILE = 'held-first100'
-HELD_TRIAL_SOURCE = 'c5fc3b2eeaa0c7a65d5f07c9bf54724400b9e43b'
-HELD_TRIAL_TREE = '0482f2165c8635afd3d3049776a0b88a84790d6f'
+HELD_TRIAL_SOURCE = held_first_trial_source.SOURCE
+HELD_TRIAL_TREE = held_first_trial_source.TREE
 STARTUP_TIMING_ABI_SOURCES = STARTUP_TIMING_ABI_SOURCES | {first_trial_7c25_source.SOURCE, HELD_TRIAL_SOURCE}
 PUBLIC_OWNER_ABI_SOURCE = '1695aafd351b3cac7860d3452c555a02498e8350' # ABI identity only; no source/semantic/window qualification.
 PUBLIC_OWNER_ABI_SOURCES = frozenset((PUBLIC_OWNER_ABI_SOURCE,first_trial_7c25_source.SOURCE,HELD_TRIAL_SOURCE))
@@ -1194,9 +1195,7 @@ def run(args):
     profile=getattr(args,'first_trial_profile','own1b')
     held = profile == HELD_TRIAL_PROFILE
     if held:
-        trial_source = module('held_first100_source', 'pq-held-first100-source.py')
-        lab.require((trial_source.SOURCE, trial_source.TREE) == (HELD_TRIAL_SOURCE, HELD_TRIAL_TREE),
-                    'held first100 source and CI qualification differ')
+        trial_source = held_first_trial_source
         identity = lab.check_source(Path(args.source), args.commit)
         lab.require(identity['tree'] == HELD_TRIAL_TREE, 'exact held-session source tree differs')
         if not args.execute:
