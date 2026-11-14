@@ -3,10 +3,10 @@ import json
 import os
 import urllib.request
 
-SOURCE = 'ae6a303848c217e6741ad93e62f356f16dbc8193'
-TREE = '9d5fcecb5025c0459d062ceaf5c8c807113a2ec2'
-RUN = 43568294869
-JOB = 132366873727
+SOURCE = '1423694212c0ff8290ea21ed8b595da78197b20b'
+TREE = '85cb2efc7f90c69623e30bea9e77d0be281fe94a'
+RUN = 43568605320
+JOB = 132367823705
 REPOSITORY = 'JiahaoAlbus/YNX-Chain'
 BRANCH = 'codex/ynx-pq-perf-source-20261108'
 REQUIRED_STEPS = (
