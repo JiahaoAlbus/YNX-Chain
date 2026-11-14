@@ -1,0 +1,5 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": { "modules": [], "podspecPath": ["ios/YNXSocialMatrix.podspec"] },
+  "android": { "modules": ["com.ynx.social.matrix.VeilCryptoEngineModule", "com.ynx.social.matrix.VeilAccountBindingHttpModule"] }
+}

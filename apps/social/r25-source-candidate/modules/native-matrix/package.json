@@ -1,0 +1,7 @@
+{
+  "name": "ynx-social-native-matrix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Product-owned official Matrix Rust SDK bridge",
+  "license": "UNLICENSED"
+}

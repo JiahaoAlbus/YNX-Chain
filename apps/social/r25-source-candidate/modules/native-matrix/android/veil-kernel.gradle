@@ -1,0 +1,355 @@
+// Product-owned full engine packaging. No authority, key or activation override.
+apply from: file('veil-native-jni-surface.gradle')
+def kernelRoot = file('../../../crypto-engine')
+def nativeCarrier = file('../../../evidence/libsignal-android-01040-20261004')
+// Derived carrier bytes are selected below from an exact, source-bound public manifest.
+def nativeProductJni = layout.buildDirectory.dir('generated/veil-native-operation/jni')
+
+repositories {
+  maven {
+    url 'https://storage.googleapis.com/build-artifacts.signal.org/libraries/maven'
+    content { includeGroup 'org.signal' }
+  }
+}
+
+def admittedAndroid = configurations.create('veilAdmittedAndroid') {
+  canBeConsumed = false
+  canBeResolved = true
+  transitive = false
+}
+def admittedClient = configurations.create('veilAdmittedClient') {
+  canBeConsumed = false
+  canBeResolved = true
+  transitive = false
+}
+
+android {
+  defaultConfig {
+    consumerProguardFiles file('veil-native-product-jni.pro')
+  }
+  sourceSets.main.java.srcDirs += [new File(kernelRoot, 'java'), new File(kernelRoot, 'kotlin')]
+  sourceSets.main.jniLibs.srcDir nativeCarrier
+  sourceSets.main.jniLibs.srcDir nativeProductJni
+  packagingOptions.jniLibs.excludes += ['**/libsignal_jni_testing.so']
+}
+
+dependencies {
+  implementation('org.signal:libsignal-android:0.104.0') {
+    version { strictly '0.104.0' }
+  }
+  implementation('org.signal:libsignal-client:0.104.0') {
+    version { strictly '0.104.0' }
+  }
+  veilAdmittedAndroid 'org.signal:libsignal-android:0.104.0@aar'
+  veilAdmittedClient 'org.signal:libsignal-client:0.104.0@jar'
+}
+
+def sha256 = { File input ->
+  def digest = java.security.MessageDigest.getInstance('SHA-256')
+  input.withInputStream { stream ->
+    byte[] buffer = new byte[65536]
+    int size
+    while ((size = stream.read(buffer)) != -1) digest.update(buffer, 0, size)
+  }
+  digest.digest().encodeHex().toString()
+}
+
+// BEGIN_DERIVED_NATIVE_CARRIER_BINDING
+// Build-only selection from the current producer's ACTUAL new artifacts.
+// V2 binds the frozen source selection and real compiler receipt; it does not
+// reinterpret the former static JNI contract as a compilation result.
+// No default old carrier, environment authority, signer, keys or Source grant.
+def resolveVeilDerivedNativeCarrier = { rootValue, manifestValue, manifestShaValue ->
+  def refused = { String reason -> throw new GradleException(reason) }
+  def hexSha = { value -> value instanceof String && (value ==~ /[0-9a-f]{64}/) }
+  def integerBytes = { value, Long maximum -> value instanceof Number &&
+    (value.toString() ==~ /[1-9][0-9]*/) && value <= maximum }
+  if (!(rootValue instanceof CharSequence) || !rootValue ||
+      !(manifestValue instanceof CharSequence) || !manifestValue || !hexSha(manifestShaValue)) {
+    refused('VEIL_DERIVED_CARRIER_BINDING_REQUIRED')
+  }
+  if (!new File(rootValue.toString()).isAbsolute() || !new File(manifestValue.toString()).isAbsolute()) {
+    refused('VEIL_DERIVED_CARRIER_METADATA_REFUSED')
+  }
+  def root = file(rootValue.toString())
+  def metadataFile = file(manifestValue.toString())
+  if (!root.isAbsolute() || !root.isDirectory() || java.nio.file.Files.isSymbolicLink(root.toPath()) ||
+      !metadataFile.isAbsolute() || !metadataFile.isFile() ||
+      java.nio.file.Files.isSymbolicLink(metadataFile.toPath()) || metadataFile.length() < 1 ||
+      metadataFile.length() > 32768) refused('VEIL_DERIVED_CARRIER_METADATA_REFUSED')
+  def rootCanonical = root.canonicalFile
+  byte[] metadataRaw
+  java.nio.file.Files.newInputStream(metadataFile.toPath(), java.nio.file.StandardOpenOption.READ,
+      java.nio.file.LinkOption.NOFOLLOW_LINKS).withCloseable { stream -> metadataRaw = stream.readNBytes(32769) }
+  if (metadataRaw.length < 1 || metadataRaw.length > 32768 ||
+      java.security.MessageDigest.getInstance('SHA-256').digest(metadataRaw).encodeHex().toString() != manifestShaValue) {
+    refused('VEIL_DERIVED_CARRIER_METADATA_CHANGED')
+  }
+  // Parse the exact bounded bytes whose hash was checked, not a second file open.
+  // Groovy's JSON parser may truncate an out-of-range integer before a Number
+  // comparison. Validate unquoted numeric lexemes first; this metadata contains
+  // only positive integer schema/byte counts, never floating point values.
+  String metadataText = new String(metadataRaw, 'UTF-8')
+  boolean inString = false, escaped = false
+  for (int index = 0; index < metadataText.length(); index++) {
+    int unit = (int) metadataText.charAt(index)
+    if (inString) {
+      if (escaped) escaped = false
+      else if (unit == 92) escaped = true
+      else if (unit == 34) inString = false
+    } else if (unit == 34) inString = true
+    else if (unit == 45 || (unit >= 48 && unit <= 57)) {
+      int start = index
+      while (index < metadataText.length()) {
+        int next = (int) metadataText.charAt(index)
+        if (!((next >= 48 && next <= 57) || next == 45 || next == 43 || next == 46 || next == 101 || next == 69)) break
+        index++
+      }
+      String number = metadataText.substring(start, index)
+      index--
+      if (!(number ==~ /[1-9][0-9]*/) || new java.math.BigInteger(number).compareTo(
+          java.math.BigInteger.valueOf(Long.MAX_VALUE)) > 0) refused('VEIL_DERIVED_CARRIER_ARTIFACT_PIN_REFUSED')
+    }
+  }
+  def metadata = new groovy.json.JsonSlurper().parseText(metadataText)
+  if (!(metadata instanceof Map) || metadata.keySet() !=
+      (['schema','kind','abi','sourceTreeSHA256','sourceManifest','compilerReceipt','expectedDynamicJNI','library','sourceArchive'] as Set) ||
+      metadata.schema != 2 || metadata.kind != 'YNX_SOCIAL_DERIVED_NATIVE_CARRIER_V2' ||
+      metadata.abi != 'arm64-v8a' ||
+      metadata.sourceTreeSHA256 != '7981c45c089ae38a2e1d8112a805324e6ea895ac8b2dfe3a85f279046dc31f0f') {
+    refused('VEIL_DERIVED_CARRIER_SOURCE_BINDING_MISMATCH')
+  }
+  def references = []
+  def requireReference = { reference, Long expectedBytes, String expectedSha ->
+    if (!(reference instanceof Map) || reference.keySet() != (['path','bytes','sha256'] as Set) ||
+        !(reference.path instanceof String) || !reference.path || !new File(reference.path).isAbsolute() ||
+        reference.bytes != expectedBytes || reference.sha256 != expectedSha) {
+      refused('VEIL_DERIVED_CARRIER_REFERENCE_BINDING_MISMATCH')
+    }
+    def input = file(reference.path)
+    if (!input.isAbsolute() || !input.isFile() || java.nio.file.Files.isSymbolicLink(input.toPath()) ||
+        input.length() != expectedBytes || sha256(input) != expectedSha) {
+      refused('VEIL_DERIVED_CARRIER_REFERENCE_BYTES_MISMATCH')
+    }
+    references.add([file:input, bytes:expectedBytes, sha256:expectedSha].asImmutable())
+  }
+  requireReference(metadata.sourceManifest, 1197002L, 'a4dc6f83bc868c74ec31dda1541f2c93640b912c11e6a47a3b5d45596973b9f2')
+  requireReference(metadata.compilerReceipt, 8849L, '49803c6ea887d39cd296230967671ae6f9ccbedb7c0c35b1755488b32f2e6524')
+  requireReference(metadata.expectedDynamicJNI, 11060L, '0ce185d72315b1be3d6df5ad533f3eadf34903502b8ec602ff3627b3b5be88c1')
+  def artifact = { value, String name, Long maximum, String oldSha, Long expectedBytes, String expectedSha ->
+    if (!(value instanceof Map) || value.keySet() != (['relative','bytes','sha256'] as Set) ||
+        value.relative != name || !integerBytes(value.bytes, maximum) || !hexSha(value.sha256)) {
+      refused('VEIL_DERIVED_CARRIER_ARTIFACT_PIN_REFUSED')
+    }
+    if (value.sha256 == oldSha) refused('VEIL_DERIVED_CARRIER_OLD_QA10_ARTIFACT_REFUSED')
+    // Bind the actual original compiler result, not a self-declared foreign
+    // library with similar exports and a copied source-tree label.
+    if (value.bytes != expectedBytes || value.sha256 != expectedSha) {
+      refused('VEIL_DERIVED_CARRIER_ARTIFACT_BINDING_MISMATCH')
+    }
+    def input = new File(root, name)
+    if (!input.isFile() || java.nio.file.Files.isSymbolicLink(input.toPath()) ||
+        input.canonicalFile.parentFile != rootCanonical || input.length() != value.bytes.longValue() ||
+        sha256(input) != value.sha256) refused('VEIL_DERIVED_CARRIER_ARTIFACT_BYTES_MISMATCH')
+    [file:input, pin:new LinkedHashMap(value).asImmutable()].asImmutable()
+  }
+  def library = artifact(metadata.library, 'libynx_native_operation.so', 1073741824L,
+      '3d9ef9ae8f79acc8ab7285ffc2552df51aaaf3f071bc22b5c101825aa8184e44',
+      47418144L, '23564fb26dc639aa2fec8af46f980d40ec4b943027001c2cefcd432155400a85')
+  def sourceArchive = artifact(metadata.sourceArchive, 'native-source.tar.gz', 268435456L,
+      '8b7970859d3c1782e40c4bd83cf08b64496523925388edbf36c30bb52cd618f9',
+      19407864L, '51bda0e2b275fcd71c89a34d0d6ff108f9e78702ef2d6edd6298c919b00a4d19')
+  def pinnedReferences = references.asImmutable()
+  def assertCurrent = {
+    if (!root.isDirectory() || java.nio.file.Files.isSymbolicLink(root.toPath()) ||
+        root.canonicalFile != rootCanonical || !metadataFile.isFile() ||
+        java.nio.file.Files.isSymbolicLink(metadataFile.toPath()) ||
+        sha256(metadataFile) != manifestShaValue) refused('VEIL_DERIVED_CARRIER_METADATA_CHANGED')
+    pinnedReferences.each { reference ->
+      if (!reference.file.isFile() || java.nio.file.Files.isSymbolicLink(reference.file.toPath()) ||
+          reference.file.length() != reference.bytes || sha256(reference.file) != reference.sha256) {
+        refused('VEIL_DERIVED_CARRIER_REFERENCE_BYTES_MISMATCH')
+      }
+    }
+    [library, sourceArchive].each { entry ->
+      if (!entry.file.isFile() || java.nio.file.Files.isSymbolicLink(entry.file.toPath()) ||
+          entry.file.canonicalFile.parentFile != rootCanonical ||
+          entry.file.length() != entry.pin.bytes.longValue() ||
+          sha256(entry.file) != entry.pin.sha256) refused('VEIL_DERIVED_CARRIER_ARTIFACT_BYTES_MISMATCH')
+    }
+  }
+  assertCurrent()
+  [root:root, metadataFile:metadataFile, metadataSha256:manifestShaValue,
+    library:library, sourceArchive:sourceArchive, references:pinnedReferences,
+    assertCurrent:assertCurrent].asImmutable()
+}
+// END_DERIVED_NATIVE_CARRIER_BINDING
+
+def nativeProductDerived = resolveVeilDerivedNativeCarrier(
+    findProperty('ynxVeilDerivedCarrierRoot'), findProperty('ynxVeilDerivedCarrierManifest'),
+    findProperty('ynxVeilDerivedCarrierManifestSha256'))
+def nativeProductCarrier = nativeProductDerived.root
+def nativeProductLibrary = nativeProductDerived.library.file
+def nativeProductSource = nativeProductDerived.sourceArchive.file
+
+def verifyKernel = tasks.register('verifyVeilKernelBytes') {
+  inputs.file(nativeProductDerived.metadataFile)
+  inputs.property('derivedCarrierManifestSHA256', nativeProductDerived.metadataSha256)
+  inputs.files(nativeProductLibrary, nativeProductSource)
+  nativeProductDerived.references.each { inputs.file(it.file) }
+  doLast {
+    nativeProductDerived.assertCurrent()
+    def architectures = (rootProject.findProperty('reactNativeArchitectures') ?: '').split(',').collect { it.trim() }
+    if (architectures != ['arm64-v8a']) {
+      throw new GradleException('VEIL_NATIVE_ABI_NOT_ADMITTED: current carrier is arm64-v8a only')
+    }
+    if (sha256(admittedAndroid.singleFile) != 'cf20302c82f4c7647d68f384cd52f09e1e50d595548f794a74d0404b3ca28466') {
+      throw new GradleException('VEIL_LIBSIGNAL_ANDROID_BYTES_MISMATCH')
+    }
+    if (sha256(admittedClient.singleFile) != 'c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9') {
+      throw new GradleException('VEIL_LIBSIGNAL_CLIENT_BYTES_MISMATCH')
+    }
+    if (sha256(new File(nativeCarrier, 'arm64-v8a/libynx_veil.so')) != 'af6a0f740c9cce1a6c510d84f591c0dbe8dad7754a9ec7d0db654178a7f0ffb5') {
+      throw new GradleException('VEIL_SODIUM_ANDROID_BYTES_MISMATCH')
+    }
+    // One bounded file handle verifies current defined JNI methods AND its exact hash.
+    def nativeProductDigest = project.ext.verifyVeilNativeJniSurface(nativeProductLibrary)
+    if (nativeProductLibrary.length() != nativeProductDerived.library.pin.bytes.longValue() ||
+        nativeProductDigest != nativeProductDerived.library.pin.sha256) {
+      throw new GradleException('VEIL_NATIVE_PRODUCT_ANDROID_BYTES_MISMATCH')
+    }
+    if (!nativeProductSource.isFile() || nativeProductSource.length() != nativeProductDerived.sourceArchive.pin.bytes.longValue() ||
+        sha256(nativeProductSource) != nativeProductDerived.sourceArchive.pin.sha256) {
+      throw new GradleException('VEIL_NATIVE_PRODUCT_SOURCE_BYTES_MISMATCH')
+    }
+    nativeProductDerived.assertCurrent()
+  }
+}
+
+// This stages the source-pinned Android candidate only. Packaging is not review,
+// authorization, runtime validation or permission to release the product.
+def stageNativeProduct = tasks.register('stageVeilNativeOperation') {
+  dependsOn verifyKernel
+  inputs.file(nativeProductLibrary)
+  inputs.file(nativeProductDerived.metadataFile)
+  inputs.property('derivedCarrierManifestSHA256', nativeProductDerived.metadataSha256)
+  outputs.dir(nativeProductJni)
+  outputs.upToDateWhen { false }
+  doLast {
+    nativeProductDerived.assertCurrent()
+    def jniDirectory = nativeProductJni.get().asFile
+    def armDirectory = new File(jniDirectory, 'arm64-v8a')
+    def staged = new File(armDirectory, 'libynx_native_operation.so')
+    if (java.nio.file.Files.isSymbolicLink(jniDirectory.toPath()) ||
+        java.nio.file.Files.isSymbolicLink(armDirectory.toPath()) ||
+        java.nio.file.Files.isSymbolicLink(staged.toPath())) {
+      throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_PATH_REFUSED')
+    }
+    java.nio.file.Files.createDirectories(armDirectory.toPath())
+    if (!jniDirectory.isDirectory() || !armDirectory.isDirectory() ||
+        (staged.exists() && !staged.isFile()) ||
+        staged.canonicalPath == nativeProductLibrary.canonicalPath) {
+      throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_PATH_REFUSED')
+    }
+    // Sync formerly removed foreign output members. Do not silently package
+    // extra ABIs/libraries after changing to atomic single-file installation.
+    java.nio.file.Files.newDirectoryStream(jniDirectory.toPath()).withCloseable { paths ->
+      for (def entry : paths) {
+        if (entry != armDirectory.toPath() || java.nio.file.Files.isSymbolicLink(entry))
+          throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_PATH_REFUSED')
+      }
+    }
+    java.nio.file.Files.newDirectoryStream(armDirectory.toPath()).withCloseable { paths ->
+      for (def entry : paths) {
+        if (entry != staged.toPath() || java.nio.file.Files.isSymbolicLink(entry))
+          throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_PATH_REFUSED')
+      }
+    }
+    // Stream into a fresh SAME-filesystem owned temporary file. Never inherit
+    // immutable carrier0400, chmod its source, truncate the old generated SO,
+    // delete an existing result, or expose a partly copied library to packaging.
+    def temporary = java.nio.file.Files.createTempFile(jniDirectory.toPath().parent, '.ynx-native-', '.stage')
+    try {
+      long remaining = nativeProductDerived.library.pin.bytes.longValue()
+      java.nio.file.Files.newInputStream(nativeProductLibrary.toPath()).withCloseable { input ->
+        java.nio.file.Files.newOutputStream(temporary, java.nio.file.StandardOpenOption.WRITE,
+            java.nio.file.StandardOpenOption.TRUNCATE_EXISTING).withCloseable { output ->
+          byte[] buffer = new byte[65536]
+          while (remaining > 0) {
+            int count = input.read(buffer, 0, (int)Math.min((long)buffer.length, remaining))
+            if (count <= 0) throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_BYTES_MISMATCH')
+            output.write(buffer, 0, count); remaining -= count
+          }
+          if (input.read() != -1) throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_BYTES_MISMATCH')
+        }
+      }
+      if (temporary.toFile().length() != nativeProductDerived.library.pin.bytes.longValue() ||
+          sha256(temporary.toFile()) != nativeProductDerived.library.pin.sha256) {
+        throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_BYTES_MISMATCH')
+      }
+      nativeProductDerived.assertCurrent()
+      java.nio.file.Files.move(temporary, staged.toPath(), java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+          java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+      nativeProductDerived.assertCurrent()
+      if (!staged.isFile() || java.nio.file.Files.isSymbolicLink(staged.toPath()) ||
+          staged.length() != nativeProductDerived.library.pin.bytes.longValue() ||
+          sha256(staged) != nativeProductDerived.library.pin.sha256) {
+        throw new GradleException('VEIL_NATIVE_PRODUCT_STAGED_BYTES_MISMATCH')
+      }
+    } finally {
+      // Delete only this task's uninstalled temporary, never an earlier result.
+      java.nio.file.Files.deleteIfExists(temporary)
+    }
+  }
+}
+
+tasks.configureEach {
+  if (name == 'preBuild' || name.matches('compile.*Kotlin') || name.matches('compile.*JavaWithJavac')) {
+    dependsOn verifyKernel
+  }
+  if (name == 'preBuild' || name.matches('merge.*JniLibFolders')) {
+    dependsOn stageNativeProduct
+  }
+}
+
+// React Native registers a Java 17 finalizeDsl callback. Override only this
+// owned module through the supported DSL, before compiler providers finalize.
+extensions.getByName('kotlin').jvmToolchain(24)
+androidComponents.finalizeDsl { library ->
+  library.compileOptions.sourceCompatibility = JavaVersion.VERSION_21
+  library.compileOptions.targetCompatibility = JavaVersion.VERSION_21
+}
+tasks.configureEach {
+  if (name.matches('compile.*Kotlin')) {
+    kotlinOptions.jvmTarget = '21'
+  }
+}
+
+// Whole AAR is pinned above; additionally bind the exact sole JNI provider.
+verifyKernel.configure {
+  doLast {
+    def expected = [
+      'CertificateVerifier':'28fd6bea176637cbd15711fd84e71869c39323f0ccdfc453f995e7658f078c21',
+      'StatusCode':'9da26dc6ca4022e718e429da22fab3a68bffc7cab881e83d713696cd0a2ed378',
+      'VerificationResult':'cd60087d2920f41b539ebe5bb6bbed2cfec0e06763cb2d1bf173cbb84ccb1f3e'
+    ]
+    def seen = [] as Set
+    new java.util.zip.ZipFile(admittedAndroid.singleFile).withCloseable { aar ->
+      def entry = aar.getEntry('classes.jar')
+      if (entry == null) throw new GradleException('VEIL_PROVIDER_JAR_MISSING')
+      new java.util.zip.ZipInputStream(aar.getInputStream(entry)).withCloseable { jar ->
+        def item
+        while ((item = jar.nextEntry) != null) {
+          expected.each { name, pin ->
+            if (item.name == "org/rustls/platformverifier/${name}.class") {
+              if (!seen.add(name)) throw new GradleException('VEIL_PROVIDER_DUPLICATE')
+              def actual = java.security.MessageDigest.getInstance('SHA-256').digest(jar.readAllBytes()).encodeHex().toString()
+              if (actual != pin) throw new GradleException('VEIL_PROVIDER_CLASS_CHANGED')
+            }
+          }
+        }
+      }
+    }
+    if (seen.size() != expected.size()) throw new GradleException('VEIL_PROVIDER_CLASS_MISSING')
+  }
+}

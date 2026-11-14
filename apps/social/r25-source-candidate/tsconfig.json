@@ -1,0 +1,6 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": { "strict": true, "noUncheckedIndexedAccess": true, "types": ["node"] },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"],
+  "exclude": ["node_modules", "evidence/**", "android/**/build/**", "modules/**/build/**", "crypto-engine/observer/upstream/**", "crypto-engine/observer/native-operation/replay/**", "crypto-engine/**/build/**", "crypto-engine/**/target/**", "**/libsignal/node/**"]
+}

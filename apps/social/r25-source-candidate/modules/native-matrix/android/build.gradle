@@ -1,0 +1,106 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.ynx.social'
+version = '0.1.0'
+android {
+  namespace 'com.ynx.social.matrix'
+  buildFeatures { aidl true }
+  defaultConfig {
+    minSdkVersion 24
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+// Every normal new-product build includes the pinned engine sources and bytes.
+// Packaging is not device authorization, runtime admission or activation.
+// An explicit opt-out must fail, never produce an apparently complete UI-only app.
+def requestedKernel = findProperty('ynxVeilKernel')
+if (requestedKernel != null && requestedKernel.toString() != 'true') {
+  throw new GradleException('VEIL_NEW_PRODUCT_KERNEL_REQUIRED')
+}
+apply from: file('veil-kernel.gradle')
+
+def matrixRelease = configurations.create('matrixAdmittedRelease') {
+  canBeConsumed = false
+  canBeResolved = true
+  transitive = false
+}
+
+dependencies {
+  testImplementation 'junit:junit:4.13.2'
+  // The isolated account-binding client must be on the normal module classpath.
+  // Use the existing qualified carrier, not RN's cached/global client.
+  implementation 'com.squareup.okhttp3:okhttp:4.9.2'
+  implementation 'com.squareup.okio:okio:2.9.0'
+  implementation 'org.matrix.rustcomponents:sdk-android:26.09.28'
+  matrixAdmittedRelease 'org.matrix.rustcomponents:sdk-android:26.09.28@aar'
+  implementation 'net.java.dev.jna:jna:5.18.1@aar'
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+}
+
+// A version string alone is not the admitted release bytes. Fail closed if the
+// resolved Maven AAR differs from the official release asset. No TLS bypass.
+def verifyMatrixRelease = tasks.register('verifyMatrixReleaseBytes') {
+  doLast {
+    def release = matrixRelease.singleFile
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        release.withInputStream { stream ->
+          byte[] buffer = new byte[65536]
+          int count
+          while ((count = stream.read(buffer)) != -1) digest.update(buffer, 0, count)
+        }
+        if (digest.digest().encodeHex().toString() != '5aa337869a5df71d05e907902d93b4953ed986495c61728728a251077c61f793') {
+          throw new GradleException('MATRIX_ANDROID_RELEASE_BYTES_MISMATCH')
+        }
+  }
+}
+
+// Resolve only the admitted AAR, not every Expo Android variant. This is an
+// uncached verification prerequisite of each native compile/build entry point.
+tasks.configureEach {
+  if (name == 'preBuild' || name.matches('compile.*Kotlin') || name.matches('compile.*JavaWithJavac')) {
+    dependsOn verifyMatrixRelease
+  }
+}
+
+// Selected Cargo.lock rustls-platform-verifier-android 0.2.0 companion.
+// Called reflectively by native TLS; not a Java compile-time authority/provider.
+// Immutable official maven commit 1aa691352a5e0c215210dfc9a3c2f2078639dc91.
+// README dependency shorthand is inconsistent; official POM group is org.rustls.
+// One exclusive repository is installed by the root project for every consumer.
+def companionAdmitted = configurations.create("veilRustlsCompanionAdmitted") {
+  canBeConsumed = false
+  canBeResolved = true
+  transitive = false
+}
+dependencies {
+  // Reference only. The byte-pinned libsignal AAR owns the sole runtime classes.
+  veilRustlsCompanionAdmitted "org.rustls:rustls-platform-verifier:0.2.0@aar"
+}
+def verifyCompanion = tasks.register("verifyVeilRustlsCompanionBytes") {
+  doLast {
+    def actual = companionAdmitted.singleFile
+    def hash = java.security.MessageDigest.getInstance("SHA-256")
+    actual.withInputStream { input ->
+      byte[] bytes = new byte[8192]
+      int n
+      while ((n = input.read(bytes)) != -1) hash.update(bytes, 0, n)
+    }
+    if (hash.digest().encodeHex().toString() != "aa021794230fbc2f0be355999e2cf67398dd563de066a2e17001ffbd0b69101b") {
+      throw new GradleException("VEIL_RUSTLS_COMPANION_BYTES_MISMATCH")
+    }
+  }
+}
+tasks.configureEach {
+  if (name == "preBuild") dependsOn verifyCompanion
+}
+
+android.defaultConfig.consumerProguardFiles file('account-channel-proguard.pro')
+
+// Checked-in PUBLIC fixture is attached only to normal JVM Test tasks.
+// Production native sources/archives/APK never include src/test/native.
+apply from: file('veil-host-controls.gradle')

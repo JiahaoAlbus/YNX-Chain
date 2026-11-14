@@ -1,0 +1,77 @@
+// PUBLIC host controls only. This file grants no Source/device capability.
+// Original Android builder applies this script from the module build.gradle.
+// src/test/native and build/veil-public-host are never production JNI sources.
+import org.gradle.api.tasks.testing.Test
+
+def fixtureInput = file('src/test/native/veil_public_source_fixture.c')
+def fixtureDirectory = layout.buildDirectory.dir('veil-public-host').get().asFile
+def fixtureOutput = new File(fixtureDirectory, System.mapLibraryName('ynx_public_source_fixture'))
+def compileFixture = tasks.register('compileVeilPublicHostFixture', Exec) {
+    inputs.file(fixtureInput)
+    outputs.file(fixtureOutput)
+    doFirst {
+        def host = System.getProperty('os.name').toLowerCase(java.util.Locale.ROOT)
+        def platform = host.contains('mac') ? 'darwin' : host.contains('linux') ? 'linux' : null
+        if (platform == null) throw new GradleException('VEIL_PUBLIC_HOST_PLATFORM_UNSUPPORTED')
+        def javaHome = new File(System.getProperty('java.home'))
+        def headers = new File(javaHome, 'include')
+        if (!new File(headers, 'jni.h').isFile()) {
+            headers = new File(javaHome.parentFile, 'include')
+        }
+        if (!new File(headers, 'jni.h').isFile() || !new File(headers, platform).isDirectory()) {
+            throw new GradleException('VEIL_PUBLIC_HOST_JDK_HEADERS_REQUIRED')
+        }
+        fixtureDirectory.mkdirs()
+        def compiler = project.findProperty('ynxPublicFixtureCC') ?: 'cc'
+        commandLine([compiler.toString(), platform == 'darwin' ? '-dynamiclib' : '-shared',
+            '-fPIC', '-I' + headers.absolutePath, '-I' + new File(headers, platform).absolutePath,
+            fixtureInput.absolutePath, '-o', fixtureOutput.absolutePath])
+    }
+}
+
+// Real JSON for Android local JVM tests; Android mock methods cannot validate
+// protected journal serialization, nullable snapshots or actual command shapes.
+dependencies.add('testImplementation', 'org.json:json:20180813')
+tasks.withType(Test).configureEach {
+    dependsOn(compileFixture)
+    systemProperty('ynx.public.source.fixture', fixtureOutput.absolutePath)
+    systemProperty('ynx.public.low.heap', 'true')
+    maxHeapSize = '64m'
+    maxParallelForks = 1
+}
+
+// P02-10 JNI integration tests consume the actual new host Native primitive,
+// never the PUBLIC Source fixture or an Android .so on a host JVM. The normal
+// Native builder supplies exact bytes before this JVM stage. Missing input is
+// a failed prerequisite, not a skipped test or a substituted crypto provider.
+tasks.withType(Test).configureEach {
+    def attachmentLibrary = providers.gradleProperty('ynxAttachmentPrimitiveHostLibrary')
+    def attachmentSha = providers.gradleProperty('ynxAttachmentPrimitiveHostLibrarySha256')
+    inputs.property('attachmentPrimitiveHostLibrary', attachmentLibrary.orElse('NOT_SUPPLIED'))
+    inputs.property('attachmentPrimitiveHostLibrarySha256', attachmentSha.orElse('NOT_SUPPLIED'))
+    doFirst {
+        def rawPath = attachmentLibrary.orNull
+        def expected = attachmentSha.orNull
+        if (!(rawPath instanceof String) || !new File(rawPath).isAbsolute() ||
+            !(expected instanceof String) || !(expected ==~ /[0-9a-f]{64}/)) {
+            throw new GradleException('VEIL_ATTACHMENT_ACTUAL_HOST_JNI_INPUT_REQUIRED')
+        }
+        def actual = new File(rawPath)
+        if (!actual.isFile() || java.nio.file.Files.isSymbolicLink(actual.toPath()) ||
+            actual.length() < 1 || actual.length() > 134217728L) {
+            throw new GradleException('VEIL_ATTACHMENT_HOST_JNI_FILE_REJECTED')
+        }
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        actual.withInputStream { input ->
+            byte[] buffer = new byte[65536]
+            int count
+            while ((count = input.read(buffer)) != -1) digest.update(buffer, 0, count)
+        }
+        if (digest.digest().encodeHex().toString() != expected) {
+            throw new GradleException('VEIL_ATTACHMENT_HOST_JNI_BYTES_CHANGED')
+        }
+        // Tests recheck the exact bytes before System.load; no default old lib.
+        systemProperty('ynx.attachment.primitive.host', actual.absolutePath)
+        systemProperty('ynx.attachment.primitive.host.sha256', expected)
+    }
+}

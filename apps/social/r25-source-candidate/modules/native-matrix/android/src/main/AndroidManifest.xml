@@ -1,0 +1,5 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <provider android:name="com.ynx.social.matrix.VeilAuthenticatedAttachmentProvider" android:authorities="${applicationId}.veil.attachments" android:exported="false" android:grantUriPermissions="true" />
+  </application>
+</manifest>
