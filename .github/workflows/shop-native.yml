@@ -258,6 +258,40 @@ jobs:
             ${{ runner.temp }}/p07-fixed-legacy-joint/joint.log
             ${{ runner.temp }}/p07-fixed-legacy-joint/public-result/RESULT.json
             ${{ runner.temp }}/p07-fixed-legacy-joint/owners/P06/shop-session-link-joint-20261108/COMPOSITION.json
+  shop-task-link-build:
+    needs: change-scope
+    if: contains(needs.change-scope.outputs.read-tests, 'TestShopTaskOrder') && needs.change-scope.outputs.source-only == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENSSL_VERSION: "3.6.4"
+      OPENSSL_SOURCE_SHA256: "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build shopd with the pinned LINK TLS backend
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/openssl-$OPENSSL_VERSION.tar.gz"
+          prefix="$RUNNER_TEMP/shop-task-link-openssl"
+          curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 --max-time 180 --retry 2 --max-filesize 60000000 \
+            "https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz" -o "$archive"
+          printf '%s  %s\n' "$OPENSSL_SOURCE_SHA256" "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP"
+          (
+            cd "$RUNNER_TEMP/openssl-$OPENSSL_VERSION"
+            ./Configure linux-x86_64 --release shared --prefix="$prefix" --openssldir="$prefix/ssl" --libdir=lib
+            make -j2 build_sw
+            make install_sw install_ssldirs
+          ) > "$RUNNER_TEMP/shop-task-link-openssl.log" 2>&1 || { tail -80 "$RUNNER_TEMP/shop-task-link-openssl.log"; exit 1; }
+          export PKG_CONFIG_LIBDIR="$prefix/lib/pkgconfig" PKG_CONFIG_PATH="$prefix/lib/pkgconfig" LD_LIBRARY_PATH="$prefix/lib"
+          test "$(pkg-config --modversion openssl)" = "$OPENSSL_VERSION"
+          go test -mod=readonly -race -tags 'commerce_v2 securelink_openssl' ./internal/commerce/cmd/shopd -run '^TestShopTaskOrderStartup' -count=1 -v
+          go build -mod=readonly -tags 'commerce_v2 securelink_openssl' -o "$RUNNER_TEMP/ynx-shopd-task-link" ./internal/commerce/cmd/shopd
+
   order-recovery:
     needs: change-scope
     if: needs.change-scope.outputs.navigation-only != 'true' && needs.change-scope.outputs.apple-view-only != 'true' && needs.change-scope.outputs.legacy-joint-only != 'true'
@@ -341,13 +375,6 @@ jobs:
           if [ "${{ needs.change-scope.outputs.receipt-test-delta }}" != "true" ]; then
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi
-      - name: Build the task order startup with the original LINK TLS backend
-        if: contains(needs.change-scope.outputs.read-tests, 'TestShopTaskOrder') && needs.change-scope.outputs.source-only == 'true'
-        run: |
-          set -euo pipefail
-          pkg-config --exists openssl
-          go test -mod=readonly -race -tags 'commerce_v2 securelink_openssl' ./internal/commerce/cmd/shopd -run '^TestShopTaskOrderStartup' -count=1 -v
-          go build -mod=readonly -tags 'commerce_v2 securelink_openssl' -o "$RUNNER_TEMP/ynx-shopd-task-link" ./internal/commerce/cmd/shopd
       - name: Check original Native Pay notification receiver and affected durable receipt state
         if: needs.change-scope.outputs.notification-only == 'true' && needs.change-scope.outputs.notification-driver-only != 'true'
         run: |
