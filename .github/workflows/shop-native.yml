@@ -569,6 +569,10 @@ jobs:
           tap("Search products and categories")
           subprocess.run(["adb","shell","input","text","zzp07nomatch9f788c7"],check=True)
           subprocess.run(["adb","shell","input","keyevent","4"],check=True)
+          import time
+          time.sleep(1)
+          raw = subprocess.check_output(["adb","exec-out","uiautomator","dump","/dev/tty"],text=True).split("UI hierchary dumped")[0].strip()
+          nodes = list(ET.fromstring(raw).iter("node"))
           tap("Search")
           PYCODE
           found=false
