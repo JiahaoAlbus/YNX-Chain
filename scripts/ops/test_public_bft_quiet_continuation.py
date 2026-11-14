@@ -876,8 +876,8 @@ class OriginalLightCaptureTests(unittest.TestCase):
 class ResumeStartupTests(unittest.TestCase):
     """Original shell caller with synthetic systemd/clock, never a service."""
     def control(self, case, budget='125'):
-        with tempfile.TemporaryDirectory(dir='/private/tmp', prefix='ynx-resume-') as directory:
-            p=Path(directory);script=HERE/'remote/public-bft-operator-transition.sh'
+        with tempfile.TemporaryDirectory(prefix='ynx-resume-') as directory:
+            p=Path(directory).resolve();script=HERE/'remote/public-bft-operator-transition.sh'
             # Run the previous actual resume body as well, so the regression
             # proves its 30s cutoff and immediate engine readback first cause.
             text=script.read_text()
