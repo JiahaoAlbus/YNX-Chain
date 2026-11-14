@@ -220,19 +220,60 @@ func TestPQLabOnlineSenderRevocationAndPartialIntentPreserved(t *testing.T) {
 	}
 	request.OwnerIndex = 0
 	request.FirstNonce = 2
-	checks := 0
+	// A refusal BEFORE publication remains a rejection with no post-persistence
+	// marker, no operation directory and no signing. Reuse the same fixture.
 	originalCheck := checkpoint.current
+	preCause := errors.New("PUBLIC-before-persistence")
+	checkpoint.current = func() error { return preCause }
+	preMetrics := &PQLabMetrics{}
+	if _, err = sender.SignMeasured(request, checkpoint, preMetrics); err != preCause || errors.Is(err, ErrPQLabSenderUnknown) {
+		t.Fatal("pre-publication failure was promoted to UNKNOWN")
+	}
+	if preMetrics.Snapshot().Stages["checkpoint.postPersistenceReadRejected"].Calls != 0 || preMetrics.Snapshot().Stages["sender.dualSignEncodeAndSelfVerify"].Calls != 0 {
+		t.Fatal("pre-publication failure acquired a late marker or signed")
+	}
+	path, _ = sender.operation(request.OperationID)
+	if _, err = os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("pre-publication refusal created durable intent")
+	}
+	checks := 0
+	postPersistenceCause := errors.New("PUBLIC-private-context-not-for-diagnostic")
 	checkpoint.current = func() error {
 		checks++
 		if checks > 1 {
-			return errors.New("actual source changed before original publication")
+			return postPersistenceCause
 		}
 		return originalCheck()
 	}
-	if _, err = sender.Sign(request, checkpoint); !errors.Is(err, ErrPQLabSenderUnknown) {
-		t.Fatal("post-sign uncertainty hidden", err)
+	metrics := &PQLabMetrics{}
+	if _, err = sender.SignMeasured(request, checkpoint, metrics); !errors.Is(err, ErrPQLabSenderUnknown) || !errors.Is(err, postPersistenceCause) {
+		t.Fatal("post-sign uncertainty or original cause hidden", err)
 	}
+	stages := metrics.Snapshot().Stages
+	if checks != 2 || stages["checkpoint.postPersistenceReadRejected"].Calls != 1 {
+		t.Fatal("POST_PERSISTENCE_CHECKPOINT_REJECTION_NOT_OBSERVED")
+	}
+	for _, role := range []string{"request", "intent", "wire", "envelope"} {
+		if stages["sender.persistence."+role+".fileFsync"].Calls != 1 || stages["sender.persistence."+role+".directoryFsync"].Calls != 1 {
+			t.Fatal("rejection diagnostic preceded original durable file completion")
+		}
+	}
+	if stages["sender.persistence.result.total"].Calls != 0 || stages["sender.dualSignEncodeAndSelfVerify"].Calls != 1 {
+		t.Fatal("post-check diagnostic changed result publication or repeated signing")
+	}
+	publicMetrics, metricErr := json.Marshal(metrics.Snapshot())
+	if metricErr != nil || bytes.Contains(publicMetrics, []byte(postPersistenceCause.Error())) || bytes.Contains(publicMetrics, []byte(dir)) {
+		t.Fatal("bounded metrics exposed private cause or path")
+	}
+	t.Logf("PUBLIC_POST_PERSISTENCE_METRICS %s", publicMetrics)
 	path, _ = sender.operation(request.OperationID)
+	originalRecords := map[string][]byte{}
+	for _, name := range []string{"request.json", "INTENT.json", "transaction.wire", "transaction.abci"} {
+		originalRecords[name], err = os.ReadFile(filepath.Join(path, name))
+		if err != nil || len(originalRecords[name]) == 0 {
+			t.Fatal("late refusal lost original durable record", err)
+		}
+	}
 	original, err := os.ReadFile(filepath.Join(path, "transaction.abci"))
 	if err != nil {
 		t.Fatal("signed original lost", err)
@@ -261,6 +302,12 @@ func TestPQLabOnlineSenderRevocationAndPartialIntentPreserved(t *testing.T) {
 	after, err := os.ReadFile(filepath.Join(path, "transaction.abci"))
 	if err != nil || !bytes.Equal(original, after) {
 		t.Fatal("UNKNOWN original changed")
+	}
+	for name, expected := range originalRecords {
+		raw, e := os.ReadFile(filepath.Join(path, name))
+		if e != nil || !bytes.Equal(raw, expected) {
+			t.Fatal("original recovery rewrote a retained record", e)
+		}
 	}
 	next := request
 	next.OperationID = strings.Repeat("9", 64)
@@ -904,5 +951,37 @@ func TestPQLabWorkloadMaximumProtocolWhole(t *testing.T) {
 	}
 	if s.manifest.InitialOwnerBalance != "2049" || s.manifest.FinalOwnerBalance != "1" {
 		t.Fatal("maximum corpus underfunded")
+	}
+}
+
+func TestPQLabSenderPostPersistenceMetricConditionalAndBounded(t *testing.T) {
+	const stage = "checkpoint.postPersistenceReadRejected"
+	cause := errors.New("PUBLIC-private-path-height-key-message-marker")
+	calls := 0
+	checkpoint := &PQLabSenderCheckpoint{current: func() error { calls++; return cause }}
+	if err := pqLabPostPersistenceCheckpointRead(checkpoint, nil); err != cause || calls != 1 {
+		t.Fatal("disabled observation changed call or first cause")
+	}
+	metrics := &PQLabMetrics{}
+	for i := 0; i < 2; i++ {
+		if err := pqLabPostPersistenceCheckpointRead(checkpoint, metrics); err != cause {
+			t.Fatal("observation replaced original cause")
+		}
+	}
+	before := metrics.Snapshot().Stages[stage]
+	if before.Calls != 2 || before.ElapsedNS < 0 || len(metrics.Snapshot().Stages) != 1 {
+		t.Fatal("fixed bounded rejection count differs")
+	}
+	checkpoint.current = func() error { calls++; return nil }
+	if err := pqLabPostPersistenceCheckpointRead(checkpoint, metrics); err != nil || metrics.Snapshot().Stages[stage] != before || calls != 4 {
+		t.Fatal("successful current read added or removed rejection DATA")
+	}
+	empty := &PQLabMetrics{}
+	if err := pqLabPostPersistenceCheckpointRead(checkpoint, empty); err != nil || len(empty.Snapshot().Stages) != 0 {
+		t.Fatal("successful read acquired a failure stage")
+	}
+	raw, err := json.Marshal(metrics.Snapshot())
+	if err != nil || len(raw) > 256 || bytes.Contains(raw, []byte(cause.Error())) {
+		t.Fatal("diagnostic emitted arbitrary or unbounded private data")
 	}
 }

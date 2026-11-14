@@ -190,7 +190,7 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 	} else if e != nil {
 		return true, e
 	}
-	if err = c.in.current(); err != nil {
+	if err = c.current(parent); err != nil {
 		return true, err
 	}
 	r, err := readProofHostOriginal(path, "", 16<<10)
@@ -208,11 +208,17 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 	if c.seen[request.TransactionSHA256] {
 		return true, errors.New("original transaction already consumed by this live session")
 	}
+	if err = parent.Err(); err != nil {
+		return true, err
+	}
 	tx, kind, wire, err := c.in.transaction(request)
 	if err != nil {
 		return true, err
 	}
 	defer func() { err = errors.Join(err, tx.unchanged(), tx.file.Close()) }()
+	if err = parent.Err(); err != nil {
+		return true, err
+	}
 	output := pqLabLiveOutputPath(c.in.directory, sequence)
 	if err = pqLabNetworkFreshDirectory(output); err != nil {
 		return true, err
@@ -236,7 +242,10 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 	if err != nil {
 		return true, err
 	}
-	if err = errors.Join(ctx.Err(), r.unchanged(), tx.unchanged(), c.in.current()); err != nil {
+	if err = errors.Join(ctx.Err(), r.unchanged(), tx.unchanged()); err != nil {
+		return true, err
+	}
+	if err = c.current(ctx); err != nil {
 		return true, err
 	}
 	if err = pqLabWriteJSON(filepath.Join(output, "result.json"), result); err != nil {
@@ -248,6 +257,36 @@ func (c *PQLabLiveMaterialsControl) step(parent context.Context) (present bool, 
 	return true, nil
 }
 
+// Cancellation ends admission to the NEXT complete source operation. It never
+// interrupts an already-running read/encoding/validation or bypasses Close's
+// join. In particular, an eager errors.Join must not start current() after the
+// context is already cancelled. Successful results still require full current.
+func (c *PQLabLiveMaterialsControl) current(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if err := c.in.current(); err != nil {
+		return err
+	}
+	return ctx.Err()
+}
+
+func (c *PQLabLiveMaterialsControl) captureCommitted(ctx context.Context, actual sm.State) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	// The owning App lock and complete encoder remain uninterruptible. Close
+	// waits for them; cancellation only prevents the following decode/validate.
+	raw, err := c.app.captureProofHostCommittedJSON(actual)
+	if err != nil {
+		return nil, err
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
+
 func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMaterialsRequest, envelope []byte, kind string, wire []byte, output string, now time.Time) (out PQLabLiveMaterialsResult, err error) {
 	defer func() {
 		if recover() != nil {
@@ -255,6 +294,9 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 			err = errors.New("corrupt original live source store")
 		}
 	}()
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	p, a := c.in.plan, c.in.activation
 	actual, err := c.view.LoadState()
 	if err != nil {
@@ -263,7 +305,7 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if actual.ChainID != p.ChainID || actual.InitialHeight != p.InitialHeight || actual.LastBlockHeight <= a.ActivationHeight || actual.LastBlockHeight-a.RegistryHeight > 4096 {
 		return out, errors.New("bounded original activated engine checkpoint required")
 	}
-	stateRaw, err := c.app.captureProofHostCommittedJSON(actual)
+	stateRaw, err := c.captureCommitted(ctx, actual)
 	if err != nil {
 		return out, err
 	}
@@ -271,16 +313,25 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = json.Unmarshal(stateRaw, &state); err != nil {
 		return out, err
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	_, _, b, err := loadPQLab(p.RootDir, c.in.policy.PlanSHA256)
 	if err != nil {
 		return out, err
 	}
 	state.bootstrap = b
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	if err = state.Validate(c.in.migration); err != nil {
 		return out, err
 	}
 	if state.PQEngineSchedule == nil {
 		return out, errors.New("original complete committed schedule unavailable")
+	}
+	if err = ctx.Err(); err != nil {
+		return out, err
 	}
 	var anchorState CommittedState
 	if json.Unmarshal(c.in.anchor.CommittedState, &anchorState) != nil || anchorState.ValidatorRegistry == nil || state.ValidatorRegistry == nil {
@@ -293,6 +344,9 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if !pqLabLiveCanonicalEqual(anchorState.ValidatorRegistry.Events, state.ValidatorRegistry.Events[:prefix]) {
 		return out, errors.New("current registry does not retain the independent original R history")
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	auth, err := NewPQEngineAuthorization(c.in.schedule, a.ScheduleHash)
 	if err != nil {
 		return out, err
@@ -300,8 +354,14 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err = auth.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height); err != nil {
 		return out, err
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	snapshot, err := newPQEngineSnapshot(b, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
 	if err != nil {
+		return out, err
+	}
+	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	if _, err = sm.BindConsensusState(actual, snapshot); err != nil {
@@ -329,8 +389,14 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if index < 0 || height >= actual.LastBlockHeight {
 		return out, errors.New("original transaction and its committed H+1 are not available; preserve operation, no automatic retry")
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	trusted, err := c.in.advanceAnchor(ledger, snapshot, height, now)
 	if err != nil {
+		return out, err
+	}
+	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	block, err := ledger.lightBlock(height)
@@ -346,12 +412,18 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	migrationRaw, err := c.in.migration.CanonicalJSON()
 	if err != nil {
 		return out, err
 	}
 	// The source plan identifies the actual held original, which may contain
 	// legal JSON whitespace. Its raw SHA is not the derived canonical SHA.
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	migrationOriginal, err := readProofHostOriginal(p.MigrationFile, "", 1<<30)
 	if err != nil {
 		return out, err
@@ -364,7 +436,13 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	if err = pqLabWrite(filepath.Join(output, "derived-source-plan.json"), planRaw); err != nil {
+		return out, err
+	}
+	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	in, err := loadProofHostInputs(planRaw, pqLabSHA(planRaw))
@@ -372,6 +450,9 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	defer func() { err = errors.Join(err, in.close()) }()
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	canonicalMigration, err := in.migration.CanonicalJSON()
 	if err != nil {
 		return out, err
@@ -412,6 +493,9 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	// captured.Files/Source retain the exact raw source. Only this separate
 	// verifier input is canonicalized after full original-source validation.
 	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: canonicalMigration, Genesis: files["genesis"], CommittedState: files["state"], Schedule: files["schedule"], TrustedLightBlock: files["trustedLightBlock"], Pins: p.pins(), ScheduleHash: a.ScheduleHash, EngineHeight: actual.LastBlockHeight, EngineAppHash: bytes.Clone(actual.AppHash), TrustingPeriod: policy.TrustingPeriod, MaxClockDrift: policy.MaxClockDrift, TrustNumerator: policy.TrustNumerator, TrustDenominator: policy.TrustDenominator, Expected: e}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	materialRaw, err := json.Marshal(m)
 	if err != nil {
 		return out, err
@@ -423,8 +507,14 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
 	verified, err := WritePQLabProofInputs(filepath.Join(output, "verifier"), m, proof, now)
 	if err != nil {
+		return out, err
+	}
+	if err = ctx.Err(); err != nil {
 		return out, err
 	}
 	materialPath, proofPath, statePath := filepath.Join(output, "materials.json"), filepath.Join(output, "proof.json"), filepath.Join(output, "committed-state.json")
@@ -432,10 +522,16 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		path string
 		raw  []byte
 	}{{materialPath, materialRaw}, {proofPath, captured.Proof}, {statePath, m.CommittedState}} {
+		if err = ctx.Err(); err != nil {
+			return out, err
+		}
 		if err = pqLabWrite(f.path, f.raw); err != nil {
 			return out, err
 		}
 	}
 	out = PQLabLiveMaterialsResult{Version: "YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1", PolicySHA256: c.in.pin, Sequence: r.Sequence, Outcome: "verified_transaction_data", SourceKind: "original-node-owning-stores", OwningNodeIndex: policy.NodeIndex, EngineHeight: actual.LastBlockHeight, EngineAppHash: hex.EncodeToString(actual.AppHash), TransactionHash: r.TransactionSHA256, NativeWireHash: r.NativeWireHash, Materials: pqLabFile(materialPath, materialRaw), Proof: pqLabFile(proofPath, captured.Proof), Checkpoint: pqLabFile(statePath, m.CommittedState), Verified: verified, SyntheticOnly: true, SourceReadOnly: true}
-	return out, errors.Join(ctx.Err(), in.unchanged())
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
+	return out, in.unchanged()
 }
