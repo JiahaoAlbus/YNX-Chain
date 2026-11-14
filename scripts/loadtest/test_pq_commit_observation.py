@@ -230,6 +230,27 @@ class CommitValidationControls(unittest.TestCase):
             activation['nodes'][0]['args'].append('--commit-validation-observation=false')
             with self.assertRaisesRegex(RuntimeError,'duplicate'):ceremony.activation_startup(activation)
 
+    def test_existing_fixed_namespaces_and_actual_constructor_default_stay_off(self):
+        adapter=module('original_fixed_commit_options','pq-first100-7c25-ci.py')
+        class SourceProbe(RuntimeError):pass
+        with mock.patch.object(adapter,'PROFILE','first100-7c25-public-owner'):
+            fixed=adapter.fixed_options(Path('/NOT-READ'))
+        self.assertFalse(hasattr(fixed,'commit_validation_observation'))
+        for profile,source in [('7c25',driver.first_trial_7c25_source.SOURCE),(driver.HELD_TRIAL_PROFILE,driver.HELD_TRIAL_SOURCE)]:
+            args=copy.copy(fixed);args.first_trial_profile=profile;args.commit=source
+            with self.subTest(profile=profile),mock.patch.object(driver.first_trial_7c25_source,'qualification',return_value={}),mock.patch.object(driver.lab,'check_source',side_effect=SourceProbe('configuration accepted')) as checked,mock.patch.object(driver.lab,'Window') as window:
+                with self.assertRaisesRegex(SourceProbe,'configuration accepted'):driver.run(args)
+                checked.assert_called_once_with(Path('/NOT-READ'),source);window.assert_not_called()
+                self.assertNotIn('commit_validation_observation',driver.load_conditions(args))
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'ynx-consensus-proof-verify').write_bytes(b'not executable; hash control only')
+            def original_base(instance,*args,**kwargs):
+                instance.workload={'owners':list(range(8))};instance.mode='online';instance.bins=root
+            with mock.patch.object(driver.normal.Ceremony,'__init__',new=original_base):
+                ceremony=driver.LoadCeremony(operations=1,proof_timeout=30,commit_observation=True)
+            self.assertFalse(ceremony.commit_validation_observation_enabled)
+            self.assertEqual(ceremony.consumer_source,driver.CALLEE_SOURCE)
+
     def archive_control(self,root,*,detail=True):
         (root/'public').mkdir();descriptors=[];children=[];originals={}
         for i in range(4):
@@ -271,6 +292,7 @@ class CommitValidationControls(unittest.TestCase):
                 'live':lambda f,r:r['processes'][0].update(exited=False),
                 'exit':lambda f,r:r['processes'][0].update(rawReturnCode=None),
                 'source':lambda f,r:r['normalCommitObservation']['originalSnapshots'][0].update(sourceCommit='c'*40),
+                'sourcePayload':lambda f,r:r['normalCommitObservation']['originalSnapshots'][0].update(sourceCommit={'privatePath':'SYNTHETIC_UNTRUSTED_VALUE'}),
                 'copy':lambda f,r:r['normalCommitObservation']['originalSnapshots'][0]['rawOriginalObservation']['samples'][0].update(height=99),
             }
             for name,change in changes.items():
@@ -278,6 +300,17 @@ class CommitValidationControls(unittest.TestCase):
                 with self.subTest(name=name):
                     report=self.read_control(f,r);self.assertEqual(report['nodes']['0']['status'],'INVALID_ORIGINAL')
                     self.assertIsNone(report['nodes']['0']['allRetained']);self.assertEqual(report['observedNodes'],3)
+                    self.assertNotIn('SYNTHETIC_UNTRUSTED_VALUE',json.dumps(report))
+            for change in ('truncated','snapshotPID'):
+                f,r=copy.deepcopy(files),copy.deepcopy(receipt);name='public/commit-observation-node-0-original.json'
+                snapshot=json.loads(f[name]);snapshot['processID']=999 if change=='snapshotPID' else 123
+                f[name]=json.dumps(snapshot).encode()
+                if change=='truncated':f[name]=f[name][:-1]
+                r['normalCommitObservation']['originalSnapshots'][0].update(bytes=len(f[name]),sha256=hashlib.sha256(f[name]).hexdigest(),rawOriginalObservation=snapshot)
+                with self.subTest(change=change):
+                    report=self.read_control(f,r);self.assertEqual(report['nodes']['0']['status'],'INVALID_ORIGINAL')
+                    self.assertEqual(report['nodes']['0']['errorType'],'JSONDecodeError' if change=='truncated' else 'RuntimeError')
+                    self.assertEqual(report['observedNodes'],3)
             with self.assertRaisesRegex(RuntimeError,'receipt/source'):
                 m.original_validation_readback(files,'public/',receipt,source_commit='c'*40,chain_id='ynx_642399-1',genesis_hash='b'*64)
 
@@ -301,5 +334,16 @@ class CommitValidationControls(unittest.TestCase):
             self.assertEqual(report['validOriginalNodes'],0);self.assertEqual(len(report['originalSnapshots']),4)
             self.assertEqual(len(list((root/'public').iterdir())),4)
             self.assertTrue(all('unrequested' in e['reason'] for e in report['errors']))
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir();descriptors=[];children=[];raw=json.dumps(detailed()).encode()[:-1]
+            for i in range(4):
+                path=root/('node%d.json'%i);path.write_bytes(raw);path.chmod(0o600)
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i));children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=123+i,poll=lambda:0)))
+            report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64,source_commit=m.VALIDATION_SOURCE,validation_requested=True)
+            self.assertEqual(report['validOriginalNodes'],0)
+            self.assertEqual([e['errorType'] for e in report['errors']],['JSONDecodeError']*4)
+            for ref in report['originalSnapshots']:
+                self.assertEqual((root/'public'/ref['path']).read_bytes(),raw)
+                self.assertEqual(ref['sha256'],hashlib.sha256(raw).hexdigest());self.assertFalse(ref['usable'])
 
 if __name__=='__main__':unittest.main()

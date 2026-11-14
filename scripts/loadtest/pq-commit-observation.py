@@ -189,15 +189,16 @@ def original_validation_readback(files,prefix,receipt,*,source_commit,chain_id,g
         require(type(node) is int and 0<=node<4 and node not in seen
                 and name=='commit-observation-node-%d-original.json'%node,'unique original Commit node file required')
         seen.add(node)
-        # Retain bounded identity fields, not arbitrary nested receipt payloads.
-        value=dict(status='UNKNOWN',originalFile={k:ref[k] for k in
-            ('node','path','bytes','sha256','processName','pid','sourceStopped','sourceCommit','usable') if k in ref},
+        # A known field name does not validate its value. Build the public
+        # projection only from values verified below, including on error paths.
+        value=dict(status='UNKNOWN',originalFile=dict(node=node,path=name,usable=ref.get('usable') is True),
             allRetained=None,business=None)
         out['nodes'][str(node)]=value
         try:
             raw=files.get(prefix+name)
             require(type(raw) is bytes and 0<len(raw)<=MAX_BYTES and type(ref.get('bytes')) is int
                     and len(raw)==ref['bytes'] and hashlib.sha256(raw).hexdigest()==ref.get('sha256'),'original Commit validation file SHA/length differs')
+            value['originalFile'].update(bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
             snapshot=strict(raw)
             if ref.get('usable') is not True:
                 value['status']='PRODUCER_UNUSABLE';continue
@@ -209,6 +210,10 @@ def original_validation_readback(files,prefix,receipt,*,source_commit,chain_id,g
                     and type(ref.get('pid')) is int and ref['pid']==pid and ref.get('sourceStopped') is True
                     and ref.get('processName')==proc['name'],'original stopped Commit PID/startTicks binding differs')
             pids.add(pid)
+            value['originalFile'].update(pid=pid,processName=proc['name'],sourceStopped=True)
+            if 'sourceCommit' in ref:
+                require(ref['sourceCommit']==source_commit,'original Commit validation source field differs')
+                value['originalFile']['sourceCommit']=source_commit
             require(snapshot==ref.get('rawOriginalObservation'),'original Commit validation receipt/file differs')
             validate_declared_contract(snapshot,pid,chain_id,genesis_hash)
             if has_validation(snapshot):
