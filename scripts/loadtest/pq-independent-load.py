@@ -655,8 +655,8 @@ class NormalBackend:
             stop.wait(.02)
         raise RuntimeError("original H+1 not observed before bounded cutoff; preserve submitted original UNKNOWN, no proof publication or replay")
     def live_materials_command(self, lane, operation, prefix, sequence, stop, *, path=None, tx=None):
+        lab.require(not stop.is_set(), "original live proof canceled before command")
         if "session" in lane:
-            lab.require(not stop.is_set(), "original live session canceled before command")
             transaction = {}
             if operation == "request":
                 transaction = dict(transaction_file=str(path),
@@ -717,6 +717,22 @@ class NormalBackend:
                     'original proof failure record differs')
         proof_readback.write_new(case / 'original-live-proof-failure.json', raw)
 
+    def wait_live_capture(self, output, case, lane, sequence, stop, until):
+        while not stop.is_set() and time.monotonic() < until:
+            available = (output / 'result.json').exists()
+            if (output / 'failure.json').exists():
+                try:
+                    self.retain_live_proof_failure(output, case, lane, sequence, stop, until)
+                except (OSError, RuntimeError, ValueError) as error:
+                    raise RuntimeError('normal live proof operation is UNKNOWN; original failure record unavailable') from error
+                raise RuntimeError('normal live proof operation is UNKNOWN')
+            if available:
+                if not stop.is_set() and time.monotonic() < until:
+                    return
+                break
+            stop.wait(min(.02, max(0, until - time.monotonic())))
+        raise RuntimeError('normal original live proof result not supplied before bounded cutoff')
+
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
         lane=None
@@ -731,15 +747,7 @@ class NormalBackend:
             self.live_materials_command(lane, "request", prefix, seq, stop, path=path, tx=tx)
             output=lane["policy"].parent/("operation-%06d"%seq);until=time.monotonic()+self.c.proof_timeout
             notify(dict(kind="normal_stage",stage="live_capture"))
-            while not (output/"result.json").exists() and not stop.is_set() and time.monotonic()<until:
-                if (output/'failure.json').exists():
-                    try:
-                        self.retain_live_proof_failure(output, case, lane, seq, stop, until)
-                    except (OSError, RuntimeError, ValueError) as error:
-                        raise RuntimeError('normal live proof operation is UNKNOWN; original failure record unavailable') from error
-                    raise RuntimeError('normal live proof operation is UNKNOWN')
-                stop.wait(.02)
-            lab.require((output/"result.json").exists(),"normal original live proof result not supplied before bounded cutoff")
+            self.wait_live_capture(output, case, lane, seq, stop, until)
             notify(dict(kind="normal_stage",stage="live_read"))
             result=self.live_materials_command(lane, "result", prefix, seq, stop)
             lab.require(result["version"]=="YNX-PQ-LAB-LIVE-MATERIALS-RESULT/v1" and result["outcome"]=="verified_transaction_data" and result["policySHA256"]==lane["pin"] and int(result["sequence"])==seq and result["owningNodeIndex"]==lane["node"] and result["sourceKind"]=="original-node-owning-stores" and result["syntheticOnly"] is True and result["sourceReadOnly"] is True and result["authorityGranted"] is False and result["fourNodeAgreementClaim"] is False,"normal original live result scope differs")

@@ -96,6 +96,37 @@ class NormalCallgraphControls(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 retain()
 
+    def test_live_capture_prioritizes_original_failure_over_result(self):
+        backend = object.__new__(driver.NormalBackend)
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp).resolve()
+            lane = dict(pin='a'*64)
+            stop = threading.Event()
+            (case/'result.json').write_text('{}')
+            backend.wait_live_capture(case, case, lane, 1, stop, time.monotonic()+1)
+            raw = json.dumps(dict(Version='YNX-PQ-LAB-LIVE-MATERIALS-FAILURE/v1', PolicySHA256=lane['pin'],
+                                  Outcome='unknown', FirstCauseSHA256='b'*64, Sequence=1)).encode()
+            (case/'failure.json').write_bytes(raw)
+            with self.assertRaisesRegex(RuntimeError, 'operation is UNKNOWN'):
+                backend.wait_live_capture(case, case, lane, 1, stop, time.monotonic()+1)
+            self.assertEqual((case/'original-live-proof-failure.json').read_bytes(), raw)
+
+    def test_live_capture_refuses_result_crossing_cutoff_and_canceled_command(self):
+        backend = object.__new__(driver.NormalBackend)
+        stop = threading.Event()
+        output = mock.MagicMock()
+        result, failure = mock.Mock(), mock.Mock()
+        output.__truediv__.side_effect = {'result.json': result, 'failure.json': failure}.__getitem__
+        result.exists.return_value = True
+        failure.exists.return_value = False
+        with mock.patch.object(driver.time, 'monotonic', side_effect=[1, 2]):
+            with self.assertRaisesRegex(RuntimeError, 'bounded cutoff'):
+                backend.wait_live_capture(output, None, {}, 1, stop, 2)
+        stop.set()
+        for lane in ({}, {'session': mock.Mock()}):
+            with self.assertRaisesRegex(RuntimeError, 'canceled before command'):
+                backend.live_materials_command(lane, 'result', 'original', 1, stop)
+
     def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
         b = object.__new__(driver.NormalBackend)
         b.checkpoint_lock = threading.Lock()
