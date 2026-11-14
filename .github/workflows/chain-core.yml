@@ -361,6 +361,34 @@ jobs:
           print('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))
           PY
 
+      - name: Verify default-off synthetic custody and validation timing controls
+        env:
+          GOMEMLIMIT: 1536MiB
+        run: |
+          set -euo pipefail
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestExperimental' ./internal/consensus > "$RUNNER_TEMP/experimental-custody-tests.jsonl"; then
+            cat "$RUNNER_TEMP/experimental-custody-tests.jsonl"; exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestCommitValidation' ./cmd/ynx-comet > "$RUNNER_TEMP/experimental-commit-timing-tests.jsonl"; then
+            cat "$RUNNER_TEMP/experimental-commit-timing-tests.jsonl"; exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          checks = {
+              'experimental-custody-tests.jsonl': ['TestExperimentalKDFReuseOriginalOwnersAndFailureWipe', 'TestExperimentalKDFReuseDetectsVaultReplacementAndCloseWipes', 'TestExperimentalKDFReuseCredentialChangeFailsAndRetireWipes', 'TestExperimentalKDFReuseSameBytesDifferentVaultInode', 'TestExperimentalKDFReuseUnknownPreservesOriginalAndWipes', 'TestExperimentalKDFReuseOriginalSignAndRecovery', 'TestExperimentalVaultReaderRejectsLinks', 'TestExperimentalKDFReuseSealedCacheCannotReopen', 'TestExperimentalKDFCacheLockWaitIncludedInOpen', 'TestExperimentalKDFReusePrepareSourceFailureWipes', 'TestExperimentalErrorClearWaitIncludedInTotals'],
+              'experimental-commit-timing-tests.jsonl': ['TestCommitValidationObservationOriginalBlockAndOptIn', 'TestCommitValidationRequiresSyntheticCommitObservation'],
+          }
+          for name, required in checks.items():
+              rows = [json.loads(line) for line in (root / name).read_text().splitlines()]
+              for test in required:
+                  terminal = [row['Action'] for row in rows if row.get('Test') == test and row['Action'] in ('pass', 'fail', 'skip')]
+                  if terminal != ['pass']:
+                      raise RuntimeError('experimental synthetic control did not execute and pass: ' + test)
+          print('YNX_EXPERIMENTAL_SYNTHETIC_CONTROLS_EXECUTED default_off=true public_activation=false finality_proven=false')
+          PY
+
       - name: Verify the default-off normal node wire observation adapter
         env:
           CGO_ENABLED: '0'
