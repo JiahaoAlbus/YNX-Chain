@@ -34,8 +34,16 @@ test('failed page cannot replace retained UNKNOWN step before a later delta succ
  const initial={...task,steps:[{id:'step_original',status:'UNKNOWN',toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:'ai.conversation.read',toolVersion:'1'}}]};
  const a=new OriginalRunReconnect('PUBLIC',initial,run.runId,f.api,f.storage);f.receiptFail=true;
  await assert.rejects(a.reconnect(new AbortController().signal,async()=>{}));assert.equal(f.stored,null);
- f.receiptFail=false;const recovered=await a.reconnect(new AbortController().signal,async()=>{});
- assert.equal(recovered.task.steps.find(step=>step.id==='step_original')?.status,'UNKNOWN');
+ f.receiptFail=false;await assert.rejects(a.reconnect(new AbortController().signal,async()=>{}),/ORIGINAL_RUN_UNRESOLVED_STEP/);
+ assert.equal(f.stored,null);
+});
+test('completed run cannot release answer or read a receipt while its original step is UNKNOWN',async()=>{
+ const f=fixture(),read=f.api.task.bind(f.api);let unresolved=true;f.api.task=async(...args)=>{const page=await read(...args);return unresolved?{...page,steps:page.steps.map(step=>({...step,status:'UNKNOWN'}))}:page};
+ const a=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);let displayed=0;
+ await assert.rejects(a.reconnect(new AbortController().signal,async()=>{displayed++}),/ORIGINAL_RUN_UNRESOLVED_STEP/);
+ assert.equal(displayed,0);assert.deepEqual(f.calls,['original-run']);assert.equal(f.stored,null);
+ unresolved=false;const recovered=await a.reconnect(new AbortController().signal,async()=>{displayed++});
+ assert.equal(displayed,1);assert.equal(recovered.receipts[0]?.effectRef,'step_original');assert.deepEqual(f.calls,['original-run','original-run','original-step']);
 });
 test('same run WebDAV step reads existing generic result route and preserves observation semantics',async()=>{const f=fixture();f.api.result=async()=>({operationId:'step_original',resourceId:'resource_original',destinationId:'destination_original',remoteId:'PUBLIC-file.txt',state:'CONTENT_PRESENT',contentState:'CONTENT_PRESENT',sha256:'a'.repeat(64),bytes:32,writeAcknowledged:false,authorshipProven:false,scope:'external-content-observation-only',observedAt:'2026-11-01T00:00:00Z'}) as never;const a=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);const r=await a.reconnect(new AbortController().signal,async()=>{});assert.equal(r.receipts[0]!.state,'CONTENT_PRESENT');assert.equal(r.receipts[0]!.scope,'external-content-observation-only');assert.equal(f.stored!.cursor,100)});
 

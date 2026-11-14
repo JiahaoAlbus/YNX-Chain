@@ -1,6 +1,8 @@
 import {OriginalRunReconnect,type RunCursorPersistence} from './taskReconnect';
 import {readTaskRun,readTaskReceipt,readTaskProjection,readTaskList,TaskAPIError} from './taskResults';
 import {createTaskV6API,type NativeTaskV6} from './taskV6';
+import {needsOriginalTaskQuery} from './taskStepPolicy';
+export {needsOriginalTaskQuery} from './taskStepPolicy';
 // Native task orchestration only. Canonical proof acquisition belongs to the
 // original Wallet session; neither a legacy token nor this UI grants authority.
 export type TaskScope="ai:conversations"|"ai:permissions"|"ai:generate";
@@ -10,11 +12,6 @@ export type TaskRequestSnapshot=Readonly<{method:"GET"|"POST";path:string;bodyOr
 export type TaskCredentials={identity:string;proof?:(scope:TaskScope,request:TaskRequestSnapshot)=>Promise<string>;v6?:NativeTaskV6};
 export type Task={id:string;conversationId:string;holder:string;revision:number;generation:number;status:string;cancelledAt?:string};
 export type TaskStep={id:string;status:string;toolStep:{taskId:string;taskRevision:number;generation:number;holder:string;toolId:string;toolVersion:string;inputDigest?:string;approvedFields?:string[];authorityOperationId?:string;authorityReferenceState?:string;remoteOperationId?:string;remoteRef?:string;effectFirstCause?:string}};
-export function needsOriginalTaskQuery(step:TaskStep):boolean {
- return ["PENDING","SENT","UNKNOWN","DISPATCHING","RECONCILING"].includes(step.status) ||
-  (step.status==="COMPLETED" && step.toolStep.toolId==="ai.conversation.read" &&
-   !!step.toolStep.authorityOperationId && step.toolStep.authorityReferenceState!=="COMMITTED");
-}
 export type TaskEvent={sequence:number;type:string;objectId:string;at:string};
 export type TaskProjection=Task&{cursor:number;hasMore:boolean;recoveryOnly?:boolean;events:TaskEvent[];steps:TaskStep[]};
 export type TaskRun={id:string;runId:string;taskId:string;status:string;steps:string[];content?:string;firstCause?:string;recoveryOnly:boolean};
