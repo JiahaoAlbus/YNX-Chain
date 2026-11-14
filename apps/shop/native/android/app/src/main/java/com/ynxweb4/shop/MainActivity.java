@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
-    private Object cartWork,paymentReadbackWork,catalogWork;private volatile Object payHandoffWork;private volatile long payPresentationRevision;private AlertDialog invoiceDialog;private volatile long viewRevision;
+    private Object cartWork,paymentReadbackWork;private volatile Object catalogWork,payHandoffWork;private volatile long payPresentationRevision;private AlertDialog invoiceDialog;private volatile long viewRevision;
     private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
     private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
     private void runCartTask(CartTask task,Runnable success){
