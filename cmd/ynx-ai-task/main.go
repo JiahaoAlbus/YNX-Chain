@@ -38,6 +38,7 @@ func run(ctx context.Context, args []string, out, diagnostics io.Writer) error {
 	operation := flags.String("operation", "", "unique local delivery ID; retained IDs never resend mutations")
 	task := flags.String("task", "", "original task ID")
 	step := flags.String("step", "", "original step ID")
+	expectedAuthorityOperation := flags.String("expect-authority-operation", "", "original authority operation ID to require for step-result")
 	runID := flags.String("run", "", "original run ID")
 	cursor := flags.Uint64("after-cursor", 0, "last event cursor for bounded task projection")
 	afterTask := flags.String("after-task", "", "original task ID cursor for bounded owned task discovery")
@@ -76,7 +77,7 @@ func run(ctx context.Context, args []string, out, diagnostics io.Writer) error {
 		}
 		return json.NewEncoder(out).Encode(record)
 	}
-	input := aitaskclient.Request{Action: *action, TaskID: *task, StepID: *step, RunID: *runID, OperationID: *operation, AfterCursor: *cursor, AfterTaskID: *afterTask}
+	input := aitaskclient.Request{Action: *action, TaskID: *task, StepID: *step, ExpectedAuthorityOperationID: *expectedAuthorityOperation, RunID: *runID, OperationID: *operation, AfterCursor: *cursor, AfterTaskID: *afterTask}
 	route, err := aitaskclient.Resolve(input)
 	if err != nil {
 		return err

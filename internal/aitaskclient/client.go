@@ -28,6 +28,7 @@ var identifier = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 
 type Request struct {
 	Action, TaskID, StepID, RunID, OperationID, Proof string
+	ExpectedAuthorityOperationID                      string
 	AfterTaskID                                       string
 	AfterCursor                                       uint64
 	Body                                              json.RawMessage
@@ -137,6 +138,10 @@ func (c *Client) Do(ctx context.Context, input Request) (out Response, err error
 	if err := ctx.Err(); err != nil {
 		return out, err
 	}
+	if input.ExpectedAuthorityOperationID != "" &&
+		(input.Action != "step-result" || !identifier.MatchString(input.ExpectedAuthorityOperationID)) {
+		return out, errors.New("expected authority operation requires a valid step-result request")
+	}
 	route, err := Resolve(input)
 	if err != nil {
 		return out, err
@@ -207,6 +212,19 @@ func (c *Client) Do(ctx context.Context, input Request) (out Response, err error
 	raw, readErr := io.ReadAll(io.LimitReader(response.Body, MaxResponseBytes+1))
 	if readErr != nil || len(raw) > MaxResponseBytes || !json.Valid(raw) {
 		return out, errors.Join(errors.New("AI daemon returned an incomplete or invalid response; original operation retained"), finish("UNKNOWN", response.StatusCode, nil))
+	}
+	if input.ExpectedAuthorityOperationID != "" && response.StatusCode >= 200 && response.StatusCode < 300 {
+		var receipt struct {
+			EffectRef            string          `json:"effectRef"`
+			AuthorityOperationID string          `json:"authorityOperationId"`
+			State                string          `json:"state"`
+			Result               json.RawMessage `json:"result"`
+		}
+		if json.Unmarshal(raw, &receipt) != nil || receipt.State != "COMMITTED" ||
+			receipt.EffectRef != input.StepID || receipt.AuthorityOperationID != input.ExpectedAuthorityOperationID ||
+			len(receipt.Result) == 0 {
+			return out, errors.New("AI daemon result did not match the expected original operation")
+		}
 	}
 	out.Body = bytes.Clone(raw)
 	if op != nil && response.StatusCode >= 200 && response.StatusCode < 300 {

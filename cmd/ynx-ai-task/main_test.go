@@ -67,3 +67,27 @@ func TestIndependentTaskCLILocalInspectionNeverNetwork(t *testing.T) {
 		t.Fatal("local file result confused with task authority")
 	}
 }
+
+func TestIndependentTaskCLIRequiresExpectedOperationBeforePrinting(t *testing.T) {
+	peer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "GET" || r.URL.Path != "/api/tasks/task_original/tool-steps/step_original/result" {
+			t.Error("wrong result route")
+		}
+		_, _ = w.Write([]byte(`{"effectRef":"step_original","authorityOperationId":"order_original","state":"COMMITTED","result":{"status":"processing"}}`))
+	}))
+	defer peer.Close()
+	proof := filepath.Join(t.TempDir(), "proof")
+	if err := os.WriteFile(proof, []byte("PUBLIC-controlled-proof"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	args := []string{"-action", "step-result", "-daemon", peer.URL, "-proof-file", proof, "-task", "task_original",
+		"-step", "step_original", "-expect-authority-operation"}
+	var out, diagnostics bytes.Buffer
+	if err := run(context.Background(), append(args, "other_operation"), &out, &diagnostics); err == nil || out.Len() != 0 {
+		t.Fatal("mismatched receipt reached CLI output")
+	}
+	if err := run(context.Background(), append(args, "order_original"), &out, &diagnostics); err != nil ||
+		!strings.Contains(out.String(), `"status":"processing"`) {
+		t.Fatalf("original receipt unavailable: %v", err)
+	}
+}

@@ -44,7 +44,10 @@ and `run-resume` accept the original daemon's JSON request body via `-data-file`
 `step-*` actions need `-task`/`-step`; `run-show` needs `-task`/`-run`.
 `run-resume` sets the existing daemon's resume flag; it does not invent a new
 run, retry an unknown tool effect or release a blocked final answer.
-`step-result` and `run-show` display only the original authorized response.
+`step-result` and `run-show` display the original authorized response.
+For a step with an authority operation ID reported by `task-show`, pass
+`-expect-authority-operation ID` to `step-result`. The client withholds a
+successful response body unless it matches the original step and operation.
 `task-show -after-cursor N` reads the next bounded event page. No mutation or
 poll is automatic, so each invocation can obtain a fresh appropriate proof.
 

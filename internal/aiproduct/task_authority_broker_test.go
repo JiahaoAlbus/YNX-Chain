@@ -14,6 +14,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/aitaskclient"
 	originalclient "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go"
 	open "github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go"
 	policy "ynx.local/authgrantpolicy"
@@ -556,21 +557,58 @@ func TestP08ShopHistoryHTTPReportsUnavailableWithoutChangingOriginal(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.queryErr = errors.New("PUBLIC history authority offline")
-	r := httptest.NewRequest(http.MethodPost, "/api/tasks/"+f.task.ID+"/tool-steps/"+f.step.ID+"/reconcile",
-		strings.NewReader(`{"authorizationRef":"PUBLIC-original-proof-ref"}`))
-	r.SetPathValue("id", f.task.ID)
-	r.SetPathValue("stepId", f.step.ID)
-	w := httptest.NewRecorder()
-	f.server.handleTaskToolReconcile(w, r, f.session)
-	after, err := os.ReadFile(f.store.path)
+	server, err := NewServer(Config{GatewayURL: "http://127.0.0.1:1", GatewayKey: testGatewayKey,
+		ExactWalletCallback: FormalCallback, TaskRuntime: f.prepared}, f.store, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if w.Code != http.StatusServiceUnavailable || !bytes.Equal(before, after) || a.queryCalls != 0 ||
-		len(c.queries) != 0 || len(c.news) != 1 || f.providerRequests.Load() != 0 {
-		t.Fatalf("history refusal status=%d, original changed=%t, NEW=%d QUERY=%d", w.Code,
-			!bytes.Equal(before, after), len(c.news), len(c.queries))
+	server.wallet = &p08UserRecoveryAuthorizer{session: f.session}
+	peer := httptest.NewServer(server.Handler())
+	defer peer.Close()
+	journal, err := aitaskclient.OpenJournal(filepath.Join(t.TempDir(), "operations"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := aitaskclient.New(peer.URL, journal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	query := aitaskclient.Request{Action: "step-reconcile", OperationID: "history-denied", TaskID: f.task.ID,
+		StepID: f.step.ID, Proof: "PUBLIC-controlled-proof", Body: json.RawMessage(`{"authorizationRef":"PUBLIC-original-proof-ref"}`)}
+	a.queryErr = errors.New("PUBLIC history authority offline")
+	denied, err := client.Do(ctx, query)
+	var httpErr *aitaskclient.HTTPError
+	if !errors.As(err, &httpErr) || denied.Status != http.StatusServiceUnavailable {
+		t.Fatalf("history refusal: %d %v", denied.Status, err)
+	}
+	after, err := os.ReadFile(f.store.path)
+	if err != nil || !bytes.Equal(before, after) || a.queryCalls != 0 || len(c.queries) != 0 ||
+		len(c.news) != 1 || f.providerRequests.Load() != 0 {
+		t.Fatal("history outage changed the original or called tool/model")
+	}
+	a.queryErr, c.result = nil, good
+	query.OperationID = "history-readback"
+	if _, err := client.Do(ctx, query); err != nil {
+		t.Fatal(err)
+	}
+
+	read := aitaskclient.Request{Action: "step-result", TaskID: f.task.ID, StepID: f.step.ID,
+		Proof: query.Proof, ExpectedAuthorityOperationID: strings.Repeat("cd", 32)}
+	if r, err := client.Do(ctx, read); err == nil || len(r.Body) != 0 {
+		t.Fatal("client exposed receipt for a mismatched original operation")
+	}
+	read.ExpectedAuthorityOperationID = good.OriginalOperation
+	result, err := client.Do(ctx, read)
+	var receipt taskReadReceipt
+	if err != nil || json.Unmarshal(result.Body, &receipt) != nil ||
+		receipt.AuthorityOperationID != good.OriginalOperation || receipt.WireBinding == nil ||
+		*receipt.WireBinding != bindTaskBytes(good.Resource.ResponseOriginal) {
+		t.Fatalf("original result: HTTP %d, %v", result.Status, err)
+	}
+	if len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != good.OriginalOperation ||
+		f.providerRequests.Load() != 0 {
+		t.Fatal("result reads replayed an operation or invoked the model")
 	}
 }
 
