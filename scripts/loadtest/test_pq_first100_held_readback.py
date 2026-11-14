@@ -214,6 +214,25 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'does not match parent and cohort'):
             reader.signer_callee_timing(receipt, dict(rows=rows), files, prefix)
 
+    def test_confirmation_callee_timing_joins_original_owner_reply_to_confirmation_attempt(self):
+        row = dict(index=4, ownerIndex=1, operationId='a'*64)
+        reply = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=1,
+                     operationId=row['operationId'], code='PROOF_CONFIRMED_DATA', calleeElapsedNs=20,
+                     timings=dict(stages={'publicOwner.confirmTotal': dict(calls=1, elapsedNs=18)}))
+        transport = [dict(row, operation='confirm', code=reply['code']),
+                     dict(row, operation='sign', code='ORIGINAL_SAVED')]
+        receipt = dict(normalPublicOwnerTransport=dict(records=transport))
+        path = 'public/load-operations/00004/original-confirm-reply.json'
+        output = reader.signer_callee_timing(receipt, dict(rows=[row]), {path: encode(reply)},
+                                            'public/', 'confirm')
+        self.assertEqual(output['retainedConfirmationAttempts'], 1)
+        group = output['groups']['PROOF_CONFIRMED_DATA']
+        self.assertEqual(group['calleeElapsed']['minNs'], 20)
+        self.assertEqual(group['stages']['publicOwner.confirmTotal']['minNs'], 18)
+        with self.assertRaisesRegex(RuntimeError, 'does not match parent and cohort'):
+            reader.signer_callee_timing(receipt, dict(rows=[row]), {path: encode(dict(reply, ownerIndex=2))},
+                                        'public/', 'confirm')
+
     def test_pre_output_failure_readback_without_publish_ack_preserves_unknown(self):
         path = 'load-operations/00000/original-live-proof-pre-output-failure.json'
         row = dict(index=0, operationId='a'*64, hash='b'*64, nativeHash='c'*64, status='unknown')

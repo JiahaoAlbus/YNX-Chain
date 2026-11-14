@@ -162,6 +162,7 @@ def compare_business(before, after):
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
                     signerCalleeTiming=report.get('signerCalleeTiming'),
+                    confirmationCalleeTiming=report.get('confirmationCalleeTiming'),
                     firstSignerFailure=report.get('firstSignerFailure'),
                     observationRPC=report.get('observationRPC'),
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
@@ -461,40 +462,44 @@ def public_owner_timing(receipt, load):
                 firstOperationalFailure=matched, stagesAdded=False)
 
 
-def signer_callee_timing(receipt, load, files, prefix):
-    """Bind each retained signer reply to its cohort row and parent attempt."""
+def signer_callee_timing(receipt, load, files, prefix, operation='sign'):
+    """Bind each retained owner reply to its cohort row and parent attempt."""
+    success_code, attempt_key = {
+        'sign': ('ORIGINAL_SAVED', 'retainedSigningAttempts'),
+        'confirm': ('PROOF_CONFIRMED_DATA', 'retainedConfirmationAttempts'),
+    }[operation]
     transport = (receipt.get('normalPublicOwnerTransport') or {}).get('records')
     if load is None or transport is None:
         return None
     rows = {(row['ownerIndex'], row['operationId']): row for row in load['rows']}
     attempts = {}
     for record in transport:
-        if record['operation'] == 'sign':
+        if record['operation'] == operation:
             key = (record['ownerIndex'], record['operationId'])
-            require(key in rows and key not in attempts, 'original signing attempt outside cohort or repeated')
+            require(key in rows and key not in attempts, 'original owner attempt outside cohort or repeated')
             attempts[key] = record.get('code')
     groups = {}
     for key, row in rows.items():
-        path = f"load-operations/{row['index']:05d}/original-sign-reply.json"
+        path = f"load-operations/{row['index']:05d}/original-{operation}-reply.json"
         raw = files.get(prefix + path)
         if raw is None:
             continue
-        require(len(raw) <= 2 << 20, 'bounded original signing reply required')
+        require(len(raw) <= 2 << 20, 'bounded original owner reply required')
         reply = strict(raw)
         code = reply['code']
         require(reply['version'] == 'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
                 and (reply['ownerIndex'], reply['operationId']) == key
-                and code in ('ORIGINAL_SAVED', 'REJECTED', 'UNKNOWN') and attempts.get(key) == code,
-                'original signer reply does not match parent and cohort')
+                and code in (success_code, 'REJECTED', 'UNKNOWN') and attempts.get(key) == code,
+                'original owner reply does not match parent and cohort')
         elapsed = reply.get('calleeElapsedNs')
-        require(elapsed is None or type(elapsed) is int and elapsed >= 0, 'invalid original signing elapsed time')
+        require(elapsed is None or type(elapsed) is int and elapsed >= 0, 'invalid original owner elapsed time')
         measured = (reply.get('timings') or {}).get('stages', {})
         for value in measured.values():
             require(all(type(value[field]) is int and value[field] >= 0 for field in ('calls', 'elapsedNs')),
-                    'invalid original signing stage counters')
+                    'invalid original owner stage counters')
         groups.setdefault(code, []).append(dict(index=row['index'], replySHA256=hashlib.sha256(raw).hexdigest(),
                                                 calleeElapsedNs=elapsed, originalStages=measured))
-    return dict(retainedSigningAttempts=len(attempts), observedReplies=sum(map(len, groups.values())),
+    return dict({attempt_key: len(attempts)}, observedReplies=sum(map(len, groups.values())),
                 groups={code: dict(records=records,
                     calleeElapsed=stages.samples([row['calleeElapsedNs'] for row in records], len(records)),
                     stages={name: stages.samples(
@@ -778,6 +783,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 networkAccountingStatus=network.get('status') or (network.get('tcp') or {}).get('status'),
                 publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
                 signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
+                confirmationCalleeTiming=signer_callee_timing(receipt, load, files, prefix, 'confirm'),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
                 proofPublication=proof_publication(load, files, prefix, tail_seconds=request['tailSeconds']),
