@@ -198,9 +198,7 @@ export class TaskWorkspaceController{
   if(!task||step.toolStep.taskId!==task.id)return;
   await this.work(async signal=>{
    this.state.receipt=null;this.emit();
-   const receipt=readTaskReceipt(await this.readAPI(task.id).result(task.id,step.id,signal),step.id);
-   const operation=step.toolStep.authorityOperationId;
-   if(operation&&receipt.authorityOperationId!==operation)throw Error("TASK_ORIGINAL_RESULT_INVALID");
+   const receipt=readTaskReceipt(await this.readAPI(task.id).result(task.id,step.id,signal),step.id,step.toolStep.authorityOperationId);
    if(signal.aborted)throw Error("TASK_REQUEST_CANCELLED");
    const record={...this.state.record,selectedTask:task.id,selectedResultStep:step.id};
    await this.persist(record);

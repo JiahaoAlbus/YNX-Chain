@@ -22,3 +22,30 @@ test('readRunCursor rejects extra content or unsafe sequence instead of storing 
 test('historical holder event page cannot release a final answer even if run body claims current',async()=>{const f=fixture(),original=f.api.task.bind(f.api);f.api.task=async(...args)=>({...await original(...args),recoveryOnly:true});const a=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);await assert.rejects(a.reconnect(new AbortController().signal,async()=>{}),/HISTORY_CANNOT_RELEASE_ANSWER/);assert.equal(f.stored,null)});
 test('delta event page retains earlier unresolved step metadata for completion/cancel guards',async()=>{const f=fixture();const initial={...task,steps:[{id:'pending_original',status:'UNKNOWN',toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:'shop.order.read',toolVersion:'1'}}]};const a=new OriginalRunReconnect('PUBLIC',initial,run.runId,f.api,f.storage);const r=await a.reconnect(new AbortController().signal,async()=>{});assert.ok(r.task.steps.some(s=>s.id==='pending_original'&&s.status==='UNKNOWN'));assert.ok(r.task.steps.some(s=>s.id==='step_original'&&s.status==='COMPLETED'))});
 test('same run WebDAV step reads existing generic result route and preserves observation semantics',async()=>{const f=fixture();f.api.result=async()=>({operationId:'step_original',resourceId:'resource_original',destinationId:'destination_original',remoteId:'PUBLIC-file.txt',state:'CONTENT_PRESENT',contentState:'CONTENT_PRESENT',sha256:'a'.repeat(64),bytes:32,writeAcknowledged:false,authorshipProven:false,scope:'external-content-observation-only',observedAt:'2026-11-01T00:00:00Z'}) as never;const a=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);const r=await a.reconnect(new AbortController().signal,async()=>{});assert.equal(r.receipts[0]!.state,'CONTENT_PRESENT');assert.equal(r.receipts[0]!.scope,'external-content-observation-only');assert.equal(f.stored!.cursor,100)});
+
+test('cold Shop reconnect rejects a different authority operation without displaying or advancing',async()=>{
+ const f=fixture();
+ const originalTask=f.api.task.bind(f.api);
+ f.api.task=async(...args)=>{
+  const page=await originalTask(...args);
+  const step=page.steps[0]!;
+  return {...page,steps:[{...step,toolStep:{...step.toolStep,toolId:'shop.order.read',authorityOperationId:'shop_original'}}]};
+ };
+ const receipt=f.api.result.bind(f.api);
+ f.api.result=async()=>({...await receipt(),authorityOperationId:'shop_original'});
+ const signal=new AbortController().signal;
+ const initial=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);
+ await initial.reconnect(signal,async()=>{});
+ f.page=2;
+ f.api.result=async()=>({...await receipt(),authorityOperationId:'shop_other'});
+ const cold=new OriginalRunReconnect('PUBLIC',task,run.runId,f.api,f.storage);
+ let displayed=0;
+ await assert.rejects(cold.reconnect(signal,async()=>{displayed++}),/TASK_ORIGINAL_RESULT_INVALID/);
+ assert.equal(displayed,0);
+ assert.equal(f.stored?.cursor,100);
+ f.api.result=async()=>({...await receipt(),authorityOperationId:'shop_original'});
+ const recovered=await cold.reconnect(signal,async()=>{displayed++});
+ assert.equal(recovered.receipts[0]?.authorityOperationId,'shop_original');
+ assert.equal(displayed,1);
+ assert.deepEqual(f.cursors,[0,100,100]);
+});

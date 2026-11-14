@@ -49,9 +49,11 @@ export function readTaskRun(value:unknown,task:Task,runId:string):TaskRun{
  if(v.content!==undefined){const content=text(v.content,2<<20,true);if(content&&(status!=='COMPLETED'||recoveryOnly||cancelled))fail();run.content=content}
  return run;
 }
-export function readTaskReceipt(value:unknown,stepId:string):TaskReceipt{
+export function readTaskReceipt(value:unknown,stepId:string,authorityOperationId?:string):TaskReceipt{
  const v=object(value);
+ if(authorityOperationId&&v.authorityOperationId!==authorityOperationId)fail();
  if(v.scope==='external-content-observation-only'){
+  if(authorityOperationId)fail();
   if(v.operationId!==stepId||v.state!=='CONTENT_PRESENT'||v.contentState!=='CONTENT_PRESENT'||v.authorshipProven!==false||typeof v.writeAcknowledged!=='boolean'||typeof v.sha256!=='string'||!/^[a-f0-9]{64}$/.test(v.sha256))fail();
   identifier(v.resourceId);identifier(v.destinationId);text(v.remoteId,2048);integer(v.bytes,true);text(v.observedAt,64);
   return {state:'CONTENT_PRESENT',effectRef:stepId,scope:'external-content-observation-only',result:{...v}};

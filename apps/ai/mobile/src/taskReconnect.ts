@@ -46,8 +46,9 @@ export class OriginalRunReconnect{
    if(!page.recoveryOnly&&!run.recoveryOnly){for(const stepId of run.steps){
     // Cold reconnect with a terminal run rereads its SAME receipts even if the
     // earlier event page was acknowledged before process termination.
-    if(run.status!=='COMPLETED'&&this.knownSteps.get(stepId)?.status!=='COMPLETED')continue;
-    receipts.push(readTaskReceipt(await this.api.result(this.task.id,stepId,abort.signal),stepId));current();
+    const step=this.knownSteps.get(stepId);
+    if(run.status!=='COMPLETED'&&step?.status!=='COMPLETED')continue;
+    receipts.push(readTaskReceipt(await this.api.result(this.task.id,stepId,abort.signal),stepId,step?.toolStep.authorityOperationId));current();
    }}
    const selected=new Set([run.id,...run.steps,this.task.id]);
    const observation:RunObservation={task:page,run,receipts,events:page.events.filter(e=>selected.has(e.objectId)),cursor:page.cursor,hasMore:page.hasMore};
