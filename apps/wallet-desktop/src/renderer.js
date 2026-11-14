@@ -1055,11 +1055,15 @@ function clearAssetBalance() {
   document.querySelector("#asset-balance").textContent = "—";
   document.querySelector("#balance-status").textContent = "";
 }
-let balanceFlight = null, balanceRefreshQueued = false, lastBalanceCheckedAt = null;
+let balanceFlight = null, lastBalanceCheckedAt = null;
+const balanceFlights = new Map();
 async function refreshAssets() {
-  if (balanceFlight) { balanceRefreshQueued = true; return balanceFlight; }
   const revision = balanceRevision, account = activeAccount;
-  if (!account) return;
+  if (!account) { balanceFlight = null; return; }
+  // Keep one outstanding read per account, even if the view switches away
+  // and back; another account never waits for this account’s request.
+  const existing = balanceFlights.get(account);
+  if (existing) { balanceFlight = existing; existing.queued = true; return existing.promise; }
   const current = () => revision === balanceRevision && account === activeAccount;
   if (!lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
   // Normalize a synchronous bridge throw into a rejected promise before
@@ -1067,7 +1071,9 @@ async function refreshAssets() {
   // assignment, leaving an already-completed flight stuck forever.
   let request;
   try { request = window.ynxWallet.balance(); } catch (error) { request = Promise.reject(error); }
-  balanceFlight = (async () => { try {
+  const flight = {account, queued:false, promise:null};
+  balanceFlight = flight; balanceFlights.set(account,flight);
+  flight.promise = (async () => { try {
     const result = await request;
     if (!current()) return;
     if (!result.ok) throw new Error("Balance unavailable");
@@ -1081,10 +1087,13 @@ async function refreshAssets() {
     if (lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Update pending · Last updated {time}",{time:new Date(lastBalanceCheckedAt).toLocaleTimeString()});
     else copyUI(document.querySelector("#balance-status"),"Balance unavailable. Try refreshing.");
   }} finally {
-    balanceFlight = null;
-    if (balanceRefreshQueued) { balanceRefreshQueued = false; void refreshAssets(); }
+    if (balanceFlights.get(account) === flight) balanceFlights.delete(account);
+    if (balanceFlight === flight) {
+      balanceFlight = null;
+      if (flight.queued && activeAccount === account) void refreshAssets();
+    }
   }})();
-  return balanceFlight;
+  return flight.promise;
 }
 setInterval(() => { if (!balanceFlight && activeAccount) void refreshAssets(); }, 3000);
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);

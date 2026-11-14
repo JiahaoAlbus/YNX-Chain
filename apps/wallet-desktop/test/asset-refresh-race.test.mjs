@@ -55,3 +55,33 @@ test('synchronous balance bridge failure does not wedge future polling or alter 
   assert.match(nodes.get('#balance-status').textContent,/Last updated/);
   tick();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,4);assert.equal(nodes.get('#balance-value').textContent,exact);
 });
+test('new account refresh is not blocked by an earlier account that never returns',async()=>{
+ const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8'),begin=source.indexOf('function clearAssetBalance() {'),end=source.indexOf('document.querySelector("#refresh-balance")',begin),nodes=new Map(),waiting=[];
+ const document={querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{textContent:''});return nodes.get(selector);}};
+ const wallet={balance:()=>new Promise(resolve=>waiting.push(resolve))};let tick;
+ const create=new Function('document','window','setInterval','copyUI',`let activeAccount='A', balanceRevision=0;${source.slice(begin,end)}return {refreshAssets,clearAssetBalance,setAccount:value=>{activeAccount=value}};`);
+ const ui=create(document,{ynxWallet:wallet},fn=>tick=fn,(node,key)=>node.textContent=key);
+ void ui.refreshAssets();assert.equal(waiting.length,1);ui.clearAssetBalance();ui.setAccount('B');const current=ui.refreshAssets();assert.equal(waiting.length,2,'B must not wait for A');tick();assert.equal(waiting.length,2,'one in-flight read per current account');
+ waiting[1]({ok:true,value:{account:'B',formatted:'9007199254740993',transferEnabled:true,checkedAt:'2026-11-14T00:00:00Z'}});await current;
+ assert.equal(nodes.get('#balance-value').textContent,'9007199254740993');
+});
+test('late retired account cannot clear the current flight or publish stale balance',async()=>{
+ const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8'),begin=source.indexOf('function clearAssetBalance() {'),end=source.indexOf('document.querySelector("#refresh-balance")',begin),nodes=new Map(),waiting=[];
+ const document={querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{textContent:''});return nodes.get(selector);}};let tick;
+ const ui=new Function('document','window','setInterval','copyUI',`let activeAccount='A', balanceRevision=0;${source.slice(begin,end)}return {refreshAssets,clearAssetBalance,setAccount:value=>{activeAccount=value}};`)(document,{ynxWallet:{balance:()=>new Promise(resolve=>waiting.push(resolve))}},fn=>tick=fn,(node,key)=>node.textContent=key);
+ const original=ui.refreshAssets();ui.clearAssetBalance();ui.setAccount('B');const current=ui.refreshAssets();
+ const value=(account,formatted)=>({ok:true,value:{account,formatted,transferEnabled:true,checkedAt:'2026-11-14T00:00:00Z'}});
+ waiting[0](value('A','123'));await original;assert.equal(nodes.get('#balance-value').textContent,'—');tick();assert.equal(waiting.length,2,'retired completion must not clear B flight');
+ waiting[1](value('B','9007199254740993.123456789012345678'));await current;assert.equal(nodes.get('#balance-value').textContent,'9007199254740993.123456789012345678');
+ ui.clearAssetBalance();ui.setAccount('A');assert.equal(nodes.get('#balance-value').textContent,'—');const restored=ui.refreshAssets();assert.equal(waiting.length,3);waiting[2](value('A','1'));await restored;assert.equal(nodes.get('#balance-value').textContent,'1');
+});
+test('returning to a still-pending account does not start a duplicate account read',async()=>{
+ const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8'),begin=source.indexOf('function clearAssetBalance() {'),end=source.indexOf('document.querySelector("#refresh-balance")',begin),nodes=new Map(),pending=[];
+ const doc={querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{textContent:''});return nodes.get(selector);}};
+ const ui=new Function('document','window','setInterval','copyUI',`let activeAccount='A', balanceRevision=0;${source.slice(begin,end)}return {refreshAssets,clearAssetBalance,setAccount:value=>{activeAccount=value}};`)(doc,{ynxWallet:{balance:()=>new Promise(resolve=>pending.push(resolve))}},()=>{},(node,key)=>node.textContent=key);
+ const old=ui.refreshAssets();ui.clearAssetBalance();ui.setAccount('B');const other=ui.refreshAssets();ui.clearAssetBalance();ui.setAccount('A');const returning=ui.refreshAssets();assert.equal(pending.length,2);
+ const value=(account,formatted)=>({ok:true,value:{account,formatted,transferEnabled:true,checkedAt:'2026-11-14T00:00:00Z'}});
+ pending[1](value('B','2'));await other;assert.equal(nodes.get('#balance-value').textContent,'—');
+ pending[0](value('A','1'));await Promise.all([old,returning]);assert.equal(pending.length,3,'new A read follows stale A completion');assert.equal(nodes.get('#balance-value').textContent,'—');
+ pending[2](value('A','3'));await new Promise(resolve=>setImmediate(resolve));assert.equal(nodes.get('#balance-value').textContent,'3');
+});
