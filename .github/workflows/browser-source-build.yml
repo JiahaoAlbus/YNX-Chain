@@ -20,3 +20,6 @@ jobs:
       - name: Build native Browser source
         working-directory: apps/browser/native
         run: swift build -c release --build-path "$RUNNER_TEMP/ynx-browser-native-build"
+      - name: Verify SHA3 known answers
+        working-directory: apps/browser/native
+        run: swift test --build-path "$RUNNER_TEMP/ynx-browser-native-test" --filter PageSelectionTests/sha3KnownAnswers

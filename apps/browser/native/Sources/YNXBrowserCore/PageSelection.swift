@@ -264,7 +264,11 @@ enum BrowserSHA3_512 {
             0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008
         ]
         for constant in constants {
-            let c = (0..<5).map { x in a[x] ^ a[x+5] ^ a[x+10] ^ a[x+15] ^ a[x+20] }
+            let c: [UInt64] = (0..<5).map { x in
+                let first = a[x] ^ a[x+5]
+                let second = a[x+10] ^ a[x+15]
+                return first ^ second ^ a[x+20]
+            }
             let d = (0..<5).map { x in c[(x+4)%5] ^ rotate(c[(x+1)%5], 1) }
             for y in 0..<5 { for x in 0..<5 { a[x+5*y] ^= d[x] } }
             var b = [UInt64](repeating: 0, count: 25)
