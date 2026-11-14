@@ -16,6 +16,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aitaskclient"
 	originalclient "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go"
+	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
 	open "github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go"
 	policy "ynx.local/authgrantpolicy"
 )
@@ -66,6 +67,7 @@ type p08BrokerAuthorityFixture struct {
 	*p08RuntimeAuthorityFixture
 	f              *p08ShopFixture
 	queryErr       error
+	materialErr    error
 	queryCalls     int
 	queryOperation string
 	queryBinding   func(*policy.TaskEffectBinding)
@@ -77,6 +79,9 @@ func (a *p08BrokerAuthorityFixture) queryCurrent(ctx context.Context) error {
 func (a *p08BrokerAuthorityFixture) queryOriginalTaskMaterial(_ context.Context, r OriginalTaskAuthorizationRequest) (originalBrokerQueryMaterial, error) {
 	a.f.t.Helper()
 	a.queryCalls++
+	if a.materialErr != nil {
+		return originalBrokerQueryMaterial{}, a.materialErr
+	}
 	// The local step is a lookup key only. The independent original Node
 	// operation below comes from the persisted authority reference.
 	if !r.QueryOriginal || r.OriginalOperationID != a.f.step.ID || !bytes.Equal(r.Input, a.f.input) || r.Session.ID != a.f.session.ID {
@@ -609,6 +614,39 @@ func TestP08ShopHistoryHTTPReportsUnavailableWithoutChangingOriginal(t *testing.
 	if len(c.news) != 1 || len(c.queries) != 1 || c.queries[0].OriginalOperation != good.OriginalOperation ||
 		f.providerRequests.Load() != 0 {
 		t.Fatal("result reads replayed an operation or invoked the model")
+	}
+}
+
+func TestP08HistorySourceLostDuringOriginalMaterialRead(t *testing.T) {
+	f, a, c := newP08BrokerFixture(t, true)
+	f.approve(t)
+	good := p08BrokerResult(t, f)
+	c.result = originalclient.TaskAuthorityResult{State: "UNKNOWN", OriginalOperation: good.OriginalOperation}
+	c.effectErr = errors.New("PUBLIC acknowledgement lost")
+	const ref = "PUBLIC-original-proof-ref"
+	if _, err := f.server.dispatchApprovedStep(context.Background(), f.session, f.task.ID, f.step.ID, ref); !errors.Is(err, c.effectErr) {
+		t.Fatal(err)
+	}
+	p08BrokerRestart(t, f)
+	before, err := os.ReadFile(f.store.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.materialErr = native.ErrUnavailable
+	body := strings.NewReader(`{"authorizationRef":"PUBLIC-original-proof-ref"}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/tasks/"+f.task.ID+"/tool-steps/"+f.step.ID+"/reconcile", body)
+	request.SetPathValue("id", f.task.ID)
+	request.SetPathValue("stepId", f.step.ID)
+	response := httptest.NewRecorder()
+	f.server.handleTaskToolReconcile(response, request, f.session)
+	after, err := os.ReadFile(f.store.path)
+	if err != nil || response.Code != http.StatusServiceUnavailable || !bytes.Equal(before, after) || len(c.news) != 1 || len(c.queries) != 0 {
+		t.Fatalf("history refusal HTTP=%d changed=%t NEW=%d QUERY=%d err=%v", response.Code, !bytes.Equal(before, after), len(c.news), len(c.queries), err)
+	}
+	a.materialErr, c.result = nil, good
+	receipt, err := f.server.reconcileStep(context.Background(), f.session, f.task.ID, f.step.ID, ref)
+	if err != nil || receipt.AuthorityOperationID != good.OriginalOperation || len(c.news) != 1 || len(c.queries) != 1 {
+		t.Fatalf("original recovery failed: %+v %v", receipt, err)
 	}
 }
 

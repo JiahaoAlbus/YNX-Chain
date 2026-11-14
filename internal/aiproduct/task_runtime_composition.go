@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway"
+	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
 	authgrant "ynx.local/authgrantpolicy"
 )
 
@@ -349,7 +350,11 @@ func (e *originalRuntimeToolEffects) reconcileTaskTool(ctx context.Context, call
 		return taskReadReceipt{}, errors.Join(errTaskEffectSourceUnavailable, err)
 	}
 	if e.runtime.broker != nil {
-		return e.runtime.broker.reconcile(ctx, e, call, ref)
+		receipt, err := e.runtime.broker.reconcile(ctx, e, call, ref)
+		if errors.Is(err, native.ErrUnavailable) || errors.Is(err, native.ErrRetired) {
+			err = errors.Join(errTaskEffectSourceUnavailable, err)
+		}
+		return receipt, err
 	}
 	if source, ok := e.runtime.authority.(originalTaskOperationQueryAuthority); ok {
 		return e.queryOriginalAuthorityReference(ctx, call, ref, source)
