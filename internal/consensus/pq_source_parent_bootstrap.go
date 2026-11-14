@@ -153,95 +153,73 @@ func captureOriginalSourceLaunch(process context.Context, profile pqOriginalSour
 // Only initial optional capture reads use readCtx. Independently observed
 // processes and subsequent Source lifetime always use the real process.
 func captureOriginalSourceLaunchWithReadContext(process, readCtx context.Context, profile pqOriginalSourceProfile) (*pqOriginalSourceLaunch, error) {
+	l, _, err := captureOriginalSourceLaunchVersions(process, readCtx, profile, 3)
+	return l, err
+}
+
+// The normal entry reads original stdin once, accepting only existing v3/v4.
+// Neither received DATA nor a v4 appendix can supply the CODE profile.
+func captureOriginalSourceLaunchVersions(process, readCtx context.Context, profile pqOriginalSourceProfile, expected uint16) (*pqOriginalSourceLaunch, *pqOriginalFreshBrokerLaunch, error) {
 	sourceBootstrapOnce.Lock()
 	if sourceBootstrapOnce.entered {
 		sourceBootstrapOnce.Unlock()
-		return nil, errSourceParent
+		return nil, nil, errSourceParent
 	}
 	sourceBootstrapOnce.entered = true
 	sourceBootstrapOnce.Unlock()
 	if process == nil || readCtx == nil {
-		return nil, errSourceParent
+		return nil, nil, errSourceParent
 	}
 	for _, s := range profile.images {
 		h, e := hex.DecodeString(s)
 		if e != nil || len(h) != 32 || hex.EncodeToString(h) != s {
-			return nil, errSourceParent
+			return nil, nil, errSourceParent
 		}
 	}
 	if err := profile.codeProfile.Current(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	info, err := os.Stdin.Stat()
 	if err != nil || info.Mode()&os.ModeNamedPipe == 0 {
-		return nil, errSourceParent
+		return nil, nil, errSourceParent
 	}
 	stopInput := context.AfterFunc(readCtx, func() { _ = os.Stdin.Close() })
 	raw, err := io.ReadAll(io.LimitReader(os.Stdin, 13329))
 	stopInput()
 	if readCtx.Err() != nil {
-		return nil, readCtx.Err()
+		return nil, nil, readCtx.Err()
 	}
 	if process.Err() != nil {
-		return nil, process.Err()
+		return nil, nil, process.Err()
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	if len(raw) < 16 || len(raw) > 13328 || string(raw[:8]) != "YNC4LCH1" || binary.BigEndian.Uint16(raw[8:10]) != 3 || raw[10] != 1 || raw[11] != 0 || int(binary.BigEndian.Uint32(raw[12:16])) != len(raw)-16 {
-		return nil, errSourceParent
-	}
-	r := bytes.NewReader(raw[16:])
-	var fd uint32
-	var gen, dev, ino uint64
-	for _, v := range []any{&fd, &gen, &dev, &ino} {
-		if binary.Read(r, binary.BigEndian, v) != nil {
-			return nil, errSourceParent
-		}
-	}
-	if fd < 3 || fd > 0x7fffffff || gen == 0 || ino == 0 {
-		return nil, errSourceParent
-	}
-	l := &pqOriginalSourceLaunch{generation: gen, profile: profile, current4: sourcePortStamp{int(fd), dev, ino}}
-	for i := range l.processes {
-		l.processes[i], err = readSourceIdentity(r)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if l.processes[0].PID == l.processes[1].PID || l.processes[0].PID == l.processes[2].PID || l.processes[1].PID == l.processes[2].PID {
-		return nil, errSourceParent
-	}
-	l.account, err = readSourcePort(r, 1)
+	l, fresh, err := decodeOriginalSourceLaunch(raw, profile, expected)
 	if err != nil {
-		return nil, err
-	}
-	l.control, err = readSourcePort(r, 2)
-	if err != nil || r.Len() != 0 {
-		return nil, errSourceParent
+		return nil, nil, err
 	}
 	ports := []sourcePortStamp{l.current4, l.account, l.control}
-	for i, a := range ports {
-		for j, b := range ports {
-			if i != j && (a.fd == b.fd || a.device == b.device && a.inode == b.inode) {
-				return nil, errSourceParent
-			}
-		}
+	if fresh != nil {
+		ports = append(ports, fresh.broker)
 	}
 	if err = l.check(process); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, p := range ports {
 		if err = checkSourceSocket(p, l.processes[0], l.processes[2]); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		flags, e := unix.FcntlInt(uintptr(p.fd), unix.F_GETFD, 0)
 		if e != nil {
-			return nil, e
+			return nil, nil, e
 		}
 		if _, e = unix.FcntlInt(uintptr(p.fd), unix.F_SETFD, flags|unix.FD_CLOEXEC); e != nil {
-			return nil, e
+			return nil, nil, e
 		}
+	}
+	if fresh != nil {
+		fresh.brokerFile = os.NewFile(uintptr(fresh.broker.fd), "original Core fresh Scope broker")
 	}
 	l.current4File = os.NewFile(uintptr(l.current4.fd), "original Current4 Core endpoint")
 	l.accountFile = os.NewFile(uintptr(l.account.fd), "original account Core endpoint")
@@ -249,22 +227,22 @@ func captureOriginalSourceLaunchWithReadContext(process, readCtx context.Context
 	l.controlFile = control
 	conn, err := net.FileConn(control)
 	if err != nil {
-		return l, err
+		return l, fresh, err
 	}
 	if err = control.Close(); err != nil {
 		_ = conn.Close()
-		return l, err
+		return l, fresh, err
 	}
 	l.controlFile = nil
 	u, ok := conn.(*net.UnixConn)
 	if !ok {
 		_ = conn.Close()
-		return l, errSourceParent
+		return l, fresh, errSourceParent
 	}
 	l.sourceConn = u
 	// net.FileConn duplicates the socket; track its actual held original object
 	// through SyscallConn rather than using the now-closed inherited number.
-	return l, nil
+	return l, fresh, nil
 }
 func (l *pqOriginalSourceLaunch) claimSourceParent(ctx context.Context) error {
 	l.mu.Lock()

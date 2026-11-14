@@ -4766,7 +4766,7 @@ class SenderParentPersistenceCIControls(unittest.TestCase):
 
 
 
-NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC']
+NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC', 'TestPQNormalStartupFreshBrokerPUBLIC']
 NORMAL_SOURCE_CMD_REQUIRED = ['TestObserverCLINormalOriginalSourcePartialWithoutStart']
 
 
@@ -4795,8 +4795,8 @@ def assert_normal_source_ci_contract(raw):
     import ast
     root, _, current4, _, _, _ = normal_source_ci_parts()
     current4.assert_contract(raw)
-    if current4.NORMAL_SOURCE_PARENT_REQUIRED != NORMAL_SOURCE_PARENT_REQUIRED or len(current4.STREAM_REQUIRED) != 19:
-        raise AssertionError('original sixteen plus exact three normal Source tops required')
+    if current4.NORMAL_SOURCE_PARENT_REQUIRED != NORMAL_SOURCE_PARENT_REQUIRED or len(current4.STREAM_REQUIRED) != 20:
+        raise AssertionError('original sixteen and four normal Source tops required')
     tagged = current4.collector(raw)
     lists = [ast.literal_eval(n.value) for n in ast.parse(tagged).body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'normal_source_parent_required' for t in n.targets)]
     if lists != [NORMAL_SOURCE_PARENT_REQUIRED] or tagged.count("print('YNX_PQ_NORMAL_SOURCE_PARENT_TESTS '") != 1:
@@ -4821,7 +4821,7 @@ def assert_normal_source_ci_contract(raw):
 
 
 class NormalSourceParentCIControls(unittest.TestCase):
-    def test_normal_source_uses_original_calls_exact19_and_actual_source_names(self):
+    def test_normal_source_uses_original_calls_exact20_and_actual_source_names(self):
         root, raw, current4, _, _, scope = normal_source_ci_parts()
         assert_normal_source_ci_contract(raw)
         self.assertEqual(scope['normal_source_cmd_required'], NORMAL_SOURCE_CMD_REQUIRED)

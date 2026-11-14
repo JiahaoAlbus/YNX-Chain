@@ -68,7 +68,7 @@ def execute(raw, events=None, text=None):
 def assert_contract(raw):
     current4.assert_contract(raw)  # Original 3 + 5 and complete state union stay.
     if current4.SOURCE_PARENT_REQUIRED != REQUIRED or current4.STREAM_REQUIRED != current4.REQUIRED + current4.OBSERVER_ACCOUNT_REQUIRED + REQUIRED + current4.NORMAL_SOURCE_PARENT_REQUIRED:
-        raise AssertionError("only the fixed eight plus three normal Source-parent cases may join")
+        raise AssertionError("only the fixed eight and four normal Source-parent cases must stay")
     program = current4.collector(raw)
     assignments = [ast.literal_eval(node.value) for node in ast.parse(program).body
                    if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "source_parent_required" for target in node.targets)]
@@ -112,7 +112,7 @@ class SourceParentCIControls(unittest.TestCase):
 
     def test_normal_single_call_keeps_original_tests_budget_and_full_union(self):
         assert_contract(self.raw)
-        self.assertEqual(len(current4.STREAM_REQUIRED), 19)
+        self.assertEqual(len(current4.STREAM_REQUIRED), 20)
         for name in REQUIRED:
             self.assertIsNotNone(re.fullmatch(current4.SELECTOR, name))
             self.assertIsNone(re.fullmatch(current4.SELECTOR, name + "Extra"))

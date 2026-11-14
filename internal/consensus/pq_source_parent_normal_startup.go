@@ -38,6 +38,8 @@ type PQObserverSourceStartup struct {
 	cancel               context.CancelFunc
 	host                 *pqObserverAccountHost
 	original             *pqOriginalSourceLaunch
+	fresh                *pqOriginalFreshBrokerLaunch
+	broker               *pqFreshScopeBroker
 	source               *pqProtectedSourceParent
 	scope                *pqObserverAccountLaunch
 	first, cleanup       error
@@ -178,11 +180,28 @@ func (s *PQObserverSourceStartup) run(profile pqOriginalSourceProfile, profileEr
 		s.readyOnce.Do(func() { close(s.ready) })
 		return
 	}
-	original, err := captureOriginalSourceLaunchWithReadContext(s.process, s.captureRead, profile)
+	original, fresh, err := captureOriginalSourceLaunchVersions(s.process, s.captureRead, profile, 0)
 	s.mu.Lock()
 	s.original = original
+	s.fresh = fresh
 	s.mu.Unlock() // adopt every nonnil partial first
-	if err == nil {
+	if err == nil && fresh != nil {
+		var broker *pqFreshScopeBroker
+		broker, err = newOriginalFreshScopeBroker(s.process, fresh)
+		s.mu.Lock()
+		s.broker = broker
+		s.mu.Unlock() // retain a failed constructor's closing custody
+		if err == nil {
+			err = broker.bindHost(s.host)
+		}
+		if err == nil {
+			err = s.captureRead.Err()
+		}
+	}
+	// P09 v4 publishes scopes on the captured broker; its reserved initial
+	// account/control ports do not receive a v3 BIND. Keep their custody, but
+	// never wait for a fabricated initial Source before fresh offers can attach.
+	if err == nil && fresh == nil {
 		var source *pqProtectedSourceParent
 		source, err = receiveOriginalSourceParentWithReadContext(s.process, s.captureRead, original)
 		s.mu.Lock()
@@ -210,7 +229,21 @@ func (s *PQObserverSourceStartup) run(profile pqOriginalSourceProfile, profileEr
 	if activeSource != nil {
 		sourceDone = activeSource.Done()
 	}
+	s.mu.Lock()
+	broker := s.broker
+	s.mu.Unlock()
+	var brokerDone <-chan struct{}
+	if broker != nil {
+		brokerDone = broker.done
+	}
 	select {
+	case <-brokerDone:
+		s.record(broker.failure())
+		select {
+		case <-s.stop:
+		case <-s.process.Done():
+			s.Close()
+		}
 	case <-sourceDone:
 		s.record(activeSource.cause())
 		select {
@@ -225,6 +258,9 @@ func (s *PQObserverSourceStartup) run(profile pqOriginalSourceProfile, profileEr
 	s.mu.Lock()
 	source, scope := s.source, s.scope
 	s.mu.Unlock()
+	if broker != nil {
+		broker.seal(context.Canceled)
+	}
 	if source != nil {
 		source.cancel(context.Canceled, sourceParentFailure{present: false, code: 0, reason: 4})
 	} // closes Source control ONLY
@@ -240,8 +276,16 @@ func (s *PQObserverSourceStartup) run(profile pqOriginalSourceProfile, profileEr
 		}
 	}
 	var cleanup error
+	if broker != nil {
+		// All fresh same-reader workers must physically drain before CODE is
+		// retired. This never cancels the original Node/process or grants CLOSED.
+		cleanup = broker.Close(context.Background())
+	} else if fresh != nil && fresh.brokerFile != nil {
+		cleanup = fresh.brokerFile.Close()
+		fresh.brokerFile = nil
+	}
 	if source != nil {
-		cleanup = source.closeLocal()
+		cleanup = errors.Join(cleanup, source.closeLocal())
 	}
 	if scope != nil {
 		cleanup = errors.Join(cleanup, scope.close())
@@ -277,10 +321,13 @@ func (s *PQObserverSourceStartup) Close() {
 		close(s.stop)
 		s.cancel() // optional stdin/BIND only; never the actual process
 		s.mu.Lock()
-		source := s.source
+		source, broker := s.source, s.broker
 		s.mu.Unlock()
 		if source != nil {
 			source.cancel(context.Canceled, sourceParentFailure{present: false, code: 0, reason: 4})
+		}
+		if broker != nil {
+			broker.seal(context.Canceled)
 		}
 		go func() {
 			// The factory may still be adopting a partial when Close races it.

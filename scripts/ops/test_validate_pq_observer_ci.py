@@ -343,7 +343,7 @@ class ObserverAccountCIControls(unittest.TestCase):
             self.assertEqual(len(found), 1, name)
             self.assertIn("//go:build (linux || darwin) && ynx_public_trace_testsupport", found[0].read_text())
         self.assertEqual(current4_ci.STREAM_REQUIRED, current4_ci.REQUIRED + ACCOUNT_REQUIRED + current4_ci.SOURCE_PARENT_REQUIRED + current4_ci.NORMAL_SOURCE_PARENT_REQUIRED)
-        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 19)
+        self.assertEqual(len(current4_ci.STREAM_REQUIRED), 20)
 
     def test_actual_combined_collector_emits_separate_data_without_authority(self):
         records = execute_account(workflows()["resource"], current4_ci.rows())

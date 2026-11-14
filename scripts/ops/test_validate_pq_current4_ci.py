@@ -35,7 +35,7 @@ REQUIRED = [
 # Same original tagged invocation; the original Current4 receipt stays three tests.
 OBSERVER_ACCOUNT_REQUIRED = ['TestPQObserverAccountLaunchPUBLICOwningConstructorAndCold', 'TestPQObserverAccountLaunchPUBLICRefusalsAndFailurePreservation', 'TestPQObserverAccountLaunchPUBLICParentCloseAndNodeStopDrain', 'TestPQObserverAccountHostPUBLICSameNodeDistinctScopes', 'TestPQObserverAccountHostPUBLICIdentityAndScopeFailures']
 SOURCE_PARENT_REQUIRED = ['TestSourceParentFrameBounds', 'TestSourceParentOriginalClockRace', 'TestPQSourceParentPUBLICQualifiedCleanupAndLoss', 'TestPQSourceParentPUBLICOriginalUnnamedSocket', 'TestPQAccountSourceCancelPreservesOriginalCleanupPUBLIC', 'TestPQProtectedSourceParentStableHostScopesPUBLIC', 'TestPQCommittedAccountWirePUBLICCloseDebt', 'TestPQSourceParentPUBLICDirectCleanupRetainsFirstCause']
-NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC']
+NORMAL_SOURCE_PARENT_REQUIRED = ['TestPQNormalStartupSeparateProcessAndScopePUBLIC', 'TestPQNormalStartupOriginalRootEmptyAndCustodyPUBLIC', 'TestPQNormalStartupProfileCurrentAndWorkerDrainPUBLIC', 'TestPQNormalStartupFreshBrokerPUBLIC']
 STREAM_REQUIRED = REQUIRED + OBSERVER_ACCOUNT_REQUIRED + SOURCE_PARENT_REQUIRED + NORMAL_SOURCE_PARENT_REQUIRED
 SELECTOR = "^(" + "|".join(STREAM_REQUIRED) + ")$"
 COMMAND = ('          if ! CGO_ENABLED=1 YNX_PQ_NETWORK_E2E=\'\' YNX_PUBLIC_REGISTERED_OBSERVER_TRACE="$GITHUB_WORKSPACE/' + TRACE
