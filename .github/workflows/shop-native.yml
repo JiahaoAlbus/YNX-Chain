@@ -89,7 +89,7 @@ jobs:
                   changed = []  # uncertain comparison keeps the full checks
           shop_source_startup = {"internal/commerce/cmd/shopd/main.go", "internal/commerce/shop_session_v4.go"}
           def source_path(path):
-              return path in shop_source_startup or path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
+              return path.startswith("internal/commerce/cmd/shopd/task_order_runtime") or path in shop_source_startup or path == "internal/commerce/shop_session_test.go" or (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
               return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
           receipt_files = {"internal/commerce/business_effect.go", "internal/commerce/business_effect_http.go", "internal/commerce/business_effect_plans.go", "internal/commerce/business_native_invoice_boundary_test.go", "internal/commerce/model.go", "internal/commerce/return_receipt.go", "internal/commerce/return_receipt_test.go", "internal/commerce/service.go", "internal/commerce/store.go"}
@@ -160,7 +160,7 @@ jobs:
           link_v4_intake = not changed or any(p.startswith("internal/securelink/") or p == "internal/commerce/native_invoice_source_read.go" or p == "internal/commerce/shop_session_test.go" for p in changed)
           tests = []
           if not source_only or any(map(source_path, changed)):
-              tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
+              tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI", "TestShopTaskOrder"])
           if source_only and any(map(native_client_path, changed)):
               tests.extend(["TestNativeShopPay", "TestBusinessNativeInvoice", "TestNativeInvoice"])
           if source_only and any(map(receipt_path, changed)):

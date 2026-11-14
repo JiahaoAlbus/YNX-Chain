@@ -170,10 +170,25 @@ func main() {
 	if mountErr != nil {
 		log.Fatal(errors.Join(mountErr, closeInvoiceRead()))
 	}
+	taskOrders, taskOrdersErr := openShopTaskOrderRuntime(context.Background(), store, cfg, originalShopTaskOrderPublisher)
+	closeTaskOrders := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return taskOrders.close(ctx)
+	}
+	if taskOrdersErr != nil {
+		log.Printf("original LINK task order read unavailable: %v", errors.Join(taskOrdersErr, closeTaskOrders()))
+	} else {
+		go func() {
+			if err := taskOrders.serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Printf("original LINK task order read stopped: %v", errors.Join(err, closeTaskOrders()))
+			}
+		}()
+	}
 	srv := &http.Server{Addr: *addr, Handler: mounted, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("ynx-shopd listening on %s", *addr)
 	serveErr := srv.ListenAndServe()
-	log.Fatal(errors.Join(serveErr, closeInvoiceRead()))
+	log.Fatal(errors.Join(serveErr, closeTaskOrders(), closeInvoiceRead()))
 }
 
 func sellerHTTPReadiness(seller http.Handler) string {
