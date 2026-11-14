@@ -90,6 +90,143 @@ def change(leg, files, kind, node, edit):
     files[path] = raw(value); refresh(leg['receipt'], files)
 
 
+class BusinessStageCostControls(unittest.TestCase):
+    """Synthetic node originals test cohort selection; no performance evidence."""
+
+    def read(self, leg, files, binding):
+        return m.read(leg['receipt'], lambda name, limit: files[name], binding)
+
+    def test_business_costs_use_original_height_denominator_and_keep_fee_counts(self):
+        leg, files, binding = fixture([0])
+        def edit(snapshot):
+            row = snapshot['observation']['samples'][0]
+            row['counts'].update({'seal.fee_materialize': 7, 'seal.accounts_materialize': 515})
+            snapshot['observation']['latest'] = copy.deepcopy(row)
+        change(leg, files, 'finalize', 0, edit)
+        report = self.read(leg, files, binding)
+        costs = report['nodes']['0']['businessStageCosts']
+        self.assertEqual(report['configuredBusinessDenominator'], 4)
+        self.assertEqual(costs['heightDenominator'], 4)
+        self.assertEqual(costs['missingCommitHeights'], [21, 23, 25])
+        self.assertEqual(costs['missingFinalizeCommitHeights'], [21, 23, 25])
+        self.assertEqual(costs['records'][0]['finalize']['counts']['seal.fee_materialize'], 7)
+        self.assertEqual(costs['records'][0]['commit']['persistence']['stagesNs']['json_encode'], 20)
+        self.assertIsNone(costs['records'][1]['commit'])
+        self.assertIsNone(costs['records'][1]['finalize'])
+        fee = costs['finalizeStages']['children']['seal.fee_materialize']
+        self.assertEqual((fee['denominator'], fee['observed'], fee['missingOrCensored']), (4, 1, 3))
+        self.assertEqual(fee['observedMedianNs'], 3)
+        self.assertIsNone(fee['retainedSampleP95Ns'])
+        self.assertTrue(costs['childrenOverlapParentPhases'])
+        self.assertFalse(costs['stagesAdded'] or costs['independentFinality'])
+
+    def test_initialization_samples_do_not_enter_business_costs(self):
+        leg, files, binding = fixture([0])
+        def edit(snapshot):
+            initialization = success(18, 1)
+            initialization['childrenNs']['seal.fee_materialize'] = 10000
+            business = success(19, 2)
+            snapshot['observation'].update(attempts=2, samples=[initialization, business], latest=copy.deepcopy(business))
+        change(leg, files, 'finalize', 0, edit)
+        node = self.read(leg, files, binding)['nodes']['0']
+        self.assertEqual(node['finalize']['retainedSuccessStages']['children']['seal.fee_materialize']['observed'], 2)
+        self.assertEqual(node['businessStageCosts']['finalizeStages']['children']['seal.fee_materialize']['observedMedianNs'], 3)
+        self.assertEqual(node['businessStageCosts']['observedFinalizeCommitHeights'], [19])
+
+    def test_multiple_transactions_in_one_block_do_not_change_business_demand(self):
+        leg, files, binding = fixture([0])
+        leg['receipt']['functionalCohort'][-1]['height'] = '19'
+        report = self.read(leg, files, binding)
+        self.assertEqual(report['configuredBusinessDenominator'], 4)
+        costs = report['nodes']['0']['businessStageCosts']
+        self.assertEqual(costs['heightDenominator'], 3)
+        self.assertEqual(costs['heights'], [19, 21, 23])
+        self.assertEqual(costs['finalizeStages']['elapsed']['denominator'], 3)
+        self.assertFalse(costs['perTransactionCostsInferred'])
+
+    def test_missing_node_keeps_all_business_heights_censored(self):
+        leg, files, binding = fixture([0])
+        costs = self.read(leg, files, binding)['nodes']['3']['businessStageCosts']
+        self.assertEqual(costs['missingCommitHeights'], [19, 21, 23, 25])
+        self.assertEqual(costs['missingFinalizeCommitHeights'], [19, 21, 23, 25])
+        self.assertEqual(costs['finalizeStages']['elapsed']['observed'], 0)
+        self.assertIsNone(costs['finalizeStages']['elapsed']['observedMedianNs'])
+
+    def test_no_referenced_originals_preserves_business_denominator_without_reads(self):
+        leg, files, binding = fixture([])
+        report = m.read(leg['receipt'], mock.Mock(side_effect=AssertionError('no original reads')), binding)
+        self.assertEqual(report['status'], 'NOT_SUPPLIED')
+        for value in report['nodes'].values():
+            costs = value['businessStageCosts']
+            self.assertEqual(costs['heightDenominator'], 4)
+            self.assertEqual(costs['finalizeStages']['elapsed']['missingOrCensored'], 4)
+
+    def test_finalize_success_without_commit_does_not_join(self):
+        leg, files, binding = fixture([0])
+        leg['receipt']['normalCommitObservation']['originalSnapshots'] = []
+        costs = self.read(leg, files, binding)['nodes']['0']['businessStageCosts']
+        self.assertIsNone(costs['records'][0]['finalize'])
+        self.assertEqual(costs['finalizeStages']['retainedSuccessfulAttempts'], 0)
+        self.assertEqual(costs['missingFinalizeCommitHeights'], [19, 21, 23, 25])
+
+    def test_missing_count_and_child_are_not_zero_or_per_fee_estimates(self):
+        leg, files, binding = fixture([0])
+        def edit(snapshot):
+            sample = snapshot['observation']['samples'][0]
+            sample['counts'] = {}
+            sample['childrenNs'] = {}
+            snapshot['observation']['latest'] = copy.deepcopy(sample)
+        change(leg, files, 'finalize', 0, edit)
+        costs = self.read(leg, files, binding)['nodes']['0']['businessStageCosts']
+        self.assertEqual(costs['records'][0]['finalize']['counts'], {})
+        child = costs['finalizeStages']['children']['seal.fee_materialize']
+        self.assertEqual((child['observed'], child['missingOrCensored']), (0, 4))
+        self.assertIsNone(child['minNs'])
+        self.assertFalse(costs['perTransactionCostsInferred'])
+
+    def test_failed_attempt_and_latest_only_do_not_fill_business_heights(self):
+        leg, files, binding = fixture([0])
+        failed = dict(attempt=2, requestPresent=True, height=21, success=False, appHash='',
+                      failedPhase='preflight', elapsedNs=7, phaseNs={'preflight': 7}, childrenNs={}, counts={})
+        def edit(snapshot):
+            snapshot['observation'].update(attempts=2, samples=[success(), failed], latest=copy.deepcopy(failed))
+        change(leg, files, 'finalize', 0, edit)
+        node = self.read(leg, files, binding)['nodes']['0']
+        self.assertEqual(node['finalize']['business']['failedAttempts'], [failed])
+        self.assertIsNone(node['businessStageCosts']['records'][1]['finalize'])
+        samples = [success(i, i) for i in range(1, 129)]
+        observation = dict(attempts=129, dropped=1, samples=samples, latest=success(129, 129))
+        commit = dict(samples=[dict(height=129, appHash='a'*64, persistence={})])
+        costs = m.business_stage_costs(commit, observation, [129])
+        self.assertEqual(costs['missingFinalizeCommitHeights'], [129])
+
+    def test_twenty_joined_of_twenty_one_business_heights_has_no_p95(self):
+        commits = dict(samples=[dict(height=i, appHash='a'*64, persistence={}) for i in range(1, 22)])
+        observed = dict(samples=[success(i, i) for i in range(1, 21)], dropped=0)
+        costs = m.business_stage_costs(commits, observed, list(range(1, 22)))
+        fee = costs['finalizeStages']['children']['seal.fee_materialize']
+        self.assertEqual((fee['observed'], fee['denominator']), (20, 21))
+        self.assertIsNone(fee['retainedSampleP95Ns'])
+
+    def test_stage_rows_are_detached_and_keep_per_storage_identity(self):
+        leg, files, binding = fixture([0, 1])
+        def edit(snapshot):
+            sample = copy.deepcopy(snapshot['samples'][0])
+            sample['height'] = 21
+            sample['persistence'].update(height=21, storage='block-journal-v2')
+            snapshot['samples'].append(sample)
+            snapshot['successNotifications'] = 2
+        change(leg, files, 'commit', 0, edit)
+        report = self.read(leg, files, binding)
+        rows = report['nodes']['0']['businessStageCosts']['records']
+        self.assertEqual([row['commit']['persistence']['storage'] for row in rows[:2]], ['atomic-json', 'block-journal-v2'])
+        rows[0]['finalize']['counts'].clear()
+        rows[0]['commit']['persistence']['stagesNs'].clear()
+        self.assertEqual(report['nodes']['0']['commit']['originalSnapshot']['samples'][0]['persistence']['stagesNs']['json_encode'], 20)
+        self.assertEqual(report['nodes']['1']['businessStageCosts']['records'][0]['commit']['persistence']['stagesNs']['json_encode'], 20)
+        self.assertEqual(self.read(leg, files, binding)['nodes']['0']['businessStageCosts']['records'][0]['commit']['persistence']['stagesNs']['json_encode'], 20)
+
+
 class NormalLegStageControls(unittest.TestCase):
     def read(self, leg, files, binding):
         return m.read(leg['receipt'], lambda name, limit: files[name], binding)

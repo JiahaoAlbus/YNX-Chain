@@ -51,14 +51,44 @@ def _summary(node, ref, snapshot, selected=None):
     return stages.commit_stages(dict(originalCommitCopies=dict(records=[record])))['nodes'][str(node)]
 
 
-def _finalize_summary(observation):
+def _finalize_summary(observation, denominator=None):
     successful = [row for row in observation['samples'] if row['success']]
+    if denominator is None:
+        denominator = len(successful)
     return dict(retainedSuccessfulAttempts=len(successful),
-                elapsed=stages.samples([row['elapsedNs'] for row in successful], len(successful)),
-                parentStages={name: stages.samples([row['phaseNs'].get(name) for row in successful], len(successful))
+                elapsed=stages.samples([row['elapsedNs'] for row in successful], denominator),
+                parentStages={name: stages.samples([row['phaseNs'].get(name) for row in successful], denominator)
                               for name in finalize.PHASES},
-                children={name: stages.samples([row['childrenNs'].get(name) for row in successful], len(successful))
+                children={name: stages.samples([row['childrenNs'].get(name) for row in successful], denominator)
                           for name in sorted(finalize.CHILDREN)})
+
+
+def business_stage_costs(commit_snapshot, finalize_observation, heights):
+    """Reduce already validated originals for one node and selected business heights.
+
+    The enclosing reader owns file/process/source pins. This reducer grants no
+    evidence authority. Whole-block costs cannot be divided into transfer costs;
+    retained history counts are original inventories, not added work or rates.
+    """
+    heights = list(heights)
+    require(all(type(h) is int and h > 0 for h in heights) and len(set(heights)) == len(heights),
+            'unique positive original business heights required')
+    heights.sort()
+    commit_samples = commit_snapshot['samples'] if commit_snapshot is not None else []
+    committed = {row['height']: row for row in commit_samples if row['height'] in heights}
+    observation = finalize_observation if finalize_observation is not None else dict(samples=[], dropped=0)
+    joined = finalize.business_heights(observation, set(heights), commit_samples)['samples']
+    records = [dict(height=height, commit=copy.deepcopy(committed.get(height)),
+                    finalize=copy.deepcopy(joined.get(height))) for height in heights]
+    return dict(heightDenominator=len(heights), heights=heights, records=records,
+                observedCommitHeights=sorted(committed), missingCommitHeights=sorted(set(heights)-committed.keys()),
+                observedFinalizeCommitHeights=sorted(joined), missingFinalizeCommitHeights=sorted(set(heights)-joined.keys()),
+                finalizeStages=_finalize_summary(dict(samples=list(joined.values())), len(heights)),
+                denominatorMeaning='Original distinct business block heights, not transaction demand; missing joins censor stage percentiles.',
+                commitStorageMeaning='Each original persistence storage is retained per height; no pooling across storage or nodes.',
+                countsMeaning='Original per-block inventories/attempt counters; fee history count is not incremental work or a per-fee timing.',
+                stagesAdded=False, childrenOverlapParentPhases=True,
+                perTransactionCostsInferred=False, independentFinality=False)
 
 
 def read(receipt, original, binding):
@@ -82,6 +112,15 @@ def read(receipt, original, binding):
                childrenOverlapParentPhases=True, allCommitAttemptsMeasured=False,
                independentFinality=False, performanceComparisonQualified=False,
                configuredBusinessDenominator=receipt.get('configuredFunctionalDenominator'))
+    heights = set()
+    for row in receipt.get('functionalCohort', []):
+        height = row['height']
+        require(type(height) is str and re.fullmatch('[1-9][0-9]*', height), 'original business height required')
+        heights.add(int(height))
+    out['businessHeights'] = sorted(heights)
+    out['originalBusinessCohort'] = copy.deepcopy(receipt.get('functionalCohort'))
+    for value in out['nodes'].values():
+        value['businessStageCosts'] = business_stage_costs(None, None, heights)
     if not commits and not finalizes:
         return out
     created_raw = original('create-original.log', 1 << 20)
@@ -93,13 +132,7 @@ def read(receipt, original, binding):
     out['originalCreate'] = dict(path='create-original.log', bytes=len(created_raw),
                                 sha256=hashlib.sha256(created_raw).hexdigest(),
                                 planSHA256=created['planSHA256'], chainID=chain_id, originalGenesisHash=genesis)
-    heights = set()
-    for row in receipt['functionalCohort']:
-        height = row['height']
-        require(type(height) is str and re.fullmatch('[1-9][0-9]*', height), 'original business height required')
-        heights.add(int(height))
-    out['businessHeights'] = sorted(heights)
-    out['originalBusinessCohort'] = copy.deepcopy(receipt['functionalCohort'])
+    require(type(receipt.get('functionalCohort')) is list, 'original functional cohort required')
     producers, pids = {}, set()
     for node in sorted(commits.keys() | finalizes.keys()):
         matches = [row for row in receipt['processes'] if row['name'] == f'pq-node-{node}']
@@ -149,6 +182,11 @@ def read(receipt, original, binding):
         value['committed'] = finalize.business_heights(observed, set(known), list(known.values()))
         value['business'] = finalize.business_heights(observed, heights, list(known.values()))
         joined[str(node)] = value
+    for value in out['nodes'].values():
+        c, f = value['commit'], value['finalize']
+        snapshot = c.get('originalSnapshot') if c['status'] == 'ORIGINAL_SAMPLES_VERIFIED' else None
+        observation = f['originalSnapshot']['observation'] if f['status'] == 'ORIGINAL_SAMPLES_VERIFIED' else None
+        value['businessStageCosts'] = business_stage_costs(snapshot, observation, heights)
     out.update(status='ORIGINAL_REFERENCED_STAGE_DATA',
                commitCheckpoints=finalize.four_node_checkpoints(commit_checkpoints),
                finalizeCommitCheckpoints=finalize.four_node_checkpoints(joined))
