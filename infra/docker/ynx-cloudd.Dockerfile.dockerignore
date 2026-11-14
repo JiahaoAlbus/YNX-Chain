@@ -4,6 +4,8 @@
 !internal/
 !internal/cloud/
 !internal/cloud/**
+!internal/developerauthority/
+!internal/developerauthority/**
 !apps/
 !apps/cloud/
 !apps/cloud/cmd/

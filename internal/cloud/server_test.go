@@ -336,6 +336,29 @@ func TestRateLimitIgnoresForwardedIdentityAndResets(t *testing.T) {
 	}
 }
 
+func TestRateLimitSeparatesClientsBehindLoopbackReverseProxy(t *testing.T) {
+	s := testService(t, nil)
+	handler := NewServerWithLimits(s, ServerLimits{MaxConcurrent: 2, RequestsPerMinute: 1}).Handler()
+	for _, client := range []string{"198.51.100.10", "198.51.100.11"} {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		req.RemoteAddr = "127.0.0.1:4321"
+		req.Header.Set("X-Forwarded-For", client)
+		rr := httptest.NewRecorder()
+		handler.ServeHTTP(rr, req)
+		if rr.Code != http.StatusOK {
+			t.Fatalf("proxied client %s was not isolated: %d", client, rr.Code)
+		}
+	}
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.RemoteAddr = "127.0.0.1:4321"
+	req.Header.Set("X-Forwarded-For", "198.51.100.10")
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+	if rr.Code != http.StatusTooManyRequests {
+		t.Fatalf("per-client proxy rate limit was not enforced: %d", rr.Code)
+	}
+}
+
 func TestBackpressureRejectsWithoutQueueing(t *testing.T) {
 	s := testService(t, nil)
 	server := NewServerWithLimits(s, ServerLimits{MaxConcurrent: 1, RequestsPerMinute: 100})

@@ -8,6 +8,12 @@ on:
 
 jobs:
   test:
+    # The original Cloud workflow owns the explicit IDE-only source selection.
+    # Do not wake service smoke/deploy/package targets for its narrow draft PR.
+    if: >-
+      ${{ !(github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            github.head_ref == 'codex/cloud-key-recovery-rotation') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

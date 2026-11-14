@@ -6,6 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY internal/cloud ./internal/cloud
+COPY internal/developerauthority ./internal/developerauthority
 COPY apps/cloud/cmd/ynx-cloudd ./apps/cloud/cmd/ynx-cloudd
 
 RUN CGO_ENABLED=0 go build \
