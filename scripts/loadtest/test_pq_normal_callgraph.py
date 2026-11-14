@@ -70,6 +70,51 @@ class NormalCallgraphControls(unittest.TestCase):
                 self.assertEqual(any(e['kind']=='included' for e in events),mode=='valid')
                 self.assertEqual((case/'four-node-inclusion.json').exists(),mode=='valid')
 
+    def test_canceled_submission_preserves_intent_without_post(self):
+        backend = object.__new__(driver.NormalBackend)
+        backend.attempted = set()
+        backend.submit_lock = threading.Lock()
+        row = dict(index=0, id='logical', operationId='original', ownerIndex=4, nonce=1)
+        tx = dict(abciHash='a'*64, nativeHash='b'*64)
+        stop = threading.Event()
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp)
+            write = driver.lab.write_new
+
+            def cancel_after_write(path, value):
+                write(path, value)
+                stop.set()
+
+            events = []
+            with mock.patch.object(driver.lab, 'write_new', side_effect=cancel_after_write):
+                with mock.patch.object(driver.urllib.request, 'build_opener') as opener:
+                    with self.assertRaisesRegex(RuntimeError, 'canceled after intent'):
+                        backend.broadcast_once(row, tx, b'original', case, events.append, stop)
+                opener.assert_not_called()
+            self.assertTrue((case/'submission-intent.json').is_file())
+            self.assertFalse((case/'ack.json').exists())
+            self.assertEqual(events, [])
+
+    def test_inclusion_event_requires_evidence_persisted_before_cutoff(self):
+        backend = object.__new__(driver.NormalBackend)
+        backend.c = SimpleNamespace(proof_timeout=1, plan={'nodes': [dict(index=i) for i in range(4)]})
+        backend.observed_rpc = mock.Mock(return_value=dict(hash='a'*64, height='19', tx_result=dict(code=0)))
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp)
+            stop = threading.Event()
+            write = driver.lab.write_new
+            events = []
+
+            def slow_write(path, value):
+                write(path, value)
+                stop.set()
+
+            with mock.patch.object(driver.lab, 'write_new', side_effect=slow_write):
+                with self.assertRaisesRegex(RuntimeError, 'persisted after bounded inclusion cutoff'):
+                    backend.observe_inclusion({}, dict(abciHash='a'*64), case, events.append, stop)
+            self.assertTrue((case/'four-node-inclusion.json').is_file())
+            self.assertFalse(any(event['kind'] == 'included' for event in events))
+
     def test_live_proof_retains_only_matching_original_failure_bytes(self):
         backend=object.__new__(driver.NormalBackend)
         with tempfile.TemporaryDirectory() as temp:

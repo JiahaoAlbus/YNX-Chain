@@ -572,10 +572,12 @@ class NormalBackend:
     def broadcast_once(self,row,tx,raw,case,notify,stop):
         expected=normal.comet_hash(tx["abciHash"])
         with self.submit_lock:
+            lab.require(not stop.is_set(),"original submission canceled before intent; preserve original without POST")
             lab.require(expected not in self.attempted,"original transaction already attempted; no replay")
             self.attempted.add(expected)
             lab.write_new(case/"submission-intent.json",dict(id=row["id"],operationId=row["operationId"],owner=row["ownerIndex"],nonce=str(row["nonce"]),transactionHash=expected,nativeHash=normal.comet_hash(tx["nativeHash"]),submissionAttempts=1,qualifiedFinal=False))
         body=json.dumps(dict(jsonrpc="2.0",id=row["id"],method="broadcast_tx_sync",params=dict(tx=base64.b64encode(raw).decode())),separators=(",",":")).encode()
+        lab.require(not stop.is_set(),"original submission canceled after intent; preserve original without POST")
         notify(dict(kind="normal_stage",stage="post"))
         notify(dict(kind="submitted"))
         ack=None;transport=None
@@ -616,13 +618,20 @@ class NormalBackend:
                 lab.require(len(heights)==1 and next(iter(heights))>0
                             and all(type(r["tx_result"].get("code")) is int and r["tx_result"]["code"]==0 for r in rows),
                             "normal included execution/height differs")
-                notify(dict(kind="included"))
-                lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"));return int(rows[0]["height"])
+                break
             except (OSError,ValueError,KeyError):pass
             except RuntimeError as error:
                 if "identity differs" in str(error) or "execution/height differs" in str(error):raise
             stop.wait(.02)
-        raise RuntimeError("original submitted hash unresolved at bounded inclusion cutoff; no replay")
+        else:
+            rows=[]
+        lab.require(len(rows)==4 and not stop.is_set() and time.monotonic_ns()<until,
+                    "original submitted hash unresolved at bounded inclusion cutoff; no replay")
+        lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"))
+        lab.require(not stop.is_set() and time.monotonic_ns()<until,
+                    "original inclusion evidence persisted after bounded inclusion cutoff; no replay")
+        notify(dict(kind="included"))
+        return int(rows[0]["height"])
     def wait_successor(self,height,case,stop):
         # The original live CLI fails once (and retires its lane) if H+1 is
         # absent. Wait on original observations BEFORE publishing that request.
