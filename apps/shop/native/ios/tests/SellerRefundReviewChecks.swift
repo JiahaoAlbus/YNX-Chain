@@ -18,6 +18,11 @@ final class RefundReviewHTTP:URLProtocol,@unchecked Sendable {
     func respond(_ value:Any,status:Int=200)throws{let data=try JSONSerialization.data(withJSONObject:value);client?.urlProtocol(self,didReceive:HTTPURLResponse(url:request.url!,statusCode:status,httpVersion:nil,headerFields:["Content-Type":"application/json"])!,cacheStoragePolicy:.notAllowed);client?.urlProtocol(self,didLoad:data);client?.urlProtocolDidFinishLoading(self)}
     func lose(){client?.urlProtocol(self,didFailWithError:URLError(.networkConnectionLost))}
 }
+@MainActor final class UnavailableOrderChild: AppleOriginalMainPayChild {
+    func status() async throws -> [String: Any] { throw URLError(.networkConnectionLost) }
+    func invoke() async throws -> [String: Any] { throw ShopError.security }
+    func close() async throws {}
+}
 @main struct SellerRefundReviewChecks {
     @MainActor static func main()async throws {
         var checks=0
@@ -83,6 +88,29 @@ final class RefundReviewHTTP:URLProtocol,@unchecked Sendable {
         func refresh()async throws{model.refresh();try await until{!model.busy && model.orders.count==1}}
         func connect()async throws{model.connect();try await until{model.signedIn && !model.busy && model.orders.count==1}}
         func take()async throws->RefundReviewHTTP{try await until{!pendingHTTP.isEmpty};return pendingHTTP.removeFirst()}
+        if !explicitRecoveryOnly {
+            let fallbackAuthority=RefundReviewAuthority()
+            let fallbackAPI=APIClient(session:URLSession(configuration:configuration),authority:fallbackAuthority,
+                                      acquireOriginalOrder:{_,_,_,_ in UnavailableOrderChild()})
+            let fallback=ShopSellerModel(api:fallbackAPI,journal:SellerMutationJournal(read:{_ in nil},write:{_,_ in}),
+                                         localDraftStore:SellerLocalDraftStore(read:{_ in nil},write:{_,_ in}))
+            fallback.connect()
+            try await until{fallback.signedIn && !fallback.busy && fallback.orders.count==1}
+            let before=fallback.orders[0]
+            fallback.readOriginalOrder(before)
+            let read=try await take()
+            var updated=base;updated["LogisticsStatus"]="same-order-refresh"
+            try read.respond(updated);try await until{!fallback.busy}
+            try check(fallback.orders[0].LogisticsStatus=="same-order-refresh" && fallback.state=="unavailable",
+                      "failed Pay read preserves failure while refreshing same-order nonfinancial data")
+            fallback.readOriginalOrder(fallback.orders[0])
+            let changed=try await take()
+            var forbidden=base;forbidden["RefundStatus"]="changed"
+            try changed.respond(forbidden);try await until{!fallback.busy}
+            try check(fallback.orders[0].LogisticsStatus=="same-order-refresh" && fallback.orders[0].RefundStatus==before.RefundStatus,
+                      "failed Pay read cannot adopt changed financial status")
+            fallback.disconnect()
+        }
         func explicitRecoveryChecks()async throws {
             func require(_ value:Bool,_ name:String)throws{guard value else{throw NSError(domain:name,code:1)}}
             endpointOrder=pending(base);permissions=["seller.read","finance.read"];role="finance";holdMain=false;failMain=true

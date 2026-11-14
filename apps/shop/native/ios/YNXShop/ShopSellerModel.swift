@@ -170,12 +170,24 @@ import SwiftUI
                 guard at == self.epoch, view == self.selection, self.exactCurrentOrder(order),
                       self.can("finance.read") else { throw ShopError.contextChanged }
             }
-            let protectedRead = can("finance.read") ? try await api.observeProtectedOriginalOrder(order.paymentOrder, beforeDispatch: financeFence) : false
-            let result=try await readOriginalOrderResult(order,at:at,view:view,check:protectedRead ? financeFence : check)
+            var protectedRead = false
+            var payReadError: Error?
+            if can("finance.read") {
+                do {
+                    protectedRead = try await api.observeProtectedOriginalOrder(order.paymentOrder, beforeDispatch: financeFence)
+                } catch {
+                    try financeFence()
+                    payReadError = error
+                }
+            }
+            let result=try await readOriginalOrderResult(order,at:at,view:view,check:(protectedRead || payReadError != nil) ? financeFence : check, preserveFinance: payReadError != nil)
+            if let payReadError {
+                state=(payReadError as? OriginalMainPayRefusal)?.presentationState ?? "unavailable"
+            }
             // Only this explicit user read may refresh permission to query the
             // same original again. The reconciliation flow's automatic GET
             // cannot unlock it, nor can a refreshed but rebound payment tuple.
-            if let binding=ReconciliationBinding(order),binding==ReconciliationBinding(result),
+            if payReadError == nil, let binding=ReconciliationBinding(order),binding==ReconciliationBinding(result),
                let previous=order.NativePayment,let fresh=result.NativePayment,
                (try? previous.validate(order.paymentOrder,requirePaid:false)) != nil {
                 let previousHashes=Set(previous.PendingOriginals ?? [])
@@ -186,7 +198,7 @@ import SwiftUI
             }
         }catch{if at==epoch,view==selection{state=(error as? SellerReadRefusal)?.rawValue ?? "unavailable"}}}
     }
-    private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:@escaping ()throws->Void)async throws->SellerOrder {
+    private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:@escaping ()throws->Void,preserveFinance:Bool=false)async throws->SellerOrder {
         let response=try await api.raw("seller/orders/"+order.ID,method:"GET",json:[:],beforeDispatch:check);try check()
         guard at==epoch,view==selection,currentOrder(order) else{throw ShopError.contextChanged}
         let result=try JSONDecoder().decode(SellerOrder.self,from:CanonicalJSON.data(response))
@@ -195,6 +207,13 @@ import SwiftUI
             guard let original=ReconciliationBinding(order),original==ReconciliationBinding(result) else{throw ShopError.security}
         }
         if let payment=result.NativePayment{try payment.validate(result.paymentOrder,requirePaid:false)}
+        if preserveFinance {
+            let encoder=JSONEncoder();encoder.outputFormatting=[.sortedKeys]
+            guard result.Status==order.Status, result.RefundStatus==order.RefundStatus,
+                  try encoder.encode(result.NativePayment)==encoder.encode(order.NativePayment),
+                  try encoder.encode(result.Settlement)==encoder.encode(order.Settlement),
+                  try encoder.encode(result.Refund)==encoder.encode(order.Refund) else { throw ShopError.security }
+        }
         guard let index=orders.firstIndex(where:{$0.ID==order.ID}) else{throw ShopError.contextChanged}
         orders[index]=result;state="";return result
     }
