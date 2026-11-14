@@ -3318,7 +3318,7 @@ jobs:
           git show f1a31f30d0883e426deff6b272ca851a840948c7:internal/bftgateway/migration_evm_logs.go > "$case_dir/original.go"
           printf '%s  %s\n' 27fc0f3cfb6df656cacfc5e319fe3930f416083d2e344c0315fdcd8dec048aaa "$case_dir/original.go" | sha256sum -c -
           cp "$case_dir/original.go" "$leaf"
-          if go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayOriginalEVMLogsCrossMigrationAndColdRead/(empty|missing-block)$' ./internal/bftgateway > "$case_dir/original.log" 2>&1; then
+          if go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayOriginalEVMLogsCrossMigrationAndColdRead/^(empty|missing-block)$' ./internal/bftgateway > "$case_dir/original.log" 2>&1; then
             cat "$case_dir/original.log"
             exit 1
           fi
