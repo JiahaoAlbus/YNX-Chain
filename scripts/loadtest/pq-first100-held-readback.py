@@ -201,6 +201,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
         require(manifest[prefix+'load-plan.json']['sha256'] == runtime_pin, 'original runtime plan differs')
     load = receipt.get('loadResult')
     observed = prior.inclusion_replies(files, prefix, load)
+    successor = prior.successor_availability(files, prefix, receipt)
     commits = prior.original.commit_original_copies(files, prefix, receipt)
     if load is not None:
         require(receipt['loadExecuted'] is True and runtime_pin is not None, 'original load boundary missing')
@@ -304,6 +305,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 readinessResources=readiness_resources(receipt),
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
+                originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
                 readinessCensusCheckpointJoin=census_join,

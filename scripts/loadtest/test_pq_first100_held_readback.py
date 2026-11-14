@@ -181,6 +181,8 @@ class HeldReadbackTests(unittest.TestCase):
                       transactionType='pq_transfer', members=1, nativeGrant=False,
                       normalConfirmCode='PROOF_CONFIRMED_DATA', proofReference=base+'qualified-receipt.json')
         load = ledger.report(5_000_000_003)
+        origin = 100_000_000_000
+        load['originMonotonicNs'] = str(origin)
         result = dict(transactionHash='0x'+row['hash'], nativeWireHash=row['nativeHash'], included=True,
                       finalized=True, executionSuccessful=True, executionCode='0', nativeGrant=False)
         verifier = dict(code='VERIFIED_TRANSACTION_DATA', result=result)
@@ -204,11 +206,25 @@ class HeldReadbackTests(unittest.TestCase):
                 outcome='original_result_read', result=proof)),
         }
         raw, pin = self.fixture(confirmed=(originals, load))
-        cohort = reader.inspect(raw, sha(raw), self.controller, pin)['fullCohort']
+        report = reader.inspect(raw, sha(raw), self.controller, pin)
+        cohort = report['fullCohort']
+        self.assertEqual(report['originalSuccessorAvailability']['observed'], 0)
+        self.assertFalse(report['originalSuccessorAvailability']['independentFinality'])
         self.assertEqual(cohort['submissionAttemptWindowTPS'], 0.2)
         self.assertEqual(cohort['originalCohort']['counts']['qualifiedReceipt']['inTail'], 1)
         self.assertEqual(cohort['unresolvedRate'], 499/500)
         self.assertIsNone(cohort['originalCohort']['latencies']['submitToQualifiedReceiptObserved']['p95Ms'])
+        originals[base+'successor-availability.json'] = encode(dict(
+            transactionHeight=19, minimumSuccessorHeight=20,
+            observations=[dict(node=i,engineHeight=20,applicationHeight=20) for i in range(4)],
+            observedMonotonicNs=origin+5_000_000_001,
+            qualifiedFinal=False))
+        # The fixture's operation has no successor stage. Reject the unbound
+        # timing instead of adopting it into the confirmed cohort.
+        raw, pin = self.fixture(confirmed=(originals, load))
+        with self.assertRaisesRegex(KeyError, 'successor_availability'):
+            reader.inspect(raw, sha(raw), self.controller, pin)
+        del originals[base+'successor-availability.json']
         originals[base+'original-confirm-reply.json'] = encode(dict(confirm, code='REFUSED'))
         raw, pin = self.fixture(confirmed=(originals, load))
         with self.assertRaisesRegex(RuntimeError, 'original held proof'):
