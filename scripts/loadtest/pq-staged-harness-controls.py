@@ -19,7 +19,7 @@ GROUPS=[
  ('test_pq_normal_paired_runtime.py',None,7),
  ('test_pq_finalize_trace_readback.py',None,9),
  ('test_pq_lossless_source_data.py',None,8),
- ('test_pq_commit_observation.py',None,12),
+ ('test_pq_commit_observation.py',None,22),
  ('test_pq_normal_pair_gates.py',None,12),
  ('test_pq_normal_leg_stages.py',None,32),
  ('test_pq_hop_byte_accounting.py',['PreparationNetworkAccountingControls'],4),

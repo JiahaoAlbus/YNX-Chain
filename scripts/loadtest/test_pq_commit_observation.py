@@ -130,4 +130,176 @@ class CommitStageSummaryControls(unittest.TestCase):
             report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64)
             self.assertTrue(report['fourOriginalSnapshotsValid']);self.assertEqual([r['retainedPersistenceStages']['retainedSuccessCount'] for r in report['originalSnapshots']],[1]*4)
 
+def detailed(pid=123,height=19):
+    # Python ABI control only; never relabel this as an actual Go sample.
+    value=declared(pid,height);value['captureBoundary']=m.CAPTURE_BOUNDARY
+    sample=value['samples'][0];sample['persistence']['stagesNs']['validate']=90
+    sample['validation']=dict(version=m.VALIDATION_VERSION,height=height,elapsedNs=80,
+                              phaseNs={'accounts':40,'app_hash':30},hashDocumentNs=20,hashEncodeDigestNs=15)
+    return value
+
+class CommitValidationControls(unittest.TestCase):
+    def validate(self,value):return m.validate_declared_contract(value,123,'ynx_642399-1','b'*64)
+
+    def test_exact_optional_shape_and_nested_overlapping_spans(self):
+        value=detailed();before=copy.deepcopy(value);self.assertIs(self.validate(value),value)
+        summary=m.validation_stage_summary(value,source_commit=m.VALIDATION_SOURCE)
+        self.assertEqual(summary['observedCount'],1);self.assertEqual(summary['samples'][0]['height'],19)
+        self.assertEqual(summary['samples'][0]['validation']['hashDocumentNs'],20)
+        self.assertFalse(summary['stagesAdded']);self.assertTrue(summary['childSpansOverlapParents'])
+        # 20 + 15 > parent app_hash 30 is valid: child spans are not summed.
+        self.assertEqual(value,before);self.assertIsNone(summary['businessTPS'])
+
+    def test_malformed_or_cross_height_validation_never_accepted(self):
+        changes={
+            'null':lambda s:s.update(validation=None),
+            'extra':lambda s:s['validation'].update(privatePath='untrusted'),
+            'missing':lambda s:s['validation'].pop('hashDocumentNs'),
+            'version':lambda s:s['validation'].update(version='unknown'),
+            'height':lambda s:s['validation'].update(height=20),
+            'boolHeight':lambda s:s['validation'].update(height=True),
+            'elapsed':lambda s:s['validation'].update(elapsedNs=91),
+            'missingParent':lambda s:s['persistence']['stagesNs'].pop('validate'),
+            'float':lambda s:s['validation'].update(elapsedNs=80.0),
+            'negative':lambda s:s['validation'].update(hashDocumentNs=-1),
+            'child':lambda s:s['validation'].update(hashEncodeDigestNs=31),
+            'emptyPhases':lambda s:s['validation'].update(phaseNs={}),
+            'tooMany':lambda s:s['validation'].update(phaseNs={str(i):1 for i in range(65)}),
+            'badPhase':lambda s:s['validation']['phaseNs'].update({'../path':1}),
+            'boolNs':lambda s:s['validation']['phaseNs'].update(accounts=True),
+            'phaseElapsed':lambda s:s['validation']['phaseNs'].update(accounts=81),
+            'overflow':lambda s:s['validation'].update(hashDocumentNs=1<<63),
+        }
+        for name,change in changes.items():
+            value=detailed();change(value['samples'][0])
+            with self.subTest(name=name),self.assertRaises(RuntimeError):self.validate(value)
+
+    def test_json_duplicates_and_nonfinite_numbers_refused(self):
+        for raw in (b'{"phaseNs":{"accounts":1,"accounts":2}}',b'{"elapsedNs":NaN}',b'{"elapsedNs":Infinity}',b'{"elapsedNs":-Infinity}'):
+            with self.subTest(raw=raw),self.assertRaises(RuntimeError):m.strict(raw)
+
+    def test_old_samples_missing_detail_and_heights_remain_unknown(self):
+        value=declared(123);summary=m.validation_stage_summary(value,source_commit='c'*40,heights={19,20})
+        self.assertEqual(summary['status'],'UNKNOWN');self.assertEqual(summary['observedCount'],0)
+        self.assertEqual(summary['missingRetainedSamples'],1);self.assertIsNone(summary['samples'][0]['validation'])
+        self.assertEqual(summary['missingRequestedHeights'],[20])
+        value=detailed();value['unobservedLatest']=copy.deepcopy(value['samples'][0]);value['samples']=[]
+        self.assertEqual(m.validation_stage_summary(value,source_commit=m.VALIDATION_SOURCE)['observedCount'],0)
+        value=detailed();value['samples'][0]['validation']['phaseNs'].pop('app_hash')
+        value['samples'][0]['validation'].update(hashDocumentNs=0,hashEncodeDigestNs=0)
+        self.validate(value) # Match Go absent-map lookup without inventing app_hash.
+        self.assertNotIn('app_hash',m.validation_stage_summary(value,source_commit=m.VALIDATION_SOURCE)['samples'][0]['validation']['phaseNs'])
+
+    def test_opt_in_needs_parent_observer_and_exact_source_before_source_access(self):
+        for source,parent,requested in [('c'*40,True,True),(m.VALIDATION_SOURCE,False,True),(m.VALIDATION_SOURCE,True,1)]:
+            args=SimpleNamespace(commit=source,commit_observation=parent,commit_validation_observation=requested)
+            with self.subTest(source=source,parent=parent,requested=requested),mock.patch.object(driver.lab,'check_source') as checked, self.assertRaises(RuntimeError):
+                driver.run(args)
+            checked.assert_not_called()
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();out=root/'node.json'
+            baseline=m.arguments(out,root)
+            self.assertNotIn('--commit-validation-observation',baseline)
+            self.assertEqual(m.arguments(out,root,validation=True,source_commit=m.VALIDATION_SOURCE),baseline+['--commit-validation-observation'])
+        with self.assertRaisesRegex(RuntimeError,'exact Commit validation'):
+            m.validation_stage_summary(detailed(),source_commit='c'*40)
+        args=SimpleNamespace(mode='online',accounts=500,per_account=2,seconds=5,tail_seconds=30,proof_timeout=30,sender_backend='bounded-cold',staged_publication=True)
+        baseline=driver.load_conditions(args);self.assertNotIn('commit_validation_observation',baseline)
+        args.commit_validation_observation=False;self.assertEqual(driver.load_conditions(args),baseline)
+        args.commit_validation_observation=True;changed=driver.load_conditions(args)
+        self.assertTrue(changed.pop('commit_validation_observation'));self.assertEqual(changed,baseline)
+
+    def test_driver_wires_four_original_arguments_without_mutating_input(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'.private').mkdir();policy=root/'policy';policy.write_bytes(b'control')
+            pin=hashlib.sha256(policy.read_bytes()).hexdigest()
+            activation={'nodes':[{'args':['original',str(n)]} for n in range(4)]};before=copy.deepcopy(activation)
+            ceremony=driver.LoadCeremony.__new__(driver.LoadCeremony)
+            ceremony.w=SimpleNamespace(work=root);ceremony.root=root;ceremony.pin='p';ceremony.activation_pin='a';ceremony.operations=500;ceremony.proof_timeout=30
+            ceremony.live=[];ceremony.measurements=SimpleNamespace(record=lambda *args:None)
+            ceremony.commit_observation_enabled=True;ceremony.commit_validation_observation_enabled=True;ceremony.consumer_source=m.VALIDATION_SOURCE
+            ceremony.commit_observation_descriptors=[];ceremony.finalize_observation_enabled=False
+            def call(name,args):
+                n=int(name.rsplit('-',1)[1])
+                return dict(version='YNX-PQ-LAB-LIVE-MATERIALS-SETUP/v1',syntheticOnly=True,nodeStarted=False,authorityGranted=False,
+                            policy=dict(path=str(policy),sha256=pin),nodeArguments=activation['nodes'][n]['args']+['--proof-host-live-policy',str(policy),'--proof-host-live-policy-sha256',pin])
+            ceremony.call=call
+            result=ceremony.activation_startup(activation)
+            self.assertEqual(activation,before);self.assertEqual(len(ceremony.commit_observation_descriptors),4)
+            for node in result['nodes']:self.assertEqual(node['args'].count('--commit-validation-observation'),1)
+            activation['nodes'][0]['args'].append('--commit-validation-observation=false')
+            with self.assertRaisesRegex(RuntimeError,'duplicate'):ceremony.activation_startup(activation)
+
+    def archive_control(self,root,*,detail=True):
+        (root/'public').mkdir();descriptors=[];children=[];originals={}
+        for i in range(4):
+            snapshot=detailed(123+i,19+i) if detail else declared(123+i,19+i)
+            snapshot['captureBoundary']=m.CAPTURE_BOUNDARY
+            raw=json.dumps(snapshot,indent=3).encode();path=root/('node%d.json'%i);path.write_bytes(raw);path.chmod(0o600)
+            originals[i]=raw;descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i))
+            children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=123+i,poll=lambda:0)))
+        source=m.VALIDATION_SOURCE if detail else 'c'*40
+        report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64,source_commit=source,validation_requested=detail)
+        receipt=dict(source=dict(commit=source),normalCommitObservation=report,
+                     processes=[dict(name='pq-node-%d'%i,pid=123+i,startTicks=100+i,exited=True,rawReturnCode=0) for i in range(4)])
+        files={'public/commit-observation-node-%d-original.json'%i:raw for i,raw in originals.items()}
+        return files,receipt
+
+    def read_control(self,files,receipt):
+        return m.original_validation_readback(files,'public/',receipt,source_commit=receipt['source']['commit'],
+                                              chain_id='ynx_642399-1',genesis_hash='b'*64,business_heights={19,22})
+
+    def test_stopped_copy_original_sha_source_pid_height_and_storage_bound(self):
+        with tempfile.TemporaryDirectory() as temp:
+            files,receipt=self.archive_control(Path(temp).resolve());report=self.read_control(files,receipt)
+            self.assertTrue(receipt['normalCommitObservation']['fourOriginalSnapshotsValid']);self.assertEqual(report['observedNodes'],4)
+            for i in range(4):
+                node=report['nodes'][str(i)];raw=files['public/commit-observation-node-%d-original.json'%i]
+                self.assertEqual(node['originalFile']['sha256'],hashlib.sha256(raw).hexdigest())
+                self.assertEqual(node['producer']['pid'],123+i);self.assertEqual(node['producer']['startTicks'],100+i)
+                sample=node['allRetained']['samples'][0];self.assertEqual(sample['height'],19+i)
+                self.assertEqual(sample['storage'],'atomic-json')
+                self.assertEqual(node['business']['observedCount'],1 if i in (0,3) else 0)
+
+    def test_archive_tampering_fails_closed_per_node_without_erasing_other_nodes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            files,receipt=self.archive_control(Path(temp).resolve())
+            changes={
+                'sha':lambda f,r:f.__setitem__('public/commit-observation-node-0-original.json',b'{}'),
+                'pid':lambda f,r:r['processes'][0].update(pid=999),
+                'ticks':lambda f,r:r['processes'][0].update(startTicks=0),
+                'live':lambda f,r:r['processes'][0].update(exited=False),
+                'exit':lambda f,r:r['processes'][0].update(rawReturnCode=None),
+                'source':lambda f,r:r['normalCommitObservation']['originalSnapshots'][0].update(sourceCommit='c'*40),
+                'copy':lambda f,r:r['normalCommitObservation']['originalSnapshots'][0]['rawOriginalObservation']['samples'][0].update(height=99),
+            }
+            for name,change in changes.items():
+                f,r=copy.deepcopy(files),copy.deepcopy(receipt);change(f,r)
+                with self.subTest(name=name):
+                    report=self.read_control(f,r);self.assertEqual(report['nodes']['0']['status'],'INVALID_ORIGINAL')
+                    self.assertIsNone(report['nodes']['0']['allRetained']);self.assertEqual(report['observedNodes'],3)
+            with self.assertRaisesRegex(RuntimeError,'receipt/source'):
+                m.original_validation_readback(files,'public/',receipt,source_commit='c'*40,chain_id='ynx_642399-1',genesis_hash='b'*64)
+
+    def test_legacy_single_arm_and_missing_node_do_not_gain_validation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            files,receipt=self.archive_control(Path(temp).resolve(),detail=False)
+            report=self.read_control(files,receipt);self.assertEqual(report['observedNodes'],0)
+            self.assertEqual(report['nodes']['0']['allRetained']['missingRetainedSamples'],1)
+            self.assertNotIn('validationRequested',receipt['normalCommitObservation'])
+            receipt['normalCommitObservation']['originalSnapshots'].pop()
+            report=self.read_control(files,receipt);self.assertEqual(report['nodes']['3']['status'],'UNKNOWN')
+            self.assertIsNone(report['nodes']['3']['allRetained'])
+
+    def test_unrequested_detail_keeps_raw_original_but_is_not_usable(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir();descriptors=[];children=[]
+            for i in range(4):
+                path=root/('node%d.json'%i);path.write_text(json.dumps(detailed(123+i)));path.chmod(0o600)
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i));children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=123+i,poll=lambda:0)))
+            report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64)
+            self.assertEqual(report['validOriginalNodes'],0);self.assertEqual(len(report['originalSnapshots']),4)
+            self.assertEqual(len(list((root/'public').iterdir())),4)
+            self.assertTrue(all('unrequested' in e['reason'] for e in report['errors']))
+
 if __name__=='__main__':unittest.main()
