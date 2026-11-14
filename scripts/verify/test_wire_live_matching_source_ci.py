@@ -9,6 +9,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -18,6 +19,13 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("wire_live_ci", HERE / "wire-live-matching-source-ci.py")
 ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
+
+
+def workflow_job(workflow, name):
+    found = re.findall(r"(?ms)^  " + re.escape(name) + r":\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)", workflow)
+    if len(found) != 1:
+        raise AssertionError("one bounded workflow job required: " + name)
+    return found[0]
 
 
 class WireLiveSourceControls(unittest.TestCase):
@@ -510,6 +518,68 @@ class WireLiveSourceControls(unittest.TestCase):
                 extract.assert_not_called()
             self.assertFalse(destination.exists())
 
+    def assert_optional_partition(self, workflow):
+        client = workflow_job(workflow, "client-observations")
+        optional = workflow_job(workflow, "optional-live-source")
+        for job in (client, optional):
+            for line in ("    needs: contract-tooling-scope\n",
+                         "    if: needs.contract-tooling-scope.outputs.client_changed == 'true'\n",
+                         "    runs-on: ubuntu-24.04\n", "    timeout-minutes: 8\n",
+                         "      GOMAXPROCS: '2'\n",
+                         "          ref: ${{ github.sha }}\n", "          fetch-depth: 1\n",
+                         "          persist-credentials: false\n", "          go-version-file: go.mod\n",
+                         "          check-latest: false\n", "          cache: true\n"):
+                self.assertEqual(job.count(line), 1, line)
+            self.assertNotIn("continue-on-error", job)
+            self.assertEqual(job.count("uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683"), 1)
+            self.assertEqual(job.count("uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"), 1)
+        client_steps = ["Execute the current client and qualify actual terminal results",
+                        "Exercise the original readback CLI and complete logical denominators",
+                        "Verify normal PQ lab producers and the original proof caller",
+                        "Verify the default-off normal node wire observation adapter"]
+        optional_steps = ["Verify strict source availability and separated Go stream controls",
+                          "Acquire only the immutable optional supplier object",
+                          "Verify exact optional live getter composition without enabling a carrier",
+                          "Preserve only public optional live source evidence"]
+        for job, expected in ((client, client_steps), (optional, optional_steps)):
+            self.assertEqual(re.findall(r"^      - name: (.+)$", job, re.M), expected)
+            for name in expected:
+                self.assertEqual(workflow.count("      - name: " + name + "\n"), 1)
+        self.assertEqual(optional.count("        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n"), 1)
+        self.assertEqual(optional.count("        run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py\n"), 1)
+        self.assertNotIn("go test", optional)
+        self.assertNotIn("download-artifact", optional)
+        self.assertEqual(optional.count("        if: always()\n"), 1)
+        self.assertIn("          name: normal-live-wire-source-${{ github.sha }}\n", optional)
+        for name in ("normal-live-caller", "original-peer-budget"):
+            for suffix in (".jsonl", ".stderr.log", ".result.json"):
+                self.assertEqual(optional.count("/" + name + suffix + "\n"), 1)
+        self.assertIn("          retention-days: 14\n", optional)
+        return client, optional
+
+    def test_optional_composition_has_independent_original_budget_and_no_repeated_groups(self):
+        self.assert_optional_partition((HERE.parents[1] / ".github/workflows/chain-core.yml").read_text())
+
+    def test_optional_partition_rejects_scope_source_budget_soft_failure_and_duplicate_work(self):
+        workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
+        client, optional = self.assert_optional_partition(workflow)
+        changed = [
+            optional.replace("needs: contract-tooling-scope", "needs: client-observations", 1),
+            optional.replace("if: needs.contract-tooling-scope.outputs.client_changed == 'true'", "if: always()", 1),
+            optional.replace("ref: ${{ github.sha }}", "ref: main", 1),
+            optional.replace("timeout-minutes: 8", "timeout-minutes: 18", 1),
+            optional.replace("persist-credentials: false", "persist-credentials: true", 1),
+            optional.replace("      - name: Verify exact optional live getter composition without enabling a carrier\n", "      - name: Verify exact optional live getter composition without enabling a carrier\n        continue-on-error: true\n", 1),
+            optional + "      - run: go test ./internal/consensus\n",
+            optional.replace("        if: always()\n", "", 1),
+            optional.replace("/original-peer-budget.stderr.log\n", "/missing.stderr.log\n", 1),
+        ]
+        for number, mutation in enumerate(changed):
+            with self.subTest(mutation=number), self.assertRaises(AssertionError):
+                self.assert_optional_partition(workflow.replace(optional, mutation, 1))
+        with self.assertRaises(AssertionError):
+            self.assert_optional_partition(workflow.replace(client, client + "      - name: Verify exact optional live getter composition without enabling a carrier\n        run: python3 -B scripts/verify/wire-live-matching-source-ci.py\n", 1))
+
     def test_workflow_fetches_only_fixed_supplier_with_ephemeral_read_credential(self):
         workflow = (HERE.parents[1] / ".github/workflows/chain-core.yml").read_text()
         step = workflow.split("      - name: Acquire only the immutable optional supplier object\n", 1)[1]
@@ -551,14 +621,14 @@ class WireLiveSourceControls(unittest.TestCase):
         on_job = workflow.split("  lossless-matching-source:\n", 1)[1].split("  commit-observation:\n", 1)[0]
         for suffix in (".jsonl", ".stderr.log", ".result.json"):
             self.assertIn("retained-observer" + suffix, on_job)
-        client_job = workflow.split("  client-observations:\n", 1)[1].split("  commit-observation:\n", 1)[0]
-        self.assertIn("persist-credentials: false", client_job)
-        self.assertIn("fetch-depth: 1", client_job)
-        self.assertIn("timeout-minutes: 8", client_job)
+        optional_job = workflow_job(workflow, "optional-live-source")
+        self.assertIn("persist-credentials: false", optional_job)
+        self.assertIn("fetch-depth: 1", optional_job)
+        self.assertIn("timeout-minutes: 8", optional_job)
         self.assertIn("contents: read", workflow)
         for name in ("normal-live-caller", "original-peer-budget"):
             for suffix in (".jsonl", ".stderr.log", ".result.json"):
-                self.assertIn(name + suffix, client_job)
+                self.assertIn(name + suffix, optional_job)
 
 
 if __name__ == "__main__":

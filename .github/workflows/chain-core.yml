@@ -437,6 +437,28 @@ jobs:
               raise RuntimeError('observer stream failed or an observer child skipped')
           print('YNX_PQ_OBSERVER_FORK_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=observer_required, nodeStarted=False, liveSyncVerified=False, independentFinalityVerified=False, nativeGrant=False), sort_keys=True))
           PY
+
+  optional-live-source:
+    name: Exact optional live getter source composition
+    # This independent source composition owns its original bounded job rather
+    # than inheriting the elapsed client, lab and observer execution time.
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
       - name: Verify strict source availability and separated Go stream controls
         run: python3 -B scripts/verify/test_wire_live_matching_source_ci.py
       - name: Acquire only the immutable optional supplier object
