@@ -2711,6 +2711,7 @@ jobs:
           required += ['TestPQLabStaticCacheBoundCleanRefusalIsExact', 'TestPQLabStaticCacheBoundCleanupFailureIsNotOnlyBound']
           required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
+          required += ['TestPQLabLiveMaterialsPreOutputFailureOriginalCurrent', 'TestPQLabLiveMaterialsPreOutputFailureExclusiveAndNoPhantom', 'TestMigrationHistoryLogInventoryRangeAndMetadataBounds']
           required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           required += ['TestInitializeApplicationCapacityMatchesWrittenLayoutAndRefusesBeforeReservation']
@@ -2728,6 +2729,8 @@ jobs:
           required += ['TestCombinedValidatedMigrationPrivateOwnerMatchesTwoPassBoundary']
           sender_checkpoint_required = ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
           required += ['TestPQLabSenderCheckpointSourceSameInputColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceCanonicalColdAndSteadyParity', 'TestPQLabSenderCheckpointSourceScopeCurrentAndClose', 'TestPQLabSenderCheckpointSourceRevocationNonceAndUnknown', 'TestPQLabSenderBootstrapOriginalCanonicalPinsAndWitness', 'TestPQLabCheckpointReadCrossNodeExactBytesAndClose']
+          sender_checkpoint_required += ['TestPQLabCheckpointRefusalStagesAndOriginalErrors', 'TestPQLabCheckpointRefusalOriginalAdvanceRemainsRefused']
+          required += sender_checkpoint_required[-2:]
           sender_checkpoint_package = 'github.com/JiahaoAlbus/YNX-Chain/internal/consensus'
           for name in sender_checkpoint_required:
               runs = [e for e in events if e.get('Test') == name and e.get('Action') == 'run']
