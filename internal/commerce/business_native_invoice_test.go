@@ -98,8 +98,30 @@ func TestNativeInvoiceCreateOriginalThenColdLookupWithoutRepriceOrResend(t *test
 			t.Fatal("original first-cause dispatch evidence discarded")
 		}
 	}
-	if _, e := Open(s.path); e != nil {
+	cold, e := Open(s.path)
+	if e != nil {
 		t.Fatal("new read-only lookup journal is not cold-readable", e)
+	}
+	merchant := cold.s.Stores[order.StoreID].Owner
+	sellerRoute := "/api/seller/orders/" + order.ID
+	revoked := NewServer(cold, ServerConfig{NativeInvoiceOnly: true, businessV2: controlledBusinessVerifier{
+		account: merchant, role: "seller", fence: func() error { return ErrUnauthorized },
+	}})
+	denied := businessHTTPRequest(revoked, http.MethodGet, sellerRoute, strings.Repeat("d", 43), "")
+	if denied.Code != http.StatusForbidden || bytes.Contains(denied.Body.Bytes(), []byte(got.InvoiceID)) {
+		t.Fatalf("revoked seller received original invoice: %d %s", denied.Code, denied.Body.String())
+	}
+	recoveredSeller := NewServer(cold, ServerConfig{NativeInvoiceOnly: true, businessV2: controlledBusinessVerifier{account: merchant, role: "seller"}})
+	read := businessHTTPRequest(recoveredSeller, http.MethodGet, sellerRoute, strings.Repeat("e", 43), "")
+	var sellerOrder Order
+	if read.Code != http.StatusOK || json.Unmarshal(read.Body.Bytes(), &sellerOrder) != nil ||
+		sellerOrder.ID != order.ID || sellerOrder.InvoiceID != got.InvoiceID || sellerOrder.PayIntentID != got.PayIntentID ||
+		sellerOrder.Status != "payment_pending" || sellerOrder.Settlement != nil {
+		t.Fatalf("current seller failed to read the same original invoice: %d %s", read.Code, read.Body.String())
+	}
+	if creates != 1 || lookups != 1 || quotes != 1 || len(cold.s.Orders) != 1 ||
+		!reflect.DeepEqual(cold.s.BusinessEffects, reopened.s.BusinessEffects) {
+		t.Fatal("seller read created or replayed an order or invoice")
 	}
 	// Main's Source-owned product DATA port reads the captured payload. It does
 	// not grant Source and cannot expose another buyer's original request.

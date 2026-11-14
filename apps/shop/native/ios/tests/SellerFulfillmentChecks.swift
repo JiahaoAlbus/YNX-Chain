@@ -200,6 +200,39 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         try await until{!model.busy && model.orders.count==3}
         for _ in 0..<1000{await Task.yield()}
         try check(sent.count==sentCount && pending.isEmpty,"queued original order read cannot dispatch under a new Seller session")
+        let originalForRecovery=model.orders.first(where:{$0.ID==native.ID})!
+        let beforeReadRecovery=storage
+        let requestsBeforeRecovery=sent.count
+        let reviewsBeforeRecovery=reviews.count
+
+        model.readOriginalOrder(originalForRecovery)
+        let disconnectedRead=try await take("seller/orders/order_native_terms")
+        disconnectedRead.lose()
+        try await until{!model.busy}
+        try check(model.state=="unavailable" && model.orders.first(where:{$0.ID==native.ID})?.PayIntentID==native.PayIntentID,
+                  "lost original order response preserves the original invoice operation")
+
+        model.readOriginalOrder(originalForRecovery)
+        let revokedRead=try await take("seller/orders/order_native_terms")
+        authority.current=nil;api.onSessionChanged?()
+        try revokedRead.respond(nativeOrder)
+        try await until{!model.signedIn && !model.busy && model.orders.isEmpty}
+
+        model.connect()
+        try await until{model.signedIn && !model.busy && model.orders.count==3}
+        let reauthorizedOrder=model.orders.first(where:{$0.ID==native.ID})!
+        model.readOriginalOrder(reauthorizedOrder)
+        let recoveredRead=try await take("seller/orders/order_native_terms")
+        try recoveredRead.respond(nativeOrder)
+        try await until{!model.busy}
+        let recoveredOrder=model.orders.first(where:{$0.ID==native.ID})
+        try check(recoveredOrder?.ID==native.ID && recoveredOrder?.InvoiceID==native.InvoiceID &&
+                  recoveredOrder?.PayIntentID==native.PayIntentID && recoveredOrder?.Status=="payment_pending" && model.state.isEmpty,
+                  "a newly authorized Seller reads back the same order and invoice after revocation")
+        try check(Array(sent.dropFirst(requestsBeforeRecovery))==Array(repeating:"/api/seller/orders/order_native_terms",count:3) &&
+                  [disconnectedRead,revokedRead,recoveredRead].allSatisfy{$0.request.httpMethod=="GET"} &&
+                  reviews.count==reviewsBeforeRecovery && storage==beforeReadRecovery,
+                  "recovery dispatches only original order GETs and keeps the durable UNKNOWN record")
         try check(storage["original-Pay-UNKNOWN"]==sentinel && !sent.contains(where:{$0.contains("refund") || $0.contains("pay-")}),"warehouse flow preserves financial UNKNOWN and dispatches no payment or refund")
         print("Seller fulfillment checks PASS \(checks); actual model/API with controlled HTTP/authority, no Wallet, physical goods or funds")
     }
