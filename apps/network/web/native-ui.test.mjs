@@ -86,6 +86,66 @@ test('native business UI preserves journal cursor UNKNOWN rows and never invents
  let page=0;const cursor='original-opaque-cursor';const s=setup((op,payload)=>op==='participation_list'?response({code:'OK',authority:false,walletApproval:false,entries:[{id:page++?OTHER:ID,requestId:'local-fixture-correlation',action:'withdraw',state:'UNKNOWN',createdAt:'2026-11-01T00:00:00Z',updatedAt:'2026-11-01T00:00:00Z'}],...(page===1?{nextCursor:cursor}:{}),capabilities:{...partCaps}}):undefined);await s.load();assert.equal(s.node('native-part-records').children.length,1);assert.match(s.node('native-part-records').children[0].textContent,/UNKNOWN/);s.emit('native-part-next','click');await settle();assert.equal(s.node('native-part-records').children.length,2);assert.deepEqual(JSON.parse(JSON.stringify(s.calls.filter(c=>c.operation==='participation_list')[1].payload)),{cursor,limit:20});assert.equal(s.node('native-part-next').disabled,true);
 });
 
+test('a changed participation history snapshot requires an explicit fresh list without losing the original UNKNOWN ID',async()=>{
+ const cursor='original-journal-snapshot';
+ const original={id:ID,requestId:'local-fixture-correlation',action:'delegate',state:'UNKNOWN',createdAt:'2026-11-01T00:00:00Z',updatedAt:'2026-11-01T00:00:00Z'};
+ let lists=0;
+ const s=setup((operation,payload)=>{
+  if(operation==='participation_get'){
+   assert.equal(payload.id,ID);
+   return response({code:'OK',entry:entry('UNKNOWN'),authority:false,walletApproval:false,capabilities:{...partCaps}});
+  }
+  if(operation!=='participation_list')return;
+  const base={authority:false,walletApproval:false,capabilities:{...partCaps}};
+  if(++lists===1)return response({...base,code:'OK',entries:[original],nextCursor:cursor});
+  if(lists===2){
+   assert.deepEqual(JSON.parse(JSON.stringify(payload)),{cursor,limit:20});
+   return response({...base,code:'CONFLICT',entries:[]});
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(payload)),{limit:20});
+  return response({...base,code:'OK',entries:[original,{...original,id:OTHER,requestId:'new-local-request'}]});
+ });
+ await s.load();
+ assert.match(s.node('native-part-records').textContent,/UNKNOWN/);
+ await s.emit('native-part-next','click');await settle();
+ assert.equal(lists,2);
+ assert.equal(s.node('native-part-records').children.length,0,'conflicting snapshot still showed old rows');
+ assert.equal(s.node('native-part-next').disabled,true);
+ assert.equal(s.node('native-part-list').disabled,false);
+ assert.equal(s.node('native-part-get').disabled,false);
+ assert.match(s.node('native-part-operation').textContent,/CONFLICT/);
+ await select(s);
+ assert.equal(s.node('native-part-entry-id').textContent,ID);
+ assert.match(s.node('native-part-entry-state').textContent,/UNKNOWN/);
+ assert.equal(s.node('native-part-submit').disabled,true);
+ await s.emit('native-part-list','click');await settle();
+ assert.equal(s.node('native-part-records').children.length,2);
+ assert.equal(lists,3);
+ assert.equal(s.calls.some(call=>['participation_prepare','participation_submit'].includes(call.operation)),false);
+});
+
+test('a failed participation history continuation clears the page and its cursor atomically',async t=>{
+ const old={id:ID,requestId:'original-reference',action:'unbond',state:'UNKNOWN',createdAt:'2026-11-01T00:00:00Z',updatedAt:'2026-11-01T00:00:00Z'};
+ const next={...old,id:OTHER};
+ for(const [failure,code] of [['unavailable','UNAVAILABLE'],['transport','NATIVE_UNAVAILABLE'],['duplicate','NATIVE_RESPONSE_INVALID']])await t.test(failure,async()=>{
+  let lists=0;
+  const s=setup(operation=>{
+   if(operation!=='participation_list')return;
+   const base={authority:false,walletApproval:false,capabilities:{...partCaps}};
+   if(++lists===1)return response({...base,code:'OK',entries:[old],nextCursor:'original-cursor'});
+   if(failure==='transport')throw Object.assign(new Error('original helper unavailable'),{code,outcome:'NOT_SENT'});
+   if(failure==='unavailable')return response({...base,code,entries:[],capabilities:Object.fromEntries(Object.keys(partCaps).map(key=>[key,false]))});
+   return response({...base,code:'OK',entries:[next,next]});
+  });
+  await s.load();await s.emit('native-part-next','click');await settle();
+  assert.equal(s.node('native-part-records').children.length,0,'failed continuation partially published its page');
+  assert.equal(s.node('native-part-next').disabled,true);
+  assert.match(s.node('native-part-operation').textContent,new RegExp(code));
+  assert.equal(s.node('native-part-submit').disabled,true);
+  assert.equal(lists,2);
+ });
+});
+
 test('native business UI resource read failure leaves independent owned-node stop available',async()=>{
  const s=setup(op=>op==='node_status'?response({code:'OK',node:{...node(),productionSupported:false,stage:'running',processOwned:true},productionGrant:false,capabilities:{...nodeCaps,start:false,stop:true}}):op==='resource_status'?Promise.reject(Object.assign(new Error('resource owner unavailable'),{code:'RESOURCE_UNAVAILABLE',outcome:'NOT_SENT'})):undefined);await s.load();assert.equal(s.node('native-node-stop').disabled,false);assert.equal(s.node('native-node-start').disabled,true);assert.equal(s.node('native-resource-stop').disabled,true);assert.match(s.node('native-resource-operation').textContent,/RESOURCE_UNAVAILABLE/);
 });

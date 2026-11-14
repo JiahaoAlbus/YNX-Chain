@@ -91,7 +91,7 @@ async function api(path, body, op) {
     body: JSON.stringify(body || {}), cache: 'no-store', credentials: 'omit', signal: op.controller.signal
   });
   if (response.status === 401) {
-    if (op.epoch === epoch && op.ticket === ticket) clearPairing('配对已过期、已撤销或 helper 已重启。请使用当前 helper 的一次性配对码重新连接。');
+    if (current(op)) clearPairing('配对已过期、已撤销或 helper 已重启。请使用当前 helper 的一次性配对码重新连接。');
     throw new Error('PAIRING_REQUIRED');
   }
   const result = await response.json();
@@ -327,7 +327,8 @@ $('lookup-form').addEventListener('submit', async event => {
   try {
     op.txId = canonicalTx($('tx-id').value); $('lookup-button').disabled = true;
     const record = await api('/api/client-receipt', { txId: op.txId }, op); if (!current(op)) return;
-    if (renderReceipt(record, op, false)) await refreshHistory();
+    // The receipt is complete. The history refresh owns its own request and controls.
+    if (renderReceipt(record, op, false)) void refreshHistory();
   } catch (error) { if (current(op)) { invalidateEvidence(); notice('本次回执未完成：{error}',true,{error:error.message}); } }
   finally { finish(op); controls(); }
 });
@@ -427,7 +428,37 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   function acceptEntry(value,select=true){if(!object(value)||!exactID(value.id)||!object(value.intent)||!object(value.intent.request)||!['delegate','unbond','withdraw','vote'].includes(value.intent.request.action)||!ref(value.state))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});entries.set(value.id,{id:value.id,requestId:value.intent.request.requestId,action:value.intent.request.action,state:value.state,createdAt:value.createdAt,updatedAt:value.updatedAt});if(select){entry=value;review=null;recoveredDifference=false;$('native-part-id').value=value.id;}return value;}
   function participation(value){authority(value,'walletApproval');partCode=value.code;partCaps=caps(value.capabilities,partKeys);if(value.authority!==undefined&&value.authority!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});return value.code;}
   function resourceStatus(value){authority(value,'productionEnabled');resourceCaps=caps(value.capabilities,resourceKeys);if(resourceCaps.productionDispatch===true)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});resource=value;raw('native-resource-preview-bytes',null);raw('native-resource-preview-sha',null);original('native-resource-original',value);raw('native-resource-code',value.code);return value.code;}
-  async function list(current,next=false){entry=null;review=null;recoveredDifference=false;const result=(await request('participation_list',next?{cursor,limit:20}:{limit:20})).payload;if(!current())return;participation(result);if(!Array.isArray(result.entries)||result.entries.length>50||result.authority!==false||result.nextCursor!==undefined&&(typeof result.nextCursor!=='string'||result.nextCursor.length>512))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});if(!next)entries.clear();const seenIDs=new Set();for(const row of result.entries){if(seenIDs.has(row?.id))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});seenIDs.add(row?.id);if(!object(row)||!exactID(row.id)||!ref(row.requestId)||!['delegate','unbond','withdraw','vote'].includes(row.action)||!ref(row.state))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});entries.set(row.id,row);}cursor=result.nextCursor||'';state('native-part-operation',result.code);}
+  async function list(current,next=false){
+    const payload=next?{cursor,limit:20}:{limit:20};
+    const invalid=()=>Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});
+    entry=null;review=null;recoveredDifference=false;partCaps={};partCode=null;
+    if(!next){entries.clear();cursor='';}
+    render();
+    try{
+      const result=(await request('participation_list',payload)).payload;
+      if(!current())return;
+      if(!object(result)||result.authority!==false)throw invalid();
+      const {code,entries:rows,nextCursor}=result;
+      const success=code==='OK';
+      if(!Array.isArray(rows)||rows.length>50||!success&&rows.length||
+         nextCursor!==undefined&&(!success||!rows.length||typeof nextCursor!=='string'||
+           !nextCursor.length||new TextEncoder().encode(nextCursor).length>512))throw invalid();
+      const page=new Map();
+      for(const row of rows){
+        if(!object(row)||!exactID(row.id)||page.has(row.id)||!ref(row.requestId)||
+           !['delegate','unbond','withdraw','vote'].includes(row.action)||!ref(row.state))throw invalid();
+        page.set(row.id,row);
+      }
+      participation(result);
+      if(!success)entries.clear();
+      for(const [id,row] of page)entries.set(id,row);
+      cursor=nextCursor||'';
+      state('native-part-operation',code);
+    }catch(error){
+      if(current()){entries.clear();cursor='';}
+      throw error;
+    }
+  }
   async function load(channel='node'){
     return run(channel,async current=>{
       nodeIntent=null;review=null;node=null;resource=null;nodeCaps={};partCaps={};resourceCaps={};

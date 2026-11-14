@@ -55,6 +55,48 @@ test('T-P09 proof source unavailable stays explicit RPC_ONLY without hidden tx r
  const e=environment();await settle();const lookup=e.emit('lookup-form','submit');const snapshot=record(A,'RPC_ONLY',{reportCollection:{status:'unavailable',code:'RPC_HTTP_ERROR',source:'rpc/tx'},proofCollection:{status:'unavailable',code:'PROOF_NOT_SUPPLIED',source:'rpc/proof'}});delete snapshot.report;e.take('/api/client-receipt').resolve(snapshot);await lookup;
  assert.equal(e.node('level-tag').textContent,'RPC_ONLY');assert.match(e.node('collection-proof').textContent,/PROOF_NOT_SUPPLIED/);assert.match(e.node('collection-report').textContent,/RPC_HTTP_ERROR/);assert.equal(e.node('raw-panel').hidden,true);assert.equal(e.node('raw-report').textContent,'');assert.match(e.node('execution-result').textContent,/尚未验证/);
 });
+test('an unavailable proof can be retried while its saved history refresh is stalled',async()=>{
+ const e=environment();await settle();e.manual('/api/receipts');
+ const pendingRecord=record(A,'RPC_ONLY',{
+  view:view(A,'RPC_ONLY',{reason:'NOT_SUPPLIED'}),
+  proofCollection:{status:'unavailable',code:'PROOF_NOT_SUPPLIED',source:'fixture/proof'},
+ });
+ const first=e.emit('lookup-form','submit');
+ e.take('/api/client-receipt').resolve(pendingRecord);await settle();
+ const oldHistory=e.take('/api/receipts');
+ assert.equal(e.node('level-tag').textContent,'RPC_ONLY');
+ assert.match(e.node('collection-proof').textContent,/PROOF_NOT_SUPPLIED/);
+ assert.equal(e.node('lookup-button').disabled,false,'history refresh kept the transaction lookup busy');
+ assert.equal(e.node('history-open').disabled,false);
+ assert.equal(e.node('history-refresh').disabled,true);
+ await first;
+
+ const second=e.emit('lookup-form','submit'),retry=e.take('/api/client-receipt');
+ assert.deepEqual(JSON.parse(retry.options.body),{txId:A});
+ retry.resolve(record(A,'INCLUSION_VERIFIED',{receiptId:R2}));await second;
+ const newHistory=e.take('/api/receipts');
+ assert.equal(oldHistory.options.signal.aborted,true);
+ newHistory.resolve(list([{receiptId:R2,txId:A,observedAt:'2026-10-31T10:00:00Z',reportedLevel:'INCLUSION_VERIFIED'}]));await settle();
+ oldHistory.resolve({error:'PAIRING_REQUIRED'},401);await settle();
+ assert.equal(e.storage.get('ynxNetworkTicket'),'ticket');
+ assert.equal(e.node('level-tag').textContent,'INCLUSION_VERIFIED');
+ assert.equal(e.node('meta-receipt').textContent,R2);
+ assert.equal(e.node('lookup-button').disabled,false);
+ assert.equal(e.node('receipt-list').children.length,1);
+});
+
+test('the active proof history refresh still clears a rejected pairing ticket',async()=>{
+ const e=environment();await settle();e.manual('/api/receipts');
+ const lookup=e.emit('lookup-form','submit');
+ e.take('/api/client-receipt').resolve(record(A,'RPC_ONLY'));await settle();
+ const history=e.take('/api/receipts');
+ assert.equal(e.node('lookup-button').disabled,false);
+ history.resolve({error:'PAIRING_REQUIRED'},401);await lookup;await settle();
+ assert.equal(e.storage.has('ynxNetworkTicket'),false);
+ assert.equal(e.node('lookup-button').disabled,true);
+ assert.equal(e.node('evidence-meta').hidden,true);
+ assert.equal(e.uiEvents.filter(event=>event.channel==='receipt').at(-1).value,null);
+});
 test('T-P09 historical authority/ID/tx mismatches cannot restore a current level',async()=>{
  for(const [kind,body]of [['authority',{historical:true,authority:true,receipt:record()}],['id',historical(record(A,'INCLUSION_VERIFIED',{receiptId:R2}))],['tx',historical(record(A,'INCLUSION_VERIFIED',{view:view(B)}))]]){
   const e=environment();await settle();e.node('receipt-id').value=R1;const open=e.emit('history-form','submit');e.take('/api/receipt').resolve(body);await open;assert.equal(e.node('evidence-meta').hidden,true,kind);assert.equal(e.node('level-tag').textContent,'尚未查询',kind);
