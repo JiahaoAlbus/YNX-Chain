@@ -104,7 +104,7 @@ class CalleeMeasurements:
     def __init__(self,demand,accounts,sender_pool=False,source=None):
         self.source=CALLEE_SOURCE if source is None else source
         self.denominators=dict(startup=accounts,live_setup=4,sign=demand,confirm=demand,live_publish=demand,live_result=demand)
-        if self.source == normal.PREPARED_OWNER_SOURCE:
+        if self.source in normal.PREPARED_OWNER_SOURCES:
             self.denominators["owner_prepare"] = demand
         if sender_pool:
             self.denominators.pop("startup");self.denominators.update(sender_open_sign=demand,sender_open_confirm=demand)

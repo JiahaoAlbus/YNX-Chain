@@ -53,6 +53,7 @@ def public_file(directory,reference):
 
 
 PREPARED_OWNER_SOURCE = '0b515124bda8ff7efaf3ec03456d69dee2c6ad18'
+PREPARED_OWNER_SOURCES = frozenset((PREPARED_OWNER_SOURCE, '59f7885d11bd3eeb5d27dce7232779aae480a806'))
 
 def sender_command_data(operation,request,height=0,app_hash="",materials="",materials_sha="",proof=""):
     # Field order and explicit empty fields match the normal Go canonical JSONL.
