@@ -113,6 +113,28 @@ class NormalCallgraphControls(unittest.TestCase):
             stop.clear();b.w.rpc.side_effect=[{'node_info':{'network':'foreign'},'sync_info':{'latest_block_height':'11'}},{'response':{'last_block_height':'11'}}]
             with self.assertRaisesRegex(RuntimeError,'chain identity differs'):b.wait_successor(10,Path(temp),stop)
             self.assertEqual(list(Path(temp).iterdir()),[])
+
+    def test_successor_reply_after_cutoff_cannot_open_proof(self):
+        backend=object.__new__(driver.NormalBackend)
+        backend.c=SimpleNamespace(proof_timeout=1,plan={
+            'chainId':'original-chain','nodes':[dict(index=i) for i in range(4)],
+        })
+        clock=[0]
+        def rpc(node,method):
+            if method=='status':
+                return dict(node_info=dict(network='original-chain'),sync_info=dict(latest_block_height='11'))
+            if node['index']==3:
+                clock[0]=1_000_000_001
+            return dict(response=dict(last_block_height='11'))
+        backend.observed_rpc=rpc
+        with tempfile.TemporaryDirectory() as temp:
+            case=Path(temp)
+            stop=mock.Mock()
+            stop.is_set.return_value=False
+            with mock.patch.object(driver.time,'monotonic_ns',side_effect=lambda:clock[0]):
+                with self.assertRaisesRegex(RuntimeError,r'H\+1 not observed'):
+                    backend.wait_successor(10,case,stop)
+            self.assertFalse((case/'successor-availability.json').exists())
     def perform_control(self,reply_code):
         # All proof checks are intercepted explicitly; CONTROL_ONLY values are
         # deliberately ineligible for the real ledger's qualified contract.
