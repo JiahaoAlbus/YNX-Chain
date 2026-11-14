@@ -99,6 +99,7 @@ func (r *pqLabCheckpointRead) read(index int, path string, capture func(string) 
 		return nil, err
 	}
 	if !decoded.Initialized || decoded.Height != r.height || decoded.AppHash != r.appHash || decoded.AccountPolicy == nil {
+		pqLabMeasure(r.metrics, pqLabCheckpointCoordinateRefusalClass(decoded, r.height, r.appHash))()
 		// Diagnostic DATA only, after full validation AND original-current.
 		// A supplied stale height alone is not a proven advance: this node
 		// must already have validated the exact original checkpoint here.
@@ -119,4 +120,24 @@ func (r *pqLabCheckpointRead) read(index int, path string, capture func(string) 
 		publish = &fingerprint
 	}
 	return &decoded, nil
+}
+
+// The complete state validator and original-current check must precede this
+// closed diagnostic projection. No height, hash, owner, path or cause is emitted;
+// none of these classes permits a different checkpoint or retries an operation.
+func pqLabCheckpointCoordinateRefusalClass(state CommittedState, height int64, appHash string) string {
+	switch {
+	case !state.Initialized:
+		return "checkpoint.refused.uninitialized"
+	case state.AccountPolicy == nil:
+		return "checkpoint.refused.accountPolicyMissing"
+	case state.Height > height:
+		return "checkpoint.refused.heightHigher"
+	case state.Height < height:
+		return "checkpoint.refused.heightLower"
+	case state.AppHash != appHash:
+		return "checkpoint.refused.sameHeightAppHash"
+	default:
+		return ""
+	}
 }

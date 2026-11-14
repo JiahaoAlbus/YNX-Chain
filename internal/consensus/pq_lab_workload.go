@@ -1187,6 +1187,7 @@ func loadPQLabSenderCheckpointOwned(p PQLabNetworkPlan, witness *validatedMigrat
 	state, err := read()
 	endInitial()
 	if err != nil {
+		pqLabMeasure(metrics, "checkpoint.initialReadRejected")()
 		return nil, err
 	}
 	network, err := hex.DecodeString(witness.migration.OriginalGenesisHash)
@@ -1379,6 +1380,7 @@ func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSender
 		return out, errors.New("independent original current checkpoint required")
 	}
 	if err = checkpoint.current(); err != nil {
+		pqLabMeasure(metrics, "checkpoint.preSignReadRejected")()
 		return out, err
 	}
 	index, exists := accountIndex(checkpoint.state.Accounts, s.owner.Owner)

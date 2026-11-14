@@ -229,6 +229,9 @@ func TestPQLabOnlineSenderRevocationAndPartialIntentPreserved(t *testing.T) {
 	if _, err = sender.SignMeasured(request, checkpoint, preMetrics); err != preCause || errors.Is(err, ErrPQLabSenderUnknown) {
 		t.Fatal("pre-publication failure was promoted to UNKNOWN")
 	}
+	if preMetrics.Snapshot().Stages["checkpoint.preSignReadRejected"].Calls != 1 {
+		t.Fatal("PRE_SIGN_REFUSAL_STAGE_NOT_OBSERVED")
+	}
 	if preMetrics.Snapshot().Stages["checkpoint.postPersistenceReadRejected"].Calls != 0 || preMetrics.Snapshot().Stages["sender.dualSignEncodeAndSelfVerify"].Calls != 0 {
 		t.Fatal("pre-publication failure acquired a late marker or signed")
 	}
@@ -250,6 +253,9 @@ func TestPQLabOnlineSenderRevocationAndPartialIntentPreserved(t *testing.T) {
 		t.Fatal("post-sign uncertainty or original cause hidden", err)
 	}
 	stages := metrics.Snapshot().Stages
+	if stages["checkpoint.preSignReadRejected"].Calls != 0 {
+		t.Fatal("late uncertainty was mislabeled as pre-sign refusal")
+	}
 	if checks != 2 || stages["checkpoint.postPersistenceReadRejected"].Calls != 1 {
 		t.Fatal("POST_PERSISTENCE_CHECKPOINT_REJECTION_NOT_OBSERVED")
 	}
