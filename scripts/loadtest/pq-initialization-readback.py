@@ -115,19 +115,44 @@ def original_node_startup(files,prefix,receipt):
     reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
     return reader.original_nodes(files,prefix,receipt.get('processes',[]))
 
-def public_archive(raw,pin,entry_limit=1024):
+def public_archive(raw,pin,entry_limit=1024,*,proof_migration_limit=None):
     require(type(entry_limit) is int and 1<=entry_limit<=8192,'bounded public archive entry ceiling required')
     require(type(raw) is bytes and 0<len(raw)<=128<<20 and re.fullmatch('[0-9a-f]{64}',pin) and hashlib.sha256(raw).hexdigest()==pin,'whole original ZIP digest or bound differs')
     files={};manifest={};seen=set();total=0
+    large_migrations={}
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         infos=archive.infolist();require(0<len(infos)<=entry_limit,'bounded original ZIP entry count required')
         for entry in infos:
             name=PurePosixPath(entry.filename);mode=entry.external_attr>>16
             require(not name.is_absolute() and '..' not in name.parts and '\\' not in entry.filename and str(name)==entry.filename.rstrip('/') and entry.filename not in seen and not stat.S_ISLNK(mode),'unsafe/duplicate original ZIP entry');seen.add(entry.filename)
             if entry.is_dir():continue
-            total+=entry.file_size;require(entry.file_size<=8<<20 and total<=256<<20,'bounded original public ZIP files required')
+            total+=entry.file_size
+            migration = re.fullmatch(r'((?:[^/]+/)*?)proof-public-blobs/([0-9a-f]{64})\.json', entry.filename)
+            if entry.file_size > 8<<20 and proof_migration_limit is not None and migration:
+                require(entry.file_size<=proof_migration_limit and total<=256<<20,'bounded original proof migration ZIP file required')
+                large_migrations[entry.filename] = migration.groups()
+            else:
+                require(entry.file_size<=8<<20 and total<=256<<20,'bounded original public ZIP files required')
             body=archive.read(entry);require(len(body)==entry.file_size,'original ZIP entry length differs')
             files[entry.filename]=body;manifest[entry.filename]=dict(bytes=len(body),crc32=entry.CRC,sha256=hashlib.sha256(body).hexdigest())
+    if large_migrations:
+        declared = {}
+        for path, body in files.items():
+            match = re.fullmatch(r'((?:[^/]+/)*?)load-operations/[0-9]{5}/original-public-proof-manifest\.json', path)
+            if match:
+                value = strict(body)
+                if isinstance(value, dict) and value.get('schema') == 'YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1':
+                    entries = value.get('entries')
+                    require(type(entries) is dict and type(entries.get('migration')) is dict,
+                            'original proof migration declaration differs')
+                    migration = entries['migration']
+                    digest, relative, length = (migration.get(k) for k in ('sha256', 'publicRelativePath', 'bytes'))
+                    if isinstance(digest, str) and isinstance(relative, str) and type(length) is int:
+                        declared.setdefault((match[1], digest), set()).add((relative, length))
+        for path, (prefix, digest) in large_migrations.items():
+            require(manifest[path]['sha256'] == digest
+                    and (path.removeprefix(prefix), manifest[path]['bytes']) in declared.get((prefix, digest), ()),
+                    'large proof migration must match its original closure and content hash')
     return files,manifest,total
 
 def inspect(raw,pin,controller,source,source_tree,tools):

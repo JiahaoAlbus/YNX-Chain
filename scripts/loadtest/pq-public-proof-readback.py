@@ -19,6 +19,7 @@ SCHEMA='YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1'
 FILES={'migration':'migration.json','genesis':'genesis.json','state':'committed-state.json','schedule':'schedule.json','trustedLightBlock':'trusted-light-block.json','request':'request.json','context':'trust-context.json','proof':'proof.json','publicProofInputs':'PUBLIC-PROOF-INPUTS.json'}
 FIELDS={'migration':'migrationFile','genesis':'genesisFile','state':'stateFile','schedule':'scheduleFile','trustedLightBlock':'trustedLightBlockFile'}
 FILE_LIMIT=64<<20
+MIGRATION_FILE_LIMIT=128<<20
 TOTAL_LIMIT=256<<20
 _export_lock=threading.Lock()
 PRE_OUTPUT_FAILURE_VERSION = 'YNX-PQ-LAB-LIVE-MATERIALS-PRE-OUTPUT-FAILURE/v1'
@@ -109,6 +110,31 @@ def write_new(path,raw):
     finally:os.close(fd)
 def json_bytes(value):return (json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode()
 
+
+def public_file_limit(role):
+    return MIGRATION_FILE_LIMIT if role in ('migration', 'context/migration.json') else FILE_LIMIT
+
+
+def matches_existing_blob(path, expected):
+    require(path.resolve(strict=True) == path, 'canonical non-symlink public input required')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        before = os.fstat(fd)
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_size == len(expected),
+                'existing public blob differs; never overwrite')
+        view = memoryview(expected)
+        with os.fdopen(fd, 'rb', closefd=False) as stream:
+            for offset in range(0, len(view), 1 << 20):
+                chunk = view[offset:offset + (1 << 20)]
+                require(stream.read(len(chunk)) == chunk, 'existing public blob differs; never overwrite')
+            require(not stream.read(1), 'existing public blob differs; never overwrite')
+        after = os.fstat(fd)
+        require((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns),
+                'existing public blob differs; never overwrite')
+    finally:
+        os.close(fd)
+
 # These legacy carrier labels are the existing normal importer's CLOSED
 # transport names. They never assert that an actual operation belongs to owner4.
 LEGACY_RESULTS={
@@ -121,7 +147,7 @@ LEGACY_RESULTS={
 }
 
 def store_originals(public,originals,values=None):
-    if values is None:values={role:read_original(path) for role,path in originals.items()}
+    if values is None:values={role:read_original(path,public_file_limit(role)) for role,path in originals.items()}
     require(sum(map(len,values.values()))<=TOTAL_LIMIT,'original public DATA exceeds existing portable total bound')
     entries={}
     with _export_lock:
@@ -129,7 +155,7 @@ def store_originals(public,originals,values=None):
         require(blobs.resolve(strict=True)==blobs,'public blob directory may not be redirected')
         for role,raw in values.items():
             pin=sha(raw);target=blobs/(pin+'.json')
-            if target.exists():require(read_original(target)==raw,'existing public blob differs; never overwrite')
+            if target.exists():matches_existing_blob(target,raw)
             else:write_new(target,raw)
             entries[role]=dict(originalAbsolutePath=str(originals[role]),publicRelativePath=str(target.relative_to(public)),sha256=pin,bytes=len(raw))
     return entries,values
@@ -149,7 +175,7 @@ def export_original_public_proof(public,case,directory,context,proof,source_comm
     if light.get('runtimePlanFile'):
         require(light['runtimePlanFile']==str(directory/'runtime-plan.json'),'runtime plan outside closed original path')
         originals['runtimePlan']=directory/'runtime-plan.json'
-    values={role:read_original(path) for role,path in originals.items()}
+    values={role:read_original(path,public_file_limit(role)) for role,path in originals.items()}
     for role,ref in [('request',context['request']),('context',context['context']),('proof',proof)]:
         require(sha(values[role])==ref['sha256'] and len(values[role])==int(ref['bytes']),'original public proof external pin differs')
     require(sha(values['trustedLightBlock'])==light['trustedLightBlockSHA256'],'original trusted LightBlock pin differs')
@@ -166,7 +192,7 @@ def read_original_closure(manifest_path,manifest_sha256):
     values={};paths={}
     for role,entry in entries.items():
         pin=entry['sha256'];require(type(pin) is str and re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','public blob path differs from exact hash')
-        path=public/entry['publicRelativePath'];value=read_original(path);require(sha(value)==pin and type(entry['bytes']) is int and len(value)==entry['bytes'],'original public blob pin/size differs')
+        path=public/entry['publicRelativePath'];value=read_original(path,public_file_limit(role));require(sha(value)==pin and type(entry['bytes']) is int and len(value)==entry['bytes'],'original public blob pin/size differs')
         values[role]=value;paths[role]=path
     require(sum(map(len,values.values()))<=TOTAL_LIMIT and sha(values['context'])==manifest['originalContextSHA256'] and sha(values['request'])==manifest['originalRequestSHA256'],'original closure/context/request differs')
     return manifest,values,paths
@@ -207,8 +233,8 @@ def read_portable_archive(manifest_path,manifest_sha256):
     if 'context/runtime-plan.json' in m['payload']:want.add('context/runtime-plan.json')
     require(set(m['payload'])==want and catalog==dict(version='YNX-CONSENSUS-PROOF-PORTABLE-FILES/v1',files=[dict(path=name,bytes=str(entry['bytes']),sha256=entry['sha256']) for name,entry in sorted(m['payload'].items())]),'exact existing normal portable catalog required')
     total=0
-    for entry in m['payload'].values():
-        pin=entry['sha256'];require(re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','portable public blob path differs');value=read_original(public/entry['publicRelativePath']);require(sha(value)==pin and len(value)==entry['bytes'],'portable original blob differs');total+=len(value)
+    for name,entry in m['payload'].items():
+        pin=entry['sha256'];require(re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','portable public blob path differs');value=read_original(public/entry['publicRelativePath'],public_file_limit(name));require(sha(value)==pin and len(value)==entry['bytes'],'portable original blob differs');total+=len(value)
     require(total<=TOTAL_LIMIT,'normal portable total bound exceeded')
     require(m['payload']['context/trust-context.json']['sha256']==m['originalContextSHA256'] and m['payload']['context/request.json']['sha256']==m['originalRequestSHA256'],'original context/request pins differ')
     return m,public,catalog_path
@@ -219,7 +245,7 @@ def reverify(manifest_path,manifest_sha256,verifier,verifier_sha256,output,execu
     output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,'fresh canonical independent output required');output.mkdir(mode=0o700)
     source=output/'original-source';source.mkdir(mode=0o700)
     for name,entry in m['payload'].items():
-        path=source/name;path.parent.mkdir(mode=0o700,exist_ok=True);write_new(path,read_original(public/entry['publicRelativePath']))
+        path=source/name;path.parent.mkdir(mode=0o700,exist_ok=True);write_new(path,read_original(public/entry['publicRelativePath'],public_file_limit(name)))
     catalog_copy=output/'original-file-catalog.json';write_new(catalog_copy,read_original(catalog,32<<10))
     imported=output/'normal-portable-import'
     command=[str(verifier),'portable-import','--trust-context',str(source/'context/trust-context.json'),'--trust-context-sha256',m['originalContextSHA256'],'--file-catalog',str(catalog_copy),'--file-catalog-sha256',m['catalogSHA256'],'--source-dir',str(source),'--output-dir',str(imported)]

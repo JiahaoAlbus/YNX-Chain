@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 spec=importlib.util.spec_from_file_location('public_proof_transport',Path(__file__).with_name('pq-public-proof-readback.py'));p=importlib.util.module_from_spec(spec);spec.loader.exec_module(p)
 
@@ -99,5 +100,20 @@ class PublicProofClosureControls(unittest.TestCase):
             base=Path(temp).resolve();f=self.fixture(base);ref=self.export(f);manifest=f[0]/ref['path'];before=manifest.read_bytes();m=p.strict(before);blob=f[0]/m['entries']['migration']['publicRelativePath'];blob.write_bytes(b'corrupt')
             with self.assertRaisesRegex(RuntimeError,'blob differs'):self.export(f)
             self.assertEqual(manifest.read_bytes(),before)
+
+    def test_only_migration_role_uses_its_larger_transport_bound(self):
+        with tempfile.TemporaryDirectory() as temp, mock.patch.object(p, 'FILE_LIMIT', 4096):
+            f = self.fixture(Path(temp).resolve())
+            migration = f[2]/'migration.json'
+            original = b'm' * 4097
+            migration.write_bytes(original)
+            ref = self.export(f)
+            _, values, _ = p.read_original_closure(f[0]/ref['path'], ref['sha256'])
+            self.assertEqual(values['migration'], original)
+        with tempfile.TemporaryDirectory() as temp, mock.patch.object(p, 'FILE_LIMIT', 4096):
+            f = self.fixture(Path(temp).resolve())
+            (f[2]/'genesis.json').write_bytes(b'g' * 4097)
+            with self.assertRaisesRegex(RuntimeError, 'bounded regular public input'):
+                self.export(f)
 
 if __name__=='__main__':unittest.main()

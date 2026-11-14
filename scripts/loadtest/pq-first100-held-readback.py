@@ -568,7 +568,8 @@ def pipeline_pressure(load):
 
 
 def inspect(raw, sha256, controller, configuration_sha256):
-    files, manifest, _ = prior.original.public_archive(raw, sha256, entry_limit=8192)
+    files, manifest, _ = prior.original.public_archive(
+        raw, sha256, entry_limit=8192, proof_migration_limit=proof_readback.MIGRATION_FILE_LIMIT)
     plans = [path for path in files if path.rsplit('/', 1)[-1] == 'pq-first100-held-plan.json']
     require(len(plans) == 1, 'one original held configuration required')
     plan = strict(files[plans[0]])

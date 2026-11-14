@@ -25,6 +25,28 @@ def sha(raw):
 class HeldReadbackTests(unittest.TestCase):
     controller = 'e' * 40
 
+    def test_only_declared_content_addressed_migration_can_exceed_zip_member_cap(self):
+        payload = b'm' * ((8 << 20) + 1)
+        digest = sha(payload)
+        relative = 'proof-public-blobs/' + digest + '.json'
+        entry = dict(sha256=digest, bytes=len(payload), publicRelativePath=relative)
+        def make_zip(role, content, path):
+            buffer = io.BytesIO()
+            with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr('public/' + path, content)
+                archive.writestr('public/load-operations/00000/original-public-proof-manifest.json',
+                                 encode(dict(schema=reader.proof_readback.SCHEMA, entries={role: entry})))
+            return buffer.getvalue()
+        raw = make_zip('migration', payload, relative)
+        with self.assertRaisesRegex(RuntimeError, 'bounded original public ZIP'):
+            reader.prior.original.public_archive(raw, sha(raw))
+        result, _, _ = reader.prior.original.public_archive(raw, sha(raw), proof_migration_limit=128 << 20)
+        self.assertEqual(result['public/' + relative], payload)
+        for raw in (make_zip('proof', payload, relative), make_zip('migration', b'x' + payload[1:], relative),
+                    make_zip('migration', payload, 'different.json')):
+            with self.assertRaises(RuntimeError):
+                reader.prior.original.public_archive(raw, sha(raw), proof_migration_limit=128 << 20)
+
     def test_proof_publication_binds_projection_and_preserves_missing_parent_timing(self):
         row = dict(index=0, operationId='a'*64, hash='b'*64, nativeHash='c'*64,
                    stageTimes=[('live_publish', 10), ('live_capture', 30)], terminalNs=50)
