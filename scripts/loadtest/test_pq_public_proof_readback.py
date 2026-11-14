@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -100,6 +101,24 @@ class PublicProofClosureControls(unittest.TestCase):
             base=Path(temp).resolve();f=self.fixture(base);ref=self.export(f);manifest=f[0]/ref['path'];before=manifest.read_bytes();m=p.strict(before);blob=f[0]/m['entries']['migration']['publicRelativePath'];blob.write_bytes(b'corrupt')
             with self.assertRaisesRegex(RuntimeError,'blob differs'):self.export(f)
             self.assertEqual(manifest.read_bytes(),before)
+
+    def test_canceled_migration_export_never_publishes_a_partial_blob(self):
+        with tempfile.TemporaryDirectory() as temp:
+            public, case, directory, context, proof = self.fixture(Path(temp).resolve())
+            stop = threading.Event()
+
+            def interrupt_copy(path, size, *, output, stop):
+                output.write(b'partial')
+                stop.set()
+                return 'a' * 64
+
+            with mock.patch.object(p, 'scan_existing_blob', side_effect=interrupt_copy):
+                with self.assertRaisesRegex(RuntimeError, 'export canceled'):
+                    p.export_original_public_proof(public, case, directory, context, proof,
+                                                  '7' * 40, 'f' * 64, stop=stop)
+            self.assertFalse((case / 'original-public-proof-manifest.json').exists())
+            self.assertEqual(list((public / 'proof-public-blobs').iterdir()), [])
+            self.assertFalse(any(path.name.startswith('tmp') for path in public.parent.iterdir()))
 
     def test_only_migration_role_uses_its_larger_transport_bound(self):
         with tempfile.TemporaryDirectory() as temp, mock.patch.object(p, 'FILE_LIMIT', 4096):

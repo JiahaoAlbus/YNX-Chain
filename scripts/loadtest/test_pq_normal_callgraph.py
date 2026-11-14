@@ -469,10 +469,11 @@ class NormalCallgraphControls(unittest.TestCase):
         b.original=original;b.broadcast_once=broadcast;b.observe_inclusion=include;b.wait_successor=successor;b.live_proof=live;b.sessions={4:SimpleNamespace(exchange=confirm)}
         with mock.patch.object(driver.normal,'require_verified') as intercepted,mock.patch.object(driver.proof_readback,'finalize_portable_catalog') as portable:
             if reply_code=='PROOF_CONFIRMED_DATA':
-                b.perform(row,account,notifications.append,threading.Event());self.assertEqual(intercepted.call_count,1)
+                stop = threading.Event()
+                b.perform(row,account,notifications.append,stop);self.assertEqual(intercepted.call_count,1)
                 # An adapter fixture cannot qualify as business evidence.
                 final=notifications[-1];self.assertEqual(final['normalVerifierCode'],'CONTROL_ONLY');self.assertFalse(final['executionSuccessful'])
-                portable.assert_called_once_with(root/'public',root/'public/load-operations/00000',public_closure,row)
+                portable.assert_called_once_with(root/'public',root/'public/load-operations/00000',public_closure,row,stop=stop)
             else:
                 with self.assertRaisesRegex(RuntimeError,'not confirmed'):b.perform(row,account,notifications.append,threading.Event())
                 self.assertFalse((root/'public/load-operations/00000/qualified-receipt.json').exists())

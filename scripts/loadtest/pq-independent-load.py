@@ -950,7 +950,7 @@ class NormalBackend:
             notify(dict(kind="normal_stage",stage="proof_public_export"))
             info=(self.c.bins/"ynx-consensus-proof-verify").stat()
             lab.require((info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)==self.c.verifier_binary_identity,"original normal verifier binary identity changed")
-            public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],getattr(self.c,'consumer_source',CALLEE_SOURCE),self.c.verifier_binary_pin)
+            public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],getattr(self.c,'consumer_source',CALLEE_SOURCE),self.c.verifier_binary_pin,stop=stop)
             notify(dict(kind="normal_stage",stage="verifier"))
             verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request)
             normal.require_verified(verified,tx)
@@ -993,7 +993,7 @@ class NormalBackend:
         lab.write_new(case/"qualified-receipt.json",final)
         if self.c.mode=="online":
             notify(dict(kind="normal_stage",stage="proof_portable_export"))
-            proof_readback.finalize_portable_catalog(self.w.work/"public",case,public_closure,row)
+            proof_readback.finalize_portable_catalog(self.w.work/"public",case,public_closure,row,stop=stop)
         notify(dict(kind="qualified",hash=normal.comet_hash(tx["abciHash"]),nativeHash=normal.comet_hash(tx["nativeHash"]),normalVerifierCode=verified["code"],executionSuccessful=verified["result"]["executionSuccessful"],executionCode=verified["result"]["executionCode"],transactionType=verified["result"]["transactionType"],members=int(tx["members"]),nativeGrant=verified["result"]["nativeGrant"],normalConfirmCode=None if confirmed is None else confirmed["code"],proofReference=str((case/"qualified-receipt.json").relative_to(self.w.work/"public"))))
     def perform(self,row,account,notify,stop):
         # Legacy sequential entry stays byte/protocol equivalent.

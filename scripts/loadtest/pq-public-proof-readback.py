@@ -4,6 +4,7 @@
 No consensus/transaction codec, signer, source authority or replacement verifier.
 """
 import argparse
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import json
@@ -116,7 +117,24 @@ def public_file_limit(role):
     return MIGRATION_FILE_LIMIT if role in ('migration', 'context/migration.json') else FILE_LIMIT
 
 
-def scan_existing_blob(path, size, *, expected=None, output=None):
+def require_running(stop):
+    require(stop is None or not stop.is_set(), 'original public proof export canceled; preserve UNKNOWN')
+
+
+@contextmanager
+def export_lock(stop):
+    require_running(stop)
+    while not _export_lock.acquire(timeout=.02):
+        require_running(stop)
+    try:
+        require_running(stop)
+        yield
+    finally:
+        _export_lock.release()
+
+
+def scan_existing_blob(path, size, *, expected=None, output=None, stop=None):
+    require_running(stop)
     require(path.resolve(strict=True) == path, 'canonical non-symlink public input required')
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
     try:
@@ -127,6 +145,7 @@ def scan_existing_blob(path, size, *, expected=None, output=None):
         digest = hashlib.sha256()
         with os.fdopen(fd, 'rb', closefd=False) as stream:
             for offset in range(0, size, 1 << 20):
+                require_running(stop)
                 length = min(1 << 20, size - offset)
                 chunk = stream.read(length)
                 require(len(chunk) == length and (view is None or chunk == view[offset:offset + length]),
@@ -145,11 +164,11 @@ def scan_existing_blob(path, size, *, expected=None, output=None):
         os.close(fd)
 
 
-def store_migration_blob(public, path, available):
+def store_migration_blob(public, path, available, *, stop=None):
     """Copy the held public migration without materializing its bytes in Python."""
     size = path.stat().st_size
     require(0 < size <= min(available, MIGRATION_FILE_LIMIT), 'bounded regular public input required')
-    with _export_lock:
+    with export_lock(stop):
         blobs = public/'proof-public-blobs'
         blobs.mkdir(mode=0o700, exist_ok=True)
         require(blobs.resolve(strict=True) == blobs, 'public blob directory may not be redirected')
@@ -157,14 +176,15 @@ def store_migration_blob(public, path, available):
             staged = Path(temporary)/'migration'
             with staged.open('xb') as output:
                 os.fchmod(output.fileno(), 0o600)
-                pin = scan_existing_blob(path, size, output=output)
+                pin = scan_existing_blob(path, size, output=output, stop=stop)
                 output.flush()
                 os.fsync(output.fileno())
+            require_running(stop)
             target = blobs/(pin+'.json')
             try:
                 os.link(staged, target)
             except FileExistsError:
-                require(scan_existing_blob(target, size) == pin, 'existing public blob differs; never overwrite')
+                require(scan_existing_blob(target, size, stop=stop) == pin, 'existing public blob differs; never overwrite')
             staged.unlink()
             fd = os.open(blobs, os.O_RDONLY)
             try:
@@ -185,22 +205,25 @@ LEGACY_RESULTS={
     'originalSign':'functional-owner-4-original-sign.log',
 }
 
-def store_originals(public,originals,values=None):
+def store_originals(public,originals,values=None,*,stop=None):
+    require_running(stop)
     if values is None:values={role:read_original(path,public_file_limit(role)) for role,path in originals.items()}
     require(sum(map(len,values.values()))<=TOTAL_LIMIT,'original public DATA exceeds existing portable total bound')
     entries={}
-    with _export_lock:
+    with export_lock(stop):
         blobs=public/'proof-public-blobs';blobs.mkdir(mode=0o700,exist_ok=True)
         require(blobs.resolve(strict=True)==blobs,'public blob directory may not be redirected')
         for role,raw in values.items():
+            require_running(stop)
             pin=sha(raw);target=blobs/(pin+'.json')
-            if target.exists():scan_existing_blob(target,len(raw),expected=raw)
+            if target.exists():scan_existing_blob(target,len(raw),expected=raw,stop=stop)
             else:write_new(target,raw)
             entries[role]=dict(originalAbsolutePath=str(originals[role]),publicRelativePath=str(target.relative_to(public)),sha256=pin,bytes=len(raw))
     return entries,values
 
-def export_original_public_proof(public,case,directory,context,proof,source_commit,verifier_sha256):
+def export_original_public_proof(public,case,directory,context,proof,source_commit,verifier_sha256,*,stop=None):
     """Original bytes only; normal portable-import owns all context mapping."""
+    require_running(stop)
     public,case,directory=map(Path,(public,case,directory))
     require(public.resolve(strict=True)==public and case.resolve(strict=True)==case and case.parent.parent==public and case.parent.name=='load-operations','original public case location required')
     require(directory.resolve(strict=True)==directory and directory.name=='verifier','original normal verifier directory required')
@@ -222,14 +245,16 @@ def export_original_public_proof(public,case,directory,context,proof,source_comm
     # Reject an unsafe original before exporting any other role.
     require(migration.resolve(strict=True) == migration and migration.stat().st_nlink == 1,
             'canonical single-link public migration required')
-    migration_entry = store_migration_blob(public, migration, TOTAL_LIMIT - sum(map(len, values.values())))
-    entries,values=store_originals(public,originals,values)
+    migration_entry = store_migration_blob(public, migration, TOTAL_LIMIT - sum(map(len, values.values())), stop=stop)
+    entries,values=store_originals(public,originals,values,stop=stop)
     entries['migration'] = migration_entry
     manifest=dict(schema=SCHEMA,sourceCommit=source_commit,verifierBinarySHA256=verifier_sha256,entries=entries,originalContextSHA256=sha(values['context']),originalRequestSHA256=sha(values['request']),syntheticOnly=True,authorityGranted=False,actualNetworkExecutionClaim=False,independentReverification=False,meaning='Original public bytes only. Missing original result files cannot be invented. Only the normal portable-import may map context paths; no keys/custody/HRS are selected.')
+    require_running(stop)
     path=case/'original-public-proof-manifest.json';raw=json_bytes(manifest);write_new(path,raw)
     return dict(path=str(path.relative_to(public)),sha256=sha(raw),bytes=len(raw),independentReverification=False,authorityGranted=False)
 
-def read_original_closure(manifest_path,manifest_sha256,*,retain_blobs=True):
+def read_original_closure(manifest_path,manifest_sha256,*,retain_blobs=True,stop=None):
+    require_running(stop)
     manifest_path=Path(manifest_path);raw=read_original(manifest_path,256<<10);require(sha(raw)==manifest_sha256,'external original manifest pin differs')
     manifest=strict(raw);require(manifest.get('schema')==SCHEMA and manifest.get('syntheticOnly') is True and manifest.get('authorityGranted') is False and manifest.get('actualNetworkExecutionClaim') is False,'public closure scope differs')
     require(manifest_path.name=='original-public-proof-manifest.json' and manifest_path.parent.parent.name=='load-operations','fixed public manifest location required')
@@ -245,14 +270,14 @@ def read_original_closure(manifest_path,manifest_sha256,*,retain_blobs=True):
             require(sha(value)==pin and len(value)==size,'original public blob pin/size differs')
             values[role]=value
         else:
-            require(scan_existing_blob(path,size)==pin,'original public blob pin/size differs')
+            require(scan_existing_blob(path,size,stop=stop)==pin,'original public blob pin/size differs')
         paths[role]=path
     require(entries['context']['sha256']==manifest['originalContextSHA256'] and entries['request']['sha256']==manifest['originalRequestSHA256'],'original closure/context/request differs')
     return manifest,values,paths
 
-def finalize_portable_catalog(public,case,closure_ref,row):
+def finalize_portable_catalog(public,case,closure_ref,row,*,stop=None):
     public,case=Path(public),Path(case)
-    initial,_,_=read_original_closure(public/closure_ref['path'],closure_ref['sha256'],retain_blobs=False)
+    initial,_,_=read_original_closure(public/closure_ref['path'],closure_ref['sha256'],retain_blobs=False,stop=stop)
     require(case==public/'load-operations'/('%05d'%row['index']),'original operation case differs')
     originals={
         'finalReceipt':case/'qualified-receipt.json',
@@ -263,7 +288,7 @@ def finalize_portable_catalog(public,case,closure_ref,row):
         'originalSign':case/'original-sign-reply.json',
     }
     # All six must already exist as original files. No alias body is synthesized.
-    entries,values=store_originals(public,originals)
+    entries,values=store_originals(public,originals,stop=stop)
     final=strict(values['finalReceipt']);require(final['operationId']==row['operationId'] and final['transaction']['ownerIndex']==row['ownerIndex'] and final['transaction']['firstNonce']==str(row['nonce']),'legacy carrier label cannot replace actual operation identity')
     payload={}
     for role,entry in initial['entries'].items():
@@ -272,6 +297,7 @@ def finalize_portable_catalog(public,case,closure_ref,row):
     for role,entry in entries.items():payload['original-results/'+LEGACY_RESULTS[role]]=entry
     require(len(payload) in (14,15) and sum(x['bytes'] for x in payload.values())<=TOTAL_LIMIT,'normal closed portable DATA payload differs')
     catalog=dict(version='YNX-CONSENSUS-PROOF-PORTABLE-FILES/v1',files=[dict(path=name,bytes=str(entry['bytes']),sha256=entry['sha256']) for name,entry in sorted(payload.items())])
+    require_running(stop)
     catalog_path=case/'portable-file-catalog.json';catalog_raw=json_bytes(catalog);write_new(catalog_path,catalog_raw)
     manifest=dict(schema='YNX-PERF-NORMAL-PORTABLE-ORIGINALS/v1',sourceCommit=initial['sourceCommit'],verifierBinarySHA256=initial['verifierBinarySHA256'],originalContextSHA256=initial['originalContextSHA256'],originalRequestSHA256=initial['originalRequestSHA256'],originalClosure=closure_ref,actualOwnerIndex=row['ownerIndex'],actualOperationId=row['operationId'],actualNonce=str(row['nonce']),catalogSHA256=sha(catalog_raw),payload=payload,sourceGrant=False,nativeRootAuthorized=False,proofVerified=False,legacyOwner4LabelsAreTransportNamesOnly=True,meaning='Every payload byte is copied from an existing original; legacy filename labels do not assert owner4. Normal portable-import and normal verifier must run separately.')
     path=case/'normal-portable-originals.json';raw=json_bytes(manifest);write_new(path,raw)
