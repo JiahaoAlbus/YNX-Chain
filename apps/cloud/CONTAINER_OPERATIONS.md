@@ -16,6 +16,10 @@ curl --fail http://127.0.0.1:8092/health/live
 
 Public liveness proves only that the process is running. Traffic admission must still use the authenticated readiness endpoint and must fail closed while central Wallet or configured providers are unavailable.
 
+## Protected archive snapshot
+
+`apps/cloud/scripts/load-protected-cloud-image.sh` takes the reviewed archive directory, image ID and archive SHA-256. It copies the archive to a private staging directory, checks that snapshot and loads the same file. By default the staging directory is inside the archive directory; set `YNX_CLOUD_IMAGE_STAGE_DIR` to another existing absolute directory with enough space for one copy. The snapshot is removed on normal exit and handled termination. This protects against replacement of the original path; the operating account and staging environment must still be trusted.
+
 ## Stop and remove
 
 ```sh
