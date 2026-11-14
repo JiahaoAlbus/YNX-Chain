@@ -19,6 +19,7 @@ prior = module('pq-first100-7c25-readback.py')
 stages = module('pq-first100-stage-summary.py')
 finalize = module('pq-finalize-observation.py')
 preload = module('pq-preload-initialization.py')
+leg_stages = module('pq-normal-leg-stages.py')
 require, strict = prior.require, prior.strict
 
 
@@ -124,7 +125,8 @@ def compare_business(before, after):
                     counts=cohort['originalCohort']['counts'], latencies=cohort['originalCohort']['latencies'],
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
-                    businessBlockCommitStages=report['businessBlockCommitStages'])
+                    businessBlockCommitStages=report['businessBlockCommitStages'],
+                    businessStageCostsByNode=report.get('businessStageCostsByNode'))
 
     return dict(before=arm(before), after=arm(after), configurationDifferences=differences,
                 hardwareDifferences=hardware_differences,
@@ -290,15 +292,18 @@ def inspect(raw, sha256, controller, configuration_sha256):
     if ready:
         verify_ready_boundary(receipt, configuration, read, manifest, prefix)
     finalize_by_node = {}
+    business_heights = {int(row['height']) for row in observed['records']}
+    usable_commits = {}
     finalize_records = {ref['node']: ref for ref in receipt.get('normalFinalizeObservation', {}).get('records', [])}
     for record in commits['records']:
         if not record['producerReportedUsable']:
             continue
         node = record['node']
+        commit = record['originalSnapshot']
+        usable_commits[node] = commit
         path = f'finalize-observation-node-{node}-original.json'
         if prefix + path not in files:
             continue
-        commit = record['originalSnapshot']
         if finalize_records:
             ref = finalize_records[node]
             require(ref['path'] == path and ref['pid'] == commit['processID']
@@ -306,8 +311,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                     'Finalize observation receipt pin differs')
         original = finalize.validate(read(path), pid=commit['processID'], chain_id=commit['chainID'],
                                      genesis_hash=commit['originalGenesisHash'])
-        heights = {int(row['height']) for row in observed['records']}
-        business_finalize = finalize.business_heights(original, heights, commit['samples'])
+        business_finalize = finalize.business_heights(original, business_heights, commit['samples'])
         completed = [sample for sample in original['samples'] if sample['success']]
         committed = finalize.business_heights(original, {row['height'] for row in commit['samples']}, commit['samples'])
         finalize_by_node[str(node)] = dict(
@@ -321,6 +325,13 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 for stage in sorted(finalize.CHILDREN)},
             retainedSuccessElapsed=stages.samples([sample['elapsedNs'] for sample in completed], len(completed)))
     checkpoints = finalize.four_node_checkpoints(finalize_by_node)
+    business_stage_costs = None
+    if load is not None:
+        business_stage_costs = {
+            str(node): leg_stages.business_stage_costs(
+                usable_commits.get(node), finalize_by_node.get(str(node), {}).get('original'), business_heights)
+            for node in range(4)
+        }
     census_join = None
     if ready:
         checkpoint = receipt['preloadInitialization']['checkpoint']
@@ -350,6 +361,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 originalSuccessorAvailability=successor,
                 finalizeByNode=finalize_by_node, originalCommitCopies=commits, commitStages=stages.commit_stages(dict(originalCommitCopies=commits)),
                 finalizeCommitCheckpoints=checkpoints,
+                businessStageCostsByNode=business_stage_costs,
                 readinessCensusCheckpointJoin=census_join,
                 businessBlockCommitStages=prior.business_commit_stages(dict(originalCommitCopies=commits), observed, stages),
                 originalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),
