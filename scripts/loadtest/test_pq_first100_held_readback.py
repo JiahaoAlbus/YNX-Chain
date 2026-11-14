@@ -81,6 +81,14 @@ class HeldReadbackTests(unittest.TestCase):
         output = reader.stopped_proof_failures(receipt, load, files, prefix)
         self.assertEqual(output['records'][0]['originalFailure'], failure)
         self.assertEqual(output['records'][0]['originalCohortStatus'], 'unknown')
+        self.assertIsNone(output['records'][0]['matchedContextError'])
+        cause = 'context deadline exceeded'
+        matched = encode(dict(failure, FirstCauseSHA256=sha(cause.encode('ascii'))))
+        record['sha256'] = sha(matched)
+        output = reader.stopped_proof_failures(receipt, load, dict(files, **{prefix + path: matched}), prefix)
+        self.assertEqual(output['records'][0]['matchedContextError'], cause)
+        self.assertEqual(output['records'][0]['originalCohortStatus'], 'unknown')
+        record['sha256'] = sha(raw)
         self.assertIsNone(reader.stopped_proof_failures({}, load, files, prefix))
         with self.assertRaisesRegex(RuntimeError, 'digest differs'):
             reader.stopped_proof_failures(receipt, load, dict(files, **{prefix + path: b'{}'}), prefix)

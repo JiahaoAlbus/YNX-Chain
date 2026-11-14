@@ -22,6 +22,10 @@ preload = module('pq-preload-initialization.py')
 leg_stages = module('pq-normal-leg-stages.py')
 proof_readback = module('pq-public-proof-readback.py')
 require, strict = prior.require, prior.strict
+CONTEXT_FAILURE_DIGESTS = {
+    hashlib.sha256(reason.encode('ascii')).hexdigest(): reason
+    for reason in ('context deadline exceeded', 'context canceled')
+}
 
 
 def verify_archive_origin(run, job, artifacts, controller, sha256, size):
@@ -243,6 +247,7 @@ def stopped_proof_failures(receipt, load, files, prefix):
                     'original pre-output proof failure digest differs')
             pre_output_data = proof_readback.pre_output_failure(raw, request['policySHA256'], request['sequence'])
         output.append(dict(record, originalFailure=data, originalPreOutputFailure=pre_output_data,
+                           matchedContextError=CONTEXT_FAILURE_DIGESTS.get(data['FirstCauseSHA256']) if data else None,
                            originalCohortStatus=cohort[index]['status']))
     return dict(records=output, altersLoadResult=False)
 
