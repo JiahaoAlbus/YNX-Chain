@@ -4,16 +4,19 @@ import * as Crypto from "expo-crypto";
 import {API_BASE,type Session} from "./api";
 import {createTaskAPI,TaskWorkspaceController,needsOriginalTaskQuery,type Task,type TaskStep,type WorkspaceState} from "./tasks";
 import {nativeTaskPersistence,nativeRunCursorPersistence} from "./taskStorage";
+import {sessionOwnedValue} from "./taskSessionView";
 
 type Props={session:Session|null;conversationId?:string;locale:string;onBack:()=>void};
 function Action({label,disabled,onPress,danger=false}:{label:string;disabled?:boolean;onPress:()=>void;danger?:boolean}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled:!!disabled}} disabled={disabled} onPress={onPress} style={[s.button,danger&&s.danger,disabled&&s.disabled]}><Text style={s.buttonText}>{label}</Text></Pressable>}
 export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const zh=locale.startsWith("zh");const label=(a:string,b:string)=>zh?a:b;
- const [controller,setController]=useState<TaskWorkspaceController|null>(null);
- const [state,setState]=useState<WorkspaceState|null>(null),[grantRef,setGrantRef]=useState(""),[prompt,setPrompt]=useState(""),[runId,setRunId]=useState(""),[localError,setLocalError]=useState(""),[shopTools,setShopTools]=useState(false),[newHolder,setNewHolder]=useState("");
+ const [storedController,setController]=useState<TaskWorkspaceController|null>(null);
+ const [storedState,setState]=useState<WorkspaceState|null>(null),[owner,setOwner]=useState<object|undefined>(),[grantRef,setGrantRef]=useState(""),[prompt,setPrompt]=useState(""),[runId,setRunId]=useState(""),[localError,setLocalError]=useState(""),[shopTools,setShopTools]=useState(false),[newHolder,setNewHolder]=useState("");
+ const source=session??undefined;
+ const controller=sessionOwnedValue(source,owner,storedController),state=sessionOwnedValue(source,owner,storedState);
  useEffect(()=>{
   const abort=new AbortController();let closed=false;let owned:TaskWorkspaceController|null=null;let borrowed:import("./tasks").TaskCredentials|undefined;
-  setController(null);setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");setLocalError("");
+  setOwner(source);setController(null);setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");setLocalError("");
   void (async()=>{try{
    const credentials=session?.taskCredentials??await session?.taskRuntime?.open(abort.signal);
    if(!credentials)return;borrowed=credentials;
@@ -22,7 +25,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
    setController(owned);await owned.restoreOriginalTask();
   }catch(error){if(!owned&&borrowed?.v6)try{await borrowed.v6.client.close()}catch{}if(!closed)setLocalError(error instanceof Error?error.message:String(error))}})();
   return()=>{closed=true;abort.abort();owned?.dispose()};
- },[session?.taskRuntime,session?.taskCredentials]);
+ },[session]);
  const task=state?.projection,busy=state?.busy||false;
  const perform=(work:()=>Promise<unknown>)=>{setLocalError("");void work().catch(error=>setLocalError(error instanceof Error?error.message:"TASK_REQUEST_FAILED"))};
  const refresh=()=>{if(controller&&task)perform(()=>controller.refreshOriginalTask(task.id));else if(controller)perform(()=>controller.restoreOriginalTask())};
@@ -36,7 +39,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const reconcile=(step:TaskStep)=>{if(controller&&task)perform(()=>controller.reconcile({...task},step,grantRef.trim()))};
  const start=(resume:boolean)=>{if(!controller||!task)return;const originalRun=resume?(state?.run?.runId||state?.record.runId||runId.trim()):(runId.trim()||`taskrun_${Crypto.randomUUID().replace(/-/g,"")}`);setRunId(originalRun);confirm(resume?label("继续原运行","Resume original run"):label("请求模型运行","Request model run"),task,expected=>controller.model(expected,originalRun,prompt,grantRef.trim(),resume?[]:(shopTools?["ai.conversation.read","shop.order.read"]:["ai.conversation.read"]),resume),`${originalRun}\n${label("模型披露和工具执行分别检查原权限。","Model disclosure and tool effects require their own original permissions.")}`)};
  const unavailable=!controller;
- const error=localError||state?.error||"";
+ const error=sessionOwnedValue(source,owner,localError)||state?.error||"";
  const sessionRejected=error==="SESSION_REVOKED"||error==="HTTP_401";
  const taskError=sessionRejected?label("任务会话已失效。请恢复原钱包授权，再刷新原任务。","Task session is no longer valid. Restore the original Wallet authorization, then refresh the original task."):
   error.includes("503")||error.includes("AUTHORITY_UNAVAILABLE")?label("原授权或工具来源不可用。请刷新原任务核对状态，保留原操作编号。","Original authority or tool Source is unavailable. Refresh the original task to verify its state and keep the original operation ID."):error;

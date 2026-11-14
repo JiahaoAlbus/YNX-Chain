@@ -85,7 +85,7 @@ jobs:
 
   android-preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 50
     defaults:
       run:
         working-directory: apps/ai/mobile
@@ -133,6 +133,13 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$APK" | tee android/app-release-signing.txt
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" | tee android/app-release-badging.txt
           shasum -a 256 "$APK" | tee android/app-release.sha256
+      - name: Exercise installed task entry without an account
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          disable-animations: true
+          script: python3 apps/ai/mobile/scripts/installed-task-smoke.py apps/ai/mobile/android/app/build/outputs/apk/release/app-release.apk
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-ai-android-preview-${{ github.sha }}
