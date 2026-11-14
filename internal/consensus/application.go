@@ -396,7 +396,11 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if a.queryPersistence(response, req) {
 		return response, nil
 	}
-	if queryMigrationHistory(response, req, a.committed, a.migration) {
+	var historyPages *migrationHistoryPages
+	if a.validatedMigration != nil {
+		historyPages = a.validatedMigration.historyPages
+	}
+	if queryMigrationHistory(response, req, a.committed, a.migration, historyPages) {
 		return response, nil
 	}
 	if queryPQWallet(response, req, a.committed, a.migration) {

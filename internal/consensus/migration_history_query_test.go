@@ -97,6 +97,15 @@ func TestMigrationHistoryPageOriginalOuterRowsOrderAndWindows(t *testing.T) {
 		t.Fatal(err)
 	}
 	originalMigration, originalState := mustJSON(t, app.migration), mustJSON(t, app.committed)
+	pages := app.validatedMigration.historyPages
+	if pages == nil || pages.index.blocks != nil {
+		t.Fatal("normal application eagerly built the history page index")
+	}
+	migrationHistoryRead(t, app, MigrationHistoryPagePath+"0/0")
+	firstIndex := pages.index.blocks
+	if len(firstIndex) == 0 {
+		t.Fatal("metadata-only request did not build the page index")
+	}
 	want := make([]MigrationHistoryPageEntry, 0)
 	nonemptyBlocks, newestCount, multipleInBlock := 0, uint64(0), false
 	for _, block := range f.migration.Runtime.Blocks {
@@ -148,6 +157,10 @@ func TestMigrationHistoryPageOriginalOuterRowsOrderAndWindows(t *testing.T) {
 			}
 		}
 	}
+	index := &pages.index
+	if index.total != uint64(len(want)) || len(index.blocks) != nonemptyBlocks || &index.blocks[0] != &firstIndex[0] || index.blocks[0].end != newestCount {
+		t.Fatal("normal pagination did not retain one coordinate per nonempty block")
+	}
 	if !bytes.Equal(originalMigration, mustJSON(t, app.migration)) || !bytes.Equal(originalState, mustJSON(t, app.committed)) {
 		t.Fatal("source pagination mutated imported history or committed state")
 	}
@@ -179,7 +192,7 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 	requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Prove: true}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Data: []byte("not query authority")}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Height: -1}, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + "0/0", Height: app.committed.Height + 1})
 	for _, req := range requests {
 		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
-		if !queryMigrationHistory(response, req, app.committed, app.migration) || response.Code == 0 || len(response.Value) != 0 {
+		if !queryMigrationHistory(response, req, app.committed, app.migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 			t.Fatal("source history accepted unsupported or relabeled query", req, response)
 		}
 	}
@@ -201,17 +214,17 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 		}
 		for _, path := range []string{valid, MigrationHistoryPagePath + "0/1", MigrationHistoryLogsPath + "0/0", MigrationHistoryLogBlocksPath + "0/0"} {
 			response.Code, response.Log, response.Value = 0, "", []byte("must be cleared")
-			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 				t.Fatal("source history accepted foreign committed state", mode, path, response)
 			}
 		}
 	}
 	response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("untouched")}
-	if queryMigrationHistory(response, &abci.RequestQuery{Path: "/migration"}, app.committed, app.migration) || string(response.Value) != "untouched" {
+	if queryMigrationHistory(response, &abci.RequestQuery{Path: "/migration"}, app.committed, app.migration, nil) || string(response.Value) != "untouched" {
 		t.Fatal("source history intercepted another original query")
 	}
 	response = &abci.ResponseQuery{Height: app.committed.Height}
-	if !queryMigrationHistory(response, &abci.RequestQuery{Path: valid, Height: app.committed.Height}, app.committed, app.migration) || response.Code != 0 {
+	if !queryMigrationHistory(response, &abci.RequestQuery{Path: valid, Height: app.committed.Height}, app.committed, app.migration, nil) || response.Code != 0 {
 		t.Fatal("exact current ABCI query height was rejected")
 	}
 }
@@ -365,7 +378,7 @@ func TestMigrationHistoryLogInventoryRangeAndMetadataBounds(t *testing.T) {
 	read := func(suffix string) *abci.ResponseQuery {
 		t.Helper()
 		response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + suffix}, state, migration) {
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryLogBlocksPath + suffix}, state, migration, nil) {
 			t.Fatal("source log inventory query was not handled")
 		}
 		return response
@@ -456,7 +469,7 @@ func TestMigrationHistoryLogsRejectAlteredCoordinatesAndOversizedResponse(t *tes
 			tc.mutate(block, &block.Transactions[transactionIndex])
 			response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
 			queryPath := MigrationHistoryLogsPath + "0/" + strconv.FormatUint(original.Height, 10)
-			if !queryMigrationHistory(response, &abci.RequestQuery{Path: queryPath}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: queryPath}, state, migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 				t.Fatal("altered or oversized original logs exposed a partial success", tc.name, response.Code, response.Log)
 			}
 		})
@@ -520,13 +533,13 @@ func TestMigrationHistoryQueryNeverReturnsPartialOrOversizedDTO(t *testing.T) {
 		}
 		for _, path := range []string{MigrationHistoryBlockPath + strconv.FormatUint(block.Height, 10), MigrationHistoryPagePath + "0/100"} {
 			response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
-			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 				t.Fatal("encoding failure exposed a partial or oversized source response", mode, path, response.Code)
 			}
 		}
 		// A metadata read never serializes unrequested transaction bodies.
 		response := &abci.ResponseQuery{Height: state.Height}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/0"}, state, migration) || response.Code != 0 {
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/0"}, state, migration, nil) || response.Code != 0 {
 			t.Fatal("metadata-only source pagination encoded an unrequested body", mode, response.Log)
 		}
 		var metadata MigrationHistoryPageView
@@ -556,7 +569,7 @@ func TestMigrationHistoryBlockHashKeepsOriginalIdentityAndAbsence(t *testing.T) 
 	}
 	for _, suffix := range []string{"", "abc", strings.ToUpper(f.migration.LastBlockHash), "0x" + f.migration.LastBlockHash, f.migration.LastBlockHash + "/", " " + f.migration.LastBlockHash} {
 		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + suffix}, app.committed, app.migration) || response.Code == 0 || len(response.Value) != 0 {
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + suffix}, app.committed, app.migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 			t.Fatal("noncanonical source block hash was accepted", suffix)
 		}
 	}
@@ -574,7 +587,7 @@ func TestMigrationHistoryBlockHashKeepsOriginalIdentityAndAbsence(t *testing.T) 
 			migration.Runtime.Blocks[0].Height = migration.Height + 1
 		}
 		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + migration.Runtime.Blocks[0].Hash}, app.committed, migration) || response.Code == 0 || len(response.Value) != 0 {
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + migration.Runtime.Blocks[0].Hash}, app.committed, migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 			t.Fatal("source block hash accepted inconsistent original coordinates", mode)
 		}
 	}
@@ -588,7 +601,7 @@ func TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords(t *testing.T) {
 	state := initialCommittedState(migration)
 	path := MigrationHistoryLogsPath + "0/" + strconv.FormatUint(migration.Height, 10)
 	response := &abci.ResponseQuery{Height: state.Height}
-	if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code != 0 {
+	if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration, nil) || response.Code != 0 {
 		t.Fatal("original source log fixture is unavailable", response.Log)
 	}
 	var view MigrationHistoryLogsView
@@ -607,7 +620,7 @@ func TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords(t *testing.T) {
 			tx.Logs[0].Data = strings.Repeat("a", MaxMigrationHistoryQueryBytes)
 			tx.Logs[1].BlockNumber++
 			response = &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
-			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration, nil) || response.Code == 0 || len(response.Value) != 0 {
 				t.Fatal("over-budget source logs exposed a partial response")
 			}
 			if response.Log != "source logs exceed complete bounded response budget" {

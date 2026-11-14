@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -83,10 +85,74 @@ type MigrationHistoryLogBlocksView struct {
 	Blocks []MigrationHistoryLogBlock `json:"blocks"`
 }
 
+type migrationHistoryPageBlock struct {
+	blockIndex int
+	end        uint64
+}
+
+// The sparse index stores one coordinate per nonempty block and never copies
+// transaction bodies. Offsets descend by block and by index within each block.
+type migrationHistoryPageIndex struct {
+	blocks []migrationHistoryPageBlock
+	total  uint64
+}
+
+type migrationHistoryPages struct {
+	once  sync.Once
+	index migrationHistoryPageIndex
+	err   error
+}
+
+func (p *migrationHistoryPages) load(blocks []chain.Block) (migrationHistoryPageIndex, error) {
+	if p == nil {
+		return buildMigrationHistoryPageIndex(blocks)
+	}
+	p.once.Do(func() { p.index, p.err = buildMigrationHistoryPageIndex(blocks) })
+	return p.index, p.err
+}
+
+func buildMigrationHistoryPageIndex(blocks []chain.Block) (migrationHistoryPageIndex, error) {
+	var index migrationHistoryPageIndex
+	for i := len(blocks) - 1; i >= 0; i-- {
+		count := uint64(len(blocks[i].Transactions))
+		if count == 0 {
+			continue
+		}
+		if count > uint64(math.MaxUint32)+1 || count > math.MaxUint64-index.total {
+			return migrationHistoryPageIndex{}, errors.New("source history row total or native index overflows")
+		}
+		index.total += count
+		index.blocks = append(index.blocks, migrationHistoryPageBlock{blockIndex: i, end: index.total})
+	}
+	return index, nil
+}
+
+func (i migrationHistoryPageIndex) read(blocks []chain.Block, offset, limit uint64) []MigrationHistoryPageEntry {
+	records := make([]MigrationHistoryPageEntry, 0, int(limit))
+	end := min(offset+limit, i.total)
+	if offset >= end {
+		return records
+	}
+	first := sort.Search(len(i.blocks), func(j int) bool { return i.blocks[j].end > offset })
+	for _, item := range i.blocks[first:] {
+		txs := blocks[item.blockIndex].Transactions
+		stop := min(end, item.end)
+		for offset < stop {
+			nativeIndex := item.end - offset - 1
+			records = append(records, MigrationHistoryPageEntry{Transaction: txs[nativeIndex], NativeIndex: uint32(nativeIndex)})
+			offset++
+		}
+		if offset == end {
+			break
+		}
+	}
+	return records
+}
+
 // Called under Application.Query's read lock. The constructor has already
 // validated and deeply copied migration.Runtime, including its original block
 // hashes and historical account policy. Never replay or relabel those records.
-func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery, state CommittedState, migration chain.ConsensusMigrationState) bool {
+func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery, state CommittedState, migration chain.ConsensusMigrationState, pages *migrationHistoryPages) bool {
 	blockQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockPath)
 	blockHashQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockHashPath)
 	pageQuery := strings.HasPrefix(req.Path, MigrationHistoryPagePath)
@@ -204,32 +270,13 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 			fail(errors.New("source history page requires bounded canonical offset and limit without overflow"))
 			return true
 		}
-		value := MigrationHistoryPageView{MigrationHistoryAnchor: anchor, Offset: offset, Limit: uint32(limit), Records: make([]MigrationHistoryPageEntry, 0, int(limit))}
-		end := offset + limit
-		// Count complete original outer rows while visiting only the requested
-		// transaction window. No batch-member expansion, index or state cache.
-		for blockIndex := len(migration.Runtime.Blocks) - 1; blockIndex >= 0; blockIndex-- {
-			block := migration.Runtime.Blocks[blockIndex]
-			count := uint64(len(block.Transactions))
-			if count > uint64(math.MaxUint32)+1 || count > math.MaxUint64-value.Total {
-				fail(errors.New("source history row total or native index overflows"))
-				return true
-			}
-			start := value.Total
-			value.Total += count
-			first, last := offset, end
-			if first < start {
-				first = start
-			}
-			if last > value.Total {
-				last = value.Total
-			}
-			for position := first; position < last; position++ {
-				index := count - 1 - (position - start)
-				value.Records = append(value.Records, MigrationHistoryPageEntry{Transaction: block.Transactions[index], NativeIndex: uint32(index)})
-			}
+		index, err := pages.load(migration.Runtime.Blocks)
+		if err != nil {
+			fail(err)
+			return true
 		}
-		view = value
+		view = MigrationHistoryPageView{MigrationHistoryAnchor: anchor, Offset: offset, Limit: uint32(limit), Total: index.total,
+			Records: index.read(migration.Runtime.Blocks, offset, limit)}
 	} else if blockHashQuery {
 		hash := strings.TrimPrefix(req.Path, MigrationHistoryBlockHashPath)
 		decoded, err := hex.DecodeString(hash)

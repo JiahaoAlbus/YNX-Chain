@@ -37,6 +37,7 @@ type validatedMigration struct {
 	initialCertificates    *ynxbatch.CertificateCache
 	initialScope           []byte
 	historyCertificates    *chain.PQCertificateCache
+	historyPages           *migrationHistoryPages // derived once from this immutable import
 	registryMath           *ynxconsensusauth.RegistrationMathCache
 }
 
@@ -98,6 +99,7 @@ func newValidatedMigrationWithConsensusValidatorKeys(migration chain.ConsensusMi
 }
 
 func (m *validatedMigration) initializeMath() error {
+	m.historyPages = new(migrationHistoryPages)
 	m.historyCertificates = chain.NewPQHistoryCertificateCache()
 	if m.bootstrap != nil {
 		cache, err := ynxconsensusauth.NewRegistrationMathCache(m.bootstrap.genesisID)

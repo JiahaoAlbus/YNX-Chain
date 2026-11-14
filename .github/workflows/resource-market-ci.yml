@@ -2732,7 +2732,7 @@ jobs:
           required += ['TestPQLabStaticCacheBoundCleanRefusalIsExact', 'TestPQLabStaticCacheBoundCleanupFailureIsNotOnlyBound']
           required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
-          required += ['TestPQLabLiveMaterialsPreOutputFailureOriginalCurrent', 'TestPQLabLiveMaterialsPreOutputFailureExclusiveAndNoPhantom', 'TestMigrationHistoryLogInventoryRangeAndMetadataBounds']
+          required += ['TestPQLabLiveMaterialsPreOutputFailureOriginalCurrent', 'TestPQLabLiveMaterialsPreOutputFailureExclusiveAndNoPhantom', 'TestMigrationHistoryLogInventoryRangeAndMetadataBounds', 'TestMigrationHistoryPageOriginalOuterRowsOrderAndWindows', 'TestMigrationHistoryQueryKeepsOriginalBytesAcrossAllColdLayouts']
           required += ['TestPQLabLiveMaterialsCaptureObservationRetainsOriginalFailure', 'TestPQLabLiveMaterialsCancelledAppReadDrainsOriginal']
           required += ['TestPQLabLiveMaterialsCaptureOnlyOriginalCommitCrossings', 'TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase']
           required += ['TestPQOriginalSourceLaunchVersionsDATA', 'TestPQFreshScopeBrokerWireDATA', 'TestPQFreshScopeBrokerPartialCustodyDATA']
