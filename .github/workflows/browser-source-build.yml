@@ -1,0 +1,22 @@
+name: Browser native source build
+on:
+  push:
+    paths:
+      - 'apps/browser/native/**'
+      - '.github/workflows/browser-source-build.yml'
+  pull_request:
+    paths:
+      - 'apps/browser/native/**'
+      - '.github/workflows/browser-source-build.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos-build:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native Browser source
+        working-directory: apps/browser/native
+        run: swift build -c release --build-path "$RUNNER_TEMP/ynx-browser-native-build"
