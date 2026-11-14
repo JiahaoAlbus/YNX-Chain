@@ -895,7 +895,7 @@ handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async
   lease.assert();
   return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
 }));
-handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => prepareLocalPQTransferReview(input)));
+handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => prepareLocalPQTransferReview(input), undefined, {localPQPolicyPreparation:true}));
 handleWalletIPC("wallet:transfer-action", async (_event, id, action) => {
   // Old local preview IDs must never reactivate the former ECC sign-and-send
   // route. Cancellation remains available; old signed/outbox records stay.
@@ -1474,11 +1474,17 @@ async function safeIPC(action, displayOptions) {
         "Insufficient YNXT to cover the amount and network fee"
       ].includes(error.message)) ||
        (error.code === 4900 && error.message === "Insufficient YNXT to cover this transaction and its maximum network fee"));
+    const localPolicyRefusal = displayOptions?.localPQPolicyPreparation === true &&
+      error?.code === 'AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED' &&
+      error?.message === 'AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED' &&
+      Object.hasOwn(error, 'policySourceObservation') && !error.outcomeUnknown &&
+      !error?.data?.outcomeUnknown && error.transactionHash == null && error?.data?.transactionHash == null;
     return { ok: false, error: {
       code: safeCode(error), message: error?.message ?? "Wallet request failed",
       ...(typeof storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(storageStage) ? { storageStage } : {}),
       ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}),
-      ...(localRefusal ? { displayOrigin: "LOCAL_TRANSFER_PREPARATION" } : {})
+      ...(localRefusal ? { displayOrigin: "LOCAL_TRANSFER_PREPARATION" } : {}),
+      ...(localPolicyRefusal ? { displayOrigin: "LOCAL_PQ_POLICY_PREPARATION" } : {})
     } };
   }
 }

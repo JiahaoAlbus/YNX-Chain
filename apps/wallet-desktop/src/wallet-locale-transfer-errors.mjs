@@ -4,6 +4,21 @@ export const TRANSFER_ERROR_KEYS=Object.freeze([
   'Insufficient YNXT to cover the amount and network fee',
   'Insufficient YNXT to cover this transaction and its maximum network fee'
 ]);
+export const POLICY_UNAVAILABLE_KEY='Unable to verify the current account transaction policy. Check the network and try again.';
+export const POLICY_UNAVAILABLE_COPY=Object.freeze({
+ en:POLICY_UNAVAILABLE_KEY,
+ 'zh-Hans':'无法验证当前账户的交易策略。请检查网络后重试。',
+ 'zh-Hant':'無法驗證目前帳戶的交易策略。請檢查網路後重試。',
+ ja:'現在のアカウントの取引ポリシーを確認できません。ネットワークを確認して再試行してください。',
+ ko:'현재 계정의 거래 정책을 확인할 수 없습니다. 네트워크를 확인하고 다시 시도하세요.',
+ es:'No se puede verificar la política de transacciones de la cuenta. Comprueba la red e inténtalo de nuevo.',
+ fr:'Impossible de vérifier la politique de transaction du compte. Vérifiez le réseau et réessayez.',
+ de:'Die Transaktionsrichtlinie des Kontos kann nicht geprüft werden. Netzwerk prüfen und erneut versuchen.',
+ pt:'Não foi possível verificar a política de transações da conta. Verifique a rede e tente novamente.',
+ ru:'Не удалось проверить политику транзакций аккаунта. Проверьте сеть и повторите попытку.',
+ ar:'تعذر التحقق من سياسة معاملات الحساب الحالي. تحقق من الشبكة وحاول مرة أخرى.',
+ id:'Kebijakan transaksi akun saat ini tidak dapat diverifikasi. Periksa jaringan dan coba lagi.'
+});
 const rows={
  en:TRANSFER_ERROR_KEYS,
  'zh-Hans':['YNXT 余额不足以支付此金额。发送前请先领取测试网资产。','YNXT 余额不足以支付金额和网络手续费。','YNXT 余额不足以支付此交易和最高网络手续费。'],

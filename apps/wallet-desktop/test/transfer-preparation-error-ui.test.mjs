@@ -1,13 +1,35 @@
 import {nativeAmountDraftIssue} from '../src/native-amount-draft-ui.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
 import {WALLET_COPY,WALLET_LOCALES,initWalletLocale} from '../src/wallet-locale.mjs';
-import {TRANSFER_ERROR_KEYS,TRANSFER_ERROR_COPY} from '../src/wallet-locale-transfer-errors.mjs';
+import {TRANSFER_ERROR_KEYS,TRANSFER_ERROR_COPY,POLICY_UNAVAILABLE_KEY,POLICY_UNAVAILABLE_COPY} from '../src/wallet-locale-transfer-errors.mjs';
 import {renderTransferPreparationError} from '../src/transfer-preparation-error-ui.mjs';
 import {rpcResponseError} from '../src/rpc-errors.mjs';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 const renderer=fs.readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8');
 function mounted(){const document={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]};const locale=initWalletLocale({document,systemLanguages:['zh-CN'],getStorage:()=>null});return{document,locale,node:{ownerDocument:document,textContent:'',isConnected:true}};}
 test('all twelve normal catalogs register all known balance refusals',()=>{for(const locale of WALLET_LOCALES)for(const key of TRANSFER_ERROR_KEYS){assert.equal(WALLET_COPY[locale][key],TRANSFER_ERROR_COPY[locale][key]);if(locale!=='en')assert.notEqual(WALLET_COPY[locale][key],key);}});
+test('only original local PQ policy preparation refusal receives localized display',async()=>{
+ const main=fs.readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8');
+ const start=main.indexOf('async function safeIPC('),end=main.indexOf('function safeErrorClass(',start);
+ const safeIPC=vm.runInNewContext(`(()=>{${main.slice(start,end)};return safeIPC;})()`);
+ const code='AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED';
+ const refusal=Object.assign(new Error(code),{code});
+ Object.defineProperty(refusal,'policySourceObservation',{value:Object.freeze({code:'AUTH_POLICY_TLS_PIN'})});
+ const fail=error=>async()=>{throw error;};
+ const projected=await safeIPC(fail(refusal),{localPQPolicyPreparation:true});
+ assert.equal(projected.error.code,code);assert.equal(projected.error.message,code);
+ assert.equal(projected.error.displayOrigin,'LOCAL_PQ_POLICY_PREPARATION');
+ const ui=mounted();assert.equal(renderTransferPreparationError(ui.node,projected.error),true);
+ assert.equal(ui.node.textContent,POLICY_UNAVAILABLE_COPY['zh-Hans']);
+ ui.locale.select('zh-Hant');assert.equal(ui.node.textContent,POLICY_UNAVAILABLE_COPY['zh-Hant']);
+ for(const locale of WALLET_LOCALES)assert.equal(WALLET_COPY[locale][POLICY_UNAVAILABLE_KEY],POLICY_UNAVAILABLE_COPY[locale]);
+ assert.equal((await safeIPC(fail(refusal))).error.displayOrigin,undefined);
+ for(const error of [Object.assign(new Error(code),{code}),Object.assign(new Error(code),{code,outcomeUnknown:true,policySourceObservation:{}}),Object.assign(new Error(code),{code,data:{outcomeUnknown:true,transactionHash:'0xExact'},policySourceObservation:{}})]){
+  const value=await safeIPC(fail(error),{localPQPolicyPreparation:true});
+  assert.equal(value.error.displayOrigin,undefined);assert.equal(renderTransferPreparationError(ui.node,value.error),false);
+ }
+ const call=main.match(/^handleWalletIPC\("wallet:prepare-transfer".*$/m)?.[0];assert.match(call,/localPQPolicyPreparation:true/);
+});
 test('actual normal transfer prepare handler uses owned localized error rendering',async()=>{
  const ui=mounted(),nodes=new Map([['#transfer-to',{value:'ynx1-public'}],['#transfer-amount',{value:'1'}],['#send-sheet',{open:true}],['#prepare-transfer',{}],['#transfer-result',ui.node],['#transfer-review',{hidden:false}]]);
  ui.document.querySelector=selector=>nodes.get(selector);const operation={};let prepared=0;
