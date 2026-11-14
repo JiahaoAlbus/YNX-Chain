@@ -48,6 +48,13 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         }
         var first=makeOrder("order_first"),second=makeOrder("order_second"),nativeOrder=makeOrder("order_native_terms")
         nativeOrder["Status"]="payment_pending";nativeOrder["PayIntentID"]="npi_"+String(repeating:"d",count:48);nativeOrder["PayMerchant"]="0x"+String(repeating:"e",count:40);nativeOrder["PayPayoutAddress"]="0x"+String(repeating:"f",count:40);nativeOrder["Settlement"]=nil
+        var pendingSale=first
+        pendingSale["Status"]="paid";pendingSale["Resolution"]=nil;pendingSale["RefundStatus"]="not_requested"
+        try check(try !decode(pendingSale).hasAftersalesRecord,"unrequested refund does not enter aftersales")
+        pendingSale["RefundStatus"]="native_partial_refund"
+        try check(try decode(pendingSale).hasAftersalesRecord,"original partial refund remains visible in aftersales")
+        pendingSale["RefundStatus"]="not_requested";pendingSale["Status"]="return_requested"
+        try check(try decode(pendingSale).hasAftersalesRecord,"original return request remains visible in aftersales")
         let original=try decode(first)
         try check(original.approvedReturnIDs==["return_order_first"] && original.remainingReturnItems?.first?.Quantity=="2" && original.hasOriginalPaidRecord,"original approved sale exposes bounded warehouse quantities")
         var projection=received(first,"receipt_projection")

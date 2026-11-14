@@ -118,6 +118,11 @@ extension SellerOrder {
         return Self.validWarehouseID(InvoiceID) && Self.validWarehouseID(PayIntentID) && !(PayMerchant ?? "").isEmpty && !(PayPayoutAddress ?? "").isEmpty && proof.InvoiceID==InvoiceID && proof.IntentID==PayIntentID && proof.Merchant==PayMerchant && sameAccount(proof.PayoutAddress,PayPayoutAddress) && sameAccount(proof.Payer,Buyer) && Currency=="YNXT" && proof.Currency==Currency && TotalYNXT>0 && proof.AmountYNXT==TotalYNXT && proof.BlockHeight>0 && proof.Status=="paid" && NativeWire.matches(proof.TransactionHash,"^0x[a-fA-F0-9]{64}$") && NativeWire.matches(proof.AuditHash,"^[a-fA-F0-9]{64}$") && Self.recordedTime(proof.ConfirmedAt)
     }
     var paymentOrder:Order {var order=Order(orderID:self.ID,status:Status,totalYNXT:TotalYNXT,refundStatus:RefundStatus,trustStatus:TrustStatus,payDeepLink:nil,buyer:Buyer,storeID:StoreID,currency:Currency);order.invoiceID=InvoiceID;order.payIntentID=PayIntentID;order.payMerchant=PayMerchant;order.payPayoutAddress=PayPayoutAddress;order.nativePayment=NativePayment;order.nativePrice=NativePrice;order.nativeLines=Lines.map{NativeCheckoutLine(ProductID:$0.ProductID,VariantID:$0.VariantID,Quantity:$0.Quantity,NativePrice:$0.NativePrice)};return order}
+    var hasAftersalesRecord: Bool {
+        if Resolution != nil || Refund != nil || !(ReturnReceipts ?? []).isEmpty { return true }
+        if ["return_requested", "return_approved", "return_rejected", "refund_requested", "refund_approved", "refund_rejected", "refunded", "disputed"].contains(Status) { return true }
+        return !RefundStatus.isEmpty && RefundStatus != "not_requested" && !RefundStatus.hasPrefix("unavailable")
+    }
     var paymentDisplayState:String {
         guard PayIntentID.hasPrefix("npi_") else{return Settlement?.Status ?? "unavailable"}
         guard let payment=NativePayment,(try? payment.validate(paymentOrder,requirePaid:false)) != nil else{return "native_receipt_unavailable"}

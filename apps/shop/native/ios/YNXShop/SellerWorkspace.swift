@@ -254,7 +254,7 @@ private struct SellerOrdersList:View {
     private var orders:[SellerOrder]{seller.orders.filter{order in
         guard order.StoreID==seller.selectedStoreID,query.isEmpty || order.ID.localizedCaseInsensitiveContains(query) || order.Buyer.localizedCaseInsensitiveContains(query) else{return false}
         let scope=mode == .fulfillment ? "fulfillment":mode == .aftersales ? "aftersales":filter
-        switch scope{case "fulfillment":return order.Status=="paid" || order.Shipment != nil;case "aftersales":return order.Resolution != nil || !order.RefundStatus.isEmpty;case "pending":return sellerPaymentNeedsReview(order);default:return true}
+        switch scope{case "fulfillment":return order.Status=="paid" || order.Shipment != nil;case "aftersales":return order.hasAftersalesRecord;case "pending":return sellerPaymentNeedsReview(order);default:return true}
     }}
     var body:some View{SellerPage(mode.title,subtitle:"seller_order_states_note",desktop:desktop){
         TextField("shop_order_search",text:$query).textFieldStyle(.roundedBorder)
