@@ -29,13 +29,15 @@ export function createOriginalDeviceCreationController({vault,networkId}){
   retain(r);r.peer?.retire();r.review?.close();
  }
  async function drain(r){
+  if(r.drainPass)return r.drainPass;
+  r.drainPass=(async()=>{
   retire(r);let childClosed=!r.child;
   for(const name of ['child','source']){
    if(name==='source'&&!childClosed)break;
    const owner=r[name],c=r.cleanup[name];if(!owner)continue;
    if(c.failed)break;
    try{
-    if(!c.joined){c.joined=true;await owner.join();}
+    if(!c.joined){await owner.join();c.joined=true;}
     if(!c.closeSelected){c.closeSelected=true;await owner.close();c.closed=true;}
     if(name==='child')childClosed=c.closed;
    }catch(e){c.failed=true;c.error=e;remember(r,e);break;}
@@ -43,6 +45,8 @@ export function createOriginalDeviceCreationController({vault,networkId}){
   r.cleanupDebt=!!r.child&&!r.cleanup.child.closed||!!r.source&&!r.cleanup.source.closed;
   if(!r.cleanupDebt){r.unsubscribe?.();r.selected?.close();r.peer?.close();}
   if(r.cleanupDebt)fail('DEVICE_CREATE_ORIGINAL_CLEANUP_UNRESOLVED');
+  })();
+  return r.drainPass;
  }
  const status=r=>Object.freeze({requestId:r?.review?.id??null,account:r?.security?.account??null,retired:r?.retired??false,phase:r?.phase??'idle',effectEntryInvoked:r?.effectEntryInvoked??false,originalOutcomeRetained:r?.hasRawOutcome??false,originalOutcome:r?.originalOutcome??null,latestOutcome:r?.latestOutcome??null,cleanupUnresolved:r?.cleanupDebt??false,...(r?.hasCause?{firstCauseCode:code(r.cause)}:{}),...(r?.hasOutcomeReadCause?{outcomeReadCauseCode:code(r.outcomeReadCause)}:{})});
  const selected=id=>{if(!active||active.review?.id!==id)fail('DEVICE_CREATE_ORIGINAL_REVIEW_REQUIRED');return active;};

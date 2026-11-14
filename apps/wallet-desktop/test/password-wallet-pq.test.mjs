@@ -930,6 +930,23 @@ test('device-create normal Main controller uses separate real review and only or
 test('device-create normal Main cancel never captures approval creates keys or completes registration',async t=>{
  const f=await deviceControllerFixture(t),request=await f.prepare(),cancelled=await f.controller.rejectOriginal(request.id);assert.equal(cancelled.phase,'cancelled-before-effect');assert.equal(cancelled.effectEntryInvoked,false);assert.deepEqual(f.native.counts,{prepare:0,complete:0,capture:0});assert.equal(f.native.sourceClosed,true);
 });
+test('device-create concurrent close waits for the same original join before closing',async t=>{
+ let started,release;const entered=new Promise(r=>{started=r;}),waiting=new Promise(r=>{release=r;});
+ const f=await deviceControllerFixture(t),request=await f.prepare(),join=f.native.source.join;
+ f.native.source.join=async function(){join.call(this);started();await waiting;};
+ const rejecting=f.controller.rejectOriginal(request.id);await entered;
+ const closing=f.controller.close();await new Promise(r=>setImmediate(r));
+ const closedBeforeJoin=f.native.events.includes('source-close');release();await Promise.all([rejecting,closing]);
+ assert.equal(closedBeforeJoin,false,'close must wait for original join completion');assert.equal(f.native.events.filter(x=>x==='source-join').length,1);assert.equal(f.native.events.filter(x=>x==='source-close').length,1);
+});
+test('device-create concurrent close keeps a failed join as unresolved custody',async t=>{
+ let started,release;const entered=new Promise(r=>{started=r;}),waiting=new Promise(r=>{release=r;});
+ const f=await deviceControllerFixture(t),request=await f.prepare();
+ f.native.source.join=async()=>{f.native.events.push('source-join');started();await waiting;throw false;};
+ const rejecting=f.controller.rejectOriginal(request.id),rejected=assert.rejects(rejecting,{code:'DEVICE_CREATE_ORIGINAL_CLEANUP_UNRESOLVED'});await entered;
+ const closing=assert.rejects(f.controller.close(),{code:'DEVICE_CREATE_ORIGINAL_CLEANUP_UNRESOLVED'});release();await Promise.all([rejected,closing]);
+ assert.equal(f.native.events.filter(x=>x==='source-join').length,1);assert.equal(f.native.events.includes('source-close'),false);assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);
+});
 test('device-create normal Main adopts source and child partials before the same original failure escapes',async t=>{
  for(const kind of ['acquireError','captureError']){const original=Object.assign(Error('PUBLIC_ORIGINAL_PARTIAL_FAILURE'),{code:'PUBLIC_ORIGINAL_PARTIAL_FAILURE'}),f=await deviceControllerFixture(t,{[kind]:original});if(kind==='acquireError')await assert.rejects(f.prepare(),e=>e===original);else{const request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)),e=>e===original);assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));}assert.equal(f.native.sourceClosed,true);assert.equal(f.native.counts.prepare,0);}
 });
