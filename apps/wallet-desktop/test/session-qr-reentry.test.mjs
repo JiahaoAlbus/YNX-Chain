@@ -61,3 +61,13 @@ for(const cancel of [false,true])for(const fail of [false,true])test(`newer stat
  const h=pairingFixture(cancel),job=h.button.click();h.pending.resolve({ok:true});await new Promise(resolve=>setImmediate(resolve));h.context.walletConnectStatusRevision++;h.context.walletConnectDetail.textContent="new pairing event";h.button.disabled=true;
  if(fail)h.status.reject(Error("old status"));else h.status.resolve({started:true,pairing:false,pair:{phase:"canceled"}});await job;assert.equal(h.context.walletConnectDetail.textContent,"new pairing event");assert.equal(h.button.disabled,true);assert.equal(h.nodes.rendered,undefined);
 });
+test('current status read failure after pair keeps initiation disabled and permits a fresh status check',async()=>{
+ const h=pairingFixture(false),job=h.button.click();h.pending.resolve({ok:true,value:{submitted:true}});await new Promise(resolve=>setImmediate(resolve));h.status.reject(Error('status unavailable'));await job;
+ assert.equal(h.button.disabled,true);assert.match(h.context.walletConnectDetail.textContent,/status could not be confirmed/i);
+});
+for(const fail of [false,true])test(`pair ${fail?'failure':'success'} cannot overwrite a newer proposal event before status read`,async()=>{
+ const h=pairingFixture(false),job=h.button.click();h.context.walletConnectStatusRevision++;h.context.walletConnectDetail.textContent='new proposal';
+ if(fail)h.pending.reject(Error('old failure'));else h.pending.resolve({ok:true,value:{submitted:true}});
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(h.context.walletConnectDetail.textContent,'new proposal');
+ h.status.resolve({ok:true,value:{}});await job;
+});

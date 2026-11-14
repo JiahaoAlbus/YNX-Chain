@@ -66,7 +66,7 @@ jobs:
       - name: Wallet cross-chain dialog recovery controls
         run: node --test test/cross-chain-dialog-reopen.test.mjs
       - name: WalletConnect session approval and revocation controls
-        run: node --test test/published-walletconnect-session-binding.test.mjs test/walletconnect-session-binding.test.mjs test/walletconnect-request-inbox.test.mjs test/walletconnect-relay-status.test.mjs
+        run: node --test test/published-walletconnect-session-binding.test.mjs test/walletconnect-session-binding.test.mjs test/walletconnect-request-inbox.test.mjs test/walletconnect-relay-status.test.mjs test/published-pair-renderer.test.mjs test/session-qr-reentry.test.mjs
       - name: PQ operator trust, original query, and submission controls
         run: node --test test/operator-deployment-identity.test.mjs test/original-policy-raw-bytes.test.mjs test/original-policy-binding.test.mjs test/operator-query-http-observation.test.mjs test/operator-chain-763-interop.test.mjs src/features/pq-transaction/node-transport.test.mjs src/features/pq-transaction/node-finality-transport.test.mjs src/features/pq-transaction/typed-action-query-node.test.mjs src/features/pq-transaction/submission-adversarial.test.mjs
       - name: Pay original order binding through the normal client

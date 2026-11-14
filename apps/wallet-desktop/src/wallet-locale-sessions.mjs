@@ -29,8 +29,108 @@ const waitingRows={
  ar:["لم يبدأ WalletConnect بعد","لم يتم تأكيد اتصال Relay بعد. تظل محفظتك وحساباتك متاحة."],
  id:["WalletConnect belum dimulai","Koneksi Relay belum dikonfirmasi. Dompet dan akun Anda tetap dapat diakses."]
 };
+const pairKeys=["Connecting… You can cancel this pairing attempt.","Pairing request submitted. Waiting for a connection proposal; you can cancel this attempt.","Connection proposal received. Review before approving.","Pairing canceled. Request a fresh QR code before retrying.","The pairing attempt did not finish. Request a fresh QR code before retrying.","WalletConnect status could not be confirmed. Refresh the connection status before trying again."];
+const pairRows={
+  "en": [
+    "Connecting… You can cancel this pairing attempt.",
+    "Pairing request submitted. Waiting for a connection proposal; you can cancel this attempt.",
+    "Connection proposal received. Review before approving.",
+    "Pairing canceled. Request a fresh QR code before retrying.",
+    "The pairing attempt did not finish. Request a fresh QR code before retrying.",
+    "WalletConnect status could not be confirmed. Refresh the connection status before trying again."
+  ],
+  "zh-Hans": [
+    "正在连接…可以取消本次配对。",
+    "配对请求已提交，正在等待连接提案；可以取消本次配对。",
+    "已收到连接提案，请在批准前核对。",
+    "配对已取消，请获取新的二维码后再试。",
+    "配对未完成，请获取新的二维码后再试。",
+    "无法确认 WalletConnect 状态，请先刷新连接状态再试。"
+  ],
+  "zh-Hant": [
+    "正在連線…可以取消本次配對。",
+    "配對請求已提交，正在等待連線提案；可以取消本次配對。",
+    "已收到連線提案，請在批准前核對。",
+    "配對已取消，請取得新的 QR 碼後再試。",
+    "配對未完成，請取得新的 QR 碼後再試。",
+    "無法確認 WalletConnect 狀態，請先重新整理連線狀態再試。"
+  ],
+  "ja": [
+    "接続中…このペアリングはキャンセルできます。",
+    "ペアリング要求を送信しました。接続提案を待っています。この操作はキャンセルできます。",
+    "接続提案を受信しました。承認前に確認してください。",
+    "ペアリングをキャンセルしました。新しい QR コードを取得してから再試行してください。",
+    "ペアリングは完了しませんでした。新しい QR コードを取得してから再試行してください。",
+    "WalletConnect の状態を確認できません。接続状態を更新してから再試行してください。"
+  ],
+  "ko": [
+    "연결 중… 이 페어링을 취소할 수 있습니다.",
+    "페어링 요청을 제출했습니다. 연결 제안을 기다리는 중이며 이 시도를 취소할 수 있습니다.",
+    "연결 제안을 받았습니다. 승인하기 전에 검토하세요.",
+    "페어링을 취소했습니다. 새 QR 코드를 받아 다시 시도하세요.",
+    "페어링이 완료되지 않았습니다. 새 QR 코드를 받아 다시 시도하세요.",
+    "WalletConnect 상태를 확인할 수 없습니다. 연결 상태를 새로고침한 후 다시 시도하세요."
+  ],
+  "es": [
+    "Conectando… Puedes cancelar este emparejamiento.",
+    "Solicitud de emparejamiento enviada. Esperando una propuesta de conexión; puedes cancelar este intento.",
+    "Propuesta de conexión recibida. Revísala antes de aprobar.",
+    "Emparejamiento cancelado. Solicita un nuevo código QR antes de reintentar.",
+    "El emparejamiento no terminó. Solicita un nuevo código QR antes de reintentar.",
+    "No se pudo confirmar el estado de WalletConnect. Actualiza el estado antes de reintentar."
+  ],
+  "fr": [
+    "Connexion… Vous pouvez annuler cet appairage.",
+    "Demande d’appairage envoyée. En attente d’une proposition de connexion ; vous pouvez annuler cette tentative.",
+    "Proposition de connexion reçue. Vérifiez-la avant d’approuver.",
+    "Appairage annulé. Demandez un nouveau code QR avant de réessayer.",
+    "L’appairage n’a pas abouti. Demandez un nouveau code QR avant de réessayer.",
+    "État WalletConnect non confirmé. Actualisez l’état de connexion avant de réessayer."
+  ],
+  "de": [
+    "Verbindung wird hergestellt… Du kannst diese Kopplung abbrechen.",
+    "Kopplungsanfrage gesendet. Ein Verbindungsvorschlag wird erwartet; du kannst diesen Versuch abbrechen.",
+    "Verbindungsvorschlag erhalten. Vor der Bestätigung prüfen.",
+    "Kopplung abgebrochen. Fordere vor einem erneuten Versuch einen neuen QR-Code an.",
+    "Kopplung nicht abgeschlossen. Fordere vor einem erneuten Versuch einen neuen QR-Code an.",
+    "WalletConnect-Status nicht bestätigt. Aktualisiere vor einem erneuten Versuch den Verbindungsstatus."
+  ],
+  "pt": [
+    "Conectando… Você pode cancelar este pareamento.",
+    "Solicitação de pareamento enviada. Aguardando uma proposta de conexão; você pode cancelar esta tentativa.",
+    "Proposta de conexão recebida. Revise antes de aprovar.",
+    "Pareamento cancelado. Solicite um novo código QR antes de tentar novamente.",
+    "O pareamento não foi concluído. Solicite um novo código QR antes de tentar novamente.",
+    "Não foi possível confirmar o estado do WalletConnect. Atualize o estado da conexão antes de tentar novamente."
+  ],
+  "ru": [
+    "Подключение… Можно отменить это сопряжение.",
+    "Запрос на сопряжение отправлен. Ожидается предложение подключения; эту попытку можно отменить.",
+    "Получено предложение подключения. Проверьте его перед одобрением.",
+    "Сопряжение отменено. Перед повторной попыткой запросите новый QR-код.",
+    "Сопряжение не завершено. Перед повторной попыткой запросите новый QR-код.",
+    "Не удалось подтвердить состояние WalletConnect. Обновите состояние подключения перед повторной попыткой."
+  ],
+  "ar": [
+    "جارٍ الاتصال… يمكنك إلغاء محاولة الاقتران هذه.",
+    "أُرسل طلب الاقتران. بانتظار اقتراح اتصال؛ يمكنك إلغاء هذه المحاولة.",
+    "تم استلام اقتراح الاتصال. راجعه قبل الموافقة.",
+    "أُلغي الاقتران. اطلب رمز QR جديدًا قبل إعادة المحاولة.",
+    "لم يكتمل الاقتران. اطلب رمز QR جديدًا قبل إعادة المحاولة.",
+    "تعذر تأكيد حالة WalletConnect. حدّث حالة الاتصال قبل إعادة المحاولة."
+  ],
+  "id": [
+    "Menghubungkan… Anda dapat membatalkan pemasangan ini.",
+    "Permintaan pemasangan dikirim. Menunggu proposal koneksi; Anda dapat membatalkan percobaan ini.",
+    "Proposal koneksi diterima. Tinjau sebelum menyetujui.",
+    "Pemasangan dibatalkan. Minta kode QR baru sebelum mencoba lagi.",
+    "Pemasangan belum selesai. Minta kode QR baru sebelum mencoba lagi.",
+    "Status WalletConnect tidak dapat dikonfirmasi. Segarkan status koneksi sebelum mencoba lagi."
+  ]
+};
 export const SESSION_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,values])=>{
  if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete session copy: ${locale}`);
+ if(pairRows[locale]?.length!==pairKeys.length||pairRows[locale].some(value=>!value))throw Error(`Incomplete pairing copy: ${locale}`);
  if(waitingRows[locale]?.length!==waitingKeys.length||waitingRows[locale].some(value=>!value))throw Error(`Incomplete Relay copy: ${locale}`);
- return[locale,Object.freeze(Object.fromEntries([...keys.map((key,index)=>[key,values[index]]),...waitingKeys.map((key,index)=>[key,waitingRows[locale][index]])]))];
+ return[locale,Object.freeze(Object.fromEntries([...keys.map((key,index)=>[key,values[index]]),...waitingKeys.map((key,index)=>[key,waitingRows[locale][index]]),...pairKeys.map((key,index)=>[key,pairRows[locale][index]])]))];
 })));
