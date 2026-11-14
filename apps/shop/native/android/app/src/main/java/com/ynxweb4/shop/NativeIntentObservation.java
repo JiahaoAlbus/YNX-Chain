@@ -4,6 +4,10 @@ import org.json.JSONObject;
 
 // Read-only DATA from the original Pay intent, never a funds acknowledgement.
 final class NativeIntentObservation {
+ static boolean pendingHistory(JSONObject payment) {
+  org.json.JSONArray pending=payment.optJSONArray("PendingOriginals");
+  return payment.optBoolean("ReconciliationRequired",true) || !payment.optBoolean("CompleteKnownOriginals",false) || (pending!=null && pending.length()>0);
+ }
  static boolean isNative(JSONObject order){return order.optString("PayIntentID").startsWith("npi_");}
  static String path(JSONObject order,String account){
   if(!BuyerReceipt.owned(order,account)||!order.optString("ID").matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")||!order.optString("PayIntentID").matches("npi_[a-f0-9]{48}"))throw new SecurityException("Original owned intent required");

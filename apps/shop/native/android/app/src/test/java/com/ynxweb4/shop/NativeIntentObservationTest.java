@@ -4,6 +4,15 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class NativeIntentObservationTest {
+ @org.junit.Test public void unresolvedOriginalsRemainPending() throws Exception {
+  JSONObject payment=new JSONObject().put("ReconciliationRequired",false).put("CompleteKnownOriginals",true).put("PendingOriginals",new org.json.JSONArray()).put("RefundedAtoms","30");
+  assertFalse(NativeIntentObservation.pendingHistory(payment));
+  payment.put("CompleteKnownOriginals",false).put("PendingOriginals",new org.json.JSONArray().put("0xoriginal"));
+  assertTrue(NativeIntentObservation.pendingHistory(payment));
+  assertEquals("30",payment.getString("RefundedAtoms"));
+  payment.put("CompleteKnownOriginals",true).put("PendingOriginals",new org.json.JSONArray()).put("ReconciliationRequired",true);
+  assertTrue(NativeIntentObservation.pendingHistory(payment));
+ }
  private JSONObject order()throws Exception{return new JSONObject().put("ID","ord_original").put("Buyer","original_account").put("PayIntentID","npi_"+"ab".repeat(24));}
  private JSONObject observation()throws Exception{return new JSONObject().put("orderId","ord_original").put("originalOperation","npi_"+"ab".repeat(24)).put("state","PREPARED").put("phase","signed_not_submitted").put("queryOnly",true).put("fundsVerified",false);}
  @Test public void originalOwnedIntentHasOnlyReadRoute()throws Exception{

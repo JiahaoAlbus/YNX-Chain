@@ -250,16 +250,17 @@ public final class MainActivity extends Activity {
         if(order.has("Settlement")&&!order.isNull("Settlement")){JSONObject proof=order.getJSONObject("Settlement");card.addView(text("Block "+proof.getLong("BlockHeight")+" · "+proof.getString("TransactionHash"),12,false));}
         if(state.equals("payment_pending")){card.addView(action(getString(R.string.pay_handoff),()->pay(order)));card.addView(action(getString(R.string.cancel_order),()->reviewOrderAction(order,"cancelled",R.string.cancel_order)));}
         if(state.equals("payment_pending")||NativeIntentObservation.isNative(order))card.addView(action(getString(R.string.check_payment),()->checkPayment(order)));
-        if(!order.optString("RefundStatus").isEmpty())card.addView(text(order.optString("RefundStatus"),12,false));
+        JSONObject nativePayment=order.optJSONObject("NativePayment");
+        boolean historyPending=nativePayment!=null && NativeIntentObservation.pendingHistory(nativePayment);
+        if(!historyPending && !order.optString("RefundStatus").isEmpty())card.addView(text(order.optString("RefundStatus"),12,false));
         if(order.optJSONObject("NativePayment")!=null){
             JSONObject payment=order.getJSONObject("NativePayment");
+            if(historyPending)card.addView(text(getString(R.string.native_history_pending),12,false));
             if(payment.getBoolean("ReconciliationRequired"))card.addView(text(getString(R.string.native_reconcile_required),12,false));
             else if(List.of("paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested","refunded").contains(state)){
                 card.addView(text(getString(R.string.native_paid_atoms)+": "+payment.getString("PaidAtoms"),12,false));
                 card.addView(text(getString(R.string.native_refunded_atoms)+": "+payment.getString("RefundedAtoms"),12,false));
                 card.addView(text(getString(R.string.native_net_atoms)+": "+payment.getString("NetPaidAtoms"),12,false));
-                JSONArray pending=payment.optJSONArray("PendingOriginals");
-                if(!payment.getBoolean("CompleteKnownOriginals")||(pending!=null&&pending.length()>0))card.addView(text(getString(R.string.native_history_pending),12,false));
             }
         }
         if(state.equals("shipped"))card.addView(action(getString(R.string.confirm_delivery),()->reviewOrderAction(order,"delivered",R.string.confirm_delivery)));
