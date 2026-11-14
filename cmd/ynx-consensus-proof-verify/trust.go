@@ -21,6 +21,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	"golang.org/x/sys/unix"
+	"golang.org/x/text/encoding"
+	"golang.org/x/text/transform"
 )
 
 // This object is accepted ONLY from --trust-context plus the externally
@@ -178,12 +180,8 @@ func (c trustContext) load() (consensus.PQLightProofTrust, error) {
 	}
 	// All authority inputs come from the externally pinned context. Read the
 	// original migration and genesis, preserving their established wire/hash.
-	migrationRaw, err := readPublicFile(c.MigrationFile, 1<<30)
+	migration, err := readProofMigration(c.MigrationFile)
 	if err != nil {
-		return trust, err
-	}
-	var migration chain.ConsensusMigrationState
-	if err = strictJSON(migrationRaw, &migration); err != nil {
 		return trust, err
 	}
 	genesisRaw, err := readPublicFile(c.GenesisFile, 64<<20)
@@ -258,34 +256,81 @@ func matchesSHA256(raw []byte, expected string) bool {
 	return hex.EncodeToString(hash[:]) == expected
 }
 
-// Public files are read only once through their original inode, with bounds
-// and before/after identity checks. No symlink, FIFO, directory or source repair.
-func readPublicFile(path string, maximum int64) ([]byte, error) {
+// Read the complete migration without retaining an encoded history-sized
+// slice. The first pass preserves strict UTF-8, duplicate-key, depth and EOF
+// checks. The typed pass must consume the same bytes of the same held file.
+func readProofMigration(path string) (chain.ConsensusMigrationState, error) {
+	f, before, err := openPublicFile(path, 1<<30)
+	if err != nil {
+		return chain.ConsensusMigrationState{}, err
+	}
+	defer f.Close()
+
+	shapeHash := sha256.New()
+	shapeInput := io.TeeReader(io.NewSectionReader(f, 0, before.Size()), shapeHash)
+	decoder := json.NewDecoder(transform.NewReader(shapeInput, encoding.UTF8Validator))
+	decoder.UseNumber()
+	if err = scanJSONDocument(decoder); err != nil {
+		return chain.ConsensusMigrationState{}, err
+	}
+	migrationHash := sha256.New()
+	stream := io.TeeReader(io.NewSectionReader(f, 0, before.Size()), migrationHash)
+	migration, decodeErr := chain.ReadConsensusMigrationState(stream)
+	if decodeErr != nil {
+		return chain.ConsensusMigrationState{}, decodeErr
+	}
+	if !bytes.Equal(shapeHash.Sum(nil), migrationHash.Sum(nil)) {
+		return chain.ConsensusMigrationState{}, errors.New("public migration bytes changed after shape validation")
+	}
+	if err = checkPublicFile(f, path, before); err != nil {
+		return chain.ConsensusMigrationState{}, err
+	}
+	return migration, nil
+}
+
+// Open the original inode without following special files or path aliases.
+func openPublicFile(path string, maximum int64) (*os.File, os.FileInfo, error) {
 	if !canonicalAbsolutePath(path) {
-		return nil, errors.New("canonical absolute public file required")
+		return nil, nil, errors.New("canonical absolute public file required")
 	}
 	resolved, err := filepath.EvalSymlinks(path)
 	if err != nil || resolved != path {
-		return nil, errors.New("public source may not traverse symlinks")
+		return nil, nil, errors.New("public source may not traverse symlinks")
 	}
 	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	f := os.NewFile(uintptr(fd), "public-consensus-proof-input")
-	defer f.Close()
 	before, err := f.Stat()
 	if err != nil || !before.Mode().IsRegular() || before.Size() <= 0 || before.Size() > maximum {
-		return nil, errors.New("public file is empty, non-regular or exceeds its bound")
+		_ = f.Close()
+		return nil, nil, errors.New("public file is empty, non-regular or exceeds its bound")
 	}
+	return f, before, nil
+}
+
+func checkPublicFile(f *os.File, path string, before os.FileInfo) error {
+	after, err := f.Stat()
+	current, pathErr := os.Lstat(path)
+	if err != nil || pathErr != nil || !samePublicFile(before, after) || !samePublicFile(before, current) {
+		return errors.New("public file changed during read")
+	}
+	return nil
+}
+
+func readPublicFile(path string, maximum int64) ([]byte, error) {
+	f, before, err := openPublicFile(path, maximum)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 	raw, err := io.ReadAll(io.LimitReader(f, maximum+1))
 	if err != nil || int64(len(raw)) > maximum || int64(len(raw)) != before.Size() {
 		return nil, errors.New("public file changed or exceeded its bound during read")
 	}
-	after, err := f.Stat()
-	current, pathErr := os.Lstat(path)
-	if err != nil || pathErr != nil || !samePublicFile(before, after) || !samePublicFile(before, current) {
-		return nil, errors.New("public file changed during read")
+	if err = checkPublicFile(f, path, before); err != nil {
+		return nil, err
 	}
 	return raw, nil
 }
@@ -334,11 +379,8 @@ func strictJSON(raw []byte, value any) error {
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.UseNumber()
-	if err := scanJSON(d, 0); err != nil {
+	if err := scanJSONDocument(d); err != nil {
 		return err
-	}
-	if _, err := d.Token(); err != io.EOF {
-		return errors.New("trailing JSON value or bytes")
 	}
 	d = json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
@@ -346,6 +388,16 @@ func strictJSON(raw []byte, value any) error {
 		return err
 	}
 	if d.Decode(new(any)) != io.EOF {
+		return errors.New("trailing JSON value or bytes")
+	}
+	return nil
+}
+
+func scanJSONDocument(d *json.Decoder) error {
+	if err := scanJSON(d, 0); err != nil {
+		return err
+	}
+	if _, err := d.Token(); err != io.EOF {
 		return errors.New("trailing JSON value or bytes")
 	}
 	return nil
