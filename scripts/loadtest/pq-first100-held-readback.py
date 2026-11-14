@@ -26,6 +26,8 @@ CONTEXT_FAILURE_DIGESTS = {
     hashlib.sha256(reason.encode('ascii')).hexdigest(): reason
     for reason in ('context deadline exceeded', 'context canceled')
 }
+MIGRATION_JSON_FAILURE = 'duplicate or malformed original migration JSON'
+MIGRATION_JSON_FAILURE_DIGEST = hashlib.sha256(MIGRATION_JSON_FAILURE.encode('ascii')).hexdigest()
 
 
 def verify_archive_origin(run, job, artifacts, controller, sha256, size):
@@ -348,6 +350,9 @@ def stopped_proof_failures(receipt, load, files, prefix):
         output.append(dict(record, originalFailure=data, originalPreOutputFailure=pre_output_data,
                            originalCaptureObservation=capture_data,
                            matchedContextError=CONTEXT_FAILURE_DIGESTS.get(data['FirstCauseSHA256']) if data else None,
+                           matchedMigrationInputError=MIGRATION_JSON_FAILURE if capture_data is not None
+                           and capture_data['lastEnteredPhase'] == 'proof.derivedPlanInputs'
+                           and data['FirstCauseSHA256'] == MIGRATION_JSON_FAILURE_DIGEST else None,
                            originalCohortStatus=cohort[index]['status']))
     return dict(records=output, altersLoadResult=False)
 
