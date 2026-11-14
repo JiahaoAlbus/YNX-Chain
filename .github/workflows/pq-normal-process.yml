@@ -806,7 +806,6 @@ jobs:
             /scripts/loadtest/pq-first100-7c25-ci.py
             /scripts/loadtest/pq-first100-7c25-native-build-ci.py
             /scripts/loadtest/test_pq_first100_7c25_native_build_ci.py
-            /scripts/loadtest/pq-first100-held-ci.py
       - name: Verify original stream failure preservation before any compiler
         run: python3 -I -B controller/scripts/loadtest/test_pq_first100_7c25_native_build_ci.py
       - name: Receive original frozen7c source and complete immutable CGO inputs

@@ -16,6 +16,8 @@ import time
 F2 = '91caff35a141889a4a8de6b2f4ba533c69b64550'
 F2_TREE = '4bece71b095b6983e0f22ec63537ef4a7bf6c47b'
 SOURCE = '7c25cbcc7d31b10743e26ae1ddca745085ee1b0b'
+BUILD_GUARD_TOOLS = 'b59687361d5651f863cac17c62bb2d61f0006275'
+BUILD_GUARD_TOOLS_TREE = '7e29be4804ff793a66026722af8c3b326f07c47c'
 TAG = 'ynx_live_wire_observation'
 BINS = ('ynx-consensus-pq-lab', 'ynx-comet', 'ynx-consensus-proof-verify')
 
@@ -79,8 +81,7 @@ def execute(source, tools, guard_tools, work):
     require(entry.TOOLS == F2 and entry.TOOLS_TREE == F2_TREE and entry.GO_SOURCE == SOURCE,
             'only original F2/C2 and frozen7c source allowed')
     entry.verify_tools(tools)
-    held = module('held_guard_identity', controller / 'scripts/loadtest/pq-first100-held-ci.py')
-    entry.checked_source(guard_tools, held.TOOLS, held.TOOLS_TREE)
+    entry.checked_source(guard_tools, BUILD_GUARD_TOOLS, BUILD_GUARD_TOOLS_TREE)
     entry.checked_source(source, entry.GO_SOURCE, entry.GO_TREE)
     for path, expected in entry.SOURCE_PINS.items():
         entry.pinned_bytes(source / path, expected)
@@ -112,7 +113,7 @@ def execute(source, tools, guard_tools, work):
     go = Path(shutil.which('go')).resolve(strict=True)
     w = lab.Window(source, work, additional_storage=(workspace, go.parent.parent))
     result = dict(schema='YNX-FIRST100-SAME-VIEW-CGO-BUILD/v1', controller=os.environ['GITHUB_SHA'],
-        tools=F2, toolsTree=F2_TREE, buildGuardTools=held.TOOLS, buildGuardToolsTree=held.TOOLS_TREE,
+        tools=F2, toolsTree=F2_TREE, buildGuardTools=BUILD_GUARD_TOOLS, buildGuardToolsTree=BUILD_GUARD_TOOLS_TREE,
         resourceObserverVersion=lab.RSS_OBSERVER_VERSION, source=SOURCE, cgoEnabled='1', binaryExecutionRequested=False,
         nodeStarted=False, keysCreated=False, loadExecuted=False, pressureAuthorized=False,
         qualified=False, firstCause=None, cleanupComplete=False, binaries={})
