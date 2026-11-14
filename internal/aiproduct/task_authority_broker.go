@@ -164,6 +164,17 @@ func retainOriginalBrokerLocator(store *Store, selected OriginalShopOrderCall, r
 	return captureShopRemoteRef(store, selected, result.Resource.RemoteRef)
 }
 
+// Validate the original signed operands with Shop's E5 codec. Historical
+// recovery does this locally and sends only Auth's original-operation query.
+func validateOriginalBrokerShopRequest(ctx context.Context, selected OriginalShopOrderCall) error {
+	profile, err := originalBrokerShopProfile(selected.Binding)
+	if err != nil {
+		return err
+	}
+	_, err = EncodeOriginalShopOrderRequestDATA(ctx, selected, profile)
+	return err
+}
+
 func (b *originalTaskAuthorityBroker) dispatch(ctx context.Context, e *originalRuntimeToolEffects, call taskEffectCall, ref string, auth OriginalTaskGrantAuthorization) (taskReadReceipt, error) {
 	request, err := e.originalBoundRequest(ctx, call, ref, false)
 	if err != nil {
@@ -173,11 +184,7 @@ func (b *originalTaskAuthorityBroker) dispatch(ctx context.Context, e *originalR
 	if err != nil {
 		return taskReadReceipt{}, err
 	}
-	profile, err := originalBrokerShopProfile(auth.Binding)
-	if err != nil {
-		return taskReadReceipt{}, err
-	}
-	if _, err := EncodeOriginalShopOrderRequestDATA(ctx, selected, profile); err != nil {
+	if err := validateOriginalBrokerShopRequest(ctx, selected); err != nil {
 		return taskReadReceipt{}, err
 	}
 	grant, err := open.DecodeBoundGrant(auth.Grant.Payload)
@@ -222,6 +229,9 @@ func (b *originalTaskAuthorityBroker) reconcile(ctx context.Context, e *original
 	auth := OriginalTaskGrantAuthorization{Binding: material.Binding, Grant: material.Call.Grant, Holder: material.Call.Holder}
 	selected, err := b.selected(e.store, call, auth, true)
 	if err != nil {
+		return taskReadReceipt{}, err
+	}
+	if err := validateOriginalBrokerShopRequest(ctx, selected); err != nil {
 		return taskReadReceipt{}, err
 	}
 	// Pin the historical operation only after its binding matches this Shop step.

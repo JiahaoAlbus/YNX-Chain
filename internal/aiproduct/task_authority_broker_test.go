@@ -476,6 +476,16 @@ func TestP08AuthorityBrokerRejectsMismatchedHistoryBeforeBindingOperation(t *tes
 			rejected.ToolStep.AuthorityOperationID, len(c.queries))
 	}
 
+	// The original holder DATA must match the detached history binding.
+	a.queryBinding = nil
+	originalHolder := a.authorization.Holder
+	a.authorization.Holder.Payload = []byte("PUBLIC-invalid-original-holder")
+	_, err := f.server.reconcileStep(ctx, f.session, f.task.ID, f.step.ID, ref)
+	a.authorization.Holder = originalHolder
+	if err == nil || !reflect.DeepEqual(before, p08BrokerStored(f)) || len(c.queries) != 0 {
+		t.Fatal("mismatched Shop holder DATA changed durable step or reached broker")
+	}
+
 	p08BrokerRestart(t, f)
 	a.queryBinding = nil
 	a.queryOperation = good.OriginalOperation
