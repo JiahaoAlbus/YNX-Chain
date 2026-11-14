@@ -88,6 +88,27 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'request binding differs'):
             reader.stopped_proof_failures(receipt, load, files, prefix)
 
+    def test_signer_callee_groups_preserve_missing_stage_and_reject_swapped_replies(self):
+        rows = [dict(index=i, ownerIndex=i, operationId=str(i)*64) for i in range(3)]
+        codes = ('UNKNOWN', 'UNKNOWN', 'REJECTED')
+        transport = [dict(row, operation='sign', code=code) for row, code in zip(rows, codes)]
+        receipt = dict(normalPublicOwnerTransport=dict(records=transport))
+        prefix = 'public/'
+        paths = [prefix + f'load-operations/{i:05d}/original-sign-reply.json' for i in range(3)]
+        frames = [dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=row['ownerIndex'],
+                       operationId=row['operationId'], code=code, calleeElapsedNs=i+1,
+                       timings=dict(stages={'checkpoint.currentFourNodeRead': dict(calls=1, elapsedNs=0)}
+                                    if i == 0 else {})) for i, (row, code) in enumerate(zip(rows, codes))]
+        files = {path: encode(frame) for path, frame in zip(paths[:2], frames)}
+        timing = reader.signer_callee_timing(receipt, dict(rows=rows), files, prefix)
+        self.assertEqual((timing['retainedSigningAttempts'], timing['observedReplies']), (3, 2))
+        current = timing['groups']['UNKNOWN']['stages']['checkpoint.currentFourNodeRead']
+        self.assertEqual((current['observed'], current['missingOrCensored'], current['minNs']), (1, 1, 0))
+        self.assertNotIn('REJECTED', timing['groups'])
+        files[paths[0]] = files[paths[1]]
+        with self.assertRaisesRegex(RuntimeError, 'does not match parent and cohort'):
+            reader.signer_callee_timing(receipt, dict(rows=rows), files, prefix)
+
     def test_pre_output_failure_readback_without_publish_ack_preserves_unknown(self):
         path = 'load-operations/00000/original-live-proof-pre-output-failure.json'
         row = dict(index=0, operationId='a'*64, hash='b'*64, nativeHash='c'*64, status='unknown')

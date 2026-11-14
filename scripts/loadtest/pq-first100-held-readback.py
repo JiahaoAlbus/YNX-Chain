@@ -131,6 +131,7 @@ def compare_business(before, after):
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
+                    signerCalleeTiming=report.get('signerCalleeTiming'),
                     firstSignerFailure=report.get('firstSignerFailure'),
                     observationRPC=report.get('observationRPC'),
                     stoppedLiveProofFailures=report.get('stoppedLiveProofFailures'),
@@ -324,6 +325,48 @@ def public_owner_timing(receipt, load):
     return dict(attempted=transport['attempted'], omitted=transport['omitted'],
                 groups=transport['groups'], receiptProjectionSHA256=transport['receiptProjectionSHA256'],
                 firstOperationalFailure=matched, stagesAdded=False)
+
+
+def signer_callee_timing(receipt, load, files, prefix):
+    """Bind each retained signer reply to its cohort row and parent attempt."""
+    transport = (receipt.get('normalPublicOwnerTransport') or {}).get('records')
+    if load is None or transport is None:
+        return None
+    rows = {(row['ownerIndex'], row['operationId']): row for row in load['rows']}
+    attempts = {}
+    for record in transport:
+        if record['operation'] == 'sign':
+            key = (record['ownerIndex'], record['operationId'])
+            require(key in rows and key not in attempts, 'original signing attempt outside cohort or repeated')
+            attempts[key] = record.get('code')
+    groups = {}
+    for key, row in rows.items():
+        path = f"load-operations/{row['index']:05d}/original-sign-reply.json"
+        raw = files.get(prefix + path)
+        if raw is None:
+            continue
+        require(len(raw) <= 2 << 20, 'bounded original signing reply required')
+        reply = strict(raw)
+        code = reply['code']
+        require(reply['version'] == 'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
+                and (reply['ownerIndex'], reply['operationId']) == key
+                and code in ('ORIGINAL_SAVED', 'REJECTED', 'UNKNOWN') and attempts.get(key) == code,
+                'original signer reply does not match parent and cohort')
+        elapsed = reply.get('calleeElapsedNs')
+        require(elapsed is None or type(elapsed) is int and elapsed >= 0, 'invalid original signing elapsed time')
+        measured = (reply.get('timings') or {}).get('stages', {})
+        for value in measured.values():
+            require(all(type(value[field]) is int and value[field] >= 0 for field in ('calls', 'elapsedNs')),
+                    'invalid original signing stage counters')
+        groups.setdefault(code, []).append(dict(index=row['index'], replySHA256=hashlib.sha256(raw).hexdigest(),
+                                                calleeElapsedNs=elapsed, originalStages=measured))
+    return dict(retainedSigningAttempts=len(attempts), observedReplies=sum(map(len, groups.values())),
+                groups={code: dict(records=records,
+                    calleeElapsed=stages.samples([row['calleeElapsedNs'] for row in records], len(records)),
+                    stages={name: stages.samples(
+                        [row['originalStages'].get(name, {}).get('elapsedNs') for row in records], len(records))
+                        for name in sorted({name for row in records for name in row['originalStages']})})
+                    for code, records in groups.items()}, stageIntervalsAdded=False)
 
 
 def verify_ready_boundary(receipt, configuration, read, manifest, prefix):
@@ -551,6 +594,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakRSSBytes=receipt.get('peakRSSBytes'), peakRSSSample=receipt.get('peakRSSSample'),
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
+                signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
                 observationRPC=observation_rpc(receipt),
                 stoppedLiveProofFailures=stopped_proof_failures(receipt, load, files, prefix),
                 proofCaptureProgress=proof_capture_progress(load) if load is not None else None,
