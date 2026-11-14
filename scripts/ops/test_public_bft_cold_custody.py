@@ -247,6 +247,104 @@ class OriginalColdCustodyTests(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'bounded pinned readiness timeout'):
                         f.m.signer_installation(b,f.install,source,paths)
 
+    def preflight_fixture(self):
+        f = self.fixture()
+        f.b['scheduleHash'] = 'f' * 64
+        paths = {name: str(f.root / 'installed-signer' / name)
+                 for name in ('binary', 'launcher', 'config', 'unit', 'credential')}
+        cfg = dict(legacyKey=f.b['custodyHandoff']['legacyKeyPath'],
+                   legacyState=f.b['originalRole']['legacyStatePath'],
+                   abciState=f.b['originalRole']['abciState'], scheduleHash=f.b['scheduleHash'])
+        bodies = dict(binary=b'inert binary', launcher=b'inert launcher', config=raw(cfg),
+                      unit=b'inert unit', credential=b'inert encrypted credential')
+        modes = dict(binary=0o755, launcher=0o755, config=0o640, unit=0o644, credential=0o600)
+        pins = {}
+        for name in bodies:
+            pins[name] = write(Path(paths[name]), bodies[name])
+            Path(paths[name]).chmod(modes[name])
+        daemon = 'ynx-consensus-pq-remote-signer'
+        source = f.install / 'operator-runtime-SOURCE.json'
+        f.b['runtimeManifestSHA256'] = write(source, dict(binaries={daemon: dict(sha256=pins['binary'])},
+            operator={daemon + '-launch.sh': dict(sha256=pins['launcher'])}))
+        # The independent source is fixed before the ORIGINAL cold transfer.
+        (f.install / 'binding.json').write_bytes(raw(f.b))
+        f.transfer()
+        b = dict(f.b, phase='start', approvalSHA256='9' * 64)
+        receipt = dict(version='YNX-PQ-REMOTE-SIGNER-INSTALL-DATA/v1', role=b['role'],
+            runtimeCommit=b['runtimeCommit'], runtimeSOURCEsha256=b['runtimeManifestSHA256'],
+            operatorPlanSHA256=b['nextOperatorPlanSHA256'], originalConfigSHA256='a' * 64,
+            renderedConfigSHA256=pins['config'], unitSHA256=pins['unit'],
+            encryptedCredentialSHA256=pins['credential'], installed=True,
+            installedFiles=[dict(path=paths[name], bytes=len(bodies[name]), sha256=pins[name])
+                            for name in ('binary', 'launcher', 'config', 'unit')])
+        for name in ('runtimeStarted', 'publicDeployment', 'pqActivation', 'nativeRootAuthorized',
+                     'privateKeyCheckPerformed', 'sandboxReadonlyValidated', 'freshnessVerified',
+                     'credentialInstalled', 'custodyProvisioned'):
+            receipt[name] = False
+        evidence = f.install / 'remote-signer-install'
+        evidence.mkdir(mode=0o700)
+        b['signerInstallReceiptSHA256'] = write(evidence / 'receipt.json', receipt)
+        intent = {key: value for key, value in receipt.items() if key != 'installedFiles'}
+        intent.update(installed=False, status='unknown', automaticRetry=False)
+        write(evidence / 'intent.json', intent)
+        def invoke():
+            # Select the actual mode used by the normal remote barrier. The
+            # filesystem, held FD/hash/locks and original Python callee are real;
+            # this fixture only replaces host UID/systemd/keycheck observations.
+            text = SOURCE.read_text()
+            branch = text.split('if [[ "$action" == signer-preflight ]]; then', 1)[1]
+            branch = branch.split('    return\n  fi', 1)[0]
+            calls = [line.strip().split()[1] for line in branch.splitlines()
+                     if line.strip().startswith('operator_transition_cold_custody ')]
+            self.assertEqual(len(calls), 1)
+            if calls == ['signer-installation']:
+                return f.m.signer_installation(b, f.install, source, paths)
+            self.assertEqual(calls, ['signer-preflight'])
+            return f.m.signer_preflight(b, f.q, f.install, f.binary, f.newmanifest, f.host, paths)
+        return f, invoke
+
+    def test_signer_preflight_checks_original_locks_and_history_before_start(self):
+        for changed in ('app_writer', 'hrs_writer', 'history_bytes', 'partial_handoff', 'competing_unit'):
+            with self.subTest(changed=changed):
+                f, invoke = self.preflight_fixture()
+                fd = None
+                if changed in ('app_writer', 'hrs_writer'):
+                    fd = os.open(f.applock if changed == 'app_writer' else f.lock, os.O_RDWR)
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                elif changed == 'history_bytes':
+                    f.state.write_bytes(raw(dict(height='992', round=0, step=1, signature='INERT NEW HISTORY')))
+                elif changed == 'partial_handoff':
+                    (f.install / 'custody-handoff/result.json').unlink()
+                else:
+                    f.host.bad_terminal = True
+                try:
+                    with self.assertRaises((ValueError, OSError)):
+                        invoke()
+                finally:
+                    if fd is not None: os.close(fd)
+                self.assertFalse((f.root / 'start-attempt').exists())
+                self.assertFalse(f.key.exists())
+                self.assertEqual(f.target.stat().st_ino, f.originals[f.key][1])
+                self.assertEqual(f.lock.stat().st_ino, f.originals[f.lock][1])
+
+    def test_signer_preflight_is_readonly_and_run_rechecks_after_released_locks(self):
+        f, invoke = self.preflight_fixture()
+        before = {str(p.relative_to(f.root)): (p.stat().st_ino, p.read_bytes())
+                  for p in f.root.rglob('*') if p.is_file()}
+        self.assertEqual(invoke(), 30)
+        after = {str(p.relative_to(f.root)): (p.stat().st_ino, p.read_bytes())
+                 for p in f.root.rglob('*') if p.is_file()}
+        self.assertEqual(before, after)
+        # A successful barrier is a sample, never a held cross-host lease.
+        # The original run callee MUST still reject a writer acquired afterward.
+        fd = os.open(f.lock, os.O_RDWR)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            with self.assertRaises(BlockingIOError): f.verify()
+        finally:
+            os.close(fd)
+        self.assertFalse((f.root / 'start-attempt').exists())
+
     def test_original_start_waits_for_verified_signer_ready_and_exec_readback(self):
         script = r'''
 source "$1"

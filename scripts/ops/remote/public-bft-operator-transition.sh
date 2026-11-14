@@ -795,19 +795,29 @@ def signer_installation(b, install, source_path, paths=None):
                 startup_seconds=int(bound)+5
     need(original_evidence('receipt.json')==raw,'signer installation receipt changed while verifying')
     return startup_seconds
+def signer_preflight(b,qroot,install,binary,newmanifest,host,paths=None):
+    # This is a read-only sample of the ORIGINAL cold handoff, not an
+    # authorization, rollback or cross-host held lease. Reuse its bounded
+    # key/HRS/config inode+byte checks and original App/HRS nonblocking locks;
+    # do not repeat the full migration, backup archive or ledger inspection.
+    # run still performs its original complete verification after this releases.
+    verify(b,qroot,install,binary,newmanifest,host)
+    return signer_installation(b,install,install/'operator-runtime-SOURCE.json',paths)
 def main():
     need(sys.platform=='linux' and os.geteuid()==0,'normal original Linux root operator required')
     mode,bpath,qroot,install,binary,oldmanifest,newmanifest=sys.argv[1:]
-    need(mode in ('transfer','verify','signer-installation'),'fixed custody action required')
+    need(mode in ('transfer','verify','signer-installation','signer-preflight'),'fixed custody action required')
     if bpath=='-':
-        need(mode=='signer-installation','only the read-only signer barrier accepts a projection descriptor')
+        need(mode in ('signer-installation','signer-preflight'),'only the read-only signer barrier accepts a projection descriptor')
         with os.fdopen(8,'rb') as f:raw=f.read((1<<20)+1)
         need(0<len(raw)<=1<<20,'bounded verified start projection required')
     else:raw=original(bpath)
     b=decode(raw)
     if mode=='transfer':transfer(b,P(qroot),P(install),P(binary),P(oldmanifest),P(newmanifest),Host())
     elif mode=='verify':verify(b,P(qroot),P(install),P(binary),P(newmanifest),Host())
-    elif descriptor(b) is not None:print(signer_installation(b,P(install),P(install)/'operator-runtime-SOURCE.json'))
+    elif descriptor(b) is not None:
+        if mode=='signer-preflight':print(signer_preflight(b,P(qroot),P(install),P(binary),P(newmanifest),Host()))
+        else:print(signer_installation(b,P(install),P(install)/'operator-runtime-SOURCE.json'))
 if __name__=='__main__':main()
 PYCUSTODY
 }
@@ -1211,7 +1221,7 @@ operator_transition_remote() {
     binding=-
     # Pass the exact verified projection through an already opened descriptor;
     # this read-only barrier must not reserve or create a start attempt.
-    operator_transition_cold_custody signer-installation 8< <(printf '%s\n' "$preflight_binding") >/dev/null || return $?
+    operator_transition_cold_custody signer-preflight 8< <(printf '%s\n' "$preflight_binding") >/dev/null || return $?
     printf '%s\n' "$preflight_binding"
     return
   fi

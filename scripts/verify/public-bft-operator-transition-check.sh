@@ -605,7 +605,11 @@ assert '$role.signer-preflight.json' in local[barrier:start]
 assert 'YNX_DEPLOY_CONNECTION_ATTEMPTS=1 ynx_ops_ssh' in local[local.index('dispatch_operator_transition()'):barrier]
 mode = remote.index('if [[ "$action" == signer-preflight ]]')
 attempt = remote.index('attempt="$root/$phase-attempt"', mode)
-assert 'operator_transition_cold_custody signer-installation' in remote[mode:attempt]
+assert 'operator_transition_cold_custody signer-preflight' in remote[mode:attempt]
+preflight = remote[remote.index('def signer_preflight('):remote.index('def main():',remote.index('def signer_preflight('))]
+assert preflight.index('verify(b,qroot,install,binary,newmanifest,host)') < preflight.index('return signer_installation(')
+assert 'operator_transition_cold_custody verify || return $?' in remote[attempt:]
+assert 'operator_transition_inspect' not in preflight and 'archive_hashes(' not in preflight
 assert 'systemctl start' not in remote[mode:attempt]
 runner = remote.index('operator_transition_start()')
 loaded = remote.index('operator_transition_require_loaded_signer || return', runner)
