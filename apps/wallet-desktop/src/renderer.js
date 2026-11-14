@@ -1055,8 +1055,13 @@ async function refreshAssets() {
   if (!account) return;
   const current = () => revision === balanceRevision && account === activeAccount;
   if (!lastBalanceCheckedAt) copyUI(document.querySelector("#balance-status"),"Checking YNX Testnet…");
+  // Normalize a synchronous bridge throw into a rejected promise before
+  // assigning the flight. Otherwise finally can clear the slot before the
+  // assignment, leaving an already-completed flight stuck forever.
+  let request;
+  try { request = window.ynxWallet.balance(); } catch (error) { request = Promise.reject(error); }
   balanceFlight = (async () => { try {
-    const result = await window.ynxWallet.balance();
+    const result = await request;
     if (!current()) return;
     if (!result.ok) throw new Error("Balance unavailable");
     const value=result.value;

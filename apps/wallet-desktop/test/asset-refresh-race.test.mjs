@@ -38,3 +38,20 @@ test('balance refresh coalesces, retains the last value on failure and fences ac
   waiting.shift()(balance('B')); await new Promise(resolve=>setImmediate(resolve));
   assert.equal(nodes.get('#balance-value').textContent,'12');
 });
+
+test('synchronous balance bridge failure does not wedge future polling or alter decimal precision',async()=>{
+  const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
+  const begin=source.indexOf('function clearAssetBalance() {'),end=source.indexOf('document.querySelector("#refresh-balance")',begin);
+  assert(begin>=0&&end>begin);
+  const nodes=new Map(),document={querySelector(selector){if(!nodes.has(selector))nodes.set(selector,{textContent:''});return nodes.get(selector);}};
+  const exact='9007199254740993.123456789012345678';let calls=0,tick;
+  const wallet={balance(){calls++;if(calls===1||calls===3)throw Error('PUBLIC synchronous bridge failure');return Promise.resolve({ok:true,value:{account:'A',formatted:exact,transferEnabled:true,checkedAt:'2026-11-14T00:00:00Z'}});}};
+  const create=new Function('document','window','setInterval','copyUI',`let activeAccount='A', balanceRevision=0; ${source.slice(begin,end)} return {refreshAssets};`);
+  const ui=create(document,{ynxWallet:wallet},fn=>{tick=fn;},(node,key)=>{node.textContent=key});
+  await ui.refreshAssets();assert.equal(calls,1);tick();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(calls,2,'next three-second tick must start a new read');
+  assert.equal(nodes.get('#balance-value').textContent,exact);assert.equal(nodes.get('#asset-balance').textContent,`${exact} YNXT`);
+  await ui.refreshAssets();assert.equal(calls,3);assert.equal(nodes.get('#balance-value').textContent,exact);
+  assert.match(nodes.get('#balance-status').textContent,/Last updated/);
+  tick();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,4);assert.equal(nodes.get('#balance-value').textContent,exact);
+});
