@@ -102,7 +102,7 @@ class CalleeMeasurements:
     """Original elapsed spans, separate denominators; never sum nested stages."""
     def __init__(self,demand,accounts,sender_pool=False,source=None):
         self.source=CALLEE_SOURCE if source is None else source
-        self.denominators=dict(startup=accounts,live_setup=4,sign=demand,confirm=demand,live_publish=demand,live_result=demand)
+        self.denominators=dict(startup=accounts,live_setup=4,owner_prepare=demand,sign=demand,confirm=demand,live_publish=demand,live_result=demand)
         if sender_pool:
             self.denominators.pop("startup");self.denominators.update(sender_open_sign=demand,sender_open_confirm=demand)
         self.groups={};self.lock=threading.Lock();self.received={k:set() for k in self.denominators};self.record_failures={k:0 for k in self.denominators}

@@ -406,13 +406,13 @@ class TransportControls(unittest.TestCase):
 
     def test_uncertain_owner_preparation_poisoned_without_checkpoint_or_sign(self):
         for bad in (dict(response(identity='',code='OWNER_PREPARED'),result={'unexpected':1}),
-                    dict(response(identity='',code='UNKNOWN'),result=None),
+                    dict(response(identity='',code='UNKNOWN'),result=None,failure={'failurePhase':'PREPARE_OWNER'}),
                     dict(response(owner=5,identity='',code='OWNER_PREPARED'),result=None),
                     dict(response(identity='',code='OWNER_PREPARED'),result=None,failure={})):
             with self.subTest(bad=bad):
                 s=session(lambda:bad)
                 checkpoint=unittest.mock.Mock()
-                with self.assertRaisesRegex(RuntimeError,'preparation did not return'):
+                with self.assertRaises(RuntimeError):
                     s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
                                prepare_owner_path=Path('/PUBLIC-TEST'))
                 checkpoint.assert_not_called()
@@ -420,6 +420,21 @@ class TransportControls(unittest.TestCase):
                 self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
                 with self.assertRaisesRegex(RuntimeError,'never replay'):
                     s.exchange(command(),None,threading.Event())
+
+    def test_malformed_owner_preparation_timing_stops_before_checkpoint(self):
+        prepared = dict(response(identity='',code='OWNER_PREPARED'),result=None,calleeElapsedNs=-1,
+                        timings=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',clock='monotonic_elapsed_wall_ns',
+                                     intervalsOverlap=True,stages={}))
+        s=session(lambda:prepared)
+        s.c.measurements=d.CalleeMeasurements(2,2)
+        checkpoint=unittest.mock.Mock()
+        with self.assertRaises(RuntimeError):
+            s.exchange(command(),None,threading.Event(),prepare_command=checkpoint,
+                       prepare_owner_path=Path('/PUBLIC-TEST'))
+        checkpoint.assert_not_called()
+        self.assertTrue(s.poisoned)
+        self.assertEqual(len(s.proc.stdin.getvalue().splitlines()),1)
+        self.assertEqual(s.c.measurements.record_failures['owner_prepare'],1)
 
     def test_real_backend_preserves_shared_process_and_original_proof_arguments(self):
         class Callee:

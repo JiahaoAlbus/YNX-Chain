@@ -190,9 +190,18 @@ def session_class(Base, normal, lab):
                     self.proc.stdin.write(raw);self.proc.stdin.flush()
                     prepared=self.receive(prepare_owner_path,stop,'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1')
                     lab.require(prepared.get('ownerIndex') == owner and type(prepared.get('ownerIndex')) is int
-                                and prepared.get('operationId') == '' and prepared.get('code') == 'OWNER_PREPARED'
-                                and 'result' in prepared and prepared['result'] is None and 'failure' not in prepared,
-                                'original owner preparation did not return its exact successful reply; preserve UNKNOWN')
+                                and prepared.get('operationId') == ''
+                                and prepared.get('code') in ('OWNER_PREPARED','REJECTED','UNKNOWN')
+                                and 'result' in prepared and prepared['result'] is None,
+                                'original owner preparation identity or outcome differs; preserve UNKNOWN')
+                    self.c.measurements.record('owner_prepare',(owner,identity),prepared,owner=owner)
+                    if prepared['code'] != 'OWNER_PREPARED':
+                        failure = prepared.get('failure') or {}
+                        lab.require(failure.get('failurePhase') == 'PREPARE_OWNER',
+                                    'original owner preparation failure phase differs; preserve UNKNOWN')
+                        raise RuntimeError('original owner preparation ' + prepared['code'] + '; preserve UNKNOWN')
+                    lab.require('failure' not in prepared,
+                                'successful original owner preparation carries failure; preserve UNKNOWN')
                     self.poisoned=False
                 if prepare_command is not None:
                     command=prepare_command()
