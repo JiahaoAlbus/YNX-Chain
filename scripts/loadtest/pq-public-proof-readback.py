@@ -100,7 +100,7 @@ def read_original(path,limit=FILE_LIMIT,allow_empty=False):
     fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW)
     try:
         before=os.fstat(fd);require(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and (0<=before.st_size<=limit if allow_empty else 0<before.st_size<=limit),'bounded regular public input required')
-        with os.fdopen(fd,'rb',closefd=False) as f:raw=f.read(limit+1)
+        with os.fdopen(fd,'rb',closefd=False) as f:raw=f.read(before.st_size+1)
         after=os.fstat(fd);require((before.st_dev,before.st_ino,before.st_size,before.st_mtime_ns)==(after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns) and len(raw)==before.st_size,'original public input changed during read')
         return raw
     finally:os.close(fd)
