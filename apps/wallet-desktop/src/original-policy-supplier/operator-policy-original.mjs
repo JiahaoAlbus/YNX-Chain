@@ -36,6 +36,21 @@ export function decodeObservedPolicyOriginal(value,authorization){
  if(value.format!=='YNX-OBSERVED-POLICY-BYTES/v1'||typeof value.utf8!=='string'||value.utf8.length>Math.ceil(8*1024*1024*4/3)||!/^[A-Za-z0-9_-]+$/.test(value.utf8)||!/^[0-9a-f]{64}$/.test(value.sha256)||value.executionHeight!==authorization.executionHeight||value.ledgerNonce!==authorization.ledgerNonce||value.activeRevision!==(authorization.activeRevision??null))fail();
  const bytes=Buffer.from(value.utf8,'base64url');if(!bytes.length||bytes.length>8*1024*1024||bytes.toString('base64url')!==value.utf8||createHash('sha256').update(bytes).digest('hex')!==value.sha256)fail();
  let text;try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail();}
- // Validate JSON framing/duplicate keys without re-encoding a single byte.
- captureAuthorizationHTTPOriginal(text);if(text[0]!=='{'||text.at(-1)!=='}')fail();return Object.freeze({...value});
+ // Validate framing, then bind the original node policy to the SDK-validated
+ // authorization. A digest over substituted bytes is not a policy binding.
+ // Compare the closed policy fields, without rewriting the Native operand.
+ const {body}=captureAuthorizationHTTPOriginal(text);
+ if(text[0]!=='{'||text.at(-1)!=='}'||!authorization.enabled)fail();
+ const expected={version:authorization.policyVersion,networkId:authorization.networkId,
+  enableAt:authorization.enableAt,records:authorization.records,
+  ...(authorization.revocations?{revocations:authorization.revocations}:{})};
+ const equal=(actual,selected)=>{
+  if(actual===selected)return true;
+  if(!actual||!selected||typeof actual!=='object'||typeof selected!=='object'||
+   Array.isArray(actual)!==Array.isArray(selected))return false;
+  const fields=Object.keys(selected);
+  return Object.keys(actual).length===fields.length&&fields.every(k=>Object.hasOwn(actual,k)&&equal(actual[k],selected[k]));
+ };
+ if(!equal(body,expected))fail();
+ return Object.freeze({...value});
 }
