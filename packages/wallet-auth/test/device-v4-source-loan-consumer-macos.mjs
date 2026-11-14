@@ -17,8 +17,8 @@ const fixture=`#import <Foundation/Foundation.h>
 -(void)setMode:(unsigned)m {_mode=m;}
 -(unsigned)loanCount {return (unsigned)_deviceV4NativeReadLoans.count;}
 -(unsigned)releaseCount {return _releaseCount;}
--(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)error {if(error)*error=nil;++_checks;if(_checks==2){if(_mode==1)@throw [NSException exceptionWithName:@"TEST" reason:nil userInfo:nil];if(_mode==2)throw std::runtime_error("TEST");if(_mode==3){if(error)*error=[NSError errorWithDomain:@"TEST" code:0 userInfo:nil];@throw [NSException exceptionWithName:@"TEST" reason:nil userInfo:nil];}}return YES;}
-${body.slice(from,end).replace('[_deviceV4NativeReadLoans removeObject:token];','++_releaseCount;[_deviceV4NativeReadLoans removeObject:token];')}
+-(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)error {if(error)*error=nil;++_checks;if(_mode==6&&_checks==1)@throw [NSException exceptionWithName:@"EARLY" reason:nil userInfo:nil];if(_checks==2){if(_mode==1)@throw [NSException exceptionWithName:@"TEST" reason:nil userInfo:nil];if(_mode==2)throw std::runtime_error("TEST");if(_mode==3){if(error)*error=[NSError errorWithDomain:@"TEST" code:0 userInfo:nil];@throw [NSException exceptionWithName:@"TEST" reason:nil userInfo:nil];}}return YES;}
+${body.slice(from,end).replace('[_deviceV4NativeReadLoans removeObject:token];if(released)*released=YES;return YES;','++_releaseCount;if(_mode==4){if(error)*error=[NSError errorWithDomain:@"TEST" code:9 userInfo:nil];return NO;}[_deviceV4NativeReadLoans removeObject:token];if(released)*released=YES;if(_mode==5){if(error)*error=[NSError errorWithDomain:@"TEST" code:0 userInfo:nil];return NO;}return YES;')}
 -(void)retire {}
 -(BOOL)join:(NSError**)e {if(e)*e=nil;return YES;}
 -(BOOL)close:(NSError**)e {if(e)*e=nil;return YES;}
@@ -28,14 +28,16 @@ ${body.slice(from,end).replace('[_deviceV4NativeReadLoans removeObject:token];',
 -(void)setMode:(unsigned)m;-(unsigned)loanCount;-(unsigned)releaseCount;
 @end
 namespace ynx::auth::devicev4 {Failure localFailure(int32_t code)noexcept{return {1,code,0,0};}}
-int main(){@autoreleasepool{for(unsigned mode=0;mode<4;mode++){
+int main(){@autoreleasepool{for(unsigned mode=0;mode<7;mode++){
  YNXAuthIdentitySourceAuthority*s=[YNXAuthIdentitySourceAuthority new];[s setMode:mode];
- auto actual=ynx::auth::devicev4::borrowRecognizedSource(s);assert(actual.owner);assert([s loanCount]==1);
- if(mode==0)assert(!actual.failure.present);else {assert(actual.failure.present);assert(actual.failure.code==(mode==3?0:73013));}
- auto joined=actual.owner->join();assert(joined.physical_done);assert([s loanCount]==0);assert([s releaseCount]==1);
- auto again=actual.owner->join();assert(again.physical_done);assert([s releaseCount]==1);
- auto closed=actual.owner->close();assert(closed.physical_done);assert([s releaseCount]==1);if(mode)assert(closed.failure.present);
- }puts("actual Backend + PUBLIC Source injected late failures: 4 pass, same token released once");}}
+ auto actual=ynx::auth::devicev4::borrowRecognizedSource(s);assert(actual.owner);assert([s loanCount]==(mode==6?0:1));
+ if(mode==0||mode==4||mode==5)assert(!actual.failure.present);else {assert(actual.failure.present);if(mode!=6)assert(actual.failure.code==(mode==3?0:73013));}
+ if(mode==4){auto joined=actual.owner->join();assert(!joined.physical_done&&joined.unknown);assert([s loanCount]==1&&[s releaseCount]==1);auto again=actual.owner->join();assert(!again.physical_done&&[s releaseCount]==1);auto *retained=new std::shared_ptr<ynx::auth::devicev4::Backend>(actual.owner);(void)retained;continue;}
+ auto joined=actual.owner->join();assert(joined.physical_done);assert([s loanCount]==0);assert([s releaseCount]==(mode==6?0:1));
+ if(mode==5)assert(joined.failure.present&&joined.failure.code==0);
+ auto again=actual.owner->join();assert(again.physical_done);assert([s releaseCount]==(mode==6?0:1));
+ auto closed=actual.owner->close();assert(closed.physical_done);assert([s releaseCount]==(mode==6?0:1));if(mode)assert(closed.failure.present);
+ }puts("actual Backend + PUBLIC Source injected failures: 7 cases, same token and selected release preserved");}}
 `;
 writeFileSync(join(out,'fixture.mm'),fixture);
 const args=['-std=c++17','-fobjc-arc','-fobjc-exceptions','-fblocks','-Wno-incomplete-implementation','-I'+native,join(out,'fixture.mm'),join(native,'DeviceV4SourceDarwin.mm'),'-framework','Foundation','-o',join(out,'test')];
@@ -44,5 +46,5 @@ const run=compile.status===0?spawnSync(join(out,'test'),[],{encoding:'utf8',env}
 const overlay={version:0,'case-sensitive':true,'use-external-names':false,roots:[{type:'file',name:join(native,'device_v4_source_borrow_methods.inc.mm'),'external-contents':candidate}]};writeFileSync(join(out,'overlay.json'),JSON.stringify(overlay));
 const syntaxArgs=['-std=c++17','-fobjc-arc','-fobjc-exceptions','-fblocks','-DYNX_AUTH_DEVICE_V4_SOURCE_BORROW_STAGE=1','-I'+native,'-I'+join(native,'../../../apps/wallet-desktop/native'),'-ivfsoverlay',join(out,'overlay.json'),'-fsyntax-only',join(native,'original-auth-identity-source-authority.mm')];
 const syntax=run?.status===0?spawnSync('/usr/bin/clang++',syntaxArgs,{encoding:'utf8',env,maxBuffer:8<<20}):null;writeFileSync(join(out,'syntax.stderr'),syntax?.stderr??'');
-writeFileSync(join(out,'RESULT.json'),JSON.stringify({compileStatus:compile.status,compileSignal:compile.signal,runStatus:run?.status??null,runSignal:run?.signal??null,syntaxStatus:syntax?.status??null,scope:'actual SDK Backend TU + extracted candidate methods + PUBLIC Source fixture; actual Source TU syntax; not real Root or registration',cases:4},null,2)+'\n');
+writeFileSync(join(out,'RESULT.json'),JSON.stringify({compileStatus:compile.status,compileSignal:compile.signal,runStatus:run?.status??null,runSignal:run?.signal??null,syntaxStatus:syntax?.status??null,scope:'actual SDK Backend TU + extracted candidate methods + PUBLIC Source fixture; actual Source TU syntax; not real Root or registration',cases:7},null,2)+'\n');
 console.log(JSON.stringify({out,compile:compile.status,run:run?.status??null,syntax:syntax?.status??null,stderr:(compile.stderr||run?.stderr||syntax?.stderr||'').slice(-3000)}));if(compile.status!==0||run?.status!==0||syntax?.status!==0)process.exitCode=1;
