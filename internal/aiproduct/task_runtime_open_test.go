@@ -3,6 +3,7 @@ package aiproduct
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
@@ -14,6 +15,11 @@ func TestP08NormalTaskRuntimeOriginalFactoriesAndPartialClose(t *testing.T) {
 	// env toggle or fixture login cannot supply an admitted protected producer.
 	if owner == nil || !errors.Is(err, native.ErrUnavailable) {
 		t.Fatalf("original unadmitted runtime acquired: owner=%t error=%v", owner != nil, err)
+	}
+	for _, stage := range []string{"effect grant", "history grant", "protected caller"} {
+		if !strings.Contains(err.Error(), "original AI task "+stage+":") {
+			t.Fatalf("missing startup stage %q: %v", stage, err)
+		}
 	}
 	if owner.model != nil || owner.authority != nil || owner.broker != nil {
 		t.Fatal("partial Source acquisition installed model or task effects")

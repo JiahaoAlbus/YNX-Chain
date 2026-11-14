@@ -3,8 +3,10 @@ package aiproduct
 import (
 	"context"
 	"errors"
-	tasklocal "github.com/JiahaoAlbus/YNX-Chain/internal/authtasklocal"
+	"fmt"
 	"sync"
+
+	tasklocal "github.com/JiahaoAlbus/YNX-Chain/internal/authtasklocal"
 
 	originalclient "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go"
 	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
@@ -24,6 +26,7 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 		return p, err
 	}
 	authority, effectErr := OpenOriginalTaskAuthority()
+	effectErr = originalTaskStartupError("effect grant", effectErr)
 	if authority == nil {
 		authority = &nativeTaskRuntimeAuthority{}
 	}
@@ -41,7 +44,7 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 	client, clientErr := originalclient.OpenOriginalTaskAuthorityClient()
 	p.owners.client = client
 	if queryErr != nil || clientErr != nil {
-		return p, errors.Join(effectErr, queryErr, clientErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("history grant", queryErr), originalTaskStartupError("protected caller", clientErr))
 	}
 	if client == nil || queryOwner == nil {
 		return p, errors.Join(effectErr, errTaskEffectSourceUnavailable)
@@ -49,37 +52,37 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 	authBroker, brokerErr := originalclient.OpenOriginalTaskAuthorityBroker(ctx, client)
 	p.owners.authBroker = authBroker
 	if brokerErr != nil {
-		return p, errors.Join(effectErr, brokerErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("Auth broker", brokerErr))
 	}
 	if authBroker == nil {
 		return p, errors.Join(effectErr, errTaskEffectSourceUnavailable)
 	}
 	registration, registrationErr := authBroker.ReadRegistration(ctx)
 	if registrationErr != nil {
-		return p, errors.Join(effectErr, registrationErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("caller registration", registrationErr))
 	}
 	localRegistration, effectAvailable, registrationErr := taskCallerRegistration(registration)
 	if registrationErr != nil {
-		return p, errors.Join(effectErr, registrationErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("caller registration", registrationErr))
 	}
 	typedBroker := &originalTaskCallerTypedBroker{owner: authBroker}
 	endpoint, endpointErr := openTaskCallerEndpoint(ctx, localRegistration, typedBroker)
 	p.owners.endpoint = endpoint
 	if endpointErr != nil {
-		return p, errors.Join(effectErr, endpointErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("registered caller endpoint", endpointErr))
 	}
 	ipcClient := &taskIPCBrokerClient{client: client, broker: typedBroker, endpoint: endpoint, effectAvailable: effectAvailable}
 	callOwner, callErr := newTaskCallerLifetime(ipcClient)
 	p.owners.calls = callOwner
 	if callErr != nil {
-		return p, errors.Join(effectErr, callErr)
+		return p, errors.Join(effectErr, originalTaskStartupError("caller lifetime", callErr))
 	}
 	p.authority, p.broker = authority, &originalTaskAuthorityBroker{client: callOwner}
 	if err := p.queryCurrent(ctx); err != nil {
-		return p, errors.Join(effectErr, err)
+		return p, errors.Join(effectErr, originalTaskStartupError("history current", err))
 	}
 	if effectErr == nil {
-		effectErr = authority.Current(ctx)
+		effectErr = originalTaskStartupError("effect current", authority.Current(ctx))
 	}
 	if effectErr != nil {
 		// Restart can reconcile the independently admitted original history
@@ -89,17 +92,25 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 	}
 	model, modelErr := NewTaskModelService(cfg)
 	if modelErr != nil {
-		p.recoveryOnly = modelErr
+		p.recoveryOnly = originalTaskStartupError("model configuration", modelErr)
 		return p, nil
 	}
 	p.model = model
 	if err := p.current(ctx); err != nil {
 		if queryErr := p.queryCurrent(ctx); queryErr != nil {
-			return p, errors.Join(err, queryErr)
+			return p, errors.Join(originalTaskStartupError("effect current", err), originalTaskStartupError("history current", queryErr))
 		}
-		p.recoveryOnly, p.model = err, nil
+		p.recoveryOnly, p.model = originalTaskStartupError("effect current", err), nil
 	}
 	return p, nil
+}
+
+// Startup diagnostics are consumed by the service log, never as authority.
+func originalTaskStartupError(stage string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("original AI task %s: %w", stage, err)
 }
 
 // NewEffectsUnavailable distinguishes recovery-only custody from permission to

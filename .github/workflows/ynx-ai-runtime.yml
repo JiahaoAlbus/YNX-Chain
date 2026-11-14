@@ -230,8 +230,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Verify normal startup refusal and existing query-only registration
+        if: ${{ github.ref == 'refs/heads/codex/ai-runtime-ci/startup-recovery' }}
+        run: go test -mod=readonly -race -p 1 ./internal/aiproduct -run '^(TestP08NormalTaskRuntimeOriginalFactoriesAndPartialClose|TestP08TaskCallerQueryOnlyNeverDispatchesEffect)$' -count=1 -timeout=60s -v
       - name: Verify cancellation at the original Auth return boundary and cold recovery
-        if: ${{ github.ref != 'refs/heads/codex/ai-runtime-ci/model-disclosure' }}
+        if: ${{ github.ref != 'refs/heads/codex/ai-runtime-ci/model-disclosure' && github.ref != 'refs/heads/codex/ai-runtime-ci/startup-recovery' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -245,7 +248,7 @@ jobs:
           cd packages/auth-grant-runtime/go
           go test -mod=readonly -race -p 1 -run '^TestDynamicOriginalModelDisclosure$' -count=1 -timeout=60s -v .
       - uses: actions/upload-artifact@v4
-        if: ${{ always() && github.ref != 'refs/heads/codex/ai-runtime-ci/model-disclosure' }}
+        if: ${{ always() && github.ref != 'refs/heads/codex/ai-runtime-ci/model-disclosure' && github.ref != 'refs/heads/codex/ai-runtime-ci/startup-recovery' }}
         with:
           name: p08-cancel-dispatch-return-evidence
           path: ${{ runner.temp }}/cancel-dispatch-return.jsonl
