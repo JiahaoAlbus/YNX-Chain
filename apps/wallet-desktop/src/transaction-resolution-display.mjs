@@ -16,20 +16,27 @@ export function projectPendingTransactions(response,account){
   const rows=envelope.value;
   if(!Array.isArray(rows)||Object.getPrototypeOf(rows)!==Array.prototype)throw Error("Invalid pending rows");
   const descriptors=Object.getOwnPropertyDescriptors(rows),length=descriptors.length?.value;
-  // The original validated journal permits at most one unresolved intent per
-  // account. Its list(account) is not a paginated or arbitrary iterable feed.
-  if(!Number.isSafeInteger(length)||length<0||length>1||Reflect.ownKeys(descriptors).length!==length+1)throw Error("Invalid pending rows");
-  const records=[];
+  // One active original plus at most 64 authenticated terminal history rows.
+  // The Main journal remains the authority; these checks are display only.
+  if(!Number.isSafeInteger(length)||length<0||length>65||Reflect.ownKeys(descriptors).length!==length+1)throw Error("Invalid pending rows");
+  const records=[],hashes=new Set();let activePQ=0,nonPQ=0;
   for(let index=0;index<length;index++){
     if(!descriptors[index]||!Object.hasOwn(descriptors[index],"value"))throw Error("Invalid pending row");
     const source=descriptors[index].value,local=Object.getOwnPropertyDescriptor(source??{},"localRetention"),unknown=Object.getOwnPropertyDescriptor(source??{},"signingUnknown");
     if(Object.getOwnPropertyDescriptor(source??{},'kind')){
       const progress=Object.hasOwn(source,'resultStorageConfirmed')||Object.hasOwn(source,'resultHeldInMemory');
-      const row=values(source,['hash','account','status','canRetryExact','kind','operationId',...(progress?['resultStorageConfirmed','resultHeldInMemory']:[])]);
-      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action','pq-account-initial'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      const terminal=['pq-finality-save-unknown','pq-finalized-succeeded','pq-finalized-rejected'].includes(Object.getOwnPropertyDescriptor(source,'status')?.value);
+      const row=values(source,['hash','account','status','canRetryExact','kind','operationId',...(progress?['resultStorageConfirmed','resultHeldInMemory']:[]),...(terminal?['consensusFinality','nativeGrant']:[])]);
+      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||hashes.has(row.hash)||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action','pq-account-initial'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed','pq-finality-save-unknown','pq-finalized-succeeded','pq-finalized-rejected'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
       if(progress&&(typeof row.resultStorageConfirmed!=='boolean'||typeof row.resultHeldInMemory!=='boolean'))throw Error('Invalid PQ progress storage display');
-      records.push(Object.freeze(row));continue;
+      if(terminal){
+        const saved=row.status!=='pq-finality-save-unknown';
+        if(!progress||row.resultStorageConfirmed!==saved||row.resultHeldInMemory===saved||row.consensusFinality!==saved||row.nativeGrant!==false)throw Error('Unverified PQ terminal display');
+      }
+      if(!terminal||row.status==='pq-finality-save-unknown')activePQ++;
+      hashes.add(row.hash);records.push(Object.freeze(row));continue;
     }
+    nonPQ++;
     if(unknown){
       const hasIntent=Object.hasOwn(source,'signingIntent');
       const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown",...(hasIntent?['signingIntent']:[])]);
@@ -55,6 +62,7 @@ export function projectPendingTransactions(response,account){
       !["broadcasting","submitted","uncertain","confirmed","failed",...(local?["signed_unpersisted"]:[])].includes(record.status)||typeof record.amount!=="string"||!/^[1-9][0-9]{0,18}\.0$/.test(record.amount)||BigInt(record.amount.slice(0,-2))>9223372036854775807n)throw Error("Unbound pending row");
     records.push(Object.freeze(record));
   }
+  if(activePQ>1||nonPQ>0&&length>1)throw Error("Invalid pending rows");
   return Object.freeze(records);
 }
 // Presentation of the existing TransactionSubmissions DTO only. This neither
