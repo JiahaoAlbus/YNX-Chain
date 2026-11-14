@@ -19,6 +19,7 @@ final class DeviceApprovalReview {
         void confirmOnce();
         // Records the decision against the same original request.
         void reject();
+        default void cancel() { }
     }
 
     private final Original original;
@@ -43,7 +44,7 @@ final class DeviceApprovalReview {
 
     synchronized State confirm(long nowMillis) {
         if (state != State.OPEN) return state;
-        if (nowMillis >= expiresAt) return state = State.EXPIRED;
+        if (nowMillis >= expiresAt) return expire(nowMillis);
         try {
             if (!sameOriginal() || !original.current() || !sameOriginal()) return state = State.UNAVAILABLE;
             // Reserve before crossing the protected boundary: an exception or
@@ -58,7 +59,7 @@ final class DeviceApprovalReview {
 
     synchronized State reject(long nowMillis) {
         if (state != State.OPEN) return state;
-        if (nowMillis >= expiresAt) return state = State.EXPIRED;
+        if (nowMillis >= expiresAt) return expire(nowMillis);
         try {
             if (!sameOriginal() || !original.current() || !sameOriginal()) return state = State.UNAVAILABLE;
             state = State.REJECTED;
@@ -70,12 +71,18 @@ final class DeviceApprovalReview {
     }
 
     synchronized State cancel() {
-        if (state == State.OPEN) state = State.CANCELLED;
+        if (state == State.OPEN) {
+            state = State.CANCELLED;
+            try { original.cancel(); } catch (RuntimeException error) { state = State.UNAVAILABLE; }
+        }
         return state;
     }
 
     synchronized State expire(long nowMillis) {
-        if (state == State.OPEN && nowMillis >= expiresAt) state = State.EXPIRED;
+        if (state == State.OPEN && nowMillis >= expiresAt) {
+            state = State.EXPIRED;
+            try { original.cancel(); } catch (RuntimeException error) { state = State.UNAVAILABLE; }
+        }
         return state;
     }
 

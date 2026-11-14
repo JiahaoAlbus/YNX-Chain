@@ -14,15 +14,25 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
     private static final int RECEIPT_SIZE = 88;
     private static final int FAILURE_SIZE = 24;
     private static final int MAX_MEMBER_SIZE = 98304;
+    private static final int MAX_APPROVAL_SIZE = 196608;
+    private static final int MAX_POLICY_SIZE = 524288;
+    private static final int MAX_REQUEST_SIZE = 262144;
     private static final String TABLE = "approval_attempt";
     private static final String KEY = "operation = ?";
     private static final String CLAIM_COLUMN =
         "key_claimed INTEGER NOT NULL DEFAULT 0 CHECK (key_claimed IN (0, 1))";
+    private static final String[] ORIGINAL_COLUMNS = {
+        "approval_original", "policy_original", "request_original"
+    };
+    private static final String[] COMMIT_COLUMNS = {
+        "binding", "receipt", "member", "first_failure", "key_claimed",
+        ORIGINAL_COLUMNS[0], ORIGINAL_COLUMNS[1], ORIGINAL_COLUMNS[2]
+    };
 
     DeviceApprovalJournal(Context context) {
         // Do not restore an ENTERED row or a key-attempt receipt onto another device.
         super(context, new java.io.File(context.getNoBackupFilesDir(),
-            "device-approval-v4.db").getAbsolutePath(), null, 2);
+            "device-approval-v4.db").getAbsolutePath(), null, 3);
     }
 
     @Override public void onConfigure(SQLiteDatabase db) {
@@ -31,16 +41,23 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
 
     @Override public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE + " (operation TEXT PRIMARY KEY NOT NULL,"
-            + " binding BLOB NOT NULL, receipt BLOB, member BLOB, first_failure BLOB, " + CLAIM_COLUMN + ")");
+            + " binding BLOB NOT NULL, receipt BLOB, member BLOB, first_failure BLOB, " + CLAIM_COLUMN
+            + ", " + ORIGINAL_COLUMNS[0] + " BLOB, " + ORIGINAL_COLUMNS[1] + " BLOB, "
+            + ORIGINAL_COLUMNS[2] + " BLOB)");
     }
 
     @Override public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion != 1 || newVersion != 2) {
+        if ((oldVersion != 1 && oldVersion != 2) || newVersion != 3) {
             throw new IllegalStateException("Unsupported DEVICE journal version");
         }
-        db.execSQL("ALTER TABLE " + TABLE + " ADD COLUMN " + CLAIM_COLUMN);
-        // Old ENTERED rows may already have reached the signer.
-        db.execSQL("UPDATE " + TABLE + " SET key_claimed = 1");
+        if (oldVersion == 1) {
+            db.execSQL("ALTER TABLE " + TABLE + " ADD COLUMN " + CLAIM_COLUMN);
+            // Old ENTERED rows may already have reached the signer.
+            db.execSQL("UPDATE " + TABLE + " SET key_claimed = 1");
+        }
+        for (String column : ORIGINAL_COLUMNS) {
+            db.execSQL("ALTER TABLE " + TABLE + " ADD COLUMN " + column + " BLOB");
+        }
     }
 
     /**
@@ -123,11 +140,113 @@ final class DeviceApprovalJournal extends SQLiteOpenHelper {
      */
     boolean hasCleanAttempt(String operation, byte[] binding) {
         byte[][] attempt = readAttempt(operation, binding);
-        if (attempt == null) return false;
-        byte[] receipt = attempt[0], member = attempt[1], first = attempt[2];
-        return receipt != null && member != null && member.length > 0
-            && first != null && noFailure(receiptData(first, FAILURE_SIZE), 0)
-            && cleanReceipt(receipt);
+        return attempt != null && cleanAttempt(attempt[0], attempt[1], attempt[2]);
+    }
+
+    /** Storage port for the original protected review after verify-and-attach. */
+    void commitVerified(String operation, byte[] binding, byte[] member, byte[] approvalOriginal,
+            byte[] policyOriginal, byte[] requestOriginal) {
+        byte[] expectedBinding = binding.clone();
+        byte[] expectedMember = member.clone();
+        byte[][] originals = {
+            exactOriginal(approvalOriginal, MAX_APPROVAL_SIZE),
+            exactOriginal(policyOriginal, MAX_POLICY_SIZE),
+            exactOriginal(requestOriginal, MAX_REQUEST_SIZE)
+        };
+        SQLiteDatabase db = getWritableDatabase();
+        db.beginTransaction();
+        try (Cursor row = readCommitRow(db, operation)) {
+            if (!row.moveToFirst()) throw new IllegalStateException("Original DEVICE operation unavailable");
+            requireEqual(expectedBinding, row.getBlob(0));
+            requireEqual(expectedMember, row.getBlob(2));
+            requireCleanCommit(row);
+            byte[][] saved = readOriginals(row);
+            if (saved.length == 0) {
+                ContentValues update = new ContentValues();
+                for (int i = 0; i < ORIGINAL_COLUMNS.length; i++) {
+                    update.put(ORIGINAL_COLUMNS[i], originals[i]);
+                }
+                if (db.update(TABLE, update, KEY, new String[]{operation}) != 1) {
+                    throw new IllegalStateException("Original DEVICE approval commit unavailable");
+                }
+            } else {
+                requireEqualOriginals(originals, saved);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        requireEqualOriginals(originals, readCommitted(operation, expectedBinding));
+    }
+
+    /** Null is absent, zero originals is ENTERED, three originals is COMMITTED. */
+    byte[][] readCommitted(String operation, byte[] binding) {
+        try (Cursor row = readCommitRow(getReadableDatabase(), operation)) {
+            if (!row.moveToFirst()) return null;
+            requireEqual(binding, row.getBlob(0));
+            byte[][] originals = readOriginals(row);
+            if (originals.length != 0) requireCleanCommit(row);
+            return originals;
+        }
+    }
+
+    /** One row and one SQLite snapshot; null means absent, never an inferred retry. */
+    byte[][] readSnapshot(String operation, byte[] binding) {
+        try (Cursor row = readCommitRow(getReadableDatabase(), operation)) {
+            if (!row.moveToFirst()) return null;
+            requireEqual(binding, row.getBlob(0));
+            int claimed = row.getInt(4);
+            if (claimed != 0 && claimed != 1) {
+                throw new IllegalStateException("Invalid DEVICE key claim");
+            }
+            byte[][] originals = readOriginals(row);
+            if (originals.length != 0) requireCleanCommit(row);
+            return new byte[][]{row.getBlob(1), row.getBlob(2), row.getBlob(3),
+                originals.length == 0 ? null : originals[0],
+                originals.length == 0 ? null : originals[1],
+                originals.length == 0 ? null : originals[2], new byte[]{(byte) claimed}};
+        }
+    }
+
+    private static Cursor readCommitRow(SQLiteDatabase db, String operation) {
+        return db.query(TABLE, COMMIT_COLUMNS, KEY, new String[]{operation}, null, null, null);
+    }
+
+    private static void requireCleanCommit(Cursor row) {
+        if (row.getInt(4) != 1 || !cleanAttempt(row.getBlob(1), row.getBlob(2), row.getBlob(3))) {
+            throw new IllegalStateException("Original DEVICE attempt cannot commit");
+        }
+    }
+
+    private static byte[][] readOriginals(Cursor row) {
+        byte[] approval = row.getBlob(5), policy = row.getBlob(6), request = row.getBlob(7);
+        if (approval == null && policy == null && request == null) return new byte[0][];
+        requireOriginal(approval, MAX_APPROVAL_SIZE);
+        requireOriginal(policy, MAX_POLICY_SIZE);
+        requireOriginal(request, MAX_REQUEST_SIZE);
+        return new byte[][]{approval, policy, request};
+    }
+
+    private static byte[] exactOriginal(byte[] bytes, int limit) {
+        requireOriginal(bytes, limit);
+        return bytes.clone();
+    }
+
+    private static void requireOriginal(byte[] bytes, int limit) {
+        if (bytes == null || bytes.length == 0 || bytes.length > limit) {
+            throw new IllegalArgumentException("Invalid verified DEVICE original");
+        }
+    }
+
+    private static void requireEqualOriginals(byte[][] expected, byte[][] actual) {
+        if (!Arrays.deepEquals(expected, actual)) {
+            throw new IllegalStateException("Original DEVICE approval differs");
+        }
+    }
+
+    private static boolean cleanAttempt(byte[] receipt, byte[] member, byte[] first) {
+        return receipt != null && member != null && member.length > 0 && member.length <= MAX_MEMBER_SIZE
+            && first != null && noFailure(receiptData(first, FAILURE_SIZE), 0) && cleanReceipt(receipt);
     }
 
     /** Null is absent. A row with absent evidence is still ENTERED. */
