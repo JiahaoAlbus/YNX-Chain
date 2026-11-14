@@ -161,6 +161,7 @@ def compare_business(before, after):
                     terminalCounts=cohort['terminalCounts'], backlogGrowing=cohort['backlogGrowing'],
                     pipelinePressure=cohort['pipelinePressure'],
                     publicOwnerTiming=report.get('publicOwnerTiming'),
+                    ownerPreparationTiming=report.get('ownerPreparationTiming'),
                     signerCalleeTiming=report.get('signerCalleeTiming'),
                     confirmationCalleeTiming=report.get('confirmationCalleeTiming'),
                     firstSignerFailure=report.get('firstSignerFailure'),
@@ -469,6 +470,50 @@ def public_owner_timing(receipt, load):
     return dict(attempted=transport['attempted'], omitted=transport['omitted'],
                 groups=transport['groups'], receiptProjectionSHA256=transport['receiptProjectionSHA256'],
                 firstOperationalFailure=matched, stagesAdded=False)
+
+
+def owner_preparation_timing(load, files, prefix):
+    """Read the original per-owner reply as its own operation stage."""
+    if load is None:
+        return None
+    records = []
+    for row in load['rows']:
+        if 'owner_prepare' not in dict(row['stageTimes']):
+            continue
+        path = f"load-operations/{row['index']:05d}/original-prepare-owner-reply.json"
+        raw = files.get(prefix + path)
+        if raw is None:
+            records.append(dict(index=row['index'], ownerIndex=row['ownerIndex'], replyObserved=False))
+            continue
+        require(len(raw) <= 2 << 20, 'bounded original owner preparation reply required')
+        reply = strict(raw)
+        require(reply.get('version') == 'YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1'
+                and reply.get('ownerIndex') == row['ownerIndex'] and type(reply.get('ownerIndex')) is int
+                and reply.get('operationId') == '' and reply.get('code') in ('OWNER_PREPARED', 'REJECTED', 'UNKNOWN')
+                and 'result' in reply and reply['result'] is None,
+                'original owner preparation identity or outcome differs')
+        if reply['code'] == 'OWNER_PREPARED':
+            require('failure' not in reply, 'successful original owner preparation carries failure')
+        else:
+            require((reply.get('failure') or {}).get('failurePhase') == 'PREPARE_OWNER',
+                    'original owner preparation failure phase differs')
+        elapsed = reply.get('calleeElapsedNs')
+        require(elapsed is None or type(elapsed) is int and elapsed >= 0,
+                'invalid original owner preparation elapsed time')
+        measured = (reply.get('timings') or {}).get('stages', {})
+        for value in measured.values():
+            require(all(type(value[field]) is int and value[field] >= 0 for field in ('calls', 'elapsedNs')),
+                    'invalid original owner preparation stage counters')
+        records.append(dict(index=row['index'], ownerIndex=row['ownerIndex'], replyObserved=True,
+                            code=reply['code'], replySHA256=hashlib.sha256(raw).hexdigest(),
+                            calleeElapsedNs=elapsed, originalStages=measured))
+    observed = [row for row in records if row['replyObserved']]
+    return dict(attempted=len(records), observedReplies=len(observed), records=records,
+                calleeElapsed=stages.samples([row.get('calleeElapsedNs') for row in records],len(records)),
+                stages={name: stages.samples([row.get('originalStages',{}).get(name,{}).get('elapsedNs')
+                                              for row in records],len(records))
+                        for name in sorted({name for row in observed for name in row['originalStages']})},
+                countsAsSignOrConfirmation=False, stageIntervalsAdded=False)
 
 
 def signer_callee_timing(receipt, load, files, prefix, operation='sign'):
@@ -791,6 +836,7 @@ def inspect(raw, sha256, controller, configuration_sha256):
                 peakNewBytes=receipt.get('peakNewBytes'), originalFourNodeInclusion=observed,
                 networkAccountingStatus=network.get('status') or (network.get('tcp') or {}).get('status'),
                 publicOwnerTiming=owner_timing, firstSignerFailure=first_signer_failure(owner_timing, files, prefix),
+                ownerPreparationTiming=owner_preparation_timing(load, files, prefix),
                 signerCalleeTiming=signer_callee_timing(receipt, load, files, prefix),
                 confirmationCalleeTiming=signer_callee_timing(receipt, load, files, prefix, 'confirm'),
                 observationRPC=observation_rpc(receipt),

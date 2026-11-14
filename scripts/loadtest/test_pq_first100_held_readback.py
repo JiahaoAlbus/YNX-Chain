@@ -226,6 +226,20 @@ class HeldReadbackTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'does not match parent and cohort'):
             reader.signer_callee_timing(receipt, dict(rows=rows), files, prefix)
 
+    def test_owner_preparation_timing_keeps_its_own_missing_and_success_denominator(self):
+        rows = [dict(index=i, ownerIndex=i, stageTimes=[('owner_prepare', 10)]) for i in range(2)]
+        reply = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=0, operationId='',
+                     code='OWNER_PREPARED', result=None, calleeElapsedNs=30,
+                     timings=dict(stages={'sender.pbkdf2_600000': dict(calls=1, elapsedNs=20)}))
+        path = 'public/load-operations/00000/original-prepare-owner-reply.json'
+        output = reader.owner_preparation_timing(dict(rows=rows), {path: encode(reply)}, 'public/')
+        self.assertEqual((output['attempted'], output['observedReplies']), (2, 1))
+        self.assertEqual(output['calleeElapsed']['missingOrCensored'], 1)
+        self.assertEqual(output['stages']['sender.pbkdf2_600000']['minNs'], 20)
+        self.assertFalse(output['countsAsSignOrConfirmation'])
+        with self.assertRaisesRegex(RuntimeError, 'identity or outcome differs'):
+            reader.owner_preparation_timing(dict(rows=rows), {path: encode(dict(reply, ownerIndex=1))}, 'public/')
+
     def test_confirmation_callee_timing_joins_original_owner_reply_to_confirmation_attempt(self):
         row = dict(index=4, ownerIndex=1, operationId='a'*64)
         reply = dict(version='YNX-PQ-LAB-PUBLIC-OWNER-REPLY/v1', ownerIndex=1,
