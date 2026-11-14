@@ -55,7 +55,7 @@ jobs:
         run: node --test test/asset-refresh-race.test.mjs test/invoice-reference-locale.test.mjs
       - name: Original PQ terminal and pending display controls
         run: |
-          node --test test/pq-pending-history-display.test.mjs
+          node --test test/pq-pending-history-display.test.mjs test/pq-pending-security-state.test.mjs
           node --test --test-name-pattern 'PUBLIC stored original terminal reaches' src/features/pq-transaction/migration-finality-protocol.test.mjs
       - name: Native amount input controls
         run: node --test test/transfer-view-owner.test.mjs test/transfer-preparation-error-ui.test.mjs test/desktop-history-network.test.mjs

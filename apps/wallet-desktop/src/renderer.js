@@ -1351,7 +1351,14 @@ function renderKeyState(state) {
   const previousKeyState=keyState;
   keyState = state;
   if(accountStatusObserved)desktopUI?.render(accountState,keyState);
-  if(securityChanged){void nativePayProductUI?.invalidate();desktopHistoryUI?.invalidate();if(activeAccount)void transactionHistoryUI.refresh();}
+  if(securityChanged){
+    void nativePayProductUI?.invalidate();desktopHistoryUI?.invalidate();
+    // Retire pending rows and in-flight reads from the old security session.
+    // Re-read only after both account views name the same original account.
+    clearTransactionResolution();
+    if(activeAccount && activeAccount===state.account)void refreshTransactions();
+    if(activeAccount)void transactionHistoryUI.refresh();
+  }
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqTypedActionReviewUI!=='undefined'){if(securityChanged)pqTypedActionReviewUI.invalidate();else pqTypedActionReviewUI.render();}
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
