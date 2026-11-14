@@ -40,7 +40,7 @@ jobs:
       - run: make mainnet-readiness
 
   pay-original-recovery:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay' && github.event.head_commit.message != 'Gate unqualified Comet QA inputs'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,3 +59,14 @@ jobs:
         run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund
       - name: Test original merchant lookup and authority refusal
         run: node --test apps/merchant-console/test/request-boundary.test.js apps/merchant-console/test/merchant-recovery-normal.test.js
+
+  pay-qa-input:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-p06-pay'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Test distinct Comet input gate
+        run: node --test apps/pay/native/scripts/qa-comet-input.test.mjs

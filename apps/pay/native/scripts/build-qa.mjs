@@ -7,7 +7,13 @@ import {runtimeModules,snapshotApplication} from './package-integrity.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),args=process.argv.slice(2),macApp=args.includes('--mac-app');
 const generation=args.includes('--r6')?'r6':'r5',moduleRoot=generation==='r6'?path.join(root,'r6'):root;
 const manifestAt=args.indexOf('--main-runtime-manifest'),runtimeManifest=manifestAt>=0?args[manifestAt+1]:null;
+const cometAt=args.indexOf('--comet-runtime-manifest'),cometManifest=cometAt>=0?args[cometAt+1]:null;
 if(manifestAt>=0&&!runtimeManifest)throw Error('Original owner bridge manifest path required.');
+if(cometAt>=0&&!cometManifest)throw Error('Original owner Comet runtime manifest path required.');
+// The existing Wallet IPC is live-frame scoped, not a standalone process
+// transport. Until its owner supplies the process and provider lifecycle,
+// neither a relocation plan nor executable bytes qualify as a usable runtime.
+if(cometAt>=0)throw Error('NATIVE_PAY_COMET_OWNER_LIFECYCLE_NOT_SUPPLIED');
 const output=args.find((a,i)=>a!=='--mac-app'&&a!=='--r6'&&a!=='--main-runtime-manifest'&&(manifestAt<0||i!==manifestAt+1));
 if(!output||!path.isAbsolute(output))throw Error('Explicit absolute QA output required.');
 await fs.mkdir(path.dirname(output),{recursive:true});

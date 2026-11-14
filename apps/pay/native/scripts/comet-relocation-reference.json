@@ -1,0 +1,16 @@
+{
+  "version": "ynx.pay.qa.comet-relocation-reference/v1",
+  "planPath": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/comet-relocation-contract-20261114/plan.mjs",
+  "planSha256": "ab5298409da5b51493c126d0b8ba2b140c7dd8f4ab8ad68cb35c42498fd02ccd",
+  "planBuilderReference": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/bridge-comet-intake-20261114/build-qa-4fa667d81.mjs",
+  "planBuilderSha256": "06ae536ea1cedb4cbbb7494db6569a92e745e0bc0f746ed5ab4a554d86a882ab",
+  "binarySourceCommit": "1fc330aa4200581dbec98b780ef3ca3e0ee9a779",
+  "minimumMacOS": "27.2",
+  "state": "REFERENCE_ONLY_NOT_A_RUNTIME_MANIFEST",
+  "firstPartyLicense": "FIRST_PARTY_LICENSE_NOT_FOUND",
+  "buildProvenance": "NOT_SUPPLIED",
+  "originalMainBridge": "NOT_SUPPLIED_FOR_INDEPENDENT_PROCESS",
+  "cometLifecycle": "NOT_SUPPLIED",
+  "opensslProviderConfig": "NOT_QUALIFIED",
+  "scope": "internal_QA_only"
+}
