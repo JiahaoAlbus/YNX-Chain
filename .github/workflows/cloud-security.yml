@@ -66,6 +66,7 @@ jobs:
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
               apps/cloud/client/deployment-client.mjs|apps/cloud/client/deployment-observation.mjs|apps/cloud/client/deployment-usage-data.mjs) ;;
+              apps/cloud/client/link-workflow.mjs|apps/cloud/tests/cloud-link-workflow-public.test.mjs) ;;
               apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json) ;;
               apps/cloud/scripts/load-protected-cloud-image.sh|apps/cloud/scripts/verify-protected-cloud-image.sh|apps/cloud/CONTAINER_OPERATIONS.md) ;;
               infra/docker/ynx-cloudd.Dockerfile|infra/docker/ynx-cloudd.Dockerfile.dockerignore) ;;
@@ -122,7 +123,7 @@ jobs:
       - name: Require actual complete race execution evidence
         run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl" "$RUNNER_TEMP/ide-source-normal.jsonl"
       - name: Original SDK transport and observation integration
-        run: node --test apps/cloud/tests/ide-deployment*.test.mjs
+        run: node --test apps/cloud/tests/ide-deployment*.test.mjs apps/cloud/tests/cloud-link-workflow-public.test.mjs
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.
   # Their skipped status must not be represented as full Cloud acceptance.
   security-recovery:
