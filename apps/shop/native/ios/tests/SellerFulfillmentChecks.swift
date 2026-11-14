@@ -16,7 +16,7 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
     override class func canonicalRequest(for request:URLRequest)->URLRequest{request}
     override func startLoading(){Task{@MainActor in Self.handler?(self)}}
     override func stopLoading(){}
-    func respond(_ value:Any)throws{let data=try JSONSerialization.data(withJSONObject:value);client?.urlProtocol(self,didReceive:HTTPURLResponse(url:request.url!,statusCode:200,httpVersion:nil,headerFields:["Content-Type":"application/json"])!,cacheStoragePolicy:.notAllowed);client?.urlProtocol(self,didLoad:data);client?.urlProtocolDidFinishLoading(self)}
+    func respond(_ value:Any,status:Int=200)throws{let data=try JSONSerialization.data(withJSONObject:value);client?.urlProtocol(self,didReceive:HTTPURLResponse(url:request.url!,statusCode:status,httpVersion:nil,headerFields:["Content-Type":"application/json"])!,cacheStoragePolicy:.notAllowed);client?.urlProtocol(self,didLoad:data);client?.urlProtocolDidFinishLoading(self)}
     func lose(){client?.urlProtocol(self,didFailWithError:URLError(.networkConnectionLost))}
     func body()throws->Data{if let value=request.httpBody{return value};guard let stream=request.httpBodyStream else{return Data()};stream.open();defer{stream.close()};var result=Data(),buffer=[UInt8](repeating:0,count:4096);while stream.hasBytesAvailable{let n=stream.read(&buffer,maxLength:buffer.count);guard n>=0 else{throw ShopError.invalidResponse};if n==0{break};result.append(contentsOf:buffer.prefix(n))};return result}
 }
@@ -108,7 +108,15 @@ final class FulfillmentHTTP:URLProtocol,@unchecked Sendable {
         try check(reviews==[["action":"order-terms-review","productId":"shop.order","sourceOrder":native.ID]] && model.retainedTermsReviews[native.ID]=="original-retained-main-review" && model.state=="native_main_review_pending","normal Seller terms entry reaches existing Main review and retains only pending id")
         try check(storage==beforeReview && model.orders.first(where:{$0.ID==native.ID})?.Status=="payment_pending","terms review cannot confirm payment or mutate Seller journal")
         model.readOriginalOrder(native);let read=try await take("seller/orders/order_native_terms");try check(read.request.httpMethod=="GET","result recovery queries the existing authenticated original order")
-        var foreign=nativeOrder;foreign["InvoiceID"]="foreign-invoice";try read.respond(foreign);try await until{!model.busy}
+        try read.respond(["code":"SELLER_ORIGINAL_AUTHORITY_UNAVAILABLE"],status:503)
+        try await until{!model.busy}
+        try check(model.state=="seller_order_authority_unavailable" && model.orders.first(where:{$0.ID==native.ID})?.PayIntentID==native.PayIntentID && storage==beforeReview,"normal protected GET reports unavailable seller authority and preserves the original order")
+        model.readOriginalOrder(native);let denied=try await take("seller/orders/order_native_terms")
+        try denied.respond(["code":"arbitrary"],status:403)
+        try await until{!model.busy}
+        try check(model.state=="seller_order_access_denied" && model.orders.first(where:{$0.ID==native.ID})?.InvoiceID==native.InvoiceID && storage==beforeReview,"normal protected GET reports seller access denial without changing the original order")
+        model.readOriginalOrder(native);let rebound=try await take("seller/orders/order_native_terms")
+        var foreign=nativeOrder;foreign["InvoiceID"]="foreign-invoice";try rebound.respond(foreign);try await until{!model.busy}
         try check(model.orders.first(where:{$0.ID==native.ID})?.InvoiceID==native.InvoiceID && model.state=="unavailable","rebound original financial reference cannot replace the current order")
         model.readOriginalOrder(native);let normalRead=try await take("seller/orders/order_native_terms");try normalRead.respond(nativeOrder);try await until{!model.busy}
         try check(model.orders.first(where:{$0.ID==native.ID})?.Status=="payment_pending" && model.state.isEmpty,"independent order read preserves pending money state without inference")

@@ -136,6 +136,14 @@ enum CatalogPricing {
 }
 struct ShopHTTPRefusal:Error {let status:Int}
 
+enum SellerReadRefusal: String, Error {
+    case accessDenied = "seller_order_access_denied"
+    case authorityUnavailable = "seller_order_authority_unavailable"
+}
+
+private struct SellerReadErrorBody: Decodable { let code: String }
+
+
 struct CartItem: Codable, Identifiable {
     let productID: String
     let variantID: String
@@ -637,7 +645,30 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
         var req=URLRequest(url:url);req.httpMethod=method;req.httpBody=method=="GET" ? nil:wire;req.timeoutInterval=12;req.setValue("application/json",forHTTPHeaderField:"Content-Type");req.setValue("application/json",forHTTPHeaderField:"Accept")
         if !publicRead {guard url.query==nil,url.path==base.path+"/"+path,let active,let authority else{throw ShopError.security};let proof=try await authority.proof(method:method,path:url.path,body:text,expected:active);try assertCurrent();guard proof["body"] as? String==text,let identity=proof["identityHeader"] as? String,let action=proof["actionHeader"] as? String,NativeWire.matches(identity,"^[A-Za-z0-9_-]{32,32768}$"),NativeWire.matches(action,"^[A-Za-z0-9_-]{32,32768}$") else{throw ShopError.security};req.setValue(identity,forHTTPHeaderField:"X-YNX-Product-Session-Proof-V2");req.setValue(action,forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2")}
         try assertCurrent();try beforeDispatch?();try assertCurrent()
-        do{let(data,response)=try await session.data(for:req);try assertCurrent();guard let http=response as? HTTPURLResponse,data.count<=1_048_576 else{throw ShopError.invalidResponse};if publicRead && !(200..<300).contains(http.statusCode){throw ShopHTTPRefusal(status:http.statusCode)};if http.statusCode==401{if !publicRead{try authority?.disconnect();onSessionChanged?()};throw ShopError.signedOut};guard (200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse};return data}catch{try assertCurrent();throw error}
+        do {
+            let (data, response) = try await session.data(for: req)
+            try assertCurrent()
+            guard let http = response as? HTTPURLResponse, data.count <= 1_048_576 else { throw ShopError.invalidResponse }
+            if publicRead && !(200..<300).contains(http.statusCode) { throw ShopHTTPRefusal(status: http.statusCode) }
+            if http.statusCode == 401 {
+                try authority?.disconnect()
+                onSessionChanged?()
+                throw ShopError.signedOut
+            }
+            if method == "GET", path == "seller/stores" || path == "seller/orders" || path.hasPrefix("seller/orders/") {
+                if http.statusCode == 403 { throw SellerReadRefusal.accessDenied }
+                if http.statusCode == 503,
+                   let refusal = try? JSONDecoder().decode(SellerReadErrorBody.self, from: data),
+                   refusal.code == "SELLER_ORIGINAL_AUTHORITY_UNAVAILABLE" {
+                    throw SellerReadRefusal.authorityUnavailable
+                }
+            }
+            guard (200..<300).contains(http.statusCode) else { throw ShopError.invalidResponse }
+            return data
+        } catch {
+            try assertCurrent()
+            throw error
+        }
     }
     func request<T:Decodable>(_ path:String,method:String="GET",body:Data?=nil)async throws->T{let data=try await transmit(path,method:method,body:body);return try JSONDecoder().decode(T.self,from:data)}
     // Resolve the whole original cart independently of the current catalog filter.

@@ -184,7 +184,7 @@ import SwiftUI
                     if submittedReconciliations[key]==binding{submittedReconciliations.removeValue(forKey:key)}
                 }
             }
-        }catch{if at==epoch,view==selection{state="unavailable"}}}
+        }catch{if at==epoch,view==selection{state=(error as? SellerReadRefusal)?.rawValue ?? "unavailable"}}}
     }
     private func readOriginalOrderResult(_ order:SellerOrder,at:Int,view:Int,check:@escaping ()throws->Void)async throws->SellerOrder {
         let response=try await api.raw("seller/orders/"+order.ID,method:"GET",json:[:],beforeDispatch:check);try check()
@@ -216,6 +216,7 @@ import SwiftUI
         products=[];orders=[];members=[];revocations=[];invitations=[];audit=[];settlements=[];sectionUnavailable=[]
         guard !selectedStoreID.isEmpty else{state="no_fake_records";return}
         let store=selectedStoreID
+        var orderReadRefusal: SellerReadRefusal?
         for section in ["products","orders","members","audit","settlements"] {
             do{
                 let path:String
@@ -228,11 +229,16 @@ import SwiftUI
                 case "audit":audit=try rows("events",value,as:SellerAudit.self)
                 default:settlements=try rows("settlements",value,as:SellerSettlement.self)
                 }
-            }catch{try check();guard at==epoch,view==selection else{return};sectionUnavailable.insert(section)}
+            }catch{
+                try check()
+                guard at==epoch,view==selection else{return}
+                sectionUnavailable.insert(section)
+                if section == "orders" { orderReadRefusal = error as? SellerReadRefusal }
+            }
         }
         if let account=api.currentSession?.account {do{localDrafts=try localDraftStore.load(account:account,storeID:store)}catch{localDrafts=[:];state="seller_local_draft_failed";return}}
-        state=""
-    }catch{guard at==epoch else{return};clearRows();state="unavailable"}}}
+        state=orderReadRefusal?.rawValue ?? ""
+    }catch{guard at==epoch else{return};clearRows();state=(error as? SellerReadRefusal)?.rawValue ?? "unavailable"}}}
     func draft(for product:SellerProduct)->SellerListingDraft{localDrafts[product.ID] ?? SellerListingDraft(product)}
     func saveLocalDraft(_ draft:SellerListingDraft){do{
         let check=try api.capture();guard let account=api.currentSession?.account,can("catalog.write"),!hasPending(draft.productID),products.contains(where:{$0.ID==draft.productID && $0.StoreID==selectedStoreID}),!draft.productID.isEmpty,(1...50).contains(draft.variants.count) else{throw ShopError.security}

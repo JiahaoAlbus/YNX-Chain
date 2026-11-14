@@ -24248,6 +24248,52 @@
         }
       }
     },
+    "seller_order_access_denied": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current seller session does not have access to these order records."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前卖家会话无权读取这些订单记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前的賣家工作階段無權讀取這些訂單記錄。"
+          }
+        }
+      }
+    },
+    "seller_order_authority_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop could not verify seller access. Check the seller connection and refresh."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 暂时无法验证卖家授权。请检查卖家连接后刷新。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shop 暫時無法驗證賣家授權。請檢查賣家連線後重新整理。"
+          }
+        }
+      }
+    },
     "seller_section_unavailable": {
       "extractionState": "manual",
       "localizations": {

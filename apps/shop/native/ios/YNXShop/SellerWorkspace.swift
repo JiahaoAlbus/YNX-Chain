@@ -101,6 +101,10 @@ struct SellerWorkspaceView:View {
             if !seller.signedIn{signedOut}
             else if seller.invitationInboxVisible{SellerInvitationInbox()}
             else if seller.stores.isEmpty && seller.busy{ProgressView().frame(maxWidth:.infinity,maxHeight:.infinity)}
+            else if seller.stores.isEmpty, SellerReadRefusal(rawValue: seller.state) != nil {
+                Button("retry"){seller.refresh()}.buttonStyle(ShopButtonStyle(kind:.secondary))
+                    .frame(maxWidth:.infinity,maxHeight:.infinity)
+            }
             else if seller.stores.isEmpty{VStack(spacing:20){ContentUnavailableView("seller_no_stores",systemImage:"storefront",description:Text("seller_create_store_note"));Button("seller_create_store"){sheet = .createStore}.buttonStyle(ShopButtonStyle()).disabled(!seller.signedIn || seller.busy || seller.hasPending("create-store"))}.frame(maxWidth:.infinity,maxHeight:.infinity)}
             else if desktop{HStack(spacing:0){sidebar.frame(width:232);ShopTheme.border.frame(width:1);NavigationStack{page(section,desktop:true)}}}
             else{mobile}
