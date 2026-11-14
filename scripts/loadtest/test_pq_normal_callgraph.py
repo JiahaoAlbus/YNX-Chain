@@ -265,13 +265,29 @@ class NormalCallgraphControls(unittest.TestCase):
         output.__truediv__.side_effect = {'result.json': result, 'failure.json': failure}.__getitem__
         result.exists.return_value = True
         failure.exists.return_value = False
-        with mock.patch.object(driver.time, 'monotonic', side_effect=[1, 2]):
+        with mock.patch.object(driver.proof_readback, 'read_original', return_value=b'{}'), \
+                mock.patch.object(driver.time, 'monotonic', side_effect=[1, 2]):
             with self.assertRaisesRegex(RuntimeError, 'bounded cutoff'):
                 backend.wait_live_capture(output, None, {}, 1, stop, 2)
         stop.set()
         for lane in ({}, {'session': mock.Mock()}):
             with self.assertRaisesRegex(RuntimeError, 'canceled before command'):
                 backend.live_materials_command(lane, 'result', 'original', 1, stop)
+
+    def test_live_capture_waits_for_partial_result_without_issuing_another_command(self):
+        backend = object.__new__(driver.NormalBackend)
+        with tempfile.TemporaryDirectory() as temp:
+            case = Path(temp).resolve()
+            result = case/'result.json'
+            result.write_bytes(b'{"sequence":')
+
+            def complete_write(_):
+                result.write_bytes(b'{"sequence":"1"}')
+
+            stop = threading.Event()
+            with mock.patch.object(stop, 'wait', side_effect=complete_write) as wait:
+                backend.wait_live_capture(case, case, {}, 1, stop, time.monotonic()+1)
+            wait.assert_called_once()
 
     def test_checkpoint_cache_cannot_reuse_replaced_same_size_and_mtime_state(self):
         b = object.__new__(driver.NormalBackend)

@@ -841,9 +841,21 @@ class NormalBackend:
                     raise RuntimeError('normal live proof operation is UNKNOWN; original failure record unavailable') from error
                 raise RuntimeError('normal live proof operation is UNKNOWN')
             if available:
-                if not stop.is_set() and time.monotonic() < until:
-                    return
-                break
+                # The original Go writer creates the file before writing its
+                # JSON. Do not spend the lane's single result command on an
+                # empty or partial file. Wait on this same original output.
+                try:
+                    raw = proof_readback.read_original(output / 'result.json', limit=2 << 20, allow_empty=True)
+                    proof_readback.strict(raw)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    pass
+                except RuntimeError as error:
+                    if str(error) != 'original public input changed during read':
+                        raise
+                else:
+                    if not stop.is_set() and time.monotonic() < until:
+                        return
+                    break
             stop.wait(min(.02, max(0, until - time.monotonic())))
         raise RuntimeError('normal original live proof result not supplied before bounded cutoff')
 
