@@ -105,12 +105,30 @@ func TestDynamicOriginalModelDisclosure(t *testing.T) {
 	if e = r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, ErrCurrent) || reader.last.closes != 1 {
 		t.Fatalf("close failure: %v", e)
 	}
+	t.Run("cancellation_during_acquire_forbids_read", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		reader.mode, reader.cancel = "cancel-acquire", cancel
+		defer func() { reader.mode, reader.cancel = "", nil }()
+		if e := r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, context.Canceled) ||
+			reader.last.reads != 0 || reader.last.closes != 1 {
+			t.Fatalf("read after canceled acquisition: err=%v reads=%d closes=%d", e, reader.last.reads, reader.last.closes)
+		}
+	})
+	t.Run("retirement_during_current_forbids_reread", func(t *testing.T) {
+		reader.mode, reader.cancel = "cancel-current", func() { _ = r.Retire() }
+		if e := r.CheckTaskModelDisclosure(ctx, q2); !errors.Is(e, ErrRetired) ||
+			reader.last.reads != 1 || reader.last.closes != 1 {
+			t.Fatalf("read after revoked current: err=%v reads=%d closes=%d", e, reader.last.reads, reader.last.closes)
+		}
+	})
 }
 
 type publicDisclosureReader struct {
 	t       *testing.T
 	permits map[policy.Bind]modelDisclosure
 	mode    string
+	cancel  func()
 	last    *publicDisclosurePermit
 }
 
@@ -128,8 +146,11 @@ func (r *publicDisclosureReader) ReadOriginalPermit(_ context.Context, k origina
 	if e != nil {
 		r.t.Fatal(e)
 	}
-	p := &publicDisclosurePermit{key: k, raw: string(raw), mode: r.mode}
+	p := &publicDisclosurePermit{key: k, raw: string(raw), mode: r.mode, cancel: r.cancel}
 	r.last = p
+	if r.mode == "cancel-acquire" {
+		r.cancel()
+	}
 	if r.mode == "partial" {
 		return p, ErrCurrent
 	}
@@ -140,6 +161,7 @@ type publicDisclosurePermit struct {
 	key           originalModelDisclosureKey
 	raw, mode     string
 	reads, closes int
+	cancel        func()
 }
 
 func (p *publicDisclosurePermit) ReadOriginal(_ context.Context, k originalModelDisclosureKey) (string, error) {
@@ -152,7 +174,12 @@ func (p *publicDisclosurePermit) ReadOriginal(_ context.Context, k originalModel
 	}
 	return p.raw, nil
 }
-func (p *publicDisclosurePermit) Current(context.Context) error { return nil }
+func (p *publicDisclosurePermit) Current(context.Context) error {
+	if p.mode == "cancel-current" {
+		p.cancel()
+	}
+	return nil
+}
 func (p *publicDisclosurePermit) Close() error {
 	p.closes++
 	if p.mode == "close" {

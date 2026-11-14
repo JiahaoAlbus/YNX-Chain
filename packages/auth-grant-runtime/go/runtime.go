@@ -294,8 +294,16 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 		if dynamic == nil {
 			return ErrUnavailable
 		}
+		// A held child returned from an external issuer callback does not
+		// extend this request's scope. Adopt it, then gate the first read.
+		if e = r.Current(ctx); e != nil {
+			return e
+		}
 		raw, e = dynamic.ReadOriginal(ctx, key)
 		if e != nil {
+			return e
+		}
+		if e = r.Current(ctx); e != nil {
 			return e
 		}
 		if len(raw) == 0 || len(raw) > 1<<20 {
@@ -335,9 +343,15 @@ func (r *Runtime) CheckTaskModelDisclosure(ctx context.Context, q ModelDisclosur
 		if e = dynamic.Current(ctx); e != nil {
 			return e
 		}
+		if e = r.Current(ctx); e != nil {
+			return e
+		}
 		original, readErr := dynamic.ReadOriginal(ctx, key)
 		if readErr != nil {
 			return readErr
+		}
+		if e = r.Current(ctx); e != nil {
+			return e
 		}
 		if original != raw {
 			return ErrCurrent
