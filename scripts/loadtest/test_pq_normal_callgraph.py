@@ -14,6 +14,36 @@ spec=importlib.util.spec_from_file_location('normal_callgraph',Path(__file__).wi
 driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(driver)
 
 class NormalCallgraphControls(unittest.TestCase):
+    def test_ack_requires_explicit_uint32_checktx_code_and_never_reposts(self):
+        for code in (None, False, "0", 0, 3):
+            with self.subTest(code=code), tempfile.TemporaryDirectory() as temp:
+                case=Path(temp)
+                backend=object.__new__(driver.NormalBackend)
+                backend.attempted=set()
+                backend.submit_lock=threading.Lock()
+                backend.c=SimpleNamespace(plan={'nodes':[dict(rpcAddress='http://127.0.0.1:1')]})
+                row=dict(index=0,id='logical',operationId='original',ownerIndex=4,nonce=1)
+                tx=dict(abciHash='a'*64,nativeHash='b'*64)
+                reply=dict(hash='a'*64)
+                if code is not None:
+                    reply['code']=code
+                events=[]
+                opener=mock.MagicMock()
+                opener.open.return_value.__enter__.return_value.read.return_value=json.dumps(dict(result=reply)).encode()
+                def post():
+                    backend.broadcast_once(row,tx,b'original',case,events.append,threading.Event())
+                with mock.patch.object(driver.urllib.request,'build_opener',return_value=opener):
+                    if code==3:
+                        with self.assertRaises(driver.scheduler.KnownFailure):
+                            post()
+                    else:
+                        post()
+                    with self.assertRaisesRegex(RuntimeError,'already attempted'):
+                        post()
+                opener.open.assert_called_once()
+                self.assertEqual(any(e['kind']=='ack' for e in events),type(code) is int and code==0)
+                self.assertEqual(json.loads((case/'ack.json').read_text())['ack']['result'],reply)
+
     def test_inclusion_requires_explicit_success_and_all_replies_before_cutoff(self):
         backend=object.__new__(driver.NormalBackend)
         backend.c=SimpleNamespace(proof_timeout=1,plan={'nodes':[dict(index=i) for i in range(4)]})

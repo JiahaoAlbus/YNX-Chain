@@ -588,7 +588,12 @@ class NormalBackend:
         lab.write_new(case/"ack.json",dict(ack=ack,error=transport,requestBodyBytes=len(body),interpretation="one POST attempt, never inferred acceptance/finality from HTTP"))
         if isinstance(ack,dict) and isinstance(ack.get("result"),dict) and ack["result"].get("hash"):
             lab.require(normal.comet_hash(ack["result"]["hash"])==expected,"normal ACK transaction hash differs")
-            if int(ack["result"].get("code",0))!=0:raise scheduler.KnownFailure("original identity-bound CheckTx rejection; no retry")
+            code = ack["result"].get("code")
+            if type(code) is not int or not 0 <= code < 1 << 32:
+                # Preserve this original as unacknowledged. Inclusion can
+                # still be observed by hash without sending another POST.
+                return
+            if code!=0:raise scheduler.KnownFailure("original identity-bound CheckTx rejection; no retry")
             notify(dict(kind="ack"))
     def observe_inclusion(self,row,tx,case,notify,stop):
         expected=normal.comet_hash(tx["abciHash"])
