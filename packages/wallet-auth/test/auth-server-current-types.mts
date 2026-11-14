@@ -14,3 +14,9 @@ owner.deviceCurrent.readSessionOriginal({approved:true});
 owner.deviceCurrent.readCurrent(expected,ctx.signal);
 // @ts-expect-error server Source cannot be a device signer
 owner.deviceCurrent.produceHTTPProof({});
+const release = await owner.releaseCurrent(held,ctx);const physicallyClosed:true=release.closed;void physicallyClosed;
+await owner.drainReleasedCurrent(held,ctx);
+// @ts-expect-error per-held release cannot accept an unbranded holder
+owner.releaseCurrent({},ctx);
+// @ts-expect-error current owner abort context cannot be substituted with a DTO
+owner.releaseCurrent(held,{signal:{aborted:false}});

@@ -1,4 +1,4 @@
-import type {OriginalProductSessionDeviceCurrentSourceV4} from '../src/product-session-device-v4.js';
+import type {OriginalProductSessionDeviceCurrentSourceV4,OriginalProductSessionDeviceCurrentV4,ProductSessionDeviceAbortContextV4} from '../src/product-session-device-v4.js';
 /** Private startup custody reference, not Source/Root/Principal or a grant. */
 declare const startupReference:unique symbol;
 export type OriginalDeviceV4ServerCurrentStartup=Readonly<{[startupReference]:never}>;
@@ -10,6 +10,9 @@ export declare function originalDeviceV4ServerCurrentStartupStatus(reference:Ori
  configured:boolean;failurePresent:boolean;failure:unknown;closeSelected:boolean;
  closed:boolean;cleanupFailurePresent:boolean;cleanupFailure:unknown;unknown:boolean;
 }>;
+/** No new acquisition or effect; the exact owned held/context are mandatory. */
+export declare function releaseOriginalDeviceV4ServerCurrentHeld(reference:OriginalDeviceV4ServerCurrentStartup,held:OriginalProductSessionDeviceCurrentV4,context:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
+export declare function drainOriginalDeviceV4ServerCurrentHeld(reference:OriginalDeviceV4ServerCurrentStartup,held:OriginalProductSessionDeviceCurrentV4,context:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
 /** Retains same original close promise; pending join blocks close/parents. */
 export declare function closeOriginalDeviceV4ServerCurrentAfterHost(reference:OriginalDeviceV4ServerCurrentStartup):Promise<void>;
 /** Explicit same-original debt continuation, never new acquire or effect. */

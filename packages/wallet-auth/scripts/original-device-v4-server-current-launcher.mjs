@@ -15,6 +15,11 @@ export async function openOriginalDeviceV4ServerCurrentBeforeHost(){
 }
 export function originalDeviceV4ServerCurrentHostOptions(reference){const s=state(reference);return Object.freeze(s.configured&&!s.closeSelected?{deviceCurrent:s.provider}:{});}
 export function originalDeviceV4ServerCurrentStartupStatus(reference){const s=state(reference),d=s.debt?.status();return Object.freeze({configured:s.configured,failurePresent:s.failurePresent,failure:s.failure,closeSelected:s.closeSelected,closed:s.closed,cleanupFailurePresent:d?.firstCausePresent??false,cleanupFailure:d?.firstCause,unknown:(s.failurePresent&&s.owner!==null)||!!d?.firstCausePresent});}
+// One original held child only. No acquisition, Source/credential creation,
+// nonce consume or provider-wide shutdown. The owner validates ref/context.
+export function releaseOriginalDeviceV4ServerCurrentHeld(reference,held,context){const s=state(reference);if(!s.configured||!s.owner||s.closeSelected)fail('DEVICE_V4_SERVER_CURRENT_HELD_NOT_SUPPLIED');return s.owner.releaseCurrent(held,context);}
+// Explicit continuation of the same original release debt only.
+export function drainOriginalDeviceV4ServerCurrentHeld(reference,held,context){const s=state(reference);if(!s.owner)fail('DEVICE_V4_SERVER_CURRENT_HELD_NOT_SUPPLIED');return s.owner.drainReleasedCurrent(held,context);}
 export function closeOriginalDeviceV4ServerCurrentAfterHost(reference){const s=state(reference);if(s.closeSelected)return s.closePromise;s.closeSelected=true;s.closePromise=(async()=>{try{await s.debt?.drain();}finally{s.closed=s.debt?s.debt.closed:true;}if(s.debt?.firstCausePresent)throw s.debt.firstCause;})();return s.closePromise;}
 // Only explicit drain of the SAME original owner, after close entry. The
 // original close promise/result remains unchanged even after debt settles.

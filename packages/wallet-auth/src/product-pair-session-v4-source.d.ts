@@ -1,7 +1,9 @@
-import type{OriginalProductSessionDeviceCurrentSourceV4}from'./product-session-device-v4.js';
+import type{OriginalProductSessionDeviceCurrentSourceV4,OriginalProductSessionDeviceCurrentV4,ProductSessionDeviceAbortContextV4}from'./product-session-device-v4.js';
 declare const serverCurrentOwner:unique symbol;
 export interface OriginalProductSessionDeviceV4ServerCurrentOwner {
  readonly[serverCurrentOwner]:never;readonly deviceCurrent:OriginalProductSessionDeviceCurrentSourceV4;
+ releaseCurrent(held:OriginalProductSessionDeviceCurrentV4,sameContext:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
+ drainReleasedCurrent(held:OriginalProductSessionDeviceCurrentV4,sameContext:ProductSessionDeviceAbortContextV4):Promise<Readonly<{closed:true;firstCausePresent:boolean;firstCause:unknown}>>;
  retire():void;join():Promise<void>;close():Promise<void>;drainPartial():Promise<void>;status():Readonly<{retired:boolean;pending:number;held:number;unknown:boolean;firstCausePresent:boolean;firstCause:unknown}>;
 }
 export interface OriginalProductPairSessionV4PartialOwner {retire():void;join():void|Promise<void>;close():void|Promise<void>;drainPartial?():Promise<void>}
