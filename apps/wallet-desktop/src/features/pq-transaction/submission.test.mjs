@@ -54,3 +54,21 @@ test('transport UNKNOWN preserves falsy first cause, closes peer once, and read 
 test('read of signed-only original does not create a submission marker or claim a broadcast',async t=>{
  const f=await setup(t);await assert.rejects(f.create().reconcile(original.hash,f.guard),{code:'PQ_TRANSACTION_NOT_ENTERED'});assert.equal(f.counts().gets,0);assert.equal((await f.store.readPQProgress(account,original.hash,()=>{})).status,'signed-unsubmitted');
 });
+
+// PUBLIC synthetic IPC/transport: no real account, signing, POST or finality.
+test('PUBLIC original UNKNOWN normal renderer -> Main query -> cold journal updates same hash without POST',async t=>{
+ assert.equal(vector.syntheticOnly,true);assert.equal(vector.actualCometNode,false);assert.equal(vector.independentFinality,false);
+ const {runInNewContext}=await import('node:vm'),{projectPendingTransactions}=await import('../../transaction-resolution-display.mjs'),{appendPQBroadcastActions}=await import('../../wallet-pq-broadcast-ui.mjs'),{TransactionSubmissions}=await import('../../transaction-submissions.mjs');
+ const f=await setup(t);await f.store.beginPQSubmission(account,original.hash,()=>{});
+ const cold=new FileTransactionIntentStore({filePath:f.filePath}),controller=f.create(cold),guard=f.freshGuard(),submissions=new TransactionSubmissions({intentStore:cold});
+ const main=await fs.readFile(new URL('../../main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function safeIPC('),end=main.indexOf('function safeErrorClass(',start),sensitive=main.match(/^const sensitiveIPC = .*;$/m)?.[0],line=main.match(/^handleWalletIPC\('wallet:pq-submission-query'.*$/m)?.[0],handlers=new Map();assert(sensitive&&line);
+ const keyAccess={current:()=>guard,run:async action=>action()};runInNewContext(main.slice(start,end)+'\n'+sensitive+'\n'+line,{keyAccess,pqTransactionSubmission:controller,handleWalletIPC:(name,fn)=>handlers.set(name,fn)});
+ const query=hash=>handlers.get('wallet:pq-submission-query')(null,hash),source=await fs.readFile(new URL('../../renderer.js',import.meta.url),'utf8'),a=source.indexOf('async function refreshTransactions()'),b=source.indexOf('\ndocument.querySelector("#refresh-pending-transactions")',a),nodes=new Map();
+ class Element{constructor(doc){this.ownerDocument=doc;this.children=[];this.listeners={};this.textContent='';this.disabled=false;this.hidden=false;}append(...v){this.children.push(...v)}replaceChildren(...v){this.children=v}addEventListener(name,fn){this.listeners[name]=fn}}
+ const doc={querySelector(name){if(!nodes.has(name))nodes.set(name,new Element(doc));return nodes.get(name)},createElement(){return new Element(doc)}};
+ const api={pendingTransactions:async()=>({ok:true,value:await submissions.list(account)}),queryPQSubmission:async hash=>structuredClone(await query(hash))};
+ const context={document:doc,window:{ynxWallet:api},activeAccount:account,transactionRevision:0,transactionActionRevision:0,keyState:{account,revision:1,locked:false,authenticating:false},projectPendingTransactions,appendPQOriginalRecoveryActions(){},appendPQProgressActions(){},appendPQBroadcastActions:options=>appendPQBroadcastActions({...options,document:doc}),copyUI:(node,text)=>node.textContent=text};
+ runInNewContext(source.slice(a,b),context);await context.refreshTransactions();const row=nodes.get('#pending-transactions').children[0],button=row.children.find(n=>n.textContent.includes('Query the same PQ submission'));assert(button);
+ await button.listeners.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(f.counts().gets,1);assert.equal(f.counts().posts,0);assert.equal(f.counts().acquisitions,0);
+ const progress=await new FileTransactionIntentStore({filePath:f.filePath}).readPQProgress(account,original.hash,()=>{});assert.equal(progress.status,'inclusion-observed');assert.equal(progress.consensusFinality,false);assert.equal(progress.retryAuthorized,false);assert.equal((await cold.readPQOriginals(account,()=>{}))[0].wire,original.wire);assert.match(nodes.get('#pending-transactions').children[0].children[1].textContent,/Inclusion of the same original observed/);
+});

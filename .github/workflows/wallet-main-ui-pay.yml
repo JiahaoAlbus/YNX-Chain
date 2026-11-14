@@ -74,7 +74,7 @@ jobs:
       - name: Original typed journal capacity and recovery controls
         run: node --test src/wallet-pq-typed-original.test.mjs
       - name: PQ operator trust, original query, and submission controls
-        run: node --test test/operator-deployment-identity.test.mjs test/original-policy-raw-bytes.test.mjs test/original-policy-binding.test.mjs test/operator-query-http-observation.test.mjs test/operator-chain-763-interop.test.mjs src/features/pq-transaction/node-transport.test.mjs src/features/pq-transaction/node-finality-transport.test.mjs src/features/pq-transaction/typed-action-query-node.test.mjs src/features/pq-transaction/submission-adversarial.test.mjs
+        run: node --test test/operator-deployment-identity.test.mjs test/original-policy-raw-bytes.test.mjs test/original-policy-binding.test.mjs test/operator-query-http-observation.test.mjs test/operator-chain-763-interop.test.mjs src/features/pq-transaction/node-transport.test.mjs src/features/pq-transaction/node-finality-transport.test.mjs src/features/pq-transaction/typed-action-query-node.test.mjs src/features/pq-transaction/submission-adversarial.test.mjs src/features/pq-transaction/submission.test.mjs
       - name: Pay original order binding through the normal client
         run: node --test test/wallet-native-pay-original-order.test.mjs
       - name: First DEVICE account approval and existing pair/completion boundaries
