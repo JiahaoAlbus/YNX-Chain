@@ -1,0 +1,27 @@
+name: Browser new tab navigation
+on:
+  push:
+    paths:
+      - 'apps/browser/native/Sources/YNXBrowserNative/main.swift'
+      - 'apps/browser/native/Sources/YNXBrowserCore/Omnibox.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/BlankTabNavigationProbe.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/test-blank-tab-navigation.py'
+      - '.github/workflows/browser-blank-tab.yml'
+  pull_request:
+    paths:
+      - 'apps/browser/native/Sources/YNXBrowserNative/main.swift'
+      - 'apps/browser/native/Sources/YNXBrowserCore/Omnibox.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/BlankTabNavigationProbe.swift'
+      - 'apps/browser/native/Tests/BrowserDownloadActivityTests/test-blank-tab-navigation.py'
+      - '.github/workflows/browser-blank-tab.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  local-webkit:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify new-tab POST and link
+        run: /usr/bin/python3 apps/browser/native/Tests/BrowserDownloadActivityTests/test-blank-tab-navigation.py --output "$RUNNER_TEMP/ynx-blank-tab"
