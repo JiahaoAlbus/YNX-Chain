@@ -107,7 +107,7 @@ func TestPQLabLiveMaterialsCaptureOnlyOriginalCommitCrossings(t *testing.T) {
 				}
 				return actual, nil
 			}
-			actual, raw, err := control.captureCheckpoint(ctx, load)
+			actual, raw, err := control.captureCheckpoint(ctx, load, nil)
 			passed := scenario == "stable" || scenario == "engine-crossing" || scenario == "two-engine-crossings" || scenario == "app-crossing"
 			wantedCalls := 1
 			if scenario == "engine-crossing" || scenario == "app-crossing" {
@@ -206,9 +206,17 @@ func TestPQLabLiveMaterialsCaptureKnownCoordinatesNeverRebase(t *testing.T) {
 				}
 				return sm.State{}, errors.New("unexpected extra capture")
 			}
-			actual, raw, err := control.captureCheckpoint(context.Background(), load)
+			trace := newPQLabProofCaptureObservation(0, 1, "", "")
+			actual, raw, err := control.captureCheckpoint(context.Background(), load, trace)
 			if err == nil || calls != 2 || len(raw) != 0 || actual.LastBlockHeight != 0 || !errors.Is(err, errProofHostCheckpointCrossing) {
 				t.Fatal("known-coordinate refusal retried or lost first crossing", calls, err)
+			}
+			wantCrossings := uint32(1)
+			if scenario == "cumulative-forward" {
+				wantCrossings = 2
+			}
+			if trace.crossings != wantCrossings || trace.metrics.Snapshot().Stages["proof.engineRead"].Calls != 2 {
+				t.Fatal("observation omitted a terminal typed crossing or counted a coordinate rejection", scenario, trace.crossings)
 			}
 			// Preserve the actual historical engine coordinate used by the first
 			// pair; no old AppHash is relabeled at the subsequently observed H.

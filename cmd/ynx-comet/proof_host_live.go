@@ -26,7 +26,7 @@ func prepareOperatorProofHostLive(n *node.Node, app *consensus.Application, p pq
 		return nil, err
 	}
 	if lab {
-		return consensus.NewPQLabLiveMaterialsControl(n, app, p.proofLivePolicy, p.proofLivePolicyHash)
+		return consensus.NewPQLabLiveMaterialsControlWithCaptureObservation(n, app, p.proofLivePolicy, p.proofLivePolicyHash, p.startupTimings)
 	}
 	return consensus.NewProofHostLiveControl(n, app, p.proofLivePolicy, p.proofLivePolicyHash)
 }
